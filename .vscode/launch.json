@@ -1,0 +1,35 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        // {
+        //     "name": "AH-Demo",
+        //     "request": "launch",
+        //     "type": "al",
+        //     "tenant": "78685ea9-9ad1-4b8c-ab0a-329bef42667a",
+        //     "environmentType": "Sandbox",
+        //     "environmentName": "Demo",
+        //     "startupObjectId": 89, //50600
+        //     "startupObjectType": "Page",
+        //     "breakOnError": true,
+        //     "launchBrowser": true,
+        //     "enableLongRunningSqlStatements": true,
+        //     "enableSqlInformationDebugger": true,
+        //     "schemaUpdateMode": "ForceSync"
+        // },
+        {
+            "name": "Strong NL_Copy20240710 - Sandbox ",
+            "request": "launch",
+            "type": "al",
+            "tenant": "a60762e1-df10-4e4b-8f44-174c51589110",
+            "environmentType": "Sandbox",
+            "environmentName": "NL_Copy20240710",
+            "startupObjectId": 77, //89, //50600
+            "startupObjectType": "Page",
+            "breakOnError": true,
+            "launchBrowser": true,
+            "enableLongRunningSqlStatements": true,
+            "enableSqlInformationDebugger": true,
+            "schemaUpdateMode": "ForceSync"
+        }
+    ]
+}
