@@ -44,4 +44,43 @@ codeunit 50602 "DDSIA Rest API Mgt."
         Message('Odoo Response: %1', ResponseText);
     end;
 
+    procedure SelectPlanningVendor(var pVendorName: Text): Integer
+    var
+        VenBuffer: record "DDSIA Vendor Selection";
+        rtv: Integer;
+        ResponseText: Text;
+
+        JsonArray: JsonArray;
+        JsonObject: JsonObject;
+        JsonToken, VendorIdToken, VendorNameToken : JsonToken;
+        VendorId: Integer;
+        VendorName: Text;
+        i: Integer;
+    begin
+        rtv := 0;
+        pVendorName := '';
+        GetResponse('/planning/partners', ResponseText);
+        JsonArray.ReadFrom(ResponseText);
+        for i := 0 to JsonArray.Count() - 1 do begin
+            JsonArray.Get(i, JsonToken);
+            JsonObject := JsonToken.AsObject();
+            JsonObject.Get('vendor_id', VendorIdToken);
+            VendorId := VendorIdToken.AsValue().AsInteger();
+            JsonObject.Get('vendor_name', VendorNameToken);
+            VendorName := VendorNameToken.AsValue().AsText();
+
+            VenBuffer.Init();
+            VenBuffer."Vendor ID" := VendorId;
+            VenBuffer."Vendor Name" := VendorName;
+            VenBuffer.Insert();
+        end;
+
+        // Show as a page for selection
+        if Page.RunModal(0, VenBuffer) = Action::LookupOK then begin
+            rtv := VenBuffer."Vendor ID"; // Return the selected Vendor ID
+            pVendorName := VenBuffer."Vendor Name";
+        end;
+        exit(rtv);
+    end;
+
 }
