@@ -24,6 +24,20 @@ pageextension 50602 "DDSIA Job List" extends "Job List"
                     JobMgt.OpenTaskSchedulerAllJob();
                 end;
             }
+            action("PushToPlanningIntegration")
+            {
+                ApplicationArea = Jobs;
+                Caption = 'Push to Planning Integration';
+                Image = LinkWeb;
+                ToolTip = 'Submit project, Tasks, and Planning Lines into Planning Integration system.';
+
+                trigger OnAction()
+                var
+                    RestMgt: Codeunit "DDSIA Rest API Mgt.";
+                begin
+                    RestMgt.PushProjectToPlanningIntegration(Rec);
+                end;
+            }
         }
         addafter("Job Task &Lines_Promoted")
         {

@@ -3,6 +3,17 @@ pageextension 50601 "DDSIA Job Card" extends "Job Card"
     layout
     {
         // Add changes to page layout here
+        addafter("Sell-to Customer Name")
+        {
+            field("Vendor No."; Rec."Vendor No.")
+            {
+                ApplicationArea = All;
+            }
+            field("Vendor Name"; Rec."Vendor Name")
+            {
+                ApplicationArea = All;
+            }
+        }
     }
 
     actions
