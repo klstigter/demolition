@@ -35,13 +35,33 @@ pageextension 50602 "DDSIA Job List" extends "Job List"
                 var
                     RestMgt: Codeunit "DDSIA Rest API Mgt.";
                 begin
-                    RestMgt.PushProjectToPlanningIntegration(Rec);
+                    RestMgt.PushProjectToPlanningIntegration(Rec, false);
+                end;
+            }
+            action("DownloadJsonRequest")
+            {
+                ApplicationArea = Jobs;
+                Caption = 'Download JSon Request text';
+                Image = LinkWeb;
+                ToolTip = 'Download JSon Request text for Planning Integration system.';
+
+                trigger OnAction()
+                var
+                    RestMgt: Codeunit "DDSIA Rest API Mgt.";
+                begin
+                    RestMgt.PushProjectToPlanningIntegration(Rec, true);
                 end;
             }
         }
         addafter("Job Task &Lines_Promoted")
         {
             actionref("Planning Lines Board Promoted"; "Planning Lines Board")
+            {
+            }
+            actionref("PushToPlanningIntegration Promoted"; "PushToPlanningIntegration")
+            {
+            }
+            actionref("DownloadJsonRequest Promoted"; "DownloadJsonRequest")
             {
             }
         }

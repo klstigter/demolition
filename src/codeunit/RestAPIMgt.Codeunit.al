@@ -129,11 +129,15 @@ codeunit 50602 "DDSIA Rest API Mgt."
         exit(rtv);
     end;
 
-    procedure PushProjectToPlanningIntegration(Job: record Job)
+    procedure PushProjectToPlanningIntegration(Job: record Job; DownloadJSonRequest: Boolean)
     var
         Task: record "Job Task";
         PlanningLine: record "Job Planning Line";
         Ven: Record Vendor;
+        TempBlob: Codeunit "Temp Blob";
+        OutS: OutStream;
+        InS: InStream;
+        ToFile: Text;
 
         Project_Obj: JsonObject;
 
@@ -188,8 +192,16 @@ codeunit 50602 "DDSIA Rest API Mgt."
         Project_Obj.Add('tasks', TaskArray);
         Project_Obj.WriteTo(ProjectJsonText);
 
-        PostRequest('/planning/projectcreationfrombc', ProjectJsonText, ResponseText);
-        Message(ResponseText);
+        if DownloadJSonRequest then begin
+            TempBlob.CreateOutStream(OutS);
+            OutS.WriteText(ProjectJsonText);
+            TempBlob.CreateInStream(InS);
+            ToFile := '_JsonRequest.txt';
+            DownloadFromStream(InS, '', '', '', ToFile);
+        end else begin
+            PostRequest('/planning/projectcreationfrombc', ProjectJsonText, ResponseText);
+            Message(ResponseText);
+        end;
     end;
 
 }
