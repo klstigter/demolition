@@ -18,6 +18,17 @@ pageextension 50600 "DDSIA Job Planning Lines" extends "Job Planning Lines"
                 ApplicationArea = All;
             }
         }
+        addbefore("Document No.")
+        {
+            field("Vendor No."; Rec."Vendor No.")
+            {
+                ApplicationArea = All;
+            }
+            field("Vendor Name"; Rec."Vendor Name")
+            {
+                ApplicationArea = All;
+            }
+        }
     }
 
     actions

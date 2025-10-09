@@ -29,6 +29,19 @@ tableextension 50600 "DDSIA Job Task" extends "Job Planning Line"
                 CheckOverlap();
             end;
         }
+        field(50603; "Vendor No."; Code[20])
+        {
+            DataClassification = ToBeClassified;
+            TableRelation = Vendor;
+            Caption = 'Vendor No.';
+        }
+        field(50604; "Vendor Name"; Text[100])
+        {
+            FieldClass = FlowField;
+            CalcFormula = lookup(Vendor.Name where("No." = field("Vendor No.")));
+            Editable = false;
+            Caption = 'Vendor Name';
+        }
     }
 
     keys

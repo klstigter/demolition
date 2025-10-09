@@ -131,8 +131,8 @@ codeunit 50602 "DDSIA Rest API Mgt."
 
     procedure PushProjectToPlanningIntegration(Job: record Job; DownloadJSonRequest: Boolean)
     var
-        Task: record "Job Task";
         PlanningLine: record "Job Planning Line";
+        Task: record "Job Task";
         Ven: Record Vendor;
         TempBlob: Codeunit "Temp Blob";
         OutS: OutStream;
@@ -152,15 +152,9 @@ codeunit 50602 "DDSIA Rest API Mgt."
 
         IntegrationPartnerId: Integer;
     begin
-        Job.TestField("Vendor No.");
-        Ven.Get(Job."Vendor No.");
-        Ven.TestField("Planning Vendor id");
-        IntegrationPartnerId := Ven."Planning Vendor id";
-
         // Job
         Project_Obj.Add('bc_project_no', Job."No.");
         Project_Obj.Add('bc_project_desc', Job.Description);
-        Project_Obj.Add('partner_id', IntegrationPartnerId);
 
         // Task
         Task.SetRange("Job No.", Job."No.");
@@ -180,9 +174,29 @@ codeunit 50602 "DDSIA Rest API Mgt."
                     repeat
                         clear(LineObj);
                         LineObj.Add('bc_jobplanningline_lineno', PlanningLine."Line No.");
-                        LineObj.Add('bc_jobplanningline_no', PlanningLine."No.");
                         LineObj.Add('bc_jobplanningline_type', format(PlanningLine.Type));
+                        LineObj.Add('bc_jobplanningline_no', PlanningLine."No.");
+                        LineObj.Add('bc_jobplanningline_resid', GetResIdFromResource(PlanningLine));
                         LineObj.Add('bc_jobplanningline_desc', PlanningLine.Description);
+
+                        if PlanningLine."Vendor No." <> '' then begin
+                            Ven.Get(PlanningLine."Vendor No.");
+                            Ven.TestField("Planning Vendor id");
+                            IntegrationPartnerId := Ven."Planning Vendor id";
+                            LineObj.Add('bc_jobplanningline_vendorid', IntegrationPartnerId);
+                        end else begin
+                            LineObj.Add('bc_jobplanningline_vendorid', 0);
+                        end;
+
+                        LineObj.Add('bc_jobplanningline_datestart',
+                            PlanningLine."Planning Date" <> 0D ? format(PlanningLine."Planning Date", 0, '<Year4><Month,2><Day,2>') : '');
+                        LineObj.Add('bc_jobplanningline_timestart',
+                            PlanningLine."Start Time" <> 0T ? format(PlanningLine."Start Time", 0, '<Hours24,2><Filler Character,0>:<Minutes,2>') : '');
+                        LineObj.Add('bc_jobplanningline_dateend',
+                            PlanningLine."End Planning Date" <> 0D ? format(PlanningLine."End Planning Date", 0, '<Year4><Month,2><Day,2>') : '');
+                        LineObj.Add('bc_jobplanningline_timeend',
+                            PlanningLine."End Time" <> 0T ? format(PlanningLine."End Time", 0, '<Hours24,2><Filler Character,0>:<Minutes,2>') : '');
+
                         LineArray.Add(LineObj);
                     until PlanningLine.Next() = 0;
                 TaskObj.Add('bc_planninglines', LineArray);
@@ -202,6 +216,20 @@ codeunit 50602 "DDSIA Rest API Mgt."
             PostRequest('/planning/projectcreationfrombc', ProjectJsonText, ResponseText);
             Message(ResponseText);
         end;
+    end;
+
+    local procedure GetResIdFromResource(PlanningLine: record "Job Planning Line"): Integer
+    var
+        rtv: Integer;
+        Resource: record Resource;
+    begin
+        rtv := 0;
+        if (PlanningLine."Vendor No." <> '') and (PlanningLine.Type = PlanningLine.Type::Resource) and (PlanningLine."No." <> '') then begin
+            Resource.Get(PlanningLine."No.");
+            Resource.TestField("Planning Resource Id");
+            rtv := Resource."Planning Resource Id";
+        end;
+        exit(rtv);
     end;
 
 }
