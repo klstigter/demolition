@@ -1,19 +1,19 @@
-table 50601 "DDSIA Vendor Selection"
+table 50601 "DDSIA Object Selection"
 {
     ReplicateData = false;
     TableType = Temporary;
-    LookupPageId = "DDSIA Vendor Selection";
-    DrillDownPageId = "DDSIA Vendor Selection";
+    LookupPageId = "DDSIA Object Selection";
+    DrillDownPageId = "DDSIA Object Selection";
 
     fields
     {
-        field(1; "Vendor ID"; Integer) { }
-        field(2; "Vendor Name"; Text[250]) { }
+        field(1; "Object ID"; Integer) { }
+        field(2; "Object Name"; Text[250]) { }
     }
 
     keys
     {
-        key(Key1; "Vendor ID")
+        key(Key1; "Object ID")
         {
             Clustered = true;
         }

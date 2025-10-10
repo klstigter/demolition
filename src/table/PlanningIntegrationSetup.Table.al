@@ -26,6 +26,21 @@ table 50600 "Planning Integration Setup"
         {
             DataClassification = ToBeClassified;
         }
+        field(20; "Log Incoming Api Request"; Boolean)
+        {
+            DataClassification = ToBeClassified;
+        }
+        field(30; "Gen. Prod. Posting Group"; Code[20])
+        {
+            DataClassification = ToBeClassified;
+            TableRelation = "Gen. Product Posting Group";
+            Caption = 'Default Gen. Prod. Posting Group';
+        }
+        field(40; "Default Unit of Measure Code"; Code[10])
+        {
+            DataClassification = ToBeClassified;
+            TableRelation = "Unit of Measure";
+        }
     }
 
     keys

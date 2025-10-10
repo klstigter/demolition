@@ -42,6 +42,10 @@ tableextension 50600 "DDSIA Job Task" extends "Job Planning Line"
             Editable = false;
             Caption = 'Vendor Name';
         }
+        field(50605; "Planning Resource id"; Integer)
+        {
+            DataClassification = ToBeClassified;
+        }
     }
 
     keys

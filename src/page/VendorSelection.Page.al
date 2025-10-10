@@ -1,10 +1,10 @@
-page 50604 "DDSIA Vendor Selection"
+page 50604 "DDSIA Object Selection"
 {
     PageType = List;
-    SourceTable = "DDSIA Vendor Selection";
+    SourceTable = "DDSIA Object Selection";
     ApplicationArea = All;
     Editable = false;
-    Caption = 'Vendor Selection';
+    Caption = 'Object Selection';
 
     layout
     {
@@ -12,11 +12,11 @@ page 50604 "DDSIA Vendor Selection"
         {
             repeater(Group)
             {
-                field("Vendor ID"; Rec."Vendor ID")
+                field("Objectr ID"; Rec."Object ID")
                 {
                     ApplicationArea = All;
                 }
-                field("Vendor Name"; Rec."Vendor Name")
+                field("Object Name"; Rec."Object Name")
                 {
                     ApplicationArea = All;
                 }

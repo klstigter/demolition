@@ -1,13 +1,13 @@
-tableextension 50601 DDSIAVendor extends Vendor
+tableextension 50602 "DDSIAUserSetup" extends "User Setup"
 {
     fields
     {
         // Add changes to table fields here
-        field(50600; "Planning Vendor id"; Integer)
+        field(50600; "Planning User ID"; Integer)
         {
             DataClassification = ToBeClassified;
         }
-        field(50601; "Planning Vendor Name"; Text[250])
+        field(50601; "Planning User Name"; Text[250])
         {
             DataClassification = ToBeClassified;
             Editable = false;
@@ -25,5 +25,5 @@ tableextension 50601 DDSIAVendor extends Vendor
     }
 
     var
-    //myInt: Integer;
+        myInt: Integer;
 }

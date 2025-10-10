@@ -24,10 +24,21 @@ page 50603 "Planning Integration Setup"
                 {
                     ApplicationArea = All;
                 }
+                field("Log Incoming Api Request"; Rec."Log Incoming Api Request")
+                {
+                    ApplicationArea = All;
+                }
+                field("Gen. Prod. Posting Group"; Rec."Gen. Prod. Posting Group")
+                {
+                    ApplicationArea = All;
+                }
+                field("Default Unit of Measure Code"; Rec."Default Unit of Measure Code")
+                {
+                    ApplicationArea = All;
+                }
             }
         }
     }
-
     /*
     actions
     {

@@ -92,7 +92,7 @@ codeunit 50602 "DDSIA Rest API Mgt."
 
     procedure SelectPlanningVendor(var pVendorName: Text): Integer
     var
-        VenBuffer: record "DDSIA Vendor Selection";
+        VenBuffer: record "DDSIA Object Selection";
         rtv: Integer;
         ResponseText: Text;
 
@@ -116,15 +116,54 @@ codeunit 50602 "DDSIA Rest API Mgt."
             VendorName := VendorNameToken.AsValue().AsText();
 
             VenBuffer.Init();
-            VenBuffer."Vendor ID" := VendorId;
-            VenBuffer."Vendor Name" := VendorName;
+            VenBuffer."Object ID" := VendorId;
+            VenBuffer."Object Name" := VendorName;
             VenBuffer.Insert();
         end;
 
         // Show as a page for selection
         if Page.RunModal(0, VenBuffer) = Action::LookupOK then begin
-            rtv := VenBuffer."Vendor ID"; // Return the selected Vendor ID
-            pVendorName := VenBuffer."Vendor Name";
+            rtv := VenBuffer."Object ID"; // Return the selected Vendor ID
+            pVendorName := VenBuffer."Object Name";
+        end;
+        exit(rtv);
+    end;
+
+    procedure SelectPlanningUser(var pUserName: Text): Integer
+    var
+        ObjectBuffer: record "DDSIA Object Selection";
+        rtv: Integer;
+        ResponseText: Text;
+
+        JsonArray: JsonArray;
+        JsonObject: JsonObject;
+        JsonToken, UserIdToken, UserNameToken : JsonToken;
+        UserId: Integer;
+        UserName: Text;
+        i: Integer;
+    begin
+        rtv := 0;
+        pUserName := '';
+        GetRequest('/planning/users', ResponseText);
+        JsonArray.ReadFrom(ResponseText);
+        for i := 0 to JsonArray.Count() - 1 do begin
+            JsonArray.Get(i, JsonToken);
+            JsonObject := JsonToken.AsObject();
+            JsonObject.Get('user_id', UserIdToken);
+            UserId := UserIdToken.AsValue().AsInteger();
+            JsonObject.Get('user_name', UserNameToken);
+            UserName := UserNameToken.AsValue().AsText();
+
+            ObjectBuffer.Init();
+            ObjectBuffer."Object ID" := UserId;
+            ObjectBuffer."Object Name" := UserName;
+            ObjectBuffer.Insert();
+        end;
+
+        // Show as a page for selection
+        if Page.RunModal(0, ObjectBuffer) = Action::LookupOK then begin
+            rtv := ObjectBuffer."Object ID"; // Return the selected Vendor ID
+            pUserName := ObjectBuffer."Object Name";
         end;
         exit(rtv);
     end;
@@ -134,6 +173,8 @@ codeunit 50602 "DDSIA Rest API Mgt."
         PlanningLine: record "Job Planning Line";
         Task: record "Job Task";
         Ven: Record Vendor;
+        User: Record User;
+        UserSetup: Record "User Setup";
         TempBlob: Codeunit "Temp Blob";
         OutS: OutStream;
         InS: InStream;
@@ -151,7 +192,10 @@ codeunit 50602 "DDSIA Rest API Mgt."
         ResponseText: Text;
 
         IntegrationPartnerId: Integer;
+        IntegrationUserId: Integer;
     begin
+        UserSetup.Get(UserId);
+
         // Job
         Project_Obj.Add('bc_project_no', Job."No.");
         Project_Obj.Add('bc_project_desc', Job.Description);
@@ -160,9 +204,19 @@ codeunit 50602 "DDSIA Rest API Mgt."
         Task.SetRange("Job No.", Job."No.");
         if Task.FindSet() then
             repeat
+                // Check SystemCreatedBy, so It will link with Planning User in User Setup
+                IntegrationUserId := 0;
+                if not IsNullGuid(Task.SystemCreatedBy) then
+                    if User.Get(Task.SystemCreatedBy) then begin
+                        UserSetup.Get(User."User Name");
+                        UserSetup.TestField("Planning User ID");
+                        IntegrationUserId := UserSetup."Planning User ID";
+                    end;
+
                 Clear(TaskObj);
                 TaskObj.Add('bc_task_no', task."Job Task No.");
                 TaskObj.Add('bc_task_desc', task.Description);
+                TaskObj.Add('planning_user_id', IntegrationUserId);
 
                 // Planning Lines
                 Clear(LineArray);
@@ -230,6 +284,69 @@ codeunit 50602 "DDSIA Rest API Mgt."
             rtv := Resource."Planning Resource Id";
         end;
         exit(rtv);
+    end;
+
+    procedure UpdateJobPlanningLineFromIntegration(pLine: Record "Job Planning Line"; PlanningVendorId: Integer; ResourceNo: text)
+    var
+        IntegrationSetup: record "Planning Integration Setup";
+        PlanningLine: Record "Job Planning Line";
+        Resource: record Resource;
+        ResUoM: Record "Resource Unit of Measure";
+        Vendor: record Vendor;
+    begin
+        /* Available data:
+            Rec."Job No."
+            Rec."Job Task No."
+            Rec."Line No."
+            Rec.Type
+            ResourceNo
+            Rec."Planning Resource id"
+            PlanningVendorId
+            Rec.Description
+        */
+        // Check pleanning line, if not exist then insert
+        if not PlanningLine.Get(pLine."Job No.", pLine."Job Task No.", pLine."Line No.") then begin
+            PlanningLine.Init();
+            PlanningLine."Job No." := pLine."Job No.";
+            PlanningLine."Job Task No." := pLine."Job Task No.";
+            PlanningLine."Line No." := pLine."Line No.";
+            PlanningLine.Insert();
+        end;
+
+        if pLine."Planning Resource id" <> 0 then begin
+            Resource.SetRange("Planning Resource Id", pLine."Planning Resource id");
+            if not Resource.FindFirst() then begin
+                IntegrationSetup.Get();
+                IntegrationSetup.TestField("Gen. Prod. Posting Group");
+                IntegrationSetup.TestField("Default Unit of Measure Code");
+
+                Resource.Init();
+                Resource."No." := CopyStr(ResourceNo, 1, MaxStrLen(Resource."No.")).ToUpper();
+
+                if not ResUoM.Get(Resource."No.", IntegrationSetup."Default Unit of Measure Code") then begin
+                    ResUoM.Init();
+                    ResUoM."Resource No." := Resource."No.";
+                    ResUoM.Code := IntegrationSetup."Default Unit of Measure Code";
+                    ResUoM."Qty. per Unit of Measure" := 1;
+                    ResUoM.Insert();
+                end;
+
+                Resource."Planning Resource Id" := pLine."Planning Resource id";
+                Resource.Validate("Gen. Prod. Posting Group", IntegrationSetup."Gen. Prod. Posting Group");
+                Resource.Validate("Base Unit of Measure", ResUoM.Code);
+                Resource.Insert();
+            end;
+            PlanningLine.Validate(Type, PlanningLine.Type::Resource);
+            PlanningLine.Validate("No.", Resource."No.");
+            PlanningLine.Modify();
+        end;
+
+        if PlanningVendorId <> 0 then begin
+            Vendor.SetRange("Planning Vendor id", PlanningVendorId);
+            Vendor.FindFirst();
+            PlanningLine."Vendor No." := Vendor."No.";
+            PlanningLine.Modify();
+        end;
     end;
 
 }
