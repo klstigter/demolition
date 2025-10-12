@@ -86,6 +86,7 @@ codeunit 50600 "Resource DayPilot Handler"
         Task: record "Job Task";
         Task2: record "Job Task";
         JobPlaningLine: record "Job Planning Line";
+        ResCap: Record "Res. Capacity Entry";
         TempDateVar: Record Date temporary;
 
         JobPlanningLineHandler: codeunit "Job Planning Line Handler";
@@ -109,6 +110,7 @@ codeunit 50600 "Resource DayPilot Handler"
         Days: Integer;
         StartDate: Text;
         DT: date;
+        _T: Time;
     begin
         /*
         Rows structure:
@@ -116,6 +118,7 @@ codeunit 50600 "Resource DayPilot Handler"
                 Project
                     Task
         */
+        Clear(EventArray);
         Res.Reset();
         Res.SetRange(Blocked, false);
         Res.Reset();
@@ -161,8 +164,7 @@ codeunit 50600 "Resource DayPilot Handler"
                 ResJsonArray.Add(ResObject);
             until Res.Next() = 0;
 
-        //<< Create event
-        Clear(EventArray);
+        //<< Create event from Job Planning Line
         TempDateVar.Reset();
         TempDateVar.DeleteAll();
         Task2.MarkedOnly := true;
@@ -171,6 +173,7 @@ codeunit 50600 "Resource DayPilot Handler"
                 JobPlaningLine.SetRange("Job No.", Task2."Job No.");
                 JobPlaningLine.SetRange("Job Task No.", Task2."Job Task No.");
                 JobPlaningLine.SetRange(Type, JobPlaningLine.Type::Resource);
+                JobPlaningLine.SetFilter("Planning Date", '<>%1', 0D);
                 JobPlaningLine.SetFilter("No.", '<>%1', '');
                 if JobPlaningLine.FindSet() then
                     repeat
@@ -214,6 +217,32 @@ codeunit 50600 "Resource DayPilot Handler"
         Days := TempDateVar.Count + 7;
         TempDateVar.FindFirst();
         StartDate := Format(TempDateVar."Period Start", 0, '<Year4>-<Month,2>-<Day,2>');
+
+        // Create event from Resource Capacity based on above date range
+        if Res.FindSet() then
+            repeat
+                ResCap.SetRange("Resource No.", Res."No.");
+                ResCap.SetFilter(Date, '<>%1&%2..%3', 0D, TempDateVar."Period Start", CalcDate('<' + format(Days) + 'D>', TempDateVar."Period Start"));
+                ResCap.SetFilter(Capacity, '<>%1', 0);
+                if ResCap.FindSet() then
+                    repeat
+                        Clear(EventObj);
+                        EventObj.Add('id', Res."No." + '|' + format(ResCap."Entry No."));
+                        EventObj.Add('text', StrSubstNo('Cap: %1 hours', ResCap.Capacity));
+                        Evaluate(_T, '08:00');
+                        EventObj.Add('start', JobPlanningLineHandler.GetTaskDateTime(ResCap.Date, _T, false));
+                        Evaluate(_T, '17:00');
+                        EventObj.Add('end', JobPlanningLineHandler.GetTaskDateTime(ResCap.Date, _T, true));
+                        EventObj.Add('resource', '1|' + Res."No.");
+                        EventObj.Add('bubbleHtml', 'Resource Capacity');
+
+                        EventObj.Add('deleteDisabled', true);
+                        EventObj.Add('resizeDisabled', true);
+                        EventObj.Add('moveDisabled', true);
+
+                        EventArray.Add(EventObj);
+                    until ResCap.Next() = 0;
+            until Res.Next() = 0;
 
         ResJsonArray.WriteTo(ResourceTxt);
         EventArray.WriteTo(EventTxt);
