@@ -29,7 +29,7 @@ pageextension 50602 "DDSIA Job List" extends "Job List"
             action("Planning Lines Board")
             {
                 ApplicationArea = Jobs;
-                Caption = 'Planning Lines Board';
+                Caption = 'Visual Planning';
                 Image = ResourcePlanning;
                 ToolTip = 'Plan how you want to set up your planning information. In this window you can specify "Project Planning Line" per Task.';
 

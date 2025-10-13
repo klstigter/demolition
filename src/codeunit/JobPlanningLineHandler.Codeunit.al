@@ -1,5 +1,9 @@
 codeunit 50601 "Job Planning Line Handler"
 {
+    trigger OnRun()
+    begin
+        OpenTaskSchedulerAllJob();
+    end;
 
     [EventSubscriber(ObjectType::Table, Database::"Job Planning Line", 'OnBeforeOnRename', '', false, false)]
     local procedure OnBeforeOnRename(var JobPlanningLine: Record "Job Planning Line"; var IsHandled: Boolean)

@@ -13,7 +13,7 @@ pageextension 50603 "DDSIA Resource List" extends "Resource List"
             action("Resources Board")
             {
                 ApplicationArea = Jobs;
-                Caption = 'Resources Board';
+                Caption = 'Visual Planning';
                 Image = ResourcePlanning;
                 ToolTip = 'Show Resources by "Project Planning Line"';
 
