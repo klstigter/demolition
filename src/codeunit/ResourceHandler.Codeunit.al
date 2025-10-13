@@ -2,7 +2,7 @@ codeunit 50600 "Resource DayPilot Handler"
 {
     trigger OnRun()
     begin
-
+        GetResourceAndEventsPerTask();
     end;
 
     var

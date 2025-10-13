@@ -17,6 +17,15 @@ pageextension 50607 "DDSIAJobProjectManagerRC" extends "Job Project Manager RC"
                 RunObject = codeunit "Job Planning Line Handler";
             }
         }
+        addafter("Resource Registers")
+        {
+            action("VisualPlanningRes")
+            {
+                ApplicationArea = All;
+                Caption = 'Visual Planning';
+                RunObject = codeunit "Resource DayPilot Handler";
+            }
+        }
 
     }
 
