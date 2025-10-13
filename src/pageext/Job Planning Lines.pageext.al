@@ -28,6 +28,10 @@ pageextension 50600 "DDSIA Job Planning Lines" extends "Job Planning Lines"
             {
                 ApplicationArea = All;
             }
+            field("Ship-to Address"; Rec."Ship-to Address")
+            {
+                ApplicationArea = All;
+            }
         }
     }
 

@@ -46,6 +46,11 @@ tableextension 50600 "DDSIA Job Task" extends "Job Planning Line"
         {
             DataClassification = ToBeClassified;
         }
+        field(50520; "Ship-to Address"; Code[20])
+        {
+            DataClassification = ToBeClassified;
+            TableRelation = "Ship-to Address";
+        }
     }
 
     keys
