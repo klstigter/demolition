@@ -10,6 +10,22 @@ pageextension 50602 "DDSIA Job List" extends "Job List"
         // Add changes to page actions here
         addafter("Job Task &Lines")
         {
+            action("Planning Lines")
+            {
+                ApplicationArea = Jobs;
+                Caption = 'Project Planning Lines';
+                Image = ResourcePlanning;
+                ToolTip = 'Show project planning lines in context of project no.';
+
+                trigger OnAction()
+                var
+                    JobPlanningLine: Record "Job Planning Line";
+                begin
+                    JobPlanningLine.SetRange("Job No.", Rec."No.");
+                    Page.RunModal(0, JobPlanningLine);
+                end;
+            }
+
             action("Planning Lines Board")
             {
                 ApplicationArea = Jobs;
@@ -55,6 +71,9 @@ pageextension 50602 "DDSIA Job List" extends "Job List"
         }
         addafter("Job Task &Lines_Promoted")
         {
+            actionref("Job Planning Lines Promoted"; "Planning Lines")
+            {
+            }
             actionref("Planning Lines Board Promoted"; "Planning Lines Board")
             {
             }

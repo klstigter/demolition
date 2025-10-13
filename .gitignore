@@ -1,0 +1,16 @@
+.vscode/rad.json
+.vscode/.alcache/
+# Binary files
+#.alpackages/
+*.app
+#*.xlf
+#./app.json
+.snapshots/
+# Temp files
+#.vs/
+#.vscode/
+
+# Others
+#~$*
+#*~
+#Translations/*.xlf

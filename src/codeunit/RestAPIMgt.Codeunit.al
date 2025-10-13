@@ -328,6 +328,7 @@ codeunit 50602 "DDSIA Rest API Mgt."
 
                 Resource.Init();
                 Resource."No." := CopyStr(ResourceNo, 1, MaxStrLen(Resource."No.")).ToUpper();
+                Resource.Name := CopyStr(pLine.Description, 1, MaxStrLen(Resource.Name));
 
                 if not ResUoM.Get(Resource."No.", IntegrationSetup."Default Unit of Measure Code") then begin
                     ResUoM.Init();
@@ -344,6 +345,7 @@ codeunit 50602 "DDSIA Rest API Mgt."
             end;
             PlanningLine.Validate(Type, PlanningLine.Type::Resource);
             PlanningLine.Validate("No.", Resource."No.");
+            PlanningLine.Description := pLine.Description;
             PlanningLine.Modify();
         end;
 

@@ -239,6 +239,7 @@ codeunit 50600 "Resource DayPilot Handler"
                         EventObj.Add('deleteDisabled', true);
                         EventObj.Add('resizeDisabled', true);
                         EventObj.Add('moveDisabled', true);
+                        EventObj.Add('barColor', 'red');
 
                         EventArray.Add(EventObj);
                     until ResCap.Next() = 0;
