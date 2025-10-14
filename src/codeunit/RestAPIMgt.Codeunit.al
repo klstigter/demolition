@@ -73,7 +73,7 @@ codeunit 50602 "DDSIA Rest API Mgt."
         if HttpClient.Post(Url, HttpContent, Response) then begin
             if Response.IsSuccessStatusCode() then begin
                 Response.Content.ReadAs(ResponseString);
-                ResponseText := StrSubstNo('POST to Planning Integration successful. Status: %1, content: %2', Response.HttpStatusCode(), ResponseString);
+                ResponseText := ResponseString; //StrSubstNo('POST to Planning Integration successful. Status: %1, content: %2', Response.HttpStatusCode(), ResponseString);
             end else begin
                 ResponseText := StrSubstNo('POST failed. Status: %1, Reason: %2', Response.HttpStatusCode(), Response.ReasonPhrase());
             end;
@@ -166,6 +166,167 @@ codeunit 50602 "DDSIA Rest API Mgt."
             pUserName := ObjectBuffer."Object Name";
         end;
         exit(rtv);
+    end;
+
+    procedure RefreshPlanningResource(var pPlanningVendorId: record Integer; DownloadJSonRequest: Boolean)
+    var
+        JsonArray: JsonArray;
+        JsonObject: JsonObject;
+        JsonToken: JsonToken;
+        VendorId: Integer;
+        VendorName: Text;
+        ContactId: Integer;
+        ContactName: Text;
+        i: Integer;
+        ResponseJsonTxt: Text;
+        nModified: Integer;
+        nNew: Integer;
+        MsgLbl: Label 'Sync. Resource with Planning Integration, Modified recs: %1, Inserted recs: %2';
+    begin
+        GetPlanningResource(pPlanningVendorId, DownloadJSonRequest, ResponseJsonTxt);
+        // Parse the JSON string into a JsonArray
+        if not JsonArray.ReadFrom(ResponseJsonTxt) then
+            Error('Invalid response JSON format.');
+        // Iterate through each object in the array
+        for i := 0 to JsonArray.Count - 1 do begin
+            Clear(VendorId);
+            Clear(VendorName);
+            Clear(ContactId);
+            Clear(ContactName);
+            if JsonArray.Get(i, JsonToken) then begin
+                JsonObject := JsonToken.AsObject();
+
+                if JsonObject.Get('vendor_id', JsonToken) then
+                    VendorId := JsonToken.AsValue().AsInteger();
+                if JsonObject.Get('vendor_name', JsonToken) then
+                    VendorName := JsonToken.AsValue().AsText();
+                if JsonObject.Get('contact_id', JsonToken) then
+                    ContactId := JsonToken.AsValue().AsInteger();
+                if JsonObject.Get('contact_name', JsonToken) then
+                    ContactName := JsonToken.AsValue().AsText();
+            end;
+            // Now you can use VendorId, VendorName, ContactId, ContactName
+            SyncResource(VendorId, VendorName, ContactId, ContactName, nModified, nNew);
+        end;
+        Message(MsgLbl, nModified, nNew);
+    end;
+
+    local procedure SyncResource(VendorId: Integer;
+                                 VendorName: Text;
+                                 ContactId: Integer;
+                                 ContactName: Text;
+                                 var nModified: Integer;
+                                 var nNew: Integer)
+    var
+        Res: Record Resource;
+        IntegrationSetup: record "Planning Integration Setup";
+        GenProd: record "Gen. Product Posting Group";
+        ResUoM: Record "Resource Unit of Measure";
+    begin
+        Res.SetCurrentKey("Planning Resource Id");
+        Res.SetRange("Planning Resource Id", ContactId);
+        if Res.FindFirst() then begin
+            Res.Name := CopyStr(ContactName, 1, MaxStrLen(Res.Name));
+            Res."Planning Vendor Id" := VendorId;
+            Res.Modify();
+            nModified += 1;
+        end else begin
+            Res.Init();
+            Res."No." := '';
+            Res.Insert(true);
+            Res.Name := CopyStr(ContactName, 1, MaxStrLen(Res.Name));
+            Res."Planning Resource Id" := ContactId;
+            Res."Planning Vendor Id" := VendorId;
+            Res.Modify();
+            nNew += 1;
+        end;
+
+        IntegrationSetup.Get();
+        IntegrationSetup.TestField("Gen. Prod. Posting Group");
+        IntegrationSetup.TestField("Default Unit of Measure Code");
+        // Check Gen. prod
+        if Res."Gen. Prod. Posting Group" = '' then begin
+            Res."Gen. Prod. Posting Group" := IntegrationSetup."Gen. Prod. Posting Group";
+            Res.Modify();
+        end else begin
+            if not GenProd.Get(Res."Gen. Prod. Posting Group") then begin
+                Res."Gen. Prod. Posting Group" := IntegrationSetup."Gen. Prod. Posting Group";
+                Res.Modify();
+            end;
+        end;
+        // Check UoM
+        if res."Base Unit of Measure" = '' then begin
+            if not ResUoM.Get(Res."No.", IntegrationSetup."Default Unit of Measure Code") then begin
+                ResUoM.Init();
+                ResUoM."Resource No." := Res."No.";
+                ResUoM.Code := IntegrationSetup."Default Unit of Measure Code";
+                ResUoM."Qty. per Unit of Measure" := 1;
+                ResUoM.Insert();
+            end;
+            res.validate("Base Unit of Measure", IntegrationSetup."Default Unit of Measure Code");
+            res.Modify();
+        end;
+    end;
+
+    /*
+
+
+                Resource.Init();
+                Resource."No." := CopyStr(ResourceNo, 1, MaxStrLen(Resource."No.")).ToUpper();
+                Resource.Name := CopyStr(pLine.Description, 1, MaxStrLen(Resource.Name));
+
+                if not ResUoM.Get(Resource."No.", IntegrationSetup."Default Unit of Measure Code") then begin
+                    ResUoM.Init();
+                    ResUoM."Resource No." := Resource."No.";
+                    ResUoM.Code := IntegrationSetup."Default Unit of Measure Code";
+                    ResUoM."Qty. per Unit of Measure" := 1;
+                    ResUoM.Insert();
+                end;
+    */
+
+
+    local procedure GetPlanningResource(var pPlanningVendorId: record Integer; DownloadJSonRequest: Boolean; var ResponseText: Text)
+    var
+        VendorObj, IdObj : JsonObject;
+        IdArray: JsonArray;
+        JSonStr: Text;
+
+        TempBlob: Codeunit "Temp Blob";
+        OutS: OutStream;
+        InS: InStream;
+        ToFile: Text;
+    begin
+        /*
+        {
+            "vendors":[{
+                            "id": 7
+                        },
+                        {
+                            "id": 13
+                        }
+                    ]
+        }
+        */
+        JSonStr := '';
+        if pPlanningVendorId.FindSet() then begin
+            clear(IdArray);
+            repeat
+                Clear(IdObj);
+                IdObj.Add('id', pPlanningVendorId.Number);
+                IdArray.Add(IdObj);
+            until pPlanningVendorId.Next() = 0;
+            VendorObj.Add('vendors', IdArray);
+            VendorObj.WriteTo(JSonStr);
+        end;
+        if DownloadJSonRequest then begin
+            TempBlob.CreateOutStream(OutS);
+            OutS.WriteText(JSonStr);
+            TempBlob.CreateInStream(InS);
+            ToFile := '_JsonRequest.txt';
+            DownloadFromStream(InS, '', '', '', ToFile);
+        end else begin
+            PostRequest('/planning/contacts', JSonStr, ResponseText);
+        end;
     end;
 
     procedure PushProjectToPlanningIntegration(Job: record Job; DownloadJSonRequest: Boolean)

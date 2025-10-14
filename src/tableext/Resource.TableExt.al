@@ -7,6 +7,10 @@ tableextension 50603 DDSIAResource extends Resource
         {
             DataClassification = ToBeClassified;
         }
+        field(50601; "Planning Vendor Id"; Integer)
+        {
+            DataClassification = ToBeClassified;
+        }
     }
 
     keys

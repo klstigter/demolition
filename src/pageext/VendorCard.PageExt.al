@@ -31,24 +31,28 @@ pageextension 50604 "DDSIAVendorCard" extends "Vendor Card"
                 {
                     ApplicationArea = All;
                 }
-            }
-        }
-    }
+                field("access planning integration test"; 'access planning integration test')
+                {
+                    ApplicationArea = All;
+                    Editable = false;
+                    ShowCaption = false;
 
-    actions
-    {
-        // Add changes to page actions here
-        addafter(Attachments)
-        {
-            action(AssignPlanningVendor)
-            {
-                ApplicationArea = All;
-                Caption = 'Assign Planning Vendor';
+                    trigger OnAssistEdit()
+                    begin
+                        hellotest();
+                    end;
+                }
+                field("Refresh Resources"; 'Refresh Integration Resources')
+                {
+                    ApplicationArea = All;
+                    Editable = false;
+                    ShowCaption = false;
 
-                trigger OnAction()
-                begin
-                    AssignPlanningVendor();
-                end;
+                    trigger OnAssistEdit()
+                    begin
+                        RefreshResource();
+                    end;
+                }
             }
         }
     }
@@ -56,10 +60,26 @@ pageextension 50604 "DDSIAVendorCard" extends "Vendor Card"
     var
     //myInt: Integer;
 
-    local procedure AssignPlanningVendor()
+    local procedure hellotest()
     var
         RestMgt: Codeunit "DDSIA Rest API Mgt.";
     begin
         RestMgt.hello_test();
+    end;
+
+    local procedure RefreshResource()
+    var
+        TempVndorId: record Integer temporary;
+        ResAPI: codeunit "DDSIA Rest API Mgt.";
+        ConfirmLbl: label 'Integration Resources will be refresh, continue?';
+    begin
+        if not Confirm(ConfirmLbl) then
+            exit;
+        if Rec."Planning Vendor id" <> 0 then begin
+            TempVndorId.Init();
+            TempVndorId.Number := Rec."Planning Vendor id";
+            TempVndorId.Insert();
+        end;
+        ResAPI.RefreshPlanningResource(TempVndorId, false);
     end;
 }

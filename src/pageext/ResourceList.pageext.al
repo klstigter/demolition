@@ -3,6 +3,19 @@ pageextension 50603 "DDSIA Resource List" extends "Resource List"
     layout
     {
         // Add changes to page layout here
+        addafter(Name)
+        {
+            field("Planning Resource Id"; Rec."Planning Resource Id")
+            {
+                ApplicationArea = All;
+                Editable = false;
+            }
+            field("Planning Vendor Id"; Rec."Planning Vendor Id")
+            {
+                ApplicationArea = All;
+                Editable = false;
+            }
+        }
     }
 
     actions
