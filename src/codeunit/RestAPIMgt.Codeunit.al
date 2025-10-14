@@ -508,6 +508,12 @@ codeunit 50602 "DDSIA Rest API Mgt."
             PlanningLine.Validate("No.", Resource."No.");
             PlanningLine.Description := pLine.Description;
             PlanningLine.Modify();
+        end else begin
+            IntegrationSetup.Get();
+            IntegrationSetup.Testfield("Default Vacant Text");
+            PlanningLine.Validate(Type, PlanningLine.Type::Text);
+            PlanningLine.Validate("No.", IntegrationSetup."Default Vacant Text");
+            PlanningLine.Modify();
         end;
 
         if PlanningVendorId <> 0 then begin

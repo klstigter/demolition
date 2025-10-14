@@ -41,6 +41,11 @@ table 50600 "Planning Integration Setup"
             DataClassification = ToBeClassified;
             TableRelation = "Unit of Measure";
         }
+        field(50; "Default Vacant Text"; Code[20])
+        {
+            DataClassification = ToBeClassified;
+            TableRelation = "Standard Text";
+        }
     }
 
     keys

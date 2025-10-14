@@ -36,6 +36,10 @@ page 50603 "Planning Integration Setup"
                 {
                     ApplicationArea = All;
                 }
+                field("Default Vacant Text"; Rec."Default Vacant Text")
+                {
+                    ApplicationArea = All;
+                }
             }
         }
     }
