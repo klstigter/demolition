@@ -409,14 +409,23 @@ codeunit 50602 "DDSIA Rest API Mgt."
                             LineObj.Add('bc_jobplanningline_vendorid', 0);
                         end;
 
-                        LineObj.Add('bc_jobplanningline_datestart',
-                            PlanningLine."Planning Date" <> 0D ? format(PlanningLine."Planning Date", 0, '<Year4><Month,2><Day,2>') : '');
-                        LineObj.Add('bc_jobplanningline_timestart',
-                            PlanningLine."Start Time" <> 0T ? format(PlanningLine."Start Time", 0, '<Hours24,2><Filler Character,0>:<Minutes,2>') : '');
-                        LineObj.Add('bc_jobplanningline_dateend',
-                            PlanningLine."End Planning Date" <> 0D ? format(PlanningLine."End Planning Date", 0, '<Year4><Month,2><Day,2>') : '');
-                        LineObj.Add('bc_jobplanningline_timeend',
-                            PlanningLine."End Time" <> 0T ? format(PlanningLine."End Time", 0, '<Hours24,2><Filler Character,0>:<Minutes,2>') : '');
+                        LineObj.Add('bc_jobplanningline_datetimestart',
+                            (PlanningLine."Planning Date" <> 0D) and (PlanningLine."Start Time" <> 0T)
+                            ?
+                            StrSubstNo('%1T%2',
+                                format(PlanningLine."Planning Date", 0, '<Year4>-<Month,2>-<Day,2>'),
+                                format(PlanningLine."Start Time", 0, '<Hours24,2><Filler Character,0>:<Minutes,2>:<Seconds,2>'))
+                            :
+                            '');
+
+                        LineObj.Add('bc_jobplanningline_datetimeend',
+                            (PlanningLine."End Planning Date" <> 0D) And (PlanningLine."End Time" <> 0T)
+                            ?
+                            StrSubstNo('%1T%2',
+                                format(PlanningLine."End Planning Date", 0, '<Year4>-<Month,2>-<Day,2>'),
+                                format(PlanningLine."End Time", 0, '<Hours24,2><Filler Character,0>:<Minutes,2>:<Seconds,2>'))
+                            :
+                            '');
 
                         LineArray.Add(LineObj);
                     until PlanningLine.Next() = 0;
@@ -453,13 +462,31 @@ codeunit 50602 "DDSIA Rest API Mgt."
         exit(rtv);
     end;
 
-    procedure UpdateJobPlanningLineFromIntegration(pLine: Record "Job Planning Line"; PlanningVendorId: Integer; ResourceNo: text)
+
+    procedure ConvertDTStringIntoDT(pDT: Text): DateTime
+    var
+        myList: List of [Text];
+        _Date: date;
+        _Time: Time;
+    begin
+        myList := pDT.Split('T');
+        evaluate(_Date, myList.Get(1));
+        evaluate(_Time, myList.Get(2));
+        exit(CreateDateTime(_Date, _Time));
+    end;
+
+    procedure UpdateJobPlanningLineFromIntegration(pLine: Record "Job Planning Line";
+                                                   PlanningVendorId: Integer;
+                                                   ResourceNo: text;
+                                                   StartDateTime: Text;
+                                                   EndDateTime: Text)
     var
         IntegrationSetup: record "Planning Integration Setup";
         PlanningLine: Record "Job Planning Line";
         Resource: record Resource;
         ResUoM: Record "Resource Unit of Measure";
         Vendor: record Vendor;
+        DT: DateTime;
     begin
         /* Available data:
             Rec."Job No."
@@ -469,6 +496,8 @@ codeunit 50602 "DDSIA Rest API Mgt."
             ResourceNo
             Rec."Planning Resource id"
             PlanningVendorId
+            StartDateTime
+            EndDateTime
             Rec.Description
         */
         // Check pleanning line, if not exist then insert
@@ -477,6 +506,15 @@ codeunit 50602 "DDSIA Rest API Mgt."
             PlanningLine."Job No." := pLine."Job No.";
             PlanningLine."Job Task No." := pLine."Job Task No.";
             PlanningLine."Line No." := pLine."Line No.";
+
+            DT := ConvertDTStringIntoDT(StartDateTime);
+            PlanningLine."Planning Date" := DT2Date(DT);
+            PlanningLine."Start Time" := DT2Time(DT);
+
+            DT := ConvertDTStringIntoDT(EndDateTime);
+            PlanningLine."End Planning Date" := DT2Date(DT);
+            PlanningLine."End Time" := DT2Time(DT);
+
             PlanningLine.Insert();
         end;
 
@@ -507,12 +545,28 @@ codeunit 50602 "DDSIA Rest API Mgt."
             PlanningLine.Validate(Type, PlanningLine.Type::Resource);
             PlanningLine.Validate("No.", Resource."No.");
             PlanningLine.Description := pLine.Description;
+
+            DT := ConvertDTStringIntoDT(StartDateTime);
+            PlanningLine."Planning Date" := DT2Date(DT);
+            PlanningLine."Start Time" := DT2Time(DT);
+            DT := ConvertDTStringIntoDT(EndDateTime);
+            PlanningLine."End Planning Date" := DT2Date(DT);
+            PlanningLine."End Time" := DT2Time(DT);
+
             PlanningLine.Modify();
         end else begin
             IntegrationSetup.Get();
             IntegrationSetup.Testfield("Default Vacant Text");
             PlanningLine.Validate(Type, PlanningLine.Type::Text);
             PlanningLine.Validate("No.", IntegrationSetup."Default Vacant Text");
+
+            DT := ConvertDTStringIntoDT(StartDateTime);
+            PlanningLine."Planning Date" := DT2Date(DT);
+            PlanningLine."Start Time" := DT2Time(DT);
+            DT := ConvertDTStringIntoDT(EndDateTime);
+            PlanningLine."End Planning Date" := DT2Date(DT);
+            PlanningLine."End Time" := DT2Time(DT);
+
             PlanningLine.Modify();
         end;
 
@@ -522,6 +576,19 @@ codeunit 50602 "DDSIA Rest API Mgt."
             PlanningLine."Vendor No." := Vendor."No.";
             PlanningLine.Modify();
         end;
+    end;
+
+    procedure DT2UTC(pDT: DateTime): DateTime
+    var
+        Settings: SessionSettings;
+        TZ: Codeunit "Time Zone";
+        tzId: Text;
+        utcDt: DateTime;
+    begin
+        Settings.Init();
+        tzId := Settings.TimeZone;
+        utcDt := pDT - TZ.GetTimezoneOffset(pDT, tzId);
+        exit(utcDt);
     end;
 
 }

@@ -41,6 +41,24 @@ page 50603 "Planning Integration Setup"
                     ApplicationArea = All;
                 }
             }
+            group("Test Functions")
+            {
+                Caption = 'Test Functions';
+
+                field("UTCDT"; 'Get UTC Datatime Now')
+                {
+                    ApplicationArea = All;
+                    Editable = false;
+                    ShowCaption = false;
+
+                    trigger OnAssistEdit()
+                    var
+                        RestMgt: codeunit "DDSIA Rest API Mgt.";
+                    begin
+                        message('%1', RestMgt.DT2UTC(CreateDateTime(Today, Time)));
+                    end;
+                }
+            }
         }
     }
     /*
