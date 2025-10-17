@@ -268,23 +268,6 @@ codeunit 50602 "DDSIA Rest API Mgt."
         end;
     end;
 
-    /*
-
-
-                Resource.Init();
-                Resource."No." := CopyStr(ResourceNo, 1, MaxStrLen(Resource."No.")).ToUpper();
-                Resource.Name := CopyStr(pLine.Description, 1, MaxStrLen(Resource.Name));
-
-                if not ResUoM.Get(Resource."No.", IntegrationSetup."Default Unit of Measure Code") then begin
-                    ResUoM.Init();
-                    ResUoM."Resource No." := Resource."No.";
-                    ResUoM.Code := IntegrationSetup."Default Unit of Measure Code";
-                    ResUoM."Qty. per Unit of Measure" := 1;
-                    ResUoM.Insert();
-                end;
-    */
-
-
     local procedure GetPlanningResource(var pPlanningVendorId: record Integer; DownloadJSonRequest: Boolean; var ResponseText: Text)
     var
         VendorObj, IdObj : JsonObject;
@@ -326,6 +309,66 @@ codeunit 50602 "DDSIA Rest API Mgt."
             DownloadFromStream(InS, '', '', '', ToFile);
         end else begin
             PostRequest('/planning/contacts', JSonStr, ResponseText);
+        end;
+    end;
+
+    procedure PushJobPlanningLineToIntegration(PlanningLine: record "Job Planning Line"; DownloadJSonRequest: Boolean)
+    var
+        Ven: Record Vendor;
+        LineObj: JsonObject;
+        PlanningLineJsonText: Text;
+        ResponseText: text;
+
+        TempBlob: Codeunit "Temp Blob";
+        OutS: OutStream;
+        InS: InStream;
+        ToFile: Text;
+    begin
+        clear(LineObj);
+        LineObj.Add('bc_jobplanningline_jobno', PlanningLine."Job No.");
+        LineObj.Add('bc_jobplanningline_taskno', PlanningLine."Job Task No.");
+        LineObj.Add('bc_jobplanningline_lineno', PlanningLine."Line No.");
+        LineObj.Add('bc_jobplanningline_type', format(PlanningLine.Type));
+        LineObj.Add('bc_jobplanningline_no', PlanningLine."No.");
+        LineObj.Add('bc_jobplanningline_resid', GetResIdFromResource(PlanningLine));
+        LineObj.Add('bc_jobplanningline_desc', PlanningLine.Description);
+
+        if PlanningLine."Vendor No." <> '' then begin
+            Ven.Get(PlanningLine."Vendor No.");
+            Ven.TestField("Planning Vendor id");
+            LineObj.Add('bc_jobplanningline_vendorid', Ven."Planning Vendor id");
+        end else begin
+            LineObj.Add('bc_jobplanningline_vendorid', 0);
+        end;
+
+        LineObj.Add('bc_jobplanningline_datetimestart',
+            (PlanningLine."Planning Date" <> 0D) and (PlanningLine."Start Time" <> 0T)
+            ?
+            StrSubstNo('%1T%2',
+                format(PlanningLine."Planning Date", 0, '<Year4>-<Month,2>-<Day,2>'),
+                format(PlanningLine."Start Time", 0, '<Hours24,2><Filler Character,0>:<Minutes,2>:<Seconds,2>'))
+            :
+            '');
+
+        LineObj.Add('bc_jobplanningline_datetimeend',
+            (PlanningLine."End Planning Date" <> 0D) And (PlanningLine."End Time" <> 0T)
+            ?
+            StrSubstNo('%1T%2',
+                format(PlanningLine."End Planning Date", 0, '<Year4>-<Month,2>-<Day,2>'),
+                format(PlanningLine."End Time", 0, '<Hours24,2><Filler Character,0>:<Minutes,2>:<Seconds,2>'))
+            :
+            '');
+
+        LineObj.WriteTo(PlanningLineJsonText);
+
+        if DownloadJSonRequest then begin
+            TempBlob.CreateOutStream(OutS);
+            OutS.WriteText(PlanningLineJsonText);
+            TempBlob.CreateInStream(InS);
+            ToFile := '_JsonRequest.txt';
+            DownloadFromStream(InS, '', '', '', ToFile);
+        end else begin
+            PostRequest('/planning/planninglinefrombc', PlanningLineJsonText, ResponseText);
         end;
     end;
 

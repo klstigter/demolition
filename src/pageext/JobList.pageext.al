@@ -86,6 +86,12 @@ pageextension 50602 "DDSIA Job List" extends "Job List"
         }
     }
 
+    trigger OnOpenPage()
+    begin
+        // Default page filtered on Job Task Type <> Resource Planning
+        Rec.SetFilter(Reserve, '<>%1', Rec.Reserve::"Resource Planning");
+    end;
+
     var
-        myInt: Integer;
+    //myInt: Integer;
 }

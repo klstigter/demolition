@@ -24,10 +24,6 @@ page 50603 "Planning Integration Setup"
                 {
                     ApplicationArea = All;
                 }
-                field("Log Incoming Api Request"; Rec."Log Incoming Api Request")
-                {
-                    ApplicationArea = All;
-                }
                 field("Gen. Prod. Posting Group"; Rec."Gen. Prod. Posting Group")
                 {
                     ApplicationArea = All;
@@ -37,6 +33,19 @@ page 50603 "Planning Integration Setup"
                     ApplicationArea = All;
                 }
                 field("Default Vacant Text"; Rec."Default Vacant Text")
+                {
+                    ApplicationArea = All;
+                }
+            }
+            group("Auto")
+            {
+                Caption = 'Auto';
+
+                field("Log Incoming Api Request"; Rec."Log Incoming Api Request")
+                {
+                    ApplicationArea = All;
+                }
+                field("Auto Sync. Integration"; Rec."Auto Sync. Integration")
                 {
                     ApplicationArea = All;
                 }

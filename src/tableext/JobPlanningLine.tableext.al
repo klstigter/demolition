@@ -46,10 +46,9 @@ tableextension 50600 "DDSIA Job Task" extends "Job Planning Line"
         {
             DataClassification = ToBeClassified;
         }
-        field(50520; "Ship-to Address"; Code[20])
+        field(50530; Depth; Decimal)
         {
             DataClassification = ToBeClassified;
-            TableRelation = "Ship-to Address";
         }
     }
 
@@ -63,6 +62,55 @@ tableextension 50600 "DDSIA Job Task" extends "Job Planning Line"
         // Add changes to field groups here
     }
 
+    trigger OnAfterInsert()
+    var
+        IntegrationSetup: Record "Planning Integration Setup";
+        RestMgt: Codeunit "DDSIA Rest API Mgt.";
+        auto: Boolean;
+    begin
+        auto := IntegrationSetup.Get();
+        if auto then
+            auto := IntegrationSetup."Auto Sync. Integration";
+        if not auto then
+            exit;
+        RestMgt.PushJobPlanningLineToIntegration(Rec, false);
+    end;
+
+    trigger OnAfterModify()
+    var
+        Res: Record Resource;
+        Ven: Record Vendor;
+        IntegrationSetup: Record "Planning Integration Setup";
+        RestMgt: Codeunit "DDSIA Rest API Mgt.";
+        auto: Boolean;
+    begin
+        if Rec."No." <> xRec."No." then begin
+            "Planning Resource id" := 0;
+            Modify();
+            if Type = Type::Resource then
+                if Res.Get(Rec."No.") then begin
+                    "Planning Resource id" := Res."Planning Resource Id";
+                    if Res."Planning Vendor Id" <> 0 then begin
+                        Ven.SetRange("Planning Vendor id", Res."Planning Vendor Id");
+                        if Ven.FindFirst() then
+                            "Vendor No." := Ven."No.";
+                    end;
+                    Modify();
+                end;
+        end;
+
+        // Integration
+        auto := IntegrationSetup.Get();
+        if auto then
+            auto := IntegrationSetup."Auto Sync. Integration";
+        if auto then
+            auto := (Rec."Vendor No." <> xRec."Vendor No.")
+                    or (Rec."No." <> xRec."No.");
+        if not auto then
+            exit;
+        RestMgt.PushJobPlanningLineToIntegration(Rec, false);
+    end;
+
     var
     //myInt: Integer;
 
@@ -72,11 +120,17 @@ tableextension 50600 "DDSIA Job Task" extends "Job Planning Line"
         DT1: DateTime;
         DT2: DateTime;
     begin
-        DT := "Planning Date";
-        DT1 := CreateDateTime(DT, "Start Time");
-        if "End Planning Date" <> 0D then
+        DT1 := 0DT;
+        DT2 := CreateDateTime(DMY2Date(31, 12, 2999), Time);
+
+        if ("Planning Date" <> 0D) and ("Start Time" <> 0T) then begin
+            DT := "Planning Date";
+            DT1 := CreateDateTime(DT, "Start Time");
+        end;
+        if ("End Planning Date" <> 0D) and ("End Time" <> 0T) then begin
             DT := "End Planning Date";
-        DT2 := CreateDateTime(DT, "End Time");
+            DT2 := CreateDateTime(DT, "End Time");
+        end;
         if DT1 > DT2 then
             error('Datetime overlaped!');
     end;

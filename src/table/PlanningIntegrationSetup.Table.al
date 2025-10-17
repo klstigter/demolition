@@ -46,6 +46,11 @@ table 50600 "Planning Integration Setup"
             DataClassification = ToBeClassified;
             TableRelation = "Standard Text";
         }
+        field(60; "Auto Sync. Integration"; Boolean)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Auto Sync. with Planning Integration';
+        }
     }
 
     keys
