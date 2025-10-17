@@ -512,6 +512,8 @@ codeunit 50602 "DDSIA Rest API Mgt."
         _Date: date;
         _Time: Time;
     begin
+        if StrPos(pDT, 'T') = 0 then
+            exit(0DT);
         myList := pDT.Split('T');
         evaluate(_Date, myList.Get(1));
         evaluate(_Time, myList.Get(2));
@@ -551,12 +553,16 @@ codeunit 50602 "DDSIA Rest API Mgt."
             PlanningLine."Line No." := pLine."Line No.";
 
             DT := ConvertDTStringIntoDT(StartDateTime);
-            PlanningLine."Planning Date" := DT2Date(DT);
-            PlanningLine."Start Time" := DT2Time(DT);
+            if DT <> 0DT Then begin
+                PlanningLine."Planning Date" := DT2Date(DT);
+                PlanningLine."Start Time" := DT2Time(DT);
+            end;
 
             DT := ConvertDTStringIntoDT(EndDateTime);
-            PlanningLine."End Planning Date" := DT2Date(DT);
-            PlanningLine."End Time" := DT2Time(DT);
+            if DT <> 0DT Then begin
+                PlanningLine."End Planning Date" := DT2Date(DT);
+                PlanningLine."End Time" := DT2Time(DT);
+            end;
 
             PlanningLine.Insert();
         end;
@@ -590,12 +596,15 @@ codeunit 50602 "DDSIA Rest API Mgt."
             PlanningLine.Description := pLine.Description;
 
             DT := ConvertDTStringIntoDT(StartDateTime);
-            PlanningLine."Planning Date" := DT2Date(DT);
-            PlanningLine."Start Time" := DT2Time(DT);
+            if DT <> 0DT Then begin
+                PlanningLine."Planning Date" := DT2Date(DT);
+                PlanningLine."Start Time" := DT2Time(DT);
+            end;
             DT := ConvertDTStringIntoDT(EndDateTime);
-            PlanningLine."End Planning Date" := DT2Date(DT);
-            PlanningLine."End Time" := DT2Time(DT);
-
+            if DT <> 0DT Then begin
+                PlanningLine."End Planning Date" := DT2Date(DT);
+                PlanningLine."End Time" := DT2Time(DT);
+            end;
             PlanningLine.Modify();
         end else begin
             IntegrationSetup.Get();
@@ -604,12 +613,15 @@ codeunit 50602 "DDSIA Rest API Mgt."
             PlanningLine.Validate("No.", IntegrationSetup."Default Vacant Text");
 
             DT := ConvertDTStringIntoDT(StartDateTime);
-            PlanningLine."Planning Date" := DT2Date(DT);
-            PlanningLine."Start Time" := DT2Time(DT);
+            if DT <> 0DT Then begin
+                PlanningLine."Planning Date" := DT2Date(DT);
+                PlanningLine."Start Time" := DT2Time(DT);
+            end;
             DT := ConvertDTStringIntoDT(EndDateTime);
-            PlanningLine."End Planning Date" := DT2Date(DT);
-            PlanningLine."End Time" := DT2Time(DT);
-
+            if DT <> 0DT Then begin
+                PlanningLine."End Planning Date" := DT2Date(DT);
+                PlanningLine."End Time" := DT2Time(DT);
+            end;
             PlanningLine.Modify();
         end;
 
