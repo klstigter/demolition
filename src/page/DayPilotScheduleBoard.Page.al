@@ -74,7 +74,7 @@ page 50600 "Schedule Board"
                         if SelectedResourcesJsonTxt = '' then
                             SelectedResourcesJsonTxt := '[]';
                         if JobPlanningLineHandler.BookingCreated2(SelectedResourcesJsonTxt, NewEventJsonArray) then begin
-                            // Loop event in NewEventJsonArray, create DayPilot Event in the loop -> lagi
+                            // Loop event in NewEventJsonArray, create DayPilot Event in the loop
                             for i := 0 to NewEventJsonArray.Count() - 1 do begin
                                 NewEventJsonArray.Get(i, NewEventTok);
                                 NewEventTok.WriteTo(bookingJson);

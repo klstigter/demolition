@@ -194,7 +194,7 @@ page 50601 "Resource Selection"
         i: Integer;
         _Date: Date;
     begin
-        //lagi: Booking event
+        //Booking event
         /* 
         [
             {
