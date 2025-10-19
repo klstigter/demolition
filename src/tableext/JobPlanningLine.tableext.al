@@ -68,7 +68,7 @@ tableextension 50600 "DDSIA Job Task" extends "Job Planning Line"
         RestMgt: Codeunit "DDSIA Rest API Mgt.";
         auto: Boolean;
     begin
-        auto := not DoNotFeedbackToIntegration;
+        auto := NOT IsServiceTier();
         if auto then
             auto := IntegrationSetup.Get();
         if auto then
@@ -102,7 +102,7 @@ tableextension 50600 "DDSIA Job Task" extends "Job Planning Line"
         end;
 
         // Integration
-        auto := not DoNotFeedbackToIntegration;
+        auto := NOT IsServiceTier();
         if auto then
             auto := IntegrationSetup.Get();
         if auto then
@@ -116,12 +116,6 @@ tableextension 50600 "DDSIA Job Task" extends "Job Planning Line"
     end;
 
     var
-        DoNotFeedbackToIntegration: Boolean;
-
-    procedure SetDoNotFeedbackToIntegration()
-    begin
-        DoNotFeedbackToIntegration := true;
-    end;
 
     local procedure CheckOverlap()
     var

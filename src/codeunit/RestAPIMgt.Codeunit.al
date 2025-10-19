@@ -548,7 +548,6 @@ codeunit 50602 "DDSIA Rest API Mgt."
         // Check pleanning line, if not exist then insert
         if not PlanningLine.Get(pLine."Job No.", pLine."Job Task No.", pLine."Line No.") then begin
             PlanningLine.Init();
-            PlanningLine.SetDoNotFeedbackToIntegration();
             PlanningLine."Job No." := pLine."Job No.";
             PlanningLine."Job Task No." := pLine."Job Task No.";
             PlanningLine."Line No." := pLine."Line No.";
@@ -567,7 +566,6 @@ codeunit 50602 "DDSIA Rest API Mgt."
 
             PlanningLine.Insert();
         end;
-        PlanningLine.SetDoNotFeedbackToIntegration();
 
         if pLine."Planning Resource id" <> 0 then begin
             Resource.SetRange("Planning Resource Id", pLine."Planning Resource id");
