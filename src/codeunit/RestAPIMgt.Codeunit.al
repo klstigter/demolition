@@ -1,3 +1,14 @@
+/*
+Notes:
+1. Do not put integration code that updates other systems in a table trigger. 
+   An API might update data during a table's OnModify or OnInsert trigger, 
+   which can cause the table to send an update to the other system and lead to failures there because of concurrent or recursive updates.
+   advice: Place/put integration code on a page that handles updates to external systems from Business Central.
+           so if we put integration code in page: When a user updates data in Business Central using a page, Business Central will propagate those changes to the external system. 
+           However, when the external system updates Business Central through the API, Business Central must not forward those changes back to the external system to prevent recursive or duplicate transactions.
+           (because there is no intergation code in table trigger)
+*/
+
 codeunit 50602 "DDSIA Rest API Mgt."
 {
     trigger OnRun()
