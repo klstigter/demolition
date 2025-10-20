@@ -62,21 +62,6 @@ tableextension 50600 "DDSIA Job Task" extends "Job Planning Line"
         // Add changes to field groups here
     }
 
-    trigger OnAfterInsert()
-    var
-        IntegrationSetup: Record "Planning Integration Setup";
-        RestMgt: Codeunit "DDSIA Rest API Mgt.";
-        auto: Boolean;
-    begin
-        auto := NOT IsServiceTier();
-        if auto then
-            auto := IntegrationSetup.Get();
-        if auto then
-            auto := IntegrationSetup."Auto Sync. Integration";
-        if not auto then
-            exit;
-        RestMgt.PushJobPlanningLineToIntegration(Rec, false);
-    end;
 
     trigger OnAfterModify()
     var
@@ -100,19 +85,6 @@ tableextension 50600 "DDSIA Job Task" extends "Job Planning Line"
                     Modify();
                 end;
         end;
-
-        // Integration
-        auto := NOT IsServiceTier();
-        if auto then
-            auto := IntegrationSetup.Get();
-        if auto then
-            auto := IntegrationSetup."Auto Sync. Integration";
-        if auto then
-            auto := (Rec."Vendor No." <> xRec."Vendor No.")
-                    or (Rec."No." <> xRec."No.");
-        if not auto then
-            exit;
-        RestMgt.PushJobPlanningLineToIntegration(Rec, false);
     end;
 
     var
