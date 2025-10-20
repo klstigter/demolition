@@ -380,6 +380,11 @@ codeunit 50602 "DDSIA Rest API Mgt."
         User: Record User;
         UserSetup: Record "User Setup";
         TempBlob: Codeunit "Temp Blob";
+
+        AddresMgt: Codeunit "Format Address";
+        AddrArray: array[8] of Text[100];
+        taskAddress: Text;
+
         OutS: OutStream;
         InS: InStream;
         ToFile: Text;
@@ -397,6 +402,8 @@ codeunit 50602 "DDSIA Rest API Mgt."
 
         IntegrationPartnerId: Integer;
         IntegrationUserId: Integer;
+
+        i: Integer;
     begin
         UserSetup.Get(UserId);
 
@@ -424,9 +431,32 @@ codeunit 50602 "DDSIA Rest API Mgt."
                     end;
 
                 Clear(TaskObj);
+                task.CalcFields("Start Date");
                 TaskObj.Add('bc_task_no', task."Job Task No.");
                 TaskObj.Add('bc_task_desc', task.Description);
                 TaskObj.Add('planning_user_id', IntegrationUserId);
+                TaskObj.Add('bc_task_date', task."Start Date" <> 0D ? format(task."Start Date", 0, '<Year4>-<Month,2>-<Day,2>') : '');
+
+                AddresMgt.FormatAddr(AddrArray
+                                     , task.Description
+                                     , '' //Name2: Text[100]
+                                     , '' //Contact: Text[100]
+                                     , task."Sell-to Address"
+                                     , task."Sell-to Address 2"
+                                     , task."Sell-to City"
+                                     , task."Sell-to Post Code"
+                                     , task."Sell-to County"
+                                     , task."Sell-to Country/Region Code");
+                taskAddress := '';
+                for i := 1 to 8 do begin
+                    if AddrArray[i] <> '' then begin
+                        if taskAddress = '' then
+                            taskAddress := AddrArray[i]
+                        else
+                            taskAddress := taskAddress + ', ' + AddrArray[i];
+                    end;
+                end;
+                TaskObj.Add('bc_task_address', taskAddress);
 
                 // Planning Lines
                 Clear(LineArray);
