@@ -323,6 +323,36 @@ codeunit 50602 "DDSIA Rest API Mgt."
         end;
     end;
 
+    procedure DeleteIntegrationJobPlanningLine(PlanningLine: record "Job Planning Line"; DownloadJSonRequest: Boolean)
+    var
+        LineObj: JsonObject;
+        PlanningLineJsonText: Text;
+        ResponseText: text;
+
+        TempBlob: Codeunit "Temp Blob";
+        OutS: OutStream;
+        InS: InStream;
+        ToFile: Text;
+    begin
+        if PlanningLine."Vendor No." = '' then
+            exit;
+        clear(LineObj);
+        LineObj.Add('bc_jobplanningline_jobno', PlanningLine."Job No.");
+        LineObj.Add('bc_jobplanningline_taskno', PlanningLine."Job Task No.");
+        LineObj.Add('bc_jobplanningline_lineno', PlanningLine."Line No.");
+        LineObj.WriteTo(PlanningLineJsonText);
+
+        if DownloadJSonRequest then begin
+            TempBlob.CreateOutStream(OutS);
+            OutS.WriteText(PlanningLineJsonText);
+            TempBlob.CreateInStream(InS);
+            ToFile := '_JsonRequest.txt';
+            DownloadFromStream(InS, '', '', '', ToFile);
+        end else begin
+            PostRequest('/planning/deleteplanningline', PlanningLineJsonText, ResponseText);
+        end;
+    end;
+
     procedure PushJobPlanningLineToIntegration(PlanningLine: record "Job Planning Line"; DownloadJSonRequest: Boolean)
     var
         Ven: Record Vendor;

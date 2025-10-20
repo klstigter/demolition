@@ -45,6 +45,21 @@ pageextension 50600 "DDSIA Job Planning Lines" extends "Job Planning Lines"
 
     actions
     {
+        addafter("Insert Ext. Texts")
+        {
+            action(DownloadDeleteJSon)
+            {
+                Caption = 'Download DeleteJSon';
+                ApplicationArea = All;
+
+                trigger OnAction()
+                var
+                    RestMgt: Codeunit "DDSIA Rest API Mgt.";
+                begin
+                    RestMgt.DeleteIntegrationJobPlanningLine(Rec, true);
+                end;
+            }
+        }
         addbefore("Category_Process")
         {
             group("Date_Filter")
@@ -118,6 +133,52 @@ pageextension 50600 "DDSIA Job Planning Lines" extends "Job Planning Lines"
         end;
     end;
 
+    trigger OnInsertRecord(BelowxRec: Boolean): Boolean
+    var
+        IntegrationSetup: Record "Planning Integration Setup";
+        RestMgt: Codeunit "DDSIA Rest API Mgt.";
+        auto: Boolean;
+    begin
+        // Integration
+        if (Rec."Job No." <> '')
+           and (Rec."Job Task No." <> '')
+           and (Rec."Line No." <> 0)
+        then begin
+            auto := IntegrationSetup.Get();
+            if auto then
+                auto := IntegrationSetup."Auto Sync. Integration";
+            if not auto then
+                exit;
+            RestMgt.PushJobPlanningLineToIntegration(Rec, false);
+        end;
+    end;
+
+    trigger OnModifyRecord(): Boolean
+    var
+        Res: Record Resource;
+        Ven: Record Vendor;
+        IntegrationSetup: Record "Planning Integration Setup";
+        RestMgt: Codeunit "DDSIA Rest API Mgt.";
+        auto: Boolean;
+    begin
+        // Integration
+        auto := IntegrationSetup.Get();
+        if auto then
+            auto := IntegrationSetup."Auto Sync. Integration";
+        if auto then
+            auto := (Rec."Vendor No." <> xRec."Vendor No.")
+                    or (Rec."No." <> xRec."No.");
+        if not auto then
+            exit;
+        RestMgt.PushJobPlanningLineToIntegration(Rec, false);
+    end;
+
+    trigger OnDeleteRecord(): Boolean
+    var
+        RestMgt: Codeunit "DDSIA Rest API Mgt.";
+    begin
+        RestMgt.DeleteIntegrationJobPlanningLine(Rec, false);
+    end;
 
 
     var
