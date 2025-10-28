@@ -42,10 +42,10 @@ tableextension 50600 "DDSIA Job Task" extends "Job Planning Line"
             Editable = false;
             Caption = 'Vendor Name';
         }
-        field(50605; "Planning Resource id"; Integer)
-        {
-            DataClassification = ToBeClassified;
-        }
+        // field(50605; "Planning Resource id"; Integer)
+        // {
+        //     DataClassification = ToBeClassified;
+        // }
         field(50530; Depth; Decimal)
         {
             DataClassification = ToBeClassified;
@@ -71,20 +71,16 @@ tableextension 50600 "DDSIA Job Task" extends "Job Planning Line"
         RestMgt: Codeunit "DDSIA Rest API Mgt.";
         auto: Boolean;
     begin
-        if Rec."No." <> xRec."No." then begin
-            "Planning Resource id" := 0;
-            Modify();
+        if Rec."No." <> xRec."No." then
             if Type = Type::Resource then
-                if Res.Get(Rec."No.") then begin
-                    "Planning Resource id" := Res."Planning Resource Id";
+                if Res.Get(Rec."No.") then
                     if Res."Planning Vendor Id" <> 0 then begin
                         Ven.SetRange("Planning Vendor id", Res."Planning Vendor Id");
-                        if Ven.FindFirst() then
+                        if Ven.FindFirst() then begin
                             "Vendor No." := Ven."No.";
+                            Modify();
+                        end;
                     end;
-                    Modify();
-                end;
-        end;
     end;
 
     var
@@ -108,5 +104,28 @@ tableextension 50600 "DDSIA Job Task" extends "Job Planning Line"
         end;
         if DT1 > DT2 then
             error('Datetime overlaped!');
+    end;
+
+    procedure GetResourceOrProductIDFromPlanningIntegration(): Integer
+    var
+        Resource: Record Resource;
+        Item: Record Item;
+        rtv: Integer;
+    begin
+        rtv := 0;
+        if Rec."No." <> '' then
+            case Rec.Type of
+                Rec.Type::Resource:
+                    begin
+                        if Resource.Get(Rec."No.") then
+                            rtv := Resource."Planning Resource Id";
+                    end;
+                Rec.Type::Item:
+                    begin
+                        if Item.Get(Rec."No.") then
+                            rtv := Item."Planning Product Id";
+                    end;
+            end;
+        exit(rtv);
     end;
 }

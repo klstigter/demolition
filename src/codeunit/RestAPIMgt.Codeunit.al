@@ -140,6 +140,45 @@ codeunit 50602 "DDSIA Rest API Mgt."
         exit(rtv);
     end;
 
+    procedure SelectPlanningProduct(var pProductName: Text): Integer
+    var
+        ProductBuffer: record "DDSIA Object Selection";
+        rtv: Integer;
+        ResponseText: Text;
+
+        JsonArray: JsonArray;
+        JsonObject: JsonObject;
+        JsonToken, ProductIdToken, ProductNameToken : JsonToken;
+        ProductId: Integer;
+        ProductName: Text;
+        i: Integer;
+    begin
+        rtv := 0;
+        pProductName := '';
+        GetRequest('/planning/products', ResponseText);
+        JsonArray.ReadFrom(ResponseText);
+        for i := 0 to JsonArray.Count() - 1 do begin
+            JsonArray.Get(i, JsonToken);
+            JsonObject := JsonToken.AsObject();
+            JsonObject.Get('product_id', ProductIdToken);
+            ProductId := ProductIdToken.AsValue().AsInteger();
+            JsonObject.Get('product_name', ProductNameToken);
+            ProductName := ProductNameToken.AsValue().AsText();
+
+            ProductBuffer.Init();
+            ProductBuffer."Object ID" := ProductId;
+            ProductBuffer."Object Name" := ProductName;
+            ProductBuffer.Insert();
+        end;
+
+        // Show as a page for selection
+        if Page.RunModal(0, ProductBuffer) = Action::LookupOK then begin
+            rtv := ProductBuffer."Object ID"; // Return the selected Vendor ID
+            pProductName := ProductBuffer."Object Name";
+        end;
+        exit(rtv);
+    end;
+
     procedure SelectPlanningUser(var pUserName: Text): Integer
     var
         ObjectBuffer: record "DDSIA Object Selection";
@@ -603,6 +642,7 @@ codeunit 50602 "DDSIA Rest API Mgt."
         ResUoM: Record "Resource Unit of Measure";
         Vendor: record Vendor;
         DT: DateTime;
+        PlanningLineResourceId: Integer;
     begin
         /* Available data:
             Rec."Job No."
@@ -638,8 +678,9 @@ codeunit 50602 "DDSIA Rest API Mgt."
             PlanningLine.Insert();
         end;
 
-        if pLine."Planning Resource id" <> 0 then begin
-            Resource.SetRange("Planning Resource Id", pLine."Planning Resource id");
+        PlanningLineResourceId := pLine.GetResourceOrProductIDFromPlanningIntegration();
+        if PlanningLineResourceId <> 0 then begin
+            Resource.SetRange("Planning Resource Id", PlanningLineResourceId);
             if not Resource.FindFirst() then begin
                 IntegrationSetup.Get();
                 IntegrationSetup.TestField("Gen. Prod. Posting Group");
@@ -657,7 +698,7 @@ codeunit 50602 "DDSIA Rest API Mgt."
                     ResUoM.Insert();
                 end;
 
-                Resource."Planning Resource Id" := pLine."Planning Resource id";
+                Resource."Planning Resource Id" := PlanningLineResourceId;
                 Resource.Validate("Gen. Prod. Posting Group", IntegrationSetup."Gen. Prod. Posting Group");
                 Resource.Validate("Base Unit of Measure", ResUoM.Code);
                 Resource.Insert();

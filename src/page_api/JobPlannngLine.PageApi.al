@@ -22,7 +22,7 @@ page 50605 "DDSIAJobPlanningLine"
                 field(lineNo; Rec."Line No.") { }
                 field(type; Rec.Type) { }
                 field(no; ResourceNo) { }
-                field(planning_resource_id; Rec."Planning Resource id") { }
+                field(planning_resource_id; Rec.GetResourceOrProductIDFromPlanningIntegration()) { }
                 field(planning_vendor_id; PlanningVendorId) { }
                 field(description; Rec.Description) { }
                 field(startDateTime; StartDateTime) { }
@@ -50,7 +50,7 @@ page 50605 "DDSIAJobPlanningLine"
             JsonObj.Add('lineNo', Rec."Line No.");
             JsonObj.Add('Type', format(Rec.Type));
             JsonObj.Add('No', ResourceNo);
-            JsonObj.Add('planning_resource_id', Rec."Planning Resource id");
+            JsonObj.Add('planning_resource_id', Rec.GetResourceOrProductIDFromPlanningIntegration());
             JsonObj.Add('planning_vendor_id', PlanningVendorId);
             JsonObj.Add('Description', Rec.Description);
             JsonObj.Add('startDateTime', StartDateTime);
