@@ -481,7 +481,6 @@ codeunit 50602 "DDSIA Rest API Mgt."
         ResponseText: Text;
 
         IntegrationPartnerId: Integer;
-        IntegrationUserId: Integer;
 
         i: Integer;
     begin
@@ -495,26 +494,10 @@ codeunit 50602 "DDSIA Rest API Mgt."
         Task.SetRange("Job No.", Job."No.");
         if Task.FindSet() then
             repeat
-                // Check SystemCreatedBy, so It will link with Planning User in User Setup
-                IntegrationUserId := 0;
-                if not IsNullGuid(Task.SystemCreatedBy) then
-                    if User.Get(Task.SystemCreatedBy) then begin
-                        UserSetup.Get(User."User Name");
-                        UserSetup.TestField("Planning User ID");
-                        IntegrationUserId := UserSetup."Planning User ID";
-                    end;
-                if (IntegrationUserId = 0) and (not IsNullGuid(Task.SystemModifiedBy)) then
-                    if User.Get(Task.SystemModifiedBy) then begin
-                        UserSetup.Get(User."User Name");
-                        UserSetup.TestField("Planning User ID");
-                        IntegrationUserId := UserSetup."Planning User ID";
-                    end;
-
                 Clear(TaskObj);
                 task.CalcFields("Start Date");
                 TaskObj.Add('bc_task_no', task."Job Task No.");
                 TaskObj.Add('bc_task_desc', task.Description);
-                TaskObj.Add('planning_user_id', IntegrationUserId);
                 TaskObj.Add('bc_task_date', task."Start Date" <> 0D ? format(task."Start Date", 0, '<Year4>-<Month,2>-<Day,2>') : '');
 
                 AddresMgt.FormatAddr(AddrArray
