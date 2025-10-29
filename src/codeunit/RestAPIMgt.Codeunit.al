@@ -728,6 +728,119 @@ codeunit 50602 "DDSIA Rest API Mgt."
         end;
     end;
 
+    //UpdateJobPlanningLineFromIntegrationbor(Rec, PlanningProductId, PlanningVendorId, ProductNo, StartDateTime, EndDateTime, PlanningQty, PlanningDepth);
+    procedure UpdateJobPlanningLineFromIntegrationbor(pLine: Record "Job Planning Line";
+                                                        PlanningProductId: Integer;
+                                                        ProductNo: Text;
+                                                        PlanningVendorId: Integer;
+                                                        StartDateTime: Text;
+                                                        EndDateTime: Text;
+                                                        PlanningQty: Decimal;
+                                                        PlanningDepth: Decimal)
+    var
+        IntegrationSetup: record "Planning Integration Setup";
+        PlanningLine: Record "Job Planning Line";
+        Item: record Item;
+        ItemUoM: Record "Item Unit of Measure";
+        Vendor: record Vendor;
+        DT: DateTime;
+        PlanningLineProductId: Integer;
+        _Code: Code[20];
+    begin
+        /* Available data:
+            Rec."Job No."
+            Rec."Job Task No."
+            Rec."Line No."
+            Rec.Type
+            ProductNo
+            PlanningProductId
+            PlanningVendorId
+            StartDateTime
+            EndDateTime
+            Rec.Description
+            PlanningQty
+            PlanningDepth
+        */
+
+        IntegrationSetup.Get();
+        pLine.TestField(Type, pLine.Type::Item);
+        if PlanningProductId <= 0 then
+            Error('PlanningProductId must not in zero value');
+        //Check item
+        Item.SetRange("Planning Product Id", PlanningProductId);
+        if not Item.FindFirst() then begin
+            if ProductNo = '' then
+                Error('ProductNo must not in blank value');
+            Evaluate(_Code, CopyStr(ProductNo, 1, 20));
+            Item.Reset();
+            if Item.Get(_Code) then begin
+                Item."Planning Product Id" := PlanningProductId;
+                Item.Modify();
+            end else begin
+                if not ItemUoM.Get(_Code, IntegrationSetup."Default Unit of Measure Code") then begin
+                    ItemUoM.Init();
+                    ItemUoM."Item No." := _Code;
+                    ItemUoM.Code := IntegrationSetup."Default Unit of Measure Code";
+                    ItemUoM."Qty. per Unit of Measure" := 1;
+                    ItemUoM.Insert();
+                end;
+                Item.Init();
+                Item."No." := _Code;
+                Item."Base Unit of Measure" := ItemUoM.Code;
+                Item."Gen. Prod. Posting Group" := IntegrationSetup."Gen. Prod. Posting Group";
+                Item."Planning Product Id" := PlanningProductId;
+                Item.Insert();
+            end;
+        end;
+
+        // Check pleanning line, if not exist then insert
+        if not PlanningLine.Get(pLine."Job No.", pLine."Job Task No.", pLine."Line No.") then begin
+            PlanningLine.Init();
+            PlanningLine."Job No." := pLine."Job No.";
+            PlanningLine."Job Task No." := pLine."Job Task No.";
+            PlanningLine."Line No." := pLine."Line No.";
+            PlanningLine.Type := pLine.Type;
+            DT := ConvertDTStringIntoDT(StartDateTime);
+            if DT <> 0DT Then begin
+                PlanningLine."Planning Date" := DT2Date(DT);
+                PlanningLine."Start Time" := DT2Time(DT);
+            end;
+
+            DT := ConvertDTStringIntoDT(EndDateTime);
+            if DT <> 0DT Then begin
+                PlanningLine."End Planning Date" := DT2Date(DT);
+                PlanningLine."End Time" := DT2Time(DT);
+            end;
+            PlanningLine.validate("No.", Item."No.");
+            PlanningLine.Quantity := PlanningQty;
+            PlanningLine.Depth := PlanningDepth;
+            PlanningLine.Insert();
+        end else begin
+            PlanningLine.Validate(Type, pLine.Type);
+            PlanningLine.validate("No.", Item."No.");
+            DT := ConvertDTStringIntoDT(StartDateTime);
+            if DT <> 0DT Then begin
+                PlanningLine."Planning Date" := DT2Date(DT);
+                PlanningLine."Start Time" := DT2Time(DT);
+            end;
+
+            DT := ConvertDTStringIntoDT(EndDateTime);
+            if DT <> 0DT Then begin
+                PlanningLine."End Planning Date" := DT2Date(DT);
+                PlanningLine."End Time" := DT2Time(DT);
+            end;
+            PlanningLine.Validate(Quantity, PlanningQty);
+            PlanningLine.Depth := PlanningDepth;
+            PlanningLine.Modify();
+        end;
+        if PlanningVendorId <> 0 then begin
+            Vendor.SetRange("Planning Vendor id", PlanningVendorId);
+            Vendor.FindFirst(); //must error if mapping not found
+            PlanningLine."Vendor No." := Vendor."No.";
+            PlanningLine.Modify();
+        end;
+    end;
+
     procedure DT2UTC(pDT: DateTime): DateTime
     var
         Settings: SessionSettings;

@@ -1,12 +1,12 @@
-page 50605 "DDSIAJobPlanningLine"
+page 50611 "DDSIAJobPlanningLineBor"
 {
     PageType = API;
     Caption = 'apiJobPlanningLine';
     APIPublisher = 'ddsia';
     APIGroup = 'planning';
     APIVersion = 'v1.0';
-    EntityName = 'jobPlanningLine';
-    EntitySetName = 'jobPlanningLines';
+    EntityName = 'jobPlanningLinebor';
+    EntitySetName = 'jobPlanningLinebors';
     SourceTable = "Job Planning Line";
     DelayedInsert = true;
     SourceTableTemporary = true;
@@ -21,12 +21,14 @@ page 50605 "DDSIAJobPlanningLine"
                 field(jobTaskNo; Rec."Job Task No.") { }
                 field(lineNo; Rec."Line No.") { }
                 field(type; Rec.Type) { }
-                field(no; ResourceNo) { }
-                field(planning_resource_id; PlanningResourceId) { }
+                field(no; ProductNo) { }
+                field(planning_product_id; PlanningProductId) { }
                 field(planning_vendor_id; PlanningVendorId) { }
                 field(description; Rec.Description) { }
                 field(startDateTime; StartDateTime) { }
                 field(endDateTime; EndDateTime) { }
+                field(qty; PlanningQtyTxt) { }
+                field(depth; PlanningDepthTxt) { }
             }
         }
     }
@@ -41,6 +43,8 @@ page 50605 "DDSIAJobPlanningLine"
         i: Integer;
         JSonText: Text;
         OutS: OutStream;
+        PlanningQty: Decimal;
+        PlanningDepth: Decimal;
     begin
         IntegrationSetup.Get();
         if IntegrationSetup."Log Incoming Api Request" then begin
@@ -49,12 +53,14 @@ page 50605 "DDSIAJobPlanningLine"
             JsonObj.Add('jobTaskNo', Rec."Job Task No.");
             JsonObj.Add('lineNo', Rec."Line No.");
             JsonObj.Add('Type', format(Rec.Type));
-            JsonObj.Add('No', ResourceNo);
-            JsonObj.Add('planning_resource_id', PlanningResourceId);
+            JsonObj.Add('No', ProductNo);
+            JsonObj.Add('planning_product_id', PlanningProductId);
             JsonObj.Add('planning_vendor_id', PlanningVendorId);
             JsonObj.Add('Description', Rec.Description);
             JsonObj.Add('startDateTime', StartDateTime);
             JsonObj.Add('endDateTime', EndDateTime);
+            JsonObj.Add('qty', PlanningQtyTxt);
+            JsonObj.Add('depth', PlanningDepthTxt);
             JsonObj.WriteTo(JSonText);
 
             Incoming.Init();
@@ -66,13 +72,19 @@ page 50605 "DDSIAJobPlanningLine"
             Commit();
         end;
 
-        RestMgt.UpdateJobPlanningLineFromIntegration(Rec, PlanningVendorId, ResourceNo, StartDateTime, EndDateTime);
+        if PlanningQtyTxt <> '' then
+            Evaluate(PlanningQty, PlanningQtyTxt);
+        if PlanningDepthTxt <> '' then
+            Evaluate(PlanningDepth, PlanningDepthTxt);
+        RestMgt.UpdateJobPlanningLineFromIntegrationbor(Rec, PlanningProductId, ProductNo, PlanningVendorId, StartDateTime, EndDateTime, PlanningQty, PlanningDepth);
     end;
 
     var
         PlanningVendorId: Integer;
-        PlanningResourceId: Integer;
-        ResourceNo: Text;
+        PlanningProductId: Integer;
+        ProductNo: Text;
         StartDateTime: Text;
         EndDateTime: Text;
+        PlanningQtyTxt: Text;
+        PlanningDepthTxt: Text;
 }
