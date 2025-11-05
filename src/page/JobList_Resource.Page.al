@@ -35,7 +35,7 @@ page 50609 "Job List - Resource"
     PageType = List;
     QueryCategory = 'Job List';
     SourceTable = Job;
-    SourceTableView = where(Reserve = const("Resource Planning"));
+    SourceTableView = where("Job View Type" = const("Resource"));
     UsageCategory = Lists;
 
     layout
@@ -1120,11 +1120,12 @@ page 50609 "Job List - Resource"
 
     trigger OnNewRecord(BelowxRec: Boolean)
     begin
-        Rec.Reserve := Rec.Reserve::"Resource Planning"
+        Rec."Job View Type" := Rec."Job View Type"::"Resource"
     end;
 
     trigger OnInit()
     begin
+        Rec."Job View Type" := Rec."Job View Type"::"Resource";
         CurrPage.PowerBIEmbeddedReportPart.PAGE.SetPageContext(CurrPage.ObjectId(false));
     end;
 

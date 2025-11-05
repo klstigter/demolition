@@ -13,7 +13,7 @@ page 50607 "Job Task List - Resource"
     Editable = false;
     PageType = List;
     SourceTable = "Job Task";
-    SourceTableView = where("Job Task Type" = const("Resource Planning"));
+    SourceTableView = where("Job View Type" = const("Resource"));
 
     layout
     {
@@ -404,12 +404,6 @@ page 50607 "Job Task List - Resource"
         }
     }
 
-    // trigger OnOpenPage()
-    // begin
-    //     // Default page filtered on Job Task Type <> Resource Planning
-    //     Rec.SetRange("Job Task Type", Rec."Job Task Type"::"Resource Planning");
-    // end;
-
     trigger OnAfterGetRecord()
     begin
         // StyleIsStrong := Rec."Job Task Type" <> Rec."Job Task Type"::Posting;
@@ -417,7 +411,7 @@ page 50607 "Job Task List - Resource"
 
     trigger OnNewRecord(BelowxRec: Boolean)
     begin
-        Rec."Job Task Type" := Rec."Job Task Type"::"Resource Planning";
+        Rec."Job View Type" := Rec."Job View Type"::"Resource";
     end;
 
     var

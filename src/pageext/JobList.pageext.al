@@ -87,9 +87,15 @@ pageextension 50602 "DDSIA Job List" extends "Job List"
     }
 
     trigger OnOpenPage()
+    var
+        myInt: Integer;
     begin
-        // Default page filtered on Job Task Type <> Resource Planning
-        Rec.SetFilter(Reserve, '<>%1', Rec.Reserve::"Resource Planning");
+        Rec.SetFilter("Job View Type", '<>%1', Rec."Job View Type"::"Resource");
+    end;
+
+    trigger OnNewRecord(BelowxRec: Boolean)
+    begin
+        Rec."Job View Type" := Rec."Job View Type"::Project;
     end;
 
     var

@@ -40,7 +40,7 @@ page 50610 "Job Card - Resource"
     PageType = Document;
     RefreshOnActivate = true;
     SourceTable = Job;
-    SourceTableView = where(Reserve = const("Resource Planning"));
+    SourceTableView = where("Job View Type" = const("Resource"));
     AdditionalSearchTerms = 'Job Card';
 
     layout
@@ -1903,15 +1903,27 @@ page 50610 "Job Card - Resource"
     var
         PriceCalculationMgt: Codeunit "Price Calculation Mgt.";
     begin
+        Rec.Setrange("Job View Type", Rec."Job View Type"::"Resource");
         SetNoFieldVisible();
         ActivateFields();
         ExtendedPriceEnabled := PriceCalculationMgt.IsExtendedPriceCalculationEnabled();
     end;
 
+    trigger OnInit()
+    begin
+        Rec."Job View Type" := Rec."Job View Type"::"Resource";
+    end;
+
     trigger OnNewRecord(BelowxRec: Boolean)
     begin
-        Rec.Reserve := Rec.Reserve::"Resource Planning";
+        Rec."Job View Type" := Rec."Job View Type"::Resource;
     end;
+
+    trigger OnInsertRecord(BelowxRec: Boolean): Boolean
+    begin
+        Rec."Job View Type" := Rec."Job View Type"::Resource;
+    end;
+
 
     trigger OnAfterGetCurrRecord()
     begin
