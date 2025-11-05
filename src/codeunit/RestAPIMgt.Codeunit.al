@@ -615,7 +615,8 @@ codeunit 50602 "DDSIA Rest API Mgt."
 
     procedure UpdateJobPlanningLineFromIntegration(pLine: Record "Job Planning Line";
                                                    PlanningVendorId: Integer;
-                                                   ResourceNo: text;
+                                                   PlanningLineResourceId: Integer; //in this context always retrive Type = Resource
+                                                   ResourceNo: text;                //in this context always retrive Type = Resource
                                                    StartDateTime: Text;
                                                    EndDateTime: Text)
     var
@@ -625,7 +626,6 @@ codeunit 50602 "DDSIA Rest API Mgt."
         ResUoM: Record "Resource Unit of Measure";
         Vendor: record Vendor;
         DT: DateTime;
-        PlanningLineResourceId: Integer;
     begin
         /* Available data:
             Rec."Job No."
@@ -661,7 +661,6 @@ codeunit 50602 "DDSIA Rest API Mgt."
             PlanningLine.Insert();
         end;
 
-        PlanningLineResourceId := pLine.GetResourceOrProductIDFromPlanningIntegration();
         if PlanningLineResourceId <> 0 then begin
             Resource.SetRange("Planning Resource Id", PlanningLineResourceId);
             if not Resource.FindFirst() then begin

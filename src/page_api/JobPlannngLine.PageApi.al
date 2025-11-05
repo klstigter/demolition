@@ -66,7 +66,7 @@ page 50605 "DDSIAJobPlanningLine"
             Commit();
         end;
 
-        RestMgt.UpdateJobPlanningLineFromIntegration(Rec, PlanningVendorId, ResourceNo, StartDateTime, EndDateTime);
+        RestMgt.UpdateJobPlanningLineFromIntegration(Rec, PlanningVendorId, PlanningResourceId, ResourceNo, StartDateTime, EndDateTime);
     end;
 
     var
