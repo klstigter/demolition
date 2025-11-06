@@ -598,13 +598,11 @@ codeunit 50602 "DDSIA Rest API Mgt."
                 PlanningLine.Type::Item:
                     begin
                         Item.Get(PlanningLine."No.");
-                        Item.TestField("Planning Product Id");
                         rtv := Item."Planning Product Id";
                     end;
                 PlanningLine.Type::Resource:
                     begin
                         Resource.Get(PlanningLine."No.");
-                        Resource.TestField("Planning Resource Id");
                         rtv := Resource."Planning Resource Id";
                     end;
             end;
