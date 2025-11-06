@@ -410,7 +410,7 @@ codeunit 50602 "DDSIA Rest API Mgt."
         LineObj.Add('bc_jobplanningline_lineno', PlanningLine."Line No.");
         LineObj.Add('bc_jobplanningline_type', format(PlanningLine.Type));
         LineObj.Add('bc_jobplanningline_no', PlanningLine."No.");
-        LineObj.Add('bc_jobplanningline_resid', GetResIdFromResource(PlanningLine));
+        LineObj.Add('bc_jobplanningline_resid', GetResIdFromPlanningNo(PlanningLine));
         LineObj.Add('bc_jobplanningline_desc', PlanningLine.Description);
 
         if PlanningLine."Vendor No." <> '' then begin
@@ -491,6 +491,7 @@ codeunit 50602 "DDSIA Rest API Mgt."
         Project_Obj.Add('bc_project_desc', Job.Description);
 
         // Task
+        Task.Reset();
         Task.SetRange("Job No.", Job."No.");
         if Task.FindSet() then
             repeat
@@ -523,6 +524,7 @@ codeunit 50602 "DDSIA Rest API Mgt."
 
                 // Planning Lines
                 Clear(LineArray);
+                PlanningLine.Reset();
                 PlanningLine.SetRange("Job No.", Task."Job No.");
                 PlanningLine.SetRange("Job Task No.", Task."Job Task No.");
                 PlanningLine.SetFilter(Type, '%1|%2', PlanningLine.Type::Resource, PlanningLine.Type::Text);
@@ -533,7 +535,7 @@ codeunit 50602 "DDSIA Rest API Mgt."
                         LineObj.Add('bc_jobplanningline_lineno', PlanningLine."Line No.");
                         LineObj.Add('bc_jobplanningline_type', format(PlanningLine.Type));
                         LineObj.Add('bc_jobplanningline_no', PlanningLine."No.");
-                        LineObj.Add('bc_jobplanningline_resid', GetResIdFromResource(PlanningLine));
+                        LineObj.Add('bc_jobplanningline_resid', GetResIdFromPlanningNo(PlanningLine));
                         LineObj.Add('bc_jobplanningline_desc', PlanningLine.Description);
 
                         if PlanningLine."Vendor No." <> '' then begin
@@ -584,17 +586,28 @@ codeunit 50602 "DDSIA Rest API Mgt."
         end;
     end;
 
-    local procedure GetResIdFromResource(PlanningLine: record "Job Planning Line"): Integer
+    local procedure GetResIdFromPlanningNo(PlanningLine: record "Job Planning Line"): Integer
     var
-        rtv: Integer;
         Resource: record Resource;
+        Item: record Item;
+        rtv: Integer;
     begin
         rtv := 0;
-        if (PlanningLine."Vendor No." <> '') and (PlanningLine.Type = PlanningLine.Type::Resource) and (PlanningLine."No." <> '') then begin
-            Resource.Get(PlanningLine."No.");
-            Resource.TestField("Planning Resource Id");
-            rtv := Resource."Planning Resource Id";
-        end;
+        if PlanningLine."No." <> '' then
+            case PlanningLine.Type of
+                PlanningLine.Type::Item:
+                    begin
+                        Item.Get(PlanningLine."No.");
+                        Item.TestField("Planning Product Id");
+                        rtv := Item."Planning Product Id";
+                    end;
+                PlanningLine.Type::Resource:
+                    begin
+                        Resource.Get(PlanningLine."No.");
+                        Resource.TestField("Planning Resource Id");
+                        rtv := Resource."Planning Resource Id";
+                    end;
+            end;
         exit(rtv);
     end;
 
