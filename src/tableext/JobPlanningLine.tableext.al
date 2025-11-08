@@ -50,11 +50,20 @@ tableextension 50600 "DDSIA Job Task" extends "Job Planning Line"
         {
             DataClassification = ToBeClassified;
         }
+        field(50605; IsBoor; Boolean)
+        {
+            DataClassification = ToBeClassified;
+        }
     }
 
     keys
     {
         // Add changes to keys here
+        key(P0001; IsBoor)
+        {
+
+        }
+
     }
 
     fieldgroups

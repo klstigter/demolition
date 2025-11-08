@@ -3,6 +3,13 @@ pageextension 50600 "DDSIA Job Planning Lines" extends "Job Planning Lines"
     layout
     {
         // Add changes to page layout here
+        addbefore("Job No.")
+        {
+            field(Isboor; Rec.IsBoor)
+            {
+                ApplicationArea = All;
+            }
+        }
         modify("Job No.")
         {
             visible = ShowJobNo;
@@ -69,6 +76,10 @@ pageextension 50600 "DDSIA Job Planning Lines" extends "Job Planning Lines"
                 actionref("Today_filter"; "TodayFilter") { }
                 actionref("Prev_filter"; "PrevTodayFilter") { }
                 actionref("Nex_filter"; "NextTodayFilter") { }
+                actionref("VisualPlanningJobRef"; "VisualPlanning") { }
+                actionref("VisualPlanningResRef"; "VisualPlanningRes") { }
+                actionref("PushToPlanningIntegrationRef"; "PushToPlanningIntegration") { }
+                actionref("RefreshRef"; "Refresh") { }
             }
         }
         // Add to an existing group (here addlast(Processing) — any group is fine)
@@ -110,6 +121,47 @@ pageextension 50600 "DDSIA Job Planning Lines" extends "Job Planning Lines"
                 begin
                     CurrFilterDate := CalcDate('<1D>', CurrFilterDate);
                     Rec.SetRange("Planning Date", CurrFilterDate);
+                    CurrPage.Update();
+                end;
+            }
+            action("VisualPlanning")
+            {
+                ApplicationArea = All;
+                Caption = 'Visual Planning Job';
+                RunObject = codeunit "Job Planning Line Handler";
+            }
+            action("VisualPlanningRes")
+            {
+                ApplicationArea = All;
+                Caption = 'Visual Planning Resource';
+                RunObject = codeunit "Resource DayPilot Handler";
+            }
+            action("PushToPlanningIntegration")
+            {
+                ApplicationArea = Jobs;
+                Caption = 'Push data';
+                Image = LinkWeb;
+                ToolTip = 'Submit project, Tasks, and Planning Lines into Planning Integration system.';
+
+                trigger OnAction()
+                var
+                    RestMgt: Codeunit "DDSIA Rest API Mgt.";
+                    Job: Record Job;
+                begin
+                    if job.GET(rec."Job No.") then
+                        RestMgt.PushProjectToPlanningIntegration(job, false);
+                end;
+            }
+            action("Refresh")
+            {
+                ApplicationArea = Jobs;
+                Caption = 'Refresh';
+                Image = LinkWeb;
+                ToolTip = 'Refresh';
+
+                trigger OnAction()
+                var
+                begin
                     CurrPage.Update();
                 end;
             }
