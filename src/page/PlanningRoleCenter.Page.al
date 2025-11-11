@@ -18,9 +18,9 @@ page 50612 "Planning Role Center"
     {
         area(Sections)
         {
-            group("Group")
+            group("ProjectPlanningGroup")
             {
-                Caption = 'Projects';
+                Caption = 'Project Planning';
                 action("Jobs")
                 {
                     ApplicationArea = Jobs;
@@ -41,6 +41,12 @@ page 50612 "Planning Role Center"
                     RunObject = Page "Job Planning Lines";
                     ToolTip = 'Open the list of ongoing project planning lines for the project. You use this window to plan what items, resources, and general ledger expenses that you expect to use on a project (budget) or you can specify what you actually agreed with your customer that he should pay for the project (billable).';
                 }
+            }
+
+            group("ResourcePlanningGroup")
+            {
+                Caption = 'Resource Planning';
+
                 action("Jobs Resource")
                 {
                     ApplicationArea = Jobs;
@@ -56,6 +62,12 @@ page 50612 "Planning Role Center"
                     RunObject = page "Job Task List - Resource";
                     ToolTip = 'Define the various tasks involved in a project. You must create at least one project task per project because all posting refers to a project task. Having at least one project task in your project enables you to set up project planning lines and to post consumption to the project.';
                 }
+
+            }
+            group("VisualGroup")
+            {
+                Caption = 'Visual';
+
                 action("VisualPlanning")
                 {
                     ApplicationArea = All;
