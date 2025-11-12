@@ -23,8 +23,8 @@
             "tenant": "a60762e1-df10-4e4b-8f44-174c51589110",
             "environmentType": "Sandbox",
             "environmentName": "NL_Copy20240710",
-            "startupObjectId": 89, //1004, //1007, //77, //50600
-            "startupObjectType": "Page",
+            //"startupObjectId": 89, //1004, //1007, //77, //50600
+            //"startupObjectType": "Page",
             "breakOnError": true,
             "launchBrowser": true,
             "enableLongRunningSqlStatements": true,

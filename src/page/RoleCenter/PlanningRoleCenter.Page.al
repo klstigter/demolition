@@ -7,7 +7,11 @@ page 50612 "Planning Role Center"
     {
         area(rolecenter)
         {
-            part(Control34; "My Jobs")
+            part(ProjectPlanningActivities; "Project Planning Activities")
+            {
+                ApplicationArea = Jobs;
+            }
+            part(ResourcePlanningActivities; "Resource Planning Activities")
             {
                 ApplicationArea = Jobs;
             }
