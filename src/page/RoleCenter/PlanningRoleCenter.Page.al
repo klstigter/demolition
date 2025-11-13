@@ -86,6 +86,17 @@ page 50612 "Planning Role Center"
                     RunObject = codeunit "Job Planning Line Handler";
                 }
             }
+            group("SettingGroup")
+            {
+                Caption = 'Setup';
+
+                action("PlanningIntegrationSetup")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Planning Integration Setup';
+                    RunObject = page "Planning Integration Setup";
+                }
+            }
         }
     }
 }

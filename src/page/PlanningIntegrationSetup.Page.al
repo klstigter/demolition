@@ -12,6 +12,13 @@ page 50603 "Planning Integration Setup"
     {
         area(Content)
         {
+            group(General)
+            {
+                field("Request Nos."; Rec."Request Nos.")
+                {
+                    ApplicationArea = All;
+                }
+            }
             group(APIIntegeration)
             {
                 Caption = 'API Integration';
@@ -41,9 +48,25 @@ page 50603 "Planning Integration Setup"
             {
                 Caption = 'Auto';
 
-                field("Log Incoming Api Request"; Rec."Log Incoming Api Request")
+                group(Log)
                 {
-                    ApplicationArea = All;
+                    field("Log Incoming Api Request"; Rec."Log Incoming Api Request")
+                    {
+                        ApplicationArea = All;
+                    }
+                    field("ShowLog"; 'Show Log')
+                    {
+                        ApplicationArea = All;
+                        Editable = false;
+                        ShowCaption = false;
+
+                        trigger OnAssistEdit()
+                        var
+                            LogPage: page "DDSIA Incoming Check";
+                        begin
+                            LogPage.Run();
+                        end;
+                    }
                 }
                 field("Auto Sync. Integration"; Rec."Auto Sync. Integration")
                 {

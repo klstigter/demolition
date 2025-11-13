@@ -8,6 +8,11 @@ table 50600 "Planning Integration Setup"
         {
             Caption = 'Primary Key';
         }
+        field(5; "Request Nos."; Code[20])
+        {
+            Caption = 'Request Nos.';
+            TableRelation = "No. Series";
+        }
         field(10; "Planning API Url"; Text[200])
         {
             DataClassification = ToBeClassified;
