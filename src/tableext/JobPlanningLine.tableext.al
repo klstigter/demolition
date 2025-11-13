@@ -54,6 +54,12 @@ tableextension 50600 "DDSIA Job Task" extends "Job Planning Line"
         {
             DataClassification = ToBeClassified;
         }
+        field(50606; "Job View Type"; Enum "Job View Type")
+        {
+            FieldClass = FlowField;
+            CalcFormula = lookup("Job Task"."Job View Type" where("Job Task No." = Field("Job Task No."), "Job No." = Field("Job No.")));
+            Editable = false;
+        }
     }
 
     keys

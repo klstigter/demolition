@@ -93,6 +93,7 @@ table 50603 "DDSIA PLanning Cue"
         Job: record Job;
         JobCheck: record Job;
         JPLine: record "Job Planning Line";
+        JobList: page "Job List - Resource";
         rtv: Integer;
     begin
         JPLine.SetRange("Planning Date", ViewDate);
@@ -120,7 +121,16 @@ table 50603 "DDSIA PLanning Cue"
         if Job.FindSet() then begin
             rtv := Job.Count();
             if LookupView then
-                page.Run(0, Job);
+                case ViewType of
+                    ViewType::Project:
+                        page.Run(0, Job);
+                    ViewType::Resource:
+                        begin
+                            Clear(JobList);
+                            JobList.SetTableView(Job);
+                            JobList.Run();
+                        end;
+                end;
         end;
         exit(rtv);
     end;
@@ -130,6 +140,7 @@ table 50603 "DDSIA PLanning Cue"
         JobTask: record "Job Task";
         JobTaskCheck: record "Job Task";
         JPLine: record "Job Planning Line";
+        JobTaskList: page "Job Task List - Resource";
         rtv: Integer;
     begin
         JPLine.SetRange("Planning Date", ViewDate);
@@ -160,7 +171,16 @@ table 50603 "DDSIA PLanning Cue"
         if JobTask.FindSet() then begin
             rtv := JobTask.Count();
             if LookupView then
-                page.Run(0, JobTask);
+                case ViewType of
+                    ViewType::Project:
+                        page.Run(0, JobTask);
+                    ViewType::Resource:
+                        begin
+                            Clear(JobTaskList);
+                            JobTaskList.SetTableView(JobTask);
+                            JobTaskList.Run();
+                        end;
+                end;
         end;
         exit(rtv);
     end;

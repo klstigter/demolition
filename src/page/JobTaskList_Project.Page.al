@@ -7,15 +7,15 @@ using Microsoft.Projects.Project.Reports;
 using Microsoft.Integration.Dataverse;
 #endif
 
-page 50607 "Job Task List - Resource"
+page 50617 "Job Task List - Project"
 {
-    Caption = 'Project Task List (Resource)';
-    CardPageID = "Job Task Card - Resource";
+    Caption = 'Project Task List (Project)';
+    CardPageID = "Job Task Card - Project";
     DataCaptionFields = "Job No.";
     Editable = false;
     PageType = List;
     SourceTable = "Job Task";
-    SourceTableView = where("Job View Type" = const("Resource"));
+    SourceTableView = where("Job View Type" = const(Project));
 
     layout
     {
@@ -417,7 +417,7 @@ page 50607 "Job Task List - Resource"
 
     trigger OnNewRecord(BelowxRec: Boolean)
     begin
-        Rec."Job View Type" := Rec."Job View Type"::"Resource";
+        Rec."Job View Type" := Rec."Job View Type"::"Project";
     end;
 
     var

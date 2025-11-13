@@ -1,10 +1,10 @@
-page 50608 "Job Task Card - Resource"
+page 50618 "Job Task Card - Project"
 {
     Caption = 'Project Task Card';
     DataCaptionExpression = Rec.Caption();
     PageType = Card;
     SourceTable = "Job Task";
-    SourceTableView = where("Job View Type" = const("Resource"));
+    SourceTableView = where("Job View Type" = const(Project));
 
     layout
     {
@@ -842,7 +842,7 @@ page 50608 "Job Task Card - Resource"
 
     trigger OnNewRecord(BelowxRec: Boolean)
     begin
-        Rec."Job View Type" := Rec."Job View Type"::"Resource";
+        Rec."Job View Type" := Rec."Job View Type"::"Project";
     end;
 
     local procedure ActivateFields()
