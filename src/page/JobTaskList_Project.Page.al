@@ -1,12 +1,3 @@
-namespace Microsoft.Projects.Project.Job;
-
-using Microsoft.Finance.Dimension;
-using Microsoft.Projects.Project.Planning;
-using Microsoft.Projects.Project.Reports;
-#if not CLEAN25
-using Microsoft.Integration.Dataverse;
-#endif
-
 page 50617 "Job Task List - Project"
 {
     Caption = 'Project Task List (Project)';

@@ -1,39 +1,3 @@
-namespace Microsoft.Projects.Project.Job;
-
-using Microsoft.Assembly.Document;
-using Microsoft.CRM.Contact;
-using Microsoft.Finance.Dimension;
-using Microsoft.Foundation.Address;
-using Microsoft.Foundation.Attachment;
-using Microsoft.Foundation.Comment;
-using Microsoft.Foundation.Reporting;
-using Microsoft.Inventory.BOM;
-using Microsoft.Inventory.Ledger;
-using Microsoft.Pricing.Calculation;
-using Microsoft.Pricing.PriceList;
-using Microsoft.Pricing.Source;
-using Microsoft.Projects.Project.Analysis;
-using Microsoft.Projects.Project.Ledger;
-using Microsoft.Projects.Project.Planning;
-#if not CLEAN25
-using Microsoft.Projects.Project.Pricing;
-#endif
-using Microsoft.Projects.Project.Reports;
-using Microsoft.Projects.Project.Archive;
-using Microsoft.Projects.Project.WIP;
-using Microsoft.Projects.TimeSheet;
-using Microsoft.Purchases.Document;
-using Microsoft.Purchases.Pricing;
-using Microsoft.Sales.Customer;
-using Microsoft.Sales.Document;
-using Microsoft.Sales.Pricing;
-using Microsoft.Utilities;
-using Microsoft.Warehouse.Activity;
-using Microsoft.Warehouse.Activity.History;
-using Microsoft.Warehouse.Ledger;
-using Microsoft.Warehouse.Structure;
-using System.Telemetry;
-
 page 50610 "Job Card - Resource"
 {
     Caption = 'Project Card';
@@ -955,17 +919,17 @@ page 50610 "Job Card - Resource"
                 Visible = false;
             }
 #if not CLEAN25
-            part("Attached Documents"; "Document Attachment Factbox")
-            {
-                ObsoleteTag = '25.0';
-                ObsoleteState = Pending;
-                ObsoleteReason = 'The "Document Attachment FactBox" has been replaced by "Doc. Attachment List Factbox", which supports multiple files upload.';
-                ApplicationArea = All;
-                Visible = false;
-                Caption = 'Attachments';
-                SubPageLink = "Table ID" = const(Database::Job),
-                              "No." = field("No.");
-            }
+            // part("Attached Documents"; "Document Attachment Factbox")
+            // {
+            //     ObsoleteTag = '25.0';
+            //     ObsoleteState = Pending;
+            //     ObsoleteReason = 'The "Document Attachment FactBox" has been replaced by "Doc. Attachment List Factbox", which supports multiple files upload.';
+            //     ApplicationArea = All;
+            //     Visible = false;
+            //     Caption = 'Attachments';
+            //     SubPageLink = "Table ID" = const(Database::Job),
+            //                   "No." = field("No.");
+            // }
 #endif
             part("Attached Documents List"; "Doc. Attachment List Factbox")
             {
@@ -1787,44 +1751,44 @@ page 50610 "Job Card - Resource"
                 {
                 }
 #if not CLEAN25
-                actionref(SalesPriceListsDiscounts_Promoted; SalesPriceListsDiscounts)
-                {
-                    ObsoleteState = Pending;
-                    ObsoleteReason = 'Action SalesPriceLists shows all sales price lists with prices and discounts';
-                    ObsoleteTag = '18.0';
-                }
+                // actionref(SalesPriceListsDiscounts_Promoted; SalesPriceListsDiscounts)
+                // {
+                //     ObsoleteState = Pending;
+                //     ObsoleteReason = 'Action SalesPriceLists shows all sales price lists with prices and discounts';
+                //     ObsoleteTag = '18.0';
+                // }
 #endif
 #if not CLEAN25
-                actionref(PurchasePriceListsDiscounts_Promoted; PurchasePriceListsDiscounts)
-                {
-                    ObsoleteState = Pending;
-                    ObsoleteReason = 'Action PurchasePriceLists shows all purchase price lists with prices and discounts';
-                    ObsoleteTag = '18.0';
-                }
+                // actionref(PurchasePriceListsDiscounts_Promoted; PurchasePriceListsDiscounts)
+                // {
+                //     ObsoleteState = Pending;
+                //     ObsoleteReason = 'Action PurchasePriceLists shows all purchase price lists with prices and discounts';
+                //     ObsoleteTag = '18.0';
+                // }
 #endif
 #if not CLEAN25
-                actionref("&Resource_Promoted"; "&Resource")
-                {
-                    ObsoleteState = Pending;
-                    ObsoleteReason = 'Replaced by the new implementation (V16) of price calculation.';
-                    ObsoleteTag = '17.0';
-                }
+                // actionref("&Resource_Promoted"; "&Resource")
+                // {
+                //     ObsoleteState = Pending;
+                //     ObsoleteReason = 'Replaced by the new implementation (V16) of price calculation.';
+                //     ObsoleteTag = '17.0';
+                // }
 #endif
 #if not CLEAN25
-                actionref("&Item_Promoted"; "&Item")
-                {
-                    ObsoleteState = Pending;
-                    ObsoleteReason = 'Replaced by the new implementation (V16) of price calculation.';
-                    ObsoleteTag = '17.0';
-                }
+                // actionref("&Item_Promoted"; "&Item")
+                // {
+                //     ObsoleteState = Pending;
+                //     ObsoleteReason = 'Replaced by the new implementation (V16) of price calculation.';
+                //     ObsoleteTag = '17.0';
+                // }
 #endif
 #if not CLEAN25
-                actionref("&G/L Account_Promoted"; "&G/L Account")
-                {
-                    ObsoleteState = Pending;
-                    ObsoleteReason = 'Replaced by the new implementation (V16) of price calculation.';
-                    ObsoleteTag = '17.0';
-                }
+                // actionref("&G/L Account_Promoted"; "&G/L Account")
+                // {
+                //     ObsoleteState = Pending;
+                //     ObsoleteReason = 'Replaced by the new implementation (V16) of price calculation.';
+                //     ObsoleteTag = '17.0';
+                // }
 #endif
             }
             group(Category_Category5)

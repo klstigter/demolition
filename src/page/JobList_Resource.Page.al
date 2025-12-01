@@ -1,30 +1,3 @@
-namespace Microsoft.Projects.Project.Job;
-
-using Microsoft.Assembly.Document;
-using Microsoft.Finance.Dimension;
-using Microsoft.Foundation.Attachment;
-using Microsoft.Foundation.Comment;
-using Microsoft.Inventory.BOM;
-using Microsoft.Pricing.Calculation;
-using Microsoft.Pricing.PriceList;
-using Microsoft.Pricing.Source;
-using Microsoft.Projects.Project.Analysis;
-using Microsoft.Projects.Project.Ledger;
-using Microsoft.Projects.Project.Planning;
-#if not CLEAN25
-using Microsoft.Projects.Project.Pricing;
-#endif
-using Microsoft.Projects.Project.Reports;
-using Microsoft.Projects.Project.WIP;
-using Microsoft.Purchases.Pricing;
-using Microsoft.Sales.Customer;
-using Microsoft.Sales.Document;
-using Microsoft.Sales.Pricing;
-using Microsoft.Warehouse.Activity;
-using Microsoft.Warehouse.Activity.History;
-using Microsoft.Warehouse.Structure;
-using System.Integration.PowerBI;
-
 page 50609 "Job List - Resource"
 {
     AdditionalSearchTerms = 'Project List,Jobs,Job List';
