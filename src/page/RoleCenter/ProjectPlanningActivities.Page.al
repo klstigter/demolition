@@ -37,6 +37,18 @@ page 50613 "Project Planning Activities"
                         myInt := Rec.TaskCount(gViewType::Project, Today(), true)
                     end;
                 }
+                field("Project PlanningLines"; Rec.PlanningLinesCount(gViewType::Project, Today(), false))
+                {
+                    Caption = 'Planning Lines';
+                    ApplicationArea = Basic, Suite;
+                    ToolTip = 'Some tooltip';
+                    trigger OnDrillDown()
+                    var
+                        myInt: Integer;
+                    begin
+                        myInt := Rec.PlanningLinesCount(gViewType::Project, Today(), true)
+                    end;
+                }
             }
             cuegroup("Tomorrow")
             {
@@ -62,6 +74,18 @@ page 50613 "Project Planning Activities"
                         myInt: Integer;
                     begin
                         myInt := Rec.TaskCount(gViewType::Project, CalcDate('<1D>', Today()), true);
+                    end;
+                }
+                field("ProjectPlanningLinesTomorrow"; Rec.PlanningLinesCount(gViewType::Project, CalcDate('<1D>', Today()), false))
+                {
+                    Caption = 'Planning Lines';
+                    ApplicationArea = Basic, Suite;
+                    ToolTip = 'Some tooltip';
+                    trigger OnDrillDown()
+                    var
+                        myInt: Integer;
+                    begin
+                        myInt := Rec.PlanningLinesCount(gViewType::Project, CalcDate('<1D>', Today()), true);
                     end;
                 }
             }

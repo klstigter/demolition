@@ -22,7 +22,7 @@ controladdin "DHX Gantt Control"
     event ControlReady();
     event OnAfterInit();
 
-    procedure Init(); //StartDate: Text
-    procedure LoadData(ganttdata: Text); //resourcesJson: Text; eventsJson: Text; StartDate: Text; Days: Integer
+    procedure Init();
+    procedure LoadData(ganttdata: Text);
 
 }

@@ -74,6 +74,10 @@ page 50616 "Job Planning Line (Resource)"
                     ApplicationArea = All;
                 }
                 //>>
+                field("Requested Delivery Date"; Rec."Requested Delivery Date")
+                {
+                    ApplicationArea = All;
+                }
                 field("Planned Delivery Date"; Rec."Planned Delivery Date")
                 {
                     ApplicationArea = Jobs;

@@ -36,6 +36,18 @@ page 50614 "Resource Planning Activities"
                         myInt := Rec.TaskCount(gViewType::Resource, Today(), true);
                     end;
                 }
+                field("Project PlanningLines (Resource)"; Rec.PlanningLinesCount(gViewType::Resource, Today(), false))
+                {
+                    Caption = 'Planning Lines';
+                    ApplicationArea = Basic, Suite;
+                    ToolTip = 'Some tooltip';
+                    trigger OnDrillDown()
+                    var
+                        myInt: Integer;
+                    begin
+                        myInt := Rec.PlanningLinesCount(gViewType::Resource, Today(), true);
+                    end;
+                }
             }
             cuegroup("Tomorrow")
             {
@@ -61,6 +73,18 @@ page 50614 "Resource Planning Activities"
                         myInt: Integer;
                     begin
                         myInt := Rec.TaskCount(gViewType::Resource, CalcDate('<1D>', Today()), true);
+                    end;
+                }
+                field("Project Planninglines tomorrow(Resource)"; Rec.PlanningLinesCount(gViewType::Resource, CalcDate('<1D>', Today()), false))
+                {
+                    Caption = 'Planning Lines';
+                    ApplicationArea = Basic, Suite;
+                    ToolTip = 'Some tooltip';
+                    trigger OnDrillDown()
+                    var
+                        myInt: Integer;
+                    begin
+                        myInt := Rec.PlanningLinesCount(gViewType::Resource, CalcDate('<1D>', Today()), true);
                     end;
                 }
             }

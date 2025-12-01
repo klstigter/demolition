@@ -185,4 +185,28 @@ table 50603 "DDSIA PLanning Cue"
         exit(rtv);
     end;
 
+    procedure PlanningLinesCount(ViewType: enum "Job View Type"; ViewDate: Date; LookupView: Boolean): Integer
+    var
+        JobTask: record "Job Task";
+        JobTaskCheck: record "Job Task";
+        JPLine: record "Job Planning Line";
+        JobTaskList: page "Job Task List - Resource";
+        rtv: Integer;
+    begin
+        JPLine.CalcFields("Job View Type");
+        JPLine.SetRange("Planning Date", ViewDate);
+        JPLine.SetRange("Job View Type", ViewType);
+        if JPLine.FindSet() then begin
+            rtv := JPLine.Count();
+            if LookupView then
+                case ViewType of
+                    ViewType::Project:
+                        page.Run(50615, JPLine);
+                    ViewType::Resource:
+                        page.Run(50616, JPLine);
+                end;
+        end;
+        exit(rtv);
+    end;
+
 }
