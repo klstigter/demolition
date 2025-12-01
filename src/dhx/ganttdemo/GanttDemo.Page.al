@@ -18,6 +18,13 @@ page 50619 "Gantt Demo DHX"
                     CurrPage.DHXGanttControl.Init();
                     CurrPage.DHXGanttControl.LoadData(BuildDummyData());
                 end;
+
+                trigger OnAfterTaskUpdate(id: Text; taskJson: Text);
+                begin
+                    // Finalize saving changed task to BC
+                    // Parse taskJson with JsonObject if needed
+                    Message('Task with ID %1 has been updated. New data: %2', id, taskJson);
+                end;
             }
         }
     }

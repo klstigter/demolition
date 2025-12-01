@@ -33,6 +33,7 @@ function Init() {
     // Minimal configuration and safe init
     try {
         gantt.config.xml_date = "%Y-%m-%d %H:%i";
+        gantt.config.server_utc = false; // keep local times; don't auto-convert to UTC
         gantt.config.scale_unit = "day";
         gantt.config.date_scale = "%d %M %Y";
         gantt.config.min_column_width = 50;
@@ -40,6 +41,43 @@ function Init() {
         if (!gantt._initialized) {
             gantt.init("gantt_here");
             gantt._initialized = true;
+
+            // // Listen for drag/shift/move and save updates
+            // gantt.attachEvent("onTaskDrag", function(id, mode, task, original, e){
+            //     // mode: "move","resize","progress"
+            //     Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnTaskDrag", [
+            //         id, mode, JSON.stringify(task), JSON.stringify(original)
+            //     ]);
+            //     return true; // allow drag
+            // });
+
+            // Fired after user changes task (drop completed)
+            gantt.attachEvent("onAfterTaskUpdate", function(id, /*item*/) {
+                var current = gantt.getTask(id);
+                var toStr = gantt.date.date_to_str(gantt.config.xml_date); // local string
+
+                var payload = {
+                    id: String(current.id),
+                    text: current.text,
+                    start_date: toStr(current.start_date), // e.g. "2025-12-03 00:00"
+                    end_date: toStr(current.end_date),
+                    progress: current.progress,
+                    duration: current.duration,
+                    parent: current.parent
+                };
+
+                Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnAfterTaskUpdate", [
+                    id, JSON.stringify(payload)
+                ]);
+            });
+
+            // // Generic change (programmatic or user)
+            // gantt.attachEvent("onTaskChanged", function(id, task){
+            //     Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnTaskChanged", [
+            //         id, JSON.stringify(task)
+            //     ]);
+            // });
+
         } else {
             gantt.render();
         }

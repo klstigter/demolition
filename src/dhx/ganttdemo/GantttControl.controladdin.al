@@ -21,6 +21,7 @@ controladdin "DHX Gantt Control"
 
     event ControlReady();
     event OnAfterInit();
+    event OnAfterTaskUpdate(id: Text; taskJson: Text);
 
     procedure Init();
     procedure LoadData(ganttdata: Text);
