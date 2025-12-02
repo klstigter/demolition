@@ -73,8 +73,8 @@ page 50619 "Gantt Demo DHX"
         // Tasks are within 2025-12-01 08:00 and 2025-12-12 17:00
         tasks :=
         '[ ' +
-          '{ "id": "MS_START", "text": "Project Start", "type": "milestone", "start_date": "2025-12-01 08:00", "duration": 0 }, ' +
-          '{ "id": "T1", "text": "Analysis",       "start_date": "2025-12-01 08:00", "duration": 2, "progress": 0.3, "open": true }, ' +
+          '{ "id": "MS_START", "text": "Project Start", "type": "milestone", "start_date": "2025-11-28 08:00", "duration": 0 }, ' +
+          '{ "id": "T1", "text": "Analysis",       "start_date": "2025-11-28 08:00", "duration": 2, "progress": 0.3, "open": true }, ' +
           '{ "id": "T2", "text": "Design",         "start_date": "2025-12-03 08:00", "duration": 3, "progress": 0.2 }, ' +
           '{ "id": "T3", "text": "Implementation", "start_date": "2025-12-08 08:00", "duration": 2, "progress": 0.1 }, ' +
           '{ "id": "T4", "text": "Testing",        "start_date": "2025-12-10 08:00", "duration": 2, "progress": 0.0 }, ' +

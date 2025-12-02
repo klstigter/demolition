@@ -34,6 +34,7 @@ function Init() {
     try {
         gantt.config.xml_date = "%Y-%m-%d %H:%i";
         gantt.config.server_utc = false; // keep local times; don't auto-convert to UTC
+        gantt.config.start_on_monday = true; // align weeks Mon–Sun and ISO week numbers
         // Ensure marker plugin is enabled
         if (gantt.plugins) gantt.plugins({ marker: true, undo: true });
         gantt.config.show_markers = true;
@@ -49,11 +50,12 @@ function Init() {
         // gantt.setWorkTime({ day: 0, hours: false }); // Sunday
 
         gantt.config.scales = [
+            { unit: "year", step: 1, format: "%Y" },
             { unit: "week", step: 1, format: (date) => {
                     const weekStr = gantt.date.date_to_str("%W")(date); // ISO week number
                     return `Week-${weekStr}`;
                 } },
-            { unit: "day", step: 1, format: "%d %M %Y" },
+            { unit: "day", step: 1, format: "%d-%M" },
             // { unit: "hour", step: 1, hours: [8, 17], format: "%H:%i" }
         ];
 
@@ -81,17 +83,23 @@ function Init() {
             style.id = "week-stripes-css";
             style.textContent = `
                 /* header */
-                .gantt_scale_cell.week-even { background:#f4f7ff !important; background-image:none !important; }
-                .gantt_scale_cell.week-odd  { background:#ffffff !important; background-image:none !important; }
+                .gantt_scale_cell.week-even { background:#dfe9ff !important; color:#0b3d91 !important; background-image:none !important; }
+                .gantt_scale_cell.week-odd  { background:#ffffff !important; color:#1a1a1a !important; background-image:none !important; }
 
-                /* timeline body (all known selectors across versions) */
+                /* timeline body */
+                .gantt_task_bg .gantt_task_cell.week-even,
                 .gantt_task_cell.week-even,
-                .gantt_row_cell.week-even,
-                .gantt_task_bg .gantt_task_cell.week-even { background:#f4f7ff !important; }
+                .gantt_row_cell.week-even { background:#e6f0ff !important; }
 
+                .gantt_task_bg .gantt_task_cell.week-odd,
                 .gantt_task_cell.week-odd,
-                .gantt_row_cell.week-odd,
-                .gantt_task_bg .gantt_task_cell.week-odd  { background:#ffffff !important; }
+                .gantt_row_cell.week-odd  { background:#fff !important; }
+
+                /* Optional: thin separator for week transitions */
+                .gantt_scale_cell.week-even,
+                .gantt_scale_cell.week-odd { box-shadow: inset -1px 0 0 #c0c6d9 !important; }
+                .gantt_row_cell.week-even,
+                .gantt_row_cell.week-odd  { box-shadow: inset -1px 0 0 #d0d6ea !important; }
             `;
             document.head.appendChild(style);
         })();
@@ -365,7 +373,13 @@ function LoadData(ganttdata) {
                 if (!max || e > max) max = e;
             });
 
+            // Make the visible range full ISO weeks (Mon..Sun) that wrap the data
             if (min && max) {
+                const startWeek = gantt.date.week_start(min); // Monday of min week
+                const endWeek = gantt.date.add(gantt.date.week_start(max), 1, "week"); // Monday after max week
+                gantt.config.start_date = startWeek;
+                gantt.config.end_date = endWeek;
+
                 __boundaryMarkers.start = gantt.addMarker({
                     start_date: min,
                     text: "PROJECT START",
@@ -392,6 +406,13 @@ function LoadData(ganttdata) {
                     `;
                     document.head.appendChild(style);
                 })();
+            } else {
+                // Fallback: show the current week completely when no tasks
+                const today = new Date();
+                const startWeek = gantt.date.week_start(today);
+                const endWeek = gantt.date.add(startWeek, 1, "week");
+                gantt.config.start_date = startWeek;
+                gantt.config.end_date = endWeek;
             }
         } catch (e) {
             console.error("Error while parsing/clearing gantt data:", e);
