@@ -1,7 +1,7 @@
 var gantt_here; // global variable for DHX GanttChart
 
 function Init() {
-    console.log("function Init() fired. with no params");
+    //console.log("function Init() fired. with no params");
 
     var div = document.getElementById("controlAddIn") || document.body;
     // Ensure full fill
@@ -34,12 +34,89 @@ function Init() {
     try {
         gantt.config.xml_date = "%Y-%m-%d %H:%i";
         gantt.config.server_utc = false; // keep local times; don't auto-convert to UTC
-        gantt.config.scale_unit = "day";
-        gantt.config.date_scale = "%d %M %Y";
+        // Ensure marker plugin is enabled
+        if (gantt.plugins) gantt.plugins({ marker: true, undo: true });
+        gantt.config.show_markers = true;
+        gantt.config.undo = true; // enable undo/redo
+
+        // // Working time: show only 08:00–17:00 and hide non-working time
+        // gantt.config.work_time = true;
+        // gantt.config.skip_off_time = true; // collapses non-working hours in the scale
+        // // Define working hours for all days
+        // gantt.setWorkTime({ hours: [8, 17] });
+        // // Optional: mark Saturday/Sunday as non-working
+        // gantt.setWorkTime({ day: 6, hours: false }); // Saturday
+        // gantt.setWorkTime({ day: 0, hours: false }); // Sunday
+
+        gantt.config.scales = [
+            { unit: "week", step: 1, format: (date) => {
+                    const weekStr = gantt.date.date_to_str("%W")(date); // ISO week number
+                    return `Week-${weekStr}`;
+                } },
+            { unit: "day", step: 1, format: "%d %M %Y" },
+            // { unit: "hour", step: 1, hours: [8, 17], format: "%H:%i" }
+        ];
+
+        // ===== Alternating week background =====
+        function isoWeekNumber(d) {
+            const x = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+            const day = x.getUTCDay() || 7; // Mon..Sun => 1..7
+            x.setUTCDate(x.getUTCDate() + 4 - day);
+            const y0 = new Date(Date.UTC(x.getUTCFullYear(), 0, 1));
+            return Math.floor(((x - y0) / 86400000 + 1) / 7);
+        }
+
+        // Apply class to scale cells (header) and timeline cells (body)
+        gantt.templates.scale_cell_class = function(date){
+            return (isoWeekNumber(date) % 2 === 0) ? "week-even" : "week-odd";
+        };
+        gantt.templates.timeline_cell_class = function(task, date){
+            return (isoWeekNumber(date) % 2 === 0) ? "week-even" : "week-odd";
+        };
+
+        // Strong CSS so theme can’t override
+        (function ensureWeekStripeCss(){
+            if (document.getElementById("week-stripes-css")) return;
+            const style = document.createElement("style");
+            style.id = "week-stripes-css";
+            style.textContent = `
+                /* header */
+                .gantt_scale_cell.week-even { background:#f4f7ff !important; background-image:none !important; }
+                .gantt_scale_cell.week-odd  { background:#ffffff !important; background-image:none !important; }
+
+                /* timeline body (all known selectors across versions) */
+                .gantt_task_cell.week-even,
+                .gantt_row_cell.week-even,
+                .gantt_task_bg .gantt_task_cell.week-even { background:#f4f7ff !important; }
+
+                .gantt_task_cell.week-odd,
+                .gantt_row_cell.week-odd,
+                .gantt_task_bg .gantt_task_cell.week-odd  { background:#ffffff !important; }
+            `;
+            document.head.appendChild(style);
+        })();
+
         gantt.config.min_column_width = 50;
 
         if (!gantt._initialized) {
             gantt.init("gantt_here");
+
+            // (function addUndoToolbar(){
+            //     if (document.getElementById("gantt-undo-toolbar")) return;
+            //     gantt_here.style.position = "relative";
+            //     const bar = document.createElement("div");
+            //     bar.id = "gantt-undo-toolbar";
+            //     bar.style.position = "absolute";
+            //     bar.style.top = "6px";
+            //     bar.style.right = "6px";
+            //     bar.style.zIndex = "10";
+            //     bar.innerHTML = '<button type="button" id="btnUndo">Undo</button>' +
+            //                     '<button type="button" id="btnRedo">Redo</button>';
+            //     gantt_here.appendChild(bar);
+            //     document.getElementById("btnUndo").onclick = () => gantt.undo();
+            //     document.getElementById("btnRedo").onclick = () => gantt.redo();
+            // })();
+
             gantt._initialized = true;
 
             // // Listen for drag/shift/move and save updates
@@ -77,6 +154,130 @@ function Init() {
             //         id, JSON.stringify(task)
             //     ]);
             // });
+
+            // Undo event -> signal back to BC
+            if (gantt.config.undo) {
+
+                function extractActionTaskId(action){
+                    if(!action) return "";
+                    if (action.id) return String(action.id);
+                    if (action.task && action.task.id) return String(action.task.id);
+                    if (action.obj && action.obj.id) return String(action.obj.id);
+                    if (Array.isArray(action.tasks)){
+                        for (var i=0;i<action.tasks.length;i++){
+                            var t = action.tasks[i];
+                            var tid = (t && t.id) ? t.id : t;
+                            if (tid) return String(tid);
+                        }
+                    }
+                    if (Array.isArray(action.commands)){
+                        for (var j=0;j<action.commands.length;j++){
+                            var c = action.commands[j];
+                            if (c.oldValue && c.oldValue.id) return String(c.oldValue.id);
+                            if (c.value && c.value.id) return String(c.value.id);
+                        }
+                    }
+                    return "";
+                }
+
+                function buildPayloadFromRaw(raw, actionType){
+                    var toStr = gantt.date.date_to_str(gantt.config.xml_date);
+                    if(!raw){
+                        return {
+                            id: "",
+                            text: "",
+                            start_date: "",
+                            end_date: "",
+                            progress: 0,
+                            duration: 0,
+                            parent: "",
+                            missingTask: true,
+                            actionType
+                        };
+                    }
+                    return {
+                        id: String(raw.id),
+                        text: raw.text || "",
+                        start_date: raw.start_date ? toStr(raw.start_date) : "",
+                        end_date: raw.end_date ? toStr(raw.end_date) : "",
+                        progress: raw.progress || 0,
+                        duration: raw.duration || 0,
+                        parent: raw.parent || "",
+                        actionType
+                    };
+                }
+
+                gantt.attachEvent("onAfterUndo", function(action){
+                    // Determine the task id
+                    var taskId = extractActionTaskId(action);
+                    var cmd = Array.isArray(action && action.commands) ? action.commands[0] : null;
+
+                    // For an update, after undo the state becomes oldValue
+                    // For a delete undo (i.e. undo of remove) the task reappears -> use current gantt task
+                    // For undo of create, the task disappears -> oldValue usually empty, mark missing
+                    var rawAfterUndo = null;
+
+                    if (cmd && cmd.entity === "task") {
+                        if (cmd.type === "update") {
+                            rawAfterUndo = cmd.oldValue; // revert to oldValue
+                        } else if (cmd.type === "remove") {
+                            // undo of remove => task restored -> current gantt state
+                            if (taskId && gantt.isTaskExists(taskId)) rawAfterUndo = gantt.getTask(taskId);
+                        } else if (cmd.type === "add" || cmd.type === "create") {
+                            // undo of create => task deleted now
+                            rawAfterUndo = null;
+                        } else {
+                            // fallback try current
+                            if (taskId && gantt.isTaskExists(taskId)) rawAfterUndo = gantt.getTask(taskId);
+                        }
+                    } else {
+                        // No command details; try current task
+                        if (taskId && gantt.isTaskExists(taskId)) rawAfterUndo = gantt.getTask(taskId);
+                    }
+
+                    var payload = buildPayloadFromRaw(rawAfterUndo, action && action.type);
+                    if (!rawAfterUndo && taskId) payload.id = taskId; // keep id even if missing
+                    //console.log("OnAfterUndo payload:", payload);
+                    Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnAfterUndo", [
+                        payload.id, JSON.stringify(payload)
+                    ]);
+                });
+
+                gantt.attachEvent("onAfterRedo", function(action){
+                    var taskId = extractActionTaskId(action);
+                    var cmd = Array.isArray(action && action.commands) ? action.commands[0] : null;
+
+                    // Redo reapplies the command:
+                    // For update redo => new value state
+                    // For redo of remove => task removed -> missing
+                    // For redo of create => task created -> current gantt task
+                    var rawAfterRedo = null;
+
+                    if (cmd && cmd.entity === "task") {
+                        if (cmd.type === "update") {
+                            rawAfterRedo = cmd.value; // apply new value
+                        } else if (cmd.type === "remove") {
+                            // task removed now
+                            rawAfterRedo = null;
+                        } else if (cmd.type === "add" || cmd.type === "create") {
+                            // task exists now
+                            if (taskId && gantt.isTaskExists(taskId)) rawAfterRedo = gantt.getTask(taskId);
+                            else rawAfterRedo = cmd.value;
+                        } else {
+                            if (taskId && gantt.isTaskExists(taskId)) rawAfterRedo = gantt.getTask(taskId);
+                        }
+                    } else {
+                        if (taskId && gantt.isTaskExists(taskId)) rawAfterRedo = gantt.getTask(taskId);
+                    }
+
+                    var payload = buildPayloadFromRaw(rawAfterRedo, action && action.type);
+                    if (!rawAfterRedo && taskId) payload.id = taskId;
+                    //console.log("OnAfterRedo payload:", payload);
+                    Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnAfterRedo", [
+                        payload.id, JSON.stringify(payload)
+                    ]);
+                });
+            }
 
         } else {
             gantt.render();
@@ -149,6 +350,49 @@ function LoadData(ganttdata) {
         try {
             gantt.clearAll();
             gantt.parse(payload);
+            
+            // Remove old boundaries if present
+            window.__boundaryMarkers ||= {};
+            if (__boundaryMarkers.start) gantt.deleteMarker(__boundaryMarkers.start);
+            if (__boundaryMarkers.end)   gantt.deleteMarker(__boundaryMarkers.end);
+
+            // Find earliest start and latest end from loaded tasks
+            let min = null, max = null;
+            gantt.eachTask(function(task){
+                const s = task.start_date;
+                const e = task.end_date || s;
+                if (!min || s < min) min = s;
+                if (!max || e > max) max = e;
+            });
+
+            if (min && max) {
+                __boundaryMarkers.start = gantt.addMarker({
+                    start_date: min,
+                    text: "PROJECT START",
+                    css: "project-boundary-start"
+                });
+                __boundaryMarkers.end = gantt.addMarker({
+                    start_date: max,
+                    text: "PROJECT END",
+                    css: "project-boundary-end"
+                });
+
+                // Ensure styles
+                (function ensureBoundaryCss(){
+                    if (document.getElementById("boundary-css")) return;
+                    const style = document.createElement("style");
+                    style.id = "boundary-css";
+                    style.textContent = `
+                        .gantt_marker.project-boundary-start,
+                        .gantt_marker.project-boundary-end { background: rgba(245, 35, 63, 0.35); }
+                        .project-boundary-start .gantt_marker_content,
+                        .project-boundary-end .gantt_marker_content {
+                            background:#f5a623; color:#fff; padding:2px 6px; border-radius:3px; font-weight:600;
+                        }
+                    `;
+                    document.head.appendChild(style);
+                })();
+            }
         } catch (e) {
             console.error("Error while parsing/clearing gantt data:", e);
             return;
@@ -164,9 +408,17 @@ function LoadData(ganttdata) {
 
         try { gantt.render(); } catch (e) { console.warn("gantt.render warning:", e); }
 
-        console.log("LoadData completed. Tasks loaded:", tasks.length, "Links loaded:", (links||[]).length);
+        //console.log("LoadData completed. Tasks loaded:", tasks.length, "Links loaded:", (links||[]).length);
     } catch (err) {
         console.error("Unexpected error in LoadData:", err);
     }
     // --- END: load logic ---
+}
+
+function Undo() {
+    gantt.undo();
+}
+
+function Redo() {
+    gantt.redo();
 }

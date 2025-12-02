@@ -10,20 +10,22 @@ controladdin "DHX Gantt Control"
     HorizontalStretch = true;
     HorizontalShrink = true;
 
-    Scripts =
-        'src\dhx\ganttdemo\wrapper.js',
-        'src\dhx\dhtmlxgantt.js';
+    Scripts = 'src\dhx\dhtmlxgantt.js',
+              'src\dhx\ganttdemo\wrapper.js';
 
     StartupScript = 'src\dhx\ganttdemo\startupScript.js';
 
-    StyleSheets = 'src/dhx/ganttdemo/style.css',
-                  'src/dhx/dhtmlxgantt.css';
+    StyleSheets = 'src/dhx/dhtmlxgantt.css',
+                  'src/dhx/ganttdemo/style.css';
 
     event ControlReady();
     event OnAfterInit();
     event OnAfterTaskUpdate(id: Text; taskJson: Text);
+    event OnAfterUndo(id: Text; taskJson: Text);
+    event OnAfterRedo(id: Text; taskJson: Text);
 
     procedure Init();
     procedure LoadData(ganttdata: Text);
-
+    procedure Undo();
+    procedure Redo();
 }
