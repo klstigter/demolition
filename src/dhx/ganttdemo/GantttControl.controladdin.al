@@ -23,9 +23,12 @@ controladdin "DHX Gantt Control"
     event OnAfterTaskUpdate(id: Text; taskJson: Text);
     event OnAfterUndo(id: Text; taskJson: Text);
     event OnAfterRedo(id: Text; taskJson: Text);
+    event OnAfterGetAutoscheduling(enabled: Boolean);
 
     procedure Init();
     procedure LoadData(ganttdata: Text);
     procedure Undo();
     procedure Redo();
+    procedure SetAutoscheduling(enabled: Boolean);
+    procedure GetAutoscheduling();
 }

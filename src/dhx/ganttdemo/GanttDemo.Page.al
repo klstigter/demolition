@@ -33,6 +33,14 @@ page 50619 "Gantt Demo DHX"
                 begin
                     Message('Redo %1 -> %2', id, taskJson);
                 end;
+
+                trigger OnAfterGetAutoscheduling(enabled: Boolean)
+                begin
+                    if enabled then
+                        Message('Auto-Scheduling is currently Enabled')
+                    else
+                        Message('Auto-Scheduling is currently Disabled');
+                end;
             }
         }
     }
@@ -45,6 +53,7 @@ page 50619 "Gantt Demo DHX"
             {
                 ApplicationArea = All;
                 Caption = 'Undo';
+                Image = Undo;
                 trigger OnAction()
                 begin
                     CurrPage.DHXGanttControl.Undo();
@@ -55,16 +64,54 @@ page 50619 "Gantt Demo DHX"
             {
                 ApplicationArea = All;
                 Caption = 'Redo';
+                Image = Redo;
                 trigger OnAction()
                 begin
                     CurrPage.DHXGanttControl.Redo();
                 end;
             }
+
+            action(SetAutoScheduling)
+            {
+                ApplicationArea = All;
+                Caption = 'Toggle Auto-Scheduling';
+                Image = AutofillQtyToHandle;
+                trigger OnAction()
+                begin
+                    ToggleAutoScheduling := not ToggleAutoScheduling;
+                    CurrPage.DHXGanttControl.SetAutoscheduling(ToggleAutoScheduling);
+                    if ToggleAutoScheduling then
+                        Message('Auto-Scheduling Enabled')
+                    else
+                        Message('Auto-Scheduling Disabled');
+                end;
+            }
+            action(GetAutoScheduling)
+            {
+                ApplicationArea = All;
+                Caption = 'Get Auto-Scheduling Status';
+                Image = Check;
+                trigger OnAction()
+                begin
+                    CurrPage.DHXGanttControl.GetAutoscheduling();
+                end;
+            }
+        }
+        area(Promoted)
+        {
+            group(Category_Process)
+            {
+                Caption = 'Actions';
+                actionref("UodoPromoted"; Undo) { }
+                actionref("RedoPromoted"; Redo) { }
+                actionref("SetAutoSchedulingPromoted"; SetAutoScheduling) { }
+                actionref("GetAutoSchedulingPromoted"; GetAutoScheduling) { }
+            }
         }
     }
 
     var
-        globalInt: Integer;
+        ToggleAutoScheduling: Boolean;
 
     local procedure BuildDummyData(): Text
     var
@@ -74,23 +121,29 @@ page 50619 "Gantt Demo DHX"
         tasks :=
         '{' +
             '"data": [ ' +
-                '{ "id": "MS_START", "text": "Project Start", "type": "milestone", "start_date": "2025-11-28 08:00", "duration": 0 }, ' +
-                '{ "id": "T1", "text": "Analysis",       "start_date": "2025-11-28 08:00", "duration": 2, "progress": 0.3, "open": true }, ' +
-                '{ "id": "T2", "text": "Design",         "start_date": "2025-12-03 08:00", "duration": 3, "progress": 0.2 }, ' +
-                '{ "id": "T3", "text": "Implementation", "start_date": "2025-12-08 08:00", "duration": 2, "progress": 0.1 }, ' +
-                '{ "id": "T4", "text": "Testing",        "start_date": "2025-12-10 08:00", "duration": 2, "progress": 0.0 }, ' +
-                '{ "id": "MS_END",   "text": "Project End", "type": "milestone", "start_date": "2025-12-12 17:00", "duration": 0 } ' +
+                '{ "id": "P1", "text": "Project 01", "type": "milestone", "start_date": "2025-11-28 08:00", "duration": 0}, ' +
+                '{ "id": "T1", "text": "Analysis",       "start_date": "2025-11-28 08:00", "duration": 2, "progress": 0.3, "open": true, "parent": "P1" }, ' +
+                '{ "id": "T2", "text": "Design",         "start_date": "2025-12-03 08:00", "duration": 3, "progress": 0.2 , "parent": "P1"}, ' +
+                '{ "id": "T3", "text": "Implementation", "start_date": "2025-12-08 08:00", "duration": 2, "progress": 0.1 , "parent": "P1"}, ' +
+                '{ "id": "T4", "text": "Testing",        "start_date": "2025-12-10 08:00", "duration": 2, "progress": 0.0 , "parent": "P1"}, ' +
+                '{ "id": "P1_END",   "text": "Project End", "type": "milestone", "start_date": "2025-12-12 17:00", "duration": 0}, ' +
+                '{ "id": "P2", "text": "Project 02", "type": "milestone", "start_date": "2025-11-28 08:00", "duration": 0}, ' +
+                '{ "id": "T11", "text": "Analysis",       "start_date": "2025-11-28 08:00", "duration": 2, "progress": 0.3, "open": true, "parent": "P2" }, ' +
+                '{ "id": "T22", "text": "Design",         "start_date": "2025-12-03 08:00", "duration": 3, "progress": 0.2 , "parent": "P2"}, ' +
+                '{ "id": "T33", "text": "Implementation", "start_date": "2025-12-08 08:00", "duration": 2, "progress": 0.1 , "parent": "P2"}, ' +
+                '{ "id": "T44", "text": "Testing",        "start_date": "2025-12-10 08:00", "duration": 2, "progress": 0.0 , "parent": "P2"}, ' +
+                '{ "id": "P2_END",   "text": "Project End", "type": "milestone", "start_date": "2025-12-12 17:00", "duration": 0} ' +
             ']' +
             ', "links": [ ' +
-                '{ "id": "L1", "source": "MS_START", "target": "T1", "type": "0" }, ' +
+                '{ "id": "L1", "source": "P1", "target": "T1", "type": "0" }, ' +
                 '{ "id": "L2", "source": "T1",       "target": "T2", "type": "0" }, ' +
                 '{ "id": "L3", "source": "T2",       "target": "T3", "type": "0" }, ' +
                 '{ "id": "L4", "source": "T3",       "target": "T4", "type": "0" }, ' +
-                '{ "id": "L5", "source": "T4",       "target": "MS_END",   "type": "0" } ' +
+                '{ "id": "L5", "source": "T4",       "target": "P1_END",   "type": "0" } ' +
             ']' +
             ', "markers": [' +
                 '{ "id": "kickoff",  "start_date": "2025-11-28 08:00", "text": "Kickoff",  "css": "project-boundary-start" },' +
-                '{ "id": "deadline", "start_date": "2025-12-13 23:59", "text": "Deadline", "css": "project-boundary-end" }' +
+                '{ "id": "deadline", "start_date": "2025-12-13 17:00", "text": "Deadline/RDD", "css": "project-boundary-end" }' +
             ']' +
         '}';
         exit(tasks);
