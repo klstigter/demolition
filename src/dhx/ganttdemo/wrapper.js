@@ -363,10 +363,22 @@ function LoadData(ganttdata) {
             gantt.clearAll();
             gantt.parse(payload);
             
-            // Remove old boundaries if present
-            window.__boundaryMarkers ||= {};
-            if (__boundaryMarkers.start) gantt.deleteMarker(__boundaryMarkers.start);
-            if (__boundaryMarkers.end)   gantt.deleteMarker(__boundaryMarkers.end);
+            // Ensure boundary markers container (start/end + custom)
+            window.__boundaryMarkers ||= { start: null, end: null, custom: [] };
+
+            // Remove old boundary markers
+            if (__boundaryMarkers.start) { try { gantt.deleteMarker(__boundaryMarkers.start); } catch(_) {} __boundaryMarkers.start = null; }
+            if (__boundaryMarkers.end)   { try { gantt.deleteMarker(__boundaryMarkers.end); }   catch(_) {} __boundaryMarkers.end   = null; }
+
+            // Remove previously added custom markers
+            if (Array.isArray(__boundaryMarkers.custom) && __boundaryMarkers.custom.length) {
+                __boundaryMarkers.custom.forEach(function(mid){
+                    try { gantt.deleteMarker(mid); } catch(_) {}
+                });
+                __boundaryMarkers.custom = [];
+            } else if (!Array.isArray(__boundaryMarkers.custom)) {
+                __boundaryMarkers.custom = [];
+            }
 
             // Find earliest start and latest end from loaded tasks
             let min = null, max = null;
@@ -422,20 +434,6 @@ function LoadData(ganttdata) {
             // <- NEW: Add markers from payload (markers array)
             if (markers && markers.length) {
                 const strToDate = gantt.date.str_to_date(gantt.config.xml_date);
-
-                // (function ensureMarkerCss(){
-                //     if (document.getElementById("data-marker-css")) return;
-                //     const style = document.createElement("style");
-                //     style.id = "data-marker-css";
-                //     style.textContent = `
-                //         .gantt_marker.data-marker { background: rgba(0, 150, 136, 0.35); }
-                //         .data-marker .gantt_marker_content {
-                //             background:#009688; color:#fff; padding:2px 6px; border-radius:3px; font-weight:600;
-                //         }
-                //     `;
-                //     document.head.appendChild(style);
-                // })();
-
                 markers.forEach(function(m){
                     let dt = m.start_date || m.date;
                     if (typeof dt === "string") {
@@ -446,9 +444,10 @@ function LoadData(ganttdata) {
                     const cfg = {
                         start_date: dt,
                         text: m.text || "",
-                        css: m.css || "",
+                        css: m.css || "", // respect payload css, e.g., "project-boundary-end"
                         title: m.title || undefined
                     };
+                    console.log("cfg from payload: ", cfg);
                     const markerId = gantt.addMarker(cfg);
                     __boundaryMarkers.custom.push(markerId);
                 });
