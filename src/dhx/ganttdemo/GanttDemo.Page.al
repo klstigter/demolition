@@ -72,14 +72,27 @@ page 50619 "Gantt Demo DHX"
     begin
         // Tasks are within 2025-12-01 08:00 and 2025-12-12 17:00
         tasks :=
-        '[ ' +
-          '{ "id": "MS_START", "text": "Project Start", "type": "milestone", "start_date": "2025-11-28 08:00", "duration": 0 }, ' +
-          '{ "id": "T1", "text": "Analysis",       "start_date": "2025-11-28 08:00", "duration": 2, "progress": 0.3, "open": true }, ' +
-          '{ "id": "T2", "text": "Design",         "start_date": "2025-12-03 08:00", "duration": 3, "progress": 0.2 }, ' +
-          '{ "id": "T3", "text": "Implementation", "start_date": "2025-12-08 08:00", "duration": 2, "progress": 0.1 }, ' +
-          '{ "id": "T4", "text": "Testing",        "start_date": "2025-12-10 08:00", "duration": 2, "progress": 0.0 }, ' +
-          '{ "id": "MS_END",   "text": "Project End", "type": "milestone", "start_date": "2025-12-12 17:00", "duration": 0 } ' +
-        ']';
+        '{' +
+            '"data": [ ' +
+                '{ "id": "MS_START", "text": "Project Start", "type": "milestone", "start_date": "2025-11-28 08:00", "duration": 0 }, ' +
+                '{ "id": "T1", "text": "Analysis",       "start_date": "2025-11-28 08:00", "duration": 2, "progress": 0.3, "open": true }, ' +
+                '{ "id": "T2", "text": "Design",         "start_date": "2025-12-03 08:00", "duration": 3, "progress": 0.2 }, ' +
+                '{ "id": "T3", "text": "Implementation", "start_date": "2025-12-08 08:00", "duration": 2, "progress": 0.1 }, ' +
+                '{ "id": "T4", "text": "Testing",        "start_date": "2025-12-10 08:00", "duration": 2, "progress": 0.0 }, ' +
+                '{ "id": "MS_END",   "text": "Project End", "type": "milestone", "start_date": "2025-12-12 17:00", "duration": 0 } ' +
+            ']' +
+            ', "links": [ ' +
+                '{ "id": "L1", "source": "MS_START", "target": "T1", "type": "0" }, ' +
+                '{ "id": "L2", "source": "T1",       "target": "T2", "type": "0" }, ' +
+                '{ "id": "L3", "source": "T2",       "target": "T3", "type": "0" }, ' +
+                '{ "id": "L4", "source": "T3",       "target": "T4", "type": "0" }, ' +
+                '{ "id": "L5", "source": "T4",       "target": "MS_END",   "type": "0" } ' +
+            ']' +
+            ', "markers": [' +
+                '{ "id": "kickoff",  "start_date": "2025-11-28 08:00", "text": "Kickoff",  "css": "project-boundary-start" },' +
+                '{ "id": "deadline", "start_date": "2025-12-13 23:59", "text": "Deadline", "css": "project-boundary-end" }' +
+            ']' +
+        '}';
         exit(tasks);
     end;
 }

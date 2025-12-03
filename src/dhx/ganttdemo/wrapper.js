@@ -39,6 +39,7 @@ function Init() {
         if (gantt.plugins) gantt.plugins({ marker: true, undo: true });
         gantt.config.show_markers = true;
         gantt.config.undo = true; // enable undo/redo
+        gantt.config.drag_links = true; // allow drawing relations
 
         // // Working time: show only 08:00–17:00 and hide non-working time
         // gantt.config.work_time = true;
@@ -313,6 +314,7 @@ function LoadData(ganttdata) {
 
         var tasks = [];
         var links = [];
+        var markers = []; // <- NEW
 
         if (!ganttdata || ganttdata === "") {
             console.warn("LoadData called with empty ganttdata. No tasks to load.");
@@ -329,6 +331,7 @@ function LoadData(ganttdata) {
                 } else if (parsed && Array.isArray(parsed.data)) {
                     tasks = parsed.data;
                     if (Array.isArray(parsed.links)) links = parsed.links;
+                    if (Array.isArray(parsed.markers)) markers = parsed.markers; // <- NEW
                 } else {
                     // single object representing one task -> wrap into array
                     tasks = [parsed];
@@ -341,6 +344,7 @@ function LoadData(ganttdata) {
                     else if (maybe && Array.isArray(maybe.data)) {
                         tasks = maybe.data;
                         if (Array.isArray(maybe.links)) links = maybe.links;
+                        if (Array.isArray(maybe.markers)) markers = maybe.markers; // <- NEW
                     } else tasks = [maybe];
                 } catch (secondErr) {
                     console.error("Failed to parse ganttdata JSON. Incoming data:", ganttdata);
@@ -380,16 +384,16 @@ function LoadData(ganttdata) {
                 gantt.config.start_date = startWeek;
                 gantt.config.end_date = endWeek;
 
-                __boundaryMarkers.start = gantt.addMarker({
-                    start_date: min,
-                    text: "PROJECT START",
-                    css: "project-boundary-start"
-                });
-                __boundaryMarkers.end = gantt.addMarker({
-                    start_date: max,
-                    text: "PROJECT END",
-                    css: "project-boundary-end"
-                });
+                // __boundaryMarkers.start = gantt.addMarker({
+                //     start_date: min,
+                //     text: "PROJECT START",
+                //     css: "project-boundary-start"
+                // });
+                // __boundaryMarkers.end = gantt.addMarker({
+                //     start_date: max,
+                //     text: "PROJECT END",
+                //     css: "project-boundary-end"
+                // });
 
                 // Ensure styles
                 (function ensureBoundaryCss(){
@@ -414,6 +418,42 @@ function LoadData(ganttdata) {
                 gantt.config.start_date = startWeek;
                 gantt.config.end_date = endWeek;
             }
+
+            // <- NEW: Add markers from payload (markers array)
+            if (markers && markers.length) {
+                const strToDate = gantt.date.str_to_date(gantt.config.xml_date);
+
+                // (function ensureMarkerCss(){
+                //     if (document.getElementById("data-marker-css")) return;
+                //     const style = document.createElement("style");
+                //     style.id = "data-marker-css";
+                //     style.textContent = `
+                //         .gantt_marker.data-marker { background: rgba(0, 150, 136, 0.35); }
+                //         .data-marker .gantt_marker_content {
+                //             background:#009688; color:#fff; padding:2px 6px; border-radius:3px; font-weight:600;
+                //         }
+                //     `;
+                //     document.head.appendChild(style);
+                // })();
+
+                markers.forEach(function(m){
+                    let dt = m.start_date || m.date;
+                    if (typeof dt === "string") {
+                        try { dt = strToDate(dt); } catch(_) { dt = null; }
+                    }
+                    if (!(dt instanceof Date) || isNaN(dt)) return;
+
+                    const cfg = {
+                        start_date: dt,
+                        text: m.text || "",
+                        css: m.css || "",
+                        title: m.title || undefined
+                    };
+                    const markerId = gantt.addMarker(cfg);
+                    __boundaryMarkers.custom.push(markerId);
+                });
+            }
+
         } catch (e) {
             console.error("Error while parsing/clearing gantt data:", e);
             return;
