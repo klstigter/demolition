@@ -129,18 +129,58 @@ function Init() {
             gantt._initialized = true;
 
             // // Listen for drag/shift/move and save updates
-            // gantt.attachEvent("onTaskDrag", function(id, mode, task, original, e){
-            //     // mode: "move","resize","progress"
-            //     Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnTaskDrag", [
-            //         id, mode, JSON.stringify(task), JSON.stringify(original)
-            //     ]);
-            //     return true; // allow drag
-            // });
+            gantt.attachEvent("onTaskDrag", function(id, mode, task, original, e) {
+                try {
+                    // If boundaries not set, allow drag
+                    if (!window.__boundaryMarkers) return true;
+
+                    var mStart = __boundaryMarkers.start ? gantt.getMarker(__boundaryMarkers.start) : null;
+                    var mEnd   = __boundaryMarkers.end   ? gantt.getMarker(__boundaryMarkers.end)   : null;
+                    var startBound = mStart && mStart.start_date ? mStart.start_date : null;
+                    var endBound   = mEnd   && mEnd.start_date   ? mEnd.start_date   : null;
+
+                    // Determine candidate dates during drag
+                    var candStart = task.start_date;
+                    var candEnd   = task.end_date || task.start_date;
+
+                    // Only check when we have boundaries
+                    var violates = false;
+                    if (startBound && candStart < startBound) violates = true;
+                    if (endBound   && candEnd   > endBound)   violates = true;
+
+                    if (violates) {
+                        alert("Task is outside the allowed project boundary. Drag canceled.");
+                        return false; // cancel drag
+                    }
+                } catch (_) {
+                    // On any error, allow drag
+                    return true;
+                }
+                return true; // allow drag
+            });
 
             // Fired after user changes task (drop completed)
             gantt.attachEvent("onAfterTaskUpdate", function(id, /*item*/) {
                 var current = gantt.getTask(id);
                 var toStr = gantt.date.date_to_str(gantt.config.xml_date); // local string
+
+                // Read boundary marker dates (if present)
+                var boundaryStartStr = "";
+                var boundaryEndStr = "";
+                try {
+                    if (window.__boundaryMarkers) {
+                        if (__boundaryMarkers.start) {
+                            var mStart = gantt.getMarker(__boundaryMarkers.start);
+                            if (mStart && mStart.start_date) boundaryStartStr = toStr(mStart.start_date);
+                        }
+                        if (__boundaryMarkers.end) {
+                            var mEnd = gantt.getMarker(__boundaryMarkers.end);
+                            if (mEnd && mEnd.start_date) boundaryEndStr = toStr(mEnd.start_date);
+                        }
+                    }
+                } catch (_) {
+                    // ignore marker access errors
+                }
 
                 var payload = {
                     id: String(current.id),
@@ -447,9 +487,16 @@ function LoadData(ganttdata) {
                         css: m.css || "", // respect payload css, e.g., "project-boundary-end"
                         title: m.title || undefined
                     };
-                    console.log("cfg from payload: ", cfg);
+                    //console.log("cfg from payload: ", cfg);
                     const markerId = gantt.addMarker(cfg);
-                    __boundaryMarkers.custom.push(markerId);
+                    // Map payload boundary markers to __boundaryMarkers.start / .end
+                    if (cfg.css === "project-boundary-start") {
+                        __boundaryMarkers.start = markerId;
+                    } else if (cfg.css === "project-boundary-end") {
+                        __boundaryMarkers.end = markerId;
+                    } else {
+                        __boundaryMarkers.custom.push(markerId);
+                    }
                 });
             }
 
