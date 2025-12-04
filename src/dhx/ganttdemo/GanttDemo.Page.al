@@ -15,7 +15,7 @@ page 50619 "Gantt Demo DHX"
                 // Height/Width can be adjusted if needed
                 trigger ControlReady()
                 begin
-                    CurrPage.DHXGanttControl.Init();
+                    CurrPage.DHXGanttControl.Init(DMY2Date(28, 11, 2025), DMY2Date(13, 12, 2025));
                     CurrPage.DHXGanttControl.LoadData(BuildDummyData());
                 end;
 

@@ -89,7 +89,7 @@ page 50612 "Planning Role Center"
                 {
                     ApplicationArea = All;
                     Caption = 'Gantt Chart';
-                    RunObject = page "Gantt Demo DHX";
+                    RunObject = page "Gantt Demo DHX 2";
                 }
             }
             group("SettingGroup")

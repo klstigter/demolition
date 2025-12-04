@@ -1,6 +1,6 @@
 var gantt_here; // global variable for DHX GanttChart
 
-function Init() {
+function Init(projectstartdate, projectenddate) {
     //console.log("function Init() fired. with no params");
 
     var div = document.getElementById("controlAddIn") || document.body;
@@ -35,6 +35,10 @@ function Init() {
         gantt.config.xml_date = "%Y-%m-%d %H:%i";
         gantt.config.server_utc = false; // keep local times; don't auto-convert to UTC
         gantt.config.start_on_monday = true; // align weeks Mon–Sun and ISO week numbers
+
+        gantt.config.project_start = new Date(2025, 11, 28); //projectstartdate;
+        gantt.config.project_end = new Date(2025, 12, 13); //projectenddate;
+
         if (gantt.plugins) {
             gantt.plugins({ 
                 auto_scheduling: true,
@@ -49,8 +53,10 @@ function Init() {
         gantt.config.auto_scheduling = {
             enabled: true,
             apply_constraints: true,
-            gap_behavior: "compress" // avoid gaps, prevent overlaps
+            show_constraints: true,
+            project_constraint: true,
         };
+
         gantt.config.undo = true; // enable undo/redo
         gantt.config.drag_links = true; // allow drawing relations
 
@@ -155,134 +161,42 @@ function Init() {
                 return true; // allow drag
             });
 
-            // // Fired after user changes task (drop completed)
-            // gantt.attachEvent("onAfterTaskUpdate", function(id, /*item*/) {
-            //     var current = gantt.getTask(id);
-            //     var toStr = gantt.date.date_to_str(gantt.config.xml_date); // local string
+            // Fired after user changes task (drop completed)
+            gantt.attachEvent("onAfterTaskUpdate", function(id, /*item*/) {
+                var current = gantt.getTask(id);
+                var toStr = gantt.date.date_to_str(gantt.config.xml_date); // local string
 
-            //     // Read boundary marker dates (if present)
-            //     var boundaryStartStr = "";
-            //     var boundaryEndStr = "";
-            //     try {
-            //         if (window.__boundaryMarkers) {
-            //             if (__boundaryMarkers.start) {
-            //                 var mStart = gantt.getMarker(__boundaryMarkers.start);
-            //                 if (mStart && mStart.start_date) boundaryStartStr = toStr(mStart.start_date);
-            //             }
-            //             if (__boundaryMarkers.end) {
-            //                 var mEnd = gantt.getMarker(__boundaryMarkers.end);
-            //                 if (mEnd && mEnd.start_date) boundaryEndStr = toStr(mEnd.start_date);
-            //             }
-            //         }
-            //     } catch (_) {
-            //         // ignore marker access errors
-            //     }
-
-            //     var payload = {
-            //         id: String(current.id),
-            //         text: current.text,
-            //         start_date: toStr(current.start_date), // e.g. "2025-12-03 00:00"
-            //         end_date: toStr(current.end_date),
-            //         progress: current.progress,
-            //         duration: current.duration,
-            //         parent: current.parent
-            //     };
-
-            //     Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnAfterTaskUpdate", [
-            //         id, JSON.stringify(payload)
-            //     ]);
-            // });
-
-            // After user drops a task, auto-schedule successors and enforce boundaries
-            gantt.attachEvent("onAfterTaskUpdate", function(id /*, item */) {
-                if (window.__updatingChain) return true; // ignore nested calls
-                window.__updatingChain = true;
-
+                // Read boundary marker dates (if present)
+                var boundaryStartStr = "";
+                var boundaryEndStr = "";
                 try {
-                    // 1) Respect link constraints
-                    try { gantt.autoSchedule(id); } catch (_) {}
-
-                    // 2) Read boundaries
-                    var startBound = null, endBound = null;
-                    try {
-                        if (window.__boundaryMarkers) {
-                            if (__boundaryMarkers.start) {
-                                var mStart = gantt.getMarker(__boundaryMarkers.start);
-                                if (mStart && mStart.start_date) startBound = mStart.start_date;
-                            }
-                            if (__boundaryMarkers.end) {
-                                var mEnd = gantt.getMarker(__boundaryMarkers.end);
-                                if (mEnd && mEnd.start_date) endBound = mEnd.start_date;
-                            }
+                    if (window.__boundaryMarkers) {
+                        if (__boundaryMarkers.start) {
+                            var mStart = gantt.getMarker(__boundaryMarkers.start);
+                            if (mStart && mStart.start_date) boundaryStartStr = toStr(mStart.start_date);
                         }
-                    } catch (_) {}
-
-                    // 3) Collect connected tasks (preds + succs)
-                    var affectedIds = collectConnectedTasks(id);
-
-                    // 4) Validate boundaries
-                    var violated = false;
-                    affectedIds.forEach(function(tid){
-                        if (!gantt.isTaskExists(tid)) return;
-                        var t = gantt.getTask(tid);
-                        var s = t.start_date;
-                        var e = t.end_date || s;
-                        if (startBound && s < startBound) violated = true;
-                        if (endBound   && e > endBound)   violated = true;
-                    });
-
-                    if (violated) {
-                        alert("Change would move linked tasks outside the project boundary. Reverting.");
-                        try { gantt.undo(); } catch (_) {}
-                        return true;
-                    }
-
-                    // 5) Clamp to boundaries without re-emitting events
-                    function clampTaskToBoundary(t) {
-                        var dur = t.duration || 0;
-                        var s = t.start_date;
-                        var e = t.end_date || s;
-
-                        if (startBound && s < startBound) {
-                            t.start_date = new Date(startBound);
-                            t.end_date = gantt.date.add(t.start_date, dur, "day");
-                        }
-                        if (endBound && (t.end_date || t.start_date) > endBound) {
-                            var targetEnd = new Date(endBound);
-                            t.end_date = targetEnd;
-                            t.start_date = gantt.date.add(targetEnd, -dur, "day");
+                        if (__boundaryMarkers.end) {
+                            var mEnd = gantt.getMarker(__boundaryMarkers.end);
+                            if (mEnd && mEnd.start_date) boundaryEndStr = toStr(mEnd.start_date);
                         }
                     }
-
-                    // Batch updates to avoid recursive events and excessive reflow
-                    gantt.batchUpdate(function(){
-                        affectedIds.forEach(function(tid){
-                            if (!gantt.isTaskExists(tid)) return;
-                            var t = gantt.getTask(tid);
-                            clampTaskToBoundary(t);
-                            // updateTask inside batchUpdate won’t re-fire onAfterTaskUpdate
-                            gantt.updateTask(tid);
-                        });
-                    });
-
-                    // Optional: a single autoschedule pass after clamping
-                    try { gantt.autoSchedule(id); } catch (_) {}
-
-                    // Notify BC (light payload)
-                    var toStr = gantt.date.date_to_str(gantt.config.xml_date);
-                    Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnAfterTaskUpdate", [
-                        String(id),
-                        JSON.stringify({
-                            id: String(id),
-                            boundary_start_date: startBound ? toStr(startBound) : "",
-                            boundary_end_date: endBound ? toStr(endBound) : ""
-                        })
-                    ]);
-
-                } finally {
-                    window.__updatingChain = false;
+                } catch (_) {
+                    // ignore marker access errors
                 }
-                return true;
+
+                var payload = {
+                    id: String(current.id),
+                    text: current.text,
+                    start_date: toStr(current.start_date), // e.g. "2025-12-03 00:00"
+                    end_date: toStr(current.end_date),
+                    progress: current.progress,
+                    duration: current.duration,
+                    parent: current.parent
+                };
+
+                Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnAfterTaskUpdate", [
+                    id, JSON.stringify(payload)
+                ]);
             });
 
             // // Generic change (programmatic or user)
@@ -425,39 +339,6 @@ function Init() {
 
     // Notify BC 
     Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnAfterInit",[]);
-}
-
-// Collect connected tasks (predecessors + successors via links)
-function collectConnectedTasks(rootId) {
-    const visited = new Set([String(rootId)]);
-    const links = gantt.getLinks();
-
-    const predsMap = new Map();
-    const succsMap = new Map();
-
-    links.forEach(l => {
-        const s = String(l.source);
-        const t = String(l.target);
-        if (!succsMap.has(s)) succsMap.set(s, []);
-        succsMap.get(s).push(t);
-        if (!predsMap.has(t)) predsMap.set(t, []);
-        predsMap.get(t).push(s);
-    });
-
-    function dfs(id) {
-        const sid = String(id);
-        const preds = predsMap.get(sid) || [];
-        const succs = succsMap.get(sid) || [];
-        preds.concat(succs).forEach(n => {
-            const sn = String(n);
-            if (!visited.has(sn)) {
-                visited.add(sn);
-                dfs(sn);
-            }
-        });
-    }
-    dfs(String(rootId));
-    return Array.from(visited);
 }
 
 function LoadData(ganttdata) {
@@ -619,7 +500,7 @@ function LoadData(ganttdata) {
                         __boundaryMarkers.custom.push(markerId);
                     }
                 });
-            }
+            }            
 
         } catch (e) {
             console.error("Error while parsing/clearing gantt data:", e);
