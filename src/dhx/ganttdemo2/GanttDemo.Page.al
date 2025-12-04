@@ -47,16 +47,16 @@ page 50620 "Gantt Demo DHX 2"
                     CurrPage.DHXGanttControl2.Redo();
                 end;
             }
-            action(AddMarker)
-            {
-                ApplicationArea = All;
-                Caption = 'Add Marker';
-                Image = Add;
-                trigger OnAction()
-                begin
-                    CurrPage.DHXGanttControl2.AddMarker('2024-04-03', 'New Marker');
-                end;
-            }
+            // action(AddMarker)
+            // {
+            //     ApplicationArea = All;
+            //     Caption = 'Add Marker';
+            //     Image = Add;
+            //     trigger OnAction()
+            //     begin
+            //         CurrPage.DHXGanttControl2.AddMarker('2024-04-03', 'New Marker');
+            //     end;
+            // }
         }
         area(Promoted)
         {
