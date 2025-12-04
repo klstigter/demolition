@@ -76,39 +76,90 @@ function Init(projectstartdate, projectenddate) {
 
 		// **************
 		// Enforce project boundaries: start >= project_start, end <= project_end
-        (function enforceProjectBounds() {
-            var projectStart = gantt.config.project_start;
-            var projectEnd   = gantt.config.project_end;
+        // (function enforceProjectBounds() {
+        //     var projectStart = gantt.config.project_start;
+        //     var projectEnd   = gantt.config.project_end;
 
-            function violatesBounds(task) {
-                var start = task.start_date;
-                var end   = gantt.calculateEndDate(task);
-                return (start < projectStart) || (end > projectEnd);
-            }
+        //     function violatesBounds(task) {
+        //         var start = task.start_date;
+        //         var end   = gantt.calculateEndDate(task);
+        //         return (start < projectStart) || (end > projectEnd);
+        //     }
 
-            gantt.attachEvent("onBeforeTaskChanged", function(id, mode, task, original){
-                if (violatesBounds(task)) {
-                    gantt.message({ text: "1. Task must stay within project start and end", type: "error" });
-                    return false;
-                }
-                return true;
-            });
+        //     gantt.attachEvent("onBeforeTaskChanged", function(id, mode, task, original){
+        //         if (violatesBounds(task)) {
+        //             gantt.message({ text: "1. Task must stay within project start and end", type: "error" });
+        //             return false;
+        //         }
+        //         return true;
+        //     });
 
-            gantt.attachEvent("onAfterTaskAutoSchedule", function(task){
-                if (violatesBounds(task)) {
-                    gantt.message({ text: "2. Task must stay within project start and end", type: "error" });
-                    return false;
-                }
-            });
+        //     gantt.attachEvent("onAfterTaskAutoSchedule", function(task){
+        //         if (violatesBounds(task)) {
+        //             gantt.message({ text: "2. Task must stay within project start and end", type: "error" });
+        //             return false;
+        //         }
+        //     });
 
-            gantt.attachEvent("onBeforeTaskAdd", function(id, task){
-                if (violatesBounds(task)) {
-                    gantt.message({ text: "3. New task must be within project dates", type: "error" });
-                    return false;
-                }
-                return true;
-            });
-        })();
+        //     gantt.attachEvent("onBeforeTaskAdd", function(id, task){
+        //         if (violatesBounds(task)) {
+        //             gantt.message({ text: "3. New task must be within project dates", type: "error" });
+        //             return false;
+        //         }
+        //         return true;
+        //     });
+        // })();
+
+		gantt.attachEvent("onBeforeTaskDrag", function(id, mode, e){
+			var t = gantt.getTask(id);
+			var projectStart = gantt.config.project_start;
+			var projectEnd   = gantt.config.project_end;
+
+			// allow drag only if current task is within bounds (start guard)
+			var end = gantt.calculateEndDate(t);
+			if (t.start_date < projectStart || end > projectEnd) {
+				gantt.message({ text: "Task must stay within project start and end", type: "error" });
+				return false; // cancel starting the drag
+			}
+			return true;
+		});
+
+		// While dragging, clamp to bounds so it visually can’t cross
+		gantt.attachEvent("onTaskDrag", function(id, mode, task, original, e){
+			var projectStart = gantt.config.project_start;
+			var projectEnd   = gantt.config.project_end;
+
+			if (mode === gantt.config.drag_mode.move || mode === gantt.config.drag_mode.resize){
+				// clamp start
+				if (task.start_date < projectStart) {
+					var dur = gantt.calculateDuration(task);
+					task.start_date = new Date(projectStart);
+					task.end_date = gantt.date.add(projectStart, dur, "day");
+				}
+				// clamp end
+				var end = gantt.calculateEndDate(task);
+				if (end > projectEnd) {
+					var dur = gantt.calculateDuration(task);
+					// shift left so end hits projectEnd
+					task.start_date = gantt.date.add(projectEnd, -dur, "day");
+					task.end_date = new Date(projectEnd);
+				}
+			}
+		});
+
+		// Final guard: block commit if bounds are violated by any change
+		gantt.attachEvent("onBeforeTaskChanged", function(id, mode, task, original){
+			var projectStart = gantt.config.project_start;
+			var projectEnd   = gantt.config.project_end;
+			var start = task.start_date;
+			var end   = gantt.calculateEndDate(task);
+			if (start < projectStart || end > projectEnd) {
+				gantt.message({ text: "Task must stay within project start and end", type: "error" });
+				return false;
+			}
+			return true;
+		});
+
 		// **************
 
 		var textEditor = { type: "text", map_to: "text" };
@@ -163,16 +214,41 @@ function Init(projectstartdate, projectenddate) {
 		];
 
 		gantt.attachEvent("onAfterTaskAutoSchedule", function (task, new_date, link, predecessor) {
-			var reason = "";
-			if (predecessor) {
-				reason = predecessor.text;
-			} else {
-				var constraint = gantt.getConstraintType(task);
-				reason = gantt.locale.labels[constraint];
+			// var reason = "";
+			// if (predecessor) {
+			// 	reason = predecessor.text;
+			// } else {
+			// 	var constraint = gantt.getConstraintType(task);
+			// 	reason = gantt.locale.labels[constraint];
+			// }
+			// var predecessor = predecessor ? predecessor : { text: task.constraint_type };
+			// console.log("<b>" + task.text + "</b> has been rescheduled to " + gantt.templates.task_date(new_date) + " due to <b>" + reason + "</b> constraint");
+			var projectStart = gantt.config.project_start;
+			var projectEnd   = gantt.config.project_end;
+
+			// If auto-schedule moved task outside bounds, clamp and update
+			var start = task.start_date;
+			var end   = gantt.calculateEndDate(task);
+
+			if (start < projectStart) {
+				var dur = gantt.calculateDuration(task);
+				task.start_date = new Date(projectStart);
+				task.end_date   = gantt.date.add(projectStart, dur, "day");
+				gantt.updateTask(task.id);
+				gantt.message({ text: "Adjusted to project start", type: "warning" });
+			} else if (end > projectEnd) {
+				var dur = gantt.calculateDuration(task);
+				task.start_date = gantt.date.add(projectEnd, -dur, "day");
+				task.end_date   = new Date(projectEnd);
+				gantt.updateTask(task.id);
+				gantt.message({ text: "Adjusted to project end", type: "warning" });
 			}
-			var predecessor = predecessor ? predecessor : { text: task.constraint_type };
-			console.log("<b>" + task.text + "</b> has been rescheduled to " + gantt.templates.task_date(new_date) + " due to <b>" + reason + "</b> constraint");
+
+			// existing logging
+			var reason = predecessor ? predecessor.text : gantt.locale.labels[gantt.getConstraintType(task)];
+			console.log("<b>" + task.text + "</b> rescheduled to " + gantt.templates.task_date(new_date) + " due to <b>" + reason + "</b>");
 		});
+
 		gantt.message({ text: "Project is scheduled as soon as possible starting from the project start date", expire: -1 });
 		gantt.message({ text: "The constraints affect the task scheduling", expire: -1 });
 
