@@ -15,8 +15,8 @@ page 50621 "DHX Schedule Board"
 
                 trigger ControlReady()
                 begin
-                    CurrPage.DhxScheduler.Init(format(Today, 0, '<year4>-<month,2>-<day,2>'));
-                    //CurrPage.DhxScheduler.LoadData(ResourceTxt, EventTxt, StartDate, Days);
+                    CurrPage.DhxScheduler.Init(DHXDataHandler.GetYUnitElementsJSON(DMY2Date(1, 1, 2025), DMY2Date(31, 12, 2025)));
+                    CurrPage.DhxScheduler.LoadData('');
                 end;
             }
         }
@@ -31,5 +31,6 @@ page 50621 "DHX Schedule Board"
     }
 
     var
+        DHXDataHandler: Codeunit "DHX Data Handler";
 
 }
