@@ -1,0 +1,12 @@
+html, body{
+			margin:0px;
+			padding:0px;
+			height:100%;
+			overflow:hidden;
+		}	
+.one_line{
+	white-space:nowrap;
+	overflow:hidden;
+	padding-top:5px; padding-left:5px;
+	text-align:left !important;
+}

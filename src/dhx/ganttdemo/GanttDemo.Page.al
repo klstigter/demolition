@@ -3,6 +3,7 @@ page 50619 "Gantt Demo DHX"
     PageType = Card;
     ApplicationArea = All;
     UsageCategory = Administration;
+    Caption = 'Gantt Demo - OLD';
 
     layout
     {

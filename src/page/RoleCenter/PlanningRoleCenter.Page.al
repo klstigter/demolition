@@ -91,6 +91,12 @@ page 50612 "Planning Role Center"
                     Caption = 'Gantt Chart';
                     RunObject = page "Gantt Demo DHX 2";
                 }
+                action("VisualPlanning2")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Schedule Board';
+                    RunObject = page "DHX Schedule Board";
+                }
             }
             group("SettingGroup")
             {
