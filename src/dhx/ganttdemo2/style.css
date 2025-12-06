@@ -27,8 +27,48 @@ html,
 			z-index: 1;
 		}
 
-#gantt_here {
-  width: 100%;
-  height: 600px; /* adjust as needed or make it 100% to fill host container */
-  box-sizing: border-box;
+		/* FIXED DURATION → green diagonal stripes */
+		
+		.gantt_task_line.fixed_duration .gantt_task_content {
+			background: repeating-linear-gradient(
+				45deg,
+				#4caf50 0px,
+				#4caf50 6px,
+				#66bb6a 6px,
+				#66bb6a 12px
+			) !important;
+		}
+
+		/* FIXED UNITS → blue diagonal stripes */
+		.fixed_units .gantt_task_content {
+			background: repeating-linear-gradient(
+				45deg,
+				#2196f3 0px,
+				#2196f3 6px,
+				#64b5f6 6px,
+				#64b5f6 12px
+			) !important;
+		}
+
+		/* FIXED WORK → orange diagonal stripes */
+		.fixed_work .gantt_task_content {
+			background: repeating-linear-gradient(
+				45deg,
+				#ff9800 0px,
+				#ff9800 6px,
+				#ffb74d 6px,
+				#ffb74d 12px
+			) !important;
+		}
+
+		.gantt_task_line.fixed_duration .gantt_task_progress,
+		.gantt_task_line.fixed_units   .gantt_task_progress,
+		.gantt_task_line.fixed_work    .gantt_task_progress {
+			opacity: 0.35 !important;    /* adjust as needed */
+		}
+			
+	#gantt_here {
+	width: 100%;
+	height: 600px; /* adjust as needed or make it 100% to fill host container */
+	box-sizing: border-box;
 }

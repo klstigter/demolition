@@ -18,6 +18,7 @@ page 50620 "Gantt Demo DHX 2"
                 begin
                     CurrPage.DHXGanttControl2.Init(DMY2Date(28, 11, 2025), DMY2Date(13, 12, 2025));
                 end;
+
             }
         }
     }
