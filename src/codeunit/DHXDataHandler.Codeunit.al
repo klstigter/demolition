@@ -31,6 +31,7 @@ codeunit 50604 "DHX Data Handler"
         Jobs: Record Job;
         JobTasks: Record "Job Task";
         Planning: Record "Job Planning Line";
+        WeekTemp: record "Aging Band Buffer" temporary;
 
         JobObject: JsonObject;
         TaskObject: JsonObject;
@@ -52,8 +53,7 @@ codeunit 50604 "DHX Data Handler"
                 Jobs.Get(Planning."Job No.");
                 Jobs.Mark(true);
                 // create event data
-                if EarliestPlanningDate < Planning."Planning Date" then
-                    EarliestPlanningDate := Planning."Planning Date";
+                CountToWeekNumber(Planning."Planning Date", WeekTemp);
                 GetStartEndTxt(Planning, StartDateTxt, EndDateTxt);
                 Clear(PlanningObject);
                 PlanningObject.Add('id', Planning."Job No." + '|' + Planning."Job Task No." + '|' + Format(Planning."Line No."));
@@ -64,6 +64,13 @@ codeunit 50604 "DHX Data Handler"
                 PlanningArray.Add(PlanningObject);
                 PlanningArray.WriteTo(PlanninJsonTxt);
             until Planning.Next() = 0;
+
+            WeekTemp.Reset();
+            WeekTemp.SetCurrentKey("Column 3 Amt.");
+            WeekTemp.FindSet();
+            if WeekTemp.FindLast() then begin
+                EarliestPlanningDate := DWY2Date(1, WeekTemp."Column 2 Amt.", WeekTemp."Column 1 Amt.");
+            end;
         end;
         Jobs.MarkedOnly := true;
         if Jobs.FindSet() then begin
@@ -98,6 +105,26 @@ codeunit 50604 "DHX Data Handler"
             exit(OutText);
         end;
         exit('');
+    end;
+
+    local procedure CountToWeekNumber(DateToCount: Date; var WeekTemp: record "Aging Band Buffer" temporary)
+    var
+        yw: Code[6];
+    begin
+        if DateToCount = 0D then
+            exit;
+        yw := format(Date2DWY(DateToCount, 3)) + format(Date2DWY(DateToCount, 2));
+        if not WeekTemp.Get(yw) then begin
+            WeekTemp.Init();
+            WeekTemp."Currency Code" := yw;
+            WeekTemp."Column 1 Amt." := Date2DWY(DateToCount, 3); //Year
+            WeekTemp."Column 2 Amt." := Date2DWY(DateToCount, 2); //Week No
+            WeekTemp."Column 3 Amt." := 1;
+            WeekTemp.Insert();
+        end else begin
+            WeekTemp."Column 3 Amt." += 1;
+            WeekTemp.Modify();
+        end;
     end;
 
     local procedure GetStartEndTxt(JobPlaningLine: Record "Job Planning Line";
