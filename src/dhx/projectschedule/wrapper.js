@@ -43,7 +43,7 @@ function Init(dataelements,EarliestPlanningDate) {
         console.warn("No sections found in dataelements.data. y_unit will be empty.");
     }
 
-    console.log("elements:", elements);
+    //console.log("elements:", elements);
 
     var div = document.getElementById("controlAddIn");
     // Ensure full fill
@@ -140,7 +140,7 @@ function Init(dataelements,EarliestPlanningDate) {
         {name:"time", height:72, type:"time", map_to:"auto"}
     ];
     
-    console.log("EarliestPlanningDate: ",EarliestPlanningDate);
+    //console.log("EarliestPlanningDate: ",EarliestPlanningDate);
     scheduler.init('scheduler_here',EarliestPlanningDate,"timeline"); //new Date(2025,10,5)
 
     // Notify BC 
