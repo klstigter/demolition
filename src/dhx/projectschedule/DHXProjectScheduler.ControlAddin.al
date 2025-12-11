@@ -23,6 +23,6 @@ controladdin DHXProjectScheduleAddin
 
     event ControlReady();
 
-    procedure Init(elements: Text);
+    procedure Init(elements: Text; EarliestPlanningDate: Date);
     procedure LoadData(EventTxt: Text);
 }

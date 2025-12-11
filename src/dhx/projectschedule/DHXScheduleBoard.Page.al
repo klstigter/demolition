@@ -14,9 +14,17 @@ page 50621 "DHX Schedule Board"
                 ApplicationArea = All;
 
                 trigger ControlReady()
+                var
+                    startDate: Date;
+                    endDate: Date;
+                    EarliestPlanningDate: Date;
+                    PlanninJsonTxt: Text;
+                    ResourceJSONTxt: Text;
                 begin
-                    CurrPage.DhxScheduler.Init(DHXDataHandler.GetYUnitElementsJSON(DMY2Date(1, 1, 2025), DMY2Date(31, 12, 2025)));
-                    CurrPage.DhxScheduler.LoadData('');
+                    DHXDataHandler.GetOneYearPeriodDates(Today(), startDate, endDate);
+                    ResourceJSONTxt := DHXDataHandler.GetYUnitElementsJSON(startDate, endDate, PlanninJsonTxt, EarliestPlanningDate);
+                    CurrPage.DhxScheduler.Init(ResourceJSONTxt, EarliestPlanningDate);
+                    CurrPage.DhxScheduler.LoadData(PlanninJsonTxt);
                 end;
             }
         }
