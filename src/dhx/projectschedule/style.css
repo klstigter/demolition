@@ -10,3 +10,8 @@ html, body{
 	padding-top:5px; padding-left:5px;
 	text-align:left !important;
 }
+
+.dhx_off_time {
+    background-color: #f0f0f0 !important;
+    opacity: 0.5;
+}

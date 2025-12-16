@@ -22,7 +22,10 @@ controladdin DHXProjectScheduleAddin
         'src\dhx\projectschedule\style.css';
 
     event ControlReady();
+    event OnEventChanged(eventId: Text; eventData: Text);
+    event OnAfterEventIdUpdated(oldid: Text; newid: Text);
 
     procedure Init(elements: Text; EarliestPlanningDate: Date);
     procedure LoadData(EventTxt: Text);
+    procedure UpdateEventId(EventIdsJsonTxt: Text);
 }

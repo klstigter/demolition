@@ -26,6 +26,27 @@ page 50621 "DHX Schedule Board"
                     CurrPage.DhxScheduler.Init(ResourceJSONTxt, EarliestPlanningDate);
                     CurrPage.DhxScheduler.LoadData(PlanninJsonTxt);
                 end;
+
+                trigger OnEventChanged(eventId: Text; eventData: Text)
+                var
+                    DHXDataHandler: Codeunit "DHX Data Handler";
+                    UpdateEventID: Boolean;
+                    OldPlanningLine_forUpdate: record "Job Planning Line";
+                    NewPlanningLine_forUpdate: record "Job Planning Line";
+                begin
+                    DHXDataHandler.OnEventChanged(eventId,
+                                                  eventData,
+                                                  UpdateEventID,
+                                                  OldPlanningLine_forUpdate,
+                                                  NewPlanningLine_forUpdate);
+                    if UpdateEventID then
+                        CurrPage.DhxScheduler.UpdateEventId(DHXDataHandler.UpdateEventID(OldPlanningLine_forUpdate, NewPlanningLine_forUpdate)); //update event ID
+                end;
+
+                trigger OnAfterEventIdUpdated(oldid: Text; newid: Text)
+                begin
+                    Message('Event ID updated from %1 to %2', oldid, newid);
+                end;
             }
         }
     }
