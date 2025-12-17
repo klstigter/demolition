@@ -160,9 +160,73 @@ function Init(dataelements,EarliestPlanningDate) {
     scheduler.config.lightbox.sections=[	
         {name:"description", height:60, map_to:"text", type:"textarea" , focus:true},
         {name:"custom", height:30, type:"timeline", options:null , map_to:"section_id" }, //type should be the same as name of the tab
-        {name:"time", height:72, type:"time", map_to:"auto"}
+        {name:"time", height:72, type:"time", map_to:"auto"},
+        // << NEW: resource picker block >>
+        {name:"resource", height:80, type:"resourcePicker", map_to:"resource_id"}
     ];
-    
+
+    // Add a custom button to the lightbox to open a BC page
+    // - Clicking it will raise an event to AL without closing the lightbox
+    scheduler.locale.labels.open_resource_btn = "Get Resource";
+    // Custom lightbox form block
+    scheduler.form_blocks.resourcePicker = {
+        render: function () {
+            return (
+                '<div class="resource-picker" style="padding:6px 12px;">' +
+                    '<div style="margin:6px 0;">' +
+                        '<label style="width:120px;display:inline-block;">Resource Id</label>' +
+                        '<input type="text" id="resource_id_input" style="width:220px;">' +
+                        '<button type="button" id="btnGetResource" style="margin-left:8px;">' +
+                            (scheduler.locale.labels.get_resource_btn || "Get Resource") +
+                        '</button>' +
+                    '</div>' +
+                    '<div style="margin:6px 0;">' +
+                        '<label style="width:120px;display:inline-block;">Resource Name</label>' +
+                        '<input type="text" id="resource_name_input" style="width:220px;">' +
+                    '</div>' +
+                '</div>'
+            );
+        },
+        set_value: function (node, value, ev) {
+            var idInput = node.querySelector('#resource_id_input');
+            var nameInput = node.querySelector('#resource_name_input');
+            if (idInput) idInput.value = ev.resource_id || '';
+            if (nameInput) nameInput.value = ev.resource_name || '';
+
+            var btn = node.querySelector('#btnGetResource');
+            if (btn && !btn._wired) {
+                btn._wired = true;
+                btn.addEventListener('click', function () {
+                    var lbId = scheduler.getState().lightbox_id;
+                    var cur = lbId ? scheduler.getEvent(lbId) : null;
+                    var payload = cur ? {
+                        id: cur.id,
+                        text: cur.text,
+                        start_date: cur.start_date,
+                        end_date: cur.end_date,
+                        section_id: cur.section_id,
+                        resource_id: idInput?.value || cur.resource_id || '',
+                        resource_name: nameInput?.value || cur.resource_name || ''
+                    } : {};
+                    Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnOpenResourcePage", [lbId || "", JSON.stringify(payload)]);
+                });
+            }
+        },
+        get_value: function (node, ev) {
+            var idInput = node.querySelector('#resource_id_input');
+            var nameInput = node.querySelector('#resource_name_input');
+            ev.resource_id = idInput ? idInput.value : '';
+            ev.resource_name = nameInput ? nameInput.value : '';
+            return ev.resource_id; // saved into map_to ("resource_id")
+        },
+        focus: function (node) {
+            var idInput = node.querySelector('#resource_id_input');
+            if (idInput) idInput.focus();
+        }
+    };
+
+    scheduler.config.drag_create = true;
+
     //console.log("EarliestPlanningDate: ",EarliestPlanningDate);
     scheduler.init('scheduler_here', EarliestPlanningDate, "timeline"); //new Date(2025,10,5)
 
@@ -181,6 +245,25 @@ function Init(dataelements,EarliestPlanningDate) {
         
         // Send to BC
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnEventChanged", [id, JSON.stringify(eventData)]);
+    });
+
+    scheduler.attachEvent("onEventAdded", function(id,ev){
+        console.log("New Event:", ev);
+        
+        // Capture event data after resize/drag
+        var eventData = {
+            id: id,
+            text: ev.text,
+            start_date: ev.start_date,
+            end_date: ev.end_date,
+            section_id: ev.section_id,
+            resource_id: ev.resource_id || '',
+            resource_name: ev.resource_name || ''
+        };
+        
+        // Send to BC
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("onEventAdded", [id,JSON.stringify(eventData)]);
+        return true;
     });
 
     // Notify BC 
@@ -258,7 +341,67 @@ function UpdateEventId(EventIdsJsonTxt) {
     // Official way to remap an event id
     scheduler.changeEventId(oldId, newId);
     scheduler.updateEvent(newId);
-
+    
     // Notify BC (optional)
     Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnAfterEventIdUpdated", [oldId, newId]);
+}
+
+// Allow AL to update fields of the currently opened lightbox event
+// Example input:
+//   {
+//     "text": "New description",
+//     "section_id": "1010",
+//     "start_date": "2025-11-07T19:25:00Z",
+//     "end_date": "2025-11-08T11:55:00Z"
+//   }
+function SetLightboxEventValues(valuesJsonTxt, ResourceId, ResourceName) {
+    console.log("SetLightboxEventValues called with:", valuesJsonTxt, ResourceId, ResourceName);
+
+    // valuesJsonTxt is optional; only use it if it’s an object
+    var values = ParseJSonTxt(valuesJsonTxt);
+
+    if (typeof scheduler === "undefined") return;
+
+    var lbId = scheduler.getState().lightbox_id;
+    if (!lbId) return;
+
+    var ev = scheduler.getEvent(lbId);
+    if (!ev) return;
+
+    // Apply optional fields from JSON
+    if (values && typeof values === "object") {
+        if ("text" in values) ev.text = values.text;
+        if ("section_id" in values) ev.section_id = values.section_id;
+        if (values.start_date) ev.start_date = new Date(values.start_date);
+        if (values.end_date) ev.end_date = new Date(values.end_date);
+    }
+
+    // Always use the arguments to set resource fields
+    if (ResourceId != null) ev.resource_id = ResourceId;
+    if (ResourceName != null) {
+        ev.resource_name = ResourceName;
+        // keep event description in sync with resource name
+        ev.text = ResourceName;
+    }
+
+    // Update inputs in the open lightbox UI from the arguments
+    var box = document.querySelector(".dhx_cal_light");
+    if (box) {
+        var idInput = box.querySelector('#resource_id_input');
+        var nameInput = box.querySelector('#resource_name_input');
+        if (idInput && ResourceId != null) idInput.value = ResourceId;
+        if (nameInput && ResourceName != null) nameInput.value = ResourceName;
+    }
+
+    // Also update the built-in "description" section so Save uses new text
+    try {
+        var descSection = scheduler.formSection && scheduler.formSection("description");
+        if (descSection && typeof descSection.setValue === "function") {
+            descSection.setValue(ev.text || "");
+        }
+    } catch (e) {
+        // ignore if lightbox not open or API unavailable
+    }
+
+    scheduler.updateEvent(lbId);
 }

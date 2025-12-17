@@ -187,6 +187,94 @@ codeunit 50604 "DHX Data Handler"
         EndDate := CalcDate('<CY>', CurrentDate)
     end;
 
+    procedure onEventAdded(EventData: Text; var UpdateEventIdJsonTxt: Text): Boolean
+    var
+        Task: record "Job Task";
+        PlanningLine: record "Job Planning Line";
+        Res: record Resource;
+        EventJSonObj: JsonObject;
+        JToken: JsonToken;
+        SectionIdParts: List of [Text];
+        JobNo: Code[20];
+        TaskNo: Code[20];
+        LineNo: Integer;
+        ResNo: Code[20];
+        rtv: Boolean;
+        old_eventid: Text;
+        _Date: Date;
+        _Time: Time;
+        PlanningDate: Date;
+        StartTime: Time;
+        EndPlanningDate: Date;
+        EndTime: Time;
+        Desc: Text;
+        JsonLbl: Label '{"OldEventId": "%1", "NewEventId": "%2|%3|%4"}';
+    begin
+        //Message('New Event Created with eventData = %2', eventData);
+        /*
+        eventData = 
+        {
+            "id":1765956958574,
+            "text":"New event",
+            "start_date":"2025-11-07T20:30:00.000Z",
+            "end_date":"2025-11-08T23:00:00.000Z",
+            "section_id":"JOB00010|1010",
+            "resource_id":"HESSEL",
+            "resource_name":"Hessel Wanders"
+        }
+        */
+        EventJSonObj.ReadFrom(EventData);
+        EventJSonObj.Get('section_id', JToken);
+        SectionIdParts := JToken.AsValue().AsText().Split('|');
+        JobNo := SectionIdParts.Get(1);
+        TaskNo := SectionIdParts.Get(2);
+        Task.Get(JobNo, TaskNo);
+
+        EventJSonObj.Get('id', JToken);
+        old_eventid := JToken.AsValue().AsText();
+
+        EventJSonObj.Get('start_date', JToken);
+        ParseIsoToDateTime(JToken.AsValue().AsText(), _Date, _Time);
+        PlanningDate := _Date;
+        StartTime := _Time;
+
+        EventJSonObj.Get('end_date', JToken);
+        ParseIsoToDateTime(JToken.AsValue().AsText(), _Date, _Time);
+        EndPlanningDate := _Date;
+        EndTime := _Time;
+
+        // EventJSonObj.Get('text', JToken);
+        // Desc := JToken.AsValue().AsText();
+
+        EventJSonObj.Get('resource_id', JToken);
+        Res.Get(JToken.AsValue().AsText().ToUpper());
+
+        LineNo := 10000;
+        PlanningLine.SetRange("Job No.", JobNo);
+        PlanningLine.SetRange("Job Task No.", TaskNo);
+        if PlanningLine.FindLast() then
+            LineNo := PlanningLine."Line No." + 10000;
+
+        PlanningLine.Init();
+        PlanningLine."Job No." := JobNo;
+        PlanningLine."Job Task No." := TaskNo;
+        PlanningLine."Line No." := LineNo;
+        PlanningLine.Type := PlanningLine.Type::Resource;
+        PlanningLine."No." := Res."No.";
+        PlanningLine."Planning Date" := PlanningDate;
+        PlanningLine."Start Time" := StartTime;
+        PlanningLine."End Planning Date" := EndPlanningDate;
+        PlanningLine."End Time" := EndTime;
+        PlanningLine.Description := Res.Name;
+        UpdateEventIdJsonTxt := StrSubstNo(JsonLbl,
+                                            old_eventid,
+                                            PlanningLine."Job No.",
+                                            PlanningLine."Job Task No.",
+                                            Format(PlanningLine."Line No."));
+        rtv := PlanningLine.Insert();
+        exit(rtv);
+    end;
+
     procedure OnEventChanged(EventId: Text;
                              EventData: Text;
                              var UpdateEventID: Boolean;
@@ -210,8 +298,8 @@ codeunit 50604 "DHX Data Handler"
         _Date: Date;
         _Time: Time;
     begin
-        /*
         Message('Event ' + eventId + ' changed: ' + eventData);
+        /*        
         sift left / right:
             eventId = JOB00010|1020|10000
             eventData = 
@@ -248,9 +336,6 @@ codeunit 50604 "DHX Data Handler"
         New_JobNo := NewSectionParts.Get(1);
         New_TaskNo := NewSectionParts.Get(2);
         NewTask.Get(New_JobNo, New_TaskNo);
-
-        EventJSonObj.Get('section_id', JToken);
-        NewSectionParts := JToken.AsValue().AsText().Split('|');
 
         UpdateEventID := false;
         OldPlanningLine_forUpdate := OldPlanningLine;

@@ -24,8 +24,11 @@ controladdin DHXProjectScheduleAddin
     event ControlReady();
     event OnEventChanged(eventId: Text; eventData: Text);
     event OnAfterEventIdUpdated(oldid: Text; newid: Text);
+    event onEventAdded(eventId: Text; eventData: Text);
+    event OnOpenResourcePage(lightboxId: Text; eventData: Text);
 
     procedure Init(elements: Text; EarliestPlanningDate: Date);
     procedure LoadData(EventTxt: Text);
     procedure UpdateEventId(EventIdsJsonTxt: Text);
+    procedure SetLightboxEventValues(lightboxId: Text; ResourceId: Text; ResourceName: Text);
 }

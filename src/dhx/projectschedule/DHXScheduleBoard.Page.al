@@ -27,6 +27,28 @@ page 50621 "DHX Schedule Board"
                     CurrPage.DhxScheduler.LoadData(PlanninJsonTxt);
                 end;
 
+                #region new event added
+                trigger onEventAdded(eventId: Text; eventData: Text)
+                var
+                    DHXDataHandler: Codeunit "DHX Data Handler";
+                    UpdateEventIdJsonTxt: Text;
+                begin
+                    if DHXDataHandler.onEventAdded(eventData, UpdateEventIdJsonTxt) then
+                        CurrPage.DhxScheduler.UpdateEventId(UpdateEventIdJsonTxt); //update event ID
+                end;
+
+                trigger OnOpenResourcePage(lightboxId: Text; eventData: Text)
+                var
+                    Res: record Resource;
+                begin
+                    if page.RunModal(0, Res) = Action::LookupOK then begin
+                        //Update the lightbox event's section_id to the selected Resource's ID
+                        CurrPage.DhxScheduler.SetLightboxEventValues(lightboxId, Res."No.", Res.Name);
+                    end;
+                end;
+                #endregion new event added
+
+                #region Event Changes
                 trigger OnEventChanged(eventId: Text; eventData: Text)
                 var
                     DHXDataHandler: Codeunit "DHX Data Handler";
@@ -47,6 +69,8 @@ page 50621 "DHX Schedule Board"
                 begin
                     Message('Event ID updated from %1 to %2', oldid, newid);
                 end;
+                #endregion
+
             }
         }
     }
