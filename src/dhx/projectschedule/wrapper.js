@@ -1,4 +1,6 @@
 var scheduler_here; // global variable for dhx Scheduler
+var resourceBlockVisible = false; // true only for a new event
+var bcPlanningVisible = false;    // show only for existing events
 
 function ParseJSonTxt(jsonText) {
     // Parse input safely (supports JSON string or object)
@@ -89,48 +91,7 @@ function Init(dataelements,EarliestPlanningDate) {
 
     // //===============
     // //Configuration
-    // //===============	
-
-    // scheduler.createTimelineView({
-    //     section_autoheight: false,
-    //     name:	"timeline",
-    //     x_unit:	"minute",
-    //     x_date:	"%H:%i",
-    //     x_step:	30,
-    //     x_size: 24,
-    //     x_start: 16,
-    //     x_length:	48,
-    //     y_unit: elements,
-    //     y_property:	"section_id",
-    //     render: "tree",
-    //     folder_events_available: true,
-    //     dy:60
-    // });
-    
-    //=============== 
-    // Configuration: weekly timeline with second scale (hours)
-    //===============
-    // scheduler.createTimelineView({
-    //     section_autoheight: false,
-    //     name: "timeline",
-    //     // main scale: days
-    //     x_unit: "day",
-    //     x_step: 1,
-    //     x_size: 7,               // 7 days
-    //     x_date: "%D %d %M",      // e.g. Mon 01 Dec
-    //     scale_height: 60,        // header height to fit two scales
-    //     y_unit: elements,
-    //     y_property: "section_id",
-    //     render: "tree",
-    //     folder_events_available: true,
-    //     dy: 60
-    // });
-
-    // // Align the timeline to the start of the week for any date shown
-    // scheduler.date.timeline_start = function (date) {
-    //     return scheduler.date.week_start(date);
-    // };
-
+    // //===============	    
     scheduler.createTimelineView({
         name: "timeline",
         x_unit: "hour",
@@ -162,17 +123,69 @@ function Init(dataelements,EarliestPlanningDate) {
         {name:"custom", height:30, type:"timeline", options:null , map_to:"section_id" }, //type should be the same as name of the tab
         {name:"time", height:72, type:"time", map_to:"auto"},
         // << NEW: resource picker block >>
-        {name:"resource", height:80, type:"resourcePicker", map_to:"resource_id"}
+        {name:"resource", height:80, type:"resourcePicker", map_to:"resource_id"},
+        // NEW: BC Planning (visible for existing)
+        {name:"bcPlanning", height:50, type:"bcPlanning", map_to:"bc_dummy"}
     ];
 
     // Add a custom button to the lightbox to open a BC page
     // - Clicking it will raise an event to AL without closing the lightbox
+    // Labels
+    scheduler.locale.labels.section_bcPlanning = "BC Planning";
+    scheduler.locale.labels.planning_line_btn = "Planning Line";
     scheduler.locale.labels.open_resource_btn = "Get Resource";
+
+    // === NEW: BC Planning block (button inside section, never in footer) ===
+    scheduler.form_blocks.bcPlanning = {
+        render: function () {
+            return (
+                '<div class="bc-planning" style="padding:6px 12px;' + (bcPlanningVisible ? '' : 'display:none;') + '">' +
+                    '<div style="margin:6px 0;">' +
+                        '<button type="button" id="btnPlanningLine" class="dhx_btn">' +
+                            (scheduler.locale.labels.planning_line_btn || 'Planning Line') +
+                        '</button>' +
+                    '</div>' +
+                '</div>'
+            );
+        },
+        set_value: function (node, value, ev) {
+            // toggle visibility per event type
+            node.style.display = bcPlanningVisible ? '' : 'none';
+
+            var btn = node.querySelector('#btnPlanningLine');
+            if (btn && !btn._wired) {
+                btn._wired = true;
+                btn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    var lbId = scheduler.getState().lightbox_id;
+                    var cur = lbId ? scheduler.getEvent(lbId) : null;
+                    var payload = cur ? {
+                        id: lbId,
+                        text: cur.text,
+                        start_date: cur.start_date,
+                        end_date: cur.end_date,
+                        section_id: cur.section_id,
+                        resource_id: cur.resource_id || '',
+                        resource_name: cur.resource_name || ''
+                    } : {};
+                    console.log('Planning Line button clicked for event:', lbId, payload);
+                    Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnPlanningLineClick', [String(lbId || ''), JSON.stringify(payload)]);
+                });
+            }
+        },
+        get_value: function (node, ev) {
+            // no data to persist from this section
+            return ev.text;
+        },
+        focus: function (node) {}
+    };
+
     // Custom lightbox form block
     scheduler.form_blocks.resourcePicker = {
         render: function () {
             return (
-                '<div class="resource-picker" style="padding:6px 12px;">' +
+                '<div class="resource-picker" style="padding:6px 12px;' + (resourceBlockVisible ? '' : 'display:none;') + '">' +
                     '<div style="margin:6px 0;">' +
                         '<label style="width:120px;display:inline-block;">Resource Id</label>' +
                         '<input type="text" id="resource_id_input" style="width:220px;">' +
@@ -188,6 +201,8 @@ function Init(dataelements,EarliestPlanningDate) {
             );
         },
         set_value: function (node, value, ev) {
+            // keep current visibility
+            node.style.display = resourceBlockVisible ? '' : 'none';
             var idInput = node.querySelector('#resource_id_input');
             var nameInput = node.querySelector('#resource_name_input');
             if (idInput) idInput.value = ev.resource_id || '';
@@ -230,8 +245,60 @@ function Init(dataelements,EarliestPlanningDate) {
     //console.log("EarliestPlanningDate: ",EarliestPlanningDate);
     scheduler.init('scheduler_here', EarliestPlanningDate, "timeline"); //new Date(2025,10,5)
 
+    // After the lightbox is built, toggle resource block and footer button
+    scheduler.attachEvent("onLightbox", function (id) {
+        // Apply section visibility after DOM exists
+        var res = document.querySelector(".dhx_cal_light .resource-picker");
+        if (res) res.style.display = resourceBlockVisible ? "" : "none";
+
+        var bc = document.querySelector(".dhx_cal_light .bc-planning");
+        if (bc) bc.style.display = bcPlanningVisible ? "" : "none";
+    });
+
+    // Mark events created from the UI
+    scheduler.attachEvent("onEventCreated", function (id) {
+        var ev = scheduler.getEvent(id);
+        if (ev) ev._isNewForLightbox = true;
+        return true;
+    });
+
+    // Before opening the lightbox: show for new, hide for existing
+    // scheduler.attachEvent("onBeforeLightbox", function (id) {
+    //     var ev = scheduler.getEvent(id);
+
+    //     // New event => show resource block, hide Planning Line
+    //     resourceBlockVisible = !!(ev && ev._isNewForLightbox);
+
+    //     // Only toggle the resource block visibility. Do NOT modify buttons_left/right.
+    //     var n = document.querySelector(".dhx_cal_light .resource-picker");
+    //     if (n) n.style.display = resourceBlockVisible ? "" : "none";
+
+    //     return true;
+    // });
+    scheduler.attachEvent("onBeforeLightbox", function (id) {
+        var ev = scheduler.getEvent(id);
+        var isNew = !!(ev && ev._isNewForLightbox);
+        resourceBlockVisible = isNew;
+        bcPlanningVisible = !isNew;
+        return true;
+    });
+
+    scheduler.attachEvent("onAfterLightbox", function(){
+        var id = scheduler.getState().lightbox_id;
+        var ev = id ? scheduler.getEvent(id) : null;
+        if (ev) delete ev._isNewForLightbox;
+        resourceBlockVisible = false;
+        bcPlanningVisible = false;
+        var res = document.querySelector(".dhx_cal_light .resource-picker");
+        if (res) res.style.display = "none";
+        var bc = document.querySelector(".dhx_cal_light .bc-planning");
+        if (bc) bc.style.display = "none";
+    });
+
     // Attach resize event
     scheduler.attachEvent("onEventChanged", function(id, ev){
+        if (ev) delete ev._isNewForLightbox; // new event is no longer "new"
+
         console.log("Event changed:", id, ev);
         
         // Capture event data after resize/drag
@@ -242,12 +309,23 @@ function Init(dataelements,EarliestPlanningDate) {
             end_date: ev.end_date,
             section_id: ev.section_id
         };
+
+        // Also reset after closing the lightbox (Cancel or Save)
+        scheduler.attachEvent("onAfterLightbox", function(){
+            var id = scheduler.getState().lightbox_id;
+            var ev = id ? scheduler.getEvent(id) : null;
+            if (ev) delete ev._isNewForLightbox;
+            resourceBlockVisible = false;
+            var n = document.querySelector(".dhx_cal_light .resource-picker");
+            if (n) n.style.display = "none";
+        });
         
         // Send to BC
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnEventChanged", [id, JSON.stringify(eventData)]);
     });
 
     scheduler.attachEvent("onEventAdded", function(id,ev){
+        if (ev) delete ev._isNewForLightbox;   // <— important
         console.log("New Event:", ev);
         
         // Capture event data after resize/drag

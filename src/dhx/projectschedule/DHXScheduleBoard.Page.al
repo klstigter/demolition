@@ -71,6 +71,12 @@ page 50621 "DHX Schedule Board"
                 end;
                 #endregion
 
+                trigger OnPlanningLineClick(Id: Text; EventJson: Text)
+                var
+                begin
+                    Message('Planning line clicked with ID: %1', Id);
+                end;
+
             }
         }
     }

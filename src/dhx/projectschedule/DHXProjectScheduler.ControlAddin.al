@@ -26,6 +26,7 @@ controladdin DHXProjectScheduleAddin
     event OnAfterEventIdUpdated(oldid: Text; newid: Text);
     event onEventAdded(eventId: Text; eventData: Text);
     event OnOpenResourcePage(lightboxId: Text; eventData: Text);
+    event OnPlanningLineClick(Id: Text; EventJson: Text); // JS -> AL
 
     procedure Init(elements: Text; EarliestPlanningDate: Date);
     procedure LoadData(EventTxt: Text);
