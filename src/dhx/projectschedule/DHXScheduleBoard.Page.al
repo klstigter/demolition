@@ -73,8 +73,23 @@ page 50621 "DHX Schedule Board"
 
                 trigger OnPlanningLineClick(Id: Text; EventJson: Text)
                 var
+                    JobPlanningLinesPage: page "Job Planning Lines";
+                    JobPlanningLines: record "Job Planning Line";
+                    EventIDList: List of [Text];
+                    JObNo: Code[20];
+                    TaskNo: Code[20];
+                    PlanningLineNo: Integer;
                 begin
-                    Message('Planning line clicked with ID: %1', Id);
+                    EventIDList := id.Split('|');
+                    JObNo := EventIDList.Get(1);
+                    TaskNo := EventIDList.Get(2);
+                    Evaluate(PlanningLineNo, EventIDList.Get(3));
+                    JobPlanningLines.Setrange("Job No.", JobNo);
+                    JobPlanningLines.Setrange("Job Task No.", TaskNo);
+                    if JobPlanningLines.findset then;
+                    page.RunModal(0, JobPlanningLines);
+
+                    //Message('Planning line clicked with ID: %1, Job No: %2, Task No: %3, Planning Line No: %4', Id, JObNo, TaskNo, PlanningLineNo);
                 end;
 
             }
