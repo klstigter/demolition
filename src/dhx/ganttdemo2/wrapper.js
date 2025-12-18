@@ -79,42 +79,6 @@ function Init(projectstartdate, projectenddate) {
 		
 		gantt.config.date_format = "%d-%m-%Y";
 
-		// **************
-		// Enforce project boundaries: start >= project_start, end <= project_end
-        // (function enforceProjectBounds() {
-        //     var projectStart = gantt.config.project_start;
-        //     var projectEnd   = gantt.config.project_end;
-
-        //     function violatesBounds(task) {
-        //         var start = task.start_date;
-        //         var end   = gantt.calculateEndDate(task);
-        //         return (start < projectStart) || (end > projectEnd);
-        //     }
-
-        //     gantt.attachEvent("onBeforeTaskChanged", function(id, mode, task, original){
-        //         if (violatesBounds(task)) {
-        //             gantt.message({ text: "1. Task must stay within project start and end", type: "error" });
-        //             return false;
-        //         }
-        //         return true;
-        //     });
-
-        //     gantt.attachEvent("onAfterTaskAutoSchedule", function(task){
-        //         if (violatesBounds(task)) {
-        //             gantt.message({ text: "2. Task must stay within project start and end", type: "error" });
-        //             return false;
-        //         }
-        //     });
-
-        //     gantt.attachEvent("onBeforeTaskAdd", function(id, task){
-        //         if (violatesBounds(task)) {
-        //             gantt.message({ text: "3. New task must be within project dates", type: "error" });
-        //             return false;
-        //         }
-        //         return true;
-        //     });
-        // })();
-
 		gantt.attachEvent("onBeforeTaskDrag", function(id, mode, e){
 			var t = gantt.getTask(id);
 			var projectStart = gantt.config.project_start;
@@ -267,15 +231,6 @@ function Init(projectstartdate, projectenddate) {
 		];
 
 		gantt.attachEvent("onAfterTaskAutoSchedule", function (task, new_date, link, predecessor) {
-			// var reason = "";
-			// if (predecessor) {
-			// 	reason = predecessor.text;
-			// } else {
-			// 	var constraint = gantt.getConstraintType(task);
-			// 	reason = gantt.locale.labels[constraint];
-			// }
-			// var predecessor = predecessor ? predecessor : { text: task.constraint_type };
-			// console.log("<b>" + task.text + "</b> has been rescheduled to " + gantt.templates.task_date(new_date) + " due to <b>" + reason + "</b> constraint");
 			var projectStart = gantt.config.project_start;
 			var projectEnd   = gantt.config.project_end;
 

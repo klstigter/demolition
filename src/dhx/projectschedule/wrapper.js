@@ -112,8 +112,10 @@ function Init(dataelements,EarliestPlanningDate) {
             // x_size: (10 * 7) 
         }
     });
-    scheduler.date.timeline_start = scheduler.date.day_start;
-
+    
+    scheduler.date.timeline_start = function(date){
+        return scheduler.date.week_start(date); // respects start_on_monday
+    };
     
     //===============
     //Data loading
