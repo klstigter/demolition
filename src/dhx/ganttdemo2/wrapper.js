@@ -36,7 +36,8 @@ function Init(projectstartdate, projectenddate) {
         gantt.plugins({
 			auto_scheduling: true,
 			marker: true,
-			undo: true
+			undo: true,
+			resource: true // AH-20251218
 		});
 
 		gantt.templates.scale_cell_class = function (date) {
@@ -266,6 +267,118 @@ function Init(projectstartdate, projectenddate) {
 		gantt.message({ text: "Project is scheduled as soon as possible starting from the project start date", expire: -1 });
 		gantt.message({ text: "The constraints affect the task scheduling", expire: -1 });
 
+
+		//<< AH-20251218 Resource Management
+		function calculateResourceLoad(tasks, scale) {
+			var step = scale.unit;
+			var timegrid = {};
+			for (var i = 0; i < tasks.length; i++) {
+				var t = tasks[i];
+				var d = gantt.date[step + "_start"](new Date(t.start_date));
+				while (d < t.end_date) {
+					var date = d;
+					d = gantt.date.add(d, 1, step);
+					if (!gantt.isWorkTime({ date: date, task: t })) continue;
+					var ts = date.valueOf();
+					timegrid[ts] = (timegrid[ts] || 0) + 8; // dummy: 8h/day
+				}
+			}
+			var out = [];
+			for (var ts in timegrid) {
+				var start = new Date(+ts);
+				var end = gantt.date.add(start, 1, step);
+				out.push({ start_date: start, end_date: end, value: timegrid[ts] });
+			}
+			return out;
+		}
+
+		var renderResourceLine = function (resource, timeline) {
+			var tasks = gantt.getTaskBy("user", resource.id);
+			var timetable = calculateResourceLoad(tasks, timeline.getScale());
+			var row = document.createElement("div");
+			for (var i = 0; i < timetable.length; i++) {
+				var day = timetable[i];
+				var sizes = timeline.getItemPosition(resource, day.start_date, day.end_date);
+				var el = document.createElement("div");
+				el.className = (day.value <= 8)
+					? "gantt_resource_marker gantt_resource_marker_ok"
+					: "gantt_resource_marker gantt_resource_marker_overtime";
+				el.style.cssText = [
+					"left:" + sizes.left + "px",
+					"width:" + sizes.width + "px",
+					"position:absolute",
+					"height:" + (gantt.config.row_height - 1) + "px",
+					"line-height:" + sizes.height + "px",
+					"top:" + sizes.top + "px",
+					"text-align:center",
+					"font-weight:600"
+				].join(";");
+				el.innerHTML = day.value;
+				row.appendChild(el);
+			}
+			return row;
+		};
+		var resourceLayers = [ renderResourceLine, "taskBg" ];
+
+		// Different headers for task grid vs resource grid
+		var mainGridConfig = { columns: gantt.config.columns };
+		var resourcePanelConfig = {
+			columns: [
+				{ name: "name", label: "Name", template: function (r) { return r.label; } },
+				{ name: "workload", label: "Workload", template: function (r) {
+					var tasks = gantt.getTaskBy("user", r.id);
+					var total = 0;
+					for (var i = 0; i < tasks.length; i++) total += (tasks[i].duration || 0);
+					return (total * 8) + "";
+				} }
+			]
+		};
+
+		// Replace previous resourceGrid/resourceTimeline layout
+		gantt.config.layout = {
+			css: "gantt_container",
+			rows: [
+				{
+					cols: [
+						{ view: "grid", group: "grids", config: mainGridConfig, scrollY: "scrollVer" },
+						{ resizer: true, width: 1, group: "vertical" },
+						{ view: "timeline", id: "timeline", scrollX: "scrollHor", scrollY: "scrollVer" },
+						{ view: "scrollbar", id: "scrollVer", group: "vertical" }
+					]
+				},
+				{ resizer: true, width: 1 },
+				{
+					config: resourcePanelConfig,
+					cols: [
+						{ view: "grid", id: "resourceGrid", group: "grids", bind: "resources", scrollY: "resourceVScroll" },
+						{ resizer: true, width: 1, group: "vertical" },
+						{ view: "timeline", id: "resourceTimeline", bind: "resources", bindLinks: null, layers: resourceLayers, scrollX: "scrollHor", scrollY: "resourceVScroll" },
+						{ view: "scrollbar", id: "resourceVScroll", group: "vertical" }
+					]
+				},
+				{ view: "scrollbar", id: "scrollHor" }
+			]
+		};
+
+		// Datastores
+		var resourcesStore = gantt.createDatastore({
+			name: "resources",
+			initItem: function (item) { item.id = item.key || gantt.uid(); return item; }
+		});
+		var tasksStore = gantt.getDatastore("task");
+		tasksStore.attachEvent("onStoreUpdated", function () { resourcesStore.refresh(); });
+
+		// Style for resource workload cells
+		(function injectResourceCSS(){
+			var css = `
+			.gantt_resource_marker{ border-radius:4px; color:#fff; }
+			.gantt_resource_marker_ok{ background:#21b36c; }
+			.gantt_resource_marker_overtime{ background:#e74c3c; }
+			`;
+			var s = document.createElement("style"); s.textContent = css; document.head.appendChild(s);
+		})();
+		//>>
+
 		// ******* INIT and LOAD DATA *******
 		gantt.init("gantt_here");
 		// DEBUG: inject CSS from JS
@@ -276,6 +389,15 @@ function Init(projectstartdate, projectenddate) {
 			}
 		`;
 		document.head.appendChild(style);
+
+		//<< AH-20251218 Resource
+		resourcesStore.parse([
+            { key: "0", label: "N/A" },
+            { key: "1", label: "John" },
+            { key: "2", label: "Mike" },
+            { key: "3", label: "Anna" }
+        ]);
+		//>>
 
 		gantt.parse({
 			data: [
@@ -313,6 +435,20 @@ function Init(projectstartdate, projectenddate) {
 			]
 		});
         // *********** end of demo from portal here ***********
+
+		//<< AH-20251218 Resource
+		(function assignDummyOwners(){
+			var owners = ["1","2","3"]; // John, Mike, Anna from resourcesStore
+			gantt.batchUpdate(function(){
+				gantt.eachTask(function(t){
+					if (t.type === "project" || t.type === "milestone") return;
+					if (!t.user) t.user = owners[(t.id - 1) % owners.length];
+				});
+			});
+			resourcesStore.refresh();
+			gantt.refreshData();
+		})();
+		//>>
 
     } catch (e) {
         console.warn("gantt.init/render warning:", e);
