@@ -1,7 +1,7 @@
-page 50604 "DDSIA Object Selection"
+page 50604 "Object Selection"
 {
     PageType = List;
-    SourceTable = "DDSIA Object Selection";
+    SourceTable = "Object Selection";
     ApplicationArea = All;
     Editable = false;
     Caption = 'Object Selection';

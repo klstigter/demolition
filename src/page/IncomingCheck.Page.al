@@ -1,10 +1,10 @@
-page 50606 "DDSIA Incoming Check"
+page 50606 "Incoming Check"
 {
     Caption = 'Incoming Check';
     PageType = List;
     ApplicationArea = All;
     UsageCategory = Lists;
-    SourceTable = "DDSIA Incoming Check";
+    SourceTable = "Incoming Check";
     Editable = false;
 
     layout
@@ -35,7 +35,7 @@ page 50606 "DDSIA Incoming Check"
                 ApplicationArea = All;
                 trigger OnAction()
                 var
-                    SelectedRecs: Record "DDSIA Incoming Check";
+                    SelectedRecs: Record "Incoming Check";
                     Clbl: Label 'Selected record will be delete';
                 begin
                     if not confirm(Clbl) then

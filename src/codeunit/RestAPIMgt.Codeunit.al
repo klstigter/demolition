@@ -103,7 +103,7 @@ codeunit 50602 "DDSIA Rest API Mgt."
 
     procedure SelectPlanningVendor(var pVendorName: Text): Integer
     var
-        VenBuffer: record "DDSIA Object Selection";
+        VenBuffer: record "Object Selection";
         rtv: Integer;
         ResponseText: Text;
 
@@ -142,7 +142,7 @@ codeunit 50602 "DDSIA Rest API Mgt."
 
     procedure SelectPlanningProduct(var pProductName: Text): Integer
     var
-        ProductBuffer: record "DDSIA Object Selection";
+        ProductBuffer: record "Object Selection";
         rtv: Integer;
         ResponseText: Text;
 
@@ -181,7 +181,7 @@ codeunit 50602 "DDSIA Rest API Mgt."
 
     procedure SelectPlanningUser(var pUserName: Text): Integer
     var
-        ObjectBuffer: record "DDSIA Object Selection";
+        ObjectBuffer: record "Object Selection";
         rtv: Integer;
         ResponseText: Text;
 

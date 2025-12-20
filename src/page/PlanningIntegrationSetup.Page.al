@@ -62,7 +62,7 @@ page 50603 "Planning Integration Setup"
 
                         trigger OnAssistEdit()
                         var
-                            LogPage: page "DDSIA Incoming Check";
+                            LogPage: page "Incoming Check";
                         begin
                             LogPage.Run();
                         end;

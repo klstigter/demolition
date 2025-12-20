@@ -1,4 +1,4 @@
-page 50611 "DDSIAJobPlanningLineBor"
+page 50611 "JobPlanningLineBor"
 {
     PageType = API;
     Caption = 'apiJobPlanningLine';
@@ -36,7 +36,7 @@ page 50611 "DDSIAJobPlanningLineBor"
     trigger OnInsertRecord(BelowxRec: Boolean): Boolean
     var
         IntegrationSetup: record "Planning Integration Setup";
-        Incoming: record "DDSIA Incoming Check";
+        Incoming: record "Incoming Check";
         RestMgt: Codeunit "DDSIA Rest API Mgt.";
 
         JsonObj: JsonObject;

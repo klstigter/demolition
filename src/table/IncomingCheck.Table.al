@@ -1,4 +1,4 @@
-table 50602 "DDSIA Incoming Check"
+table 50602 "Incoming Check"
 {
     DataClassification = ToBeClassified;
 
@@ -56,7 +56,7 @@ table 50602 "DDSIA Incoming Check"
 
     procedure GetLastEntryNo()
     var
-        data: Record "DDSIA Incoming Check";
+        data: Record "Incoming Check";
     begin
         data.Reset();
         if data.FindLast() then

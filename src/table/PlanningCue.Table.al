@@ -1,4 +1,4 @@
-table 50603 "DDSIA PLanning Cue"
+table 50603 "PLanning Cue"
 {
     Caption = 'PLanning Cue';
     DataClassification = CustomerContent;

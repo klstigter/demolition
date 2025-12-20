@@ -3,7 +3,7 @@ page 50614 "Resource Planning Activities"
     Caption = 'Resource Planning';
     PageType = CardPart;
     RefreshOnActivate = true;
-    SourceTable = "DDSIA PLanning Cue";
+    SourceTable = "PLanning Cue";
     ShowFilter = false;
 
     layout

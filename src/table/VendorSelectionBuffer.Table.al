@@ -1,9 +1,9 @@
-table 50601 "DDSIA Object Selection"
+table 50601 "Object Selection"
 {
     ReplicateData = false;
     TableType = Temporary;
-    LookupPageId = "DDSIA Object Selection";
-    DrillDownPageId = "DDSIA Object Selection";
+    LookupPageId = "Object Selection";
+    DrillDownPageId = "Object Selection";
 
     fields
     {

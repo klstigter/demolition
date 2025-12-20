@@ -3,7 +3,7 @@ page 50613 "Project Planning Activities"
     Caption = 'Project Planning';
     PageType = CardPart;
     RefreshOnActivate = true;
-    SourceTable = "DDSIA PLanning Cue";
+    SourceTable = "PLanning Cue";
     ShowFilter = false;
 
     layout
