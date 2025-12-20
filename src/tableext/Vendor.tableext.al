@@ -1,4 +1,4 @@
-tableextension 50601 DDSIAVendor extends Vendor
+tableextension 50601 "Vendor Ext" extends Vendor
 {
     fields
     {

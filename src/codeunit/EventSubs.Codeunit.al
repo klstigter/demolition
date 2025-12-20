@@ -1,4 +1,4 @@
-codeunit 50603 "DDSIAEventSubs"
+codeunit 50603 "EventSubs"
 {
     trigger OnRun()
     begin

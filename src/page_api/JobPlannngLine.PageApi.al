@@ -35,7 +35,7 @@ page 50605 "JobPlanningLine"
     var
         IntegrationSetup: record "Planning Integration Setup";
         Incoming: record "Incoming Check";
-        RestMgt: Codeunit "DDSIA Rest API Mgt.";
+        RestMgt: Codeunit "Rest API Mgt.";
 
         JsonObj: JsonObject;
         i: Integer;

@@ -1,9 +1,12 @@
 page 50615 "Job Planning Line (Project)"
 {
     AutoSplitKey = true;
+    DelayedInsert = true;
     Caption = 'Planning Lines (Project)';
     DataCaptionExpression = Rec.Caption();
     PageType = List;
+    CardPageId = "Job Planning Line Card";
+
     SourceTable = "Job Planning Line";
     SourceTableView = where("Job View Type" = const(Project));
 
@@ -859,6 +862,20 @@ page 50615 "Job Planning Line (Project)"
                 }
 
                 //<<Custom
+                action(OpenCard)
+                {
+                    ApplicationArea = Jobs;
+                    Caption = 'Open Project Planning Line Card';
+                    Image = Card;
+                    ToolTip = 'Open the project planning line card.';
+
+                    trigger OnAction()
+                    begin
+                        CurrPage.SaveRecord();
+                        Page.Run(Page::"Job Planning Line Card", Rec);
+                    end;
+                }
+
                 action(TodayFilter)
                 {
                     Caption = 'Today';
@@ -919,7 +936,7 @@ page 50615 "Job Planning Line (Project)"
 
                     trigger OnAction()
                     var
-                        RestMgt: Codeunit "DDSIA Rest API Mgt.";
+                        RestMgt: Codeunit "Rest API Mgt.";
                         Job: Record Job;
                     begin
                         if job.GET(rec."Job No.") then
@@ -1050,7 +1067,7 @@ page 50615 "Job Planning Line (Project)"
 
                     trigger OnAction()
                     var
-                        RestMgt: Codeunit "DDSIA Rest API Mgt.";
+                        RestMgt: Codeunit "Rest API Mgt.";
                     begin
                         RestMgt.DeleteIntegrationJobPlanningLine(Rec, true);
                     end;
@@ -1220,6 +1237,14 @@ page 50615 "Job Planning Line (Project)"
                 {
                 }
             }
+            group(Category_Category5)
+            {
+                Caption = 'Navigation', Comment = 'Navigate';
+
+                actionref(OpenCard_Promoted; OpenCard)
+                {
+                }
+            }
             group(Category_Report)
             {
                 Caption = 'Report', Comment = 'Generated from the PromotedActionCategories property index 2.';
@@ -1296,7 +1321,7 @@ page 50615 "Job Planning Line (Project)"
     trigger OnModifyRecord(): Boolean
     var
         IntegrationSetup: Record "Planning Integration Setup";
-        RestMgt: Codeunit "DDSIA Rest API Mgt.";
+        RestMgt: Codeunit "Rest API Mgt.";
         auto: Boolean;
     begin
         if Rec."System-Created Entry" then
@@ -1320,7 +1345,7 @@ page 50615 "Job Planning Line (Project)"
 
     trigger OnDeleteRecord(): Boolean
     var
-        RestMgt: Codeunit "DDSIA Rest API Mgt.";
+        RestMgt: Codeunit "Rest API Mgt.";
     begin
         RestMgt.DeleteIntegrationJobPlanningLine(Rec, false);
     end;
@@ -1356,7 +1381,7 @@ page 50615 "Job Planning Line (Project)"
     trigger OnInsertRecord(BelowxRec: Boolean): Boolean
     var
         IntegrationSetup: Record "Planning Integration Setup";
-        RestMgt: Codeunit "DDSIA Rest API Mgt.";
+        RestMgt: Codeunit "Rest API Mgt.";
         auto: Boolean;
     begin
         // Integration

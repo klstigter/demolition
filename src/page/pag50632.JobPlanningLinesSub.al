@@ -1,11 +1,11 @@
-page 50616 "Job Planning Line (Resource)"
+page 50632 "Job Planning Lines Sub"
 {
     AutoSplitKey = true;
-    Caption = 'Planning Lines (Resource)';
+    Caption = 'Project Planning Lines';
     DataCaptionExpression = Rec.Caption();
-    PageType = List;
+    PageType = ListPart;
     SourceTable = "Job Planning Line";
-    SourceTableView = where("Job View Type" = const(Resource));
+    CardPageId = "Job Planning Line Card";
 
     layout
     {
@@ -14,103 +14,11 @@ page 50616 "Job Planning Line (Resource)"
             repeater(Control1)
             {
                 ShowCaption = false;
-
-                //<<Custom
-                field(Isboor; Rec.IsBoor)
-                {
-                    ApplicationArea = All;
-                }
-                //>>
-                field("Job No."; Rec."Job No.")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the number of the related project.';
-                    //Visible = false; //Custom
-                }
-                field("Job Task No."; Rec."Job Task No.")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the number of the related project task.';
-                    Visible = JobTaskNoVisible;
-                }
-                field("Line Type"; Rec."Line Type")
-                {
-                    ApplicationArea = Jobs;
-                    ToolTip = 'Specifies the type of planning line.';
-                }
-                field("Usage Link"; Rec."Usage Link")
-                {
-                    ApplicationArea = Jobs;
-                    ToolTip = 'Specifies whether the Usage Link field applies to the project planning line. When this check box is selected, usage entries are linked to the project planning line. Selecting this check box creates a link to the project planning line from places where usage has been posted, such as the project journal or a purchase line. You can select this check box only if the line type of the project planning line is Budget or Both Budget and Billable.';
-                    Visible = false;
-
-                    trigger OnValidate()
-                    begin
-                        UsageLinkOnAfterValidate();
-                    end;
-                }
-                field("Planning Date"; Rec."Planning Date")
-                {
-                    ApplicationArea = Jobs;
-                    Editable = PlanningDateEditable;
-                    ToolTip = 'Specifies the date of the planning line. You can use the planning date for filtering the totals of the project, for example, if you want to see the scheduled usage for a specific month of the year.';
-
-                    trigger OnValidate()
-                    begin
-                        PlanningDateOnAfterValidate();
-                    end;
-                }
-                //<<Custom
-                field("Start Time"; Rec."Start Time")
-                {
-                    ApplicationArea = All;
-                }
-                field("End Planning Date"; Rec."End Planning Date")
-                {
-                    ApplicationArea = All;
-                }
-                field("End Time"; Rec."End Time")
-                {
-                    ApplicationArea = All;
-                }
-                //>>
-                field("Requested Delivery Date"; Rec."Requested Delivery Date")
-                {
-                    ApplicationArea = All;
-                }
-                field("Planned Delivery Date"; Rec."Planned Delivery Date")
-                {
-                    ApplicationArea = Jobs;
-                    ToolTip = 'Specifies the date that is planned to deliver the item connected to the project planning line. For a resource, the planned delivery date is the date that the resource performs services with respect to the project.';
-                }
-                field("Currency Date"; Rec."Currency Date")
-                {
-                    ApplicationArea = Jobs;
-                    Editable = CurrencyDateEditable;
-                    ToolTip = 'Specifies the date that will be used to find the exchange rate for the currency in the Currency Date field.';
-                    Visible = false;
-                }
-                //<<Custom
-                field("Vendor No."; Rec."Vendor No.")
-                {
-                    ApplicationArea = All;
-                }
-                field("Vendor Name"; Rec."Vendor Name")
-                {
-                    ApplicationArea = All;
-                }
-                //>>
-                field("Document No."; Rec."Document No.")
-                {
-                    ApplicationArea = Jobs;
-                    Editable = DocumentNoEditable;
-                    ToolTip = 'Specifies a document number for the planning line.';
-                }
                 field("Line No."; Rec."Line No.")
                 {
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the planning line''s entry number.';
-                    Visible = false;
+
                 }
                 field(Type; Rec.Type)
                 {
@@ -138,6 +46,14 @@ page 50616 "Job Planning Line (Resource)"
                             VariantCodeMandatory := Item.IsVariantMandatory(Rec.Type = Rec.Type::Item, Rec."No.");
                     end;
                 }
+                field("Vendor No."; Rec."Vendor No.")
+                {
+                    ApplicationArea = All;
+                }
+                field("Vendor Name"; Rec."Vendor Name")
+                {
+                    ApplicationArea = All;
+                }
                 field(Description; Rec.Description)
                 {
                     ApplicationArea = Jobs;
@@ -149,6 +65,115 @@ page 50616 "Job Planning Line (Resource)"
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies information in addition to the description.';
                     Visible = false;
+                }
+                field(Quantity; Rec.Quantity)
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the number of units of the resource, item, or general ledger account that should be specified on the planning line. If you later change the No., the quantity you have entered remains on the line.';
+
+                    trigger OnValidate()
+                    begin
+                        QuantityOnAfterValidate();
+                    end;
+                }
+                field("Work Type Code"; Rec."Work Type Code")
+                {
+                    ApplicationArea = Jobs;
+                    Editable = WorkTypeCodeEditable;
+                    ToolTip = 'Specifies which work type the resource applies to. Prices are updated based on this entry.';
+                    Visible = true;
+                }
+                field("Unit of Measure Code"; Rec."Unit of Measure Code")
+                {
+                    ApplicationArea = Jobs;
+                    Editable = UnitOfMeasureCodeEditable;
+                    ToolTip = 'Specifies how each unit of the item or resource is measured, such as in pieces or hours. By default, the value in the Base Unit of Measure field on the item or resource card is inserted.';
+                    Visible = true;
+
+                    trigger OnValidate()
+                    begin
+                        UnitofMeasureCodeOnAfterValidate();
+                    end;
+                }
+
+                field(Depth; Rec.Depth)
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Drill depth in cm';
+                }
+                field("Planning Date"; Rec."Planning Date")
+                {
+                    ApplicationArea = Jobs;
+                    Editable = PlanningDateEditable;
+                    ToolTip = 'Specifies the date of the planning line. You can use the planning date for filtering the totals of the project, for example, if you want to see the scheduled usage for a specific month of the year.';
+
+                    trigger OnValidate()
+                    begin
+                        PlanningDateOnAfterValidate();
+                    end;
+                }
+                field("End Planning Date"; Rec."End Planning Date")
+                {
+                    ApplicationArea = All;
+                }
+                field("Start Time"; Rec."Start Time")
+                {
+                    ApplicationArea = All;
+                }
+                field("End Time"; Rec."End Time")
+                {
+                    ApplicationArea = All;
+                }
+
+                field("Job No."; Rec."Job No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the number of the related project.';
+                    Visible = false;
+                }
+                field("Job Task No."; Rec."Job Task No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the number of the related project task.';
+                    //Visible = JobTaskNoVisible;
+                    Visible = false;
+
+                }
+                field("Line Type"; Rec."Line Type")
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the type of planning line.';
+                }
+                field("Usage Link"; Rec."Usage Link")
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies whether the Usage Link field applies to the project planning line. When this check box is selected, usage entries are linked to the project planning line. Selecting this check box creates a link to the project planning line from places where usage has been posted, such as the project journal or a purchase line. You can select this check box only if the line type of the project planning line is Budget or Both Budget and Billable.';
+                    Visible = false;
+
+                    trigger OnValidate()
+                    begin
+                        UsageLinkOnAfterValidate();
+                    end;
+                }
+
+                field("Planned Delivery Date"; Rec."Planned Delivery Date")
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the date that is planned to deliver the item connected to the project planning line. For a resource, the planned delivery date is the date that the resource performs services with respect to the project.';
+                }
+                field("Currency Date"; Rec."Currency Date")
+                {
+                    ApplicationArea = Jobs;
+                    Editable = CurrencyDateEditable;
+                    ToolTip = 'Specifies the date that will be used to find the exchange rate for the currency in the Currency Date field.';
+                    Visible = false;
+                }
+
+                field("Document No."; Rec."Document No.")
+                {
+                    ApplicationArea = Jobs;
+                    Editable = DocumentNoEditable;
+                    ToolTip = 'Specifies a document number for the planning line.';
                 }
                 field("Price Calculation Method"; Rec."Price Calculation Method")
                 {
@@ -215,25 +240,6 @@ page 50616 "Job Planning Line (Resource)"
                         BinCodeOnAfterValidate();
                     end;
                 }
-                field("Work Type Code"; Rec."Work Type Code")
-                {
-                    ApplicationArea = Jobs;
-                    Editable = WorkTypeCodeEditable;
-                    ToolTip = 'Specifies which work type the resource applies to. Prices are updated based on this entry.';
-                    Visible = false;
-                }
-                field("Unit of Measure Code"; Rec."Unit of Measure Code")
-                {
-                    ApplicationArea = Jobs;
-                    Editable = UnitOfMeasureCodeEditable;
-                    ToolTip = 'Specifies how each unit of the item or resource is measured, such as in pieces or hours. By default, the value in the Base Unit of Measure field on the item or resource card is inserted.';
-                    Visible = false;
-
-                    trigger OnValidate()
-                    begin
-                        UnitofMeasureCodeOnAfterValidate();
-                    end;
-                }
                 field(ReserveName; Rec.Reserve)
                 {
                     ApplicationArea = Reservation;
@@ -245,29 +251,13 @@ page 50616 "Job Planning Line (Resource)"
                         ReserveOnAfterValidate();
                     end;
                 }
-                field(Quantity; Rec.Quantity)
-                {
-                    ApplicationArea = Jobs;
-                    ToolTip = 'Specifies the number of units of the resource, item, or general ledger account that should be specified on the planning line. If you later change the No., the quantity you have entered remains on the line.';
 
-                    trigger OnValidate()
-                    begin
-                        QuantityOnAfterValidate();
-                    end;
-                }
-                //<<Custom
-                field(Depth; Rec.Depth)
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Drill depth in cm';
-                }
-                //>>
                 field("Qty. to Assemble"; Rec."Qty. to Assemble")
                 {
                     ApplicationArea = Assembly;
                     BlankZero = true;
                     ToolTip = 'Specifies how many units of the project planning line quantity that you want to supply by assembly.';
-                    Visible = true;
+                    Visible = false;
 
                     trigger OnDrillDown()
                     begin
@@ -568,198 +558,42 @@ page 50616 "Job Planning Line (Resource)"
                 }
             }
         }
-        area(factboxes)
-        {
-            systempart(Control1900383207; Links)
-            {
-                ApplicationArea = RecordLinks;
-                Visible = false;
-            }
-            systempart(Control1905767507; Notes)
-            {
-                ApplicationArea = Notes;
-                Visible = false;
-            }
-            //<<Custom
-            part("CustomerStatisticFactbox"; "Customer Statistics FactBox")
-            {
-                ApplicationArea = All;
-            }
-            part("VendorStatisticFactbox"; "Vendor Statistics FactBox")
-            {
-                ApplicationArea = All;
-            }
-            //>>
-        }
     }
 
     actions
     {
-        area(navigation)
-        {
-            group("Job Planning &Line")
-            {
-                Caption = 'Project Planning &Line';
-                Image = Line;
-                action("Linked Job Ledger E&ntries")
-                {
-                    ApplicationArea = Suite;
-                    Caption = 'Linked Project Ledger E&ntries';
-                    Image = JobLedger;
-                    ShortCutKey = 'Ctrl+F7';
-                    ToolTip = 'View project ledger entries related to the project planning line.';
-
-                    trigger OnAction()
-                    var
-                        JobLedgerEntry: Record "Job Ledger Entry";
-                        JobUsageLink: Record "Job Usage Link";
-                        JobLedgerEntries: Page "Job Ledger Entries";
-                    begin
-                        JobUsageLink.SetRange("Job No.", Rec."Job No.");
-                        JobUsageLink.SetRange("Job Task No.", Rec."Job Task No.");
-                        JobUsageLink.SetRange("Line No.", Rec."Line No.");
-                        if JobUsageLink.FindSet() then
-                            repeat
-                                JobLedgerEntry.Get(JobUsageLink."Entry No.");
-                                JobLedgerEntry.Mark := true;
-                            until JobUsageLink.Next() = 0;
-
-                        JobLedgerEntry.MarkedOnly(true);
-                        Clear(JobLedgerEntries);
-                        JobLedgerEntries.SetTableView(JobLedgerEntry);
-                        JobLedgerEntries.Run();
-                    end;
-                }
-                action("&Reservation Entries")
-                {
-                    AccessByPermission = TableData Item = R;
-                    ApplicationArea = Reservation;
-                    Caption = '&Reservation Entries';
-                    Image = ReservationLedger;
-                    ToolTip = 'View all reservations that are made for the item, either manually or automatically.';
-
-                    trigger OnAction()
-                    begin
-                        Rec.ShowReservationEntries(true);
-                    end;
-                }
-                separator(Action133)
-                {
-                }
-                action(OrderPromising)
-                {
-                    ApplicationArea = OrderPromising;
-                    Caption = 'Order &Promising';
-                    Image = OrderPromising;
-                    ToolTip = 'Calculate the shipment and delivery dates based on the item''s known and expected availability dates, and then promise the dates to the customer.';
-
-                    trigger OnAction()
-                    begin
-                        Rec.ShowOrderPromisingLine();
-                    end;
-                }
-                action(SendToCalendar)
-                {
-                    AccessByPermission = TableData "Job Planning Line - Calendar" = RIM;
-                    ApplicationArea = Jobs;
-                    Caption = 'Send to Calendar';
-                    Image = CalendarChanged;
-                    RunObject = Codeunit "Job Planning Line - Calendar";
-                    RunPageOnRec = true;
-                    ToolTip = 'Create a calendar appointment for the resource on each project planning line.';
-                    Visible = CanSendToCalendar;
-                }
-                action("Put-away/Pick Lines/Movement Lines")
-                {
-                    ApplicationArea = Warehouse;
-                    Caption = 'Put-away/Pick Lines/Movement Lines';
-                    Image = PutawayLines;
-                    RunObject = Page "Warehouse Activity Lines";
-                    RunPageLink = "Source Type" = filter(167),
-                                  "Source Subtype" = const("0"),
-                                  "Source No." = field("Job No."),
-                                  "Source Line No." = field("Job Contract Entry No.");
-                    ToolTip = 'View the list of ongoing inventory put-aways, picks, or movements for the project.';
-                }
-                group("Assemble to Order")
-                {
-                    Caption = 'Assemble to Order';
-                    Image = AssemblyBOM;
-                    action(AssembleToOrderLines)
-                    {
-                        AccessByPermission = TableData "BOM Component" = R;
-                        ApplicationArea = Assembly;
-                        Image = AssemblyBOM;
-                        Caption = 'Assemble-to-Order Lines';
-                        ToolTip = 'View any linked assembly order lines if the documents represents an assemble-to-order project.';
-
-                        trigger OnAction()
-                        begin
-                            Rec.ShowAsmToJobPlanningLines();
-                        end;
-                    }
-                }
-                action(PurchaseLines)
-                {
-                    ApplicationArea = Basic, Suite;
-                    Caption = 'Purchase Lines';
-                    Image = LinesFromJob;
-                    ToolTip = 'View purchase lines for products that are related to this project planning line.';
-
-                    trigger OnAction()
-                    var
-                        PurchaseLine: Record "Purchase Line";
-                    begin
-                        Rec.SetPurchLineFilters(PurchaseLine);
-                        PurchaseLine.SetFilter(Quantity, '<> 0');
-                        Page.RunModal(Page::"Purchase Lines", PurchaseLine);
-                    end;
-                }
-            }
-        }
         area(processing)
         {
+            group(Navigation)
+            {
+                Caption = 'Navigation';
+                Image = Navigate;
+                action(JobPlanningLineCard)
+                {
+                    ApplicationArea = Jobs;
+                    Caption = 'Project Planning Line Card';
+                    Image = Job;
+                    RunObject = Page "Job Planning Line Card";
+                    RunPageLink = "Job No." = field("Job No.")
+                                  , "Job Task No." = field("Job Task No."),
+                                    "Line No." = field("Line No.");
+                    RunPageOnRec = true;
+                    ToolTip = 'View details of the related project planning line.';
+                }
+            }
+
+
             group("F&unctions")
             {
                 Caption = 'F&unctions';
                 Image = "Action";
-                action(CreateJobJournalLines)
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Create Project &Journal Lines';
-                    Image = PostOrder;
-                    ToolTip = 'Use a batch job to help you create sales journal lines for the involved project planning lines.';
-
-                    trigger OnAction()
-                    var
-                        JobPlanningLine: Record "Job Planning Line";
-                        JobJnlLine: Record "Job Journal Line";
-                        JobTransferLine: Codeunit "Job Transfer Line";
-                        JobTransferJobPlanningLine: Page "Job Transfer Job Planning Line";
-                    begin
-                        if JobTransferJobPlanningLine.RunModal() = ACTION::OK then begin
-                            JobPlanningLine.Copy(Rec);
-                            CurrPage.SetSelectionFilter(JobPlanningLine);
-
-                            JobPlanningLine.SetFilter(Type, '<>%1', JobPlanningLine.Type::Text);
-                            if JobPlanningLine.FindSet() then
-                                repeat
-                                    JobTransferLine.FromPlanningLineToJnlLine(
-                                      JobPlanningLine, JobTransferJobPlanningLine.GetPostingDate(), JobTransferJobPlanningLine.GetJobJournalTemplateName(),
-                                      JobTransferJobPlanningLine.GetJobJournalBatchName(), JobJnlLine);
-                                until JobPlanningLine.Next() = 0;
-
-                            CurrPage.Update(false);
-                            Message(Text002, JobPlanningLine.TableCaption(), JobJnlLine.TableCaption());
-                        end;
-                    end;
-                }
+                Visible = false;
                 action("&Open Job Journal")
                 {
                     ApplicationArea = Jobs;
                     Caption = '&Open Project Journal';
                     Image = Journals;
-                    RunObject = Page "Job Journal";
+                    RunObject = Page "Job planning line card";
                     RunPageLink = "Job No." = field("Job No."),
                                   "Job Task No." = field("Job Task No.");
                     ToolTip = 'Open the project journal, for example, to post usage for a project.';
@@ -768,6 +602,8 @@ page 50616 "Job Planning Line (Resource)"
                 {
                     Caption = 'Item Availability by';
                     Image = ItemAvailability;
+                    Visible = false;
+
                     action("Event")
                     {
                         ApplicationArea = Basic, Suite;
@@ -785,6 +621,8 @@ page 50616 "Job Planning Line (Resource)"
                         ApplicationArea = Basic, Suite;
                         Caption = 'Period';
                         Image = Period;
+                        Visible = false;
+
                         ToolTip = 'Show the projected quantity of the item over time according to time periods, such as day, week, or month.';
 
                         trigger OnAction()
@@ -797,6 +635,8 @@ page 50616 "Job Planning Line (Resource)"
                         ApplicationArea = Planning;
                         Caption = 'Variant';
                         Image = ItemVariant;
+                        Visible = false;
+
                         ToolTip = 'View or edit the item''s variants. Instead of setting up each color of an item as a separate item, you can set up the various colors as variants of the item.';
 
                         trigger OnAction()
@@ -810,6 +650,8 @@ page 50616 "Job Planning Line (Resource)"
                         Caption = 'Unit of Measure';
                         Image = UnitOfMeasure;
                         ToolTip = 'View the item''s availability by a unit of measure.';
+                        Visible = false;
+
 
                         trigger OnAction()
                         begin
@@ -823,6 +665,8 @@ page 50616 "Job Planning Line (Resource)"
                         Caption = 'Location';
                         Image = Warehouse;
                         ToolTip = 'View the actual and projected quantity of the item per location.';
+                        Visible = false;
+
 
                         trigger OnAction()
                         begin
@@ -834,6 +678,8 @@ page 50616 "Job Planning Line (Resource)"
                         ApplicationArea = ItemTracking;
                         Caption = 'Lot';
                         Image = LotInfo;
+                        Visible = false;
+
                         RunObject = Page "Item Availability by Lot No.";
                         RunPageLink = "No." = field("No."),
                             "Location Filter" = field("Location Code"),
@@ -846,6 +692,8 @@ page 50616 "Job Planning Line (Resource)"
                         ApplicationArea = Assembly;
                         Caption = 'BOM Level';
                         Image = BOMLevel;
+                        Visible = false;
+
                         ToolTip = 'View availability figures for items on bills of materials that show how many units of a parent item you can make based on the availability of child items.';
 
                         trigger OnAction()
@@ -856,119 +704,6 @@ page 50616 "Job Planning Line (Resource)"
                 }
                 separator(Action16)
                 {
-                }
-
-                //<<Custom
-                action(TodayFilter)
-                {
-                    Caption = 'Today';
-                    ApplicationArea = All;
-                    Image = Workdays;
-
-                    trigger OnAction()
-                    begin
-                        Rec.SetRange("Planning Date", Today);
-                        CurrFilterDate := Today;
-                        CurrPage.Update();
-                    end;
-                }
-                action(PrevTodayFilter)
-                {
-                    Caption = 'Previous Day';
-                    ApplicationArea = All;
-                    Image = PreviousSet;
-
-                    trigger OnAction()
-                    begin
-                        CurrFilterDate := CalcDate('<-1D>', CurrFilterDate);
-                        Rec.SetRange("Planning Date", CurrFilterDate);
-                        CurrPage.Update();
-                    end;
-                }
-                action(NextTodayFilter)
-                {
-                    Caption = 'Next Day';
-                    ApplicationArea = All;
-                    Image = NextSet;
-
-                    trigger OnAction()
-                    begin
-                        CurrFilterDate := CalcDate('<1D>', CurrFilterDate);
-                        Rec.SetRange("Planning Date", CurrFilterDate);
-                        CurrPage.Update();
-                    end;
-                }
-                action("VisualPlanning")
-                {
-                    ApplicationArea = All;
-                    Caption = 'Visual Planning Job';
-                    RunObject = codeunit "Job Planning Line Handler";
-                }
-                action("VisualPlanningRes")
-                {
-                    ApplicationArea = All;
-                    Caption = 'Visual Planning Resource';
-                    RunObject = codeunit "Resource DayPilot Handler";
-                }
-                action("PushToPlanningIntegration")
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Push data';
-                    Image = LinkWeb;
-                    ToolTip = 'Submit project, Tasks, and Planning Lines into Planning Integration system.';
-
-                    trigger OnAction()
-                    var
-                        RestMgt: Codeunit "Rest API Mgt.";
-                        Job: Record Job;
-                    begin
-                        if job.GET(rec."Job No.") then
-                            RestMgt.PushProjectToPlanningIntegration(job, false);
-                    end;
-                }
-                action("Refresh")
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Refresh';
-                    Image = LinkWeb;
-                    ToolTip = 'Refresh';
-
-                    trigger OnAction()
-                    var
-                    begin
-                        CurrPage.Update();
-                    end;
-                }
-                //>>
-                action("Create &Sales Invoice")
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Create &Sales Invoice';
-                    Ellipsis = true;
-                    Image = JobSalesInvoice;
-                    ToolTip = 'Use a batch job to help you create sales invoices for the involved project tasks.';
-
-                    trigger OnAction()
-                    var
-                        IsHandled: Boolean;
-                    begin
-                        CreateSalesInvoice(false);
-                    end;
-                }
-                action("Create Sales &Credit Memo")
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Create Sales &Credit Memo';
-                    Ellipsis = true;
-                    Image = CreditMemo;
-                    ToolTip = 'Create a sales credit memo for the selected project planning line.';
-
-                    trigger OnAction()
-                    var
-                        IsHandled: Boolean;
-                    begin
-                        CreateSalesInvoice(true);
-                    end;
                 }
                 action("Sales &Invoices/Credit Memos")
                 {
@@ -992,6 +727,8 @@ page 50616 "Job Planning Line (Resource)"
                     Caption = '&Reserve';
                     Ellipsis = true;
                     Image = Reserve;
+                    Visible = false;
+
                     ToolTip = 'Reserve one or more units of the item on the project planning line, either from inventory or from incoming supply.';
 
                     trigger OnAction()
@@ -1004,31 +741,13 @@ page 50616 "Job Planning Line (Resource)"
                     ApplicationArea = ItemTracking;
                     Caption = 'Order &Tracking';
                     Image = OrderTracking;
+                    Visible = false;
+
                     ToolTip = 'Tracks the connection of a supply to its corresponding demand. This can help you find the original demand that created a specific production order or purchase order.';
 
                     trigger OnAction()
                     begin
                         Rec.ShowTracking();
-                    end;
-                }
-                separator(Action130)
-                {
-                }
-                action(DemandOverview)
-                {
-                    ApplicationArea = Planning;
-                    Caption = '&Demand Overview';
-                    Image = Forecast;
-                    ToolTip = 'Get an overview of demand planning related to projects, such as the availability of spare parts or other items that you may use in a project. For example, you can determine whether the item you need is in stock, and if it is not, you can determine when the item will be in stock.';
-
-                    trigger OnAction()
-                    var
-                        DemandOverview: Page "Demand Overview";
-                    begin
-                        DemandOverview.SetCalculationParameter(true);
-
-                        DemandOverview.SetParameters(0D, "Demand Order Source Type"::"Job Demand", Rec."Job No.", '', '');
-                        DemandOverview.RunModal();
                     end;
                 }
                 action("Insert Ext. Texts")
@@ -1037,22 +756,12 @@ page 50616 "Job Planning Line (Resource)"
                     ApplicationArea = Basic, Suite;
                     Caption = 'Insert &Ext. Texts';
                     Image = Text;
+                    Visible = false;
+
                     ToolTip = 'Insert the extended item description that is set up for the item that is being processed on the line.';
                     trigger OnAction()
                     begin
                         this.InsertExtendedText(true);
-                    end;
-                }
-                action(DownloadDeleteJSon) //Custom
-                {
-                    Caption = 'Download DeleteJSon';
-                    ApplicationArea = All;
-
-                    trigger OnAction()
-                    var
-                        RestMgt: Codeunit "Rest API Mgt.";
-                    begin
-                        RestMgt.DeleteIntegrationJobPlanningLine(Rec, true);
                     end;
                 }
                 action(ExplodeBOM_Functions)
@@ -1061,6 +770,8 @@ page 50616 "Job Planning Line (Resource)"
                     ApplicationArea = Suite;
                     Caption = 'E&xplode BOM';
                     Image = ExplodeBOM;
+                    Visible = false;
+
                     ToolTip = 'Add a line for each component on the bill of materials for the selected item. For example, this is useful for selling the parent item as a kit. CAUTION: The line for the parent item will be deleted and only its description will display. To undo this action, delete the component lines and add a line for the parent item again.';
 
                     trigger OnAction()
@@ -1075,7 +786,8 @@ page 50616 "Job Planning Line (Resource)"
                     Caption = 'Select items';
                     Image = NewItem;
                     Ellipsis = true;
-                    Visible = SelectMultipleItemsVisible;
+                    Visible = false;
+
                     ToolTip = 'Add two or more items from the full list of available items.';
 
                     trigger OnAction()
@@ -1083,11 +795,33 @@ page 50616 "Job Planning Line (Resource)"
                         Rec.SelectMultipleItems();
                     end;
                 }
+                group("Assemble to Order")
+                {
+                    Caption = 'Assemble to Order';
+                    Image = AssemblyBOM;
+                    Visible = false;
+
+                    action(AssembleToOrderLines)
+                    {
+                        AccessByPermission = TableData "BOM Component" = R;
+                        ApplicationArea = Assembly;
+                        Image = AssemblyBOM;
+                        Caption = 'Assemble-to-Order Lines';
+                        ToolTip = 'View any linked assembly order lines if the documents represents an assemble-to-order project.';
+
+                        trigger OnAction()
+                        begin
+                            Rec.ShowAsmToJobPlanningLines();
+                        end;
+                    }
+                }
                 action(CreatePurchaseOrder)
                 {
                     ApplicationArea = Suite;
                     Caption = 'Create Purchase Order';
                     Image = Document;
+                    Visible = false;
+
                     ToolTip = 'Create new purchase order to buy the items that are required by planning lines in this project task, deducting any quantity that is already available.';
 
                     trigger OnAction()
@@ -1102,139 +836,19 @@ page 50616 "Job Planning Line (Resource)"
                         PurchaseDocFromJob.CreatePurchaseOrder(Job);
                     end;
                 }
-            }
-        }
-        area(reporting)
-        {
-            action("Job Actual to Budget")
-            {
-                ApplicationArea = Jobs;
-                Caption = 'Project Actual to Budget';
-                Image = "Report";
-                RunObject = Report "Job Actual To Budget";
-                ToolTip = 'Compare scheduled and usage amounts for selected projects. All lines of the selected project show quantity, total cost, and line amount.';
-            }
-            action("Job Analysis")
-            {
-                ApplicationArea = Jobs;
-                Caption = 'Project Analysis';
-                Image = "Report";
-                RunObject = Report "Job Analysis";
-                ToolTip = 'Analyze the project, such as the scheduled prices, usage prices, and contract prices, and then compares the three sets of prices.';
-            }
-            action("Job - Planning Lines")
-            {
-                ApplicationArea = Jobs;
-                Caption = 'Project - Planning Lines';
-                Image = "Report";
-                RunObject = Report "Job - Planning Lines";
-                ToolTip = 'View all planning lines for the project. You use this window to plan what items, resources, and general ledger expenses that you expect to use on a project (Budget) or you can specify what you actually agreed with your customer that he should pay for the project (Billable).';
-            }
-            action("Job - Suggested Billing")
-            {
-                ApplicationArea = Jobs;
-                Caption = 'Project - Suggested Billing';
-                Image = "Report";
-                RunObject = Report "Job Suggested Billing";
-                ToolTip = 'View a list of all projects, grouped by customer, how much the customer has already been invoiced, and how much remains to be invoiced, that is, the suggested billing.';
-            }
-            action("Jobs - Transaction Detail")
-            {
-                ApplicationArea = Jobs;
-                Caption = 'Projects - Transaction Detail';
-                Image = "Report";
-                //The property 'PromotedCategory' can only be set if the property 'Promoted' is set to 'true'
-                //PromotedCategory = "Report";
-                RunObject = Report "Job - Transaction Detail";
-                ToolTip = 'View all postings with entries for a selected project for a selected period, which have been charged to a certain project. At the end of each project list, the amounts are totaled separately for the Sales and Usage entry types.';
-            }
-        }
-        area(Promoted)
-        {
-            group("Date_Filter") //Custom
-            {
-                Caption = 'Date Filter', Comment = 'Record list will filtered based on date';
+                action("DownloadJsonRequest")
+                {
+                    ApplicationArea = Jobs;
+                    Caption = 'Download JSon Request text';
+                    Image = LinkWeb;
+                    ToolTip = 'Download JSon Request text for Planning Integration system.';
 
-                actionref("Today_filter"; "TodayFilter") { }
-                actionref("Prev_filter"; "PrevTodayFilter") { }
-                actionref("Nex_filter"; "NextTodayFilter") { }
-                actionref("VisualPlanningJobRef"; "VisualPlanning") { }
-                actionref("VisualPlanningResRef"; "VisualPlanningRes") { }
-                actionref("PushToPlanningIntegrationRef"; "PushToPlanningIntegration") { }
-                actionref("RefreshRef"; "Refresh") { }
-            }
-            group(Category_Process)
-            {
-                Caption = 'Process', Comment = 'Generated from the PromotedActionCategories property index 1.';
-
-                actionref("Create &Sales Invoice_Promoted"; "Create &Sales Invoice")
-                {
-                }
-                actionref(CreateJobJournalLines_Promoted; CreateJobJournalLines)
-                {
-                }
-                actionref("Sales &Invoices/Credit Memos_Promoted"; "Sales &Invoices/Credit Memos")
-                {
-                }
-                actionref("Create Sales &Credit Memo_Promoted"; "Create Sales &Credit Memo")
-                {
-                }
-                actionref(Reserve_Promoted; Reserve)
-                {
-                }
-                actionref("&Open Job Journal_Promoted"; "&Open Job Journal")
-                {
-                }
-                group("Category_Item Availability by")
-                {
-                    Caption = 'Item Availability by';
-
-                    actionref(Event_Promoted; "Event")
-                    {
-                    }
-                    actionref(Period_Promoted; Period)
-                    {
-                    }
-                    actionref(Variant_Promoted; Variant)
-                    {
-                    }
-                    actionref(UnitOfMeasure_Promoted; UnitOfMeasure)
-                    {
-                    }
-                    actionref(Location_Promoted; Location)
-                    {
-                    }
-                    actionref(Lot_Promoted; Lot)
-                    {
-                    }
-                    actionref("BOM Level_Promoted"; "BOM Level")
-                    {
-                    }
-                }
-            }
-            group(Category_Category4)
-            {
-                Caption = 'Outlook', Comment = 'Generated from the PromotedActionCategories property index 3.';
-
-                actionref(SendToCalendar_Promoted; SendToCalendar)
-                {
-                }
-            }
-            group(Category_Report)
-            {
-                Caption = 'Report', Comment = 'Generated from the PromotedActionCategories property index 2.';
-
-                actionref("Job Actual to Budget_Promoted"; "Job Actual to Budget")
-                {
-                }
-                actionref("Job Analysis_Promoted"; "Job Analysis")
-                {
-                }
-                actionref("Job - Planning Lines_Promoted"; "Job - Planning Lines")
-                {
-                }
-                actionref("Job - Suggested Billing_Promoted"; "Job - Suggested Billing")
-                {
+                    trigger OnAction()
+                    var
+                        RestMgt: Codeunit "Rest API Mgt.";
+                    begin
+                        RestMgt.PushJobPlanningLineToIntegration(Rec, true);
+                    end;
                 }
             }
         }
@@ -1243,26 +857,11 @@ page 50616 "Job Planning Line (Resource)"
     trigger OnAfterGetCurrRecord()
     var
         Item: Record Item;
-        Vendor: record Vendor;
-        Cust: record Customer;
-        Task: record "Job Task";
     begin
         SetEditable(IsTypeFieldEditable());
 
         if Rec."Variant Code" = '' then
             VariantCodeMandatory := Item.IsVariantMandatory(Rec.Type = Rec.Type::Item, Rec."No.");
-
-        //<<Custom
-        Vendor.SetRange("No.", Rec."Vendor No.");
-        CurrPage.VendorStatisticFactbox.Page.SetTableView(Vendor);
-        CurrPage.VendorStatisticFactbox.Page.Update();
-
-        if not Task.Get(Rec."Job No.", Rec."Job Task No.") then
-            Clear(Task);
-        Cust.SetRange("No.", Task."Sell-to Customer No.");
-        CurrPage.CustomerStatisticFactbox.Page.SetTableView(Cust);
-        CurrPage.CustomerStatisticFactbox.Page.Update();
-        //>>
     end;
 
     trigger OnInit()
@@ -1293,65 +892,7 @@ page 50616 "Job Planning Line (Resource)"
         ExtendedPriceEnabled := PriceCalculationMgt.IsExtendedPriceCalculationEnabled();
     end;
 
-    trigger OnModifyRecord(): Boolean
-    var
-        IntegrationSetup: Record "Planning Integration Setup";
-        RestMgt: Codeunit "Rest API Mgt.";
-        auto: Boolean;
-    begin
-        if Rec."System-Created Entry" then
-            if Confirm(Text001, false) then
-                Rec."System-Created Entry" := false
-            else
-                Error('');
-        //<<Custom
-        // Integration
-        auto := IntegrationSetup.Get();
-        if auto then
-            auto := IntegrationSetup."Auto Sync. Integration";
-        if auto then
-            auto := (Rec."Vendor No." <> xRec."Vendor No.")
-                    or (Rec."No." <> xRec."No.");
-        if not auto then
-            exit;
-        RestMgt.PushJobPlanningLineToIntegration(Rec, false);
-        //>>
-    end;
 
-    trigger OnDeleteRecord(): Boolean
-    var
-        RestMgt: Codeunit "Rest API Mgt.";
-    begin
-        RestMgt.DeleteIntegrationJobPlanningLine(Rec, false);
-    end;
-
-    trigger OnNewRecord(BelowxRec: Boolean)
-    begin
-        Rec.SetUpNewLine(xRec);
-        //<<Custom
-        if CurrFilterDate <> 0D then begin
-            Rec."Planning Date" := CurrFilterDate;
-            Rec.SetRange("Planning Date", CurrFilterDate);
-        end;
-        //>>
-    end;
-
-    trigger OnOpenPage()
-    var
-        Job: Record Job;
-    begin
-        Rec.FilterGroup := 2;
-        if Rec.GetFilter("Job No.") <> '' then
-            if Job.Get(Rec.GetRangeMin("Job No.")) then
-                CurrPage.Editable(not (Job.Blocked = Job.Blocked::All));
-
-        SelectMultipleItemsVisible := Rec.GetFilter("Job Task No.") <> '';
-        Rec.FilterGroup := 0;
-        //<<Custom
-        Rec.SetRange("Planning Date", Today);
-        CurrFilterDate := Today;
-        //>>
-    end;
 
     trigger OnInsertRecord(BelowxRec: Boolean): Boolean
     var
@@ -1373,18 +914,64 @@ page 50616 "Job Planning Line (Resource)"
         end;
     end;
 
+    trigger OnDeleteRecord(): Boolean
+    var
+        RestMgt: Codeunit "Rest API Mgt.";
+    begin
+        RestMgt.DeleteIntegrationJobPlanningLine(Rec, false);
+    end;
+
+
+    trigger OnModifyRecord(): Boolean
+    var
+        Res: Record Resource;
+        Ven: Record Vendor;
+        IntegrationSetup: Record "Planning Integration Setup";
+        RestMgt: Codeunit "Rest API Mgt.";
+        auto: Boolean;
+    begin
+        if Rec."System-Created Entry" then
+            if Confirm(Text001, false) then
+                Rec."System-Created Entry" := false
+            else
+                Error('');
+
+        // Integration
+        auto := IntegrationSetup.Get();
+        if auto then
+            auto := IntegrationSetup."Auto Sync. Integration";
+        if auto then
+            auto := (Rec."Vendor No." <> xRec."Vendor No.")
+                    or (Rec."No." <> xRec."No.");
+        if not auto then
+            exit;
+        RestMgt.PushJobPlanningLineToIntegration(Rec, false);
+    end;
+
+    trigger OnNewRecord(BelowxRec: Boolean)
+    begin
+        Rec.SetUpNewLine(xRec);
+    end;
+
+    trigger OnOpenPage()
+    var
+        Job: Record Job;
+    begin
+        Rec.FilterGroup := 2;
+        if Rec.GetFilter("Job No.") <> '' then
+            if Job.Get(Rec.GetRangeMin("Job No.")) then
+                CurrPage.Editable(not (Job.Blocked = Job.Blocked::All));
+        Rec.FilterGroup := 0;
+    end;
+
     var
         JobCreateInvoice: Codeunit "Job Create-Invoice";
         JobPlanningAvailabilityMgt: Codeunit "Job Planning Availability Mgt.";
 #pragma warning disable AA0074
         Text001: Label 'This project planning line was automatically generated. Do you want to continue?';
-#pragma warning disable AA0470
-        Text002: Label 'The %1 was successfully transferred to a %2.';
-#pragma warning restore AA0470
 #pragma warning restore AA0074
         ExtendedPriceEnabled: Boolean;
         VariantCodeMandatory: Boolean;
-        SelectMultipleItemsVisible: Boolean;
 
     protected var
         JobTaskNoVisible: Boolean;
@@ -1405,18 +992,6 @@ page 50616 "Job Planning Line (Resource)"
         LineAmountEditable: Boolean;
         UnitCostEditable: Boolean;
         CanSendToCalendar: Boolean;
-        CurrFilterDate: Date;
-
-    local procedure CreateSalesInvoice(CrMemo: Boolean)
-    var
-        JobPlanningLine: Record "Job Planning Line";
-        JobCreateInvoice: Codeunit "Job Create-Invoice";
-    begin
-        Rec.TestField("Line No.");
-        JobPlanningLine.Copy(Rec);
-        CurrPage.SetSelectionFilter(JobPlanningLine);
-        JobCreateInvoice.CreateSalesInvoice(JobPlanningLine, CrMemo)
-    end;
 
     protected procedure SetEditable(Edit: Boolean)
     begin
@@ -1436,6 +1011,8 @@ page 50616 "Job Planning Line (Resource)"
         LineDiscountPctEditable := Edit;
         LineAmountEditable := Edit;
         UnitCostEditable := Edit;
+
+        OnAfterSetEditable(Edit, Rec);
     end;
 
     procedure SetJobTaskNoVisible(NewJobTaskNoVisible: Boolean)
@@ -1471,6 +1048,8 @@ page 50616 "Job Planning Line (Resource)"
             PerformAutoReserve();
 
         this.InsertExtendedText(false);
+
+        OnAfterNoOnAfterValidate(Rec);
     end;
 
     protected procedure VariantCodeOnAfterValidate()
@@ -1513,27 +1092,6 @@ page 50616 "Job Planning Line (Resource)"
             CurrPage.Update(true);
     end;
 
-    local procedure IsTypeFieldEditable(): Boolean
-    var
-        JobPlanningLineInvoice: Record "Job Planning Line Invoice";
-        IsHandled, TypeFieldEditable : Boolean;
-    begin
-        TypeFieldEditable := false;
-        IsHandled := false;
-        if Rec.Type = Rec.Type::Text then begin
-            JobPlanningLineInvoice.SetRange("Job No.", Rec."Job No.");
-            JobPlanningLineInvoice.SetRange("Job Task No.", Rec."Job Task No.");
-            JobPlanningLineInvoice.SetRange("Job Planning Line No.", Rec."Line No.");
-            exit(JobPlanningLineInvoice.IsEmpty());
-        end;
-        exit(Rec."Qty. Transferred to Invoice" = 0);
-    end;
-
-    procedure ExplodeBOM()
-    begin
-        Codeunit.Run(Codeunit::"Job-Explode BOM", Rec);
-    end;
-
     protected procedure InsertExtendedText(Unconditionally: Boolean)
     var
         TransferExtendedText: Codeunit "Transfer Extended Text";
@@ -1547,4 +1105,57 @@ page 50616 "Job Planning Line (Resource)"
         if TransferExtendedText.MakeUpdate() then
             CurrPage.Update(true);
     end;
+
+    local procedure IsTypeFieldEditable(): Boolean
+    var
+        JobPlanningLineInvoice: Record "Job Planning Line Invoice";
+        IsHandled, TypeFieldEditable : Boolean;
+    begin
+        TypeFieldEditable := false;
+        IsHandled := false;
+        if Rec.Type = Rec.Type::Text then begin
+            JobPlanningLineInvoice.SetRange("Job No.", Rec."Job No.");
+            JobPlanningLineInvoice.SetRange("Job Task No.", Rec."Job Task No.");
+            JobPlanningLineInvoice.SetRange("Job Planning Line No.", Rec."Line No.");
+            OnIsTypeFieldEditableOnAfterFilterJobPlanningLineInvoice(JobPlanningLineInvoice, Rec, TypeFieldEditable, IsHandled);
+            if IsHandled then
+                exit(TypeFieldEditable);
+            exit(JobPlanningLineInvoice.IsEmpty());
+        end;
+
+        OnAfterIsTypeFieldEditable(Rec, TypeFieldEditable, IsHandled);
+        if IsHandled then
+            exit(TypeFieldEditable);
+
+        exit(Rec."Qty. Transferred to Invoice" = 0);
+    end;
+
+    local procedure ExplodeBOM()
+    begin
+        Codeunit.Run(Codeunit::"Job-Explode BOM", Rec);
+    end;
+
+    [IntegrationEvent(true, false)]
+    local procedure OnAfterNoOnAfterValidate(var JobPlanningLine: Record "Job Planning Line")
+    begin
+    end;
+
+    [IntegrationEvent(true, false)]
+    local procedure OnIsTypeFieldEditableOnAfterFilterJobPlanningLineInvoice(var JobPlanningLineInvoice: Record "Job Planning Line Invoice"; JobPlanningLine: Record "Job Planning Line"; var TypeFieldEditable: Boolean; var IsHandled: Boolean)
+    begin
+    end;
+
+    [IntegrationEvent(true, false)]
+    local procedure OnAfterIsTypeFieldEditable(var JobPlanningLine: Record "Job Planning Line"; var TypeFieldEditable: Boolean; var IsHandled: Boolean)
+    begin
+    end;
+
+    [IntegrationEvent(true, false)]
+    local procedure OnAfterSetEditable(Edit: Boolean; var JobPlanningLine: Record "Job Planning Line");
+    begin
+    end;
+
 }
+
+
+

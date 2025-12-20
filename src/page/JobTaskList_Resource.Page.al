@@ -90,6 +90,16 @@ page 50607 "Job Task List - Resource"
     {
         area(navigation)
         {
+
+            action(JobCard)
+            {
+                ApplicationArea = Jobs;
+                Caption = 'Project Card';
+                Image = Job;
+                RunObject = Page "Job Card";
+                RunPageLink = "No." = field("Job No.");
+                ToolTip = 'View details of the related project.';
+            }
             group("&Job Task")
             {
                 Caption = '&Project Task';
@@ -360,6 +370,9 @@ page 50607 "Job Task List - Resource"
             {
                 Caption = 'Process';
 
+                actionref("JobCard_Promoted"; jobcard)
+                {
+                }
                 actionref("Copy Job Task From_Promoted"; "Copy Job Task From")
                 {
                 }

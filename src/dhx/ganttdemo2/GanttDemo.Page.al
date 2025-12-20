@@ -4,6 +4,9 @@ page 50620 "Gantt Demo DHX 2"
     ApplicationArea = All;
     UsageCategory = Administration;
     Caption = 'Gantt Demo';
+    InsertAllowed = false;
+    ModifyAllowed = false;
+    DeleteAllowed = false;
 
     layout
     {

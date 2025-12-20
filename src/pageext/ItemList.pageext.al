@@ -1,4 +1,4 @@
-pageextension 50611 "DDSIAItemList" extends "Item List"
+pageextension 50611 "ItemList Opti" extends "Item List"
 {
     layout
     {

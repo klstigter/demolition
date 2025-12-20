@@ -1,4 +1,4 @@
-pageextension 50604 "DDSIAVendorCard" extends "Vendor Card"
+pageextension 50604 "VendorCard Opti" extends "Vendor Card"
 {
     layout
     {
@@ -16,7 +16,7 @@ pageextension 50604 "DDSIAVendorCard" extends "Vendor Card"
 
                     trigger OnAssistEdit()
                     var
-                        RestMgt: Codeunit "DDSIA Rest API Mgt.";
+                        RestMgt: Codeunit "Rest API Mgt.";
                         VendorId: Integer;
                         VendorName: Text;
                     begin
@@ -62,7 +62,7 @@ pageextension 50604 "DDSIAVendorCard" extends "Vendor Card"
 
     local procedure hellotest()
     var
-        RestMgt: Codeunit "DDSIA Rest API Mgt.";
+        RestMgt: Codeunit "Rest API Mgt.";
     begin
         RestMgt.hello_test();
     end;
@@ -70,7 +70,7 @@ pageextension 50604 "DDSIAVendorCard" extends "Vendor Card"
     local procedure RefreshResource()
     var
         TempVndorId: record Integer temporary;
-        ResAPI: codeunit "DDSIA Rest API Mgt.";
+        ResAPI: codeunit "Rest API Mgt.";
         ConfirmLbl: label 'Integration Resources will be refresh, continue?';
     begin
         if not Confirm(ConfirmLbl) then

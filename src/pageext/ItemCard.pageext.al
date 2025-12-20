@@ -1,4 +1,4 @@
-pageextension 50612 "DDSIAItemCard" extends "Item Card"
+pageextension 50612 "ItemCard Opti" extends "Item Card"
 {
     layout
     {
@@ -16,7 +16,7 @@ pageextension 50612 "DDSIAItemCard" extends "Item Card"
 
                     trigger OnAssistEdit()
                     var
-                        RestMgt: Codeunit "DDSIA Rest API Mgt.";
+                        RestMgt: Codeunit "Rest API Mgt.";
                         ProductId: Integer;
                         ProductName: Text;
                     begin
@@ -56,7 +56,7 @@ pageextension 50612 "DDSIAItemCard" extends "Item Card"
 
     local procedure hellotest()
     var
-        RestMgt: Codeunit "DDSIA Rest API Mgt.";
+        RestMgt: Codeunit "Rest API Mgt.";
     begin
         RestMgt.hello_test();
     end;

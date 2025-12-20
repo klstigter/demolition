@@ -14,6 +14,9 @@ page 50617 "Job Task List - Project"
         {
             repeater(Control1)
             {
+                IndentationColumn = Rec.Indentation;
+                IndentationControls = Description;
+
                 ShowCaption = false;
                 field("Job No."; Rec."Job No.")
                 {
@@ -32,45 +35,53 @@ page 50617 "Job Task List - Project"
                 field(Description; Rec.Description)
                 {
                     ApplicationArea = Jobs;
+                    Style = Strong;
+                    StyleExpr = StyleIsStrong;
                     ToolTip = 'Specifies a description of the project task. You can enter anything that is meaningful in describing the task. The description is copied and used in descriptions on the project planning line.';
-                }
-                field("Ship-to Code"; Rec."Ship-to Code")
-                {
-                    ApplicationArea = All;
                 }
                 field("Job Task Type"; Rec."Job Task Type")
                 {
                     ApplicationArea = Jobs;
+                    Style = Strong;
+                    StyleExpr = StyleIsStrong;
+
                     ToolTip = 'Specifies the purpose of the account. Newly created accounts are automatically assigned the Posting account type, but you can change this. Choose the field to select one of the following five options:';
-                }
-                field("WIP-Total"; Rec."WIP-Total")
-                {
-                    ApplicationArea = Jobs;
-                    ToolTip = 'Specifies the project tasks you want to group together when calculating Work In Process (WIP) and Recognition.';
                 }
                 field(Totaling; Rec.Totaling)
                 {
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies an interval or a list of project task numbers.';
                 }
+                field(Progress; Rec.Progress)
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the progress percentage (0-100) for this job task.';
+                }
+                field("Total Worked Hours"; Rec."Total Worked Hours")
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the total worked hours from all related day tasks.';
+                }
+                field("Ship-to Code"; Rec."Ship-to Code")
+                {
+                    ApplicationArea = All;
+                }
+
+                field("WIP-Total"; Rec."WIP-Total")
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the project tasks you want to group together when calculating Work In Process (WIP) and Recognition.';
+                }
                 field("Job Posting Group"; Rec."Job Posting Group")
                 {
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the project posting group of the task.';
                 }
-#if not CLEAN25
-                field("Coupled to Dataverse"; Rec."Coupled to Dataverse")
-                {
-                    ApplicationArea = Jobs;
-                    ToolTip = 'Specifies if the project task is coupled to an entity in Field Service.';
-                    Visible = false;
-                    ObsoleteReason = 'Field Service is moved to Field Service Integration app.';
-                    ObsoleteState = Pending;
-                    ObsoleteTag = '25.0';
-                }
-#endif
+
             }
         }
+
+
         area(factboxes)
         {
             systempart(Control1900383207; Links)
@@ -92,8 +103,23 @@ page 50617 "Job Task List - Project"
         {
             group("&Job Task")
             {
+
                 Caption = '&Project Task';
                 Image = Task;
+                group(Job)
+                {
+                    Caption = 'Project';
+                    Image = Job;
+                    action(JobCard)
+                    {
+                        ApplicationArea = Jobs;
+                        Caption = 'Project Card';
+                        Image = Job;
+                        RunObject = Page "Job Card";
+                        RunPageLink = "No." = field("Job No.");
+                        ToolTip = 'View details of the related project.';
+                    }
+                }
                 group(Dimensions)
                 {
                     Caption = 'Dimensions';
@@ -252,6 +278,21 @@ page 50617 "Job Task List - Project"
         }
         area(processing)
         {
+            action(IndentJobTasks)
+            {
+                ApplicationArea = Jobs;
+                Caption = 'Indent Job Tasks';
+                Image = Indent;
+                ToolTip = 'Automatically calculate and apply indentation to job tasks based on their hierarchy.';
+
+                trigger OnAction()
+                var
+                    JobTaskIndent: Codeunit "Job Task Indent";
+                begin
+                    JobTaskIndent.IndentJobTasks(Rec);
+                    CurrPage.Update(false);
+                end;
+            }
             action("Split Planning Lines")
             {
                 ApplicationArea = Jobs;
@@ -356,6 +397,14 @@ page 50617 "Job Task List - Project"
         }
         area(Promoted)
         {
+            group(Category_Category4)
+            {
+                Caption = 'Navigation';
+
+                actionref("JobCard_Promoted"; jobcard)
+                {
+                }
+            }
             group(Category_Process)
             {
                 Caption = 'Process';
@@ -364,6 +413,9 @@ page 50617 "Job Task List - Project"
                 {
                 }
                 actionref("Copy Job Task To_Promoted"; "Copy Job Task To")
+                {
+                }
+                actionref(IndentJobTasksRef; IndentJobTasks)
                 {
                 }
                 group(Category_Dimensions)
@@ -403,7 +455,7 @@ page 50617 "Job Task List - Project"
 
     trigger OnAfterGetRecord()
     begin
-        // StyleIsStrong := Rec."Job Task Type" <> Rec."Job Task Type"::Posting;
+        StyleIsStrong := Rec."Job Task Type" <> Rec."Job Task Type"::Posting;
     end;
 
     trigger OnNewRecord(BelowxRec: Boolean)

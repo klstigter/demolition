@@ -1,5 +1,8 @@
-tableextension 50600 "DDSIA Job Task" extends "Job Planning Line"
+tableextension 50600 "Job Planning Line ext" extends "Job Planning Line"
 {
+    DrillDownPageId = "Job Planning Line Card";
+    LookupPageId = "Job Planning Line Card";
+
     fields
     {
         // Add changes to table fields here
@@ -46,6 +49,14 @@ tableextension 50600 "DDSIA Job Task" extends "Job Planning Line"
         // {
         //     DataClassification = ToBeClassified;
         // }
+
+        field(50525; SkillsRequired; Code[10])
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Skills Required';
+            TableRelation = "Skill Code";
+        }
+
         field(50530; Depth; Decimal)
         {
             DataClassification = ToBeClassified;
@@ -83,7 +94,7 @@ tableextension 50600 "DDSIA Job Task" extends "Job Planning Line"
         Res: Record Resource;
         Ven: Record Vendor;
         IntegrationSetup: Record "Planning Integration Setup";
-        RestMgt: Codeunit "DDSIA Rest API Mgt.";
+        RestMgt: Codeunit "Rest API Mgt.";
         auto: Boolean;
     begin
         if Rec."No." <> xRec."No." then

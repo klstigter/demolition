@@ -85,7 +85,7 @@ page 50603 "Planning Integration Setup"
 
                     trigger OnAssistEdit()
                     var
-                        RestMgt: codeunit "DDSIA Rest API Mgt.";
+                        RestMgt: codeunit "Rest API Mgt.";
                     begin
                         message('%1', RestMgt.DT2UTC(CreateDateTime(Today, Time)));
                     end;

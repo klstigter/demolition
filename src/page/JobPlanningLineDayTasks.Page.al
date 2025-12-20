@@ -1,0 +1,110 @@
+page 50633 "Job Planning Line Day Tasks"
+{
+    Caption = 'Day Tasks';
+    PageType = ListPart;
+    SourceTable = "Day Tasks";
+    Editable = true;
+
+    layout
+    {
+        area(content)
+        {
+            repeater(Lines)
+            {
+                field("Day No."; Rec."Day No.")
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the day number in the sequence.';
+                    Visible = false;
+                }
+                field("Planning Date"; Rec."Planning Date")
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the planning date for this day.';
+                }
+                field("Start Time"; Rec."Start Time")
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the start time for this day.';
+                }
+                field("End Time"; Rec."End Time")
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the end time for this day.';
+                }
+                field(Description; Rec.Description)
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the description.';
+                }
+
+                field("Type"; Rec."Type")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the type of planning line.';
+                }
+                field("No."; Rec."No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the number of the resource, item, or G/L account.';
+                }
+                field("Work Type Code"; Rec."Work Type Code")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the work type code.';
+                }
+                field(Quantity; Rec.Quantity)
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the quantity for this day.';
+                }
+                field("Worked Hours"; Rec."Worked Hours")
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the actual worked hours for this day task.';
+                }
+                field("Unit of Measure Code"; Rec."Unit of Measure Code")
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the unit of measure code.';
+                    Visible = false;
+                }
+                field("Vendor No."; Rec."Vendor No.")
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the vendor number.';
+                }
+                field("Vendor Name"; Rec."Vendor Name")
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the vendor name.';
+                    Visible = false;
+                }
+                field(Depth; Rec.Depth)
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the depth.';
+                }
+            }
+        }
+    }
+
+    actions
+    {
+        area(processing)
+        {
+            action(RefreshDayTasks)
+            {
+                ApplicationArea = Jobs;
+                Caption = 'Refresh';
+                Image = Refresh;
+                ToolTip = 'Refresh the day tasks list.';
+
+                trigger OnAction()
+                begin
+                    CurrPage.Update(false);
+                end;
+            }
+        }
+    }
+}

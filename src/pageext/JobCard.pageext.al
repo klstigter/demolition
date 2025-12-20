@@ -1,4 +1,4 @@
-pageextension 50601 "DDSIA Job Card" extends "Job Card"
+pageextension 50601 "Job Card Opti" extends "Job Card"
 {
     layout
     {

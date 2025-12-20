@@ -36,6 +36,7 @@ page 50618 "Job Task Card - Project"
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies a description of the project task. You can enter anything that is meaningful in describing the task. The description is copied and used in descriptions on the project planning line.';
                 }
+
                 // field("Job Task Type"; Rec."Job Task Type")
                 // {
                 //     ApplicationArea = Jobs;
@@ -524,11 +525,59 @@ page 50618 "Job Task Card - Project"
                 }
 
             }
-            part(JobPlanningLines; "Job Planning Lines Part")
+            part(JobPlanningLines; "Job Planning Lines Sub")
             {
                 ApplicationArea = Jobs;
                 SubPageLink = "Job No." = field("Job No."),
                               "Job Task No." = field("Job Task No.");
+            }
+            group(Planning)
+            {
+                Caption = 'Planning';
+                group(Duration)
+                {
+
+                    field("Scheduling Type"; Rec."Scheduling Type")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Specifies the value of the Scheduling Type field.', Comment = '%';
+                        importance = Promoted;
+                    }
+                    field("Planned Start Date"; Rec.PlannedStartDate)
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Specifies the start date for the project task. The date is based on the date on the related project planning line.';
+                    }
+                    field("Planned End Date"; Rec.PlannedEndDate)
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Specifies the end date for the project task. The date is based on the date on the related project planning line.';
+                    }
+                }
+                group(InProgress)
+                {
+                    Caption = 'In Progress';
+
+                    field("Estimated Hours"; Rec."Estimated Hours")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Specifies the value of the Estimated Hours field.', Comment = '%';
+                        importance = Promoted;
+                    }
+
+                    field(Progress; Rec.Progress)
+                    {
+                        ApplicationArea = Jobs;
+                        ToolTip = 'Specifies the progress percentage (0-100) for this job task.';
+                        importance = Promoted;
+                    }
+                    field("Total Worked Hours"; Rec."Total Worked Hours")
+                    {
+                        ApplicationArea = Jobs;
+                        ToolTip = 'Specifies the total worked hours from all related day tasks.';
+                        importance = Promoted;
+                    }
+                }
             }
             group(Posting)
             {
@@ -587,6 +636,7 @@ page 50618 "Job Task Card - Project"
                 }
             }
         }
+
         area(factboxes)
         {
             systempart(Control1900383207; Links)

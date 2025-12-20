@@ -1,4 +1,4 @@
-pageextension 50605 "DDSIAResourceCard" extends "Resource Card"
+pageextension 50605 "ResourceCard Opti" extends "Resource Card"
 {
     layout
     {

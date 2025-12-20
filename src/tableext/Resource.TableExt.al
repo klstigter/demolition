@@ -1,4 +1,4 @@
-tableextension 50603 DDSIAResource extends Resource
+tableextension 50603 "Resource Ext" extends Resource
 {
     fields
     {

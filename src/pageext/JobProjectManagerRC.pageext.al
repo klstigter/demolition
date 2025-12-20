@@ -1,4 +1,4 @@
-pageextension 50607 "DDSIAJobProjectManagerRC" extends "Job Project Manager RC"
+pageextension 50607 "JobProjectManagerRC Opti" extends "Job Project Manager RC"
 {
     layout
     {

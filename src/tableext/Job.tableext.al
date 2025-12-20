@@ -1,4 +1,4 @@
-tableextension 50602 "DDSIAJob" extends Job
+tableextension 50602 "Job Ext" extends Job
 {
     fields
     {

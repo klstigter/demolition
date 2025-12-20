@@ -72,7 +72,7 @@ page 50606 "Incoming Check"
                 trigger OnAction()
                 var
                     PlannigLine: Record "Job Planning Line";
-                    RestApiMgt: Codeunit "DDSIA Rest API Mgt.";
+                    RestApiMgt: Codeunit "Rest API Mgt.";
 
                     JsonObj: JsonObject;
                     Token: JsonToken;

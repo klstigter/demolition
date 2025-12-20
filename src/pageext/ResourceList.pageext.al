@@ -1,4 +1,4 @@
-pageextension 50603 "DDSIA Resource List" extends "Resource List"
+pageextension 50603 "Resource List Opti" extends "Resource List"
 {
     layout
     {

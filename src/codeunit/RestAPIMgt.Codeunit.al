@@ -9,7 +9,7 @@ Notes:
            (because there is no intergation code in table trigger)
 */
 
-codeunit 50602 "DDSIA Rest API Mgt."
+codeunit 50602 "Rest API Mgt."
 {
     trigger OnRun()
     begin

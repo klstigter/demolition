@@ -224,7 +224,7 @@ page 50609 "Job List - Resource"
 
                     trigger OnAction()
                     var
-                        RestMgt: Codeunit "DDSIA Rest API Mgt.";
+                        RestMgt: Codeunit "Rest API Mgt.";
                     begin
                         RestMgt.PushProjectToPlanningIntegration(Rec, false);
                     end;
@@ -238,7 +238,7 @@ page 50609 "Job List - Resource"
 
                     trigger OnAction()
                     var
-                        RestMgt: Codeunit "DDSIA Rest API Mgt.";
+                        RestMgt: Codeunit "Rest API Mgt.";
                     begin
                         RestMgt.PushProjectToPlanningIntegration(Rec, true);
                     end;

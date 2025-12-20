@@ -45,6 +45,13 @@ page 50612 "Planning Role Center"
                     RunObject = Page "Job Planning Line (Project)";
                     ToolTip = 'Open the list of ongoing project planning lines for the project. You use this window to plan what items, resources, and general ledger expenses that you expect to use on a project (budget) or you can specify what you actually agreed with your customer that he should pay for the project (billable).';
                 }
+                action("Day Tasks")
+                {
+                    ApplicationArea = Jobs;
+                    Caption = 'Day Tasks';
+                    RunObject = Page "Day Tasks";
+                    ToolTip = 'Open the list of day tasks for the project.';
+                }
             }
 
             group("ResourcePlanningGroup")

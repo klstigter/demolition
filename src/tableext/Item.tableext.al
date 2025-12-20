@@ -1,4 +1,4 @@
-tableextension 50604 "DDSIAItem" extends Item
+tableextension 50604 "Item ext" extends Item
 {
     fields
     {

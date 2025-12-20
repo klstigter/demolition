@@ -1,4 +1,4 @@
-pageextension 50602 "DDSIA Job List" extends "Job List"
+pageextension 50602 "Job List Opti" extends "Job List"
 {
     layout
     {
@@ -49,7 +49,7 @@ pageextension 50602 "DDSIA Job List" extends "Job List"
 
                 trigger OnAction()
                 var
-                    RestMgt: Codeunit "DDSIA Rest API Mgt.";
+                    RestMgt: Codeunit "Rest API Mgt.";
                 begin
                     RestMgt.PushProjectToPlanningIntegration(Rec, false);
                 end;
@@ -63,7 +63,7 @@ pageextension 50602 "DDSIA Job List" extends "Job List"
 
                 trigger OnAction()
                 var
-                    RestMgt: Codeunit "DDSIA Rest API Mgt.";
+                    RestMgt: Codeunit "Rest API Mgt.";
                 begin
                     RestMgt.PushProjectToPlanningIntegration(Rec, true);
                 end;
