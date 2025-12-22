@@ -48,7 +48,8 @@ codeunit 50604 "DHX Data Handler"
     //     {"section_id":"80","start_date":"2025-11-24 09:50","end_date":"2025-11-24 15:15","text":"New event 80 | id=25","$new":"true","id":25},
     //     {"section_id":"40","start_date":"2025-11-24 11:35","end_date":"2025-11-24 18:55","text":"New event 40 | id=26","$new":"true","id":26}]);
 
-    procedure GetYUnitElementsJSON(StartDate: Date;
+    procedure GetYUnitElementsJSON(AnchorDate: Date;
+                                   StartDate: Date;
                                    EndDate: Date;
                                    var PlanninJsonTxt: Text;
                                    var EarliestPlanningDate: Date): Text
@@ -67,22 +68,28 @@ codeunit 50604 "DHX Data Handler"
 
         StartDateTxt: Text;
         EndDateTxt: Text;
+        _DummyEndDate: Date;
     begin
         PlanninJsonTxt := '';
         //Marking Job based on Day Tasks within the given date range
+        Daytask.SetCurrentKey("Start Planning Date", "Start Time");
         Daytask.SetRange("Start Planning Date", StartDate, EndDate);
         Daytask.SetFilter("Job No.", '<>%1', ''); //Exclude blank Job Nos
         Daytask.SetFilter("Job Task No.", '<>%1', ''); //Exclude blank task Nos
-        Daytask.SetRange(Type, Daytask.Type::Resource);
+        Daytask.SetFilter("Job Planning Line No.", '<>%1', 0); //Exclude blank Planning Line Nos
+        //Daytask.SetRange(Type, Daytask.Type::Resource);
         if Daytask.FindSet() then begin
             repeat
                 Jobs.Get(Daytask."Job No.");
                 Jobs.Mark(true);
+
                 // create event data
-                CountToWeekNumber(Daytask."Start Planning Date", WeekTemp);
+                if AnchorDate = 0D then
+                    CountToWeekNumber(Daytask."Start Planning Date", WeekTemp);
+
                 GetStartEndTxt(Daytask, StartDateTxt, EndDateTxt);
                 Clear(PlanningObject);
-                PlanningObject.Add('id', Daytask."Job No." + '|' + Daytask."Job Task No." + '|' + Format(Daytask."Job Planning Line No.") + '|' + Format(Daytask."Day No."));
+                PlanningObject.Add('id', Daytask."Job No." + '|' + Daytask."Job Task No." + '|' + Format(Daytask."Job Planning Line No.") + '|' + Format(Daytask."Day No.") + '|' + Format(Daytask."DayLineNo"));
                 PlanningObject.Add('start_date', StartDateTxt);
                 PlanningObject.Add('end_date', EndDateTxt);
                 PlanningObject.Add('text', Daytask.Description);
@@ -91,12 +98,15 @@ codeunit 50604 "DHX Data Handler"
                 PlanningArray.WriteTo(PlanninJsonTxt);
             until Daytask.Next() = 0;
 
-            WeekTemp.Reset();
-            WeekTemp.SetCurrentKey("Column 3 Amt.");
-            WeekTemp.FindSet();
-            if WeekTemp.FindLast() then begin
-                EarliestPlanningDate := DWY2Date(1, WeekTemp."Column 2 Amt.", WeekTemp."Column 1 Amt.");
-            end;
+            if AnchorDate = 0D then begin
+                WeekTemp.Reset();
+                WeekTemp.SetCurrentKey("Column 3 Amt.");
+                WeekTemp.FindSet();
+                if WeekTemp.FindLast() then begin
+                    EarliestPlanningDate := DWY2Date(1, WeekTemp."Column 2 Amt.", WeekTemp."Column 1 Amt.");
+                end;
+            end else
+                GetWeekPeriodDates(AnchorDate, EarliestPlanningDate, _DummyEndDate);
         end;
         Jobs.MarkedOnly := true;
         if Jobs.FindSet() then begin
@@ -253,12 +263,15 @@ codeunit 50604 "DHX Data Handler"
     var
         Task: record "Job Task";
         PlanningLine: record "Job Planning Line";
+        DayTask: record "Day Tasks";
         Res: record Resource;
         EventJSonObj: JsonObject;
         JToken: JsonToken;
         SectionIdParts: List of [Text];
         JobNo: Code[20];
         TaskNo: Code[20];
+        PlannigLineNo: Integer;
+        DayNo: Integer;
         LineNo: Integer;
         ResNo: Code[20];
         rtv: Boolean;
@@ -270,7 +283,7 @@ codeunit 50604 "DHX Data Handler"
         EndPlanningDate: Date;
         EndTime: Time;
         Desc: Text;
-        JsonLbl: Label '{"OldEventId": "%1", "NewEventId": "%2|%3|%4"}';
+        JsonLbl: Label '{"OldEventId": "%1", "NewEventId": "%2|%3|%4|%5|%6"}';
     begin
         //Message('New Event Created with eventData = %2', eventData);
         /*
@@ -290,7 +303,8 @@ codeunit 50604 "DHX Data Handler"
         SectionIdParts := JToken.AsValue().AsText().Split('|');
         JobNo := SectionIdParts.Get(1);
         TaskNo := SectionIdParts.Get(2);
-        Task.Get(JobNo, TaskNo);
+        evaluate(PlannigLineNo, SectionIdParts.Get(3));
+        PlanningLine.Get(JobNo, TaskNo, PlannigLineNo);
 
         EventJSonObj.Get('id', JToken);
         old_eventid := JToken.AsValue().AsText();
@@ -299,6 +313,7 @@ codeunit 50604 "DHX Data Handler"
         ParseIsoToDateTime(JToken.AsValue().AsText(), _Date, _Time);
         PlanningDate := _Date;
         StartTime := _Time;
+        Evaluate(DayNo, Format(PlanningDate, 0, '<Year4><Month,2><Day,2>'));
 
         EventJSonObj.Get('end_date', JToken);
         ParseIsoToDateTime(JToken.AsValue().AsText(), _Date, _Time);
@@ -312,41 +327,49 @@ codeunit 50604 "DHX Data Handler"
         Res.Get(JToken.AsValue().AsText().ToUpper());
 
         LineNo := 10000;
-        PlanningLine.SetRange("Job No.", JobNo);
-        PlanningLine.SetRange("Job Task No.", TaskNo);
-        if PlanningLine.FindLast() then
-            LineNo := PlanningLine."Line No." + 10000;
+        DayTask.SetRange("Job No.", JobNo);
+        DayTask.SetRange("Job Task No.", TaskNo);
+        DayTask.SetRange("Job Planning Line No.", PlannigLineNo);
+        DayTask.SetRange("Day No.", DayNo);
+        if DayTask.FindLast() then
+            LineNo := DayTask.DayLineNo + 10000;
 
-        PlanningLine.Init();
-        PlanningLine."Job No." := JobNo;
-        PlanningLine."Job Task No." := TaskNo;
-        PlanningLine."Line No." := LineNo;
-        PlanningLine.Type := PlanningLine.Type::Resource;
-        PlanningLine."No." := Res."No.";
-        PlanningLine."Start Planning Date" := PlanningDate;
-        PlanningLine."Start Time" := StartTime;
-        PlanningLine."End Planning Date" := EndPlanningDate;
-        PlanningLine."End Time" := EndTime;
-        PlanningLine.Description := Res.Name;
+        DayTask.Init();
+        DayTask."Day No." := DayNo;
+        DayTask."DayLineNo" := LineNo;
+        DayTask."Job No." := JobNo;
+        DayTask."Job Task No." := TaskNo;
+        DayTask."Job Planning Line No." := PlannigLineNo;
+
+        DayTask.Type := PlanningLine.Type::Resource;
+        DayTask."No." := Res."No.";
+        DayTask."Start Planning Date" := PlanningDate;
+        DayTask."Start Time" := StartTime;
+        DayTask."End Time" := EndTime;
+        DayTask.Description := Res.Name;
         UpdateEventIdJsonTxt := StrSubstNo(JsonLbl,
                                             old_eventid,
-                                            PlanningLine."Job No.",
-                                            PlanningLine."Job Task No.",
-                                            Format(PlanningLine."Line No."));
-        rtv := PlanningLine.Insert();
+                                            DayTask."Job No.",
+                                            DayTask."Job Task No.",
+                                            Format(DayTask."Job Planning Line No."),
+                                            format(DayTask."Day No."),
+                                            format(DayTask."DayLineNo"));
+        rtv := DayTask.Insert();
         exit(rtv);
     end;
 
     procedure OnEventChanged(EventId: Text;
                              EventData: Text;
                              var UpdateEventID: Boolean;
-                             var OldPlanningLine_forUpdate: record "Job Planning Line";
-                             var NewPlanningLine_forUpdate: record "Job Planning Line")
+                             var OldDayTask_forUpdate: record "Day Tasks";
+                             var NewDayTask_forUpdate: record "Day Tasks")
     var
         OldTask: record "Job Task";
         NewTask: record "Job Task";
-        OldPlanningLine: record "Job Planning Line";
-        PlanningLineCheck: record "Job Planning Line";
+        OldPlanningLIne: record "Job Planning Line";
+        NewPlanningLIne: record "Job Planning Line";
+        OldDayTask: record "Day Tasks";
+        DayTaskCheck: record "Day Tasks";
 
         EventJSonObj: JsonObject;
         JToken: JsonToken;
@@ -355,32 +378,37 @@ codeunit 50604 "DHX Data Handler"
         Old_JobNo: Text;
         Old_TaskNo: Text;
         Old_PlanningLineNo: Integer;
+        Old_DayNo: Integer;
+        Old_DayLineNo: Integer;
         New_JobNo: Text;
         New_TaskNo: Text;
+        New_PlanningLineNo: Integer;
+        New_DayNo: Integer;
+        New_DayLineNo: Integer;
         _Date: Date;
         _Time: Time;
     begin
-        Message('Event ' + eventId + ' changed: ' + eventData);
+        //Message('Event ' + eventId + ' changed: ' + eventData);
         /*        
         sift left / right:
-            eventId = JOB00010|1020|10000
+            eventId = JOB00010|1020|10000|20251201|10000
             eventData = 
                 {
-                    "id":"JOB00010|1020|10000",
+                    "id":"JOB00010|1020|10000|20251201|10000",
                     "text":"Vacant Resource",
                     "start_date":"2025-11-05T05:00:00.000Z",
                     "end_date":"2025-11-06T04:00:00.000Z",
-                    "section_id":"JOB00010|1020"
+                    "section_id":"JOB00010|1020|10000"
                 }
         sift up / down
-            eventId = JOB00010|1020|10000
+            eventId = JOB00010|1020|10000|20251201|10000
             eventData = 
                 {
-                    "id":"JOB00010|1020|10000",
+                    "id":"JOB00010|1020|10000|20251201|10000",
                     "text":"Vacant Resource",
                     "start_date":"2025-11-05T05:00:00.000Z",
                     "end_date":"2025-11-06T04:00:00.000Z",
-                    "section_id":"JOB00010|1030"
+                    "section_id":"JOB00010|1030|10000"
                 }
         */
         // get old record
@@ -388,8 +416,11 @@ codeunit 50604 "DHX Data Handler"
         Old_JobNo := EventIdParts.Get(1);
         Old_TaskNo := EventIdParts.Get(2);
         Evaluate(Old_PlanningLineNo, EventIdParts.Get(3));
+        Evaluate(Old_DayNo, EventIdParts.Get(4));
+        Evaluate(Old_DayLineNo, EventIdParts.Get(5));
         OldTask.Get(Old_JobNo, Old_TaskNo);
-        OldPlanningLine.Get(Old_JobNo, Old_TaskNo, Old_PlanningLineNo);
+        OldPlanningLIne.Get(Old_JobNo, Old_TaskNo, Old_PlanningLineNo);
+        OldDayTask.Get(Old_DayNo, Old_DayLineNo, Old_JobNo, Old_TaskNo, Old_PlanningLineNo);
 
         EventJSonObj.ReadFrom(EventData);
 
@@ -397,58 +428,71 @@ codeunit 50604 "DHX Data Handler"
         NewSectionParts := JToken.AsValue().AsText().Split('|');
         New_JobNo := NewSectionParts.Get(1);
         New_TaskNo := NewSectionParts.Get(2);
+        Evaluate(New_PlanningLineNo, NewSectionParts.Get(3));
         NewTask.Get(New_JobNo, New_TaskNo);
+        NewPlanningLIne.Get(New_JobNo, New_TaskNo, New_PlanningLineNo);
+
+        //Get Startdate as new dayno
+        EventJSonObj.Get('start_date', JToken);
+        ParseIsoToDateTime(JToken.AsValue().AsText(), _Date, _Time);
+        Evaluate(New_DayNo, Format(_Date, 0, '<Year4><Month,2><Day,2>'));
 
         UpdateEventID := false;
-        OldPlanningLine_forUpdate := OldPlanningLine;
-        if OldTask.RecordId <> NewTask.RecordId then begin
+        OldDayTask_forUpdate := OldDayTask;
+        if OldPlanningLIne.RecordId <> NewPlanningLIne.RecordId then begin
             //sift up / down within different task
-            if not PlanningLineCheck.Get(New_JobNo, New_TaskNo, Old_PlanningLineNo) then
-                OldPlanningLine.Rename(New_JobNo, New_TaskNo, Old_PlanningLineNo)
+            if not DayTaskCheck.Get(New_DayNo, Old_DayLineNo, New_JobNo, New_TaskNo, New_PlanningLineNo) then
+                OldDayTask.Rename(New_DayNo, Old_DayLineNo, New_JobNo, New_TaskNo, New_PlanningLineNo)
             else begin
-                PlanningLineCheck.SetRange("Job No.", New_JobNo);
-                PlanningLineCheck.SetRange("Job Task No.", New_TaskNo);
-                if PlanningLineCheck.FindLast() then
-                    OldPlanningLine.Rename(New_JobNo, New_TaskNo, PlanningLineCheck."Line No." + 10000)
+                DayTaskCheck.SetCurrentKey("Job No.", "Job Task No.", "Job Planning Line No.", "Day No.", "DayLineNo");
+                DayTaskCheck.SetRange("Job No.", New_JobNo);
+                DayTaskCheck.SetRange("Job Task No.", New_TaskNo);
+                DayTaskCheck.SetRange("Job Planning Line No.", New_PlanningLineNo);
+                DayTaskCheck.SetRange("Day No.", New_DayNo);
+                if DayTaskCheck.FindLast() then
+                    OldDayTask.Rename(New_DayNo, DayTaskCheck."DayLineNo" + 10000, New_JobNo, New_TaskNo, New_PlanningLineNo)
                 else
-                    OldPlanningLine.Rename(New_JobNo, New_TaskNo, 10000);
+                    OldDayTask.Rename(New_DayNo, 10000, New_JobNo, New_TaskNo, New_PlanningLineNo);
             end;
-            NewPlanningLine_forUpdate := OldPlanningLine;
+            NewDayTask_forUpdate := OldDayTask;
             UpdateEventID := true;
         end;
 
         //sift left / right to same task
         EventJSonObj.Get('start_date', JToken);
         ParseIsoToDateTime(JToken.AsValue().AsText(), _Date, _Time);
-        OldPlanningLine."Start Planning Date" := _Date;
-        OldPlanningLine."Start Time" := _Time;
+        OldDayTask."Start Planning Date" := _Date;
+        OldDayTask."Start Time" := _Time;
 
         EventJSonObj.Get('end_date', JToken);
         ParseIsoToDateTime(JToken.AsValue().AsText(), _Date, _Time);
-        OldPlanningLine."End Planning Date" := _Date;
-        OldPlanningLine."End Time" := _Time;
+        OldDayTask."End Time" := _Time;
 
         EventJSonObj.Get('text', JToken);
-        OldPlanningLine.Description := JToken.AsValue().AsText();
+        OldDayTask.Description := JToken.AsValue().AsText();
 
-        OldPlanningLine.Modify();
+        OldDayTask.Modify();
 
         if UpdateEventID then
-            UpdateEventID(OldPlanningLine_forUpdate, NewPlanningLine_forUpdate);
+            UpdateEventID(OldDayTask_forUpdate, NewDayTask_forUpdate);
     end;
 
-    procedure UpdateEventID(OldPlanningLine: Record "Job Planning Line"; NewPlanningLine: Record "Job Planning Line"): Text
+    procedure UpdateEventID(OldDayTask: Record "Day Tasks"; NewDayTask: Record "Day Tasks"): Text
     var
         rtv: text;
-        JsonLbl: Label '{"OldEventId": "%1|%2|%3", "NewEventId": "%4|%5|%6"}';
+        JsonLbl: Label '{"OldEventId": "%1|%2|%3|%4|%5", "NewEventId": "%6|%7|%8|%9|%10"}';
     begin
         rtv := StrSubstNo(JsonLbl,
-                         OldPlanningLine."Job No.",
-                         OldPlanningLine."Job Task No.",
-                         Format(OldPlanningLine."Line No."),
-                         NewPlanningLine."Job No.",
-                         NewPlanningLine."Job Task No.",
-                         Format(NewPlanningLine."Line No."));
+                         OldDayTask."Job No.",
+                         OldDayTask."Job Task No.",
+                         Format(OldDayTask."Job Planning Line No."),
+                         Format(OldDayTask."Day No."),
+                         Format(OldDayTask."DayLineNo"),
+                         NewDayTask."Job No.",
+                         NewDayTask."Job Task No.",
+                         Format(NewDayTask."Job Planning Line No."),
+                         Format(NewDayTask."Day No."),
+                         Format(NewDayTask."DayLineNo"));
         exit(rtv);
     end;
 

@@ -150,6 +150,9 @@ table 50610 "Day Tasks"
         {
             Clustered = true;
         }
+        key(Rec1; "Job No.", "Job Task No.", "Job Planning Line No.", "Day No.", DayLineNo)
+        {
+        }
         key(DateKey; "Start Planning Date", "Start Time")
         {
         }

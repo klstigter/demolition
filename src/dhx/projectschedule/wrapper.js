@@ -307,8 +307,25 @@ function Init(dataelements,EarliestPlanningDate) {
     scheduler.attachEvent("onEventChanged", function(id, ev){
         if (ev) delete ev._isNewForLightbox; // new event is no longer "new"
 
+        // Validate same-day event
+        var s = ev && ev.start_date ? new Date(ev.start_date) : null;
+        var e = ev && ev.end_date ? new Date(ev.end_date) : null;
+        if (s && e) {
+            var sameDay = s.getFullYear() === e.getFullYear() &&
+                        s.getMonth() === e.getMonth() &&
+                        s.getDate() === e.getDate();
+            if (!sameDay) {
+                alert("Start date and end date must be on the same day.");
+                // Remove the just-created event to effectively cancel the add
+                if (typeof scheduler !== "undefined") {
+                    scheduler.deleteEvent(id, true);
+                }
+                return false;
+            }
+        }
+
         console.log("Event changed:", id, ev);
-        
+
         // Capture event data after resize/drag
         var eventData = {
             id: id,
@@ -334,6 +351,24 @@ function Init(dataelements,EarliestPlanningDate) {
 
     scheduler.attachEvent("onEventAdded", function(id,ev){
         if (ev) delete ev._isNewForLightbox;   // <— important
+
+        // Validate same-day event
+        var s = ev && ev.start_date ? new Date(ev.start_date) : null;
+        var e = ev && ev.end_date ? new Date(ev.end_date) : null;
+        if (s && e) {
+            var sameDay = s.getFullYear() === e.getFullYear() &&
+                        s.getMonth() === e.getMonth() &&
+                        s.getDate() === e.getDate();
+            if (!sameDay) {
+                alert("Start date and end date must be on the same day.");
+                // Remove the just-created event to effectively cancel the add
+                if (typeof scheduler !== "undefined") {
+                    scheduler.deleteEvent(id, true);
+                }
+                return false;
+            }
+        }
+
         console.log("New Event:", ev);
         
         // Capture event data after resize/drag
