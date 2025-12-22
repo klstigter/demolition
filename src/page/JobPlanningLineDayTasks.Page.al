@@ -17,7 +17,7 @@ page 50633 "Job Planning Line Day Tasks"
                     ToolTip = 'Specifies the day number in the sequence.';
                     Visible = false;
                 }
-                field("Planning Date"; Rec."Planning Date")
+                field("Start Planning Date"; Rec."Start Planning Date")
                 {
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the planning date for this day.';
@@ -85,10 +85,19 @@ page 50633 "Job Planning Line Day Tasks"
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the depth.';
                 }
+                field("Do Not Change"; Rec."Do Not Change")
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Indicates whether the record was manually modified, and not is changed automatically by a process.';
+                    Editable = True;
+                    trigger OnValidate()
+                    begin
+                        SetDoNotChangedOff := true;
+                    end;
+                }
             }
         }
     }
-
     actions
     {
         area(processing)
@@ -107,4 +116,25 @@ page 50633 "Job Planning Line Day Tasks"
             }
         }
     }
+    trigger OnInsertRecord(BelowxRec: Boolean): Boolean
+    begin
+        if SetDoNotChangedOff then begin
+            SetDoNotChangedOff := false;
+            rec."Do Not Change" := false
+        end else
+            rec."Do Not Change" := true;
+    end;
+
+    trigger OnModifyRecord(): Boolean
+    begin
+        if SetDoNotChangedOff then begin
+            SetDoNotChangedOff := false;
+            rec."Do Not Change" := false
+        end else
+            rec."Do Not Change" := true;
+        exit(true);
+    end;
+
+    var
+        SetDoNotChangedOff: Boolean;
 }

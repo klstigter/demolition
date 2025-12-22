@@ -70,7 +70,7 @@ codeunit 50604 "DHX Data Handler"
     begin
         PlanninJsonTxt := '';
         //Marking Job based on Job Planning Lines within the given date range
-        Planning.SetRange("Planning Date", StartDate, EndDate);
+        Planning.SetRange("Start Planning Date", StartDate, EndDate);
         Planning.SetFilter("Job No.", '<>%1', ''); //Exclude blank Job Nos
         Planning.SetRange(Type, Planning.Type::Resource);
         if Planning.FindSet() then begin
@@ -78,7 +78,7 @@ codeunit 50604 "DHX Data Handler"
                 Jobs.Get(Planning."Job No.");
                 Jobs.Mark(true);
                 // create event data
-                CountToWeekNumber(Planning."Planning Date", WeekTemp);
+                CountToWeekNumber(Planning."Start Planning Date", WeekTemp);
                 GetStartEndTxt(Planning, StartDateTxt, EndDateTxt);
                 Clear(PlanningObject);
                 PlanningObject.Add('id', Planning."Job No." + '|' + Planning."Job Task No." + '|' + Format(Planning."Line No."));
@@ -160,22 +160,22 @@ codeunit 50604 "DHX Data Handler"
         StartDateTxt := '';
         EndDateTxt := '';
         case true of
-            (JobPlaningLine."Planning Date" <> 0D) and (JobPlaningLine."Start Time" <> 0T):
-                StartDateTxt := Format(JobPlaningLine."Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(JobPlaningLine."Start Time");
-            (JobPlaningLine."Planning Date" <> 0D) and (JobPlaningLine."Start Time" = 0T):
-                StartDateTxt := Format(JobPlaningLine."Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
-            (JobPlaningLine."Planning Date" = 0D) and (JobPlaningLine."Start Time" <> 0T),
-            (JobPlaningLine."Planning Date" = 0D) and (JobPlaningLine."Start Time" = 0T):
+            (JobPlaningLine."Start Planning Date" <> 0D) and (JobPlaningLine."Start Time" <> 0T):
+                StartDateTxt := Format(JobPlaningLine."Start Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(JobPlaningLine."Start Time");
+            (JobPlaningLine."Start Planning Date" <> 0D) and (JobPlaningLine."Start Time" = 0T):
+                StartDateTxt := Format(JobPlaningLine."Start Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
+            (JobPlaningLine."Start Planning Date" = 0D) and (JobPlaningLine."Start Time" <> 0T),
+            (JobPlaningLine."Start Planning Date" = 0D) and (JobPlaningLine."Start Time" = 0T):
                 StartDateTxt := '';
         end;
 
         case true of
             (JobPlaningLine."End Planning Date" = 0D) and (JobPlaningLine."End Time" <> 0T):
-                EndDateTxt := Format(JobPlaningLine."Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(JobPlaningLine."End Time");
+                EndDateTxt := Format(JobPlaningLine."Start Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(JobPlaningLine."End Time");
             (JobPlaningLine."End Planning Date" <> 0D) and (JobPlaningLine."End Time" <> 0T):
                 EndDateTxt := Format(JobPlaningLine."End Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(JobPlaningLine."End Time");
             (JobPlaningLine."End Planning Date" = 0D) and (JobPlaningLine."End Time" = 0T):
-                EndDateTxt := Format(JobPlaningLine."Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
+                EndDateTxt := Format(JobPlaningLine."Start Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
             (JobPlaningLine."End Planning Date" <> 0D) and (JobPlaningLine."End Time" = 0T):
                 EndDateTxt := Format(JobPlaningLine."End Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
         end;
@@ -261,7 +261,7 @@ codeunit 50604 "DHX Data Handler"
         PlanningLine."Line No." := LineNo;
         PlanningLine.Type := PlanningLine.Type::Resource;
         PlanningLine."No." := Res."No.";
-        PlanningLine."Planning Date" := PlanningDate;
+        PlanningLine."Start Planning Date" := PlanningDate;
         PlanningLine."Start Time" := StartTime;
         PlanningLine."End Planning Date" := EndPlanningDate;
         PlanningLine."End Time" := EndTime;
@@ -358,7 +358,7 @@ codeunit 50604 "DHX Data Handler"
         //sift left / right to same task
         EventJSonObj.Get('start_date', JToken);
         ParseIsoToDateTime(JToken.AsValue().AsText(), _Date, _Time);
-        OldPlanningLine."Planning Date" := _Date;
+        OldPlanningLine."Start Planning Date" := _Date;
         OldPlanningLine."Start Time" := _Time;
 
         EventJSonObj.Get('end_date', JToken);

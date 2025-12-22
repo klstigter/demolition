@@ -101,7 +101,7 @@ page 50632 "Job Planning Lines Sub"
                     ApplicationArea = All;
                     ToolTip = 'Drill depth in cm';
                 }
-                field("Planning Date"; Rec."Planning Date")
+                field("Start Planning Date"; Rec."Start Planning Date")
                 {
                     ApplicationArea = Jobs;
                     Editable = PlanningDateEditable;
@@ -1038,7 +1038,7 @@ page 50632 "Job Planning Lines Sub"
 
     protected procedure PlanningDateOnAfterValidate()
     begin
-        if Rec."Planning Date" <> xRec."Planning Date" then
+        if Rec."Start Planning Date" <> xRec."Start Planning Date" then
             PerformAutoReserve();
     end;
 

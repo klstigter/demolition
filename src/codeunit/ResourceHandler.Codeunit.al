@@ -49,7 +49,7 @@ codeunit 50600 "Resource DayPilot Handler"
             JobPlaningLine.Reset();
             JobPlaningLine.SetRange(Type, JobPlaningLine.Type::Resource);
             DT := CalcDate('<-1W>', _Date);
-            JobPlaningLine.SetFilter("Planning Date", '>=%1', DT);
+            JobPlaningLine.SetFilter("Start Planning Date", '>=%1', DT);
             DT := CalcDate('<2W>', _Date);
             JobPlaningLine.SetFilter("End Planning Date", '<=%1', DT);
             if JobPlaningLine.findset then
@@ -57,8 +57,8 @@ codeunit 50600 "Resource DayPilot Handler"
                     Clear(EventObj);
                     EventObj.Add('id', JobPlaningLine."Job No." + '|' + JobPlaningLine."Job Task No." + '|' + format(JobPlaningLine."Line No."));
                     EventObj.Add('text', JobPlaningLine.Description);
-                    EventObj.Add('start', JobPlanningLineHandler.GetTaskDateTime(JobPlaningLine."Planning Date", JobPlaningLine."Start Time", false));
-                    DT := JobPlaningLine."Planning Date";
+                    EventObj.Add('start', JobPlanningLineHandler.GetTaskDateTime(JobPlaningLine."Start Planning Date", JobPlaningLine."Start Time", false));
+                    DT := JobPlaningLine."Start Planning Date";
                     if JobPlaningLine."End Planning Date" <> 0D then
                         DT := JobPlaningLine."End Planning Date";
                     EventObj.Add('end', JobPlanningLineHandler.GetTaskDateTime(DT, JobPlaningLine."End Time", true));
@@ -173,16 +173,16 @@ codeunit 50600 "Resource DayPilot Handler"
                 JobPlaningLine.SetRange("Job No.", Task2."Job No.");
                 JobPlaningLine.SetRange("Job Task No.", Task2."Job Task No.");
                 JobPlaningLine.SetRange(Type, JobPlaningLine.Type::Resource);
-                JobPlaningLine.SetFilter("Planning Date", '<>%1', 0D);
+                JobPlaningLine.SetFilter("Start Planning Date", '<>%1', 0D);
                 JobPlaningLine.SetFilter("No.", '<>%1', '');
                 if JobPlaningLine.FindSet() then
                     repeat
                         //Manage days
-                        if JobPlaningLine."Planning Date" <> 0D then
-                            if not TempDateVar.Get(TempDateVar."Period Type"::Date, JobPlaningLine."Planning Date") then begin
+                        if JobPlaningLine."Start Planning Date" <> 0D then
+                            if not TempDateVar.Get(TempDateVar."Period Type"::Date, JobPlaningLine."Start Planning Date") then begin
                                 TempDateVar.Init();
                                 TempDateVar."Period Type" := TempDateVar."Period Type"::Date;
-                                TempDateVar."Period Start" := JobPlaningLine."Planning Date";
+                                TempDateVar."Period Start" := JobPlaningLine."Start Planning Date";
                                 TempDateVar.Insert();
                             end;
                         if JobPlaningLine."End Planning Date" <> 0D then
@@ -196,8 +196,8 @@ codeunit 50600 "Resource DayPilot Handler"
                         Clear(EventObj);
                         EventObj.Add('id', JobPlaningLine."Job No." + '|' + JobPlaningLine."Job Task No." + '|' + format(JobPlaningLine."Line No."));
                         EventObj.Add('text', JobPlaningLine.Description);
-                        EventObj.Add('start', JobPlanningLineHandler.GetTaskDateTime(JobPlaningLine."Planning Date", JobPlaningLine."Start Time", false));
-                        DT := JobPlaningLine."Planning Date";
+                        EventObj.Add('start', JobPlanningLineHandler.GetTaskDateTime(JobPlaningLine."Start Planning Date", JobPlaningLine."Start Time", false));
+                        DT := JobPlaningLine."Start Planning Date";
                         if JobPlaningLine."End Planning Date" <> 0D then
                             DT := JobPlaningLine."End Planning Date";
                         EventObj.Add('end', JobPlanningLineHandler.GetTaskDateTime(DT, JobPlaningLine."End Time", true));

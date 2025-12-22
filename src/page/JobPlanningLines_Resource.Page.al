@@ -49,7 +49,7 @@ page 50616 "Job Planning Line (Resource)"
                         UsageLinkOnAfterValidate();
                     end;
                 }
-                field("Planning Date"; Rec."Planning Date")
+                field("Start Planning Date"; Rec."Start Planning Date")
                 {
                     ApplicationArea = Jobs;
                     Editable = PlanningDateEditable;
@@ -867,7 +867,7 @@ page 50616 "Job Planning Line (Resource)"
 
                     trigger OnAction()
                     begin
-                        Rec.SetRange("Planning Date", Today);
+                        Rec.SetRange("Start Planning Date", Today);
                         CurrFilterDate := Today;
                         CurrPage.Update();
                     end;
@@ -881,7 +881,7 @@ page 50616 "Job Planning Line (Resource)"
                     trigger OnAction()
                     begin
                         CurrFilterDate := CalcDate('<-1D>', CurrFilterDate);
-                        Rec.SetRange("Planning Date", CurrFilterDate);
+                        Rec.SetRange("Start Planning Date", CurrFilterDate);
                         CurrPage.Update();
                     end;
                 }
@@ -894,7 +894,7 @@ page 50616 "Job Planning Line (Resource)"
                     trigger OnAction()
                     begin
                         CurrFilterDate := CalcDate('<1D>', CurrFilterDate);
-                        Rec.SetRange("Planning Date", CurrFilterDate);
+                        Rec.SetRange("Start Planning Date", CurrFilterDate);
                         CurrPage.Update();
                     end;
                 }
@@ -1330,8 +1330,8 @@ page 50616 "Job Planning Line (Resource)"
         Rec.SetUpNewLine(xRec);
         //<<Custom
         if CurrFilterDate <> 0D then begin
-            Rec."Planning Date" := CurrFilterDate;
-            Rec.SetRange("Planning Date", CurrFilterDate);
+            Rec."Start Planning Date" := CurrFilterDate;
+            Rec.SetRange("Start Planning Date", CurrFilterDate);
         end;
         //>>
     end;
@@ -1348,7 +1348,7 @@ page 50616 "Job Planning Line (Resource)"
         SelectMultipleItemsVisible := Rec.GetFilter("Job Task No.") <> '';
         Rec.FilterGroup := 0;
         //<<Custom
-        Rec.SetRange("Planning Date", Today);
+        Rec.SetRange("Start Planning Date", Today);
         CurrFilterDate := Today;
         //>>
     end;
@@ -1461,7 +1461,7 @@ page 50616 "Job Planning Line (Resource)"
 
     protected procedure PlanningDateOnAfterValidate()
     begin
-        if Rec."Planning Date" <> xRec."Planning Date" then
+        if Rec."Start Planning Date" <> xRec."Start Planning Date" then
             PerformAutoReserve();
     end;
 

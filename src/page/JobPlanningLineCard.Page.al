@@ -54,6 +54,12 @@ page 50631 "Job Planning Line Card"
                     ToolTip = 'Specifies the value of the Skills Required field.', Comment = '%';
                     Importance = Promoted;
                 }
+                field("Work-Hour Template"; Rec."Work-Hour Template")
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the work-hour template for this planning line.';
+                    Importance = Promoted;
+                }
                 group(Planning)
                 {
 
@@ -87,7 +93,7 @@ page 50631 "Job Planning Line Card"
                 {
                     Caption = 'Planning Dates';
 
-                    field("Planning Date"; Rec."Planning Date")
+                    field("Start Planning Date"; Rec."Start Planning Date")
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Specifies the date of the planning line.';
@@ -101,12 +107,6 @@ page 50631 "Job Planning Line Card"
                         Importance = Promoted;
                     }
 
-                    field("Planned Delivery Date"; Rec."Planned Delivery Date")
-                    {
-                        ApplicationArea = Jobs;
-                        ToolTip = 'Specifies the date that is planned to deliver the item connected to the project planning line.';
-                        Importance = Additional;
-                    }
                 }
                 group(PlanningTimes)
                 {
@@ -138,17 +138,7 @@ page 50631 "Job Planning Line Card"
                         ToolTip = 'Specifies the number of units of the resource, item, or general ledger account that should be specified on the planning line.';
                         Importance = Promoted;
                     }
-                    field("Unit of Measure Code"; Rec."Unit of Measure Code")
-                    {
-                        ApplicationArea = Jobs;
-                        ToolTip = 'Specifies a unit of measure code that applies to the project planning line.';
-                    }
-                    field("Quantity (Base)"; Rec."Quantity (Base)")
-                    {
-                        ApplicationArea = Jobs;
-                        ToolTip = 'Specifies the quantity in base units of measure.';
-                        Importance = Additional;
-                    }
+
                 }
                 group(ResourcePreview)
                 {
