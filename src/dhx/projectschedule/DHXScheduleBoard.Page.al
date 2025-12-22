@@ -23,7 +23,8 @@ page 50621 "DHX Schedule Board"
                     PlanninJsonTxt: Text;
                     ResourceJSONTxt: Text;
                 begin
-                    DHXDataHandler.GetOneYearPeriodDates(Today(), startDate, endDate);
+                    //DHXDataHandler.GetOneYearPeriodDates(Today(), startDate, endDate);
+                    DHXDataHandler.GetWeekPeriodDates(Today(), startDate, endDate);
                     ResourceJSONTxt := DHXDataHandler.GetYUnitElementsJSON(Today(), startDate, endDate, PlanninJsonTxt, EarliestPlanningDate);
                     CurrPage.DhxScheduler.Init(ResourceJSONTxt, EarliestPlanningDate);
                     CurrPage.DhxScheduler.LoadData(PlanninJsonTxt);
