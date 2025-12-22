@@ -24,7 +24,7 @@ page 50621 "DHX Schedule Board"
                     ResourceJSONTxt: Text;
                 begin
                     DHXDataHandler.GetOneYearPeriodDates(Today(), startDate, endDate);
-                    ResourceJSONTxt := DHXDataHandler.GetYUnitElementsJSON(startDate, endDate, PlanninJsonTxt, EarliestPlanningDate);
+                    ResourceJSONTxt := DHXDataHandler.GetYUnitElementsJSON(Today(), startDate, endDate, PlanninJsonTxt, EarliestPlanningDate);
                     CurrPage.DhxScheduler.Init(ResourceJSONTxt, EarliestPlanningDate);
                     CurrPage.DhxScheduler.LoadData(PlanninJsonTxt);
                 end;
@@ -42,7 +42,7 @@ page 50621 "DHX Schedule Board"
                     DHXDataHandler.OpenJobPlanningLineCard(eventId, PossibleChanges);
                     // Get the latest data after possible changes in day tasks
                     if PossibleChanges then begin
-                        Message('Get the latest data after possible changes in day tasks');
+                        Message('Under Development: Get the latest data after possible changes in day tasks');
                         //newEventData := DHXDataHandler.GetDayTasksEventDataJSON(eventId);
                         //CurrPage.DhxScheduler.RefreshDayTasksData(newEventData);
                     end;
@@ -51,6 +51,7 @@ page 50621 "DHX Schedule Board"
                 #endregion Event Double Click
 
                 #region new event added
+
                 trigger onEventAdded(eventId: Text; eventData: Text)
                 var
                     DHXDataHandler: Codeunit "DHX Data Handler";
@@ -69,6 +70,7 @@ page 50621 "DHX Schedule Board"
                         CurrPage.DhxScheduler.SetLightboxEventValues(lightboxId, Res."No.", Res.Name);
                     end;
                 end;
+
                 #endregion new event added
 
                 #region Event Changes
@@ -76,16 +78,16 @@ page 50621 "DHX Schedule Board"
                 var
                     DHXDataHandler: Codeunit "DHX Data Handler";
                     UpdateEventID: Boolean;
-                    OldPlanningLine_forUpdate: record "Job Planning Line";
-                    NewPlanningLine_forUpdate: record "Job Planning Line";
+                    OldDayTask_forUpdate: record "Day Tasks";
+                    NewDayTask_forUpdate: record "Day Tasks";
                 begin
                     DHXDataHandler.OnEventChanged(eventId,
                                                   eventData,
                                                   UpdateEventID,
-                                                  OldPlanningLine_forUpdate,
-                                                  NewPlanningLine_forUpdate);
+                                                  OldDayTask_forUpdate,
+                                                  NewDayTask_forUpdate);
                     if UpdateEventID then
-                        CurrPage.DhxScheduler.UpdateEventId(DHXDataHandler.UpdateEventID(OldPlanningLine_forUpdate, NewPlanningLine_forUpdate)); //update event ID
+                        CurrPage.DhxScheduler.UpdateEventId(DHXDataHandler.UpdateEventID(OldDayTask_forUpdate, NewDayTask_forUpdate)); //update event ID
                 end;
 
                 trigger OnAfterEventIdUpdated(oldid: Text; newid: Text)
