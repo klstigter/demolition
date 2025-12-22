@@ -69,89 +69,84 @@ codeunit 50604 "DHX Data Handler"
         EndDateTxt: Text;
     begin
         PlanninJsonTxt := '';
-        //Marking Job based on Job Planning Lines within the given date range
-        Planning.SetRange("Start Planning Date", StartDate, EndDate);
-        Planning.SetFilter("Job No.", '<>%1', ''); //Exclude blank Job Nos
-        Planning.SetRange(Type, Planning.Type::Resource);
-        if Planning.FindSet() then begin
-            //Marking Job based on Day Tasks within the given date range
-            Daytask.SetRange("Planning Date", StartDate, EndDate);
-            Daytask.SetFilter("Job No.", '<>%1', ''); //Exclude blank Job Nos
-            Daytask.SetFilter("Job Task No.", '<>%1', ''); //Exclude blank task Nos
-            Daytask.SetRange(Type, Daytask.Type::Resource);
-            if Daytask.FindSet() then begin
-                repeat
-                    Jobs.Get(Daytask."Job No.");
-                    Jobs.Mark(true);
-                    // create event data
-                    CountToWeekNumber(Daytask."Planning Date", WeekTemp);
-                    GetStartEndTxt(Daytask, StartDateTxt, EndDateTxt);
-                    Clear(PlanningObject);
-                    PlanningObject.Add('id', Daytask."Job No." + '|' + Daytask."Job Task No." + '|' + Format(Daytask."Job Planning Line No.") + '|' + Format(Daytask."Day No."));
-                    PlanningObject.Add('start_date', StartDateTxt);
-                    PlanningObject.Add('end_date', EndDateTxt);
-                    PlanningObject.Add('text', Daytask.Description);
-                    PlanningObject.Add('section_id', Daytask."Job No." + '|' + Daytask."Job Task No." + '|' + Format(Daytask."Job Planning Line No."));
-                    PlanningArray.Add(PlanningObject);
-                    PlanningArray.WriteTo(PlanninJsonTxt);
-                until Daytask.Next() = 0;
+        //Marking Job based on Day Tasks within the given date range
+        Daytask.SetRange("Start Planning Date", StartDate, EndDate);
+        Daytask.SetFilter("Job No.", '<>%1', ''); //Exclude blank Job Nos
+        Daytask.SetFilter("Job Task No.", '<>%1', ''); //Exclude blank task Nos
+        Daytask.SetRange(Type, Daytask.Type::Resource);
+        if Daytask.FindSet() then begin
+            repeat
+                Jobs.Get(Daytask."Job No.");
+                Jobs.Mark(true);
+                // create event data
+                CountToWeekNumber(Daytask."Start Planning Date", WeekTemp);
+                GetStartEndTxt(Daytask, StartDateTxt, EndDateTxt);
+                Clear(PlanningObject);
+                PlanningObject.Add('id', Daytask."Job No." + '|' + Daytask."Job Task No." + '|' + Format(Daytask."Job Planning Line No.") + '|' + Format(Daytask."Day No."));
+                PlanningObject.Add('start_date', StartDateTxt);
+                PlanningObject.Add('end_date', EndDateTxt);
+                PlanningObject.Add('text', Daytask.Description);
+                PlanningObject.Add('section_id', Daytask."Job No." + '|' + Daytask."Job Task No." + '|' + Format(Daytask."Job Planning Line No."));
+                PlanningArray.Add(PlanningObject);
+                PlanningArray.WriteTo(PlanninJsonTxt);
+            until Daytask.Next() = 0;
 
-                WeekTemp.Reset();
-                WeekTemp.SetCurrentKey("Column 3 Amt.");
-                WeekTemp.FindSet();
-                if WeekTemp.FindLast() then begin
-                    EarliestPlanningDate := DWY2Date(1, WeekTemp."Column 2 Amt.", WeekTemp."Column 1 Amt.");
-                end;
+            WeekTemp.Reset();
+            WeekTemp.SetCurrentKey("Column 3 Amt.");
+            WeekTemp.FindSet();
+            if WeekTemp.FindLast() then begin
+                EarliestPlanningDate := DWY2Date(1, WeekTemp."Column 2 Amt.", WeekTemp."Column 1 Amt.");
             end;
-            Jobs.MarkedOnly := true;
-            if Jobs.FindSet() then begin
-                Clear(DataArray);
-                repeat
-                    JobTasks.SetRange("Job No.", Jobs."No.");
-                    JobTasks.SetRange("Job Task Type", JobTasks."Job Task Type"::Posting);
-
-                    Clear(JobObject);
-                    JobObject.Add('key', Jobs."No."); // string keys are fine
-                    JobObject.Add('label', StrSubstNo('%1 - %2', Jobs."No.", Jobs.Description));
-                    JobObject.Add('open', true);
-
-                    Clear(ChildrenArray);
-                    if JobTasks.FindSet() then begin
-                        repeat
-                            Clear(TaskObject);
-                            TaskObject.Add('key', Jobs."No." + '|' + JobTasks."Job Task No.");
-                            TaskObject.Add('label', StrSubstNo('%1 - %2', JobTasks."Job Task No.", JobTasks.Description));
-                            ChildrenArray.Add(TaskObject);
-
-                            // Now add children for this task (the Day Tasks)                        
-                            Clear(ChildrenArray2);
-                            PlanningLine.SetRange("Job No.", Jobs."No.");
-                            PlanningLine.SetRange("Job Task No.", JobTasks."Job Task No.");
-                            if PlanningLine.FindSet() then begin
-                                repeat
-                                    Clear(PlanningLineObject);
-                                    PlanningLineObject.Add('key', Jobs."No." + '|' + JobTasks."Job Task No." + '|' + Format(PlanningLine."Line No."));
-                                    PlanningLineObject.Add('label', PlanningLine.Description);
-                                    ChildrenArray2.Add(PlanningLineObject);
-                                until PlanningLine.Next() = 0;
-                            end;
-                            TaskObject.Add('children', ChildrenArray2);
-                        until JobTasks.Next() = 0;
-                    end;
-                    JobObject.Add('children', ChildrenArray);
-                    DataArray.Add(JobObject);
-                until Jobs.Next() = 0;
-                Clear(Root);
-                Root.Add('data', DataArray);
-
-                // Write JSON to text
-                Root.WriteTo(OutText);
-                exit(OutText);
-            end;
-            exit('');
         end;
+        Jobs.MarkedOnly := true;
+        if Jobs.FindSet() then begin
+            Clear(DataArray);
+            repeat
+                JobTasks.SetRange("Job No.", Jobs."No.");
+                JobTasks.SetRange("Job Task Type", JobTasks."Job Task Type"::Posting);
 
-        local procedure CountToWeekNumber(DateToCount: Date; var WeekTemp: record "Aging Band Buffer" temporary)
+                Clear(JobObject);
+                JobObject.Add('key', Jobs."No."); // string keys are fine
+                JobObject.Add('label', StrSubstNo('%1 - %2', Jobs."No.", Jobs.Description));
+                JobObject.Add('open', true);
+
+                Clear(ChildrenArray);
+                if JobTasks.FindSet() then begin
+                    repeat
+                        Clear(TaskObject);
+                        TaskObject.Add('key', Jobs."No." + '|' + JobTasks."Job Task No.");
+                        TaskObject.Add('label', StrSubstNo('%1 - %2', JobTasks."Job Task No.", JobTasks.Description));
+                        ChildrenArray.Add(TaskObject);
+
+                        // Now add children for this task (the Day Tasks)                        
+                        Clear(ChildrenArray2);
+                        PlanningLine.SetRange("Job No.", Jobs."No.");
+                        PlanningLine.SetRange("Job Task No.", JobTasks."Job Task No.");
+                        if PlanningLine.FindSet() then begin
+                            repeat
+                                Clear(PlanningLineObject);
+                                PlanningLineObject.Add('key', Jobs."No." + '|' + JobTasks."Job Task No." + '|' + Format(PlanningLine."Line No."));
+                                PlanningLineObject.Add('label', PlanningLine.Description);
+                                ChildrenArray2.Add(PlanningLineObject);
+                            until PlanningLine.Next() = 0;
+                        end;
+                        TaskObject.Add('children', ChildrenArray2);
+                    until JobTasks.Next() = 0;
+                end;
+                JobObject.Add('children', ChildrenArray);
+                DataArray.Add(JobObject);
+            until Jobs.Next() = 0;
+            Clear(Root);
+            Root.Add('data', DataArray);
+
+            // Write JSON to text
+            Root.WriteTo(OutText);
+            exit(OutText);
+        end;
+        exit('');
+    end;
+
+    local procedure CountToWeekNumber(DateToCount: Date; var WeekTemp: record "Aging Band Buffer" temporary)
     var
         yw: Code[6];
     begin
@@ -207,28 +202,28 @@ codeunit 50604 "DHX Data Handler"
     begin
         StartDateTxt := '';
         EndDateTxt := '';
-        if DayTask."Planning Date" = 0D then
+        if DayTask."Start Planning Date" = 0D then
             exit;
         case true of
             (DayTask."Start Time" <> 0T) and (DayTask."End Time" <> 0T):
                 begin
-                    StartDateTxt := Format(DayTask."Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(DayTask."Start Time");
-                    EndDateTxt := Format(DayTask."Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(DayTask."End Time");
+                    StartDateTxt := Format(DayTask."Start Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(DayTask."Start Time");
+                    EndDateTxt := Format(DayTask."Start Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(DayTask."End Time");
                 end;
             (DayTask."Start Time" <> 0T) and (DayTask."End Time" = 0T):
                 begin
-                    StartDateTxt := Format(DayTask."Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(DayTask."Start Time");
-                    EndDateTxt := Format(DayTask."Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 23:59:59';
+                    StartDateTxt := Format(DayTask."Start Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(DayTask."Start Time");
+                    EndDateTxt := Format(DayTask."Start Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 23:59:59';
                 end;
             (DayTask."Start Time" = 0T) and (DayTask."End Time" <> 0T):
                 begin
-                    StartDateTxt := Format(DayTask."Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
-                    EndDateTxt := Format(DayTask."Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(DayTask."End Time");
+                    StartDateTxt := Format(DayTask."Start Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
+                    EndDateTxt := Format(DayTask."Start Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(DayTask."End Time");
                 end;
             (DayTask."Start Time" = 0T) and (DayTask."End Time" = 0T):
                 begin
-                    StartDateTxt := Format(DayTask."Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
-                    EndDateTxt := Format(DayTask."Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 23:59:59';
+                    StartDateTxt := Format(DayTask."Start Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
+                    EndDateTxt := Format(DayTask."Start Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 23:59:59';
                 end;
         end;
     end;
