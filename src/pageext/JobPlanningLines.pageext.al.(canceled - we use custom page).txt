@@ -14,7 +14,7 @@ pageextension 50600 "DDSIA Job Planning Lines" extends "Job Planning Lines"
         {
             visible = ShowJobNo;
         }
-        addafter("Planning Date")
+        addafter("Start Planning Date")
         {
             field("Start Time"; Rec."Start Time")
             {
@@ -93,7 +93,7 @@ pageextension 50600 "DDSIA Job Planning Lines" extends "Job Planning Lines"
 
                 trigger OnAction()
                 begin
-                    Rec.SetRange("Planning Date", Today);
+                    Rec.SetRange("Start Planning Date", Today);
                     CurrFilterDate := Today;
                     CurrPage.Update();
                 end;
@@ -107,7 +107,7 @@ pageextension 50600 "DDSIA Job Planning Lines" extends "Job Planning Lines"
                 trigger OnAction()
                 begin
                     CurrFilterDate := CalcDate('<-1D>', CurrFilterDate);
-                    Rec.SetRange("Planning Date", CurrFilterDate);
+                    Rec.SetRange("Start Planning Date", CurrFilterDate);
                     CurrPage.Update();
                 end;
             }
@@ -120,7 +120,7 @@ pageextension 50600 "DDSIA Job Planning Lines" extends "Job Planning Lines"
                 trigger OnAction()
                 begin
                     CurrFilterDate := CalcDate('<1D>', CurrFilterDate);
-                    Rec.SetRange("Planning Date", CurrFilterDate);
+                    Rec.SetRange("Start Planning Date", CurrFilterDate);
                     CurrPage.Update();
                 end;
             }
@@ -172,7 +172,7 @@ pageextension 50600 "DDSIA Job Planning Lines" extends "Job Planning Lines"
     var
         myInt: Integer;
     begin
-        Rec.SetRange("Planning Date", Today);
+        Rec.SetRange("Start Planning Date", Today);
         CurrFilterDate := Today;
         ShowJobNo := Rec.GetFilter("Job No.") = '';
     end;
@@ -180,8 +180,8 @@ pageextension 50600 "DDSIA Job Planning Lines" extends "Job Planning Lines"
     trigger OnNewRecord(BelowxRec: Boolean)
     begin
         if CurrFilterDate <> 0D then begin
-            Rec."Planning Date" := CurrFilterDate;
-            Rec.SetRange("Planning Date", CurrFilterDate);
+            Rec."Start Planning Date" := CurrFilterDate;
+            Rec.SetRange("Start Planning Date", CurrFilterDate);
         end;
     end;
 

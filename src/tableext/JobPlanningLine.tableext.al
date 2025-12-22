@@ -6,19 +6,9 @@ tableextension 50600 "Job Planning Line ext" extends "Job Planning Line"
     fields
     {
         // Add changes to table fields here
-        field(50600; "Start Time"; Time)
+        field(50601; "Start Planning Date"; Date)
         {
             DataClassification = ToBeClassified;
-
-            trigger OnValidate()
-            begin
-                CheckOverlap();
-            end;
-        }
-        field(50601; "End Time"; Time)
-        {
-            DataClassification = ToBeClassified;
-
             trigger OnValidate()
             begin
                 CheckOverlap();
@@ -32,13 +22,34 @@ tableextension 50600 "Job Planning Line ext" extends "Job Planning Line"
                 CheckOverlap();
             end;
         }
-        field(50603; "Vendor No."; Code[20])
+        field(50603; "Start Time"; Time)
+        {
+            DataClassification = ToBeClassified;
+
+            trigger OnValidate()
+            begin
+                CheckOverlap();
+                CalculateNonWorkingHours();
+            end;
+        }
+        field(50604; "End Time"; Time)
+        {
+            DataClassification = ToBeClassified;
+
+            trigger OnValidate()
+            begin
+                CheckOverlap();
+                CalculateNonWorkingHours();
+            end;
+        }
+
+        field(50615; "Vendor No."; Code[20])
         {
             DataClassification = ToBeClassified;
             TableRelation = Vendor;
             Caption = 'Vendor No.';
         }
-        field(50604; "Vendor Name"; Text[100])
+        field(50616; "Vendor Name"; Text[100])
         {
             FieldClass = FlowField;
             CalcFormula = lookup(Vendor.Name where("No." = field("Vendor No.")));
@@ -49,23 +60,58 @@ tableextension 50600 "Job Planning Line ext" extends "Job Planning Line"
         // {
         //     DataClassification = ToBeClassified;
         // }
+        field(50620; "Work-Hour Template"; Code[20])
+        {
+            DataClassification = ToBeClassified;
+            TableRelation = "Work-Hour Template";
+            Caption = 'Work-Hour Template';
+            trigger OnValidate()
+            var
+                workHourTemplate: Record "Work-Hour Template";
+            begin
+                if workHourTemplate.Get(Rec."Work-Hour Template") then begin
+                    rec."Start Time" := workHourTemplate."Default Start Time";
+                    rec."End Time" := workHourTemplate."Default End Time";
+                    rec."Non Working Minutes" := workHourTemplate."Non Working Minutes";
+                    Rec.Modify();
+                end;
+            end;
+        }
+        field(50630; "Non Working Minutes"; Integer)
+        {
+            Caption = 'Non Working Minutes';
+            DataClassification = CustomerContent;
+            Editable = true;
 
-        field(50525; SkillsRequired; Code[10])
+            trigger OnValidate()
+            begin
+                CalculateNonWorkingHours();
+            end;
+        }
+        field(50640; "Working Hours"; Decimal)
+        {
+            Caption = 'Working Hours';
+            DataClassification = CustomerContent;
+            DecimalPlaces = 0 : 2;
+            Editable = false;
+        }
+
+        field(50650; SkillsRequired; Code[10])
         {
             DataClassification = ToBeClassified;
             Caption = 'Skills Required';
             TableRelation = "Skill Code";
         }
 
-        field(50530; Depth; Decimal)
+        field(50660; Depth; Decimal)
         {
             DataClassification = ToBeClassified;
         }
-        field(50605; IsBoor; Boolean)
+        field(50670; IsBoor; Boolean)
         {
             DataClassification = ToBeClassified;
         }
-        field(50606; "Job View Type"; Enum "Job View Type")
+        field(50680; "Job View Type"; Enum "Job View Type")
         {
             FieldClass = FlowField;
             CalcFormula = lookup("Job Task"."Job View Type" where("Job Task No." = Field("Job Task No."), "Job No." = Field("Job No.")));
@@ -120,8 +166,8 @@ tableextension 50600 "Job Planning Line ext" extends "Job Planning Line"
         DT1 := 0DT;
         DT2 := CreateDateTime(DMY2Date(31, 12, 2999), Time);
 
-        if ("Planning Date" <> 0D) and ("Start Time" <> 0T) then begin
-            DT := "Planning Date";
+        if ("Start Planning Date" <> 0D) and ("Start Time" <> 0T) then begin
+            DT := "Start Planning Date";
             DT1 := CreateDateTime(DT, "Start Time");
         end;
         if ("End Planning Date" <> 0D) and ("End Time" <> 0T) then begin
@@ -130,6 +176,30 @@ tableextension 50600 "Job Planning Line ext" extends "Job Planning Line"
         end;
         if DT1 > DT2 then
             error('Datetime overlaped!');
+    end;
+
+    local procedure CalculateNonWorkingHours()
+    var
+        TotalMinutes: Integer;
+        WorkingMinutes: Integer;
+    begin
+        // If either time is not set, clear both hours fields
+        if ("Start Time" = 0T) or ("End Time" = 0T) then begin
+            "Working Hours" := 0;
+            "Non Working Minutes" := 0;
+            exit;
+        end;
+
+        // Calculate total minutes in a day (24 hours)
+        TotalMinutes := 24 * 60;
+
+        // Calculate working minutes
+        WorkingMinutes := ("End Time" - "Start Time") div 60000;
+        WorkingMinutes := WorkingMinutes - "Non Working Minutes";
+
+        // Convert to hours (decimal)
+        "Working Hours" := WorkingMinutes / 60;
+
     end;
 
     procedure GetResourceOrProductIDFromPlanningIntegration(): Integer

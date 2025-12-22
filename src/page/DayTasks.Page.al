@@ -33,7 +33,7 @@ page 50630 "Day Tasks"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the job planning line number.';
                 }
-                field("Planning Date"; Rec."Planning Date")
+                field("Start Planning Date"; Rec."Start Planning Date")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the planning date for this day.';
@@ -47,6 +47,19 @@ page 50630 "Day Tasks"
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the end time for this day.';
+                }
+                field("Non Working Hours"; Rec."Non Working Hours")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the number of non-working hours in a 24-hour period for this day task.';
+                }
+                field("Working Hours"; Rec."Working Hours")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the number of working hours for this day task, calculated automatically based on start and end times.';
+                    Editable = false;
+                    Style = Favorable;
+                    StyleExpr = true;
                 }
                 field(Type; Rec.Type)
                 {
@@ -104,6 +117,8 @@ page 50630 "Day Tasks"
                     ToolTip = 'Specifies the actual worked hours for this day task.';
                     Editable = true;
                 }
+
+
             }
         }
     }

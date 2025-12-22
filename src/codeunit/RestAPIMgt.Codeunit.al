@@ -422,10 +422,10 @@ codeunit 50602 "Rest API Mgt."
         end;
 
         LineObj.Add('bc_jobplanningline_datetimestart',
-            (PlanningLine."Planning Date" <> 0D) and (PlanningLine."Start Time" <> 0T)
+            (PlanningLine."Start Planning Date" <> 0D) and (PlanningLine."Start Time" <> 0T)
             ?
             StrSubstNo('%1T%2',
-                format(PlanningLine."Planning Date", 0, '<Year4>-<Month,2>-<Day,2>'),
+                format(PlanningLine."Start Planning Date", 0, '<Year4>-<Month,2>-<Day,2>'),
                 format(PlanningLine."Start Time", 0, '<Hours24,2><Filler Character,0>:<Minutes,2>:<Seconds,2>'))
             :
             '');
@@ -548,10 +548,10 @@ codeunit 50602 "Rest API Mgt."
                         end;
 
                         LineObj.Add('bc_jobplanningline_datetimestart',
-                            (PlanningLine."Planning Date" <> 0D) and (PlanningLine."Start Time" <> 0T)
+                            (PlanningLine."Start Planning Date" <> 0D) and (PlanningLine."Start Time" <> 0T)
                             ?
                             StrSubstNo('%1T%2',
-                                format(PlanningLine."Planning Date", 0, '<Year4>-<Month,2>-<Day,2>'),
+                                format(PlanningLine."Start Planning Date", 0, '<Year4>-<Month,2>-<Day,2>'),
                                 format(PlanningLine."Start Time", 0, '<Hours24,2><Filler Character,0>:<Minutes,2>:<Seconds,2>'))
                             :
                             '');
@@ -659,7 +659,7 @@ codeunit 50602 "Rest API Mgt."
 
             DT := ConvertDTStringIntoDT(StartDateTime);
             if DT <> 0DT Then begin
-                PlanningLine."Planning Date" := DT2Date(DT);
+                PlanningLine."Start Planning Date" := DT2Date(DT);
                 PlanningLine."Start Time" := DT2Time(DT);
             end;
 
@@ -702,7 +702,7 @@ codeunit 50602 "Rest API Mgt."
 
             DT := ConvertDTStringIntoDT(StartDateTime);
             if DT <> 0DT Then begin
-                PlanningLine."Planning Date" := DT2Date(DT);
+                PlanningLine."Start Planning Date" := DT2Date(DT);
                 PlanningLine."Start Time" := DT2Time(DT);
             end;
             DT := ConvertDTStringIntoDT(EndDateTime);
@@ -719,7 +719,7 @@ codeunit 50602 "Rest API Mgt."
 
             DT := ConvertDTStringIntoDT(StartDateTime);
             if DT <> 0DT Then begin
-                PlanningLine."Planning Date" := DT2Date(DT);
+                PlanningLine."Start Planning Date" := DT2Date(DT);
                 PlanningLine."Start Time" := DT2Time(DT);
             end;
             DT := ConvertDTStringIntoDT(EndDateTime);
@@ -812,7 +812,7 @@ codeunit 50602 "Rest API Mgt."
             PlanningLine.Type := pLine.Type;
             DT := ConvertDTStringIntoDT(StartDateTime);
             if DT <> 0DT Then begin
-                PlanningLine."Planning Date" := DT2Date(DT);
+                PlanningLine."Start Planning Date" := DT2Date(DT);
                 PlanningLine."Start Time" := DT2Time(DT);
             end;
 
@@ -830,7 +830,7 @@ codeunit 50602 "Rest API Mgt."
             PlanningLine.validate("No.", Item."No.");
             DT := ConvertDTStringIntoDT(StartDateTime);
             if DT <> 0DT Then begin
-                PlanningLine."Planning Date" := DT2Date(DT);
+                PlanningLine."Start Planning Date" := DT2Date(DT);
                 PlanningLine."Start Time" := DT2Time(DT);
             end;
 

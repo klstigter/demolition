@@ -43,7 +43,7 @@ page 50601 "Resource Selection"
                     Grid("Date-Time")
                     {
                         GridLayout = Columns;
-                        field("Start Date"; JobPlanningLine."Planning Date")
+                        field("Start Date"; JobPlanningLine."Start Planning Date")
                         {
                             ApplicationArea = All;
                             Caption = 'Start';
@@ -82,7 +82,7 @@ page 50601 "Resource Selection"
                 trigger ResControlReady()
                 begin
                     CurrPage.DayPilotResourceSelection.ResInit(StartDate,
-                                                                Format(JobPlanningLine."Planning Date", 0, '<Year4>-<Month,2>-<Day,2>')
+                                                                Format(JobPlanningLine."Start Planning Date", 0, '<Year4>-<Month,2>-<Day,2>')
                                                                 + 'T'
                                                                 + format(JobPlanningLine."Start Time", 0, '<Hours24,2><Filler Character,0>:<Minutes,2>:<Seconds,2>'),
                                                                 Format(JobPlanningLine."End Planning Date", 0, '<Year4>-<Month,2>-<Day,2>')
@@ -154,7 +154,7 @@ page 50601 "Resource Selection"
         JobPlanningLine.Init();
         JobPlanningLine."Job No." := JobNo;
         JobPlanningLine."Job Task No." := TaskNo;
-        JobPlanningLine."Planning Date" := DT2Date(DT1);
+        JobPlanningLine."Start Planning Date" := DT2Date(DT1);
         JobPlanningLine."End Planning Date" := DT2Date(DT2);
         JobPlanningLine."Start Time" := DT2Time(DT1);
         JobPlanningLine."End Time" := DT2Time(DT2);
@@ -220,7 +220,7 @@ page 50601 "Resource Selection"
         '{"start":"2024-01-22T00:00:00","name":"HESSEL - Hessel Wanders","value":"HESSEL","id":"HESSEL","index":3}]';
         */
 
-        JobPlanningLine.TestField("Planning Date");
+        JobPlanningLine.TestField("Start Planning Date");
         Events := '';
         if not InArr.ReadFrom(gResourcesJsonTxt) then
             exit;
@@ -233,8 +233,8 @@ page 50601 "Resource Selection"
                 Clear(EventObj);
                 EventObj.Add('id', JobPlanningLine."Job No." + '|' + JobPlanningLine."Job Task No." + '|' + ResNo); //Line No. is not known, id will define during event creation
                 EventObj.Add('text', ResNameTok.AsValue().AsText());
-                EventObj.Add('start', JobPlanningLineHandler.GetTaskDateTime(JobPlanningLine."Planning Date", JobPlanningLine."Start Time", false));
-                _Date := JobPlanningLine."Planning Date";
+                EventObj.Add('start', JobPlanningLineHandler.GetTaskDateTime(JobPlanningLine."Start Planning Date", JobPlanningLine."Start Time", false));
+                _Date := JobPlanningLine."Start Planning Date";
                 if JobPlanningLine."End Planning Date" <> 0D then
                     _Date := JobPlanningLine."End Planning Date";
                 EventObj.Add('end', JobPlanningLineHandler.GetTaskDateTime(_Date, JobPlanningLine."End Time", true));

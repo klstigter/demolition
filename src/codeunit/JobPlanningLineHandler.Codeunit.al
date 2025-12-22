@@ -64,11 +64,11 @@ codeunit 50601 "Job Planning Line Handler"
                     Clear(EventObj);
 
                     //Manage days
-                    if JobPlaningLine."Planning Date" <> 0D then
-                        if not TempDateVar.Get(TempDateVar."Period Type"::Date, JobPlaningLine."Planning Date") then begin
+                    if JobPlaningLine."Start Planning Date" <> 0D then
+                        if not TempDateVar.Get(TempDateVar."Period Type"::Date, JobPlaningLine."Start Planning Date") then begin
                             TempDateVar.Init();
                             TempDateVar."Period Type" := TempDateVar."Period Type"::Date;
-                            TempDateVar."Period Start" := JobPlaningLine."Planning Date";
+                            TempDateVar."Period Start" := JobPlaningLine."Start Planning Date";
                             TempDateVar.Insert();
                         end;
                     if JobPlaningLine."End Planning Date" <> 0D then
@@ -81,8 +81,8 @@ codeunit 50601 "Job Planning Line Handler"
 
                     EventObj.Add('id', task."Job No." + '|' + task."Job Task No." + '|' + format(JobPlaningLine."Line No."));
                     EventObj.Add('text', JobPlaningLine.Description);
-                    EventObj.Add('start', GetTaskDateTime(JobPlaningLine."Planning Date", JobPlaningLine."Start Time", false));
-                    DT2 := JobPlaningLine."Planning Date";
+                    EventObj.Add('start', GetTaskDateTime(JobPlaningLine."Start Planning Date", JobPlaningLine."Start Time", false));
+                    DT2 := JobPlaningLine."Start Planning Date";
                     if JobPlaningLine."End Planning Date" <> 0D then
                         DT2 := JobPlaningLine."End Planning Date";
                     EventObj.Add('end', GetTaskDateTime(DT2, JobPlaningLine."End Time", true));
@@ -167,11 +167,11 @@ codeunit 50601 "Job Planning Line Handler"
                 i += 1;
                 Clear(EventObj);
                 //Manage days
-                if JobPlaningLine."Planning Date" <> 0D then
-                    if not TempDateVar.Get(TempDateVar."Period Type"::Date, JobPlaningLine."Planning Date") then begin
+                if JobPlaningLine."Start Planning Date" <> 0D then
+                    if not TempDateVar.Get(TempDateVar."Period Type"::Date, JobPlaningLine."Start Planning Date") then begin
                         TempDateVar.Init();
                         TempDateVar."Period Type" := TempDateVar."Period Type"::Date;
-                        TempDateVar."Period Start" := JobPlaningLine."Planning Date";
+                        TempDateVar."Period Start" := JobPlaningLine."Start Planning Date";
                         TempDateVar.Insert();
                     end;
                 if JobPlaningLine."End Planning Date" <> 0D then
@@ -184,8 +184,8 @@ codeunit 50601 "Job Planning Line Handler"
 
                 EventObj.Add('id', JobPlaningLine."Job No." + '|' + JobPlaningLine."Job Task No." + '|' + format(JobPlaningLine."Line No."));
                 EventObj.Add('text', JobPlaningLine.Description);
-                EventObj.Add('start', GetTaskDateTime(JobPlaningLine."Planning Date", JobPlaningLine."Start Time", false));
-                DT := JobPlaningLine."Planning Date";
+                EventObj.Add('start', GetTaskDateTime(JobPlaningLine."Start Planning Date", JobPlaningLine."Start Time", false));
+                DT := JobPlaningLine."Start Planning Date";
                 if JobPlaningLine."End Planning Date" <> 0D then
                     DT := JobPlaningLine."End Planning Date";
                 EventObj.Add('end', GetTaskDateTime(DT, JobPlaningLine."End Time", true));
@@ -282,22 +282,22 @@ codeunit 50601 "Job Planning Line Handler"
         rtv: Text;
     begin
         case true of
-            (JobPlaningLine."Planning Date" <> 0D) and (JobPlaningLine."Start Time" <> 0T):
-                rtv := Format(CreateDateTime(JobPlaningLine."Planning Date", JobPlaningLine."Start Time"));
-            (JobPlaningLine."Planning Date" <> 0D) and (JobPlaningLine."Start Time" = 0T):
-                rtv := Format(JobPlaningLine."Planning Date") + ' 00:00:00';
-            (JobPlaningLine."Planning Date" = 0D) and (JobPlaningLine."Start Time" <> 0T),
-            (JobPlaningLine."Planning Date" = 0D) and (JobPlaningLine."Start Time" = 0T):
+            (JobPlaningLine."Start Planning Date" <> 0D) and (JobPlaningLine."Start Time" <> 0T):
+                rtv := Format(CreateDateTime(JobPlaningLine."Start Planning Date", JobPlaningLine."Start Time"));
+            (JobPlaningLine."Start Planning Date" <> 0D) and (JobPlaningLine."Start Time" = 0T):
+                rtv := Format(JobPlaningLine."Start Planning Date") + ' 00:00:00';
+            (JobPlaningLine."Start Planning Date" = 0D) and (JobPlaningLine."Start Time" <> 0T),
+            (JobPlaningLine."Start Planning Date" = 0D) and (JobPlaningLine."Start Time" = 0T):
                 rtv := '';
         end;
 
         case true of
             (JobPlaningLine."End Planning Date" = 0D) and (JobPlaningLine."End Time" <> 0T):
-                rtv += ' - ' + Format(CreateDateTime(JobPlaningLine."Planning Date", JobPlaningLine."End Time"));
+                rtv += ' - ' + Format(CreateDateTime(JobPlaningLine."Start Planning Date", JobPlaningLine."End Time"));
             (JobPlaningLine."End Planning Date" <> 0D) and (JobPlaningLine."End Time" <> 0T):
                 rtv += ' - ' + Format(CreateDateTime(JobPlaningLine."End Planning Date", JobPlaningLine."End Time"));
             (JobPlaningLine."End Planning Date" = 0D) and (JobPlaningLine."End Time" = 0T):
-                rtv += ' - ' + Format(JobPlaningLine."Planning Date") + ' 00:00:00';
+                rtv += ' - ' + Format(JobPlaningLine."Start Planning Date") + ' 00:00:00';
             (JobPlaningLine."End Planning Date" <> 0D) and (JobPlaningLine."End Time" = 0T):
                 rtv += ' - ' + Format(JobPlaningLine."End Planning Date") + ' 00:00:00';
         end;
@@ -384,7 +384,7 @@ codeunit 50601 "Job Planning Line Handler"
             end;
             JobPlanningLine.Get(JobNo, TaskNo2, LineNo);
         end;
-        JobPlanningLine."Planning Date" := DT2Date(startDt);
+        JobPlanningLine."Start Planning Date" := DT2Date(startDt);
         JobPlanningLine."Start Time" := DT2Time(startDt);
         JobPlanningLine."End Planning Date" := DT2Date(endDt);
         JobPlanningLine."End Time" := DT2Time(endDT);
@@ -439,7 +439,7 @@ codeunit 50601 "Job Planning Line Handler"
             JobPlanningLine."Job Task No." := TaskNo;
             JobPlanningLine."Line Type" := JobPlanningLine."Line Type"::"Both Budget and Billable";
             JobPlanningLine.Description := NewText;
-            JobPlanningLine."Planning Date" := DT2Date(startDt);
+            JobPlanningLine."Start Planning Date" := DT2Date(startDt);
             JobPlanningLine."Start Time" := DT2Time(startDt);
             JobPlanningLine."End Time" := DT2Time(endDt);
             JobPlanningLine.Type := JobPlanningLine.Type::Resource;
@@ -530,7 +530,7 @@ codeunit 50601 "Job Planning Line Handler"
                 JobPlanningLine."Job Task No." := TaskNo;
                 JobPlanningLine."Line Type" := JobPlanningLine."Line Type"::"Both Budget and Billable";
                 JobPlanningLine.Description := txt;
-                JobPlanningLine."Planning Date" := DT2Date(startDt);
+                JobPlanningLine."Start Planning Date" := DT2Date(startDt);
                 JobPlanningLine."Start Time" := DT2Time(startDt);
                 JobPlanningLine."End Time" := DT2Time(endDt);
                 JobPlanningLine.Type := JobPlanningLine.Type::Resource;
@@ -541,8 +541,8 @@ codeunit 50601 "Job Planning Line Handler"
                     Clear(EventObj);
                     EventObj.Add('id', JobPlanningLine."Job No." + '|' + JobPlanningLine."Job Task No." + '|' + Format(JobPlanningLine."Line No.")); //now we know Line No.
                     EventObj.Add('text', JobPlanningLine.Description);
-                    EventObj.Add('start', JobPlanningLineHandler.GetTaskDateTime(JobPlanningLine."Planning Date", JobPlanningLine."Start Time", false));
-                    _Date := JobPlanningLine."Planning Date";
+                    EventObj.Add('start', JobPlanningLineHandler.GetTaskDateTime(JobPlanningLine."Start Planning Date", JobPlanningLine."Start Time", false));
+                    _Date := JobPlanningLine."Start Planning Date";
                     if JobPlanningLine."End Planning Date" <> 0D then
                         _Date := JobPlanningLine."End Planning Date";
                     EventObj.Add('end', JobPlanningLineHandler.GetTaskDateTime(_Date, JobPlanningLine."End Time", true));

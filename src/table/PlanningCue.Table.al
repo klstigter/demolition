@@ -96,7 +96,7 @@ table 50603 "PLanning Cue"
         JobList: page "Job List - Resource";
         rtv: Integer;
     begin
-        JPLine.SetRange("Planning Date", ViewDate);
+        JPLine.SetRange("Start Planning Date", ViewDate);
         JPLine.SetFilter("Job No.", '<>%1', '');
         if JPLine.FindSet() then
             repeat
@@ -143,7 +143,7 @@ table 50603 "PLanning Cue"
         JobTaskList: page "Job Task List - Resource";
         rtv: Integer;
     begin
-        JPLine.SetRange("Planning Date", ViewDate);
+        JPLine.SetRange("Start Planning Date", ViewDate);
         JPLine.SetFilter("Job Task No.", '<>%1', '');
         if JPLine.FindSet() then
             repeat
@@ -194,7 +194,7 @@ table 50603 "PLanning Cue"
         rtv: Integer;
     begin
         JPLine.CalcFields("Job View Type");
-        JPLine.SetRange("Planning Date", ViewDate);
+        JPLine.SetRange("Start Planning Date", ViewDate);
         JPLine.SetRange("Job View Type", ViewType);
         if JPLine.FindSet() then begin
             rtv := JPLine.Count();
