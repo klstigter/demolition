@@ -55,12 +55,12 @@ codeunit 50604 "DHX Data Handler"
     var
         Jobs: Record Job;
         JobTasks: Record "Job Task";
-        Planning: Record "Job Planning Line";
+        PlanningLine: Record "Job Planning Line";
+        Daytask: Record "Day Tasks";
         WeekTemp: record "Aging Band Buffer" temporary;
 
-        JobObject: JsonObject;
-        TaskObject: JsonObject;
-        ChildrenArray: JsonArray;
+        JobObject, TaskObject, PlanningLineObject : JsonObject;
+        ChildrenArray, ChildrenArray2 : JsonArray;
         PlanningObject, Root : JsonObject;
         PlanningArray, DataArray : JsonArray;
         OutText: Text;
@@ -69,26 +69,27 @@ codeunit 50604 "DHX Data Handler"
         EndDateTxt: Text;
     begin
         PlanninJsonTxt := '';
-        //Marking Job based on Job Planning Lines within the given date range
-        Planning.SetRange("Planning Date", StartDate, EndDate);
-        Planning.SetFilter("Job No.", '<>%1', ''); //Exclude blank Job Nos
-        Planning.SetRange(Type, Planning.Type::Resource);
-        if Planning.FindSet() then begin
+        //Marking Job based on Day Tasks within the given date range
+        Daytask.SetRange("Planning Date", StartDate, EndDate);
+        Daytask.SetFilter("Job No.", '<>%1', ''); //Exclude blank Job Nos
+        Daytask.SetFilter("Job Task No.", '<>%1', ''); //Exclude blank task Nos
+        Daytask.SetRange(Type, Daytask.Type::Resource);
+        if Daytask.FindSet() then begin
             repeat
-                Jobs.Get(Planning."Job No.");
+                Jobs.Get(Daytask."Job No.");
                 Jobs.Mark(true);
                 // create event data
-                CountToWeekNumber(Planning."Planning Date", WeekTemp);
-                GetStartEndTxt(Planning, StartDateTxt, EndDateTxt);
+                CountToWeekNumber(Daytask."Planning Date", WeekTemp);
+                GetStartEndTxt(Daytask, StartDateTxt, EndDateTxt);
                 Clear(PlanningObject);
-                PlanningObject.Add('id', Planning."Job No." + '|' + Planning."Job Task No." + '|' + Format(Planning."Line No."));
+                PlanningObject.Add('id', Daytask."Job No." + '|' + Daytask."Job Task No." + '|' + Format(Daytask."Job Planning Line No.") + '|' + Format(Daytask."Day No."));
                 PlanningObject.Add('start_date', StartDateTxt);
                 PlanningObject.Add('end_date', EndDateTxt);
-                PlanningObject.Add('text', Planning.Description);
-                PlanningObject.Add('section_id', Planning."Job No." + '|' + Planning."Job Task No.");
+                PlanningObject.Add('text', Daytask.Description);
+                PlanningObject.Add('section_id', Daytask."Job No." + '|' + Daytask."Job Task No." + '|' + Format(Daytask."Job Planning Line No."));
                 PlanningArray.Add(PlanningObject);
                 PlanningArray.WriteTo(PlanninJsonTxt);
-            until Planning.Next() = 0;
+            until Daytask.Next() = 0;
 
             WeekTemp.Reset();
             WeekTemp.SetCurrentKey("Column 3 Amt.");
@@ -116,9 +117,22 @@ codeunit 50604 "DHX Data Handler"
                         TaskObject.Add('key', Jobs."No." + '|' + JobTasks."Job Task No.");
                         TaskObject.Add('label', StrSubstNo('%1 - %2', JobTasks."Job Task No.", JobTasks.Description));
                         ChildrenArray.Add(TaskObject);
+
+                        // Now add children for this task (the Day Tasks)                        
+                        Clear(ChildrenArray2);
+                        PlanningLine.SetRange("Job No.", Jobs."No.");
+                        PlanningLine.SetRange("Job Task No.", JobTasks."Job Task No.");
+                        if PlanningLine.FindSet() then begin
+                            repeat
+                                Clear(PlanningLineObject);
+                                PlanningLineObject.Add('key', Jobs."No." + '|' + JobTasks."Job Task No." + '|' + Format(PlanningLine."Line No."));
+                                PlanningLineObject.Add('label', PlanningLine.Description);
+                                ChildrenArray2.Add(PlanningLineObject);
+                            until PlanningLine.Next() = 0;
+                        end;
+                        TaskObject.Add('children', ChildrenArray2);
                     until JobTasks.Next() = 0;
                 end;
-
                 JobObject.Add('children', ChildrenArray);
                 DataArray.Add(JobObject);
             until Jobs.Next() = 0;
@@ -179,6 +193,54 @@ codeunit 50604 "DHX Data Handler"
             (JobPlaningLine."End Planning Date" <> 0D) and (JobPlaningLine."End Time" = 0T):
                 EndDateTxt := Format(JobPlaningLine."End Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
         end;
+    end;
+
+    local procedure GetStartEndTxt(DayTask: Record "Day Tasks";
+                                   var StartDateTxt: Text;
+                                   var EndDateTxt: Text)
+    var
+    begin
+        StartDateTxt := '';
+        EndDateTxt := '';
+        if DayTask."Planning Date" = 0D then
+            exit;
+        case true of
+            (DayTask."Start Time" <> 0T) and (DayTask."End Time" <> 0T):
+                begin
+                    StartDateTxt := Format(DayTask."Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(DayTask."Start Time");
+                    EndDateTxt := Format(DayTask."Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(DayTask."End Time");
+                end;
+            (DayTask."Start Time" <> 0T) and (DayTask."End Time" = 0T):
+                begin
+                    StartDateTxt := Format(DayTask."Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(DayTask."Start Time");
+                    EndDateTxt := Format(DayTask."Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 23:59:59';
+                end;
+            (DayTask."Start Time" = 0T) and (DayTask."End Time" <> 0T):
+                begin
+                    StartDateTxt := Format(DayTask."Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
+                    EndDateTxt := Format(DayTask."Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(DayTask."End Time");
+                end;
+            (DayTask."Start Time" = 0T) and (DayTask."End Time" = 0T):
+                begin
+                    StartDateTxt := Format(DayTask."Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
+                    EndDateTxt := Format(DayTask."Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 23:59:59';
+                end;
+        end;
+    end;
+
+    procedure GetWeekPeriodDates(CurrentDate: Date; var StartDay: Date; var EndDay: Date)
+    var
+        WeekNo: Integer;
+        YearNo: Integer;
+    begin
+        if CurrentDate = 0D then
+            CurrentDate := Today();
+
+        WeekNo := Date2DWY(CurrentDate, 2);
+        YearNo := Date2DWY(CurrentDate, 3);
+
+        StartDay := DWY2Date(1, WeekNo, YearNo); // Monday
+        EndDay := DWY2Date(7, WeekNo, YearNo);   // Sunday
     end;
 
     procedure GetOneYearPeriodDates(CurrentDate: Date; var StartDate: Date; var EndDate: Date)
@@ -409,4 +471,31 @@ codeunit 50604 "DHX Data Handler"
         OutTime := DT2Time(dt);
     end;
 
+    procedure OpenJobPlanningLineCard(eventId: Text; var possibleChanges: Boolean)
+    var
+        JobPlanningLines: Record "Job Planning Line";
+        JobPlanningLineCard: Page "Job Planning Line Card";
+        EventIDList: List of [Text];
+        JobNo: Code[20];
+        TaskNo: Code[20];
+        PlanningLineNo: Integer;
+        DayTaskNo: Integer;
+    begin
+        // Implementation to open the Job Planning Line Card based on eventId
+        //Message('Event Double Clicked with ID: %1', eventId);
+        EventIDList := eventId.Split('|');
+        JobNo := EventIDList.Get(1);
+        TaskNo := EventIDList.Get(2);
+        Evaluate(PlanningLineNo, EventIDList.Get(3));
+        Evaluate(DayTaskNo, EventIDList.Get(4));
+        if JobPlanningLines.Get(JobNo, TaskNo, PlanningLineNo) then begin
+            Clear(JobPlanningLineCard);
+            JobPlanningLineCard.SetTableView(JobPlanningLines);
+            JobPlanningLineCard.RunModal();
+            possibleChanges := true
+        end else begin
+            possibleChanges := false;
+            Message('Job Planning Line not found for Event ID: %1', eventId);
+        end;
+    end;
 }

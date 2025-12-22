@@ -76,7 +76,7 @@ function Init(dataelements,EarliestPlanningDate) {
     scheduler.locale.labels.timeline_tab = "Timeline";
     scheduler.locale.labels.section_custom="Section";
     scheduler.config.details_on_create=true;
-    scheduler.config.details_on_dblclick=true;
+    scheduler.config.details_on_dblclick=false; // Disable opening lightbox on double click
 
     // Start weeks on Monday
     scheduler.config.start_on_monday = true;
@@ -247,6 +247,25 @@ function Init(dataelements,EarliestPlanningDate) {
     //console.log("EarliestPlanningDate: ",EarliestPlanningDate);
     scheduler.init('scheduler_here', EarliestPlanningDate, "timeline"); //new Date(2025,10,5)
 
+    scheduler.attachEvent("onDblClick", function (id, ev){
+        console.log("Event onDblClick:", id, ev);
+        
+        // Capture event data after resize/drag
+        var eventData = {
+            id: id,
+            text: ev.text,
+            start_date: ev.start_date,
+            end_date: ev.end_date,
+            section_id: ev.section_id
+        };        
+        
+        // Send to BC
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnEventDblClick", [id, JSON.stringify(eventData)]);
+
+        // Block default lightbox opening
+        return false;
+    });
+
     // After the lightbox is built, toggle resource block and footer button
     scheduler.attachEvent("onLightbox", function (id) {
         // Apply section visibility after DOM exists
@@ -263,20 +282,7 @@ function Init(dataelements,EarliestPlanningDate) {
         if (ev) ev._isNewForLightbox = true;
         return true;
     });
-
-    // Before opening the lightbox: show for new, hide for existing
-    // scheduler.attachEvent("onBeforeLightbox", function (id) {
-    //     var ev = scheduler.getEvent(id);
-
-    //     // New event => show resource block, hide Planning Line
-    //     resourceBlockVisible = !!(ev && ev._isNewForLightbox);
-
-    //     // Only toggle the resource block visibility. Do NOT modify buttons_left/right.
-    //     var n = document.querySelector(".dhx_cal_light .resource-picker");
-    //     if (n) n.style.display = resourceBlockVisible ? "" : "none";
-
-    //     return true;
-    // });
+    
     scheduler.attachEvent("onBeforeLightbox", function (id) {
         var ev = scheduler.getEvent(id);
         var isNew = !!(ev && ev._isNewForLightbox);

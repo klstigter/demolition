@@ -13,6 +13,8 @@ page 50621 "DHX Schedule Board"
             {
                 ApplicationArea = All;
 
+                #region Init and Load Data on Control Ready
+
                 trigger ControlReady()
                 var
                     startDate: Date;
@@ -26,6 +28,27 @@ page 50621 "DHX Schedule Board"
                     CurrPage.DhxScheduler.Init(ResourceJSONTxt, EarliestPlanningDate);
                     CurrPage.DhxScheduler.LoadData(PlanninJsonTxt);
                 end;
+
+                #endregion Init and Load Data on Control Ready
+
+                #region Event Double Click
+
+                trigger OnEventDblClick(eventId: Text; eventData: Text)
+                var
+                    DHXDataHandler: Codeunit "DHX Data Handler";
+                    PossibleChanges: Boolean;
+                    newEventData: Text;
+                begin
+                    DHXDataHandler.OpenJobPlanningLineCard(eventId, PossibleChanges);
+                    // Get the latest data after possible changes in day tasks
+                    if PossibleChanges then begin
+                        Message('Get the latest data after possible changes in day tasks');
+                        //newEventData := DHXDataHandler.GetDayTasksEventDataJSON(eventId);
+                        //CurrPage.DhxScheduler.RefreshDayTasksData(newEventData);
+                    end;
+                end;
+
+                #endregion Event Double Click
 
                 #region new event added
                 trigger onEventAdded(eventId: Text; eventData: Text)
@@ -71,6 +94,8 @@ page 50621 "DHX Schedule Board"
                 end;
                 #endregion
 
+                #region Button Planning Line Click
+
                 trigger OnPlanningLineClick(Id: Text; EventJson: Text)
                 var
                     JobPlanningLinesPage: page "Job Planning Lines";
@@ -91,6 +116,8 @@ page 50621 "DHX Schedule Board"
 
                     //Message('Planning line clicked with ID: %1, Job No: %2, Task No: %3, Planning Line No: %4', Id, JObNo, TaskNo, PlanningLineNo);
                 end;
+
+                #endregion Button Planning Line Click
 
             }
         }

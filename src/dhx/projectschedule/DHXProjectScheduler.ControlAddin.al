@@ -22,6 +22,7 @@ controladdin DHXProjectScheduleAddin
         'src\dhx\projectschedule\style.css';
 
     event ControlReady();
+    event OnEventDblClick(eventId: Text; eventData: Text);
     event OnEventChanged(eventId: Text; eventData: Text);
     event OnAfterEventIdUpdated(oldid: Text; newid: Text);
     event onEventAdded(eventId: Text; eventData: Text);
