@@ -17,9 +17,27 @@ page 50620 "Gantt Demo DHX 2"
             {
                 ApplicationArea = All;
                 // Height/Width can be adjusted if needed
+                trigger OnAfterInit()
+                begin
+                    setup.EnsureUserRecord();
+                    setup.get(UserId);
+
+                end;
+
                 trigger ControlReady()
                 begin
-                    CurrPage.DHXGanttControl2.Init(DMY2Date(28, 11, 2025), DMY2Date(13, 12, 2025));
+                    setup.EnsureUserRecord();
+                    setup.get(UserId);
+                    CurrPage.DHXGanttControl2.SetColumnVisibility(
+                        Setup."Show Start Date",
+                        Setup."Show Duration",
+                        Setup."Show Constraint Type",
+                        Setup."Show Constraint Date",
+                        Setup."Show Task Type"
+                    );
+                    CurrPage.DHXGanttControl2.LoadProject(Setup."From Date", Setup."To Date");
+
+
                 end;
 
             }
@@ -30,6 +48,26 @@ page 50620 "Gantt Demo DHX 2"
     {
         area(Processing)
         {
+            action(GanttSettings)
+            {
+                Caption = 'Gantt Settings';
+                Image = Setup;
+                ApplicationArea = All;
+
+                trigger OnAction()
+                begin
+                    Page.RunModal(Page::"Gantt Chart Setup");
+                    setup.get(UserId);
+                    CurrPage.DHXGanttControl2.SetColumnVisibility(
+                     Setup."Show Start Date",
+                     Setup."Show Duration",
+                     Setup."Show Constraint Type",
+                     Setup."Show Constraint Date",
+                     Setup."Show Task Type");
+                    CurrPage.DHXGanttControl2.LoadProject(Setup."From Date", Setup."To Date");
+                    CurrPage.Update(false); // reapply settings after close
+                end;
+            }
             action(Undo)
             {
                 ApplicationArea = All;
@@ -67,12 +105,19 @@ page 50620 "Gantt Demo DHX 2"
             group(Category_Process)
             {
                 Caption = 'Actions';
+                actionref(GanttSettings_ref; GanttSettings) { }
                 actionref("UodoPromoted"; Undo) { }
                 actionref("RedoPromoted"; Redo) { }
             }
         }
     }
 
+
+
     var
         ToggleAutoScheduling: Boolean;
+
+        Setup: Record "Gantt Chart Setup";
+
+
 }

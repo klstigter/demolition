@@ -105,6 +105,26 @@ page 50612 "Planning Role Center"
                     RunObject = page "DHX Schedule Board";
                 }
             }
+
+            group("Resource")
+            {
+                Caption = 'Resource';
+                action("Resources")
+                {
+                    ApplicationArea = Basic, Suite;
+                    Caption = 'Resources';
+                    RunObject = page "Resource List";
+                }
+
+                action("Base Calendar Entries Subform")
+                {
+                    ApplicationArea = Basic, Suite;
+                    Caption = 'Base Calendar';
+                    RunObject = page "Base Calendar List";
+                }
+
+
+            }
             group("SettingGroup")
             {
                 Caption = 'Setup';
@@ -115,6 +135,14 @@ page 50612 "Planning Role Center"
                     Caption = 'Planning Integration Setup';
                     RunObject = page "Planning Integration Setup";
                 }
+                action("GanttSettings")
+                {
+                    Caption = 'Gantt Settings';
+                    Image = Setup;
+                    ApplicationArea = All;
+                    RunObject = page "Gantt Chart Setup";
+                }
+
             }
         }
     }

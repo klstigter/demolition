@@ -13,16 +13,24 @@ controladdin "DHX Gantt Control 2"
     Scripts = 'src\dhx\dhtmlxgantt.js',
               'src\dhx\ganttdemo2\wrapper.js';
 
-    StartupScript = 'src\dhx\ganttdemo2\startupScript.js';
-
     StyleSheets = 'src/dhx/dhtmlxgantt.css',
                   'src/dhx/ganttdemo2/style.css';
+
+    StartupScript = 'src\dhx\ganttdemo2\startupScript.js';
 
     event ControlReady();
     event OnAfterInit();
 
-    procedure Init(projectstartdate: date; projectenddate: date);
+    procedure LoadProject(projectstartdate: date; projectenddate: date);
     procedure Undo();
     procedure Redo();
     procedure AddMarker(datestr: Text; text: Text);
+
+    procedure SetColumnVisibility(
+        ShowStartDate: Boolean;
+        ShowDuration: Boolean;
+        ShowConstraintType: Boolean;
+        ShowConstraintDate: Boolean;
+        ShowTaskType: Boolean
+    );
 }
