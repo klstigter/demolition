@@ -1,17 +1,15 @@
 .vscode/rad.json
 .vscode/.alcache/
-// Binary files
-#.alpackages/
+.alpackages/
 *.app
 #*.xlf
 #./app.json
 .snapshots/
-// Temp files
-#.vs/
-#.vscode/
+.vs/
+.vscode/
+# Explicitly ignore VS Code launch settings
+.vscode/launch.json
 
 # Others
 #~$*
 #*~
-//Translations/*.xlf
-// .vscode/    <-- remove or comment out this line
