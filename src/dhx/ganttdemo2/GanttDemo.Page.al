@@ -64,7 +64,8 @@ page 50620 "Gantt Demo DHX 2"
                      Setup."Show Constraint Type",
                      Setup."Show Constraint Date",
                      Setup."Show Task Type");
-                    //CurrPage.Update(false); // reapply settings after close
+                    CurrPage.DHXGanttControl2.LoadProject(Setup."From Date", Setup."To Date");
+                    CurrPage.Update(false); // reapply settings after close
                 end;
             }
             action(Undo)

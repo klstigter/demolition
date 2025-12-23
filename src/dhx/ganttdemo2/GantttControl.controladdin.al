@@ -11,8 +11,7 @@ controladdin "DHX Gantt Control 2"
     HorizontalShrink = true;
 
     Scripts = 'src\dhx\dhtmlxgantt.js',
-              'src\dhx\ganttdemo2\wrapper.js',
-              'src\dhx\ganttdemo2\startupScript.js';
+              'src\dhx\ganttdemo2\wrapper.js';
 
     StyleSheets = 'src/dhx/dhtmlxgantt.css',
                   'src/dhx/ganttdemo2/style.css';

@@ -8,17 +8,16 @@
 // =======================================================
 
 var gantt_here = null;
-var _booted = false;
-var _projectLoadedOnce = false;
 var _queuedColumnArgs = null;
+var _booted = false;
 
 // -------------------------------------------------------
 // 1) BOOT (run once)
 // -------------------------------------------------------
 window.BOOT = function() {
+	if (_booted) return;
+   _booted = true;
   try {
-    if (_booted) return;
-
     // Host element created by BC
     var host = document.getElementById("controlAddIn") || document.body;
     host.style.width = "100%";
@@ -285,8 +284,6 @@ window.BOOT = function() {
       { key: "3", label: "Anna" }
     ]);
 
-    _booted = true;
-
     // Apply queued column settings if AL called too early
     if (_queuedColumnArgs) {
       _applyColumnSettings(_queuedColumnArgs);
@@ -306,8 +303,8 @@ window.BOOT = function() {
 //    NOTE: Do NOT call gantt.init() here.
 // -------------------------------------------------------
 function LoadProject(projectstartdate, projectenddate) {
-  if (!_booted) return;
-
+  
+	gantt.clearAll(); 
   // If you pass BC dates as strings, adapt parsing here.
   // For now, keep demo range if input missing.
   if (projectstartdate) {
@@ -330,7 +327,7 @@ function LoadProject(projectstartdate, projectenddate) {
   gantt.addMarker({ start_date: gantt.config.project_end, text: "project end" });
 
   // Demo data (replace later with BC payload)
-  if (!_projectLoadedOnce) {
+  
     gantt.parse({
       data: [
         { id: 1, text: "Project #1", type: "project", progress: 0.6, open: true, schedulingType: "fixed_duration" },
@@ -340,11 +337,14 @@ function LoadProject(projectstartdate, projectenddate) {
       links: []
     });
 
-    _projectLoadedOnce = true;
-  }
+  //gantt.render();
+  //if (gantt.setSizes) gantt.setSizes();
 
-  gantt.render();
-  if (gantt.setSizes) gantt.setSizes();
+    setTimeout(function () {
+    gantt.render();
+    if (gantt.setSizes) gantt.setSizes();
+    if (gantt.resetLayout) gantt.resetLayout();
+  }, 0);
 }
 
 // -------------------------------------------------------
@@ -352,7 +352,10 @@ function LoadProject(projectstartdate, projectenddate) {
 // -------------------------------------------------------
 function SetColumnVisibility(showStartDate, showDuration, showConstraintType, showConstraintDate, showTaskType) {
   var args = [showStartDate, showDuration, showConstraintType, showConstraintDate, showTaskType];
-  if (!_booted) { _queuedColumnArgs = args; return; }
+     if (!gantt_here || typeof gantt === "undefined" || !gantt.$root) {
+    _queuedColumnArgs = args;
+    return;
+  }
   _applyColumnSettings(args);
 }
 
@@ -382,11 +385,11 @@ function _setColumnHidden(name, hidden) {
 // -------------------------------------------------------
 // 4) Other exposed procedures (AL -> JS)
 // -------------------------------------------------------
-function Undo() { if (_booted) gantt.undo(); }
-function Redo() { if (_booted) gantt.redo(); }
+function Undo() { gantt.undo() }
+function Redo() { gantt.redo() }
 
 function AddMarker(datestr, text) {
-  if (!_booted || !datestr) return;
+  if (!datestr) return;
 
   var parseISO = gantt.date.str_to_date("%Y-%m-%d");
   var date = parseISO(String(datestr).trim());
