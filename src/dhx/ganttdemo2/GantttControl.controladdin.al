@@ -20,11 +20,14 @@ controladdin "DHX Gantt Control 2"
 
     event ControlReady();
     event OnAfterInit();
+    event OnEventDblClick(eventId: Text; eventData: Text);
 
     procedure LoadProject(projectstartdate: date; projectenddate: date);
     procedure Undo();
     procedure Redo();
     procedure AddMarker(datestr: Text; text: Text);
+    procedure RefreshEventData(eventData: Text);
+
 
     procedure SetColumnVisibility(
         ShowStartDate: Boolean;

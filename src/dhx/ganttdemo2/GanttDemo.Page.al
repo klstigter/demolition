@@ -36,8 +36,20 @@ page 50620 "Gantt Demo DHX 2"
                         Setup."Show Task Type"
                     );
                     CurrPage.DHXGanttControl2.LoadProject(Setup."From Date", Setup."To Date");
+                end;
 
-
+                trigger OnEventDblClick(eventId: Text; eventData: Text)
+                var
+                    DHXDataHandler: Codeunit "DHX Data Handler";
+                    PossibleChanges: Boolean;
+                    newEventData: Text;
+                begin
+                    DHXDataHandler.OpenJobPlanningLineCard(eventId, PossibleChanges);
+                    // Get the latest data after possible changes in day tasks
+                    if PossibleChanges then begin
+                        if DHXDataHandler.GetEventDataFromEventId(eventId, newEventData) then
+                            CurrPage.DHXGanttControl2.RefreshEventData(newEventData); //update event ID
+                    end;
                 end;
 
             }
