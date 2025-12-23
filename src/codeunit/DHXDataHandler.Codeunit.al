@@ -307,6 +307,8 @@ codeunit 50604 "DHX Data Handler"
         EndPlanningDate: Date;
         EndTime: Time;
         Desc: Text;
+        _DateTime: DateTime;
+        _DateTimeUserZone: DateTime;
         JsonLbl: Label '{"OldEventId": "%1", "NewEventId": "%2|%3|%4|%5|%6"}';
     begin
         //Message('New Event Created with eventData = %2', eventData);
@@ -334,15 +336,17 @@ codeunit 50604 "DHX Data Handler"
         old_eventid := JToken.AsValue().AsText();
 
         EventJSonObj.Get('start_date', JToken);
-        ParseIsoToDateTime(JToken.AsValue().AsText(), _Date, _Time);
-        PlanningDate := _Date;
-        StartTime := _Time;
+        Evaluate(_DateTime, JToken.AsValue().AsText());
+        _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
+        PlanningDate := DT2Date(_DateTimeUserZone);
+        StartTime := DT2Time(_DateTimeUserZone);
         Evaluate(DayNo, Format(PlanningDate, 0, '<Year4><Month,2><Day,2>'));
 
         EventJSonObj.Get('end_date', JToken);
-        ParseIsoToDateTime(JToken.AsValue().AsText(), _Date, _Time);
-        EndPlanningDate := _Date;
-        EndTime := _Time;
+        Evaluate(_DateTime, JToken.AsValue().AsText());
+        _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
+        EndPlanningDate := DT2Date(_DateTimeUserZone);
+        EndTime := DT2Time(_DateTimeUserZone);
 
         // EventJSonObj.Get('text', JToken);
         // Desc := JToken.AsValue().AsText();
@@ -411,6 +415,8 @@ codeunit 50604 "DHX Data Handler"
         New_DayLineNo: Integer;
         _Date: Date;
         _Time: Time;
+        _DateTime: DateTime;
+        _DateTimeUserZone: DateTime;
     begin
         //Message('Event ' + eventId + ' changed: ' + eventData);
         /*        
@@ -458,7 +464,10 @@ codeunit 50604 "DHX Data Handler"
 
         //Get Startdate as new dayno
         EventJSonObj.Get('start_date', JToken);
-        ParseIsoToDateTime(JToken.AsValue().AsText(), _Date, _Time);
+        //Covert _Date + _Time into Datetime var, after that extract Date part again to get the correct date in user's timezone
+        Evaluate(_DateTime, JToken.AsValue().AsText());
+        _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
+        _Date := DT2Date(_DateTimeUserZone);
         Evaluate(New_DayNo, Format(_Date, 0, '<Year4><Month,2><Day,2>'));
 
         UpdateEventID := false;
@@ -484,13 +493,15 @@ codeunit 50604 "DHX Data Handler"
 
         //sift left / right to same task
         EventJSonObj.Get('start_date', JToken);
-        ParseIsoToDateTime(JToken.AsValue().AsText(), _Date, _Time);
-        OldDayTask."Start Planning Date" := _Date;
-        OldDayTask."Start Time" := _Time;
+        Evaluate(_DateTime, JToken.AsValue().AsText());
+        _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
+        OldDayTask."Start Planning Date" := DT2Date(_DateTimeUserZone);
+        OldDayTask."Start Time" := DT2Time(_DateTimeUserZone);
 
         EventJSonObj.Get('end_date', JToken);
-        ParseIsoToDateTime(JToken.AsValue().AsText(), _Date, _Time);
-        OldDayTask."End Time" := _Time;
+        Evaluate(_DateTime, JToken.AsValue().AsText());
+        _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
+        OldDayTask."End Time" := DT2Time(_DateTimeUserZone);
 
         EventJSonObj.Get('text', JToken);
         OldDayTask.Description := JToken.AsValue().AsText();
@@ -520,23 +531,23 @@ codeunit 50604 "DHX Data Handler"
         exit(rtv);
     end;
 
-    procedure ParseIsoToDateTime(IsoTxt: Text; var OutDate: Date; var OutTime: Time)
+    procedure ConvertToUserTimeZone(UtcDateTime: DateTime): DateTime
     var
-        dtTxt: Text;
-        dt: DateTime;
+        TypeHelper: Codeunit "Type Helper";
+        TimeZoneOffset: Duration;
+        localDateTime: DateTime;
     begin
-        // Normalize: replace 'T' with space and remove trailing 'Z'
-        dtTxt := IsoTxt.Replace('T', ' ');
-        if dtTxt.EndsWith('Z') then
-            dtTxt := CopyStr(dtTxt, 1, StrLen(dtTxt) - 1);
+        // Get the current user's time zone offset as a Duration (in milliseconds)
+        if not TypeHelper.GetUserTimezoneOffset(TimeZoneOffset) then begin
+            // Handle the case where the offset couldn't be determined (e.g., set a default or raise an error)
+            // For this example, we default to 0 (UTC)
+            TimeZoneOffset := 0;
+        end;
 
-        // Evaluate into DateTime
-        if not Evaluate(dt, dtTxt) then
-            Error('Invalid datetime: %1', IsoTxt);
+        // Add the offset to the UTC DateTime to get the local DateTime
+        localDateTime := utcDateTime + TimeZoneOffset;
 
-        // Extract Date and Time (in UTC as provided)
-        OutDate := DT2Date(dt);
-        OutTime := DT2Time(dt);
+        exit(localDateTime);
     end;
 
     procedure OpenJobPlanningLineCard(eventId: Text; var possibleChanges: Boolean)
@@ -559,6 +570,7 @@ codeunit 50604 "DHX Data Handler"
         if JobPlanningLines.Get(JobNo, TaskNo, PlanningLineNo) then begin
             Clear(JobPlanningLineCard);
             JobPlanningLineCard.SetTableView(JobPlanningLines);
+            JobPlanningLineCard.SetRecord(JobPlanningLines);
             JobPlanningLineCard.RunModal();
             possibleChanges := true
         end else begin
