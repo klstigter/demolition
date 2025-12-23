@@ -283,6 +283,55 @@ codeunit 50604 "DHX Data Handler"
         EndDate := CalcDate('<CY>', CurrentDate)
     end;
 
+    procedure GetEventDataFromEventId(EventId: Text; var EventDataJsonTxt: Text): Boolean
+    var
+        DayTask: record "Day Tasks";
+        EventIdParts: List of [Text];
+        JobNo: Code[20];
+        TaskNo: Code[20];
+        PlanningLineNo: Integer;
+        DayNo: Integer;
+        DayLineNo: Integer;
+        rtv: Boolean;
+        RefreshLbl: label '{"id": "%1", "text": "%2", "start_date": "%3", "end_date": "%4", "section_id": "%5", "resource_id": "%6", "resource_name": "%7"}';
+    begin
+        // EventId format: JobNo|TaskNo|PlanningLineNo|DayNo|DayLineNo
+        EventIdParts := EventId.Split('|');
+        JobNo := EventIdParts.Get(1);
+        TaskNo := EventIdParts.Get(2);
+        Evaluate(PlanningLineNo, EventIdParts.Get(3));
+        Evaluate(DayNo, EventIdParts.Get(4));
+        Evaluate(DayLineNo, EventIdParts.Get(5));
+        rtv := DayTask.Get(DayNo, DayLineNo, JobNo, TaskNo, PlanningLineNo);
+        if rtv then begin
+            /**
+            * Refresh a single event's data without reloading all events.
+            * Accepts a JSON string or object. Updates only fields present.
+            * Optionally upserts (adds) the event if it doesn't exist.
+            *
+            * Example payload:
+            * {
+            *   "id": "evt-123",
+            *   "text": "Updated name",
+            *   "start_date": "2025-12-23T08:00:00Z",
+            *   "end_date": "2025-12-23T12:00:00Z",
+            *   "section_id": "R-001",
+            *   "resource_id": "RES-10",
+            *   "resource_name": "Excavator A"
+            * }
+            */
+            EventDataJsonTxt := StrSubstNo(RefreshLbl,
+                                EventId,
+                                DayTask.Description,
+                                ToSessionDateTimeTxt(DayTask."Start Planning Date", DayTask."Start Time"),
+                                ToSessionDateTimeTxt(DayTask."Start Planning Date", DayTask."End Time"),
+                                DayTask."Job No." + '|' + DayTask."Job Task No." + '|' + Format(DayTask."Job Planning Line No."),
+                                DayTask."No.",
+                                DayTask.Description);
+        end;
+        exit(rtv);
+    end;
+
     procedure onEventAdded(EventData: Text; var UpdateEventIdJsonTxt: Text): Boolean
     var
         Task: record "Job Task";
@@ -567,7 +616,10 @@ codeunit 50604 "DHX Data Handler"
         TaskNo := EventIDList.Get(2);
         Evaluate(PlanningLineNo, EventIDList.Get(3));
         Evaluate(DayTaskNo, EventIDList.Get(4));
-        if JobPlanningLines.Get(JobNo, TaskNo, PlanningLineNo) then begin
+        JobPlanningLines.SetRange("Job No.", JobNo);
+        JobPlanningLines.SetRange("Job Task No.", TaskNo);
+        JobPlanningLines.SetRange("Line No.", PlanningLineNo);
+        if JobPlanningLines.FindFirst() then begin
             Clear(JobPlanningLineCard);
             JobPlanningLineCard.SetTableView(JobPlanningLines);
             JobPlanningLineCard.SetRecord(JobPlanningLines);
@@ -580,12 +632,38 @@ codeunit 50604 "DHX Data Handler"
     end;
 
     procedure GetDayTaskAsResourcesAndEventsJSon(TimeLineJSon: Text; var ResouecesJSon: Text; var EventsJSon: Text): Boolean
+    var
+        TimeLineJSonObj: JsonObject;
+        JToken: JsonToken;
+        _DateTime: DateTime;
+        _DateTimeUserZone: DateTime;
+        StartDate: Date;
+        EndDate: Date;
+        EarliestPlanningDate: date;
     begin
-        Message('Under development: Refreshing Timeline with TimeLineJSon: %1', TimeLineJSon);
-        exit(false);
+        //Message('Under development: Refreshing Timeline with TimeLineJSon: %1', TimeLineJSon);
+        //exit(false);
         /*
         {"mode":"timeline","start":"2025-12-14T17:00:00.000Z","end":"2025-12-21T17:00:00.000Z"}
         */
+        TimeLineJSonObj.ReadFrom(TimeLineJSon);
+
+        TimeLineJSonObj.Get('start', JToken);
+        Evaluate(_DateTime, JToken.AsValue().AsText());
+        _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
+        StartDate := DT2Date(_DateTimeUserZone);
+
+        TimeLineJSonObj.Get('end', JToken);
+        Evaluate(_DateTime, JToken.AsValue().AsText());
+        _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
+        EndDate := DT2Date(_DateTimeUserZone);
+
+        ResouecesJSon := GetYUnitElementsJSON(StartDate,
+                                            StartDate,
+                                            EndDate,
+                                            EventsJSon,
+                                            EarliestPlanningDate);
+        exit((EventsJSon <> '') and (ResouecesJSon <> ''));
     end;
 
 }

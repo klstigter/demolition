@@ -35,4 +35,5 @@ controladdin DHXProjectScheduleAddin
     procedure UpdateEventId(EventIdsJsonTxt: Text);
     procedure SetLightboxEventValues(lightboxId: Text; ResourceId: Text; ResourceName: Text);
     procedure RefreshTimeline(resourcesJson: Text; eventsJson: Text);
+    procedure RefreshEventData(eventData: Text);
 }

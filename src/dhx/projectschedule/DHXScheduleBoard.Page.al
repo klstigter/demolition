@@ -41,11 +41,10 @@ page 50621 "DHX Schedule Board"
                     newEventData: Text;
                 begin
                     DHXDataHandler.OpenJobPlanningLineCard(eventId, PossibleChanges);
-                    // TODO: Get the latest data after possible changes in day tasks
+                    // Get the latest data after possible changes in day tasks
                     if PossibleChanges then begin
-                        Message('Under Development: Get the latest data after possible changes in day tasks');
-                        //newEventData := DHXDataHandler.GetDayTasksEventDataJSON(eventId);
-                        //CurrPage.DhxScheduler.RefreshDayTasksData(newEventData);
+                        if DHXDataHandler.GetEventDataFromEventId(eventId, newEventData) then
+                            CurrPage.DhxScheduler.RefreshEventData(newEventData); //update event ID
                     end;
                 end;
 
@@ -127,10 +126,10 @@ page 50621 "DHX Schedule Board"
                 var
                     DHXDataHandler: Codeunit "DHX Data Handler";
                     ResourceJSONTxt: Text;
-                    PlanninJsonTxt: Text;
+                    EventsJsonTxt: Text;
                 begin
-                    if DHXDataHandler.GetDayTaskAsResourcesAndEventsJSon(NavigateJson, ResourceJSONTxt, PlanninJsonTxt) then
-                        CurrPage.DhxScheduler.RefreshTimeline(ResourceJSONTxt, PlanninJsonTxt); //TODO: pass resourcesJson and eventsJson
+                    if DHXDataHandler.GetDayTaskAsResourcesAndEventsJSon(NavigateJson, ResourceJSONTxt, EventsJsonTxt) then
+                        CurrPage.DhxScheduler.RefreshTimeline(ResourceJSONTxt, EventsJsonTxt); //TODO: pass resourcesJson and eventsJson
                 end;
                 #endregion Timeline Navigate
             }
