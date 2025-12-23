@@ -556,6 +556,8 @@ function SetLightboxEventValues(valuesJsonTxt, ResourceId, ResourceName) {
 
 // Helper the AL side can call to apply refreshed data
 function RefreshTimeline(resourcesJson, eventsJson) {
+    console.log("resourcesJson:", resourcesJson);
+    console.log("eventsJson:", eventsJson);
     try {
         var resources = ParseJSonTxt(resourcesJson);
         if (resources && Array.isArray(resources.data)) {
@@ -568,5 +570,91 @@ function RefreshTimeline(resourcesJson, eventsJson) {
         scheduler.parse(eventsJson); // update events
     } catch (e) {
         console.error("RefreshTimeline failed:", e);
+    }
+}
+
+/**
+ * Refresh a single event's data without reloading all events.
+ * Accepts a JSON string or object. Updates only fields present.
+ * Optionally upserts (adds) the event if it doesn't exist.
+ *
+ * Example payload:
+ * {
+ *   "id": "evt-123",
+ *   "text": "Updated name",
+ *   "start_date": "2025-12-23T08:00:00Z",
+ *   "end_date": "2025-12-23T12:00:00Z",
+ *   "section_id": "R-001",
+ *   "resource_id": "RES-10",
+ *   "resource_name": "Excavator A"
+ * }
+ */
+function RefreshEventData(eventJsonTxt, upsertIfMissing = false) {
+    try {
+        var data = ParseJSonTxt(eventJsonTxt);
+        if (!data) return;
+
+        // Be flexible about ID key casing
+        var id = data.id ?? data.Id ?? data.event_id ?? data.EventId;
+        if (id == null) {
+            console.warn("RefreshEventData: missing event id in payload", data);
+            return;
+        }
+        if (typeof scheduler === "undefined") {
+            console.warn("RefreshEventData: scheduler not initialized");
+            return;
+        }
+
+        var ev = scheduler.getEvent(id);
+        if (!ev) {
+            if (!upsertIfMissing) {
+                console.warn("RefreshEventData: event not found", id);
+                return;
+            }
+            // Create new event if requested
+            var newEv = {
+                id: id,
+                text: data.text ?? data.resource_name ?? "",
+                start_date: data.start_date ? new Date(data.start_date) : new Date(),
+                end_date: data.end_date ? new Date(data.end_date) : new Date(),
+                section_id: data.section_id ?? data.section ?? null,
+                resource_id: data.resource_id ?? null,
+                resource_name: data.resource_name ?? null
+            };
+            scheduler.addEvent(newEv);
+            Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnEventRefreshed", [String(id), "added"]);
+            return;
+        }
+
+        // Update only supplied fields
+        if ("text" in data) ev.text = data.text;
+        if ("section_id" in data) ev.section_id = data.section_id;
+        if ("start_date" in data && data.start_date) ev.start_date = new Date(data.start_date);
+        if ("end_date" in data && data.end_date) ev.end_date = new Date(data.end_date);
+        if ("resource_id" in data) ev.resource_id = data.resource_id;
+        if ("resource_name" in data) ev.resource_name = data.resource_name;
+
+        // Keep description in sync if text changed
+        var lbId = scheduler.getState().lightbox_id;
+        if (lbId === id) {
+            var box = document.querySelector(".dhx_cal_light");
+            if (box) {
+                var idInput = box.querySelector("#resource_id_input");
+                var nameInput = box.querySelector("#resource_name_input");
+                if (idInput && ("resource_id" in data)) idInput.value = data.resource_id || "";
+                if (nameInput && ("resource_name" in data)) nameInput.value = data.resource_name || "";
+            }
+            try {
+                var descSection = scheduler.formSection && scheduler.formSection("description");
+                if (descSection && typeof descSection.setValue === "function" && ("text" in data)) {
+                    descSection.setValue(ev.text || "");
+                }
+            } catch (_) { /* ignore */ }
+        }
+
+        scheduler.updateEvent(id);
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnEventRefreshed", [String(id), "updated"]);
+    } catch (e) {
+        console.error("RefreshEventData failed:", e, eventJsonTxt);
     }
 }
