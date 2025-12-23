@@ -98,22 +98,20 @@ function Init(dataelements,EarliestPlanningDate) {
         x_date: "%H",
         x_step: 3, 
         x_size: (8 * 7),
-        x_length: (8 * 7), // must match x_size
+        x_length: (8 * 7), // must match x_size        
+        event_dy: 60,
         // Compact sizing
-        dy: 28,            // child row height
-        folder_dy: 24,     // parent (collapsed) row height
-        event_dy: 28,      // event height
+        section_autoheight: false,  // do not expand rows to fit container/events
+        //scrollable: true,           // allow vertical scroll instead of stretching
         resize_events: true,
         y_unit: elements,
         y_property: "section_id",
         render: "tree",
-        scale_height: 44,  // slimmer header
-        second_scale: {
-            x_unit: "day",
-            x_date: "%D %d %M",
-            // x_step: 10,
-            // x_size: (10 * 7) 
-        }
+        scale_height: 60,
+        second_scale: { 
+            x_unit: "day", 
+            x_date: "%D %d %M" 
+        } 
     });
     
     scheduler.date.timeline_start = function(date){
@@ -250,20 +248,32 @@ function Init(dataelements,EarliestPlanningDate) {
     //console.log("EarliestPlanningDate: ",EarliestPlanningDate);
     scheduler.init('scheduler_here', EarliestPlanningDate, "timeline"); //new Date(2025,10,5)
 
-    // Compact visual tweaks
-    (function applyCompactTimelineSkin(){
-        var styleId = "compact-timeline-skin";
-        if (document.getElementById(styleId)) return;
-        var css = document.createElement("style");
-        css.id = styleId;
-        css.textContent = [
-            ".dhx_cal_data .dhx_matrix_scell{padding-top:0;padding-bottom:0;}",
-            ".dhx_cal_data .dhx_matrix_line{height:28px;}",    /* row height */
-            ".dhx_cal_data .dhx_event{min-height:24px;border-radius:6px;}"
-        ].join("");
-        document.head.appendChild(css);
-    })();
-    
+    //// Ensure the created timeline uses compact values and re-render
+    // var m = scheduler.matrix && scheduler.matrix.timeline;
+    // if (m) {
+    //     m.dy = 24;
+    //     m.folder_dy = 22;
+    //     m.event_dy = 22;
+    //     m.section_autoheight = false; // <<< was true
+    //     m.scrollable = true;
+    //     scheduler.setCurrentView();
+    // }
+
+    // // Compact visual tweaks (override skin if needed)
+    // (function applyCompactTimelineSkin(){
+    //     var styleId = "compact-timeline-skin";
+    //     if (document.getElementById(styleId)) return;
+    //     var css = document.createElement("style");
+    //     css.id = styleId;
+    //     css.textContent = [
+    //         ".dhx_cal_data .dhx_matrix_area{height:auto !important; overflow-y:auto;}",
+    //         ".dhx_cal_data .dhx_matrix_line{height:24px !important;}",
+    //         ".dhx_cal_data .dhx_matrix_scell{height:24px !important; line-height:24px !important; padding:0 6px;}",
+    //         ".dhx_cal_data .dhx_event{height:22px !important; min-height:22px !important; border-radius:6px;}"
+    //     ].join("");
+    //     document.head.appendChild(css);
+    // })();
+
     //<<<<< Left-right navigation bottons click event
     (function wireTimelineArrows() {
         function notify() {
