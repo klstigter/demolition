@@ -135,6 +135,14 @@ page 50612 "Planning Role Center"
                     Caption = 'Planning Integration Setup';
                     RunObject = page "Planning Integration Setup";
                 }
+                action("GanttSettings")
+                {
+                    Caption = 'Gantt Settings';
+                    Image = Setup;
+                    ApplicationArea = All;
+                    RunObject = page "Gantt Chart Setup";
+                }
+
             }
         }
     }
