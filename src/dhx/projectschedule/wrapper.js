@@ -99,12 +99,15 @@ function Init(dataelements,EarliestPlanningDate) {
         x_step: 3, 
         x_size: (8 * 7),
         x_length: (8 * 7), // must match x_size
-        event_dy: 60,
+        // Compact sizing
+        dy: 28,            // child row height
+        folder_dy: 24,     // parent (collapsed) row height
+        event_dy: 28,      // event height
         resize_events: true,
         y_unit: elements,
         y_property: "section_id",
         render: "tree",
-        scale_height: 60,
+        scale_height: 44,  // slimmer header
         second_scale: {
             x_unit: "day",
             x_date: "%D %d %M",
@@ -247,6 +250,20 @@ function Init(dataelements,EarliestPlanningDate) {
     //console.log("EarliestPlanningDate: ",EarliestPlanningDate);
     scheduler.init('scheduler_here', EarliestPlanningDate, "timeline"); //new Date(2025,10,5)
 
+    // Compact visual tweaks
+    (function applyCompactTimelineSkin(){
+        var styleId = "compact-timeline-skin";
+        if (document.getElementById(styleId)) return;
+        var css = document.createElement("style");
+        css.id = styleId;
+        css.textContent = [
+            ".dhx_cal_data .dhx_matrix_scell{padding-top:0;padding-bottom:0;}",
+            ".dhx_cal_data .dhx_matrix_line{height:28px;}",    /* row height */
+            ".dhx_cal_data .dhx_event{min-height:24px;border-radius:6px;}"
+        ].join("");
+        document.head.appendChild(css);
+    })();
+    
     //<<<<< Left-right navigation bottons click event
     (function wireTimelineArrows() {
         function notify() {
