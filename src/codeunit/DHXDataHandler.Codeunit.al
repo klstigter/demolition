@@ -578,4 +578,14 @@ codeunit 50604 "DHX Data Handler"
             Message('Job Planning Line not found for Event ID: %1', eventId);
         end;
     end;
+
+    procedure GetDayTaskAsResourcesAndEventsJSon(TimeLineJSon: Text; var ResouecesJSon: Text; var EventsJSon: Text): Boolean
+    begin
+        Message('Under development: Refreshing Timeline with TimeLineJSon: %1', TimeLineJSon);
+        exit(false);
+        /*
+        {"mode":"timeline","start":"2025-12-14T17:00:00.000Z","end":"2025-12-21T17:00:00.000Z"}
+        */
+    end;
+
 }

@@ -247,6 +247,33 @@ function Init(dataelements,EarliestPlanningDate) {
     //console.log("EarliestPlanningDate: ",EarliestPlanningDate);
     scheduler.init('scheduler_here', EarliestPlanningDate, "timeline"); //new Date(2025,10,5)
 
+    //<<<<< Left-right navigation bottons click event
+    (function wireTimelineArrows() {
+        function notify() {
+            var st = scheduler.getState();
+            var payload = {
+                mode: st.mode,
+                start: new Date(st.min_date).toISOString(),
+                end: new Date(st.max_date).toISOString()
+            };
+            Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnTimelineNavigate", [JSON.stringify(payload)]);
+        }
+
+        var root = document.getElementById("scheduler_here");
+        if (root && !root._navWired) {
+            root._navWired = true;
+            // Delegate so it survives header re-renders
+            root.addEventListener("click", function (e) {
+                if (e.target.closest(".dhx_cal_prev_button")) {
+                    setTimeout(notify, 0);
+                } else if (e.target.closest(".dhx_cal_next_button")) {
+                    setTimeout(notify, 0);
+                }
+            });
+        }
+    })();
+    //>>
+
     scheduler.attachEvent("onDblClick", function (id, ev){
         console.log("Event onDblClick:", id, ev);
         
@@ -525,4 +552,21 @@ function SetLightboxEventValues(valuesJsonTxt, ResourceId, ResourceName) {
     }
 
     scheduler.updateEvent(lbId);
+}
+
+// Helper the AL side can call to apply refreshed data
+function RefreshTimeline(resourcesJson, eventsJson) {
+    try {
+        var resources = ParseJSonTxt(resourcesJson);
+        if (resources && Array.isArray(resources.data)) {
+            var matrix = scheduler.matrix && scheduler.matrix.timeline;
+            if (matrix) {
+                matrix.y_unit = resources.data; // update sections
+            }
+        }
+        scheduler.clearAll();
+        scheduler.parse(eventsJson); // update events
+    } catch (e) {
+        console.error("RefreshTimeline failed:", e);
+    }
 }
