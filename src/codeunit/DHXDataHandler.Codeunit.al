@@ -83,6 +83,9 @@ codeunit 50604 "DHX Data Handler"
                 Jobs.Get(Daytask."Job No.");
                 Jobs.Mark(true);
 
+                JobTasks.Get(Daytask."Job No.", Daytask."Job Task No.");
+                JobTasks.Mark(true);
+
                 // create event data
                 if AnchorDate = 0D then
                     CountToWeekNumber(Daytask."Start Planning Date", WeekTemp);
@@ -108,6 +111,8 @@ codeunit 50604 "DHX Data Handler"
             end else
                 GetWeekPeriodDates(AnchorDate, EarliestPlanningDate, _DummyEndDate);
         end;
+
+        JobTasks.MarkedOnly := true;
         Jobs.MarkedOnly := true;
         if Jobs.FindSet() then begin
             Clear(DataArray);
@@ -214,21 +219,22 @@ codeunit 50604 "DHX Data Handler"
         EndDateTxt := '';
         if DayTask."Start Planning Date" = 0D then
             exit;
+
         case true of
             (DayTask."Start Time" <> 0T) and (DayTask."End Time" <> 0T):
                 begin
-                    StartDateTxt := Format(DayTask."Start Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(DayTask."Start Time");
-                    EndDateTxt := Format(DayTask."Start Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(DayTask."End Time");
+                    StartDateTxt := ToSessionDateTimeTxt(DayTask."Start Planning Date", DayTask."Start Time");
+                    EndDateTxt := ToSessionDateTimeTxt(DayTask."Start Planning Date", DayTask."End Time");
                 end;
             (DayTask."Start Time" <> 0T) and (DayTask."End Time" = 0T):
                 begin
-                    StartDateTxt := Format(DayTask."Start Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(DayTask."Start Time");
+                    StartDateTxt := ToSessionDateTimeTxt(DayTask."Start Planning Date", DayTask."Start Time");
                     EndDateTxt := Format(DayTask."Start Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 23:59:59';
                 end;
             (DayTask."Start Time" = 0T) and (DayTask."End Time" <> 0T):
                 begin
                     StartDateTxt := Format(DayTask."Start Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
-                    EndDateTxt := Format(DayTask."Start Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(DayTask."End Time");
+                    EndDateTxt := ToSessionDateTimeTxt(DayTask."Start Planning Date", DayTask."End Time");
                 end;
             (DayTask."Start Time" = 0T) and (DayTask."End Time" = 0T):
                 begin
@@ -236,6 +242,24 @@ codeunit 50604 "DHX Data Handler"
                     EndDateTxt := Format(DayTask."Start Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 23:59:59';
                 end;
         end;
+    end;
+
+    local procedure ToSessionDateTimeTxt(UtcDate: Date; UtcTime: Time): Text
+    var
+        IsoTxt: Text;
+        UtcDT: DateTime;
+        LocalDate: Date;
+        LocalTime: Time;
+    begin
+        // Build a UTC DateTime and let AL convert it to the session time zone
+        IsoTxt := Format(UtcDate, 0, '<Year4>-<Month,2>-<Day,2>') + 'T' + Format(UtcTime) + 'Z';
+        if not Evaluate(UtcDT, IsoTxt) then
+            Error('Invalid UTC date/time: %1 %2', UtcDate, UtcTime);
+
+        LocalDate := DT2Date(UtcDT); // converted to current user's time zone
+        LocalTime := DT2Time(UtcDT);
+
+        exit(Format(LocalDate, 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(LocalTime));
     end;
 
     procedure GetWeekPeriodDates(CurrentDate: Date; var StartDay: Date; var EndDay: Date)

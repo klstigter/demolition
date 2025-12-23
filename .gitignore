@@ -1,18 +1,17 @@
 .vscode/rad.json
 .vscode/.alcache/
-# Binary files
+// Binary files
 #.alpackages/
 *.app
 #*.xlf
 #./app.json
 .snapshots/
-# Temp files
+// Temp files
 #.vs/
 #.vscode/
 
 # Others
 #~$*
 #*~
-#Translations/*.xlf
-.vscode/launch.json
-.vscode/rad.json
+//Translations/*.xlf
+// .vscode/    <-- remove or comment out this line

@@ -17,12 +17,12 @@
         //     "schemaUpdateMode": "ForceSync"
         // },
         {
-            "name": "NL_Copy20240710 - Sandbox ",
+            "name": "NL_Test - Sandbox ",
             "request": "launch",
             "type": "al",
             "tenant": "a60762e1-df10-4e4b-8f44-174c51589110",
             "environmentType": "Sandbox",
-            "environmentName": "NL_Copy20240710", //""
+            "environmentName": "NL_Test", //"NL_Copy20240710"
             "startupCompany": "CRONUS NL",
             //"startupObjectId": 89, //1004, //1007, //77, //50600
             //"startupObjectType": "Page",
@@ -38,7 +38,7 @@
             "type": "al",
             "environmentType": "Sandbox",
             "environmentName": "NL_Test",
-            "sessionId": 92961,
+            "sessionId": 97978,
             "breakOnNext": "WebClient",
             "breakOnError": "ExcludeTry",
             "tenant": "a60762e1-df10-4e4b-8f44-174c51589110"
