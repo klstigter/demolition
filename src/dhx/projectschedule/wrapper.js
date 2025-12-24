@@ -2,50 +2,34 @@ var scheduler_here; // global variable for dhx Scheduler
 var resourceBlockVisible = false; // true only for a new event
 var bcPlanningVisible = false;    // show only for existing events
 
-function ParseJSonTxt(jsonText) {
-    // Parse input safely (supports JSON string or object)
-    let parsed;
-
-    // Helper: normalize common JS-literal to JSON (quotes keys, replaces single quotes)
-    const toJsonString = (s) => {
-        return s
-            .replace(/'/g, '"')                         // single -> double quotes
-            .replace(/([{,]\s*)([a-zA-Z_]\w*)(\s*:)/g, '$1"$2"$3'); // quote unquoted keys
-    };
-
-    try {
-        if (typeof jsonText === "string") {
-            try {
-                parsed = JSON.parse(jsonText); // proper JSON
-            } catch {
-                // Try to normalize JS-literal to JSON
-                const normalized = toJsonString(jsonText);
-                parsed = JSON.parse(normalized);
-            }
-        } else {
-            parsed = jsonText; // already an object
-        }
-    } catch (e) {
-        console.error("Invalid JSON for dataelements:", e, jsonText);
-        return;
-    }
-    return parsed;
+//<< Inject CSS to hide default tabs : Day, Week, Month **** 2025.12.24
+// Toggle helpers
+function SetDefaultTabsVisible(visible) {
+  var root = document.getElementById("scheduler_here");
+  if (!root) return;
+  if (visible) {
+    root.classList.remove("dhx-hide-default-tabs");
+  } else {
+    root.classList.add("dhx-hide-default-tabs");
+  }
 }
+//>>
 
-function Init(dataelements,EarliestPlanningDate) {
-    // Parse input safely (supports JSON string or object)
-    let parsed = ParseJSonTxt(dataelements);
-    if (!parsed) {
-        return;
-    }
-
-    // Validate shape: expect { data: [...] }
-    var elements = Array.isArray(parsed?.data) ? parsed.data : [];
-    if (elements.length === 0) {
-        console.warn("No sections found in dataelements.data. y_unit will be empty.");
-    }
-
-    //console.log("elements:", elements);
+// -------------------------------------------------------
+// BOOT in startupScript.js calls this to build DOM and trigger ControlReady
+// -------------------------------------------------------
+window.BOOT = function() {
+  try {    
+    //<< Inject CSS to hide default tabs : Day, Week, Month **** 2025.12.24
+    //only hides when root has the class dhx-hide-default-tabs
+    const style = document.createElement("style");
+    style.textContent = `
+      #scheduler_here.dhx-hide-default-tabs .dhx_cal_tab[name="day_tab"],
+      #scheduler_here.dhx-hide-default-tabs .dhx_cal_tab[name="week_tab"],
+      #scheduler_here.dhx-hide-default-tabs .dhx_cal_tab[name="month_tab"] { display: none !important; }
+    `;
+    document.head.appendChild(style);
+    //>>
 
     var div = document.getElementById("controlAddIn");
     // Ensure full fill
@@ -61,6 +45,7 @@ function Init(dataelements,EarliestPlanningDate) {
     scheduler_element.style.width = "100%";
     scheduler_element.style.height = "100%";
     div.appendChild(scheduler_element);
+    scheduler_element.classList.add("dhx-hide-default-tabs"); //**** 2025.12.24
     scheduler_here = scheduler_element;
 
     // Check library
@@ -89,38 +74,10 @@ function Init(dataelements,EarliestPlanningDate) {
         return "Week date from " + weekTitleFmt(start) + " to " + weekTitleFmt(endIncl);
     };
 
-    // //===============
-    // //Configuration
-    // //===============	    
-    scheduler.createTimelineView({
-        name: "timeline",
-        x_unit: "hour",
-        x_date: "%H",
-        x_step: 3, 
-        x_size: (8 * 7),
-        x_length: (8 * 7), // must match x_size        
-        event_dy: 60,
-        // Compact sizing
-        section_autoheight: false,  // do not expand rows to fit container/events
-        //scrollable: true,           // allow vertical scroll instead of stretching
-        resize_events: true,
-        y_unit: elements,
-        y_property: "section_id",
-        render: "tree",
-        scale_height: 60,
-        second_scale: { 
-            x_unit: "day", 
-            x_date: "%D %d %M" 
-        } 
-    });
-    
     scheduler.date.timeline_start = function(date){
         return scheduler.date.week_start(date); // respects start_on_monday
     };
     
-    //===============
-    //Data loading
-    //===============
     scheduler.config.lightbox.sections=[	
         {name:"description", height:60, map_to:"text", type:"textarea" , focus:true},
         {name:"custom", height:30, type:"timeline", options:null , map_to:"section_id" }, //type should be the same as name of the tab
@@ -245,35 +202,10 @@ function Init(dataelements,EarliestPlanningDate) {
 
     scheduler.config.drag_create = true;
 
-    //console.log("EarliestPlanningDate: ",EarliestPlanningDate);
-    scheduler.init('scheduler_here', EarliestPlanningDate, "timeline"); //new Date(2025,10,5)
+    // //console.log("EarliestPlanningDate: ",EarliestPlanningDate);
+    // scheduler.init('scheduler_here');
 
-    //// Ensure the created timeline uses compact values and re-render
-    // var m = scheduler.matrix && scheduler.matrix.timeline;
-    // if (m) {
-    //     m.dy = 24;
-    //     m.folder_dy = 22;
-    //     m.event_dy = 22;
-    //     m.section_autoheight = false; // <<< was true
-    //     m.scrollable = true;
-    //     scheduler.setCurrentView();
-    // }
-
-    // // Compact visual tweaks (override skin if needed)
-    // (function applyCompactTimelineSkin(){
-    //     var styleId = "compact-timeline-skin";
-    //     if (document.getElementById(styleId)) return;
-    //     var css = document.createElement("style");
-    //     css.id = styleId;
-    //     css.textContent = [
-    //         ".dhx_cal_data .dhx_matrix_area{height:auto !important; overflow-y:auto;}",
-    //         ".dhx_cal_data .dhx_matrix_line{height:24px !important;}",
-    //         ".dhx_cal_data .dhx_matrix_scell{height:24px !important; line-height:24px !important; padding:0 6px;}",
-    //         ".dhx_cal_data .dhx_event{height:22px !important; min-height:22px !important; border-radius:6px;}"
-    //     ].join("");
-    //     document.head.appendChild(css);
-    // })();
-
+    // ***** events triger block
     //<<<<< Left-right navigation bottons click event
     (function wireTimelineArrows() {
         function notify() {
@@ -440,6 +372,56 @@ function Init(dataelements,EarliestPlanningDate) {
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("onEventAdded", [id,JSON.stringify(eventData)]);
         return true;
     });
+    // ***** end of events triger block
+
+    // Tell AL we are safe to call now
+    Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("ControlReady", []);
+
+  } catch (e) {
+    console.warn("BOOT warning:", e);
+  }
+}
+
+function Init(dataelements,EarliestPlanningDate) {
+    // Parse input safely (supports JSON string or object)
+    let parsed = ParseJSonTxt(dataelements);
+    if (!parsed) {
+        return;
+    }
+
+    // Validate shape: expect { data: [...] }
+    var elements = Array.isArray(parsed?.data) ? parsed.data : [];
+    if (elements.length === 0) {
+        console.warn("No sections found in dataelements.data. y_unit will be empty.");
+    }
+        
+    // //===============
+    // //Configuration
+    // //===============	    
+    scheduler.createTimelineView({
+        name: "timeline",
+        x_unit: "hour",
+        x_date: "%H",
+        x_step: 3, 
+        x_size: (8 * 7),
+        x_length: (8 * 7), // must match x_size        
+        event_dy: 60,
+        // Compact sizing
+        section_autoheight: false,  // do not expand rows to fit container/events
+        //scrollable: true,         // allow vertical scroll instead of stretching
+        resize_events: true,
+        y_unit: elements,
+        y_property: "section_id",
+        render: "tree",
+        scale_height: 60,
+        second_scale: { 
+            x_unit: "day", 
+            x_date: "%D %d %M" 
+        } 
+    });
+
+    //console.log("EarliestPlanningDate: ",EarliestPlanningDate);
+    scheduler.init('scheduler_here', EarliestPlanningDate, "timeline"); //new Date(2025,10,5)
 
     // Notify BC 
     Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnAfterInit",[]);
@@ -465,6 +447,36 @@ function LoadData(eventsJson) {
     } catch (err) {
         console.error("Unexpected error in LoadData:", err);
     }
+}
+
+function ParseJSonTxt(jsonText) {
+    // Parse input safely (supports JSON string or object)
+    let parsed;
+
+    // Helper: normalize common JS-literal to JSON (quotes keys, replaces single quotes)
+    const toJsonString = (s) => {
+        return s
+            .replace(/'/g, '"')                         // single -> double quotes
+            .replace(/([{,]\s*)([a-zA-Z_]\w*)(\s*:)/g, '$1"$2"$3'); // quote unquoted keys
+    };
+
+    try {
+        if (typeof jsonText === "string") {
+            try {
+                parsed = JSON.parse(jsonText); // proper JSON
+            } catch {
+                // Try to normalize JS-literal to JSON
+                const normalized = toJsonString(jsonText);
+                parsed = JSON.parse(normalized);
+            }
+        } else {
+            parsed = jsonText; // already an object
+        }
+    } catch (e) {
+        console.error("Invalid JSON for dataelements:", e, jsonText);
+        return;
+    }
+    return parsed;
 }
 
 function UpdateEventId(EventIdsJsonTxt) {
@@ -582,19 +594,65 @@ function SetLightboxEventValues(valuesJsonTxt, ResourceId, ResourceName) {
 }
 
 // Helper the AL side can call to apply refreshed data
-function RefreshTimeline(resourcesJson, eventsJson) {
+// function RefreshTimeline(resourcesJson, eventsJson, dateAnchor) {
+//     console.log("resourcesJson:", resourcesJson);
+//     console.log("eventsJson:", eventsJson);
+//     try {
+//         var resources = ParseJSonTxt(resourcesJson);
+//         if (resources && Array.isArray(resources.data)) {
+//             var matrix = scheduler.matrix && scheduler.matrix.timeline;
+//             if (matrix) {
+//                 matrix.y_unit = resources.data; // update sections safely
+//             }
+//         }        
+//         scheduler.clearAll();
+//         scheduler.parse(eventsJson); // update events
+//     } catch (e) {
+//         console.error("RefreshTimeline failed:", e);
+//     }
+// }
+function RefreshTimeline(resourcesJson, eventsJson, dateAnchor) {
     console.log("resourcesJson:", resourcesJson);
     console.log("eventsJson:", eventsJson);
     try {
+        // 1) Update sections (y_unit)
         var resources = ParseJSonTxt(resourcesJson);
         if (resources && Array.isArray(resources.data)) {
+            var sections = resources.data;
             var matrix = scheduler.matrix && scheduler.matrix.timeline;
             if (matrix) {
-                matrix.y_unit = resources.data; // update sections
+                matrix.y_unit = sections; // update sections safely
+            }
+            // If available, update the collection to force re-render of sections
+            if (typeof scheduler.updateCollection === "function") {
+                scheduler.updateCollection("timeline", sections);
             }
         }
+
+        // 2) Reload events
         scheduler.clearAll();
-        scheduler.parse(eventsJson); // update events
+        scheduler.parse(eventsJson);
+
+        // 3) Move view to the week containing dateAnchor (if provided)
+        var anchor = null;
+        if (dateAnchor) {
+            if (dateAnchor instanceof Date) {
+                anchor = dateAnchor;
+            } else if (typeof dateAnchor === "number") {
+                anchor = new Date(dateAnchor); // epoch ms
+            } else if (typeof dateAnchor === "string") {
+                var d = new Date(dateAnchor);  // ISO or BC string
+                if (!isNaN(d)) anchor = d;
+            }
+        }
+        if (anchor) {
+            // timeline_start already snaps to week_start; this is just explicit
+            var weekStart = scheduler.date.week_start(anchor);
+            scheduler.setCurrentView(weekStart, "timeline");
+        } else {
+            // Ensure re-render after sections change even without anchor
+            scheduler.setCurrentView(scheduler.getState().date, "timeline");
+        }
     } catch (e) {
         console.error("RefreshTimeline failed:", e);
     }

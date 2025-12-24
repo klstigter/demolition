@@ -631,18 +631,13 @@ codeunit 50604 "DHX Data Handler"
         end;
     end;
 
-    procedure GetDayTaskAsResourcesAndEventsJSon(TimeLineJSon: Text; var ResouecesJSon: Text; var EventsJSon: Text): Boolean
+    procedure GetStartEndDatesFromTimeLineJSon(TimeLineJSon: Text; var StartDate: Date; var EndDate: Date)
     var
         TimeLineJSonObj: JsonObject;
         JToken: JsonToken;
         _DateTime: DateTime;
         _DateTimeUserZone: DateTime;
-        StartDate: Date;
-        EndDate: Date;
-        EarliestPlanningDate: date;
     begin
-        //Message('Under development: Refreshing Timeline with TimeLineJSon: %1', TimeLineJSon);
-        //exit(false);
         /*
         {"mode":"timeline","start":"2025-12-14T17:00:00.000Z","end":"2025-12-21T17:00:00.000Z"}
         */
@@ -657,7 +652,36 @@ codeunit 50604 "DHX Data Handler"
         Evaluate(_DateTime, JToken.AsValue().AsText());
         _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
         EndDate := DT2Date(_DateTimeUserZone);
+    end;
 
+    procedure GetDayTaskAsResourcesAndEventsJSon(TimeLineJSon: Text; var ResouecesJSon: Text; var EventsJSon: Text): Boolean
+    var
+        StartDate: Date;
+        EndDate: Date;
+        EarliestPlanningDate: date;
+        Rtv: Boolean;
+    begin
+        //Message('Under development: Refreshing Timeline with TimeLineJSon: %1', TimeLineJSon);
+        //exit(false);
+        /*
+        {"mode":"timeline","start":"2025-12-14T17:00:00.000Z","end":"2025-12-21T17:00:00.000Z"}
+        */
+        GetStartEndDatesFromTimeLineJSon(TimeLineJSon, StartDate, EndDate);
+        Rtv := GetDayTaskAsResourcesAndEventsJSon_StartEnd(StartDate,
+                                                            EndDate,
+                                                            ResouecesJSon,
+                                                            EventsJSon,
+                                                            EarliestPlanningDate);
+        exit(Rtv);
+    end;
+
+    procedure GetDayTaskAsResourcesAndEventsJSon_StartEnd(StartDate: Date; EndDate: Date; var ResouecesJSon: Text; var EventsJSon: Text; var EarliestPlanningDate: date): Boolean
+    var
+        TimeLineJSonObj: JsonObject;
+        JToken: JsonToken;
+        _DateTime: DateTime;
+        _DateTimeUserZone: DateTime;
+    begin
         ResouecesJSon := GetYUnitElementsJSON(StartDate,
                                             StartDate,
                                             EndDate,
