@@ -28,6 +28,7 @@ page 50621 "DHX Schedule Board"
                     ResourceJSONTxt := DHXDataHandler.GetYUnitElementsJSON(Today(), startDate, endDate, PlanninJsonTxt, EarliestPlanningDate);
                     CurrPage.DhxScheduler.Init(ResourceJSONTxt, EarliestPlanningDate);
                     CurrPage.DhxScheduler.LoadData(PlanninJsonTxt);
+                    AnchorDate := startDate;
                 end;
 
                 #endregion Init and Load Data on Control Ready
@@ -127,9 +128,14 @@ page 50621 "DHX Schedule Board"
                     DHXDataHandler: Codeunit "DHX Data Handler";
                     ResourceJSONTxt: Text;
                     EventsJsonTxt: Text;
+                    StartDate: Date;
+                    EndDate: Date;
                 begin
-                    if DHXDataHandler.GetDayTaskAsResourcesAndEventsJSon(NavigateJson, ResourceJSONTxt, EventsJsonTxt) then
-                        CurrPage.DhxScheduler.RefreshTimeline(ResourceJSONTxt, EventsJsonTxt); //TODO: pass resourcesJson and eventsJson
+                    if DHXDataHandler.GetDayTaskAsResourcesAndEventsJSon(NavigateJson, ResourceJSONTxt, EventsJsonTxt) then begin
+                        DHXDataHandler.GetStartEndDatesFromTimeLineJSon(NavigateJson, startDate, endDate);
+                        CurrPage.DhxScheduler.RefreshTimeline(ResourceJSONTxt, EventsJsonTxt, startDate); //TODO: pass resourcesJson and eventsJson
+                        AnchorDate := startDate;
+                    end;
                 end;
                 #endregion Timeline Navigate
             }
@@ -158,7 +164,8 @@ page 50621 "DHX Schedule Board"
                 Image = Position;
                 trigger OnAction()
                 begin
-                    Message('Under Development: Today button clicked');
+                    AnchorDate := Today();
+                    RefreshSchedule();
                 end;
             }
             action(PreviousAct)
@@ -168,7 +175,8 @@ page 50621 "DHX Schedule Board"
                 Image = PreviousSet;
                 trigger OnAction()
                 begin
-                    Message('Under Development: Previous button clicked');
+                    AnchorDate := CalcDate('<-1W>', AnchorDate);
+                    RefreshSchedule();
                 end;
             }
             action(NextAct)
@@ -178,7 +186,8 @@ page 50621 "DHX Schedule Board"
                 Image = NextSet;
                 trigger OnAction()
                 begin
-                    Message('Under Development: Next button clicked');
+                    AnchorDate := CalcDate('<1W>', AnchorDate);
+                    RefreshSchedule();
                 end;
             }
         }
@@ -199,5 +208,24 @@ page 50621 "DHX Schedule Board"
     var
         DHXDataHandler: Codeunit "DHX Data Handler";
         ShowDefaultTabs: Boolean;
+        AnchorDate: Date;
+
+    local procedure RefreshSchedule()
+    var
+        DHXDataHandler: Codeunit "DHX Data Handler";
+        startDate: Date;
+        endDate: Date;
+        ResourceJSONTxt: Text;
+        EventsJsonTxt: Text;
+        EarliestPlanningDate: Date;
+    begin
+        DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
+        DHXDataHandler.GetDayTaskAsResourcesAndEventsJSon_StartEnd(startDate,
+                                                                      endDate,
+                                                                      ResourceJSONTxt,
+                                                                      EventsJsonTxt,
+                                                                      EarliestPlanningDate);
+        CurrPage.DhxScheduler.RefreshTimeline(ResourceJSONTxt, EventsJsonTxt, startDate);
+    end;
 
 }

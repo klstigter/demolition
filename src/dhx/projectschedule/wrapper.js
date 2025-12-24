@@ -594,19 +594,65 @@ function SetLightboxEventValues(valuesJsonTxt, ResourceId, ResourceName) {
 }
 
 // Helper the AL side can call to apply refreshed data
-function RefreshTimeline(resourcesJson, eventsJson) {
+// function RefreshTimeline(resourcesJson, eventsJson, dateAnchor) {
+//     console.log("resourcesJson:", resourcesJson);
+//     console.log("eventsJson:", eventsJson);
+//     try {
+//         var resources = ParseJSonTxt(resourcesJson);
+//         if (resources && Array.isArray(resources.data)) {
+//             var matrix = scheduler.matrix && scheduler.matrix.timeline;
+//             if (matrix) {
+//                 matrix.y_unit = resources.data; // update sections safely
+//             }
+//         }        
+//         scheduler.clearAll();
+//         scheduler.parse(eventsJson); // update events
+//     } catch (e) {
+//         console.error("RefreshTimeline failed:", e);
+//     }
+// }
+function RefreshTimeline(resourcesJson, eventsJson, dateAnchor) {
     console.log("resourcesJson:", resourcesJson);
     console.log("eventsJson:", eventsJson);
     try {
+        // 1) Update sections (y_unit)
         var resources = ParseJSonTxt(resourcesJson);
         if (resources && Array.isArray(resources.data)) {
+            var sections = resources.data;
             var matrix = scheduler.matrix && scheduler.matrix.timeline;
             if (matrix) {
-                matrix.y_unit = resources.data; // update sections safely
+                matrix.y_unit = sections; // update sections safely
+            }
+            // If available, update the collection to force re-render of sections
+            if (typeof scheduler.updateCollection === "function") {
+                scheduler.updateCollection("timeline", sections);
             }
         }
+
+        // 2) Reload events
         scheduler.clearAll();
-        scheduler.parse(eventsJson); // update events
+        scheduler.parse(eventsJson);
+
+        // 3) Move view to the week containing dateAnchor (if provided)
+        var anchor = null;
+        if (dateAnchor) {
+            if (dateAnchor instanceof Date) {
+                anchor = dateAnchor;
+            } else if (typeof dateAnchor === "number") {
+                anchor = new Date(dateAnchor); // epoch ms
+            } else if (typeof dateAnchor === "string") {
+                var d = new Date(dateAnchor);  // ISO or BC string
+                if (!isNaN(d)) anchor = d;
+            }
+        }
+        if (anchor) {
+            // timeline_start already snaps to week_start; this is just explicit
+            var weekStart = scheduler.date.week_start(anchor);
+            scheduler.setCurrentView(weekStart, "timeline");
+        } else {
+            // Ensure re-render after sections change even without anchor
+            scheduler.setCurrentView(scheduler.getState().date, "timeline");
+        }
     } catch (e) {
         console.error("RefreshTimeline failed:", e);
     }

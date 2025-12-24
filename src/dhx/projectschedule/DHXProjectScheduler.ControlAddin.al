@@ -34,7 +34,7 @@ controladdin DHXProjectScheduleAddin
     procedure LoadData(EventTxt: Text);
     procedure UpdateEventId(EventIdsJsonTxt: Text);
     procedure SetLightboxEventValues(lightboxId: Text; ResourceId: Text; ResourceName: Text);
-    procedure RefreshTimeline(resourcesJson: Text; eventsJson: Text);
+    procedure RefreshTimeline(resourcesJson: Text; eventsJson: Text; DateAnchor: Date);
     procedure RefreshEventData(eventData: Text);
     procedure SetDefaultTabsVisible(Visible: Boolean);
 }
