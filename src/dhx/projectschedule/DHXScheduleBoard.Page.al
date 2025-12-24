@@ -140,11 +140,64 @@ page 50621 "DHX Schedule Board"
     {
         area(Processing)
         {
+            action(ShowDefaultTabs)
+            {
+                Caption = 'Show/Hide Day-Week-Month buttons';
+                ApplicationArea = All;
+                trigger OnAction()
+                begin
+                    ShowDefaultTabs := not ShowDefaultTabs;
+                    CurrPage.DhxScheduler.SetDefaultTabsVisible(ShowDefaultTabs);
+                end;
+            }
 
+            action(TodayAct)
+            {
+                Caption = 'Today';
+                ApplicationArea = All;
+                Image = Position;
+                trigger OnAction()
+                begin
+                    Message('Under Development: Today button clicked');
+                end;
+            }
+            action(PreviousAct)
+            {
+                Caption = 'Previous';
+                ApplicationArea = All;
+                Image = PreviousSet;
+                trigger OnAction()
+                begin
+                    Message('Under Development: Previous button clicked');
+                end;
+            }
+            action(NextAct)
+            {
+                Caption = 'Next';
+                ApplicationArea = All;
+                Image = NextSet;
+                trigger OnAction()
+                begin
+                    Message('Under Development: Next button clicked');
+                end;
+            }
+        }
+
+        area(Promoted)
+        {
+            group("DateNav")
+            {
+                Caption = 'Date Navigation', Comment = 'Record list will filtered based on date';
+
+                actionref("Prev_filter"; PreviousAct) { }
+                actionref("Today_filter"; Todayact) { }
+                actionref("Next_filter"; Nextact) { }
+            }
         }
     }
 
     var
         DHXDataHandler: Codeunit "DHX Data Handler";
+        ShowDefaultTabs: Boolean;
 
 }

@@ -2,11 +2,35 @@ var scheduler_here; // global variable for dhx Scheduler
 var resourceBlockVisible = false; // true only for a new event
 var bcPlanningVisible = false;    // show only for existing events
 
+//<< Inject CSS to hide default tabs : Day, Week, Month **** 2025.12.24
+// Toggle helpers
+function SetDefaultTabsVisible(visible) {
+  var root = document.getElementById("scheduler_here");
+  if (!root) return;
+  if (visible) {
+    root.classList.remove("dhx-hide-default-tabs");
+  } else {
+    root.classList.add("dhx-hide-default-tabs");
+  }
+}
+//>>
+
 // -------------------------------------------------------
 // BOOT in startupScript.js calls this to build DOM and trigger ControlReady
 // -------------------------------------------------------
 window.BOOT = function() {
   try {    
+    //<< Inject CSS to hide default tabs : Day, Week, Month **** 2025.12.24
+    //only hides when root has the class dhx-hide-default-tabs
+    const style = document.createElement("style");
+    style.textContent = `
+      #scheduler_here.dhx-hide-default-tabs .dhx_cal_tab[name="day_tab"],
+      #scheduler_here.dhx-hide-default-tabs .dhx_cal_tab[name="week_tab"],
+      #scheduler_here.dhx-hide-default-tabs .dhx_cal_tab[name="month_tab"] { display: none !important; }
+    `;
+    document.head.appendChild(style);
+    //>>
+
     var div = document.getElementById("controlAddIn");
     // Ensure full fill
     div.style.width = "100%";
@@ -21,6 +45,7 @@ window.BOOT = function() {
     scheduler_element.style.width = "100%";
     scheduler_element.style.height = "100%";
     div.appendChild(scheduler_element);
+    scheduler_element.classList.add("dhx-hide-default-tabs"); //**** 2025.12.24
     scheduler_here = scheduler_element;
 
     // Check library
