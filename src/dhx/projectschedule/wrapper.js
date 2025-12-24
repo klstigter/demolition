@@ -2,51 +2,11 @@ var scheduler_here; // global variable for dhx Scheduler
 var resourceBlockVisible = false; // true only for a new event
 var bcPlanningVisible = false;    // show only for existing events
 
-function ParseJSonTxt(jsonText) {
-    // Parse input safely (supports JSON string or object)
-    let parsed;
-
-    // Helper: normalize common JS-literal to JSON (quotes keys, replaces single quotes)
-    const toJsonString = (s) => {
-        return s
-            .replace(/'/g, '"')                         // single -> double quotes
-            .replace(/([{,]\s*)([a-zA-Z_]\w*)(\s*:)/g, '$1"$2"$3'); // quote unquoted keys
-    };
-
-    try {
-        if (typeof jsonText === "string") {
-            try {
-                parsed = JSON.parse(jsonText); // proper JSON
-            } catch {
-                // Try to normalize JS-literal to JSON
-                const normalized = toJsonString(jsonText);
-                parsed = JSON.parse(normalized);
-            }
-        } else {
-            parsed = jsonText; // already an object
-        }
-    } catch (e) {
-        console.error("Invalid JSON for dataelements:", e, jsonText);
-        return;
-    }
-    return parsed;
-}
-
-function Init(dataelements,EarliestPlanningDate) {
-    // Parse input safely (supports JSON string or object)
-    let parsed = ParseJSonTxt(dataelements);
-    if (!parsed) {
-        return;
-    }
-
-    // Validate shape: expect { data: [...] }
-    var elements = Array.isArray(parsed?.data) ? parsed.data : [];
-    if (elements.length === 0) {
-        console.warn("No sections found in dataelements.data. y_unit will be empty.");
-    }
-
-    //console.log("elements:", elements);
-
+// -------------------------------------------------------
+// BOOT in startupScript.js calls this to build DOM and trigger ControlReady
+// -------------------------------------------------------
+window.BOOT = function() {
+  try {    
     var div = document.getElementById("controlAddIn");
     // Ensure full fill
     div.style.width = "100%";
@@ -89,38 +49,10 @@ function Init(dataelements,EarliestPlanningDate) {
         return "Week date from " + weekTitleFmt(start) + " to " + weekTitleFmt(endIncl);
     };
 
-    // //===============
-    // //Configuration
-    // //===============	    
-    scheduler.createTimelineView({
-        name: "timeline",
-        x_unit: "hour",
-        x_date: "%H",
-        x_step: 3, 
-        x_size: (8 * 7),
-        x_length: (8 * 7), // must match x_size        
-        event_dy: 60,
-        // Compact sizing
-        section_autoheight: false,  // do not expand rows to fit container/events
-        //scrollable: true,           // allow vertical scroll instead of stretching
-        resize_events: true,
-        y_unit: elements,
-        y_property: "section_id",
-        render: "tree",
-        scale_height: 60,
-        second_scale: { 
-            x_unit: "day", 
-            x_date: "%D %d %M" 
-        } 
-    });
-    
     scheduler.date.timeline_start = function(date){
         return scheduler.date.week_start(date); // respects start_on_monday
     };
     
-    //===============
-    //Data loading
-    //===============
     scheduler.config.lightbox.sections=[	
         {name:"description", height:60, map_to:"text", type:"textarea" , focus:true},
         {name:"custom", height:30, type:"timeline", options:null , map_to:"section_id" }, //type should be the same as name of the tab
@@ -245,35 +177,10 @@ function Init(dataelements,EarliestPlanningDate) {
 
     scheduler.config.drag_create = true;
 
-    //console.log("EarliestPlanningDate: ",EarliestPlanningDate);
-    scheduler.init('scheduler_here', EarliestPlanningDate, "timeline"); //new Date(2025,10,5)
+    // //console.log("EarliestPlanningDate: ",EarliestPlanningDate);
+    // scheduler.init('scheduler_here');
 
-    //// Ensure the created timeline uses compact values and re-render
-    // var m = scheduler.matrix && scheduler.matrix.timeline;
-    // if (m) {
-    //     m.dy = 24;
-    //     m.folder_dy = 22;
-    //     m.event_dy = 22;
-    //     m.section_autoheight = false; // <<< was true
-    //     m.scrollable = true;
-    //     scheduler.setCurrentView();
-    // }
-
-    // // Compact visual tweaks (override skin if needed)
-    // (function applyCompactTimelineSkin(){
-    //     var styleId = "compact-timeline-skin";
-    //     if (document.getElementById(styleId)) return;
-    //     var css = document.createElement("style");
-    //     css.id = styleId;
-    //     css.textContent = [
-    //         ".dhx_cal_data .dhx_matrix_area{height:auto !important; overflow-y:auto;}",
-    //         ".dhx_cal_data .dhx_matrix_line{height:24px !important;}",
-    //         ".dhx_cal_data .dhx_matrix_scell{height:24px !important; line-height:24px !important; padding:0 6px;}",
-    //         ".dhx_cal_data .dhx_event{height:22px !important; min-height:22px !important; border-radius:6px;}"
-    //     ].join("");
-    //     document.head.appendChild(css);
-    // })();
-
+    // ***** events triger block
     //<<<<< Left-right navigation bottons click event
     (function wireTimelineArrows() {
         function notify() {
@@ -440,6 +347,56 @@ function Init(dataelements,EarliestPlanningDate) {
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("onEventAdded", [id,JSON.stringify(eventData)]);
         return true;
     });
+    // ***** end of events triger block
+
+    // Tell AL we are safe to call now
+    Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("ControlReady", []);
+
+  } catch (e) {
+    console.warn("BOOT warning:", e);
+  }
+}
+
+function Init(dataelements,EarliestPlanningDate) {
+    // Parse input safely (supports JSON string or object)
+    let parsed = ParseJSonTxt(dataelements);
+    if (!parsed) {
+        return;
+    }
+
+    // Validate shape: expect { data: [...] }
+    var elements = Array.isArray(parsed?.data) ? parsed.data : [];
+    if (elements.length === 0) {
+        console.warn("No sections found in dataelements.data. y_unit will be empty.");
+    }
+        
+    // //===============
+    // //Configuration
+    // //===============	    
+    scheduler.createTimelineView({
+        name: "timeline",
+        x_unit: "hour",
+        x_date: "%H",
+        x_step: 3, 
+        x_size: (8 * 7),
+        x_length: (8 * 7), // must match x_size        
+        event_dy: 60,
+        // Compact sizing
+        section_autoheight: false,  // do not expand rows to fit container/events
+        //scrollable: true,         // allow vertical scroll instead of stretching
+        resize_events: true,
+        y_unit: elements,
+        y_property: "section_id",
+        render: "tree",
+        scale_height: 60,
+        second_scale: { 
+            x_unit: "day", 
+            x_date: "%D %d %M" 
+        } 
+    });
+
+    //console.log("EarliestPlanningDate: ",EarliestPlanningDate);
+    scheduler.init('scheduler_here', EarliestPlanningDate, "timeline"); //new Date(2025,10,5)
 
     // Notify BC 
     Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnAfterInit",[]);
@@ -465,6 +422,36 @@ function LoadData(eventsJson) {
     } catch (err) {
         console.error("Unexpected error in LoadData:", err);
     }
+}
+
+function ParseJSonTxt(jsonText) {
+    // Parse input safely (supports JSON string or object)
+    let parsed;
+
+    // Helper: normalize common JS-literal to JSON (quotes keys, replaces single quotes)
+    const toJsonString = (s) => {
+        return s
+            .replace(/'/g, '"')                         // single -> double quotes
+            .replace(/([{,]\s*)([a-zA-Z_]\w*)(\s*:)/g, '$1"$2"$3'); // quote unquoted keys
+    };
+
+    try {
+        if (typeof jsonText === "string") {
+            try {
+                parsed = JSON.parse(jsonText); // proper JSON
+            } catch {
+                // Try to normalize JS-literal to JSON
+                const normalized = toJsonString(jsonText);
+                parsed = JSON.parse(normalized);
+            }
+        } else {
+            parsed = jsonText; // already an object
+        }
+    } catch (e) {
+        console.error("Invalid JSON for dataelements:", e, jsonText);
+        return;
+    }
+    return parsed;
 }
 
 function UpdateEventId(EventIdsJsonTxt) {
@@ -590,7 +577,7 @@ function RefreshTimeline(resourcesJson, eventsJson) {
         if (resources && Array.isArray(resources.data)) {
             var matrix = scheduler.matrix && scheduler.matrix.timeline;
             if (matrix) {
-                matrix.y_unit = resources.data; // update sections
+                matrix.y_unit = resources.data; // update sections safely
             }
         }
         scheduler.clearAll();
