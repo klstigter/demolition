@@ -24,9 +24,25 @@ window.BOOT = function() {
     //only hides when root has the class dhx-hide-default-tabs
     const style = document.createElement("style");
     style.textContent = `
-      #scheduler_here.dhx-hide-default-tabs .dhx_cal_tab[name="day_tab"],
-      #scheduler_here.dhx-hide-default-tabs .dhx_cal_tab[name="week_tab"],
-      #scheduler_here.dhx-hide-default-tabs .dhx_cal_tab[name="month_tab"] { display: none !important; }
+    /* Hide all built-in tabs (Day/Week/Month/Timeline) */
+    #scheduler_here.dhx-hide-default-tabs .dhx_cal_tab { 
+        display: none !important; 
+    }
+
+    /* Hide navigation buttons */
+    #scheduler_here.dhx-hide-default-tabs .dhx_cal_prev_button,
+    #scheduler_here.dhx-hide-default-tabs .dhx_cal_next_button,
+    #scheduler_here.dhx-hide-default-tabs .dhx_cal_today_button {
+        display: none !important;
+    }
+
+    /* Show only the date title and align it to the center */
+    #scheduler_here.dhx-hide-default-tabs .dhx_cal_date {
+        left: 50% !important;
+        transform: translateX(-50%);
+        margin: 0 !important;
+        text-align: center !important;
+    }
     `;
     document.head.appendChild(style);
     //>>

@@ -148,7 +148,7 @@ page 50621 "DHX Schedule Board"
         {
             action(ShowDefaultTabs)
             {
-                Caption = 'Show/Hide Day-Week-Month buttons';
+                Caption = 'Show/Hide DHTMLX buttons';
                 ApplicationArea = All;
                 trigger OnAction()
                 begin
@@ -188,6 +188,26 @@ page 50621 "DHX Schedule Board"
                 begin
                     AnchorDate := CalcDate('<1W>', AnchorDate);
                     RefreshSchedule();
+                end;
+            }
+            action(DateLookup)
+            {
+                Caption = 'Go to Date';
+                ApplicationArea = All;
+                Image = GoTo;
+                trigger OnAction()
+                var
+                    DateRec: record Date;
+                    DateSelectorPage: page "Date Lookup";
+                    SelectedDate: Date;
+                begin
+                    DateSelectorPage.LookupMode := true;
+                    if DateSelectorPage.RunModal() = Action::LookupOK then begin
+                        DateSelectorPage.GetRecord(DateRec);
+                        SelectedDate := DateRec."Period Start";
+                        AnchorDate := SelectedDate;
+                        RefreshSchedule();
+                    end;
                 end;
             }
         }
