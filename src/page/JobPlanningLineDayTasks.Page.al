@@ -4,6 +4,8 @@ page 50633 "Job Planning Line Day Tasks"
     PageType = ListPart;
     SourceTable = "Day Tasks";
     Editable = true;
+    DelayedInsert = true;
+    AutoSplitKey = true;
 
     layout
     {

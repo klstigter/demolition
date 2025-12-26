@@ -611,7 +611,7 @@ codeunit 50604 "DHX Data Handler"
     begin
         // Implementation to open the Job Planning Line Card based on eventId
         //Message('Event Double Clicked with ID: %1', eventId);
-        EventIDList := eventId.Split('|');
+        EventIDList := eventId.Split('-');
         JobNo := EventIDList.Get(1);
         TaskNo := EventIDList.Get(2);
         Evaluate(PlanningLineNo, EventIDList.Get(3));

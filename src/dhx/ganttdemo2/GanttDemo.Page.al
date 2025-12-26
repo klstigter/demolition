@@ -36,15 +36,28 @@ page 50620 "Gantt Demo DHX 2"
                         Setup."Show Task Type"
                     );
                     CurrPage.DHXGanttControl2.LoadProject(Setup."From Date", Setup."To Date");
+                    JsonTxt := GanttChartDataHandler.GetJobTasksAsJson('JOB00020');
+                    CurrPage.DHXGanttControl2.LoadProjectData(JsonTxt);
+                    JsonTxt := GanttChartDataHandler.GetResourcesAsJson();
+                    CurrPage.DHXGanttControl2.LoadResourcesData(JsonTxt);
+                    JsonTxt := GanttChartDataHandler.GetDayTasksAsJson('JOB00020');
+                    CurrPage.DHXGanttControl2.LoadDayTasksData(JsonTxt);
+
                 end;
 
-                trigger OnEventDblClick(eventId: Text; eventData: Text)
+                trigger onTaskDblClick(eventId: Text; eventData: Text)
                 var
                     DHXDataHandler: Codeunit "DHX Data Handler";
                     PossibleChanges: Boolean;
                     newEventData: Text;
+                    EventIDList: List of [Text];
+                    JobNo: Code[20];
+                    TaskNo: Code[20];
                 begin
-                    DHXDataHandler.OpenJobPlanningLineCard(eventId, PossibleChanges);
+                    EventIDList := eventId.Split('-');
+                    JobNo := EventIDList.Get(1);
+                    TaskNo := EventIDList.Get(2);
+                    PageHandler.OpenJobTaskCard(JobNo, TaskNo);
                     // Get the latest data after possible changes in day tasks
                     if PossibleChanges then begin
                         if DHXDataHandler.GetEventDataFromEventId(eventId, newEventData) then
@@ -52,6 +65,28 @@ page 50620 "Gantt Demo DHX 2"
                     end;
                 end;
 
+                trigger OnJobTaskUpdated(eventData: Text)
+                var
+                    J: JsonObject;
+                    Tok: JsonToken;
+                    JobNo: Code[20];
+                    JobTaskNo: Code[20];
+                    StartDateTxt: Text;
+                    DurationInt: Integer;
+                begin
+                    J.ReadFrom(eventData);
+
+                    J.Get('bcJobNo', Tok);
+                    JobNo := Tok.AsValue().AsText();
+                    J.Get('bcJobTaskNo', Tok);
+                    JobTaskNo := Tok.AsValue().AsText();
+                    J.Get('start_date', Tok);
+                    StartDateTxt := Tok.AsValue().AsText();
+                    J.Get('duration', Tok);
+                    DurationInt := Tok.AsValue().AsInteger();
+
+                    // Now update Job Task + regenerate Day Tasks
+                end;
             }
         }
     }
@@ -60,6 +95,72 @@ page 50620 "Gantt Demo DHX 2"
     {
         area(Processing)
         {
+            action(GetJsonTasks)
+            {
+                Caption = 'Get JSON Tasks Data';
+                Image = View;
+                ApplicationArea = All;
+
+                trigger OnAction()
+                var
+                    JsonTxt: Text;
+                    tempblob: Codeunit "Temp Blob";
+                    instream: InStream;
+                    outstream: OutStream;
+                    va: variant;
+                begin
+                    JsonTxt := GanttChartDataHandler.GetJobTasksAsJson();
+                    tempblob.CreateOutStream(outstream);
+                    outstream.WriteText(JsonTxt);
+                    tempblob.CreateInStream(instream);
+                    va := 'data.json';
+                    DownloadFromStream(instream, 'JobTasksGanttData.json', '', 'application/json', va);
+                end;
+            }
+            action(GetJsonResources)
+            {
+                Caption = 'Get JSON Resources Data';
+                Image = View;
+                ApplicationArea = All;
+
+                trigger OnAction()
+                var
+                    JsonTxt: Text;
+                    tempblob: Codeunit "Temp Blob";
+                    instream: InStream;
+                    outstream: OutStream;
+                    va: variant;
+                begin
+                    JsonTxt := GanttChartDataHandler.GetResourcesAsJson();
+                    tempblob.CreateOutStream(outstream);
+                    outstream.WriteText(JsonTxt);
+                    tempblob.CreateInStream(instream);
+                    va := 'data.json';
+                    DownloadFromStream(instream, 'JobTasksGanttData.json', '', 'application/json', va);
+                end;
+            }
+            action(GetJsonDayTasks)
+            {
+                Caption = 'Get JSON Day Tasks Data';
+                Image = View;
+                ApplicationArea = All;
+
+                trigger OnAction()
+                var
+                    JsonTxt: Text;
+                    tempblob: Codeunit "Temp Blob";
+                    instream: InStream;
+                    outstream: OutStream;
+                    va: variant;
+                begin
+                    JsonTxt := GanttChartDataHandler.GetDayTasksAsJson();
+                    tempblob.CreateOutStream(outstream);
+                    outstream.WriteText(JsonTxt);
+                    tempblob.CreateInStream(instream);
+                    va := 'data.json';
+                    DownloadFromStream(instream, 'JobTasksGanttData.json', '', 'application/json', va);
+                end;
+            }
             action(GanttSettings)
             {
                 Caption = 'Gantt Settings';
@@ -124,12 +225,137 @@ page 50620 "Gantt Demo DHX 2"
         }
     }
 
-
-
     var
         ToggleAutoScheduling: Boolean;
-
+        PageHandler: Codeunit "Gantt BC Page Handler";
         Setup: Record "Gantt Chart Setup";
+        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
+        JsonTxt: Text;
+
+    procedure OnJobTaskUpdated(TaskJson: Text)
+    var
+        JobTask: Record "Job Task";
+        JsonObj: JsonObject;
+        JsonToken: JsonToken;
+        JobNo: Code[20];
+        JobTaskNo: Code[20];
+        StartDateTxt: Text;
+        EndDateTxt: Text;
+        DurationTxt: Text;
+        ConstraintDateTxt: Text;
+        SchedulingTypeTxt: Text;
+        Description: Text[100];
+        StartDate: Date;
+        EndDate: Date;
+        Duration: Integer;
+        ConstraintDate: Date;
+    begin
+        // Parse the JSON
+        if not JsonObj.ReadFrom(TaskJson) then
+            Error('Invalid JSON format');
+
+        // Extract BC bindings
+        if JsonObj.Get('id', JsonToken) then
+            JobNo := JsonToken.AsValue().AsCode()
+        else
+            Error('id. missing in JSON');
+
+        // Extract and update Description
+        if JsonObj.Get('text', JsonToken) then begin
+            Description := CopyStr(JsonToken.AsValue().AsText(), 1, MaxStrLen(JobTask.Description));
+            if JobTask.Description <> Description then
+                JobTask.Description := Description;
+        end;
+
+        // Extract and update Start Date (format: dd-MM-yyyy)
+        if JsonObj.Get('start_date', JsonToken) then begin
+            StartDateTxt := JsonToken.AsValue().AsText();
+            if StartDateTxt <> '' then begin
+                StartDate := ParseDate(StartDateTxt);
+                if JobTask.PlannedStartDate <> StartDate then
+                    JobTask.PlannedStartDate := StartDate;
+            end;
+        end;
+
+        // Extract and update Start Date (format: dd-MM-yyyy)
+        if JsonObj.Get('end_date', JsonToken) then begin
+            EndDateTxt := JsonToken.AsValue().AsText();
+            if EndDateTxt <> '' then begin
+                EndDate := ParseDate(EndDateTxt);
+                if JobTask.PlannedEndDate <> EndDate then
+                    JobTask.PlannedEndDate := EndDate;
+            end;
+        end;
+
+        // Extract and update Duration
+        if JsonObj.Get('duration', JsonToken) then begin
+            Duration := JsonToken.AsValue().AsInteger();
+            if (JobTask.PlannedStartDate <> 0D) and (Duration > 0) then begin
+                JobTask.PlannedEndDate := JobTask.PlannedStartDate + Duration;
+            end;
+        end;
+
+        // Extract and update Scheduling Type
+        if JsonObj.Get('schedulingType', JsonToken) then begin
+            SchedulingTypeTxt := JsonToken.AsValue().AsText();
+            case SchedulingTypeTxt of
+                'fixed_duration':
+                    JobTask."Scheduling Type" := JobTask."Scheduling Type"::FixedDuration;
+                'fixed_units':
+                    JobTask."Scheduling Type" := JobTask."Scheduling Type"::FixedUnits;
+                'fixed_work':
+                    JobTask."Scheduling Type" := JobTask."Scheduling Type"::FixedWork;
+            end;
+        end;
+
+        // Extract constraint date if needed
+        if JsonObj.Get('constraint_date', JsonToken) then begin
+            ConstraintDateTxt := JsonToken.AsValue().AsText();
+            if ConstraintDateTxt <> '' then
+                ConstraintDate := ParseDate(ConstraintDateTxt);
+            // Add logic to handle constraint date if you have a field for it
+        end;
+
+        // Save the changes
+        JobTask.Modify(true);
+    end;
+
+    local procedure ParseDate(DateText: Text) ParsedDate: Date
+    var
+        Day: Integer;
+        Month: Integer;
+        Year: Integer;
+        DayTxt: Text;
+        MonthTxt: Text;
+        YearTxt: Text;
+        DashPos1: Integer;
+        DashPos2: Integer;
+    begin
+        if DateText = '' then
+            exit(0D);
+
+        // Parse format: dd-MM-yyyy
+        DashPos1 := StrPos(DateText, '-');
+        if DashPos1 = 0 then
+            exit(0D);
+
+        DayTxt := CopyStr(DateText, 1, DashPos1 - 1);
+        DateText := CopyStr(DateText, DashPos1 + 1);
+
+        DashPos2 := StrPos(DateText, '-');
+        if DashPos2 = 0 then
+            exit(0D);
+
+        MonthTxt := CopyStr(DateText, 1, DashPos2 - 1);
+        YearTxt := CopyStr(DateText, DashPos2 + 1);
+
+        Evaluate(Day, DayTxt);
+        Evaluate(Month, MonthTxt);
+        Evaluate(Year, YearTxt);
+
+        ParsedDate := DMY2Date(Day, Month, Year);
+    end;
+
 
 
 }

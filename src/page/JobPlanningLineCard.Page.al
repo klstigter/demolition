@@ -132,7 +132,7 @@ page 50631 "Job Planning Line Card"
                         ApplicationArea = Jobs;
                         ToolTip = 'Specifies which work type the planning line applies to.';
                     }
-                    field(Quantity; Rec.Quantity)
+                    field("Quantity of Lines"; Rec."Quantity of Lines")
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Specifies the number of units of the resource, item, or general ledger account that should be specified on the planning line.';
@@ -156,7 +156,6 @@ page 50631 "Job Planning Line Card"
                         ToolTip = 'Specifies if this is a boor line.';
                         Importance = Additional;
                     }
-
                 }
 
                 group(Resource)
@@ -171,7 +170,6 @@ page 50631 "Job Planning Line Card"
                         ApplicationArea = Jobs;
                         ToolTip = 'Specifies the number of the account to which the resource, item or general ledger account is posted.';
                     }
-
                 }
 
 

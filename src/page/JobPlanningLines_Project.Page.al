@@ -248,7 +248,7 @@ page 50615 "Job Planning Line (Project)"
                         ReserveOnAfterValidate();
                     end;
                 }
-                field(Quantity; Rec.Quantity)
+                field("Quantity of Lines"; Rec."Quantity of Lines")
                 {
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the number of units of the resource, item, or general ledger account that should be specified on the planning line. If you later change the No., the quantity you have entered remains on the line.';
@@ -1534,7 +1534,7 @@ page 50615 "Job Planning Line (Project)"
     protected procedure QuantityOnAfterValidate()
     begin
         PerformAutoReserve();
-        if (Rec.Type = Rec.Type::Item) and (Rec.Quantity <> xRec.Quantity) then
+        if (Rec.Type = Rec.Type::Item) and (Rec."Quantity of Lines" <> xRec."Quantity of Lines") then
             CurrPage.Update(true);
     end;
 

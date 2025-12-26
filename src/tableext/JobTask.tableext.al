@@ -26,7 +26,12 @@ tableextension 50605 "Job Task ext" extends "Job Task"
         {
             DataClassification = ToBeClassified;
             Caption = 'Estimated Hours';
+        }
 
+        field(50531; "Duration"; Integer)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Duration';
         }
 
         field(50600; "Job View Type"; Enum "Job View Type")
@@ -73,4 +78,42 @@ tableextension 50605 "Job Task ext" extends "Job Task"
 
     var
         myInt: Integer;
+
+    procedure CalculateDuration() CalcDuration: Integer
+    begin
+        case "Scheduling Type" of
+            schedulingType::FixedDuration:
+                begin
+                    if ("PlannedStartDate" = 0D) or ("PlannedEndDate" = 0D) then
+                        exit(0);
+
+                    CalcDuration := "PlannedEndDate" - "PlannedStartDate";
+
+                    if CalcDuration < 0 then
+                        CalcDuration := 0;
+                end;
+            schedulingType::FixedUnits:
+                begin
+                    // Implement Fixed Units duration calculation if needed
+                    if ("PlannedStartDate" = 0D) or ("PlannedEndDate" = 0D) then
+                        exit(0);
+
+                    CalcDuration := "PlannedEndDate" - "PlannedStartDate";
+
+                    if CalcDuration < 0 then
+                        CalcDuration := 0;
+                end;
+            schedulingType::FixedWork:
+                begin
+                    // Implement Fixed Work duration calculation if needed
+                    if ("PlannedStartDate" = 0D) or ("PlannedEndDate" = 0D) then
+                        exit(0);
+
+                    CalcDuration := "PlannedEndDate" - "PlannedStartDate";
+
+                    if CalcDuration < 0 then
+                        CalcDuration := 0;
+                end;
+        end;
+    end;
 }
