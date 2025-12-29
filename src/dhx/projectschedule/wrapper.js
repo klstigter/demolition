@@ -398,54 +398,41 @@ window.BOOT = function() {
   }
 }
 
-function Init(dataelements,EarliestPlanningDate) {
+function Init(dataelements, EarliestPlanningDate) {
     // Parse input safely (supports JSON string or object)
     let parsed = ParseJSonTxt(dataelements);
-    if (!parsed) {
-        return;
-    }
+    // Always use an array for y_unit, even if empty
+    var elements = (parsed && Array.isArray(parsed.data)) ? parsed.data : [];
+    if (!Array.isArray(elements)) elements = [];
 
-    // Validate shape: expect { data: [...] }
-    var elements = Array.isArray(parsed?.data) ? parsed.data : [];
+    // If no sections, inject a dummy "No Data" section
     if (elements.length === 0) {
-        console.warn("No sections found in dataelements.data. y_unit will be empty.");
+        elements = [{
+            key: "nodata",
+            label: "No Data"
+        }];
     }
-        
-    // //===============
-    // //Configuration
-    // //===============	    
-    scheduler.createTimelineView({
-        name: "timeline",
-        x_unit: "hour",
-        x_date: "%H",
-        x_step: 3, 
-        x_size: (8 * 7),
-        x_length: (8 * 7), // must match x_size        
-        event_dy: 60,
-        // Compact sizing
-        section_autoheight: false,  // do not expand rows to fit container/events
-        //scrollable: true,         // allow vertical scroll instead of stretching
-        resize_events: true,
-        y_unit: elements,
-        y_property: "section_id",
-        render: "tree",
-        scale_height: 60,
-        second_scale: { 
-            x_unit: "day", 
-            x_date: "%D %d %M" 
-        } 
-    });
 
-    //console.log("EarliestPlanningDate: ",EarliestPlanningDate);
-    scheduler.init('scheduler_here', EarliestPlanningDate, "timeline"); //new Date(2025,10,5)
+    // Remove existing timeline view if it exists (prevents duplicate view error)
+    if (scheduler.matrix && scheduler.matrix.timeline) {
+        scheduler.deleteView && scheduler.deleteView("timeline");
+        delete scheduler.matrix.timeline;
+    }
 
-    // Notify BC 
-    Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnAfterInit",[]);
+    // Defensive: set header to avoid DOM warnings if hiding tabs
+    scheduler.config.header = ["date"];
+
+    // Create timeline view (always with a valid y_unit array)    
+    RecreateTimelineView(elements);
+
+    scheduler.init('scheduler_here', EarliestPlanningDate, "timeline");
+
+    // Notify BC
+    Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnAfterInit", []);
 }
 
 function LoadData(eventsJson) {
-    console.log("LoadData called with:", eventsJson);
-
+    console.log("LoadData called with:", eventsJson);    
     if (!scheduler_here) {
         console.warn("scheduler not initialized. Call Init() first.");
         return;
@@ -458,39 +445,49 @@ function LoadData(eventsJson) {
         }
         
         scheduler.clearAll();
-        scheduler.parse(eventsJson);
 
+        // Always parse and validate events array
+        let parsedEvents = ParseJSonTxt(eventsJson);
+        let events = [];
+        if (parsedEvents) {
+            if (Array.isArray(parsedEvents.data)) {
+                events = parsedEvents.data;
+            } else if (Array.isArray(parsedEvents)) {
+                events = parsedEvents;
+            }
+        }
+        if (!Array.isArray(events)) events = [];
+        if (events.length > 0) {
+            scheduler.parse(events); // load events into scheduler
+        }
+        
     } catch (err) {
         console.error("Unexpected error in LoadData:", err);
     }
 }
 
+// Defensive JSON parser
 function ParseJSonTxt(jsonText) {
-    // Parse input safely (supports JSON string or object)
     let parsed;
-
-    // Helper: normalize common JS-literal to JSON (quotes keys, replaces single quotes)
     const toJsonString = (s) => {
         return s
-            .replace(/'/g, '"')                         // single -> double quotes
-            .replace(/([{,]\s*)([a-zA-Z_]\w*)(\s*:)/g, '$1"$2"$3'); // quote unquoted keys
+            .replace(/'/g, '"')
+            .replace(/([{,]\s*)([a-zA-Z_]\w*)(\s*:)/g, '$1"$2"$3');
     };
-
     try {
         if (typeof jsonText === "string") {
             try {
-                parsed = JSON.parse(jsonText); // proper JSON
+                parsed = JSON.parse(jsonText);
             } catch {
-                // Try to normalize JS-literal to JSON
                 const normalized = toJsonString(jsonText);
                 parsed = JSON.parse(normalized);
             }
-        } else {
-            parsed = jsonText; // already an object
+        } else if (typeof jsonText === "object" && jsonText !== null) {
+            parsed = jsonText;
         }
     } catch (e) {
-        console.error("Invalid JSON for dataelements:", e, jsonText);
-        return;
+        console.log("Invalid JSON for dataelements:", e, jsonText);
+        return false;
     }
     return parsed;
 }
@@ -609,153 +606,89 @@ function SetLightboxEventValues(valuesJsonTxt, ResourceId, ResourceName) {
     scheduler.updateEvent(lbId);
 }
 
-// Helper the AL side can call to apply refreshed data
-// function RefreshTimeline(resourcesJson, eventsJson, dateAnchor) {
-//     console.log("resourcesJson:", resourcesJson);
-//     console.log("eventsJson:", eventsJson);
-//     try {
-//         var resources = ParseJSonTxt(resourcesJson);
-//         if (resources && Array.isArray(resources.data)) {
-//             var matrix = scheduler.matrix && scheduler.matrix.timeline;
-//             if (matrix) {
-//                 matrix.y_unit = resources.data; // update sections safely
-//             }
-//         }        
-//         scheduler.clearAll();
-//         scheduler.parse(eventsJson); // update events
-//     } catch (e) {
-//         console.error("RefreshTimeline failed:", e);
-//     }
-// }
 function RefreshTimeline(resourcesJson, eventsJson, dateAnchor) {
     console.log("resourcesJson:", resourcesJson);
     console.log("eventsJson:", eventsJson);
+
     try {
-        // 1) Update sections (y_unit)
+        debugger;
+        // 1) Parse and update sections (y_unit)
         var resources = ParseJSonTxt(resourcesJson);
-        if (resources && Array.isArray(resources.data)) {
-            var sections = resources.data;
-            var matrix = scheduler.matrix && scheduler.matrix.timeline;
-            if (matrix) {
-                matrix.y_unit = sections; // update sections safely
-            }
-            // If available, update the collection to force re-render of sections
-            if (typeof scheduler.updateCollection === "function") {
-                scheduler.updateCollection("timeline", sections);
-            }
+        var sections = (resources && Array.isArray(resources.data)) ? resources.data : [];
+        if (!Array.isArray(sections)) sections = [];
+
+        // If no sections, inject a dummy "No Data" section
+        let onlyNoData = false;
+        if (sections.length === 0) {
+            sections = [{ key: "nodata", label: "No Data" }];
+            onlyNoData = true;
         }
+
+        RecreateTimelineView(sections);
 
         // 2) Reload events
         scheduler.clearAll();
-        scheduler.parse(eventsJson);
+        let parsedEvents = ParseJSonTxt(eventsJson);
+        let events = [];
+        if (!onlyNoData && parsedEvents) {
+            if (Array.isArray(parsedEvents.data)) {
+                events = parsedEvents.data;
+            } else if (Array.isArray(parsedEvents)) {
+                events = parsedEvents;
+            }
+        }
+        if (!Array.isArray(events)) events = [];
+
+        scheduler.parse(events);
 
         // 3) Move view to the week containing dateAnchor (if provided)
-        var anchor = null;
+        let anchor = null;
         if (dateAnchor) {
             if (dateAnchor instanceof Date) {
                 anchor = dateAnchor;
             } else if (typeof dateAnchor === "number") {
                 anchor = new Date(dateAnchor); // epoch ms
             } else if (typeof dateAnchor === "string") {
-                var d = new Date(dateAnchor);  // ISO or BC string
+                let d = new Date(dateAnchor);  // ISO or BC string
                 if (!isNaN(d)) anchor = d;
             }
         }
-        if (anchor) {
-            // timeline_start already snaps to week_start; this is just explicit
-            var weekStart = scheduler.date.week_start(anchor);
-            scheduler.setCurrentView(weekStart, "timeline");
-        } else {
-            // Ensure re-render after sections change even without anchor
-            scheduler.setCurrentView(scheduler.getState().date, "timeline");
-        }
+        let viewDate = anchor ? scheduler.date.week_start(anchor) : scheduler.getState().date;
+        scheduler.setCurrentView(viewDate, "timeline");
+        //scheduler.updateView("timeline"); // <-- force full refresh
+
     } catch (e) {
         console.error("RefreshTimeline failed:", e);
     }
 }
 
-/**
- * Refresh a single event's data without reloading all events.
- * Accepts a JSON string or object. Updates only fields present.
- * Optionally upserts (adds) the event if it doesn't exist.
- *
- * Example payload:
- * {
- *   "id": "evt-123",
- *   "text": "Updated name",
- *   "start_date": "2025-12-23T08:00:00Z",
- *   "end_date": "2025-12-23T12:00:00Z",
- *   "section_id": "R-001",
- *   "resource_id": "RES-10",
- *   "resource_name": "Excavator A"
- * }
- */
-function RefreshEventData(eventJsonTxt, upsertIfMissing = false) {
-    try {
-        var data = ParseJSonTxt(eventJsonTxt);
-        if (!data) return;
-
-        // Be flexible about ID key casing
-        var id = data.id ?? data.Id ?? data.event_id ?? data.EventId;
-        if (id == null) {
-            console.warn("RefreshEventData: missing event id in payload", data);
-            return;
+function RecreateTimelineView(sections) {
+    // Remove existing timeline view if it exists
+    if (scheduler.matrix && scheduler.matrix.timeline) {
+        if (typeof scheduler.deleteView === "function") {
+            scheduler.deleteView("timeline");
         }
-        if (typeof scheduler === "undefined") {
-            console.warn("RefreshEventData: scheduler not initialized");
-            return;
-        }
-
-        var ev = scheduler.getEvent(id);
-        if (!ev) {
-            if (!upsertIfMissing) {
-                console.warn("RefreshEventData: event not found", id);
-                return;
-            }
-            // Create new event if requested
-            var newEv = {
-                id: id,
-                text: data.text ?? data.resource_name ?? "",
-                start_date: data.start_date ? new Date(data.start_date) : new Date(),
-                end_date: data.end_date ? new Date(data.end_date) : new Date(),
-                section_id: data.section_id ?? data.section ?? null,
-                resource_id: data.resource_id ?? null,
-                resource_name: data.resource_name ?? null
-            };
-            scheduler.addEvent(newEv);
-            Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnEventRefreshed", [String(id), "added"]);
-            return;
-        }
-
-        // Update only supplied fields
-        if ("text" in data) ev.text = data.text;
-        if ("section_id" in data) ev.section_id = data.section_id;
-        if ("start_date" in data && data.start_date) ev.start_date = new Date(data.start_date);
-        if ("end_date" in data && data.end_date) ev.end_date = new Date(data.end_date);
-        if ("resource_id" in data) ev.resource_id = data.resource_id;
-        if ("resource_name" in data) ev.resource_name = data.resource_name;
-
-        // Keep description in sync if text changed
-        var lbId = scheduler.getState().lightbox_id;
-        if (lbId === id) {
-            var box = document.querySelector(".dhx_cal_light");
-            if (box) {
-                var idInput = box.querySelector("#resource_id_input");
-                var nameInput = box.querySelector("#resource_name_input");
-                if (idInput && ("resource_id" in data)) idInput.value = data.resource_id || "";
-                if (nameInput && ("resource_name" in data)) nameInput.value = data.resource_name || "";
-            }
-            try {
-                var descSection = scheduler.formSection && scheduler.formSection("description");
-                if (descSection && typeof descSection.setValue === "function" && ("text" in data)) {
-                    descSection.setValue(ev.text || "");
-                }
-            } catch (_) { /* ignore */ }
-        }
-
-        scheduler.updateEvent(id);
-        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnEventRefreshed", [String(id), "updated"]);
-    } catch (e) {
-        console.error("RefreshEventData failed:", e, eventJsonTxt);
+        delete scheduler.matrix.timeline;
     }
+    // Recreate timeline view with new sections
+    scheduler.createTimelineView({
+        name: "timeline",
+        x_unit: "hour",
+        x_date: "%H",
+        x_step: 3,
+        x_size: (8 * 7),
+        x_length: (8 * 7),
+        event_dy: 60,
+        section_autoheight: false,
+        resize_events: true,
+        y_unit: sections,
+        y_property: "section_id",
+        render: "tree",
+        scale_height: 60,
+        second_scale: {
+            x_unit: "day",
+            x_date: "%D %d %M"
+        }
+    });
 }
+
