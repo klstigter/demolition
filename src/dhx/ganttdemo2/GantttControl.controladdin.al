@@ -20,12 +20,15 @@ controladdin "DHX Gantt Control 2"
 
     event ControlReady();
     event OnAfterInit();
+    event onTaskDblClick(eventId: Text; eventData: Text);
+    event OnJobTaskUpdated(eventData: Text);
 
     procedure LoadProject(projectstartdate: date; projectenddate: date);
     procedure Undo();
     procedure Redo();
     procedure AddMarker(datestr: Text; text: Text);
-
+    procedure RefreshEventData(eventData: Text);
+    procedure LoadProjectData(jsonText: Text);
     procedure SetColumnVisibility(
         ShowStartDate: Boolean;
         ShowDuration: Boolean;
@@ -33,4 +36,7 @@ controladdin "DHX Gantt Control 2"
         ShowConstraintDate: Boolean;
         ShowTaskType: Boolean
     );
+    procedure LoadResourcesData(resourcesJsonTxt: Text);
+    procedure LoadDayTasksData(dayTasksJsonTxt: Text);
+
 }

@@ -32,12 +32,18 @@ table 50610 "Day Tasks"
             DataClassification = ToBeClassified;
             TableRelation = "Job Planning Line"."Line No." where("Job No." = field("Job No."), "Job Task No." = field("Job Task No."));
             Caption = 'Job Planning Line No.';
+
         }
 
         field(10; "Start Planning Date"; Date)
         {
             DataClassification = ToBeClassified;
             Caption = 'Planning Date';
+            trigger OnValidate()
+            begin
+                if CurrFieldNo = FieldNo("Start Planning Date") then
+                    "Day No." := generalutils.DateToInteger("Start Planning Date");
+            end;
         }
         field(11; "Start Time"; Time)
         {
@@ -164,6 +170,9 @@ table 50610 "Day Tasks"
         {
         }
     }
+
+    var
+        generalutils: Codeunit "General Planning Utilities";
 
     procedure CalculateWorkingHours()
     var
