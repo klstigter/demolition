@@ -105,12 +105,14 @@ codeunit 50604 "DHX Data Handler"
                 WeekTemp.Reset();
                 WeekTemp.SetCurrentKey("Column 3 Amt.");
                 WeekTemp.FindSet();
-                if WeekTemp.FindLast() then begin
-                    EarliestPlanningDate := DWY2Date(1, WeekTemp."Column 2 Amt.", WeekTemp."Column 1 Amt.");
-                end;
+                if WeekTemp.FindLast() then
+                    EarliestPlanningDate := DWY2Date(1, WeekTemp."Column 2 Amt.", WeekTemp."Column 1 Amt.")
+                else
+                    EarliestPlanningDate := Today();
             end else
                 GetWeekPeriodDates(AnchorDate, EarliestPlanningDate, _DummyEndDate);
-        end;
+        end else
+            EarliestPlanningDate := Today();
 
         JobTasks.MarkedOnly := true;
         Jobs.MarkedOnly := true;
@@ -611,7 +613,7 @@ codeunit 50604 "DHX Data Handler"
     begin
         // Implementation to open the Job Planning Line Card based on eventId
         //Message('Event Double Clicked with ID: %1', eventId);
-        EventIDList := eventId.Split('-');
+        EventIDList := eventId.Split('|');
         JobNo := EventIDList.Get(1);
         TaskNo := EventIDList.Get(2);
         Evaluate(PlanningLineNo, EventIDList.Get(3));
