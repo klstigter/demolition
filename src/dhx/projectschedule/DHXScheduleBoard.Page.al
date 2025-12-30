@@ -28,6 +28,7 @@ page 50621 "DHX Schedule Board"
                     ResourceJSONTxt := DHXDataHandler.GetYUnitElementsJSON(Today(), startDate, endDate, PlanninJsonTxt, EarliestPlanningDate);
                     CurrPage.DhxScheduler.Init(ResourceJSONTxt, EarliestPlanningDate);
                     CurrPage.DhxScheduler.LoadData(PlanninJsonTxt);
+                    AnchorDate := startDate;
                 end;
 
                 #endregion Init and Load Data on Control Ready
@@ -127,9 +128,14 @@ page 50621 "DHX Schedule Board"
                     DHXDataHandler: Codeunit "DHX Data Handler";
                     ResourceJSONTxt: Text;
                     EventsJsonTxt: Text;
+                    StartDate: Date;
+                    EndDate: Date;
                 begin
-                    if DHXDataHandler.GetDayTaskAsResourcesAndEventsJSon(NavigateJson, ResourceJSONTxt, EventsJsonTxt) then
-                        CurrPage.DhxScheduler.RefreshTimeline(ResourceJSONTxt, EventsJsonTxt); //TODO: pass resourcesJson and eventsJson
+                    if DHXDataHandler.GetDayTaskAsResourcesAndEventsJSon(NavigateJson, ResourceJSONTxt, EventsJsonTxt) then begin
+                        DHXDataHandler.GetStartEndDatesFromTimeLineJSon(NavigateJson, startDate, endDate);
+                        CurrPage.DhxScheduler.RefreshTimeline(ResourceJSONTxt, EventsJsonTxt, startDate); //TODO: pass resourcesJson and eventsJson
+                        AnchorDate := startDate;
+                    end;
                 end;
                 #endregion Timeline Navigate
             }
@@ -140,11 +146,106 @@ page 50621 "DHX Schedule Board"
     {
         area(Processing)
         {
+            action(ShowDefaultTabs)
+            {
+                Caption = 'Show/Hide DHTMLX buttons';
+                ApplicationArea = All;
+                trigger OnAction()
+                begin
+                    ShowDefaultTabs := not ShowDefaultTabs;
+                    CurrPage.DhxScheduler.SetDefaultTabsVisible(ShowDefaultTabs);
+                end;
+            }
 
+            action(TodayAct)
+            {
+                Caption = 'Today';
+                ApplicationArea = All;
+                Image = Position;
+                trigger OnAction()
+                begin
+                    AnchorDate := Today();
+                    RefreshSchedule();
+                end;
+            }
+            action(PreviousAct)
+            {
+                Caption = 'Previous';
+                ApplicationArea = All;
+                Image = PreviousSet;
+                trigger OnAction()
+                begin
+                    AnchorDate := CalcDate('<-1W>', AnchorDate);
+                    RefreshSchedule();
+                end;
+            }
+            action(NextAct)
+            {
+                Caption = 'Next';
+                ApplicationArea = All;
+                Image = NextSet;
+                trigger OnAction()
+                begin
+                    AnchorDate := CalcDate('<1W>', AnchorDate);
+                    RefreshSchedule();
+                end;
+            }
+            action(DateLookup)
+            {
+                Caption = 'Go to Date';
+                ApplicationArea = All;
+                Image = GoTo;
+                trigger OnAction()
+                var
+                    DateRec: record Date;
+                    DateSelectorPage: page "Date Lookup";
+                    SelectedDate: Date;
+                begin
+                    DateSelectorPage.LookupMode := true;
+                    if DateSelectorPage.RunModal() = Action::LookupOK then begin
+                        DateSelectorPage.GetRecord(DateRec);
+                        SelectedDate := DateRec."Period Start";
+                        AnchorDate := SelectedDate;
+                        RefreshSchedule();
+                    end;
+                end;
+            }
+        }
+
+        area(Promoted)
+        {
+            group("DateNav")
+            {
+                Caption = 'Date Navigation', Comment = 'Record list will filtered based on date';
+
+                actionref("Prev_filter"; PreviousAct) { }
+                actionref("Today_filter"; Todayact) { }
+                actionref("Next_filter"; Nextact) { }
+            }
         }
     }
 
     var
         DHXDataHandler: Codeunit "DHX Data Handler";
+        ShowDefaultTabs: Boolean;
+        AnchorDate: Date;
+
+    local procedure RefreshSchedule()
+    var
+        DHXDataHandler: Codeunit "DHX Data Handler";
+        startDate: Date;
+        endDate: Date;
+        ResourceJSONTxt: Text;
+        EventsJsonTxt: Text;
+        EarliestPlanningDate: Date;
+    begin
+        DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
+        DHXDataHandler.GetDayTaskAsResourcesAndEventsJSon_StartEnd(startDate,
+                                                                      endDate,
+                                                                      ResourceJSONTxt,
+                                                                      EventsJsonTxt,
+                                                                      EarliestPlanningDate);
+        CurrPage.DhxScheduler.RefreshTimeline(ResourceJSONTxt, EventsJsonTxt, startDate);
+    end;
 
 }

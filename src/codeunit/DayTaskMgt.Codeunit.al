@@ -42,7 +42,18 @@ codeunit 50610 "Day Tasks Mgt."
         DayEndTime: Time;
         NonWorkingHours: Decimal;
     begin
-        JobPlanningLine.TestField("Work-Hour Template");
+        commit;
+        case true of
+            JobPlanningLine."Work-Hour Template" = '':
+                exit;
+            JobPlanningLine."Start Planning Date" = 0D:
+                exit;
+            JobPlanningLine."End Planning Date" = 0D:
+                exit;
+            (JobPlanningLine."Quantity of Lines" = 0) and (JobPlanningLine."No." = '') and (JobPlanningLine."Vendor No." = ''):
+                exit;
+        end;
+
         WorkHoursTemplate.get(JobPlanningLine."Work-Hour Template");
         if DoDelete then
             ClearDayPlanningLines(JobPlanningLine);
@@ -74,7 +85,7 @@ codeunit 50610 "Day Tasks Mgt."
                 Clear(DayTasks);
                 DayNo := GeneralUtil.DateToInteger(NewTaskDate);
                 DayTasks."Day No." := DayNo;
-                DayTasks.DayLineNo := 1;
+                DayTasks.DayLineNo := 10000;
                 DayTasks."Job No." := JobPlanningLine."Job No.";
                 DayTasks."Job Task No." := JobPlanningLine."Job Task No.";
                 DayTasks."Job Planning Line No." := JobPlanningLine."Line No.";
@@ -117,8 +128,8 @@ codeunit 50610 "Day Tasks Mgt."
                 DayTasks.Quantity := CalculateDayQuantity(JobPlanningLine, NewTaskDate, StartDate, EndDate, DayStartTime, DayEndTime);
                 if CheckMayChange(DayTasks) then
                     DayTasks.Insert();
-                for n := 2 to JobPlanningLine.Quantity do begin
-                    DayTasks."DayLineNo" := n;
+                for n := 2 to JobPlanningLine."Quantity of Lines" do begin
+                    DayTasks."DayLineNo" := n * 10000;
                     if CheckMayChange(DayTasks) then
                         DayTasks.Insert();
                 end;
@@ -134,6 +145,7 @@ codeunit 50610 "Day Tasks Mgt."
     begin
         if daytask.Get(NewDayTask."Day No.", NewDayTask.DayLineNo, NewDayTask."Job No.", NewDayTask."Job Task No.", NewDayTask."Job Planning Line No.") then
             Exit(not daytask."Do Not Change");
+        exit(true);
 
     end;
 
@@ -149,7 +161,7 @@ codeunit 50610 "Day Tasks Mgt."
         DayEndDateTime: DateTime;
     begin
         // If quantity is 0, return 0
-        if JobPlanningLine.Quantity = 0 then
+        if JobPlanningLine."Quantity of Lines" = 0 then
             exit(0);
 
         // Calculate total time span in seconds

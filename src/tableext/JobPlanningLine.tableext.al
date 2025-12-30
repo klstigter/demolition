@@ -43,6 +43,12 @@ tableextension 50600 "Job Planning Line ext" extends "Job Planning Line"
             end;
         }
 
+        field(50610; "Quantity of Lines"; Integer)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Quantity of Lines';
+        }
+
         field(50615; "Vendor No."; Code[20])
         {
             DataClassification = ToBeClassified;
@@ -143,6 +149,8 @@ tableextension 50600 "Job Planning Line ext" extends "Job Planning Line"
         RestMgt: Codeunit "Rest API Mgt.";
         auto: Boolean;
     begin
+        BalanceResourceQnty();
+
         if Rec."No." <> xRec."No." then
             if Type = Type::Resource then
                 if Res.Get(Rec."No.") then
@@ -156,6 +164,27 @@ tableextension 50600 "Job Planning Line ext" extends "Job Planning Line"
     end;
 
     var
+
+    Local procedure BalanceResourceQnty()
+    var
+    begin
+        if CurrFieldNo = FieldNo("Quantity") then
+            if rec.Quantity > 1 then begin
+                rec."No." := '';
+                rec."Vendor No." := '';
+            end;
+        if CurrFieldNo = FieldNo("No.") then
+            if rec."No." <> '' then begin
+                rec.Quantity := 1;
+                rec."Vendor No." := '';
+            end;
+        if CurrFieldNo = FieldNo("Vendor No.") then
+            if rec."Vendor No." <> '' then begin
+                rec.Quantity := 1;
+                rec."No." := '';
+            end;
+    end;
+
 
     local procedure CheckOverlap()
     var
