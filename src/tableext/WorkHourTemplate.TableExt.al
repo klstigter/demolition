@@ -32,7 +32,7 @@ tableextension 50620 "Work-Hour Template Ext" extends "Work-Hour Template"
 
         field(50602; "Non Working Minutes"; Integer)
         {
-            Caption = 'Non Working Hours';
+            Caption = 'Non Working Minutes';
             DataClassification = CustomerContent;
             Editable = false;
 

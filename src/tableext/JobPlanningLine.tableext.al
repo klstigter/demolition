@@ -12,6 +12,7 @@ tableextension 50600 "Job Planning Line ext" extends "Job Planning Line"
             trigger OnValidate()
             begin
                 CheckOverlap();
+                StartEndLimitations();
             end;
         }
         field(50602; "End Planning Date"; Date)
@@ -20,6 +21,7 @@ tableextension 50600 "Job Planning Line ext" extends "Job Planning Line"
             trigger OnValidate()
             begin
                 CheckOverlap();
+                StartEndLimitations();
             end;
         }
         field(50603; "Start Time"; Time)
@@ -123,6 +125,21 @@ tableextension 50600 "Job Planning Line ext" extends "Job Planning Line"
             CalcFormula = lookup("Job Task"."Job View Type" where("Job Task No." = Field("Job Task No."), "Job No." = Field("Job No.")));
             Editable = false;
         }
+
+        field(50690; "Total Worked Hours"; Decimal)
+        {
+            FieldClass = FlowField;
+            CalcFormula = sum("Day Tasks"."Working Hours" where("Job No." = field("Job No."), "Job Task No." = field("Job Task No."), "Job Planning Line No." = field("Line No.")));
+            BlankNumbers = BlankZero;
+            Editable = false;
+        }
+        field(50700; "Total Day Taks"; Integer)
+        {
+            FieldClass = FlowField;
+            CalcFormula = count("Day Tasks" where("Job No." = field("Job No."), "Job Task No." = field("Job Task No."), "Job Planning Line No." = field("Line No.")));
+            BlankNumbers = BlankZero;
+            Editable = false;
+        }
     }
 
     keys
@@ -164,6 +181,8 @@ tableextension 50600 "Job Planning Line ext" extends "Job Planning Line"
     end;
 
     var
+        job: Record Job;
+        genUtil: Codeunit "General Planning Utilities";
 
     Local procedure BalanceResourceQnty()
     var
@@ -252,5 +271,44 @@ tableextension 50600 "Job Planning Line ext" extends "Job Planning Line"
                     end;
             end;
         exit(rtv);
+    end;
+
+    local procedure GetJob()
+    begin
+        if job."No." <> Rec."Job No." then
+            job.Get(Rec."Job No.");
+    end;
+
+    local procedure StartEndLimitations()
+    begin
+        GetJob();
+        if FieldNo("Start Planning Date") = CurrFieldNo then begin
+            if (job."Starting Date" <> 0D) and (Rec."Start Planning Date" < job."Starting Date") then begin
+                Rec."Start Planning Date" := job."Starting Date";
+                if GuiAllowed then
+                    Message('Start Planning Date adjusted to Job Starting Date limit.');
+            end;
+        end;
+        if FieldNo("End Planning Date") = CurrFieldNo then begin
+            if (job."Ending Date" <> 0D) and (Rec."End Planning Date" > job."Ending Date") then begin
+                Rec."End Planning Date" := job."Ending Date";
+                if GuiAllowed then
+                    Message('End Planning Date adjusted to Job Ending Date limit.');
+            end;
+        end;
+    end;
+
+    local procedure RemoveDayTasksOutsideLimits()
+    var
+        DayTask: Record "Day Tasks";
+    begin
+        DayTask.SetRange("Job No.", Rec."Job No.");
+        DayTask.SetRange("Job Task No.", Rec."Job Task No.");
+        DayTask.SetRange("Job Planning Line No.", Rec."Line No.");
+        DayTask.SetFilter("Day No.", '<%1|>%2', genUtil.DateToInteger(Rec."Start Planning Date"), genUtil.DateToInteger(Rec."End Planning Date"));
+        if DayTask.FindSet() then begin
+            if Confirm('There are %1 Day Tasks outside the new planning line dates. Do you want to delete them?', false, DayTask.Count) then
+                DayTask.DeleteAll();
+        end;
     end;
 }

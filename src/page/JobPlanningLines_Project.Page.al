@@ -36,10 +36,18 @@ page 50615 "Job Planning Line (Project)"
                     ToolTip = 'Specifies the number of the related project task.';
                     Visible = JobTaskNoVisible;
                 }
+                field("Line No."; Rec."Line No.")
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the planning line''s entry number.';
+
+                }
+
                 field("Line Type"; Rec."Line Type")
                 {
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the type of planning line.';
+                    Visible = false;
                 }
                 field("Usage Link"; Rec."Usage Link")
                 {
@@ -63,12 +71,12 @@ page 50615 "Job Planning Line (Project)"
                         PlanningDateOnAfterValidate();
                     end;
                 }
-                //<<Custom
-                field("Start Time"; Rec."Start Time")
+                field("End Planning Date"; Rec."End Planning Date")
                 {
                     ApplicationArea = All;
                 }
-                field("End Planning Date"; Rec."End Planning Date")
+                //<<Custom
+                field("Start Time"; Rec."Start Time")
                 {
                     ApplicationArea = All;
                 }
@@ -76,44 +84,23 @@ page 50615 "Job Planning Line (Project)"
                 {
                     ApplicationArea = All;
                 }
-                //>>
-                field("Requested Delivery Date"; Rec."Requested Delivery Date")
+                field("work-hour Template"; Rec."work-hour Template")
                 {
                     ApplicationArea = All;
                 }
-                field("Planned Delivery Date"; Rec."Planned Delivery Date")
-                {
-                    ApplicationArea = Jobs;
-                    ToolTip = 'Specifies the date that is planned to deliver the item connected to the project planning line. For a resource, the planned delivery date is the date that the resource performs services with respect to the project.';
-                }
-                field("Currency Date"; Rec."Currency Date")
-                {
-                    ApplicationArea = Jobs;
-                    Editable = CurrencyDateEditable;
-                    ToolTip = 'Specifies the date that will be used to find the exchange rate for the currency in the Currency Date field.';
-                    Visible = false;
-                }
-                //<<Custom
-                field("Vendor No."; Rec."Vendor No.")
+                field(SkillsRequired; Rec.SkillsRequired)
                 {
                     ApplicationArea = All;
                 }
-                field("Vendor Name"; Rec."Vendor Name")
-                {
-                    ApplicationArea = All;
-                }
-                //>>
-                field("Document No."; Rec."Document No.")
+                field("Quantity of Lines"; Rec."Quantity of Lines")
                 {
                     ApplicationArea = Jobs;
-                    Editable = DocumentNoEditable;
-                    ToolTip = 'Specifies a document number for the planning line.';
-                }
-                field("Line No."; Rec."Line No.")
-                {
-                    ApplicationArea = Jobs;
-                    ToolTip = 'Specifies the planning line''s entry number.';
-                    Visible = false;
+                    ToolTip = 'Specifies the number of units of the resource, item, or general ledger account that should be specified on the planning line. If you later change the No., the quantity you have entered remains on the line.';
+
+                    trigger OnValidate()
+                    begin
+                        QuantityOnAfterValidate();
+                    end;
                 }
                 field(Type; Rec.Type)
                 {
@@ -147,6 +134,42 @@ page 50615 "Job Planning Line (Project)"
                     Editable = DescriptionEditable;
                     ToolTip = 'Specifies the name of the resource, item, or G/L account to which this entry applies. You can change the description.';
                 }
+                //>>
+                field("Requested Delivery Date"; Rec."Requested Delivery Date")
+                {
+                    ApplicationArea = All;
+                }
+                field("Planned Delivery Date"; Rec."Planned Delivery Date")
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the date that is planned to deliver the item connected to the project planning line. For a resource, the planned delivery date is the date that the resource performs services with respect to the project.';
+                }
+                field("Currency Date"; Rec."Currency Date")
+                {
+                    ApplicationArea = Jobs;
+                    Editable = CurrencyDateEditable;
+                    ToolTip = 'Specifies the date that will be used to find the exchange rate for the currency in the Currency Date field.';
+                    Visible = false;
+                }
+                //<<Custom
+                field("Vendor No."; Rec."Vendor No.")
+                {
+                    ApplicationArea = All;
+                }
+                field("Vendor Name"; Rec."Vendor Name")
+                {
+                    ApplicationArea = All;
+                }
+                //>>
+                field("Document No."; Rec."Document No.")
+                {
+                    ApplicationArea = Jobs;
+                    Editable = DocumentNoEditable;
+                    ToolTip = 'Specifies a document number for the planning line.';
+                    Visible = false;
+                }
+
+
                 field("Description 2"; Rec."Description 2")
                 {
                     ApplicationArea = Jobs;
@@ -248,16 +271,7 @@ page 50615 "Job Planning Line (Project)"
                         ReserveOnAfterValidate();
                     end;
                 }
-                field("Quantity of Lines"; Rec."Quantity of Lines")
-                {
-                    ApplicationArea = Jobs;
-                    ToolTip = 'Specifies the number of units of the resource, item, or general ledger account that should be specified on the planning line. If you later change the No., the quantity you have entered remains on the line.';
 
-                    trigger OnValidate()
-                    begin
-                        QuantityOnAfterValidate();
-                    end;
-                }
                 //<<Custom
                 field(Depth; Rec.Depth)
                 {
@@ -1373,7 +1387,7 @@ page 50615 "Job Planning Line (Project)"
         SelectMultipleItemsVisible := Rec.GetFilter("Job Task No.") <> '';
         Rec.FilterGroup := 0;
         //<<Custom
-        Rec.SetRange("Start Planning Date", Today);
+        //Rec.SetRange("Start Planning Date", Today);
         CurrFilterDate := Today;
         //>>
     end;

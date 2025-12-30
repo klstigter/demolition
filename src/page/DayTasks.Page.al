@@ -5,7 +5,7 @@ page 50630 "Day Tasks"
     UsageCategory = Lists;
     SourceTable = "Day Tasks";
     Caption = 'Day Tasks';
-    Editable = false;
+    //Editable = false;
 
     layout
     {
@@ -48,7 +48,7 @@ page 50630 "Day Tasks"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the end time for this day.';
                 }
-                field("Non Working Hours"; Rec."Non Working Hours")
+                field("Non Working Hours"; Rec."Non Working Minutes")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the number of non-working hours in a 24-hour period for this day task.';
@@ -127,15 +127,31 @@ page 50630 "Day Tasks"
     {
         area(Processing)
         {
+            action(pLanningLines)
+            {
+                ApplicationArea = All;
+                Caption = 'Planning Lines';
+                ToolTip = 'Navigate to the Planning Lines page.';
+                Image = AbsenceCalendar;
+
+                trigger OnAction()
+                var
+                    jobplanningLine: Record "Job Planning Line";
+                begin
+                    jobplanningLine."Job No." := Rec."Job No.";
+                    jobplanningLine."Line No." := Rec."Job Planning Line No.";
+                    jobplanningLine."Line No." := jobplanningLine."Line No.";
+                    if jobplanningLine.find('=<>') then;
+                    Page.Run(Page::"Job Planning Line (Project)", jobplanningLine);
+                end;
+            }
             action(UnpackJobPlanningLines)
             {
                 ApplicationArea = All;
                 Caption = 'Unpack Job Planning Lines';
                 ToolTip = 'Unpacks job planning lines into daily records.';
                 Image = SplitLines;
-                Promoted = true;
-                PromotedCategory = Process;
-                PromotedIsBig = true;
+                Visible = false;
 
                 trigger OnAction()
                 var
@@ -151,9 +167,7 @@ page 50630 "Day Tasks"
                 Caption = 'Refresh Day Planning';
                 ToolTip = 'Refreshes the day planning lines.';
                 Image = Refresh;
-                Promoted = true;
-                PromotedCategory = Process;
-
+                Visible = false;
                 trigger OnAction()
                 begin
                     CurrPage.Update(false);

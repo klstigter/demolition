@@ -2,6 +2,8 @@ table 50610 "Day Tasks"
 {
     DataClassification = ToBeClassified;
     Caption = 'Day Tasks';
+    DrillDownPageId = "Day Tasks";
+    LookupPageId = "Day Tasks";
 
     fields
     {
@@ -136,11 +138,15 @@ table 50610 "Day Tasks"
             DecimalPlaces = 0 : 2;
             Editable = false;
         }
-        field(81; "Non Working Hours"; Decimal)
+        field(81; "Non Working Minutes"; Integer)
         {
             DataClassification = CustomerContent;
-            Caption = 'Non Working Hours';
-            DecimalPlaces = 0 : 2;
+            Caption = 'Non Working Minutes';
+            trigger OnValidate()
+            begin
+                CalculateWorkingHours();
+            end;
+
         }
 
         field(90; "Do Not Change"; Boolean)
@@ -178,19 +184,11 @@ table 50610 "Day Tasks"
     var
         TotalMinutes: Integer;
         WorkingMinutes: Integer;
-        NonWorkingMinutes: Integer;
     begin
         // If either time is not set, clear both hours fields
         if ("Start Time" = 0T) or ("End Time" = 0T) then begin
             "Working Hours" := 0;
-            "Non Working Hours" := 0;
-            exit;
-        end;
-
-        // Validate that End Time is after Start Time
-        if "End Time" <= "Start Time" then begin
-            "Working Hours" := 0;
-            "Non Working Hours" := 24;
+            "Non Working Minutes" := 0;
             exit;
         end;
 
@@ -199,12 +197,49 @@ table 50610 "Day Tasks"
 
         // Calculate working minutes
         WorkingMinutes := ("End Time" - "Start Time") div 60000;
-
-        // Calculate non-working minutes
-        NonWorkingMinutes := TotalMinutes - WorkingMinutes;
+        WorkingMinutes := WorkingMinutes - "Non Working Minutes";
 
         // Convert to hours (decimal)
         "Working Hours" := WorkingMinutes / 60;
-        "Non Working Hours" := NonWorkingMinutes / 60;
+
     end;
+
+    procedure CheckFirstandLastDay("Job No.": Code[20]);
+    begin
+
+    end;
+
+
+    procedure CheckFirstandLastDay("Job No.": Code[20]; "Job Task No.": Code[20]);
+    var
+        job: Record Job;
+        JobTask: Record "Job Task";
+        DayTask: Record "Day Tasks";
+        FirstPlanningDate: Date;
+        LastPlanningDate: Date;
+    begin
+        if "Job Task No." = '' then begin
+            job.SetLoadFields("Starting Date", "Ending Date");
+            job.get("Job No.");
+            FirstPlanningDate := job."Starting Date";
+            LastPlanningDate := job."Ending Date";
+        end else begin
+            JobTask.get("Job No.", "Job Task No.");
+            JobTask.SetLoadFields("PlannedStartDate", "PlannedEndDate");
+            FirstPlanningDate := JobTask.PlannedStartDate;
+            LastPlanningDate := JobTask.PlannedEndDate;
+        end;
+
+        // check the first and last planning dates for the given first and last dates
+        DayTask.SetRange("Job No.", "Job No.");
+        DayTask.SetRange("Job Task No.", "Job Task No.");
+        if DayTask.FindFirst() then
+            if DayTask."Start Planning Date" < FirstPlanningDate then
+                error('There are Day Tasks before the planned start date %1.', FirstPlanningDate);
+        if DayTask.FindLast() then begin
+            if DayTask."Start Planning Date" > LastPlanningDate then
+                Error('There are Day Tasks after the planned end date %1.', LastPlanningDate);
+        end;
+    end;
+
 }

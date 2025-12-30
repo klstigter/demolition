@@ -3,31 +3,42 @@ codeunit 50613 "GanttChartDataHandler"
     var
         GenUtils: Codeunit "General Planning Utilities";
 
-    procedure GetJobTasksAsJson() JsonText: Text
+    procedure GetJobTasksAsJson(StartDate: Date) JsonText: Text
     var
         JobTask: Record "Job Task";
         JsonArray: JsonArray;
         JsonObject: JsonObject;
     begin
-        if JobTask.FindSet() then
-            repeat
-                JsonObject := CreateJobTaskJsonObject(JobTask);
-                JsonArray.Add(JsonObject);
-            until JobTask.Next() = 0;
-
-        JsonArray.WriteTo(JsonText);
+        exit(GetJobTasksAsJson(StartDate, ''));
     end;
 
-    procedure GetJobTasksAsJson(JobNo: Code[20]) JsonText: Text
+    procedure GetJobTasksAsJson(StartDate: Date; JobNo: Code[20]) JsonText: Text
     var
         JobTask: Record "Job Task";
         JsonArray: JsonArray;
         JsonObject: JsonObject;
+        OldJobNo: Code[20];
+        OffsetDays: Integer;
+        Job: Record Job;
     begin
-        JobTask.SetRange("Job No.", JobNo);
-        Jobtask.SetFilter("Your Reference", '%1', '');
+        if JobNo <> '' then
+            JobTask.SetRange("Job No.", JobNo);
+        //Jobtask.SetFilter("Your Reference", '%1', '');
+        if StartDate <> 0D then
+            JobTask.SetFilter("PlannedEndDate", '<=%2', StartDate); // to exclude blank references
         if JobTask.FindSet() then
             repeat
+                if OldJobNo <> JobTask."Job No." then begin
+                    OldJobNo := JobTask."Job No.";
+                    OffsetDays := 0;
+                    if Job.Get(OldJobNo) then begin
+                        //if Job."Starting Date" = 0D then begin
+                        job."Starting Date" := CalcDate('-15D', Today());
+                        Job.Modify();
+                    end;
+                end;
+                OffsetDays += 5;
+                repairStartdate(JobTask, OffsetDays);
                 JsonObject := CreateJobTaskJsonObject(JobTask);
                 JsonArray.Add(JsonObject);
             until JobTask.Next() = 0;
@@ -43,7 +54,7 @@ codeunit 50613 "GanttChartDataHandler"
         ConstraintDateText: Text;
         SchedulingTypeText: Text;
     begin
-        repairStartdate(JobTask);
+
         // Generate unique ID from Job No. and Job Task No.
         JsonObject.Add('id', Format(JobTask."Job No.") + '-' + Format(JobTask."Job Task No."));
 
@@ -77,19 +88,17 @@ codeunit 50613 "GanttChartDataHandler"
         SchedulingTypeText := GetSchedulingTypeText(JobTask."Scheduling Type");
         JsonObject.Add('schedulingType', SchedulingTypeText);
 
-        // Constraint type and date (placeholder values - customize as needed)
-        // You can add custom fields to Job Task table if you need to store constraint info
-
         //if JobTask."Constraint Type" <> JobTask."Constraint Type"::None then begin
         JsonObject.Add('constraint_type', GenUtils.MapConstraintTypeToDhtmlx(JobTask."Constraint Type"));  // e.g., 'fnlt' (Finish No Later Than)
 
-        if JobTask."Constraint Date" <> 0D then begin
-            ConstraintDateText := FormatDate(JobTask."Constraint Date");
-            JsonObject.Add('constraint_date', ConstraintDateText);
+        if JobTask."Constraint Type" <> JobTask."Constraint Type"::None then begin
+            if JobTask."Constraint Date" <> 0D then begin
+                ConstraintDateText := FormatDate(JobTask."Constraint Date");
+                JsonObject.Add('constraint_date', ConstraintDateText);
+            end;
+            if JobTask."Constraint Is Hard" then
+                JsonObject.Add('constraint_is_hard', JobTask."Constraint Is Hard");
         end;
-        if JobTask."Constraint Is Hard" then
-            JsonObject.Add('constraint_is_hard', JobTask."Constraint Is Hard");
-        //end;
 
         if JobTask."Deadline Date" <> 0D then
             JsonObject.Add('deadline', FormatDate(JobTask."Deadline Date"));
@@ -121,15 +130,18 @@ codeunit 50613 "GanttChartDataHandler"
         end;
     end;
 
-    local procedure repairStartdate(var JobTask: Record "Job Task")
+    local procedure repairStartdate(var JobTask: Record "Job Task"; OffsetDays: Integer)
     var
         Job: Record Job;
     begin
         if Job.Get(JobTask."Job No.") then begin
-            JobTask.PlannedStartDate := Job."Starting Date";
+            IF Job."Starting Date" <> 0D THEN
+                JobTask.PlannedStartDate := CalcDate(Format(OffsetDays) + 'D', Job."Starting Date");
             JobTask.PlannedEndDate := Job."Ending Date";
-            if (jobtask.PlannedEndDate = 0D) and (JobTask.PlannedStartDate <> 0D) then
-                JobTask.PlannedEndDate := CalcDate('+90D', JobTask.PlannedStartDate);
+            //if (jobtask.PlannedEndDate = 0D) and (JobTask.PlannedStartDate <> 0D) then
+            JobTask.PlannedEndDate := CalcDate(Format(30 - OffsetDays) + 'D', JobTask.PlannedStartDate);
+            JobTask."Scheduling Type" := schedulingType::FixedDuration;
+            JobTask.CalculateDuration();
             JobTask.Modify()
         end;
     end;
@@ -223,27 +235,23 @@ codeunit 50613 "GanttChartDataHandler"
         JsonArray.Add(JsonObject);
     end;
 
-    procedure GetDayTasksAsJson() JsonText: Text
+    procedure GetDayTasksAsJson(StartData: date) JsonText: Text
     var
         DayTask: Record "Day Tasks";
         JsonArray: JsonArray;
         JsonObject: JsonObject;
     begin
-        if DayTask.FindSet() then
-            repeat
-                JsonObject := CreateDayTaskJsonObject(DayTask);
-                JsonArray.Add(JsonObject);
-            until DayTask.Next() = 0;
-
-        JsonArray.WriteTo(JsonText);
+        exit(GetDayTasksAsJson(StartData, '', ''));
     end;
 
-    procedure GetDayTasksAsJson(JobNo: Code[20]) JsonText: Text
+    procedure GetDayTasksAsJson(StartData: date; JobNo: Code[20]) JsonText: Text
     var
         DayTask: Record "Day Tasks";
         JsonArray: JsonArray;
         JsonObject: JsonObject;
     begin
+        exit(GetDayTasksAsJson(StartData, JobNo, ''));
+        DayTask.SETFILTER("Day No.", '>=%1', GENUTILS.DateToInteger(StartData));
         DayTask.SetRange("Job No.", JobNo);
         if DayTask.FindSet() then
             repeat
@@ -254,14 +262,19 @@ codeunit 50613 "GanttChartDataHandler"
         JsonArray.WriteTo(JsonText);
     end;
 
-    procedure GetDayTasksAsJson(JobNo: Code[20]; JobTaskNo: Code[20]) JsonText: Text
+    procedure GetDayTasksAsJson(StartData: date; JobNo: Code[20]; JobTaskNo: Code[20]) JsonText: Text
     var
         DayTask: Record "Day Tasks";
         JsonArray: JsonArray;
         JsonObject: JsonObject;
     begin
-        DayTask.SetRange("Job No.", JobNo);
-        DayTask.SetRange("Job Task No.", JobTaskNo);
+        if JobNo <> '' then
+            DayTask.SetRange("Job No.", JobNo);
+        if JobTaskNo <> '' then
+            DayTask.SetRange("Job Task No.", JobTaskNo);
+        if startdata <> 0D then
+            DayTask.SETFILTER("Day No.", '>=%1', GENUTILS.DateToInteger(StartData));
+
         if DayTask.FindSet() then
             repeat
                 JsonObject := CreateDayTaskJsonObject(DayTask);
@@ -281,7 +294,7 @@ codeunit 50613 "GanttChartDataHandler"
     begin
         // SystemId as unique ID
         JsonObject.Add('id', Format(DayTask.SystemId));
-
+        JsonObject.Add('task', Format(DayTask."Job No.") + '-' + Format(DayTask."Job Task No."));
         // Day Task identifiers
         JsonObject.Add('dayNo', DayTask."Day No.");
         JsonObject.Add('dayLineNo', DayTask.DayLineNo);
@@ -321,7 +334,7 @@ codeunit 50613 "GanttChartDataHandler"
     begin
         if InputTime = 0T then
             exit('');
-        FormattedTime := DelChr(Format(InputTime, 0, '<Hours24,2>:<Minutes>:<Seconds,2>'), '<>', '');
+        FormattedTime := DelChr(Format(InputTime, 0, '<Hours24,2>:<Minutes,2>:<Seconds,2>'), '<>', '');
     end;
 
     local procedure GetResourceId(DayTask: Record "Day Tasks") ResourceId: Text

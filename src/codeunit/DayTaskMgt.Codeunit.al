@@ -41,8 +41,8 @@ codeunit 50610 "Day Tasks Mgt."
         DayStartTime: Time;
         DayEndTime: Time;
         NonWorkingHours: Decimal;
+        Counter: Integer;
     begin
-        commit;
         case true of
             JobPlanningLine."Work-Hour Template" = '':
                 exit;
@@ -111,7 +111,7 @@ codeunit 50610 "Day Tasks Mgt."
 
                 DayTasks."Start Time" := DayStartTime;
                 DayTasks."End Time" := DayEndTime;
-                DayTasks.VALIDATE("Non Working Hours", NonWorkingHours);
+                DayTasks.VALIDATE("Non Working Minutes", NonWorkingHours);
 
                 // Calculate working hours
                 DayTasks.CalculateWorkingHours();
@@ -129,15 +129,18 @@ codeunit 50610 "Day Tasks Mgt."
                 // Calculate quantity for this day (proportional distribution)
                 DayTasks.Quantity := CalculateDayQuantity(JobPlanningLine, NewTaskDate, StartDate, EndDate, DayStartTime, DayEndTime);
                 if CheckMayChange(DayTasks) then
-                    DayTasks.Insert();
+                    if DayTasks.Insert() then
+                        Counter += 1;
                 for n := 2 to JobPlanningLine."Quantity of Lines" do begin
                     DayTasks."DayLineNo" := n * 10000;
                     if CheckMayChange(DayTasks) then
-                        DayTasks.Insert();
+                        if DayTasks.Insert() then
+                            Counter += 1;
                 end;
             end;
             NewTaskDate := CalcDate('<+1D>', NewTaskDate);
         END;
+        Message('%1 day planning lines created for Job %2, Task %3, Planning Line %4.', Counter, JobPlanningLine."Job No.", JobPlanningLine."Job Task No.", JobPlanningLine."Line No.");
     END;
 
     local procedure CheckMayChange(NewDayTask: Record "Day Tasks"): Boolean

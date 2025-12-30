@@ -45,21 +45,6 @@ window.BOOT = function() {
       return;
     }
 
-    (function patchConstraintTypesNumericAliases() {
-  const ct = gantt.config.constraint_types || {};
-
-  // numeric → your string-keyed values
-  ct[0] = ct[0] || ct["MSO"]  || "mso";
-  ct[1] = ct[1] || ct["MFO"]  || "mfo";
-  ct[2] = ct[2] || ct["SNET"] || "snet";
-  ct[3] = ct[3] || ct["SNLT"] || "snlt";
-  ct[4] = ct[4] || ct["FNET"] || "fnet";
-  ct[5] = ct[5] || ct["FNLT"] || "fnlt";
-
-  gantt.config.constraint_types = ct;
-})();
-
-
     // -------- DHTMLX PLUGINS --------
     gantt.plugins({
       auto_scheduling: true,
@@ -73,7 +58,8 @@ window.BOOT = function() {
     gantt.config.task_height = gantt.config.task_height || 16;
 
       // keep your parsing format for task dates
-    gantt.config.date_format = "%d-%m-%Y";
+    gantt.config.date_format = "%Y-%m-%d";
+    gantt.config.xml_date = "%Y-%m-%d";
 
     // scale header
     gantt.config.scales = [
@@ -81,10 +67,13 @@ window.BOOT = function() {
         unit: "week",
         step: 1,
         format: function (date) {
-          // ISO week number
+          
+          const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+          const MMM = months[date.getMonth()];
           const week = gantt.date.date_to_str("%W")(date);
           const year = gantt.date.date_to_str("%Y")(date);
-          return "WK " + week + " - " + year;   // e.g. W49 2025
+          
+          return   MMM + " " + year + " - " + "wk " + week;   // e.g. W49 2025
         },
         css: function (date) {
           const week = parseInt(gantt.date.date_to_str("%W")(date), 10);
@@ -95,14 +84,16 @@ window.BOOT = function() {
         unit: "day",
         step: 1,
         format: function (date) {
-          return gantt.date.date_to_str("%D %d %M")(date); // Mon 01 Dec
+          return gantt.date.date_to_str("%D %d")(date); // Mon 01 Dec
+          //return gantt.date.date_to_str("%D %d %M")(date); // Mon 01 Dec
         }
       }
     ];
-
-
-
     
+    //mapping resource property and daytasks resource property
+    gantt.config.resource_property = "resource_id";
+
+
     // -------- WEEKEND HIGHLIGHT --------
     gantt.templates.scale_cell_class = function (date) {
       return (date.getDay() === 0 || date.getDay() === 6) ? "weekend" : "";
@@ -120,10 +111,7 @@ window.BOOT = function() {
     gantt.config.work_time = true;
     gantt.config.min_column_width = 55;
 
-    // -------- DATE FORMAT (matches your demo strings) --------
-    gantt.config.date_format = "%d-%m-%Y";
-
-    // -------- EDITORS --------
+        // -------- EDITORS --------
     var textEditor = { type: "text", map_to: "text" };
     var dateEditor = { type: "date", map_to: "start_date", min: new Date(2023, 0, 1), max: new Date(2025, 0, 1) };
     var durationEditor = { type: "number", map_to: "duration", min: 0, max: 100 };
@@ -347,6 +335,40 @@ window.BOOT = function() {
       _queuedColumnArgs = null;
     }
 
+    InstallDayTaskLayer();   // ✅ install once
+
+    function InstallDayTaskEvents() {
+      if (window._dayTaskEventsInstalled) return;
+      window._dayTaskEventsInstalled = true;
+
+      gantt.$root.addEventListener("dblclick", function (e) {
+        const el = e.target.closest(".daytask-line");
+        if (!el) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const dayTaskId = el.dataset.daytaskId;
+        if (!dayTaskId) return;
+
+        // 🔁 call BC
+        if (window.BC_OnDayTaskDblClick) {
+          window.BC_OnDayTaskDblClick(dayTaskId);
+        }
+      });
+
+      gantt.$root.addEventListener("click", function (e) {
+        const el = e.target.closest(".daytask-line");
+        if (!el) return;
+
+        e.stopPropagation();
+
+        const dayTaskId = el.dataset.daytaskId;
+        highlightDayTask(el); // optional visual
+      });
+    }
+    InstallDayTaskEvents(); // ✅ install once
+
     // ✅ Tell AL we are safe to call now
     Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("ControlReady", []);
 
@@ -508,6 +530,11 @@ function _applyTaskPatch(targetTask, patch) {
 // Full load (tasks + links) from BC
 // AL calls: LoadProjectData(ProjectJsonTxt)
 // -------------------------------------------------------
+
+function ClearData(projectJsonTxt) {
+  gantt.clearAll();
+  gantt.render();
+}
 function LoadProjectData(projectJsonTxt) {
  
 
@@ -564,26 +591,12 @@ function LoadProjectData(projectJsonTxt) {
     if (payload.project_start) gantt.config.project_start = _toGanttDate(payload.project_start) || gantt.config.project_start;
     if (payload.project_end) gantt.config.project_end = _toGanttDate(payload.project_end) || gantt.config.project_end;
 
-
-debugger;
-
-
-  //validateConstraintsBeforeParse(tasks);
-
-
-  const ct = gantt.config.constraint_types || {};
-console.log("ct keys:", Object.keys(ct));
-console.log("ct['FNET']:", ct["FNET"]);
-console.log("ct[4]:", ct[4]);
-
-
     // Clear existing
     gantt.clearAll();
 
     // Parse new
     gantt.parse({ data: tasks, links: links });
 
-    debugger;
     // Render once
     gantt.render();
     if (gantt.setSizes) gantt.setSizes();
@@ -808,6 +821,26 @@ function LoadResourcesData(resourcesJsonTxt) {
       items = payload.resources || payload.Resources || [];
     }
 
+    // ✅ Create the resource datastore ONCE (first time this function is called)
+    if (!window.resourcesStore) {
+      window.resourcesStore = gantt.createDatastore({
+        name: "resources",
+        type: "treeDatastore",
+        initItem: function (item) {
+          // keep it flat
+          item.parent = item.parent || 0;
+        }
+      });
+    }
+
+    // ✅ Convert your BC format {key,label} -> DHTMLX format {id,text}
+    var mapped = items.map(function (r) {
+      return {
+        id: r.id || r.key,        // accept both
+        text: r.text || r.label   // accept both
+      };
+    });
+
     resourcesStore.clearAll();
     resourcesStore.parse(items);
 
@@ -825,32 +858,30 @@ function LoadDayTasksData(dayTasksJsonTxt) {
       console.warn("LoadDayTasksData: dayTasksStore not ready yet");
       return;
     }
-/*
-try {
-  gantt.eachTask(t => {
-    if (t.constraint_type != null) {
-      const key = t.constraint_type;
-      const label = gantt.config.constraint_types && gantt.config.constraint_types[key];
-      if (label == null) {
-        console.warn("BROKEN constraint_types mapping", {
-          taskId: t.id,
-          constraint_type: t.constraint_type,
-          typeof: typeof t.constraint_type,
-          availableKeysSample: gantt.config.constraint_types ? Object.keys(gantt.config.constraint_types).slice(0, 10) : null
-        });
-      }
-    }
-  });
-} catch (e) {
-  console.warn("constraint debug failed", e);
-}
-*/
 
 
     var items = _tryParseJson(dayTasksJsonTxt);
     if (!items) return;
     if (!Array.isArray(items)) {
       items = items.daytasks || items.dayTasks || items.DayTasks || [];
+    }
+
+    // ✅ rebuild index every load
+    window.dayTasksByTask = Object.create(null);
+
+    // IMPORTANT:
+    // daytask.task MUST match gantt task.id (planning-line level)
+    for (var i = 0; i < items.length; i++) {
+      var x = items[i];
+      var taskId = x.task;
+
+      if (!taskId) continue;
+
+      if (!window.dayTasksByTask[taskId]) {
+        window.dayTasksByTask[taskId] = [];
+      }
+
+      window.dayTasksByTask[taskId].push(x);
     }
 
     // Replace all
@@ -922,4 +953,55 @@ function DeleteDayTask(dayTaskId) {
 window.DeleteDayTask = DeleteDayTask;
 
 
+function InstallDayTaskLayer() {
+  if (window._dayTaskLayerInstalled) return;
+  window._dayTaskLayerInstalled = true;
 
+  gantt.addTaskLayer(function (task) {
+    const lines = (window.dayTasksByTask && window.dayTasksByTask[task.id]) || null;
+    console.log("Layer:", task.id, "daytasks:", lines?.length || 0);
+
+    if (!lines || !lines.length) return false;
+
+    const container = document.createElement("div");
+
+    // stack multiple per day (and per resource) so you can see all of them
+    const stackSlot = Object.create(null);
+
+    for (let i = 0; i < lines.length; i++) {
+      const l = lines[i];
+      if (!l.work_date) continue;
+
+      const from = gantt.date.parseDate(l.work_date, "%Y-%m-%d");
+      const to = gantt.date.add(from, 1, "day");
+      const pos = gantt.getTaskPosition(task, from, to);
+      if (!pos || pos.width <= 0) continue;
+
+      const key = l.work_date + "|" + (l.resource_id || "");
+      const slot = stackSlot[key] || 0;
+      stackSlot[key] = slot + 1;
+
+      const el = document.createElement("div");
+      el.className = "daytask-line";
+      el.style.left = (pos.left + 1) + "px";
+      el.style.width = Math.max(4, pos.width - 2) + "px";
+      el.style.top = (pos.top + 4 + slot * 10) + "px";
+      el.style.height = "8px";
+
+      el.dataset.daytaskId = l.id;       // GUID
+      el.title = (l.resource_id || "") + " • " + (l.hours || 0) + "h";
+
+      container.appendChild(el);
+    }
+
+    return container;
+  });
+}
+
+function highlightDayTask(el) {
+  document
+    .querySelectorAll(".daytask-line.selected")
+    .forEach(x => x.classList.remove("selected"));
+
+  el.classList.add("selected");
+}

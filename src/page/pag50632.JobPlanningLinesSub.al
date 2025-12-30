@@ -125,6 +125,14 @@ page 50632 "Job Planning Lines Sub"
                     ApplicationArea = All;
                 }
 
+                field("Total Day Taks"; Rec."Total Day Taks")
+                {
+                    ApplicationArea = All;
+                }
+                field("Total Worked Hours"; Rec."Total Worked Hours")
+                {
+                    ApplicationArea = All;
+                }
                 field("Job No."; Rec."Job No.")
                 {
                     ApplicationArea = All;

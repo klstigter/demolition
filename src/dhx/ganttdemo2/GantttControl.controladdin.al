@@ -23,8 +23,6 @@ controladdin "DHX Gantt Control 2"
     event OnJobTaskUpdated(eventData: Text);
     event OpenResourceLoadDay(resourceId: Text; workDate: Text);
 
-
-
     procedure LoadProject(projectstartdate: date; projectenddate: date);
     procedure Undo();
     procedure Redo();
@@ -40,5 +38,6 @@ controladdin "DHX Gantt Control 2"
     );
     procedure LoadResourcesData(resourcesJsonTxt: Text);
     procedure LoadDayTasksData(dayTasksJsonTxt: Text);
+    procedure ClearData();
 
 }

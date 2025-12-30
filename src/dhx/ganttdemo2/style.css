@@ -81,6 +81,17 @@ html,
 		font-weight: 700;
 		}
 
+		.daytask-line{
+		position:absolute;
+		background:#3b82f6;
+		border-radius:3px;
+		opacity:0.9;
+		pointer-events:auto;
+		}
+		
+		.daytask-line.selected {
+		outline: 2px solid #111827;
+		}
 
 					
 	#gantt_here {

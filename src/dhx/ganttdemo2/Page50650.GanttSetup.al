@@ -27,7 +27,14 @@ page 50650 "Gantt Chart Setup"
                 field("From Date"; rec."From Date") { }
                 field("To Date"; rec."To Date") { }
             }
+            group(Loadsettings)
+            {
+                Caption = 'Data Load Settings';
+                field("Load Job Tasks"; rec."Load Job Tasks") { }
+                field("Load Resources"; rec."Load Resources") { }
+                field("Load Day Tasks"; rec."Load Day Tasks") { }
 
+            }
             group(Columns)
             {
                 Caption = 'Visible Columns';

@@ -75,6 +75,18 @@ page 50631 "Job Planning Line Card"
                         ToolTip = 'Specifies the quantity that has been posted to the project ledger, if the Usage Link check box has been selected.';
                         Importance = Additional;
                     }
+                    field("Total Day Taks"; Rec."Total Day Taks")
+                    {
+                        ApplicationArea = All;
+                        Importance = Promoted;
+                        ToolTip = 'The total number of day tasks created for this planning line.';
+                    }
+                    field("Total Worked Hours"; Rec."Total Worked Hours")
+                    {
+                        ApplicationArea = All;
+                        Importance = Promoted;
+                        ToolTip = 'The total number of worked hours recorded for this planning line.';
+                    }
 
                 }
             }

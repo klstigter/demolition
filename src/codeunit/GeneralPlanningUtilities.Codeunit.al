@@ -47,25 +47,25 @@ codeunit 50612 "General Planning Utilities"
     begin
         case ConstraintType of
             ConstraintType::"none":
-                exit('ASAP');
+                exit('asap');
 
             ConstraintType::"Must Start On":
-                exit('MSO');
+                exit('mso');
 
             ConstraintType::"Must Finish On":
-                exit('MFO');
+                exit('mfo');
 
             ConstraintType::"Start No Earlier Than":
-                exit('SNET');
+                exit('snet');
 
             ConstraintType::"Start No Later Than":
-                exit('SNLT');
+                exit('snlt');
 
             ConstraintType::"Finish No Earlier Than":
-                exit('FNET');
+                exit('fnet');
 
             ConstraintType::"Finish No Later Than":
-                exit('FNLT');
+                exit('fnlt');
 
             else
                 exit('');

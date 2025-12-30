@@ -25,28 +25,11 @@ page 50620 "Gantt Demo DHX 2"
                 end;
 
                 trigger ControlReady()
-                var
-                    JsonTxtTasks: Text;
-                    JsonTxtResource: Text;
-                    JsonTxtDayTasks: Text;
+
                 begin
                     setup.EnsureUserRecord();
                     setup.get(UserId);
-                    CurrPage.DHXGanttControl2.SetColumnVisibility(
-                        Setup."Show Start Date",
-                        Setup."Show Duration",
-                        Setup."Show Constraint Type",
-                        Setup."Show Constraint Date",
-                        Setup."Show Task Type"
-                    );
-                    JsonTxtTasks := GanttChartDataHandler.GetJobTasksAsJson(setup."Job No. Filter");
-                    JsonTxtResource := GanttChartDataHandler.GetResourcesAsJson();
-                    JsonTxtDayTasks := GanttChartDataHandler.GetDayTasksAsJson(setup."Job No. Filter");
-                    CurrPage.DHXGanttControl2.LoadProject(Setup."From Date", Setup."To Date");
-                    CurrPage.DHXGanttControl2.LoadProjectData(JsonTxtTasks);
-                    CurrPage.DHXGanttControl2.LoadResourcesData(JsonTxtResource);
-                    CurrPage.DHXGanttControl2.LoadDayTasksData(JsonTxtDayTasks);
-
+                    LoadPageData();
                 end;
 
                 trigger onTaskDblClick(eventId: Text; eventData: Text)
@@ -133,7 +116,7 @@ page 50620 "Gantt Demo DHX 2"
                     outstream: OutStream;
                     va: variant;
                 begin
-                    JsonTxt := GanttChartDataHandler.GetJobTasksAsJson(setup."Job No. Filter");
+                    JsonTxt := GanttChartDataHandler.GetJobTasksAsJson(Setup."From Date", setup."Job No. Filter");
                     tempblob.CreateOutStream(outstream);
                     outstream.WriteText(JsonTxt);
                     tempblob.CreateInStream(instream);
@@ -177,7 +160,7 @@ page 50620 "Gantt Demo DHX 2"
                     outstream: OutStream;
                     va: variant;
                 begin
-                    JsonTxt := GanttChartDataHandler.GetDayTasksAsJson(setup."Job No. Filter");
+                    JsonTxt := GanttChartDataHandler.GetDayTasksAsJson(Setup."From Date", setup."Job No. Filter", '');
                     tempblob.CreateOutStream(outstream);
                     outstream.WriteText(JsonTxt);
                     tempblob.CreateInStream(instream);
@@ -226,17 +209,46 @@ page 50620 "Gantt Demo DHX 2"
                     CurrPage.DHXGanttControl2.Redo();
                 end;
             }
-            // action(AddMarker)
-            // {
-            //     ApplicationArea = All;
-            //     Caption = 'Add Marker';
-            //     Image = Add;
-            //     trigger OnAction()
-            //     begin
-            //         CurrPage.DHXGanttControl2.AddMarker('2024-04-03', 'New Marker');
-            //     end;
-            // }
+            action("AddMarker")
+            {
+                ApplicationArea = All;
+                Caption = 'Add Marker';
+                Image = Add;
+                trigger OnAction()
+                begin
+                    CurrPage.DHXGanttControl2.AddMarker('2024-06-15', 'New Marker');
+                end;
+            }
+            action("RefreshData")
+            {
+                ApplicationArea = All;
+                Caption = 'Refresh Data';
+                Image = Refresh;
+                trigger OnAction()
+                begin
+                    CurrPage.DHXGanttControl2.ClearData();
+                    Setup.Get(UserId);
+                    LoadPageData();
+                end;
+            }
         }
+
+        area(Navigation)
+        {
+            action(DayTaks)
+            {
+                Caption = 'Day Tasks';
+                ApplicationArea = All;
+                image = AbsenceCalendar;
+
+                trigger OnAction()
+                begin
+                    page.RunModal(Page::"Day Tasks");
+                end;
+            }
+        }
+
+
         area(Promoted)
         {
             group(Category_Process)
@@ -245,10 +257,25 @@ page 50620 "Gantt Demo DHX 2"
                 actionref(GanttSettings_ref; GanttSettings) { }
                 actionref("UodoPromoted"; Undo) { }
                 actionref("RedoPromoted"; Redo) { }
+                actionref("AddMarkerPromoted"; AddMarker) { }
+                actionref("RefreshDataPromoted"; RefreshData) { }
             }
+            group(Category_Category4)
+            {
+                Caption = 'Export';
+                actionref(GetJsonTasks_ref; GetJsonTasks) { }
+                actionref(GetJsonResources_ref; GetJsonResources) { }
+                actionref(GetJsonDayTasks_ref; GetJsonDayTasks) { }
+            }
+            group(Category_Category5)
+            {
+                Caption = 'Related';
+                actionref(DayTaks_ref; DayTaks) { }
+
+            }
+
         }
     }
-
     var
         ToggleAutoScheduling: Boolean;
         PageHandler: Codeunit "Gantt BC Page Handler";
@@ -380,6 +407,33 @@ page 50620 "Gantt Demo DHX 2"
         ParsedDate := DMY2Date(Day, Month, Year);
     end;
 
+    local procedure LoadPageData()
+    var
+        JsonTxtTasks: Text;
+        JsonTxtResource: Text;
+        JsonTxtDayTasks: Text;
+    begin
+        CurrPage.DHXGanttControl2.SetColumnVisibility(
+                        Setup."Show Start Date",
+                        Setup."Show Duration",
+                        Setup."Show Constraint Type",
+                        Setup."Show Constraint Date",
+                        Setup."Show Task Type"
+                    );
+        if setup."Load Job Tasks" then
+            JsonTxtTasks := GanttChartDataHandler.GetJobTasksAsJson(Setup."From Date", setup."Job No. Filter");
+        if setup."Load Resources" then
+            JsonTxtResource := GanttChartDataHandler.GetResourcesAsJson();
+        if setup."Load Day Tasks" then
+            JsonTxtDayTasks := GanttChartDataHandler.GetDayTasksAsJson(SETUP."From Date", setup."Job No. Filter");
 
+        CurrPage.DHXGanttControl2.LoadProject(Setup."From Date", Setup."To Date");
+        if setup."Load Job Tasks" then
+            CurrPage.DHXGanttControl2.LoadProjectData(JsonTxtTasks);
+        if setup."Load Resources" then
+            CurrPage.DHXGanttControl2.LoadResourcesData(JsonTxtResource);
+        if setup."Load Day Tasks" then
+            CurrPage.DHXGanttControl2.LoadDayTasksData(JsonTxtDayTasks);
 
+    end;
 }

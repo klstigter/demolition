@@ -54,6 +54,22 @@ table 50620 "Gantt Chart Setup"
             TableRelation = Job;
             ToolTip = 'Specifies a filter to limit the Gantt chart to a specific job.';
         }
+
+        field(31; "Load Job Tasks"; Boolean)
+        {
+            Caption = 'Load Job Tasks';
+            ToolTip = 'Specifies whether to load job tasks for the selected job.';
+        }
+        field(32; "Load Resources"; Boolean)
+        {
+            Caption = 'Load Resources';
+            ToolTip = 'Specifies whether to load resources assigned to job tasks.';
+        }
+        field(33; "Load Day Tasks"; Boolean)
+        {
+            Caption = 'Load Day Tasks';
+            ToolTip = 'Specifies whether to load day tasks for job tasks.';
+        }
     }
 
     keys
