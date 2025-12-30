@@ -27,7 +27,7 @@ codeunit 50610 "Day Tasks Mgt."
         UnpackJobPlanningLine(JobPlanningLine, true)
     end;
 
-    local procedure UnpackJobPlanningLine(JobPlanningLine: Record "Job Planning Line"; DoDelete: Boolean)
+    local procedure UnpackJobPlanningLine(JobPlanningLine: Record "Job Planning Line"; DoDeleteAll: Boolean)
     var
         DayTasks: Record "Day Tasks";
         StartDate: Date;
@@ -55,7 +55,7 @@ codeunit 50610 "Day Tasks Mgt."
         end;
 
         WorkHoursTemplate.get(JobPlanningLine."Work-Hour Template");
-        if DoDelete then
+        if DoDeleteAll then
             ClearDayPlanningLines(JobPlanningLine);
         // Get the start and end dates
         StartDate := JobPlanningLine."Start Planning Date";
@@ -69,10 +69,12 @@ codeunit 50610 "Day Tasks Mgt."
             exit;
 
         // Delete existing day planning lines for this job planning line
-        DayTasks.SetRange("Job No.", JobPlanningLine."Job No.");
-        DayTasks.SetRange("Job Task No.", JobPlanningLine."Job Task No.");
-        DayTasks.SetRange("Job Planning Line No.", JobPlanningLine."Line No.");
-        DayTasks.DeleteAll();
+        if not DoDeleteAll then begin
+            DayTasks.SetRange("Job No.", JobPlanningLine."Job No.");
+            DayTasks.SetRange("Job Task No.", JobPlanningLine."Job Task No.");
+            DayTasks.SetRange("Job Planning Line No.", JobPlanningLine."Line No.");
+            DayTasks.DeleteAll();
+        end;
 
         // Create day planning lines for each day in the range
         NewTaskDate := StartDate;
@@ -133,9 +135,8 @@ codeunit 50610 "Day Tasks Mgt."
                     if CheckMayChange(DayTasks) then
                         DayTasks.Insert();
                 end;
-                NewTaskDate := CalcDate('<+1D>', NewTaskDate);
-
             end;
+            NewTaskDate := CalcDate('<+1D>', NewTaskDate);
         END;
     END;
 
@@ -261,7 +262,8 @@ codeunit 50610 "Day Tasks Mgt."
            (Rec."End Time" <> xRec."End Time") or
            (Rec.Quantity <> xRec.Quantity)
         then
-            UnpackJobPlanningLine(Rec);
+            exit;
+        //UnpackJobPlanningLine(Rec);
     end;
 
     [EventSubscriber(ObjectType::Table, Database::"Job Planning Line", 'OnAfterInsertEvent', '', false, false)]
@@ -270,7 +272,7 @@ codeunit 50610 "Day Tasks Mgt."
         if Rec.IsTemporary then
             exit;
 
-        UnpackJobPlanningLine(Rec);
+        //UnpackJobPlanningLine(Rec);
     end;
 
     [EventSubscriber(ObjectType::Table, Database::"Job Planning Line", 'OnAfterDeleteEvent', '', false, false)]

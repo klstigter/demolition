@@ -25,6 +25,10 @@ page 50620 "Gantt Demo DHX 2"
                 end;
 
                 trigger ControlReady()
+                var
+                    JsonTxtTasks: Text;
+                    JsonTxtResource: Text;
+                    JsonTxtDayTasks: Text;
                 begin
                     setup.EnsureUserRecord();
                     setup.get(UserId);
@@ -35,13 +39,13 @@ page 50620 "Gantt Demo DHX 2"
                         Setup."Show Constraint Date",
                         Setup."Show Task Type"
                     );
+                    JsonTxtTasks := GanttChartDataHandler.GetJobTasksAsJson(setup."Job No. Filter");
+                    JsonTxtResource := GanttChartDataHandler.GetResourcesAsJson();
+                    JsonTxtDayTasks := GanttChartDataHandler.GetDayTasksAsJson(setup."Job No. Filter");
                     CurrPage.DHXGanttControl2.LoadProject(Setup."From Date", Setup."To Date");
-                    JsonTxt := GanttChartDataHandler.GetJobTasksAsJson('JOB00020');
-                    CurrPage.DHXGanttControl2.LoadProjectData(JsonTxt);
-                    JsonTxt := GanttChartDataHandler.GetResourcesAsJson();
-                    CurrPage.DHXGanttControl2.LoadResourcesData(JsonTxt);
-                    JsonTxt := GanttChartDataHandler.GetDayTasksAsJson('JOB00020');
-                    CurrPage.DHXGanttControl2.LoadDayTasksData(JsonTxt);
+                    CurrPage.DHXGanttControl2.LoadProjectData(JsonTxtTasks);
+                    CurrPage.DHXGanttControl2.LoadResourcesData(JsonTxtResource);
+                    CurrPage.DHXGanttControl2.LoadDayTasksData(JsonTxtDayTasks);
 
                 end;
 
@@ -87,6 +91,26 @@ page 50620 "Gantt Demo DHX 2"
 
                     // Now update Job Task + regenerate Day Tasks
                 end;
+
+                trigger OpenResourceLoadDay(ResourceId: Text; workDate: Text)
+                var
+                    DayTask: Record "Day Tasks";
+                    WorkDt: Date;
+                    PlType: enum "Job Planning Line Type";
+                    Tp: array[2] of text;
+                begin
+                    Evaluate(WorkDt, workDate); // expects YYYY-MM-DD
+                    tp[1] := CopyStr(ResourceId, 1, 4);
+                    tp[2] := CopyStr(ResourceId, 5);
+                    PlType := PlType::Resource;
+                    DayTask.SetRange("Day No.", general.DateToInteger(WorkDt));
+                    DayTask.setrange(Type, PlType);
+                    if tp[1] = 'RES-' then
+                        DayTask.SetRange("No.", tp[2]);
+                    if tp[1] = 'VEN-' then
+                        DayTask.SetRange("Vendor No.", tp[2]);
+                    Page.Run(Page::"Day Tasks", DayTask);
+                end;
             }
         }
     }
@@ -109,7 +133,7 @@ page 50620 "Gantt Demo DHX 2"
                     outstream: OutStream;
                     va: variant;
                 begin
-                    JsonTxt := GanttChartDataHandler.GetJobTasksAsJson();
+                    JsonTxt := GanttChartDataHandler.GetJobTasksAsJson(setup."Job No. Filter");
                     tempblob.CreateOutStream(outstream);
                     outstream.WriteText(JsonTxt);
                     tempblob.CreateInStream(instream);
@@ -153,7 +177,7 @@ page 50620 "Gantt Demo DHX 2"
                     outstream: OutStream;
                     va: variant;
                 begin
-                    JsonTxt := GanttChartDataHandler.GetDayTasksAsJson();
+                    JsonTxt := GanttChartDataHandler.GetDayTasksAsJson(setup."Job No. Filter");
                     tempblob.CreateOutStream(outstream);
                     outstream.WriteText(JsonTxt);
                     tempblob.CreateInStream(instream);
@@ -228,9 +252,9 @@ page 50620 "Gantt Demo DHX 2"
     var
         ToggleAutoScheduling: Boolean;
         PageHandler: Codeunit "Gantt BC Page Handler";
+        general: Codeunit "General Planning Utilities";
         Setup: Record "Gantt Chart Setup";
         GanttChartDataHandler: Codeunit "GanttChartDataHandler";
-        JsonTxt: Text;
 
     procedure OnJobTaskUpdated(TaskJson: Text)
     var

@@ -41,4 +41,64 @@ codeunit 50612 "General Planning Utilities"
 
         exit(DMY2Date(Day, Month, Year));
     end;
+
+
+    procedure MapConstraintTypeToDhtmlx(ConstraintType: Enum "Gantt Constraint Type"): text
+    begin
+        case ConstraintType of
+            ConstraintType::"none":
+                exit('ASAP');
+
+            ConstraintType::"Must Start On":
+                exit('MSO');
+
+            ConstraintType::"Must Finish On":
+                exit('MFO');
+
+            ConstraintType::"Start No Earlier Than":
+                exit('SNET');
+
+            ConstraintType::"Start No Later Than":
+                exit('SNLT');
+
+            ConstraintType::"Finish No Earlier Than":
+                exit('FNET');
+
+            ConstraintType::"Finish No Later Than":
+                exit('FNLT');
+
+            else
+                exit('');
+        end;
+    end;
+    /*
+        procedure MapConstraintTypeToDhtmlx(ConstraintType: Enum "Gantt Constraint Type"): Text
+        begin
+            case ConstraintType of
+                ConstraintType::"Must Start On":
+                    exit('must_start_on');
+
+                ConstraintType::"Must Finish On":
+                    exit('must_finish_on');
+
+                ConstraintType::"Start No Earlier Than":
+                    exit('start_no_earlier_than');
+
+                ConstraintType::"Start No Later Than":
+                    exit('start_no_later_than');
+
+                ConstraintType::"Finish No Earlier Than":
+                    exit('finish_no_earlier_than');
+
+                ConstraintType::"Finish No Later Than":
+                    exit('finish_no_later_than');
+
+                else
+                    exit('');
+            end;
+        end;
+        */
+
 }
+
+

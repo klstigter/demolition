@@ -48,6 +48,12 @@ table 50620 "Gantt Chart Setup"
         {
             Caption = 'To Date';
         }
+        field(30; "Job No. Filter"; Code[20])
+        {
+            Caption = 'Job No. Filter';
+            TableRelation = Job;
+            ToolTip = 'Specifies a filter to limit the Gantt chart to a specific job.';
+        }
     }
 
     keys
