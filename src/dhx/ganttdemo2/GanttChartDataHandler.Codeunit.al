@@ -1,5 +1,8 @@
 codeunit 50613 "GanttChartDataHandler"
 {
+    var
+        GenUtils: Codeunit "General Planning Utilities";
+
     procedure GetJobTasksAsJson() JsonText: Text
     var
         JobTask: Record "Job Task";
@@ -22,6 +25,7 @@ codeunit 50613 "GanttChartDataHandler"
         JsonObject: JsonObject;
     begin
         JobTask.SetRange("Job No.", JobNo);
+        Jobtask.SetFilter("Your Reference", '%1', '');
         if JobTask.FindSet() then
             repeat
                 JsonObject := CreateJobTaskJsonObject(JobTask);
@@ -58,7 +62,7 @@ codeunit 50613 "GanttChartDataHandler"
             StartEndText := FormatDate(JobTask.PlannedEndDate)
         else
             StartEndText := '';
-        JsonObject.Add('end_date', StartEndText);
+        //JsonObject.Add('end_date', StartEndText);
 
 
         // Duration (calculated from start and end dates)
@@ -75,13 +79,22 @@ codeunit 50613 "GanttChartDataHandler"
 
         // Constraint type and date (placeholder values - customize as needed)
         // You can add custom fields to Job Task table if you need to store constraint info
-        JsonObject.Add('constraint_type', '');  // e.g., 'fnlt' (Finish No Later Than)
 
-        if JobTask.PlannedEndDate <> 0D then
-            ConstraintDateText := FormatDate(JobTask.PlannedEndDate)
-        else
-            ConstraintDateText := '';
-        JsonObject.Add('constraint_date', ConstraintDateText);
+        //if JobTask."Constraint Type" <> JobTask."Constraint Type"::None then begin
+        JsonObject.Add('constraint_type', GenUtils.MapConstraintTypeToDhtmlx(JobTask."Constraint Type"));  // e.g., 'fnlt' (Finish No Later Than)
+
+        if JobTask."Constraint Date" <> 0D then begin
+            ConstraintDateText := FormatDate(JobTask."Constraint Date");
+            JsonObject.Add('constraint_date', ConstraintDateText);
+        end;
+        if JobTask."Constraint Is Hard" then
+            JsonObject.Add('constraint_is_hard', JobTask."Constraint Is Hard");
+        //end;
+
+        if JobTask."Deadline Date" <> 0D then
+            JsonObject.Add('deadline', FormatDate(JobTask."Deadline Date"));
+
+        JsonObject.Add('progress', JobTask."Progress");
     end;
 
     local procedure FormatDate(InputDate: Date) FormattedDate: Text
@@ -89,7 +102,7 @@ codeunit 50613 "GanttChartDataHandler"
         if InputDate = 0D then
             exit('');
 
-        FormattedDate := Format(InputDate, 0, '<Day>-<Month>-<Year4>');
+        FormattedDate := Format(InputDate, 0, '<Year4>-<Month,2>-<Day,2>');
     end;
 
 
@@ -127,6 +140,7 @@ codeunit 50613 "GanttChartDataHandler"
         JsonArray: JsonArray;
         JsonObject: JsonObject;
     begin
+        GetEmptyResourceAsJson(JsonArray);
         if Resource.FindSet() then
             repeat
                 JsonObject.Add('key', 'RES-' + Resource."No.");
@@ -144,6 +158,7 @@ codeunit 50613 "GanttChartDataHandler"
         JsonArray: JsonArray;
         JsonObject: JsonObject;
     begin
+        GetEmptyVendorAsJson(JsonArray);
         if Vendor.FindSet() then
             repeat
                 JsonObject.Add('key', 'VEN-' + Vendor."No.");
@@ -162,6 +177,7 @@ codeunit 50613 "GanttChartDataHandler"
         JsonArray: JsonArray;
         JsonObject: JsonObject;
     begin
+        GetEmptyResourceAsJson(JsonArray);
         // Add all resources
         if Resource.FindSet() then
             repeat
@@ -170,7 +186,7 @@ codeunit 50613 "GanttChartDataHandler"
                 JsonArray.Add(JsonObject);
                 Clear(JsonObject);
             until Resource.Next() = 0;
-
+        GetEmptyVendorAsJson(JsonArray);
         // Add all vendors
         if Vendor.FindSet() then
             repeat
@@ -181,6 +197,30 @@ codeunit 50613 "GanttChartDataHandler"
             until Vendor.Next() = 0;
 
         JsonArray.WriteTo(JsonText);
+    end;
+
+    procedure GetEmptyResourceAsJson(var JsonArray: JsonArray)
+    var
+        Resource: Record Resource;
+        Vendor: Record Vendor;
+        JsonObject: JsonObject;
+    begin
+        // Add all resources
+        JsonObject.Add('key', 'RES-' + '');
+        JsonObject.Add('label', ' - NONE - ');
+        JsonArray.Add(JsonObject);
+    end;
+
+    procedure GetEmptyVendorAsJson(var JsonArray: JsonArray)
+    var
+        Resource: Record Resource;
+        Vendor: Record Vendor;
+        JsonObject: JsonObject;
+    begin
+        // Add all vendors
+        JsonObject.Add('key', 'VEN-' + '');
+        JsonObject.Add('label', ' (Vendor - - ) ');
+        JsonArray.Add(JsonObject);
     end;
 
     procedure GetDayTasksAsJson() JsonText: Text
@@ -271,7 +311,10 @@ codeunit 50613 "GanttChartDataHandler"
         TypeText := GetDayTaskTypeText(DayTask.Type);
         JsonObject.Add('type', TypeText);
 
-        JsonObject.Add('vendorNo', DayTask."Vendor No.");
+        if daytask."Vendor No." <> '' then
+            JsonObject.Add('vendorNo', DayTask."Vendor No.")
+        else
+            JsonObject.Add('vendorNo', 'null');
     end;
 
     local procedure FormatTime(InputTime: Time) FormattedTime: Text

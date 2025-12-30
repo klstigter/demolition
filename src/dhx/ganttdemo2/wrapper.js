@@ -45,6 +45,21 @@ window.BOOT = function() {
       return;
     }
 
+    (function patchConstraintTypesNumericAliases() {
+  const ct = gantt.config.constraint_types || {};
+
+  // numeric → your string-keyed values
+  ct[0] = ct[0] || ct["MSO"]  || "mso";
+  ct[1] = ct[1] || ct["MFO"]  || "mfo";
+  ct[2] = ct[2] || ct["SNET"] || "snet";
+  ct[3] = ct[3] || ct["SNLT"] || "snlt";
+  ct[4] = ct[4] || ct["FNET"] || "fnet";
+  ct[5] = ct[5] || ct["FNLT"] || "fnlt";
+
+  gantt.config.constraint_types = ct;
+})();
+
+
     // -------- DHTMLX PLUGINS --------
     gantt.plugins({
       auto_scheduling: true,
@@ -243,14 +258,17 @@ window.BOOT = function() {
       }
     });
 
+    //add event to existing standard DHTMLX task store to refresh resources on task changes
+    var tasksStore = gantt.getDatastore("task");
+    tasksStore.attachEvent("onStoreUpdated", function () { resourcesStore.refresh(); });
+
+
     // -------- RESOURCE SECTION (kept from your demo) --------
     // Datastores
     resourcesStore = gantt.createDatastore({
       name: "resources",
       initItem: function (item) { item.id = item.key || gantt.uid(); return item; }
     });
-    var tasksStore = gantt.getDatastore("task");
-    tasksStore.attachEvent("onStoreUpdated", function () { resourcesStore.refresh(); });
 
     // DayTasks datastore (your BC Day Tasks table)
     dayTasksStore = gantt.createDatastore({
@@ -322,14 +340,6 @@ window.BOOT = function() {
 
     // ✅ ENGINE INIT (once)
     gantt.init("gantt_here");
-
-    // // Seed demo resources (optional; replace later with BC)
-    // resourcesStore.parse([
-    //   { key: "0", label: "N/A" },
-    //   { key: "1", label: "John" },
-    //   { key: "2", label: "Mike" },
-    //   { key: "3", label: "Anna" }
-    // ]);
 
     // Apply queued column settings if AL called too early
     if (_queuedColumnArgs) {
@@ -499,6 +509,34 @@ function _applyTaskPatch(targetTask, patch) {
 // AL calls: LoadProjectData(ProjectJsonTxt)
 // -------------------------------------------------------
 function LoadProjectData(projectJsonTxt) {
+ 
+
+  function validateConstraintsBeforeParse(tasks) {
+  const ct = gantt.config.constraint_types || {};
+  const keys = Object.keys(ct);
+  const bad = [];
+
+  tasks.forEach(t => {
+    if (t.constraint_type !== undefined && t.constraint_type !== null) {
+      const label = ct[t.constraint_type];
+      if (typeof label !== "string") {
+        bad.push({
+          id: t.id,
+          constraint_type: t.constraint_type,
+          typeofConstraintType: typeof t.constraint_type,
+          label,
+          availableKeysSample: keys.slice(0, 20)
+        });
+      }
+    }
+  });
+
+  if (bad.length) {
+    console.warn("BAD constraint mapping BEFORE parse:", bad);
+  }
+} 
+  
+
   try {
     if (!gantt_here || typeof gantt === "undefined" || !gantt.$root) {
       console.warn("LoadProjectData called before BOOT/init");
@@ -512,6 +550,7 @@ function LoadProjectData(projectJsonTxt) {
       gantt.render();
       return;
     }
+    
 
     // ✅ accept array payload = tasks[]
     if (Array.isArray(payload)) {
@@ -525,17 +564,30 @@ function LoadProjectData(projectJsonTxt) {
     if (payload.project_start) gantt.config.project_start = _toGanttDate(payload.project_start) || gantt.config.project_start;
     if (payload.project_end) gantt.config.project_end = _toGanttDate(payload.project_end) || gantt.config.project_end;
 
+
+debugger;
+
+
+  //validateConstraintsBeforeParse(tasks);
+
+
+  const ct = gantt.config.constraint_types || {};
+console.log("ct keys:", Object.keys(ct));
+console.log("ct['FNET']:", ct["FNET"]);
+console.log("ct[4]:", ct[4]);
+
+
     // Clear existing
     gantt.clearAll();
 
     // Parse new
     gantt.parse({ data: tasks, links: links });
 
+    debugger;
     // Render once
     gantt.render();
     if (gantt.setSizes) gantt.setSizes();
     if (gantt.resetLayout) gantt.resetLayout();
-
     Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnProjectDataLoaded", [
       String(tasks.length),
       String(links.length)
@@ -700,7 +752,6 @@ function calculateResourceLoad(resource, scale) {
   return out;
 }
 
-
 var renderResourceLine = function (resource, timeline) {
   var tasks = gantt.getTaskBy("user", resource.id);
   var timetable = calculateResourceLoad(resource, timeline.getScale());
@@ -720,6 +771,26 @@ var renderResourceLine = function (resource, timeline) {
       "font-weight:600"
     ].join(";");
     cell.innerHTML = day.value;
+
+    // ✅ double click → call BC
+
+    cell.dataset.resourceId = resource.id;
+    cell.dataset.workDate = gantt.date.date_to_str("%Y-%m-%d")(day.start_date);
+    cell.style.cursor = "pointer";
+
+    cell.addEventListener("dblclick", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(
+        "OpenResourceLoadDay",
+        [this.dataset.resourceId, this.dataset.workDate]
+      );
+
+      return false;
+    }, true); // <-- capture phase helps if gantt stops bubbling
+
+    
     row.appendChild(cell);
   }
   return row;
@@ -727,7 +798,7 @@ var renderResourceLine = function (resource, timeline) {
 var resourceLayers = [renderResourceLine, "taskBg"];
 
 function LoadResourcesData(resourcesJsonTxt) {
-  debugger;
+  
   try {
     var payload = _tryParseJson(resourcesJsonTxt);
     if (!payload) return;
@@ -754,10 +825,30 @@ function LoadDayTasksData(dayTasksJsonTxt) {
       console.warn("LoadDayTasksData: dayTasksStore not ready yet");
       return;
     }
+/*
+try {
+  gantt.eachTask(t => {
+    if (t.constraint_type != null) {
+      const key = t.constraint_type;
+      const label = gantt.config.constraint_types && gantt.config.constraint_types[key];
+      if (label == null) {
+        console.warn("BROKEN constraint_types mapping", {
+          taskId: t.id,
+          constraint_type: t.constraint_type,
+          typeof: typeof t.constraint_type,
+          availableKeysSample: gantt.config.constraint_types ? Object.keys(gantt.config.constraint_types).slice(0, 10) : null
+        });
+      }
+    }
+  });
+} catch (e) {
+  console.warn("constraint debug failed", e);
+}
+*/
+
 
     var items = _tryParseJson(dayTasksJsonTxt);
     if (!items) return;
-
     if (!Array.isArray(items)) {
       items = items.daytasks || items.dayTasks || items.DayTasks || [];
     }
@@ -765,7 +856,6 @@ function LoadDayTasksData(dayTasksJsonTxt) {
     // Replace all
     if (dayTasksStore.clearAll) dayTasksStore.clearAll();
     dayTasksStore.parse(items);
-
     // Force repaint of resource timeline/grid
     if (resourcesStore) resourcesStore.refresh();
     gantt.render();

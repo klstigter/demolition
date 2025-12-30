@@ -554,6 +554,34 @@ page 50618 "Job Task Card - Project"
                         ToolTip = 'Specifies the end date for the project task. The date is based on the date on the related project planning line.';
                     }
                 }
+                group(Constraints)
+                {
+                    field("Constraint Type"; Rec."Constraint Type")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Specifies the value of the Constraint Type field.', Comment = '%';
+                        importance = Promoted;
+                    }
+                    field("Constraint Date"; Rec."Constraint Date")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Specifies the value of the Constraint Date field.', Comment = '%';
+                        importance = Promoted;
+                    }
+                    field("Constraint Is Hard"; Rec."Constraint Is Hard")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Specifies the value of the Constraint Is Hard field.', Comment = '%';
+                        importance = Promoted;
+                    }
+                    field("Deadline Date"; Rec."Deadline Date")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Specifies the value of the Deadline Date field.', Comment = '%';
+                        importance = Promoted;
+                    }
+                }
+
                 group(InProgress)
                 {
                     Caption = 'In Progress';

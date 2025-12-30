@@ -9,7 +9,6 @@ controladdin "DHX Gantt Control 2"
     MinimumWidth = 700;
     HorizontalStretch = true;
     HorizontalShrink = true;
-
     Scripts = 'src\dhx\dhtmlxgantt.js',
               'src\dhx\ganttdemo2\wrapper.js';
 
@@ -22,6 +21,9 @@ controladdin "DHX Gantt Control 2"
     event OnAfterInit();
     event onTaskDblClick(eventId: Text; eventData: Text);
     event OnJobTaskUpdated(eventData: Text);
+    event OpenResourceLoadDay(resourceId: Text; workDate: Text);
+
+
 
     procedure LoadProject(projectstartdate: date; projectenddate: date);
     procedure Undo();

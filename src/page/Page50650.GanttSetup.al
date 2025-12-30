@@ -12,6 +12,15 @@ page 50650 "Gantt Chart Setup"
     {
         area(content)
         {
+            Group(filters)
+            {
+                Caption = 'Filters';
+                field("Job No. Filter"; rec."Job No. Filter")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies a filter to limit the Gantt chart to a specific job.';
+                }
+            }
             group(Dates)
             {
                 Caption = 'Gantt Date Settings';
