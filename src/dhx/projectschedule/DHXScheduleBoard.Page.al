@@ -146,16 +146,16 @@ page 50621 "DHX Schedule Board"
     {
         area(Processing)
         {
-            action(ShowDefaultTabs)
-            {
-                Caption = 'Show/Hide DHTMLX buttons';
-                ApplicationArea = All;
-                trigger OnAction()
-                begin
-                    ShowDefaultTabs := not ShowDefaultTabs;
-                    CurrPage.DhxScheduler.SetDefaultTabsVisible(ShowDefaultTabs);
-                end;
-            }
+            // action(ShowDefaultTabs)
+            // {
+            //     Caption = 'Show/Hide DHTMLX buttons';
+            //     ApplicationArea = All;
+            //     trigger OnAction()
+            //     begin
+            //         ShowDefaultTabs := not ShowDefaultTabs;
+            //         CurrPage.DhxScheduler.SetDefaultTabsVisible(ShowDefaultTabs);
+            //     end;
+            // }
 
             action(TodayAct)
             {
@@ -214,7 +214,7 @@ page 50621 "DHX Schedule Board"
 
         area(Promoted)
         {
-            group("DateNav")
+            group(Category_Process)
             {
                 Caption = 'Date Navigation', Comment = 'Record list will filtered based on date';
 
