@@ -45,17 +45,119 @@ window.BOOT = function() {
       return;
     }
 
+    function InstallDayTaskEvents() {
+      if (window._dayTaskEventsInstalled) return;
+      window._dayTaskEventsInstalled = true;
+
+      gantt.$root.addEventListener("dblclick", function (e) {
+        const el = e.target.closest(".daytask-line");
+        if (!el) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        el.classList.add("daytask-line");
+        el.setAttribute("data-task-id", task.id);
+        el.setAttribute("data-daytask-id", dayTask.id);
+
+        const dayTaskId = el.dataset.daytaskId;
+        if (!dayTaskId) return;
+
+        // 🔁 call BC
+        if (window.BC_OnDayTaskDblClick) {
+          window.BC_OnDayTaskDblClick(dayTaskId);
+        }
+      });
+
+      gantt.$root.addEventListener("click", function (e) {
+        const el = e.target.closest(".daytask-line");
+        if (!el) return;
+
+        e.stopPropagation();
+
+        const dayTaskId = el.dataset.daytaskId;
+        highlightDayTask(el); // optional visual
+      });
+    }
+
+    function InstallResourceMarkerCustomTooltipsForDayTasks() {
+      if (document._rmCustomTooltipInstalled) return;
+      document._rmCustomTooltipInstalled = true;
+
+      document.addEventListener("mousemove", function (e) {
+        const marker = e.target.closest?.(".gantt_resource_marker");
+        if (!marker) return;
+
+        const resId = marker.getAttribute("data-resource-id");
+        const workDate = marker.getAttribute("data-work-date"); // YYYY-MM-DD
+        const hoursTxt = (marker.textContent || "").trim();
+
+        if (!resId || !workDate) {
+          _showCustomTooltip(e, `<b>Marker</b><br/>${hoursTxt || "?"}h`);
+          return;
+        }
+
+        // Collect matching DayTasks across all tasks (resource view)
+        const all = window.dayTasksByTask || {};
+        const matches = [];
+        for (const taskId in all) {
+          const list = all[taskId] || [];
+          for (let i = 0; i < list.length; i++) {
+            const x = list[i];
+            if (x.resource_id === resId && x.work_date === workDate) matches.push(x);
+          }
+        }
+
+        if (!matches.length) {
+          _showCustomTooltip(
+            e,
+            `<b>${resId}</b><br/>Date: ${workDate}<br/>Marker: ${hoursTxt}h<br/><i>No DayTasks</i>`
+          );
+          return;
+        }
+
+        const total = matches.reduce((s, x) => s + (Number(x.hours) || 0), 0);
+        const lines = matches.slice(0, 8).map(x => {
+          const st = String(x.start_time || "").trim();
+          const et = String(x.end_time || "").trim();
+          const label = x.task || (x.jobNo + "-" + x.jobTaskNo) || "-";
+          return `${label} • ${x.hours || 0}h • ${st}-${et}`;
+        }).join("<br/>");
+
+        _showCustomTooltip(
+          e,
+          `<b>${resId}</b><br/>
+          Date: ${workDate}<br/>
+          Marker: ${hoursTxt}h<br/>
+          DayTasks total: ${total}h<hr style="border:0;border-top:1px solid rgba(255,255,255,0.15);margin:6px 0"/>
+          ${lines}${matches.length > 8 ? "<br/>…" : ""}`
+        );
+      }, true);
+
+      document.addEventListener("mouseleave", function () {
+        _hideCustomTooltip();
+      }, true);
+
+      document.addEventListener("mouseout", function (e) {
+        const marker = e.target.closest?.(".gantt_resource_marker");
+        if (!marker) return;
+        if (!marker.contains(e.relatedTarget)) _hideCustomTooltip();
+      }, true);
+    }
+
     // -------- DHTMLX PLUGINS --------
     gantt.plugins({
       auto_scheduling: true,
       marker: true,
       undo: true,
-      resource: true
+      resource: true,
+      tooltip: true
     });
+    
 
     // Safe defaults (prevents task_height undefined in some layouts)
-    gantt.config.row_height = gantt.config.row_height || 34;
-    gantt.config.task_height = gantt.config.task_height || 16;
+    gantt.config.row_height = gantt.config.row_height || 30;
+    gantt.config.task_height = gantt.config.task_height || 13;
 
       // keep your parsing format for task dates
     gantt.config.date_format = "%Y-%m-%d";
@@ -113,8 +215,10 @@ window.BOOT = function() {
 
         // -------- EDITORS --------
     var textEditor = { type: "text", map_to: "text" };
-    var dateEditor = { type: "date", map_to: "start_date", min: new Date(2023, 0, 1), max: new Date(2025, 0, 1) };
-    var durationEditor = { type: "number", map_to: "duration", min: 0, max: 100 };
+    var dateEditor = { type: "date", map_to: "start_date"};
+    var durationEditor = { type: "number", map_to: "duration", min: 0 };
+    var progressEditor = { type: "number", map_to: "progress", min: 0, max: 100 };
+    var INDENT_PAD = 14; // pixels per indent step
 
     var constraintTypeEditor = {
       type: "select", map_to: "constraint_type", options: [
@@ -128,7 +232,7 @@ window.BOOT = function() {
         { key: "mfo", label: gantt.locale.labels.mfo }
       ]
     };
-    var constraintDateEditor = { type: "date", map_to: "constraint_date", min: new Date(2023, 0, 1), max: new Date(2025, 0, 1) };
+    var constraintDateEditor = { type: "date", map_to: "constraint_date" };
 
     // -------- GRID SETTINGS --------
     gantt.config.grid_width = 250;
@@ -136,7 +240,11 @@ window.BOOT = function() {
 
     // -------- COLUMNS --------
     gantt.config.columns = [
-      { name: "text", tree: true, resize: false, width: 150, editor: textEditor },
+      { name: "text", tree: true, resize: false, width: 250, editor: textEditor },
+      { name: "progress", label: "%", align: "center", resize: false, width: 60,
+        editor: progressEditor,
+          template: function (task) { var p = task.progress || 0; return Math.round(p * 100) + "%";}          // DHTMLX uses 0..1 normally
+      },
       { name: "start_date", align: "center", resize: false, width: 150, editor: dateEditor },
       { name: "duration", align: "center", resize: false, width: 80, editor: durationEditor },
       {
@@ -158,6 +266,45 @@ window.BOOT = function() {
       { name: "schedulingType", label: "Task Type", resize: false, width: 90 },
       { name: "add", resize: false, width: 44 }
     ];
+    
+    gantt.attachEvent("onAfterTaskUpdate", function (id, task) {
+      if (typeof task.progress === "number" && task.progress > 1) {
+        task.progress = Math.max(0, Math.min(task.progress, 100)) / 100;
+      }
+    });
+
+    gantt.templates.grid_row_class = function (start, end, task) {
+      return task.bold ? "bc-row-bold" : "";
+    };
+/*
+    gantt.templates.task_class = function (start, end, task) {
+      if (task.bold) return ""; // bold=true => no special border color
+      var indent = task.indent || 0;
+      var lvl = Math.max(0, Math.min(indent, 6)); // clamp to 0..6
+      return "bc-bar-border bc-indent-" + lvl;
+    };
+*/
+    gantt.templates.tooltip_text = function(start, end, task) {
+      let constraintText = "—";
+
+      if (task.constraint_type) {
+        if (task.constraint_date) {
+          constraintText =
+            `${task.constraint_type} (${gantt.templates.date_grid(task.constraint_date)})`;
+        } else {
+          constraintText = task.constraint_type;
+        }
+      }
+
+      return `
+        <b>Job: ${task.bcJobNo || "-"}<br/>
+        Task: ${task.bcJobTaskNo || "-"}<br/>
+        <hr/>
+        Constraint: ${constraintText}
+      `;
+    };
+
+
 
     // -------- LIGHTBOX --------
     gantt.config.lightbox.sections = [
@@ -250,8 +397,6 @@ window.BOOT = function() {
     var tasksStore = gantt.getDatastore("task");
     tasksStore.attachEvent("onStoreUpdated", function () { resourcesStore.refresh(); });
 
-
-    // -------- RESOURCE SECTION (kept from your demo) --------
     // Datastores
     resourcesStore = gantt.createDatastore({
       name: "resources",
@@ -334,40 +479,13 @@ window.BOOT = function() {
       _applyColumnSettings(_queuedColumnArgs);
       _queuedColumnArgs = null;
     }
-
+    
+    console.log("tooltip ext:", gantt.ext && (gantt.ext.tooltip || gantt.ext.tooltips));
+    
     InstallDayTaskLayer();   // ✅ install once
-
-    function InstallDayTaskEvents() {
-      if (window._dayTaskEventsInstalled) return;
-      window._dayTaskEventsInstalled = true;
-
-      gantt.$root.addEventListener("dblclick", function (e) {
-        const el = e.target.closest(".daytask-line");
-        if (!el) return;
-
-        e.preventDefault();
-        e.stopPropagation();
-
-        const dayTaskId = el.dataset.daytaskId;
-        if (!dayTaskId) return;
-
-        // 🔁 call BC
-        if (window.BC_OnDayTaskDblClick) {
-          window.BC_OnDayTaskDblClick(dayTaskId);
-        }
-      });
-
-      gantt.$root.addEventListener("click", function (e) {
-        const el = e.target.closest(".daytask-line");
-        if (!el) return;
-
-        e.stopPropagation();
-
-        const dayTaskId = el.dataset.daytaskId;
-        highlightDayTask(el); // optional visual
-      });
-    }
     InstallDayTaskEvents(); // ✅ install once
+    InstallResourceMarkerCustomTooltipsForDayTasks();
+
 
     // ✅ Tell AL we are safe to call now
     Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("ControlReady", []);
@@ -983,13 +1101,16 @@ function InstallDayTaskLayer() {
 
       const el = document.createElement("div");
       el.className = "daytask-line";
+       // ✅ ADD THESE 2 (and keep task.id as the key)
+      el.setAttribute("data-task-id", task.id);
+      el.setAttribute("data-daytask-id", l.id);
+      
       el.style.left = (pos.left + 1) + "px";
       el.style.width = Math.max(4, pos.width - 2) + "px";
       el.style.top = (pos.top + 4 + slot * 10) + "px";
       el.style.height = "8px";
 
-      el.dataset.daytaskId = l.id;       // GUID
-      el.title = (l.resource_id || "") + " • " + (l.hours || 0) + "h";
+      //el.title = (l.resource_id || "") + " • " + (l.hours || 0) + "h";
 
       container.appendChild(el);
     }
@@ -1005,3 +1126,61 @@ function highlightDayTask(el) {
 
   el.classList.add("selected");
 }
+
+function _ensureCustomTooltip() {
+  let el = document.getElementById("bc_daytask_tooltip");
+  if (el) return el;
+
+  el = document.createElement("div");
+  el.id = "bc_daytask_tooltip";
+  el.style.position = "fixed";
+  el.style.zIndex = "999999";
+  el.style.display = "none";
+  el.style.pointerEvents = "none";
+  el.style.maxWidth = "420px";
+  el.style.padding = "8px 10px";
+  el.style.borderRadius = "6px";
+  el.style.background = "#111";
+  el.style.color = "#fff";
+  el.style.fontSize = "12px";
+  el.style.lineHeight = "1.3";
+  el.style.boxShadow = "0 4px 16px rgba(0,0,0,0.35)";
+  el.style.whiteSpace = "normal";
+
+  document.body.appendChild(el);
+  return el;
+}
+
+function _showCustomTooltip(e, html) {
+  const tip = _ensureCustomTooltip();
+  tip.innerHTML = html;
+
+  // position near mouse, keep inside viewport
+  const pad = 12;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  tip.style.display = "block";
+  tip.style.left = "0px";
+  tip.style.top = "0px";
+
+  // measure after display
+  const w = tip.offsetWidth;
+  const h = tip.offsetHeight;
+
+  let x = e.clientX + pad;
+  let y = e.clientY + pad;
+
+  if (x + w > vw - 8) x = Math.max(8, vw - w - 8);
+  if (y + h > vh - 8) y = Math.max(8, vh - h - 8);
+
+  tip.style.left = x + "px";
+  tip.style.top = y + "px";
+}
+
+function _hideCustomTooltip() {
+  const tip = document.getElementById("bc_daytask_tooltip");
+  if (tip) tip.style.display = "none";
+}
+
+

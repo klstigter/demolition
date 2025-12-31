@@ -54,24 +54,9 @@ page 50620 "Gantt Demo DHX 2"
 
                 trigger OnJobTaskUpdated(eventData: Text)
                 var
-                    J: JsonObject;
-                    Tok: JsonToken;
-                    JobNo: Code[20];
-                    JobTaskNo: Code[20];
-                    StartDateTxt: Text;
-                    DurationInt: Integer;
+                    GantUpdatedata: Codeunit "Gantt Update Data";
                 begin
-                    J.ReadFrom(eventData);
-
-                    J.Get('bcJobNo', Tok);
-                    JobNo := Tok.AsValue().AsText();
-                    J.Get('bcJobTaskNo', Tok);
-                    JobTaskNo := Tok.AsValue().AsText();
-                    J.Get('start_date', Tok);
-                    StartDateTxt := Tok.AsValue().AsText();
-                    J.Get('duration', Tok);
-                    DurationInt := Tok.AsValue().AsInteger();
-
+                    GantUpdatedata.UpdateJobTaskFromJson(eventData);
                     // Now update Job Task + regenerate Day Tasks
                 end;
 

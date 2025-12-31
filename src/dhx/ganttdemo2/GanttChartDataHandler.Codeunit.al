@@ -19,6 +19,7 @@ codeunit 50613 "GanttChartDataHandler"
         JsonObject: JsonObject;
         OldJobNo: Code[20];
         OffsetDays: Integer;
+        Skip: Boolean;
         Job: Record Job;
     begin
         if JobNo <> '' then
@@ -32,15 +33,20 @@ codeunit 50613 "GanttChartDataHandler"
                     OldJobNo := JobTask."Job No.";
                     OffsetDays := 0;
                     if Job.Get(OldJobNo) then begin
-                        //if Job."Starting Date" = 0D then begin
-                        job."Starting Date" := CalcDate('-15D', Today());
-                        Job.Modify();
+                        if Job."Starting Date" = 0D then begin
+                            job."Starting Date" := CalcDate('-15D', Today());
+                            Job.Modify();
+                        end;
                     end;
                 end;
                 OffsetDays += 5;
                 repairStartdate(JobTask, OffsetDays);
-                JsonObject := CreateJobTaskJsonObject(JobTask);
-                JsonArray.Add(JsonObject);
+                Skip := (JobTask."Job Task Type" = JobTask."Job Task Type"::"End-Total") or
+                     (JobTask."Job Task Type" = JobTask."Job Task Type"::"Total");
+                if not skip then begin
+                    JsonObject := CreateJobTaskJsonObject(JobTask);
+                    JsonArray.Add(JsonObject);
+                end;
             until JobTask.Next() = 0;
 
         JsonArray.WriteTo(JsonText);
@@ -57,6 +63,7 @@ codeunit 50613 "GanttChartDataHandler"
 
         // Generate unique ID from Job No. and Job Task No.
         JsonObject.Add('id', Format(JobTask."Job No.") + '-' + Format(JobTask."Job Task No."));
+
 
 
         // Task description
@@ -104,6 +111,27 @@ codeunit 50613 "GanttChartDataHandler"
             JsonObject.Add('deadline', FormatDate(JobTask."Deadline Date"));
 
         JsonObject.Add('progress', JobTask."Progress");
+
+        JsonObject.Add('indentation', JobTask.Indentation);
+        JsonObject.Add('bold', JobTask."Job Task Type" <> jobtask."Job Task Type"::Posting);
+        JsonObject.Add('parent', GetParentJobTaskId(JobTask));
+
+    end;
+
+    local procedure GetParentJobTaskId(JobTask: Record "Job Task") ParentJobTaskId: Text
+    var
+        ParentJobTask: Record "Job Task";
+    begin
+        if JobTask.Indentation = 0 then
+            exit('');
+        ParentJobTask.SetRange("Job No.", JobTask."Job No.");
+        ParentJobTask.SetFilter("Job Task No.", '<>%1', JobTask."Job Task No.");
+        ParentJobTask.SetFilter(Indentation, '%1', JobTask.Indentation - 1);
+        ParentJobTask.SetFilter("Job Task No.", '<%1', JobTask."Job Task No.");
+        if ParentJobTask.FindLast() then
+            exit(Format(ParentJobTask."Job No.") + '-' + Format(ParentJobTask."Job Task No."))
+        else
+            exit('');
     end;
 
     local procedure FormatDate(InputDate: Date) FormattedDate: Text
