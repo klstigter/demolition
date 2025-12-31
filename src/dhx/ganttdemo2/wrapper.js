@@ -56,11 +56,7 @@ window.BOOT = function() {
         e.preventDefault();
         e.stopPropagation();
 
-        el.classList.add("daytask-line");
-        el.setAttribute("data-task-id", task.id);
-        el.setAttribute("data-daytask-id", dayTask.id);
-
-        const dayTaskId = el.dataset.daytaskId;
+        const dayTaskId = el.getAttribute("data-daytask-id")||el.dataset.daytaskId;
         if (!dayTaskId) return;
 
         // 🔁 call BC
@@ -88,8 +84,8 @@ window.BOOT = function() {
         const marker = e.target.closest?.(".gantt_resource_marker");
         if (!marker) return;
 
-        const resId = marker.getAttribute("data-resource-id");
-        const workDate = marker.getAttribute("data-work-date"); // YYYY-MM-DD
+        const resId = marker.dataset.resourceId;
+        const workDate = marker.dataset.workDate;
         const hoursTxt = (marker.textContent || "").trim();
 
         if (!resId || !workDate) {
@@ -97,9 +93,9 @@ window.BOOT = function() {
           return;
         }
 
-        // Collect matching DayTasks across all tasks (resource view)
         const all = window.dayTasksByTask || {};
         const matches = [];
+
         for (const taskId in all) {
           const list = all[taskId] || [];
           for (let i = 0; i < list.length; i++) {
@@ -129,13 +125,10 @@ window.BOOT = function() {
           `<b>${resId}</b><br/>
           Date: ${workDate}<br/>
           Marker: ${hoursTxt}h<br/>
-          DayTasks total: ${total}h<hr style="border:0;border-top:1px solid rgba(255,255,255,0.15);margin:6px 0"/>
+          DayTasks total: ${total}h
+          <hr style="border:0;border-top:1px solid rgba(255,255,255,0.15);margin:6px 0"/>
           ${lines}${matches.length > 8 ? "<br/>…" : ""}`
         );
-      }, true);
-
-      document.addEventListener("mouseleave", function () {
-        _hideCustomTooltip();
       }, true);
 
       document.addEventListener("mouseout", function (e) {
@@ -144,6 +137,7 @@ window.BOOT = function() {
         if (!marker.contains(e.relatedTarget)) _hideCustomTooltip();
       }, true);
     }
+
 
     // -------- DHTMLX PLUGINS --------
     gantt.plugins({
@@ -276,14 +270,7 @@ window.BOOT = function() {
     gantt.templates.grid_row_class = function (start, end, task) {
       return task.bold ? "bc-row-bold" : "";
     };
-/*
-    gantt.templates.task_class = function (start, end, task) {
-      if (task.bold) return ""; // bold=true => no special border color
-      var indent = task.indent || 0;
-      var lvl = Math.max(0, Math.min(indent, 6)); // clamp to 0..6
-      return "bc-bar-border bc-indent-" + lvl;
-    };
-*/
+
     gantt.templates.tooltip_text = function(start, end, task) {
       let constraintText = "—";
 
@@ -484,7 +471,7 @@ window.BOOT = function() {
     
     InstallDayTaskLayer();   // ✅ install once
     InstallDayTaskEvents(); // ✅ install once
-    InstallResourceMarkerCustomTooltipsForDayTasks();
+    InstallResourceMarkerCustomTooltipsForDayTasks(); // ✅ install once
 
 
     // ✅ Tell AL we are safe to call now
@@ -1110,7 +1097,7 @@ function InstallDayTaskLayer() {
       el.style.top = (pos.top + 4 + slot * 10) + "px";
       el.style.height = "8px";
 
-      //el.title = (l.resource_id || "") + " • " + (l.hours || 0) + "h";
+      el.title = (l.resource_id || "") + " • " + (l.hours || 0) + "h";
 
       container.appendChild(el);
     }
