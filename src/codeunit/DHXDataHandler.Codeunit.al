@@ -133,6 +133,7 @@ codeunit 50604 "DHX Data Handler"
                         Clear(TaskObject);
                         TaskObject.Add('key', Jobs."No." + '|' + JobTasks."Job Task No.");
                         TaskObject.Add('label', StrSubstNo('%1 - %2', JobTasks."Job Task No.", JobTasks.Description));
+                        TaskObject.Add('open', true);
                         ChildrenArray.Add(TaskObject);
 
                         // Now add children for this task (the Day Tasks)                        
@@ -144,6 +145,7 @@ codeunit 50604 "DHX Data Handler"
                                 Clear(PlanningLineObject);
                                 PlanningLineObject.Add('key', Jobs."No." + '|' + JobTasks."Job Task No." + '|' + Format(PlanningLine."Line No."));
                                 PlanningLineObject.Add('label', PlanningLine.Description);
+                                PlanningLineObject.Add('open', true);
                                 ChildrenArray2.Add(PlanningLineObject);
                             until PlanningLine.Next() = 0;
                         end;
@@ -601,7 +603,41 @@ codeunit 50604 "DHX Data Handler"
         exit(localDateTime);
     end;
 
-    procedure OpenJobPlanningLineCard(eventId: Text; var possibleChanges: Boolean)
+    procedure OpenDayTask(eventId: Text): Date
+    var
+        DayTask: Record "Day Tasks";
+        DayTasks: page "Day Tasks";
+        EventIDList: List of [Text];
+        JobNo: Code[20];
+        TaskNo: Code[20];
+        PlanningLineNo: Integer;
+        DayNo: Integer;
+        DayLineNo: Integer;
+        DateOfDayTask: Date;
+    begin
+        DateOfDayTask := 0D;
+        EventIDList := eventId.Split('|');
+        JobNo := EventIDList.Get(1);
+        TaskNo := EventIDList.Get(2);
+        Evaluate(PlanningLineNo, EventIDList.Get(3));
+        Evaluate(DayNo, EventIDList.Get(4));
+        Evaluate(DayLineNo, EventIDList.Get(5));
+        DayTask.SetRange("Day No.", DayNo);
+        DayTask.SetRange("DayLineNo", DayLineNo);
+        DayTask.SetRange("Job No.", JobNo);
+        DayTask.SetRange("Job Task No.", TaskNo);
+        DayTask.SetRange("Job Planning Line No.", PlanningLineNo);
+        if DayTask.FindFirst() then begin
+            DateOfDayTask := DayTask."Start Planning Date";
+            Clear(DayTasks);
+            DayTasks.SetTableView(DayTask);
+            DayTasks.RunModal();
+        end else
+            Message('Day Task not found for Event ID: %1', eventId);
+        exit(DateOfDayTask);
+    end;
+
+    procedure OpenJobPlanningLineCard(SectionId: Text)
     var
         JobPlanningLines: Record "Job Planning Line";
         JobPlanningLineCard: Page "Job Planning Line Card";
@@ -611,13 +647,13 @@ codeunit 50604 "DHX Data Handler"
         PlanningLineNo: Integer;
         DayTaskNo: Integer;
     begin
+        //JOB00010|1010|30000
         // Implementation to open the Job Planning Line Card based on eventId
         //Message('Event Double Clicked with ID: %1', eventId);
-        EventIDList := eventId.Split('|');
+        EventIDList := SectionId.Split('|');
         JobNo := EventIDList.Get(1);
         TaskNo := EventIDList.Get(2);
         Evaluate(PlanningLineNo, EventIDList.Get(3));
-        Evaluate(DayTaskNo, EventIDList.Get(4));
         JobPlanningLines.SetRange("Job No.", JobNo);
         JobPlanningLines.SetRange("Job Task No.", TaskNo);
         JobPlanningLines.SetRange("Line No.", PlanningLineNo);
@@ -626,10 +662,8 @@ codeunit 50604 "DHX Data Handler"
             JobPlanningLineCard.SetTableView(JobPlanningLines);
             JobPlanningLineCard.SetRecord(JobPlanningLines);
             JobPlanningLineCard.RunModal();
-            possibleChanges := true
         end else begin
-            possibleChanges := false;
-            Message('Job Planning Line not found for Event ID: %1', eventId);
+            Message('Job Planning Line not found for Event ID: %1', SectionId);
         end;
     end;
 
