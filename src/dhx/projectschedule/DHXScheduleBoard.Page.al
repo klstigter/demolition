@@ -33,19 +33,39 @@ page 50621 "DHX Schedule Board"
 
                 #endregion Init and Load Data on Control Ready
 
-                #region Event Double Click
+                #region Section doubleclick
 
-                trigger OnEventDblClick(eventId: Text; eventData: Text)
+                trigger OnSectionDblClick(sectionId: Text; sectionData: Text; viewdate: Text)
                 var
                     DHXDataHandler: Codeunit "DHX Data Handler";
                     PossibleChanges: Boolean;
                     newEventData: Text;
+                    _DateTime: Datetime;
+                    _DateTimeUserZone: Datetime;
+                    StartDate: Date;
                 begin
-                    DHXDataHandler.OpenJobPlanningLineCard(eventId, PossibleChanges);
-                    // Get the latest data after possible changes in day tasks
-                    if PossibleChanges then begin
-                        if DHXDataHandler.GetEventDataFromEventId(eventId, newEventData) then
-                            CurrPage.DhxScheduler.RefreshEventData(newEventData); //update event ID
+                    //View Date: 2025-12-21T17:00:00.000Z
+                    DHXDataHandler.OpenJobPlanningLineCard(sectionId);
+                    // Refresh the schedule after possible changes
+                    Evaluate(_DateTime, viewdate);
+                    _DateTimeUserZone := DHXDataHandler.ConvertToUserTimeZone(_DateTime);
+                    StartDate := DT2Date(_DateTimeUserZone);
+                    AnchorDate := StartDate;
+                    RefreshSchedule();
+                end;
+
+                #endregion Section doubleclick
+
+                #region Event Double Click
+
+                trigger OnEventDblClick(eventId: Text; eventData: Text)
+                var
+                    DateRef: Date;
+                begin
+                    DateRef := DHXDataHandler.OpenDayTask(eventId);
+                    if DateRef <> 0D then begin
+                        AnchorDate := DateRef;
+                        RefreshSchedule();
                     end;
                 end;
 

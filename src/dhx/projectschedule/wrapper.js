@@ -222,6 +222,34 @@ window.BOOT = function() {
     // scheduler.init('scheduler_here');
 
     // ***** events triger block
+
+    // Custom event registration for section double-click
+    scheduler.attachEvent("onSectionDblClick", function(sectionId, label, viewdate) {
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnSectionDblClick", [sectionId, label, viewdate]);
+    });
+
+    // DOM handler to fire the custom event
+    (function wireSectionDblClick() {
+        var root = document.getElementById("scheduler_here");
+        if (!root) return;
+
+        root.addEventListener("dblclick", function(e) {
+            // Find the label cell and row
+            var sectionCell = e.target.closest(".dhx_matrix_scell");
+            var sectionRow = e.target.closest(".dhx_timeline_label_row");        
+            if (sectionCell && sectionRow) {
+                // Get the sectionId from the row's data-row-id attribute
+                var sectionId = sectionRow.getAttribute("data-row-id") || "";
+                // Get the label from the cell
+                var label = sectionCell.textContent.trim();
+                var viewdate = scheduler.getState().date;
+                scheduler.callEvent("onSectionDblClick", [sectionId, label, viewdate]);
+                e.stopPropagation();
+                e.preventDefault();
+            }
+        });
+    })();
+
     //<<<<< Left-right navigation bottons click event
     (function wireTimelineArrows() {
         function notify() {
@@ -670,6 +698,7 @@ function RecreateTimelineView(sections) {
         }
         delete scheduler.matrix.timeline;
     }
+
     // Recreate timeline view with new sections
     scheduler.createTimelineView({
         name: "timeline",

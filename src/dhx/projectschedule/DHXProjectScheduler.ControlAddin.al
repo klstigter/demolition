@@ -29,6 +29,7 @@ controladdin DHXProjectScheduleAddin
     event OnOpenResourcePage(lightboxId: Text; eventData: Text);
     event OnPlanningLineClick(Id: Text; EventJson: Text);
     event OnTimelineNavigate(NavigateJson: Text);
+    event OnSectionDblClick(sectionId: Text; label: Text; viewdate: Text);
 
     procedure Init(elements: Text; EarliestPlanningDate: Date);
     procedure LoadData(EventTxt: Text);
