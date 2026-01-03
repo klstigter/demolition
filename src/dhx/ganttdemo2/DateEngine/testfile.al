@@ -25,6 +25,10 @@ table 61290 MyTable
         }
     }
 
+    trigger OnInsert()
+    begin
+        // Custom logic on insert
+    end;
 
 
 
