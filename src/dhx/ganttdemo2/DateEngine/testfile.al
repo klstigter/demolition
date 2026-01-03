@@ -9,6 +9,11 @@ table 61290 MyTable
             DataClassification = ToBeClassified;
 
         }
+        field(2; MyTextField; Text[100])
+        {
+            DataClassification = ToBeClassified;
+
+        }
 
     }
 
