@@ -11,8 +11,7 @@ tableextension 50600 "Job Planning Line ext" extends "Job Planning Line"
             DataClassification = ToBeClassified;
             trigger OnValidate()
             begin
-                CheckOverlap();
-                StartEndLimitations();
+                StartEndLimitations(false);
             end;
         }
         field(50602; "End Planning Date"; Date)
@@ -20,8 +19,7 @@ tableextension 50600 "Job Planning Line ext" extends "Job Planning Line"
             DataClassification = ToBeClassified;
             trigger OnValidate()
             begin
-                CheckOverlap();
-                StartEndLimitations();
+                StartEndLimitations(false);
             end;
         }
         field(50603; "Start Time"; Time)
@@ -49,6 +47,7 @@ tableextension 50600 "Job Planning Line ext" extends "Job Planning Line"
         {
             DataClassification = ToBeClassified;
             Caption = 'Quantity of Lines';
+            MinValue = 0;
         }
 
         field(50615; "Vendor No."; Code[20])
@@ -184,6 +183,7 @@ tableextension 50600 "Job Planning Line ext" extends "Job Planning Line"
         job: Record Job;
         genUtil: Codeunit "General Planning Utilities";
 
+
     Local procedure BalanceResourceQnty()
     var
     begin
@@ -204,26 +204,39 @@ tableextension 50600 "Job Planning Line ext" extends "Job Planning Line"
             end;
     end;
 
-
     local procedure CheckOverlap()
+    begin
+        CheckOverlap(True);
+    end;
+
+    local procedure CheckOverlap(TryCreateDayLines: Boolean) HasOverlap: Boolean
     var
         DT: Date;
-        DT1: DateTime;
-        DT2: DateTime;
+        DTstart: DateTime;
+        DTend: DateTime;
     begin
-        DT1 := 0DT;
-        DT2 := CreateDateTime(DMY2Date(31, 12, 2999), Time);
+        DTstart := 0DT;
+        DTend := CreateDateTime(DMY2Date(31, 12, 2999), Time);
+
+        if TryCreateDayLines then
+            if (rec."Start Planning Date" = 0D) or (rec."Start Time" = 0T)
+                        or (rec."End Planning Date" = 0D) or (rec."End Time" = 0T) then
+                error('Start and End Planning Date and Time must be set to create Day Lines!');
 
         if ("Start Planning Date" <> 0D) and ("Start Time" <> 0T) then begin
             DT := "Start Planning Date";
-            DT1 := CreateDateTime(DT, "Start Time");
+            DTstart := CreateDateTime(DT, "Start Time");
         end;
         if ("End Planning Date" <> 0D) and ("End Time" <> 0T) then begin
             DT := "End Planning Date";
-            DT2 := CreateDateTime(DT, "End Time");
+            DTend := CreateDateTime(DT, "End Time");
         end;
-        if DT1 > DT2 then
-            error('Datetime overlaped!');
+        if DTstart > DTend then
+            if not TryCreateDayLines then
+                error('Datetime overlaped!')
+            else begin
+                exit(true);
+            end;
     end;
 
     local procedure CalculateNonWorkingHours()
@@ -279,21 +292,47 @@ tableextension 50600 "Job Planning Line ext" extends "Job Planning Line"
             job.Get(Rec."Job No.");
     end;
 
-    local procedure StartEndLimitations()
+    procedure StartEndLimitations(TryCreateDayLines: Boolean) hasOverlap: Boolean
+    var
     begin
         GetJob();
-        if FieldNo("Start Planning Date") = CurrFieldNo then begin
+        IF TryCreateDayLines THEN begin
+            IF CheckOverlap(TryCreateDayLines) then begin
+                StartEndLimitations(false); //try to fix
+                exit(true);
+            end;
+        end else
+            CheckOverlap(false);
+        if TryCreateDayLines or (FieldNo("Start Planning Date") = CurrFieldNo) then begin
             if (job."Starting Date" <> 0D) and (Rec."Start Planning Date" < job."Starting Date") then begin
+                if TryCreateDayLines then
+                    error('Start Planning Date cannot be earlier than Job Starting Date %1', job."Starting Date");
                 Rec."Start Planning Date" := job."Starting Date";
                 if GuiAllowed then
                     Message('Start Planning Date adjusted to Job Starting Date limit.');
             end;
+            if (job."Starting Date" <> 0D) and (job."Ending Date" < Rec."Start Planning Date") then begin
+                if TryCreateDayLines then
+                    error('Start Planning Date cannot be later than Job Ending Date %1', job."Ending Date");
+                Rec."Start Planning Date" := job."Ending Date";
+                if GuiAllowed then
+                    Message('Start Planning Date adjusted to Job Ending Date limit.');
+            end;
         end;
-        if FieldNo("End Planning Date") = CurrFieldNo then begin
+        if TryCreateDayLines or (FieldNo("End Planning Date") = CurrFieldNo) then begin
             if (job."Ending Date" <> 0D) and (Rec."End Planning Date" > job."Ending Date") then begin
+                if TryCreateDayLines then
+                    error('End Planning Date cannot be later than Job Ending Date %1', job."Ending Date");
                 Rec."End Planning Date" := job."Ending Date";
                 if GuiAllowed then
                     Message('End Planning Date adjusted to Job Ending Date limit.');
+            end;
+            if (job."Ending Date" <> 0D) and (job."Starting Date" > Rec."End Planning Date") then begin
+                if TryCreateDayLines then
+                    error('End Planning Date cannot be earlier than Job Starting Date %1', job."Starting Date");
+                Rec."End Planning Date" := job."Starting Date";
+                if GuiAllowed then
+                    Message('End Planning Date adjusted to Job Starting Date limit.');
             end;
         end;
     end;
@@ -311,4 +350,5 @@ tableextension 50600 "Job Planning Line ext" extends "Job Planning Line"
                 DayTask.DeleteAll();
         end;
     end;
+
 }

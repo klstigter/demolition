@@ -34,17 +34,16 @@ table 50610 "Day Tasks"
             DataClassification = ToBeClassified;
             TableRelation = "Job Planning Line"."Line No." where("Job No." = field("Job No."), "Job Task No." = field("Job Task No."));
             Caption = 'Job Planning Line No.';
-
         }
 
-        field(10; "Start Planning Date"; Date)
+        field(10; "Task Date"; Date)
         {
             DataClassification = ToBeClassified;
-            Caption = 'Planning Date';
+            Caption = 'Task Date';
             trigger OnValidate()
             begin
-                if CurrFieldNo = FieldNo("Start Planning Date") then
-                    "Day No." := generalutils.DateToInteger("Start Planning Date");
+                if CurrFieldNo = FieldNo("Task Date") then
+                    "Day No." := generalutils.DateToInteger("Task Date");
             end;
         }
         field(11; "Start Time"; Time)
@@ -149,7 +148,7 @@ table 50610 "Day Tasks"
 
         }
 
-        field(90; "Do Not Change"; Boolean)
+        field(90; "Manual Modified"; Boolean)
         {
             DataClassification = ToBeClassified;
             Caption = 'Do Not Change automatically by process';
@@ -165,14 +164,14 @@ table 50610 "Day Tasks"
         key(Rec1; "Job No.", "Job Task No.", "Job Planning Line No.", "Day No.", DayLineNo)
         {
         }
-        key(DateKey; "Start Planning Date", "Start Time")
+        key(DateKey; "Task Date", "Start Time")
         {
         }
     }
 
     fieldgroups
     {
-        fieldgroup(DropDown; "Job No.", "Job Task No.", "Start Planning Date", Description)
+        fieldgroup(DropDown; "Job No.", "Job Task No.", "Task Date", Description)
         {
         }
     }
@@ -234,10 +233,10 @@ table 50610 "Day Tasks"
         DayTask.SetRange("Job No.", "Job No.");
         DayTask.SetRange("Job Task No.", "Job Task No.");
         if DayTask.FindFirst() then
-            if DayTask."Start Planning Date" < FirstPlanningDate then
+            if DayTask."Task Date" < FirstPlanningDate then
                 error('There are Day Tasks before the planned start date %1.', FirstPlanningDate);
         if DayTask.FindLast() then begin
-            if DayTask."Start Planning Date" > LastPlanningDate then
+            if DayTask."Task Date" > LastPlanningDate then
                 Error('There are Day Tasks after the planned end date %1.', LastPlanningDate);
         end;
     end;

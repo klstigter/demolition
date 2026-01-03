@@ -331,8 +331,8 @@ codeunit 50613 "GanttChartDataHandler"
         JsonObject.Add('jobPlanningLineNo', DayTask."Job Planning Line No.");
 
         // Date and time information
-        if DayTask."Start Planning Date" <> 0D then
-            WorkDateText := FormatDate(DayTask."Start Planning Date")
+        if DayTask."Task Date" <> 0D then
+            WorkDateText := FormatDate(DayTask."Task Date")
         else
             WorkDateText := '';
         JsonObject.Add('work_date', WorkDateText);

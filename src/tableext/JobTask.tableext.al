@@ -99,7 +99,7 @@ tableextension 50605 "Job Task ext" extends "Job Task"
     end;
 
     var
-        myInt: Integer;
+        DayTaskMgt: Codeunit "Day Tasks Mgt.";
 
     procedure CalculateDuration() CalcDuration: Integer
     begin
@@ -138,4 +138,38 @@ tableextension 50605 "Job Task ext" extends "Job Task"
                 end;
         end;
     end;
+
+    procedure CheckDataLimitations()
+    var
+        MinDayTaskDate: Date;
+        MaxDayTaskDate: Date;
+        JobStartDate: Date;
+        JobEndDate: Date;
+    begin
+        DayTaskMgt.GetDateRange(Rec."Job No.", Rec."Job Task No.", MinDayTaskDate, MaxDayTaskDate);
+        JobStartDate := 0D;
+        JobEndDate := DMY2Date(31, 12, 2999);
+        if ("PlannedStartDate" <> 0D) then begin
+            JobStartDate := "PlannedStartDate";
+        end;
+        if ("PlannedEndDate" <> 0D) then begin
+            JobEndDate := "PlannedEndDate";
+        end;
+        if HasOverlap(JobStartDate, JobEndDate) then
+            error('Start en End Date overlaped!');
+        if HasOverlap(JobStartDate, MinDayTaskDate) then
+            error('Day Tasks exist before Planned Start Date!');
+        if HasOverlap(MaxDayTaskDate, JobEndDate) then
+            error('Day Tasks exist after Planned End Date!');
+    end;
+
+    local procedure HasOverlap(DTstart: Date; DTend: Date): Boolean
+    begin
+        if DTstart = 0D then
+            exit(false);
+        if DTend = 0D then
+            exit(false);
+        exit(DTstart > DTend);
+    end;
+
 }

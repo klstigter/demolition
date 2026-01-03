@@ -42,18 +42,30 @@ codeunit 50610 "Day Tasks Mgt."
         DayEndTime: Time;
         NonWorkingHours: Decimal;
         Counter: Integer;
+        HasOverlap: Boolean;
     begin
+        JobPlanningLine.TestField(Type, JobPlanningLine.Type::Resource);
         case true of
+            jobPlanningLine.SkillsRequired = '':
+                error('Skills Required must be specified for Job Planning Line %1 of Job %2, Task %3.', JobPlanningLine."Line No.", JobPlanningLine."Job No.", JobPlanningLine."Job Task No.");
             JobPlanningLine."Work-Hour Template" = '':
-                exit;
+                error('Work-Hour Template must be specified for Job Planning Line %1 of Job %2, Task %3.', JobPlanningLine."Line No.", JobPlanningLine."Job No.", JobPlanningLine."Job Task No.");
             JobPlanningLine."Start Planning Date" = 0D:
-                exit;
+                Error('Start Planning Date must be specified for Job Planning Line %1 of Job %2, Task %3.', JobPlanningLine."Line No.", JobPlanningLine."Job No.", JobPlanningLine."Job Task No.");
             JobPlanningLine."End Planning Date" = 0D:
-                exit;
+                Error('End Planning Date must be specified for Job Planning Line %1 of Job %2, Task %3.', JobPlanningLine."Line No.", JobPlanningLine."Job No.", JobPlanningLine."Job Task No.");
+            (JobPlanningLine."Start Time" = 0T) or (JobPlanningLine."End Time" = 0T):
+                Error('Start Time and End Time must be specified for Job Planning Line %1 of Job %2, Task %3.', JobPlanningLine."Line No.", JobPlanningLine."Job No.", JobPlanningLine."Job Task No.");
+            (JobPlanningLine."No." <> '') or (JobPlanningLine."Vendor No." <> ''):
+                begin
+                    JobPlanningLine."Quantity of Lines" := 1;
+                    JobPlanningLine.Modify(false);
+                end;
             (JobPlanningLine."Quantity of Lines" = 0) and (JobPlanningLine."No." = '') and (JobPlanningLine."Vendor No." = ''):
-                exit;
+                error('When either a Resource No. or Vendor No. is specified, the Quantity of Lines must be greater than zero.', JobPlanningLine."Line No.", JobPlanningLine."Job No.");
         end;
-
+        if JobPlanningLine.StartEndLimitations(true) then
+            exit;
         WorkHoursTemplate.get(JobPlanningLine."Work-Hour Template");
         if DoDeleteAll then
             ClearDayPlanningLines(JobPlanningLine);
@@ -93,7 +105,7 @@ codeunit 50610 "Day Tasks Mgt."
                 DayTasks."Job Planning Line No." := JobPlanningLine."Line No.";
 
 
-                DayTasks."Start Planning Date" := NewTaskDate;
+                DayTasks."Task Date" := NewTaskDate;
 
                 // Calculate start and end times for this day
                 if JobPlanningLine."Start Time" <> 0T then
@@ -148,7 +160,7 @@ codeunit 50610 "Day Tasks Mgt."
         daytask: Record "Day Tasks";
     begin
         if daytask.Get(NewDayTask."Day No.", NewDayTask.DayLineNo, NewDayTask."Job No.", NewDayTask."Job Task No.", NewDayTask."Job Planning Line No.") then
-            Exit(not daytask."Do Not Change");
+            Exit(not daytask."Manual Modified");
         exit(true);
 
     end;
@@ -204,7 +216,8 @@ codeunit 50610 "Day Tasks Mgt."
         JobDayPlanningLine.SetRange("Job No.", JobPlanLine."Job No.");
         JobDayPlanningLine.SetRange("Job Task No.", JobPlanLine."Job Task No.");
         JobDayPlanningLine.SetRange("Job Planning Line No.", JobPlanLine."Line No.");
-        JobDayPlanningLine.SetRange("Do Not Change", false);
+        JobDayPlanningLine.SetFilter("Day No.", '>=%1', GeneralUtil.DateToInteger(calcdate('<1D>', WorkDate())));
+        JobDayPlanningLine.SetRange("Manual Modified", false);
         JobDayPlanningLine.DeleteAll();
     end;
 
@@ -251,6 +264,26 @@ codeunit 50610 "Day Tasks Mgt."
         end;
     end;
 
+    procedure GetDateRange(JobNo: Code[20]; var StartDate: Date; var EndDate: Date)
+    begin
+        GetDateRange(JobNo, '', StartDate, EndDate);
+    end;
+
+    procedure GetDateRange(JobNo: Code[20]; JobTaskNo: Code[20]; var StartDate: Date; var EndDate: Date)
+    var
+        DayTasks: Record "Day Tasks";
+    begin
+        StartDate := 0D;
+        EndDate := 0D;
+        DayTasks.SetRange("Job No.", JobNo);
+        if JobTaskNo <> '' then
+            DayTasks.SetRange("Job Task No.", JobTaskNo);
+        if DayTasks.FindFirst() then
+            StartDate := DayTasks."Task Date";
+        if DayTasks.FindLast() then
+            EndDate := DayTasks."Task Date";
+    end;
+
 
     [EventSubscriber(ObjectType::Table, Database::"Job Planning Line", 'OnAfterModifyEvent', '', false, false)]
     local procedure OnAfterModifyJobPlanningLine(var Rec: Record "Job Planning Line"; var xRec: Record "Job Planning Line"; RunTrigger: Boolean)
@@ -290,7 +323,7 @@ codeunit 50610 "Day Tasks Mgt."
         JobDayPlanningLine.SetRange("Job No.", Rec."Job No.");
         JobDayPlanningLine.SetRange("Job Task No.", Rec."Job Task No.");
         JobDayPlanningLine.SetRange("Job Planning Line No.", Rec."Line No.");
-        JobDayPlanningLine.SetRange("Do Not Change", false);
+        JobDayPlanningLine.SetRange("Manual Modified", false);
         JobDayPlanningLine.DeleteAll();
     end;
 }

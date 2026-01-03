@@ -33,7 +33,7 @@ page 50630 "Day Tasks"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the job planning line number.';
                 }
-                field("Start Planning Date"; Rec."Start Planning Date")
+                field("Start Planning Date"; Rec."Task Date")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the planning date for this day.';
@@ -150,7 +150,7 @@ page 50630 "Day Tasks"
                 ApplicationArea = All;
                 Caption = 'Unpack Job Planning Lines';
                 ToolTip = 'Unpacks job planning lines into daily records.';
-                Image = SplitLines;
+                Image = Split;
                 Visible = false;
 
                 trigger OnAction()
