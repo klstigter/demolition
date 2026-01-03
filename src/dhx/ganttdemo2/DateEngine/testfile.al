@@ -30,6 +30,11 @@ table 61290 MyTable
         // Custom logic on insert
     end;
 
+    trigger OnModify()
+    begin
+        // Custom logic on modify
+    end;
+
 
 
 
