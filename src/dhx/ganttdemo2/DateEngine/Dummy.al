@@ -38,7 +38,7 @@ table 61290 MyTable
 
     trigger OnModify()
     begin
-        Message('test');
+
     end;
 
     trigger OnDelete()
