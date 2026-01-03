@@ -20,13 +20,7 @@ table 61290 MyTable
         }
     }
 
-    fieldgroups
-    {
-        // Add changes to field groups here
-    }
 
-    var
-        myInt: Integer;
 
 
 
