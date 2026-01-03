@@ -34,7 +34,6 @@ table 61290 MyTable
 
     trigger OnInsert()
     begin
-        message('Record inserted with MyField=%1 and MyTextField=%2', MyField, MyTextField);
     end;
 
     trigger OnModify()
