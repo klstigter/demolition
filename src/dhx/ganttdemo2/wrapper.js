@@ -45,36 +45,38 @@ window.BOOT = function() {
       return;
     }
 
-    function InstallDayTaskEvents() {
-      if (window._dayTaskEventsInstalled) return;
-      window._dayTaskEventsInstalled = true;
+    // ah: function hide due to daytask-line class is created during hover on daytask
+    // function InstallDayTaskEvents() {
+    //   if (window._dayTaskEventsInstalled) return;
+    //   window._dayTaskEventsInstalled = true;
 
-      gantt.$root.addEventListener("dblclick", function (e) {
-        const el = e.target.closest(".daytask-line");
-        if (!el) return;
+    //   gantt.$root.addEventListener("dblclick", function (e) {
+    //     debugger;
+    //     const el = e.target.closest(".daytask-line");
+    //     if (!el) return;
 
-        e.preventDefault();
-        e.stopPropagation();
+    //     e.preventDefault();
+    //     e.stopPropagation();
 
-        const dayTaskId = el.getAttribute("data-daytask-id")||el.dataset.daytaskId;
-        if (!dayTaskId) return;
+    //     const dayTaskId = el.getAttribute("data-daytask-id")||el.dataset.daytaskId;
+    //     if (!dayTaskId) return;
 
-        // 🔁 call BC
-        if (window.BC_OnDayTaskDblClick) {
-          window.BC_OnDayTaskDblClick(dayTaskId);
-        }
-      });
+    //     // 🔁 call BC
+    //     if (window.BC_OnDayTaskDblClick) {
+    //       window.BC_OnDayTaskDblClick(dayTaskId);
+    //     }
+    //   });
 
-      gantt.$root.addEventListener("click", function (e) {
-        const el = e.target.closest(".daytask-line");
-        if (!el) return;
+    //   gantt.$root.addEventListener("click", function (e) {
+    //     const el = e.target.closest(".daytask-line");
+    //     if (!el) return;
 
-        e.stopPropagation();
+    //     e.stopPropagation();
 
-        const dayTaskId = el.dataset.daytaskId;
-        highlightDayTask(el); // optional visual
-      });
-    }
+    //     const dayTaskId = el.dataset.daytaskId;
+    //     highlightDayTask(el); // optional visual
+    //   });
+    // }
 
     function InstallResourceMarkerCustomTooltipsForDayTasks() {
       if (document._rmCustomTooltipInstalled) return;
@@ -469,8 +471,8 @@ window.BOOT = function() {
     
     console.log("tooltip ext:", gantt.ext && (gantt.ext.tooltip || gantt.ext.tooltips));
     
-    InstallDayTaskLayer();   // ✅ install once
-    InstallDayTaskEvents(); // ✅ install once
+    //InstallDayTaskLayer();   // ✅ install once
+    //InstallDayTaskEvents(); // ✅ install once //ah: the function is hide, see on top lines
     InstallResourceMarkerCustomTooltipsForDayTasks(); // ✅ install once
 
 
@@ -1058,53 +1060,53 @@ function DeleteDayTask(dayTaskId) {
 window.DeleteDayTask = DeleteDayTask;
 
 
-function InstallDayTaskLayer() {
-  if (window._dayTaskLayerInstalled) return;
-  window._dayTaskLayerInstalled = true;
+// function InstallDayTaskLayer() {
+//   if (window._dayTaskLayerInstalled) return;
+//   window._dayTaskLayerInstalled = true;
 
-  gantt.addTaskLayer(function (task) {
-    const lines = (window.dayTasksByTask && window.dayTasksByTask[task.id]) || null;
-    console.log("Layer:", task.id, "daytasks:", lines?.length || 0);
+//   gantt.addTaskLayer(function (task) {
+//     const lines = (window.dayTasksByTask && window.dayTasksByTask[task.id]) || null;
+//     console.log("Layer:", task.id, "daytasks:", lines?.length || 0);
 
-    if (!lines || !lines.length) return false;
+//     if (!lines || !lines.length) return false;
 
-    const container = document.createElement("div");
+//     const container = document.createElement("div");
 
-    // stack multiple per day (and per resource) so you can see all of them
-    const stackSlot = Object.create(null);
+//     // stack multiple per day (and per resource) so you can see all of them
+//     const stackSlot = Object.create(null);
 
-    for (let i = 0; i < lines.length; i++) {
-      const l = lines[i];
-      if (!l.work_date) continue;
+//     for (let i = 0; i < lines.length; i++) {
+//       const l = lines[i];
+//       if (!l.work_date) continue;
 
-      const from = gantt.date.parseDate(l.work_date, "%Y-%m-%d");
-      const to = gantt.date.add(from, 1, "day");
-      const pos = gantt.getTaskPosition(task, from, to);
-      if (!pos || pos.width <= 0) continue;
+//       const from = gantt.date.parseDate(l.work_date, "%Y-%m-%d");
+//       const to = gantt.date.add(from, 1, "day");
+//       const pos = gantt.getTaskPosition(task, from, to);
+//       if (!pos || pos.width <= 0) continue;
 
-      const key = l.work_date + "|" + (l.resource_id || "");
-      const slot = stackSlot[key] || 0;
-      stackSlot[key] = slot + 1;
+//       const key = l.work_date + "|" + (l.resource_id || "");
+//       const slot = stackSlot[key] || 0;
+//       stackSlot[key] = slot + 1;
 
-      const el = document.createElement("div");
-      el.className = "daytask-line";
-       // ✅ ADD THESE 2 (and keep task.id as the key)
-      el.setAttribute("data-task-id", task.id);
-      el.setAttribute("data-daytask-id", l.id);
+//       const el = document.createElement("div");
+//       el.className = "daytask-line";
+//        // ✅ ADD THESE 2 (and keep task.id as the key)
+//       el.setAttribute("data-task-id", task.id);
+//       el.setAttribute("data-daytask-id", l.id);
       
-      el.style.left = (pos.left + 1) + "px";
-      el.style.width = Math.max(4, pos.width - 2) + "px";
-      el.style.top = (pos.top + 4 + slot * 10) + "px";
-      el.style.height = "8px";
+//       el.style.left = (pos.left + 1) + "px";
+//       el.style.width = Math.max(4, pos.width - 2) + "px";
+//       el.style.top = (pos.top + 4 + slot * 10) + "px";
+//       el.style.height = "8px";
 
-      el.title = (l.resource_id || "") + " • " + (l.hours || 0) + "h";
+//       el.title = (l.resource_id || "") + " • " + (l.hours || 0) + "h";
 
-      container.appendChild(el);
-    }
+//       container.appendChild(el);
+//     }
 
-    return container;
-  });
-}
+//     return container;
+//   });
+// }
 
 function highlightDayTask(el) {
   document

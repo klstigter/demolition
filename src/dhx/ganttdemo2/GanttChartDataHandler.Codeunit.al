@@ -26,7 +26,7 @@ codeunit 50613 "GanttChartDataHandler"
             JobTask.SetRange("Job No.", JobNo);
         //Jobtask.SetFilter("Your Reference", '%1', '');
         if StartDate <> 0D then
-            JobTask.SetFilter("PlannedEndDate", '<=%2', StartDate); // to exclude blank references
+            JobTask.SetFilter("PlannedEndDate", '>=%1', StartDate); // to exclude blank references
         if JobTask.FindSet() then
             repeat
                 if OldJobNo <> JobTask."Job No." then begin
