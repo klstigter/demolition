@@ -37,7 +37,8 @@ pageextension 50602 "Job List Opti" extends "Job List"
                 var
                     JobMgt: Codeunit "Job Planning Line Handler";
                 begin
-                    JobMgt.OpenTaskSchedulerAllJob();
+                    //JobMgt.OpenTaskSchedulerAllJob();
+                    message('Daypilot is deprecated., convert it to dhtmlx scheduler');
                 end;
             }
             action("PushToPlanningIntegration")

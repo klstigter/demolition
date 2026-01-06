@@ -212,7 +212,8 @@ page 50609 "Job List - Resource"
                     var
                         JobMgt: Codeunit "Job Planning Line Handler";
                     begin
-                        JobMgt.OpenTaskSchedulerAllJob();
+                        //JobMgt.OpenTaskSchedulerAllJob();
+                        message('Daypilot is deprecated., convert it to dhtmlx scheduler');
                     end;
                 }
                 action("PushToPlanningIntegration")

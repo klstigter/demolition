@@ -29,61 +29,62 @@ codeunit 50615 "Gantt Update Data"
         foreach JsonKey in JsonObject.Keys do begin
             JsonObject.Get(JsonKey, JsonToken);
             JsonValue := JsonToken.AsValue();
-            case JsonKey of
-                'id':
-                    ; // Ignore ID field
-                'bcJobNo':
-                    JobNo := JsonValue.AsCode();
-                'bcJobTaskNo':
-                    begin
-                        JobTask.get(JobNo, JobTaskNo);
-                        JobTaskNo := JsonToken.AsValue().AsCode();
-                    end;
-                'text':
-                    begin
-                        Description := CopyStr(JsonValue.AsText(), 1, MaxStrLen(Description));
-                        JobTask.Description := Description;
-                    end;
-                'start_date':
-                    begin
-                        d := JsonValue.AsDate();
-                        if d <> JobTask."PlannedStartDate" then
-                            JobTask.validate("PlannedStartDate", d);
-                    end;
-                'end_date':
-                    begin
-                        d := JsonValue.AsDate();
-                        if d <> JobTask."PlannedEndDate" then
-                            JobTask.validate("PlannedEndDate", d);
-                    end;
-                'duration':
-                    begin
-                        // Duration is in days
-                        if JsonValue.AsInteger() <> JobTask."Duration" then begin
-                            JobTask.validate("Duration", JsonValue.AsInteger());
+            if not JsonValue.IsNull() then
+                case JsonKey of
+                    'id':
+                        ; // Ignore ID field
+                    'bcJobNo':
+                        JobNo := JsonValue.AsCode();
+                    'bcJobTaskNo':
+                        begin
+                            JobTask.get(JobNo, JobTaskNo);
+                            JobTaskNo := JsonToken.AsValue().AsCode();
                         end;
-                    end;
-                'schedulingType':
-                    begin
-                        SchedulingType := ConvertSchedulingType(JsonValue.AsText());
-                        if SchedulingType.AsInteger() <> JobTask."Scheduling Type".AsInteger() then begin
-                            JobTask.validate("Scheduling Type", SchedulingType);
+                    'text':
+                        begin
+                            Description := CopyStr(JsonValue.AsText(), 1, MaxStrLen(Description));
+                            JobTask.Description := Description;
                         end;
-                    end;
-                'constraint_type':
-                    begin
-                        ganttConstraintType := ConvertConstraint_type(JsonValue.AsText());
-                        if ganttConstraintType.AsInteger() <> JobTask."Constraint Type".AsInteger() then begin
-                            JobTask.validate("Constraint Type", ganttConstraintType);
+                    'start_date':
+                        begin
+                            d := JsonValue.AsDate();
+                            if d <> JobTask."PlannedStartDate" then
+                                JobTask.validate("PlannedStartDate", d);
                         end;
-                    end;
-                'constraint_date':
-                    begin
-                        d := JsonValue.AsDate();
-                        if d <> JobTask."Constraint Date" then
-                            JobTask.validate("Constraint Date", d);
-                    end;
-            end;
+                    'end_date':
+                        begin
+                            d := JsonValue.AsDate();
+                            if d <> JobTask."PlannedEndDate" then
+                                JobTask.validate("PlannedEndDate", d);
+                        end;
+                    'duration':
+                        begin
+                            // Duration is in days
+                            if JsonValue.AsInteger() <> JobTask."Duration" then begin
+                                JobTask.validate("Duration", JsonValue.AsInteger());
+                            end;
+                        end;
+                    'schedulingType':
+                        begin
+                            SchedulingType := ConvertSchedulingType(JsonValue.AsText());
+                            if SchedulingType.AsInteger() <> JobTask."Scheduling Type".AsInteger() then begin
+                                JobTask.validate("Scheduling Type", SchedulingType);
+                            end;
+                        end;
+                    'constraint_type':
+                        begin
+                            ganttConstraintType := ConvertConstraint_type(JsonValue.AsText());
+                            if ganttConstraintType.AsInteger() <> JobTask."Constraint Type".AsInteger() then begin
+                                JobTask.validate("Constraint Type", ganttConstraintType);
+                            end;
+                        end;
+                    'constraint_date':
+                        begin
+                            d := JsonValue.AsDate();
+                            if d <> JobTask."Constraint Date" then
+                                JobTask.validate("Constraint Date", d);
+                        end;
+                end;
 
         end;
         exit(JobTask.Modify(true));
