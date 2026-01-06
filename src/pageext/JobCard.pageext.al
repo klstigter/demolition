@@ -20,7 +20,8 @@ pageextension 50601 "Job Card Opti" extends "Job Card"
                 var
                     JobMgt: Codeunit "Job Planning Line Handler";
                 begin
-                    JobMgt.OpentaskSchedulerFromJob(Rec);
+                    //JobMgt.OpentaskSchedulerFromJob(Rec);
+                    message('Daypilot is deprecated., convert it to dhtmlx scheduler');
                 end;
             }
         }

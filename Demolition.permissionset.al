@@ -36,8 +36,5 @@ permissionset 50600 Demolition
         page "Planning Integration Setup" = X,
         page "Planning Role Center" = X,
         page "Project Planning Activities" = X,
-        page "Resource Planning Activities" = X,
-        page "Resource Selection" = X,
-        page "Resources Board" = X,
-        page "Schedule Board" = X;
+        page "Resource Planning Activities" = X;
 }

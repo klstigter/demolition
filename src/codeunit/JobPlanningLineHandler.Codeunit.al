@@ -2,7 +2,7 @@ codeunit 50601 "Job Planning Line Handler"
 {
     trigger OnRun()
     begin
-        OpenTaskSchedulerAllJob();
+
     end;
 
     [EventSubscriber(ObjectType::Table, Database::"Job Planning Line", 'OnBeforeOnRename', '', false, false)]
@@ -11,212 +11,212 @@ codeunit 50601 "Job Planning Line Handler"
         IsHandled := true; //Allow rename Job Planning Line
     end;
 
-    procedure OpentaskSchedulerFromJob(Job: record Job)
-    var
-        task: record "Job Task";
-        JobPlaningLine: Record "Job Planning Line";
-        TempDateVar: Record Date temporary;
-        ScheduleBoard: page "Schedule Board";
-        TaskArray: JsonArray;
-        TaskObj: JsonObject;
-        ResourceTxt: Text;
-        EventArray: JsonArray;
-        EventObj: JsonObject;
-        EventTxt: Text;
-        DT2: Date;
-        StartDate: Text;
-        Days: Integer;
-    begin
-        task.CalcFields("Start Date", "End Date");
-        task.SetRange("Job No.", Job."No.");
-        task.SetRange("Job Task Type", task."Job Task Type"::Posting);
-        task.SetFilter("Start Date", '<>%1', 0D);
-        task.SetFilter("End Date", '<>%1', 0D);
-        task.FindSet(); //show error if no records
+    // procedure OpentaskSchedulerFromJob(Job: record Job)
+    // var
+    //     task: record "Job Task";
+    //     JobPlaningLine: Record "Job Planning Line";
+    //     TempDateVar: Record Date temporary;
+    //     ScheduleBoard: page "Schedule Board";
+    //     TaskArray: JsonArray;
+    //     TaskObj: JsonObject;
+    //     ResourceTxt: Text;
+    //     EventArray: JsonArray;
+    //     EventObj: JsonObject;
+    //     EventTxt: Text;
+    //     DT2: Date;
+    //     StartDate: Text;
+    //     Days: Integer;
+    // begin
+    //     task.CalcFields("Start Date", "End Date");
+    //     task.SetRange("Job No.", Job."No.");
+    //     task.SetRange("Job Task Type", task."Job Task Type"::Posting);
+    //     task.SetFilter("Start Date", '<>%1', 0D);
+    //     task.SetFilter("End Date", '<>%1', 0D);
+    //     task.FindSet(); //show error if no records
 
-        // Create Planning Resources + events
-        Clear(TaskArray);
-        Clear(EventArray);
-        TempDateVar.Reset();
-        TempDateVar.DeleteAll();
-        repeat
-            // Resources
-            Clear(TaskObj);
-            TaskObj.Add('id', task."Job No." + '|' + task."Job Task No.");
-            TaskObj.Add('name', task."Job Task No." + ' - ' + task.Description);
-            TaskArray.Add(TaskObj);
+    //     // Create Planning Resources + events
+    //     Clear(TaskArray);
+    //     Clear(EventArray);
+    //     TempDateVar.Reset();
+    //     TempDateVar.DeleteAll();
+    //     repeat
+    //         // Resources
+    //         Clear(TaskObj);
+    //         TaskObj.Add('id', task."Job No." + '|' + task."Job Task No.");
+    //         TaskObj.Add('name', task."Job Task No." + ' - ' + task.Description);
+    //         TaskArray.Add(TaskObj);
 
-            /*
-            {
-                "id":"dc125b26-7ed7-5283-609a-22866ef12639",
-                "text":"New Booking",
-                "start":"2025-01-01T09:00:00",
-                "end":"2025-01-01T12:00:00",
-                "resource":"B",
-                "bubbleHtml":"New Booking"}
-            */
+    //         /*
+    //         {
+    //             "id":"dc125b26-7ed7-5283-609a-22866ef12639",
+    //             "text":"New Booking",
+    //             "start":"2025-01-01T09:00:00",
+    //             "end":"2025-01-01T12:00:00",
+    //             "resource":"B",
+    //             "bubbleHtml":"New Booking"}
+    //         */
 
-            // Events            
-            JobPlaningLine.SetRange("Job No.", task."Job No.");
-            JobPlaningLine.SetRange("Job Task No.", task."Job Task No.");
-            if JobPlaningLine.findset then
-                repeat
-                    Clear(EventObj);
+    //         // Events            
+    //         JobPlaningLine.SetRange("Job No.", task."Job No.");
+    //         JobPlaningLine.SetRange("Job Task No.", task."Job Task No.");
+    //         if JobPlaningLine.findset then
+    //             repeat
+    //                 Clear(EventObj);
 
-                    //Manage days
-                    if JobPlaningLine."Start Planning Date" <> 0D then
-                        if not TempDateVar.Get(TempDateVar."Period Type"::Date, JobPlaningLine."Start Planning Date") then begin
-                            TempDateVar.Init();
-                            TempDateVar."Period Type" := TempDateVar."Period Type"::Date;
-                            TempDateVar."Period Start" := JobPlaningLine."Start Planning Date";
-                            TempDateVar.Insert();
-                        end;
-                    if JobPlaningLine."End Planning Date" <> 0D then
-                        if not TempDateVar.Get(TempDateVar."Period Type"::Date, JobPlaningLine."End Planning Date") then begin
-                            TempDateVar.Init();
-                            TempDateVar."Period Type" := TempDateVar."Period Type"::Date;
-                            TempDateVar."Period Start" := JobPlaningLine."End Planning Date";
-                            TempDateVar.Insert();
-                        end;
+    //                 //Manage days
+    //                 if JobPlaningLine."Start Planning Date" <> 0D then
+    //                     if not TempDateVar.Get(TempDateVar."Period Type"::Date, JobPlaningLine."Start Planning Date") then begin
+    //                         TempDateVar.Init();
+    //                         TempDateVar."Period Type" := TempDateVar."Period Type"::Date;
+    //                         TempDateVar."Period Start" := JobPlaningLine."Start Planning Date";
+    //                         TempDateVar.Insert();
+    //                     end;
+    //                 if JobPlaningLine."End Planning Date" <> 0D then
+    //                     if not TempDateVar.Get(TempDateVar."Period Type"::Date, JobPlaningLine."End Planning Date") then begin
+    //                         TempDateVar.Init();
+    //                         TempDateVar."Period Type" := TempDateVar."Period Type"::Date;
+    //                         TempDateVar."Period Start" := JobPlaningLine."End Planning Date";
+    //                         TempDateVar.Insert();
+    //                     end;
 
-                    EventObj.Add('id', task."Job No." + '|' + task."Job Task No." + '|' + format(JobPlaningLine."Line No."));
-                    EventObj.Add('text', JobPlaningLine.Description);
-                    EventObj.Add('start', GetTaskDateTime(JobPlaningLine."Start Planning Date", JobPlaningLine."Start Time", false));
-                    DT2 := JobPlaningLine."Start Planning Date";
-                    if JobPlaningLine."End Planning Date" <> 0D then
-                        DT2 := JobPlaningLine."End Planning Date";
-                    EventObj.Add('end', GetTaskDateTime(DT2, JobPlaningLine."End Time", true));
-                    EventObj.Add('resource', task."Job No." + '|' + task."Job Task No.");
-                    EventObj.Add('bubbleHtml', CreateBubbleHtmlFromPlanningLine(JobPlaningLine));
-                    EventArray.Add(EventObj);
-                until JobPlaningLine.Next() = 0;
-        until task.Next() = 0;
+    //                 EventObj.Add('id', task."Job No." + '|' + task."Job Task No." + '|' + format(JobPlaningLine."Line No."));
+    //                 EventObj.Add('text', JobPlaningLine.Description);
+    //                 EventObj.Add('start', GetTaskDateTime(JobPlaningLine."Start Planning Date", JobPlaningLine."Start Time", false));
+    //                 DT2 := JobPlaningLine."Start Planning Date";
+    //                 if JobPlaningLine."End Planning Date" <> 0D then
+    //                     DT2 := JobPlaningLine."End Planning Date";
+    //                 EventObj.Add('end', GetTaskDateTime(DT2, JobPlaningLine."End Time", true));
+    //                 EventObj.Add('resource', task."Job No." + '|' + task."Job Task No.");
+    //                 EventObj.Add('bubbleHtml', CreateBubbleHtmlFromPlanningLine(JobPlaningLine));
+    //                 EventArray.Add(EventObj);
+    //             until JobPlaningLine.Next() = 0;
+    //     until task.Next() = 0;
 
-        TempDateVar.Reset();
-        Days := TempDateVar.Count + 1;
-        TempDateVar.FindFirst();
-        StartDate := Format(TempDateVar."Period Start", 0, '<Year4>-<Month,2>-<Day,2>');
-        TaskArray.WriteTo(ResourceTxt);
-        EventArray.WriteTo(EventTxt);
+    //     TempDateVar.Reset();
+    //     Days := TempDateVar.Count + 1;
+    //     TempDateVar.FindFirst();
+    //     StartDate := Format(TempDateVar."Period Start", 0, '<Year4>-<Month,2>-<Day,2>');
+    //     TaskArray.WriteTo(ResourceTxt);
+    //     EventArray.WriteTo(EventTxt);
 
-        Clear(ScheduleBoard);
-        ScheduleBoard.SetResoucesAndEventJsonTxt(ResourceTxt, EventTxt, StartDate, Days);
-        ScheduleBoard.RunModal();
-    end;
+    //     Clear(ScheduleBoard);
+    //     ScheduleBoard.SetResoucesAndEventJsonTxt(ResourceTxt, EventTxt, StartDate, Days);
+    //     ScheduleBoard.RunModal();
+    // end;
 
-    procedure OpenTaskSchedulerAllJob()
-    var
-        Jobs: Record Job;
-        JobTasks: Record "Job Task";
-        JobPlaningLine: Record "Job Planning Line";
-        TempDateVar: Record Date temporary;
+    // procedure OpenTaskSchedulerAllJob()
+    // var
+    //     Jobs: Record Job;
+    //     JobTasks: Record "Job Task";
+    //     JobPlaningLine: Record "Job Planning Line";
+    //     TempDateVar: Record Date temporary;
 
-        ScheduleBoard: page "Schedule Board";
+    //     ScheduleBoard: page "Schedule Board";
 
-        JsonArray: JsonArray;
-        JobObject: JsonObject;
-        TasksArray: JsonArray;
-        TaskObject: JsonObject;
+    //     JsonArray: JsonArray;
+    //     JobObject: JsonObject;
+    //     TasksArray: JsonArray;
+    //     TaskObject: JsonObject;
 
-        EventObj: JsonObject;
-        EventArray: JsonArray;
+    //     EventObj: JsonObject;
+    //     EventArray: JsonArray;
 
-        DT: Date;
-        DT1: Date;
-        DT2: Date;
-        ResourceTxt: Text;
-        EventTxt: Text;
-        Days: Integer;
-        StartDate: Text;
-        i: Integer;
-    begin
-        Jobs.Reset();
-        if Jobs.FindSet() then begin
-            repeat
-                JobTasks.SetRange("Job No.", Jobs."No.");
-                JobTasks.SetRange("Job Task Type", JobTasks."Job Task Type"::Posting);
-                if JobTasks.FindSet() then begin
-                    Clear(JobObject);
-                    JobObject.Add('name', Jobs."No." + ' - ' + Jobs.Description);
-                    JobObject.Add('id', Jobs."No." + '|');
-                    JobObject.Add('expanded', true);
+    //     DT: Date;
+    //     DT1: Date;
+    //     DT2: Date;
+    //     ResourceTxt: Text;
+    //     EventTxt: Text;
+    //     Days: Integer;
+    //     StartDate: Text;
+    //     i: Integer;
+    // begin
+    //     Jobs.Reset();
+    //     if Jobs.FindSet() then begin
+    //         repeat
+    //             JobTasks.SetRange("Job No.", Jobs."No.");
+    //             JobTasks.SetRange("Job Task Type", JobTasks."Job Task Type"::Posting);
+    //             if JobTasks.FindSet() then begin
+    //                 Clear(JobObject);
+    //                 JobObject.Add('name', Jobs."No." + ' - ' + Jobs.Description);
+    //                 JobObject.Add('id', Jobs."No." + '|');
+    //                 JobObject.Add('expanded', true);
 
-                    Clear(TasksArray);
-                    repeat
-                        Clear(TaskObject);
-                        TaskObject.Add('name', JobTasks."Job Task No." + ' - ' + JobTasks.Description);
-                        TaskObject.Add('id', Jobs."No." + '|' + JobTasks."Job Task No.");
-                        TasksArray.Add(TaskObject);
-                    until JobTasks.Next() = 0;
+    //                 Clear(TasksArray);
+    //                 repeat
+    //                     Clear(TaskObject);
+    //                     TaskObject.Add('name', JobTasks."Job Task No." + ' - ' + JobTasks.Description);
+    //                     TaskObject.Add('id', Jobs."No." + '|' + JobTasks."Job Task No.");
+    //                     TasksArray.Add(TaskObject);
+    //                 until JobTasks.Next() = 0;
 
-                    JobObject.Add('children', TasksArray);
-                    JsonArray.Add(JobObject);
-                end;
-            until Jobs.Next() = 0;
-        end;
+    //                 JobObject.Add('children', TasksArray);
+    //                 JsonArray.Add(JobObject);
+    //             end;
+    //         until Jobs.Next() = 0;
+    //     end;
 
-        /**/
-        //Create Events from JOb Planning Lines
-        TempDateVar.Reset();
-        TempDateVar.DeleteAll();
-        JobPlaningLine.Reset();
-        JobPlaningLine.SetFilter("Start Time", '<>%1', 0T);
-        JobPlaningLine.SetFilter("End Time", '<>%1', 0T);
-        if JobPlaningLine.findset then
-            repeat
-                i += 1;
-                Clear(EventObj);
-                //Manage days
-                if JobPlaningLine."Start Planning Date" <> 0D then
-                    if not TempDateVar.Get(TempDateVar."Period Type"::Date, JobPlaningLine."Start Planning Date") then begin
-                        TempDateVar.Init();
-                        TempDateVar."Period Type" := TempDateVar."Period Type"::Date;
-                        TempDateVar."Period Start" := JobPlaningLine."Start Planning Date";
-                        TempDateVar.Insert();
-                    end;
-                if JobPlaningLine."End Planning Date" <> 0D then
-                    if not TempDateVar.Get(TempDateVar."Period Type"::Date, JobPlaningLine."End Planning Date") then begin
-                        TempDateVar.Init();
-                        TempDateVar."Period Type" := TempDateVar."Period Type"::Date;
-                        TempDateVar."Period Start" := JobPlaningLine."End Planning Date";
-                        TempDateVar.Insert();
-                    end;
+    //     /**/
+    //     //Create Events from JOb Planning Lines
+    //     TempDateVar.Reset();
+    //     TempDateVar.DeleteAll();
+    //     JobPlaningLine.Reset();
+    //     JobPlaningLine.SetFilter("Start Time", '<>%1', 0T);
+    //     JobPlaningLine.SetFilter("End Time", '<>%1', 0T);
+    //     if JobPlaningLine.findset then
+    //         repeat
+    //             i += 1;
+    //             Clear(EventObj);
+    //             //Manage days
+    //             if JobPlaningLine."Start Planning Date" <> 0D then
+    //                 if not TempDateVar.Get(TempDateVar."Period Type"::Date, JobPlaningLine."Start Planning Date") then begin
+    //                     TempDateVar.Init();
+    //                     TempDateVar."Period Type" := TempDateVar."Period Type"::Date;
+    //                     TempDateVar."Period Start" := JobPlaningLine."Start Planning Date";
+    //                     TempDateVar.Insert();
+    //                 end;
+    //             if JobPlaningLine."End Planning Date" <> 0D then
+    //                 if not TempDateVar.Get(TempDateVar."Period Type"::Date, JobPlaningLine."End Planning Date") then begin
+    //                     TempDateVar.Init();
+    //                     TempDateVar."Period Type" := TempDateVar."Period Type"::Date;
+    //                     TempDateVar."Period Start" := JobPlaningLine."End Planning Date";
+    //                     TempDateVar.Insert();
+    //                 end;
 
-                EventObj.Add('id', JobPlaningLine."Job No." + '|' + JobPlaningLine."Job Task No." + '|' + format(JobPlaningLine."Line No."));
-                EventObj.Add('text', JobPlaningLine.Description);
-                EventObj.Add('start', GetTaskDateTime(JobPlaningLine."Start Planning Date", JobPlaningLine."Start Time", false));
-                DT := JobPlaningLine."Start Planning Date";
-                if JobPlaningLine."End Planning Date" <> 0D then
-                    DT := JobPlaningLine."End Planning Date";
-                EventObj.Add('end', GetTaskDateTime(DT, JobPlaningLine."End Time", true));
-                EventObj.Add('resource', JobPlaningLine."Job No." + '|' + JobPlaningLine."Job Task No.");
-                EventObj.Add('bubbleHtml', CreateBubbleHtmlFromPlanningLine(JobPlaningLine));
+    //             EventObj.Add('id', JobPlaningLine."Job No." + '|' + JobPlaningLine."Job Task No." + '|' + format(JobPlaningLine."Line No."));
+    //             EventObj.Add('text', JobPlaningLine.Description);
+    //             EventObj.Add('start', GetTaskDateTime(JobPlaningLine."Start Planning Date", JobPlaningLine."Start Time", false));
+    //             DT := JobPlaningLine."Start Planning Date";
+    //             if JobPlaningLine."End Planning Date" <> 0D then
+    //                 DT := JobPlaningLine."End Planning Date";
+    //             EventObj.Add('end', GetTaskDateTime(DT, JobPlaningLine."End Time", true));
+    //             EventObj.Add('resource', JobPlaningLine."Job No." + '|' + JobPlaningLine."Job Task No.");
+    //             EventObj.Add('bubbleHtml', CreateBubbleHtmlFromPlanningLine(JobPlaningLine));
 
-                if (i mod 2) = 0 then
-                    EventObj.Add('barColor', 'red')
-                else
-                    EventObj.Add('barColor', 'blue');
+    //             if (i mod 2) = 0 then
+    //                 EventObj.Add('barColor', 'red')
+    //             else
+    //                 EventObj.Add('barColor', 'blue');
 
-                EventArray.Add(EventObj);
+    //             EventArray.Add(EventObj);
 
-            until JobPlaningLine.Next() = 0;
-        /**/
+    //         until JobPlaningLine.Next() = 0;
+    //     /**/
 
-        TempDateVar.Reset();
-        TempDateVar.FindFirst();
-        DT1 := TempDateVar."Period Start";
-        StartDate := Format(DT1, 0, '<Year4>-<Month,2>-<Day,2>');
-        TempDateVar.FindLast();
-        DT2 := TempDateVar."Period Start";
-        Days := (DT2 - DT1) + 2;
+    //     TempDateVar.Reset();
+    //     TempDateVar.FindFirst();
+    //     DT1 := TempDateVar."Period Start";
+    //     StartDate := Format(DT1, 0, '<Year4>-<Month,2>-<Day,2>');
+    //     TempDateVar.FindLast();
+    //     DT2 := TempDateVar."Period Start";
+    //     Days := (DT2 - DT1) + 2;
 
-        JsonArray.WriteTo(ResourceTxt);
-        EventArray.WriteTo(EventTxt);
+    //     JsonArray.WriteTo(ResourceTxt);
+    //     EventArray.WriteTo(EventTxt);
 
-        Clear(ScheduleBoard);
-        ScheduleBoard.SetResoucesAndEventJsonTxt(ResourceTxt, EventTxt, StartDate, Days);
-        ScheduleBoard.RunModal();
-    end;
+    //     Clear(ScheduleBoard);
+    //     ScheduleBoard.SetResoucesAndEventJsonTxt(ResourceTxt, EventTxt, StartDate, Days);
+    //     ScheduleBoard.RunModal();
+    // end;
 
     procedure DownloadJsonText(JsonText: Text)
     var
