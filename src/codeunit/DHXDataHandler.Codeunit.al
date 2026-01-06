@@ -48,7 +48,7 @@ codeunit 50604 "DHX Data Handler"
     //     {"section_id":"80","start_date":"2025-11-24 09:50","end_date":"2025-11-24 15:15","text":"New event 80 | id=25","$new":"true","id":25},
     //     {"section_id":"40","start_date":"2025-11-24 11:35","end_date":"2025-11-24 18:55","text":"New event 40 | id=26","$new":"true","id":26}]);
 
-    procedure GetYUnitElementsJSON(AnchorDate: Date;
+    procedure GetYUnitElementsJSON_Project(AnchorDate: Date;
                                    StartDate: Date;
                                    EndDate: Date;
                                    var PlanninJsonTxt: Text;
@@ -164,6 +164,129 @@ codeunit 50604 "DHX Data Handler"
         end;
         exit('');
     end;
+
+    procedure GetYUnitElementsJSON_Resource(AnchorDate: Date;
+                                   StartDate: Date;
+                                   EndDate: Date;
+                                   var PlanninJsonTxt: Text;
+                                   var EarliestPlanningDate: Date): Text
+    var
+        Resource: Record Resource;
+        ResGroup: record "Resource Group";
+        Jobs: Record Job;
+        JobTasks: Record "Job Task";
+        PlanningLine: Record "Job Planning Line";
+        Daytask: Record "Day Tasks";
+        WeekTemp: record "Aging Band Buffer" temporary;
+
+        ResObject, TaskObject, PlanningLineObject : JsonObject;
+        ChildrenArray, ChildrenArray2 : JsonArray;
+        PlanningObject, Root : JsonObject;
+        PlanningArray, DataArray : JsonArray;
+        OutText: Text;
+
+        StartDateTxt: Text;
+        EndDateTxt: Text;
+        _DummyEndDate: Date;
+    begin
+        PlanninJsonTxt := '';
+        //Marking Job based on Day Tasks within the given date range
+        Daytask.SetCurrentKey("Task Date", "Start Time");
+        Daytask.SetRange("Task Date", StartDate, EndDate);
+        Daytask.SetFilter("Job No.", '<>%1', ''); //Exclude blank Job Nos
+        Daytask.SetFilter("Job Task No.", '<>%1', ''); //Exclude blank task Nos
+        Daytask.SetFilter("Job Planning Line No.", '<>%1', 0); //Exclude blank Planning Line Nos
+        Daytask.SetRange(Type, Daytask.Type::Resource);
+        Daytask.SetFilter("No.", '<>%1', ''); //Exclude blank Resource Nos
+        if Daytask.FindSet() then begin
+            repeat
+                Resource.Get(Daytask."No.");
+
+                Jobs.Get(Daytask."Job No.");
+                JobTasks.Get(Daytask."Job No.", Daytask."Job Task No.");
+
+                // create event data
+                if AnchorDate = 0D then
+                    CountToWeekNumber(Daytask."Task Date", WeekTemp);
+
+                GetStartEndTxt(Daytask, StartDateTxt, EndDateTxt);
+                Clear(PlanningObject);
+                PlanningObject.Add('id', Daytask."Job No." + '|' +
+                                         Daytask."Job Task No." + '|' +
+                                         Format(Daytask."Job Planning Line No.") + '|' +
+                                         Format(Daytask."Day No.") + '|' +
+                                         Format(Daytask."DayLineNo"));
+                PlanningObject.Add('start_date', StartDateTxt);
+                PlanningObject.Add('end_date', EndDateTxt);
+                PlanningObject.Add('text', Daytask.Description);
+                PlanningObject.Add('section_id', Resource."Resource Group No." + '|' + Resource."No.");
+                PlanningArray.Add(PlanningObject);
+                PlanningArray.WriteTo(PlanninJsonTxt);
+            until Daytask.Next() = 0;
+
+            if AnchorDate = 0D then begin
+                WeekTemp.Reset();
+                WeekTemp.SetCurrentKey("Column 3 Amt.");
+                WeekTemp.FindSet();
+                if WeekTemp.FindLast() then
+                    EarliestPlanningDate := DWY2Date(1, WeekTemp."Column 2 Amt.", WeekTemp."Column 1 Amt.")
+                else
+                    EarliestPlanningDate := Today();
+            end else
+                GetWeekPeriodDates(AnchorDate, EarliestPlanningDate, _DummyEndDate);
+        end else
+            EarliestPlanningDate := Today();
+
+        // Resource with no group
+        Clear(DataArray);
+        Resource.Reset();
+        Resource.SetRange("Resource Group No.", '');
+        if Resource.FindSet() then begin
+            Clear(ResObject);
+            ResObject.Add('key', '|'); // string keys are fine
+            ResObject.Add('label', 'No Group');
+            ResObject.Add('open', true);
+            Clear(ChildrenArray);
+            repeat
+                Clear(TaskObject);
+                TaskObject.Add('key', '|' + Resource."No.");
+                TaskObject.Add('label', Resource.Name);
+                ChildrenArray.Add(TaskObject);
+            until Resource.Next() = 0;
+            ResObject.Add('children', ChildrenArray);
+            DataArray.Add(ResObject);
+        end;
+
+        ResGroup.Reset();
+        if ResGroup.FindSet() then begin
+            repeat
+                Clear(ResObject);
+                ResObject.Add('key', ResGroup."No." + '|'); // string keys are fine
+                ResObject.Add('label', ResGroup.Name);
+                ResObject.Add('open', true);
+                Clear(ChildrenArray);
+                Resource.Reset();
+                Resource.SetRange("Resource Group No.", ResGroup."No.");
+                if Resource.FindSet() then begin
+                    repeat
+                        Clear(TaskObject);
+                        TaskObject.Add('key', ResGroup."No." + '|' + Resource."No.");
+                        TaskObject.Add('label', Resource.Name);
+                        ChildrenArray.Add(TaskObject);
+                    until Resource.Next() = 0;
+                end;
+                ResObject.Add('children', ChildrenArray);
+                DataArray.Add(ResObject);
+            until ResGroup.Next() = 0;
+        end;
+        Clear(Root);
+        Root.Add('data', DataArray);
+
+        // Write JSON to text
+        Root.WriteTo(OutText);
+        exit(OutText);
+    end;
+
 
     local procedure CountToWeekNumber(DateToCount: Date; var WeekTemp: record "Aging Band Buffer" temporary)
     var
@@ -439,7 +562,86 @@ codeunit 50604 "DHX Data Handler"
         exit(rtv);
     end;
 
-    procedure OnEventChanged(EventId: Text;
+    procedure OnEventChanged_Resource(EventId: Text;
+                             EventData: Text;
+                             var DateRef: Date)
+    var
+        OldTask: record "Job Task";
+        OldPlanningLIne: record "Job Planning Line";
+        OldDayTask: record "Day Tasks";
+        OldResource: record Resource;
+
+        EventJSonObj: JsonObject;
+        JToken: JsonToken;
+        EventIdParts: List of [Text];
+        NewSectionParts: List of [Text];
+        New_ResNo: Text;
+        New_Resource: record Resource;
+        Old_JobNo: Text;
+        Old_TaskNo: Text;
+        Old_PlanningLineNo: Integer;
+        Old_DayNo: Integer;
+        Old_DayLineNo: Integer;
+
+        //_Date: Date;
+        _Time: Time;
+        _DateTime: DateTime;
+        _DateTimeUserZone: DateTime;
+    begin
+        // get old record
+        EventIdParts := eventId.Split('|');
+        Old_JobNo := EventIdParts.Get(1);
+        Old_TaskNo := EventIdParts.Get(2);
+        Evaluate(Old_PlanningLineNo, EventIdParts.Get(3));
+        Evaluate(Old_DayNo, EventIdParts.Get(4));
+        Evaluate(Old_DayLineNo, EventIdParts.Get(5));
+        OldTask.Get(Old_JobNo, Old_TaskNo);
+        OldPlanningLIne.Get(Old_JobNo, Old_TaskNo, Old_PlanningLineNo);
+        OldDayTask.Get(Old_DayNo, Old_DayLineNo, Old_JobNo, Old_TaskNo, Old_PlanningLineNo);
+        OldResource.Get(OldDayTask."No.");
+
+        EventJSonObj.ReadFrom(EventData);
+
+        EventJSonObj.Get('section_id', JToken);
+
+        //*****
+        NewSectionParts := JToken.AsValue().AsText().Split('|');
+        New_ResNo := NewSectionParts.Get(2);
+        New_Resource.Get(New_ResNo);
+
+        //Get Startdate as new dayno
+        EventJSonObj.Get('start_date', JToken);
+        //Covert _Date + _Time into Datetime var, after that extract Date part again to get the correct date in user's timezone
+        Evaluate(_DateTime, JToken.AsValue().AsText());
+        _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
+        DateRef := DT2Date(_DateTimeUserZone);
+
+        if OldResource.RecordId <> New_Resource.RecordId then begin
+            //sift up / down within different task
+            OldDayTask."No." := New_Resource."No.";
+            OldDayTask.Modify();
+        end;
+
+        //sift left / right to same task
+        EventJSonObj.Get('start_date', JToken);
+        Evaluate(_DateTime, JToken.AsValue().AsText());
+        _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
+        OldDayTask."Task Date" := DT2Date(_DateTimeUserZone);
+        OldDayTask."Start Time" := DT2Time(_DateTimeUserZone);
+
+        EventJSonObj.Get('end_date', JToken);
+        Evaluate(_DateTime, JToken.AsValue().AsText());
+        _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
+        OldDayTask."End Time" := DT2Time(_DateTimeUserZone);
+
+        EventJSonObj.Get('text', JToken);
+        OldDayTask.Description := JToken.AsValue().AsText();
+
+        OldDayTask.Modify();
+
+    end;
+
+    procedure OnEventChanged_Project(EventId: Text;
                              EventData: Text;
                              var UpdateEventID: Boolean;
                              var OldDayTask_forUpdate: record "Day Tasks";
@@ -667,6 +869,20 @@ codeunit 50604 "DHX Data Handler"
         end;
     end;
 
+    procedure OpenResourceCard(SectionId: Text)
+    var
+        Resource: Record Resource;
+        EventIDList: List of [Text];
+        ResNo: Code[20];
+    begin
+        // Implementation to open the Resource Card based on SectionId
+        // SectionId = ResourceGroupNo|ResourceNo
+        EventIDList := SectionId.Split('|');
+        ResNo := EventIDList.Get(2);
+        Resource.SetRange("No.", ResNo);
+        Page.RunModal(Page::"Resource Card", Resource);
+    end;
+
     procedure GetStartEndDatesFromTimeLineJSon(TimeLineJSon: Text; var StartDate: Date; var EndDate: Date)
     var
         TimeLineJSonObj: JsonObject;
@@ -690,7 +906,7 @@ codeunit 50604 "DHX Data Handler"
         EndDate := DT2Date(_DateTimeUserZone);
     end;
 
-    procedure GetDayTaskAsResourcesAndEventsJSon(TimeLineJSon: Text; var ResouecesJSon: Text; var EventsJSon: Text): Boolean
+    procedure GetDayTaskAsResourcesAndEventsJSon_Project(TimeLineJSon: Text; var ResouecesJSon: Text; var EventsJSon: Text): Boolean
     var
         StartDate: Date;
         EndDate: Date;
@@ -703,7 +919,7 @@ codeunit 50604 "DHX Data Handler"
         {"mode":"timeline","start":"2025-12-14T17:00:00.000Z","end":"2025-12-21T17:00:00.000Z"}
         */
         GetStartEndDatesFromTimeLineJSon(TimeLineJSon, StartDate, EndDate);
-        Rtv := GetDayTaskAsResourcesAndEventsJSon_StartEnd(StartDate,
+        Rtv := GetDayTaskAsResourcesAndEventsJSon_Project_StartEnd(StartDate,
                                                             EndDate,
                                                             ResouecesJSon,
                                                             EventsJSon,
@@ -711,14 +927,51 @@ codeunit 50604 "DHX Data Handler"
         exit(Rtv);
     end;
 
-    procedure GetDayTaskAsResourcesAndEventsJSon_StartEnd(StartDate: Date; EndDate: Date; var ResouecesJSon: Text; var EventsJSon: Text; var EarliestPlanningDate: date): Boolean
+    procedure GetDayTaskAsResourcesAndEventsJSon_Project_StartEnd(StartDate: Date; EndDate: Date; var ResouecesJSon: Text; var EventsJSon: Text; var EarliestPlanningDate: date): Boolean
     var
         TimeLineJSonObj: JsonObject;
         JToken: JsonToken;
         _DateTime: DateTime;
         _DateTimeUserZone: DateTime;
     begin
-        ResouecesJSon := GetYUnitElementsJSON(StartDate,
+        ResouecesJSon := GetYUnitElementsJSON_Project(StartDate,
+                                            StartDate,
+                                            EndDate,
+                                            EventsJSon,
+                                            EarliestPlanningDate);
+        exit((EventsJSon <> '') and (ResouecesJSon <> ''));
+    end;
+
+
+    procedure GetDayTaskAsResourcesAndEventsJSon_Resource(TimeLineJSon: Text; var ResouecesJSon: Text; var EventsJSon: Text): Boolean
+    var
+        StartDate: Date;
+        EndDate: Date;
+        EarliestPlanningDate: date;
+        Rtv: Boolean;
+    begin
+        //Message('Under development: Refreshing Timeline with TimeLineJSon: %1', TimeLineJSon);
+        //exit(false);
+        /*
+        {"mode":"timeline","start":"2025-12-14T17:00:00.000Z","end":"2025-12-21T17:00:00.000Z"}
+        */
+        GetStartEndDatesFromTimeLineJSon(TimeLineJSon, StartDate, EndDate);
+        Rtv := GetDayTaskAsResourcesAndEventsJSon_Resource_StartEnd(StartDate,
+                                                            EndDate,
+                                                            ResouecesJSon,
+                                                            EventsJSon,
+                                                            EarliestPlanningDate);
+        exit(Rtv);
+    end;
+
+    procedure GetDayTaskAsResourcesAndEventsJSon_Resource_StartEnd(StartDate: Date; EndDate: Date; var ResouecesJSon: Text; var EventsJSon: Text; var EarliestPlanningDate: date): Boolean
+    var
+        TimeLineJSonObj: JsonObject;
+        JToken: JsonToken;
+        _DateTime: DateTime;
+        _DateTimeUserZone: DateTime;
+    begin
+        ResouecesJSon := GetYUnitElementsJSON_Resource(StartDate,
                                             StartDate,
                                             EndDate,
                                             EventsJSon,

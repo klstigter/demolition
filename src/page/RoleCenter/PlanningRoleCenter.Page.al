@@ -101,8 +101,14 @@ page 50612 "Planning Role Center"
                 action("VisualPlanning2")
                 {
                     ApplicationArea = All;
-                    Caption = 'Schedule Board';
-                    RunObject = page "DHX Schedule Board";
+                    Caption = 'Project Schedule';
+                    RunObject = page "DHX Scheduler (Project)";
+                }
+                action("VisualPlanning3")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Resource Schedule';
+                    RunObject = page "DHX Scheduler (Resource)";
                 }
             }
 
