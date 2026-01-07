@@ -12,6 +12,14 @@ page 50622 "Resource Day Tasks"
         {
             repeater(GroupName)
             {
+                field("Type"; Rec.Type)
+                {
+                    ApplicationArea = All;
+                }
+                field("No."; Rec."No.")
+                {
+                    ApplicationArea = All;
+                }
                 field("Day No."; Rec."Day No.")
                 {
                     ApplicationArea = All;
@@ -73,9 +81,30 @@ page 50622 "Resource Day Tasks"
 
     trigger OnNewRecord(BelowxRec: Boolean)
     var
-        myInt: Integer;
+        DayTaskRec: Record "Day Tasks";
+        ResourceNo: Code[20];
+        DayNo: Integer;
+        DayLineNo: Integer;
     begin
+        Rec.Type := Rec.Type::Resource;
 
+        // Get the No. from the SubPageLink filter (FilterGroup 4)
+        Rec.FilterGroup(4);
+        if Rec.GetFilter("No.") <> '' then
+            ResourceNo := Rec.GetRangeMin("No.");
+        Rec.FilterGroup(0);
+
+        if ResourceNo <> '' then
+            Rec."No." := ResourceNo;
+
+        DayNo := Date2DMY(Today(), 3) * 10000 + Date2DMY(Today(), 2) * 100 + Date2DMY(Today(), 1);
+        DayLineNo := 10000;
+        DayTaskRec.SetRange("Day No.", DayNo);
+        if DayTaskRec.FindLast() then
+            DayLineNo := DayTaskRec.DayLineNo + 10000;
+
+        Rec."Day No." := DayNo;
+        Rec.DayLineNo := DayLineNo;
     end;
 
 }
