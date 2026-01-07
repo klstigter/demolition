@@ -10,6 +10,16 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
                 ApplicationArea = All;
             }
         }
+        addafter("Personal Data")
+        {
+            part("Resource Day Tasks"; "Resource Day Tasks")
+            {
+                ApplicationArea = All;
+                SubPageView = sorting("Day No.", DayLineNo) where(Type = const(Resource));
+                SubPageLink = "No." = field("No.");
+                UpdatePropagation = Both;
+            }
+        }
     }
 
     actions
