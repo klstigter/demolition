@@ -72,8 +72,45 @@ window.BOOT = function() {
 
     scheduler.plugins({
         timeline: true,
-        treetimeline: true
+        treetimeline: true,
+        tooltip: true,
     });
+    
+    // Custom tooltip template
+    scheduler.templates.tooltip_text = function(start, end, ev) {
+        var formatDate = scheduler.date.date_to_str("%Y-%m-%d %H:%i");
+        
+        // Parse event ID: "JobNo|JobTaskNo|PlanningLineNo|DayNo|DayLineNo"
+        var dayNo = "";
+        var dayLineNo = "";
+        var jobNo = "";
+        var jobTaskNo = "";
+        var planningLineNo = "";
+        
+        if (ev.id) {
+            var parts = String(ev.id).split('|');
+            if (parts.length >= 5) {
+                jobNo = parts[0] || "";
+                jobTaskNo = parts[1] || "";
+                planningLineNo = parts[2] || "";
+                dayNo = parts[3] || "";
+                dayLineNo = parts[4] || "";
+            }
+        }
+        
+        var html = "<b>Event:</b> " + (ev.text || "") + "<br/>" +
+                   "<b>Start date:</b> " + formatDate(start) + "<br/>" +
+                   "<b>End date:</b> " + formatDate(end) + "<br/>" +                                      
+                   "<b>Daytask detail:</b><br/>" +
+                   "-----------------------------------<br/>" +
+                   "<b>Day No:</b> " + dayNo + "<br/>" +
+                   "<b>Daylineno:</b> " + dayLineNo + "<br/>" +
+                   "<b>Project No.:</b> " + jobNo + "<br/>" +
+                   "<b>Task No.:</b> " + jobTaskNo + "<br/>" +
+                   "<b>Planning Line No.:</b> " + planningLineNo + "<br/>";
+        return html;
+    };
+    
     scheduler.locale.labels.timeline_tab = "Timeline";
     scheduler.locale.labels.section_custom="Section";
     scheduler.config.details_on_create=true;
@@ -93,7 +130,7 @@ window.BOOT = function() {
     scheduler.date.timeline_start = function(date){
         return scheduler.date.week_start(date); // respects start_on_monday
     };
-    
+
     scheduler.config.lightbox.sections=[	
         {name:"description", height:60, map_to:"text", type:"textarea" , focus:true},
         {name:"custom", height:30, type:"timeline", options:null , map_to:"section_id" }, //type should be the same as name of the tab
@@ -249,7 +286,7 @@ window.BOOT = function() {
             }
         });
     })();
-
+    
     //<<<<< Left-right navigation bottons click event
     (function wireTimelineArrows() {
         function notify() {

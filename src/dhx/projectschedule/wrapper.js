@@ -72,7 +72,8 @@ window.BOOT = function() {
 
     scheduler.plugins({
         timeline: true,
-        treetimeline: true
+        treetimeline: true,
+        tooltip: true,
     });
     scheduler.locale.labels.timeline_tab = "Timeline";
     scheduler.locale.labels.section_custom="Section";
