@@ -177,31 +177,40 @@ codeunit 50604 "DHX Data Handler"
         JobTasks: Record "Job Task";
         PlanningLine: Record "Job Planning Line";
         Daytask: Record "Day Tasks";
+        Ven: record Vendor;
         WeekTemp: record "Aging Band Buffer" temporary;
+        TempVendor: record "Aging Band Buffer" temporary;
+        ResourceTemp: Record CustomRecordBuffer temporary;
+        UniqueTemp: record "Aging Band Buffer" temporary;
+        UniqueTemp2: record "Aging Band Buffer" temporary;
 
-        ResObject, TaskObject, PlanningLineObject : JsonObject;
-        ChildrenArray, ChildrenArray2 : JsonArray;
+        VendorObject, GroupResObject, ResourceObject : JsonObject;
+        VendorChildrenArray: JsonArray;
+        GroupChildrenArray: JsonArray;
         PlanningObject, Root : JsonObject;
         PlanningArray, DataArray : JsonArray;
         OutText: Text;
 
         StartDateTxt: Text;
         EndDateTxt: Text;
-        _DummyEndDate: Date;
+        DummyEndDate: Date;
+        LastVacant: Code[20];
+        VacantLbl: Label 'VACANT-0000';
     begin
         PlanninJsonTxt := '';
         //Marking Job based on Day Tasks within the given date range
+        WeekTemp.Reset();
+        WeekTemp.DeleteAll();
         Daytask.SetCurrentKey("Task Date", "Start Time");
         Daytask.SetRange("Task Date", StartDate, EndDate);
         Daytask.SetFilter("Job No.", '<>%1', ''); //Exclude blank Job Nos
         Daytask.SetFilter("Job Task No.", '<>%1', ''); //Exclude blank task Nos
         Daytask.SetFilter("Job Planning Line No.", '<>%1', 0); //Exclude blank Planning Line Nos
         Daytask.SetRange(Type, Daytask.Type::Resource);
-        Daytask.SetFilter("No.", '<>%1', ''); //Exclude blank Resource Nos
+        // Daytask.SetFilter("No.", '<>%1', ''); //Exclude blank Resource Nos
         if Daytask.FindSet() then begin
+            LastVacant := VacantLbl;
             repeat
-                Resource.Get(Daytask."No.");
-
                 Jobs.Get(Daytask."Job No.");
                 JobTasks.Get(Daytask."Job No.", Daytask."Job Task No.");
 
@@ -219,7 +228,29 @@ codeunit 50604 "DHX Data Handler"
                 PlanningObject.Add('start_date', StartDateTxt);
                 PlanningObject.Add('end_date', EndDateTxt);
                 PlanningObject.Add('text', Daytask.Description);
-                PlanningObject.Add('section_id', Resource."Resource Group No." + '|' + Resource."No.");
+
+                if Daytask."No." <> '' then begin
+                    Resource.Get(Daytask."No.");
+                    PlanningObject.Add('section_id', Resource."Resource Group No." + '|' + Resource."No." + '|' + Daytask."Vendor No." + '|Resource');
+                    if not ResourceTemp.Get(Resource."Resource Group No.", Resource."No.", Daytask."Vendor No.") then begin
+                        ResourceTemp.Init();
+                        ResourceTemp."Code 1" := Resource."Resource Group No.";
+                        ResourceTemp."Code 2" := Resource."No.";
+                        ResourceTemp."Code 3" := Daytask."Vendor No.";
+                        ResourceTemp.Insert();
+                    end;
+                end else begin
+                    LastVacant := IncStr(LastVacant);
+                    PlanningObject.Add('section_id', '|' + LastVacant + '|' + Daytask."Vendor No." + '|Resource');
+                    if not ResourceTemp.Get('', LastVacant, Daytask."Vendor No.") then begin
+                        ResourceTemp.Init();
+                        ResourceTemp."Code 1" := '';
+                        ResourceTemp."Code 2" := LastVacant;
+                        ResourceTemp."Code 3" := Daytask."Vendor No.";
+                        ResourceTemp.Insert();
+                    end;
+                end;
+
                 PlanningArray.Add(PlanningObject);
                 PlanningArray.WriteTo(PlanninJsonTxt);
             until Daytask.Next() = 0;
@@ -233,51 +264,136 @@ codeunit 50604 "DHX Data Handler"
                 else
                     EarliestPlanningDate := Today();
             end else
-                GetWeekPeriodDates(AnchorDate, EarliestPlanningDate, _DummyEndDate);
+                GetWeekPeriodDates(AnchorDate, EarliestPlanningDate, DummyEndDate);
         end else
             EarliestPlanningDate := Today();
 
-        // Resource with no group
-        Clear(DataArray);
-        Resource.Reset();
-        Resource.SetRange("Resource Group No.", '');
-        if Resource.FindSet() then begin
-            Clear(ResObject);
-            ResObject.Add('key', '|'); // string keys are fine
-            ResObject.Add('label', 'No Group');
-            ResObject.Add('open', true);
-            Clear(ChildrenArray);
-            repeat
-                Clear(TaskObject);
-                TaskObject.Add('key', '|' + Resource."No.");
-                TaskObject.Add('label', Resource.Name);
-                ChildrenArray.Add(TaskObject);
-            until Resource.Next() = 0;
-            ResObject.Add('children', ChildrenArray);
-            DataArray.Add(ResObject);
-        end;
+        //DownloadResourceTempToExcel(ResourceTemp); // For testing purposes
 
-        ResGroup.Reset();
-        if ResGroup.FindSet() then begin
+        GetUniqueVendorsFromDayTasks(TempVendor, StartDate, EndDate);
+        if TempVendor.FindSet() then begin
+            Clear(DataArray);
             repeat
-                Clear(ResObject);
-                ResObject.Add('key', ResGroup."No." + '|'); // string keys are fine
-                ResObject.Add('label', ResGroup.Name);
-                ResObject.Add('open', true);
-                Clear(ChildrenArray);
-                Resource.Reset();
-                Resource.SetRange("Resource Group No.", ResGroup."No.");
-                if Resource.FindSet() then begin
-                    repeat
-                        Clear(TaskObject);
-                        TaskObject.Add('key', ResGroup."No." + '|' + Resource."No.");
-                        TaskObject.Add('label', Resource.Name);
-                        ChildrenArray.Add(TaskObject);
-                    until Resource.Next() = 0;
+                // Vendor
+                Clear(VendorObject);
+                if TempVendor."Currency Code" = '' then begin
+                    VendorObject.Add('key', '|' + '|' + '|Vendor');
+                    VendorObject.Add('label', 'No Vendor');
+                    VendorObject.Add('open', true);
+                    Clear(VendorChildrenArray);
+
+                    // Add Resource Group as children of Vendor
+                    UniqueTemp.Reset();
+                    UniqueTemp.DeleteAll();
+                    ResourceTemp.Reset();
+                    ResourceTemp.SetRange("Code 3", '');
+                    if ResourceTemp.FindSet() then begin
+                        repeat
+                            if not UniqueTemp.Get(ResourceTemp."Code 1") then begin //Detect unique Resource Groups
+                                UniqueTemp.Init();
+                                UniqueTemp."Currency Code" := ResourceTemp."Code 1";
+                                UniqueTemp.Insert();
+
+                                Clear(GroupResObject);
+                                GroupResObject.Add('key', ResourceTemp."Code 1" + '|' + '|Group');
+                                if ResourceTemp."Code 1" = '' then
+                                    GroupResObject.Add('label', 'No Group')
+                                else
+                                    GroupResObject.Add('label', ResourceTemp."Code 1");
+                                GroupResObject.Add('open', true);
+
+                                // Add resources as children of this group
+                                Clear(GroupChildrenArray);
+                                ResourceTemp.Reset();
+                                ResourceTemp.SetRange("Code 3", '');
+                                ResourceTemp.SetRange("Code 1", UniqueTemp."Currency Code");
+                                if ResourceTemp.FindSet() then begin
+                                    repeat
+                                        if not UniqueTemp2.Get(ResourceTemp."Code 2") then begin //Detect unique Resource
+                                            UniqueTemp2.Init();
+                                            UniqueTemp2."Currency Code" := ResourceTemp."Code 2";
+                                            UniqueTemp2.Insert();
+                                            Clear(ResourceObject);
+                                            ResourceObject.Add('key', ResourceTemp."Code 1" + '|' + ResourceTemp."Code 2" + '|' + '|Resource');
+                                            if Resource.Get(ResourceTemp."Code 2") then
+                                                ResourceObject.Add('label', Resource.Name)
+                                            else
+                                                ResourceObject.Add('label', ResourceTemp."Code 2");
+                                            GroupChildrenArray.Add(ResourceObject);
+                                        end;
+                                    until ResourceTemp.Next() = 0;
+                                end;
+                                GroupResObject.Add('children', GroupChildrenArray);
+
+                                VendorChildrenArray.Add(GroupResObject);
+                            end;
+                        until ResourceTemp.Next() = 0;
+                    end;
+                    VendorObject.Add('children', VendorChildrenArray);
+                end else begin
+                    Ven.Get(TempVendor."Currency Code");
+                    VendorObject.Add('key', '|' + '|' + TempVendor."Currency Code" + '|Vendor');
+                    VendorObject.Add('label', Ven.Name);
+                    VendorObject.Add('open', true);
+                    Clear(VendorChildrenArray);
+
+                    // Resource Group Filter
+                    UniqueTemp.Reset();
+                    UniqueTemp.DeleteAll();
+                    ResourceTemp.Reset();
+                    ResourceTemp.SetRange("Code 3", TempVendor."Currency Code");
+                    if ResourceTemp.FindSet() then begin
+                        repeat
+                            if not UniqueTemp.Get(ResourceTemp."Code 1") then begin //Detect unique Resource Groups
+                                UniqueTemp.Init();
+                                UniqueTemp."Currency Code" := ResourceTemp."Code 1";
+                                UniqueTemp.Insert();
+
+                                Clear(GroupResObject);
+                                GroupResObject.Add('key', ResourceTemp."Code 1" + '|' + '|' + TempVendor."Currency Code" + '|Group');
+                                if ResourceTemp."Code 1" = '' then
+                                    GroupResObject.Add('label', 'No Group')
+                                else
+                                    GroupResObject.Add('label', ResourceTemp."Code 1");
+                                GroupResObject.Add('open', true);
+
+                                // Add resources as children of this group
+                                Clear(GroupChildrenArray);
+                                ResourceTemp.Reset();
+                                ResourceTemp.SetRange("Code 3", TempVendor."Currency Code");
+                                ResourceTemp.SetRange("Code 1", UniqueTemp."Currency Code");
+                                if ResourceTemp.FindSet() then begin
+                                    repeat
+                                        if not UniqueTemp2.Get(ResourceTemp."Code 2") then begin //Detect unique Resource
+                                            UniqueTemp2.Init();
+                                            UniqueTemp2."Currency Code" := ResourceTemp."Code 2";
+                                            UniqueTemp2.Insert();
+
+                                            Clear(ResourceObject);
+                                            ResourceObject.Add('key', ResourceTemp."Code 1" + '|' + ResourceTemp."Code 2" + '|' + TempVendor."Currency Code" + '|Resource');
+                                            if Resource.Get(ResourceTemp."Code 2") then
+                                                ResourceObject.Add('label', Resource.Name)
+                                            else
+                                                ResourceObject.Add('label', ResourceTemp."Code 2");
+                                            GroupChildrenArray.Add(ResourceObject);
+                                        end;
+                                    until ResourceTemp.Next() = 0;
+                                end;
+                                GroupResObject.Add('children', GroupChildrenArray);
+
+                                VendorChildrenArray.Add(GroupResObject);
+
+
+                            end;
+                        until ResourceTemp.Next() = 0;
+                    end;
+                    VendorObject.Add('children', VendorChildrenArray);
                 end;
-                ResObject.Add('children', ChildrenArray);
-                DataArray.Add(ResObject);
-            until ResGroup.Next() = 0;
+
+                DataArray.Add(VendorObject);
+            until TempVendor.Next() = 0;
+
+
         end;
         Clear(Root);
         Root.Add('data', DataArray);
@@ -285,6 +401,59 @@ codeunit 50604 "DHX Data Handler"
         // Write JSON to text
         Root.WriteTo(OutText);
         exit(OutText);
+
+
+
+        // //  **************************************
+
+        // // Resource with no group
+        // Clear(DataArray);
+        // Resource.Reset();
+        // Resource.SetRange("Resource Group No.", '');
+        // if Resource.FindSet() then begin
+        //     Clear(GroupResObject);
+        //     GroupResObject.Add('key', '|'); // string keys are fine
+        //     GroupResObject.Add('label', 'No Group');
+        //     GroupResObject.Add('open', true);
+        //     Clear(GroupChildrenArray);
+        //     repeat
+        //         Clear(ResourceObject);
+        //         ResourceObject.Add('key', '|' + Resource."No.");
+        //         ResourceObject.Add('label', Resource.Name);
+        //         GroupChildrenArray.Add(ResourceObject);
+        //     until Resource.Next() = 0;
+        //     GroupResObject.Add('children', GroupChildrenArray);
+        //     DataArray.Add(GroupResObject);
+        // end;
+
+        // ResGroup.Reset();
+        // if ResGroup.FindSet() then begin
+        //     repeat
+        //         Clear(GroupResObject);
+        //         GroupResObject.Add('key', ResGroup."No." + '|'); // string keys are fine
+        //         GroupResObject.Add('label', ResGroup.Name);
+        //         GroupResObject.Add('open', true);
+        //         Clear(GroupChildrenArray);
+        //         Resource.Reset();
+        //         Resource.SetRange("Resource Group No.", ResGroup."No.");
+        //         if Resource.FindSet() then begin
+        //             repeat
+        //                 Clear(ResourceObject);
+        //                 ResourceObject.Add('key', ResGroup."No." + '|' + Resource."No.");
+        //                 ResourceObject.Add('label', Resource.Name);
+        //                 GroupChildrenArray.Add(ResourceObject);
+        //             until Resource.Next() = 0;
+        //         end;
+        //         GroupResObject.Add('children', GroupChildrenArray);
+        //         DataArray.Add(GroupResObject);
+        //     until ResGroup.Next() = 0;
+        // end;
+        // Clear(Root);
+        // Root.Add('data', DataArray);
+
+        // // Write JSON to text
+        // Root.WriteTo(OutText);
+        // exit(OutText);
     end;
 
 
@@ -570,44 +739,68 @@ codeunit 50604 "DHX Data Handler"
         OldPlanningLIne: record "Job Planning Line";
         OldDayTask: record "Day Tasks";
         OldResource: record Resource;
+        OldVendor: Record Vendor;
+
+        ResourceCheck: record Resource;
+        VendorCheck: record Vendor;
 
         EventJSonObj: JsonObject;
         JToken: JsonToken;
         EventIdParts: List of [Text];
         NewSectionParts: List of [Text];
-        New_ResNo: Text;
-        New_Resource: record Resource;
-        Old_JobNo: Text;
-        Old_TaskNo: Text;
-        Old_PlanningLineNo: Integer;
-        Old_DayNo: Integer;
-        Old_DayLineNo: Integer;
+        NewResNo: Text;
+        NewResource: record Resource;
+        NewVenNo: Text;
+        NewVendor: Record Vendor;
+
+        OldJobNo: Text;
+        OldTaskNo: Text;
+        OldPlanningLineNo: Integer;
+        OldDayNo: Integer;
+        OldDayLineNo: Integer;
 
         //_Date: Date;
         _Time: Time;
         _DateTime: DateTime;
         _DateTimeUserZone: DateTime;
     begin
+        // New Section/Element id
+        EventJSonObj.ReadFrom(EventData);
+        EventJSonObj.Get('section_id', JToken);
+        NewSectionParts := JToken.AsValue().AsText().Split('|');
+        NewResNo := NewSectionParts.Get(2);
+        if not NewResource.Get(NewResNo) then begin
+            NewResource.Init;
+            NewResource."No." := NewResNo;
+        end;
+        NewVenNo := NewSectionParts.Get(3);
+        if not NewVendor.Get(NewVenNo) then begin
+            NewVendor.Init;
+            NewVendor."No." := NewVenNo;
+        end;
+
         // get old record
         EventIdParts := eventId.Split('|');
-        Old_JobNo := EventIdParts.Get(1);
-        Old_TaskNo := EventIdParts.Get(2);
-        Evaluate(Old_PlanningLineNo, EventIdParts.Get(3));
-        Evaluate(Old_DayNo, EventIdParts.Get(4));
-        Evaluate(Old_DayLineNo, EventIdParts.Get(5));
-        OldTask.Get(Old_JobNo, Old_TaskNo);
-        OldPlanningLIne.Get(Old_JobNo, Old_TaskNo, Old_PlanningLineNo);
-        OldDayTask.Get(Old_DayNo, Old_DayLineNo, Old_JobNo, Old_TaskNo, Old_PlanningLineNo);
-        OldResource.Get(OldDayTask."No.");
+        OldJobNo := EventIdParts.Get(1);
+        OldTaskNo := EventIdParts.Get(2);
+        Evaluate(OldPlanningLineNo, EventIdParts.Get(3));
+        Evaluate(OldDayNo, EventIdParts.Get(4));
+        Evaluate(OldDayLineNo, EventIdParts.Get(5));
+        OldTask.Get(OldJobNo, OldTaskNo);
+        OldPlanningLIne.Get(OldJobNo, OldTaskNo, OldPlanningLineNo);
+        OldDayTask.Get(OldDayNo, OldDayLineNo, OldJobNo, OldTaskNo, OldPlanningLineNo);
+        if not OldResource.Get(OldDayTask."No.") then begin
+            OldResource.Init;
+            OldResource."No." := OldDayTask."No.";
+        end;
+        if not OldVendor.Get(OldDayTask."Vendor No.") then begin
+            OldVendor.Init;
+            OldVendor."No." := OldDayTask."Vendor No.";
+        end;
 
-        EventJSonObj.ReadFrom(EventData);
-
-        EventJSonObj.Get('section_id', JToken);
 
         //*****
-        NewSectionParts := JToken.AsValue().AsText().Split('|');
-        New_ResNo := NewSectionParts.Get(2);
-        New_Resource.Get(New_ResNo);
+
 
         //Get Startdate as new dayno
         EventJSonObj.Get('start_date', JToken);
@@ -616,10 +809,20 @@ codeunit 50604 "DHX Data Handler"
         _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
         DateRef := DT2Date(_DateTimeUserZone);
 
-        if OldResource.RecordId <> New_Resource.RecordId then begin
+        if OldResource.RecordId <> NewResource.RecordId then begin
             //sift up / down within different task
-            OldDayTask."No." := New_Resource."No.";
-            OldDayTask.Modify();
+            if ResourceCheck.Get(NewResource."No.") then begin
+                OldDayTask."No." := NewResource."No.";
+                OldDayTask.Modify();
+            end;
+        end;
+
+        if OldVendor.RecordId <> NewVendor.RecordId then begin
+            //sift up / down within different task
+            if VendorCheck.Get(NewVendor."No.") then begin
+                OldDayTask."Vendor No." := NewVendor."No.";
+                OldDayTask.Modify();
+            end;
         end;
 
         //sift left / right to same task
@@ -977,6 +1180,98 @@ codeunit 50604 "DHX Data Handler"
                                             EventsJSon,
                                             EarliestPlanningDate);
         exit((EventsJSon <> '') and (ResouecesJSon <> ''));
+    end;
+
+    procedure DownloadResourceTempToExcel(var ResourceTemp: Record CustomRecordBuffer temporary)
+    var
+        ExcelBuffer: Record "Excel Buffer" temporary;
+        Resource: Record Resource;
+        Vendor: Record Vendor;
+        RowNo: Integer;
+        FileName: Text;
+    begin
+        if not ResourceTemp.FindSet() then
+            exit;
+
+        // Clear Excel Buffer
+        ExcelBuffer.Reset();
+        ExcelBuffer.DeleteAll();
+
+        // Add Headers
+        RowNo := 1;
+        ExcelBuffer.NewRow();
+        ExcelBuffer.AddColumn('Resource Group No.', false, '', true, false, false, '', ExcelBuffer."Cell Type"::Text);
+        ExcelBuffer.AddColumn('Resource No.', false, '', true, false, false, '', ExcelBuffer."Cell Type"::Text);
+        ExcelBuffer.AddColumn('Resource Name', false, '', true, false, false, '', ExcelBuffer."Cell Type"::Text);
+        ExcelBuffer.AddColumn('Vendor No.', false, '', true, false, false, '', ExcelBuffer."Cell Type"::Text);
+        ExcelBuffer.AddColumn('Vendor Name', false, '', true, false, false, '', ExcelBuffer."Cell Type"::Text);
+
+        // Add Data Rows
+        ResourceTemp.Reset();
+        if ResourceTemp.FindSet() then begin
+            repeat
+                RowNo += 1;
+                ExcelBuffer.NewRow();
+                ExcelBuffer.AddColumn(ResourceTemp."Code 1", false, '', false, false, false, '', ExcelBuffer."Cell Type"::Text);
+                ExcelBuffer.AddColumn(ResourceTemp."Code 2", false, '', false, false, false, '', ExcelBuffer."Cell Type"::Text);
+
+                // Get Resource Name
+                if Resource.Get(ResourceTemp."Code 2") then
+                    ExcelBuffer.AddColumn(Resource.Name, false, '', false, false, false, '', ExcelBuffer."Cell Type"::Text)
+                else
+                    ExcelBuffer.AddColumn('', false, '', false, false, false, '', ExcelBuffer."Cell Type"::Text);
+
+                ExcelBuffer.AddColumn(ResourceTemp."Code 3", false, '', false, false, false, '', ExcelBuffer."Cell Type"::Text);
+
+                // Get Vendor Name
+                if (ResourceTemp."Code 3" <> '') and Vendor.Get(ResourceTemp."Code 3") then
+                    ExcelBuffer.AddColumn(Vendor.Name, false, '', false, false, false, '', ExcelBuffer."Cell Type"::Text)
+                else
+                    ExcelBuffer.AddColumn('', false, '', false, false, false, '', ExcelBuffer."Cell Type"::Text);
+            until ResourceTemp.Next() = 0;
+        end;
+
+        // Create Excel file
+        FileName := 'ResourceSchedule_' + Format(CurrentDateTime, 0, '<Year4><Month,2><Day,2>_<Hours24,2><Minutes,2><Seconds,2>') + '.xlsx';
+        ExcelBuffer.CreateNewBook('Resource Schedule');
+        ExcelBuffer.WriteSheet('Resource Schedule', CompanyName, UserId);
+        ExcelBuffer.CloseBook();
+        ExcelBuffer.OpenExcel();
+    end;
+
+    procedure GetUniqueVendorsFromDayTasks(var TempVendor: record "Aging Band Buffer" temporary; StartDate: Date; EndDate: Date)
+    var
+        UniqueVendorsQuery: Query "Unique Vendors in Day Tasks";
+        Vendor: Record Vendor;
+        VendorNo: Code[20];
+    begin
+        // Clear the temporary table
+        TempVendor.Reset();
+        TempVendor.DeleteAll();
+
+        // Open the query - it automatically groups by VendorNo giving unique values
+        UniqueVendorsQuery.SetRange(TaskDateFilter, StartDate, EndDate);
+        if UniqueVendorsQuery.Open() then begin
+            while UniqueVendorsQuery.Read() do begin
+                VendorNo := UniqueVendorsQuery.VendorNo;
+
+                // Skip blank vendor numbers
+                if VendorNo <> '' then begin
+                    // Get vendor details and add to temporary table
+                    if Vendor.Get(VendorNo) then begin
+                        TempVendor.Init();
+                        TempVendor."Currency Code" := VendorNo;
+                        if TempVendor.Insert() then;
+                    end;
+                end;
+            end;
+            UniqueVendorsQuery.Close();
+        end;
+
+        // Always add a blank entry as no vendor group
+        TempVendor.Init();
+        TempVendor."Currency Code" := '';
+        TempVendor.Insert();
     end;
 
 }

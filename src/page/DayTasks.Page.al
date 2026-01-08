@@ -18,6 +18,11 @@ page 50630 "Day Tasks"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the day number in the sequence.';
                 }
+                field(DayLineNo; Rec.DayLineNo)
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the line number for this day task.';
+                }
                 field("Job No."; Rec."Job No.")
                 {
                     ApplicationArea = All;

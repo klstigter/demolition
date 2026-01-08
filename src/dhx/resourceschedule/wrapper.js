@@ -678,7 +678,6 @@ function RefreshTimeline(resourcesJson, eventsJson, dateAnchor) {
     console.log("eventsJson:", eventsJson);
 
     try {
-        debugger;
         // 1) Parse and update sections (y_unit)
         var resources = ParseJSonTxt(resourcesJson);
         var sections = (resources && Array.isArray(resources.data)) ? resources.data : [];
