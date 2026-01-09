@@ -70,6 +70,12 @@ table 50620 "Gantt Chart Setup"
             Caption = 'Load Day Tasks';
             ToolTip = 'Specifies whether to load day tasks for job tasks.';
         }
+        field(40; "Work-Hour Template"; Code[20])
+        {
+            DataClassification = ToBeClassified;
+            TableRelation = "Work-Hour Template";
+            Caption = 'Work-Hour Template';
+        }
     }
 
     keys
