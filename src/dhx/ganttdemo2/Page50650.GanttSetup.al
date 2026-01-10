@@ -12,6 +12,16 @@ page 50650 "Gantt Chart Setup"
     {
         area(content)
         {
+            Group(Resource)
+            {
+                Caption = 'Resource';
+
+                field("Work-Hour Template"; Rec."Work-Hour Template")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Default work hour for visual planning';
+                }
+            }
             Group(filters)
             {
                 Caption = 'Filters';
