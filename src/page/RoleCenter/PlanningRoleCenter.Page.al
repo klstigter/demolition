@@ -128,23 +128,11 @@ page 50612 "Planning Role Center"
                     Caption = 'Base Calendar';
                     RunObject = page "Base Calendar List";
                 }
-            }
-            group("tests")
-            {
-                Caption = 'Tests';
-                action(OpenNodeSet)
+                action("Resource Capacitys")
                 {
-                    Caption = 'Open Node Set';
-                    ApplicationArea = All;
-                    Image = Delete;
-                    RunObject = page "Date Span Document"; // Date Span Document
-                }
-                action(DateEngineTests)
-                {
-                    ApplicationArea = All;
-                    Caption = 'Date Engine Tests';
-                    RunObject = page "Date Span Test Runner";
-
+                    ApplicationArea = Basic, Suite;
+                    Caption = 'Resource Capacities';
+                    RunObject = page "Resource Capacity";
                 }
             }
             group("SettingGroup")
