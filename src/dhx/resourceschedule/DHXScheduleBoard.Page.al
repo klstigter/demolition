@@ -62,7 +62,7 @@ page 50619 "DHX Scheduler (Resource)"
                 var
                     DateRef: Date;
                 begin
-                    DateRef := DHXDataHandler.OpenDayTask(eventId);
+                    DateRef := DHXDataHandler.OpenCapacity(eventId); //DHXDataHandler.OpenDayTask(eventId);
                     if DateRef <> 0D then begin
                         AnchorDate := DateRef;
                         RefreshSchedule();
@@ -206,6 +206,18 @@ page 50619 "DHX Scheduler (Resource)"
                     RefreshSchedule();
                 end;
             }
+
+            action(Refresh)
+            {
+                Caption = 'Refresh';
+                ApplicationArea = All;
+                Image = Refresh;
+                trigger OnAction()
+                begin
+                    RefreshSchedule();
+                end;
+            }
+
             action(DateLookup)
             {
                 Caption = 'Go to Date';
@@ -237,6 +249,7 @@ page 50619 "DHX Scheduler (Resource)"
                 actionref("Prev_filter"; PreviousAct) { }
                 actionref("Today_filter"; Todayact) { }
                 actionref("Next_filter"; Nextact) { }
+                actionref("Refresh_filter"; Refresh) { }
             }
         }
     }
