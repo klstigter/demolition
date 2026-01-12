@@ -80,34 +80,28 @@ window.BOOT = function() {
     scheduler.templates.tooltip_text = function(start, end, ev) {
         var formatDate = scheduler.date.date_to_str("%Y-%m-%d %H:%i");
         
-        // Parse event ID: "JobNo|JobTaskNo|PlanningLineNo|DayNo|DayLineNo"
-        var dayNo = "";
-        var dayLineNo = "";
-        var jobNo = "";
-        var jobTaskNo = "";
-        var planningLineNo = "";
+        // // Parse event ID: "JobNo|JobTaskNo|PlanningLineNo|DayNo|DayLineNo"
+        // var dayNo = "";
+        // var dayLineNo = "";
+        // var jobNo = "";
+        // var jobTaskNo = "";
+        // var planningLineNo = "";
         
-        if (ev.id) {
-            var parts = String(ev.id).split('|');
-            if (parts.length >= 5) {
-                jobNo = parts[0] || "";
-                jobTaskNo = parts[1] || "";
-                planningLineNo = parts[2] || "";
-                dayNo = parts[3] || "";
-                dayLineNo = parts[4] || "";
-            }
-        }
+        // if (ev.id) {
+        //     var parts = String(ev.id).split('|');
+        //     if (parts.length >= 5) {
+        //         jobNo = parts[0] || "";
+        //         jobTaskNo = parts[1] || "";
+        //         planningLineNo = parts[2] || "";
+        //         dayNo = parts[3] || "";
+        //         dayLineNo = parts[4] || "";
+        //     }
+        // }
         
         var html = "<b>Event:</b> " + (ev.text || "") + "<br/>" +
                    "<b>Start date:</b> " + formatDate(start) + "<br/>" +
                    "<b>End date:</b> " + formatDate(end) + "<br/>" +                                      
-                   "<b>Daytask detail:</b><br/>" +
-                   "-----------------------------------<br/>" +
-                   "<b>Day No:</b> " + dayNo + "<br/>" +
-                   "<b>Daylineno:</b> " + dayLineNo + "<br/>" +
-                   "<b>Project No.:</b> " + jobNo + "<br/>" +
-                   "<b>Task No.:</b> " + jobTaskNo + "<br/>" +
-                   "<b>Planning Line No.:</b> " + planningLineNo + "<br/>";
+                   "<b>Capacity entry no.:</b> " + (ev.id || "") + "<br/>";
         return html;
     };
     

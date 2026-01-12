@@ -56,6 +56,12 @@ table 50600 "Planning Integration Setup"
             DataClassification = ToBeClassified;
             Caption = 'Auto Sync. with Planning Integration';
         }
+        field(70; "Work-Hour Template"; Code[20])
+        {
+            DataClassification = ToBeClassified;
+            TableRelation = "Work-Hour Template";
+            Caption = 'Work-Hour Template';
+        }
     }
 
     keys

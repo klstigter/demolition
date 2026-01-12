@@ -18,6 +18,10 @@ page 50603 "Planning Integration Setup"
                 {
                     ApplicationArea = All;
                 }
+                field("Work-Hour Template"; Rec."Work-Hour Template")
+                {
+                    ApplicationArea = All;
+                }
             }
             group(APIIntegeration)
             {
