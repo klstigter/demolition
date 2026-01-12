@@ -8,7 +8,6 @@
 .vs/
 .vscode/
 # Explicitly ignore VS Code launch settings
-.vscode/launch.json
 
 # Others
 #~$*
