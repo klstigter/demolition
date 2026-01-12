@@ -6,7 +6,7 @@ codeunit 50604 "DHX Data Handler"
     end;
 
     var
-        GanttSetup: Record "Gantt Chart Setup";
+        IntegrationSetup: Record "Planning Integration Setup";
 
     //     '{' +
     //         '"data": [ ' +
@@ -185,7 +185,7 @@ codeunit 50604 "DHX Data Handler"
         EndDateTxt: Text;
         DummyEndDate: Date;
     begin
-        GanttSetup.Get(UserId);
+        IntegrationSetup.Get();
 
         PlanninJsonTxt := '';
         //Marking Job based on Day Tasks within the given date range
@@ -347,18 +347,20 @@ codeunit 50604 "DHX Data Handler"
                                    var EndDateTxt: Text)
     var
         WHTemplate: record "Work-Hour Template";
+        EndTime: Time;
     begin
         StartDateTxt := '';
         EndDateTxt := '';
         if ResCap."Date" = 0D then
             exit;
-        GanttSetup.TestField("Work-Hour Template");
-        WHTemplate.Get(GanttSetup."Work-Hour Template");
+        IntegrationSetup.TestField("Work-Hour Template");
+        WHTemplate.Get(IntegrationSetup."Work-Hour Template");
         WHTemplate.TestField("Default Start Time");
         WHTemplate.TestField("Default End Time");
 
         StartDateTxt := ToSessionDateTimeTxt(ResCap."Date", WHTemplate."Default Start Time");
-        EndDateTxt := ToSessionDateTimeTxt(ResCap."Date", WHTemplate."Default End Time");
+        EndTime := WHTemplate."Default Start Time" + (ResCap.Capacity * 60 * 60 * 1000);
+        EndDateTxt := ToSessionDateTimeTxt(ResCap."Date", EndTime);
     end;
 
     local procedure ToSessionDateTimeTxt(UtcDate: Date; UtcTime: Time): Text
@@ -585,44 +587,8 @@ codeunit 50604 "DHX Data Handler"
         _DateTime: DateTime;
         _DateTimeUserZone: DateTime;
     begin
-        // New Section/Element id
+        //**** New Code: modification of event follow BC Resource Capacity, not belong to dhtml scheduler
         EventJSonObj.ReadFrom(EventData);
-        EventJSonObj.Get('section_id', JToken);
-        NewSectionParts := JToken.AsValue().AsText().Split('|');
-        NewResNo := NewSectionParts.Get(2);
-        if not NewResource.Get(NewResNo) then begin
-            NewResource.Init;
-            NewResource."No." := NewResNo;
-        end;
-        NewVenNo := NewSectionParts.Get(3);
-        if not NewVendor.Get(NewVenNo) then begin
-            NewVendor.Init;
-            NewVendor."No." := NewVenNo;
-        end;
-
-        // get old record
-        EventIdParts := eventId.Split('|');
-        OldJobNo := EventIdParts.Get(1);
-        OldTaskNo := EventIdParts.Get(2);
-        Evaluate(OldPlanningLineNo, EventIdParts.Get(3));
-        Evaluate(OldDayNo, EventIdParts.Get(4));
-        Evaluate(OldDayLineNo, EventIdParts.Get(5));
-        OldTask.Get(OldJobNo, OldTaskNo);
-        OldPlanningLIne.Get(OldJobNo, OldTaskNo, OldPlanningLineNo);
-        OldDayTask.Get(OldDayNo, OldDayLineNo, OldJobNo, OldTaskNo, OldPlanningLineNo);
-        if not OldResource.Get(OldDayTask."No.") then begin
-            OldResource.Init;
-            OldResource."No." := OldDayTask."No.";
-        end;
-        if not OldVendor.Get(OldDayTask."Vendor No.") then begin
-            OldVendor.Init;
-            OldVendor."No." := OldDayTask."Vendor No.";
-        end;
-
-
-        //*****
-
-
         //Get Startdate as new dayno
         EventJSonObj.Get('start_date', JToken);
         //Covert _Date + _Time into Datetime var, after that extract Date part again to get the correct date in user's timezone
@@ -630,38 +596,84 @@ codeunit 50604 "DHX Data Handler"
         _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
         DateRef := DT2Date(_DateTimeUserZone);
 
-        if OldResource.RecordId <> NewResource.RecordId then begin
-            //sift up / down within different task
-            if ResourceCheck.Get(NewResource."No.") then begin
-                OldDayTask."No." := NewResource."No.";
-                OldDayTask.Modify();
-            end;
-        end;
+        //**** OLD Code: *****
+        // // New Section/Element id
+        // EventJSonObj.ReadFrom(EventData);
+        // EventJSonObj.Get('section_id', JToken);
+        // NewSectionParts := JToken.AsValue().AsText().Split('|');
+        // NewResNo := NewSectionParts.Get(2);
+        // if not NewResource.Get(NewResNo) then begin
+        //     NewResource.Init;
+        //     NewResource."No." := NewResNo;
+        // end;
+        // NewVenNo := NewSectionParts.Get(3);
+        // if not NewVendor.Get(NewVenNo) then begin
+        //     NewVendor.Init;
+        //     NewVendor."No." := NewVenNo;
+        // end;
 
-        if OldVendor.RecordId <> NewVendor.RecordId then begin
-            //sift up / down within different task
-            if VendorCheck.Get(NewVendor."No.") then begin
-                OldDayTask."Vendor No." := NewVendor."No.";
-                OldDayTask.Modify();
-            end;
-        end;
+        // // get old record
+        // EventIdParts := eventId.Split('|');
+        // OldJobNo := EventIdParts.Get(1);
+        // OldTaskNo := EventIdParts.Get(2);
+        // Evaluate(OldPlanningLineNo, EventIdParts.Get(3));
+        // Evaluate(OldDayNo, EventIdParts.Get(4));
+        // Evaluate(OldDayLineNo, EventIdParts.Get(5));
+        // OldTask.Get(OldJobNo, OldTaskNo);
+        // OldPlanningLIne.Get(OldJobNo, OldTaskNo, OldPlanningLineNo);
+        // OldDayTask.Get(OldDayNo, OldDayLineNo, OldJobNo, OldTaskNo, OldPlanningLineNo);
+        // if not OldResource.Get(OldDayTask."No.") then begin
+        //     OldResource.Init;
+        //     OldResource."No." := OldDayTask."No.";
+        // end;
+        // if not OldVendor.Get(OldDayTask."Vendor No.") then begin
+        //     OldVendor.Init;
+        //     OldVendor."No." := OldDayTask."Vendor No.";
+        // end;
 
-        //sift left / right to same task
-        EventJSonObj.Get('start_date', JToken);
-        Evaluate(_DateTime, JToken.AsValue().AsText());
-        _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
-        OldDayTask."Task Date" := DT2Date(_DateTimeUserZone);
-        OldDayTask."Start Time" := DT2Time(_DateTimeUserZone);
 
-        EventJSonObj.Get('end_date', JToken);
-        Evaluate(_DateTime, JToken.AsValue().AsText());
-        _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
-        OldDayTask."End Time" := DT2Time(_DateTimeUserZone);
+        // //*****
 
-        EventJSonObj.Get('text', JToken);
-        OldDayTask.Description := JToken.AsValue().AsText();
 
-        OldDayTask.Modify();
+        // //Get Startdate as new dayno
+        // EventJSonObj.Get('start_date', JToken);
+        // //Covert _Date + _Time into Datetime var, after that extract Date part again to get the correct date in user's timezone
+        // Evaluate(_DateTime, JToken.AsValue().AsText());
+        // _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
+        // DateRef := DT2Date(_DateTimeUserZone);
+
+        // if OldResource.RecordId <> NewResource.RecordId then begin
+        //     //sift up / down within different task
+        //     if ResourceCheck.Get(NewResource."No.") then begin
+        //         OldDayTask."No." := NewResource."No.";
+        //         OldDayTask.Modify();
+        //     end;
+        // end;
+
+        // if OldVendor.RecordId <> NewVendor.RecordId then begin
+        //     //sift up / down within different task
+        //     if VendorCheck.Get(NewVendor."No.") then begin
+        //         OldDayTask."Vendor No." := NewVendor."No.";
+        //         OldDayTask.Modify();
+        //     end;
+        // end;
+
+        // //sift left / right to same task
+        // EventJSonObj.Get('start_date', JToken);
+        // Evaluate(_DateTime, JToken.AsValue().AsText());
+        // _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
+        // OldDayTask."Task Date" := DT2Date(_DateTimeUserZone);
+        // OldDayTask."Start Time" := DT2Time(_DateTimeUserZone);
+
+        // EventJSonObj.Get('end_date', JToken);
+        // Evaluate(_DateTime, JToken.AsValue().AsText());
+        // _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
+        // OldDayTask."End Time" := DT2Time(_DateTimeUserZone);
+
+        // EventJSonObj.Get('text', JToken);
+        // OldDayTask.Description := JToken.AsValue().AsText();
+
+        // OldDayTask.Modify();
 
     end;
 
@@ -829,6 +841,23 @@ codeunit 50604 "DHX Data Handler"
         exit(localDateTime);
     end;
 
+    procedure OpenCapacity(eventId: Text): Date
+    var
+        ResCap: record "Res. Capacity Entry";
+        ResCapEntryNo: Integer;
+        InvalidEvent: label 'Invalid Event ID for Resource Capacity Entry: %1';
+        ResNotFound: label 'Resource Capacity Entry not found for Event ID: %1';
+    begin
+        //LAGI
+        if not Evaluate(ResCapEntryNo, eventId) then
+            Error(InvalidEvent, eventId);
+        if ResCap.Get(ResCapEntryNo) then begin
+            Page.RunModal(0, ResCap);
+            exit(ResCap."Date");
+        end else
+            Error(ResNotFound, eventId);
+    end;
+
     procedure OpenDayTask(eventId: Text): Date
     var
         DayTask: Record "Day Tasks";
@@ -896,15 +925,28 @@ codeunit 50604 "DHX Data Handler"
     procedure OpenResourceCard(SectionId: Text)
     var
         Resource: Record Resource;
+        ResGroup: record "Resource Group";
         EventIDList: List of [Text];
         ResNo: Code[20];
+        GroupNo: Code[20];
     begin
         // Implementation to open the Resource Card based on SectionId
         // SectionId = ResourceGroupNo|ResourceNo
         EventIDList := SectionId.Split('|');
-        ResNo := EventIDList.Get(2);
-        Resource.SetRange("No.", ResNo);
-        Page.RunModal(Page::"Resource Card", Resource);
+        case true of
+            (EventIDList.Get(1) <> '') and (EventIDList.Get(2) <> ''):
+                begin
+                    ResNo := EventIDList.Get(2);
+                    Resource.SetRange("No.", ResNo);
+                    Page.RunModal(Page::"Resource Card", Resource);
+                end;
+            (EventIDList.Get(1) <> '') and (EventIDList.Get(2) = ''):
+                begin
+                    GroupNo := EventIDList.Get(1);
+                    ResGroup.SetRange("No.", GroupNo);
+                    Page.RunModal(0, ResGroup);
+                end;
+        end;
     end;
 
     procedure GetStartEndDatesFromTimeLineJSon(TimeLineJSon: Text; var StartDate: Date; var EndDate: Date)
