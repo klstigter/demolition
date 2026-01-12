@@ -128,6 +128,12 @@ page 50612 "Planning Role Center"
                     Caption = 'Base Calendar';
                     RunObject = page "Base Calendar List";
                 }
+                action("Resource Capacitys")
+                {
+                    ApplicationArea = Basic, Suite;
+                    Caption = 'Resource Capacities';
+                    RunObject = page "Resource Capacity";
+                }
             }
             group("tests")
             {
