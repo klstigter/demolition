@@ -6,7 +6,6 @@
 #./app.json
 .snapshots/
 .vs/
-.vscode/
 # Explicitly ignore VS Code launch settings
 
 # Others
