@@ -59,6 +59,10 @@ codeunit 50604 "DHX Data Handler"
         PlanningLine: Record "Job Planning Line";
         Daytask: Record "Day Tasks";
         WeekTemp: record "Aging Band Buffer" temporary;
+        Resource: record Resource;
+
+        ResNo: Code[20];
+        ResName: Text;
 
         JobObject, TaskObject, PlanningLineObject : JsonObject;
         ChildrenArray, ChildrenArray2 : JsonArray;
@@ -86,17 +90,39 @@ codeunit 50604 "DHX Data Handler"
                 JobTasks.Get(Daytask."Job No.", Daytask."Job Task No.");
                 JobTasks.Mark(true);
 
+                // resource data
+                clear(Resource);
+                ResNo := '';
+                ResName := '';
+                if (Daytask.Type = Daytask.Type::Resource) and Resource.Get(Daytask."No.") then begin
+                    ResNo := Resource."No.";
+                    ResName := Resource.Name;
+                end;
                 // create event data
                 if AnchorDate = 0D then
                     CountToWeekNumber(Daytask."Task Date", WeekTemp);
 
                 GetStartEndTxt(Daytask, StartDateTxt, EndDateTxt);
                 Clear(PlanningObject);
-                PlanningObject.Add('id', Daytask."Job No." + '|' + Daytask."Job Task No." + '|' + Format(Daytask."Job Planning Line No.") + '|' + Format(Daytask."Day No.") + '|' + Format(Daytask."DayLineNo"));
+                PlanningObject.Add('id', Daytask."Job No." + '|' +
+                                         Daytask."Job Task No." + '|' +
+                                         Format(Daytask."Job Planning Line No.") + '|' +
+                                         Format(Daytask."Day No.") + '|' +
+                                         Format(Daytask."DayLineNo") + '|' +
+                                         ResNo + '|' +
+                                         ResName);
                 PlanningObject.Add('start_date', StartDateTxt);
                 PlanningObject.Add('end_date', EndDateTxt);
-                PlanningObject.Add('text', Daytask.Description);
+                if Daytask.Description <> '' then
+                    PlanningObject.Add('text', Daytask.Description)
+                else
+                    PlanningObject.Add('text', ResName);
+
                 PlanningObject.Add('section_id', Daytask."Job No." + '|' + Daytask."Job Task No." + '|' + Format(Daytask."Job Planning Line No."));
+                if ResNo <> '' then
+                    PlanningObject.Add('color', 'blue')
+                else
+                    PlanningObject.Add('color', 'lightgreen'); // no resource assigned
                 PlanningArray.Add(PlanningObject);
                 PlanningArray.WriteTo(PlanninJsonTxt);
             until Daytask.Next() = 0;
