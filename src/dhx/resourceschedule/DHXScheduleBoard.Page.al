@@ -25,7 +25,7 @@ page 50619 "DHX Scheduler (Resource)"
                 begin
                     //DHXDataHandler.GetOneYearPeriodDates(Today(), startDate, endDate);
                     DHXDataHandler.GetWeekPeriodDates(Today(), startDate, endDate);
-                    ResourceJSONTxt := DHXDataHandler.GetYUnitElementsJSON_Resource(Today(), startDate, endDate, PlanninJsonTxt, EarliestPlanningDate);
+                    ResourceJSONTxt := DHXDataHandler.GetYUnitElementsJSON_Resource(Today(), startDate, endDate, false, PlanninJsonTxt, EarliestPlanningDate);
                     CurrPage.DhxScheduler.Init(ResourceJSONTxt, EarliestPlanningDate);
                     CurrPage.DhxScheduler.LoadData(PlanninJsonTxt);
                     AnchorDate := startDate;
@@ -51,7 +51,7 @@ page 50619 "DHX Scheduler (Resource)"
                     _DateTimeUserZone := DHXDataHandler.ConvertToUserTimeZone(_DateTime);
                     StartDate := DT2Date(_DateTimeUserZone);
                     AnchorDate := StartDate;
-                    RefreshSchedule();
+                    RefreshSchedule(ShowHideDayTasks);
                 end;
 
                 #endregion Section doubleclick
@@ -61,11 +61,27 @@ page 50619 "DHX Scheduler (Resource)"
                 trigger OnEventDblClick(eventId: Text; eventData: Text)
                 var
                     DateRef: Date;
+                    evId, StartDateTxt, EndDateTxt, SectionId, pText, Type : Text;
                 begin
-                    DateRef := DHXDataHandler.OpenCapacity(eventId); //DHXDataHandler.OpenDayTask(eventId);
-                    if DateRef <> 0D then begin
-                        AnchorDate := DateRef;
-                        RefreshSchedule();
+                    //Message('Event double clicked with eventData: %1 , eventId = %2', eventData, eventId);
+                    DHXDataHandler.GetEventData(eventData, evId, StartDateTxt, EndDateTxt, SectionId, pText, Type);
+                    case Type of
+                        'capacity':
+                            begin
+                                DateRef := DHXDataHandler.OpenCapacity(eventId); //DHXDataHandler.OpenDayTask(eventId);
+                                if DateRef <> 0D then begin
+                                    AnchorDate := DateRef;
+                                    RefreshSchedule(ShowHideDayTasks);
+                                end;
+                            end;
+                        'daytask':
+                            begin
+                                DateRef := DHXDataHandler.OpenDayTask(eventId);
+                                if DateRef <> 0D then begin
+                                    AnchorDate := DateRef;
+                                    RefreshSchedule(ShowHideDayTasks);
+                                end;
+                            end;
                     end;
                 end;
 
@@ -104,7 +120,7 @@ page 50619 "DHX Scheduler (Resource)"
                                                   eventData,
                                                   DateRef);
                     AnchorDate := DateRef;
-                    RefreshSchedule();
+                    RefreshSchedule(ShowHideDayTasks);
                 end;
 
                 trigger OnAfterEventIdUpdated(oldid: Text; newid: Text)
@@ -147,7 +163,7 @@ page 50619 "DHX Scheduler (Resource)"
                     StartDate: Date;
                     EndDate: Date;
                 begin
-                    if DHXDataHandler.GetDayTaskAsResourcesAndEventsJSon_Resource(NavigateJson, ResourceJSONTxt, EventsJsonTxt) then begin
+                    if DHXDataHandler.GetDayTaskAsResourcesAndEventsJSon_Resource(NavigateJson, False, ResourceJSONTxt, EventsJsonTxt) then begin
                         DHXDataHandler.GetStartEndDatesFromTimeLineJSon(NavigateJson, startDate, endDate);
                         CurrPage.DhxScheduler.RefreshTimeline(ResourceJSONTxt, EventsJsonTxt, startDate); //TODO: pass resourcesJson and eventsJson
                         AnchorDate := startDate;
@@ -181,7 +197,7 @@ page 50619 "DHX Scheduler (Resource)"
                 trigger OnAction()
                 begin
                     AnchorDate := Today();
-                    RefreshSchedule();
+                    RefreshSchedule(ShowHideDayTasks);
                 end;
             }
             action(PreviousAct)
@@ -192,7 +208,7 @@ page 50619 "DHX Scheduler (Resource)"
                 trigger OnAction()
                 begin
                     AnchorDate := CalcDate('<-1W>', AnchorDate);
-                    RefreshSchedule();
+                    RefreshSchedule(ShowHideDayTasks);
                 end;
             }
             action(NextAct)
@@ -203,7 +219,7 @@ page 50619 "DHX Scheduler (Resource)"
                 trigger OnAction()
                 begin
                     AnchorDate := CalcDate('<1W>', AnchorDate);
-                    RefreshSchedule();
+                    RefreshSchedule(ShowHideDayTasks);
                 end;
             }
 
@@ -214,7 +230,7 @@ page 50619 "DHX Scheduler (Resource)"
                 Image = Refresh;
                 trigger OnAction()
                 begin
-                    RefreshSchedule();
+                    RefreshSchedule(ShowHideDayTasks);
                 end;
             }
 
@@ -234,9 +250,36 @@ page 50619 "DHX Scheduler (Resource)"
                         DateSelectorPage.GetRecord(DateRec);
                         SelectedDate := DateRec."Period Start";
                         AnchorDate := SelectedDate;
-                        RefreshSchedule();
+                        RefreshSchedule(ShowHideDayTasks);
                     end;
                 end;
+            }
+
+            group(Daytask)
+            {
+                Caption = 'Day Tasks';
+                action(ShowDayTask)
+                {
+                    ApplicationArea = All;
+                    Caption = 'Show Day Tasks';
+                    Image = AddWatch;
+                    trigger OnAction()
+                    begin
+                        ShowHideDayTasks := true;
+                        RefreshSchedule(ShowHideDayTasks);
+                    end;
+                }
+                action(HideDayTask)
+                {
+                    ApplicationArea = All;
+                    Caption = 'Hide Day Tasks';
+                    Image = RemoveContacts;
+                    trigger OnAction()
+                    begin
+                        ShowHideDayTasks := false;
+                        RefreshSchedule(ShowHideDayTasks);
+                    end;
+                }
             }
         }
 
@@ -250,6 +293,8 @@ page 50619 "DHX Scheduler (Resource)"
                 actionref("Today_filter"; Todayact) { }
                 actionref("Next_filter"; Nextact) { }
                 actionref("Refresh_filter"; Refresh) { }
+                actionref("Show_DayTask"; ShowDayTask) { }
+                actionref("Hide_DayTask"; HideDayTask) { }
             }
         }
     }
@@ -258,8 +303,9 @@ page 50619 "DHX Scheduler (Resource)"
         DHXDataHandler: Codeunit "DHX Data Handler";
         ShowDefaultTabs: Boolean;
         AnchorDate: Date;
+        ShowHideDayTasks: Boolean;
 
-    local procedure RefreshSchedule()
+    local procedure RefreshSchedule(WithDayTask: Boolean)
     var
         DHXDataHandler: Codeunit "DHX Data Handler";
         startDate: Date;
@@ -271,6 +317,7 @@ page 50619 "DHX Scheduler (Resource)"
         DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
         DHXDataHandler.GetDayTaskAsResourcesAndEventsJSon_Resource_StartEnd(startDate,
                                                                       endDate,
+                                                                      WithDayTask,
                                                                       ResourceJSONTxt,
                                                                       EventsJsonTxt,
                                                                       EarliestPlanningDate);

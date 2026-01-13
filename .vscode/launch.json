@@ -1,7 +1,7 @@
 {
     "version": "0.2.0",
     "configurations": [
-            {
+        {
             "name": "NL_Test",
             "request": "launch",
             "type": "al",
@@ -15,9 +15,9 @@
             "enableLongRunningSqlStatements": true,
             "enableSqlInformationDebugger": true,
             "schemaUpdateMode": "Synchronize"
-            }
+        }
         ,
-            {
+        {
             "name": "NL_Copy20240710",
             "request": "launch",
             "type": "al",
@@ -32,5 +32,17 @@
             "enableSqlInformationDebugger": true,
             "schemaUpdateMode": "ForceSync"
         }
+        ,
+        {
+            "name": "AL: Attach request",
+            "request": "attach",
+            "type": "al",
+            "environmentType": "Sandbox",
+            "environmentName": "NL_Test",
+            "sessionId": 69215,
+            "breakOnNext": "WebClient",
+            "breakOnError": "ExcludeTry",
+            "tenant": "a60762e1-df10-4e4b-8f44-174c51589110"
+        }        
     ]
 }
