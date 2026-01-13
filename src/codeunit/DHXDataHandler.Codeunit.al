@@ -191,9 +191,51 @@ codeunit 50604 "DHX Data Handler"
         exit('');
     end;
 
+    local procedure AddDaytasks(section_id: Text;
+                                TaskDate: Date;
+                                var PlanningArray: JsonArray)
+    var
+        Resource: record Resource;
+        Daytask: record "Day Tasks";
+        PlanningObject: JsonObject;
+        EventIdParts: List of [Text];
+        ResNo: Code[20];
+        StartDateTxt, EndDateTxt : Text;
+    begin
+        EventIdParts := section_id.Split('|');
+        ResNo := EventIdParts.Get(2);
+        if not Resource.Get(ResNo) then
+            Clear(Resource);
+        Daytask.SetRange(Type, Daytask.Type::Resource);
+        Daytask.SetRange("No.", ResNo);
+        if Daytask.FindSet() then
+            repeat
+                GetStartEndTxt(DayTask, StartDateTxt, EndDateTxt);
+
+                Clear(PlanningObject);
+                PlanningObject.Add('id', Daytask."Job No." + '|' +
+                                         Daytask."Job Task No." + '|' +
+                                         Format(Daytask."Job Planning Line No.") + '|' +
+                                         Format(Daytask."Day No.") + '|' +
+                                         Format(Daytask."DayLineNo"));
+                PlanningObject.Add('start_date', StartDateTxt);
+                PlanningObject.Add('end_date', EndDateTxt);
+                if Daytask.Description <> '' then
+                    PlanningObject.Add('text', Daytask.Description)
+                else
+                    PlanningObject.Add('text', Resource.Name);
+                PlanningObject.Add('section_id', section_id);
+                PlanningObject.Add('color', 'grey');
+                PlanningObject.Add('type', 'daytask');
+
+                PlanningArray.Add(PlanningObject);
+            until Daytask.Next() = 0;
+    end;
+
     procedure GetYUnitElementsJSON_Resource(AnchorDate: Date;
                                    StartDate: Date;
                                    EndDate: Date;
+                                   WithDayTask: Boolean;
                                    var PlanninJsonTxt: Text;
                                    var EarliestPlanningDate: Date): Text
     var
@@ -207,6 +249,7 @@ codeunit 50604 "DHX Data Handler"
         PlanningArray, DataArray : JsonArray;
         OutText: Text;
 
+        section_id: Text;
         StartDateTxt: Text;
         EndDateTxt: Text;
         DummyEndDate: Date;
@@ -227,13 +270,19 @@ codeunit 50604 "DHX Data Handler"
 
                 GetStartEndTxt(ResCap, StartDateTxt, EndDateTxt);
                 Clear(PlanningObject);
+                section_id := ResCap."Resource Group No." + '|' + ResCap."Resource No.";
                 PlanningObject.Add('id', Format(ResCap."Entry No."));
                 PlanningObject.Add('start_date', StartDateTxt);
                 PlanningObject.Add('end_date', EndDateTxt);
                 PlanningObject.Add('text', '');
-                PlanningObject.Add('section_id', ResCap."Resource Group No." + '|' + ResCap."Resource No.");
+                PlanningObject.Add('section_id', section_id);
+                PlanningObject.Add('type', 'capacity');
 
                 PlanningArray.Add(PlanningObject);
+
+                if WithDayTask then
+                    AddDaytasks(section_id, ResCap."Date", PlanningArray);
+
                 PlanningArray.WriteTo(PlanninJsonTxt);
             until ResCap.Next() = 0;
 
@@ -867,6 +916,38 @@ codeunit 50604 "DHX Data Handler"
         exit(localDateTime);
     end;
 
+    procedure GetEventData(EventDataJsonTxt: Text;
+                          var EventId: Text;
+                          var StartDateTxt: Text;
+                          var EndDateTxt: Text;
+                          var SectionId: Text;
+                          var pText: Text;
+                          var Type: Text)
+    var
+        EventJSonObj: JsonObject;
+        JToken: JsonToken;
+    begin
+        EventJSonObj.ReadFrom(EventDataJsonTxt);
+
+        EventJSonObj.Get('id', JToken);
+        EventId := JToken.AsValue().AsText();
+
+        EventJSonObj.Get('start_date', JToken);
+        StartDateTxt := JToken.AsValue().AsText();
+
+        EventJSonObj.Get('end_date', JToken);
+        EndDateTxt := JToken.AsValue().AsText();
+
+        EventJSonObj.Get('section_id', JToken);
+        SectionId := JToken.AsValue().AsText();
+
+        EventJSonObj.Get('text', JToken);
+        pText := JToken.AsValue().AsText();
+
+        EventJSonObj.Get('type', JToken);
+        Type := JToken.AsValue().AsText();
+    end;
+
     procedure OpenCapacity(eventId: Text): Date
     var
         ResCap: record "Res. Capacity Entry";
@@ -1035,7 +1116,10 @@ codeunit 50604 "DHX Data Handler"
     end;
 
 
-    procedure GetDayTaskAsResourcesAndEventsJSon_Resource(TimeLineJSon: Text; var ResouecesJSon: Text; var EventsJSon: Text): Boolean
+    procedure GetDayTaskAsResourcesAndEventsJSon_Resource(TimeLineJSon: Text;
+                                                          WithDayTask: Boolean;
+                                                          var ResouecesJSon: Text;
+                                                          var EventsJSon: Text): Boolean
     var
         StartDate: Date;
         EndDate: Date;
@@ -1050,13 +1134,19 @@ codeunit 50604 "DHX Data Handler"
         GetStartEndDatesFromTimeLineJSon(TimeLineJSon, StartDate, EndDate);
         Rtv := GetDayTaskAsResourcesAndEventsJSon_Resource_StartEnd(StartDate,
                                                             EndDate,
+                                                            WithDayTask,
                                                             ResouecesJSon,
                                                             EventsJSon,
                                                             EarliestPlanningDate);
         exit(Rtv);
     end;
 
-    procedure GetDayTaskAsResourcesAndEventsJSon_Resource_StartEnd(StartDate: Date; EndDate: Date; var ResouecesJSon: Text; var EventsJSon: Text; var EarliestPlanningDate: date): Boolean
+    procedure GetDayTaskAsResourcesAndEventsJSon_Resource_StartEnd(StartDate: Date;
+                                                                   EndDate: Date;
+                                                                   WithDayTask: Boolean;
+                                                                   var ResouecesJSon: Text;
+                                                                   var EventsJSon: Text;
+                                                                   var EarliestPlanningDate: date): Boolean
     var
         TimeLineJSonObj: JsonObject;
         JToken: JsonToken;
@@ -1066,6 +1156,7 @@ codeunit 50604 "DHX Data Handler"
         ResouecesJSon := GetYUnitElementsJSON_Resource(StartDate,
                                             StartDate,
                                             EndDate,
+                                            WithDayTask,
                                             EventsJSon,
                                             EarliestPlanningDate);
         exit((EventsJSon <> '') and (ResouecesJSon <> ''));
@@ -1140,8 +1231,7 @@ codeunit 50604 "DHX Data Handler"
 
         // Open the query - it automatically groups by VendorNo giving unique values
         UniqueResQry.SetRange(EntryDateFilter, StartDate, EndDate);
-        if ResGroupNo <> '' then
-            UniqueResQry.SetRange(Resource_Group_No_, ResGroupNo);
+        UniqueResQry.SetRange(Resource_Group_No_, ResGroupNo);
         if UniqueResQry.Open() then begin
             while UniqueResQry.Read() do begin
                 ResNo := UniqueResQry.Resource_No_;
@@ -1174,7 +1264,9 @@ codeunit 50604 "DHX Data Handler"
                 TempResGroup.Init();
                 TempResGroup."No." := ResGroupNo;
                 if ResGroup.Get(ResGroupNo) then
-                    TempResGroup.Name := ResGroup.Name;
+                    TempResGroup.Name := ResGroup.Name
+                else
+                    TempResGroup.Name := 'No Group';
                 if TempResGroup.Insert() then;
             end;
             UniqueGroupQry.Close();

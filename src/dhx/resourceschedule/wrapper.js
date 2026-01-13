@@ -97,11 +97,19 @@ window.BOOT = function() {
         //         dayLineNo = parts[4] || "";
         //     }
         // }
-        
-        var html = "<b>Event:</b> " + (ev.text || "") + "<br/>" +
+
+        var html = "";
+        if (ev.type === "capacity") {
+            html = "<b>Event:</b> " + (ev.text || "") + "<br/>" +
                    "<b>Start date:</b> " + formatDate(start) + "<br/>" +
                    "<b>End date:</b> " + formatDate(end) + "<br/>" +                                      
                    "<b>Capacity entry no.:</b> " + (ev.id || "") + "<br/>";
+        } else if (ev.type === "daytask") {
+            html = "<b>Event:</b> " + (ev.text || "") + "<br/>" +
+                   "<b>Start date:</b> " + formatDate(start) + "<br/>" +
+                   "<b>End date:</b> " + formatDate(end) + "<br/>" +                                      
+                   "<b>Dayno|DayLineNo:</b> " + (ev.id || "") + "<br/>";
+        }
         return html;
     };
     
@@ -311,13 +319,18 @@ window.BOOT = function() {
     scheduler.attachEvent("onDblClick", function (id, ev){
         console.log("Event onDblClick:", id, ev);
         
-        // Capture event data after resize/drag
+        // Get the actual event data from scheduler
+        var eventdata = scheduler.getEvent(id);
+        if (!eventdata) return false;
+        
+        // Capture event data
         var eventData = {
             id: id,
-            text: ev.text,
-            start_date: ev.start_date,
-            end_date: ev.end_date,
-            section_id: ev.section_id
+            text: eventdata.text,
+            start_date: eventdata.start_date,
+            end_date: eventdata.end_date,
+            section_id: eventdata.section_id,
+            type: eventdata.type || ''
         };        
         
         // Send to BC
