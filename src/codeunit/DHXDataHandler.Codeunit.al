@@ -191,6 +191,39 @@ codeunit 50604 "DHX Data Handler"
         exit('');
     end;
 
+    local procedure AddDaytasks(StartDate: Date;
+                                       EndDate: Date;
+                                       var PlanningArray: JsonArray)
+    var
+        Daytask: record "Day Tasks";
+        PlanningObject: JsonObject;
+        StartDateTxt, EndDateTxt : Text;
+    begin
+        Daytask.Reset();
+        Daytask.SetRange("Task Date", StartDate, EndDate);
+        Daytask.SetRange(Type, Daytask.Type::Resource);
+        Daytask.SetRange("No.", '');
+        if Daytask.FindSet() then
+            repeat
+                GetStartEndTxt(DayTask, StartDateTxt, EndDateTxt);
+
+                Clear(PlanningObject);
+                PlanningObject.Add('id', Daytask."Job No." + '|' +
+                                         Daytask."Job Task No." + '|' +
+                                         Format(Daytask."Job Planning Line No.") + '|' +
+                                         Format(Daytask."Day No.") + '|' +
+                                         Format(Daytask."DayLineNo"));
+                PlanningObject.Add('start_date', StartDateTxt);
+                PlanningObject.Add('end_date', EndDateTxt);
+                PlanningObject.Add('text', Daytask.Description);
+                PlanningObject.Add('section_id', '-|-');
+                PlanningObject.Add('color', 'green');
+                PlanningObject.Add('type', 'vacancy');
+
+                PlanningArray.Add(PlanningObject);
+            until Daytask.Next() = 0;
+    end;
+
     local procedure AddDaytasks(section_id: Text;
                                 TaskDate: Date;
                                 var PlanningArray: JsonArray)
@@ -299,6 +332,11 @@ codeunit 50604 "DHX Data Handler"
         end else
             EarliestPlanningDate := Today();
 
+        if WithDayTask then begin
+            AddDaytasks(StartDate, EndDate, PlanningArray);
+            PlanningArray.WriteTo(PlanninJsonTxt);
+        end;
+
         //DownloadResourceTempToExcel(ResourceTemp); // For testing purposes
 
         GetUniqueResGroupFromCapacity(TempResGroup, StartDate, EndDate);
@@ -325,6 +363,24 @@ codeunit 50604 "DHX Data Handler"
                 DataArray.Add(GroupResObject);
             until TempResGroup.Next() = 0;
         end;
+
+        if WithDayTask then begin
+            // Resource Group
+            Clear(GroupResObject);
+            GroupResObject.Add('key', '-|');
+            GroupResObject.Add('label', 'Vacancy Resources'); //LAGI
+            GroupResObject.Add('open', true);
+            Clear(GroupChildrenArray);
+
+            Clear(ResourceObject);
+            ResourceObject.Add('key', '-|-');
+            ResourceObject.Add('label', 'No Resource Assigned');
+            GroupChildrenArray.Add(ResourceObject);
+            GroupResObject.Add('children', GroupChildrenArray);
+
+            DataArray.Add(GroupResObject);
+        end;
+
         Clear(Root);
         Root.Add('data', DataArray);
 
@@ -332,7 +388,6 @@ codeunit 50604 "DHX Data Handler"
         Root.WriteTo(OutText);
         exit(OutText);
     end;
-
 
     local procedure CountToWeekNumber(DateToCount: Date; var WeekTemp: record "Aging Band Buffer" temporary)
     var
@@ -955,7 +1010,6 @@ codeunit 50604 "DHX Data Handler"
         InvalidEvent: label 'Invalid Event ID for Resource Capacity Entry: %1';
         ResNotFound: label 'Resource Capacity Entry not found for Event ID: %1';
     begin
-        //LAGI
         if not Evaluate(ResCapEntryNo, eventId) then
             Error(InvalidEvent, eventId);
         if ResCap.Get(ResCapEntryNo) then begin

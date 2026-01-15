@@ -104,7 +104,7 @@ window.BOOT = function() {
                    "<b>Start date:</b> " + formatDate(start) + "<br/>" +
                    "<b>End date:</b> " + formatDate(end) + "<br/>" +                                      
                    "<b>Capacity entry no.:</b> " + (ev.id || "") + "<br/>";
-        } else if (ev.type === "daytask") {
+        } else if (ev.type === "daytask" || ev.type === "vacancy") {
             html = "<b>Event:</b> " + (ev.text || "") + "<br/>" +
                    "<b>Start date:</b> " + formatDate(start) + "<br/>" +
                    "<b>End date:</b> " + formatDate(end) + "<br/>" +                                      
