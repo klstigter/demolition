@@ -50,6 +50,11 @@ page 50633 "Job Planning Line Day Tasks"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the number of the resource, item, or G/L account.';
                 }
+                field("Resource Group No."; Rec."Resource Group No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the resource group number.';
+                }
                 field("Work Type Code"; Rec."Work Type Code")
                 {
                     ApplicationArea = All;

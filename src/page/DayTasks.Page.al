@@ -81,6 +81,11 @@ page 50630 "Day Tasks"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the description.';
                 }
+                field("Resource Group No."; Rec."Resource Group No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the resource group number.';
+                }
                 field(Quantity; Rec.Quantity)
                 {
                     ApplicationArea = All;
@@ -180,4 +185,35 @@ page 50630 "Day Tasks"
             }
         }
     }
+
+    trigger OnNewRecord(BelowxRec: Boolean)
+    var
+        DayTaskRec: Record "Day Tasks";
+        ResourceNo: Code[20];
+        DayNo: Integer;
+        DayLineNo: Integer;
+    begin
+        if Rec.GetFilter("Day No.") <> '' then
+            DayNo := Rec.GetRangeMax("Day No.");
+
+        // Get the DayLineNo from the SubPageLink filter (FilterGroup 4)
+        if DayNo = 0 then begin
+            Rec.FilterGroup(4);
+            if Rec.GetFilter("Day No.") <> '' then
+                DayNo := Rec.GetRangeMax("Day No.");
+            Rec.FilterGroup(0);
+        end;
+
+        if DayNo <> 0 then begin
+            DayLineNo := 10000;
+            DayTaskRec.SetRange("Day No.", DayNo);
+            if DayTaskRec.FindLast() then begin
+                DayLineNo := DayTaskRec.DayLineNo + 10000;
+                Rec.SetRange(DayLineNo); //remove filter
+            end;
+        end;
+        Rec."Day No." := DayNo;
+        Rec.DayLineNo := DayLineNo;
+    end;
+
 }

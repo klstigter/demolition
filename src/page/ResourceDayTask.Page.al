@@ -20,6 +20,15 @@ page 50622 "Resource Day Tasks"
                 {
                     ApplicationArea = All;
                 }
+                field("Resource Group No."; Rec."Resource Group No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the resource group number.';
+                }
+                field("Vendor No."; Rec."Vendor No.")
+                {
+                    ApplicationArea = All;
+                }
                 field("Day No."; Rec."Day No.")
                 {
                     ApplicationArea = All;

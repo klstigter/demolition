@@ -1,7 +1,7 @@
-query 50600 "Unique Vendors in Day Tasks"
+query 50603 "Unique ResGroup in Day Tasks"
 {
     QueryType = Normal;
-    Caption = 'Unique Vendors in Day Tasks';
+    Caption = 'Unique Resource Groups in Day Tasks';
 
     elements
     {
@@ -10,10 +10,7 @@ query 50600 "Unique Vendors in Day Tasks"
             filter(TaskDateFilter; "Task Date")
             {
             }
-            filter(Resource_Group_No_Filter; "Resource Group No.")
-            {
-            }
-            column(VendorNo; "Vendor No.")
+            column(Resource_Group_No_; "Resource Group No.")
             {
             }
             column(Count_)
