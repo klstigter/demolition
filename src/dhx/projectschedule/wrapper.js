@@ -87,6 +87,7 @@ window.BOOT = function() {
         var planningLineNo = "";
         var resno = "";
         var resname = "";
+        var vendorname = ev.details || "";
         
         if (ev.id) {
             var parts = String(ev.id).split('|');
@@ -112,7 +113,8 @@ window.BOOT = function() {
                 //    "<b>Task No.:</b> " + jobTaskNo + "<br/>" +
                 //    "<b>Planning Line No.:</b> " + planningLineNo + "<br/>" +
                    "<b>Resource No.:</b> " + resno + "<br/>" +
-                   "<b>Resource Name:</b> " + resname + "<br/>";
+                   "<b>Resource Name:</b> " + resname + "<br/>" + 
+                   "<b>Vendor:</b> " + vendorname;
         return html;
     };
 
