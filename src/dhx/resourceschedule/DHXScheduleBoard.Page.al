@@ -62,13 +62,17 @@ page 50619 "DHX Scheduler (Resource)"
                 var
                     DateRef: Date;
                     evId, StartDateTxt, EndDateTxt, SectionId, pText, Type : Text;
+                    _DateTime, _DateTimeUserZone : Datetime;
                 begin
                     //Message('Event double clicked with eventData: %1 , eventId = %2', eventData, eventId);
                     DHXDataHandler.GetEventData(eventData, evId, StartDateTxt, EndDateTxt, SectionId, pText, Type);
                     case Type of
                         'capacity':
                             begin
-                                DateRef := DHXDataHandler.OpenCapacity(eventId); //DHXDataHandler.OpenDayTask(eventId);
+                                Evaluate(_DateTime, StartDateTxt);
+                                _DateTimeUserZone := DHXDataHandler.ConvertToUserTimeZone(_DateTime);
+                                DateRef := DT2Date(_DateTimeUserZone);
+                                DHXDataHandler.OpenCapacity(eventId, DateRef); //DHXDataHandler.OpenDayTask(eventId);
                                 if DateRef <> 0D then begin
                                     AnchorDate := DateRef;
                                     RefreshSchedule(ShowHideDayTasks);

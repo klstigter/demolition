@@ -78,12 +78,41 @@ table 50610 "Day Tasks"
             TableRelation = if (Type = const(Resource)) Resource
             else if (Type = const(Item)) Item
             else if (Type = const("G/L Account")) "G/L Account";
+
+            trigger OnValidate()
+            var
+                Resource: Record Resource;
+            begin
+                if (Type = Type::Resource) and ("No." <> '') then begin
+                    Resource.Get("No.");
+                    "Resource Group No." := Resource."Resource Group No.";
+                end;
+            end;
         }
         field(22; Description; Text[100])
         {
             DataClassification = ToBeClassified;
             Caption = 'Description';
         }
+
+        field(23; "Resource Group No."; Code[20])
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Resource Group No.';
+            TableRelation = "Resource Group";
+
+            trigger OnValidate()
+            var
+                Resource: Record Resource;
+            begin
+                if (Type = Type::Resource) and ("No." <> '') then begin
+                    Resource.Get("No.");
+                    if Resource."Resource Group No." <> "Resource Group No." then
+                        Error('Resource %1 does not belong to Resource Group %2.', "No.", "Resource Group No.");
+                end;
+            end;
+        }
+
         field(30; Quantity; Decimal)
         {
             DataClassification = ToBeClassified;
