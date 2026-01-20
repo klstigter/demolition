@@ -105,10 +105,17 @@ window.BOOT = function() {
                    "<b>End date:</b> " + formatDate(end) + "<br/>" +                                      
                    "<b>Capacity entry no.:</b> " + (ev.id || "") + "<br/>";
         } else if (ev.type === "daytask" || ev.type === "vacancy") {
+            // var parts = String(ev.section_id).split('|');
+            // var vendor_no = "";
+            // if (parts.length >= 3) {
+            //     vendor_no = parts[2] || "";
+            // }
+            var vendor_name = ev.details || "";
             html = "<b>Event:</b> " + (ev.text || "") + "<br/>" +
                    "<b>Start date:</b> " + formatDate(start) + "<br/>" +
                    "<b>End date:</b> " + formatDate(end) + "<br/>" +                                      
-                   "<b>Dayno|DayLineNo:</b> " + (ev.id || "") + "<br/>";
+                   "<b>Dayno|DayLineNo:</b> " + (ev.id || "") + "<br/>" +
+                   "<b>vendor no.:</b> " + vendor_name;
         }
         return html;
     };
