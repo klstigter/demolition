@@ -60,6 +60,7 @@ codeunit 50604 "DHX Data Handler"
         Daytask: Record "Day Tasks";
         WeekTemp: record "Aging Band Buffer" temporary;
         Resource: record Resource;
+        Ven: Record Vendor;
 
         ResNo: Code[20];
         ResName: Text;
@@ -119,10 +120,21 @@ codeunit 50604 "DHX Data Handler"
                     PlanningObject.Add('text', ResName);
 
                 PlanningObject.Add('section_id', Daytask."Job No." + '|' + Daytask."Job Task No." + '|' + Format(Daytask."Job Planning Line No."));
-                if ResNo <> '' then
-                    PlanningObject.Add('color', 'blue')
-                else
-                    PlanningObject.Add('color', 'lightgreen'); // no resource assigned
+                if ResNo <> '' then begin
+                    if Daytask."Vendor No." <> '' then
+                        PlanningObject.Add('color', 'lightblue')
+                    else
+                        PlanningObject.Add('color', 'blue');
+                end else begin // no resource assigned
+                    if Daytask."Vendor No." <> '' then
+                        PlanningObject.Add('color', 'lightgreen')
+                    else
+                        PlanningObject.Add('color', 'green');
+                end;
+                if not Ven.Get(Daytask."Vendor No.") then
+                    Clear(Ven);
+                PlanningObject.Add('details', Ven.Name);
+
                 PlanningArray.Add(PlanningObject);
                 PlanningArray.WriteTo(PlanninJsonTxt);
             until Daytask.Next() = 0;
@@ -305,7 +317,7 @@ codeunit 50604 "DHX Data Handler"
                                     PlanningObject.Add('text', Resource.Name)
                                 else
                                     PlanningObject.Add('text', 'vacant');
-                            PlanningObject.Add('section_id', Rescap."Resource Group No." + '|' + ResNo + '|' + Daytask."Vendor No.");
+                            PlanningObject.Add('section_id', Daytask."Resource Group No." + '|' + ResNo + '|' + Daytask."Vendor No.");
                             if Daytask."Vendor No." = '' then
                                 PlanningObject.Add('color', 'green')
                             else begin

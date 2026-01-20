@@ -27,16 +27,19 @@ page 50630 "Day Tasks"
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the job number.';
+                    Visible = false;
                 }
                 field("Job Task No."; Rec."Job Task No.")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the job task number.';
+                    Visible = false;
                 }
                 field("Job Planning Line No."; Rec."Job Planning Line No.")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the job planning line number.';
+                    Visible = false;
                 }
                 field("Start Planning Date"; Rec."Task Date")
                 {
@@ -129,6 +132,15 @@ page 50630 "Day Tasks"
                 }
 
 
+            }
+        }
+        area(FactBoxes)
+        {
+            part(DayTaskInfo; "Day Task Information FactBox")
+            {
+                ApplicationArea = All;
+                SubPageLink = "Day No." = field("Day No."),
+                              DayLineNo = field(DayLineNo);
             }
         }
     }
