@@ -667,6 +667,11 @@ page 50618 "Job Task Card - Project"
 
         area(factboxes)
         {
+            part(JobInformation; "Job Information FactBox")
+            {
+                ApplicationArea = Jobs;
+                SubPageLink = "Job No." = field("Job No.");
+            }
             systempart(Control1900383207; Links)
             {
                 ApplicationArea = RecordLinks;

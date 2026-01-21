@@ -278,6 +278,13 @@ page 50631 "Job Planning Line Card"
 
         area(factboxes)
         {
+            part(JobPlanningLineInfo; "Job Planning Line Info FactBox")
+            {
+                ApplicationArea = All;
+                SubPageLink = "Job No." = field("Job No."),
+                              "Job Task No." = field("Job Task No."),
+                              "Line No." = field("Line No.");
+            }
             systempart(Control1900383207; Links)
             {
                 ApplicationArea = RecordLinks;
