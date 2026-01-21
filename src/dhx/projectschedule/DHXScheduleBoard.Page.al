@@ -35,21 +35,14 @@ page 50621 "DHX Scheduler (Project)"
 
                 #region Section doubleclick
 
-                trigger OnSectionDblClick(sectionId: Text; sectionData: Text; viewdate: Text)
+                trigger OnSectionDblClick(sectionId: Text; sectionLabel: Text; SectionData: Text)
                 var
                     DHXDataHandler: Codeunit "DHX Data Handler";
                     PossibleChanges: Boolean;
                     newEventData: Text;
-                    _DateTime: Datetime;
-                    _DateTimeUserZone: Datetime;
                     StartDate: Date;
                 begin
-                    //View Date: 2025-12-21T17:00:00.000Z
-                    DHXDataHandler.OpenJobPlanningLineCard(sectionId);
-                    // Refresh the schedule after possible changes
-                    Evaluate(_DateTime, viewdate);
-                    _DateTimeUserZone := DHXDataHandler.ConvertToUserTimeZone(_DateTime);
-                    StartDate := DT2Date(_DateTimeUserZone);
+                    DHXDataHandler.OpenJobPlanningLineCard(sectionId, SectionData, StartDate);
                     AnchorDate := StartDate;
                     RefreshSchedule();
                 end;

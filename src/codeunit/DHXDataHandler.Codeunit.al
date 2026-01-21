@@ -1075,7 +1075,7 @@ codeunit 50604 "DHX Data Handler"
         Evaluate(DayNo, EventIDList.Get(4));
         Evaluate(DayLineNo, EventIDList.Get(5));
         DayTask.SetRange("Day No.", DayNo);
-        DayTask.SetRange("DayLineNo", DayLineNo);
+        //DayTask.SetRange("DayLineNo", DayLineNo);
         DayTask.SetRange("Job No.", JobNo);
         DayTask.SetRange("Job Task No.", TaskNo);
         DayTask.SetRange("Job Planning Line No.", PlanningLineNo);
@@ -1089,16 +1089,50 @@ codeunit 50604 "DHX Data Handler"
         exit(DateOfDayTask);
     end;
 
-    procedure OpenJobPlanningLineCard(SectionId: Text)
+    procedure OpenJobPlanningLineCard(SectionId: Text; SectionData: Text; var StartDate: Date)
     var
         JobPlanningLines: Record "Job Planning Line";
         JobPlanningLineCard: Page "Job Planning Line Card";
+
+        JSonObj: JsonObject;
+        JToken: JsonToken;
+
         EventIDList: List of [Text];
         JobNo: Code[20];
         TaskNo: Code[20];
         PlanningLineNo: Integer;
         DayTaskNo: Integer;
+        _DateTime: DateTime;
+        _DateTimeUserZone: DateTime;
+        EndDate: Date;
     begin
+        // Manage SectionData and retuned StartDate
+        /*
+            SectionData = 
+            {
+                "sectionId":"JOB00020|100|20000",
+                "label":"Design and Review",
+                "viewdate":"2026-01-19T00:00:00.000Z",
+                "periodStart":"2026-01-18T17:00:00.000Z",
+                "periodEnd":"2026-01-25T17:00:00.000Z",
+                "eventCount":9
+            }
+        */
+        StartDate := 0D;
+        if SectionData <> '' then begin
+            JSonObj.ReadFrom(SectionData);
+            JSonObj.Get('periodStart', JToken);
+            Evaluate(_DateTime, JToken.AsValue().AsText());
+            _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
+            StartDate := DT2Date(_DateTimeUserZone);
+
+            //Get End Date
+            JSonObj.Get('periodEnd', JToken);
+            Evaluate(_DateTime, JToken.AsValue().AsText());
+            _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
+            EndDate := DT2Date(_DateTimeUserZone);
+        end;
+
         //JOB00010|1010|30000
         // Implementation to open the Job Planning Line Card based on eventId
         //Message('Event Double Clicked with ID: %1', eventId);
@@ -1113,6 +1147,7 @@ codeunit 50604 "DHX Data Handler"
             Clear(JobPlanningLineCard);
             JobPlanningLineCard.SetTableView(JobPlanningLines);
             JobPlanningLineCard.SetRecord(JobPlanningLines);
+            JobPlanningLineCard.SetFilterOnDayTasks(StartDate, EndDate);
             JobPlanningLineCard.RunModal();
         end else begin
             Message('Job Planning Line not found for Event ID: %1', SectionId);

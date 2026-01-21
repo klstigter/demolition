@@ -78,7 +78,8 @@ window.BOOT = function() {
     
     // Custom tooltip template
     scheduler.templates.tooltip_text = function(start, end, ev) {
-        var formatDate = scheduler.date.date_to_str("%Y-%m-%d %H:%i");
+        var formatDateOnly = scheduler.date.date_to_str("%d-%m-%Y");
+        var formatTimeOnly = scheduler.date.date_to_str("%H:%i");
         
         // // Parse event ID: "JobNo|JobTaskNo|PlanningLineNo|DayNo|DayLineNo"
         // var dayNo = "";
@@ -101,8 +102,9 @@ window.BOOT = function() {
         var html = "";
         if (ev.type === "capacity") {
             html = "<b>Event:</b> " + (ev.text || "") + "<br/>" +
-                   "<b>Start date:</b> " + formatDate(start) + "<br/>" +
-                   "<b>End date:</b> " + formatDate(end) + "<br/>" +                                      
+                   "<b>Date:</b> " + formatDateOnly(start) + "<br/>" +
+                   "<b>Start Time:</b> " + formatTimeOnly(start) + "<br/>" +
+                   "<b>End Time:</b> " + formatTimeOnly(end) + "<br/>" +                                      
                    "<b>Capacity entry no.:</b> " + (ev.id || "") + "<br/>";
         } else if (ev.type === "daytask" || ev.type === "vacancy") {
             // var parts = String(ev.section_id).split('|');
@@ -112,8 +114,9 @@ window.BOOT = function() {
             // }
             var vendor_name = ev.details || "";
             html = "<b>Event:</b> " + (ev.text || "") + "<br/>" +
-                   "<b>Start date:</b> " + formatDate(start) + "<br/>" +
-                   "<b>End date:</b> " + formatDate(end) + "<br/>" +                                      
+                   "<b>Date:</b> " + formatDateOnly(start) + "<br/>" +
+                   "<b>Start Time:</b> " + formatTimeOnly(start) + "<br/>" +
+                   "<b>End Time:</b> " + formatTimeOnly(end) + "<br/>" +                                      
                    "<b>Dayno|DayLineNo:</b> " + (ev.id || "") + "<br/>" +
                    "<b>vendor no.:</b> " + vendor_name;
         }
@@ -759,7 +762,8 @@ function RecreateTimelineView(sections) {
         x_step: 3,
         x_size: (8 * 7),
         x_length: (8 * 7),
-        event_dy: 60,
+        dy: 30,
+        event_dy: 30,
         section_autoheight: false,
         resize_events: true,
         y_unit: sections,

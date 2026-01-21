@@ -41,7 +41,7 @@ page 50620 "Gantt Demo DHX 2"
                     JobNo: Code[20];
                     TaskNo: Code[20];
                 begin
-                    EventIDList := eventId.Split('-');
+                    EventIDList := eventId.Split('|');
                     JobNo := EventIDList.Get(1);
                     TaskNo := EventIDList.Get(2);
                     PageHandler.OpenJobTaskCard(JobNo, TaskNo);

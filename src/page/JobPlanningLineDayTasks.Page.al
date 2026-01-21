@@ -144,4 +144,10 @@ page 50633 "Job Planning Line Day Tasks"
 
     var
         SetDoNotChangedOff: Boolean;
+
+    procedure SetFilterOnDayTasks(StartDate: Date; EndDate: Date)
+    begin
+        if (StartDate <> 0D) and (EndDate <> 0D) then
+            Rec.SetRange("Task Date", StartDate, EndDate);
+    end;
 }

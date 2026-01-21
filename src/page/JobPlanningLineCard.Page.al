@@ -372,4 +372,10 @@ page 50631 "Job Planning Line Card"
             }
         }
     }
+
+    procedure SetFilterOnDayTasks(StarDate: Date; EndDate: Date)
+    begin
+        if (StarDate <> 0D) and (EndDate <> 0D) then
+            CurrPage.DayTasksPart.Page.SetFilterOnDayTasks(StarDate, EndDate);
+    end;
 }

@@ -78,7 +78,8 @@ window.BOOT = function() {
 
     // Custom tooltip template
     scheduler.templates.tooltip_text = function(start, end, ev) {
-        var formatDate = scheduler.date.date_to_str("%Y-%m-%d %H:%i");
+        var formatDateOnly = scheduler.date.date_to_str("%d-%m-%Y");
+        var formatTimeOnly = scheduler.date.date_to_str("%H:%i");
         // Parse event ID: "JobNo|JobTaskNo|PlanningLineNo|DayNo|DayLineNo"
         var dayNo = "";
         var dayLineNo = "";
@@ -103,8 +104,9 @@ window.BOOT = function() {
         }
         
         var html = "<b>Event:</b> " + (ev.text || "") + "<br/>" +
-                   "<b>Start date:</b> " + formatDate(start) + "<br/>" +
-                   "<b>End date:</b> " + formatDate(end) + "<br/>" +
+                   "<b>Date:</b> " + formatDateOnly(start) + "<br/>" +
+                   "<b>Start Time:</b> " + formatTimeOnly(start) + "<br/>" +
+                   "<b>End Time:</b> " + formatTimeOnly(end) + "<br/>" +
                    "<b>Daytask detail:</b><br/>" +
                    "-----------------------------------<br/>" +
                    "<b>Day No:</b> " + dayNo + "<br/>" +
@@ -269,7 +271,27 @@ window.BOOT = function() {
 
     // Custom event registration for section double-click
     scheduler.attachEvent("onSectionDblClick", function(sectionId, label, viewdate) {
-        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnSectionDblClick", [sectionId, label, viewdate]);
+        // Get the current view period (start and end dates)
+        var state = scheduler.getState();
+        var periodStartDate = state.min_date;
+        var periodEndDate = state.max_date;
+        
+        // Optional: Get all events in this section within the current view period
+        var eventsInSection = scheduler.getEvents(periodStartDate, periodEndDate).filter(function(ev) {
+            return ev.section_id === sectionId;
+        });
+        
+        // Create payload with section info and period dates
+        var payload = {
+            sectionId: sectionId,
+            label: label,
+            viewdate: viewdate,
+            periodStart: periodStartDate.toISOString(),
+            periodEnd: periodEndDate.toISOString(),
+            eventCount: eventsInSection.length
+        };
+        
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnSectionDblClick", [sectionId, label, JSON.stringify(payload)]);
     });
 
     // DOM handler to fire the custom event

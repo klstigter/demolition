@@ -62,7 +62,7 @@ codeunit 50613 "GanttChartDataHandler"
     begin
 
         // Generate unique ID from Job No. and Job Task No.
-        JsonObject.Add('id', Format(JobTask."Job No.") + '-' + Format(JobTask."Job Task No."));
+        JsonObject.Add('id', Format(JobTask."Job No.") + '|' + Format(JobTask."Job Task No."));
 
 
 
