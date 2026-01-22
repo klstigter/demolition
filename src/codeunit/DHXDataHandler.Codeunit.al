@@ -6,7 +6,6 @@ codeunit 50604 "DHX Data Handler"
     end;
 
     var
-        IntegrationSetup: Record "Planning Integration Setup";
 
     //     '{' +
     //         '"data": [ ' +
@@ -240,6 +239,9 @@ codeunit 50604 "DHX Data Handler"
         DateRec: Record Date;
         Daytask: record "Day Tasks";
         Resource: Record Resource;
+
+        ResCapQry: Query "Capacity Per Day Per Resource";
+
         GroupResObject, InternalExternalObject, ResourceObject : JsonObject;
         GroupChildrenArray, InternalExternalChildrenArray : JsonArray;
         PlanningObject, Root : JsonObject;
@@ -254,8 +256,6 @@ codeunit 50604 "DHX Data Handler"
         EndDateTxt: Text;
         DummyEndDate: Date;
     begin
-        IntegrationSetup.Get();
-
         PlanninJsonTxt := '';
         //Marking Job based on Day Tasks within the given date range
         WeekTemp.Reset();
@@ -265,11 +265,12 @@ codeunit 50604 "DHX Data Handler"
         DateRec.SetRange("Period Start", StartDate, EndDate);
         if DateRec.findset then
             Repeat
-                //Add Event of Capacity
-                ResCap.SetRange(Date, DateRec."Period Start");
-                if ResCap.findset then
-                    repeat
-                        GetStartEndTxt(ResCap, StartDateTxt, EndDateTxt);
+                //Add Event of Capacity                
+                ResCapQry.SetRange(Date_filter, DateRec."Period Start"); // -> change with query to sum total capacity per day per resource
+                if ResCapQry.Open() then begin
+                    while ResCapQry.Read() do begin
+                        ResCap.Get(ResCapQry.Entry_No);
+                        GetStartEndTxt(ResCap, ResCapQry.Capacity, StartDateTxt, EndDateTxt);
                         Clear(PlanningObject);
                         section_id := ResCap."Resource Group No." + '|' + ResCap."Resource No.";
                         PlanningObject.Add('id', Format(ResCap."Entry No."));
@@ -291,7 +292,9 @@ codeunit 50604 "DHX Data Handler"
 
                         if AnchorDate = 0D then
                             CountToWeekNumber(ResCap."Date", WeekTemp);
-                    until ResCap.Next() = 0;
+                    end;
+                    ResCapQry.Close();
+                end;
 
                 //Add Event of Daytask
                 if WithDayTask then begin
@@ -504,23 +507,22 @@ codeunit 50604 "DHX Data Handler"
     end;
 
     local procedure GetStartEndTxt(ResCap: Record "Res. Capacity Entry";
+                                   Capacity: Decimal;
                                    var StartDateTxt: Text;
                                    var EndDateTxt: Text)
     var
-        WHTemplate: record "Work-Hour Template";
+        tm: Time;
         EndTime: Time;
     begin
         StartDateTxt := '';
         EndDateTxt := '';
         if ResCap."Date" = 0D then
             exit;
-        IntegrationSetup.TestField("Work-Hour Template");
-        WHTemplate.Get(IntegrationSetup."Work-Hour Template");
-        WHTemplate.TestField("Default Start Time");
-        WHTemplate.TestField("Default End Time");
-
-        StartDateTxt := ToSessionDateTimeTxt(ResCap."Date", WHTemplate."Default Start Time");
-        EndTime := WHTemplate."Default Start Time" + (ResCap.Capacity * 60 * 60 * 1000);
+        tm := ResCap."Start Time";
+        if tm = 0T then
+            tm := 070000T;
+        StartDateTxt := ToSessionDateTimeTxt(ResCap."Date", tm);
+        EndTime := tm + (Capacity * 60 * 60 * 1000);
         EndDateTxt := ToSessionDateTimeTxt(ResCap."Date", EndTime);
     end;
 
