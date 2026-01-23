@@ -12,165 +12,183 @@ page 50627 "Resource Capacity Settings Opt"
             group(General)
             {
                 Caption = 'General';
-                field(StartDate; StartDate)
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Starting Date';
-                    ToolTip = 'Specifies the starting date for the time period for which you want to change capacity.';
-                }
-                field(EndDate; EndDate)
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Ending Date';
-                    ToolTip = 'Specifies the end date relating to the resource capacity.';
 
-                    trigger OnValidate()
-                    begin
-                        if StartDate > EndDate then
-                            Error(Text000);
-                    end;
-                }
-                field(WorkTemplateCode; WorkTemplateCode)
+                Group(Parameters)
                 {
-                    ApplicationArea = Jobs;
-                    Caption = 'Work-Hour Template';
-                    LookupPageID = "Work-Hour Templates";
-                    TableRelation = "Work-Hour Template";
-                    ToolTip = 'Specifies the number of hours in the work week: 30, 36, or 40.';
+                    field(StartDate; StartDate)
+                    {
+                        ApplicationArea = Jobs;
+                        Caption = 'Starting Date';
+                        ToolTip = 'Specifies the starting date for the time period for which you want to change capacity.';
+                    }
+                    field(EndDate; EndDate)
+                    {
+                        ApplicationArea = Jobs;
+                        Caption = 'Ending Date';
+                        ToolTip = 'Specifies the end date relating to the resource capacity.';
 
-                    trigger OnValidate()
-                    begin
-                        if WorkTemplateRec.Get(WorkTemplateCode) then begin
-                            StartTime := WorkTemplateRec."Default Start Time";
-                            EndTime := WorkTemplateRec."Default End Time";
+                        trigger OnValidate()
+                        begin
+                            if StartDate > EndDate then
+                                Error(Text000);
                         end;
-                        SumWeekTotal();
-                    end;
+                    }
+                    field(WorkTemplateCode; WorkTemplateCode)
+                    {
+                        ApplicationArea = Jobs;
+                        Caption = 'Work-Hour Template';
+                        LookupPageID = "Work-Hour Templates";
+                        TableRelation = "Work-Hour Template";
+                        ToolTip = 'Specifies the number of hours in the work week: 30, 36, or 40.';
+
+                        trigger OnValidate()
+                        begin
+                            if WorkTemplateRec.Get(WorkTemplateCode) then begin
+                                StartTime := WorkTemplateRec."Default Start Time";
+                                EndTime := WorkTemplateRec."Default End Time";
+                            end;
+                            SumWeekTotal();
+                        end;
+                    }
+
+                    field(StartTime; StartTime)
+                    {
+                        ApplicationArea = Jobs;
+                        Caption = 'Start Time';
+                        ToolTip = 'Specifies the default start time for the resource working hours.';
+
+                        trigger OnValidate()
+                        begin
+                            UseCustomTimes := true;
+                            RecalculateWeekHours();
+                        end;
+                    }
+                    field(EndTime; EndTime)
+                    {
+                        ApplicationArea = Jobs;
+                        Caption = 'End Time';
+                        ToolTip = 'Specifies the default end time for the resource working hours.';
+
+                        trigger OnValidate()
+                        begin
+                            UseCustomTimes := true;
+                            RecalculateWeekHours();
+                        end;
+                    }
+                    field(NoOfDuplicates; NoOfDuplicates)
+                    {
+                        ApplicationArea = Jobs;
+                        Caption = 'Number of Duplicates';
+                        ToolTip = 'Specifies the number of times you want to duplicate the capacity change.';
+
+                        trigger OnValidate()
+                        begin
+                            if NoOfDuplicates < 1 then
+                                NoOfDuplicates := 1;
+                        end;
+                    }
                 }
-
-                field(StartTime; StartTime)
+                group(HoursCalculation)
                 {
-                    ApplicationArea = Jobs;
-                    Caption = 'Start Time';
-                    ToolTip = 'Specifies the default start time for the resource working hours.';
+                    field("WorkTemplateRec.Monday"; WorkTemplateRec.Monday)
+                    {
+                        ApplicationArea = Jobs;
+                        Caption = 'Monday';
+                        MaxValue = 24;
+                        MinValue = 0;
+                        ToolTip = 'Specifies the number of work-hours on Monday.';
 
-                    trigger OnValidate()
-                    begin
-                        UseCustomTimes := true;
-                        RecalculateWeekHours();
-                    end;
-                }
-                field(EndTime; EndTime)
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'End Time';
-                    ToolTip = 'Specifies the default end time for the resource working hours.';
+                        trigger OnValidate()
+                        begin
+                            SumWeekTotal();
+                        end;
+                    }
+                    field("WorkTemplateRec.Tuesday"; WorkTemplateRec.Tuesday)
+                    {
+                        ApplicationArea = Jobs;
+                        Caption = 'Tuesday';
+                        MaxValue = 24;
+                        MinValue = 0;
+                        ToolTip = 'Specifies the number of work-hours on Tuesday.';
 
-                    trigger OnValidate()
-                    begin
-                        UseCustomTimes := true;
-                        RecalculateWeekHours();
-                    end;
-                }
+                        trigger OnValidate()
+                        begin
+                            SumWeekTotal();
+                        end;
+                    }
+                    field("WorkTemplateRec.Wednesday"; WorkTemplateRec.Wednesday)
+                    {
+                        ApplicationArea = Jobs;
+                        Caption = 'Wednesday';
+                        MaxValue = 24;
+                        MinValue = 0;
+                        ToolTip = 'Specifies the number of work-hours on Wednesday.';
 
-                field("WorkTemplateRec.Monday"; WorkTemplateRec.Monday)
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Monday';
-                    MaxValue = 24;
-                    MinValue = 0;
-                    ToolTip = 'Specifies the number of work-hours on Monday.';
+                        trigger OnValidate()
+                        begin
+                            SumWeekTotal();
+                        end;
+                    }
+                    field("WorkTemplateRec.Thursday"; WorkTemplateRec.Thursday)
+                    {
+                        ApplicationArea = Jobs;
+                        Caption = 'Thursday';
+                        MaxValue = 24;
+                        MinValue = 0;
+                        ToolTip = 'Specifies the number of work-hours on Thursday.';
 
-                    trigger OnValidate()
-                    begin
-                        SumWeekTotal();
-                    end;
-                }
-                field("WorkTemplateRec.Tuesday"; WorkTemplateRec.Tuesday)
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Tuesday';
-                    MaxValue = 24;
-                    MinValue = 0;
-                    ToolTip = 'Specifies the number of work-hours on Tuesday.';
+                        trigger OnValidate()
+                        begin
+                            SumWeekTotal();
+                        end;
+                    }
+                    field("WorkTemplateRec.Friday"; WorkTemplateRec.Friday)
+                    {
+                        ApplicationArea = Jobs;
+                        Caption = 'Friday';
+                        MaxValue = 24;
+                        MinValue = 0;
+                        ToolTip = 'Specifies the work-hour schedule for Friday.';
 
-                    trigger OnValidate()
-                    begin
-                        SumWeekTotal();
-                    end;
-                }
-                field("WorkTemplateRec.Wednesday"; WorkTemplateRec.Wednesday)
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Wednesday';
-                    MaxValue = 24;
-                    MinValue = 0;
-                    ToolTip = 'Specifies the number of work-hours on Wednesday.';
+                        trigger OnValidate()
+                        begin
+                            SumWeekTotal();
+                        end;
+                    }
+                    field("WorkTemplateRec.Saturday"; WorkTemplateRec.Saturday)
+                    {
+                        ApplicationArea = Jobs;
+                        Caption = 'Saturday';
+                        MaxValue = 24;
+                        MinValue = 0;
+                        ToolTip = 'Specifies the number of work-hours on Friday.';
 
-                    trigger OnValidate()
-                    begin
-                        SumWeekTotal();
-                    end;
-                }
-                field("WorkTemplateRec.Thursday"; WorkTemplateRec.Thursday)
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Thursday';
-                    MaxValue = 24;
-                    MinValue = 0;
-                    ToolTip = 'Specifies the number of work-hours on Thursday.';
+                        trigger OnValidate()
+                        begin
+                            SumWeekTotal();
+                        end;
+                    }
+                    field("WorkTemplateRec.Sunday"; WorkTemplateRec.Sunday)
+                    {
+                        ApplicationArea = Jobs;
+                        Caption = 'Sunday';
+                        MaxValue = 24;
+                        MinValue = 0;
+                        ToolTip = 'Specifies the number of work-hours on Saturday.';
 
-                    trigger OnValidate()
-                    begin
-                        SumWeekTotal();
-                    end;
-                }
-                field("WorkTemplateRec.Friday"; WorkTemplateRec.Friday)
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Friday';
-                    MaxValue = 24;
-                    MinValue = 0;
-                    ToolTip = 'Specifies the work-hour schedule for Friday.';
-
-                    trigger OnValidate()
-                    begin
-                        SumWeekTotal();
-                    end;
-                }
-                field("WorkTemplateRec.Saturday"; WorkTemplateRec.Saturday)
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Saturday';
-                    MaxValue = 24;
-                    MinValue = 0;
-                    ToolTip = 'Specifies the number of work-hours on Friday.';
-
-                    trigger OnValidate()
-                    begin
-                        SumWeekTotal();
-                    end;
-                }
-                field("WorkTemplateRec.Sunday"; WorkTemplateRec.Sunday)
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Sunday';
-                    MaxValue = 24;
-                    MinValue = 0;
-                    ToolTip = 'Specifies the number of work-hours on Saturday.';
-
-                    trigger OnValidate()
-                    begin
-                        SumWeekTotal();
-                    end;
-                }
-                field(WeekTotal; WeekTotal)
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Week Total';
-                    DecimalPlaces = 0 : 5;
-                    Editable = false;
-                    ToolTip = 'Specifies the total number of hours for the week. The total is calculated automatically.';
+                        trigger OnValidate()
+                        begin
+                            SumWeekTotal();
+                        end;
+                    }
+                    field(WeekTotal; WeekTotal)
+                    {
+                        ApplicationArea = Jobs;
+                        Caption = 'Week Total';
+                        DecimalPlaces = 0 : 5;
+                        Editable = false;
+                        ToolTip = 'Specifies the total number of hours for the week. The total is calculated automatically.';
+                    }
                 }
             }
         }
@@ -204,6 +222,7 @@ page 50627 "Resource Capacity Settings Opt"
                 var
                     CustomizedCalendarChange: Record "Customized Calendar Change";
                     NewCapacity: Decimal;
+                    LoopCounter: Integer;
                 begin
                     if StartDate = 0D then
                         Error(Text002);
@@ -239,38 +258,77 @@ page 50627 "Resource Capacity Settings Opt"
                         end;
 
                         if NewCapacity <> 0 then begin
-                            ResCapacityEntry2.Reset();
-                            if ResCapacityEntry2.FindLast() then;
-                            LastEntry := ResCapacityEntry2."Entry No." + 1;
-                            ResCapacityEntry2.Init();
-                            ResCapacityEntry2."Entry No." := LastEntry;
-                            ResCapacityEntry2.Capacity := -NewCapacity;
-                            ResCapacityEntry2."Resource No." := Rec."No.";
-                            ResCapacityEntry2."Resource Group No." := Rec."Resource Group No.";
-                            ResCapacityEntry2.Date := TempDate;
+                            if NoOfDuplicates > 1 then begin
+                                // Create NoOfDuplicates entries for each day
+                                for LoopCounter := 1 to NoOfDuplicates do begin
+                                    ResCapacityEntry2.Reset();
+                                    if ResCapacityEntry2.FindLast() then;
+                                    LastEntry := ResCapacityEntry2."Entry No." + 1;
+                                    ResCapacityEntry2.Init();
+                                    ResCapacityEntry2."Entry No." := LastEntry;
+                                    ResCapacityEntry2.Capacity := -NewCapacity;
+                                    ResCapacityEntry2."Resource No." := Rec."No.";
+                                    ResCapacityEntry2."Resource Group No." := Rec."Resource Group No.";
+                                    ResCapacityEntry2.Date := TempDate;
 
-                            //<< Custom here
-                            // Use custom times if manually set, otherwise use template defaults
-                            if UseCustomTimes and (StartTime <> 0T) then begin
-                                ResCapacityEntry2."Start Time" := StartTime;
-                                if EndTime <> 0T then
-                                    ResCapacityEntry2."End Time" := EndTime
-                                else
-                                    ResCapacityEntry2."End Time" := StartTime + (Abs(ResCapacityEntry2.Capacity) * 3600000);
-                            end else if WorkTemplateRec.Get(WorkTemplateCode) then begin
-                                if WorkTemplateRec."Default Start Time" <> 0T then begin
-                                    ResCapacityEntry2."Start Time" := WorkTemplateRec."Default Start Time";
-                                    if WorkTemplateRec."Default End Time" <> 0T then
-                                        ResCapacityEntry2."End Time" := WorkTemplateRec."Default End Time"
-                                    else
-                                        // Calculate end time with automatic wrap-around after 24 hours
-                                        // Example: 21:00 + 8 hours = 05:00
-                                        ResCapacityEntry2."End Time" := WorkTemplateRec."Default Start Time" + (Abs(ResCapacityEntry2.Capacity) * 3600000);
+                                    //<< Custom here
+                                    // Use custom times if manually set, otherwise use template defaults
+                                    if UseCustomTimes and (StartTime <> 0T) then begin
+                                        ResCapacityEntry2."Start Time" := StartTime;
+                                        if EndTime <> 0T then
+                                            ResCapacityEntry2."End Time" := EndTime
+                                        else
+                                            ResCapacityEntry2."End Time" := StartTime + (Abs(ResCapacityEntry2.Capacity) * 3600000);
+                                    end else if WorkTemplateRec.Get(WorkTemplateCode) then begin
+                                        if WorkTemplateRec."Default Start Time" <> 0T then begin
+                                            ResCapacityEntry2."Start Time" := WorkTemplateRec."Default Start Time";
+                                            if WorkTemplateRec."Default End Time" <> 0T then
+                                                ResCapacityEntry2."End Time" := WorkTemplateRec."Default End Time"
+                                            else
+                                                // Calculate end time with automatic wrap-around after 24 hours
+                                                // Example: 21:00 + 8 hours = 05:00
+                                                ResCapacityEntry2."End Time" := WorkTemplateRec."Default Start Time" + (Abs(ResCapacityEntry2.Capacity) * 3600000);
+                                        end;
+                                    end;
+                                    //>>
+
+                                    if ResCapacityEntry2.Insert(true) then;
                                 end;
-                            end;
-                            //>>
+                            end else begin
+                                // Create single entry for each day
+                                ResCapacityEntry2.Reset();
+                                if ResCapacityEntry2.FindLast() then;
+                                LastEntry := ResCapacityEntry2."Entry No." + 1;
+                                ResCapacityEntry2.Init();
+                                ResCapacityEntry2."Entry No." := LastEntry;
+                                ResCapacityEntry2.Capacity := -NewCapacity;
+                                ResCapacityEntry2."Resource No." := Rec."No.";
+                                ResCapacityEntry2."Resource Group No." := Rec."Resource Group No.";
+                                ResCapacityEntry2.Date := TempDate;
 
-                            if ResCapacityEntry2.Insert(true) then;
+                                //<< Custom here
+                                // Use custom times if manually set, otherwise use template defaults
+                                if UseCustomTimes and (StartTime <> 0T) then begin
+                                    ResCapacityEntry2."Start Time" := StartTime;
+                                    if EndTime <> 0T then
+                                        ResCapacityEntry2."End Time" := EndTime
+                                    else
+                                        ResCapacityEntry2."End Time" := StartTime + (Abs(ResCapacityEntry2.Capacity) * 3600000);
+                                end else if WorkTemplateRec.Get(WorkTemplateCode) then begin
+                                    if WorkTemplateRec."Default Start Time" <> 0T then begin
+                                        ResCapacityEntry2."Start Time" := WorkTemplateRec."Default Start Time";
+                                        if WorkTemplateRec."Default End Time" <> 0T then
+                                            ResCapacityEntry2."End Time" := WorkTemplateRec."Default End Time"
+                                        else
+                                            // Calculate end time with automatic wrap-around after 24 hours
+                                            // Example: 21:00 + 8 hours = 05:00
+                                            ResCapacityEntry2."End Time" := WorkTemplateRec."Default Start Time" + (Abs(ResCapacityEntry2.Capacity) * 3600000);
+                                    end;
+                                end;
+                                //>>
+
+                                if ResCapacityEntry2.Insert(true) then;
+                            end;
                             ChangedDays := ChangedDays + 1;
                         end;
                         TempDate := TempDate + 1;
@@ -320,6 +378,7 @@ page 50627 "Resource Capacity Settings Opt"
     var
         StartTime: Time;
         EndTime: Time;
+        NoOfDuplicates: Integer;
         WorkTemplateRec: Record "Work-Hour Template";
         ResCapacityEntry: Record "Res. Capacity Entry";
         CompanyInformation: Record "Company Information";

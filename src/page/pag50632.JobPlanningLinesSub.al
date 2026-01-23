@@ -844,20 +844,6 @@ page 50632 "Job Planning Lines Sub"
                         PurchaseDocFromJob.CreatePurchaseOrder(Job);
                     end;
                 }
-                action("DownloadJsonRequest")
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Download JSon Request text';
-                    Image = LinkWeb;
-                    ToolTip = 'Download JSon Request text for Planning Integration system.';
-
-                    trigger OnAction()
-                    var
-                        RestMgt: Codeunit "Rest API Mgt.";
-                    begin
-                        RestMgt.PushJobPlanningLineToIntegration(Rec, true);
-                    end;
-                }
             }
         }
     }
@@ -898,62 +884,6 @@ page 50632 "Job Planning Lines Sub"
 
         CanSendToCalendar := EmailAccount.IsAnyAccountRegistered();
         ExtendedPriceEnabled := PriceCalculationMgt.IsExtendedPriceCalculationEnabled();
-    end;
-
-
-
-    trigger OnInsertRecord(BelowxRec: Boolean): Boolean
-    var
-        IntegrationSetup: Record "Planning Integration Setup";
-        RestMgt: Codeunit "Rest API Mgt.";
-        auto: Boolean;
-    begin
-        // Integration
-        if (Rec."Job No." <> '')
-           and (Rec."Job Task No." <> '')
-           and (Rec."Line No." <> 0)
-        then begin
-            auto := IntegrationSetup.Get();
-            if auto then
-                auto := IntegrationSetup."Auto Sync. Integration";
-            if not auto then
-                exit;
-            RestMgt.PushJobPlanningLineToIntegration(Rec, false);
-        end;
-    end;
-
-    trigger OnDeleteRecord(): Boolean
-    var
-        RestMgt: Codeunit "Rest API Mgt.";
-    begin
-        RestMgt.DeleteIntegrationJobPlanningLine(Rec, false);
-    end;
-
-
-    trigger OnModifyRecord(): Boolean
-    var
-        Res: Record Resource;
-        Ven: Record Vendor;
-        IntegrationSetup: Record "Planning Integration Setup";
-        RestMgt: Codeunit "Rest API Mgt.";
-        auto: Boolean;
-    begin
-        if Rec."System-Created Entry" then
-            if Confirm(Text001, false) then
-                Rec."System-Created Entry" := false
-            else
-                Error('');
-
-        // Integration
-        auto := IntegrationSetup.Get();
-        if auto then
-            auto := IntegrationSetup."Auto Sync. Integration";
-        if auto then
-            auto := (Rec."Vendor No." <> xRec."Vendor No.")
-                    or (Rec."No." <> xRec."No.");
-        if not auto then
-            exit;
-        RestMgt.PushJobPlanningLineToIntegration(Rec, false);
     end;
 
     trigger OnNewRecord(BelowxRec: Boolean)

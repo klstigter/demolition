@@ -156,29 +156,6 @@ tableextension 50600 "Job Planning Line ext" extends "Job Planning Line"
         // Add changes to field groups here
     }
 
-
-    trigger OnAfterModify()
-    var
-        Res: Record Resource;
-        Ven: Record Vendor;
-        IntegrationSetup: Record "Planning Integration Setup";
-        RestMgt: Codeunit "Rest API Mgt.";
-        auto: Boolean;
-    begin
-        BalanceResourceQnty();
-
-        if Rec."No." <> xRec."No." then
-            if Type = Type::Resource then
-                if Res.Get(Rec."No.") then
-                    if Res."Planning Vendor Id" <> 0 then begin
-                        Ven.SetRange("Planning Vendor id", Res."Planning Vendor Id");
-                        if Ven.FindFirst() then begin
-                            "Vendor No." := Ven."No.";
-                            Modify();
-                        end;
-                    end;
-    end;
-
     var
         job: Record Job;
         genUtil: Codeunit "General Planning Utilities";
@@ -261,29 +238,6 @@ tableextension 50600 "Job Planning Line ext" extends "Job Planning Line"
         // Convert to hours (decimal)
         "Working Hours" := WorkingMinutes / 60;
 
-    end;
-
-    procedure GetResourceOrProductIDFromPlanningIntegration(): Integer
-    var
-        Resource: Record Resource;
-        Item: Record Item;
-        rtv: Integer;
-    begin
-        rtv := 0;
-        if Rec."No." <> '' then
-            case Rec.Type of
-                Rec.Type::Resource:
-                    begin
-                        if Resource.Get(Rec."No.") then
-                            rtv := Resource."Planning Resource Id";
-                    end;
-                Rec.Type::Item:
-                    begin
-                        if Item.Get(Rec."No.") then
-                            rtv := Item."Planning Product Id";
-                    end;
-            end;
-        exit(rtv);
     end;
 
     local procedure GetJob()

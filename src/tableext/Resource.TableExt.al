@@ -1,15 +1,12 @@
-tableextension 50603 "Resource Ext" extends Resource
+tableextension 50603 "Resource Opt" extends Resource
 {
     fields
     {
         // Add changes to table fields here
-        field(50600; "Planning Resource Id"; Integer)
+        field(50600; "Pool Resource No."; Code[20])
         {
             DataClassification = ToBeClassified;
-        }
-        field(50601; "Planning Vendor Id"; Integer)
-        {
-            DataClassification = ToBeClassified;
+            tablerelation = Resource;
         }
     }
 
@@ -24,5 +21,5 @@ tableextension 50603 "Resource Ext" extends Resource
     }
 
     var
-        myInt: Integer;
+
 }
