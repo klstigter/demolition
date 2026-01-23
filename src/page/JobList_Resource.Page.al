@@ -216,34 +216,6 @@ page 50609 "Job List - Resource"
                         message('Daypilot is deprecated., convert it to dhtmlx scheduler');
                     end;
                 }
-                action("PushToPlanningIntegration")
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Push to Planning Integration';
-                    Image = LinkWeb;
-                    ToolTip = 'Submit project, Tasks, and Planning Lines into Planning Integration system.';
-
-                    trigger OnAction()
-                    var
-                        RestMgt: Codeunit "Rest API Mgt.";
-                    begin
-                        RestMgt.PushProjectToPlanningIntegration(Rec, false);
-                    end;
-                }
-                action("DownloadJsonRequest")
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Download JSon Request text';
-                    Image = LinkWeb;
-                    ToolTip = 'Download JSon Request text for Planning Integration system.';
-
-                    trigger OnAction()
-                    var
-                        RestMgt: Codeunit "Rest API Mgt.";
-                    begin
-                        RestMgt.PushProjectToPlanningIntegration(Rec, true);
-                    end;
-                }
                 group("&Dimensions")
                 {
                     Caption = '&Dimensions';
@@ -938,12 +910,6 @@ page 50609 "Job List - Resource"
                 {
                 }
                 actionref("Planning Lines Board Promoted"; "Planning Lines Board")
-                {
-                }
-                actionref("PushToPlanningIntegration Promoted"; "PushToPlanningIntegration")
-                {
-                }
-                actionref("DownloadJsonRequest Promoted"; "DownloadJsonRequest")
                 {
                 }
                 actionref("Ledger E&ntries_Promoted"; "Ledger E&ntries")

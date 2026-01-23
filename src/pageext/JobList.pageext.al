@@ -25,63 +25,10 @@ pageextension 50602 "Job List Opti" extends "Job List"
                     Page.RunModal(0, JobPlanningLine);
                 end;
             }
-
-            action("Planning Lines Board")
-            {
-                ApplicationArea = Jobs;
-                Caption = 'Visual Planning';
-                Image = ResourcePlanning;
-                ToolTip = 'Plan how you want to set up your planning information. In this window you can specify "Project Planning Line" per Task.';
-
-                trigger OnAction()
-                var
-                    JobMgt: Codeunit "Job Planning Line Handler";
-                begin
-                    //JobMgt.OpenTaskSchedulerAllJob();
-                    message('Daypilot is deprecated., convert it to dhtmlx scheduler');
-                end;
-            }
-            action("PushToPlanningIntegration")
-            {
-                ApplicationArea = Jobs;
-                Caption = 'Push to Planning Integration';
-                Image = LinkWeb;
-                ToolTip = 'Submit project, Tasks, and Planning Lines into Planning Integration system.';
-
-                trigger OnAction()
-                var
-                    RestMgt: Codeunit "Rest API Mgt.";
-                begin
-                    RestMgt.PushProjectToPlanningIntegration(Rec, false);
-                end;
-            }
-            action("DownloadJsonRequest")
-            {
-                ApplicationArea = Jobs;
-                Caption = 'Download JSon Request text';
-                Image = LinkWeb;
-                ToolTip = 'Download JSon Request text for Planning Integration system.';
-
-                trigger OnAction()
-                var
-                    RestMgt: Codeunit "Rest API Mgt.";
-                begin
-                    RestMgt.PushProjectToPlanningIntegration(Rec, true);
-                end;
-            }
         }
         addafter("Job Task &Lines_Promoted")
         {
             actionref("Job Planning Lines Promoted"; "Planning Lines")
-            {
-            }
-            actionref("Planning Lines Board Promoted"; "Planning Lines Board")
-            {
-            }
-            actionref("PushToPlanningIntegration Promoted"; "PushToPlanningIntegration")
-            {
-            }
-            actionref("DownloadJsonRequest Promoted"; "DownloadJsonRequest")
             {
             }
         }

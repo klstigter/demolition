@@ -910,22 +910,6 @@ page 50616 "Job Planning Line (Resource)"
                     Caption = 'Visual Planning Resource';
                     RunObject = codeunit "Resource DayPilot Handler";
                 }
-                action("PushToPlanningIntegration")
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Push data';
-                    Image = LinkWeb;
-                    ToolTip = 'Submit project, Tasks, and Planning Lines into Planning Integration system.';
-
-                    trigger OnAction()
-                    var
-                        RestMgt: Codeunit "Rest API Mgt.";
-                        Job: Record Job;
-                    begin
-                        if job.GET(rec."Job No.") then
-                            RestMgt.PushProjectToPlanningIntegration(job, false);
-                    end;
-                }
                 action("Refresh")
                 {
                     ApplicationArea = Jobs;
@@ -1043,18 +1027,6 @@ page 50616 "Job Planning Line (Resource)"
                         this.InsertExtendedText(true);
                     end;
                 }
-                action(DownloadDeleteJSon) //Custom
-                {
-                    Caption = 'Download DeleteJSon';
-                    ApplicationArea = All;
-
-                    trigger OnAction()
-                    var
-                        RestMgt: Codeunit "Rest API Mgt.";
-                    begin
-                        RestMgt.DeleteIntegrationJobPlanningLine(Rec, true);
-                    end;
-                }
                 action(ExplodeBOM_Functions)
                 {
                     AccessByPermission = TableData "BOM Component" = R;
@@ -1160,7 +1132,6 @@ page 50616 "Job Planning Line (Resource)"
                 actionref("Nex_filter"; "NextTodayFilter") { }
                 actionref("VisualPlanningJobRef"; "VisualPlanning") { }
                 actionref("VisualPlanningResRef"; "VisualPlanningRes") { }
-                actionref("PushToPlanningIntegrationRef"; "PushToPlanningIntegration") { }
                 actionref("RefreshRef"; "Refresh") { }
             }
             group(Category_Process)
@@ -1293,38 +1264,6 @@ page 50616 "Job Planning Line (Resource)"
         ExtendedPriceEnabled := PriceCalculationMgt.IsExtendedPriceCalculationEnabled();
     end;
 
-    trigger OnModifyRecord(): Boolean
-    var
-        IntegrationSetup: Record "Planning Integration Setup";
-        RestMgt: Codeunit "Rest API Mgt.";
-        auto: Boolean;
-    begin
-        if Rec."System-Created Entry" then
-            if Confirm(Text001, false) then
-                Rec."System-Created Entry" := false
-            else
-                Error('');
-        //<<Custom
-        // Integration
-        auto := IntegrationSetup.Get();
-        if auto then
-            auto := IntegrationSetup."Auto Sync. Integration";
-        if auto then
-            auto := (Rec."Vendor No." <> xRec."Vendor No.")
-                    or (Rec."No." <> xRec."No.");
-        if not auto then
-            exit;
-        RestMgt.PushJobPlanningLineToIntegration(Rec, false);
-        //>>
-    end;
-
-    trigger OnDeleteRecord(): Boolean
-    var
-        RestMgt: Codeunit "Rest API Mgt.";
-    begin
-        RestMgt.DeleteIntegrationJobPlanningLine(Rec, false);
-    end;
-
     trigger OnNewRecord(BelowxRec: Boolean)
     begin
         Rec.SetUpNewLine(xRec);
@@ -1351,26 +1290,6 @@ page 50616 "Job Planning Line (Resource)"
         Rec.SetRange("Start Planning Date", Today);
         CurrFilterDate := Today;
         //>>
-    end;
-
-    trigger OnInsertRecord(BelowxRec: Boolean): Boolean
-    var
-        IntegrationSetup: Record "Planning Integration Setup";
-        RestMgt: Codeunit "Rest API Mgt.";
-        auto: Boolean;
-    begin
-        // Integration
-        if (Rec."Job No." <> '')
-           and (Rec."Job Task No." <> '')
-           and (Rec."Line No." <> 0)
-        then begin
-            auto := IntegrationSetup.Get();
-            if auto then
-                auto := IntegrationSetup."Auto Sync. Integration";
-            if not auto then
-                exit;
-            RestMgt.PushJobPlanningLineToIntegration(Rec, false);
-        end;
     end;
 
     var
