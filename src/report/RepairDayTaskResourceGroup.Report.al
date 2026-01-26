@@ -23,6 +23,7 @@ report 50600 "RepairDayTaskResGroup"
             repeat
                 Resource.Get(DayTasks."No.");
                 DayTasks.Validate("Resource Group No.", Resource."Resource Group No.");
+                DayTasks.CalculateWorkingHours();
                 DayTasks.Modify(true);
                 NCounter += 1;
             until DayTasks.Next() = 0;

@@ -112,6 +112,12 @@ table 50610 "Day Tasks"
                 end;
             end;
         }
+        field(24; "Skill"; Code[20])
+        {
+            Caption = 'Skill';
+            FieldClass = FlowField;
+            CalcFormula = max("Resource Skill"."Skill Code" where("No." = field("No."), Type = const(Resource)));
+        }
 
         field(30; Quantity; Decimal)
         {
@@ -183,6 +189,29 @@ table 50610 "Day Tasks"
             Caption = 'Do Not Change automatically by process';
             Editable = false;
         }
+
+        field(100; "Date Filter"; Date)
+        {
+            Caption = 'Date Filter';
+            FieldClass = FlowFilter;
+        }
+
+        field(110; Capacity; Decimal)
+        {
+            CalcFormula = sum("Res. Capacity Entry".Capacity where("Resource No." = field("No."),
+                                                                    Date = field("Date Filter")));
+            Caption = 'Capacity';
+            DecimalPlaces = 0 : 5;
+            FieldClass = FlowField;
+        }
+        field(120; "Fulfilled"; Boolean)
+        {
+            Caption = 'Fulfilled';
+        }
+        field(130; "Remaining Hours"; Decimal)
+        {
+            Caption = 'Remaining Hours';
+        }
     }
     keys
     {
@@ -210,8 +239,11 @@ table 50610 "Day Tasks"
 
     procedure CalculateWorkingHours()
     var
-        TotalMinutes: Integer;
+        PlanningUtil: codeunit "General Planning Utilities";
         WorkingMinutes: Integer;
+        WorkHours: Decimal;
+        RemaningHours: Decimal;
+        Capacity: Decimal;
     begin
         // If either time is not set, clear both hours fields
         if ("Start Time" = 0T) or ("End Time" = 0T) then begin
@@ -220,16 +252,16 @@ table 50610 "Day Tasks"
             exit;
         end;
 
-        // Calculate total minutes in a day (24 hours)
-        TotalMinutes := 24 * 60;
+        // // Calculate working minutes
+        // WorkingMinutes := ("End Time" - "Start Time") div 60000;
+        // WorkingMinutes := WorkingMinutes - "Non Working Minutes";
 
-        // Calculate working minutes
-        WorkingMinutes := ("End Time" - "Start Time") div 60000;
-        WorkingMinutes := WorkingMinutes - "Non Working Minutes";
+        // // Convert to hours (decimal)
+        // "Working Hours" := WorkingMinutes / 60;
 
-        // Convert to hours (decimal)
-        "Working Hours" := WorkingMinutes / 60;
-
+        Fulfilled := PlanningUtil.DayTaskFulFillment(Rec, WorkHours, RemaningHours, Capacity);
+        "Working Hours" := WorkHours;
+        "Remaining Hours" := RemaningHours;
     end;
 
     procedure CheckFirstandLastDay("Job No.": Code[20]);

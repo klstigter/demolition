@@ -17,7 +17,9 @@ tableextension 50603 "Resource Opt" extends Resource
 
     fieldgroups
     {
-        // Add changes to field groups here
+        addlast(DropDown; "Resource Group No.")
+        {
+        }
     }
 
     var
