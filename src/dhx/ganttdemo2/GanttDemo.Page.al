@@ -101,7 +101,7 @@ page 50620 "Gantt Demo DHX 2"
                     outstream: OutStream;
                     va: variant;
                 begin
-                    JsonTxt := GanttChartDataHandler.GetJobTasksAsJson(Setup."From Date", setup."Job No. Filter");
+                    JsonTxt := GanttChartDataHandler.GetJobTasksAsJson(AnchorDate);
                     tempblob.CreateOutStream(outstream);
                     outstream.WriteText(JsonTxt);
                     tempblob.CreateInStream(instream);
@@ -211,9 +211,7 @@ page 50620 "Gantt Demo DHX 2"
                 Image = Refresh;
                 trigger OnAction()
                 begin
-                    CurrPage.DHXGanttControl2.ClearData();
-                    Setup.Get(UserId);
-                    LoadPageData();
+                    RefreshGantt();
                 end;
             }
         }
@@ -231,6 +229,57 @@ page 50620 "Gantt Demo DHX 2"
                     page.RunModal(Page::"Day Tasks");
                 end;
             }
+
+            action(TodayAct)
+            {
+                Caption = 'Today';
+                ApplicationArea = All;
+                Image = Position;
+                Visible = ShowPreviousNext;
+                trigger OnAction()
+                begin
+                    AnchorDate := Today();
+                    RefreshGantt();
+                end;
+            }
+            action(PreviousAct)
+            {
+                Caption = 'Previous';
+                ApplicationArea = All;
+                Image = PreviousSet;
+                Visible = ShowPreviousNext;
+                trigger OnAction()
+                begin
+                    Case Setup."Date Range Type" of
+                        Setup."Date Range Type"::Weekly:
+                            AnchorDate := CalcDate('<-1W>', AnchorDate);
+                        Setup."Date Range Type"::Monthly:
+                            AnchorDate := CalcDate('<-1M>', AnchorDate);
+                        Setup."Date Range Type"::Yearly:
+                            AnchorDate := CalcDate('<-1Y>', AnchorDate);
+                    End;
+                    RefreshGantt();
+                end;
+            }
+            action(NextAct)
+            {
+                Caption = 'Next';
+                ApplicationArea = All;
+                Image = NextSet;
+                Visible = ShowPreviousNext;
+                trigger OnAction()
+                begin
+                    Case Setup."Date Range Type" of
+                        Setup."Date Range Type"::Weekly:
+                            AnchorDate := CalcDate('<1W>', AnchorDate);
+                        Setup."Date Range Type"::Monthly:
+                            AnchorDate := CalcDate('<1M>', AnchorDate);
+                        Setup."Date Range Type"::Yearly:
+                            AnchorDate := CalcDate('<1Y>', AnchorDate);
+                    End;
+                    RefreshGantt();
+                end;
+            }
         }
 
 
@@ -244,6 +293,9 @@ page 50620 "Gantt Demo DHX 2"
                 actionref("RedoPromoted"; Redo) { }
                 actionref("AddMarkerPromoted"; AddMarker) { }
                 actionref("RefreshDataPromoted"; RefreshData) { }
+                actionref("Prev_filter"; PreviousAct) { }
+                actionref("Today_filter"; Todayact) { }
+                actionref("Next_filter"; Nextact) { }
             }
             group(Category_Category4)
             {
@@ -261,12 +313,29 @@ page 50620 "Gantt Demo DHX 2"
 
         }
     }
+
+    trigger OnOpenPage()
+    begin
+        Setup.Get(UserId);
+        AnchorDate := Today();
+        ShowPreviousNext := not (Setup."Date Range Type" = Setup."Date Range Type"::"Date Range");
+    end;
+
     var
+        AnchorDate: Date;
         ToggleAutoScheduling: Boolean;
         PageHandler: Codeunit "Gantt BC Page Handler";
         general: Codeunit "General Planning Utilities";
         Setup: Record "Gantt Chart Setup";
         GanttChartDataHandler: Codeunit "GanttChartDataHandler";
+        ShowPreviousNext: Boolean;
+
+    procedure RefreshGantt()
+    begin
+        CurrPage.DHXGanttControl2.ClearData();
+        Setup.Get(UserId);
+        LoadPageData();
+    end;
 
     procedure OnJobTaskUpdated(TaskJson: Text)
     var
@@ -394,6 +463,9 @@ page 50620 "Gantt Demo DHX 2"
 
     local procedure LoadPageData()
     var
+        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
+        StartDate: Date;
+        EndDate: Date;
         JsonTxtTasks: Text;
         JsonTxtResource: Text;
         JsonTxtDayTasks: Text;
@@ -406,13 +478,14 @@ page 50620 "Gantt Demo DHX 2"
                         Setup."Show Task Type"
                     );
         if setup."Load Job Tasks" then
-            JsonTxtTasks := GanttChartDataHandler.GetJobTasksAsJson(Setup."From Date", setup."Job No. Filter");
+            JsonTxtTasks := GanttChartDataHandler.GetJobTasksAsJson(AnchorDate);
         if setup."Load Resources" then
             JsonTxtResource := GanttChartDataHandler.GetResourcesAsJson();
         if setup."Load Day Tasks" then
-            JsonTxtDayTasks := GanttChartDataHandler.GetDayTasksAsJson(SETUP."From Date", setup."Job No. Filter");
+            JsonTxtDayTasks := GanttChartDataHandler.GetDayTasksAsJson(AnchorDate, setup."Job No. Filter");
 
-        CurrPage.DHXGanttControl2.LoadProject(Setup."From Date", Setup."To Date");
+        GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
+        CurrPage.DHXGanttControl2.LoadProject(StartDate, EndDate);
         if setup."Load Job Tasks" then
             CurrPage.DHXGanttControl2.LoadProjectData(JsonTxtTasks);
         if setup."Load Resources" then

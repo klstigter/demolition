@@ -24,8 +24,36 @@ page 50650 "Gantt Chart Setup"
             group(Dates)
             {
                 Caption = 'Gantt Date Settings';
-                field("From Date"; rec."From Date") { }
-                field("To Date"; rec."To Date") { }
+
+                group(DateRangeOption)
+                {
+                    field("Date Range Type"; rec."Date Range Type")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Specifies the type of date range to display on the Gantt chart.';
+
+                        trigger OnValidate()
+                        begin
+                            SetDateRangeVisibility();
+                            CurrPage.Update();
+                        end;
+                    }
+                }
+                group(DateRange)
+                {
+                    Visible = DateRangeVisible;
+
+                    field("From Date"; rec."From Date")
+                    {
+                        ApplicationArea = All;
+                        Enabled = DateRangeVisible;
+                    }
+                    field("To Date"; rec."To Date")
+                    {
+                        ApplicationArea = All;
+                        Enabled = DateRangeVisible;
+                    }
+                }
             }
             group(Loadsettings)
             {
@@ -55,7 +83,22 @@ page 50650 "Gantt Chart Setup"
     trigger OnOpenPage()
     begin
         rec.EnsureUserRecord();
+        SetDateRangeVisibility();
     end;
 
+    trigger OnAfterGetCurrRecord()
+    begin
+        SetDateRangeVisibility();
+        CurrPage.Update();
+    end;
+
+    var
+        [InDataSet]
+        DateRangeVisible: Boolean;
+
+    local procedure SetDateRangeVisibility()
+    begin
+        DateRangeVisible := Rec."Date Range Type" = Rec."Date Range Type"::"Date Range";
+    end;
 
 }

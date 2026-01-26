@@ -559,10 +559,16 @@ codeunit 50604 "DHX Data Handler"
         EndDay := DWY2Date(7, WeekNo, YearNo);   // Sunday
     end;
 
-    procedure GetOneYearPeriodDates(CurrentDate: Date; var StartDate: Date; var EndDate: Date)
+    procedure GetYearPeriodDates(CurrentDate: Date; var StartDate: Date; var EndDate: Date)
     begin
         StartDate := CalcDate('<-CY>', CurrentDate);
         EndDate := CalcDate('<CY>', CurrentDate)
+    end;
+
+    procedure GetMonthPeriodDates(CurrentDate: Date; var StartDate: Date; var EndDate: Date)
+    begin
+        StartDate := CalcDate('<-CM>', CurrentDate);
+        EndDate := CalcDate('<CM>', CurrentDate)
     end;
 
     procedure GetEventDataFromEventId(EventId: Text; var EventDataJsonTxt: Text): Boolean
