@@ -48,6 +48,12 @@ table 50620 "Gantt Chart Setup"
         {
             Caption = 'To Date';
         }
+        field(22; "Date Range Type"; enum "Date Range Type")
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Date Range Type';
+            ToolTip = 'Specifies the type of date range to display on the Gantt chart.';
+        }
         field(30; "Job No. Filter"; Code[20])
         {
             Caption = 'Job No. Filter';

@@ -3,30 +3,53 @@ codeunit 50613 "GanttChartDataHandler"
     var
         GenUtils: Codeunit "General Planning Utilities";
 
-    procedure GetJobTasksAsJson(StartDate: Date) JsonText: Text
+    procedure GetDateRange(GanttSetup: Record "Gantt Chart Setup";
+                           AchorDate: Date;
+                           var StartDate: Date;
+                           var EndDate: Date)
     var
-        JobTask: Record "Job Task";
-        JsonArray: JsonArray;
-        JsonObject: JsonObject;
+        DHXDataHandler: Codeunit "DHX Data Handler";
     begin
-        exit(GetJobTasksAsJson(StartDate, ''));
+        case GanttSetup."Date Range Type" of
+            GanttSetup."Date Range Type"::"Date Range":
+                begin
+                    StartDate := GanttSetup."From Date";
+                    EndDate := GanttSetup."To Date";
+                end;
+            GanttSetup."Date Range Type"::Weekly:
+                DHXDataHandler.GetWeekPeriodDates(AchorDate, StartDate, EndDate);
+            GanttSetup."Date Range Type"::Monthly:
+                DHXDataHandler.GetMonthPeriodDates(AchorDate, StartDate, EndDate);
+            GanttSetup."Date Range Type"::Yearly:
+                DHXDataHandler.GetYearPeriodDates(AchorDate, StartDate, EndDate);
+        end;
+        if EndDate = 0D then
+            EndDate := DMY2Date(31, 12, 9999); // Far future date
+        if StartDate > EndDate then
+            EndDate := StartDate;
     end;
 
-    procedure GetJobTasksAsJson(StartDate: Date; JobNo: Code[20]) JsonText: Text
+    procedure GetJobTasksAsJson(AchorDate: Date) JsonText: Text //StartDate: Date; JobNo: Code[20]
     var
+        GanttSetup: Record "Gantt Chart Setup";
         JobTask: Record "Job Task";
+        StartDate: Date;
+        EndDate: Date;
         JsonArray: JsonArray;
         JsonObject: JsonObject;
+        JobNoFilter: Code[20];
         OldJobNo: Code[20];
         OffsetDays: Integer;
         Skip: Boolean;
         Job: Record Job;
     begin
-        if JobNo <> '' then
-            JobTask.SetRange("Job No.", JobNo);
+        GanttSetup.Get(UserId);
+        JobNoFilter := GanttSetup."Job No. Filter";
+        if JobNoFilter <> '' then
+            JobTask.SetFilter("Job No.", JobNoFilter);
+        GetDateRange(GanttSetup, AchorDate, StartDate, EndDate);
         //Jobtask.SetFilter("Your Reference", '%1', '');
-        if StartDate <> 0D then
-            JobTask.SetFilter("PlannedEndDate", '>=%1', StartDate); // to exclude blank references
+        JobTask.SetRange("PlannedEndDate", StartDate, EndDate); // to exclude blank references
         if JobTask.FindSet() then
             repeat
                 if OldJobNo <> JobTask."Job No." then begin
@@ -272,36 +295,32 @@ codeunit 50613 "GanttChartDataHandler"
         exit(GetDayTasksAsJson(StartData, '', ''));
     end;
 
-    procedure GetDayTasksAsJson(StartData: date; JobNo: Code[20]) JsonText: Text
+    procedure GetDayTasksAsJson(AnchorDate: date; JobNo: Code[20]) JsonText: Text
     var
         DayTask: Record "Day Tasks";
         JsonArray: JsonArray;
         JsonObject: JsonObject;
     begin
-        exit(GetDayTasksAsJson(StartData, JobNo, ''));
-        DayTask.SETFILTER("Day No.", '>=%1', GENUTILS.DateToInteger(StartData));
-        DayTask.SetRange("Job No.", JobNo);
-        if DayTask.FindSet() then
-            repeat
-                JsonObject := CreateDayTaskJsonObject(DayTask);
-                JsonArray.Add(JsonObject);
-            until DayTask.Next() = 0;
-
-        JsonArray.WriteTo(JsonText);
+        exit(GetDayTasksAsJson(AnchorDate, JobNo, ''));
     end;
 
-    procedure GetDayTasksAsJson(StartData: date; JobNo: Code[20]; JobTaskNo: Code[20]) JsonText: Text
+    procedure GetDayTasksAsJson(AnchorDate: date; JobNo: Code[20]; JobTaskNo: Code[20]) JsonText: Text
     var
+        GanttSetup: Record "Gantt Chart Setup";
         DayTask: Record "Day Tasks";
+        StartDate: Date;
+        EndDate: Date;
         JsonArray: JsonArray;
         JsonObject: JsonObject;
     begin
+        GanttSetup.Get(UserId);
+        GetDateRange(GanttSetup, AnchorDate, StartDate, EndDate);
         if JobNo <> '' then
             DayTask.SetRange("Job No.", JobNo);
         if JobTaskNo <> '' then
             DayTask.SetRange("Job Task No.", JobTaskNo);
-        if startdata <> 0D then
-            DayTask.SETFILTER("Day No.", '>=%1', GENUTILS.DateToInteger(StartData));
+        if AnchorDate <> 0D then
+            DayTask.Setrange("Day No.", GENUTILS.DateToInteger(StartDate), GENUTILS.DateToInteger(EndDate));
 
         if DayTask.FindSet() then
             repeat
