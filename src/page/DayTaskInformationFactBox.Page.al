@@ -32,6 +32,16 @@ page 50624 "Day Task Information FactBox"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the job number.';
                     Caption = 'Job No.';
+
+                    trigger OnDrillDown()
+                    var
+                        Job: Record Job;
+                        JobCard: Page "Job Card";
+                    begin
+                        Job.Get(Rec."Job No.");
+                        JobCard.SetRecord(Job);
+                        JobCard.RunModal();
+                    end;
                 }
                 field(JobDescription; JobDescription)
                 {
@@ -49,6 +59,16 @@ page 50624 "Day Task Information FactBox"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the job task number.';
                     Caption = 'Job Task No.';
+
+                    trigger OnDrillDown()
+                    var
+                        JobTask: Record "Job Task";
+                        JobCard: Page "Job Task Card";
+                    begin
+                        JobTask.Get(Rec."Job No.", Rec."Job Task No.");
+                        JobCard.SetRecord(JobTask);
+                        JobCard.RunModal();
+                    end;
                 }
                 field(JobTaskDescription; JobTaskDescription)
                 {
@@ -66,6 +86,16 @@ page 50624 "Day Task Information FactBox"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the job planning line number.';
                     Caption = 'Job Planning Line No.';
+
+                    trigger OnDrillDown()
+                    var
+                        PlanningLine: Record "Job Planning Line";
+                        PlanningLineCard: Page "Job Planning Line Card";
+                    begin
+                        PlanningLine.Get(Rec."Job No.", Rec."Job Task No.", Rec."Job Planning Line No.");
+                        PlanningLineCard.SetRecord(PlanningLine);
+                        PlanningLineCard.RunModal();
+                    end;
                 }
                 field(JobPlanningLineDescription; JobPlanningLineDescription)
                 {

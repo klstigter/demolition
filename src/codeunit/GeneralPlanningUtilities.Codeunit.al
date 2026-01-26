@@ -99,6 +99,51 @@ codeunit 50612 "General Planning Utilities"
         end;
         */
 
+    procedure DayTaskFulFillment(pDayTask: Record "Day Tasks";
+                                 var WorkHours: Decimal;
+                                 var RemaningHours: Decimal;
+                                 var Capacity: Decimal): Boolean
+    var
+        Resource: Record Resource;
+        DayTask: Record "Day Tasks";
+        ResourceNo: Code[20];
+        DayNo: Integer;
+        WorkingMinutes: Decimal;
+        Fulfilled: boolean;
+    begin
+        if pDayTask.Type <> pDayTask.Type::Resource then
+            exit;
+        ResourceNo := pDayTask."No.";
+        DayNo := pDayTask."Day No.";
+
+        // Find Day Task with complete start and end time and same resource and day no
+        DayTask.SetRange("Day No.", DayNo);
+        DayTask.SetRange("No.", ResourceNo);
+        DayTask.SetFilter("Start Time", '<>%1', 0T);
+        DayTask.SetFilter("End Time", '<>%1', 0T);
+        if DayTask.FindFirst() then
+            repeat
+                // Calculate working minutes
+                WorkingMinutes := (DayTask."End Time" - DayTask."Start Time") div 60000;
+                WorkingMinutes := WorkingMinutes - DayTask."Non Working Minutes";
+                // Convert to hours (decimal)
+                WorkHours += WorkingMinutes / 60;
+            until DayTask.Next() = 0;
+
+        // Find Capacity Entry per Daytask Date and Resource No.
+        Resource.SetRange("No.", ResourceNo);
+        Resource.SetRange("Date Filter", pDayTask."Date Filter");
+        Resource.FindFirst();
+        Resource.CalcFields(Capacity);
+        Capacity := Resource.Capacity;
+
+        Fulfilled := WorkHours >= Capacity;
+        RemaningHours := 0;
+        if not Fulfilled then
+            RemaningHours := Capacity - WorkHours;
+        exit(Fulfilled);
+    end;
+
 }
 
 
