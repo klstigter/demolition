@@ -73,6 +73,7 @@ codeunit 50604 "DHX Data Handler"
         StartDateTxt: Text;
         EndDateTxt: Text;
         _DummyEndDate: Date;
+        DetailsLabel: Label '%1 - %2|%3 - %4|%5 - %6';
     begin
         PlanninJsonTxt := '';
         //Marking Job based on Day Tasks within the given date range
@@ -133,6 +134,9 @@ codeunit 50604 "DHX Data Handler"
                 if not Ven.Get(Daytask."Vendor No.") then
                     Clear(Ven);
                 PlanningObject.Add('details', Ven.Name);
+                // StrSubstNo(DetailsLabel, Ven."No.", Ven.Name
+                // , Daytask."Job No.", Jobs.Description
+                // , Daytask."Job Task No.", JobTasks.Description));
 
                 PlanningArray.Add(PlanningObject);
                 PlanningArray.WriteTo(PlanninJsonTxt);
@@ -239,6 +243,8 @@ codeunit 50604 "DHX Data Handler"
         DateRec: Record Date;
         Daytask: record "Day Tasks";
         Resource: Record Resource;
+        Job: Record Job;
+        Task: Record "Job Task";
 
         ResCapQry: Query "Capacity Per Day Per Resource";
 
@@ -255,6 +261,7 @@ codeunit 50604 "DHX Data Handler"
         StartDateTxt: Text;
         EndDateTxt: Text;
         DummyEndDate: Date;
+        DetailsLabel: Label '%1 - %2|%3 - %4|%5 - %6';
     begin
         PlanninJsonTxt := '';
         //Marking Job based on Day Tasks within the given date range
@@ -298,6 +305,10 @@ codeunit 50604 "DHX Data Handler"
 
                 //Add Event of Daytask
                 if WithDayTask then begin
+                    if not Job.Get(Daytask."Job No.") then
+                        Clear(Job);
+                    if not Task.Get(Daytask."Job No.", Daytask."Job Task No.") then
+                        Clear(Task);
                     Daytask.setrange(Type, Daytask.Type::Resource);
                     Daytask.setrange("Task Date", DateRec."Period Start");
                     if Daytask.findset then
@@ -321,14 +332,15 @@ codeunit 50604 "DHX Data Handler"
                                 else
                                     PlanningObject.Add('text', 'vacant');
                             PlanningObject.Add('section_id', Daytask."Resource Group No." + '|' + ResNo + '|' + Daytask."Vendor No.");
+                            if not Ven.Get(Daytask."Vendor No.") then
+                                Clear(Ven);
+                            PlanningObject.Add('details', StrSubstNo(DetailsLabel, Ven."No.", Ven.Name
+                                                                                     , Daytask."Job No.", Job.Description
+                                                                                     , Daytask."Job Task No.", Task.Description));
                             if Daytask."Vendor No." = '' then
                                 PlanningObject.Add('color', 'green')
-                            else begin
+                            else
                                 PlanningObject.Add('color', 'grey');
-                                if not Ven.Get(Daytask."Vendor No.") then
-                                    Clear(Ven);
-                                PlanningObject.Add('details', Ven.Name);
-                            end;
                             PlanningObject.Add('type', 'daytask');
 
                             PlanningArray.Add(PlanningObject);

@@ -70,6 +70,12 @@ page 50618 "Job Task Card - Project"
                         exit(Rec.LookupSellToCustomerName(Text));
                     end;
                 }
+                field("Non Active"; Rec."Non Active")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Non Active';
+                    ToolTip = 'Indicates that the project task is not active.';
+                }
                 group("Sell-to")
                 {
                     Caption = 'Sell-to';

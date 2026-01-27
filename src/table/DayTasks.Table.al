@@ -71,6 +71,59 @@ table 50610 "Day Tasks"
             DataClassification = ToBeClassified;
             Caption = 'Type';
         }
+
+        // **** control Resource No.
+        field(40; "Vendor No."; Code[20])
+        {
+            DataClassification = ToBeClassified;
+            TableRelation = Vendor;
+            Caption = 'Vendor No.';
+
+            trigger OnValidate()
+            var
+                Resource: Record Resource;
+            begin
+                if ("Vendor No." <> '') and (Type = Type::Resource) and ("No." <> '') then begin
+                    Resource.Get("No.");
+                    if Resource."Vendor No." <> "Vendor No." then
+                        Error('Resource %1 does not belong to Vendor %2.', "No.", "Vendor No.");
+                end
+            end;
+        }
+        field(23; "Resource Group No."; Code[20])
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Resource Group No.';
+            TableRelation = "Resource Group";
+
+            trigger OnValidate()
+            var
+                Resource: Record Resource;
+            begin
+                if ("Resource Group No." <> '') and (Type = Type::Resource) and ("No." <> '') then begin
+                    Resource.Get("No.");
+                    if Resource."Resource Group No." <> "Resource Group No." then
+                        Error('Resource %1 does not belong to Resource Group %2.', "No.", "Resource Group No.");
+                end;
+            end;
+        }
+        field(24; "Skill"; Code[20])
+        {
+            Caption = 'Skill';
+            TableRelation = "Skill Code";
+
+            trigger OnValidate()
+            var
+                SkillRes: Record "Resource Skill";
+            begin
+                if ("Skill" <> '') and (Type = Type::Resource) and ("No." <> '') then begin
+                    if not SkillRes.Get(SkillRes.Type::Resource, "No.", "Skill") then
+                        Error('Resource %1 does not have skill %2.', "No.", "Skill");
+                end;
+            end;
+        }
+        // *****
+
         field(21; "No."; Code[20])
         {
             DataClassification = ToBeClassified;
@@ -86,6 +139,40 @@ table 50610 "Day Tasks"
                 if (Type = Type::Resource) and ("No." <> '') then begin
                     Resource.Get("No.");
                     "Resource Group No." := Resource."Resource Group No.";
+                    if Resource."Vendor No." <> '' then
+                        "Vendor No." := Resource."Vendor No.";
+                end;
+            end;
+
+            trigger OnLookup()
+            var
+                Resource: Record Resource;
+                Item: Record Item;
+                GLAccount: Record "G/L Account";
+                TempText: Text;
+            begin
+                if Type = Type::Resource then begin
+                    Resource.Reset();
+                    if "Resource Group No." <> '' then
+                        Resource.SetRange("Resource Group No.", "Resource Group No.");
+                    if "Vendor No." <> '' then
+                        Resource.SetRange("Vendor No.", "Vendor No.");
+                    if page.RunModal(0, Resource) = ACTION::LookupOK then begin
+                        Validate("No.", Resource."No.");
+                        Description := Resource.Name;
+                    end;
+                end else if Type = Type::Item then begin
+                    Item.Reset();
+                    if page.RunModal(0, Item) = ACTION::LookupOK then begin
+                        "No." := Item."No.";
+                        Description := Item."No.";
+                    end;
+                end else if Type = Type::"G/L Account" then begin
+                    GLAccount.Reset();
+                    if page.RunModal(0, GLAccount) = ACTION::LookupOK then begin
+                        "No." := GLAccount."No.";
+                        Description := GLAccount."No.";
+                    end;
                 end;
             end;
         }
@@ -95,29 +182,6 @@ table 50610 "Day Tasks"
             Caption = 'Description';
         }
 
-        field(23; "Resource Group No."; Code[20])
-        {
-            DataClassification = ToBeClassified;
-            Caption = 'Resource Group No.';
-            TableRelation = "Resource Group";
-
-            trigger OnValidate()
-            var
-                Resource: Record Resource;
-            begin
-                if (Type = Type::Resource) and ("No." <> '') then begin
-                    Resource.Get("No.");
-                    if Resource."Resource Group No." <> "Resource Group No." then
-                        Error('Resource %1 does not belong to Resource Group %2.', "No.", "Resource Group No.");
-                end;
-            end;
-        }
-        field(24; "Skill"; Code[20])
-        {
-            Caption = 'Skill';
-            FieldClass = FlowField;
-            CalcFormula = max("Resource Skill"."Skill Code" where("No." = field("No."), Type = const(Resource)));
-        }
 
         field(30; Quantity; Decimal)
         {
@@ -130,12 +194,7 @@ table 50610 "Day Tasks"
             DataClassification = ToBeClassified;
             Caption = 'Unit of Measure Code';
         }
-        field(40; "Vendor No."; Code[20])
-        {
-            DataClassification = ToBeClassified;
-            TableRelation = Vendor;
-            Caption = 'Vendor No.';
-        }
+
         field(41; "Vendor Name"; Text[100])
         {
             FieldClass = FlowField;
@@ -190,16 +249,16 @@ table 50610 "Day Tasks"
             Editable = false;
         }
 
-        field(100; "Date Filter"; Date)
-        {
-            Caption = 'Date Filter';
-            FieldClass = FlowFilter;
-        }
+        // field(100; "Date Filter"; Date)
+        // {
+        //     Caption = 'Date Filter';
+        //     FieldClass = FlowFilter;
+        // }
 
         field(110; Capacity; Decimal)
         {
             CalcFormula = sum("Res. Capacity Entry".Capacity where("Resource No." = field("No."),
-                                                                    Date = field("Date Filter")));
+                                                                    Date = field("Task Date")));
             Caption = 'Capacity';
             DecimalPlaces = 0 : 5;
             FieldClass = FlowField;

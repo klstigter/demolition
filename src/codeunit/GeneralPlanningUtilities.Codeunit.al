@@ -131,11 +131,13 @@ codeunit 50612 "General Planning Utilities"
             until DayTask.Next() = 0;
 
         // Find Capacity Entry per Daytask Date and Resource No.
+        Capacity := 0;
         Resource.SetRange("No.", ResourceNo);
-        Resource.SetRange("Date Filter", pDayTask."Date Filter");
-        Resource.FindFirst();
-        Resource.CalcFields(Capacity);
-        Capacity := Resource.Capacity;
+        Resource.SetRange("Date Filter", pDayTask."Task Date");
+        if Resource.FindFirst() then begin
+            Resource.CalcFields(Capacity);
+            Capacity := Resource.Capacity;
+        end;
 
         Fulfilled := WorkHours >= Capacity;
         RemaningHours := 0;
