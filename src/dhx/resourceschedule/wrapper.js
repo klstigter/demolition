@@ -43,6 +43,34 @@ window.BOOT = function() {
         margin: 0 !important;
         text-align: center !important;
     }
+
+    /* Background color for parent/folder rows in timeline */
+    .timeline-parent-row {
+        background-color: lightblue !important;
+    }
+
+    /* Style for parent cells in the left column (label area) */
+    .dhx_matrix_scell.folder,
+    .dhx_matrix_scell.folder .dhx_scell_level0,
+    .dhx_matrix_scell.folder .dhx_scell_level1,
+    .dhx_matrix_scell.folder .dhx_scell_level2,
+    .dhx_matrix_scell.folder .dhx_scell_name {
+        background-color: lightblue !important;
+        color: white !important;
+        font-weight: bold !important;
+    }
+
+    /* Override any link colors inside folder cells */
+    .dhx_matrix_scell.folder a,
+    .dhx_matrix_scell.folder span {
+        color: white !important;
+    }
+    
+    /* Optional: Style for parent cells in the left column */
+    .dhx_matrix_scell.folder {
+        background-color: lightblue !important;
+        font-weight: bold;
+    }
     `;
     document.head.appendChild(style);
     //>>
@@ -81,27 +109,23 @@ window.BOOT = function() {
         var formatDateOnly = scheduler.date.date_to_str("%d-%m-%Y");
         var formatTimeOnly = scheduler.date.date_to_str("%H:%i");
         
-        // // Parse event ID: "JobNo|JobTaskNo|PlanningLineNo|DayNo|DayLineNo"
-        // var dayNo = "";
-        // var dayLineNo = "";
-        // var jobNo = "";
-        // var jobTaskNo = "";
-        // var planningLineNo = "";
+        // Parse event Details: "Vendor|Job|Task"
+        var vendor = "";
+        var jobNo = "";
+        var jobTaskNo = "";
         
-        // if (ev.id) {
-        //     var parts = String(ev.id).split('|');
-        //     if (parts.length >= 5) {
-        //         jobNo = parts[0] || "";
-        //         jobTaskNo = parts[1] || "";
-        //         planningLineNo = parts[2] || "";
-        //         dayNo = parts[3] || "";
-        //         dayLineNo = parts[4] || "";
-        //     }
-        // }
+        if (ev.details) {
+            var parts = String(ev.details).split('|');
+            if (parts.length >= 3) {
+                vendor = parts[0] || "";
+                jobNo = parts[1] || "";
+                jobTaskNo = parts[2] || "";                
+            }
+        }
 
         var html = "";
         if (ev.type === "capacity") {
-            html = "<b>Event:</b> " + (ev.text || "") + "<br/>" +
+            html = "<b>Capacity:</b> " + (ev.text || "") + "<br/>" +
                    "<b>Date:</b> " + formatDateOnly(start) + "<br/>" +
                    "<b>Start Time:</b> " + formatTimeOnly(start) + "<br/>" +
                    "<b>End Time:</b> " + formatTimeOnly(end) + "<br/>" +                                      
@@ -112,13 +136,14 @@ window.BOOT = function() {
             // if (parts.length >= 3) {
             //     vendor_no = parts[2] || "";
             // }
-            var vendor_name = ev.details || "";
-            html = "<b>Event:</b> " + (ev.text || "") + "<br/>" +
+            html = "<b>Daytask:</b> " + (ev.text || "") + "<br/>" +
                    "<b>Date:</b> " + formatDateOnly(start) + "<br/>" +
                    "<b>Start Time:</b> " + formatTimeOnly(start) + "<br/>" +
-                   "<b>End Time:</b> " + formatTimeOnly(end) + "<br/>" +                                      
-                   "<b>Dayno|DayLineNo:</b> " + (ev.id || "") + "<br/>" +
-                   "<b>vendor no.:</b> " + vendor_name;
+                   "<b>End Time:</b> " + formatTimeOnly(end) + "<br/>" +
+                   "<b>Project:</b> " + jobNo + "<br/>" +
+                   "<b>Task:</b> " + jobTaskNo + "<br/>" +
+                   "<b>vendor no.:</b> " + vendor + "<br/>" +
+                   "<b>Dayno|DayLineNo:</b> " + (ev.id || "") + "<br/>";
         }
         return html;
     };
@@ -764,6 +789,7 @@ function RecreateTimelineView(sections) {
         x_length: (8 * 7),
         dy: 30,
         event_dy: 30,
+        folder_dy: 30,  // Height for parent/folder rows
         section_autoheight: false,
         resize_events: true,
         y_unit: sections,
@@ -775,5 +801,15 @@ function RecreateTimelineView(sections) {
             x_date: "%D %d %M"
         }
     });
+
+    // Customize parent row background color
+    scheduler.templates.timeline_row_class = function(section, date) {
+        // Check if this section has children (is a parent/folder)
+        if (section.children && section.children.length > 0) {
+            return "timeline-parent-row";
+        }
+        return "";
+    };
+
 }
 

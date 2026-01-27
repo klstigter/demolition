@@ -122,7 +122,6 @@ page 50630 "Day Tasks"
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the skill associated with the resource.';
-                    Editable = false;
                     Style = Favorable;
                     StyleExpr = Rec.Fulfilled;
                 }
@@ -221,7 +220,7 @@ page 50630 "Day Tasks"
                 ApplicationArea = All;
                 Caption = 'Resource Capacity';
                 SubPageLink = "Resource No." = field("No."),
-                              Date = field("Date Filter");
+                              Date = field("Task Date");
             }
         }
     }

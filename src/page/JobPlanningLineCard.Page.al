@@ -48,6 +48,12 @@ page 50631 "Job Planning Line Card"
                     ToolTip = 'Specifies information in addition to the description.';
                     Importance = Additional;
                 }
+                field("Non Active"; Rec."Non Active")
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Indicates that the planning line is not active.';
+                    Importance = Additional;
+                }
                 field(SkillsRequired; Rec.SkillsRequired)
                 {
                     ApplicationArea = Jobs;

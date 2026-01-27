@@ -42,6 +42,10 @@ tableextension 50600 "Job Planning Line ext" extends "Job Planning Line"
                 CalculateNonWorkingHours();
             end;
         }
+        field(50605; "Non Active"; Boolean)
+        {
+            DataClassification = ToBeClassified;
+        }
 
         field(50610; "Quantity of Lines"; Integer)
         {

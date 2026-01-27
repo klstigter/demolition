@@ -7,6 +7,10 @@ tableextension 50602 "Job Ext" extends Job
         {
             DataClassification = ToBeClassified;
         }
+        field(50601; "Non Active"; Boolean)
+        {
+            DataClassification = ToBeClassified;
+        }
     }
 
     keys

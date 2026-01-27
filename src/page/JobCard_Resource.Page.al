@@ -65,6 +65,12 @@ page 50610 "Job Card - Resource"
                         exit(Rec.LookupSellToCustomerName(Text));
                     end;
                 }
+                field(nonActive; Rec."Non Active")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Non Active';
+                    ToolTip = 'Indicates that the job is not active.';
+                }
                 group("Sell-to")
                 {
                     Caption = 'Sell-to';

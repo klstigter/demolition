@@ -75,6 +75,10 @@ tableextension 50605 "Job Task ext" extends "Job Task"
             Editable = false;
             DecimalPlaces = 0 : 2;
         }
+        field(50603; "Non Active"; Boolean)
+        {
+            DataClassification = ToBeClassified;
+        }
 
     }
 

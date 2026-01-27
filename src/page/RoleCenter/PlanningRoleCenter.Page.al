@@ -101,13 +101,13 @@ page 50612 "Planning Role Center"
                 action("VisualPlanning2")
                 {
                     ApplicationArea = All;
-                    Caption = 'Project Schedule';
+                    Caption = 'Day Tasks';
                     RunObject = page "DHX Scheduler (Project)";
                 }
                 action("VisualPlanning3")
                 {
                     ApplicationArea = All;
-                    Caption = 'Resource Schedule';
+                    Caption = 'Capacity';
                     RunObject = page "DHX Scheduler (Resource)";
                 }
             }
