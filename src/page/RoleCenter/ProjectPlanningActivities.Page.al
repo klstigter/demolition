@@ -37,17 +37,17 @@ page 50613 "Project Planning Activities"
                         myInt := Rec.TaskCount(gViewType::Project, Today(), true)
                     end;
                 }
-                field("Project PlanningLines"; Rec.PlanningLinesCount(gViewType::Project, Today(), false))
+                field("Capacity (Today)"; Rec."Capacity (Today)")
                 {
-                    Caption = 'Planning Lines';
+                    Caption = 'Capacity';
                     ApplicationArea = Basic, Suite;
-                    ToolTip = 'Some tooltip';
-                    trigger OnDrillDown()
-                    var
-                        myInt: Integer;
-                    begin
-                        myInt := Rec.PlanningLinesCount(gViewType::Project, Today(), true)
-                    end;
+                    ToolTip = 'Capacity for today.';
+                }
+                field("Daytask (Today)"; Rec."Daytask (Today)")
+                {
+                    Caption = 'Daytask';
+                    ApplicationArea = Basic, Suite;
+                    ToolTip = 'Number of day tasks for today.';
                 }
             }
             cuegroup("Tomorrow")
@@ -76,17 +76,33 @@ page 50613 "Project Planning Activities"
                         myInt := Rec.TaskCount(gViewType::Project, CalcDate('<1D>', Today()), true);
                     end;
                 }
-                field("ProjectPlanningLinesTomorrow"; Rec.PlanningLinesCount(gViewType::Project, CalcDate('<1D>', Today()), false))
+                field("Capacity (Tomorrow)"; Rec."Capacity (Tomorrow)")
                 {
-                    Caption = 'Planning Lines';
+                    Caption = 'Capacity';
                     ApplicationArea = Basic, Suite;
-                    ToolTip = 'Some tooltip';
-                    trigger OnDrillDown()
-                    var
-                        myInt: Integer;
-                    begin
-                        myInt := Rec.PlanningLinesCount(gViewType::Project, CalcDate('<1D>', Today()), true);
-                    end;
+                    ToolTip = 'Capacity for tomorrow.';
+                }
+                field("Daytask (Tomorrow)"; Rec."Daytask (Tomorrow)")
+                {
+                    Caption = 'Daytask';
+                    ApplicationArea = Basic, Suite;
+                    ToolTip = 'Number of day tasks for tomorrow.';
+                }
+            }
+
+            cuegroup("Active")
+            {
+                field(Projects_Active; Rec.Projects)
+                {
+                    Caption = 'Project';
+                    ApplicationArea = Basic, Suite;
+                    ToolTip = 'Project count including all active projects.';
+                }
+                field("Tasks_Active"; Rec."Project Tasks")
+                {
+                    Caption = 'Task';
+                    ApplicationArea = Basic, Suite;
+                    ToolTip = 'Project Task count including all active project tasks.';
                 }
             }
         }
@@ -100,8 +116,8 @@ page 50613 "Project Planning Activities"
             Rec.Insert();
         end;
 
-        // Rec.Setrange("Date Filter", WorkDate());
-        // Rec.Setrange("Date Filter2", CalcDate('<1D>', WorkDate()));
+        Rec.Setrange("Date Filter", Today());
+        Rec.Setrange("Date Filter2", CalcDate('<1D>', Today()));
     end;
 
     trigger OnAfterGetRecord()

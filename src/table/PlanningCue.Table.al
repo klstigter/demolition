@@ -10,46 +10,60 @@ table 50603 "PLanning Cue"
             AllowInCustomizations = Never;
             Caption = 'Primary Key';
         }
-        // field(10; "Projects"; Integer)
-        // {
-        //     FieldClass = FlowField;
-        //     CalcFormula = count(Job where("Job View Type" = filter(Project)));
-        //     Caption = 'Projects';
-        //     Editable = false;
-        // }
-        // field(20; "Project Tasks"; Integer)
-        // {
-        //     FieldClass = FlowField;
-        //     CalcFormula = count("Job Task" where("Job View Type" = filter(Project)));
-        //     Caption = 'Project Tasks';
-        //     Editable = false;
-        // }
-        // field(30; "Projects (Resource)"; Integer)
-        // {
-        //     FieldClass = FlowField;
-        //     CalcFormula = count(Job where("Job View Type" = filter(Resource)));
-        //     Caption = 'Projects (Resource)';
-        //     Editable = false;
-        // }
-        // field(40; "Project Tasks (Resource)"; Integer)
-        // {
-        //     FieldClass = FlowField;
-        //     CalcFormula = count("Job Task" where("Job View Type" = filter(Resource)));
-        //     Caption = 'Project Tasks (Resource)';
-        //     Editable = false;
-        // }
-        // field(50; "Date Filter"; Date)
-        // {
-        //     Caption = 'Date Filter';
-        //     Editable = false;
-        //     FieldClass = FlowFilter;
-        // }
-        // field(51; "Date Filter2"; Date)
-        // {
-        //     Caption = 'Date Filter2';
-        //     Editable = false;
-        //     FieldClass = FlowFilter;
-        // }
+        field(10; "Projects"; Integer)
+        {
+            FieldClass = FlowField;
+            CalcFormula = count(Job where("Non Active" = filter(False)));
+            Caption = 'Projects';
+            Editable = false;
+        }
+        field(20; "Project Tasks"; Integer)
+        {
+            FieldClass = FlowField;
+            CalcFormula = count("Job Task" where("Non Active" = filter(False)));
+            Caption = 'Project Tasks';
+            Editable = false;
+        }
+        field(30; "Capacity (Today)"; Decimal)
+        {
+            FieldClass = FlowField;
+            CalcFormula = Sum("Res. Capacity Entry".Capacity where(Date = field("Date Filter")));
+            Caption = 'Capacity (Today)';
+            Editable = false;
+        }
+        field(40; "Capacity (Tomorrow)"; Decimal)
+        {
+            FieldClass = FlowField;
+            CalcFormula = Sum("Res. Capacity Entry".Capacity where(Date = field("Date Filter2")));
+            Caption = 'Capacity (Tomorrow)';
+            Editable = false;
+        }
+        field(50; "Daytask (Today)"; Integer)
+        {
+            FieldClass = FlowField;
+            CalcFormula = Count("Day Tasks" where("Task Date" = field("Date Filter")));
+            Caption = 'Daytask (Today)';
+            Editable = false;
+        }
+        field(60; "Daytask (Tomorrow)"; Integer)
+        {
+            FieldClass = FlowField;
+            CalcFormula = Count("Day Tasks" where("Task Date" = field("Date Filter2")));
+            Caption = 'Daytask (Tomorrow)';
+            Editable = false;
+        }
+        field(100; "Date Filter"; Date)
+        {
+            Caption = 'Date Filter';
+            Editable = false;
+            FieldClass = FlowFilter;
+        }
+        field(110; "Date Filter2"; Date)
+        {
+            Caption = 'Date Filter2';
+            Editable = false;
+            FieldClass = FlowFilter;
+        }
     }
 
     keys
