@@ -1392,9 +1392,9 @@ codeunit 50604 "DHX Data Handler"
                             TempRes.Init();
                             TempRes."No." := ResNo;
                             if Res.Get(ResNo) then
-                                TempRes.Name := Res.Name + ' (1)'
+                                TempRes.Name := Res.Name
                             else
-                                TempRes.Name := 'Vacant (1)';
+                                TempRes.Name := 'Vacant';
                             TempRes.Insert();
                         end;
                 end;
@@ -1412,9 +1412,9 @@ codeunit 50604 "DHX Data Handler"
                     TempRes.Init();
                     TempRes."No." := ResNo;
                     if Res.Get(ResNo) then
-                        TempRes.Name := Res.Name + ' (2)'
+                        TempRes.Name := Res.Name
                     else
-                        TempRes.Name := 'Vacant (2)';
+                        TempRes.Name := 'Vacant';
                     TempRes.Insert();
                 end;
             until DayTasks.Next() = 0;
