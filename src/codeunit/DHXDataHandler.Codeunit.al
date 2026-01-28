@@ -305,14 +305,14 @@ codeunit 50604 "DHX Data Handler"
 
                 //Add Event of Daytask
                 if WithDayTask then begin
-                    if not Job.Get(Daytask."Job No.") then
-                        Clear(Job);
-                    if not Task.Get(Daytask."Job No.", Daytask."Job Task No.") then
-                        Clear(Task);
                     Daytask.setrange(Type, Daytask.Type::Resource);
                     Daytask.setrange("Task Date", DateRec."Period Start");
                     if Daytask.findset then
                         repeat
+                            if not Job.Get(Daytask."Job No.") then
+                                Clear(Job);
+                            if not Task.Get(Daytask."Job No.", Daytask."Job Task No.") then
+                                Clear(Task);
                             ResNo := Daytask."No.";
                             if not Resource.Get(ResNo) then
                                 Clear(Resource);
@@ -392,7 +392,7 @@ codeunit 50604 "DHX Data Handler"
                             InternalExternalObject.Add('open', true);
                             GroupChildrenArray.Add(InternalExternalObject);
 
-                            // 3. Resource //LAGI
+                            // 3. Resource
                             Clear(InternalExternalChildrenArray);
                             ResourceTemp.Reset();
                             ResourceTemp.Deleteall;
@@ -1386,15 +1386,17 @@ codeunit 50604 "DHX Data Handler"
             if UniqueResQry.Open() then begin
                 while UniqueResQry.Read() do begin
                     ResNo := UniqueResQry.Resource_No_;
-                    if not TempRes.Get(ResNo) then begin
-                        TempRes.Init();
-                        TempRes."No." := ResNo;
-                        if Res.Get(ResNo) then
-                            TempRes.Name := Res.Name
-                        else
-                            TempRes.Name := 'Vacant';
-                        TempRes.Insert();
-                    end;
+                    if GetVendorNoFromDayTask(StartDate, EndDate, ResNo) = '' then
+                        //if <> '' then it does not create section, because it will meet on below next block of codes with daytask source no. and posibility has a vendor
+                        if not TempRes.Get(ResNo) then begin
+                            TempRes.Init();
+                            TempRes."No." := ResNo;
+                            if Res.Get(ResNo) then
+                                TempRes.Name := Res.Name + ' (1)'
+                            else
+                                TempRes.Name := 'Vacant (1)';
+                            TempRes.Insert();
+                        end;
                 end;
                 UniqueResQry.Close();
             end;
@@ -1410,9 +1412,9 @@ codeunit 50604 "DHX Data Handler"
                     TempRes.Init();
                     TempRes."No." := ResNo;
                     if Res.Get(ResNo) then
-                        TempRes.Name := Res.Name
+                        TempRes.Name := Res.Name + ' (2)'
                     else
-                        TempRes.Name := 'Vacant';
+                        TempRes.Name := 'Vacant (2)';
                     TempRes.Insert();
                 end;
             until DayTasks.Next() = 0;

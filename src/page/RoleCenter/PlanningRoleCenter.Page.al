@@ -11,10 +11,10 @@ page 50612 "Planning Role Center"
             {
                 ApplicationArea = Jobs;
             }
-            part(ResourcePlanningActivities; "Resource Planning Activities")
-            {
-                ApplicationArea = Jobs;
-            }
+            // part(ResourcePlanningActivities; "Resource Planning Activities")
+            // {
+            //     ApplicationArea = Jobs;
+            // }
         }
     }
 
