@@ -499,6 +499,11 @@ function LoadProject(projectstartdate, projectenddate) {
     try { gantt.config.project_end = new Date(projectenddate); } catch (e) {}
   }
 
+  // ✅ ADD THESE to strictly respect project boundaries
+  gantt.config.start_date = gantt.config.project_start;
+  gantt.config.end_date = gantt.config.project_end;
+  gantt.config.fit_tasks = false; // Don't auto-expand timeline to fit tasks
+  
   gantt.config.auto_scheduling = {
     enabled: true,
     show_constraints: true,
@@ -1172,4 +1177,6 @@ function _hideCustomTooltip() {
   if (tip) tip.style.display = "none";
 }
 
-
+function GetGanttData() {
+  alert('gantt.config.project_start: ' + gantt.config.project_start + '\ngantt.config.project_end: ' + gantt.config.project_end);
+}
