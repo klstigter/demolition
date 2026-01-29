@@ -17,11 +17,11 @@ codeunit 50613 "GanttChartDataHandler"
                     EndDate := GanttSetup."To Date";
                 end;
             GanttSetup."Date Range Type"::Weekly:
-                DHXDataHandler.GetWeekPeriodDates(AchorDate, StartDate, EndDate);
-            GanttSetup."Date Range Type"::Monthly:
-                DHXDataHandler.GetMonthPeriodDates(AchorDate, StartDate, EndDate);
-            GanttSetup."Date Range Type"::Yearly:
-                DHXDataHandler.GetYearPeriodDates(AchorDate, StartDate, EndDate);
+                begin
+                    DHXDataHandler.GetWeekPeriodDates(AchorDate, StartDate, EndDate);
+                    // x 5 weeks
+                    EndDate := Calcdate('<5W>', EndDate);
+                end;
         end;
         if EndDate = 0D then
             EndDate := DMY2Date(31, 12, 9999); // Far future date
@@ -312,6 +312,8 @@ codeunit 50613 "GanttChartDataHandler"
         EndDate: Date;
         JsonArray: JsonArray;
         JsonObject: JsonObject;
+        JsonArray_Task: JsonArray;
+        JsonObject_Task: JsonObject;
     begin
         GanttSetup.Get(UserId);
         GetDateRange(GanttSetup, AnchorDate, StartDate, EndDate);

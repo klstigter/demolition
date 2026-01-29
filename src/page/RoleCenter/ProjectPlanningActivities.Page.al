@@ -12,31 +12,31 @@ page 50613 "Project Planning Activities"
         {
             cuegroup("Today")
             {
-                field(Projects; Rec.ProjectCount(gViewType::Project, Today(), false))
-                {
-                    Caption = 'Project';
-                    ApplicationArea = Basic, Suite;
-                    ToolTip = 'Some tooltip';
+                // field(Projects; Rec.ProjectCount(gViewType::Project, Today(), false))
+                // {
+                //     Caption = 'Project';
+                //     ApplicationArea = Basic, Suite;
+                //     ToolTip = 'Some tooltip';
 
-                    trigger OnDrillDown()
-                    var
-                        myInt: Integer;
-                    begin
-                        myInt := Rec.ProjectCount(gViewType::Project, Today(), true)
-                    end;
-                }
-                field("Project Tasks"; Rec.TaskCount(gViewType::Project, Today(), false))
-                {
-                    Caption = 'Task';
-                    ApplicationArea = Basic, Suite;
-                    ToolTip = 'Some tooltip';
-                    trigger OnDrillDown()
-                    var
-                        myInt: Integer;
-                    begin
-                        myInt := Rec.TaskCount(gViewType::Project, Today(), true)
-                    end;
-                }
+                //     trigger OnDrillDown()
+                //     var
+                //         myInt: Integer;
+                //     begin
+                //         myInt := Rec.ProjectCount(gViewType::Project, Today(), true)
+                //     end;
+                // }
+                // field("Project Tasks"; Rec.TaskCount(gViewType::Project, Today(), false))
+                // {
+                //     Caption = 'Task';
+                //     ApplicationArea = Basic, Suite;
+                //     ToolTip = 'Some tooltip';
+                //     trigger OnDrillDown()
+                //     var
+                //         myInt: Integer;
+                //     begin
+                //         myInt := Rec.TaskCount(gViewType::Project, Today(), true)
+                //     end;
+                // }
                 field("Capacity (Today)"; Rec."Capacity (Today)")
                 {
                     Caption = 'Capacity';
@@ -52,30 +52,30 @@ page 50613 "Project Planning Activities"
             }
             cuegroup("Tomorrow")
             {
-                field(ProjectsTomorrow; Rec.ProjectCount(gViewType::Project, CalcDate('<1D>', Today()), false))
-                {
-                    Caption = 'Project';
-                    ApplicationArea = Basic, Suite;
-                    ToolTip = 'Some tooltip';
-                    trigger OnDrillDown()
-                    var
-                        myInt: Integer;
-                    begin
-                        myInt := Rec.ProjectCount(gViewType::Project, CalcDate('<1D>', Today()), true);
-                    end;
-                }
-                field("ProjectTomorrow"; Rec.TaskCount(gViewType::Project, CalcDate('<1D>', Today()), false))
-                {
-                    Caption = 'Task';
-                    ApplicationArea = Basic, Suite;
-                    ToolTip = 'Some tooltip';
-                    trigger OnDrillDown()
-                    var
-                        myInt: Integer;
-                    begin
-                        myInt := Rec.TaskCount(gViewType::Project, CalcDate('<1D>', Today()), true);
-                    end;
-                }
+                // field(ProjectsTomorrow; Rec.ProjectCount(gViewType::Project, CalcDate('<1D>', Today()), false))
+                // {
+                //     Caption = 'Project';
+                //     ApplicationArea = Basic, Suite;
+                //     ToolTip = 'Some tooltip';
+                //     trigger OnDrillDown()
+                //     var
+                //         myInt: Integer;
+                //     begin
+                //         myInt := Rec.ProjectCount(gViewType::Project, CalcDate('<1D>', Today()), true);
+                //     end;
+                // }
+                // field("ProjectTomorrow"; Rec.TaskCount(gViewType::Project, CalcDate('<1D>', Today()), false))
+                // {
+                //     Caption = 'Task';
+                //     ApplicationArea = Basic, Suite;
+                //     ToolTip = 'Some tooltip';
+                //     trigger OnDrillDown()
+                //     var
+                //         myInt: Integer;
+                //     begin
+                //         myInt := Rec.TaskCount(gViewType::Project, CalcDate('<1D>', Today()), true);
+                //     end;
+                // }
                 field("Capacity (Tomorrow)"; Rec."Capacity (Tomorrow)")
                 {
                     Caption = 'Capacity';

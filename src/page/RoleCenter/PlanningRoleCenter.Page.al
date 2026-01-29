@@ -86,12 +86,6 @@ page 50612 "Planning Role Center"
             {
                 Caption = 'Visual';
 
-                action("VisualPlanning")
-                {
-                    ApplicationArea = All;
-                    Caption = 'Visual Planning';
-                    RunObject = codeunit "Job Planning Line Handler";
-                }
                 action(GanttChartDHX)
                 {
                     ApplicationArea = All;

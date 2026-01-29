@@ -39,5 +39,5 @@ controladdin "DHX Gantt Control 2"
     procedure LoadResourcesData(resourcesJsonTxt: Text);
     procedure LoadDayTasksData(dayTasksJsonTxt: Text);
     procedure ClearData();
-
+    procedure GetGanttData();
 }

@@ -252,11 +252,7 @@ page 50620 "Gantt Demo DHX 2"
                 begin
                     Case Setup."Date Range Type" of
                         Setup."Date Range Type"::Weekly:
-                            AnchorDate := CalcDate('<-1W>', AnchorDate);
-                        Setup."Date Range Type"::Monthly:
-                            AnchorDate := CalcDate('<-1M>', AnchorDate);
-                        Setup."Date Range Type"::Yearly:
-                            AnchorDate := CalcDate('<-1Y>', AnchorDate);
+                            AnchorDate := CalcDate('<-6W>', AnchorDate);
                     End;
                     RefreshGantt();
                 end;
@@ -271,13 +267,20 @@ page 50620 "Gantt Demo DHX 2"
                 begin
                     Case Setup."Date Range Type" of
                         Setup."Date Range Type"::Weekly:
-                            AnchorDate := CalcDate('<1W>', AnchorDate);
-                        Setup."Date Range Type"::Monthly:
-                            AnchorDate := CalcDate('<1M>', AnchorDate);
-                        Setup."Date Range Type"::Yearly:
-                            AnchorDate := CalcDate('<1Y>', AnchorDate);
+                            AnchorDate := CalcDate('<6W>', AnchorDate);
                     End;
                     RefreshGantt();
+                end;
+            }
+            action(CheckGanttDataAct)
+            {
+                Caption = 'Check Gantt Data';
+                ApplicationArea = All;
+                Image = Check;
+
+                trigger OnAction()
+                begin
+                    CurrPage.DHXGanttControl2.GetGanttData();
                 end;
             }
         }
@@ -310,7 +313,11 @@ page 50620 "Gantt Demo DHX 2"
                 actionref(DayTaks_ref; DayTaks) { }
 
             }
-
+            group(Check)
+            {
+                Caption = 'Check';
+                actionref(CheckGanttData; CheckGanttDataAct) { }
+            }
         }
     }
 
@@ -470,6 +477,8 @@ page 50620 "Gantt Demo DHX 2"
         JsonTxtResource: Text;
         JsonTxtDayTasks: Text;
     begin
+        GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
+
         CurrPage.DHXGanttControl2.SetColumnVisibility(
                         Setup."Show Start Date",
                         Setup."Show Duration",
@@ -484,7 +493,6 @@ page 50620 "Gantt Demo DHX 2"
         if setup."Load Day Tasks" then
             JsonTxtDayTasks := GanttChartDataHandler.GetDayTasksAsJson(AnchorDate, setup."Job No. Filter");
 
-        GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
         CurrPage.DHXGanttControl2.LoadProject(StartDate, EndDate);
         if setup."Load Job Tasks" then
             CurrPage.DHXGanttControl2.LoadProjectData(JsonTxtTasks);
