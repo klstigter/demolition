@@ -122,12 +122,12 @@ codeunit 50604 "DHX Data Handler"
                 PlanningObject.Add('section_id', Daytask."Job No." + '|' + Daytask."Job Task No." + '|' + Format(Daytask."Job Planning Line No."));
                 if ResNo <> '' then begin
                     if Daytask."Vendor No." <> '' then
-                        PlanningObject.Add('color', 'lightblue')
+                        PlanningObject.Add('color', 'grey')
                     else
-                        PlanningObject.Add('color', 'blue');
+                        PlanningObject.Add('color', 'green');
                 end else begin // no resource assigned
                     if Daytask."Vendor No." <> '' then
-                        PlanningObject.Add('color', 'lightgreen')
+                        PlanningObject.Add('color', 'grey')
                     else
                         PlanningObject.Add('color', 'green');
                 end;

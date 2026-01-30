@@ -42,10 +42,21 @@ window.BOOT = function() {
         transform: translateX(-50%);
         margin: 0 !important;
         text-align: center !important;
+        display: none !important;
+    }
+
+    /* Hide the entire header area to remove blank space */
+    #scheduler_here .dhx_cal_navline {
+        display: none !important;
     }
 
     /* Background color for parent/folder rows in timeline */
     .timeline-parent-row {
+        background-color: lightblue !important;
+    }
+
+    /* Style parent row cells in the event area (timeline data cells) */
+    .timeline-parent-row .dhx_matrix_cell {
         background-color: lightblue !important;
     }
 
@@ -128,7 +139,8 @@ window.BOOT = function() {
             html = "<b>Capacity:</b> " + (ev.text || "") + "<br/>" +
                    "<b>Date:</b> " + formatDateOnly(start) + "<br/>" +
                    "<b>Start Time:</b> " + formatTimeOnly(start) + "<br/>" +
-                   "<b>End Time:</b> " + formatTimeOnly(end) + "<br/>" +                                      
+                   "<b>End Time:</b> " + formatTimeOnly(end) + "<br/>" +         
+                   "-----------------------------------<br/>" +                             
                    "<b>Capacity entry no.:</b> " + (ev.id || "") + "<br/>";
         } else if (ev.type === "daytask" || ev.type === "vacancy") {
             // var parts = String(ev.section_id).split('|');
@@ -140,6 +152,7 @@ window.BOOT = function() {
                    "<b>Date:</b> " + formatDateOnly(start) + "<br/>" +
                    "<b>Start Time:</b> " + formatTimeOnly(start) + "<br/>" +
                    "<b>End Time:</b> " + formatTimeOnly(end) + "<br/>" +
+                   "------------------------------------------------------------<br/>" +
                    "<b>Project:</b> " + jobNo + "<br/>" +
                    "<b>Task:</b> " + jobTaskNo + "<br/>" +
                    "<b>vendor no.:</b> " + vendor + "<br/>" +
@@ -156,13 +169,10 @@ window.BOOT = function() {
     // Start weeks on Monday
     scheduler.config.start_on_monday = true;
 
-    // Top title for the timeline tab (show week period)
-    const weekTitleFmt = scheduler.date.date_to_str("%d %M %Y");
-    scheduler.templates.timeline_date = function (start, end) {
-        // end is exclusive; subtract 1 day
-        const endIncl = scheduler.date.add(end, -1, "day");
-        return "Week date from " + weekTitleFmt(start) + " to " + weekTitleFmt(endIncl);
-    };
+    // // Top title for the timeline tab (hide week period header)
+    // scheduler.templates.timeline_date = function (start, end) {
+    //     return ""; // Return empty string to hide the header
+    // };
 
     scheduler.date.timeline_start = function(date){
         return scheduler.date.week_start(date); // respects start_on_monday
@@ -529,7 +539,7 @@ function Init(dataelements, EarliestPlanningDate) {
     }
 
     // Defensive: set header to avoid DOM warnings if hiding tabs
-    scheduler.config.header = ["date"];
+    // scheduler.config.header = ["date"];
 
     // Create timeline view (always with a valid y_unit array)    
     RecreateTimelineView(elements);
@@ -788,14 +798,14 @@ function RecreateTimelineView(sections) {
         x_size: (8 * 7),
         x_length: (8 * 7),
         dy: 30,
-        event_dy: 30,
-        folder_dy: 30,  // Height for parent/folder rows
+        event_dy: 20,   // Height for event rows
+        folder_dy: 20,  // Height for parent/folder rows
         section_autoheight: false,
         resize_events: true,
         y_unit: sections,
         y_property: "section_id",
         render: "tree",
-        scale_height: 60,
+        scale_height: 40,
         second_scale: {
             x_unit: "day",
             x_date: "%D %d %M"

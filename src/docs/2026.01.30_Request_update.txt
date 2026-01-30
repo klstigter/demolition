@@ -1,0 +1,11 @@
+(OK) 1. Capacity ->Header Caption -> hide/remove
+(OK) 2. Capacity -> Warna biru satu baris penuh, tapi hanya untuk Vendor/Internal
+(OK) 3. Syncronkan pola warna antara daytask dan capacity
+(OK) 4. di Daytask -> hover -> ganti event = daytask
+(OK) 5. Capacity -> hover -> kasih baris pemisah horizontal, lihat di daytask untuk referensi
+6. Capacity -> split per vendor/internal juga
+(OK) 7. Capacity -> tinggi di perkecil
+8. Add Resource Pool di daytask -> dan pakai sebagai group (bukan vendor lagi)
+9. gantt -> show/hide untuk bagian resource
+
+
