@@ -103,7 +103,7 @@ window.BOOT = function() {
             }
         }
         
-        var html = "<b>Event:</b> " + (ev.text || "") + "<br/>" +
+        var html = "<b>Daytask:</b> " + (ev.text || "") + "<br/>" +
                    "<b>Date:</b> " + formatDateOnly(start) + "<br/>" +
                    "<b>Start Time:</b> " + formatTimeOnly(start) + "<br/>" +
                    "<b>End Time:</b> " + formatTimeOnly(end) + "<br/>" +

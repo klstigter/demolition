@@ -421,6 +421,7 @@ window.BOOT = function() {
       css: "gantt_container",
       rows: [
         {
+          id: "ganttPanel",
           cols: [
             { view: "grid", group: "grids", config: mainGridConfig, scrollY: "scrollVer" },
             { resizer: true, width: 1, group: "vertical" },
@@ -428,8 +429,10 @@ window.BOOT = function() {
             { view: "scrollbar", id: "scrollVer", group: "vertical" }
           ]
         },
-        { resizer: true, width: 1 },
+        { resizer: true, width: 1, id: "resourceResizer" },
         {
+          id: "resourcePanel",
+          hidden: false,
           config: resourcePanelConfig,
           cols: [
             { view: "grid", id: "resourceGrid", group: "grids", bind: "resources", scrollY: "resourceVScroll" },
@@ -481,6 +484,40 @@ window.BOOT = function() {
 
   } catch (e) {
     console.warn("BOOT warning:", e);
+  }
+}
+
+function SetResourcePanelVisibility(visible) {
+  if (!gantt_here || typeof gantt === "undefined" || !gantt.$root) {
+    return;
+  }
+  
+  // Get the actual layout cell object for the resource panel
+  var layout = gantt.$layout;
+  if (!layout) {
+    console.warn("Layout not initialized");
+    return;
+  }
+  
+  // Find the resourcePanel cell by id
+  var resourceCell = layout.getCellById("resourcePanel");
+  var resizerCell = layout.getCellById("resourceResizer");
+  
+  if (resourceCell) {
+    if (visible) {
+      resourceCell.show();
+    } else {
+      resourceCell.hide();
+    }
+  }
+  
+  // Also toggle the resizer above the resource panel
+  if (resizerCell) {
+    if (visible) {
+      resizerCell.show();
+    } else {
+      resizerCell.hide();
+    }
   }
 }
 

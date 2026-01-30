@@ -283,6 +283,18 @@ page 50620 "Gantt Demo DHX 2"
                     CurrPage.DHXGanttControl2.GetGanttData();
                 end;
             }
+            action(ShoHideResourcePanel)
+            {
+                Caption = 'Show/Hide Resource Panel';
+                ApplicationArea = All;
+                Image = Resource;
+
+                trigger OnAction()
+                begin
+                    ResourcePanelFlag := not ResourcePanelFlag;
+                    CurrPage.DHXGanttControl2.SetResourcePanelVisibility(ResourcePanelFlag);
+                end;
+            }
         }
 
 
@@ -299,6 +311,7 @@ page 50620 "Gantt Demo DHX 2"
                 actionref("Prev_filter"; PreviousAct) { }
                 actionref("Today_filter"; Todayact) { }
                 actionref("Next_filter"; Nextact) { }
+                actionref("ShowHideResPanel"; ShoHideResourcePanel) { }
             }
             group(Category_Category4)
             {
@@ -325,6 +338,7 @@ page 50620 "Gantt Demo DHX 2"
     begin
         Setup.Get(UserId);
         AnchorDate := Today();
+        ResourcePanelFlag := true;
         ShowPreviousNext := not (Setup."Date Range Type" = Setup."Date Range Type"::"Date Range");
     end;
 
@@ -336,6 +350,7 @@ page 50620 "Gantt Demo DHX 2"
         Setup: Record "Gantt Chart Setup";
         GanttChartDataHandler: Codeunit "GanttChartDataHandler";
         ShowPreviousNext: Boolean;
+        ResourcePanelFlag: Boolean;
 
     procedure RefreshGantt()
     begin
