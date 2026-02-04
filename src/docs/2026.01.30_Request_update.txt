@@ -6,6 +6,6 @@
 6. Capacity -> split per vendor/internal juga
 (OK) 7. Capacity -> tinggi di perkecil
 8. Add Resource Pool di daytask -> dan pakai sebagai group (bukan vendor lagi)
-9. gantt -> show/hide untuk bagian resource
+(OK) 9. gantt -> show/hide untuk bagian resource
 
 

@@ -372,6 +372,7 @@ codeunit 50604 "DHX Data Handler"
                 Clear(GroupResObject);
                 GroupResObject.Add('key', TempResGroup."No." + '||Group');
                 GroupResObject.Add('label', TempResGroup.Name);
+                GroupResObject.Add('category', 'Group');
                 GroupResObject.Add('open', true);
                 Clear(GroupChildrenArray);
 
@@ -383,6 +384,7 @@ codeunit 50604 "DHX Data Handler"
                             VenNo := TempVendor."Currency Code";
                             Clear(InternalExternalObject);
                             InternalExternalObject.Add('key', TempResGroup."No." + '||' + VenNo + '|Vendor');
+                            InternalExternalObject.Add('category', 'Vendor');
                             if VenNo = '' then
                                 InternalExternalObject.Add('label', 'Internal')
                             else begin
@@ -402,6 +404,7 @@ codeunit 50604 "DHX Data Handler"
                                     Clear(ResourceObject);
                                     ResourceObject.Add('key', TempResGroup."No." + '|' + ResourceTemp."No." + '|' + VenNo);
                                     ResourceObject.Add('label', ResourceTemp.Name);
+                                    ResourceObject.Add('category', 'Resource');
                                     InternalExternalChildrenArray.Add(ResourceObject);
                                 until ResourceTemp.Next() = 0;
                             InternalExternalObject.Add('children', InternalExternalChildrenArray);

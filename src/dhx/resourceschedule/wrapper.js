@@ -60,28 +60,31 @@ window.BOOT = function() {
         background-color: lightblue !important;
     }
 
-    /* Style for parent cells in the left column (label area) */
-    .dhx_matrix_scell.folder,
-    .dhx_matrix_scell.folder .dhx_scell_level0,
-    .dhx_matrix_scell.folder .dhx_scell_level1,
-    .dhx_matrix_scell.folder .dhx_scell_level2,
-    .dhx_matrix_scell.folder .dhx_scell_name {
+    /* Style for Vendor category parent cells in the left column (label area) */
+    .dhx_matrix_scell.folder.vendor-category,
+    .dhx_matrix_scell.folder.vendor-category .dhx_scell_level0,
+    .dhx_matrix_scell.folder.vendor-category .dhx_scell_level1,
+    .dhx_matrix_scell.folder.vendor-category .dhx_scell_level2,
+    .dhx_matrix_scell.folder.vendor-category .dhx_scell_name {
         background-color: lightblue !important;
         color: white !important;
         font-weight: bold !important;
     }
 
+    /* Style for Vendor category parent cells in the left column */
+    .dhx_matrix_scell.folder.vendor-category {
+        background-color: lightblue !important;
+        font-weight: bold;
+    }
+
     /* Override any link colors inside folder cells */
+    /* **** NOT WORKING AS INTENDED *****
     .dhx_matrix_scell.folder a,
     .dhx_matrix_scell.folder span {
         color: white !important;
     }
-    
-    /* Optional: Style for parent cells in the left column */
-    .dhx_matrix_scell.folder {
-        background-color: lightblue !important;
-        font-weight: bold;
-    }
+    ***** */
+
     `;
     document.head.appendChild(style);
     //>>
@@ -812,11 +815,20 @@ function RecreateTimelineView(sections) {
         }
     });
 
-    // Customize parent row background color
+    // Customize parent row background color for event area
     scheduler.templates.timeline_row_class = function(section, date) {
-        // Check if this section has children (is a parent/folder)
-        if (section.children && section.children.length > 0) {
+        // Check if this section has category = 'Vendor'
+        if (section.category === 'Vendor') {
             return "timeline-parent-row";
+        }
+        return "";
+    };
+
+    // Customize label cell class for left column
+    scheduler.templates.timeline_scaley_class = function(key, label, section) {
+        // Check if this section has category = 'Vendor'
+        if (section && section.category === 'Vendor') {
+            return "vendor-category";
         }
         return "";
     };
