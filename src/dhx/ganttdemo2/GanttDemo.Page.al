@@ -29,7 +29,7 @@ page 50620 "Gantt Demo DHX 2"
                 begin
                     setup.EnsureUserRecord();
                     setup.get(UserId);
-                    LoadPageData();
+                    LoadAllData();
                 end;
 
                 trigger onTaskDblClick(eventId: Text; eventData: Text)
@@ -283,6 +283,17 @@ page 50620 "Gantt Demo DHX 2"
                     CurrPage.DHXGanttControl2.GetGanttData();
                 end;
             }
+            action(TestClearData)
+            {
+                Caption = 'Clear Gantt Data';
+                ApplicationArea = All;
+                Image = RemoveLine;
+
+                trigger OnAction()
+                begin
+                    CurrPage.DHXGanttControl2.ClearData();
+                end;
+            }
             action(ShoHideResourcePanel)
             {
                 Caption = 'Show/Hide Resource Panel';
@@ -293,6 +304,9 @@ page 50620 "Gantt Demo DHX 2"
                 begin
                     ResourcePanelFlag := not ResourcePanelFlag;
                     CurrPage.DHXGanttControl2.SetResourcePanelVisibility(ResourcePanelFlag);
+                    // Only reload resources if showing panel
+                    if ResourcePanelFlag then
+                        LoadResourceData();
                 end;
             }
         }
@@ -307,6 +321,7 @@ page 50620 "Gantt Demo DHX 2"
                 actionref("UodoPromoted"; Undo) { }
                 actionref("RedoPromoted"; Redo) { }
                 actionref("AddMarkerPromoted"; AddMarker) { }
+                actionref(TestClearDataRef; TestClearData) { }
                 actionref("RefreshDataPromoted"; RefreshData) { }
                 actionref("Prev_filter"; PreviousAct) { }
                 actionref("Today_filter"; Todayact) { }
@@ -356,7 +371,71 @@ page 50620 "Gantt Demo DHX 2"
     begin
         CurrPage.DHXGanttControl2.ClearData();
         Setup.Get(UserId);
-        LoadPageData();
+        LoadAllData();
+    end;
+
+    local procedure LoadAllData()
+    var
+        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
+        StartDate: Date;
+        EndDate: Date;
+    begin
+        GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
+
+        // Set project range first
+        CurrPage.DHXGanttControl2.LoadProject(StartDate, EndDate);
+
+        // Apply column settings
+        CurrPage.DHXGanttControl2.SetColumnVisibility(
+            Setup."Show Start Date",
+            Setup."Show Duration",
+            Setup."Show Constraint Type",
+            Setup."Show Constraint Date",
+            Setup."Show Task Type"
+        );
+
+        // Load data in optimal sequence
+        if setup."Load Job Tasks" then
+            LoadTaskData();
+
+        if setup."Load Resources" and ResourcePanelFlag then
+            LoadResourceData();
+
+        if setup."Load Day Tasks" then
+            LoadDayTaskData();
+
+        // Finalize: render and reset refresh flag
+        CurrPage.DHXGanttControl2.RenderGantt();
+    end;
+
+    local procedure LoadTaskData()
+    var
+        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
+        JsonTxtTasks: Text;
+    begin
+        JsonTxtTasks := GanttChartDataHandler.GetJobTasksAsJson(AnchorDate);
+        if JsonTxtTasks <> '' then
+            CurrPage.DHXGanttControl2.LoadProjectData(JsonTxtTasks);
+    end;
+
+    local procedure LoadResourceData()
+    var
+        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
+        JsonTxtResource: Text;
+    begin
+        JsonTxtResource := GanttChartDataHandler.GetResourcesAsJson();
+        if JsonTxtResource <> '' then
+            CurrPage.DHXGanttControl2.LoadResourcesData(JsonTxtResource);
+    end;
+
+    local procedure LoadDayTaskData()
+    var
+        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
+        JsonTxtDayTasks: Text;
+    begin
+        JsonTxtDayTasks := GanttChartDataHandler.GetDayTasksAsJson(AnchorDate, setup."Job No. Filter");
+        if JsonTxtDayTasks <> '' then
+            CurrPage.DHXGanttControl2.LoadDayTasksData(JsonTxtDayTasks);
     end;
 
     procedure OnJobTaskUpdated(TaskJson: Text)
@@ -483,38 +562,4 @@ page 50620 "Gantt Demo DHX 2"
         ParsedDate := DMY2Date(Day, Month, Year);
     end;
 
-    local procedure LoadPageData()
-    var
-        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
-        StartDate: Date;
-        EndDate: Date;
-        JsonTxtTasks: Text;
-        JsonTxtResource: Text;
-        JsonTxtDayTasks: Text;
-    begin
-        GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
-
-        CurrPage.DHXGanttControl2.SetColumnVisibility(
-                        Setup."Show Start Date",
-                        Setup."Show Duration",
-                        Setup."Show Constraint Type",
-                        Setup."Show Constraint Date",
-                        Setup."Show Task Type"
-                    );
-        if setup."Load Job Tasks" then
-            JsonTxtTasks := GanttChartDataHandler.GetJobTasksAsJson(AnchorDate);
-        if setup."Load Resources" then
-            JsonTxtResource := GanttChartDataHandler.GetResourcesAsJson();
-        if setup."Load Day Tasks" then
-            JsonTxtDayTasks := GanttChartDataHandler.GetDayTasksAsJson(AnchorDate, setup."Job No. Filter");
-
-        CurrPage.DHXGanttControl2.LoadProject(StartDate, EndDate);
-        if setup."Load Job Tasks" then
-            CurrPage.DHXGanttControl2.LoadProjectData(JsonTxtTasks);
-        if setup."Load Resources" then
-            CurrPage.DHXGanttControl2.LoadResourcesData(JsonTxtResource);
-        if setup."Load Day Tasks" then
-            CurrPage.DHXGanttControl2.LoadDayTasksData(JsonTxtDayTasks);
-
-    end;
 }

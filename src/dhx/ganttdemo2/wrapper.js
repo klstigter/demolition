@@ -12,6 +12,7 @@ var _queuedColumnArgs = null;
 var _booted = false;
 var resourcesStore = null;
 var dayTasksStore = null;
+var _isRefreshing = false;
 
 // -------------------------------------------------------
 // 1) BOOT (run once)
@@ -382,10 +383,6 @@ window.BOOT = function() {
       }
     });
 
-    //add event to existing standard DHTMLX task store to refresh resources on task changes
-    var tasksStore = gantt.getDatastore("task");
-    tasksStore.attachEvent("onStoreUpdated", function () { resourcesStore.refresh(); });
-
     // Datastores
     resourcesStore = gantt.createDatastore({
       name: "resources",
@@ -402,48 +399,9 @@ window.BOOT = function() {
       }
     });
 
-    var mainGridConfig = { columns: gantt.config.columns };
-    var resourcePanelConfig = {
-      columns: [
-        { name: "name", label: "Name", template: function (r) { return r.label; } },
-        {
-          name: "workload", label: "Workload", template: function (r) {
-            var tasks = gantt.getTaskBy("user", r.id);
-            var total = 0;
-            for (var i = 0; i < tasks.length; i++) total += (tasks[i].duration || 0);
-            return (total * 8) + "";
-          }
-        }
-      ]
-    };
+    // Note: Resource refresh is handled explicitly by BC, not by auto-events
 
-    gantt.config.layout = {
-      css: "gantt_container",
-      rows: [
-        {
-          id: "ganttPanel",
-          cols: [
-            { view: "grid", group: "grids", config: mainGridConfig, scrollY: "scrollVer" },
-            { resizer: true, width: 1, group: "vertical" },
-            { view: "timeline", id: "timeline", scrollX: "scrollHor", scrollY: "scrollVer" },
-            { view: "scrollbar", id: "scrollVer", group: "vertical" }
-          ]
-        },
-        { resizer: true, width: 1, id: "resourceResizer" },
-        {
-          id: "resourcePanel",
-          hidden: false,
-          config: resourcePanelConfig,
-          cols: [
-            { view: "grid", id: "resourceGrid", group: "grids", bind: "resources", scrollY: "resourceVScroll" },
-            { resizer: true, width: 1, group: "vertical" },
-            { view: "timeline", id: "resourceTimeline", bind: "resources", bindLinks: null, layers: resourceLayers, scrollX: "scrollHor", scrollY: "resourceVScroll" },
-            { view: "scrollbar", id: "resourceVScroll", group: "vertical" }
-          ]
-        },
-        { view: "scrollbar", id: "scrollHor" }
-      ]
-    };
+    // Note: Layout will be created dynamically in RecreateGanttLayout()
 
     // Resource CSS
     (function injectResourceCSS() {
@@ -463,7 +421,9 @@ window.BOOT = function() {
       document.head.appendChild(s);
     })();
 
-    // ✅ ENGINE INIT (once)
+    // ✅ ENGINE INIT (once) - layout will be set dynamically
+    // Initial layout with resource panel visible
+    RecreateGanttLayout(true);
     gantt.init("gantt_here");
 
     // Apply queued column settings if AL called too early
@@ -487,37 +447,88 @@ window.BOOT = function() {
   }
 }
 
-function SetResourcePanelVisibility(visible) {
-  if (!gantt_here || typeof gantt === "undefined" || !gantt.$root) {
-    return;
-  }
-  
-  // Get the actual layout cell object for the resource panel
-  var layout = gantt.$layout;
-  if (!layout) {
-    console.warn("Layout not initialized");
-    return;
-  }
-  
-  // Find the resourcePanel cell by id
-  var resourceCell = layout.getCellById("resourcePanel");
-  var resizerCell = layout.getCellById("resourceResizer");
-  
-  if (resourceCell) {
-    if (visible) {
-      resourceCell.show();
+// -------------------------------------------------------
+// Dynamic Layout Recreation (like scheduler's RecreateTimelineView)
+// -------------------------------------------------------
+function RecreateGanttLayout(showResourcePanel) {
+  try {
+    var mainGridConfig = { columns: gantt.config.columns };
+    var resourcePanelConfig = {
+      columns: [
+        { name: "name", label: "Name", template: function (r) { return r.text || r.label || ""; } },
+        {
+          name: "workload", label: "Workload", template: function (r) {
+            // Calculate total hours from dayTasksStore
+            var total = 0;
+            if (dayTasksStore) {
+              var allDayTasks = dayTasksStore.getItems();
+              for (var i = 0; i < allDayTasks.length; i++) {
+                var dt = allDayTasks[i];
+                if (String(dt.resource_id || "") === String(r.id || "")) {
+                  total += Number(dt.hours || 0);
+                }
+              }
+            }
+            return total + "h";
+          }
+        }
+      ]
+    };
+
+    if (showResourcePanel) {
+      // Layout WITH resource panel
+      gantt.config.layout = {
+        css: "gantt_container",
+        rows: [
+          {
+            cols: [
+              { view: "grid", group: "grids", config: mainGridConfig, scrollY: "scrollVer" },
+              { resizer: true, width: 1, group: "vertical" },
+              { view: "timeline", id: "timeline", scrollX: "scrollHor", scrollY: "scrollVer" },
+              { view: "scrollbar", id: "scrollVer", group: "vertical" }
+            ],
+            gravity: 2
+          },
+          { resizer: true, width: 1 },
+          {
+            config: resourcePanelConfig,
+            cols: [
+              { view: "grid", id: "resourceGrid", group: "grids", bind: "resources", scrollY: "resourceVScroll" },
+              { resizer: true, width: 1, group: "vertical" },
+              { view: "timeline", id: "resourceTimeline", bind: "resources", bindLinks: null, layers: resourceLayers, scrollX: "scrollHor", scrollY: "resourceVScroll" },
+              { view: "scrollbar", id: "resourceVScroll", group: "vertical" }
+            ],
+            gravity: 1
+          },
+          { view: "scrollbar", id: "scrollHor" }
+        ]
+      };
     } else {
-      resourceCell.hide();
+      // Layout WITHOUT resource panel
+      gantt.config.layout = {
+        css: "gantt_container",
+        rows: [
+          {
+            cols: [
+              { view: "grid", group: "grids", config: mainGridConfig, scrollY: "scrollVer" },
+              { resizer: true, width: 1, group: "vertical" },
+              { view: "timeline", id: "timeline", scrollX: "scrollHor", scrollY: "scrollVer" },
+              { view: "scrollbar", id: "scrollVer", group: "vertical" }
+            ]
+          },
+          { view: "scrollbar", id: "scrollHor" }
+        ]
+      };
     }
-  }
-  
-  // Also toggle the resizer above the resource panel
-  if (resizerCell) {
-    if (visible) {
-      resizerCell.show();
-    } else {
-      resizerCell.hide();
+
+    // If gantt is already initialized, apply the new layout
+    if (gantt.$root) {
+      gantt.resetLayout();
     }
+
+    console.log("Gantt layout recreated, resource panel:", showResourcePanel ? "visible" : "hidden");
+  } catch (e) {
+    console.error("RecreateGanttLayout failed:", e);
   }
 }
 
@@ -553,6 +564,29 @@ function LoadProject(projectstartdate, projectenddate) {
   //gantt.addMarker({ start_date: gantt.config.project_start, text: "project start" });
   //gantt.addMarker({ start_date: gantt.config.project_end, text: "project end" });
 
+}
+
+// -------------------------------------------------------
+// Finalize Refresh - Call this after all data is loaded
+// -------------------------------------------------------
+function RenderGantt() {
+  try {
+    if (!gantt_here || typeof gantt === "undefined" || !gantt.$root) {
+      console.warn("RenderGantt: Gantt not initialized");
+      return;
+    }
+
+    // Final render after all data loaded
+    gantt.render();
+    
+    // Reset refresh flag
+    _isRefreshing = false;
+    
+    console.log("Gantt render completed, refresh flag reset");
+  } catch (e) {
+    console.error("RenderGantt failed:", e);
+    _isRefreshing = false;
+  }
 }
 
 // -------------------------------------------------------
@@ -681,9 +715,38 @@ function _applyTaskPatch(targetTask, patch) {
 // -------------------------------------------------------
 
 function ClearData(projectJsonTxt) {
-  gantt.clearAll();
-  gantt.render();
+  try {
+    if (_isRefreshing) {
+      console.warn("Refresh already in progress, skipping ClearData");
+      return;
+    }
+    _isRefreshing = true; // Will be reset by RenderGantt()
+    
+    // Clear the daytasks index first
+    if (window.dayTasksByTask) {
+      window.dayTasksByTask = Object.create(null);
+    }
+    
+    // Clear daytasks datastore
+    if (dayTasksStore && dayTasksStore.clearAll) {
+      dayTasksStore.clearAll();
+    }
+    
+    // Clear resource datastore
+    if (resourcesStore && resourcesStore.clearAll) {
+      resourcesStore.clearAll();
+    }
+    
+    // Clear main gantt tasks and links
+    gantt.clearAll();
+    
+    console.log("ClearData completed, waiting for data load...");
+  } catch (e) {
+    console.error("ClearData failed:", e);
+    _isRefreshing = false;
+  }
 }
+
 function LoadProjectData(projectJsonTxt) {
  
 
@@ -993,8 +1056,10 @@ function LoadResourcesData(resourcesJsonTxt) {
     resourcesStore.clearAll();
     resourcesStore.parse(items);
 
-    resourcesStore.refresh();
-    gantt.render();
+    // Only render if gantt is initialized and not in the middle of a refresh
+    if (gantt.$root && !_isRefreshing) {
+      gantt.render();
+    }
   } catch (e) {
     console.error("LoadResourcesData failed:", e);
   }
@@ -1036,10 +1101,11 @@ function LoadDayTasksData(dayTasksJsonTxt) {
     // Replace all
     if (dayTasksStore.clearAll) dayTasksStore.clearAll();
     dayTasksStore.parse(items);
-    // Force repaint of resource timeline/grid
-    if (resourcesStore) resourcesStore.refresh();
-    gantt.render();
-    if (gantt.setSizes) gantt.setSizes();
+    
+    // Force repaint of resource timeline/grid only if resources exist
+    if (resourcesStore && gantt.$root && !_isRefreshing) {
+      gantt.render();
+    }
   } catch (e) {
     console.error("LoadDayTasksData failed:", e);
   }
@@ -1216,4 +1282,19 @@ function _hideCustomTooltip() {
 
 function GetGanttData() {
   alert('gantt.config.project_start: ' + gantt.config.project_start + '\ngantt.config.project_end: ' + gantt.config.project_end);
+}
+
+function SetResourcePanelVisibility(resource_toggle) {
+  try {
+    if (!gantt_here || typeof gantt === "undefined" || !gantt.$root) {
+      console.warn("Gantt not initialized yet");
+      return;
+    }
+
+    // Use the centralized layout recreation function
+    RecreateGanttLayout(resource_toggle);
+    
+  } catch (e) {
+    console.error("SetResourcePanelVisibility failed:", e);
+  }
 }

@@ -39,6 +39,7 @@ controladdin "DHX Gantt Control 2"
     procedure LoadResourcesData(resourcesJsonTxt: Text);
     procedure LoadDayTasksData(dayTasksJsonTxt: Text);
     procedure ClearData();
+    procedure RenderGantt();
     procedure GetGanttData();
-    procedure SetResourcePanelVisibility(visible: Boolean);
+    procedure SetResourcePanelVisibility(resource_toggle: Boolean);
 }
