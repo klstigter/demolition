@@ -174,6 +174,11 @@ page 50619 "DHX Scheduler (Resource)"
                     end;
                 end;
                 #endregion Timeline Navigate
+
+                trigger OnEventsNotMatch(EventIdsJsonTxt: Text)
+                begin
+                    Message(EventIdsJsonTxt);
+                end;
             }
         }
     }
@@ -256,6 +261,18 @@ page 50619 "DHX Scheduler (Resource)"
                         AnchorDate := SelectedDate;
                         RefreshSchedule(ShowHideDayTasks);
                     end;
+                end;
+            }
+
+            action(ExecEventsNotMatch)
+            {
+                Caption = 'Get Events Not Matching Sections';
+                ApplicationArea = All;
+                Image = "Event";
+
+                trigger OnAction()
+                begin
+                    CurrPage.DhxScheduler.get_events_not_match_with_section();
                 end;
             }
 

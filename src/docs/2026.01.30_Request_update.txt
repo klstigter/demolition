@@ -3,9 +3,9 @@
 (OK) 3. Syncronkan pola warna antara daytask dan capacity
 (OK) 4. di Daytask -> hover -> ganti event = daytask
 (OK) 5. Capacity -> hover -> kasih baris pemisah horizontal, lihat di daytask untuk referensi
-6. Capacity -> split per vendor/internal juga
+(OK) 6. Capacity -> split per vendor/internal juga
 (OK) 7. Capacity -> tinggi di perkecil
-8. Add Resource Pool di daytask -> dan pakai sebagai group (bukan vendor lagi)
+8. Add Resource Pool di daytask -> dan pakai sebagai group (bukan vendor)
 (OK) 9. gantt -> show/hide untuk bagian resource
 
 

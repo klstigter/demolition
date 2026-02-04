@@ -240,6 +240,7 @@ codeunit 50604 "DHX Data Handler"
         TempResGroup: record "Resource Group" temporary;
         TempVendor: record "Aging Band Buffer" temporary;
         ResourceTemp: Record Resource temporary;
+        TempVen: record Vendor temporary;
         DateRec: Record Date;
         Daytask: record "Day Tasks";
         Resource: Record Resource;
@@ -286,10 +287,16 @@ codeunit 50604 "DHX Data Handler"
                         PlanningObject.Add('text', 'capacity');
                         if WithDayTask then begin
                             New_section_id := GetVendorNoFromDayTask(StartDate, EndDate, ResCap."Resource No."); //move into seciton id with daytask source no. and posibility has a vendor
-                            if New_section_id = '' then
-                                section_id := section_id + '|'
-                            else
+                            if New_section_id = '' then begin
+                                if not Resource.Get(ResCap."Resource No.") then
+                                    Clear(Resource);
+                                section_id := section_id + '|' + Resource."Vendor No.";
+                            end else
                                 section_id := New_section_id;
+                        end else begin
+                            if not Resource.Get(ResCap."Resource No.") then
+                                Clear(Resource);
+                            section_id := section_id + '|' + Resource."Vendor No.";
                         end;
                         PlanningObject.Add('section_id', section_id);
                         PlanningObject.Add('type', 'capacity');
@@ -393,12 +400,13 @@ codeunit 50604 "DHX Data Handler"
                             end;
                             InternalExternalObject.Add('open', true);
                             GroupChildrenArray.Add(InternalExternalObject);
-
-                            // 3. Resource
                             Clear(InternalExternalChildrenArray);
+
+                            // 3. Resource                            
                             ResourceTemp.Reset();
                             ResourceTemp.Deleteall;
                             GetUniqueResFromCapacity(ResourceTemp, TempResGroup."No.", VenNo, StartDate, EndDate);
+                            ResourceTemp.Setrange("Vendor No.", VenNo);
                             if ResourceTemp.FindSet() then
                                 repeat
                                     Clear(ResourceObject);
@@ -413,17 +421,35 @@ codeunit 50604 "DHX Data Handler"
                     GroupResObject.Add('children', GroupChildrenArray);
                     DataArray.Add(GroupResObject);
                 end else begin
-                    // 3. Resource
-                    ResourceTemp.Reset();
-                    ResourceTemp.Deleteall;
-                    GetUniqueResFromCapacity(ResourceTemp, TempResGroup."No.", StartDate, EndDate);
-                    if ResourceTemp.FindSet() then
+                    // Vendor and Resource
+                    GetUniqueResFromCapacity(ResourceTemp, TempVen, TempResGroup."No.", StartDate, EndDate);
+                    if TempVen.FindSet() then
                         repeat
-                            Clear(ResourceObject);
-                            ResourceObject.Add('key', TempResGroup."No." + '|' + ResourceTemp."No.");
-                            ResourceObject.Add('label', ResourceTemp.Name);
-                            GroupChildrenArray.Add(ResourceObject);
-                        until ResourceTemp.Next() = 0;
+                            // 2. Vendor
+                            Clear(InternalExternalObject);
+                            InternalExternalObject.Add('key', TempResGroup."No." + '||' + TempVen."No." + '|Vendor');
+                            InternalExternalObject.Add('category', 'Vendor');
+                            InternalExternalObject.Add('label', TempVen.Name);
+                            InternalExternalObject.Add('open', true);
+                            GroupChildrenArray.Add(InternalExternalObject);
+                            Clear(InternalExternalChildrenArray);
+
+                            // 3. Resource
+                            ResourceTemp.SetRange("Vendor No.", TempVen."No.");
+                            if ResourceTemp.FindSet() then begin
+                                repeat
+                                    if not Resource.Get(ResourceTemp."No.") then
+                                        Clear(Resource);
+                                    Clear(ResourceObject);
+                                    ResourceObject.Add('key', TempResGroup."No." + '|' + ResourceTemp."No." + '|' + Resource."Vendor No.");
+                                    ResourceObject.Add('label', ResourceTemp.Name);
+                                    ResourceObject.Add('category', 'Resource');
+                                    InternalExternalChildrenArray.Add(ResourceObject);
+                                until ResourceTemp.Next() = 0;
+                                InternalExternalObject.Add('children', InternalExternalChildrenArray);
+                            end;
+
+                        until TempVen.Next() = 0;
                     GroupResObject.Add('children', GroupChildrenArray);
                     DataArray.Add(GroupResObject);
                 end;
@@ -1383,27 +1409,31 @@ codeunit 50604 "DHX Data Handler"
         TempRes.DeleteAll();
 
         // Open the query - it automatically groups by VendorNo giving unique values
-        if VendorNo = '' then begin
-            UniqueResQry.SetRange(EntryDateFilter, StartDate, EndDate);
-            UniqueResQry.SetRange(Resource_Group_No_, ResGroupNo);
-            if UniqueResQry.Open() then begin
-                while UniqueResQry.Read() do begin
-                    ResNo := UniqueResQry.Resource_No_;
-                    if GetVendorNoFromDayTask(StartDate, EndDate, ResNo) = '' then
-                        //if <> '' then it does not create section, because it will meet on below next block of codes with daytask source no. and posibility has a vendor
-                        if not TempRes.Get(ResNo) then begin
-                            TempRes.Init();
-                            TempRes."No." := ResNo;
-                            if Res.Get(ResNo) then
-                                TempRes.Name := Res.Name
-                            else
-                                TempRes.Name := 'Vacant';
-                            TempRes.Insert();
+        //if VendorNo = '' then begin
+        UniqueResQry.SetRange(EntryDateFilter, StartDate, EndDate);
+        UniqueResQry.SetRange(Resource_Group_No_, ResGroupNo);
+        if UniqueResQry.Open() then begin
+            while UniqueResQry.Read() do begin
+                ResNo := UniqueResQry.Resource_No_;
+                if GetVendorNoFromDayTask(StartDate, EndDate, ResNo) = '' then
+                    //if <> '' then it does not create section, because it will meet on below next block of codes with daytask source no. and posibility has a vendor
+                    if not TempRes.Get(ResNo) then begin
+                        TempRes.Init();
+                        TempRes."No." := ResNo;
+                        if Res.Get(ResNo) then begin
+                            TempRes.Name := Res.Name;
+                            TempRes."Vendor No." := Res."Vendor No.";
+                        end else begin
+                            TempRes.Name := 'Vacant';
+                            TempRes."Vendor No." := '';
                         end;
-                end;
-                UniqueResQry.Close();
+                        TempRes.Insert();
+                    end;
             end;
+            UniqueResQry.Close();
         end;
+        //end;
+
         DayTasks.SetRange(Type, DayTasks.Type::Resource);
         DayTasks.SetRange("Task Date", StartDate, EndDate);
         DayTasks.SetRange("Resource Group No.", ResGroupNo);
@@ -1414,39 +1444,63 @@ codeunit 50604 "DHX Data Handler"
                 if not TempRes.Get(ResNo) then begin
                     TempRes.Init();
                     TempRes."No." := ResNo;
-                    if Res.Get(ResNo) then
-                        TempRes.Name := Res.Name
-                    else
+                    if Res.Get(ResNo) then begin
+                        TempRes.Name := Res.Name;
+                        TempRes."Vendor No." := Res."Vendor No.";
+                    end else begin
                         TempRes.Name := 'Vacant';
+                        TempRes."Vendor No." := '';
+                    end;
                     TempRes.Insert();
                 end;
             until DayTasks.Next() = 0;
+
     end;
 
     procedure GetUniqueResFromCapacity(var TempRes: record "Resource" temporary;
+                                       var TempVen: record Vendor temporary;
                                        ResGroupNo: Code[20];
                                        StartDate: Date;
                                        EndDate: Date)
     var
         Res: record Resource;
+        Vendor: Record Vendor;
         UniqueResQry: Query "Unique Resource in Capacity";
         ResNo: Code[20];
+        VenNo: Code[20];
     begin
         // Clear the temporary table
         TempRes.Reset();
         TempRes.DeleteAll();
+
+        TempVen.Reset();
+        TempVen.DeleteAll();
 
         // Open the query - it automatically groups by VendorNo giving unique values
         UniqueResQry.SetRange(EntryDateFilter, StartDate, EndDate);
         UniqueResQry.SetRange(Resource_Group_No_, ResGroupNo);
         if UniqueResQry.Open() then begin
             while UniqueResQry.Read() do begin
+                VenNo := '';
                 ResNo := UniqueResQry.Resource_No_;
                 TempRes.Init();
                 TempRes."No." := ResNo;
-                if Res.Get(ResNo) then
+                if Res.Get(ResNo) then begin
                     TempRes.Name := Res.Name;
+                    if res."Vendor No." <> '' then
+                        VenNo := res."Vendor No.";
+                end;
+                TempRes."Vendor No." := VenNo;
                 if TempRes.Insert() then;
+                if Not TempVen.Get(VenNo) then begin
+                    TempVen.Init();
+                    TempVen."No." := VenNo;
+                    if not Vendor.Get(VenNo) then
+                        TempVen.Name := 'Internal'
+                    else
+                        TempVen.Name := Vendor.Name;
+                    TempVen.Insert();
+                end;
             end;
             UniqueResQry.Close();
         end;
@@ -1507,6 +1561,8 @@ codeunit 50604 "DHX Data Handler"
                                            StartDate: Date;
                                            EndDate: Date)
     var
+        TempRes: record "Resource" temporary;
+        TempVen: record Vendor temporary;
         UniqueVendorsQuery: Query "Unique Vendors in Day Tasks";
         Vendor: Record Vendor;
         VendorNo: Code[20];
@@ -1540,6 +1596,33 @@ codeunit 50604 "DHX Data Handler"
             end;
             UniqueVendorsQuery.Close();
         end;
+
+        // find Unique Vendor From Resource Capacity
+        GetUniqueResFromCapacity(TempRes,
+                                TempVen,
+                                ResGroupNo,
+                                StartDate,
+                                EndDate);
+        if TempVen.FindSet() then
+            repeat
+                VendorNo := TempVen."No.";
+                if VendorNo <> '' then begin
+                    // Get vendor details and add to temporary table
+                    if Vendor.Get(VendorNo) then begin
+                        if not TempRecord.Get(VendorNo) then begin
+                            TempRecord.Init();
+                            TempRecord."Currency Code" := VendorNo;
+                            TempRecord.Insert();
+                        end;
+                    end;
+                end else begin
+                    if not TempRecord.Get(VendorNo) then begin
+                        TempRecord.Init();
+                        TempRecord."Currency Code" := VendorNo;
+                        TempRecord.Insert();
+                    end;
+                end;
+            until TempVen.Next() = 0;
 
         if not TempRecord.Get('') then begin
             TempRecord.Init();
