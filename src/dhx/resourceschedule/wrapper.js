@@ -835,3 +835,25 @@ function RecreateTimelineView(sections) {
 
 }
 
+function get_events_not_match_with_section() {
+    // get all events that has section_id not in the current sections
+    var invalidEvents = [];
+    var sectionsMap = {};
+    if (scheduler.matrix && scheduler.matrix.timeline && Array.isArray(scheduler.matrix.timeline.y_unit)) {
+        scheduler.matrix.timeline.y_unit.forEach(function(section) {
+            sectionsMap[section.key] = true;
+        });
+    }
+
+    if (scheduler.getEvents) {
+        var allEvents = scheduler.getEvents();
+        allEvents.forEach(function(event) {
+            if (!sectionsMap[event.section_id]) {
+                invalidEvents.push(event);
+            }
+        });
+    }
+
+    Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnEventsNotMatch', [JSON.stringify(invalidEvents)]);
+    // return invalidEvents;
+}
