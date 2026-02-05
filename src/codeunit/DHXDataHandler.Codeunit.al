@@ -227,6 +227,27 @@ codeunit 50604 "DHX Data Handler"
         exit(rtv);
     end;
 
+    local procedure GetPoolNoFromDayTask(FromDate: Date; ToDate: Date; ResNo: Code[20]): Text
+    var
+        Daytask: record "Day Tasks";
+        PoolNo: Text;
+        rtv: Text;
+    begin
+        rtv := '';
+        Daytask.SetRange("Task Date", FromDate, ToDate);
+        Daytask.SetRange(Type, Daytask.Type::Resource);
+        Daytask.SetRange("No.", ResNo);
+        Daytask.Setfilter("Pool Resource No.", '<>%1', '');
+        if Daytask.FindFirst() then
+            rtv := Daytask."Resource Group No." + '|' + Daytask."No." + '|' + Daytask."Pool Resource No."
+        else begin
+            Daytask.Setfilter("Pool Resource No.", '');
+            if Daytask.FindFirst() then
+                rtv := Daytask."Resource Group No." + '|' + Daytask."No." + '|' + Daytask."Pool Resource No.";
+        end;
+        exit(rtv);
+    end;
+
     procedure GetYUnitElementsJSON_Resource(AnchorDate: Date;
                                    StartDate: Date;
                                    EndDate: Date;
@@ -300,7 +321,7 @@ codeunit 50604 "DHX Data Handler"
                         end;
                         PlanningObject.Add('section_id', section_id);
                         PlanningObject.Add('type', 'capacity');
-                        PlanningObject.Add('color', 'lightblue');
+                        PlanningObject.Add('color', '#D9F0F2');
 
                         PlanningArray.Add(PlanningObject);
 
@@ -464,6 +485,244 @@ codeunit 50604 "DHX Data Handler"
         exit(OutText);
     end;
 
+
+    procedure GetYUnitElementsJSON_Pool(AnchorDate: Date;
+                                   StartDate: Date;
+                                   EndDate: Date;
+                                   WithDayTask: Boolean;
+                                   var PlanninJsonTxt: Text;
+                                   var EarliestPlanningDate: Date): Text
+    var
+        ResCap: Record "Res. Capacity Entry";
+        PoolRes: Record Resource;
+        WeekTemp: record "Aging Band Buffer" temporary;
+        TempResGroup: record "Resource Group" temporary;
+        TempPoolRes: record "Aging Band Buffer" temporary;
+        ResourceTemp: Record Resource temporary;
+        TempPool: record Resource temporary;
+        DateRec: Record Date;
+        Daytask: record "Day Tasks";
+        Resource: Record Resource;
+        Job: Record Job;
+        Task: Record "Job Task";
+
+        ResCapQry: Query "Capacity Per Day Per Resource";
+
+        GroupResObject, InternalExternalObject, ResourceObject : JsonObject;
+        GroupChildrenArray, InternalExternalChildrenArray : JsonArray;
+        PlanningObject, Root : JsonObject;
+        PlanningArray, DataArray : JsonArray;
+        OutText: Text;
+
+        ResNo: Code[20];
+        PoolNo: Code[20];
+        section_id: Text;
+        New_section_id: Text;
+        StartDateTxt: Text;
+        EndDateTxt: Text;
+        DummyEndDate: Date;
+        DetailsLabel: Label '%1 - %2|%3 - %4|%5 - %6';
+    begin
+        PlanninJsonTxt := '';
+        //Marking Job based on Day Tasks within the given date range
+        WeekTemp.Reset();
+        WeekTemp.DeleteAll();
+
+        DateRec.SetRange("Period Type", DateRec."Period Type"::Date);
+        DateRec.SetRange("Period Start", StartDate, EndDate);
+        if DateRec.findset then
+            Repeat
+                //Add Event of Capacity                
+                ResCapQry.SetRange(Date_filter, DateRec."Period Start"); // -> change with query to sum total capacity per day per resource
+                if ResCapQry.Open() then begin
+                    while ResCapQry.Read() do begin
+                        ResCap.Get(ResCapQry.Entry_No);
+                        GetStartEndTxt(ResCap, ResCapQry.Capacity, StartDateTxt, EndDateTxt);
+                        Clear(PlanningObject);
+                        section_id := ResCap."Resource Group No." + '|' + ResCap."Resource No.";
+                        PlanningObject.Add('id', Format(ResCap."Entry No."));
+                        PlanningObject.Add('start_date', StartDateTxt);
+                        PlanningObject.Add('end_date', EndDateTxt);
+                        PlanningObject.Add('text', 'capacity');
+                        if WithDayTask then begin
+                            New_section_id := GetPoolNoFromDayTask(StartDate, EndDate, ResCap."Resource No."); //move into seciton id with daytask source no. and posibility has a vendor
+                            if New_section_id = '' then begin
+                                if not Resource.Get(ResCap."Resource No.") then
+                                    Clear(Resource);
+                                section_id := section_id + '|' + Resource."Pool Resource No.";
+                            end else
+                                section_id := New_section_id;
+                        end else begin
+                            if not Resource.Get(ResCap."Resource No.") then
+                                Clear(Resource);
+                            section_id := section_id + '|' + Resource."Pool Resource No.";
+                        end;
+                        PlanningObject.Add('section_id', section_id);
+                        PlanningObject.Add('type', 'capacity');
+                        PlanningObject.Add('color', '#D9F0F2');
+
+                        PlanningArray.Add(PlanningObject);
+
+                        if AnchorDate = 0D then
+                            CountToWeekNumber(ResCap."Date", WeekTemp);
+                    end;
+                    ResCapQry.Close();
+                end;
+
+                //Add Event of Daytask
+                if WithDayTask then begin
+                    Daytask.setrange(Type, Daytask.Type::Resource);
+                    Daytask.setrange("Task Date", DateRec."Period Start");
+                    if Daytask.findset then
+                        repeat
+                            if not Job.Get(Daytask."Job No.") then
+                                Clear(Job);
+                            if not Task.Get(Daytask."Job No.", Daytask."Job Task No.") then
+                                Clear(Task);
+                            ResNo := Daytask."No.";
+                            if not Resource.Get(ResNo) then
+                                Clear(Resource);
+                            Clear(PlanningObject);
+                            PlanningObject.Add('id', Daytask."Job No." + '|' +
+                                                    Daytask."Job Task No." + '|' +
+                                                    Format(Daytask."Job Planning Line No.") + '|' +
+                                                    Format(Daytask."Day No.") + '|' +
+                                                    Format(Daytask."DayLineNo"));
+                            PlanningObject.Add('start_date', StartDateTxt);
+                            PlanningObject.Add('end_date', EndDateTxt);
+                            if Daytask.Description <> '' then
+                                PlanningObject.Add('text', Daytask.Description)
+                            else
+                                if Daytask."No." <> '' then
+                                    PlanningObject.Add('text', Resource.Name)
+                                else
+                                    PlanningObject.Add('text', 'vacant');
+                            PlanningObject.Add('section_id', Daytask."Resource Group No." + '|' + ResNo + '|' + Daytask."Pool Resource No.");
+                            if not PoolRes.Get(Daytask."Pool Resource No.") then
+                                Clear(PoolRes);
+                            PlanningObject.Add('details', StrSubstNo(DetailsLabel, PoolRes."No.", PoolRes.Name
+                                                                                     , Daytask."Job No.", Job.Description
+                                                                                     , Daytask."Job Task No.", Task.Description));
+                            if Daytask."Pool Resource No." = '' then
+                                PlanningObject.Add('color', 'green')
+                            else
+                                PlanningObject.Add('color', 'grey');
+                            PlanningObject.Add('type', 'daytask');
+
+                            PlanningArray.Add(PlanningObject);
+                        until Daytask.next = 0;
+                end;
+
+            until DateRec.Next() = 0;
+
+        if AnchorDate = 0D then begin
+            WeekTemp.Reset();
+            WeekTemp.SetCurrentKey("Column 3 Amt.");
+            WeekTemp.FindSet();
+            if WeekTemp.FindLast() then
+                EarliestPlanningDate := DWY2Date(1, WeekTemp."Column 2 Amt.", WeekTemp."Column 1 Amt.")
+            else
+                EarliestPlanningDate := Today();
+        end else
+            GetWeekPeriodDates(AnchorDate, EarliestPlanningDate, DummyEndDate);
+
+        PlanningArray.WriteTo(PlanninJsonTxt);
+
+        //DownloadResourceTempToExcel(ResourceTemp); // For testing purposes
+
+        GetUniqueResGroupFromCapacity(TempResGroup, WithDayTask, StartDate, EndDate);
+        if TempResGroup.FindSet() then begin
+            Clear(DataArray);
+            repeat
+                // 1. Resource Group
+                Clear(GroupResObject);
+                GroupResObject.Add('key', TempResGroup."No." + '||Group');
+                GroupResObject.Add('label', TempResGroup.Name);
+                GroupResObject.Add('category', 'Group');
+                GroupResObject.Add('open', true);
+                Clear(GroupChildrenArray);
+
+                if WithDayTask then begin
+                    // 2. Internal / Pool Resource
+                    GetUniquePoolFromDayTasks(TempPoolRes, TempResGroup."No.", StartDate, EndDate);
+                    if TempPoolRes.FindSet() then
+                        repeat
+                            PoolNo := TempPoolRes."Currency Code";
+                            Clear(InternalExternalObject);
+                            InternalExternalObject.Add('key', TempResGroup."No." + '||' + PoolNo + '|Pool');
+                            InternalExternalObject.Add('category', 'Pool');
+                            if PoolNo = '' then
+                                InternalExternalObject.Add('label', 'Internal')
+                            else begin
+                                PoolRes.Get(PoolNo);
+                                InternalExternalObject.Add('label', PoolRes.Name);
+                            end;
+                            InternalExternalObject.Add('open', true);
+                            GroupChildrenArray.Add(InternalExternalObject);
+                            Clear(InternalExternalChildrenArray);
+
+                            // 3. Resource                            
+                            ResourceTemp.Reset();
+                            ResourceTemp.Deleteall;
+                            GetUniqueResFromCapacity_Pool(ResourceTemp, TempResGroup."No.", PoolNo, StartDate, EndDate);
+                            ResourceTemp.Setrange("Pool Resource No.", PoolNo);
+                            if ResourceTemp.FindSet() then
+                                repeat
+                                    Clear(ResourceObject);
+                                    ResourceObject.Add('key', TempResGroup."No." + '|' + ResourceTemp."No." + '|' + PoolNo);
+                                    ResourceObject.Add('label', ResourceTemp.Name);
+                                    ResourceObject.Add('category', 'Resource');
+                                    InternalExternalChildrenArray.Add(ResourceObject);
+                                until ResourceTemp.Next() = 0;
+                            InternalExternalObject.Add('children', InternalExternalChildrenArray);
+
+                        until TempPoolRes.Next() = 0;
+                    GroupResObject.Add('children', GroupChildrenArray);
+                    DataArray.Add(GroupResObject);
+                end else begin
+                    // Vendor and Resource
+                    GetUniqueResFromCapacity_Pool(ResourceTemp, TempPool, TempResGroup."No.", StartDate, EndDate);
+                    if TempPool.FindSet() then
+                        repeat
+                            // 2. Vendor
+                            Clear(InternalExternalObject);
+                            InternalExternalObject.Add('key', TempResGroup."No." + '||' + TempPool."No." + '|Pool');
+                            InternalExternalObject.Add('category', 'Pool');
+                            InternalExternalObject.Add('label', TempPool.Name);
+                            InternalExternalObject.Add('open', true);
+                            GroupChildrenArray.Add(InternalExternalObject);
+                            Clear(InternalExternalChildrenArray);
+
+                            // 3. Resource
+                            ResourceTemp.SetRange("Pool Resource No.", TempPool."No.");
+                            if ResourceTemp.FindSet() then begin
+                                repeat
+                                    if not Resource.Get(ResourceTemp."No.") then
+                                        Clear(Resource);
+                                    Clear(ResourceObject);
+                                    ResourceObject.Add('key', TempResGroup."No." + '|' + ResourceTemp."No." + '|' + Resource."Pool Resource No.");
+                                    ResourceObject.Add('label', ResourceTemp.Name);
+                                    ResourceObject.Add('category', 'Resource');
+                                    InternalExternalChildrenArray.Add(ResourceObject);
+                                until ResourceTemp.Next() = 0;
+                                InternalExternalObject.Add('children', InternalExternalChildrenArray);
+                            end;
+
+                        until TempPool.Next() = 0;
+                    GroupResObject.Add('children', GroupChildrenArray);
+                    DataArray.Add(GroupResObject);
+                end;
+            until TempResGroup.Next() = 0;
+        end;
+
+        Clear(Root);
+        Root.Add('data', DataArray);
+
+        // Write JSON to text
+        Root.WriteTo(OutText);
+        exit(OutText);
+    end;
+
     local procedure CountToWeekNumber(DateToCount: Date; var WeekTemp: record "Aging Band Buffer" temporary)
     var
         yw: Code[6];
@@ -553,18 +812,32 @@ codeunit 50604 "DHX Data Handler"
                                    var EndDateTxt: Text)
     var
         tm: Time;
-        EndTime: Time;
+        StartDateTime: DateTime;
+        EndDateTime: DateTime;
+        CapacityDuration: Duration;
     begin
         StartDateTxt := '';
         EndDateTxt := '';
         if ResCap."Date" = 0D then
             exit;
+
         tm := ResCap."Start Time";
         if tm = 0T then
             tm := 070000T;
+
+        // Convert start date and time to DateTime
+        StartDateTime := CreateDateTime(ResCap."Date", tm);
         StartDateTxt := ToSessionDateTimeTxt(ResCap."Date", tm);
-        EndTime := tm + (Capacity * 60 * 60 * 1000);
-        EndDateTxt := ToSessionDateTimeTxt(ResCap."Date", EndTime);
+
+        // Calculate capacity as duration in milliseconds
+        // Capacity is in hours, so: hours * 60 minutes * 60 seconds * 1000 milliseconds
+        CapacityDuration := Capacity * 60 * 60 * 1000;
+
+        // Add capacity duration to start datetime
+        EndDateTime := StartDateTime + CapacityDuration;
+
+        // Extract date and time from end datetime and convert to session timezone text
+        EndDateTxt := ToSessionDateTimeTxt(DT2Date(EndDateTime), DT2Time(EndDateTime));
     end;
 
     local procedure ToSessionDateTimeTxt(UtcDate: Date; UtcTime: Time): Text
@@ -1506,6 +1779,117 @@ codeunit 50604 "DHX Data Handler"
         end;
     end;
 
+    procedure GetUniqueResFromCapacity_Pool(var TempRes: record "Resource" temporary;
+                                       ResGroupNo: Code[20];
+                                       PoolNo: Code[20];
+                                       StartDate: Date;
+                                       EndDate: Date)
+    var
+        Res: record Resource;
+        DayTasks: record "Day Tasks";
+        UniqueResQry: Query "Unique Resource in Capacity";
+        ResNo: Code[20];
+    begin
+        // Clear the temporary table
+        TempRes.Reset();
+        TempRes.DeleteAll();
+
+        // Open the query - it automatically groups by Pool Resource giving unique values
+        UniqueResQry.SetRange(EntryDateFilter, StartDate, EndDate);
+        UniqueResQry.SetRange(Resource_Group_No_, ResGroupNo);
+        if UniqueResQry.Open() then begin
+            while UniqueResQry.Read() do begin
+                ResNo := UniqueResQry.Resource_No_;
+                if GetPoolNoFromDayTask(StartDate, EndDate, ResNo) = '' then
+                    //if <> '' then it does not create section, because it will meet on below next block of codes with daytask source no. and posibility has a vendor
+                    if not TempRes.Get(ResNo) then begin
+                        TempRes.Init();
+                        TempRes."No." := ResNo;
+                        if Res.Get(ResNo) then begin
+                            TempRes.Name := Res.Name;
+                            TempRes."Pool Resource No." := Res."Pool Resource No.";
+                        end else begin
+                            TempRes.Name := 'Vacant';
+                            TempRes."Pool Resource No." := '';
+                        end;
+                        TempRes.Insert();
+                    end;
+            end;
+            UniqueResQry.Close();
+        end;
+
+        DayTasks.SetRange(Type, DayTasks.Type::Resource);
+        DayTasks.SetRange("Task Date", StartDate, EndDate);
+        DayTasks.SetRange("Resource Group No.", ResGroupNo);
+        DayTasks.SetRange("Pool Resource No.", PoolNo);
+        if DayTasks.FindSet() then
+            repeat
+                ResNo := DayTasks."No.";
+                if not TempRes.Get(ResNo) then begin
+                    TempRes.Init();
+                    TempRes."No." := ResNo;
+                    if Res.Get(ResNo) then begin
+                        TempRes.Name := Res.Name;
+                        TempRes."Pool Resource No." := Res."Pool Resource No.";
+                    end else begin
+                        TempRes.Name := 'Vacant';
+                        TempRes."Pool Resource No." := '';
+                    end;
+                    TempRes.Insert();
+                end;
+            until DayTasks.Next() = 0;
+
+    end;
+
+    procedure GetUniqueResFromCapacity_Pool(var TempRes: record "Resource" temporary;
+                                       var TempPoolRes: record Resource temporary;
+                                       ResGroupNo: Code[20];
+                                       StartDate: Date;
+                                       EndDate: Date)
+    var
+        Res: record Resource;
+        PoolRes: Record Resource;
+        UniqueResQry: Query "Unique Resource in Capacity";
+        ResNo: Code[20];
+        PoolNo: Code[20];
+    begin
+        // Clear the temporary table
+        TempRes.Reset();
+        TempRes.DeleteAll();
+
+        TempPoolRes.Reset();
+        TempPoolRes.DeleteAll();
+
+        // Open the query - it automatically groups by VendorNo giving unique values
+        UniqueResQry.SetRange(EntryDateFilter, StartDate, EndDate);
+        UniqueResQry.SetRange(Resource_Group_No_, ResGroupNo);
+        if UniqueResQry.Open() then begin
+            while UniqueResQry.Read() do begin
+                PoolNo := '';
+                ResNo := UniqueResQry.Resource_No_;
+                TempRes.Init();
+                TempRes."No." := ResNo;
+                if Res.Get(ResNo) then begin
+                    TempRes.Name := Res.Name;
+                    if res."Pool Resource No." <> '' then
+                        PoolNo := res."Pool Resource No.";
+                end;
+                TempRes."Pool Resource No." := PoolNo;
+                if TempRes.Insert() then;
+                if Not TempPoolRes.Get(PoolNo) then begin
+                    TempPoolRes.Init();
+                    TempPoolRes."No." := PoolNo;
+                    if not PoolRes.Get(PoolNo) then
+                        TempPoolRes.Name := 'Internal'
+                    else
+                        TempPoolRes.Name := PoolRes.Name;
+                    TempPoolRes.Insert();
+                end;
+            end;
+            UniqueResQry.Close();
+        end;
+    end;
+
     procedure GetUniqueResGroupFromCapacity(var TempResGroup: record "Resource Group" temporary; WithDayTask: Boolean; StartDate: Date; EndDate: Date)
     var
         ResGroup: record "Resource Group";
@@ -1623,6 +2007,82 @@ codeunit 50604 "DHX Data Handler"
                     end;
                 end;
             until TempVen.Next() = 0;
+
+        if not TempRecord.Get('') then begin
+            TempRecord.Init();
+            TempRecord."Currency Code" := '';
+            TempRecord.Insert();
+        end;
+
+    end;
+
+    procedure GetUniquePoolFromDayTasks(var TempRecord: record "Aging Band Buffer" temporary;
+                                           ResGroupNo: Code[20];
+                                           StartDate: Date;
+                                           EndDate: Date)
+    var
+        TempRes: record "Resource" temporary;
+        TempPool: record Resource temporary;
+        UniquePoolQuery: Query "Unique Pool in Day Tasks";
+        PoolRes: Record Resource;
+        PoolNo: Code[20];
+    begin
+        // Clear the temporary table
+        TempRecord.Reset();
+        TempRecord.DeleteAll();
+
+        // Open the query - it automatically groups by VendorNo giving unique values
+        UniquePoolQuery.SetRange(TaskDateFilter, StartDate, EndDate);
+        UniquePoolQuery.SetRange(Resource_Group_No_Filter, ResGroupNo);
+        if UniquePoolQuery.Open() then begin
+            while UniquePoolQuery.Read() do begin
+                PoolNo := UniquePoolQuery.PoolResNo;
+                if PoolNo <> '' then begin
+                    // Get vendor details and add to temporary table
+                    if PoolRes.Get(PoolNo) then begin
+                        if not TempRecord.Get(PoolNo) then begin
+                            TempRecord.Init();
+                            TempRecord."Currency Code" := PoolNo;
+                            TempRecord.Insert();
+                        end;
+                    end;
+                end else begin
+                    if not TempRecord.Get(PoolNo) then begin
+                        TempRecord.Init();
+                        TempRecord."Currency Code" := PoolNo;
+                        TempRecord.Insert();
+                    end;
+                end;
+            end;
+            UniquePoolQuery.Close();
+        end;
+
+        // find Unique Vendor From Resource Capacity
+        GetUniqueResFromCapacity_Pool(TempRes,
+                                TempPool,
+                                ResGroupNo,
+                                StartDate,
+                                EndDate);
+        if TempPool.FindSet() then
+            repeat
+                PoolNo := TempPool."No.";
+                if PoolNo <> '' then begin
+                    // Get vendor details and add to temporary table
+                    if PoolRes.Get(PoolNo) then begin
+                        if not TempRecord.Get(PoolNo) then begin
+                            TempRecord.Init();
+                            TempRecord."Currency Code" := PoolNo;
+                            TempRecord.Insert();
+                        end;
+                    end;
+                end else begin
+                    if not TempRecord.Get(PoolNo) then begin
+                        TempRecord.Init();
+                        TempRecord."Currency Code" := PoolNo;
+                        TempRecord.Insert();
+                    end;
+                end;
+            until TempPool.Next() = 0;
 
         if not TempRecord.Get('') then begin
             TempRecord.Init();

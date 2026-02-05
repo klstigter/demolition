@@ -51,39 +51,87 @@ window.BOOT = function() {
     }
 
     /* Background color for parent/folder rows in timeline */
-    .timeline-parent-row {
-        background-color: lightblue !important;
-    }
+    
+    
+    /***** Style for Vendor category parent cells in the left column (label area) */
 
     /* Style parent row cells in the event area (timeline data cells) */
     .timeline-parent-row .dhx_matrix_cell {
-        background-color: lightblue !important;
+        background-color: #D9F0F2 !important;
     }
 
-    /* Style for Vendor category parent cells in the left column (label area) */
     .dhx_matrix_scell.folder.vendor-category,
     .dhx_matrix_scell.folder.vendor-category .dhx_scell_level0,
     .dhx_matrix_scell.folder.vendor-category .dhx_scell_level1,
     .dhx_matrix_scell.folder.vendor-category .dhx_scell_level2,
     .dhx_matrix_scell.folder.vendor-category .dhx_scell_name {
-        background-color: lightblue !important;
-        color: white !important;
+        background-color: #D9F0F2 !important;
+        color: black !important;
         font-weight: bold !important;
     }
 
     /* Style for Vendor category parent cells in the left column */
     .dhx_matrix_scell.folder.vendor-category {
-        background-color: lightblue !important;
+        background-color: #D9F0F2 !important;
         font-weight: bold;
+    }
+
+    /******* Style for Group category cells */
+    .timeline-group-row {
+        background-color: #E9E9E9 !important;
+    }
+
+    .timeline-group-row .dhx_matrix_cell {
+        background-color: #E9E9E9 !important;
+    }
+
+    .dhx_matrix_scell.folder.group-category,
+    .dhx_matrix_scell.folder.group-category .dhx_scell_level0,
+    .dhx_matrix_scell.folder.group-category .dhx_scell_level1,
+    .dhx_matrix_scell.folder.group-category .dhx_scell_level2,
+    .dhx_matrix_scell.folder.group-category .dhx_scell_name {
+        background-color: #E9E9E9 !important;
+        color: black !important;
+        font-weight: bold !important;
+    }
+
+    .dhx_matrix_scell.folder.group-category {
+        background-color: #E9E9E9 !important;
+        font-weight: bold;
+    }
+
+    /* Style for Resource category cells - with extra indentation */
+    .timeline-resource-row {
+        background-color: white !important;
+    }
+
+    .timeline-resource-row .dhx_matrix_cell {
+        background-color: white !important;
+    }
+
+    .dhx_matrix_scell.resource-category,
+    .dhx_matrix_scell.resource-category .dhx_scell_name {
+        padding-left: 15px !important;
+        background-color: white !important;
+        color: black !important;
     }
 
     /* Override any link colors inside folder cells */
     /* **** NOT WORKING AS INTENDED *****
     .dhx_matrix_scell.folder a,
     .dhx_matrix_scell.folder span {
-        color: white !important;
+        color: black !important;
     }
     ***** */
+
+    /* Set all event text color to black */
+    .dhx_cal_event,
+    .dhx_cal_event_line,
+    .dhx_event_line,
+    .dhx_cal_event .dhx_title,
+    .dhx_cal_event .dhx_body {
+        color: black !important;
+    }
 
     `;
     document.head.appendChild(style);
@@ -817,18 +865,30 @@ function RecreateTimelineView(sections) {
 
     // Customize parent row background color for event area
     scheduler.templates.timeline_row_class = function(section, date) {
-        // Check if this section has category = 'Vendor'
-        if (section.category === 'Vendor') {
+        // Check section category and return appropriate class
+        if (section.category === 'Vendor' || section.category === 'Pool') {
             return "timeline-parent-row";
+        }
+        if (section.category === 'Group') {
+            return "timeline-group-row";
+        }
+        if (section.category === 'Resource') {
+            return "timeline-resource-row";
         }
         return "";
     };
 
     // Customize label cell class for left column
     scheduler.templates.timeline_scaley_class = function(key, label, section) {
-        // Check if this section has category = 'Vendor'
-        if (section && section.category === 'Vendor') {
+        // Check section category and return appropriate class
+        if (section && (section.category === 'Vendor' || section.category === 'Pool')) {
             return "vendor-category";
+        }
+        if (section && section.category === 'Group') {
+            return "group-category";
+        }
+        if (section && section.category === 'Resource') {
+            return "resource-category";
         }
         return "";
     };

@@ -73,6 +73,22 @@ table 50610 "Day Tasks"
         }
 
         // **** control Resource No.
+        field(39; "Pool Resource No."; Code[20])
+        {
+            DataClassification = ToBeClassified;
+            tablerelation = Resource;
+
+            trigger OnValidate()
+            var
+                Resource: Record Resource;
+            begin
+                if ("Pool Resource No." <> '') and (Type = Type::Resource) and ("No." <> '') then begin
+                    Resource.Get("No.");
+                    if Resource."Pool Resource No." <> "Pool Resource No." then
+                        Error('Resource %1 does not belong to Pool Resource %2.', "No.", "Pool Resource No.");
+                end
+            end;
+        }
         field(40; "Vendor No."; Code[20])
         {
             DataClassification = ToBeClassified;
@@ -141,6 +157,8 @@ table 50610 "Day Tasks"
                     "Resource Group No." := Resource."Resource Group No.";
                     if Resource."Vendor No." <> '' then
                         "Vendor No." := Resource."Vendor No.";
+                    if Resource."Pool Resource No." <> '' then
+                        "Pool Resource No." := Resource."Pool Resource No.";
                 end;
             end;
 
@@ -157,6 +175,8 @@ table 50610 "Day Tasks"
                         Resource.SetRange("Resource Group No.", "Resource Group No.");
                     if "Vendor No." <> '' then
                         Resource.SetRange("Vendor No.", "Vendor No.");
+                    if "Pool Resource No." <> '' then
+                        Resource.SetRange("Pool Resource No.", "Pool Resource No.");
                     if page.RunModal(0, Resource) = ACTION::LookupOK then begin
                         Validate("No.", Resource."No.");
                         Description := Resource.Name;
@@ -201,6 +221,13 @@ table 50610 "Day Tasks"
             CalcFormula = lookup(Vendor.Name where("No." = field("Vendor No.")));
             Editable = false;
             Caption = 'Vendor Name';
+        }
+        field(42; "Pool Resource Name"; Text[100])
+        {
+            FieldClass = FlowField;
+            CalcFormula = lookup(Resource.Name where("No." = field("Pool Resource No.")));
+            Editable = false;
+            Caption = 'Pool Resource Name';
         }
         field(50; "Work Type Code"; Code[10])
         {

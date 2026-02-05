@@ -247,16 +247,19 @@ page 50627 "Resource Capacity Settings Opt"
                         ResCapacityEntry.CalcSums(Capacity);
                         TempCapacity := ResCapacityEntry.Capacity;
 
+                        // Calculate the desired capacity per duplicate (not total)
                         if Holiday then
-                            NewCapacity := TempCapacity
+                            NewCapacity := 0
                         else begin
                             // Use time difference if custom times are set, otherwise use template hours
                             if UseCustomTimes and (StartTime <> 0T) and (EndTime <> 0T) then
-                                NewCapacity := TempCapacity - ((EndTime - StartTime) / 3600000)
+                                NewCapacity := (EndTime - StartTime) / 3600000
                             else
-                                NewCapacity := TempCapacity - SelectCapacity(CustomizedCalendarChange);
+                                NewCapacity := SelectCapacity(CustomizedCalendarChange);
                         end;
 
+                        // Calculate capacity change: difference between current and desired per duplicate
+                        // TempCapacity could be sum of multiple duplicates, so we need to handle this correctly
                         if NewCapacity <> 0 then begin
                             if NoOfDuplicates > 1 then begin
                                 // Create NoOfDuplicates entries for each day
@@ -266,10 +269,15 @@ page 50627 "Resource Capacity Settings Opt"
                                     LastEntry := ResCapacityEntry2."Entry No." + 1;
                                     ResCapacityEntry2.Init();
                                     ResCapacityEntry2."Entry No." := LastEntry;
-                                    ResCapacityEntry2.Capacity := -NewCapacity;
+
+                                    // Calculate adjustment: desired capacity per duplicate minus average existing capacity
+                                    // Example: existing sum=24 (3×8), new=5, NoOfDuplicates=3: 5-(24/3)=5-8=-3 per entry
+                                    ResCapacityEntry2.Capacity := NewCapacity - (TempCapacity / NoOfDuplicates);
+
                                     ResCapacityEntry2."Resource No." := Rec."No.";
                                     ResCapacityEntry2."Resource Group No." := Rec."Resource Group No.";
                                     ResCapacityEntry2.Date := TempDate;
+                                    ResCapacityEntry2."Duplicate Id" := LoopCounter;
 
                                     //<< Custom here
                                     // Use custom times if manually set, otherwise use template defaults
@@ -301,10 +309,13 @@ page 50627 "Resource Capacity Settings Opt"
                                 LastEntry := ResCapacityEntry2."Entry No." + 1;
                                 ResCapacityEntry2.Init();
                                 ResCapacityEntry2."Entry No." := LastEntry;
-                                ResCapacityEntry2.Capacity := -NewCapacity;
+                                // Calculate adjustment: desired capacity minus existing sum
+                                // Example: existing=8, new=5: 5-8=-3 | existing=9, new=14: 14-9=5
+                                ResCapacityEntry2.Capacity := NewCapacity - TempCapacity;
                                 ResCapacityEntry2."Resource No." := Rec."No.";
                                 ResCapacityEntry2."Resource Group No." := Rec."Resource Group No.";
                                 ResCapacityEntry2.Date := TempDate;
+                                ResCapacityEntry2."Duplicate Id" := 1;
 
                                 //<< Custom here
                                 // Use custom times if manually set, otherwise use template defaults

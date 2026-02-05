@@ -10,6 +10,7 @@ query 50604 "Capacity Per Day Per Resource"
             filter(Resource_No__Filter; "Resource No.") { }
             column(Date; Date) { }
             column(Resource_No_; "Resource No.") { }
+            column(Duplicate_Id; "Duplicate Id") { }
             column(Capacity; Capacity)
             {
                 Method = Sum;

@@ -1,9 +1,9 @@
-page 50619 "DHX Scheduler (Resource)"
+page 50600 "DHX Scheduler (Pool Resource)"
 {
     PageType = Card; //userControlHost;
     ApplicationArea = All;
     UsageCategory = Tasks;
-    Caption = 'Resource Planning Lines';
+    Caption = 'Pool Resource Planning Lines';
 
     layout
     {
@@ -25,7 +25,7 @@ page 50619 "DHX Scheduler (Resource)"
                 begin
                     //DHXDataHandler.GetOneYearPeriodDates(Today(), startDate, endDate);
                     DHXDataHandler.GetWeekPeriodDates(Today(), startDate, endDate);
-                    ResourceJSONTxt := DHXDataHandler.GetYUnitElementsJSON_Resource(Today(), startDate, endDate, false, PlanninJsonTxt, EarliestPlanningDate);
+                    ResourceJSONTxt := DHXDataHandler.GetYUnitElementsJSON_Pool(Today(), startDate, endDate, false, PlanninJsonTxt, EarliestPlanningDate);
                     CurrPage.DhxScheduler.Init(ResourceJSONTxt, EarliestPlanningDate);
                     CurrPage.DhxScheduler.LoadData(PlanninJsonTxt);
                     AnchorDate := startDate;
