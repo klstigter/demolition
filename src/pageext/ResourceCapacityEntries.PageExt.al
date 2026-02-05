@@ -5,6 +5,11 @@ pageextension 50613 "Res. Capacity Entries Opt" extends "Res. Capacity Entries"
         // Add changes to page layout here
         addafter(Capacity)
         {
+            field("Duplicate Id"; Rec."Duplicate Id")
+            {
+                ApplicationArea = Jobs;
+                Caption = 'Duplicate Id';
+            }
             field("Start Time"; Rec."Start Time")
             {
                 ApplicationArea = Jobs;

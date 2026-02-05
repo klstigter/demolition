@@ -8,4 +8,16 @@
 8. Add Resource Pool di daytask -> dan pakai sebagai group (bukan vendor)
 (OK) 9. gantt -> show/hide untuk bagian resource
 
+Capacity
+----------
+(OK) 10. Capacity Query tuning
+(OK) 11. Warna sesuaikan seperti hover tombol BC
+(OK) 12. Warna Huruf pakai hitam
+(OK) 13. Indent dari Resource agak ke kanan
+
+gantt
+-----------
+14. Default : Hide resource panel
+
+
 

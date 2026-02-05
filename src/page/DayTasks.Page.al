@@ -104,6 +104,21 @@ page 50630 "Day Tasks"
                     Style = Favorable;
                     StyleExpr = Rec.Fulfilled;
                 }
+                field("Pool Resource No."; Rec."Pool Resource No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the pool resource number.';
+                    Style = Favorable;
+                    StyleExpr = Rec.Fulfilled;
+                }
+                field("Pool Resource Name"; Rec."Pool Resource Name")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the pool resource name.';
+                    Editable = false;
+                    Style = Favorable;
+                    StyleExpr = Rec.Fulfilled;
+                }
                 field(Type; Rec.Type)
                 {
                     ApplicationArea = All;

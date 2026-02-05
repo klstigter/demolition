@@ -11,6 +11,11 @@ tableextension 50606 "ResCapacityEntry Opt" extends "Res. Capacity Entry"
         {
             DataClassification = ToBeClassified;
         }
+        field(50602; "Duplicate Id"; Integer)
+        {
+            DataClassification = ToBeClassified;
+            InitValue = 1;
+        }
     }
 
     keys
