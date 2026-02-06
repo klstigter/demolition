@@ -78,7 +78,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
                                     RefreshSchedule(ShowHideDayTasks);
                                 end;
                             end;
-                        'daytask', 'vacancy':
+                        'daytask_0', 'daytask_1', 'vacancy':
                             begin
                                 DateRef := DHXDataHandler.OpenDayTask(eventId);
                                 if DateRef <> 0D then begin
@@ -336,7 +336,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
         EarliestPlanningDate: Date;
     begin
         DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
-        DHXDataHandler.GetDayTaskAsResourcesAndEventsJSon_Resource_StartEnd(startDate,
+        DHXDataHandler.GetDayTaskAsResourcesAndEventsJSon_Pool_StartEnd(startDate,
                                                                       endDate,
                                                                       WithDayTask,
                                                                       ResourceJSONTxt,

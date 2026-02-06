@@ -78,7 +78,7 @@ page 50619 "DHX Scheduler (Resource)"
                                     RefreshSchedule(ShowHideDayTasks);
                                 end;
                             end;
-                        'daytask', 'vacancy':
+                        'daytask_0', 'daytask_1', 'vacancy':
                             begin
                                 DateRef := DHXDataHandler.OpenDayTask(eventId);
                                 if DateRef <> 0D then begin

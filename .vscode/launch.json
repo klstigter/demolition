@@ -8,7 +8,7 @@
             "environmentType": "Sandbox",
             "environmentName": "NL_Test",
             "tenant": "a60762e1-df10-4e4b-8f44-174c51589110",
-            "startupObjectId": 50619,
+            "startupObjectId": 50600,
             "startupObjectType": "Page",
             "breakOnError": "All",
             "launchBrowser": true,
@@ -39,7 +39,7 @@
             "type": "al",
             "environmentType": "Sandbox",
             "environmentName": "NL_Test",
-            "sessionId": 1217,
+            "sessionId": 79922,
             "breakOnNext": "WebClient",
             "breakOnError": "ExcludeTry",
             "tenant": "a60762e1-df10-4e4b-8f44-174c51589110"

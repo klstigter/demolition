@@ -30,6 +30,8 @@ page 50620 "Gantt Demo DHX 2"
                     setup.EnsureUserRecord();
                     setup.get(UserId);
                     LoadAllData();
+                    ResourcePanelFlag := false;
+                    CurrPage.DHXGanttControl2.SetResourcePanelVisibility(ResourcePanelFlag);
                 end;
 
                 trigger onTaskDblClick(eventId: Text; eventData: Text)
