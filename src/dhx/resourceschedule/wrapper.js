@@ -916,7 +916,7 @@ function RecreateTimelineView(sections) {
         x_step: 3,
         x_size: (8 * 7),
         x_length: (8 * 7),
-        dy: 30,
+        dy: 20,
         event_dy: 20,   // Height for event rows
         folder_dy: 20,  // Height for parent/folder rows
         section_autoheight: false,
