@@ -5,7 +5,7 @@
 (OK) 5. Capacity -> hover -> kasih baris pemisah horizontal, lihat di daytask untuk referensi
 (OK) 6. Capacity -> split per vendor/internal juga
 (OK) 7. Capacity -> tinggi di perkecil
-8. Add Resource Pool di daytask -> dan pakai sebagai group (bukan vendor)
+(OK) 8. Add Resource Pool di daytask -> dan pakai sebagai group (bukan vendor)
 (OK) 9. gantt -> show/hide untuk bagian resource
 
 Capacity
@@ -17,7 +17,19 @@ Capacity
 
 gantt
 -----------
-14. Default : Hide resource panel
+(OK) 14. Default : Hide resource panel
+
+Capacity (Pool)
+----------------
+(OK) Font Size samakan dengan BC untuk semua tree, non bold
+(OK) Internal removed, Resource non Pool sejajar dengan Pool
+(OK) Warna Daytask hijau (non Pool) diganti grey BC
+(OK) Daytask: Reource True and non pool -> warna BC Selection (Biru background + Font Putih)
+
+Daytask
+--------
+(OK) Resource Pool Drilldown apply limitation for Pool Resource Only
+
 
 
 

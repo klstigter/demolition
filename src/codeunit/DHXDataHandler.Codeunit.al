@@ -365,11 +365,13 @@ codeunit 50604 "DHX Data Handler"
                             PlanningObject.Add('details', StrSubstNo(DetailsLabel, Ven."No.", Ven.Name
                                                                                      , Daytask."Job No.", Job.Description
                                                                                      , Daytask."Job Task No.", Task.Description));
-                            if Daytask."Vendor No." = '' then
-                                PlanningObject.Add('color', 'green')
-                            else
+                            if Daytask."Vendor No." = '' then begin
+                                PlanningObject.Add('color', 'green');
+                                PlanningObject.Add('type', 'daytask_0');
+                            end else begin
                                 PlanningObject.Add('color', 'grey');
-                            PlanningObject.Add('type', 'daytask');
+                                PlanningObject.Add('type', 'daytask_1');
+                            end;
 
                             PlanningArray.Add(PlanningObject);
                         until Daytask.next = 0;
@@ -549,9 +551,9 @@ codeunit 50604 "DHX Data Handler"
                             if New_section_id = '' then begin
                                 if not Resource.Get(ResCap."Resource No.") then
                                     Clear(Resource);
-                                section_id := section_id + '|' + Resource."Pool Resource No.";
+                                section_id := section_id + '|' + Resource."Pool Resource No." + '|Pool';
                             end else
-                                section_id := New_section_id;
+                                section_id := New_section_id + '|Pool';
                         end else begin
                             if not Resource.Get(ResCap."Resource No.") then
                                 Clear(Resource);
@@ -597,17 +599,25 @@ codeunit 50604 "DHX Data Handler"
                                     PlanningObject.Add('text', Resource.Name)
                                 else
                                     PlanningObject.Add('text', 'vacant');
-                            PlanningObject.Add('section_id', Daytask."Resource Group No." + '|' + ResNo + '|' + Daytask."Pool Resource No.");
+
+                            section_id := Daytask."Resource Group No." + '|' + ResNo + '|' + Daytask."Pool Resource No.";
+                            if Daytask."Pool Resource No." = '' then
+                                section_id := section_id + '|Pool';
+                            PlanningObject.Add('section_id', section_id);
+
                             if not PoolRes.Get(Daytask."Pool Resource No.") then
                                 Clear(PoolRes);
                             PlanningObject.Add('details', StrSubstNo(DetailsLabel, PoolRes."No.", PoolRes.Name
                                                                                      , Daytask."Job No.", Job.Description
                                                                                      , Daytask."Job Task No.", Task.Description));
-                            if Daytask."Pool Resource No." = '' then
-                                PlanningObject.Add('color', 'green')
-                            else
-                                PlanningObject.Add('color', 'grey');
-                            PlanningObject.Add('type', 'daytask');
+                            if Daytask."Pool Resource No." = '' then begin
+                                PlanningObject.Add('color', '#E9E9E9'); //grey BC
+                                PlanningObject.Add('type', 'daytask_0');
+                            end else begin
+                                PlanningObject.Add('color', '#3367D1'); //Blue BC Selection
+                                PlanningObject.Add('type', 'daytask_1');
+                            end;
+
 
                             PlanningArray.Add(PlanningObject);
                         until Daytask.next = 0;
@@ -644,50 +654,58 @@ codeunit 50604 "DHX Data Handler"
 
                 if WithDayTask then begin
                     // 2. Internal / Pool Resource
-                    GetUniquePoolFromDayTasks(TempPoolRes, TempResGroup."No.", StartDate, EndDate);
-                    if TempPoolRes.FindSet() then
+                    GetUniquePoolFromDayTasks(ResourceTemp, TempPool, TempResGroup."No.", StartDate, EndDate);
+                    TempPool.Setcurrentkey("Pool Resource No.", "No.");
+                    if TempPool.FindSet() then
                         repeat
-                            PoolNo := TempPoolRes."Currency Code";
+                            // 2. Vendor
                             Clear(InternalExternalObject);
-                            InternalExternalObject.Add('key', TempResGroup."No." + '||' + PoolNo + '|Pool');
-                            InternalExternalObject.Add('category', 'Pool');
-                            if PoolNo = '' then
-                                InternalExternalObject.Add('label', 'Internal')
-                            else begin
-                                PoolRes.Get(PoolNo);
-                                InternalExternalObject.Add('label', PoolRes.Name);
+                            InternalExternalObject.Add('key', TempResGroup."No." + '|' + TempPool."No." + '|' + TempPool."Pool Resource No." + '|Pool');
+                            if TempPool."Pool Resource No." = '' then begin
+                                InternalExternalObject.Add('category', 'Resource');
+                            end else begin
+
+                                InternalExternalObject.Add('category', 'Pool');
                             end;
+                            InternalExternalObject.Add('label', TempPool.Name);
                             InternalExternalObject.Add('open', true);
                             GroupChildrenArray.Add(InternalExternalObject);
                             Clear(InternalExternalChildrenArray);
 
-                            // 3. Resource                            
-                            ResourceTemp.Reset();
-                            ResourceTemp.Deleteall;
-                            GetUniqueResFromCapacity_Pool(ResourceTemp, TempResGroup."No.", PoolNo, StartDate, EndDate);
-                            ResourceTemp.Setrange("Pool Resource No.", PoolNo);
-                            if ResourceTemp.FindSet() then
+                            // 3. Resource
+                            ResourceTemp.SetRange("Pool Resource No.", TempPool."No.");
+                            if ResourceTemp.FindSet() then begin
                                 repeat
+                                    if not Resource.Get(ResourceTemp."No.") then
+                                        Clear(Resource);
                                     Clear(ResourceObject);
-                                    ResourceObject.Add('key', TempResGroup."No." + '|' + ResourceTemp."No." + '|' + PoolNo);
+                                    ResourceObject.Add('key', TempResGroup."No." + '|' + ResourceTemp."No." + '|' + Resource."Pool Resource No.");
                                     ResourceObject.Add('label', ResourceTemp.Name);
                                     ResourceObject.Add('category', 'Resource');
                                     InternalExternalChildrenArray.Add(ResourceObject);
                                 until ResourceTemp.Next() = 0;
-                            InternalExternalObject.Add('children', InternalExternalChildrenArray);
+                                InternalExternalObject.Add('children', InternalExternalChildrenArray);
+                            end;
 
-                        until TempPoolRes.Next() = 0;
+                        until TempPool.Next() = 0;
                     GroupResObject.Add('children', GroupChildrenArray);
                     DataArray.Add(GroupResObject);
                 end else begin
                     // Vendor and Resource
                     GetUniqueResFromCapacity_Pool(ResourceTemp, TempPool, TempResGroup."No.", StartDate, EndDate);
+                    TempPool.Setcurrentkey("Pool Resource No.", "No.");
                     if TempPool.FindSet() then
                         repeat
                             // 2. Vendor
                             Clear(InternalExternalObject);
-                            InternalExternalObject.Add('key', TempResGroup."No." + '||' + TempPool."No." + '|Pool');
-                            InternalExternalObject.Add('category', 'Pool');
+                            //InternalExternalObject.Add('key', TempResGroup."No." + '||' + TempPool."No." + '|Pool');
+                            if TempPool."Pool Resource No." = '' then begin
+                                InternalExternalObject.Add('key', TempResGroup."No." + '|' + TempPool."No." + '|');
+                                InternalExternalObject.Add('category', 'Resource');
+                            end else begin
+                                InternalExternalObject.Add('key', TempResGroup."No." + '|' + TempPool."No." + '|' + TempPool."Pool Resource No." + '|Pool');
+                                InternalExternalObject.Add('category', 'Pool');
+                            end;
                             InternalExternalObject.Add('label', TempPool.Name);
                             InternalExternalObject.Add('open', true);
                             GroupChildrenArray.Add(InternalExternalObject);
@@ -1483,24 +1501,37 @@ codeunit 50604 "DHX Data Handler"
         EventIDList: List of [Text];
         ResNo: Code[20];
         GroupNo: Code[20];
+        Group, Restxt, VanOrPool : Text;
     begin
         // Implementation to open the Resource Card based on SectionId
         // SectionId = ResourceGroupNo|ResourceNo
         EventIDList := SectionId.Split('|');
-        case true of
-            (EventIDList.Get(1) <> '') and (EventIDList.Get(2) <> ''):
-                begin
-                    ResNo := EventIDList.Get(2);
-                    Resource.SetRange("No.", ResNo);
-                    Page.RunModal(Page::"Resource Card", Resource);
-                end;
-            (EventIDList.Get(1) <> '') and (EventIDList.Get(2) = ''):
-                begin
-                    GroupNo := EventIDList.Get(1);
-                    ResGroup.SetRange("No.", GroupNo);
-                    Page.RunModal(0, ResGroup);
-                end;
-        end;
+        Group := EventIDList.Get(1);
+        Restxt := EventIDList.Get(2);
+        VanOrPool := EventIDList.Get(3);
+        if Restxt <> '' then begin
+            Resource.SetFilter("No.", Restxt);
+            Page.RunModal(Page::"Resource Card", Resource);
+        end else
+            if Group <> '' then begin
+                ResGroup.SetFilter("No.", GroupNo);
+                Page.RunModal(0, ResGroup);
+            end;
+
+        // case true of
+        //     (EventIDList.Get(1) <> '') and (EventIDList.Get(2) <> ''):
+        //         begin
+        //             ResNo := EventIDList.Get(2);
+        //             Resource.SetRange("No.", ResNo);
+        //             Page.RunModal(Page::"Resource Card", Resource);
+        //         end;
+        //     (EventIDList.Get(1) <> '') and (EventIDList.Get(2) = ''):
+        //         begin
+        //             GroupNo := EventIDList.Get(1);
+        //             ResGroup.SetRange("No.", GroupNo);
+        //             Page.RunModal(0, ResGroup);
+        //         end;
+        // end;
     end;
 
     procedure GetStartEndDatesFromTimeLineJSon(TimeLineJSon: Text; var StartDate: Date; var EndDate: Date)
@@ -1601,6 +1632,27 @@ codeunit 50604 "DHX Data Handler"
         _DateTimeUserZone: DateTime;
     begin
         ResouecesJSon := GetYUnitElementsJSON_Resource(StartDate,
+                                            StartDate,
+                                            EndDate,
+                                            WithDayTask,
+                                            EventsJSon,
+                                            EarliestPlanningDate);
+        exit((EventsJSon <> '') and (ResouecesJSon <> ''));
+    end;
+
+    procedure GetDayTaskAsResourcesAndEventsJSon_Pool_StartEnd(StartDate: Date;
+                                                                   EndDate: Date;
+                                                                   WithDayTask: Boolean;
+                                                                   var ResouecesJSon: Text;
+                                                                   var EventsJSon: Text;
+                                                                   var EarliestPlanningDate: date): Boolean
+    var
+        TimeLineJSonObj: JsonObject;
+        JToken: JsonToken;
+        _DateTime: DateTime;
+        _DateTimeUserZone: DateTime;
+    begin
+        ResouecesJSon := GetYUnitElementsJSON_Pool(StartDate,
                                             StartDate,
                                             EndDate,
                                             WithDayTask,
@@ -1848,7 +1900,6 @@ codeunit 50604 "DHX Data Handler"
                                        EndDate: Date)
     var
         Res: record Resource;
-        PoolRes: Record Resource;
         UniqueResQry: Query "Unique Resource in Capacity";
         ResNo: Code[20];
         PoolNo: Code[20];
@@ -1876,13 +1927,16 @@ codeunit 50604 "DHX Data Handler"
                 end;
                 TempRes."Pool Resource No." := PoolNo;
                 if TempRes.Insert() then;
+
+                if PoolNo = '' then
+                    PoolNo := TempRes."No.";
                 if Not TempPoolRes.Get(PoolNo) then begin
                     TempPoolRes.Init();
                     TempPoolRes."No." := PoolNo;
-                    if not PoolRes.Get(PoolNo) then
-                        TempPoolRes.Name := 'Internal'
-                    else
-                        TempPoolRes.Name := PoolRes.Name;
+                    if Res.Get(PoolNo) then begin
+                        TempPoolRes.Name := Res.Name;
+                        TempPoolRes."Pool Resource No." := Res."Pool Resource No.";
+                    end;
                     TempPoolRes.Insert();
                 end;
             end;
@@ -2016,48 +2070,90 @@ codeunit 50604 "DHX Data Handler"
 
     end;
 
-    procedure GetUniquePoolFromDayTasks(var TempRecord: record "Aging Band Buffer" temporary;
-                                           ResGroupNo: Code[20];
-                                           StartDate: Date;
-                                           EndDate: Date)
+    procedure GetUniquePoolFromDayTasks(var TempResource: record "Resource" temporary;
+                                        var TempPoolRes: record Resource temporary;
+                                        ResGroupNo: Code[20];
+                                        StartDate: Date;
+                                        EndDate: Date)
     var
+        DayTask: Record "Day Tasks";
+        Res: record Resource;
         TempRes: record "Resource" temporary;
         TempPool: record Resource temporary;
-        UniquePoolQuery: Query "Unique Pool in Day Tasks";
-        PoolRes: Record Resource;
+        ResNo: Code[20];
         PoolNo: Code[20];
     begin
         // Clear the temporary table
-        TempRecord.Reset();
-        TempRecord.DeleteAll();
+        TempResource.Reset();
+        TempResource.DeleteAll();
 
-        // Open the query - it automatically groups by VendorNo giving unique values
-        UniquePoolQuery.SetRange(TaskDateFilter, StartDate, EndDate);
-        UniquePoolQuery.SetRange(Resource_Group_No_Filter, ResGroupNo);
-        if UniquePoolQuery.Open() then begin
-            while UniquePoolQuery.Read() do begin
-                PoolNo := UniquePoolQuery.PoolResNo;
-                if PoolNo <> '' then begin
-                    // Get vendor details and add to temporary table
-                    if PoolRes.Get(PoolNo) then begin
-                        if not TempRecord.Get(PoolNo) then begin
-                            TempRecord.Init();
-                            TempRecord."Currency Code" := PoolNo;
-                            TempRecord.Insert();
+        TempPoolRes.Reset();
+        TempPoolRes.DeleteAll();
+
+        DayTask.SetRange(Type, DayTask.Type::Resource);
+        DayTask.SetRange("Task Date", StartDate, EndDate);
+        DayTask.SetRange("Resource Group No.", ResGroupNo);
+        if DayTask.FindSet() then
+            repeat
+                PoolNo := '';
+                ResNo := DayTask."No.";
+                if not TempResource.Get(ResNo) then begin
+                    if ResNo <> '' then begin
+                        TempResource.Init();
+                        TempResource."No." := ResNo;
+                        if Res.Get(ResNo) then begin
+                            TempResource.Name := Res.Name;
+                            if Res."Pool Resource No." <> '' then
+                                PoolNo := Res."Pool Resource No.";
                         end;
+                        TempResource."Pool Resource No." := PoolNo;
+                        TempResource.Insert();
                     end;
-                end else begin
-                    if not TempRecord.Get(PoolNo) then begin
-                        TempRecord.Init();
-                        TempRecord."Currency Code" := PoolNo;
-                        TempRecord.Insert();
+                    // Create Parent
+                    if PoolNo = '' then
+                        PoolNo := ResNo; //TempRes."No.";
+                    if Not TempPoolRes.Get(PoolNo) then begin
+                        TempPoolRes.Init();
+                        TempPoolRes."No." := PoolNo;
+                        if Res.Get(PoolNo) then begin
+                            TempPoolRes.Name := Res.Name;
+                            TempPoolRes."Pool Resource No." := Res."Pool Resource No.";
+                        end else
+                            TempPoolRes.Name := 'Vacant';
+                        TempPoolRes.Insert();
                     end;
                 end;
-            end;
-            UniquePoolQuery.Close();
-        end;
+            until DayTask.Next() = 0;
 
-        // find Unique Vendor From Resource Capacity
+
+
+        // // Open the query - it automatically groups by VendorNo giving unique values
+        // UniquePoolQuery.SetRange(TaskDateFilter, StartDate, EndDate);
+        // UniquePoolQuery.SetRange(Resource_Group_No_Filter, ResGroupNo);
+        // if UniquePoolQuery.Open() then begin
+        //     while UniquePoolQuery.Read() do begin
+        //         PoolNo := UniquePoolQuery.PoolResNo;
+        //         if PoolNo <> '' then begin
+        //             // Get vendor details and add to temporary table
+        //             if PoolRes.Get(PoolNo) then begin
+        //                 if not TempRecord.Get(PoolNo) then begin
+        //                     TempRecord.Init();
+        //                     TempRecord."Currency Code" := PoolNo;
+        //                     TempRecord.Insert();
+        //                 end;
+        //             end;
+        //         end else begin
+        //             if not TempRecord.Get(PoolNo) then begin
+        //                 TempRecord.Init();
+        //                 TempRecord."Currency Code" := PoolNo;
+        //                 TempRecord.Insert();
+        //             end;
+        //         end;
+        //     end;
+        //     UniquePoolQuery.Close();
+        // end;
+
+        // find Unique Pool From Resource Capacity
         GetUniqueResFromCapacity_Pool(TempRes,
                                 TempPool,
                                 ResGroupNo,
@@ -2065,30 +2161,37 @@ codeunit 50604 "DHX Data Handler"
                                 EndDate);
         if TempPool.FindSet() then
             repeat
-                PoolNo := TempPool."No.";
-                if PoolNo <> '' then begin
-                    // Get vendor details and add to temporary table
-                    if PoolRes.Get(PoolNo) then begin
-                        if not TempRecord.Get(PoolNo) then begin
-                            TempRecord.Init();
-                            TempRecord."Currency Code" := PoolNo;
-                            TempRecord.Insert();
-                        end;
-                    end;
-                end else begin
-                    if not TempRecord.Get(PoolNo) then begin
-                        TempRecord.Init();
-                        TempRecord."Currency Code" := PoolNo;
-                        TempRecord.Insert();
-                    end;
+                if Not TempPoolRes.Get(TempPool."No.") then begin
+                    TempPoolRes.Init();
+                    TempPoolRes."No." := TempPool."No.";
+                    if Res.Get(TempPool."No.") then begin
+                        TempPoolRes.Name := Res.Name;
+                        TempPoolRes."Pool Resource No." := Res."Pool Resource No.";
+                    end else
+                        TempPoolRes.Name := 'Vacant';
+                    TempPoolRes.Insert();
+
+                    TempRes.SetRange("Pool Resource No.", TempPool."No.");
+                    if TempRes.FindSet() then
+                        repeat
+                            if Not TempResource.Get(TempRes."No.") then begin
+                                TempResource.Init();
+                                TempResource."No." := TempRes."No.";
+                                if Res.Get(TempRes."No.") then begin
+                                    TempResource.Name := Res.Name;
+                                    TempResource."Pool Resource No." := Res."Pool Resource No.";
+                                end;
+                                TempResource.Insert();
+                            end;
+                        until TempRes.Next() = 0;
                 end;
             until TempPool.Next() = 0;
 
-        if not TempRecord.Get('') then begin
-            TempRecord.Init();
-            TempRecord."Currency Code" := '';
-            TempRecord.Insert();
-        end;
+        // if not TempRecord.Get('') then begin
+        //     TempRecord.Init();
+        //     TempRecord."Currency Code" := '';
+        //     TempRecord.Insert();
+        // end;
 
     end;
 

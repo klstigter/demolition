@@ -52,30 +52,6 @@ window.BOOT = function() {
 
     /* Background color for parent/folder rows in timeline */
     
-    
-    /***** Style for Vendor category parent cells in the left column (label area) */
-
-    /* Style parent row cells in the event area (timeline data cells) */
-    .timeline-parent-row .dhx_matrix_cell {
-        background-color: #D9F0F2 !important;
-    }
-
-    .dhx_matrix_scell.folder.vendor-category,
-    .dhx_matrix_scell.folder.vendor-category .dhx_scell_level0,
-    .dhx_matrix_scell.folder.vendor-category .dhx_scell_level1,
-    .dhx_matrix_scell.folder.vendor-category .dhx_scell_level2,
-    .dhx_matrix_scell.folder.vendor-category .dhx_scell_name {
-        background-color: #D9F0F2 !important;
-        color: black !important;
-        font-weight: bold !important;
-    }
-
-    /* Style for Vendor category parent cells in the left column */
-    .dhx_matrix_scell.folder.vendor-category {
-        background-color: #D9F0F2 !important;
-        font-weight: bold;
-    }
-
     /******* Style for Group category cells */
     .timeline-group-row {
         background-color: #E9E9E9 !important;
@@ -92,12 +68,38 @@ window.BOOT = function() {
     .dhx_matrix_scell.folder.group-category .dhx_scell_name {
         background-color: #E9E9E9 !important;
         color: black !important;
-        font-weight: bold !important;
+        font-weight: normal !important;
+        text-transform: none !important;
     }
 
     .dhx_matrix_scell.folder.group-category {
         background-color: #E9E9E9 !important;
-        font-weight: bold;
+        font-weight: normal;
+        text-transform: none !important;
+    }
+    
+    /***** Style for Vendor category parent cells in the left column (label area) */
+    /* Style parent row cells in the event area (timeline data cells) */
+    .timeline-parent-row .dhx_matrix_cell {
+        background-color: #D9F0F2 !important;
+    }
+
+    .dhx_matrix_scell.folder.vendor-category,
+    .dhx_matrix_scell.folder.vendor-category .dhx_scell_level0,
+    .dhx_matrix_scell.folder.vendor-category .dhx_scell_level1,
+    .dhx_matrix_scell.folder.vendor-category .dhx_scell_level2,
+    .dhx_matrix_scell.folder.vendor-category .dhx_scell_name {
+        background-color: #D9F0F2 !important;
+        color: black !important;
+        font-weight: normal !important;
+        text-transform: none !important;
+    }
+
+    /* Style for Vendor category parent cells in the left column */
+    .dhx_matrix_scell.folder.vendor-category {
+        background-color: #D9F0F2 !important;
+        font-weight: normal;
+        text-transform: none !important;
     }
 
     /* Style for Resource category cells - with extra indentation */
@@ -114,23 +116,74 @@ window.BOOT = function() {
         padding-left: 15px !important;
         background-color: white !important;
         color: black !important;
+        font-weight: normal !important;
     }
 
-    /* Override any link colors inside folder cells */
-    /* **** NOT WORKING AS INTENDED *****
-    .dhx_matrix_scell.folder a,
-    .dhx_matrix_scell.folder span {
-        color: black !important;
-    }
-    ***** */
+    
+    /* ********* */
 
     /* Set all event text color to black */
+    /* ************************
     .dhx_cal_event,
     .dhx_cal_event_line,
     .dhx_event_line,
     .dhx_cal_event .dhx_title,
     .dhx_cal_event .dhx_body {
         color: black !important;
+    }
+    ************************ */
+
+    /* Event styling per type */
+    /* Capacity events */
+    .dhx_cal_event.event-capacity,
+    .dhx_cal_event_line.event-capacity,
+    .dhx_event_line.event-capacity,
+    .dhx_cal_event.event-capacity .dhx_title,
+    .dhx_cal_event.event-capacity .dhx_body {
+        color: black !important;
+        /*
+        background-color: #D4EDDA !important;
+        border-color: #28A745 !important;
+        */
+    }
+
+    /* Vacancy events */
+    .dhx_cal_event.event-vacancy,
+    .dhx_cal_event_line.event-vacancy,
+    .dhx_event_line.event-vacancy,
+    .dhx_cal_event.event-vacancy .dhx_title,
+    .dhx_cal_event.event-vacancy .dhx_body {
+        color: black !important;
+        /*
+        background-color: #FFF3CD !important;
+        border-color: #FFC107 !important;
+        */
+    }
+
+    /* Daytask_0 events */
+    .dhx_cal_event.event-daytask_0,
+    .dhx_cal_event_line.event-daytask_0,
+    .dhx_event_line.event-daytask_0,
+    .dhx_cal_event.event-daytask_0 .dhx_title,
+    .dhx_cal_event.event-daytask_0 .dhx_body {
+        color: black !important;
+        /*
+        background-color: #D1ECF1 !important;
+        border-color: #17A2B8 !important;
+        */
+    }
+
+    /* Daytask_1 events */
+    .dhx_cal_event.event-daytask_1,
+    .dhx_cal_event_line.event-daytask_1,
+    .dhx_event_line.event-daytask_1,
+    .dhx_cal_event.event-daytask_1 .dhx_title,
+    .dhx_cal_event.event-daytask_1 .dhx_body {
+        color: white !important;
+        /*
+        background-color: #F8D7DA !important;
+        border-color: #DC3545 !important;
+        */
     }
 
     `;
@@ -166,6 +219,21 @@ window.BOOT = function() {
         tooltip: true,
     });
     
+    // Apply CSS class based on event type
+    scheduler.templates.event_class = function(start, end, ev) {
+        var typeClass = "";
+        if (ev.type === "capacity") {
+            typeClass = "event-capacity";
+        } else if (ev.type === "vacancy") {
+            typeClass = "event-vacancy";
+        } else if (ev.type === "daytask_0") {
+            typeClass = "event-daytask_0";
+        } else if (ev.type === "daytask_1") {
+            typeClass = "event-daytask_1";
+        }
+        return typeClass;
+    };
+    
     // Custom tooltip template
     scheduler.templates.tooltip_text = function(start, end, ev) {
         var formatDateOnly = scheduler.date.date_to_str("%d-%m-%Y");
@@ -193,7 +261,7 @@ window.BOOT = function() {
                    "<b>End Time:</b> " + formatTimeOnly(end) + "<br/>" +         
                    "-----------------------------------<br/>" +                             
                    "<b>Capacity entry no.:</b> " + (ev.id || "") + "<br/>";
-        } else if (ev.type === "daytask" || ev.type === "vacancy") {
+        } else if (ev.type === "daytask_0" || ev.type === "daytask_1" || ev.type === "vacancy") {
             // var parts = String(ev.section_id).split('|');
             // var vendor_no = "";
             // if (parts.length >= 3) {
@@ -206,7 +274,7 @@ window.BOOT = function() {
                    "------------------------------------------------------------<br/>" +
                    "<b>Project:</b> " + jobNo + "<br/>" +
                    "<b>Task:</b> " + jobTaskNo + "<br/>" +
-                   "<b>vendor no.:</b> " + vendor + "<br/>" +
+                   "<b>Pool no.:</b> " + vendor + "<br/>" +
                    "<b>Dayno|DayLineNo:</b> " + (ev.id || "") + "<br/>";
         }
         return html;

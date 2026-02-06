@@ -88,6 +88,25 @@ table 50610 "Day Tasks"
                         Error('Resource %1 does not belong to Pool Resource %2.', "No.", "Pool Resource No.");
                 end
             end;
+
+            trigger OnLookup()
+            var
+                Resource: Record Resource;
+            begin
+                Resource.Reset();
+                Resource.SetFilter("pool Resource No.", '<>%1', '');
+                if Resource.FindSet() then
+                    repeat
+                        if Resource."Pool Resource No." = Resource."No." then
+                            Resource.Mark(True);
+                    until Resource.Next() = 0;
+                Resource.MarkedOnly(true);
+                if Resource.FindSet() then begin
+                    if page.RunModal(0, Resource) = ACTION::LookupOK then
+                        Validate("Pool Resource No.", Resource."No.");
+                end else
+                    Message('No Pool Resources found.');
+            end;
         }
         field(40; "Vendor No."; Code[20])
         {
