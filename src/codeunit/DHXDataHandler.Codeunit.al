@@ -611,10 +611,10 @@ codeunit 50604 "DHX Data Handler"
                                                                                      , Daytask."Job No.", Job.Description
                                                                                      , Daytask."Job Task No.", Task.Description));
                             if Daytask."Pool Resource No." = '' then begin
-                                PlanningObject.Add('color', '#E9E9E9'); //grey BC
+                                PlanningObject.Add('color', '#3367D1'); //Blue BC Selection
                                 PlanningObject.Add('type', 'daytask_0');
                             end else begin
-                                PlanningObject.Add('color', '#3367D1'); //Blue BC Selection
+                                PlanningObject.Add('color', '#E9E9E9'); //grey BC
                                 PlanningObject.Add('type', 'daytask_1');
                             end;
 
