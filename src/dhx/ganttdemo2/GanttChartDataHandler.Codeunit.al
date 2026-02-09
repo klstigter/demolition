@@ -2,6 +2,7 @@ codeunit 50613 "GanttChartDataHandler"
 {
     var
         GenUtils: Codeunit "General Planning Utilities";
+        ParentJobTaskId: array[10] of Text;
 
     procedure GetDateRange(GanttSetup: Record "Gantt Chart Setup";
                            AchorDate: Date;
@@ -26,8 +27,8 @@ codeunit 50613 "GanttChartDataHandler"
                 begin
                     GanttSetup.TestField("From Data Formula");
                     GanttSetup.TestField("To Data Formula");
-                    StartDate := CalcDate(GanttSetup."From Data Formula", WorkDate());
-                    EndDate := CalcDate(GanttSetup."To Data Formula", WorkDate());
+                    StartDate := CalcDate(GanttSetup."From Data Formula", AchorDate);
+                    EndDate := CalcDate(GanttSetup."To Data Formula", AchorDate);
                 end;
         end;
         if EndDate = 0D then
@@ -55,22 +56,14 @@ codeunit 50613 "GanttChartDataHandler"
         if JobNoFilter <> '' then
             JobTask.SetFilter("Job No.", JobNoFilter);
         GetDateRange(GanttSetup, AchorDate, StartDate, EndDate);
-        //Jobtask.SetFilter("Your Reference", '%1', '');
-        JobTask.SetRange("PlannedEndDate", StartDate, EndDate); // to exclude blank references
+        JobTask.SetFilter("PlannedStartDate", '<=%1', EndDate);
+        JobTask.SetFilter("PlannedEndDate", '>=%1', StartDate); // to exclude blank references
         if JobTask.FindSet() then
             repeat
                 if OldJobNo <> JobTask."Job No." then begin
                     OldJobNo := JobTask."Job No.";
-                    OffsetDays := 0;
-                    if Job.Get(OldJobNo) then begin
-                        if Job."Starting Date" = 0D then begin
-                            job."Starting Date" := CalcDate('-15D', Today());
-                            Job.Modify();
-                        end;
-                    end;
+                    clear(ParentJobTaskId);
                 end;
-                OffsetDays += 5;
-                repairStartdate(JobTask, OffsetDays);
                 Skip := (JobTask."Job Task Type" = JobTask."Job Task Type"::"End-Total") or
                      (JobTask."Job Task Type" = JobTask."Job Task Type"::"Total");
                 if not skip then begin
@@ -84,7 +77,6 @@ codeunit 50613 "GanttChartDataHandler"
 
     local procedure CreateJobTaskJsonObject(JobTask: Record "Job Task") JsonObject: JsonObject
     var
-        Duration: Integer;
         StartDateText: Text;
         StartEndText: Text;
         ConstraintDateText: Text;
@@ -93,8 +85,6 @@ codeunit 50613 "GanttChartDataHandler"
 
         // Generate unique ID from Job No. and Job Task No.
         JsonObject.Add('id', Format(JobTask."Job No.") + '|' + Format(JobTask."Job Task No."));
-
-
 
         // Task description
         JsonObject.Add('text', JobTask.Description);
@@ -112,10 +102,7 @@ codeunit 50613 "GanttChartDataHandler"
             StartEndText := '';
         //JsonObject.Add('end_date', StartEndText);
 
-
-        // Duration (calculated from start and end dates)
-        Duration := JobTask.CalculateDuration();
-        JsonObject.Add('duration', Duration);
+        JsonObject.Add('duration', JobTask.Duration);
 
         // BC bindings
         JsonObject.Add('bcJobNo', JobTask."Job No.");
@@ -144,24 +131,10 @@ codeunit 50613 "GanttChartDataHandler"
 
         JsonObject.Add('indentation', JobTask.Indentation);
         JsonObject.Add('bold', JobTask."Job Task Type" <> jobtask."Job Task Type"::Posting);
-        JsonObject.Add('parent', GetParentJobTaskId(JobTask));
+        IF JobTask."Job Task Type" <> JobTask."Job Task Type"::Posting THEN
+            ParentJobTaskId[JobTask.Indentation + 2] := Format(JobTask."Job No.") + '-' + Format(JobTask."Job Task No.");
 
-    end;
-
-    local procedure GetParentJobTaskId(JobTask: Record "Job Task") ParentJobTaskId: Text
-    var
-        ParentJobTask: Record "Job Task";
-    begin
-        if JobTask.Indentation = 0 then
-            exit('');
-        ParentJobTask.SetRange("Job No.", JobTask."Job No.");
-        ParentJobTask.SetFilter("Job Task No.", '<>%1', JobTask."Job Task No.");
-        ParentJobTask.SetFilter(Indentation, '%1', JobTask.Indentation - 1);
-        ParentJobTask.SetFilter("Job Task No.", '<%1', JobTask."Job Task No.");
-        if ParentJobTask.FindLast() then
-            exit(Format(ParentJobTask."Job No.") + '-' + Format(ParentJobTask."Job Task No."))
-        else
-            exit('');
+        JsonObject.Add('parent', ParentJobTaskId[JobTask.Indentation + 1]);
     end;
 
     local procedure FormatDate(InputDate: Date) FormattedDate: Text
@@ -171,8 +144,6 @@ codeunit 50613 "GanttChartDataHandler"
 
         FormattedDate := Format(InputDate, 0, '<Year4>-<Month,2>-<Day,2>');
     end;
-
-
 
     local procedure GetSchedulingTypeText(SchedulingType: Enum schedulingType) SchedulingTypeText: Text
     begin

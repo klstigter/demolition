@@ -35,12 +35,20 @@ tableextension 50605 "Job Task ext" extends "Job Task"
             DataClassification = ToBeClassified;
             Caption = 'Planned Start Date';
             ToolTip = 'Specifies the start date for the project task. The date is based on the date on the related project planning line.';
+            trigger OnValidate()
+            begin
+                CalculateDuration();
+            end;
         }
         field(50522; PlannedEndDate; Date)
         {
             DataClassification = ToBeClassified;
             Caption = 'Planned End Date';
             ToolTip = 'Specifies the end date for the project task. The date is based on the date on the related project planning line.';
+            trigger OnValidate()
+            begin
+                CalculateDuration();
+            end;
         }
 
 
@@ -54,6 +62,7 @@ tableextension 50605 "Job Task ext" extends "Job Task"
         {
             DataClassification = ToBeClassified;
             Caption = 'Duration';
+            MinValue = 0;
         }
 
         field(50600; "Job View Type"; Enum "Job View Type")
@@ -105,42 +114,46 @@ tableextension 50605 "Job Task ext" extends "Job Task"
     var
         DayTaskMgt: Codeunit "Day Tasks Mgt.";
 
-    procedure CalculateDuration() CalcDuration: Integer
+    procedure CalculateDuration()
     begin
         case "Scheduling Type" of
             schedulingType::FixedDuration:
                 begin
-                    if ("PlannedStartDate" = 0D) or ("PlannedEndDate" = 0D) then
-                        exit(0);
+                    if ("PlannedStartDate" = 0D) or ("PlannedEndDate" = 0D) then begin
+                        rec.Duration := 0;
+                        exit
+                    end;
 
-                    CalcDuration := "PlannedEndDate" - "PlannedStartDate";
+                    if PlannedEndDate < PlannedStartDate then
+                        error('Planned End Date cannot be before Planned Start Date!');
 
-                    if CalcDuration < 0 then
-                        CalcDuration := 0;
+                    rec.Duration := "PlannedEndDate" - "PlannedStartDate" + 1;
                 end;
+
             schedulingType::FixedUnits:
                 begin
                     // Implement Fixed Units duration calculation if needed
                     if ("PlannedStartDate" = 0D) or ("PlannedEndDate" = 0D) then
-                        exit(0);
+                        exit;
 
-                    CalcDuration := "PlannedEndDate" - "PlannedStartDate";
-
-                    if CalcDuration < 0 then
-                        CalcDuration := 0;
+                    rec.Duration := "PlannedEndDate" - "PlannedStartDate";
                 end;
             schedulingType::FixedWork:
                 begin
-                    // Implement Fixed Work duration calculation if needed
-                    if ("PlannedStartDate" = 0D) or ("PlannedEndDate" = 0D) then
-                        exit(0);
+                    if ("PlannedStartDate" = 0D) or ("PlannedEndDate" = 0D) then begin
+                        rec.Duration := 0;
+                        exit
+                    end;
 
-                    CalcDuration := "PlannedEndDate" - "PlannedStartDate";
+                    if PlannedEndDate < PlannedStartDate then
+                        error('Planned End Date cannot be before Planned Start Date!');
 
-                    if CalcDuration < 0 then
-                        CalcDuration := 0;
+                    rec.Duration := "PlannedEndDate" - "PlannedStartDate" + 1;
+
                 end;
         end;
+        if rec.Duration < 0 then
+            error('Duration cannot be negative!');
     end;
 
     procedure CheckDataLimitations()

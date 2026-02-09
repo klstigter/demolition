@@ -52,6 +52,31 @@ page 50617 "Job Task List - Project"
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies an interval or a list of project task numbers.';
                 }
+                field(PlannedStartDate; Rec.PlannedStartDate)
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the date when the project task is planned to start.';
+                }
+                field(Duration; Rec.Duration)
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the duration of the project task in days.';
+                }
+                field(PlannedEndDate; Rec.PlannedEndDate)
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the date when the project task is planned to end.';
+                }
+                field("Scheduling Type"; Rec."Scheduling Type")
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the scheduling type for the project task.';
+                }
+                field("Constraint Type"; Rec."Constraint Type")
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the constraint type for the project task.';
+                }
                 field(Progress; Rec.Progress)
                 {
                     ApplicationArea = Jobs;
