@@ -16,7 +16,15 @@ tableextension 50606 "ResCapacityEntry Opt" extends "Res. Capacity Entry"
             DataClassification = ToBeClassified;
             InitValue = 1;
         }
+        field(50604; "Planned"; Decimal)
+        {
+            Editable = false;
+            fieldclass = FlowField;
+            calcformula = sum("day tasks"."Quantity" where("No." = field("Resource No."),
+              "Task Date" = field("Date")));
+        }
     }
+
 
     keys
     {
