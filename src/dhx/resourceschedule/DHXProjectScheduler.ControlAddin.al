@@ -31,6 +31,8 @@ controladdin DHXResourceScheduleAddin
     event OnTimelineNavigate(NavigateJson: Text);
     event OnSectionDblClick(sectionId: Text; label: Text; viewdate: Text);
     event OnEventsNotMatch(EventIdsJsonTxt: Text);
+    event OnGetAllEvents(EventIdsJsonTxt: Text);
+    event OnGetAllSections(EventIdsJsonTxt: Text);
 
     procedure Init(elements: Text; EarliestPlanningDate: Date);
     procedure LoadData(EventTxt: Text);
@@ -40,4 +42,6 @@ controladdin DHXResourceScheduleAddin
     procedure RefreshEventData(eventData: Text);
     procedure SetDefaultTabsVisible(Visible: Boolean);
     procedure get_events_not_match_with_section();
+    procedure getAllEvents();
+    procedure getAllSections();
 }

@@ -175,10 +175,24 @@ page 50600 "DHX Scheduler (Pool Resource)"
                 end;
                 #endregion Timeline Navigate
 
+                #region Cek Data
+
                 trigger OnEventsNotMatch(EventIdsJsonTxt: Text)
                 begin
                     Message(EventIdsJsonTxt);
                 end;
+
+                trigger OnGetAllEvents(EventIdsJsonTxt: Text)
+                begin
+                    Message('All Events: %1', EventIdsJsonTxt);
+                end;
+
+                trigger OnGetAllSections(SectionIdsJsonTxt: Text)
+                begin
+                    Message('All Sections: %1', SectionIdsJsonTxt);
+                end;
+
+                #endregion Cek Data
             }
         }
     }
@@ -275,6 +289,31 @@ page 50600 "DHX Scheduler (Pool Resource)"
                     CurrPage.DhxScheduler.get_events_not_match_with_section();
                 end;
             }
+
+            action(ExecGetAllEvents)
+            {
+                Caption = 'Get All Events';
+                ApplicationArea = All;
+                Image = Task;
+
+                trigger OnAction()
+                begin
+                    CurrPage.DhxScheduler.getAllEvents();
+                end;
+            }
+
+            action(ExecGetAllSections)
+            {
+                Caption = 'Get All Sections';
+                ApplicationArea = All;
+                Image = Resource;
+
+                trigger OnAction()
+                begin
+                    CurrPage.DhxScheduler.getAllSections();
+                end;
+            }
+
 
             group(Daytask)
             {

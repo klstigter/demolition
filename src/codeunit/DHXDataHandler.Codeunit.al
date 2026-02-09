@@ -558,13 +558,20 @@ codeunit 50604 "DHX Data Handler"
                         PlanningObject.Add('end_date', EndDateTxt);
                         PlanningObject.Add('text', 'capacity');
                         if WithDayTask then begin
+                            if not Resource.Get(ResCap."Resource No.") then
+                                Clear(Resource);
                             New_section_id := GetPoolNoFromDayTask(StartDate, EndDate, ResCap."Resource No."); //move into seciton id with daytask source no. and posibility has a vendor
                             if New_section_id = '' then begin
-                                if not Resource.Get(ResCap."Resource No.") then
-                                    Clear(Resource);
-                                section_id := section_id + '|' + Resource."Pool Resource No." + '|Pool';
-                            end else
-                                section_id := New_section_id + '|Pool';
+                                if Resource."Pool Resource No." = '' then
+                                    section_id := section_id + '|' + Resource."Pool Resource No." + '|Pool'
+                                else
+                                    section_id := section_id + '|' + Resource."Pool Resource No." + '|Resource'; //LAGI
+                            end else begin
+                                if Resource."Pool Resource No." = '' then
+                                    section_id := New_section_id + '|Pool'
+                                else
+                                    section_id := New_section_id + '|Resource'; //LAGI
+                            end;
                         end else begin
                             if not Resource.Get(ResCap."Resource No.") then
                                 Clear(Resource);
@@ -612,8 +619,10 @@ codeunit 50604 "DHX Data Handler"
                                     PlanningObject.Add('text', 'vacant');
 
                             section_id := Daytask."Resource Group No." + '|' + ResNo + '|' + Daytask."Pool Resource No.";
-                            if Daytask."Pool Resource No." = '' then
-                                section_id := section_id + '|Pool';
+                            if Resource."Pool Resource No." = '' then
+                                section_id := section_id + '|Pool'
+                            else
+                                section_id := section_id + '|Resource'; //LAGI
                             PlanningObject.Add('section_id', section_id);
 
                             if not PoolRes.Get(Daytask."Pool Resource No.") then
@@ -669,7 +678,7 @@ codeunit 50604 "DHX Data Handler"
                     TempPool.Setcurrentkey("Pool Resource No.", "No.");
                     if TempPool.FindSet() then
                         repeat
-                            // 2. Vendor
+                            // 2. Pool/Vendor
                             Clear(InternalExternalObject);
                             InternalExternalObject.Add('key', TempResGroup."No." + '|' + TempPool."No." + '|' + TempPool."Pool Resource No." + '|Pool');
                             if TempPool."Pool Resource No." = '' then begin
@@ -690,7 +699,7 @@ codeunit 50604 "DHX Data Handler"
                                     if not Resource.Get(ResourceTemp."No.") then
                                         Clear(Resource);
                                     Clear(ResourceObject);
-                                    ResourceObject.Add('key', TempResGroup."No." + '|' + ResourceTemp."No." + '|' + Resource."Pool Resource No.");
+                                    ResourceObject.Add('key', TempResGroup."No." + '|' + ResourceTemp."No." + '|' + Resource."Pool Resource No." + '|Resource'); //LAGI
                                     ResourceObject.Add('label', ResourceTemp.Name);
                                     ResourceObject.Add('category', 'Resource');
                                     InternalExternalChildrenArray.Add(ResourceObject);
@@ -875,11 +884,13 @@ codeunit 50604 "DHX Data Handler"
         UtcDT: DateTime;
         LocalDate: Date;
         LocalTime: Time;
+        FormattedTime: Text;
     begin
         // Build a UTC DateTime and let AL convert it to the session time zone
-        IsoTxt := Format(UtcDate, 0, '<Year4>-<Month,2>-<Day,2>') + 'T' + Format(UtcTime) + 'Z';
+        FormattedTime := Format(UtcTime, 0, '<Hours24,2>:<Minutes,2>:<Seconds,2>');
+        IsoTxt := Format(UtcDate, 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + DelChr(FormattedTime, '<', ' ');  //+ 'Z';
         if not Evaluate(UtcDT, IsoTxt) then
-            Error('Invalid UTC date/time: %1 %2', UtcDate, UtcTime);
+            Error('Invalid UTC date/time: %1 %2 from text value %3', UtcDate, UtcTime, IsoTxt);
 
         LocalDate := DT2Date(UtcDT); // converted to current user's time zone
         LocalTime := DT2Time(UtcDT);
@@ -2109,16 +2120,15 @@ codeunit 50604 "DHX Data Handler"
                 PoolNo := '';
                 ResNo := DayTask."No.";
                 if not TempResource.Get(ResNo) then begin
-                    if ResNo <> '' then begin
+                    if not Res.Get(ResNo) then
+                        Clear(Res);
+                    if (ResNo <> '') and (Res."Pool Resource No." <> '') then begin
                         TempResource.Init();
                         TempResource."No." := ResNo;
-                        if Res.Get(ResNo) then begin
-                            TempResource.Name := Res.Name;
-                            if Res."Pool Resource No." <> '' then
-                                PoolNo := Res."Pool Resource No.";
-                        end;
+                        TempResource.Name := Res.Name;
+                        PoolNo := Res."Pool Resource No.";
                         TempResource."Pool Resource No." := PoolNo;
-                        TempResource.Insert();
+                        TempResource.Insert(); //LAGI
                     end;
                     // Create Parent
                     if PoolNo = '' then

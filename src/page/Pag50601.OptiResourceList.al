@@ -4,89 +4,101 @@ page 50601 "Opti Resource List"
     ApplicationArea = Jobs;
     Caption = 'Resources with Day Tasks';
     CardPageID = "Resource Card";
-    Editable = false;
     PageType = List;
     QueryCategory = 'Resource List';
     SourceTable = Resource;
     UsageCategory = Lists;
+    ShowFilter = true;
+    DeleteAllowed = false;
+    ModifyAllowed = true;
+    InsertAllowed = false;
 
     layout
     {
         area(content)
         {
-            field("Date Filter"; Rec.GetFilter("Date Filter"))
+            group(GroupFilter)
             {
-                ApplicationArea = Jobs;
-                Caption = 'Date Filter';
-                ToolTip = 'The date to filter the resources that have day tasks on the specified date.';
-                Editable = false;
+                Caption = 'Filters';
+
+                field("Date Filter"; Rec."Date Filter")
+                {
+                    ApplicationArea = Jobs;
+                    Caption = 'Date Filter';
+                    ToolTip = 'The date to filter the resources that have day tasks on the specified date.';
+                }
             }
-            repeater(Control1)
+            group(ResourcesList)
             {
-                ShowCaption = false;
-                field("No."; Rec."No.")
+                repeater(Control1)
                 {
-                    ApplicationArea = Jobs;
-                    ToolTip = 'Specifies the number of the involved entry or record, according to the specified number series.';
-                }
-                field(Name; Rec.Name)
-                {
-                    ApplicationArea = Jobs;
-                    ToolTip = 'Specifies a description of the resource.';
-                }
-                field(Type; Rec.Type)
-                {
-                    ApplicationArea = Jobs;
-                    ToolTip = 'Specifies whether the resource is a person or a machine.';
-                    Visible = false;
-                }
-                field("Base Unit of Measure"; Rec."Base Unit of Measure")
-                {
-                    ApplicationArea = Jobs;
-                    ToolTip = 'Specifies the base unit used to measure the resource, such as hour, piece, or kilometer.';
-                }
-                field("Day Tasks"; Rec."Day Tasks")
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Day Tasks';
-                }
-                field("Resource Group No."; Rec."Resource Group No.")
-                {
-                    ApplicationArea = Jobs;
-                    ToolTip = 'Specifies the resource group that this resource is assigned to.';
-                    Visible = false;
-                }
+                    ShowCaption = false;
+                    Editable = false;
 
-                field("Gen. Prod. Posting Group"; Rec."Gen. Prod. Posting Group")
-                {
-                    ApplicationArea = Jobs;
-                    ToolTip = 'Specifies the item''s product type to link transactions made for this item with the appropriate general ledger account according to the general posting setup.';
-                    Visible = false;
-                }
-                field("VAT Prod. Posting Group"; Rec."VAT Prod. Posting Group")
-                {
-                    ApplicationArea = Basic, Suite;
-                    ToolTip = 'Specifies the VAT specification of the involved item or resource to link transactions made for this record with the appropriate general ledger account according to the VAT posting setup.';
-                    Visible = false;
-                }
-                field("Privacy Blocked"; Rec."Privacy Blocked")
-                {
-                    ApplicationArea = Jobs;
-                    ToolTip = 'Specifies whether to limit access to data for the data subject during daily operations. This is useful, for example, when protecting data from changes while it is under privacy review.';
-                    Visible = false;
-                }
-                field("Search Name"; Rec."Search Name")
-                {
-                    ApplicationArea = Jobs;
-                    ToolTip = 'Specifies an alternate name that you can use to search for the record in question when you cannot remember the value in the Name field.';
-                }
-                field("Default Deferral Template Code"; Rec."Default Deferral Template Code")
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Default Deferral Template';
-                    ToolTip = 'Specifies the default template that governs how to defer revenues and expenses to the periods when they occurred.';
-                }
+                    field("No."; Rec."No.")
+                    {
+                        ApplicationArea = Jobs;
+                        ToolTip = 'Specifies the number of the involved entry or record, according to the specified number series.';
+                    }
+                    field(Name; Rec.Name)
+                    {
+                        ApplicationArea = Jobs;
+                        ToolTip = 'Specifies a description of the resource.';
+                    }
+                    field(Type; Rec.Type)
+                    {
+                        ApplicationArea = Jobs;
+                        ToolTip = 'Specifies whether the resource is a person or a machine.';
+                        Visible = false;
+                    }
+                    field("Base Unit of Measure"; Rec."Base Unit of Measure")
+                    {
+                        ApplicationArea = Jobs;
+                        ToolTip = 'Specifies the base unit used to measure the resource, such as hour, piece, or kilometer.';
+                    }
+                    field("Day Tasks"; Rec."Day Tasks")
+                    {
+                        ApplicationArea = Jobs;
+                        Caption = 'Day Tasks';
+                    }
+                    field("Resource Group No."; Rec."Resource Group No.")
+                    {
+                        ApplicationArea = Jobs;
+                        ToolTip = 'Specifies the resource group that this resource is assigned to.';
+                        Visible = false;
+                    }
 
+                    field("Gen. Prod. Posting Group"; Rec."Gen. Prod. Posting Group")
+                    {
+                        ApplicationArea = Jobs;
+                        ToolTip = 'Specifies the item''s product type to link transactions made for this item with the appropriate general ledger account according to the general posting setup.';
+                        Visible = false;
+                    }
+                    field("VAT Prod. Posting Group"; Rec."VAT Prod. Posting Group")
+                    {
+                        ApplicationArea = Basic, Suite;
+                        ToolTip = 'Specifies the VAT specification of the involved item or resource to link transactions made for this record with the appropriate general ledger account according to the VAT posting setup.';
+                        Visible = false;
+                    }
+                    field("Privacy Blocked"; Rec."Privacy Blocked")
+                    {
+                        ApplicationArea = Jobs;
+                        ToolTip = 'Specifies whether to limit access to data for the data subject during daily operations. This is useful, for example, when protecting data from changes while it is under privacy review.';
+                        Visible = false;
+                    }
+                    field("Search Name"; Rec."Search Name")
+                    {
+                        ApplicationArea = Jobs;
+                        ToolTip = 'Specifies an alternate name that you can use to search for the record in question when you cannot remember the value in the Name field.';
+                    }
+                    field("Default Deferral Template Code"; Rec."Default Deferral Template Code")
+                    {
+                        ApplicationArea = Jobs;
+                        Caption = 'Default Deferral Template';
+                        ToolTip = 'Specifies the default template that governs how to defer revenues and expenses to the periods when they occurred.';
+                    }
+
+                }
             }
         }
         area(factboxes)

@@ -989,3 +989,20 @@ function get_events_not_match_with_section() {
     Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnEventsNotMatch', [JSON.stringify(invalidEvents)]);
     // return invalidEvents;
 }
+
+function getAllEvents() {
+    var allEvents = [];
+    if (scheduler.getEvents) {
+        allEvents = scheduler.getEvents();
+    }
+    
+    Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnGetAllEvents', [JSON.stringify(allEvents)]);
+}
+
+function getAllSections() {
+    var allSections = [];
+    if (scheduler.matrix && scheduler.matrix.timeline && Array.isArray(scheduler.matrix.timeline.y_unit)) {
+        allSections = scheduler.matrix.timeline.y_unit;
+    }
+    Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnGetAllSections', [JSON.stringify(allSections)]);
+}
