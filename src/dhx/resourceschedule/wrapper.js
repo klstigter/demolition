@@ -81,7 +81,7 @@ window.BOOT = function() {
     /***** Style for Vendor category parent cells in the left column (label area) */
     /* Style parent row cells in the event area (timeline data cells) */
     .timeline-parent-row .dhx_matrix_cell {
-        background-color: #D9F0F2 !important;
+        background-color: #E9E9E9 !important;
     }
 
     .dhx_matrix_scell.folder.vendor-category,
@@ -89,7 +89,7 @@ window.BOOT = function() {
     .dhx_matrix_scell.folder.vendor-category .dhx_scell_level1,
     .dhx_matrix_scell.folder.vendor-category .dhx_scell_level2,
     .dhx_matrix_scell.folder.vendor-category .dhx_scell_name {
-        background-color: #D9F0F2 !important;
+        background-color: #E9E9E9 !important;
         color: black !important;
         font-weight: normal !important;
         text-transform: none !important;
@@ -97,7 +97,7 @@ window.BOOT = function() {
 
     /* Style for Vendor category parent cells in the left column */
     .dhx_matrix_scell.folder.vendor-category {
-        background-color: #D9F0F2 !important;
+        background-color: #E9E9E9 !important;
         font-weight: normal;
         text-transform: none !important;
     }
@@ -129,7 +129,7 @@ window.BOOT = function() {
     .dhx_event_line,
     .dhx_cal_event .dhx_title,
     .dhx_cal_event .dhx_body {
-        color: black !important;
+        color: black !important;        
     }
     ************************ */
 
@@ -141,6 +141,7 @@ window.BOOT = function() {
     .dhx_cal_event.event-capacity .dhx_title,
     .dhx_cal_event.event-capacity .dhx_body {
         color: black !important;
+        font-size: 14px !important;        
         /*
         background-color: #D4EDDA !important;
         border-color: #28A745 !important;
@@ -154,6 +155,7 @@ window.BOOT = function() {
     .dhx_cal_event.event-vacancy .dhx_title,
     .dhx_cal_event.event-vacancy .dhx_body {
         color: black !important;
+        font-size: 14px !important;
         /*
         background-color: #FFF3CD !important;
         border-color: #FFC107 !important;
@@ -166,7 +168,8 @@ window.BOOT = function() {
     .dhx_event_line.event-daytask_0,
     .dhx_cal_event.event-daytask_0 .dhx_title,
     .dhx_cal_event.event-daytask_0 .dhx_body {
-        color: black !important;
+        color: white !important;
+        font-size: 14px !important;
         /*
         background-color: #D1ECF1 !important;
         border-color: #17A2B8 !important;
@@ -179,7 +182,8 @@ window.BOOT = function() {
     .dhx_event_line.event-daytask_1,
     .dhx_cal_event.event-daytask_1 .dhx_title,
     .dhx_cal_event.event-daytask_1 .dhx_body {
-        color: white !important;
+        color: black !important;
+        font-size: 14px !important;
         /*
         background-color: #F8D7DA !important;
         border-color: #DC3545 !important;

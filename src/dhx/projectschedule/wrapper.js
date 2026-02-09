@@ -43,6 +43,42 @@ window.BOOT = function() {
         margin: 0 !important;
         text-align: center !important;
     }
+
+    /* Hide the entire header area to remove blank space */
+    #scheduler_here .dhx_cal_navline {
+        display: none !important;
+    }
+
+    /* Event styling per type */
+
+    /* Daytask_0 events */
+    .dhx_cal_event.event-daytask_0,
+    .dhx_cal_event_line.event-daytask_0,
+    .dhx_event_line.event-daytask_0,
+    .dhx_cal_event.event-daytask_0 .dhx_title,
+    .dhx_cal_event.event-daytask_0 .dhx_body {
+        color: white !important;
+        font-size: 14px !important;
+        /*
+        background-color: #D1ECF1 !important;
+        border-color: #17A2B8 !important;
+        */
+    }
+
+    /* Daytask_1 events */
+    .dhx_cal_event.event-daytask_1,
+    .dhx_cal_event_line.event-daytask_1,
+    .dhx_event_line.event-daytask_1,
+    .dhx_cal_event.event-daytask_1 .dhx_title,
+    .dhx_cal_event.event-daytask_1 .dhx_body {
+        color: black !important;
+        font-size: 14px !important;
+        /*
+        background-color: #F8D7DA !important;
+        border-color: #DC3545 !important;
+        */
+    }
+        
     `;
     document.head.appendChild(style);
     //>>
@@ -75,6 +111,17 @@ window.BOOT = function() {
         treetimeline: true,
         tooltip: true,
     });
+
+    // Apply CSS class based on event type
+    scheduler.templates.event_class = function(start, end, ev) {
+        var typeClass = "";
+        if (ev.type === "daytask_0") {
+            typeClass = "event-daytask_0";
+        } else if (ev.type === "daytask_1") {
+            typeClass = "event-daytask_1";
+        }
+        return typeClass;
+    };
 
     // Custom tooltip template
     scheduler.templates.tooltip_text = function(start, end, ev) {
@@ -773,13 +820,15 @@ function RecreateTimelineView(sections) {
         x_step: 3,
         x_size: (8 * 7),
         x_length: (8 * 7),
-        event_dy: 60,
+        dy: 20,
+        event_dy: 20,
+        folder_dy: 20,  // Height for parent/folder rows
         section_autoheight: false,
         resize_events: true,
         y_unit: sections,
         y_property: "section_id",
         render: "tree",
-        scale_height: 60,
+        scale_height: 40,
         second_scale: {
             x_unit: "day",
             x_date: "%D %d %M"

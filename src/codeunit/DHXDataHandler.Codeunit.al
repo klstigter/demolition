@@ -117,20 +117,31 @@ codeunit 50604 "DHX Data Handler"
                 if Daytask.Description <> '' then
                     PlanningObject.Add('text', Daytask.Description)
                 else
-                    PlanningObject.Add('text', ResName);
+                    if Daytask."No." <> '' then
+                        PlanningObject.Add('text', ResName)
+                    else
+                        PlanningObject.Add('text', 'vacant');
 
                 PlanningObject.Add('section_id', Daytask."Job No." + '|' + Daytask."Job Task No." + '|' + Format(Daytask."Job Planning Line No."));
-                if ResNo <> '' then begin
-                    if Daytask."Vendor No." <> '' then
-                        PlanningObject.Add('color', 'grey')
-                    else
-                        PlanningObject.Add('color', 'green');
-                end else begin // no resource assigned
-                    if Daytask."Vendor No." <> '' then
-                        PlanningObject.Add('color', 'grey')
-                    else
-                        PlanningObject.Add('color', 'green');
+                // if ResNo <> '' then begin
+                //     if Daytask."Vendor No." <> '' then
+                //         PlanningObject.Add('color', 'grey')
+                //     else
+                //         PlanningObject.Add('color', 'green');
+                // end else begin // no resource assigned
+                //     if Daytask."Vendor No." <> '' then
+                //         PlanningObject.Add('color', 'grey')
+                //     else
+                //         PlanningObject.Add('color', 'green');
+                // end;
+                if ResNo = '' then begin
+                    PlanningObject.Add('color', '#3367D1'); //Blue BC Selection
+                    PlanningObject.Add('type', 'daytask_0');
+                end else begin
+                    PlanningObject.Add('color', '#E9E9E9'); //grey BC
+                    PlanningObject.Add('type', 'daytask_1');
                 end;
+
                 if not Ven.Get(Daytask."Vendor No.") then
                     Clear(Ven);
                 PlanningObject.Add('details', Ven.Name);
@@ -610,11 +621,11 @@ codeunit 50604 "DHX Data Handler"
                             PlanningObject.Add('details', StrSubstNo(DetailsLabel, PoolRes."No.", PoolRes.Name
                                                                                      , Daytask."Job No.", Job.Description
                                                                                      , Daytask."Job Task No.", Task.Description));
-                            if Daytask."Pool Resource No." = '' then begin
-                                PlanningObject.Add('color', '#E9E9E9'); //grey BC
+                            if Daytask."No." = '' then begin
+                                PlanningObject.Add('color', '#3367D1'); //Blue BC Selection
                                 PlanningObject.Add('type', 'daytask_0');
                             end else begin
-                                PlanningObject.Add('color', '#3367D1'); //Blue BC Selection
+                                PlanningObject.Add('color', '#E9E9E9'); //grey BC
                                 PlanningObject.Add('type', 'daytask_1');
                             end;
 
