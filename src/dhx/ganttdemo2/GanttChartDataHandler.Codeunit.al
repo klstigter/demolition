@@ -83,38 +83,20 @@ codeunit 50613 "GanttChartDataHandler"
         SchedulingTypeText: Text;
     begin
 
-        // Generate unique ID from Job No. and Job Task No.
         JsonObject.Add('id', Format(JobTask."Job No.") + '|' + Format(JobTask."Job Task No."));
-
-        // Task description
         JsonObject.Add('text', JobTask.Description);
-
         // Start date (format: dd-MM-yyyy)
         if JobTask.PlannedStartDate <> 0D then
             StartDateText := FormatDate(JobTask.PlannedStartDate)
         else
             StartDateText := '';
         JsonObject.Add('start_date', StartDateText);
-
-        if JobTask.PlannedEndDate <> 0D then
-            StartEndText := FormatDate(JobTask.PlannedEndDate)
-        else
-            StartEndText := '';
-        //JsonObject.Add('end_date', StartEndText);
-
         JsonObject.Add('duration', JobTask.Duration);
-
-        // BC bindings
         JsonObject.Add('bcJobNo', JobTask."Job No.");
         JsonObject.Add('bcJobTaskNo', JobTask."Job Task No.");
-
-        // Scheduling type (convert enum to text)
         SchedulingTypeText := GetSchedulingTypeText(JobTask."Scheduling Type");
         JsonObject.Add('schedulingType', SchedulingTypeText);
-
-        //if JobTask."Constraint Type" <> JobTask."Constraint Type"::None then begin
         JsonObject.Add('constraint_type', GenUtils.MapConstraintTypeToDhtmlx(JobTask."Constraint Type"));  // e.g., 'fnlt' (Finish No Later Than)
-
         if JobTask."Constraint Type" <> JobTask."Constraint Type"::None then begin
             if JobTask."Constraint Date" <> 0D then begin
                 ConstraintDateText := FormatDate(JobTask."Constraint Date");
@@ -126,15 +108,13 @@ codeunit 50613 "GanttChartDataHandler"
 
         if JobTask."Deadline Date" <> 0D then
             JsonObject.Add('deadline', FormatDate(JobTask."Deadline Date"));
-
         JsonObject.Add('progress', JobTask."Progress");
-
         JsonObject.Add('indentation', JobTask.Indentation);
         JsonObject.Add('bold', JobTask."Job Task Type" <> jobtask."Job Task Type"::Posting);
         IF JobTask."Job Task Type" <> JobTask."Job Task Type"::Posting THEN
-            ParentJobTaskId[JobTask.Indentation + 2] := Format(JobTask."Job No.") + '-' + Format(JobTask."Job Task No.");
-
+            ParentJobTaskId[JobTask.Indentation + 2] := Format(JobTask."Job No.") + '|' + Format(JobTask."Job Task No.");
         JsonObject.Add('parent', ParentJobTaskId[JobTask.Indentation + 1]);
+
     end;
 
     local procedure FormatDate(InputDate: Date) FormattedDate: Text
@@ -156,22 +136,6 @@ codeunit 50613 "GanttChartDataHandler"
                 SchedulingTypeText := 'fixed_work';
             else
                 SchedulingTypeText := '';
-        end;
-    end;
-
-    local procedure repairStartdate(var JobTask: Record "Job Task"; OffsetDays: Integer)
-    var
-        Job: Record Job;
-    begin
-        if Job.Get(JobTask."Job No.") then begin
-            IF Job."Starting Date" <> 0D THEN
-                JobTask.PlannedStartDate := CalcDate(Format(OffsetDays) + 'D', Job."Starting Date");
-            JobTask.PlannedEndDate := Job."Ending Date";
-            //if (jobtask.PlannedEndDate = 0D) and (JobTask.PlannedStartDate <> 0D) then
-            JobTask.PlannedEndDate := CalcDate(Format(30 - OffsetDays) + 'D', JobTask.PlannedStartDate);
-            JobTask."Scheduling Type" := schedulingType::FixedDuration;
-            JobTask.CalculateDuration();
-            JobTask.Modify()
         end;
     end;
 

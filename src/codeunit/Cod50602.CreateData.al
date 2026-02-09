@@ -41,7 +41,7 @@ codeunit 50602 "Create Demo Data"
         JobTask."Job Task No." := '0';
         JobTask.Description := 'Repair Radome';
         jobtask."PlannedStartDate" := date1;
-        JobTask.Validate("PlannedEndDate", CalcDate('+3W', date1));
+        JobTask.Validate("PlannedEndDate", CalcDate('+4W', date1));
         JobTask."Job Task Type" := JobTask."Job Task Type"::Heading;
         if not JobTask.Insert() then JobTask.Modify();
 
@@ -76,7 +76,7 @@ codeunit 50602 "Create Demo Data"
         JobTask."Job Task No." := '2';
         JobTask.Description := 'Repair';
         jobtask."PlannedStartDate" := CalcDate('+1W', date1);
-        JobTask.Validate("PlannedEndDate", CalcDate('+2W', date1));
+        JobTask.Validate("PlannedEndDate", CalcDate('+2W+4D', date1));
         JobTask."Job Task Type" := JobTask."Job Task Type"::"Begin-Total";
         if not JobTask.Insert() then JobTask.Modify();
 
@@ -97,7 +97,7 @@ codeunit 50602 "Create Demo Data"
         JobTask."Job Task No." := '2030';
         JobTask.Description := 'Cat and bodywork';
         jobtask."PlannedStartDate" := CalcDate('+1W+3D', date1);
-        JobTask.Validate("PlannedEndDate", CalcDate('+2W+3D', date1));
+        JobTask.Validate("PlannedEndDate", CalcDate('+2W+2D', date1));
         JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
         if not JobTask.Insert() then JobTask.Modify();
 
@@ -111,42 +111,42 @@ codeunit 50602 "Create Demo Data"
         JobTask."Job Task No." := '3';
         JobTask.Description := 'Post Processing Tasks';
         jobtask."PlannedStartDate" := CalcDate('+2W+3D', date1);
-        JobTask.Validate("PlannedEndDate", CalcDate('+3W+2D', date1));
+        JobTask.Validate("PlannedEndDate", CalcDate('+3W+4D+3D', date1));
         JobTask."Job Task Type" := JobTask."Job Task Type"::"Begin-Total";
         if not JobTask.Insert() then JobTask.Modify();
 
         JobTask."Job Task No." := '3010';
         JobTask.Description := 'Testing';
-        jobtask."PlannedStartDate" := CalcDate('+2W+3D', date1);
-        JobTask.Validate("PlannedEndDate", CalcDate('+2W+4D', date1));
+        jobtask."PlannedStartDate" := CalcDate('+2W+4D', date1);
+        JobTask.Validate("PlannedEndDate", CalcDate('+3W', date1));
         JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
         if not JobTask.Insert() then JobTask.Modify();
 
         JobTask."Job Task No." := '3020';
         JobTask.Description := 'Certification';
-        jobtask."PlannedStartDate" := CalcDate('+3W+2D', date1);
-        JobTask.Validate("PlannedEndDate", CalcDate('+3W+3D', date1));
+        jobtask."PlannedStartDate" := CalcDate('+3W+4D', date1);
+        JobTask.Validate("PlannedEndDate", CalcDate('+4W', date1));
         JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
         if not JobTask.Insert() then JobTask.Modify();
 
         JobTask."Job Task No." := '3030';
         JobTask.Description := 'Outbound Shipping';
-        jobtask."PlannedStartDate" := CalcDate('+2W+3D', date1);
-        JobTask.Validate("PlannedEndDate", CalcDate('+3W+2D', date1));
+        jobtask."PlannedStartDate" := CalcDate('+4W+1D', date1);
+        JobTask.Validate("PlannedEndDate", CalcDate('+4W+2D', date1));
         JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
         if not JobTask.Insert() then JobTask.Modify();
 
         JobTask."Job Task No." := '3999';
         JobTask.Description := 'Post Processing Tasks';
-        jobtask."PlannedStartDate" := CalcDate('2W+2D', date1);
-        JobTask.Validate("PlannedEndDate", CalcDate('+3W', date1));
+        jobtask."PlannedStartDate" := CalcDate('+3W+2D', date1);
+        JobTask.Validate("PlannedEndDate", CalcDate('+3W+2D', date1));
         JobTask."Job Task Type" := JobTask."Job Task Type"::"End-Total";
         if not JobTask.Insert() then JobTask.Modify();
 
         JobTask."Job Task No." := '9999';
         JobTask.Description := 'Repair Radome';
         jobtask."PlannedStartDate" := date1;
-        JobTask.Validate("PlannedEndDate", CalcDate('+3W', date1));
+        JobTask.Validate("PlannedEndDate", CalcDate('+3W+2D', date1));
         JobTask."Job Task Type" := JobTask."Job Task Type"::Total;
         if not JobTask.Insert() then JobTask.Modify();
 

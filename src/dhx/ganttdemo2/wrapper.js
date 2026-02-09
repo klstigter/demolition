@@ -748,33 +748,31 @@ function ClearData(projectJsonTxt) {
 }
 
 function LoadProjectData(projectJsonTxt) {
- 
 
   function validateConstraintsBeforeParse(tasks) {
-  const ct = gantt.config.constraint_types || {};
-  const keys = Object.keys(ct);
-  const bad = [];
+    const ct = gantt.config.constraint_types || {};
+    const keys = Object.keys(ct);
+    const bad = [];
 
-  tasks.forEach(t => {
-    if (t.constraint_type !== undefined && t.constraint_type !== null) {
-      const label = ct[t.constraint_type];
-      if (typeof label !== "string") {
-        bad.push({
-          id: t.id,
-          constraint_type: t.constraint_type,
-          typeofConstraintType: typeof t.constraint_type,
-          label,
-          availableKeysSample: keys.slice(0, 20)
-        });
+    tasks.forEach(t => {
+      if (t.constraint_type !== undefined && t.constraint_type !== null) {
+        const label = ct[t.constraint_type];
+        if (typeof label !== "string") {
+          bad.push({
+            id: t.id,
+            constraint_type: t.constraint_type,
+            typeofConstraintType: typeof t.constraint_type,
+            label,
+            availableKeysSample: keys.slice(0, 20)
+          });
+        }
       }
-    }
-  });
+    });
 
-  if (bad.length) {
-    console.warn("BAD constraint mapping BEFORE parse:", bad);
+    if (bad.length) {
+      console.warn("BAD constraint mapping BEFORE parse:", bad);
+    }
   }
-} 
-  
 
   try {
     if (!gantt_here || typeof gantt === "undefined" || !gantt.$root) {
@@ -785,11 +783,12 @@ function LoadProjectData(projectJsonTxt) {
     var payload = _tryParseJson(projectJsonTxt);
     if (!payload) {
       console.warn("LoadProjectData: empty payload");
-      gantt.clearAll();
-      gantt.render();
+      gantt.silent(function () {
+        gantt.clearAll();
+        gantt.render();
+      });
       return;
     }
-    
 
     // ✅ accept array payload = tasks[]
     if (Array.isArray(payload)) {
@@ -800,23 +799,32 @@ function LoadProjectData(projectJsonTxt) {
     var links = payload.links || payload.Links || [];
 
     // Optional: project range in payload
-    if (payload.project_start) gantt.config.project_start = _toGanttDate(payload.project_start) || gantt.config.project_start;
-    if (payload.project_end) gantt.config.project_end = _toGanttDate(payload.project_end) || gantt.config.project_end;
+    if (payload.project_start)
+      gantt.config.project_start = _toGanttDate(payload.project_start) || gantt.config.project_start;
 
-    // Clear existing
-    gantt.clearAll();
+    if (payload.project_end)
+      gantt.config.project_end = _toGanttDate(payload.project_end) || gantt.config.project_end;
 
-    // Parse new
-    gantt.parse({ data: tasks, links: links });
+    // 🔇 SILENT LOAD (this is the key)
+    gantt.silent(function () {
 
-    // Render once
-    gantt.render();
-    if (gantt.setSizes) gantt.setSizes();
-    if (gantt.resetLayout) gantt.resetLayout();
-    Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnProjectDataLoaded", [
-      String(tasks.length),
-      String(links.length)
-    ]);
+      validateConstraintsBeforeParse(tasks);
+
+      gantt.clearAll();
+      gantt.parse({ data: tasks, links: links });
+
+      // layout-related calls are also safe inside silent
+      gantt.render();
+      if (gantt.setSizes) gantt.setSizes();
+      if (gantt.resetLayout) gantt.resetLayout();
+    });
+
+    // 🔔 Notify BC AFTER load (no task updates fired)
+    Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(
+      "OnProjectDataLoaded",
+      [ String(tasks.length), String(links.length) ]
+    );
+
   } catch (e) {
     console.error("LoadProjectData failed:", e);
   }
