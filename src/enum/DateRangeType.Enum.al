@@ -4,4 +4,5 @@ enum 50604 "Date Range Type"
 
     value(0; "Date Range") { }
     value(1; "Weekly") { }
+    value(2; "Calculated") { }
 }

@@ -54,6 +54,21 @@ page 50650 "Gantt Chart Setup"
                         Enabled = DateRangeVisible;
                     }
                 }
+                group(Calculate)
+                {
+                    Visible = CalculateVisible;
+                    field("From Data Formula"; rec."From Data Formula")
+                    {
+                        ApplicationArea = All;
+                        Enabled = CalculateVisible;
+                    }
+                    field("To Data Formula"; rec."To Data Formula")
+                    {
+                        ApplicationArea = All;
+                        Enabled = CalculateVisible;
+                    }
+                }
+
             }
             group(Loadsettings)
             {
@@ -95,10 +110,12 @@ page 50650 "Gantt Chart Setup"
     var
         [InDataSet]
         DateRangeVisible: Boolean;
+        CalculateVisible: Boolean;
 
     local procedure SetDateRangeVisibility()
     begin
         DateRangeVisible := Rec."Date Range Type" = Rec."Date Range Type"::"Date Range";
+        CalculateVisible := Rec."Date Range Type" = Rec."Date Range Type"::"Calculated";
     end;
 
 }

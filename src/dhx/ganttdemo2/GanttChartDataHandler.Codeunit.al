@@ -22,6 +22,13 @@ codeunit 50613 "GanttChartDataHandler"
                     // x 5 weeks
                     EndDate := Calcdate('<5W>', EndDate);
                 end;
+            GanttSetup."Date Range Type"::Calculated:
+                begin
+                    GanttSetup.TestField("From Data Formula");
+                    GanttSetup.TestField("To Data Formula");
+                    StartDate := CalcDate(GanttSetup."From Data Formula", WorkDate());
+                    EndDate := CalcDate(GanttSetup."To Data Formula", WorkDate());
+                end;
         end;
         if EndDate = 0D then
             EndDate := DMY2Date(31, 12, 9999); // Far future date

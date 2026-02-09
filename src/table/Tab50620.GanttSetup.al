@@ -40,6 +40,15 @@ table 50620 "Gantt Chart Setup"
             Caption = 'Show Task Type';
             InitValue = true;
         }
+        field(18; "From Data Formula"; DateFormula)
+        {
+            Caption = 'From Date Formula';
+        }
+        field(19; "To Data Formula"; DateFormula)
+        {
+            Caption = 'From Date Formula';
+        }
+
         field(20; "From Date"; Date)
         {
             Caption = 'From Date';
