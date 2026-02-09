@@ -190,25 +190,26 @@ table 50610 "Day Tasks"
             begin
                 if Type = Type::Resource then begin
                     Resource.Reset();
+                    Resource.SetFilter("Date Filter", '%1', "Task Date");
                     if "Resource Group No." <> '' then
                         Resource.SetRange("Resource Group No.", "Resource Group No.");
                     if "Vendor No." <> '' then
                         Resource.SetRange("Vendor No.", "Vendor No.");
                     if "Pool Resource No." <> '' then
                         Resource.SetRange("Pool Resource No.", "Pool Resource No.");
-                    if page.RunModal(0, Resource) = ACTION::LookupOK then begin
+                    if page.RunModal(50601, Resource) = ACTION::LookupOK then begin
                         Validate("No.", Resource."No.");
                         Description := Resource.Name;
                     end;
                 end else if Type = Type::Item then begin
                     Item.Reset();
-                    if page.RunModal(0, Item) = ACTION::LookupOK then begin
+                    if page.RunModal(50601, Item) = ACTION::LookupOK then begin
                         "No." := Item."No.";
                         Description := Item."No.";
                     end;
                 end else if Type = Type::"G/L Account" then begin
                     GLAccount.Reset();
-                    if page.RunModal(0, GLAccount) = ACTION::LookupOK then begin
+                    if page.RunModal(50601, GLAccount) = ACTION::LookupOK then begin
                         "No." := GLAccount."No.";
                         Description := GLAccount."No.";
                     end;
