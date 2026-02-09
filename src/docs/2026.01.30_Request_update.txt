@@ -21,19 +21,25 @@ gantt
 
 Capacity (Pool)
 ----------------
-(OK) Font Size samakan dengan BC untuk semua tree, non bold
-(OK) Internal removed, Resource non Pool sejajar dengan Pool
-(OK) Warna Daytask hijau (non Pool) diganti grey BC
-(OK) Daytask: Reource True and non pool -> warna BC Selection (Biru background + Font Putih)
+(OK) 15. Font Size samakan dengan BC untuk semua tree, non bold
+(OK) 16. Internal removed, Resource non Pool sejajar dengan Pool
+(OK) 17. Warna Daytask hijau (non Pool) diganti grey BC
+(OK) 18. Daytask: Reource True and non pool -> warna BC Selection (Biru background + Font Putih)
 
 Daytask
 --------
-(OK) Resource Pool Drilldown apply limitation for Pool Resource Only
+(OK) 19. Resource Pool Drilldown apply limitation for Pool Resource Only
 
 Capacity (Pool)
 ----------------
-(OK) ukuran huruf di event disamakan dengan huruf tree/folder
-(OK) Warna Event daytask_0 dan daytask_1 di switch
+(OK) 20. ukuran huruf di event disamakan dengan huruf tree/folder
+(OK) 21. Warna Event daytask_0 dan daytask_1 di switch
+
+22. daytask -> No. -> Lookup -> list resource di tambah yang ada di capacity
+            masukan parameter skill dalam list lookup
+            caption : resource with date
+            add factbox: daytask
+            
 
 
 

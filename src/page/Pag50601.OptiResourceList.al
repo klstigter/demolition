@@ -14,6 +14,13 @@ page 50601 "Opti Resource List"
     {
         area(content)
         {
+            field("Date Filter"; Rec.GetFilter("Date Filter"))
+            {
+                ApplicationArea = Jobs;
+                Caption = 'Date Filter';
+                ToolTip = 'The date to filter the resources that have day tasks on the specified date.';
+                Editable = false;
+            }
             repeater(Control1)
             {
                 ShowCaption = false;
