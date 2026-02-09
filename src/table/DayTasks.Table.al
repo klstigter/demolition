@@ -193,43 +193,67 @@ table 50610 "Day Tasks"
                 TempText: Text;
             begin
                 if Type = Type::Resource then begin
-                    // set limitation if skill is set in Day Task
-                    if "Skill" <> '' then begin
-                        ResSklill.SetRange(Type, ResSklill.Type::Resource);
-                        ResSklill.SetFilter("No.", '<>%1', '');
-                        ResSklill.SetRange("Skill Code", "Skill");
-                        if ResSklill.FindSet() then
-                            repeat
-                                if Resource.Get(ResSklill."No.") then
-                                    Resource.Mark(true);
-                            until ResSklill.Next() = 0;
-                        Resource.MarkedOnly(true);
-                    end else
-                        Resource.Reset();
-                    // Get Resouce from group, vendor, and pool resource
-                    if "Resource Group No." <> '' then
-                        Resource.SetRange("Resource Group No.", "Resource Group No.");
-                    if "Vendor No." <> '' then
-                        Resource.SetRange("Vendor No.", "Vendor No.");
-                    if "Pool Resource No." <> '' then
-                        Resource.SetRange("Pool Resource No.", "Pool Resource No.");
-                    if Resource.FindSet() then
-                        repeat
+                    Resource.Reset();
+                    // Check Existing capacity entries for the resource
+                    clear(CapacityUniqueResource);
+                    CapacityUniqueResource.SetRange(EntryDateFilter, "Task Date");
+                    CapacityUniqueResource.Open();
+                    while CapacityUniqueResource.Read() do begin
+                        if Resource.Get(CapacityUniqueResource.Resource_No_) then
                             Resource.Mark(true);
-                            // Check Existing capacity entries for the resource
-                            clear(CapacityUniqueResource);
-                            CapacityUniqueResource.SetRange(EntryDateFilter, "Task Date");
-                            if "Resource Group No." <> '' then
-                                CapacityUniqueResource.SetRange(Resource_Group_No_, "Resource Group No.");
-                            CapacityUniqueResource.SetRange(Resource_No_, Resource."No.");
-                            CapacityUniqueResource.Open();
-                            if not CapacityUniqueResource.Read() then
-                                Resource.Mark(false);
-                            CapacityUniqueResource.Close();
-                        until Resource.Next() = 0;
+                    end;
                     Resource.MarkedOnly(true);  // Get marked resources
+                    CapacityUniqueResource.Close();
+                    if "Skill" <> '' then begin
+                        if Resource.FindSet() then
+                            repeat
+                                if not ResSklill.Get(ResSklill.Type::Resource, Resource."No.", Skill) then
+                                    Resource.Mark(false);
+                            until Resource.Next() = 0;
+                    end;
+                    Resource.MarkedOnly(true);  // Get marked resources
+
+                    // // set limitation if skill is set in Day Task
+                    // if "Skill" <> '' then begin
+                    //     ResSklill.SetRange(Type, ResSklill.Type::Resource);
+                    //     ResSklill.SetFilter("No.", '<>%1', '');
+                    //     ResSklill.SetRange("Skill Code", "Skill");
+                    //     if ResSklill.FindSet() then
+                    //         repeat
+                    //             if Resource.Get(ResSklill."No.") then
+                    //                 Resource.Mark(true);
+                    //         until ResSklill.Next() = 0;
+                    //     Resource.MarkedOnly(true);
+                    // end else
+                    //     Resource.Reset();
+                    // // // Get Resouce from group, vendor, and pool resource
+                    // // if "Resource Group No." <> '' then
+                    // //     Resource.SetRange("Resource Group No.", "Resource Group No.");
+                    // // if "Vendor No." <> '' then
+                    // //     Resource.SetRange("Vendor No.", "Vendor No.");
+                    // // if "Pool Resource No." <> '' then
+                    // //     Resource.SetRange("Pool Resource No.", "Pool Resource No.");
+                    // if Resource.FindSet() then
+                    //     repeat
+                    //         Resource.Mark(true);
+                    //         // Check Existing capacity entries for the resource
+                    //         clear(CapacityUniqueResource);
+                    //         CapacityUniqueResource.SetRange(EntryDateFilter, "Task Date");
+                    //         if "Resource Group No." <> '' then
+                    //             CapacityUniqueResource.SetRange(Resource_Group_No_, "Resource Group No.");
+                    //         CapacityUniqueResource.SetRange(Resource_No_, Resource."No.");
+                    //         CapacityUniqueResource.Open();
+                    //         if not CapacityUniqueResource.Read() then
+                    //             Resource.Mark(false);
+                    //         CapacityUniqueResource.Close();
+                    //     until Resource.Next() = 0;
+                    // Resource.MarkedOnly(true);  // Get marked resources
+
                     Resource.SetFilter("Date Filter", '%1', "Task Date");
-                    if page.RunModal(50601, Resource) = ACTION::LookupOK then begin
+                    ResLookupPage.SetTableView(Resource);
+                    ResLookupPage.LookupMode(true);
+                    if ResLookupPage.RunModal() = ACTION::LookupOK then begin
+                        ResLookupPage.GetRecord(Resource);
                         Validate("No.", Resource."No.");
                         Description := Resource.Name;
                     end;
