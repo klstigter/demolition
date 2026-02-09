@@ -43,6 +43,12 @@ window.BOOT = function() {
         margin: 0 !important;
         text-align: center !important;
     }
+
+    /* Hide the entire header area to remove blank space */
+    #scheduler_here .dhx_cal_navline {
+        display: none !important;
+    }
+        
     `;
     document.head.appendChild(style);
     //>>

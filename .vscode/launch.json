@@ -18,22 +18,6 @@
         }
         ,
         {
-            "name": "NL_Copy20240710",
-            "request": "launch",
-            "type": "al",
-            "environmentType": "Sandbox",
-            "environmentName": "NL_Copy20240710",
-            "tenant": "a60762e1-df10-4e4b-8f44-174c51589110",
-            "startupObjectId": 142,
-            "startupObjectType": "Page",
-            "breakOnError": "All",
-            "launchBrowser": true,
-            "enableLongRunningSqlStatements": true,
-            "enableSqlInformationDebugger": true,
-            "schemaUpdateMode": "ForceSync"
-        }
-        ,
-        {
             "name": "AL: Attach request",
             "request": "attach",
             "type": "al",

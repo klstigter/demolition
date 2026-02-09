@@ -30,6 +30,10 @@ Daytask
 --------
 (OK) Resource Pool Drilldown apply limitation for Pool Resource Only
 
+Capacity (Pool)
+----------------
+(OK) ukuran huruf di event disamakan dengan huruf tree/folder
+(OK) Warna Event daytask_0 dan daytask_1 di switch
 
 
 
