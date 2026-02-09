@@ -164,6 +164,13 @@ page 50612 "Planning Role Center"
                     ApplicationArea = All;
                     RunObject = page "Gantt Chart Setup";
                 }
+                action("Create Demo Data")
+                {
+                    Caption = 'Create Demo Data';
+                    Image = Setup;
+                    ApplicationArea = All;
+                    RunObject = codeunit "Create Demo Data";
+                }
 
             }
         }

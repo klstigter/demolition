@@ -103,4 +103,14 @@ table 50620 "Gantt Chart Setup"
             Rec.Insert();
         end;
     end;
+
+    Procedure GetPeriodLength(anchorD: date): Integer
+    var
+        d1, d2 : date;
+        n: Integer;
+    begin
+        d1 := CalcDate(rec."From Data Formula", anchorD);
+        d2 := CalcDate(rec."To Data Formula", anchorD);
+        exit(d2 - d1 + 1);
+    end;
 }

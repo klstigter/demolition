@@ -250,15 +250,24 @@ page 50620 "Gantt Demo DHX 2"
                 ApplicationArea = All;
                 Image = PreviousSet;
                 Visible = ShowPreviousNext;
+
                 trigger OnAction()
+                var
+                    forDt: text;
                 begin
                     Case Setup."Date Range Type" of
                         Setup."Date Range Type"::Weekly:
                             AnchorDate := CalcDate('<-6W>', AnchorDate);
+                        Setup."Date Range Type"::Calculated:
+                            begin
+                                forDt := StrSubstNo('<-%1D>', setup.GetPeriodLength(AnchorDate));
+                                AnchorDate := CalcDate(forDt, AnchorDate);
+                            end;
                     End;
                     RefreshGantt();
                 end;
             }
+
             action(NextAct)
             {
                 Caption = 'Next';
@@ -266,10 +275,17 @@ page 50620 "Gantt Demo DHX 2"
                 Image = NextSet;
                 Visible = ShowPreviousNext;
                 trigger OnAction()
+                var
+                    forDt: text;
                 begin
                     Case Setup."Date Range Type" of
                         Setup."Date Range Type"::Weekly:
                             AnchorDate := CalcDate('<6W>', AnchorDate);
+                        Setup."Date Range Type"::Calculated:
+                            begin
+                                forDt := StrSubstNo('<%1D>', setup.GetPeriodLength(AnchorDate));
+                                AnchorDate := CalcDate(forDt, AnchorDate);
+                            end;
                     End;
                     RefreshGantt();
                 end;

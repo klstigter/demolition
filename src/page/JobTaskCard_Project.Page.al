@@ -559,6 +559,12 @@ page 50618 "Job Task Card - Project"
                         ApplicationArea = All;
                         ToolTip = 'Specifies the end date for the project task. The date is based on the date on the related project planning line.';
                     }
+                    field(DurationTask; Rec.Duration)
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Specifies the duration of the project task in days.';
+                        importance = Promoted;
+                    }
                 }
                 group(Constraints)
                 {

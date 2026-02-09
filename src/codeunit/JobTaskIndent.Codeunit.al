@@ -19,14 +19,16 @@ codeunit 50611 "Job Task Indent"
         if JobTaskToIndent.FindSet() then
             repeat
                 case JobTaskToIndent."Job Task Type" of
-                    JobTaskToIndent."Job Task Type"::"Begin-Total":
+                    JobTaskToIndent."Job Task Type"::"Begin-Total",
+                    JobTaskToIndent."Job Task Type"::Heading:
                         begin
                             JobTaskToIndent.Indentation := IndentLevel;
                             JobTaskToIndent.Modify();
                             IndentLevel := IndentLevel + 1;
                             TasksUpdated := TasksUpdated + 1;
                         end;
-                    JobTaskToIndent."Job Task Type"::"End-Total":
+                    JobTaskToIndent."Job Task Type"::"End-Total",
+                    JobTaskToIndent."Job Task Type"::Total:
                         begin
                             if IndentLevel > 0 then
                                 IndentLevel := IndentLevel - 1;
@@ -34,8 +36,7 @@ codeunit 50611 "Job Task Indent"
                             JobTaskToIndent.Modify();
                             TasksUpdated := TasksUpdated + 1;
                         end;
-                    JobTaskToIndent."Job Task Type"::Posting,
-                    JobTaskToIndent."Job Task Type"::Total:
+                    JobTaskToIndent."Job Task Type"::Posting:
                         begin
                             JobTaskToIndent.Indentation := IndentLevel;
                             JobTaskToIndent.Modify();
