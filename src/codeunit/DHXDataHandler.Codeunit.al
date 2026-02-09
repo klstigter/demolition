@@ -610,7 +610,7 @@ codeunit 50604 "DHX Data Handler"
                             PlanningObject.Add('details', StrSubstNo(DetailsLabel, PoolRes."No.", PoolRes.Name
                                                                                      , Daytask."Job No.", Job.Description
                                                                                      , Daytask."Job Task No.", Task.Description));
-                            if Daytask."Pool Resource No." = '' then begin
+                            if Daytask."No." = '' then begin
                                 PlanningObject.Add('color', '#3367D1'); //Blue BC Selection
                                 PlanningObject.Add('type', 'daytask_0');
                             end else begin
