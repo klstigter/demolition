@@ -65,6 +65,17 @@ page 50601 "Opti Resource List"
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Specifies the resource group that this resource is assigned to.';
+                        Visible = true;
+                    }
+                    field(Skills; Rec.Skills)
+                    {
+                        ApplicationArea = Jobs;
+                        ToolTip = 'Specifies the number of skills associated with this resource.';
+                    }
+                    field("Pool Resource No."; Rec."Pool Resource No.")
+                    {
+                        ApplicationArea = Jobs;
+                        ToolTip = 'Specifies the pool resource that this resource is assigned to.';
                         Visible = false;
                     }
 
