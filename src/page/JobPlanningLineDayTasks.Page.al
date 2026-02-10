@@ -60,6 +60,11 @@ page 50633 "Job Planning Line Day Tasks"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the work type code.';
                 }
+                field(Skill; Rec.Skill)
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the skill level required.';
+                }
                 field(Quantity; Rec.Quantity)
                 {
                     ApplicationArea = Jobs;

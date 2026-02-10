@@ -133,6 +133,7 @@ codeunit 50610 "Day Tasks Mgt."
                 DayTasks."No." := JobPlanningLine."No.";
                 DayTasks.Description := JobPlanningLine.Description;
                 DayTasks."Unit of Measure Code" := JobPlanningLine."Unit of Measure Code";
+                DayTasks.Skill := JobPlanningLine.SkillsRequired;
                 DayTasks."Work Type Code" := JobPlanningLine."Work Type Code";
                 DayTasks."Vendor No." := JobPlanningLine."Vendor No.";
                 DayTasks.Depth := JobPlanningLine.Depth;
