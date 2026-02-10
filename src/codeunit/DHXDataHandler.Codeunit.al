@@ -2241,21 +2241,22 @@ codeunit 50604 "DHX Data Handler"
                     end else
                         TempPoolRes.Name := 'Vacant';
                     TempPoolRes.Insert();
-
-                    TempRes.SetRange("Pool Resource No.", TempPool."No.");
-                    if TempRes.FindSet() then
-                        repeat
-                            if Not TempResource.Get(TempRes."No.") then begin
-                                TempResource.Init();
-                                TempResource."No." := TempRes."No.";
-                                if Res.Get(TempRes."No.") then begin
-                                    TempResource.Name := Res.Name;
-                                    TempResource."Pool Resource No." := Res."Pool Resource No.";
-                                end;
-                                TempResource.Insert();
-                            end;
-                        until TempRes.Next() = 0;
                 end;
+
+                TempRes.SetRange("Pool Resource No.", TempPool."No.");
+                if TempRes.FindSet() then
+                    repeat
+                        if Not TempResource.Get(TempRes."No.") then begin
+                            TempResource.Init();
+                            TempResource."No." := TempRes."No.";
+                            if Res.Get(TempRes."No.") then begin
+                                TempResource.Name := Res.Name;
+                                TempResource."Pool Resource No." := Res."Pool Resource No.";
+                            end;
+                            TempResource.Insert();
+                        end;
+                    until TempRes.Next() = 0;
+
             until TempPool.Next() = 0;
 
         // if not TempRecord.Get('') then begin
