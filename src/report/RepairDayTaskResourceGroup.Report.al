@@ -13,27 +13,27 @@ report 50600 "RepairData"
 
     }
 
-    trigger OnPreReport()
-    var
-        DayTasks: Record "Day Tasks";
-        Resource: Record Resource;
-        NCounter: Integer;
-    begin
-        DayTasks.Reset();
-        DayTasks.SetRange(Type, DayTasks.Type::Resource);
-        DayTasks.SetFilter("No.", '<>%1', '');
-        if DayTasks.FindSet() then begin
-            repeat
-                Resource.Get(DayTasks."No.");
-                if Resource."Pool Resource No." <> '' then begin
-                    DayTasks."Pool Resource No." := Resource."Pool Resource No.";
-                    DayTasks.Modify();
-                end;
-                NCounter += 1;
-            until DayTasks.Next() = 0;
-        end;
-        Message('Total %1 Day Task records repaired.', NCounter);
-    end;
+    // trigger OnPreReport()
+    // var
+    //     DayTasks: Record "Day Tasks";
+    //     Resource: Record Resource;
+    //     NCounter: Integer;
+    // begin
+    //     DayTasks.Reset();
+    //     DayTasks.SetRange(Type, DayTasks.Type::Resource);
+    //     DayTasks.SetFilter("No.", '<>%1', '');
+    //     if DayTasks.FindSet() then begin
+    //         repeat
+    //             Resource.Get(DayTasks."No.");
+    //             if Resource."Pool Resource No." <> '' then begin
+    //                 DayTasks."Pool Resource No." := Resource."Pool Resource No.";
+    //                 DayTasks.Modify();
+    //             end;
+    //             NCounter += 1;
+    //         until DayTasks.Next() = 0;
+    //     end;
+    //     Message('Total %1 Day Task records repaired.', NCounter);
+    // end;
 
     // trigger OnPreReport()
     // var
@@ -46,6 +46,20 @@ report 50600 "RepairData"
     //     end else
     //         Message('No Resource Capacity Entry records found for deletion.');
     // end;
+
+    trigger OnPreReport()
+    var
+        ResourceCapEntry: Record "Res. Capacity Entry";
+    begin
+        ResourceCapEntry.SetFilter("Entry No.", '<>%1', 718);
+        ResourceCapEntry.SetRange(Date, DMY2Date(3, 2, 2026));
+        ResourceCapEntry.SetRange("Resource No.", 'FABRIKAM');
+        if ResourceCapEntry.FindSet() then begin
+            ResourceCapEntry.DeleteAll();
+            Message('All Resource Capacity Entry records from 1-Feb-2026 have been deleted.');
+        end else
+            Message('No Resource Capacity Entry records found for deletion.');
+    end;
 
     var
     //myInt: Integer;
