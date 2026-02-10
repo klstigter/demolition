@@ -49,6 +49,26 @@ window.BOOT = function() {
         display: none !important;
     }
 
+    /* Tree folder/parent labels - remove bold and use black color */
+    .dhx_matrix_scell.folder,
+    .dhx_matrix_scell.folder div,
+    .dhx_scell_level0,
+    .dhx_scell_level1,
+    .dhx_scell_level2 {
+        font-weight: normal !important;
+        color: #000000 !important;
+        text-transform: none !important;
+        text-align: left !important;
+    }
+
+    /* Ensure all tree labels use normal font weight and black color */
+    .dhx_matrix_scell {
+        font-weight: normal !important;
+        color: #000000 !important;
+        text-transform: none !important;
+        text-align: left !important;
+    }
+
     /* Event styling per type */
 
     /* Daytask_0 events */
@@ -77,8 +97,7 @@ window.BOOT = function() {
         background-color: #F8D7DA !important;
         border-color: #DC3545 !important;
         */
-    }
-        
+    }   
     `;
     document.head.appendChild(style);
     //>>

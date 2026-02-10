@@ -243,11 +243,7 @@ page 50627 "Resource Capacity Settings Opt"
                     repeat
                         Holiday := CalendarMgmt.IsNonworkingDay(TempDate, CustomizedCalendarChange);
 
-                        ResCapacityEntry.SetRange(Date, TempDate);
-                        ResCapacityEntry.CalcSums(Capacity);
-                        TempCapacity := ResCapacityEntry.Capacity;
-
-                        // Calculate the desired capacity per duplicate (not total)
+                        // Calculate the target capacity per duplicate (from wizard settings)
                         if Holiday then
                             NewCapacity := 0
                         else begin
@@ -258,21 +254,31 @@ page 50627 "Resource Capacity Settings Opt"
                                 NewCapacity := SelectCapacity(CustomizedCalendarChange);
                         end;
 
-                        // Calculate capacity change: difference between current and desired per duplicate
-                        // TempCapacity could be sum of multiple duplicates, so we need to handle this correctly
+                        // Process each duplicate ID separately
                         if NewCapacity <> 0 then begin
                             if NoOfDuplicates > 1 then begin
-                                // Create NoOfDuplicates entries for each day
+                                // Create/update NoOfDuplicates entries for each day
                                 for LoopCounter := 1 to NoOfDuplicates do begin
+                                    // Check existing capacity for this specific duplicate ID
+                                    ResCapacityEntry.Reset();
+                                    ResCapacityEntry.SetRange("Resource No.", Rec."No.");
+                                    ResCapacityEntry.SetRange(Date, TempDate);
+                                    ResCapacityEntry.SetRange("Duplicate Id", LoopCounter);
+                                    ResCapacityEntry.CalcSums(Capacity);
+                                    TempCapacity := ResCapacityEntry.Capacity;
+
+                                    // Create adjustment entry
                                     ResCapacityEntry2.Reset();
                                     if ResCapacityEntry2.FindLast() then;
                                     LastEntry := ResCapacityEntry2."Entry No." + 1;
                                     ResCapacityEntry2.Init();
                                     ResCapacityEntry2."Entry No." := LastEntry;
 
-                                    // Calculate adjustment: desired capacity per duplicate minus average existing capacity
-                                    // Example: existing sum=24 (3×8), new=5, NoOfDuplicates=3: 5-(24/3)=5-8=-3 per entry
-                                    ResCapacityEntry2.Capacity := NewCapacity - (TempCapacity / NoOfDuplicates);
+                                    // Calculate adjustment: target capacity per duplicate minus existing capacity for this duplicate
+                                    // Example: Target=8, Duplicate ID=1 has 8 existing -> 8-8=0 (no change)
+                                    //          Target=8, Duplicate ID=2 has 0 existing -> 8-0=8 (add 8 hours)
+                                    //          Target=8, Duplicate ID=3 has 0 existing -> 8-0=8 (add 8 hours)
+                                    ResCapacityEntry2.Capacity := NewCapacity - TempCapacity;
 
                                     ResCapacityEntry2."Resource No." := Rec."No.";
                                     ResCapacityEntry2."Resource Group No." := Rec."Resource Group No.";
@@ -303,14 +309,23 @@ page 50627 "Resource Capacity Settings Opt"
                                     if ResCapacityEntry2.Insert(true) then;
                                 end;
                             end else begin
-                                // Create single entry for each day
+                                // Create single entry for each day (NoOfDuplicates = 1)
+                                // Check existing capacity for duplicate ID = 1
+                                ResCapacityEntry.Reset();
+                                ResCapacityEntry.SetRange("Resource No.", Rec."No.");
+                                ResCapacityEntry.SetRange(Date, TempDate);
+                                ResCapacityEntry.SetRange("Duplicate Id", 1);
+                                ResCapacityEntry.CalcSums(Capacity);
+                                TempCapacity := ResCapacityEntry.Capacity;
+
                                 ResCapacityEntry2.Reset();
                                 if ResCapacityEntry2.FindLast() then;
                                 LastEntry := ResCapacityEntry2."Entry No." + 1;
                                 ResCapacityEntry2.Init();
                                 ResCapacityEntry2."Entry No." := LastEntry;
-                                // Calculate adjustment: desired capacity minus existing sum
-                                // Example: existing=8, new=5: 5-8=-3 | existing=9, new=14: 14-9=5
+
+                                // Calculate adjustment: target capacity minus existing capacity for duplicate ID 1
+                                // Example: Target=8, existing=8 -> 8-8=0 | Target=5, existing=8 -> 5-8=-3
                                 ResCapacityEntry2.Capacity := NewCapacity - TempCapacity;
                                 ResCapacityEntry2."Resource No." := Rec."No.";
                                 ResCapacityEntry2."Resource Group No." := Rec."Resource Group No.";
