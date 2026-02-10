@@ -15,7 +15,7 @@ tableextension 50615 "Resource Ext" extends Resource
             Caption = 'Skills';
 
             FieldClass = FlowField;
-            CalcFormula = Count("Resource Skill" where("No." = field("No."), type = const("Resource Skill Type"::Resource)));
+            CalcFormula = Count("Resource Skill" where("No." = field("No."), type = const(Resource)));
         }
     }
     keys
