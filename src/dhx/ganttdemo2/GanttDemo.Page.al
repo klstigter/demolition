@@ -81,6 +81,19 @@ page 50620 "Gantt Demo DHX 2"
                         DayTask.SetRange("Vendor No.", tp[2]);
                     Page.Run(Page::"Day Tasks", DayTask);
                 end;
+
+                trigger OnLinkCreated(linkData: Text)
+                begin
+                    // Fired from dhtmlx when user draws a new dependency arrow
+                    if not LinkHandler.UpsertLinkFromJson(linkData) then
+                        Message('Failed to save link. Please check the link data.');
+                end;
+
+                trigger OnLinkDeleted(linkData: Text)
+                begin
+                    // Fired from dhtmlx when user removes a dependency arrow
+                    LinkHandler.DeleteLinkFromJson(linkData);
+                end;
             }
         }
     }
@@ -382,6 +395,7 @@ page 50620 "Gantt Demo DHX 2"
         general: Codeunit "General Planning Utilities";
         Setup: Record "Gantt Chart Setup";
         GanttChartDataHandler: Codeunit "GanttChartDataHandler";
+        LinkHandler: Codeunit "Gantt Chart Link Handler";
         ShowPreviousNext: Boolean;
         ResourcePanelFlag: Boolean;
 
@@ -415,6 +429,9 @@ page 50620 "Gantt Demo DHX 2"
         // Load data in optimal sequence
         if setup."Load Job Tasks" then
             LoadTaskData();
+
+        // Load dependency links after tasks
+        LoadLinkData();
 
         if setup."Load Resources" and ResourcePanelFlag then
             LoadResourceData();
@@ -454,6 +471,15 @@ page 50620 "Gantt Demo DHX 2"
         JsonTxtDayTasks := GanttChartDataHandler.GetDayTasksAsJson(AnchorDate, setup."Job No. Filter");
         if JsonTxtDayTasks <> '' then
             CurrPage.DHXGanttControl2.LoadDayTasksData(JsonTxtDayTasks);
+    end;
+
+    local procedure LoadLinkData()
+    var
+        JsonTxtLinks: Text;
+    begin
+        JsonTxtLinks := LinkHandler.GetLinksAsJson(Setup."Job No. Filter");
+        // Always send to JS — even '[]' clears stale arrows after refresh
+        CurrPage.DHXGanttControl2.LoadLinksData(JsonTxtLinks);
     end;
 
     procedure OnJobTaskUpdated(TaskJson: Text)

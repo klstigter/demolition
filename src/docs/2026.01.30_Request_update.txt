@@ -34,8 +34,7 @@ Capacity (Pool)
 ----------------
 (OK) 20. ukuran huruf di event disamakan dengan huruf tree/folder
 (OK) 21. Warna Event daytask_0 dan daytask_1 di switch
-
-22. daytask -> No. -> Lookup -> list resource di tambah yang ada di capacity
+(OK) 22. daytask -> No. -> Lookup -> list resource di tambah yang ada di capacity
             masukan parameter skill dalam list lookup
             caption : resource with date
             add factbox: daytask

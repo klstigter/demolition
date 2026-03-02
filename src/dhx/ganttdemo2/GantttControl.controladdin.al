@@ -22,6 +22,8 @@ controladdin "DHX Gantt Control 2"
     event onTaskDblClick(eventId: Text; eventData: Text);
     event OnJobTaskUpdated(eventData: Text);
     event OpenResourceLoadDay(resourceId: Text; workDate: Text);
+    event OnLinkCreated(linkData: Text);
+    event OnLinkDeleted(linkData: Text);
 
     procedure LoadProject(projectstartdate: date; projectenddate: date);
     procedure Undo();
@@ -42,4 +44,7 @@ controladdin "DHX Gantt Control 2"
     procedure RenderGantt();
     procedure GetGanttData();
     procedure SetResourcePanelVisibility(resource_toggle: Boolean);
+    procedure UpsertLink(linkJsonTxt: Text);
+    procedure DeleteLink(linkId: Text);
+    procedure LoadLinksData(linksJsonTxt: Text);
 }

@@ -383,6 +383,43 @@ window.BOOT = function() {
       }
     });
 
+    // -------- LINK EVENTS (BC callback) --------
+    gantt.attachEvent("onAfterLinkAdd", function (id, link) {
+      try {
+        var payload = {
+          id:     String(id),
+          source: String(link.source || ""),
+          target: String(link.target || ""),
+          type:   String(link.type   || "0"),
+          lag:    Number(link.lag    || 0)
+        };
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(
+          "OnLinkCreated",
+          [ JSON.stringify(payload) ]
+        );
+      } catch (e) {
+        console.error("OnLinkCreated callback failed:", e);
+      }
+    });
+
+    gantt.attachEvent("onAfterLinkDelete", function (id, link) {
+      try {
+        var payload = {
+          id:     String(id),
+          source: String(link.source || ""),
+          target: String(link.target || ""),
+          type:   String(link.type   || "0"),
+          lag:    Number(link.lag    || 0)
+        };
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(
+          "OnLinkDeleted",
+          [ JSON.stringify(payload) ]
+        );
+      } catch (e) {
+        console.error("OnLinkDeleted callback failed:", e);
+      }
+    });
+
     // Datastores
     resourcesStore = gantt.createDatastore({
       name: "resources",
@@ -949,6 +986,41 @@ function DeleteLink(linkId) {
     gantt.deleteLink(id);
   } catch (e) {
     console.error("DeleteLink failed:", e, linkId);
+  }
+}
+
+// -------------------------------------------------------
+// Load all links at once (BC -> JS)
+// AL calls: LoadLinksData(LinksJsonTxt)
+// Accepts: JSON array  [{ id, source, target, type, lag }, ...]
+// -------------------------------------------------------
+function LoadLinksData(linksJsonTxt) {
+  try {
+    if (!gantt_here || typeof gantt === "undefined" || !gantt.$root) {
+      console.warn("LoadLinksData called before BOOT/init");
+      return;
+    }
+
+    var links = _tryParseJson(linksJsonTxt);
+    if (!links || !Array.isArray(links) || links.length === 0) return;
+
+    gantt.silent(function () {
+      links.forEach(function (link) {
+        try {
+          // Remove existing link with same id to avoid duplicates, then add fresh
+          if (gantt.getLink && gantt.getLink(link.id)) {
+            gantt.deleteLink(link.id);
+          }
+          gantt.addLink(link);
+        } catch (e) {
+          console.warn("LoadLinksData: failed to add link", link, e);
+        }
+      });
+    });
+
+    gantt.render();
+  } catch (e) {
+    console.error("LoadLinksData failed:", e);
   }
 }
 
