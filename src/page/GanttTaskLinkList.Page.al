@@ -13,7 +13,7 @@ page 50652 "BCG Gantt Task Link List"
         {
             repeater(Group)
             {
-                field("Project No."; Rec."Project No.")
+                field("Job No."; Rec."Job No.")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the project number.';
@@ -23,10 +23,20 @@ page 50652 "BCG Gantt Task Link List"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the source task number.';
                 }
+                field("Source Task Description"; Rec."Source Task Description")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Displays the description of the source task.';
+                }
                 field("Target Task No."; Rec."Target Task No.")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the target task number.';
+                }
+                field("Target Task Description"; Rec."Target Task Description")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Displays the description of the target task.';
                 }
                 field("Link Type"; Rec."Link Type")
                 {
@@ -37,22 +47,6 @@ page 50652 "BCG Gantt Task Link List"
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the lag in days for the link.';
-                }
-                field("Link Id"; Rec."Link Id")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the unique identifier for the link.';
-                    Visible = false;
-                }
-                field("Created At"; Rec."Created At")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies when the link was created.';
-                }
-                field("Modified At"; Rec."Modified At")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies when the link was last modified.';
                 }
             }
         }

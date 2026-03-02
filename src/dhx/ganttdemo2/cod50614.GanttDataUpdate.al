@@ -49,7 +49,7 @@ codeunit 50615 "Gantt Update Data"
                         begin
                             d := JsonValue.AsDate();
                             if d <> JobTask."PlannedStartDate" then
-                                JobTask.validate("PlannedStartDate", d);
+                                JobTask."PlannedStartDate" := d;
                         end;
                     'end_date':
                         begin
