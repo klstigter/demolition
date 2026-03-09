@@ -531,6 +531,11 @@ page 50618 "Job Task Card - Project"
                 }
 
             }
+            part(ResourceWeekView; "Resource Week View Part")
+            {
+                ApplicationArea = Jobs;
+                Caption = 'Resource Week Schedule';
+            }
             part(JobPlanningLines; "Job Planning Lines Sub")
             {
                 ApplicationArea = Jobs;
@@ -675,10 +680,16 @@ page 50618 "Job Task Card - Project"
                     Visible = false;
                 }
             }
+
         }
 
         area(factboxes)
         {
+            part(ResourceSummaryFactbox; "Resource Summary FactBox")
+            {
+                ApplicationArea = Jobs;
+                Caption = 'Resource Summary';
+            }
             part(JobInformation; "Job Information FactBox")
             {
                 ApplicationArea = Jobs;
@@ -701,10 +712,27 @@ page 50618 "Job Task Card - Project"
     {
         area(navigation)
         {
+            action(Resources)
+            {
+                ApplicationArea = All;
+                Caption = 'Resources';
+                Image = HumanResources;
+                ShortCutKey = 'Alt+D';
+                ToolTip = 'View or edit dimensions, such as area, project, or department, that you can assign to sales and purchase documents to distribute costs and analyze transaction history.';
+                trigger OnAction()
+                var
+                    ResourcePage: Page "Resource DayTask Summary";
+                begin
+                    ResourcePage.LoadData(Rec."Job No.", Rec."Job Task No.");
+                    ResourcePage.Run();
+
+                end;
+            }
             group("&Job Task")
             {
                 Caption = '&Project Task';
                 Image = Task;
+
                 action(Dimensions)
                 {
                     ApplicationArea = Dimensions;
@@ -917,6 +945,9 @@ page 50618 "Job Task Card - Project"
     begin
         if GuiAllowed() then
             SetControlVisibility();
+
+        CurrPage.ResourceSummaryFactbox.Page.SetContext(Rec."Job No.", Rec."Job Task No.");
+        CurrPage.ResourceWeekView.Page.SetContext(Rec."Job No.", Rec."Job Task No.");
     end;
 
     trigger OnAfterGetRecord()

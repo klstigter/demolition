@@ -14,9 +14,8 @@
             "launchBrowser": true,
             "enableLongRunningSqlStatements": true,
             "enableSqlInformationDebugger": true,
-            "schemaUpdateMode": "ForceSync",
-        }
-        ,
+            "schemaUpdateMode": "ForceSync"
+        },
         {
             "name": "NL_Copy20240710",
             "request": "launch",
@@ -30,19 +29,29 @@
             "launchBrowser": true,
             "enableLongRunningSqlStatements": true,
             "enableSqlInformationDebugger": true,
-            "schemaUpdateMode": "ForceSync",
-        }
-        ,
+            "schemaUpdateMode": "ForceSync"
+        },
         {
             "name": "AL: Attach request",
             "request": "attach",
             "type": "al",
             "environmentType": "Sandbox",
             "environmentName": "NL_Test",
-            "sessionId": 338065,
+            "sessionId": 9441,
             "breakOnNext": "WebClient",
             "breakOnError": "ExcludeTry",
             "tenant": "a60762e1-df10-4e4b-8f44-174c51589110"
-        }        
+        },
+        {
+            "name": "AL: Generated Attach request",
+            "request": "attach",
+            "type": "al",
+            "environmentType": "Sandbox",
+            "environmentName": "NL_Test",
+            "sessionId": 8371,
+            "breakOnNext": "WebClient",
+            "breakOnError": "ExcludeTry",
+            "tenant": "a60762e1-df10-4e4b-8f44-174c51589110"
+        }
     ]
 }
