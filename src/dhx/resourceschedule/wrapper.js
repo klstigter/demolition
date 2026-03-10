@@ -1,43 +1,4 @@
 // ============================================================
-// Dummy data – replace with AL-provided data in production
-// ============================================================
-var DUMMY_RESOURCES = [
-    { id: "R001", name: "Ahmad Hassan",   group: "Team A" },
-    { id: "R002", name: "Sarah Johnson",  group: "Team A" },
-    { id: "R003", name: "Mike Peters",    group: "Team B" },
-    { id: "R004", name: "Emma Wilson",    group: "Team B" },
-    { id: "R005", name: "Tom Baker",      group: "Team C" },
-    { id: "R006", name: "Lisa Chang",     group: "Team C" }
-];
-
-var DUMMY_EVENTS = [
-    // Team A – Ahmad Hassan (R001)
-    { id:101, resource_id:"R001", classname:"blue",   start_date:"2026-03-09 08:00", end_date:"2026-03-09 12:00", text:"Site Inspection" },
-    { id:102, resource_id:"R001", classname:"green",  start_date:"2026-03-10 13:00", end_date:"2026-03-10 17:00", text:"Demolition Planning" },
-    { id:103, resource_id:"R001", classname:"violet", start_date:"2026-03-11 09:00", end_date:"2026-03-11 11:00", text:"Safety Briefing" },
-    // Team A – Sarah Johnson (R002)
-    { id:201, resource_id:"R002", classname:"yellow", start_date:"2026-03-09 07:00", end_date:"2026-03-09 15:00", text:"Equipment Setup" },
-    { id:202, resource_id:"R002", classname:"green",  start_date:"2026-03-11 10:00", end_date:"2026-03-11 14:00", text:"Concrete Breaking" },
-    { id:203, resource_id:"R002", classname:"blue",   start_date:"2026-03-12 08:00", end_date:"2026-03-12 16:00", text:"Wall Removal" },
-    // Team B – Mike Peters (R003)
-    { id:301, resource_id:"R003", classname:"violet", start_date:"2026-03-09 06:00", end_date:"2026-03-09 10:00", text:"Crane Operation" },
-    { id:302, resource_id:"R003", classname:"blue",   start_date:"2026-03-10 08:00", end_date:"2026-03-10 12:00", text:"Debris Removal" },
-    { id:303, resource_id:"R003", classname:"yellow", start_date:"2026-03-13 09:00", end_date:"2026-03-13 17:00", text:"Excavation" },
-    // Team B – Emma Wilson (R004)
-    { id:401, resource_id:"R004", classname:"green",  start_date:"2026-03-10 07:00", end_date:"2026-03-10 11:00", text:"Structural Survey" },
-    { id:402, resource_id:"R004", classname:"violet", start_date:"2026-03-11 13:00", end_date:"2026-03-11 18:00", text:"Report Writing" },
-    { id:403, resource_id:"R004", classname:"blue",   start_date:"2026-03-14 08:00", end_date:"2026-03-14 12:00", text:"Client Meeting" },
-    // Team C – Tom Baker (R005)
-    { id:501, resource_id:"R005", classname:"yellow", start_date:"2026-03-09 09:00", end_date:"2026-03-09 13:00", text:"Machine Maintenance" },
-    { id:502, resource_id:"R005", classname:"green",  start_date:"2026-03-12 10:00", end_date:"2026-03-12 15:00", text:"Pipe Cutting" },
-    { id:503, resource_id:"R005", classname:"blue",   start_date:"2026-03-13 08:00", end_date:"2026-03-13 12:00", text:"Welding Work" },
-    // Team C – Lisa Chang (R006)
-    { id:601, resource_id:"R006", classname:"violet", start_date:"2026-03-10 06:00", end_date:"2026-03-10 10:00", text:"Waste Sorting" },
-    { id:602, resource_id:"R006", classname:"yellow", start_date:"2026-03-11 07:00", end_date:"2026-03-11 11:00", text:"Hazmat Disposal" },
-    { id:603, resource_id:"R006", classname:"green",  start_date:"2026-03-14 13:00", end_date:"2026-03-14 17:00", text:"Site Cleanup" }
-];
-
-// ============================================================
 // State
 // ============================================================
 var scheduler_here;          // DOM element reference (readiness flag)
@@ -94,17 +55,26 @@ window.BOOT = function() {
         scheduler.plugins({ tooltip: true });
 
         scheduler.config.cascade_event_display = true;
-        scheduler.config.details_on_create     = true;
-        scheduler.config.details_on_dblclick   = true;
         scheduler.config.start_on_monday       = true;
+        scheduler.config.dblclick_create       = false; // no new event on empty-area dblclick
+        scheduler.config.icons_select          = [];   // remove details/edit/delete icons on event click
+
+        // Double-click on an event → fire BC trigger
+        scheduler.attachEvent("onDblClick", function(id, e) {
+            var ev = scheduler.getEvent(id);
+            if (!ev) return false;
+            var resourceId = (ev.resource_id) ? String(ev.resource_id) : "";
+            Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnEventDoubleClick", [String(id), resourceId]);
+            return false; // prevent lightbox from opening
+        });
 
         scheduler.templates.event_class = function(start, end, ev) {
             return ev.classname || "";
         };
 
         // ---- Load dummy data ----
-        allResources = DUMMY_RESOURCES.slice();
-        allEvents    = DUMMY_EVENTS.slice();
+        allResources = [];
+        allEvents    = [];
         allResources.forEach(function(r) { checkedResources[r.id] = true; });
 
         // ---- Build resource selection panel ----

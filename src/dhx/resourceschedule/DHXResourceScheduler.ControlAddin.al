@@ -23,6 +23,7 @@ controladdin DHXResourceScheduleAddin
 
     event ControlReady();
     event OnAfterInit();
+    event OnEventDoubleClick(EventId: Text; ResourceId: Text);
 
     procedure Init(elements: Text; EarliestPlanningDate: Date);
     procedure LoadData(EventTxt: Text);

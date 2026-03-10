@@ -70,6 +70,17 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
                                 "No." = field("No.");
                 ToolTip = 'View the assignment of skills to the resource. You can use skill codes to allocate skilled resources to service items or items that need special skills for servicing.';
             }
+            action("Day Tasks (Visual)")
+            {
+                ApplicationArea = All;
+                trigger OnAction()
+                var
+                    ResScheduler: page "DHX Resource Scheduler";
+                begin
+                    ResScheduler.SetResourceFilter(Rec."No.");
+                    ResScheduler.RunModal();
+                end;
+            }
         }
 
         addafter(CreateTimeSheets_Promoted)
@@ -77,6 +88,7 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
             actionref("S&kills_Promoted_custom"; "S&kills_Custom")
             {
             }
+            actionref("Day Tasks (Visual) actionref"; "Day Tasks (Visual)") { }
         }
     }
 
