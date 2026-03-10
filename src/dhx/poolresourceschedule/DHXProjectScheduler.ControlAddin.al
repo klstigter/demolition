@@ -1,4 +1,4 @@
-controladdin DHXResourceScheduleAddin
+controladdin DHXPoolResourceScheduleAddin
 {
     RequestedHeight = 1500;
     MinimumHeight = 600;
@@ -13,13 +13,13 @@ controladdin DHXResourceScheduleAddin
     Scripts =
         'src\dhx\dhtmlxscheduler.js',
         'src\dhx\GlobalFunction.js',
-        'src\dhx\resourceschedule\wrapper.js';
+        'src\dhx\poolresourceschedule\wrapper.js';
 
-    StartupScript = 'src\dhx\resourceschedule\startupScript.js';
+    StartupScript = 'src\dhx\poolresourceschedule\startupScript.js';
 
     StyleSheets =
         'src\dhx\dhtmlxscheduler.css',
-        'src\dhx\resourceschedule\style.css';
+        'src\dhx\poolresourceschedule\style.css';
 
     event ControlReady();
     event OnEventDblClick(eventId: Text; eventData: Text);

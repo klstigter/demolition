@@ -39,6 +39,13 @@ Capacity (Pool)
             caption : resource with date
             add factbox: daytask
             
-
+2026.03.09
+=============
+1. Day Task link ke Task
+2. Samakan Constrain type dengan gantt dhtmlx
+3. hover info atas link
+4. DayTask per Resource
+   layout seperti Google calendar
+   menu action:	Resources -> Card -> #4
 
 
