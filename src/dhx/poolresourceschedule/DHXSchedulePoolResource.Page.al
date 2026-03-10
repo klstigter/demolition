@@ -9,7 +9,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
     {
         area(content)
         {
-            usercontrol(DhxScheduler; "DHXResourceScheduleAddin")
+            usercontrol(DhxScheduler; DHXPoolResourceScheduleAddin)
             {
                 ApplicationArea = All;
 

@@ -1,17 +1,106 @@
-html, body{
-			margin:0px;
-			padding:0px;
-			height:100%;
-			overflow:hidden;
-		}	
-.one_line{
-	white-space:nowrap;
-	overflow:hidden;
-	padding-top:5px; padding-left:5px;
-	text-align:left !important;
+/* ============================================================
+   Resource Scheduler – Two-panel layout
+   ============================================================ */
+
+/* Left resource panel */
+#resource-panel {
+    width: 220px;
+    min-width: 180px;
+    height: 100%;
+    overflow-y: auto;
+    background: #f8f9fa;
+    border-right: 1px solid #dee2e6;
+    box-sizing: border-box;
+    flex-shrink: 0;
 }
 
-.dhx_off_time {
-    background-color: #f0f0f0 !important;
-    opacity: 0.5;
+/* Right scheduler panel */
+#scheduler-panel {
+    flex: 1;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* ---- Resource panel elements ---- */
+.rp-header {
+    padding: 10px 12px 8px;
+    font-weight: 600;
+    font-size: 13px;
+    color: #333;
+    border-bottom: 1px solid #dee2e6;
+    background: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.rp-group {
+    display: flex;
+    align-items: center;
+    padding: 6px 10px 6px;
+    background: #e9ecef;
+    border-bottom: 1px solid #dee2e6;
+    margin-top: 4px;
+}
+
+.rp-group-cb {
+    margin-right: 7px;
+    cursor: pointer;
+}
+
+.rp-group-label {
+    font-weight: 600;
+    font-size: 11px;
+    color: #495057;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.rp-resource {
+    display: flex;
+    align-items: center;
+    padding: 5px 10px 5px 24px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.1s;
+}
+
+.rp-resource:hover {
+    background: #eef3ff;
+}
+
+.rp-resource-cb {
+    margin-right: 8px;
+    cursor: pointer;
+}
+
+.rp-resource-label {
+    font-size: 13px;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ============================================================
+   Event colour classes (match DHTMLX example palette)
+   ============================================================ */
+
+.blue {
+    --dhx-scheduler-event-background: linear-gradient(180deg, #4F9BFF 0%, #6BC5FF 100%);
+    --dhx-scheduler-event-color: #fff;
+}
+
+.violet {
+    --dhx-scheduler-event-background: linear-gradient(180deg, #D071EF 0%, #EE71D5 100%);
+    --dhx-scheduler-event-color: #fff;
+}
+
+.green {
+    --dhx-scheduler-event-background: linear-gradient(180deg, #12D979 0%, #1ECDEB 100%);
+    --dhx-scheduler-event-color: #fff;
+}
+
+.yellow {
+    --dhx-scheduler-event-background: linear-gradient(180deg, #FFB725 0%, #FAEA27 100%);
+    --dhx-scheduler-event-color: #333;
 }
