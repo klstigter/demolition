@@ -823,7 +823,7 @@ codeunit 50604 "DHX Data Handler"
         end;
     end;
 
-    local procedure GetStartEndTxt(DayTask: Record "Day Tasks";
+    procedure GetStartEndTxt(DayTask: Record "Day Tasks";
                                    var StartDateTxt: Text;
                                    var EndDateTxt: Text)
     var
