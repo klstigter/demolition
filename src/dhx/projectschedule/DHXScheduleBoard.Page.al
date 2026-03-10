@@ -42,7 +42,7 @@ page 50621 "DHX Scheduler (Project)"
                     newEventData: Text;
                     StartDate: Date;
                 begin
-                    DHXDataHandler.OpenJobPlanningLineCard(sectionId, SectionData, StartDate);
+                    //DHXDataHandler.OpenJobPlanningLineCard(sectionId, SectionData, StartDate);
                     AnchorDate := StartDate;
                     RefreshSchedule();
                 end;
@@ -115,7 +115,7 @@ page 50621 "DHX Scheduler (Project)"
                 trigger OnPlanningLineClick(Id: Text; EventJson: Text)
                 var
                     JobPlanningLinesPage: page "Job Planning Lines";
-                    JobPlanningLines: record "Job Planning Line";
+                    JobPlanningLines: record "Job Task";
                     EventIDList: List of [Text];
                     JObNo: Code[20];
                     TaskNo: Code[20];

@@ -29,12 +29,6 @@ table 50610 "Day Tasks"
             TableRelation = "Job Task"."Job Task No." where("Job No." = field("Job No."));
             Caption = 'Job Task No.';
         }
-        field(5; "Job Planning Line No."; Integer)
-        {
-            DataClassification = ToBeClassified;
-            TableRelation = "Job Planning Line"."Line No." where("Job No." = field("Job No."), "Job Task No." = field("Job Task No."));
-            Caption = 'Job Planning Line No.';
-        }
 
         field(10; "Task Date"; Date)
         {
@@ -333,11 +327,13 @@ table 50610 "Day Tasks"
             Caption = 'Working Hours';
             DecimalPlaces = 0 : 2;
             Editable = false;
+            BlankZero = true;
         }
         field(81; "Non Working Minutes"; Integer)
         {
             DataClassification = CustomerContent;
             Caption = 'Non Working Minutes';
+            BlankZero = true;
             trigger OnValidate()
             begin
                 CalculateWorkingHours();
@@ -365,6 +361,7 @@ table 50610 "Day Tasks"
             Caption = 'Capacity';
             DecimalPlaces = 0 : 5;
             FieldClass = FlowField;
+            BlankZero = true;
         }
         field(120; "Fulfilled"; Boolean)
         {
@@ -373,15 +370,16 @@ table 50610 "Day Tasks"
         field(130; "Remaining Hours"; Decimal)
         {
             Caption = 'Remaining Hours';
+            BlankZero = true;
         }
     }
     keys
     {
-        key(PK; "Day No.", DayLineNo, "Job No.", "Job Task No.", "Job Planning Line No.")
+        key(PK; "Day No.", DayLineNo, "Job No.", "Job Task No.")
         {
             Clustered = true;
         }
-        key(Rec1; "Job No.", "Job Task No.", "Job Planning Line No.", "Day No.", DayLineNo)
+        key(Rec1; "Job No.", "Job Task No.", "Day No.", DayLineNo)
         {
         }
         key(DateKey; "Task Date", "Start Time")

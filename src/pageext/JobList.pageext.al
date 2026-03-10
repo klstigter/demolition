@@ -19,7 +19,7 @@ pageextension 50602 "Job List Opti" extends "Job List"
 
                 trigger OnAction()
                 var
-                    JobPlanningLine: Record "Job Planning Line";
+                    JobPlanningLine: Record "Job Task";
                 begin
                     JobPlanningLine.SetRange("Job No.", Rec."No.");
                     Page.RunModal(0, JobPlanningLine);

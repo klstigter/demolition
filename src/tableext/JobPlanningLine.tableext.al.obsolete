@@ -6,22 +6,7 @@ tableextension 50600 "Job Planning Line ext" extends "Job Planning Line"
     fields
     {
         // Add changes to table fields here
-        field(50601; "Start Planning Date"; Date)
-        {
-            DataClassification = ToBeClassified;
-            trigger OnValidate()
-            begin
-                StartEndLimitations(false);
-            end;
-        }
-        field(50602; "End Planning Date"; Date)
-        {
-            DataClassification = ToBeClassified;
-            trigger OnValidate()
-            begin
-                StartEndLimitations(false);
-            end;
-        }
+        
         field(50603; "Start Time"; Time)
         {
             DataClassification = ToBeClassified;

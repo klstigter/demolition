@@ -94,13 +94,9 @@ page 50637 "Resource Summary FactBox"
     begin
         if (JobNo = '') or (JobTaskNo = '') then
             exit;
-
-        // Prepare parameters for background task
+        TaskParameters.Add('TaskType', 'FactboxSummary');
         TaskParameters.Add('JobNo', JobNo);
         TaskParameters.Add('JobTaskNo', JobTaskNo);
-        TaskParameters.Add('TaskType', 'FactboxSummary');
-
-        // Start background task - codeunit ID 50617
         CurrPage.EnqueueBackgroundTask(TaskId, 50617, TaskParameters, 60000, PageBackgroundTaskErrorLevel::Warning);
     end;
 
@@ -110,10 +106,8 @@ page 50637 "Resource Summary FactBox"
     begin
         if not Results.ContainsKey('ResourceSummary') then
             exit;
-
         ResourceSummaryJson := Results.Get('ResourceSummary');
         LoadDataFromJson(ResourceSummaryJson);
-
         //CurrPage.Update(false);
     end;
 
@@ -129,8 +123,6 @@ page 50637 "Resource Summary FactBox"
         JObject: JsonObject;
         i: Integer;
     begin
-
-
         if not JArray.ReadFrom(JsonText) then
             exit;
 

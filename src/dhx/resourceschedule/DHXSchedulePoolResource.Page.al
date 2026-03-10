@@ -138,7 +138,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
                 trigger OnPlanningLineClick(Id: Text; EventJson: Text)
                 var
                     JobPlanningLinesPage: page "Job Planning Lines";
-                    JobPlanningLines: record "Job Planning Line";
+                    JobPlanningLines: record "Job Task";
                     EventIDList: List of [Text];
                     JObNo: Code[20];
                     TaskNo: Code[20];

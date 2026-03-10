@@ -71,19 +71,19 @@ codeunit 50615 "Gantt Update Data"
                                 JobTask.validate("Scheduling Type", SchedulingType);
                             end;
                         end;
-                    'constraint_type':
-                        begin
-                            ganttConstraintType := ConvertConstraint_type(JsonValue.AsText());
-                            if ganttConstraintType.AsInteger() <> JobTask."Constraint Type".AsInteger() then begin
-                                JobTask.validate("Constraint Type", ganttConstraintType);
-                            end;
-                        end;
-                    'constraint_date':
-                        begin
-                            d := JsonValue.AsDate();
-                            if d <> JobTask."Constraint Date" then
-                                JobTask.validate("Constraint Date", d);
-                        end;
+                // 'constraint_type':
+                //     begin
+                //         ganttConstraintType := ConvertConstraint_type(JsonValue.AsText());
+                //         if ganttConstraintType.AsInteger() <> JobTask."Constraint Type".AsInteger() then begin
+                //             JobTask.validate("Constraint Type", ganttConstraintType);
+                //         end;
+                //     end;
+                // 'constraint_date':
+                //     begin
+                //         d := JsonValue.AsDate();
+                //         if d <> JobTask."Constraint Date" then
+                //             JobTask.validate("Constraint Date", d);
+                //     end;
                 end;
 
         end;

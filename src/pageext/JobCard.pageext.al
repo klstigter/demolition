@@ -19,20 +19,7 @@ pageextension 50601 "Job Card Opti" extends "Job Card"
         // Add changes to page actions here
         addbefore("Resource &Allocated per Job")
         {
-            action("Planning Lines Board")
-            {
-                ApplicationArea = All;
-                Image = ResourcePlanning;
-                Caption = 'Planning Lines Board';
 
-                trigger OnAction()
-                var
-                    JobMgt: Codeunit "Job Planning Line Handler";
-                begin
-                    //JobMgt.OpentaskSchedulerFromJob(Rec);
-                    message('Daypilot is deprecated., convert it to dhtmlx scheduler');
-                end;
-            }
         }
     }
 

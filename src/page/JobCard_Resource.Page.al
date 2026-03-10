@@ -1001,7 +1001,7 @@ page 50610 "Job Card - Resource"
 
                     trigger OnAction()
                     var
-                        JobPlanningLine: Record "Job Planning Line";
+                        JobPlanningLine: Record "Job Task";
                         JobPlanningLines: Page "Job Planning Lines";
                         IsHandled: Boolean;
                     begin

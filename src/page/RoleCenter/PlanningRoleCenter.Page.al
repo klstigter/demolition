@@ -38,13 +38,6 @@ page 50612 "Planning Role Center"
                     RunObject = Page "Job Task List - Project";
                     ToolTip = 'Define the various tasks involved in a project. You must create at least one project task per project because all posting refers to a project task. Having at least one project task in your project enables you to set up project planning lines and to post consumption to the project.';
                 }
-                action("Job Planning Lines")
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Project Planning Lines';
-                    RunObject = Page "Job Planning Line (Project)";
-                    ToolTip = 'Open the list of ongoing project planning lines for the project. You use this window to plan what items, resources, and general ledger expenses that you expect to use on a project (budget) or you can specify what you actually agreed with your customer that he should pay for the project (billable).';
-                }
                 action("Day Tasks")
                 {
                     ApplicationArea = Jobs;
@@ -72,13 +65,6 @@ page 50612 "Planning Role Center"
                     Caption = 'Project Tasks';
                     RunObject = page "Job Task List - Resource";
                     ToolTip = 'Define the various tasks involved in a project. You must create at least one project task per project because all posting refers to a project task. Having at least one project task in your project enables you to set up project planning lines and to post consumption to the project.';
-                }
-                action("Job Planning Lines Res")
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Project Planning Lines';
-                    RunObject = Page "Job Planning Line (Resource)";
-                    ToolTip = 'Open the list of ongoing project planning lines for the project. You use this window to plan what items, resources, and general ledger expenses that you expect to use on a project (budget) or you can specify what you actually agreed with your customer that he should pay for the project (billable).';
                 }
 
             }

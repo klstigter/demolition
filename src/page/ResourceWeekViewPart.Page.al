@@ -107,6 +107,11 @@ page 50638 "Resource Week View Part"
                     WeekStart: Date;
                     WeekEnd: Date;
                 begin
+                    if rec."Job No." = '' then begin
+                        Message('No resource assigned for this job task.');
+                        exit;
+                    end;
+
                     WeekStart := GetWeekStartFromYearWeek(Rec.Year, Rec."Week No.");
                     WeekEnd := CalcDate('<+6D>', WeekStart);
                     DayTask.Reset();
