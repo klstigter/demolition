@@ -853,7 +853,7 @@ codeunit 50604 "DHX Data Handler"
         end;
     end;
 
-    local procedure GetStartEndTxt(ResCap: Record "Res. Capacity Entry";
+    procedure GetStartEndTxt(ResCap: Record "Res. Capacity Entry";
                                    Capacity: Decimal;
                                    var StartDateTxt: Text;
                                    var EndDateTxt: Text)
@@ -2188,6 +2188,212 @@ codeunit 50604 "DHX Data Handler"
         //     TempRecord.Insert();
         // end;
 
+    end;
+
+    // =========================================================
+    // Resource Scheduler – JSON builder procedures
+    // Moved from DHX Resource Scheduler page for generic reuse.
+    // =========================================================
+
+    procedure ResScheduler_BuildResourcesJson(ResourceFilter: Text): Text
+    var
+        Res: Record Resource;
+        JArray: JsonArray;
+        JObj: JsonObject;
+        JRoot: JsonObject;
+        Result: Text;
+    begin
+        Res.Reset();
+        if ResourceFilter <> '' then
+            Res.SetFilter("No.", ResourceFilter)
+        else
+            Res.SetFilter("No.", '<>%1', '');
+        if Res.FindSet() then
+            repeat
+                Clear(JObj);
+                JObj.Add('id', Res."No.");
+                JObj.Add('name', Res.Name);
+                JObj.Add('group', Res."Resource Group No.");
+                JArray.Add(JObj);
+            until Res.Next() = 0;
+        Clear(JRoot);
+        JRoot.Add('data', JArray);
+        JRoot.WriteTo(Result);
+        exit(Result);
+    end;
+
+    procedure ResScheduler_BuildEventsJson(ResourceFilter: Text): Text
+    var
+        DayTask: Record "Day Tasks";
+        StarDateTimeStr: Text;
+        EndDateTimeStr: Text;
+        JArray: JsonArray;
+        JRoot: JsonObject;
+        Result: Text;
+        eventColor: Text;
+    begin
+        DayTask.Reset();
+        DayTask.SetRange(Type, DayTask.Type::Resource);
+        if ResourceFilter <> '' then
+            DayTask.SetFilter("No.", ResourceFilter)
+        else
+            DayTask.SetFilter("No.", '<>%1', '');
+        if DayTask.FindSet() then
+            repeat
+                GetStartEndTxt(DayTask, StarDateTimeStr, EndDateTimeStr);
+                if (StarDateTimeStr <> '') and (EndDateTimeStr <> '') then begin
+                    eventColor := ResScheduler_GetResourceColor(DayTask."No.", 'daytask');
+                    ResScheduler_AddEvent(
+                        JArray,
+                        Format(DayTask.RecordId),
+                        DayTask."No.",
+                        eventColor,
+                        StarDateTimeStr,
+                        EndDateTimeStr,
+                        DayTask.Description,
+                        'daytask');
+                end;
+            until DayTask.Next() = 0;
+        Clear(JRoot);
+        JRoot.Add('data', JArray);
+        JRoot.WriteTo(Result);
+        exit(Result);
+    end;
+
+    procedure ResScheduler_AddEvent(var JArray: JsonArray; RecordId: Text; ResourceId: Text; Classname: Text; StartDate: Text; EndDate: Text; EventText: Text; pType: Text)
+    var
+        JObj: JsonObject;
+    begin
+        Clear(JObj);
+        JObj.Add('id', RecordId);
+        JObj.Add('resource_id', ResourceId);
+        JObj.Add('classname', Classname);
+        JObj.Add('start_date', StartDate);
+        JObj.Add('end_date', EndDate);
+        JObj.Add('text', EventText);
+        JObj.Add('type', pType);
+        JArray.Add(JObj);
+    end;
+
+    procedure ResScheduler_BuildCapacityJson(ResourceFilter: Text): Text
+    var
+        ResCap: Record "Res. Capacity Entry";
+        TempResCap: Record "Res. Capacity Entry" temporary;
+        WeekMonday: Date;
+        WeekFriday: Date;
+        DayOfWeek: Integer;
+        JArray: JsonArray;
+        JObj: JsonObject;
+        JRoot: JsonObject;
+        Result: Text;
+        StartDateTimeStr: Text;
+        EndDateTimeStr: Text;
+        LastResNo: Code[20];
+        LastDate: Date;
+        AggStartTime: Time;
+        AggCapacity: Decimal;
+    begin
+        DayOfWeek := Date2DWY(Today(), 1);
+        WeekMonday := Today() - (DayOfWeek - 1);
+        WeekFriday := CalcDate('<+4D>', WeekMonday);
+
+        ResCap.Reset();
+        ResCap.SetCurrentKey("Resource No.", "Date");
+        ResCap.SetRange("Date", WeekMonday, WeekFriday);
+        if ResourceFilter <> '' then
+            ResCap.SetFilter("Resource No.", ResourceFilter)
+        else
+            ResCap.SetFilter("Resource No.", '<>%1', '');
+
+        LastResNo := '';
+        LastDate := 0D;
+        AggStartTime := 0T;
+        AggCapacity := 0;
+
+        if ResCap.FindSet() then
+            repeat
+                if (ResCap."Resource No." <> LastResNo) or (ResCap."Date" <> LastDate) then begin
+                    // Emit previous accumulated group
+                    if (LastResNo <> '') and (AggCapacity > 0) then begin
+                        TempResCap.Init();
+                        TempResCap."Resource No." := LastResNo;
+                        TempResCap."Date" := LastDate;
+                        TempResCap."Start Time" := AggStartTime;
+                        GetStartEndTxt(TempResCap, AggCapacity, StartDateTimeStr, EndDateTimeStr);
+                        if (StartDateTimeStr <> '') and (EndDateTimeStr <> '') then begin
+                            Clear(JObj);
+                            JObj.Add('resource_id', LastResNo);
+                            JObj.Add('start_date', StartDateTimeStr);
+                            JObj.Add('end_date', EndDateTimeStr);
+                            JObj.Add('classname', ResScheduler_GetResourceColor(LastResNo, 'capacity'));
+                            JObj.Add('type', 'capacity');
+                            JArray.Add(JObj);
+                        end;
+                    end;
+                    // Start new group
+                    LastResNo := ResCap."Resource No.";
+                    LastDate := ResCap."Date";
+                    AggStartTime := ResCap."Start Time";
+                    AggCapacity := ResCap.Capacity;
+                end else begin
+                    // Same resource+date: accumulate capacity hours, keep earliest start time
+                    AggCapacity += ResCap.Capacity;
+                    if (ResCap."Start Time" <> 0T) then
+                        if (AggStartTime = 0T) or (ResCap."Start Time" < AggStartTime) then
+                            AggStartTime := ResCap."Start Time";
+                end;
+            until ResCap.Next() = 0;
+
+        // Flush the last group
+        if (LastResNo <> '') and (AggCapacity > 0) then begin
+            TempResCap.Init();
+            TempResCap."Resource No." := LastResNo;
+            TempResCap."Date" := LastDate;
+            TempResCap."Start Time" := AggStartTime;
+            GetStartEndTxt(TempResCap, AggCapacity, StartDateTimeStr, EndDateTimeStr);
+            if (StartDateTimeStr <> '') and (EndDateTimeStr <> '') then begin
+                Clear(JObj);
+                JObj.Add('resource_id', LastResNo);
+                JObj.Add('start_date', StartDateTimeStr);
+                JObj.Add('end_date', EndDateTimeStr);
+                JObj.Add('classname', ResScheduler_GetResourceColor(LastResNo, 'capacity'));
+                JObj.Add('type', 'capacity');
+                JArray.Add(JObj);
+            end;
+        end;
+
+        Clear(JRoot);
+        JRoot.Add('data', JArray);
+        JRoot.WriteTo(Result);
+        exit(Result);
+    end;
+
+    procedure ResScheduler_GetResourceColor(pResourceNo: Code[20]; pColorType: Text): Text
+    var
+        ResColor: Record "Resource Color Opt.";
+        FallbackColors: array[4] of Text;
+        ColorHash: Integer;
+        i: Integer;
+        ColorValue: Text;
+    begin
+        FallbackColors[1] := 'blue';
+        FallbackColors[2] := 'green';
+        FallbackColors[3] := 'violet';
+        FallbackColors[4] := 'yellow';
+        if ResColor.Get(pResourceNo) then begin
+            case pColorType of
+                'daytask':
+                    ColorValue := ResColor."Day Task";
+                'capacity':
+                    ColorValue := ResColor."Capacity";
+            end;
+            if ColorValue <> '' then
+                exit(ColorValue);
+        end;
+        ColorHash := 0;
+        for i := 1 to StrLen(pResourceNo) do
+            ColorHash += pResourceNo[i];
+        exit(FallbackColors[(ColorHash mod 4) + 1]);
     end;
 
 }
