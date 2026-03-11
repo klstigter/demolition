@@ -7,7 +7,7 @@ tableextension 50615 "Resource Ext" extends Resource
 
             Editable = false;
             FieldClass = FlowField;
-            CalcFormula = sum("Day Tasks"."Requested Hours" where("No." = field("No."),
+            CalcFormula = sum("Day Tasks"."Assigned Hours" where("No." = field("No."),
               "Task Date" = field("Date Filter")));
         }
         field(50602; "Skills"; integer)

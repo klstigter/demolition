@@ -181,8 +181,6 @@ page 50620 "Gantt Demo DHX 2"
                     CurrPage.DHXGanttControl2.SetColumnVisibility(
                      Setup."Show Start Date",
                      Setup."Show Duration",
-                     Setup."Show Constraint Type",
-                     Setup."Show Constraint Date",
                      Setup."Show Task Type");
                     CurrPage.DHXGanttControl2.LoadProject(Setup."From Date", Setup."To Date");
                     CurrPage.Update(false); // reapply settings after close
@@ -421,8 +419,6 @@ page 50620 "Gantt Demo DHX 2"
         CurrPage.DHXGanttControl2.SetColumnVisibility(
             Setup."Show Start Date",
             Setup."Show Duration",
-            Setup."Show Constraint Type",
-            Setup."Show Constraint Date",
             Setup."Show Task Type"
         );
 

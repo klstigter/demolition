@@ -86,8 +86,6 @@ page 50650 "Gantt Chart Setup"
 
                     field("Show Start Date"; rec."Show Start Date") { }
                     field("Show Duration"; rec."Show Duration") { }
-                    field("Show Constraint Type"; rec."Show Constraint Type") { }
-                    field("Show Constraint Date"; rec."Show Constraint Date") { }
                     field("Show Task Type"; rec."Show Task Type") { }
                 }
 

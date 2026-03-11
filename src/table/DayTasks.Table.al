@@ -11,7 +11,6 @@ table 50610 "Day Tasks"
         {
             DataClassification = ToBeClassified;
             Caption = 'Task Date';
-            Editable = false;
 
         }
         field(2; "Day Line No."; Integer)
@@ -203,6 +202,7 @@ table 50610 "Day Tasks"
                     end;
                     Resource.MarkedOnly(true);  // Get marked resources
 
+
                     // // set limitation if skill is set in Day Task
                     // if "Skill" <> '' then begin
                     //     ResSklill.SetRange(Type, ResSklill.Type::Resource);
@@ -311,10 +311,10 @@ table 50610 "Day Tasks"
             Caption = 'Worked Hours';
             DecimalPlaces = 0 : 2;
         }
-        field(80; "Requested Hours"; Decimal)
+        field(80; "Assigned Hours"; Decimal)
         {
             DataClassification = CustomerContent;
-            Caption = 'Requested Hours';
+            Caption = 'Assigned Hours';
             DecimalPlaces = 0 : 2;
             Editable = false;
             BlankZero = true;
@@ -353,13 +353,18 @@ table 50610 "Day Tasks"
             FieldClass = FlowField;
             BlankZero = true;
         }
-        field(120; "Fulfilled"; Boolean)
+        field(120; "Capacity Fully Utilized"; Boolean)
         {
-            Caption = 'Fulfilled';
+            Caption = 'Capacity Fully Utilized';
         }
-        field(130; "Remaining Hours"; Decimal)
+        Field(132; "Total Assigned Hours"; Decimal)
         {
-            Caption = 'Remaining Hours';
+            Caption = 'Total Assigned Hours';
+            CalcFormula = sum("Day Tasks"."Assigned Hours" where("No." = field("No."),
+              "Task Date" = field("Task Date")));
+            DecimalPlaces = 0 : 2;
+            FieldClass = FlowField;
+            Editable = false;
             BlankZero = true;
         }
     }
@@ -391,27 +396,19 @@ table 50610 "Day Tasks"
     var
         PlanningUtil: codeunit "General Planning Utilities";
         WorkingMinutes: Integer;
-        WorkHours: Decimal;
-        RemaningHours: Decimal;
+        RequestedHours: Decimal;
         Capacity: Decimal;
     begin
         // If either time is not set, clear both hours fields
         if ("Start Time" = 0T) or ("End Time" = 0T) then begin
-            "Requested Hours" := 0;
+            "Assigned Hours" := 0;
             "Non Working Minutes" := 0;
             exit;
         end;
 
-        // // Calculate working minutes
-        // WorkingMinutes := ("End Time" - "Start Time") div 60000;
-        // WorkingMinutes := WorkingMinutes - "Non Working Minutes";
+        "Capacity Fully Utilized" := PlanningUtil.DayTaskFulFillment(Rec, RequestedHours, Capacity);
+        "Assigned Hours" := RequestedHours;
 
-        // // Convert to hours (decimal)
-        // "Working Hours" := WorkingMinutes / 60;
-
-        Fulfilled := PlanningUtil.DayTaskFulFillment(Rec, WorkHours, RemaningHours, Capacity);
-        "Requested Hours" := WorkHours;
-        "Remaining Hours" := RemaningHours;
     end;
 
     procedure CheckFirstandLastDay("Job No.": Code[20]);

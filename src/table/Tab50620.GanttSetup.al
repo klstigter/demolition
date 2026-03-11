@@ -23,18 +23,6 @@ table 50620 "Gantt Chart Setup"
             InitValue = true;
         }
 
-        field(12; "Show Constraint Type"; Boolean)
-        {
-            Caption = 'Show Constraint Type';
-            InitValue = true;
-        }
-
-        field(13; "Show Constraint Date"; Boolean)
-        {
-            Caption = 'Show Constraint Date';
-            InitValue = true;
-        }
-
         field(14; "Show Task Type"; Boolean)
         {
             Caption = 'Show Task Type';

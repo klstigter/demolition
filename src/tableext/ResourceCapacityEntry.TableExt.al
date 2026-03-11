@@ -20,7 +20,7 @@ tableextension 50606 "ResCapacityEntry Opt" extends "Res. Capacity Entry"
         {
             Editable = false;
             fieldclass = FlowField;
-            calcformula = sum("day tasks"."Requested Hours" where("No." = field("Resource No."),
+            calcformula = sum("day tasks"."Assigned Hours" where("No." = field("Resource No."),
               "Task Date" = field("Date")));
         }
     }

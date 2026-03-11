@@ -308,7 +308,7 @@ codeunit 50613 "GanttChartDataHandler"
         EndTimeText := FormatTime(DayTask."End Time");
         JsonObject.Add('end_time', EndTimeText);
 
-        JsonObject.Add('hours', DayTask."Requested Hours");
+        JsonObject.Add('hours', DayTask."Assigned Hours");
 
         // Resource/Vendor information
         ResourceId := GetResourceId(DayTask);

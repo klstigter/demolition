@@ -34,8 +34,6 @@ controladdin "DHX Gantt Control 2"
     procedure SetColumnVisibility(
         ShowStartDate: Boolean;
         ShowDuration: Boolean;
-        ShowConstraintType: Boolean;
-        ShowConstraintDate: Boolean;
         ShowTaskType: Boolean
     );
     procedure LoadResourcesData(resourcesJsonTxt: Text);

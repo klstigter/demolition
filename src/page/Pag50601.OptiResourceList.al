@@ -21,7 +21,7 @@ page 50601 "Opti Resource List"
             {
                 Caption = 'Filters';
 
-                field("Date Filter"; Rec."Date Filter")
+                field("Date Filter"; Rec.getfilter("Date Filter"))
                 {
                     ApplicationArea = Jobs;
                     Caption = 'Date Filter';
@@ -56,7 +56,13 @@ page 50601 "Opti Resource List"
                         ApplicationArea = Jobs;
                         ToolTip = 'Specifies the base unit used to measure the resource, such as hour, piece, or kilometer.';
                     }
-                    field("Day Tasks"; Rec."Day Tasks")
+                    field(capacity; Rec.Capacity)
+                    {
+                        ApplicationArea = Jobs;
+                        Caption = 'Capacity';
+
+                    }
+                    field("Day Tasks"; Rec."Day Task")
                     {
                         ApplicationArea = Jobs;
                         Caption = 'Day Tasks';
@@ -185,6 +191,7 @@ page 50601 "Opti Resource List"
                     RunPageLink = "No." = field("No.");
                     ShortCutKey = 'F7';
                     ToolTip = 'View statistical information, such as the value of posted entries, for the record.';
+
                 }
                 action("Co&mments")
                 {

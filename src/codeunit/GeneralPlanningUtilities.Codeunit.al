@@ -100,24 +100,25 @@ codeunit 50612 "General Planning Utilities"
         */
 
     procedure DayTaskFulFillment(pDayTask: Record "Day Tasks";
-                                 var WorkHours: Decimal;
-                                 var RemaningHours: Decimal;
+                                 var RequestedHours: Decimal;
                                  var Capacity: Decimal): Boolean
     var
         Resource: Record Resource;
         DayTask: Record "Day Tasks";
         ResourceNo: Code[20];
         WorkingMinutes: Decimal;
-        Fulfilled: boolean;
+        CapacityIsUsed: boolean;
     begin
         if pDayTask.Type <> pDayTask.Type::Resource then
             exit;
         ResourceNo := pDayTask."No.";
-
+        if pDayTask."No." = '' then
+            exit;
         WorkingMinutes := GetWorkingMinutes(pDayTask);
         // Find Day Task with complete start and end time and same resource and day no
         DayTask.SetRange("Task Date", pDayTask."task Date");
         DayTask.SetRange("No.", ResourceNo);
+        DayTask.SetFilter("Day Line No.", '<>%1', pDayTask."Day Line No.");
         DayTask.SetFilter("Start Time", '<>%1', 0T);
         DayTask.SetFilter("End Time", '<>%1', 0T);
         if DayTask.FindFirst() then
@@ -125,21 +126,13 @@ codeunit 50612 "General Planning Utilities"
                 WorkingMinutes += GetWorkingMinutes(DayTask);
             until DayTask.Next() = 0;
 
-        WorkHours += WorkingMinutes / 60;
+        RequestedHours += WorkingMinutes / 60;
         // Find Capacity Entry per Daytask Date and Resource No.
-        Capacity := 0;
-        Resource.SetRange("No.", ResourceNo);
-        Resource.SetRange("Date Filter", pDayTask."Task Date");
-        if Resource.FindFirst() then begin
-            Resource.CalcFields(Capacity);
-            Capacity := Resource.Capacity;
-        end;
+        pDayTask.CalcFields(Capacity);
+        Capacity := pDayTask.Capacity;
 
-        Fulfilled := WorkHours >= Capacity;
-        RemaningHours := 0;
-        if not Fulfilled then
-            RemaningHours := Capacity - WorkHours;
-        exit(Fulfilled);
+        CapacityIsUsed := RequestedHours >= Capacity;
+        exit(CapacityIsUsed);
     end;
 
     local procedure GetWorkingMinutes(DayTask: Record "Day Tasks"): Decimal

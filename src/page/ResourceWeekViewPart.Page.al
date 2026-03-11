@@ -26,6 +26,13 @@ page 50638 "Resource Week View Part"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the ISO week number.';
                 }
+                field("Skill Code"; Rec."Skill Code")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the skill code.';
+
+                }
+
                 field("Resource No."; Rec."Resource No.")
                 {
                     ApplicationArea = All;
@@ -37,6 +44,13 @@ page 50638 "Resource Week View Part"
                     Caption = 'Resource Name';
                     ToolTip = 'Specifies the resource name.';
                     Editable = false;
+                    Visible = false;
+                }
+                field("Total Week Hours"; Rec."Total Week Hours")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies total hours for the week.';
+                    Style = Strong;
                 }
                 field("Monday Hours"; Rec."Monday Hours")
                 {
@@ -80,12 +94,7 @@ page 50638 "Resource Week View Part"
                     ToolTip = 'Specifies hours on Sunday.';
                     StyleExpr = WeekendStyle;
                 }
-                field("Total Week Hours"; Rec."Total Week Hours")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies total hours for the week.';
-                    Style = Strong;
-                }
+
             }
         }
     }
@@ -115,11 +124,48 @@ page 50638 "Resource Week View Part"
                     WeekStart := GetWeekStartFromYearWeek(Rec.Year, Rec."Week No.");
                     WeekEnd := CalcDate('<+6D>', WeekStart);
                     DayTask.Reset();
-                    DayTask.SetRange("No.", Rec."Resource No.");
+                    if rec."Resource No." <> '' then
+                        DayTask.SetRange("No.", Rec."Resource No.");
+                    if rec."Skill Code" <> '' then
+                        DayTask.SetRange("Skill", Rec."Skill Code");
                     DayTask.SetRange("Job No.", Rec."Job No.");
                     DayTask.SetRange("Job Task No.", Rec."Job Task No.");
                     DayTask.SetRange("Task Date", WeekStart, WeekEnd);
                     Page.Run(Page::"Day Tasks", DayTask);
+                end;
+            }
+            action(OpenSkills)
+            {
+                ApplicationArea = All;
+                Caption = 'Show Skills';
+                Image = Skills;
+                ToolTip = 'Open the skills card for this resource.';
+
+                trigger OnAction()
+                var
+                    ResourceSkillsPage: Page "Resource Skills";
+                    ResourceSkill: record "Resource Skill";
+                    Type: enum "Resource Skill Type";
+                begin
+                    Rec.testfield("Skill Code");
+                    ResourceSkill.Setrange(Type, Type::Resource);
+                    ResourceSkill.SetRange("Skill Code", Rec."Skill Code");
+                    ResourceSkillsPage.SetTableView(ResourceSkill);
+                    ResourceSkillsPage.Run();
+
+                end;
+            }
+            action("Day Tasks (Visual)")
+            {
+                ApplicationArea = All;
+                Image = Capacities;
+                trigger OnAction()
+                var
+                    ResScheduler: page "DHX Resource Scheduler";
+                begin
+                    rec.testfield("Resource No.");
+                    ResScheduler.SetResourceFilter(Rec."Resource No.");
+                    ResScheduler.RunModal();
                 end;
             }
             action(OpenResourceCard)
@@ -132,9 +178,15 @@ page 50638 "Resource Week View Part"
                 trigger OnAction()
                 var
                     Resource: Record Resource;
+                    WeekStart: Date;
+                    WeekEnd: Date;
                 begin
-                    if Resource.Get(Rec."Resource No.") then
+                    if Resource.Get(Rec."Resource No.") then begin
+                        WeekStart := GetWeekStartFromYearWeek(Rec.Year, Rec."Week No.");
+                        WeekEnd := CalcDate('<+6D>', WeekStart);
+                        Resource.setrange("Date Filter", WeekStart, WeekEnd);
                         Page.Run(Page::"Resource Card", Resource);
+                    end;
                 end;
             }
             action(Refresh)
@@ -195,6 +247,6 @@ page 50638 "Resource Week View Part"
         Jan4: Date;
         Week1Monday: Date;
     begin
-        Exit(DMY2Date(1, WeekNo, YearValue));
+        Exit(DWY2Date(1, WeekNo, YearValue));
     end;
 }

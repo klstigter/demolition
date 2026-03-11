@@ -18,7 +18,7 @@ page 50630 "Day Tasks"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the day number in the sequence.';
                     StyleExpr = StyleStr;
-                    visible = false;
+
                 }
                 field(DayLineNo; Rec."Day Line No.")
                 {
@@ -59,12 +59,32 @@ page 50630 "Day Tasks"
                     ToolTip = 'Specifies the skill associated with the resource.';
                     StyleExpr = StyleStr;
                 }
-                field("Requested Hours"; Rec."Requested Hours")
+                field("Assigned Hours"; Rec."Assigned Hours")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the number of requested hours for this day task, calculated automatically based on start and end times.';
                     Editable = true;
                     StyleExpr = StyleStr;
+                }
+                field("Total Requested Hours"; TotAssignedHours)
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the total number of requested hours for this day task, calculated automatically based on all related day tasks.';
+                    Editable = false;
+                    StyleExpr = StyleStr;
+                    trigger OnDrillDown()
+                    var
+                        DayTask: Page "Day Tasks";
+                        DayTaskRec: Record "Day Tasks";
+                    begin
+
+                        if rec."No." = '' then
+                            exit;
+                        DayTaskRec.setrange("No.", Rec."No.");
+                        DayTaskRec.SetRange("Task Date", Rec."Task Date");
+                        DayTask.SetTableView(DayTaskRec);
+                        DayTask.RunModal();
+                    end;
                 }
                 field(Capacity; Rec.Capacity)
                 {
@@ -99,14 +119,7 @@ page 50630 "Day Tasks"
                     StyleExpr = StyleStr;
                 }
 
-                field("Remaining Hours"; Rec."Remaining Hours")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the remaining hours needed to fulfill the capacity for this day task.';
-                    Editable = false;
-                    StyleExpr = StyleStr;
-                }
-                field(Fulfilled; rec.Fulfilled)
+                field(Fulfilled; StyleStr)
                 {
                     ApplicationArea = All;
                     ToolTip = 'Indicates whether the day task has fulfilled the required capacity.';
@@ -227,15 +240,19 @@ page 50630 "Day Tasks"
         StyleOpt: option None,Standard,StandardAccent,Strong,StrongAccent,Attention,AttentionAccent,Favorable,Unfavorable,Ambiguous,Subordinate;
         StyleStr: text;
         GenUtilties: Codeunit "General Planning Utilities";
+        TotAssignedHours: Decimal;
+
 
     trigger OnAfterGetRecord()
     begin
         this.CalculateStyle();
+        GetTotalAssignedHours();
     end;
 
     trigger OnAfterGetCurrRecord()
     begin
         this.CalculateStyle();
+        GetTotalAssignedHours();
     end;
 
 
@@ -249,20 +266,31 @@ page 50630 "Day Tasks"
 
     local procedure CalculateStyle()
     begin
-        rec.CalcFields(Capacity);
+        rec.CalcFields(Capacity, "Total Assigned Hours");
         case true of
             rec."No." = '':
                 StyleOpt := StyleOpt::StrongAccent;
-            rec.Fulfilled:
-                StyleOpt := StyleOpt::Subordinate;
             rec.Capacity = 0:
                 StyleOpt := StyleOpt::Unfavorable;
-            (rec."Requested Hours" < rec.Capacity) and (rec."Requested Hours" > 0):
+            (this.TotAssignedHours < rec.Capacity) and (rec."Assigned Hours" > 0):
                 StyleOpt := StyleOpt::StandardAccent;
-            (rec."Requested Hours" > rec.Capacity):
+            (this.TotAssignedHours > rec.Capacity):
                 StyleOpt := StyleOpt::Attention;
+            rec."Capacity Fully Utilized":
+                StyleOpt := StyleOpt::Subordinate;
         end;
         StyleStr := Format(StyleOpt);
+    end;
+
+    procedure GetTotalAssignedHours(): Decimal
+    begin
+        if rec."No." = '' then
+            TotAssignedHours := 0
+        else begin
+            rec.CalcFields("Total Assigned Hours");
+            TotAssignedHours := Rec."Total Assigned Hours";
+        end;
+
     end;
 
 }

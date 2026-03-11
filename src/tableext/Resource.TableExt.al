@@ -8,6 +8,15 @@ tableextension 50603 "Resource Opt" extends Resource
             DataClassification = ToBeClassified;
             tablerelation = Resource;
         }
+        field(50610; "Day Task"; Decimal)
+        {
+            CalcFormula = sum("Day Tasks"."Assigned Hours" where("No." = field("No."),
+                                                                    "Task Date" = field("Date Filter")));
+            Caption = 'Capacity';
+            DecimalPlaces = 0 : 5;
+            FieldClass = FlowField;
+            Editable = false;
+        }
     }
 
     keys

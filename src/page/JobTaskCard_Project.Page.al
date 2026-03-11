@@ -675,6 +675,12 @@ page 50618 "Job Task Card - Project"
     {
         area(navigation)
         {
+            action(GanttChartDHX)
+            {
+                ApplicationArea = All;
+                Caption = 'Gantt Chart';
+                RunObject = page "Gantt Demo DHX 2";
+            }
             action(DayTasksCreation)
             {
                 ApplicationArea = All;
