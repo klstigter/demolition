@@ -1426,7 +1426,7 @@ codeunit 50604 "DHX Data Handler"
         JobNo: Code[20];
         TaskNo: Code[20];
         PlanningLineNo: Integer;
-        DayNo: Integer;
+        TaskDay: Date;
         DayLineNo: Integer;
         DateOfDayTask: Date;
     begin
@@ -1435,9 +1435,9 @@ codeunit 50604 "DHX Data Handler"
         JobNo := EventIDList.Get(1);
         TaskNo := EventIDList.Get(2);
         Evaluate(PlanningLineNo, EventIDList.Get(3));
-        Evaluate(DayNo, EventIDList.Get(4));
+        Evaluate(TaskDay, EventIDList.Get(4));
         Evaluate(DayLineNo, EventIDList.Get(5));
-        DayTask.SetRange("Task Date", DayNo);
+        DayTask.SetRange("Task Date", TaskDay);
         //DayTask.SetRange("DayLineNo", DayLineNo);
         DayTask.SetRange("Job No.", JobNo);
         DayTask.SetRange("Job Task No.", TaskNo);
