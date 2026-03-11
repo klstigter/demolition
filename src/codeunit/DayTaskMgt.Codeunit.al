@@ -85,10 +85,8 @@ codeunit 50610 "Day Tasks Mgt."
             DayTasks.SetRange("Job Task No.", DayTaskGenerator."Job Task No.");
             DayTasks.DeleteAll();
         end;
-
         // Create day planning lines for each day in the range
         NewTaskDate := StartDate;
-
 
         while NewTaskDate <= EndDate do begin
             // Check if this day is a working day in the template   
@@ -96,12 +94,11 @@ codeunit 50610 "Day Tasks Mgt."
 
                 Clear(DayTasks);
                 DayNo := GeneralUtil.DateToInteger(NewTaskDate);
-                DayTasks."Day No." := DayNo;
-                DayTasks.DayLineNo := 10000;
+                DayTasks."Task Date" := NewTaskDate;
+                DayTasks."Day Line No." := DayTasks.GetNextDayLineNo(NewTaskDate, DayTaskGenerator."Job No.", DayTaskGenerator."Job Task No.");
                 DayTasks."Job No." := DayTaskGenerator."Job No.";
                 DayTasks."Job Task No." := DayTaskGenerator."Job Task No.";
 
-                DayTasks."Task Date" := NewTaskDate;
 
                 // Calculate start and end times for this day
                 if DayTaskGenerator."Start Time" <> 0T then
@@ -121,13 +118,13 @@ codeunit 50610 "Day Tasks Mgt."
                 DayTasks."End Time" := DayEndTime;
                 DayTasks.VALIDATE("Non Working Minutes", NonWorkingHours);
 
-                // Calculate working hours
-                DayTasks.CalculateWorkingHours();
 
                 // Copy other fields from job planning line
                 DayTasks.Type := DayTasks.Type::Resource;
                 DayTasks."No." := DayTaskGenerator."Resource No.";
+                // Calculate working hours
                 DayTasks.CalculateWorkingHours();
+
                 //DayTasks.Description := DayTaskGenerator.Description;
                 //DayTasks."Unit of Measure Code" := JobTask."Unit of Measure Code";
                 DayTasks.Skill := DayTaskGenerator.SkillsRequired;
@@ -137,12 +134,11 @@ codeunit 50610 "Day Tasks Mgt."
                 //DayTasks.IsBoor := DayTaskGenerator.Isboor;
 
                 // Calculate quantity for this day (proportional distribution)
-                DayTasks.Quantity := CalculateDayQuantity(DayTaskGenerator, NewTaskDate, StartDate, EndDate, DayStartTime, DayEndTime);
                 if CheckMayChange(DayTasks) then
                     if DayTasks.Insert() then
                         Counter += 1;
                 for n := 2 to DayTaskGenerator."Quantity of Lines" do begin
-                    DayTasks."DayLineNo" := n * 10000;
+                    DayTasks."Day Line No." := n * 10000;
                     if CheckMayChange(DayTasks) then
                         if DayTasks.Insert() then
                             Counter += 1;
@@ -157,48 +153,12 @@ codeunit 50610 "Day Tasks Mgt."
     var
         daytask: Record "Day Tasks";
     begin
-        if daytask.Get(NewDayTask."Day No.", NewDayTask.DayLineNo, NewDayTask."Job No.", NewDayTask."Job Task No.") then
+        if daytask.Get(NewDayTask."Task Date", NewDayTask."Day Line No.", NewDayTask."Job No.", NewDayTask."Job Task No.") then
             Exit(not daytask."Manual Modified");
         exit(true);
 
     end;
 
-    local procedure CalculateDayQuantity(DayTaskGen: Record "Day Task Generator"; CurrentDate: Date; StartDate: Date; EndDate: Date; DayStartTime: Time; DayEndTime: Time): Decimal
-    var
-        TotalHours: Decimal;
-        DayHours: Decimal;
-        TotalSeconds: BigInteger;
-        DaySeconds: BigInteger;
-        StartDateTime: DateTime;
-        EndDateTime: DateTime;
-        DayStartDateTime: DateTime;
-        DayEndDateTime: DateTime;
-    begin
-        // If quantity is 0, return 0
-        if DayTaskGen."Quantity of Lines" = 0 then
-            exit(0);
-
-        // Calculate total time span in seconds
-        StartDateTime := CreateDateTime(StartDate, DayTaskGen."Start Time");
-        if DayTaskGen."Start Date" <> 0D then
-            EndDateTime := CreateDateTime(DayTaskGen."End Date", DayTaskGen."End Time")
-        else
-            EndDateTime := CreateDateTime(StartDate, DayTaskGen."End Time");
-
-        TotalSeconds := EndDateTime - StartDateTime;
-
-        // Calculate this day's time span in seconds
-        DayStartDateTime := CreateDateTime(CurrentDate, DayStartTime);
-        DayEndDateTime := CreateDateTime(CurrentDate, DayEndTime);
-        DaySeconds := DayEndDateTime - DayStartDateTime;
-
-        // If total time is zero, distribute equally
-        //if TotalSeconds <= 0 then
-        //    exit(JobTask.Quantity);
-
-        // Calculate proportional quantity for this day
-        //exit(Round(JobTask.Quantity * DaySeconds / TotalSeconds, 0.00001));
-    end;
 
     local procedure ClearDayPlanningLines()
     var

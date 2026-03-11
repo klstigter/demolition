@@ -106,8 +106,8 @@ codeunit 50604 "DHX Data Handler"
                 Clear(PlanningObject);
                 PlanningObject.Add('id', Daytask."Job No." + '|' +
                                          Daytask."Job Task No." + '|' +
-                                         Format(Daytask."Day No.") + '|' +
-                                         Format(Daytask."DayLineNo") + '|' +
+                                         Format(Daytask."Task Date") + '|' +
+                                         Format(Daytask."Day Line No.") + '|' +
                                          ResNo + '|' +
                                          ResName);
                 PlanningObject.Add('start_date', StartDateTxt);
@@ -356,8 +356,8 @@ codeunit 50604 "DHX Data Handler"
                             Clear(PlanningObject);
                             PlanningObject.Add('id', Daytask."Job No." + '|' +
                                                     Daytask."Job Task No." + '|' +
-                                                    Format(Daytask."Day No.") + '|' +
-                                                    Format(Daytask."DayLineNo"));
+                                                    Format(Daytask."Task Date") + '|' +
+                                                    Format(Daytask."Day Line No."));
                             PlanningObject.Add('start_date', StartDateTxt);
                             PlanningObject.Add('end_date', EndDateTxt);
                             if Daytask.Description <> '' then
@@ -602,8 +602,8 @@ codeunit 50604 "DHX Data Handler"
                             Clear(PlanningObject);
                             PlanningObject.Add('id', Daytask."Job No." + '|' +
                                                     Daytask."Job Task No." + '|' +
-                                                    Format(Daytask."Day No.") + '|' +
-                                                    Format(Daytask."DayLineNo"));
+                                                    Format(Daytask."Task Date") + '|' +
+                                                    Format(Daytask."Day Line No."));
                             PlanningObject.Add('start_date', StartDateTxt);
                             PlanningObject.Add('end_date', EndDateTxt);
                             if Daytask.Description <> '' then
@@ -1057,18 +1057,17 @@ codeunit 50604 "DHX Data Handler"
         LineNo := 10000;
         DayTask.SetRange("Job No.", JobNo);
         DayTask.SetRange("Job Task No.", TaskNo);
-        DayTask.SetRange("Day No.", DayNo);
+        DayTask.SetRange("Task Date", PlanningDate);
         if DayTask.FindLast() then
-            LineNo := DayTask.DayLineNo + 10000;
+            LineNo := DayTask."Day Line No." + 10000;
 
         DayTask.Init();
-        DayTask."Day No." := DayNo;
-        DayTask."DayLineNo" := LineNo;
+        DayTask."Task Date" := PlanningDate;
+        DayTask."Day Line No." := LineNo;
         DayTask."Job No." := JobNo;
         DayTask."Job Task No." := TaskNo;
 
         DayTask."No." := Res."No.";
-        DayTask."Task Date" := PlanningDate;
         DayTask."Start Time" := StartTime;
         DayTask."End Time" := EndTime;
         DayTask.Description := Res.Name;
@@ -1076,8 +1075,8 @@ codeunit 50604 "DHX Data Handler"
                                             old_eventid,
                                             DayTask."Job No.",
                                             DayTask."Job Task No.",
-                                            format(DayTask."Day No."),
-                                            format(DayTask."DayLineNo"));
+                                            format(DayTask."Task Date"),
+                                            format(DayTask."Day Line No."));
         rtv := DayTask.Insert();
         exit(rtv);
     end;
@@ -1232,7 +1231,7 @@ codeunit 50604 "DHX Data Handler"
         New_PlanningLineNo: Integer;
         New_DayNo: Integer;
         New_DayLineNo: Integer;
-        _Date: Date;
+        New_Date: Date;
         _Time: Time;
         _DateTime: DateTime;
         _DateTimeUserZone: DateTime;
@@ -1286,8 +1285,8 @@ codeunit 50604 "DHX Data Handler"
         //Covert _Date + _Time into Datetime var, after that extract Date part again to get the correct date in user's timezone
         Evaluate(_DateTime, JToken.AsValue().AsText());
         _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
-        _Date := DT2Date(_DateTimeUserZone);
-        Evaluate(New_DayNo, Format(_Date, 0, '<Year4><Month,2><Day,2>'));
+        New_Date := DT2Date(_DateTimeUserZone);
+        Evaluate(New_DayNo, Format(New_Date, 0, '<Year4><Month,2><Day,2>'));
 
         UpdateEventID := false;
         OldDayTask_forUpdate := OldDayTask;
@@ -1296,12 +1295,12 @@ codeunit 50604 "DHX Data Handler"
             if not DayTaskCheck.Get(New_DayNo, Old_DayLineNo, New_JobNo, New_TaskNo, New_PlanningLineNo) then
                 OldDayTask.Rename(New_DayNo, Old_DayLineNo, New_JobNo, New_TaskNo, New_PlanningLineNo)
             else begin
-                DayTaskCheck.SetCurrentKey("Job No.", "Job Task No.", "Day No.", "DayLineNo");
+                DayTaskCheck.SetCurrentKey("Job No.", "Job Task No.", "Task Date", "Day Line No.");
                 DayTaskCheck.SetRange("Job No.", New_JobNo);
                 DayTaskCheck.SetRange("Job Task No.", New_TaskNo);
-                DayTaskCheck.SetRange("Day No.", New_DayNo);
+                DayTaskCheck.SetRange("Task Date", New_Date);
                 if DayTaskCheck.FindLast() then
-                    OldDayTask.Rename(New_DayNo, DayTaskCheck."DayLineNo" + 10000, New_JobNo, New_TaskNo, New_PlanningLineNo)
+                    OldDayTask.Rename(New_DayNo, DayTaskCheck."Day Line No." + 10000, New_JobNo, New_TaskNo, New_PlanningLineNo)
                 else
                     OldDayTask.Rename(New_DayNo, 10000, New_JobNo, New_TaskNo, New_PlanningLineNo);
             end;
@@ -1338,12 +1337,12 @@ codeunit 50604 "DHX Data Handler"
         rtv := StrSubstNo(JsonLbl,
                          OldDayTask."Job No.",
                          OldDayTask."Job Task No.",
-                         Format(OldDayTask."Day No."),
-                         Format(OldDayTask."DayLineNo"),
+                         Format(OldDayTask."Task Date"),
+                         Format(OldDayTask."Day Line No."),
                          NewDayTask."Job No.",
                          NewDayTask."Job Task No.",
-                         Format(NewDayTask."Day No."),
-                         Format(NewDayTask."DayLineNo"));
+                         Format(NewDayTask."Task Date"),
+                         Format(NewDayTask."Day Line No."));
         exit(rtv);
     end;
 
@@ -1438,7 +1437,7 @@ codeunit 50604 "DHX Data Handler"
         Evaluate(PlanningLineNo, EventIDList.Get(3));
         Evaluate(DayNo, EventIDList.Get(4));
         Evaluate(DayLineNo, EventIDList.Get(5));
-        DayTask.SetRange("Day No.", DayNo);
+        DayTask.SetRange("Task Date", DayNo);
         //DayTask.SetRange("DayLineNo", DayLineNo);
         DayTask.SetRange("Job No.", JobNo);
         DayTask.SetRange("Job Task No.", TaskNo);

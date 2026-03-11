@@ -6,27 +6,26 @@ page 50630 "Day Tasks"
     SourceTable = "Day Tasks";
     Caption = 'Day Tasks';
     //Editable = false;
-
+    DelayedInsert = true;
     layout
     {
         area(Content)
         {
             repeater(Lines)
             {
-                field("Day No."; Rec."Day No.")
+                field("Task Date"; Rec."Task Date")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the day number in the sequence.';
-                    Style = Favorable;      // green
-                    StyleExpr = Rec.Fulfilled;
+                    StyleExpr = StyleStr;
                     visible = false;
                 }
-                field(DayLineNo; Rec.DayLineNo)
+                field(DayLineNo; Rec."Day Line No.")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the line number for this day task.';
-                    Style = Favorable;
-                    StyleExpr = Rec.Fulfilled;
+                    StyleExpr = StyleStr;
+                    visible = false;
                 }
                 field("Job No."; Rec."Job No.")
                 {
@@ -40,175 +39,142 @@ page 50630 "Day Tasks"
                     ToolTip = 'Specifies the job task number.';
                     Visible = false;
                 }
-                field("Task Date"; Rec."Task Date")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the planning date for this day.';
-                    Style = Favorable;
-                    StyleExpr = Rec.Fulfilled;
-                }
+
                 field(Type; Rec.Type)
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the type of planning line.';
-                    Style = Favorable;
-                    StyleExpr = Rec.Fulfilled;
+                    StyleExpr = StyleStr;
                     Visible = false;
                 }
                 field("No."; Rec."No.")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the number of the resource, item, or G/L account.';
-                    Style = Favorable;
-                    StyleExpr = Rec.Fulfilled;
+                    StyleExpr = StyleStr;
                 }
                 field(skill; Rec.skill)
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the skill associated with the resource.';
-                    Style = Favorable;
-                    StyleExpr = Rec.Fulfilled;
+                    StyleExpr = StyleStr;
+                }
+                field("Requested Hours"; Rec."Requested Hours")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the number of requested hours for this day task, calculated automatically based on start and end times.';
+                    Editable = true;
+                    StyleExpr = StyleStr;
                 }
                 field(Capacity; Rec.Capacity)
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the capacity available for this day task.';
                     Editable = false;
-                    Style = Favorable;
-                    StyleExpr = Rec.Fulfilled;
-                }
-                field(Quantity; Rec.Quantity)
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the quantity for this day.';
-                    Style = Favorable;
-                    StyleExpr = Rec.Fulfilled;
+                    StyleExpr = StyleStr;
                 }
                 field("Unit of Measure Code"; Rec."Unit of Measure Code")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the unit of measure code.';
-                    Style = Favorable;
-                    StyleExpr = Rec.Fulfilled;
+                    StyleExpr = StyleStr;
+                    Visible = false;
                 }
                 field("Start Time"; Rec."Start Time")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the start time for this day.';
-                    Style = Favorable;
-                    StyleExpr = Rec.Fulfilled;
+                    StyleExpr = StyleStr;
                 }
                 field("End Time"; Rec."End Time")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the end time for this day.';
-                    Style = Favorable;
-                    StyleExpr = Rec.Fulfilled;
+                    StyleExpr = StyleStr;
                 }
                 field("Non Working Hours"; Rec."Non Working Minutes")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the number of non-working hours in a 24-hour period for this day task.';
-                    Style = Favorable;
-                    StyleExpr = Rec.Fulfilled;
+                    StyleExpr = StyleStr;
                 }
-                field("Working Hours"; Rec."Working Hours")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the number of working hours for this day task, calculated automatically based on start and end times.';
-                    Editable = false;
-                    Style = Favorable;
-                    StyleExpr = Rec.Fulfilled;
-                }
+
                 field("Remaining Hours"; Rec."Remaining Hours")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the remaining hours needed to fulfill the capacity for this day task.';
                     Editable = false;
-                    Style = Favorable;
-                    StyleExpr = Rec.Fulfilled;
+                    StyleExpr = StyleStr;
                 }
-                field(Fulfilled; Rec.Fulfilled)
+                field(Fulfilled; rec.Fulfilled)
                 {
                     ApplicationArea = All;
                     ToolTip = 'Indicates whether the day task has fulfilled the required capacity.';
                     Editable = false;
-                    Style = Favorable;
-                    StyleExpr = Rec.Fulfilled;
                 }
                 field("Resource Group No."; Rec."Resource Group No.")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the resource group number.';
-                    Style = Favorable;
-                    StyleExpr = Rec.Fulfilled;
+                    StyleExpr = StyleStr;
                 }
                 field("Pool Resource No."; Rec."Pool Resource No.")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the pool resource number.';
-                    Style = Favorable;
-                    StyleExpr = Rec.Fulfilled;
+                    StyleExpr = StyleStr;
                 }
                 field("Pool Resource Name"; Rec."Pool Resource Name")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the pool resource name.';
                     Editable = false;
-                    Style = Favorable;
-                    StyleExpr = Rec.Fulfilled;
+                    StyleExpr = StyleStr;
                 }
 
                 field("Vendor No."; Rec."Vendor No.")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the vendor number.';
-                    Style = Favorable;
-                    StyleExpr = Rec.Fulfilled;
+                    StyleExpr = StyleStr;
                 }
                 field("Vendor Name"; Rec."Vendor Name")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the vendor name.';
-                    Style = Favorable;
-                    StyleExpr = Rec.Fulfilled;
+                    StyleExpr = StyleStr;
                 }
                 field(Description; Rec.Description)
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the description.';
-                    Style = Favorable;
-                    StyleExpr = Rec.Fulfilled;
+                    StyleExpr = StyleStr;
                 }
 
                 field("Work Type Code"; Rec."Work Type Code")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the work type code.';
-                    Style = Favorable;
-                    StyleExpr = Rec.Fulfilled;
+                    StyleExpr = StyleStr;
                 }
                 field(Depth; Rec.Depth)
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the depth.';
-                    Style = Favorable;
-                    StyleExpr = Rec.Fulfilled;
+                    StyleExpr = StyleStr;
                 }
                 field(IsBoor; Rec.IsBoor)
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies if this is a boor line.';
-                    Style = Favorable;
-                    StyleExpr = Rec.Fulfilled;
+                    StyleExpr = StyleStr;
                 }
                 field("Worked Hours"; Rec."Worked Hours")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the actual worked hours for this day task.';
                     Editable = true;
-                    Style = Favorable;
-                    StyleExpr = Rec.Fulfilled;
+                    StyleExpr = StyleStr;
                 }
 
 
@@ -219,8 +185,8 @@ page 50630 "Day Tasks"
             part(DayTaskInfo; "Day Task Information FactBox")
             {
                 ApplicationArea = All;
-                SubPageLink = "Day No." = field("Day No."),
-                              DayLineNo = field(DayLineNo);
+                SubPageLink = "Task Date" = field("Task Date"),
+                              "Day Line No." = field("Day Line No.");
             }
             part(ResourceSkills; "Resource Skills FactBox Part")
             {
@@ -257,35 +223,46 @@ page 50630 "Day Tasks"
             }
         }
     }
-
-    trigger OnNewRecord(BelowxRec: Boolean)
     var
-        DayTaskRec: Record "Day Tasks";
-        ResourceNo: Code[20];
-        DayNo: Integer;
-        DayLineNo: Integer;
+        StyleOpt: option None,Standard,StandardAccent,Strong,StrongAccent,Attention,AttentionAccent,Favorable,Unfavorable,Ambiguous,Subordinate;
+        StyleStr: text;
+        GenUtilties: Codeunit "General Planning Utilities";
+
+    trigger OnAfterGetRecord()
     begin
-        if Rec.GetFilter("Day No.") <> '' then
-            DayNo := Rec.GetRangeMax("Day No.");
+        this.CalculateStyle();
+    end;
 
-        // Get the DayLineNo from the SubPageLink filter (FilterGroup 4)
-        if DayNo = 0 then begin
-            Rec.FilterGroup(4);
-            if Rec.GetFilter("Day No.") <> '' then
-                DayNo := Rec.GetRangeMax("Day No.");
-            Rec.FilterGroup(0);
-        end;
+    trigger OnAfterGetCurrRecord()
+    begin
+        this.CalculateStyle();
+    end;
 
-        if DayNo <> 0 then begin
-            DayLineNo := 10000;
-            DayTaskRec.SetRange("Day No.", DayNo);
-            if DayTaskRec.FindLast() then begin
-                DayLineNo := DayTaskRec.DayLineNo + 10000;
-                Rec.SetRange(DayLineNo); //remove filter
-            end;
+
+    trigger OnInsertRecord(BelowxRec: Boolean): Boolean
+
+    var
+        DayNo: Integer;
+    begin
+        Rec."Day Line No." := rec.GetNextDayLineNo(rec."Task Date", rec."Job No.", rec."Job Task No.");
+    end;
+
+    local procedure CalculateStyle()
+    begin
+        rec.CalcFields(Capacity);
+        case true of
+            rec."No." = '':
+                StyleOpt := StyleOpt::StrongAccent;
+            rec.Fulfilled:
+                StyleOpt := StyleOpt::Subordinate;
+            rec.Capacity = 0:
+                StyleOpt := StyleOpt::Unfavorable;
+            (rec."Requested Hours" < rec.Capacity) and (rec."Requested Hours" > 0):
+                StyleOpt := StyleOpt::StandardAccent;
+            (rec."Requested Hours" > rec.Capacity):
+                StyleOpt := StyleOpt::Attention;
         end;
-        Rec."Day No." := DayNo;
-        Rec.DayLineNo := DayLineNo;
+        StyleStr := Format(StyleOpt);
     end;
 
 }

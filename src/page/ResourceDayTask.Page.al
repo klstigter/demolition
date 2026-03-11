@@ -29,11 +29,11 @@ page 50622 "Resource Day Tasks"
                 {
                     ApplicationArea = All;
                 }
-                field("Day No."; Rec."Day No.")
+                field("Task Date"; Rec."Task Date")
                 {
                     ApplicationArea = All;
                 }
-                field(DayLineNo; Rec.DayLineNo)
+                field(DayLineNo; Rec."Day Line No.")
                 {
                     ApplicationArea = All;
                 }
@@ -42,10 +42,6 @@ page 50622 "Resource Day Tasks"
                     ApplicationArea = All;
                 }
                 field("Job Task No."; Rec."Job Task No.")
-                {
-                    ApplicationArea = All;
-                }
-                field("Task Date"; Rec."Task Date")
                 {
                     ApplicationArea = All;
                 }
@@ -61,10 +57,7 @@ page 50622 "Resource Day Tasks"
                 {
                     ApplicationArea = All;
                 }
-                field(Quantity; Rec.Quantity)
-                {
-                    ApplicationArea = All;
-                }
+
             }
         }
     }
@@ -88,7 +81,7 @@ page 50622 "Resource Day Tasks"
     var
         DayTaskRec: Record "Day Tasks";
         ResourceNo: Code[20];
-        DayNo: Integer;
+        NewDate: Date;
         DayLineNo: Integer;
     begin
         Rec.Type := Rec.Type::Resource;
@@ -102,14 +95,14 @@ page 50622 "Resource Day Tasks"
         if ResourceNo <> '' then
             Rec."No." := ResourceNo;
 
-        DayNo := Date2DMY(Today(), 3) * 10000 + Date2DMY(Today(), 2) * 100 + Date2DMY(Today(), 1);
+        NewDate := Today();
         DayLineNo := 10000;
-        DayTaskRec.SetRange("Day No.", DayNo);
+        DayTaskRec.SetRange("Task Date", NewDate);
         if DayTaskRec.FindLast() then
-            DayLineNo := DayTaskRec.DayLineNo + 10000;
+            DayLineNo := DayTaskRec."Day Line No." + 10000;
 
-        Rec."Day No." := DayNo;
-        Rec.DayLineNo := DayLineNo;
+        Rec."Task Date" := NewDate;
+        Rec."Day Line No." := DayLineNo;
     end;
 
 }

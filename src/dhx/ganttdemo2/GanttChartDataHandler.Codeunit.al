@@ -267,7 +267,7 @@ codeunit 50613 "GanttChartDataHandler"
         if JobTaskNo <> '' then
             DayTask.SetRange("Job Task No.", JobTaskNo);
         if AnchorDate <> 0D then
-            DayTask.Setrange("Day No.", GENUTILS.DateToInteger(StartDate), GENUTILS.DateToInteger(EndDate));
+            DayTask.Setrange("Task Date", StartDate, EndDate);
 
         if DayTask.FindSet() then
             repeat
@@ -290,8 +290,8 @@ codeunit 50613 "GanttChartDataHandler"
         JsonObject.Add('id', Format(DayTask.SystemId));
         JsonObject.Add('task', Format(DayTask."Job No.") + '-' + Format(DayTask."Job Task No."));
         // Day Task identifiers
-        JsonObject.Add('dayNo', DayTask."Day No.");
-        JsonObject.Add('dayLineNo', DayTask.DayLineNo);
+        JsonObject.Add('dayNo', DayTask."Task Date");
+        JsonObject.Add('dayLineNo', DayTask."Day Line No.");
         JsonObject.Add('jobNo', DayTask."Job No.");
         JsonObject.Add('jobTaskNo', DayTask."Job Task No.");
 
@@ -308,7 +308,7 @@ codeunit 50613 "GanttChartDataHandler"
         EndTimeText := FormatTime(DayTask."End Time");
         JsonObject.Add('end_time', EndTimeText);
 
-        JsonObject.Add('hours', DayTask."Working Hours");
+        JsonObject.Add('hours', DayTask."Requested Hours");
 
         // Resource/Vendor information
         ResourceId := GetResourceId(DayTask);

@@ -651,6 +651,7 @@ page 50618 "Job Task Card - Project"
             {
                 ApplicationArea = Jobs;
                 Caption = 'Resource Summary';
+
             }
             part(JobInformation; "Job Information FactBox")
             {
@@ -688,6 +689,8 @@ page 50618 "Job Task Card - Project"
                 begin
                     page.fillbuffer(Rec."Job No.", Rec."Job Task No.");
                     Page.Run();
+                    CurrPage.Update();
+                    CurrPage.ResourceWeekView.Page.Update();
                 end;
             }
             action(DayTasks)

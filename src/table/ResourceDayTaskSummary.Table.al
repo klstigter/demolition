@@ -93,14 +93,14 @@ table 50611 "Resource DayTask Summary"
                     Rec."First Task Date" := DayTask."Task Date";
                 if DayTask."Task Date" > Rec."Last Task Date" then
                     Rec."Last Task Date" := DayTask."Task Date";
-                Rec."Total Hours" += DayTask."Working Hours";
+                Rec."Total Hours" += DayTask."Requested Hours";
                 Rec."Total Days" += 1;
                 Rec.Modify();
             end else begin
                 // Insert new summary record
                 Rec."First Task Date" := DayTask."Task Date";
                 Rec."Last Task Date" := DayTask."Task Date";
-                Rec."Total Hours" := DayTask."Working Hours";
+                Rec."Total Hours" := DayTask."Requested Hours";
                 Rec."Total Days" := 1;
                 Rec.Insert();
             end;

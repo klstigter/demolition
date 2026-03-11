@@ -146,7 +146,7 @@ page 50638 "Resource Week View Part"
 
                 trigger OnAction()
                 begin
-                    LoadDataInBackground();
+                    LoadData();
                 end;
             }
         }
@@ -179,82 +179,15 @@ page 50638 "Resource Week View Part"
         JobNo := NewJobNo;
         JobTaskNo := NewJobTaskNo;
         Rec.DeleteAll();
-        LoadDataInBackground();
-    end;
-
-    local procedure LoadDataInBackground()
-    var
-        TaskParameters: Dictionary of [Text, Text];
-    begin
-        if (JobNo = '') or (JobTaskNo = '') then
-            exit;
-        // Prepare parameters for background task
-        TaskParameters.Add('JobNo', JobNo);
-        TaskParameters.Add('JobTaskNo', JobTaskNo);
-        TaskParameters.Add('TaskType', 'WeekView');
-        // Start background task - reuse codeunit 50617
-        CurrPage.EnqueueBackgroundTask(TaskId, 50617, TaskParameters, 60000, PageBackgroundTaskErrorLevel::Warning);
-    end;
-
-    trigger OnPageBackgroundTaskCompleted(TaskId: Integer; Results: Dictionary of [Text, Text])
-    var
-        ResourceWeekJson: Text;
-    begin
-        if not Results.ContainsKey('ResourceWeeklyHours') then
-            exit;
-
-        ResourceWeekJson := Results.Get('ResourceWeeklyHours');
-        LoadDataFromJson(ResourceWeekJson);
-
+        LoadData();
         CurrPage.Update(false);
     end;
 
-    trigger OnPageBackgroundTaskError(TaskId: Integer; ErrorCode: Text; ErrorText: Text; ErrorCallStack: Text; var IsHandled: Boolean)
+    local procedure LoadData()
     begin
-        IsHandled := true;
-    end;
-
-    local procedure LoadDataFromJson(JsonText: Text)
-    var
-        JArray: JsonArray;
-        JToken: JsonToken;
-        JObject: JsonObject;
-        i: Integer;
-        n: Integer;
-    begin
-
-        if not JArray.ReadFrom(JsonText) then
+        if (JobNo = '') or (JobTaskNo = '') then
             exit;
-        n := JArray.Count() - 1;
-        for i := 0 to n do begin
-            JArray.Get(i, JToken);
-            JObject := JToken.AsObject();
-
-            Rec.Init();
-            Rec."Resource No." := GetJsonValue(JObject, 'ResourceNo');
-            Rec."Job No." := GetJsonValue(JObject, 'JobNo');
-            Rec."Job Task No." := GetJsonValue(JObject, 'JobTaskNo');
-            Evaluate(Rec.Year, GetJsonValue(JObject, 'Year'));
-            Evaluate(Rec."Week No.", GetJsonValue(JObject, 'WeekNo'));
-            Evaluate(Rec."Monday Hours", GetJsonValue(JObject, 'MondayHours'));
-            Evaluate(Rec."Tuesday Hours", GetJsonValue(JObject, 'TuesdayHours'));
-            Evaluate(Rec."Wednesday Hours", GetJsonValue(JObject, 'WednesdayHours'));
-            Evaluate(Rec."Thursday Hours", GetJsonValue(JObject, 'ThursdayHours'));
-            Evaluate(Rec."Friday Hours", GetJsonValue(JObject, 'FridayHours'));
-            Evaluate(Rec."Saturday Hours", GetJsonValue(JObject, 'SaturdayHours'));
-            Evaluate(Rec."Sunday Hours", GetJsonValue(JObject, 'SundayHours'));
-            Evaluate(Rec."Total Week Hours", GetJsonValue(JObject, 'TotalWeekHours'));
-            Rec.Insert();
-        end;
-    end;
-
-    local procedure GetJsonValue(JObject: JsonObject; KeyName: Text): Text
-    var
-        JToken: JsonToken;
-    begin
-        if JObject.Get(KeyName, JToken) then
-            exit(JToken.AsValue().AsText());
-        exit('');
+        Rec.FillBuffer(JobNo, JobTaskNo);
     end;
 
     local procedure GetWeekStartFromYearWeek(YearValue: Integer; WeekNo: Integer): Date
@@ -262,9 +195,6 @@ page 50638 "Resource Week View Part"
         Jan4: Date;
         Week1Monday: Date;
     begin
-        // ISO 8601: Week 1 is the week with Jan 4th
-        Jan4 := DMY2Date(4, 1, YearValue);
-        Week1Monday := CalcDate(StrSubstNo('<-%1D>', Date2DWY(Jan4, 1) - 1), Jan4);
-        exit(CalcDate(StrSubstNo('<+%1W>', WeekNo - 1), Week1Monday));
+        Exit(DMY2Date(1, WeekNo, YearValue));
     end;
 }

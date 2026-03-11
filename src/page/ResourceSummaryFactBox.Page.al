@@ -69,7 +69,7 @@ page 50637 "Resource Summary FactBox"
 
                 trigger OnAction()
                 begin
-                    LoadDataInBackground();
+                    LoadData();
                 end;
             }
         }
@@ -85,67 +85,15 @@ page 50637 "Resource Summary FactBox"
         JobNo := NewJobNo;
         JobTaskNo := NewJobTaskNo;
         Rec.DeleteAll();
-        LoadDataInBackground();
+        LoadData();
+        CurrPage.Update(false);
     end;
 
-    local procedure LoadDataInBackground()
+    local procedure LoadData()
     var
-        TaskParameters: Dictionary of [Text, Text];
     begin
-        if (JobNo = '') or (JobTaskNo = '') then
-            exit;
-        TaskParameters.Add('TaskType', 'FactboxSummary');
-        TaskParameters.Add('JobNo', JobNo);
-        TaskParameters.Add('JobTaskNo', JobTaskNo);
-        CurrPage.EnqueueBackgroundTask(TaskId, 50617, TaskParameters, 60000, PageBackgroundTaskErrorLevel::Warning);
+        rec.FillBuffer(JobNo, JobTaskNo);
     end;
 
-    trigger OnPageBackgroundTaskCompleted(TaskId: Integer; Results: Dictionary of [Text, Text])
-    var
-        ResourceSummaryJson: Text;
-    begin
-        if not Results.ContainsKey('ResourceSummary') then
-            exit;
-        ResourceSummaryJson := Results.Get('ResourceSummary');
-        LoadDataFromJson(ResourceSummaryJson);
-        //CurrPage.Update(false);
-    end;
 
-    trigger OnPageBackgroundTaskError(TaskId: Integer; ErrorCode: Text; ErrorText: Text; ErrorCallStack: Text; var IsHandled: Boolean)
-    begin
-        IsHandled := true;
-    end;
-
-    local procedure LoadDataFromJson(JsonText: Text)
-    var
-        JArray: JsonArray;
-        JToken: JsonToken;
-        JObject: JsonObject;
-        i: Integer;
-    begin
-        if not JArray.ReadFrom(JsonText) then
-            exit;
-
-        for i := 0 to JArray.Count() - 1 do begin
-            JArray.Get(i, JToken);
-            JObject := JToken.AsObject();
-
-            Rec.Init();
-            Rec."Job No." := GetJsonValue(JObject, 'JobNo');
-            Rec."Job Task No." := GetJsonValue(JObject, 'JobTaskNo');
-            Rec."Resource No." := GetJsonValue(JObject, 'ResourceNo');
-            Evaluate(Rec."Total Hours", GetJsonValue(JObject, 'TotalHours'));
-            Rec.CalcFields("Resource Name");
-            Rec.Insert();
-        end;
-    end;
-
-    local procedure GetJsonValue(JObject: JsonObject; KeyName: Text): Text
-    var
-        JToken: JsonToken;
-    begin
-        if JObject.Get(KeyName, JToken) then
-            exit(JToken.AsValue().AsText());
-        exit('');
-    end;
 }

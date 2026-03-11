@@ -13,10 +13,10 @@ page 50633 "Job Planning Line Day Tasks"
         {
             repeater(Lines)
             {
-                field("Day No."; Rec."Day No.")
+                field("Task Date"; Rec."Task Date")
                 {
                     ApplicationArea = Jobs;
-                    ToolTip = 'Specifies the day number in the sequence.';
+                    ToolTip = 'Specifies the task date.';
                     Visible = false;
                 }
                 field("Start Planning Date"; Rec."Task Date")
@@ -64,11 +64,6 @@ page 50633 "Job Planning Line Day Tasks"
                 {
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the skill level required.';
-                }
-                field(Quantity; Rec.Quantity)
-                {
-                    ApplicationArea = Jobs;
-                    ToolTip = 'Specifies the quantity for this day.';
                 }
                 field("Worked Hours"; Rec."Worked Hours")
                 {

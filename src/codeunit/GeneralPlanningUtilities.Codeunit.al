@@ -107,29 +107,25 @@ codeunit 50612 "General Planning Utilities"
         Resource: Record Resource;
         DayTask: Record "Day Tasks";
         ResourceNo: Code[20];
-        DayNo: Integer;
         WorkingMinutes: Decimal;
         Fulfilled: boolean;
     begin
         if pDayTask.Type <> pDayTask.Type::Resource then
             exit;
         ResourceNo := pDayTask."No.";
-        DayNo := pDayTask."Day No.";
 
+        WorkingMinutes := GetWorkingMinutes(pDayTask);
         // Find Day Task with complete start and end time and same resource and day no
-        DayTask.SetRange("Day No.", DayNo);
+        DayTask.SetRange("Task Date", pDayTask."task Date");
         DayTask.SetRange("No.", ResourceNo);
         DayTask.SetFilter("Start Time", '<>%1', 0T);
         DayTask.SetFilter("End Time", '<>%1', 0T);
         if DayTask.FindFirst() then
             repeat
-                // Calculate working minutes
-                WorkingMinutes := (DayTask."End Time" - DayTask."Start Time") div 60000;
-                WorkingMinutes := WorkingMinutes - DayTask."Non Working Minutes";
-                // Convert to hours (decimal)
-                WorkHours += WorkingMinutes / 60;
+                WorkingMinutes += GetWorkingMinutes(DayTask);
             until DayTask.Next() = 0;
 
+        WorkHours += WorkingMinutes / 60;
         // Find Capacity Entry per Daytask Date and Resource No.
         Capacity := 0;
         Resource.SetRange("No.", ResourceNo);
@@ -144,6 +140,15 @@ codeunit 50612 "General Planning Utilities"
         if not Fulfilled then
             RemaningHours := Capacity - WorkHours;
         exit(Fulfilled);
+    end;
+
+    local procedure GetWorkingMinutes(DayTask: Record "Day Tasks"): Decimal
+    var
+        WorkingMinutes: Decimal;
+    begin
+        WorkingMinutes := (DayTask."End Time" - DayTask."Start Time") div 60000;
+        WorkingMinutes := WorkingMinutes - DayTask."Non Working Minutes";
+        exit(WorkingMinutes);
     end;
 
 }

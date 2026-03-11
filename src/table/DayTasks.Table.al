@@ -7,39 +7,34 @@ table 50610 "Day Tasks"
 
     fields
     {
-        field(1; "Day No."; Integer)
+        field(1; "Task Date"; Date)
         {
             DataClassification = ToBeClassified;
-            Caption = 'Day No.';
+            Caption = 'Task Date';
+            Editable = false;
+
         }
-        field(2; DayLineNo; Integer)
+        field(2; "Day Line No."; Integer)
         {
             DataClassification = ToBeClassified;
             Caption = 'Day Line No.';
+            editable = false;
         }
         field(3; "Job No."; Code[20])
         {
             DataClassification = ToBeClassified;
             TableRelation = Job;
             Caption = 'Job No.';
+            Editable = false;
         }
         field(4; "Job Task No."; Code[20])
         {
             DataClassification = ToBeClassified;
             TableRelation = "Job Task"."Job Task No." where("Job No." = field("Job No."));
             Caption = 'Job Task No.';
+            Editable = false;
         }
 
-        field(10; "Task Date"; Date)
-        {
-            DataClassification = ToBeClassified;
-            Caption = 'Task Date';
-            trigger OnValidate()
-            begin
-                if CurrFieldNo = FieldNo("Task Date") then
-                    "Day No." := generalutils.DateToInteger("Task Date");
-            end;
-        }
         field(11; "Start Time"; Time)
         {
             DataClassification = ToBeClassified;
@@ -172,6 +167,7 @@ table 50610 "Day Tasks"
                         "Vendor No." := Resource."Vendor No.";
                     if Resource."Pool Resource No." <> '' then
                         "Pool Resource No." := Resource."Pool Resource No.";
+
                 end;
             end;
 
@@ -273,12 +269,6 @@ table 50610 "Day Tasks"
         }
 
 
-        field(30; Quantity; Decimal)
-        {
-            DataClassification = ToBeClassified;
-            Caption = 'Quantity';
-            DecimalPlaces = 0 : 5;
-        }
         field(31; "Unit of Measure Code"; Code[10])
         {
             DataClassification = ToBeClassified;
@@ -321,10 +311,10 @@ table 50610 "Day Tasks"
             Caption = 'Worked Hours';
             DecimalPlaces = 0 : 2;
         }
-        field(80; "Working Hours"; Decimal)
+        field(80; "Requested Hours"; Decimal)
         {
             DataClassification = CustomerContent;
-            Caption = 'Working Hours';
+            Caption = 'Requested Hours';
             DecimalPlaces = 0 : 2;
             Editable = false;
             BlankZero = true;
@@ -375,11 +365,11 @@ table 50610 "Day Tasks"
     }
     keys
     {
-        key(PK; "Day No.", DayLineNo, "Job No.", "Job Task No.")
+        key(PK; "Task Date", "Day Line No.", "Job No.", "Job Task No.")
         {
             Clustered = true;
         }
-        key(Rec1; "Job No.", "Job Task No.", "Day No.", DayLineNo)
+        key(Rec1; "Job No.", "Job Task No.", "Task Date", "Day Line No.")
         {
         }
         key(DateKey; "Task Date", "Start Time")
@@ -407,7 +397,7 @@ table 50610 "Day Tasks"
     begin
         // If either time is not set, clear both hours fields
         if ("Start Time" = 0T) or ("End Time" = 0T) then begin
-            "Working Hours" := 0;
+            "Requested Hours" := 0;
             "Non Working Minutes" := 0;
             exit;
         end;
@@ -420,13 +410,26 @@ table 50610 "Day Tasks"
         // "Working Hours" := WorkingMinutes / 60;
 
         Fulfilled := PlanningUtil.DayTaskFulFillment(Rec, WorkHours, RemaningHours, Capacity);
-        "Working Hours" := WorkHours;
+        "Requested Hours" := WorkHours;
         "Remaining Hours" := RemaningHours;
     end;
 
     procedure CheckFirstandLastDay("Job No.": Code[20]);
     begin
 
+    end;
+
+    procedure GetNextDayLineNo(TaskDay: date; "Job No.": Code[20]; "Job Task No.": Code[20]): Integer
+    var
+        DayTask: Record "Day Tasks";
+    begin
+        DayTask.setrange("Task Date", TaskDay);
+        DayTask.SetRange("Job No.", "Job No.");
+        DayTask.SetRange("Job Task No.", "Job Task No.");
+        if DayTask.FindLast() then
+            exit(DayTask."Day Line No." + 10000)
+        else
+            exit(10000);
     end;
 
 

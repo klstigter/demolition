@@ -20,10 +20,10 @@ pageextension 50613 "Res. Capacity Entries Opt" extends "Res. Capacity Entries"
                 ApplicationArea = Jobs;
                 Caption = 'End Time';
             }
-            field(Planned; Rec.Planned)
+            field("Requested Hours"; Rec."Requested Hours")
             {
                 ApplicationArea = Jobs;
-                Caption = 'Planned';
+                Caption = 'Requested Hours';
             }
         }
     }

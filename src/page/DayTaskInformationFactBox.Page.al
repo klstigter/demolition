@@ -11,13 +11,13 @@ page 50624 "Day Task Information FactBox"
             group(DayTaskDetails)
             {
                 Caption = 'Day Task Details';
-                field("Day No."; Rec."Day No.")
+                field("Task Date"; Rec."Task Date")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the day number in the sequence.';
                     Caption = 'Day No.';
                 }
-                field(DayLineNo; Rec.DayLineNo)
+                field(DayLineNo; Rec."Day Line No.")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the line number for this day task.';

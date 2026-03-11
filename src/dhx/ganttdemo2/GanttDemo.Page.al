@@ -73,7 +73,7 @@ page 50620 "Gantt Demo DHX 2"
                     tp[1] := CopyStr(ResourceId, 1, 4);
                     tp[2] := CopyStr(ResourceId, 5);
                     PlType := PlType::Resource;
-                    DayTask.SetRange("Day No.", general.DateToInteger(WorkDt));
+                    DayTask.SetRange("Task Date", WorkDt);
                     DayTask.setrange(Type, PlType);
                     if tp[1] = 'RES-' then
                         DayTask.SetRange("No.", tp[2]);

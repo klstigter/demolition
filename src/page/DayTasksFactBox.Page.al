@@ -12,15 +12,11 @@ page 50634 "Day Tasks FactBox"
         {
             repeater(Group)
             {
-                field("Day No."; Rec."Day No.")
-                {
-                    ApplicationArea = All;
-                }
-                field("DayLine No."; Rec.DayLineNo)
-                {
-                    ApplicationArea = All;
-                }
                 field("Task Date"; Rec."Task Date")
+                {
+                    ApplicationArea = All;
+                }
+                field("DayLine No."; Rec."Day Line No.")
                 {
                     ApplicationArea = All;
                 }
