@@ -316,9 +316,10 @@ function RefreshSchedulerEvents() {
         var startTimes = g.tasks.map(function(t) { return t.start.getTime(); });
         var earliestMs = Math.min.apply(null, startTimes);
 
-        // Find the capacity entry for this resource+date
+        // Find the capacity entry for this resource+date (only when showCapacity is on)
         var cap = null;
-        for (var i = 0; i < allCapacity.length; i++) {
+        if (!showCapacity) { /* skip capacity lookup */ }
+        else for (var i = 0; i < allCapacity.length; i++) {
             var c = allCapacity[i];
             if (String(c.resource_id) !== g.resource_id) continue;
             var cStart = ToDate(c.start_date);
