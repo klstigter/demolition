@@ -90,7 +90,7 @@ tableextension 50605 "Job Task ext" extends "Job Task"
         field(50680; "Job View Type"; Enum "Job View Type")
         {
             FieldClass = FlowField;
-            CalcFormula = lookup("Job Task"."Job View Type" where("Job Task No." = Field("Job Task No."), "Job No." = Field("Job No.")));
+            CalcFormula = lookup("Job"."Job View Type" where("No." = Field("Job No.")));
             Editable = false;
         }
 

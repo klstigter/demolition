@@ -27,5 +27,8 @@ controladdin DHXResourceScheduleAddin
 
     procedure Init(elements: Text; EarliestPlanningDate: Date);
     procedure LoadData(EventTxt: Text);
+    procedure LoadCapacity(CapacityTxt: Text);
+    procedure SetShowDayTask(pShow: Boolean);
+    procedure SetShowCapacity(pShow: Boolean);
 
 }

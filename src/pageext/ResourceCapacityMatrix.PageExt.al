@@ -21,6 +21,19 @@ pageextension 50606 "ResourceCapacityMatrix opt" extends "Resource Capacity Matr
                 RunPageLink = "No." = field("No.");
                 ToolTip = 'Change the capacity of the resource, such as a technician.';
             }
+            action("Day Tasks (Visual)")
+            {
+                ApplicationArea = Jobs;
+                Caption = 'Day Tasks (Visual)';
+
+                trigger OnAction()
+                var
+                    ResScheduler: page "DHX Resource Scheduler";
+                begin
+                    ResScheduler.SetResourceFilter(Rec."No.");
+                    ResScheduler.RunModal();
+                end;
+            }
         }
     }
 
