@@ -164,6 +164,13 @@ page 50612 "Planning Role Center"
                     ApplicationArea = All;
                     RunObject = codeunit "Create Demo Data";
                 }
+                action("Resource Color")
+                {
+                    Caption = 'Resource Color';
+                    Image = Setup;
+                    ApplicationArea = All;
+                    RunObject = page "Resource Color opt";
+                }
 
             }
         }

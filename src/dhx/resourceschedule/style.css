@@ -21,6 +21,51 @@
     overflow: hidden;
 }
 
+/* ---- Custom tooltip ---- */
+.dhx-tt {
+    min-width: 170px;
+    font-family: inherit;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #222;
+}
+.dhx-tt-res {
+    font-weight: 700;
+    font-size: 13px;
+    margin-bottom: 1px;
+    color: #1a1a2e;
+}
+.dhx-tt-date {
+    color: #888;
+    font-size: 11px;
+    margin-bottom: 6px;
+}
+.dhx-tt-section {
+    font-weight: 700;
+    font-size: 12px;
+    color: black;
+    margin-top: 8px;
+    margin-bottom: 0;
+    padding-bottom: 3px;
+    border-bottom: 1px solid #e0e0e0;
+}
+.dhx-tt-rows {
+    padding: 4px 0 2px 6px;
+}
+.dhx-tt-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 1px 0;
+}
+.dhx-tt-row span:first-child {
+    color: #888;
+}
+.dhx-tt-row span:last-child {
+    font-weight: 600;
+    color: #1a1a2e;
+}
+
 /* ---- Resource panel elements ---- */
 .rp-header {
     padding: 10px 12px 8px;
@@ -103,4 +148,133 @@
 .yellow {
     --dhx-scheduler-event-background: linear-gradient(180deg, #FFB725 0%, #FAEA27 100%);
     --dhx-scheduler-event-color: #333;
+}
+
+/* Modern extended palette – complementary pairs (lighter=DayTask, deeper=Capacity) */
+.sky {
+    --dhx-scheduler-event-background: linear-gradient(180deg, #38BDF8 0%, #7DD3FC 100%);
+    --dhx-scheduler-event-color: #fff;
+}
+.ocean {
+    --dhx-scheduler-event-background: linear-gradient(180deg, #0369A1 0%, #0EA5E9 100%);
+    --dhx-scheduler-event-color: #fff;
+}
+.coral {
+    --dhx-scheduler-event-background: linear-gradient(180deg, #FB7185 0%, #FCA5A5 100%);
+    --dhx-scheduler-event-color: #fff;
+}
+.crimson {
+    --dhx-scheduler-event-background: linear-gradient(180deg, #DC2626 0%, #EF4444 100%);
+    --dhx-scheduler-event-color: #fff;
+}
+.mint {
+    --dhx-scheduler-event-background: linear-gradient(180deg, #34D399 0%, #6EE7B7 100%);
+    --dhx-scheduler-event-color: #fff;
+}
+.teal {
+    --dhx-scheduler-event-background: linear-gradient(180deg, #0F766E 0%, #14B8A6 100%);
+    --dhx-scheduler-event-color: #fff;
+}
+.sand {
+    --dhx-scheduler-event-background: linear-gradient(180deg, #FBBF24 0%, #FDE68A 100%);
+    --dhx-scheduler-event-color: #333;
+}
+.amber {
+    --dhx-scheduler-event-background: linear-gradient(180deg, #D97706 0%, #F59E0B 100%);
+    --dhx-scheduler-event-color: #fff;
+}
+.rose {
+    --dhx-scheduler-event-background: linear-gradient(180deg, #F472B6 0%, #F9A8D4 100%);
+    --dhx-scheduler-event-color: #fff;
+}
+.plum {
+    --dhx-scheduler-event-background: linear-gradient(180deg, #7C3AED 0%, #A78BFA 100%);
+    --dhx-scheduler-event-color: #fff;
+}
+.lavender {
+    --dhx-scheduler-event-background: linear-gradient(180deg, #818CF8 0%, #C4B5FD 100%);
+    --dhx-scheduler-event-color: #fff;
+}
+.indigo {
+    --dhx-scheduler-event-background: linear-gradient(180deg, #4338CA 0%, #6366F1 100%);
+    --dhx-scheduler-event-color: #fff;
+}
+
+/* ============================================================
+   Capacity + Task progress overlay
+   Dark base colour   = remaining capacity (colour class, e.g. .blue)
+   Light fill overlay = task portion (scheduled work)
+   ============================================================ */
+
+/* Allow the overlay to be positioned absolutely inside the event body */
+.dhx_cal_event .dhx_body {
+    position: relative;
+    overflow: hidden;
+    padding: 0 !important;
+}
+
+.ev-progress-wrap {
+    position: absolute;
+    inset: 0;
+}
+
+/* Semi-transparent white fill covering the task portion from the top */
+.ev-task-fill {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.42);
+    pointer-events: none;
+    min-height: 2px;
+}
+
+/* Task overtime fill – portion of the task that exceeds the capacity window */
+.ev-overtime-fill {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    background: rgba(220, 80, 60, 0.55);
+    pointer-events: none;
+    min-height: 2px;
+}
+
+/* Task label anchored to the bottom of the block */
+.ev-label {
+    position: absolute;
+    bottom: 4px;
+    left: 5px;
+    right: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    z-index: 1;
+}
+
+/* ============================================================
+   Available capacity block (capacity exists, no day task)
+   Shown as a faint diagonal-hatch to signal free time.
+   ============================================================ */
+.dhx_cal_event.cap-available .dhx_body {
+    background: repeating-linear-gradient(
+        45deg,
+        rgba(160, 190, 215, 0.18),
+        rgba(160, 190, 215, 0.18) 4px,
+        rgba(220, 235, 245, 0.08) 4px,
+        rgba(220, 235, 245, 0.08) 12px
+    ) !important;
+    color: #7a9ab5 !important;
+    font-style: italic;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+}
+
+.dhx_cal_event.cap-available {
+    border-color: rgba(130, 170, 200, 0.4) !important;
+    box-shadow: none !important;
+    opacity: 0.75;
 }
