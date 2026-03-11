@@ -11,8 +11,8 @@ codeunit 50600 "Resource DayPilot Handler"
     procedure GetResourceAndEventsFromBCResource(var ResourceTxt: Text; var EventTxt: Text; StartDate: Text)
     var
         Res: Record Resource;
-        JobPlaningLine: record "Job Planning Line";
-        JobPlanningLineHandler: codeunit "Job Planning Line Handler";
+        JobTask: record "Job Task";
+        //JobPlanningLineHandler: codeunit "Job Planning Line Handler";
 
         JsonArray: JsonArray;
         JobObject: JsonObject;
@@ -46,24 +46,25 @@ codeunit 50600 "Resource DayPilot Handler"
             Evaluate(_Date, Parts.Get(1));
             //Evaluate(_Time, Parts.Get(2));
             //DT := CreateDateTime(_Date, _Time);
-            JobPlaningLine.Reset();
-            JobPlaningLine.SetRange(Type, JobPlaningLine.Type::Resource);
+            JobTask.Reset();
             DT := CalcDate('<-1W>', _Date);
-            JobPlaningLine.SetFilter("Start Planning Date", '>=%1', DT);
+            JobTask.SetFilter("PlannedStartDate", '>=%1', DT);
             DT := CalcDate('<2W>', _Date);
-            JobPlaningLine.SetFilter("End Planning Date", '<=%1', DT);
-            if JobPlaningLine.findset then
+            JobTask.SetFilter("PlannedEndDate", '<=%1', DT);
+            if JobTask.findset then
                 repeat
                     Clear(EventObj);
-                    EventObj.Add('id', JobPlaningLine."Job No." + '|' + JobPlaningLine."Job Task No." + '|' + format(JobPlaningLine."Line No."));
-                    EventObj.Add('text', JobPlaningLine.Description);
-                    EventObj.Add('start', JobPlanningLineHandler.GetTaskDateTime(JobPlaningLine."Start Planning Date", JobPlaningLine."Start Time", false));
-                    DT := JobPlaningLine."Start Planning Date";
-                    if JobPlaningLine."End Planning Date" <> 0D then
-                        DT := JobPlaningLine."End Planning Date";
-                    EventObj.Add('end', JobPlanningLineHandler.GetTaskDateTime(DT, JobPlaningLine."End Time", true));
-                    EventObj.Add('resource', JobPlaningLine."No.");
-                    EventObj.Add('bubbleHtml', JobPlanningLineHandler.CreateBubbleHtmlFromPlanningLine(JobPlaningLine));
+                    EventObj.Add('id', JobTask."Job No." + '|' + JobTask."Job Task No.");
+                    EventObj.Add('text', JobTask.Description);
+                    EventObj.Add('start', CreateDateTime(JobTask.PlannedStartDate, JobTask."Start Time"));
+                    DT := JobTask."PlannedStartDate";
+                    if JobTask."PlannedEndDate" <> 0D then
+                        DT := JobTask."PlannedEndDate";
+                    EventObj.Add('end', CreateDateTime(DT, JobTask."End Time"));
+                    //TODO Source No
+                    //EventObj.Add('resource', JobPlaningLine."No.");
+                    //TOD Bubble
+                    //EventObj.Add('bubbleHtml', JobPlanningLineHandler.CreateBubbleHtmlFromPlanningLine(JobTask));
 
                     EventObj.Add('deleteDisabled', true);
                     EventObj.Add('resizeDisabled', true);
@@ -71,7 +72,7 @@ codeunit 50600 "Resource DayPilot Handler"
 
                     EventArray.Add(EventObj);
 
-                until JobPlaningLine.Next() = 0;
+                until JobTask.Next() = 0;
             /**/
         end;
 
@@ -255,28 +256,28 @@ codeunit 50600 "Resource DayPilot Handler"
 
     local procedure GetProjectByResource(ResourceNo: Code[20]; var Job: record Job): Boolean
     var
-        JobPlanningLine: Record "Job Planning Line";
+        JobTask: Record "Job Task";
     begin
         Job.Reset();
-        JobPlanningLine.SetRange(Type, JobPlanningLine.Type::Resource);
-        JobPlanningLine.SetRange("No.", ResourceNo);
-        if JobPlanningLine.FindSet() then
+        //TODO: Resource No.
+        //JobTask.SetRange("No.", ResourceNo);
+        if JobTask.FindSet() then
             repeat
-                Job.Get(JobPlanningLine."Job No.");
+                Job.Get(JobTask."Job No.");
                 Job.Mark(true);
-            until JobPlanningLine.Next() = 0;
+            until JobTask.Next() = 0;
         Job.MarkedOnly := true;
         exit(Job.FindSet());
     end;
 
     local procedure GetTaskByResourceAndProject(ResourceNo: Code[20]; JobNo: Code[20]; var Task: record "Job Task"): Boolean
     var
-        JobPlanningLine: Record "Job Planning Line";
+        JobPlanningLine: Record "Job Task";
     begin
         Task.Reset();
-        JobPlanningLine.SetRange(Type, JobPlanningLine.Type::Resource);
         JobPlanningLine.SetRange("Job No.", JobNo);
-        JobPlanningLine.SetRange("No.", ResourceNo);
+        //TODO: Resource No.
+        //JobPlanningLine.SetRange("No.", ResourceNo);
         if JobPlanningLine.FindSet() then
             repeat
                 Task.Get(JobPlanningLine."Job No.", JobPlanningLine."Job Task No.");

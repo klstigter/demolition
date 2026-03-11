@@ -96,18 +96,21 @@ codeunit 50613 "GanttChartDataHandler"
         JsonObject.Add('bcJobTaskNo', JobTask."Job Task No.");
         SchedulingTypeText := GetSchedulingTypeText(JobTask."Scheduling Type");
         JsonObject.Add('schedulingType', SchedulingTypeText);
-        JsonObject.Add('constraint_type', GenUtils.MapConstraintTypeToDhtmlx(JobTask."Constraint Type"));  // e.g., 'fnlt' (Finish No Later Than)
-        if JobTask."Constraint Type" <> JobTask."Constraint Type"::None then begin
-            if JobTask."Constraint Date" <> 0D then begin
-                ConstraintDateText := FormatDate(JobTask."Constraint Date");
-                JsonObject.Add('constraint_date', ConstraintDateText);
-            end;
-            if JobTask."Constraint Is Hard" then
-                JsonObject.Add('constraint_is_hard', JobTask."Constraint Is Hard");
-        end;
 
-        if JobTask."Deadline Date" <> 0D then
-            JsonObject.Add('deadline', FormatDate(JobTask."Deadline Date"));
+        //TODO: Constrain Type
+        // JsonObject.Add('constraint_type', GenUtils.MapConstraintTypeToDhtmlx(JobTask."Constraint Type"));  // e.g., 'fnlt' (Finish No Later Than)
+        // if JobTask."Constraint Type" <> JobTask."Constraint Type"::None then begin
+        //     if JobTask."Constraint Date" <> 0D then begin
+        //         ConstraintDateText := FormatDate(JobTask."Constraint Date");
+        //         JsonObject.Add('constraint_date', ConstraintDateText);
+        //     end;
+        //     if JobTask."Constraint Is Hard" then
+        //         JsonObject.Add('constraint_is_hard', JobTask."Constraint Is Hard");
+        // end;
+
+        // if JobTask."Deadline Date" <> 0D then
+        //     JsonObject.Add('deadline', FormatDate(JobTask."Deadline Date"));
+
         JsonObject.Add('progress', JobTask."Progress");
         JsonObject.Add('indentation', JobTask.Indentation);
         JsonObject.Add('bold', JobTask."Job Task Type" <> jobtask."Job Task Type"::Posting);
@@ -291,7 +294,6 @@ codeunit 50613 "GanttChartDataHandler"
         JsonObject.Add('dayLineNo', DayTask.DayLineNo);
         JsonObject.Add('jobNo', DayTask."Job No.");
         JsonObject.Add('jobTaskNo', DayTask."Job Task No.");
-        JsonObject.Add('jobPlanningLineNo', DayTask."Job Planning Line No.");
 
         // Date and time information
         if DayTask."Task Date" <> 0D then

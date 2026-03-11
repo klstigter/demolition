@@ -45,10 +45,6 @@ page 50622 "Resource Day Tasks"
                 {
                     ApplicationArea = All;
                 }
-                field("Job Planning Line No."; Rec."Job Planning Line No.")
-                {
-                    ApplicationArea = All;
-                }
                 field("Task Date"; Rec."Task Date")
                 {
                     ApplicationArea = All;

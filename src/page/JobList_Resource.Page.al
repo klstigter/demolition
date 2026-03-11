@@ -194,28 +194,14 @@ page 50609 "Job List - Resource"
 
                     trigger OnAction()
                     var
-                        JobPlanningLine: Record "Job Planning Line";
+                        JobPlanningLine: Record "Job Task";
                     begin
                         JobPlanningLine.SetRange("Job No.", Rec."No.");
                         Page.RunModal(0, JobPlanningLine);
                     end;
                 }
 
-                action("Planning Lines Board")
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Visual Planning';
-                    Image = ResourcePlanning;
-                    ToolTip = 'Plan how you want to set up your planning information. In this window you can specify "Project Planning Line" per Task.';
 
-                    trigger OnAction()
-                    var
-                        JobMgt: Codeunit "Job Planning Line Handler";
-                    begin
-                        //JobMgt.OpenTaskSchedulerAllJob();
-                        message('Daypilot is deprecated., convert it to dhtmlx scheduler');
-                    end;
-                }
                 group("&Dimensions")
                 {
                     Caption = '&Dimensions';
@@ -909,9 +895,7 @@ page 50609 "Job List - Resource"
                 actionref("Job Planning Lines Promoted"; "Planning Lines")
                 {
                 }
-                actionref("Planning Lines Board Promoted"; "Planning Lines Board")
-                {
-                }
+
                 actionref("Ledger E&ntries_Promoted"; "Ledger E&ntries")
                 {
                 }

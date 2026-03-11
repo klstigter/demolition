@@ -4,7 +4,6 @@ page 50618 "Job Task Card - Project"
     DataCaptionExpression = Rec.Caption();
     PageType = Card;
     SourceTable = "Job Task";
-    SourceTableView = where("Job View Type" = const(Project));
 
     layout
     {
@@ -531,24 +530,18 @@ page 50618 "Job Task Card - Project"
                 }
 
             }
-            part(JobPlanningLines; "Job Planning Lines Sub")
+            part(ResourceWeekView; "Resource Week View Part")
             {
                 ApplicationArea = Jobs;
-                SubPageLink = "Job No." = field("Job No."),
-                              "Job Task No." = field("Job Task No.");
+                Caption = 'Resource Week Schedule';
             }
+
             group(Planning)
             {
                 Caption = 'Planning';
                 group(Duration)
                 {
 
-                    field("Scheduling Type"; Rec."Scheduling Type")
-                    {
-                        ApplicationArea = All;
-                        ToolTip = 'Specifies the value of the Scheduling Type field.', Comment = '%';
-                        importance = Promoted;
-                    }
                     field("Planned Start Date"; Rec.PlannedStartDate)
                     {
                         ApplicationArea = All;
@@ -566,33 +559,7 @@ page 50618 "Job Task Card - Project"
                         importance = Promoted;
                     }
                 }
-                group(Constraints)
-                {
-                    field("Constraint Type"; Rec."Constraint Type")
-                    {
-                        ApplicationArea = All;
-                        ToolTip = 'Specifies the value of the Constraint Type field.', Comment = '%';
-                        importance = Promoted;
-                    }
-                    field("Constraint Date"; Rec."Constraint Date")
-                    {
-                        ApplicationArea = All;
-                        ToolTip = 'Specifies the value of the Constraint Date field.', Comment = '%';
-                        importance = Promoted;
-                    }
-                    field("Constraint Is Hard"; Rec."Constraint Is Hard")
-                    {
-                        ApplicationArea = All;
-                        ToolTip = 'Specifies the value of the Constraint Is Hard field.', Comment = '%';
-                        importance = Promoted;
-                    }
-                    field("Deadline Date"; Rec."Deadline Date")
-                    {
-                        ApplicationArea = All;
-                        ToolTip = 'Specifies the value of the Deadline Date field.', Comment = '%';
-                        importance = Promoted;
-                    }
-                }
+
 
                 group(InProgress)
                 {
@@ -675,10 +642,16 @@ page 50618 "Job Task Card - Project"
                     Visible = false;
                 }
             }
+
         }
 
         area(factboxes)
         {
+            part(ResourceSummaryFactbox; "Resource Summary FactBox")
+            {
+                ApplicationArea = Jobs;
+                Caption = 'Resource Summary';
+            }
             part(JobInformation; "Job Information FactBox")
             {
                 ApplicationArea = Jobs;
@@ -701,10 +674,61 @@ page 50618 "Job Task Card - Project"
     {
         area(navigation)
         {
+            action(DayTasksCreation)
+            {
+                ApplicationArea = All;
+                Caption = 'Day tasks creation';
+                Image = HumanResources;
+                ShortCutKey = 'Alt+D';
+                ToolTip = 'View or edit dimensions, such as area, project, or department, that you can assign to sales and purchase documents to distribute costs and analyze transaction history.';
+                trigger OnAction()
+                var
+                    Page: Page "Day Task Generator";
+                    DayTaskGen: Record "Day Task generator";
+                begin
+                    page.fillbuffer(Rec."Job No.", Rec."Job Task No.");
+                    Page.Run();
+                end;
+            }
+            action(DayTasks)
+            {
+                ApplicationArea = All;
+                Caption = 'Day tasks';
+                Image = HumanResources;
+                ShortCutKey = 'Alt+D';
+                ToolTip = 'View or edit dimensions, such as area, project, or department, that you can assign to sales and purchase documents to distribute costs and analyze transaction history.';
+                trigger OnAction()
+                var
+                    ResourcePage: Page "Day Tasks";
+                    DayTask: Record "Day Tasks";
+                begin
+                    DayTask.SetRange("Job No.", Rec."Job No.");
+                    DayTask.SetRange("Job Task No.", Rec."Job Task No.");
+                    ResourcePage.SetTableView(DayTask);
+                    ResourcePage.Run();
+                end;
+            }
+            action(ResourcesSummary)
+            {
+                ApplicationArea = All;
+                Caption = 'Resources Summary';
+                Image = HumanResources;
+                ShortCutKey = 'Alt+D';
+                ToolTip = 'View or edit dimensions, such as area, project, or department, that you can assign to sales and purchase documents to distribute costs and analyze transaction history.';
+                trigger OnAction()
+                var
+                    ResourcePage: Page "Resource DayTask Summary";
+                begin
+                    ResourcePage.LoadData(Rec."Job No.", Rec."Job Task No.");
+                    ResourcePage.Run();
+
+                end;
+            }
             group("&Job Task")
             {
                 Caption = '&Project Task';
                 Image = Task;
+
                 action(Dimensions)
                 {
                     ApplicationArea = Dimensions;
@@ -917,6 +941,9 @@ page 50618 "Job Task Card - Project"
     begin
         if GuiAllowed() then
             SetControlVisibility();
+        CurrPage.ResourceWeekView.Page.SetContext(Rec."Job No.", Rec."Job Task No.");
+        CurrPage.ResourceSummaryFactbox.Page.SetContext(Rec."Job No.", Rec."Job Task No.");
+
     end;
 
     trigger OnAfterGetRecord()

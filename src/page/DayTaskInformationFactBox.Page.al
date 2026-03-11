@@ -78,46 +78,19 @@ page 50624 "Day Task Information FactBox"
                     Editable = false;
                 }
             }
-            group(JobPlanningLineInformation)
-            {
-                Caption = 'Job Planning Line Information';
-                field("Job Planning Line No."; Rec."Job Planning Line No.")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the job planning line number.';
-                    Caption = 'Job Planning Line No.';
 
-                    trigger OnDrillDown()
-                    var
-                        PlanningLine: Record "Job Planning Line";
-                        PlanningLineCard: Page "Job Planning Line Card";
-                    begin
-                        PlanningLine.Get(Rec."Job No.", Rec."Job Task No.", Rec."Job Planning Line No.");
-                        PlanningLineCard.SetRecord(PlanningLine);
-                        PlanningLineCard.RunModal();
-                    end;
-                }
-                field(JobPlanningLineDescription; JobPlanningLineDescription)
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the job planning line description.';
-                    Caption = 'Job Planning Line Description';
-                    Editable = false;
-                }
-            }
         }
     }
 
     var
         JobDescription: Text[100];
         JobTaskDescription: Text[100];
-        JobPlanningLineDescription: Text[100];
 
     trigger OnAfterGetRecord()
     var
         Job: Record Job;
         JobTask: Record "Job Task";
-        JobPlanningLine: Record "Job Planning Line";
+        JobPlanningLine: Record "Job Task";
     begin
         // Get Job Description
         JobDescription := '';
@@ -129,9 +102,5 @@ page 50624 "Day Task Information FactBox"
         if JobTask.Get(Rec."Job No.", Rec."Job Task No.") then
             JobTaskDescription := JobTask.Description;
 
-        // Get Job Planning Line Description
-        JobPlanningLineDescription := '';
-        if JobPlanningLine.Get(Rec."Job No.", Rec."Job Task No.", Rec."Job Planning Line No.") then
-            JobPlanningLineDescription := JobPlanningLine.Description;
     end;
 }

@@ -6,7 +6,6 @@ page 50617 "Job Task List - Project"
     Editable = false;
     PageType = List;
     SourceTable = "Job Task";
-    SourceTableView = where("Job View Type" = const(Project));
 
     layout
     {
@@ -66,16 +65,6 @@ page 50617 "Job Task List - Project"
                 {
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the date when the project task is planned to end.';
-                }
-                field("Scheduling Type"; Rec."Scheduling Type")
-                {
-                    ApplicationArea = Jobs;
-                    ToolTip = 'Specifies the scheduling type for the project task.';
-                }
-                field("Constraint Type"; Rec."Constraint Type")
-                {
-                    ApplicationArea = Jobs;
-                    ToolTip = 'Specifies the constraint type for the project task.';
                 }
                 field(Progress; Rec.Progress)
                 {

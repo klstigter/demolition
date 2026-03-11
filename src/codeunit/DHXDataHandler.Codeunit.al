@@ -55,7 +55,7 @@ codeunit 50604 "DHX Data Handler"
     var
         Jobs: Record Job;
         JobTasks: Record "Job Task";
-        PlanningLine: Record "Job Planning Line";
+        PlanningLine: Record "Job Task";
         Daytask: Record "Day Tasks";
         WeekTemp: record "Aging Band Buffer" temporary;
         Resource: record Resource;
@@ -81,7 +81,6 @@ codeunit 50604 "DHX Data Handler"
         Daytask.SetRange("Task Date", StartDate, EndDate);
         Daytask.SetFilter("Job No.", '<>%1', ''); //Exclude blank Job Nos
         Daytask.SetFilter("Job Task No.", '<>%1', ''); //Exclude blank task Nos
-        Daytask.SetFilter("Job Planning Line No.", '<>%1', 0); //Exclude blank Planning Line Nos
         //Daytask.SetRange(Type, Daytask.Type::Resource);
         if Daytask.FindSet() then begin
             repeat
@@ -107,7 +106,6 @@ codeunit 50604 "DHX Data Handler"
                 Clear(PlanningObject);
                 PlanningObject.Add('id', Daytask."Job No." + '|' +
                                          Daytask."Job Task No." + '|' +
-                                         Format(Daytask."Job Planning Line No.") + '|' +
                                          Format(Daytask."Day No.") + '|' +
                                          Format(Daytask."DayLineNo") + '|' +
                                          ResNo + '|' +
@@ -122,7 +120,7 @@ codeunit 50604 "DHX Data Handler"
                     else
                         PlanningObject.Add('text', 'vacant');
 
-                PlanningObject.Add('section_id', Daytask."Job No." + '|' + Daytask."Job Task No." + '|' + Format(Daytask."Job Planning Line No."));
+                PlanningObject.Add('section_id', Daytask."Job No." + '|' + Daytask."Job Task No.");
                 // if ResNo <> '' then begin
                 //     if Daytask."Vendor No." <> '' then
                 //         PlanningObject.Add('color', 'grey')
@@ -195,7 +193,7 @@ codeunit 50604 "DHX Data Handler"
                         if PlanningLine.FindSet() then begin
                             repeat
                                 Clear(PlanningLineObject);
-                                PlanningLineObject.Add('key', Jobs."No." + '|' + JobTasks."Job Task No." + '|' + Format(PlanningLine."Line No."));
+                                PlanningLineObject.Add('key', Jobs."No." + '|' + JobTasks."Job Task No.");
                                 PlanningLineObject.Add('label', PlanningLine.Description);
                                 PlanningLineObject.Add('open', true);
                                 ChildrenArray2.Add(PlanningLineObject);
@@ -358,7 +356,6 @@ codeunit 50604 "DHX Data Handler"
                             Clear(PlanningObject);
                             PlanningObject.Add('id', Daytask."Job No." + '|' +
                                                     Daytask."Job Task No." + '|' +
-                                                    Format(Daytask."Job Planning Line No.") + '|' +
                                                     Format(Daytask."Day No.") + '|' +
                                                     Format(Daytask."DayLineNo"));
                             PlanningObject.Add('start_date', StartDateTxt);
@@ -605,7 +602,6 @@ codeunit 50604 "DHX Data Handler"
                             Clear(PlanningObject);
                             PlanningObject.Add('id', Daytask."Job No." + '|' +
                                                     Daytask."Job Task No." + '|' +
-                                                    Format(Daytask."Job Planning Line No.") + '|' +
                                                     Format(Daytask."Day No.") + '|' +
                                                     Format(Daytask."DayLineNo"));
                             PlanningObject.Add('start_date', StartDateTxt);
@@ -794,7 +790,7 @@ codeunit 50604 "DHX Data Handler"
         end;
     end;
 
-    local procedure GetStartEndTxt(JobPlaningLine: Record "Job Planning Line";
+    local procedure GetStartEndTxt(JobPlaningLine: Record "Job Task";
                                    var StartDateTxt: Text;
                                    var EndDateTxt: Text)
     var
@@ -802,24 +798,24 @@ codeunit 50604 "DHX Data Handler"
         StartDateTxt := '';
         EndDateTxt := '';
         case true of
-            (JobPlaningLine."Start Planning Date" <> 0D) and (JobPlaningLine."Start Time" <> 0T):
-                StartDateTxt := Format(JobPlaningLine."Start Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(JobPlaningLine."Start Time");
-            (JobPlaningLine."Start Planning Date" <> 0D) and (JobPlaningLine."Start Time" = 0T):
-                StartDateTxt := Format(JobPlaningLine."Start Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
-            (JobPlaningLine."Start Planning Date" = 0D) and (JobPlaningLine."Start Time" <> 0T),
-            (JobPlaningLine."Start Planning Date" = 0D) and (JobPlaningLine."Start Time" = 0T):
+            (JobPlaningLine."PlannedStartDate" <> 0D) and (JobPlaningLine."Start Time" <> 0T):
+                StartDateTxt := Format(JobPlaningLine."PlannedStartDate", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(JobPlaningLine."Start Time");
+            (JobPlaningLine."PlannedStartDate" <> 0D) and (JobPlaningLine."Start Time" = 0T):
+                StartDateTxt := Format(JobPlaningLine."PlannedStartDate", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
+            (JobPlaningLine."PlannedStartDate" = 0D) and (JobPlaningLine."Start Time" <> 0T),
+            (JobPlaningLine."PlannedStartDate" = 0D) and (JobPlaningLine."Start Time" = 0T):
                 StartDateTxt := '';
         end;
 
         case true of
-            (JobPlaningLine."End Planning Date" = 0D) and (JobPlaningLine."End Time" <> 0T):
-                EndDateTxt := Format(JobPlaningLine."Start Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(JobPlaningLine."End Time");
-            (JobPlaningLine."End Planning Date" <> 0D) and (JobPlaningLine."End Time" <> 0T):
-                EndDateTxt := Format(JobPlaningLine."End Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(JobPlaningLine."End Time");
-            (JobPlaningLine."End Planning Date" = 0D) and (JobPlaningLine."End Time" = 0T):
-                EndDateTxt := Format(JobPlaningLine."Start Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
-            (JobPlaningLine."End Planning Date" <> 0D) and (JobPlaningLine."End Time" = 0T):
-                EndDateTxt := Format(JobPlaningLine."End Planning Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
+            (JobPlaningLine."PlannedEndDate" = 0D) and (JobPlaningLine."End Time" <> 0T):
+                EndDateTxt := Format(JobPlaningLine."PlannedStartDate", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(JobPlaningLine."End Time");
+            (JobPlaningLine."PlannedEndDate" <> 0D) and (JobPlaningLine."End Time" <> 0T):
+                EndDateTxt := Format(JobPlaningLine."PlannedEndDate", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(JobPlaningLine."End Time");
+            (JobPlaningLine."PlannedEndDate" = 0D) and (JobPlaningLine."End Time" = 0T):
+                EndDateTxt := Format(JobPlaningLine."PlannedStartDate", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
+            (JobPlaningLine."PlannedEndDate" <> 0D) and (JobPlaningLine."End Time" = 0T):
+                EndDateTxt := Format(JobPlaningLine."PlannedEndDate", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
         end;
     end;
 
@@ -980,9 +976,9 @@ codeunit 50604 "DHX Data Handler"
                                 DayTask.Description,
                                 ToSessionDateTimeTxt(DayTask."Task Date", DayTask."Start Time"),
                                 ToSessionDateTimeTxt(DayTask."Task Date", DayTask."End Time"),
-                                DayTask."Job No." + '|' + DayTask."Job Task No." + '|' + Format(DayTask."Job Planning Line No."),
+                                DayTask."Job No." + '|' + DayTask."Job Task No.",
                                 DayTask."No.",
-                                DayTask.Description);
+                                DayTask.Description)
         end;
         exit(rtv);
     end;
@@ -990,7 +986,7 @@ codeunit 50604 "DHX Data Handler"
     procedure onEventAdded(EventData: Text; var UpdateEventIdJsonTxt: Text): Boolean
     var
         Task: record "Job Task";
-        PlanningLine: record "Job Planning Line";
+        PlanningLine: record "Job Task";
         DayTask: record "Day Tasks";
         Res: record Resource;
         EventJSonObj: JsonObject;
@@ -1061,7 +1057,6 @@ codeunit 50604 "DHX Data Handler"
         LineNo := 10000;
         DayTask.SetRange("Job No.", JobNo);
         DayTask.SetRange("Job Task No.", TaskNo);
-        DayTask.SetRange("Job Planning Line No.", PlannigLineNo);
         DayTask.SetRange("Day No.", DayNo);
         if DayTask.FindLast() then
             LineNo := DayTask.DayLineNo + 10000;
@@ -1071,9 +1066,7 @@ codeunit 50604 "DHX Data Handler"
         DayTask."DayLineNo" := LineNo;
         DayTask."Job No." := JobNo;
         DayTask."Job Task No." := TaskNo;
-        DayTask."Job Planning Line No." := PlannigLineNo;
 
-        DayTask.Type := PlanningLine.Type::Resource;
         DayTask."No." := Res."No.";
         DayTask."Task Date" := PlanningDate;
         DayTask."Start Time" := StartTime;
@@ -1083,7 +1076,6 @@ codeunit 50604 "DHX Data Handler"
                                             old_eventid,
                                             DayTask."Job No.",
                                             DayTask."Job Task No.",
-                                            Format(DayTask."Job Planning Line No."),
                                             format(DayTask."Day No."),
                                             format(DayTask."DayLineNo"));
         rtv := DayTask.Insert();
@@ -1095,7 +1087,7 @@ codeunit 50604 "DHX Data Handler"
                              var DateRef: Date)
     var
         OldTask: record "Job Task";
-        OldPlanningLIne: record "Job Planning Line";
+        OldPlanningLIne: record "Job Task";
         OldDayTask: record "Day Tasks";
         OldResource: record Resource;
         OldVendor: Record Vendor;
@@ -1221,8 +1213,8 @@ codeunit 50604 "DHX Data Handler"
     var
         OldTask: record "Job Task";
         NewTask: record "Job Task";
-        OldPlanningLIne: record "Job Planning Line";
-        NewPlanningLIne: record "Job Planning Line";
+        OldPlanningLIne: record "Job Task";
+        NewPlanningLIne: record "Job Task";
         OldDayTask: record "Day Tasks";
         DayTaskCheck: record "Day Tasks";
 
@@ -1304,10 +1296,9 @@ codeunit 50604 "DHX Data Handler"
             if not DayTaskCheck.Get(New_DayNo, Old_DayLineNo, New_JobNo, New_TaskNo, New_PlanningLineNo) then
                 OldDayTask.Rename(New_DayNo, Old_DayLineNo, New_JobNo, New_TaskNo, New_PlanningLineNo)
             else begin
-                DayTaskCheck.SetCurrentKey("Job No.", "Job Task No.", "Job Planning Line No.", "Day No.", "DayLineNo");
+                DayTaskCheck.SetCurrentKey("Job No.", "Job Task No.", "Day No.", "DayLineNo");
                 DayTaskCheck.SetRange("Job No.", New_JobNo);
                 DayTaskCheck.SetRange("Job Task No.", New_TaskNo);
-                DayTaskCheck.SetRange("Job Planning Line No.", New_PlanningLineNo);
                 DayTaskCheck.SetRange("Day No.", New_DayNo);
                 if DayTaskCheck.FindLast() then
                     OldDayTask.Rename(New_DayNo, DayTaskCheck."DayLineNo" + 10000, New_JobNo, New_TaskNo, New_PlanningLineNo)
@@ -1347,12 +1338,10 @@ codeunit 50604 "DHX Data Handler"
         rtv := StrSubstNo(JsonLbl,
                          OldDayTask."Job No.",
                          OldDayTask."Job Task No.",
-                         Format(OldDayTask."Job Planning Line No."),
                          Format(OldDayTask."Day No."),
                          Format(OldDayTask."DayLineNo"),
                          NewDayTask."Job No.",
                          NewDayTask."Job Task No.",
-                         Format(NewDayTask."Job Planning Line No."),
                          Format(NewDayTask."Day No."),
                          Format(NewDayTask."DayLineNo"));
         exit(rtv);
@@ -1453,7 +1442,6 @@ codeunit 50604 "DHX Data Handler"
         //DayTask.SetRange("DayLineNo", DayLineNo);
         DayTask.SetRange("Job No.", JobNo);
         DayTask.SetRange("Job Task No.", TaskNo);
-        DayTask.SetRange("Job Planning Line No.", PlanningLineNo);
         if DayTask.FindFirst() then begin
             DateOfDayTask := DayTask."Task Date";
             Clear(DayTasks);
@@ -1462,71 +1450,6 @@ codeunit 50604 "DHX Data Handler"
         end else
             Message('Day Task not found for Event ID: %1', eventId);
         exit(DateOfDayTask);
-    end;
-
-    procedure OpenJobPlanningLineCard(SectionId: Text; SectionData: Text; var StartDate: Date)
-    var
-        JobPlanningLines: Record "Job Planning Line";
-        JobPlanningLineCard: Page "Job Planning Line Card";
-
-        JSonObj: JsonObject;
-        JToken: JsonToken;
-
-        EventIDList: List of [Text];
-        JobNo: Code[20];
-        TaskNo: Code[20];
-        PlanningLineNo: Integer;
-        DayTaskNo: Integer;
-        _DateTime: DateTime;
-        _DateTimeUserZone: DateTime;
-        EndDate: Date;
-    begin
-        // Manage SectionData and retuned StartDate
-        /*
-            SectionData = 
-            {
-                "sectionId":"JOB00020|100|20000",
-                "label":"Design and Review",
-                "viewdate":"2026-01-19T00:00:00.000Z",
-                "periodStart":"2026-01-18T17:00:00.000Z",
-                "periodEnd":"2026-01-25T17:00:00.000Z",
-                "eventCount":9
-            }
-        */
-        StartDate := 0D;
-        if SectionData <> '' then begin
-            JSonObj.ReadFrom(SectionData);
-            JSonObj.Get('periodStart', JToken);
-            Evaluate(_DateTime, JToken.AsValue().AsText());
-            _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
-            StartDate := DT2Date(_DateTimeUserZone);
-
-            //Get End Date
-            JSonObj.Get('periodEnd', JToken);
-            Evaluate(_DateTime, JToken.AsValue().AsText());
-            _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
-            EndDate := DT2Date(_DateTimeUserZone);
-        end;
-
-        //JOB00010|1010|30000
-        // Implementation to open the Job Planning Line Card based on eventId
-        //Message('Event Double Clicked with ID: %1', eventId);
-        EventIDList := SectionId.Split('|');
-        JobNo := EventIDList.Get(1);
-        TaskNo := EventIDList.Get(2);
-        Evaluate(PlanningLineNo, EventIDList.Get(3));
-        JobPlanningLines.SetRange("Job No.", JobNo);
-        JobPlanningLines.SetRange("Job Task No.", TaskNo);
-        JobPlanningLines.SetRange("Line No.", PlanningLineNo);
-        if JobPlanningLines.FindFirst() then begin
-            Clear(JobPlanningLineCard);
-            JobPlanningLineCard.SetTableView(JobPlanningLines);
-            JobPlanningLineCard.SetRecord(JobPlanningLines);
-            JobPlanningLineCard.SetFilterOnDayTasks(StartDate, EndDate);
-            JobPlanningLineCard.RunModal();
-        end else begin
-            Message('Job Planning Line not found for Event ID: %1', SectionId);
-        end;
     end;
 
     procedure OpenResourceCard(SectionId: Text)

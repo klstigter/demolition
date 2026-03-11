@@ -263,15 +263,16 @@ codeunit 50616 "Gantt Chart Link Handler"
         if NewConstraintType = Enum::"Gantt Constraint Type"::None then
             NewConstraintDate := 0D;
 
-        JobTask."Constraint Type" := NewConstraintType;
-        JobTask."Constraint Date" := NewConstraintDate;
+        //TODO Constraint Type
+        // JobTask."Constraint Type" := NewConstraintType;
+        // JobTask."Constraint Date" := NewConstraintDate;
 
-        // Hard constraint: MSO or MFO ignore dependency scheduling
-        JobTask."Constraint Is Hard" :=
-            NewConstraintType in [
-                Enum::"Gantt Constraint Type"::"Must Start On",
-                Enum::"Gantt Constraint Type"::"Must Finish On"
-            ];
+        // // Hard constraint: MSO or MFO ignore dependency scheduling
+        // JobTask."Constraint Is Hard" :=
+        //     NewConstraintType in [
+        //         Enum::"Gantt Constraint Type"::"Must Start On",
+        //         Enum::"Gantt Constraint Type"::"Must Finish On"
+        //     ];
 
         JobTask.Modify(true);
         exit(true);
@@ -294,16 +295,17 @@ codeunit 50616 "Gantt Chart Link Handler"
         if not JobTask.Get(JobNo, JobTaskNo) then
             exit('{}');
 
-        JsonObj.Add('constraint_type', GenUtils.MapConstraintTypeToDhtmlx(JobTask."Constraint Type"));
+        //TODO Constraint Type
+        // JsonObj.Add('constraint_type', GenUtils.MapConstraintTypeToDhtmlx(JobTask."Constraint Type"));
 
-        if (JobTask."Constraint Type" <> JobTask."Constraint Type"::None) and
-           (JobTask."Constraint Date" <> 0D)
-        then
-            JsonObj.Add('constraint_date', FormatDate(JobTask."Constraint Date"))
-        else
-            JsonObj.Add('constraint_date', '');
+        // if (JobTask."Constraint Type" <> JobTask."Constraint Type"::None) and
+        //    (JobTask."Constraint Date" <> 0D)
+        // then
+        //     JsonObj.Add('constraint_date', FormatDate(JobTask."Constraint Date"))
+        // else
+        //     JsonObj.Add('constraint_date', '');
 
-        JsonObj.Add('constraint_is_hard', JobTask."Constraint Is Hard");
+        // JsonObj.Add('constraint_is_hard', JobTask."Constraint Is Hard");
 
         JsonObj.WriteTo(Result);
         exit(Result);

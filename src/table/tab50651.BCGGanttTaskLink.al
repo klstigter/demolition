@@ -40,6 +40,34 @@ table 50651 "BCG Gantt Task Link"
             FieldClass = FlowField;
             CalcFormula = Lookup("Job Task"."Description" where("Job No." = field("Job No."), "Job Task No." = field("Target Task No.")));
         }
+        field(50510; "Constraint Type"; Enum "Gantt Constraint Type")
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Constraint Type';
+        }
+        field(50511; "Constraint Date"; Date)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Constraint Date';
+        }
+        field(50512; "Constraint Is Hard"; Boolean)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Constraint Is Hard';
+        }
+        field(50513; "Deadline Date"; Date) // optional but recommended
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Deadline Date';
+        }
+
+        // Add changes to table fields here
+
+        field(50520; "Scheduling Type"; Enum schedulingType)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Scheduling Type';
+        }
     }
 
     keys

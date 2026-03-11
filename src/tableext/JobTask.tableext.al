@@ -2,34 +2,7 @@ tableextension 50605 "Job Task ext" extends "Job Task"
 {
     fields
     {
-        field(50510; "Constraint Type"; Enum "Gantt Constraint Type")
-        {
-            DataClassification = ToBeClassified;
-            Caption = 'Constraint Type';
-        }
-        field(50511; "Constraint Date"; Date)
-        {
-            DataClassification = ToBeClassified;
-            Caption = 'Constraint Date';
-        }
-        field(50512; "Constraint Is Hard"; Boolean)
-        {
-            DataClassification = ToBeClassified;
-            Caption = 'Constraint Is Hard';
-        }
-        field(50513; "Deadline Date"; Date) // optional but recommended
-        {
-            DataClassification = ToBeClassified;
-            Caption = 'Deadline Date';
-        }
 
-        // Add changes to table fields here
-
-        field(50520; "Scheduling Type"; Enum schedulingType)
-        {
-            DataClassification = ToBeClassified;
-            Caption = 'Scheduling Type';
-        }
         field(50521; PlannedStartDate; Date)
         {
             DataClassification = ToBeClassified;
@@ -50,8 +23,33 @@ tableextension 50605 "Job Task ext" extends "Job Task"
                 CalculateDuration();
             end;
         }
+        field(50523; "Start Time"; Time)
+        {
+            DataClassification = ToBeClassified;
 
+            trigger OnValidate()
+            begin
+                CheckOverlap();
+                //CalculateNonWorkingHours();
+            end;
+        }
+        field(50524; "End Time"; Time)
+        {
+            DataClassification = ToBeClassified;
 
+            trigger OnValidate()
+            begin
+                CheckOverlap();
+                //CalculateNonWorkingHours();
+            end;
+        }
+
+        field(50025; "Scheduling Type"; Enum "SchedulingType")
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Scheduling Type';
+            ToolTip = 'Specifies the scheduling type for the project task. The scheduling type is based on the scheduling type on the related project planning line.';
+        }
         field(50530; "Estimated Hours"; Integer)
         {
             DataClassification = ToBeClassified;
@@ -65,10 +63,6 @@ tableextension 50605 "Job Task ext" extends "Job Task"
             MinValue = 0;
         }
 
-        field(50600; "Job View Type"; Enum "Job View Type")
-        {
-            DataClassification = ToBeClassified;
-        }
         field(50601; Progress; Integer)
         {
             DataClassification = ToBeClassified;
@@ -76,18 +70,45 @@ tableextension 50605 "Job Task ext" extends "Job Task"
             MinValue = 0;
             MaxValue = 100;
         }
-        field(50602; "Total Worked Hours"; Decimal)
-        {
-            FieldClass = FlowField;
-            CalcFormula = sum("Day Tasks"."Worked Hours" where("Job No." = field("Job No."), "Job Task No." = field("Job Task No.")));
-            Caption = 'Total Worked Hours';
-            Editable = false;
-            DecimalPlaces = 0 : 2;
-        }
+
         field(50603; "Non Active"; Boolean)
         {
             DataClassification = ToBeClassified;
         }
+
+
+
+        field(50660; Depth; Decimal)
+        {
+            DataClassification = ToBeClassified;
+        }
+        field(50670; IsBoor; Boolean)
+        {
+            DataClassification = ToBeClassified;
+        }
+
+        field(50680; "Job View Type"; Enum "Job View Type")
+        {
+            FieldClass = FlowField;
+            CalcFormula = lookup("Job Task"."Job View Type" where("Job Task No." = Field("Job Task No."), "Job No." = Field("Job No.")));
+            Editable = false;
+        }
+
+        field(50690; "Total Worked Hours"; Decimal)
+        {
+            FieldClass = FlowField;
+            CalcFormula = sum("Day Tasks"."Working Hours" where("Job No." = field("Job No."), "Job Task No." = field("Job Task No.")));
+            BlankNumbers = BlankZero;
+            Editable = false;
+        }
+        field(50700; "Total Day Taks"; Integer)
+        {
+            FieldClass = FlowField;
+            CalcFormula = count("Day Tasks" where("Job No." = field("Job No."), "Job Task No." = field("Job Task No.")));
+            BlankNumbers = BlankZero;
+            Editable = false;
+        }
+
 
     }
 
@@ -113,6 +134,7 @@ tableextension 50605 "Job Task ext" extends "Job Task"
 
     var
         DayTaskMgt: Codeunit "Day Tasks Mgt.";
+        Job: Record Job;
 
     procedure CalculateDuration()
     begin
@@ -189,4 +211,92 @@ tableextension 50605 "Job Task ext" extends "Job Task"
         exit(DTstart > DTend);
     end;
 
+    local procedure CheckOverlap()
+    begin
+        CheckOverlap(True);
+    end;
+
+    local procedure CheckOverlap(TryCreateDayLines: Boolean) HasOverlap: Boolean
+    var
+        DT: Date;
+        DTstart: DateTime;
+        DTend: DateTime;
+    begin
+        DTstart := 0DT;
+        DTend := CreateDateTime(DMY2Date(31, 12, 2999), Time);
+
+        if TryCreateDayLines then
+            if (rec."PlannedStartDate" = 0D) or (rec."Start Time" = 0T)
+                        or (rec."PlannedEndDate" = 0D) or (rec."End Time" = 0T) then
+                error('Start and End Planning Date and Time must be set to create Day Lines!');
+
+        if ("PlannedStartDate" <> 0D) and ("Start Time" <> 0T) then begin
+            DT := "PlannedStartDate";
+            DTstart := CreateDateTime(DT, "Start Time");
+        end;
+        if ("PlannedEndDate" <> 0D) and ("End Time" <> 0T) then begin
+            DT := "PlannedEndDate";
+            DTend := CreateDateTime(DT, "End Time");
+        end;
+        if DTstart > DTend then
+            if not TryCreateDayLines then
+                error('Datetime overlaped!')
+            else begin
+                exit(true);
+            end;
+    end;
+
+
+
+    procedure StartEndLimitations(TryCreateDayLines: Boolean) hasOverlap: Boolean
+    var
+    begin
+        GetJob();
+
+        IF TryCreateDayLines THEN begin
+            IF CheckOverlap(TryCreateDayLines) then begin
+                StartEndLimitations(false); //try to fix
+                exit(true);
+            end;
+        end else
+            CheckOverlap(false);
+        if TryCreateDayLines or (FieldNo("PlannedStartDate") = CurrFieldNo) then begin
+            if (Job."Starting Date" <> 0D) and (Rec."PlannedStartDate" < job."Starting Date") then begin
+                if TryCreateDayLines then
+                    error('Start Planning Date cannot be earlier than Job Starting Date %1', job."Starting Date");
+                Rec."PlannedStartDate" := job."Starting Date";
+                if GuiAllowed then
+                    Message('Start Planning Date adjusted to Job Starting Date limit.');
+            end;
+            if (job."Starting Date" <> 0D) and (job."Ending Date" < Rec."PlannedStartDate") then begin
+                if TryCreateDayLines then
+                    error('Start Planning Date cannot be later than Job Ending Date %1', job."Ending Date");
+                Rec."PlannedStartDate" := job."Ending Date";
+                if GuiAllowed then
+                    Message('Start Planning Date adjusted to Job Ending Date limit.');
+            end;
+        end;
+        if TryCreateDayLines or (FieldNo("PlannedEndDate") = CurrFieldNo) then begin
+            if (job."Ending Date" <> 0D) and (Rec."PlannedEndDate" > job."Ending Date") then begin
+                if TryCreateDayLines then
+                    error('End Planning Date cannot be later than Job Ending Date %1', job."Ending Date");
+                Rec."PlannedEndDate" := job."Ending Date";
+                if GuiAllowed then
+                    Message('End Planning Date adjusted to Job Ending Date limit.');
+            end;
+            if (job."Ending Date" <> 0D) and (job."Starting Date" > Rec."PlannedEndDate") then begin
+                if TryCreateDayLines then
+                    error('End Planning Date cannot be earlier than Job Starting Date %1', job."Starting Date");
+                Rec."PlannedEndDate" := job."Starting Date";
+                if GuiAllowed then
+                    Message('End Planning Date adjusted to Job Starting Date limit.');
+            end;
+        end;
+    end;
+
+    local procedure GetJob()
+    begin
+        if job."No." <> Rec."Job No." then
+            job.Get(Rec."Job No.");
+    end;
 }
