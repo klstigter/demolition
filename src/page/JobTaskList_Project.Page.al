@@ -81,17 +81,6 @@ page 50617 "Job Task List - Project"
                     ApplicationArea = All;
                 }
 
-                field("WIP-Total"; Rec."WIP-Total")
-                {
-                    ApplicationArea = Jobs;
-                    ToolTip = 'Specifies the project tasks you want to group together when calculating Work In Process (WIP) and Recognition.';
-                }
-                field("Job Posting Group"; Rec."Job Posting Group")
-                {
-                    ApplicationArea = Jobs;
-                    ToolTip = 'Specifies the project posting group of the task.';
-                }
-
             }
         }
 
@@ -129,7 +118,7 @@ page 50617 "Job Task List - Project"
                         ApplicationArea = Jobs;
                         Caption = 'Project Card';
                         Image = Job;
-                        RunObject = Page "Job Card";
+                        RunObject = Page "Opti Job Card";
                         RunPageLink = "No." = field("Job No.");
                         ToolTip = 'View details of the related project.';
                     }
@@ -148,6 +137,7 @@ page 50617 "Job Task List - Project"
                                       "Job Task No." = field("Job Task No.");
                         ShortCutKey = 'Alt+D';
                         ToolTip = 'View or edit the single set of dimensions that are set up for the selected record.';
+                        Visible = false;
                     }
                     action("Dimensions-Multiple")
                     {
@@ -156,6 +146,7 @@ page 50617 "Job Task List - Project"
                         Caption = 'Dimensions-Multiple';
                         Image = DimensionSets;
                         ToolTip = 'View or edit dimensions for a group of records. You can assign dimension codes to transactions to distribute costs and analyze historical information.';
+                        Visible = false;
 
                         trigger OnAction()
                         var
@@ -179,116 +170,6 @@ page 50617 "Job Task List - Project"
                     ToolTip = 'View statistics for the project task.';
                 }
             }
-#if not CLEAN25
-            group(ActionGroupFS)
-            {
-                Caption = 'Dynamics 365 Field Service';
-                Visible = false;
-                ObsoleteReason = 'Field Service is moved to Field Service Integration app.';
-                ObsoleteState = Pending;
-                ObsoleteTag = '25.0';
-
-                action(CRMGoToProduct)
-                {
-                    ApplicationArea = Suite;
-                    Caption = 'Project Task in Field Service';
-                    Image = CoupledItem;
-                    ToolTip = 'Open the coupled Dynamics 365 Field Service entity.';
-                    ObsoleteReason = 'Field Service is moved to Field Service Integration app.';
-                    ObsoleteState = Pending;
-                    ObsoleteTag = '25.0';
-
-                    trigger OnAction()
-                    var
-                        CRMIntegrationManagement: Codeunit "CRM Integration Management";
-                    begin
-                        CRMIntegrationManagement.ShowCRMEntityFromRecordID(Rec.RecordId);
-                    end;
-                }
-                action(CRMSynchronizeNow)
-                {
-                    AccessByPermission = TableData "CRM Integration Record" = IM;
-                    ApplicationArea = Suite;
-                    Caption = 'Synchronize';
-                    Image = Refresh;
-                    ToolTip = 'Send updated data to Dynamics 365 Field Service.';
-                    ObsoleteReason = 'Field Service is moved to Field Service Integration app.';
-                    ObsoleteState = Pending;
-                    ObsoleteTag = '25.0';
-
-                    trigger OnAction()
-                    var
-                        CRMIntegrationManagement: Codeunit "CRM Integration Management";
-                    begin
-                        CRMIntegrationManagement.UpdateOneNow(Rec.RecordId);
-                    end;
-                }
-                group(Coupling)
-                {
-                    Caption = 'Coupling', Comment = 'Coupling is a noun';
-                    Image = LinkAccount;
-                    ToolTip = 'Create, change, or delete a coupling between the Business Central record and a Dynamics 365 Field Service entity.';
-                    ObsoleteReason = 'Field Service is moved to Field Service Integration app.';
-                    ObsoleteState = Pending;
-                    ObsoleteTag = '25.0';
-
-                    action(ManageCRMCoupling)
-                    {
-                        AccessByPermission = TableData "CRM Integration Record" = IM;
-                        ApplicationArea = Suite;
-                        Caption = 'Set Up Coupling';
-                        Image = LinkAccount;
-                        ToolTip = 'Create or modify the coupling to a Dynamics 365 Field Service entity.';
-                        ObsoleteReason = 'Field Service is moved to Field Service Integration app.';
-                        ObsoleteState = Pending;
-                        ObsoleteTag = '25.0';
-
-                        trigger OnAction()
-                        var
-                            CRMIntegrationManagement: Codeunit "CRM Integration Management";
-                        begin
-                            CRMIntegrationManagement.DefineCoupling(Rec.RecordId);
-                        end;
-                    }
-                    action(DeleteCRMCoupling)
-                    {
-                        AccessByPermission = TableData "CRM Integration Record" = D;
-                        ApplicationArea = Suite;
-                        Caption = 'Delete Coupling';
-                        Enabled = false;
-                        Image = UnLinkAccount;
-                        ToolTip = 'Delete the coupling to a Dynamics 365 Field Service entity.';
-                        ObsoleteReason = 'Field Service is moved to Field Service Integration app.';
-                        ObsoleteState = Pending;
-                        ObsoleteTag = '25.0';
-
-                        trigger OnAction()
-                        var
-                            CRMCouplingManagement: Codeunit "CRM Coupling Management";
-                        begin
-                            CRMCouplingManagement.RemoveCoupling(Rec.RecordId);
-                        end;
-                    }
-                }
-                action(ShowLog)
-                {
-                    ApplicationArea = Suite;
-                    Caption = 'Synchronization Log';
-                    Image = Log;
-                    ToolTip = 'View integration synchronization jobs for this table.';
-                    ObsoleteReason = 'Field Service is moved to Field Service Integration app.';
-                    ObsoleteState = Pending;
-                    ObsoleteTag = '25.0';
-
-                    trigger OnAction()
-                    var
-                        CRMIntegrationManagement: Codeunit "CRM Integration Management";
-                    begin
-                        CRMIntegrationManagement.ShowLog(Rec.RecordId);
-                    end;
-                }
-            }
-#endif
         }
         area(processing)
         {
@@ -307,24 +188,7 @@ page 50617 "Job Task List - Project"
                     CurrPage.Update(false);
                 end;
             }
-            action("Split Planning Lines")
-            {
-                ApplicationArea = Jobs;
-                Caption = 'Split Planning Lines';
-                Image = Splitlines;
-                RunObject = Report "Job Split Planning Line";
-                ToolTip = 'Split planning lines of type Budget and Billable into two separate planning lines: Budget and Billable.';
-            }
-            action("Change Planning Line Dates")
-            {
-                ApplicationArea = Jobs;
-                Caption = 'Change Planning Line Dates';
-                Image = ChangeDates;
-                //The property 'PromotedCategory' can only be set if the property 'Promoted' is set to 'true'
-                //PromotedCategory = Process;
-                RunObject = Report "Change Job Dates";
-                ToolTip = 'Use a batch job to help you move planning lines on a project from one date interval to another.';
-            }
+
             action("Copy Job Task From")
             {
                 ApplicationArea = Jobs;
@@ -366,30 +230,7 @@ page 50617 "Job Task List - Project"
         }
         area(reporting)
         {
-            action("Job Actual to Budget")
-            {
-                ApplicationArea = Jobs;
-                Caption = 'Project Actual to Budget';
-                Image = "Report";
-                RunObject = Report "Job Actual To Budget";
-                ToolTip = 'Compare budgeted and usage amounts for selected projects. All lines of the selected project show quantity, total cost, and line amount.';
-            }
-            action("Job Analysis")
-            {
-                ApplicationArea = Jobs;
-                Caption = 'Project Analysis';
-                Image = "Report";
-                RunObject = Report "Job Analysis";
-                ToolTip = 'Analyze the project, such as the budgeted prices, usage prices, and billable prices, and then compares the three sets of prices.';
-            }
-            action("Job - Planning Lines")
-            {
-                ApplicationArea = Jobs;
-                Caption = 'Project - Planning Lines';
-                Image = "Report";
-                RunObject = Report "Job - Planning Lines";
-                ToolTip = 'View all planning lines for the project. You use this window to plan what items, resources, and general ledger expenses that you expect to use on a project (budget) or you can specify what you actually agreed with your customer that he should pay for the project (billable).';
-            }
+
             action("Job - Suggested Billing")
             {
                 ApplicationArea = Jobs;
@@ -443,22 +284,11 @@ page 50617 "Job Task List - Project"
                     {
                     }
                 }
-                actionref("Split Planning Lines_Promoted"; "Split Planning Lines")
-                {
-                }
                 group(Category_Report)
                 {
                     Caption = 'Reports';
 
-                    actionref("Job Actual to Budget_Promoted"; "Job Actual to Budget")
-                    {
-                    }
-                    actionref("Job Analysis_Promoted"; "Job Analysis")
-                    {
-                    }
-                    actionref("Job - Planning Lines_Promoted"; "Job - Planning Lines")
-                    {
-                    }
+
                     actionref("Job - Suggested Billing_Promoted"; "Job - Suggested Billing")
                     {
                     }

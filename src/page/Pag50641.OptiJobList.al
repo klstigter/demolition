@@ -1,14 +1,13 @@
-page 50609 "Job List - Resource"
+page 50641 "Opti Job List"
 {
     AdditionalSearchTerms = 'Project List Planning,Jobs Planning,Job List Planning';
     ApplicationArea = Jobs;
     Caption = 'Projects Planning';
-    CardPageID = "Job Card - Resource";
+    CardPageID = "Opti Job Card";
     Editable = false;
     PageType = List;
     QueryCategory = 'Job List';
     SourceTable = Job;
-    SourceTableView = where("Job View Type" = const("Resource"));
     UsageCategory = Lists;
 
     layout
@@ -28,6 +27,11 @@ page 50609 "Job List - Resource"
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies a short description of the project.';
                 }
+                field("Task Billing Method"; Rec."Task Billing Method")
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the method used for billing project tasks. The billing method is used when you set up project tasks and determine how the project tasks will be billed. The billing method can be set to one of the following values: - Single customer: All project tasks will be billed to the same customer. You specify the customer on the project header. - Multiple customers: Project tasks can be billed to different customers. You specify the customer on each project task. - Internal: Project tasks will not be billed to any customer.';
+                }
                 field("Bill-to Customer No."; Rec."Bill-to Customer No.")
                 {
                     ApplicationArea = Jobs;
@@ -42,7 +46,7 @@ page 50609 "Job List - Resource"
                 {
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the name of the person responsible for the project. You can select a name from the list of resources available in the Resource List window. The name is copied from the No. field in the Resource table. You can choose the field to see a list of resources.';
-                    Visible = false;
+
                 }
                 field("Next Invoice Date"; Rec."Next Invoice Date")
                 {
@@ -75,7 +79,7 @@ page 50609 "Job List - Resource"
                     Caption = '% Completed';
                     Editable = false;
                     ToolTip = 'Specifies the completion percentage for this project.';
-                    Visible = false;
+
                 }
                 field("% Invoiced"; Rec.PercentInvoiced())
                 {
@@ -89,7 +93,7 @@ page 50609 "Job List - Resource"
                 {
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the person assigned as the manager for this project.';
-                    Visible = false;
+
                 }
                 field("External Document No."; Rec."External Document No.")
                 {
@@ -128,12 +132,14 @@ page 50609 "Job List - Resource"
             {
                 ApplicationArea = Jobs;
                 SubPageLink = "No." = field("No.");
+                Visible = false;
             }
             part("Job Details"; "Job Cost Factbox")
             {
                 ApplicationArea = Jobs;
                 Caption = 'Project Details';
                 SubPageLink = "No." = field("No.");
+                Visible = false;
             }
 #if not CLEAN25
             part("Attached Documents"; "Document Attachment Factbox")
@@ -185,23 +191,6 @@ page 50609 "Job List - Resource"
                     RunPageLink = "Job No." = field("No.");
                     ToolTip = 'Plan how you want to set up your planning information. In this window you can specify the tasks involved in a project. To start planning a project or to post usage for a project, you must set up at least one project task.';
                 }
-                action("Planning Lines")
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Project Planning Lines';
-                    Image = ResourcePlanning;
-                    ToolTip = 'Show project planning lines in context of project no.';
-
-                    trigger OnAction()
-                    var
-                        JobPlanningLine: Record "Job Task";
-                    begin
-                        JobPlanningLine.SetRange("Job No.", Rec."No.");
-                        Page.RunModal(0, JobPlanningLine);
-                    end;
-                }
-
-
                 group("&Dimensions")
                 {
                     Caption = '&Dimensions';
@@ -892,10 +881,6 @@ page 50609 "Job List - Resource"
                 actionref("Job Task &Lines_Promoted"; "Job Task &Lines")
                 {
                 }
-                actionref("Job Planning Lines Promoted"; "Planning Lines")
-                {
-                }
-
                 actionref("Ledger E&ntries_Promoted"; "Ledger E&ntries")
                 {
                 }
@@ -1042,14 +1027,8 @@ page 50609 "Job List - Resource"
         ExtendedPriceEnabled := PriceCalculationMgt.IsExtendedPriceCalculationEnabled();
     end;
 
-    trigger OnNewRecord(BelowxRec: Boolean)
-    begin
-        Rec."Job View Type" := Rec."Job View Type"::"Resource"
-    end;
-
     trigger OnInit()
     begin
-        Rec."Job View Type" := Rec."Job View Type"::"Resource";
         CurrPage.PowerBIEmbeddedReportPart.PAGE.SetPageContext(CurrPage.ObjectId(false));
     end;
 

@@ -19,10 +19,11 @@ page 50618 "Job Task Card - Project"
                     trigger OnAssistEdit()
                     var
                         Job: Record Job;
+                        JobCard: page "Opti Job Card";
                     begin
-                        if Page.RunModal(0, Job) = Action::LookupOK then begin
-                            Rec.Validate("Job No.", JOb."No.");
-                        end
+                        Job.get(rec."Job No.");
+                        JobCard.SetRecord(Job);
+                        JobCard.Run();
                     end;
                 }
                 field("Job Task No."; Rec."Job Task No.")
@@ -678,8 +679,10 @@ page 50618 "Job Task Card - Project"
             action(GanttChartDHX)
             {
                 ApplicationArea = All;
+                Image = GanttChart;
                 Caption = 'Gantt Chart';
                 RunObject = page "Gantt Demo DHX 2";
+
             }
             action(DayTasksCreation)
             {
@@ -914,6 +917,18 @@ page 50618 "Job Task Card - Project"
         }
         area(Promoted)
         {
+            group(Category_Process)
+            {
+                Caption = 'Process', Comment = 'Generated from the PromotedActionCategories property index 1.';
+
+                actionref(GanttChartDHX_Promoted; GanttChartDHX)
+                {
+                }
+                actionref(DayTasksCreation_Promoted; DayTasksCreation)
+                {
+                }
+
+            }
             group(Category_Category8)
             {
                 Caption = 'Print/Send', Comment = 'Generated from the PromotedActionCategories property index 7.';

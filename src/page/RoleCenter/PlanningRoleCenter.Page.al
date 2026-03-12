@@ -29,7 +29,7 @@ page 50612 "Planning Role Center"
                 {
                     ApplicationArea = Jobs;
                     Caption = 'Projects';
-                    RunObject = page "Job List";
+                    RunObject = page "Opti Job List";
                 }
                 action("Job Tasks")
                 {
@@ -50,6 +50,7 @@ page 50612 "Planning Role Center"
             group("ResourcePlanningGroup")
             {
                 Caption = 'Resource Planning';
+                Visible = false;
 
                 action("Jobs Resource")
                 {
