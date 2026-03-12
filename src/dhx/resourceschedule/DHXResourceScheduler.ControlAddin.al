@@ -24,10 +24,12 @@ controladdin DHXResourceScheduleAddin
     event ControlReady();
     event OnAfterInit();
     event OnEventDoubleClick(EventId: Text; ResourceId: Text);
+    event OnDateRangeChanged(StartDate: Text; EndDate: Text);
 
     procedure Init(elements: Text; EarliestPlanningDate: Date);
     procedure LoadData(EventTxt: Text);
     procedure LoadCapacity(CapacityTxt: Text);
+    procedure ReloadData(EventTxt: Text; CapacityTxt: Text);
     procedure SetShowDayTask(pShow: Boolean);
     procedure SetShowCapacity(pShow: Boolean);
 
