@@ -2395,4 +2395,133 @@ codeunit 50604 "DHX Data Handler"
         exit(FallbackColors[(ColorHash mod 4) + 1]);
     end;
 
+    // =========================================================
+    // Date-range overloads – load only data for the visible period.
+    // Called when the scheduler view changes (Today/Prev/Next/
+    // Day/Week/Month buttons).
+    // =========================================================
+
+    procedure ResScheduler_BuildEventsJson(ResourceFilter: Text; StartDate: Date; EndDate: Date): Text
+    var
+        DayTask: Record "Day Tasks";
+        StarDateTimeStr: Text;
+        EndDateTimeStr: Text;
+        JArray: JsonArray;
+        JRoot: JsonObject;
+        Result: Text;
+        eventColor: Text;
+    begin
+        DayTask.Reset();
+        DayTask.SetRange(Type, DayTask.Type::Resource);
+        if (StartDate <> 0D) and (EndDate <> 0D) then
+            DayTask.SetRange("Task Date", StartDate, EndDate);
+        if ResourceFilter <> '' then
+            DayTask.SetFilter("No.", ResourceFilter)
+        else
+            DayTask.SetFilter("No.", '<>%1', '');
+        if DayTask.FindSet() then
+            repeat
+                GetStartEndTxt(DayTask, StarDateTimeStr, EndDateTimeStr);
+                if (StarDateTimeStr <> '') and (EndDateTimeStr <> '') then begin
+                    eventColor := ResScheduler_GetResourceColor(DayTask."No.", 'daytask');
+                    ResScheduler_AddEvent(
+                        JArray,
+                        Format(DayTask.RecordId),
+                        DayTask."No.",
+                        eventColor,
+                        StarDateTimeStr,
+                        EndDateTimeStr,
+                        DayTask.Description,
+                        'daytask');
+                end;
+            until DayTask.Next() = 0;
+        Clear(JRoot);
+        JRoot.Add('data', JArray);
+        JRoot.WriteTo(Result);
+        exit(Result);
+    end;
+
+    procedure ResScheduler_BuildCapacityJson(ResourceFilter: Text; StartDate: Date; EndDate: Date): Text
+    var
+        ResCap: Record "Res. Capacity Entry";
+        TempResCap: Record "Res. Capacity Entry" temporary;
+        JArray: JsonArray;
+        JObj: JsonObject;
+        JRoot: JsonObject;
+        Result: Text;
+        StartDateTimeStr: Text;
+        EndDateTimeStr: Text;
+        LastResNo: Code[20];
+        LastDate: Date;
+        AggStartTime: Time;
+        AggCapacity: Decimal;
+    begin
+        ResCap.Reset();
+        ResCap.SetCurrentKey("Resource No.", "Date");
+        if (StartDate <> 0D) and (EndDate <> 0D) then
+            ResCap.SetRange("Date", StartDate, EndDate);
+        if ResourceFilter <> '' then
+            ResCap.SetFilter("Resource No.", ResourceFilter)
+        else
+            ResCap.SetFilter("Resource No.", '<>%1', '');
+
+        LastResNo := '';
+        LastDate := 0D;
+        AggStartTime := 0T;
+        AggCapacity := 0;
+
+        if ResCap.FindSet() then
+            repeat
+                if (ResCap."Resource No." <> LastResNo) or (ResCap."Date" <> LastDate) then begin
+                    if (LastResNo <> '') and (AggCapacity > 0) then begin
+                        TempResCap.Init();
+                        TempResCap."Resource No." := LastResNo;
+                        TempResCap."Date" := LastDate;
+                        TempResCap."Start Time" := AggStartTime;
+                        GetStartEndTxt(TempResCap, AggCapacity, StartDateTimeStr, EndDateTimeStr);
+                        if (StartDateTimeStr <> '') and (EndDateTimeStr <> '') then begin
+                            Clear(JObj);
+                            JObj.Add('resource_id', LastResNo);
+                            JObj.Add('start_date', StartDateTimeStr);
+                            JObj.Add('end_date', EndDateTimeStr);
+                            JObj.Add('classname', ResScheduler_GetResourceColor(LastResNo, 'capacity'));
+                            JObj.Add('type', 'capacity');
+                            JArray.Add(JObj);
+                        end;
+                    end;
+                    LastResNo := ResCap."Resource No.";
+                    LastDate := ResCap."Date";
+                    AggStartTime := ResCap."Start Time";
+                    AggCapacity := ResCap.Capacity;
+                end else begin
+                    AggCapacity += ResCap.Capacity;
+                    if (ResCap."Start Time" <> 0T) then
+                        if (AggStartTime = 0T) or (ResCap."Start Time" < AggStartTime) then
+                            AggStartTime := ResCap."Start Time";
+                end;
+            until ResCap.Next() = 0;
+
+        if (LastResNo <> '') and (AggCapacity > 0) then begin
+            TempResCap.Init();
+            TempResCap."Resource No." := LastResNo;
+            TempResCap."Date" := LastDate;
+            TempResCap."Start Time" := AggStartTime;
+            GetStartEndTxt(TempResCap, AggCapacity, StartDateTimeStr, EndDateTimeStr);
+            if (StartDateTimeStr <> '') and (EndDateTimeStr <> '') then begin
+                Clear(JObj);
+                JObj.Add('resource_id', LastResNo);
+                JObj.Add('start_date', StartDateTimeStr);
+                JObj.Add('end_date', EndDateTimeStr);
+                JObj.Add('classname', ResScheduler_GetResourceColor(LastResNo, 'capacity'));
+                JObj.Add('type', 'capacity');
+                JArray.Add(JObj);
+            end;
+        end;
+
+        Clear(JRoot);
+        JRoot.Add('data', JArray);
+        JRoot.WriteTo(Result);
+        exit(Result);
+    end;
+
 }

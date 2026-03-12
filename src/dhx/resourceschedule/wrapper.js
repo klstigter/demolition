@@ -6,8 +6,9 @@ var allResources  = [];      // [ { id, name, group } ]
 var allEvents     = [];      // [ { id, resource_id, classname, start_date, end_date, text, type } ]
 var allCapacity   = [];      // [ { resource_id, start_date, end_date } ]
 var checkedResources = {};   // { resourceId: true|false }
-var showDayTask   = true;    // controlled by BC toggle
-var showCapacity  = true;    // controlled by BC toggle
+var showDayTask      = true;    // controlled by BC toggle
+var showCapacity     = true;    // controlled by BC toggle
+var _initInProgress  = true;    // suppresses onViewChange during Init()
 
 // ============================================================
 // BOOT – called by startupScript.js
@@ -180,6 +181,16 @@ window.BOOT = function() {
 
         // ---- Build resource selection panel ----
         BuildResourcePanel(leftPanel);
+
+        // ---- Fire OnDateRangeChanged when user navigates (Today/Prev/Next/Day/Week/Month) ----
+        scheduler.attachEvent("onViewChange", function(new_mode, new_date) {
+            if (_initInProgress) return;
+            var state    = scheduler.getState();
+            var startStr = FmtDateStr(state.min_date);
+            var endDate  = new Date(state.max_date.getTime() - 86400000); // max_date is exclusive
+            var endStr   = FmtDateStr(endDate);
+            Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnDateRangeChanged", [startStr, endStr]);
+        });
 
         // ---- Init scheduler – week view, week of 2026-03-09 ----
         scheduler.init("scheduler_here", new Date(2026, 2, 9), "week");
@@ -409,6 +420,51 @@ function RefreshSchedulerEvents() {
     }
 
     if (merged.length > 0) scheduler.parse(merged);
+
+    // Adjust the visible hour range based on earliest event start.
+    // Defer by one tick so scheduler finishes parsing before we update config.
+    setTimeout(AdjustFirstHour, 0);
+}
+
+// ============================================================
+// Shrink the Y-axis so it starts at the earliest event hour
+// (across both day-tasks and capacities currently in allEvents
+// and allCapacity for checked resources).
+// Falls back to first_hour = 0 when there are no visible events.
+// Month view is skipped – it has no scrollable hour axis.
+// ============================================================
+function AdjustFirstHour() {
+    if (!scheduler_here) return;
+    var state = scheduler.getState ? scheduler.getState() : {};
+    if (state.mode === 'month') return;
+
+    var minHour = null;
+
+    // Scan daytask events for checked resources
+    allEvents.forEach(function(ev) {
+        if (!checkedResources[ev.resource_id]) return;
+        var d = ToDate(ev.start_date);
+        if (!d) return;
+        var h = d.getHours();
+        if (minHour === null || h < minHour) minHour = h;
+    });
+
+    // Scan capacity entries for checked resources
+    allCapacity.forEach(function(c) {
+        if (!checkedResources[c.resource_id]) return;
+        var d = ToDate(c.start_date);
+        if (!d) return;
+        var h = d.getHours();
+        if (minHour === null || h < minHour) minHour = h;
+    });
+
+    var newFirst = (minHour !== null) ? minHour : 0;
+
+    // Only re-render when the value actually changes to avoid loops
+    if (scheduler.config.first_hour !== newFirst) {
+        scheduler.config.first_hour = newFirst;
+        scheduler.updateView();
+    }
 }
 
 // ============================================================
@@ -418,6 +474,7 @@ function RefreshSchedulerEvents() {
 //   startDate    – BC Date (passed as epoch ms or ISO string)
 // ============================================================
 function Init(elementsJson, startDate) {
+    _initInProgress = true;
     try {
         var parsed = ParseJsonTxt(elementsJson);
         if (parsed && Array.isArray(parsed.data) && parsed.data.length > 0) {
@@ -438,6 +495,7 @@ function Init(elementsJson, startDate) {
     } catch (e) {
         console.error("Init error:", e);
     }
+    _initInProgress = false;
 }
 
 // ============================================================
@@ -505,6 +563,36 @@ function ToDate(val) {
     if (typeof val === "number") return new Date(val);
     var d = new Date(val);
     return isNaN(d) ? null : d;
+}
+
+function FmtDateStr(d) {
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+}
+
+// ============================================================
+// AL-callable: ReloadData(eventsJson, capacityJson)
+//   Combined single round-trip: updates both events and capacity,
+//   then repaints the scheduler once.
+// ============================================================
+function ReloadData(eventsJson, capacityJson) {
+    if (!scheduler_here) return;
+    try {
+        var parsedEv = ParseJsonTxt(eventsJson);
+        if (parsedEv) {
+            allEvents = Array.isArray(parsedEv.data) ? parsedEv.data
+                      : Array.isArray(parsedEv)      ? parsedEv
+                      : allEvents;
+        }
+        var parsedCap = ParseJsonTxt(capacityJson);
+        if (parsedCap) {
+            allCapacity = Array.isArray(parsedCap.data) ? parsedCap.data
+                        : Array.isArray(parsedCap)      ? parsedCap
+                        : allCapacity;
+        }
+        RefreshSchedulerEvents();
+    } catch (e) {
+        console.error("ReloadData error:", e);
+    }
 }
 
 // ============================================================
