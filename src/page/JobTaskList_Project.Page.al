@@ -1,7 +1,7 @@
 page 50617 "Job Task List - Project"
 {
     Caption = 'Project Task List (Project)';
-    CardPageID = "Job Task Card - Project";
+    CardPageID = "Opti Job Task Card";
     DataCaptionFields = "Job No.";
     Editable = false;
     PageType = List;
@@ -71,7 +71,7 @@ page 50617 "Job Task List - Project"
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the progress percentage (0-100) for this job task.';
                 }
-                field("Total Worked Hours"; Rec."Total Worked Hours")
+                field("Total Worked Hours"; Rec."Total Assigned Hours")
                 {
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the total worked hours from all related day tasks.';

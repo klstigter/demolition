@@ -1,9 +1,10 @@
-page 50618 "Job Task Card - Project"
+page 50618 "Opti Job Task Card"
 {
     Caption = 'Project Task Card';
     DataCaptionExpression = Rec.Caption();
     PageType = Card;
     SourceTable = "Job Task";
+    RefreshOnActivate = true;
 
     layout
     {
@@ -579,7 +580,7 @@ page 50618 "Job Task Card - Project"
                         ToolTip = 'Specifies the progress percentage (0-100) for this job task.';
                         importance = Promoted;
                     }
-                    field("Total Worked Hours"; Rec."Total Worked Hours")
+                    field("Total Worked Hours"; Rec."Total Assigned Hours")
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Specifies the total worked hours from all related day tasks.';

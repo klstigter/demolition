@@ -14,7 +14,7 @@ permissionset 50600 Demolition
         page "Object Selection" = X,
         page "Job Card - Resource" = X,
         page "Job List - Resource" = X,
-        page "Job Task Card - Project" = X,
+        page "Opti Job Task Card" = X,
         page "Job Task Card - Resource" = X,
         page "Job Task List - Project" = X,
         page "Job Task List - Resource" = X,

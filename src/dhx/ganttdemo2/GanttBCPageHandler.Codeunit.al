@@ -9,7 +9,7 @@ codeunit 50614 "Gantt BC Page Handler"
 
         case JobTask."Job View Type" of
             JobTask."Job View Type"::Project:
-                Page.Run(Page::"Job Task Card - Project", JobTask);
+                Page.Run(Page::"Opti Job Task Card", JobTask);
             JobTask."Job View Type"::Resource:
                 Page.Run(Page::"Job Task Card - Resource", JobTask);
             else
@@ -26,7 +26,7 @@ codeunit 50614 "Gantt BC Page Handler"
 
         case JobTask."Job View Type" of
             JobTask."Job View Type"::Project:
-                exit(Page.RunModal(Page::"Job Task Card - Project", JobTask) = Action::OK);
+                exit(Page.RunModal(Page::"Opti Job Task Card", JobTask) = Action::OK);
             JobTask."Job View Type"::Resource:
                 exit(Page.RunModal(Page::"Job Task Card - Resource", JobTask) = Action::OK);
             else

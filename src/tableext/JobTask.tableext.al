@@ -94,7 +94,7 @@ tableextension 50605 "Job Task ext" extends "Job Task"
             Editable = false;
         }
 
-        field(50690; "Total Worked Hours"; Decimal)
+        field(50690; "Total Assigned Hours"; Decimal)
         {
             FieldClass = FlowField;
             CalcFormula = sum("Day Tasks"."Assigned Hours" where("Job No." = field("Job No."), "Job Task No." = field("Job Task No.")));
