@@ -123,7 +123,7 @@ codeunit 50610 "Day Tasks Mgt."
                 DayTasks.Type := DayTasks.Type::Resource;
                 DayTasks."No." := DayTaskGenerator."Resource No.";
                 // Calculate working hours
-                DayTasks.CalculateWorkingHours();
+                DayTasks."Requested Hours" := DayTaskGenerator."Requested Hours";
 
                 //DayTasks.Description := DayTaskGenerator.Description;
                 //DayTasks."Unit of Measure Code" := JobTask."Unit of Measure Code";

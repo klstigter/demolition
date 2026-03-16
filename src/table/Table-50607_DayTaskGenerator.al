@@ -109,7 +109,6 @@ table 50607 "Day Task Generator"
             Caption = 'Vendor Name';
         }
 
-
         field(50630; "Non Working Minutes"; Integer)
         {
             Caption = 'Non Working Minutes';
@@ -121,9 +120,9 @@ table 50607 "Day Task Generator"
                 CalculateNonWorkingHours();
             end;
         }
-        field(50640; "Working Hours"; Decimal)
+        field(50640; "Requested Hours"; Decimal)
         {
-            Caption = 'Working Hours';
+            Caption = 'Requested Hours';
             DataClassification = CustomerContent;
             DecimalPlaces = 0 : 2;
             Editable = false;
@@ -187,7 +186,7 @@ table 50607 "Day Task Generator"
     begin
         // If either time is not set, clear both hours fields
         if ("Start Time" = 0T) or ("End Time" = 0T) then begin
-            "Working Hours" := 0;
+            "Requested Hours" := 0;
             "Non Working Minutes" := 0;
             exit;
         end;
@@ -200,7 +199,7 @@ table 50607 "Day Task Generator"
         WorkingMinutes := WorkingMinutes - "Non Working Minutes";
 
         // Convert to hours (decimal)
-        "Working Hours" := WorkingMinutes / 60;
+        "Requested Hours" := WorkingMinutes / 60;
 
     end;
 

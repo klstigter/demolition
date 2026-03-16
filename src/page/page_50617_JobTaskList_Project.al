@@ -71,10 +71,10 @@ page 50617 "Job Task List - Project"
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the progress percentage (0-100) for this job task.';
                 }
-                field("Total Worked Hours"; Rec."Total Assigned Hours")
+                field("Total Assigned Hours"; Rec."Total Assigned Hours")
                 {
                     ApplicationArea = Jobs;
-                    ToolTip = 'Specifies the total worked hours from all related day tasks.';
+                    ToolTip = 'Specifies the total assigned hours from all related day tasks.';
                 }
                 field("Ship-to Code"; Rec."Ship-to Code")
                 {

@@ -305,6 +305,14 @@ table 50610 "Day Tasks"
             DataClassification = ToBeClassified;
             Caption = 'Is Boor';
         }
+        Field(65; "Requested Hours"; Decimal)
+        {
+            Caption = 'Requested Hours';
+            DecimalPlaces = 0 : 2;
+            Editable = false;
+            BlankZero = true;
+        }
+
         field(70; "Worked Hours"; Decimal)
         {
             DataClassification = ToBeClassified;
@@ -407,7 +415,7 @@ table 50610 "Day Tasks"
         end;
 
         "Capacity Fully Utilized" := PlanningUtil.DayTaskFulFillment(Rec, RequestedHours, Capacity);
-        "Assigned Hours" := RequestedHours;
+        "Requested Hours" := RequestedHours;
 
     end;
 

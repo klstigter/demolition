@@ -57,9 +57,9 @@ page 50639 "Day Task Generator"
                 {
                     ToolTip = 'Specifies the value of the End Time field.', Comment = '%';
                 }
-                field("Working Hours"; Rec."Working Hours")
+                field("Requested Hours"; Rec."Requested Hours")
                 {
-                    ToolTip = 'Specifies the value of the Working Hours field.', Comment = '%';
+                    ToolTip = 'Specifies the value of the Requested Hours field.', Comment = '%';
                 }
                 field("Non Working Minutes"; Rec."Non Working Minutes")
                 {
