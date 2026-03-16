@@ -96,6 +96,14 @@ page 50619 "DHX Resource Scheduler"
                     end;
                 end;
 
+                trigger OnResourceDoubleClick(ResourceId: Text)
+                var
+                    ResRec: Record Resource;
+                begin
+                    if ResRec.Get(ResourceId) then
+                        Page.Run(Page::"Resource Card", ResRec);
+                end;
+
                 #endregion Init and Load Data on Control Ready
 
 
