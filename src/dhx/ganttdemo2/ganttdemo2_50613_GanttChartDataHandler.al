@@ -37,7 +37,7 @@ codeunit 50613 "GanttChartDataHandler"
             EndDate := StartDate;
     end;
 
-    procedure GetJobTasksAsJson(AchorDate: Date) JsonText: Text //StartDate: Date; JobNo: Code[20]
+    procedure GetJobTasksAsJson(AchorDate: Date; pJobFilter: Text) JsonText: Text //StartDate: Date; JobNo: Code[20]
     var
         GanttSetup: Record "Gantt Chart Setup";
         JobTask: Record "Job Task";
@@ -53,6 +53,8 @@ codeunit 50613 "GanttChartDataHandler"
     begin
         GanttSetup.Get(UserId);
         JobNoFilter := GanttSetup."Job No. Filter";
+        if pJobFilter <> '' then
+            JobNoFilter := pJobFilter;
         if JobNoFilter <> '' then
             JobTask.SetFilter("Job No.", JobNoFilter);
         GetDateRange(GanttSetup, AchorDate, StartDate, EndDate);

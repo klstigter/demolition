@@ -54,6 +54,38 @@ page 50620 "Gantt Demo DHX 2"
                     end;
                 end;
 
+                trigger onOpenDayTask(taskId: Text; eventData: Text)
+                var
+                    JsonObj: JsonObject;
+                    JsonToken: JsonToken;
+                    JobNo: Code[20];
+                    JobTaskNo: Code[20];
+                    DayTask: Record "Day Tasks";
+                    EventIDList: List of [Text];
+                begin
+                    // Parse bcJobNo / bcJobTaskNo from eventData JSON
+                    if JsonObj.ReadFrom(eventData) then begin
+                        if JsonObj.Get('bcJobNo', JsonToken) then
+                            JobNo := CopyStr(JsonToken.AsValue().AsText(), 1, MaxStrLen(JobNo));
+                        if JsonObj.Get('bcJobTaskNo', JsonToken) then
+                            JobTaskNo := CopyStr(JsonToken.AsValue().AsText(), 1, MaxStrLen(JobTaskNo));
+                    end;
+
+                    // Fallback: try splitting legacy id format "JobNo|JobTaskNo"
+                    if (JobNo = '') and taskId.Contains('|') then begin
+                        EventIDList := taskId.Split('|');
+                        JobNo := CopyStr(EventIDList.Get(1), 1, MaxStrLen(JobNo));
+                        JobTaskNo := CopyStr(EventIDList.Get(2), 1, MaxStrLen(JobTaskNo));
+                    end;
+
+                    if JobNo <> '' then
+                        DayTask.SetRange("Job No.", JobNo);
+                    if JobTaskNo <> '' then
+                        DayTask.SetRange("Job Task No.", JobTaskNo);
+
+                    Page.Run(Page::"Day Tasks", DayTask);
+                end;
+
                 trigger OnJobTaskUpdated(eventData: Text)
                 var
                     GantUpdatedata: Codeunit "Gantt Update Data";
@@ -116,7 +148,7 @@ page 50620 "Gantt Demo DHX 2"
                     outstream: OutStream;
                     va: variant;
                 begin
-                    JsonTxt := GanttChartDataHandler.GetJobTasksAsJson(AnchorDate);
+                    JsonTxt := GanttChartDataHandler.GetJobTasksAsJson(AnchorDate, JobFilter);
                     tempblob.CreateOutStream(outstream);
                     outstream.WriteText(JsonTxt);
                     tempblob.CreateInStream(instream);
@@ -159,8 +191,12 @@ page 50620 "Gantt Demo DHX 2"
                     instream: InStream;
                     outstream: OutStream;
                     va: variant;
+                    JobFilterUsed: Text;
                 begin
-                    JsonTxt := GanttChartDataHandler.GetDayTasksAsJson(Setup."From Date", setup."Job No. Filter", '');
+                    JobFilterUsed := setup."Job No. Filter";
+                    if JobFilter <> '' then
+                        JobFilterUsed := JobFilter; // override with global filter if set
+                    JsonTxt := GanttChartDataHandler.GetDayTasksAsJson(Setup."From Date", JobFilterUsed, '');
                     tempblob.CreateOutStream(outstream);
                     outstream.WriteText(JsonTxt);
                     tempblob.CreateInStream(instream);
@@ -396,12 +432,18 @@ page 50620 "Gantt Demo DHX 2"
         LinkHandler: Codeunit "Gantt Chart Link Handler";
         ShowPreviousNext: Boolean;
         ResourcePanelFlag: Boolean;
+        JobFilter: Text;
 
     procedure RefreshGantt()
     begin
         CurrPage.DHXGanttControl2.ClearData();
         Setup.Get(UserId);
         LoadAllData();
+    end;
+
+    procedure SetJobFilter(pJobFilter: Text)
+    begin
+        JobFilter := pJobFilter;
     end;
 
     local procedure LoadAllData()
@@ -444,7 +486,7 @@ page 50620 "Gantt Demo DHX 2"
         GanttChartDataHandler: Codeunit "GanttChartDataHandler";
         JsonTxtTasks: Text;
     begin
-        JsonTxtTasks := GanttChartDataHandler.GetJobTasksAsJson(AnchorDate);
+        JsonTxtTasks := GanttChartDataHandler.GetJobTasksAsJson(AnchorDate, JobFilter);
         if JsonTxtTasks <> '' then
             CurrPage.DHXGanttControl2.LoadProjectData(JsonTxtTasks);
     end;
@@ -463,8 +505,12 @@ page 50620 "Gantt Demo DHX 2"
     var
         GanttChartDataHandler: Codeunit "GanttChartDataHandler";
         JsonTxtDayTasks: Text;
+        JobFilterUsed: Text;
     begin
-        JsonTxtDayTasks := GanttChartDataHandler.GetDayTasksAsJson(AnchorDate, setup."Job No. Filter");
+        JobFilterUsed := setup."Job No. Filter";
+        if JobFilter <> '' then
+            JobFilterUsed := JobFilter; // override with global filter if set
+        JsonTxtDayTasks := GanttChartDataHandler.GetDayTasksAsJson(AnchorDate, JobFilterUsed);
         if JsonTxtDayTasks <> '' then
             CurrPage.DHXGanttControl2.LoadDayTasksData(JsonTxtDayTasks);
     end;
@@ -472,8 +518,12 @@ page 50620 "Gantt Demo DHX 2"
     local procedure LoadLinkData()
     var
         JsonTxtLinks: Text;
+        JobFilterUsed: Text;
     begin
-        JsonTxtLinks := LinkHandler.GetLinksAsJson(Setup."Job No. Filter");
+        JobFilterUsed := setup."Job No. Filter";
+        if JobFilter <> '' then
+            JobFilterUsed := JobFilter; // override with global filter if set
+        JsonTxtLinks := LinkHandler.GetLinksAsJson(JobFilterUsed);
         // Always send to JS — even '[]' clears stale arrows after refresh
         CurrPage.DHXGanttControl2.LoadLinksData(JsonTxtLinks);
     end;
