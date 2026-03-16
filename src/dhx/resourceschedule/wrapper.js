@@ -280,6 +280,13 @@ function BuildResourcePanel(container) {
             var rLabel = document.createElement("span");
             rLabel.className = "rp-resource-label";
             rLabel.textContent = res.name;
+            // Double-click on resource name → open Resource Card in BC
+            (function(resourceId) {
+                rLabel.addEventListener("dblclick", function(e) {
+                    e.stopPropagation();
+                    Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnResourceDoubleClick", [String(resourceId)]);
+                });
+            })(res.id);
             rRow.appendChild(rLabel);
             container.appendChild(rRow);
         });

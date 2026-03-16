@@ -24,6 +24,7 @@ controladdin DHXResourceScheduleAddin
     event ControlReady();
     event OnAfterInit();
     event OnEventDoubleClick(EventId: Text; ResourceId: Text);
+    event OnResourceDoubleClick(ResourceId: Text);
     event OnDateRangeChanged(StartDate: Text; EndDate: Text);
 
     procedure Init(elements: Text; EarliestPlanningDate: Date);
