@@ -682,7 +682,14 @@ page 50618 "Opti Job Task Card"
                 ApplicationArea = All;
                 Image = GanttChart;
                 Caption = 'Gantt Chart';
-                RunObject = page "Gantt Demo DHX 2";
+                //RunObject = page "Gantt Demo DHX 2";
+                trigger OnAction()
+                var
+                    Gantt: page "Gantt Demo DHX 2";
+                begin
+                    Gantt.SetJobFilter(Rec."Job No.");
+                    Gantt.RunModal();
+                end;
 
             }
             action(DayTasksCreation)

@@ -323,6 +323,150 @@ window.BOOT = function() {
     ]);
 
 
+    // -------- CONTEXT MENU (right-click) --------
+    (function injectContextMenuCSS() {
+      var s = document.createElement("style");
+      s.textContent = [
+        "#gantt-ctx-menu{",
+        "  position:fixed;z-index:99999;",
+        "  background:#fff;border:1px solid #d0d0d0;",
+        "  border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.18);",
+        "  min-width:170px;padding:4px 0;font:13px/1.4 Segoe UI,sans-serif;",
+        "  user-select:none;",
+        "}",
+        "#gantt-ctx-menu .ctx-item{",
+        "  display:flex;align-items:center;gap:10px;",
+        "  padding:8px 18px;cursor:pointer;color:#222;",
+        "  transition:background .12s;",
+        "}",
+        "#gantt-ctx-menu .ctx-item:hover{ background:#f0f4ff; color:#1a56db; }",
+        "#gantt-ctx-menu .ctx-item.ctx-cancel{ color:#888; }",
+        "#gantt-ctx-menu .ctx-item.ctx-cancel:hover{ background:#fafafa; color:#555; }",
+        "#gantt-ctx-menu .ctx-sep{",
+        "  height:1px;background:#eee;margin:4px 0;",
+        "}",
+        "#gantt-ctx-menu .ctx-icon{ font-size:15px; width:18px; text-align:center; }"
+      ].join("\n");
+      document.head.appendChild(s);
+    })();
+
+    // Helper: build & show context menu at (x,y) for task id
+    window._ganttCtxTaskId = null;
+    function _showContextMenu(x, y, taskId) {
+      _hideContextMenu();
+      window._ganttCtxTaskId = taskId;
+
+      var menu = document.createElement("div");
+      menu.id = "gantt-ctx-menu";
+
+      var items = [
+        { label: "Open Task",    icon: "📋", cls: "ctx-open-task" },
+        { label: "Open DayTask", icon: "📅", cls: "ctx-open-daytask" },
+        { sep: true },
+        { label: "Cancel",       icon: "✕",  cls: "ctx-cancel" }
+      ];
+
+      items.forEach(function(item) {
+        if (item.sep) {
+          var sep = document.createElement("div");
+          sep.className = "ctx-sep";
+          menu.appendChild(sep);
+          return;
+        }
+        var el = document.createElement("div");
+        el.className = "ctx-item " + item.cls;
+        el.innerHTML = '<span class="ctx-icon">' + item.icon + '</span>' + item.label;
+        el.addEventListener("mousedown", function(e) { e.stopPropagation(); });
+        el.addEventListener("click", function() {
+          _hideContextMenu();
+          if (item.cls === "ctx-open-task")    _ctxOpenTask(taskId);
+          if (item.cls === "ctx-open-daytask") _ctxOpenDayTask(taskId);
+          // cancel: just close
+        });
+        menu.appendChild(el);
+      });
+
+      document.body.appendChild(menu);
+
+      // Position: keep within viewport
+      var vw = window.innerWidth, vh = window.innerHeight;
+      var mw = menu.offsetWidth || 180, mh = menu.offsetHeight || 140;
+      menu.style.left = (x + mw > vw ? vw - mw - 6 : x) + "px";
+      menu.style.top  = (y + mh > vh ? vh - mh - 6 : y) + "px";
+    }
+
+    function _hideContextMenu() {
+      var old = document.getElementById("gantt-ctx-menu");
+      if (old) old.parentNode.removeChild(old);
+      window._ganttCtxTaskId = null;
+    }
+
+    // Close on any outside click
+    document.addEventListener("mousedown", function(e) {
+      var menu = document.getElementById("gantt-ctx-menu");
+      if (menu && !menu.contains(e.target)) _hideContextMenu();
+    }, true);
+
+    // Close on scroll / Escape
+    document.addEventListener("keydown", function(e) {
+      if (e.key === "Escape") _hideContextMenu();
+    }, true);
+
+    // Open Task — same logic as dblclick
+    function _ctxOpenTask(id) {
+      try {
+        var task = gantt.getTask(id);
+        var eventData = {
+          id: id,
+          text: task.text,
+          start_date: task.start_date,
+          end_date: task.end_date,
+          parent: task.parent,
+          schedulingType: task.schedulingType,
+          constraint_type: task.constraint_type,
+          constraint_date: task.constraint_date,
+          bcRecordId: task.bcRecordId,
+          bcTableNo: task.bcTableNo,
+          bcDocumentNo: task.bcDocumentNo
+        };
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("onTaskDblClick", [
+          String(id),
+          JSON.stringify(eventData)
+        ]);
+      } catch (e) {
+        console.error("_ctxOpenTask failed:", e);
+      }
+    }
+
+    // Open DayTask — BC event for day-task card
+    function _ctxOpenDayTask(id) {
+      try {
+        var task = gantt.getTask(id);
+        var eventData = {
+          id: id,
+          bcJobNo: task.bcJobNo || "",
+          bcJobTaskNo: task.bcJobTaskNo || "",
+          bcRecordId: task.bcRecordId || "",
+          bcTableNo: task.bcTableNo || "",
+          bcDocumentNo: task.bcDocumentNo || ""
+        };
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("onOpenDayTask", [
+          String(id),
+          JSON.stringify(eventData)
+        ]);
+      } catch (e) {
+        console.error("_ctxOpenDayTask failed:", e);
+      }
+    }
+
+    // Attach right-click event
+    gantt.attachEvent("onContextMenu", function(id, linkId, e) {
+      if (!id) return false; // no task clicked — let browser default
+      e.preventDefault();
+      _showContextMenu(e.clientX, e.clientY, id);
+      return true;
+    });
+
     gantt.attachEvent("onTaskDblClick", function (id, ev) {
       try {
         var task = gantt.getTask(id);

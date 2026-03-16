@@ -122,6 +122,21 @@ page 50617 "Job Task List - Project"
                         RunPageLink = "No." = field("Job No.");
                         ToolTip = 'View details of the related project.';
                     }
+                    action(GanttChartDHX)
+                    {
+                        ApplicationArea = All;
+                        Caption = 'Gantt Chart';
+                        Image = GanttChart;
+                        //RunObject = page "Gantt Demo DHX 2";
+
+                        trigger OnAction()
+                        var
+                            Gantt: page "Gantt Demo DHX 2";
+                        begin
+                            Gantt.SetJobFilter(Rec."Job No.");
+                            Gantt.RunModal();
+                        end;
+                    }
                 }
                 group(Dimensions)
                 {
@@ -257,6 +272,9 @@ page 50617 "Job Task List - Project"
                 Caption = 'Navigation';
 
                 actionref("JobCard_Promoted"; jobcard)
+                {
+                }
+                actionref("Gantt_Promoted"; "GanttChartDHX")
                 {
                 }
             }
