@@ -88,7 +88,7 @@ codeunit 50613 "GanttChartDataHandler"
     begin
 
         JsonObject.Add('id', Format(JobTask."Job No.") + '|' + Format(JobTask."Job Task No."));
-        JsonObject.Add('text', JobTask.Description);
+        JsonObject.Add('text', (JobTask."Job Task Type" = JobTask."Job Task Type"::Posting ? JobTask."Job Task No." + ' - ' : '') + JobTask.Description);
         // Start date (format: dd-MM-yyyy)
         if JobTask.PlannedStartDate <> 0D then
             StartDateText := FormatDate(JobTask.PlannedStartDate)
