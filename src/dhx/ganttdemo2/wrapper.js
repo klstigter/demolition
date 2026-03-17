@@ -206,6 +206,40 @@ window.BOOT = function() {
       return task.schedulingType || "";
     };
 
+    // -------- PROGRESS TEXT ON TASK BAR --------
+    gantt.templates.progress_text = function (start, end, task) {
+      var p = task.progress || 0;
+      var pct = Math.round(p * 100);
+      return pct > 0 ? pct + "" : "";
+    };
+
+    // Normalize BC progress (0-100 → 0-1) and move color off task.color.
+    // IMPORTANT: do NOT set task.color here.
+    // When task.color is truthy, DHTMLX adds the gantt_task_inline_color CSS class and
+    // sets --dhx-gantt-task-background as an inline style on the outer wrapper.
+    // For project/parent tasks the auto_scheduling plugin creates TWO inner bars
+    // (gantt_task_line_planned + gantt_task_line_actual), both with a .gantt_project
+    // CSS class that re-declares --dhx-gantt-task-background → project-green.
+    // That conflict produces the striped appearance.
+    // Instead we store the color in task._bcColor and emit --bc-bar / --bc-prog
+    // via task_style, which DHTMLX never touches.
+    gantt.attachEvent("onTaskLoading", function (task) {
+      if (typeof task.progress === "number" && task.progress > 1) {
+        task.progress = Math.min(task.progress, 100) / 100;
+      }
+      // Use DHTMLX native task.color / task.progressColor.
+      // task.color  → DHTMLX sets --dhx-gantt-task-background as inline style on the outer wrapper.
+      // task.progressColor → DHTMLX sets style.backgroundColor directly on .gantt_task_progress.
+      if (!task.color) {
+        task.color = "#3b8ef0";
+      }
+      task.progressColor = _darkenHex(task.color, 0.60);
+      return true;
+    });
+
+    // -------- PROGRESS BAR ON TASK BARS --------
+    gantt.config.show_progress = true;
+
     // -------- WORK TIME --------
     gantt.config.work_time = true;
     gantt.config.min_column_width = 55;
@@ -234,13 +268,14 @@ window.BOOT = function() {
     // -------- GRID SETTINGS --------
     gantt.config.grid_width = 250;
     gantt.config.grid_resize = true;
+    // expand state is driven by the 'open' field on each task JSON sent from BC
 
     // -------- COLUMNS --------
     gantt.config.columns = [
       { name: "text", tree: true, resize: false, width: 250, editor: textEditor },
       { name: "progress", label: "%", align: "center", resize: false, width: 60,
         editor: progressEditor,
-          template: function (task) { var p = task.progress || 0; return Math.round(p * 100) + "%";}          // DHTMLX uses 0..1 normally
+          template: function (task) { var p = task.progress || 0; return Math.round(p * 100) + "%"; }
       },
       { name: "start_date", align: "center", resize: false, width: 150, editor: dateEditor },
       { name: "duration", align: "center", resize: false, width: 80, editor: durationEditor },
@@ -360,10 +395,11 @@ window.BOOT = function() {
       menu.id = "gantt-ctx-menu";
 
       var items = [
-        { label: "Open Task",    icon: "📋", cls: "ctx-open-task" },
-        { label: "Open DayTask", icon: "📅", cls: "ctx-open-daytask" },
+        { label: "Show Resources", icon: "👥", cls: "ctx-show-resources" },
+        { label: "Open Task",      icon: "📋", cls: "ctx-open-task" },
+        { label: "Open DayTask",   icon: "📅", cls: "ctx-open-daytask" },
         { sep: true },
-        { label: "Cancel",       icon: "✕",  cls: "ctx-cancel" }
+        { label: "Cancel",         icon: "✕",  cls: "ctx-cancel" }
       ];
 
       items.forEach(function(item) {
@@ -379,8 +415,9 @@ window.BOOT = function() {
         el.addEventListener("mousedown", function(e) { e.stopPropagation(); });
         el.addEventListener("click", function() {
           _hideContextMenu();
-          if (item.cls === "ctx-open-task")    _ctxOpenTask(taskId);
-          if (item.cls === "ctx-open-daytask") _ctxOpenDayTask(taskId);
+          if (item.cls === "ctx-show-resources") _ctxShowResources(taskId);
+          if (item.cls === "ctx-open-task")      _ctxOpenTask(taskId);
+          if (item.cls === "ctx-open-daytask")   _ctxOpenDayTask(taskId);
           // cancel: just close
         });
         menu.appendChild(el);
@@ -438,6 +475,15 @@ window.BOOT = function() {
       }
     }
 
+    // Show Resources — open resource panel filtered to this task's Day Task resources
+    function _ctxShowResources(id) {
+      try {
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnShowResourcesForTask", [ String(id) ]);
+      } catch (e) {
+        console.error("_ctxShowResources failed:", e);
+      }
+    }
+
     // Open DayTask — BC event for day-task card
     function _ctxOpenDayTask(id) {
       try {
@@ -465,6 +511,65 @@ window.BOOT = function() {
       e.preventDefault();
       _showContextMenu(e.clientX, e.clientY, id);
       return true;
+    });
+
+    // -------- LINK HOVER TOOLTIP --------
+    gantt.attachEvent("onGanttReady", function() {
+      var _currentLinkId = null;
+      var _currentLinkHtml = "";
+
+      gantt.$root.addEventListener("mouseover", function(e) {
+        // link_id attribute lives on .gantt_task_link (the outer container)
+        var linkEl = e.target.closest ? e.target.closest(".gantt_task_link") : null;
+        if (!linkEl) {
+          if (_currentLinkId) { _currentLinkId = null; _hideCustomTooltip(); }
+          return;
+        }
+
+        var linkId = linkEl.getAttribute("link_id");
+        if (!linkId || !gantt.isLinkExists(linkId)) return;
+        if (linkId === _currentLinkId) return; // already showing for this link
+
+        _currentLinkId = linkId;
+        var link = gantt.getLink(linkId);
+        var sourceTask = gantt.isTaskExists(link.source) ? gantt.getTask(link.source) : null;
+        var targetTask = gantt.isTaskExists(link.target) ? gantt.getTask(link.target) : null;
+
+        var typeMap = {
+          "0": "Finish \u2192 Start",
+          "1": "Start \u2192 Start",
+          "2": "Finish \u2192 Finish",
+          "3": "Start \u2192 Finish"
+        };
+        var typeLabel = typeMap[String(link.type)] || ("Type " + link.type);
+
+        _currentLinkHtml =
+          "<b>Dependency</b>" +
+          "<hr style='margin:4px 0;border:none;border-top:1px solid #555'/>" +
+          "From: <b>" + (sourceTask ? sourceTask.text : link.source) + "</b><br/>" +
+          "To: &nbsp;&nbsp;&nbsp;<b>" + (targetTask ? targetTask.text : link.target) + "</b><br/>" +
+          "Type: " + typeLabel;
+        if (link.lag) _currentLinkHtml += "<br/>Lag: " + link.lag + " day(s)";
+
+        _showCustomTooltip(e, _currentLinkHtml);
+      }, true);
+
+      gantt.$root.addEventListener("mousemove", function(e) {
+        if (!_currentLinkId) return;
+        var linkEl = e.target.closest ? e.target.closest(".gantt_task_link") : null;
+        if (linkEl) {
+          _showCustomTooltip(e, _currentLinkHtml); // reposition tooltip with cursor
+        } else {
+          _currentLinkId = null;
+          _hideCustomTooltip();
+        }
+      }, true);
+
+      // mouseleave on the gantt root clears any dangling tooltip
+      gantt.$root.addEventListener("mouseleave", function() {
+        _currentLinkId = null;
+        _hideCustomTooltip();
+      }, true);
     });
 
     gantt.attachEvent("onTaskDblClick", function (id, ev) {
@@ -595,10 +700,49 @@ window.BOOT = function() {
       document.head.appendChild(s);
     })();
 
-    // Optional debug red border on tasks
-    (function injectDebugCSS() {
+    // -------- BAR AND PROGRESS STYLING --------
+    // DHTMLX native rendering:
+    //   task.color      → DHTMLX sets --dhx-gantt-task-background as inline style on the outer wrapper div.
+    //   task.progressColor → DHTMLX calls el.style.backgroundColor = task.progressColor directly.
+    //
+    // Problem with project/parent tasks (auto_scheduling plugin):
+    //   DHTMLX renders TWO inner divs inside the outer wrapper:
+    //     .gantt_task_line_planned  (5px bracket bar)
+    //     .gantt_task_line_actual   (8px bar, opacity 0.3)
+    //   Both have the .gantt_project CSS class which RE-DECLARES
+    //   --dhx-gantt-task-background: var(--dhx-gantt-project-background) [green]
+    //   on the inner element itself → overrides inheritance from parent → stripes.
+    //
+    // Fix: force .gantt_task_line_actual to inherit the custom property from its
+    //   parent (where DHTMLX already set it via inline style from task.color).
+    //   CSS !important on custom properties works in all modern browsers.
+    (function injectBarCSS() {
       var s = document.createElement("style");
-      s.textContent = ".gantt_task_bar{ border:2px solid red !important; }";
+      s.textContent = [
+        /* ── Project/parent task solid-bar fix ─────────────────────────────── */
+        /* Hide the thin 5px bracket bar */
+        ".gantt_task_line_planned { display: none !important; }",
+
+        /* Make the actual bar full-height, fully opaque, and inherit the color
+           the outer wrapper already has set as inline style via task.color */
+        ".gantt_task_line.gantt_task_line_actual {",
+        "  opacity: 1 !important;",
+        "  top: 0 !important;",
+        "  height: 100% !important;",
+        "  --dhx-gantt-task-background: inherit !important;",
+        "}",
+
+        /* ── Progress fill cosmetics ────────────────────────────────────────── */
+        /* task.progressColor is applied by DHTMLX via el.style.backgroundColor */
+        /* Thin white separator at progress boundary */
+        ".gantt_task_progress { border-right: 2px solid rgba(255,255,255,0.55); box-sizing: border-box; }",
+
+        /* Clip fill inside bar corners */
+        ".gantt_task_progress_wrapper { overflow: hidden; border-radius: inherit; height: 100%; }",
+
+        /* Drag handle */
+        ".gantt_task_progress_drag { background: rgba(255,255,255,0.90); width: 6px; border-radius: 2px; bottom: 4px; margin-left: -3px; box-shadow: 0 0 3px rgba(0,0,0,0.45); }"
+      ].join("\n");
       document.head.appendChild(s);
     })();
 
@@ -843,6 +987,46 @@ function _tryParseJson(txt) {
 
 function _normalizeId(obj) {
   return obj?.id ?? obj?.Id ?? obj?.task_id ?? obj?.TaskId ?? obj?.link_id ?? obj?.LinkId ?? null;
+}
+
+// Darkens a hex/rgb color string by the given factor (0=black, 1=original)
+function _darkenHex(color, factor) {
+  try {
+    var r, g, b;
+    var s = String(color).trim();
+
+    // Handle rgb(...) or rgba(...)
+    var rgbMatch = s.match(/rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/);
+    if (rgbMatch) {
+      r = parseInt(rgbMatch[1], 10);
+      g = parseInt(rgbMatch[2], 10);
+      b = parseInt(rgbMatch[3], 10);
+    } else {
+      // Handle 3 or 6 digit hex (optionally with #)
+      var c = s.replace("#", "");
+      if (c.length === 3) c = c[0]+c[0]+c[1]+c[1]+c[2]+c[2];
+      if (/^[0-9a-fA-F]{6}/.test(c)) {
+        r = parseInt(c.substr(0, 2), 16);
+        g = parseInt(c.substr(2, 2), 16);
+        b = parseInt(c.substr(4, 2), 16);
+      } else {
+        // Fallback: resolve any CSS color (named, hsl, etc.) via canvas
+        var cv = document.createElement("canvas");
+        cv.width = cv.height = 1;
+        var ctx = cv.getContext("2d");
+        ctx.fillStyle = s;
+        ctx.fillRect(0, 0, 1, 1);
+        var px = ctx.getImageData(0, 0, 1, 1).data;
+        r = px[0]; g = px[1]; b = px[2];
+      }
+    }
+    r = Math.round(r * factor);
+    g = Math.round(g * factor);
+    b = Math.round(b * factor);
+    return "rgb(" + r + "," + g + "," + b + ")";
+  } catch (e) {
+    return "rgba(0,0,0,0.45)";
+  }
 }
 
 // Converts incoming date values to a JS Date using your gantt.config.date_format (%d-%m-%Y)

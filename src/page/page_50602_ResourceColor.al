@@ -1,10 +1,10 @@
-page 50602 "Resource Color opt"
+page 50602 "Planning Color opt"
 {
     PageType = List;
     ApplicationArea = All;
     UsageCategory = Lists;
-    SourceTable = "Resource Color Opt.";
-    Caption = 'Resource Color';
+    SourceTable = "Planning Color Opt.";
+    Caption = 'Planning Color';
 
     layout
     {
@@ -12,7 +12,15 @@ page 50602 "Resource Color opt"
         {
             repeater(GroupName)
             {
-                field("Resource No."; Rec."Resource No.")
+                field("Type"; Rec.Type)
+                {
+                    ApplicationArea = All;
+                }
+                field("No."; Rec."No.")
+                {
+                    ApplicationArea = All;
+                }
+                field("No. 2"; Rec."No. 2")
                 {
                     ApplicationArea = All;
                 }
@@ -21,6 +29,10 @@ page 50602 "Resource Color opt"
                     ApplicationArea = All;
                 }
                 field("Capacity"; Rec."Capacity")
+                {
+                    ApplicationArea = All;
+                }
+                field("Task"; Rec."Task")
                 {
                     ApplicationArea = All;
                 }
@@ -46,7 +58,7 @@ page 50602 "Resource Color opt"
                 trigger OnAction()
                 var
                     Res: Record Resource;
-                    ResColor: Record "Resource Color Opt.";
+                    ResColor: Record "Planning Color Opt.";
                     DayTaskColors: array[8] of Text[30];
                     CapColors: array[8] of Text[30];
                     Idx: Integer;
@@ -82,9 +94,10 @@ page 50602 "Resource Color opt"
                         repeat
                             Count += 1;
                             Idx := ((Count - 1) mod 8) + 1;
-                            if not ResColor.Get(Res."No.") then begin
+                            if not ResColor.Get(ResColor.Type::Resource, Res."No.", '', '') then begin
                                 ResColor.Init();
-                                ResColor."Resource No." := Res."No.";
+                                ResColor.Type := ResColor.Type::Resource;
+                                ResColor."No." := Res."No.";
                                 ResColor."Day Task" := DayTaskColors[Idx];
                                 ResColor.Capacity := CapColors[Idx];
                                 ResColor.Insert();

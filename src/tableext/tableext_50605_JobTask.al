@@ -66,7 +66,7 @@ tableextension 50605 "Job Task ext" extends "Job Task"
         field(50601; Progress; Integer)
         {
             DataClassification = ToBeClassified;
-            Caption = 'Progress';
+            Caption = 'Progress (%)';
             MinValue = 0;
             MaxValue = 100;
         }

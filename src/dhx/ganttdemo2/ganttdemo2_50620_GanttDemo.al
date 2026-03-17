@@ -54,6 +54,31 @@ page 50620 "Gantt Demo DHX 2"
                     end;
                 end;
 
+                trigger OnShowResourcesForTask(taskId: Text)
+                var
+                    EventIDList: List of [Text];
+                    JobNo: Code[20];
+                    JobTaskNo: Code[20];
+                    GanttDataHandler: Codeunit "GanttChartDataHandler";
+                    JsonTxtResource: Text;
+                begin
+                    // Parse Job No. and Job Task No. from the composite task id ("JobNo|JobTaskNo")
+                    EventIDList := taskId.Split('|');
+                    if EventIDList.Count() >= 2 then begin
+                        JobNo := CopyStr(EventIDList.Get(1), 1, 20);
+                        JobTaskNo := CopyStr(EventIDList.Get(2), 1, 20);
+                    end;
+
+                    // Show the resource panel
+                    ResourcePanelFlag := true;
+                    CurrPage.DHXGanttControl2.SetResourcePanelVisibility(true);
+
+                    // Load only resources assigned to this task via Day Tasks
+                    JsonTxtResource := GanttDataHandler.GetResourcesByJobTaskAsJson(JobNo, JobTaskNo);
+                    if JsonTxtResource <> '' then
+                        CurrPage.DHXGanttControl2.LoadResourcesData(JsonTxtResource);
+                end;
+
                 trigger onOpenDayTask(taskId: Text; eventData: Text)
                 var
                     JsonObj: JsonObject;
@@ -348,6 +373,18 @@ page 50620 "Gantt Demo DHX 2"
                     CurrPage.DHXGanttControl2.GetGanttData();
                 end;
             }
+            action(ShowResourcesForTask)
+            {
+                Caption = 'Show Resources for Task';
+                ApplicationArea = All;
+                Image = ResourcePlanning;
+                Visible = false; // triggered via right-click only
+
+                trigger OnAction()
+                begin
+                    // Intentionally empty; invoked programmatically via OnShowResourcesForTask event
+                end;
+            }
             action(TestClearData)
             {
                 Caption = 'Clear Gantt Data';
@@ -369,7 +406,7 @@ page 50620 "Gantt Demo DHX 2"
                 begin
                     ResourcePanelFlag := not ResourcePanelFlag;
                     CurrPage.DHXGanttControl2.SetResourcePanelVisibility(ResourcePanelFlag);
-                    // Only reload resources if showing panel
+                    // When showing panel, always reload ALL resources (clears any task filter)
                     if ResourcePanelFlag then
                         LoadResourceData();
                 end;
