@@ -513,6 +513,65 @@ window.BOOT = function() {
       return true;
     });
 
+    // -------- LINK HOVER TOOLTIP --------
+    gantt.attachEvent("onGanttReady", function() {
+      var _currentLinkId = null;
+      var _currentLinkHtml = "";
+
+      gantt.$root.addEventListener("mouseover", function(e) {
+        // link_id attribute lives on .gantt_task_link (the outer container)
+        var linkEl = e.target.closest ? e.target.closest(".gantt_task_link") : null;
+        if (!linkEl) {
+          if (_currentLinkId) { _currentLinkId = null; _hideCustomTooltip(); }
+          return;
+        }
+
+        var linkId = linkEl.getAttribute("link_id");
+        if (!linkId || !gantt.isLinkExists(linkId)) return;
+        if (linkId === _currentLinkId) return; // already showing for this link
+
+        _currentLinkId = linkId;
+        var link = gantt.getLink(linkId);
+        var sourceTask = gantt.isTaskExists(link.source) ? gantt.getTask(link.source) : null;
+        var targetTask = gantt.isTaskExists(link.target) ? gantt.getTask(link.target) : null;
+
+        var typeMap = {
+          "0": "Finish \u2192 Start",
+          "1": "Start \u2192 Start",
+          "2": "Finish \u2192 Finish",
+          "3": "Start \u2192 Finish"
+        };
+        var typeLabel = typeMap[String(link.type)] || ("Type " + link.type);
+
+        _currentLinkHtml =
+          "<b>Dependency</b>" +
+          "<hr style='margin:4px 0;border:none;border-top:1px solid #555'/>" +
+          "From: <b>" + (sourceTask ? sourceTask.text : link.source) + "</b><br/>" +
+          "To: &nbsp;&nbsp;&nbsp;<b>" + (targetTask ? targetTask.text : link.target) + "</b><br/>" +
+          "Type: " + typeLabel;
+        if (link.lag) _currentLinkHtml += "<br/>Lag: " + link.lag + " day(s)";
+
+        _showCustomTooltip(e, _currentLinkHtml);
+      }, true);
+
+      gantt.$root.addEventListener("mousemove", function(e) {
+        if (!_currentLinkId) return;
+        var linkEl = e.target.closest ? e.target.closest(".gantt_task_link") : null;
+        if (linkEl) {
+          _showCustomTooltip(e, _currentLinkHtml); // reposition tooltip with cursor
+        } else {
+          _currentLinkId = null;
+          _hideCustomTooltip();
+        }
+      }, true);
+
+      // mouseleave on the gantt root clears any dangling tooltip
+      gantt.$root.addEventListener("mouseleave", function() {
+        _currentLinkId = null;
+        _hideCustomTooltip();
+      }, true);
+    });
+
     gantt.attachEvent("onTaskDblClick", function (id, ev) {
       try {
         var task = gantt.getTask(id);
