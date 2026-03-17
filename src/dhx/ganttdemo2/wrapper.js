@@ -268,6 +268,7 @@ window.BOOT = function() {
     // -------- GRID SETTINGS --------
     gantt.config.grid_width = 250;
     gantt.config.grid_resize = true;
+    // expand state is driven by the 'open' field on each task JSON sent from BC
 
     // -------- COLUMNS --------
     gantt.config.columns = [
@@ -394,10 +395,11 @@ window.BOOT = function() {
       menu.id = "gantt-ctx-menu";
 
       var items = [
-        { label: "Open Task",    icon: "📋", cls: "ctx-open-task" },
-        { label: "Open DayTask", icon: "📅", cls: "ctx-open-daytask" },
+        { label: "Show Resources", icon: "👥", cls: "ctx-show-resources" },
+        { label: "Open Task",      icon: "📋", cls: "ctx-open-task" },
+        { label: "Open DayTask",   icon: "📅", cls: "ctx-open-daytask" },
         { sep: true },
-        { label: "Cancel",       icon: "✕",  cls: "ctx-cancel" }
+        { label: "Cancel",         icon: "✕",  cls: "ctx-cancel" }
       ];
 
       items.forEach(function(item) {
@@ -413,8 +415,9 @@ window.BOOT = function() {
         el.addEventListener("mousedown", function(e) { e.stopPropagation(); });
         el.addEventListener("click", function() {
           _hideContextMenu();
-          if (item.cls === "ctx-open-task")    _ctxOpenTask(taskId);
-          if (item.cls === "ctx-open-daytask") _ctxOpenDayTask(taskId);
+          if (item.cls === "ctx-show-resources") _ctxShowResources(taskId);
+          if (item.cls === "ctx-open-task")      _ctxOpenTask(taskId);
+          if (item.cls === "ctx-open-daytask")   _ctxOpenDayTask(taskId);
           // cancel: just close
         });
         menu.appendChild(el);
@@ -469,6 +472,15 @@ window.BOOT = function() {
         ]);
       } catch (e) {
         console.error("_ctxOpenTask failed:", e);
+      }
+    }
+
+    // Show Resources — open resource panel filtered to this task's Day Task resources
+    function _ctxShowResources(id) {
+      try {
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnShowResourcesForTask", [ String(id) ]);
+      } catch (e) {
+        console.error("_ctxShowResources failed:", e);
       }
     }
 
@@ -921,20 +933,33 @@ function _normalizeId(obj) {
 // Darkens a hex/rgb color string by the given factor (0=black, 1=original)
 function _darkenHex(color, factor) {
   try {
-    // Handle rgb(...) or rgba(...)
-    var rgbMatch = String(color).match(/rgba?\((\d+)[,\s]+(\d+)[,\s]+(\d+)/);
     var r, g, b;
+    var s = String(color).trim();
+
+    // Handle rgb(...) or rgba(...)
+    var rgbMatch = s.match(/rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/);
     if (rgbMatch) {
       r = parseInt(rgbMatch[1], 10);
       g = parseInt(rgbMatch[2], 10);
       b = parseInt(rgbMatch[3], 10);
     } else {
-      // Handle hex
-      var c = String(color).replace("#", "");
+      // Handle 3 or 6 digit hex (optionally with #)
+      var c = s.replace("#", "");
       if (c.length === 3) c = c[0]+c[0]+c[1]+c[1]+c[2]+c[2];
-      r = parseInt(c.substr(0, 2), 16);
-      g = parseInt(c.substr(2, 2), 16);
-      b = parseInt(c.substr(4, 2), 16);
+      if (/^[0-9a-fA-F]{6}/.test(c)) {
+        r = parseInt(c.substr(0, 2), 16);
+        g = parseInt(c.substr(2, 2), 16);
+        b = parseInt(c.substr(4, 2), 16);
+      } else {
+        // Fallback: resolve any CSS color (named, hsl, etc.) via canvas
+        var cv = document.createElement("canvas");
+        cv.width = cv.height = 1;
+        var ctx = cv.getContext("2d");
+        ctx.fillStyle = s;
+        ctx.fillRect(0, 0, 1, 1);
+        var px = ctx.getImageData(0, 0, 1, 1).data;
+        r = px[0]; g = px[1]; b = px[2];
+      }
     }
     r = Math.round(r * factor);
     g = Math.round(g * factor);

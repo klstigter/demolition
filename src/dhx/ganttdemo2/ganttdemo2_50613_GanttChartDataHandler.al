@@ -130,8 +130,10 @@ codeunit 50613 "GanttChartDataHandler"
 
         JsonObject.Add('indentation', JobTask.Indentation);
         JsonObject.Add('bold', JobTask."Job Task Type" <> jobtask."Job Task Type"::Posting);
-        IF JobTask."Job Task Type" <> JobTask."Job Task Type"::Posting THEN
+        IF JobTask."Job Task Type" <> JobTask."Job Task Type"::Posting THEN begin
             ParentJobTaskId[JobTask.Indentation + 2] := Format(JobTask."Job No.") + '|' + Format(JobTask."Job Task No.");
+            JsonObject.Add('open', true); // tell DHTMLX to render this parent row expanded
+        end;
         JsonObject.Add('parent', ParentJobTaskId[JobTask.Indentation + 1]);
 
     end;
@@ -172,6 +174,48 @@ codeunit 50613 "GanttChartDataHandler"
                 JsonArray.Add(JsonObject);
                 Clear(JsonObject);
             until Resource.Next() = 0;
+
+        JsonArray.WriteTo(JsonText);
+    end;
+
+    // Returns only resources assigned to the given Job Task via Day Tasks.
+    // Falls back to all resources if no Day Task assignments exist.
+    procedure GetResourcesByJobTaskAsJson(JobNo: Code[20]; JobTaskNo: Code[20]) JsonText: Text
+    var
+        DayTask: Record "Day Tasks";
+        Resource: Record Resource;
+        JsonArray: JsonArray;
+        JsonObject: JsonObject;
+        ResourceNos: List of [Code[20]];
+        ResNo: Code[20];
+    begin
+        // Collect distinct Resource No. values from Day Tasks for this Job Task
+        DayTask.SetRange("Job No.", JobNo);
+        DayTask.SetRange("Job Task No.", JobTaskNo);
+        DayTask.SetRange(Type, DayTask.Type::Resource);
+        if DayTask.FindSet() then
+            repeat
+                if (DayTask."No." <> '') and (not ResourceNos.Contains(DayTask."No.")) then
+                    ResourceNos.Add(DayTask."No.");
+            until DayTask.Next() = 0;
+
+        // If no Day Task assignments found, return empty list (only the - NONE - placeholder).
+        // "Show/Hide Resource Panel" button will reload all resources when user wants to see everything.
+        if ResourceNos.Count() = 0 then begin
+            GetEmptyResourceAsJson(JsonArray);
+            JsonArray.WriteTo(JsonText);
+            exit;
+        end;
+
+        GetEmptyResourceAsJson(JsonArray);
+        foreach ResNo in ResourceNos do begin
+            if Resource.Get(ResNo) then begin
+                JsonObject.Add('key', 'RES-' + Resource."No.");
+                JsonObject.Add('label', Resource.Name + ' (' + Resource."No." + ')');
+                JsonArray.Add(JsonObject);
+                Clear(JsonObject);
+            end;
+        end;
 
         JsonArray.WriteTo(JsonText);
     end;
