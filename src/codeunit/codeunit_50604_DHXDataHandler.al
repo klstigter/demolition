@@ -2369,7 +2369,7 @@ codeunit 50604 "DHX Data Handler"
 
     procedure ResScheduler_GetResourceColor(pResourceNo: Code[20]; pColorType: Text): Text
     var
-        ResColor: Record "Resource Color Opt.";
+        ResColor: Record "Planning Color Opt.";
         FallbackColors: array[4] of Text;
         ColorHash: Integer;
         i: Integer;
@@ -2379,7 +2379,7 @@ codeunit 50604 "DHX Data Handler"
         FallbackColors[2] := 'green';
         FallbackColors[3] := 'violet';
         FallbackColors[4] := 'yellow';
-        if ResColor.Get(pResourceNo) then begin
+        if ResColor.Get(ResColor.Type::Resource, pResourceNo, '', '') then begin
             case pColorType of
                 'daytask':
                     ColorValue := ResColor."Day Task";

@@ -79,6 +79,8 @@ codeunit 50613 "GanttChartDataHandler"
 
     local procedure CreateJobTaskJsonObject(JobTask: Record "Job Task") JsonObject: JsonObject
     var
+        Color: record "Planning Color Opt.";
+        ColorTxt: Text;
         StartDateText: Text;
         StartEndText: Text;
         ConstraintDateText: Text;
@@ -113,7 +115,19 @@ codeunit 50613 "GanttChartDataHandler"
         // if JobTask."Deadline Date" <> 0D then
         //     JsonObject.Add('deadline', FormatDate(JobTask."Deadline Date"));
 
-        JsonObject.Add('progress', JobTask."Progress");
+        JsonObject.Add('progress', JobTask."Progress" / 100); // Convert percentage to a value between 0 and 1
+
+        // TODO: Replace with a real color field from Job Task or a setup/color table.
+        // For now, send a dummy color so the Gantt task bar and progress fill are colored.
+        // When you have a "Color" field (e.g., Job."Color" or a Job Color setup), replace this line:
+        //   JsonObject.Add('color', Job."Color");
+        // The progressColor (darker shade) is automatically derived in JS from this value.
+        ColorTxt := '#3b8ef0';
+        if Color.Get(Color.Type::Task, JobTask."Job Task No.", JobTask."Job No.") then
+            if Color.Task <> '' then
+                ColorTxt := Color.Task;
+        JsonObject.Add('color', ColorTxt); // dummy: blue. Replace with real BC field later.
+
         JsonObject.Add('indentation', JobTask.Indentation);
         JsonObject.Add('bold', JobTask."Job Task Type" <> jobtask."Job Task Type"::Posting);
         IF JobTask."Job Task Type" <> JobTask."Job Task Type"::Posting THEN

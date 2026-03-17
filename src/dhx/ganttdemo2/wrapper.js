@@ -206,6 +206,40 @@ window.BOOT = function() {
       return task.schedulingType || "";
     };
 
+    // -------- PROGRESS TEXT ON TASK BAR --------
+    gantt.templates.progress_text = function (start, end, task) {
+      var p = task.progress || 0;
+      var pct = Math.round(p * 100);
+      return pct > 0 ? pct + "" : "";
+    };
+
+    // Normalize BC progress (0-100 → 0-1) and move color off task.color.
+    // IMPORTANT: do NOT set task.color here.
+    // When task.color is truthy, DHTMLX adds the gantt_task_inline_color CSS class and
+    // sets --dhx-gantt-task-background as an inline style on the outer wrapper.
+    // For project/parent tasks the auto_scheduling plugin creates TWO inner bars
+    // (gantt_task_line_planned + gantt_task_line_actual), both with a .gantt_project
+    // CSS class that re-declares --dhx-gantt-task-background → project-green.
+    // That conflict produces the striped appearance.
+    // Instead we store the color in task._bcColor and emit --bc-bar / --bc-prog
+    // via task_style, which DHTMLX never touches.
+    gantt.attachEvent("onTaskLoading", function (task) {
+      if (typeof task.progress === "number" && task.progress > 1) {
+        task.progress = Math.min(task.progress, 100) / 100;
+      }
+      // Use DHTMLX native task.color / task.progressColor.
+      // task.color  → DHTMLX sets --dhx-gantt-task-background as inline style on the outer wrapper.
+      // task.progressColor → DHTMLX sets style.backgroundColor directly on .gantt_task_progress.
+      if (!task.color) {
+        task.color = "#3b8ef0";
+      }
+      task.progressColor = _darkenHex(task.color, 0.60);
+      return true;
+    });
+
+    // -------- PROGRESS BAR ON TASK BARS --------
+    gantt.config.show_progress = true;
+
     // -------- WORK TIME --------
     gantt.config.work_time = true;
     gantt.config.min_column_width = 55;
@@ -240,7 +274,7 @@ window.BOOT = function() {
       { name: "text", tree: true, resize: false, width: 250, editor: textEditor },
       { name: "progress", label: "%", align: "center", resize: false, width: 60,
         editor: progressEditor,
-          template: function (task) { var p = task.progress || 0; return Math.round(p * 100) + "%";}          // DHTMLX uses 0..1 normally
+          template: function (task) { var p = task.progress || 0; return Math.round(p * 100) + "%"; }
       },
       { name: "start_date", align: "center", resize: false, width: 150, editor: dateEditor },
       { name: "duration", align: "center", resize: false, width: 80, editor: durationEditor },
@@ -595,10 +629,49 @@ window.BOOT = function() {
       document.head.appendChild(s);
     })();
 
-    // Optional debug red border on tasks
-    (function injectDebugCSS() {
+    // -------- BAR AND PROGRESS STYLING --------
+    // DHTMLX native rendering:
+    //   task.color      → DHTMLX sets --dhx-gantt-task-background as inline style on the outer wrapper div.
+    //   task.progressColor → DHTMLX calls el.style.backgroundColor = task.progressColor directly.
+    //
+    // Problem with project/parent tasks (auto_scheduling plugin):
+    //   DHTMLX renders TWO inner divs inside the outer wrapper:
+    //     .gantt_task_line_planned  (5px bracket bar)
+    //     .gantt_task_line_actual   (8px bar, opacity 0.3)
+    //   Both have the .gantt_project CSS class which RE-DECLARES
+    //   --dhx-gantt-task-background: var(--dhx-gantt-project-background) [green]
+    //   on the inner element itself → overrides inheritance from parent → stripes.
+    //
+    // Fix: force .gantt_task_line_actual to inherit the custom property from its
+    //   parent (where DHTMLX already set it via inline style from task.color).
+    //   CSS !important on custom properties works in all modern browsers.
+    (function injectBarCSS() {
       var s = document.createElement("style");
-      s.textContent = ".gantt_task_bar{ border:2px solid red !important; }";
+      s.textContent = [
+        /* ── Project/parent task solid-bar fix ─────────────────────────────── */
+        /* Hide the thin 5px bracket bar */
+        ".gantt_task_line_planned { display: none !important; }",
+
+        /* Make the actual bar full-height, fully opaque, and inherit the color
+           the outer wrapper already has set as inline style via task.color */
+        ".gantt_task_line.gantt_task_line_actual {",
+        "  opacity: 1 !important;",
+        "  top: 0 !important;",
+        "  height: 100% !important;",
+        "  --dhx-gantt-task-background: inherit !important;",
+        "}",
+
+        /* ── Progress fill cosmetics ────────────────────────────────────────── */
+        /* task.progressColor is applied by DHTMLX via el.style.backgroundColor */
+        /* Thin white separator at progress boundary */
+        ".gantt_task_progress { border-right: 2px solid rgba(255,255,255,0.55); box-sizing: border-box; }",
+
+        /* Clip fill inside bar corners */
+        ".gantt_task_progress_wrapper { overflow: hidden; border-radius: inherit; height: 100%; }",
+
+        /* Drag handle */
+        ".gantt_task_progress_drag { background: rgba(255,255,255,0.90); width: 6px; border-radius: 2px; bottom: 4px; margin-left: -3px; box-shadow: 0 0 3px rgba(0,0,0,0.45); }"
+      ].join("\n");
       document.head.appendChild(s);
     })();
 
@@ -843,6 +916,33 @@ function _tryParseJson(txt) {
 
 function _normalizeId(obj) {
   return obj?.id ?? obj?.Id ?? obj?.task_id ?? obj?.TaskId ?? obj?.link_id ?? obj?.LinkId ?? null;
+}
+
+// Darkens a hex/rgb color string by the given factor (0=black, 1=original)
+function _darkenHex(color, factor) {
+  try {
+    // Handle rgb(...) or rgba(...)
+    var rgbMatch = String(color).match(/rgba?\((\d+)[,\s]+(\d+)[,\s]+(\d+)/);
+    var r, g, b;
+    if (rgbMatch) {
+      r = parseInt(rgbMatch[1], 10);
+      g = parseInt(rgbMatch[2], 10);
+      b = parseInt(rgbMatch[3], 10);
+    } else {
+      // Handle hex
+      var c = String(color).replace("#", "");
+      if (c.length === 3) c = c[0]+c[0]+c[1]+c[1]+c[2]+c[2];
+      r = parseInt(c.substr(0, 2), 16);
+      g = parseInt(c.substr(2, 2), 16);
+      b = parseInt(c.substr(4, 2), 16);
+    }
+    r = Math.round(r * factor);
+    g = Math.round(g * factor);
+    b = Math.round(b * factor);
+    return "rgb(" + r + "," + g + "," + b + ")";
+  } catch (e) {
+    return "rgba(0,0,0,0.45)";
+  }
 }
 
 // Converts incoming date values to a JS Date using your gantt.config.date_format (%d-%m-%Y)

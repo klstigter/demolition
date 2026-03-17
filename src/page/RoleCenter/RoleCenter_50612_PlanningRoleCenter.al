@@ -170,7 +170,7 @@ page 50612 "Planning Role Center"
                     Caption = 'Resource Color';
                     Image = Setup;
                     ApplicationArea = All;
-                    RunObject = page "Resource Color opt";
+                    RunObject = page "Planning Color opt";
                 }
 
             }
