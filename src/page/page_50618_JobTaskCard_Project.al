@@ -935,7 +935,9 @@ page 50618 "Opti Job Task Card"
                 actionref(DayTasksCreation_Promoted; DayTasksCreation)
                 {
                 }
-
+                actionref(DayTasks_Promoted; DayTasks)
+                {
+                }
             }
             group(Category_Category8)
             {

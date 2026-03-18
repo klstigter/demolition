@@ -10,7 +10,7 @@ pageextension 50603 "Opt ResourceList" extends "Resource List"
         // Add changes to page actions here
         addafter("&Prices")
         {
-            action("Day Tasks (Visual)")
+            action("Schedule (Visual)")
             {
                 ApplicationArea = All;
                 trigger OnAction()
@@ -21,10 +21,22 @@ pageextension 50603 "Opt ResourceList" extends "Resource List"
                     ResScheduler.RunModal();
                 end;
             }
+            action("Daytasks (Visual)")
+            {
+                ApplicationArea = All;
+                trigger OnAction()
+                var
+                    DaytaskScheduler: page "DHX Scheduler (Project)";
+                begin
+                    DaytaskScheduler.SetResourceFilter(GetSelectionFilter());
+                    DaytaskScheduler.RunModal();
+                end;
+            }
         }
         addafter("Units of Measure_Promoted")
         {
-            actionref("Day Tasks (Visual) actionref"; "Day Tasks (Visual)") { }
+            actionref("Schedule (Visual) actionref"; "Schedule (Visual)") { }
+            actionref("Daytasks (Visual) actionref"; "Daytasks (Visual)") { }
         }
     }
 
