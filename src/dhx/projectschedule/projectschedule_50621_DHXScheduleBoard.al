@@ -25,7 +25,7 @@ page 50621 "DHX Scheduler (Project)"
                 begin
                     //DHXDataHandler.GetOneYearPeriodDates(Today(), startDate, endDate);
                     DHXDataHandler.GetWeekPeriodDates(Today(), startDate, endDate);
-                    ResourceJSONTxt := DHXDataHandler.GetYUnitElementsJSON_Project(Today(), startDate, endDate, PlanninJsonTxt, EarliestPlanningDate);
+                    ResourceJSONTxt := DHXDataHandler.GetYUnitElementsJSON_Project(Today(), startDate, endDate, ResourceFilter, PlanninJsonTxt, EarliestPlanningDate);
                     CurrPage.DhxScheduler.Init(ResourceJSONTxt, EarliestPlanningDate);
                     CurrPage.DhxScheduler.LoadData(PlanninJsonTxt);
                     AnchorDate := startDate;
@@ -40,10 +40,8 @@ page 50621 "DHX Scheduler (Project)"
                     DHXDataHandler: Codeunit "DHX Data Handler";
                     PossibleChanges: Boolean;
                     newEventData: Text;
-                    StartDate: Date;
                 begin
-                    //DHXDataHandler.OpenJobPlanningLineCard(sectionId, SectionData, StartDate);
-                    AnchorDate := StartDate;
+                    DHXDataHandler.OpenJobTaskCard(sectionId);
                     RefreshSchedule();
                 end;
 
@@ -144,7 +142,7 @@ page 50621 "DHX Scheduler (Project)"
                     StartDate: Date;
                     EndDate: Date;
                 begin
-                    if DHXDataHandler.GetDayTaskAsResourcesAndEventsJSon_Project(NavigateJson, ResourceJSONTxt, EventsJsonTxt) then begin
+                    if DHXDataHandler.GetDayTaskAsResourcesAndEventsJSon_Project(NavigateJson, ResourceFilter, ResourceJSONTxt, EventsJsonTxt) then begin
                         DHXDataHandler.GetStartEndDatesFromTimeLineJSon(NavigateJson, startDate, endDate);
                         CurrPage.DhxScheduler.RefreshTimeline(ResourceJSONTxt, EventsJsonTxt, startDate); //TODO: pass resourcesJson and eventsJson
                         AnchorDate := startDate;
@@ -242,6 +240,7 @@ page 50621 "DHX Scheduler (Project)"
         DHXDataHandler: Codeunit "DHX Data Handler";
         ShowDefaultTabs: Boolean;
         AnchorDate: Date;
+        ResourceFilter: Text;
 
     local procedure RefreshSchedule()
     var
@@ -255,10 +254,16 @@ page 50621 "DHX Scheduler (Project)"
         DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
         DHXDataHandler.GetDayTaskAsResourcesAndEventsJSon_Project_StartEnd(startDate,
                                                                       endDate,
+                                                                      ResourceFilter,
                                                                       ResourceJSONTxt,
                                                                       EventsJsonTxt,
                                                                       EarliestPlanningDate);
         CurrPage.DhxScheduler.RefreshTimeline(ResourceJSONTxt, EventsJsonTxt, startDate);
+    end;
+
+    procedure SetResourceFilter(pResourceFilter: Text)
+    begin
+        ResourceFilter := pResourceFilter;
     end;
 
 }

@@ -50,12 +50,13 @@ codeunit 50604 "DHX Data Handler"
     procedure GetYUnitElementsJSON_Project(AnchorDate: Date;
                                    StartDate: Date;
                                    EndDate: Date;
+                                   ResourceFilter: Text;
                                    var PlanninJsonTxt: Text;
                                    var EarliestPlanningDate: Date): Text
     var
         Jobs: Record Job;
         JobTasks: Record "Job Task";
-        PlanningLine: Record "Job Task";
+        //PlanningLine: Record "Job Task";
         Daytask: Record "Day Tasks";
         WeekTemp: record "Aging Band Buffer" temporary;
         Resource: record Resource;
@@ -81,6 +82,8 @@ codeunit 50604 "DHX Data Handler"
         Daytask.SetRange("Task Date", StartDate, EndDate);
         Daytask.SetFilter("Job No.", '<>%1', ''); //Exclude blank Job Nos
         Daytask.SetFilter("Job Task No.", '<>%1', ''); //Exclude blank task Nos
+        if ResourceFilter <> '' then
+            Daytask.Setfilter("No.", ResourceFilter);
         //Daytask.SetRange(Type, Daytask.Type::Resource);
         if Daytask.FindSet() then begin
             repeat
@@ -186,20 +189,20 @@ codeunit 50604 "DHX Data Handler"
                         TaskObject.Add('open', true);
                         ChildrenArray.Add(TaskObject);
 
-                        // Now add children for this task (the Day Tasks)                        
-                        Clear(ChildrenArray2);
-                        PlanningLine.SetRange("Job No.", Jobs."No.");
-                        PlanningLine.SetRange("Job Task No.", JobTasks."Job Task No.");
-                        if PlanningLine.FindSet() then begin
-                            repeat
-                                Clear(PlanningLineObject);
-                                PlanningLineObject.Add('key', Jobs."No." + '|' + JobTasks."Job Task No.");
-                                PlanningLineObject.Add('label', PlanningLine.Description);
-                                PlanningLineObject.Add('open', true);
-                                ChildrenArray2.Add(PlanningLineObject);
-                            until PlanningLine.Next() = 0;
-                        end;
-                        TaskObject.Add('children', ChildrenArray2);
+                    // // Now add children for this task (the Day Tasks)                        
+                    // Clear(ChildrenArray2);
+                    // PlanningLine.SetRange("Job No.", Jobs."No.");
+                    // PlanningLine.SetRange("Job Task No.", JobTasks."Job Task No.");
+                    // if PlanningLine.FindSet() then begin
+                    //     repeat
+                    //         Clear(PlanningLineObject);
+                    //         PlanningLineObject.Add('key', Jobs."No." + '|' + JobTasks."Job Task No.");
+                    //         PlanningLineObject.Add('label', PlanningLine.Description);
+                    //         PlanningLineObject.Add('open', true);
+                    //         ChildrenArray2.Add(PlanningLineObject);
+                    //     until PlanningLine.Next() = 0;
+                    // end;
+                    // TaskObject.Add('children', ChildrenArray2);
                     until JobTasks.Next() = 0;
                 end;
                 JobObject.Add('children', ChildrenArray);
@@ -1425,7 +1428,7 @@ codeunit 50604 "DHX Data Handler"
         EventIDList: List of [Text];
         JobNo: Code[20];
         TaskNo: Code[20];
-        PlanningLineNo: Integer;
+        //PlanningLineNo: Integer;
         TaskDay: Date;
         DayLineNo: Integer;
         DateOfDayTask: Date;
@@ -1434,9 +1437,8 @@ codeunit 50604 "DHX Data Handler"
         EventIDList := eventId.Split('|');
         JobNo := EventIDList.Get(1);
         TaskNo := EventIDList.Get(2);
-        Evaluate(PlanningLineNo, EventIDList.Get(3));
-        Evaluate(TaskDay, EventIDList.Get(4));
-        Evaluate(DayLineNo, EventIDList.Get(5));
+        Evaluate(TaskDay, EventIDList.Get(3));
+        Evaluate(DayLineNo, EventIDList.Get(4));
         DayTask.SetRange("Task Date", TaskDay);
         //DayTask.SetRange("DayLineNo", DayLineNo);
         DayTask.SetRange("Job No.", JobNo);
@@ -1514,7 +1516,7 @@ codeunit 50604 "DHX Data Handler"
         EndDate := DT2Date(_DateTimeUserZone);
     end;
 
-    procedure GetDayTaskAsResourcesAndEventsJSon_Project(TimeLineJSon: Text; var ResouecesJSon: Text; var EventsJSon: Text): Boolean
+    procedure GetDayTaskAsResourcesAndEventsJSon_Project(TimeLineJSon: Text; ResourceFilter: Text; var ResouecesJSon: Text; var EventsJSon: Text): Boolean
     var
         StartDate: Date;
         EndDate: Date;
@@ -1529,13 +1531,19 @@ codeunit 50604 "DHX Data Handler"
         GetStartEndDatesFromTimeLineJSon(TimeLineJSon, StartDate, EndDate);
         Rtv := GetDayTaskAsResourcesAndEventsJSon_Project_StartEnd(StartDate,
                                                             EndDate,
+                                                            ResourceFilter,
                                                             ResouecesJSon,
                                                             EventsJSon,
                                                             EarliestPlanningDate);
         exit(Rtv);
     end;
 
-    procedure GetDayTaskAsResourcesAndEventsJSon_Project_StartEnd(StartDate: Date; EndDate: Date; var ResouecesJSon: Text; var EventsJSon: Text; var EarliestPlanningDate: date): Boolean
+    procedure GetDayTaskAsResourcesAndEventsJSon_Project_StartEnd(StartDate: Date;
+                                                                  EndDate: Date;
+                                                                  ResourceFilter: Text;
+                                                                  var ResouecesJSon: Text;
+                                                                  var EventsJSon: Text;
+                                                                  var EarliestPlanningDate: date): Boolean
     var
         TimeLineJSonObj: JsonObject;
         JToken: JsonToken;
@@ -1545,6 +1553,7 @@ codeunit 50604 "DHX Data Handler"
         ResouecesJSon := GetYUnitElementsJSON_Project(StartDate,
                                             StartDate,
                                             EndDate,
+                                            ResourceFilter,
                                             EventsJSon,
                                             EarliestPlanningDate);
         exit((EventsJSon <> '') and (ResouecesJSon <> ''));
@@ -2524,4 +2533,17 @@ codeunit 50604 "DHX Data Handler"
         exit(Result);
     end;
 
+    procedure OpenJobTaskCard(sectionId: Text)
+    var
+        JobTask: Record "Job Task";
+        EventIdParts: List of [Text];
+        JobNo: Code[20];
+        TaskNo: Code[20];
+    begin
+        EventIdParts := sectionId.Split('|');
+        JobNo := EventIdParts.Get(1);
+        TaskNo := EventIdParts.Get(2);
+        JobTask.Get(JobNo, TaskNo);
+        PAGE.Run(PAGE::"Opti Job Task Card", JobTask);
+    end;
 }

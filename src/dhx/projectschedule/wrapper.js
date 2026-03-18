@@ -146,12 +146,11 @@ window.BOOT = function() {
     scheduler.templates.tooltip_text = function(start, end, ev) {
         var formatDateOnly = scheduler.date.date_to_str("%d-%m-%Y");
         var formatTimeOnly = scheduler.date.date_to_str("%H:%i");
-        // Parse event ID: "JobNo|JobTaskNo|PlanningLineNo|DayNo|DayLineNo"
+        // Parse event ID: "JobNo|JobTaskNo|DayNo|DayLineNo"
         var dayNo = "";
         var dayLineNo = "";
         var jobNo = "";
         var jobTaskNo = "";
-        var planningLineNo = "";
         var resno = "";
         var resname = "";
         var vendorname = ev.details || "";
@@ -161,11 +160,10 @@ window.BOOT = function() {
             if (parts.length >= 5) {
                 jobNo = parts[0] || "";
                 jobTaskNo = parts[1] || "";
-                planningLineNo = parts[2] || "";
-                dayNo = parts[3] || "";
-                dayLineNo = parts[4] || "";
-                resno = parts[5] || "";
-                resname = parts[6] || "";
+                dayNo = parts[2] || "";
+                dayLineNo = parts[3] || "";
+                resno = parts[4] || "";
+                resname = parts[5] || "";
             }
         }
         
@@ -179,7 +177,6 @@ window.BOOT = function() {
                    "<b>Daylineno:</b> " + dayLineNo + "<br/>" +
                 //    "<b>Project No.:</b> " + jobNo + "<br/>" +
                 //    "<b>Task No.:</b> " + jobTaskNo + "<br/>" +
-                //    "<b>Planning Line No.:</b> " + planningLineNo + "<br/>" +
                    "<b>Resource No.:</b> " + resno + "<br/>" +
                    "<b>Resource Name:</b> " + resname + "<br/>" + 
                    "<b>Vendor:</b> " + vendorname;
@@ -771,7 +768,7 @@ function RefreshTimeline(resourcesJson, eventsJson, dateAnchor) {
     console.log("eventsJson:", eventsJson);
 
     try {
-        debugger;
+        //debugger;
         // 1) Parse and update sections (y_unit)
         var resources = ParseJSonTxt(resourcesJson);
         var sections = (resources && Array.isArray(resources.data)) ? resources.data : [];
