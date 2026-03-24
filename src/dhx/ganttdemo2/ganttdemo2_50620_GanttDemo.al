@@ -111,6 +111,40 @@ page 50620 "Gantt Demo DHX 2"
                     Page.Run(Page::"Day Tasks", DayTask);
                 end;
 
+                trigger onOpenDayTaskVisual(taskId: Text; eventData: Text)
+                var
+                    JsonObj: JsonObject;
+                    JsonToken: JsonToken;
+                    JobNo: Code[20];
+                    JobTaskNo: Code[20];
+                    DayTask: Record "Day Tasks";
+                    EventIDList: List of [Text];
+                    DaytaskScheduler: page "DHX Scheduler (Project)";
+                begin
+                    // Parse bcJobNo / bcJobTaskNo from eventData JSON
+                    if JsonObj.ReadFrom(eventData) then begin
+                        if JsonObj.Get('bcJobNo', JsonToken) then
+                            JobNo := CopyStr(JsonToken.AsValue().AsText(), 1, MaxStrLen(JobNo));
+                        if JsonObj.Get('bcJobTaskNo', JsonToken) then
+                            JobTaskNo := CopyStr(JsonToken.AsValue().AsText(), 1, MaxStrLen(JobTaskNo));
+                    end;
+
+                    // Fallback: try splitting legacy id format "JobNo|JobTaskNo"
+                    if (JobNo = '') and taskId.Contains('|') then begin
+                        EventIDList := taskId.Split('|');
+                        JobNo := CopyStr(EventIDList.Get(1), 1, MaxStrLen(JobNo));
+                        JobTaskNo := CopyStr(EventIDList.Get(2), 1, MaxStrLen(JobTaskNo));
+                    end;
+
+                    if JobNo <> '' then
+                        DayTask.SetRange("Job No.", JobNo);
+                    if JobTaskNo <> '' then
+                        DayTask.SetRange("Job Task No.", JobTaskNo);
+
+                    DaytaskScheduler.SetJobTaskFilter(JobNo, JobTaskNo);
+                    DaytaskScheduler.RunModal();
+                end;
+
                 trigger OnJobTaskUpdated(eventData: Text)
                 var
                     GantUpdatedata: Codeunit "Gantt Update Data";

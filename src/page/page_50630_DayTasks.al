@@ -66,10 +66,17 @@ page 50630 "Day Tasks"
                     Editable = true;
                     StyleExpr = StyleStr;
                 }
-                field("Total Requested Hours"; TotAssignedHours)
+                field("Requested Hours"; Rec."Requested Hours")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the total number of requested hours for this day task, calculated automatically based on all related day tasks.';
+                    ToolTip = 'Specifies the number of requested hours for this day task, calculated automatically based on start and end times.';
+                    Editable = false;
+                    StyleExpr = StyleStr;
+                }
+                field("Total Assigned Hours"; TotAssignedHours)
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the total number of assigned hours for this day task, calculated automatically based on all related day tasks.';
                     Editable = false;
                     StyleExpr = StyleStr;
                     trigger OnDrillDown()

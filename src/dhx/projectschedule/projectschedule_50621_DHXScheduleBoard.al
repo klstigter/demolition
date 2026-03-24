@@ -241,6 +241,8 @@ page 50621 "DHX Scheduler (Project)"
         ShowDefaultTabs: Boolean;
         AnchorDate: Date;
         ResourceFilter: Text;
+        jobFilter: Text;
+        JobTaskFilter: Text;
 
     local procedure RefreshSchedule()
     var
@@ -252,18 +254,33 @@ page 50621 "DHX Scheduler (Project)"
         EarliestPlanningDate: Date;
     begin
         DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
-        DHXDataHandler.GetDayTaskAsResourcesAndEventsJSon_Project_StartEnd(startDate,
-                                                                      endDate,
-                                                                      ResourceFilter,
-                                                                      ResourceJSONTxt,
-                                                                      EventsJsonTxt,
-                                                                      EarliestPlanningDate);
+        if jobFilter <> '' then
+            DHXDataHandler.GetDayTaskAsResourcesAndEventsJSon_Project_StartEnd(startDate,
+                                                                          endDate,
+                                                                          jobFilter,
+                                                                          JobTaskFilter,
+                                                                          ResourceJSONTxt,
+                                                                          EventsJsonTxt,
+                                                                          EarliestPlanningDate)
+        else
+            DHXDataHandler.GetDayTaskAsResourcesAndEventsJSon_Project_StartEnd(startDate,
+                                                                          endDate,
+                                                                          ResourceFilter,
+                                                                          ResourceJSONTxt,
+                                                                          EventsJsonTxt,
+                                                                          EarliestPlanningDate);
         CurrPage.DhxScheduler.RefreshTimeline(ResourceJSONTxt, EventsJsonTxt, startDate);
     end;
 
     procedure SetResourceFilter(pResourceFilter: Text)
     begin
         ResourceFilter := pResourceFilter;
+    end;
+
+    procedure SetJobTaskFilter(pJobFilter: Text; pJobTaskFilter: Text)
+    begin
+        jobFilter := pJobFilter;
+        JobTaskFilter := pJobTaskFilter;
     end;
 
 }

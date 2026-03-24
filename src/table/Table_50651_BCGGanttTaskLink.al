@@ -13,10 +13,25 @@ table 50651 "BCG Gantt Task Link"
         field(2; "Source Task No."; Code[20])
         {
             Caption = 'Source Task No.'; // Predecessor
+            TableRelation = "Job Task"."Job Task No." where("Job No." = field("Job No."));
         }
         field(3; "Target Task No."; Code[20])
         {
             Caption = 'Target Task No.'; // Successor
+            TableRelation = "Job Task"."Job Task No." where("Job No." = field("Job No."));
+            trigger OnLookup()
+            var
+                JobTask: Record "Job Task";
+                JobTaskLookupPage: Page "Job Task List - Project";
+            begin
+                JobTask.setrange("Job No.", Rec."Job No.");
+                JobTaskLookupPage.SetRecord(JobTask);
+                JobTaskLookupPage.SetTableView(JobTask);
+                if JobTaskLookupPage.RunModal() = Action::OK then begin
+                    JobTaskLookupPage.GetRecord("JobTask");
+                    Rec."Target Task No." := JobTask."Job Task No.";
+                end;
+            end;
         }
         field(4; "Link Type"; Enum "BCG Gantt Link Type")
         {

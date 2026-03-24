@@ -396,8 +396,10 @@ window.BOOT = function() {
 
       var items = [
         { label: "Show Resources", icon: "👥", cls: "ctx-show-resources" },
+        { sep: true },
         { label: "Open Task",      icon: "📋", cls: "ctx-open-task" },
         { label: "Open DayTask",   icon: "📅", cls: "ctx-open-daytask" },
+        { label: "Open DayTask Visual",   icon: "📅", cls: "ctx-open-daytaskvisual" },
         { sep: true },
         { label: "Cancel",         icon: "✕",  cls: "ctx-cancel" }
       ];
@@ -418,6 +420,7 @@ window.BOOT = function() {
           if (item.cls === "ctx-show-resources") _ctxShowResources(taskId);
           if (item.cls === "ctx-open-task")      _ctxOpenTask(taskId);
           if (item.cls === "ctx-open-daytask")   _ctxOpenDayTask(taskId);
+          if (item.cls === "ctx-open-daytaskvisual")   _ctxOpenDayTaskVisual(taskId);
           // cancel: just close
         });
         menu.appendChild(el);
@@ -505,6 +508,26 @@ window.BOOT = function() {
       }
     }
 
+        // Open DayTask — BC event for day-task card
+    function _ctxOpenDayTaskVisual(id) {
+      try {
+        var task = gantt.getTask(id);
+        var eventData = {
+          id: id,
+          bcJobNo: task.bcJobNo || "",
+          bcJobTaskNo: task.bcJobTaskNo || "",
+          bcRecordId: task.bcRecordId || "",
+          bcTableNo: task.bcTableNo || "",
+          bcDocumentNo: task.bcDocumentNo || ""
+        };
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("onOpenDayTaskVisual", [
+          String(id),
+          JSON.stringify(eventData)
+        ]);
+      } catch (e) {
+        console.error("_ctxOpenDayTaskVisual failed:", e);
+      }
+    }
     // Attach right-click event
     gantt.attachEvent("onContextMenu", function(id, linkId, e) {
       if (!id) return false; // no task clicked — let browser default

@@ -649,16 +649,22 @@ page 50618 "Opti Job Task Card"
 
         area(factboxes)
         {
+            part(JobInformation; "Job Information FactBox")
+            {
+                ApplicationArea = Jobs;
+                SubPageLink = "Job No." = field("Job No.");
+            }
             part(ResourceSummaryFactbox; "Resource Summary FactBox")
             {
                 ApplicationArea = Jobs;
                 Caption = 'Resource Summary';
 
             }
-            part(JobInformation; "Job Information FactBox")
+            part(TaskLinkFactbox; "Task Link Factbox")
             {
                 ApplicationArea = Jobs;
-                SubPageLink = "Job No." = field("Job No.");
+                SubPageLink = "Job No." = field("Job No."),
+                              "Source Task No." = field("Job Task No.");
             }
             systempart(Control1900383207; Links)
             {
@@ -728,6 +734,20 @@ page 50618 "Opti Job Task Card"
                     ResourcePage.Run();
                 end;
             }
+            action("DaytasksVisual")
+            {
+                ApplicationArea = All;
+                Image = HumanResources;
+                trigger OnAction()
+                var
+                    DaytaskScheduler: page "DHX Scheduler (Project)";
+                begin
+                    DaytaskScheduler.SetJobTaskFilter(Rec."Job No.", Rec."Job Task No.");
+                    DaytaskScheduler.RunModal();
+                end;
+            }
+
+
             action(ResourcesSummary)
             {
                 ApplicationArea = All;
@@ -938,6 +958,10 @@ page 50618 "Opti Job Task Card"
                 actionref(DayTasks_Promoted; DayTasks)
                 {
                 }
+                actionref(DayTaskVisual_Promoted; DayTasksVisual)
+                {
+                }
+
             }
             group(Category_Category8)
             {

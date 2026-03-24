@@ -54,8 +54,36 @@ codeunit 50604 "DHX Data Handler"
                                    var PlanninJsonTxt: Text;
                                    var EarliestPlanningDate: Date): Text
     var
-        Jobs: Record Job;
+        dummyTxt: text;
+    begin
+        exit(GetYUnitElementsJSON_Project(AnchorDate, StartDate, EndDate, ResourceFilter, dummyTxt, dummyTxt, PlanninJsonTxt, EarliestPlanningDate));
+    end;
+
+    procedure GetYUnitElementsJSON_Project(AnchorDate: Date;
+                               StartDate: Date;
+                               EndDate: Date;
+                               JobFilter: Text;
+                               JobTaskFilter: Text;
+                               var PlanninJsonTxt: Text;
+                               var EarliestPlanningDate: Date): Text
+    var
+        dummyTxt: text;
+
+    begin
+        exit(GetYUnitElementsJSON_Project(AnchorDate, StartDate, EndDate, dummyTxt, JobFilter, JobTaskFilter, PlanninJsonTxt, EarliestPlanningDate));
+    end;
+
+    procedure GetYUnitElementsJSON_Project(AnchorDate: Date;
+                                   StartDate: Date;
+                                   EndDate: Date;
+                                   ResourceFilter: Text;
+                                   JobFilter: Text;
+                                   JobTaskFilter: Text;
+                                   var PlanninJsonTxt: Text;
+                                   var EarliestPlanningDate: Date): Text
+    var
         JobTasks: Record "Job Task";
+        TEMPJobTasks: Record "Job Task" temporary;
         //PlanningLine: Record "Job Task";
         Daytask: Record "Day Tasks";
         WeekTemp: record "Aging Band Buffer" temporary;
@@ -80,18 +108,25 @@ codeunit 50604 "DHX Data Handler"
         //Marking Job based on Day Tasks within the given date range
         Daytask.SetCurrentKey("Task Date", "Start Time");
         Daytask.SetRange("Task Date", StartDate, EndDate);
-        Daytask.SetFilter("Job No.", '<>%1', ''); //Exclude blank Job Nos
-        Daytask.SetFilter("Job Task No.", '<>%1', ''); //Exclude blank task Nos
+        if JobFilter <> '' then
+            Daytask.SetFilter("Job No.", JobFilter)
+        else
+            Daytask.SetFilter("Job No.", '<>%1', ''); //Exclude blank Job Nos
+        if jobTaskFilter <> '' then
+            Daytask.SetFilter("Job Task No.", jobTaskFilter)
+        else
+            Daytask.SetFilter("Job Task No.", '<>%1', ''); //Exclude blank task Nos
         if ResourceFilter <> '' then
             Daytask.Setfilter("No.", ResourceFilter);
         //Daytask.SetRange(Type, Daytask.Type::Resource);
         if Daytask.FindSet() then begin
             repeat
-                Jobs.Get(Daytask."Job No.");
-                Jobs.Mark(true);
-
                 JobTasks.Get(Daytask."Job No.", Daytask."Job Task No.");
-                JobTasks.Mark(true);
+                TEMPJobTasks := JobTasks;
+                if not tempjobtasks.get(jobTasks."Job No.", jobTasks."Job Task No.") then begin
+                    TEMPJobTasks.insert();
+                    GetParentTasks(TEMPJobTasks);
+                end;
 
                 // resource data
                 clear(Resource);
@@ -167,47 +202,31 @@ codeunit 50604 "DHX Data Handler"
         end else
             EarliestPlanningDate := Today();
 
-        JobTasks.MarkedOnly := true;
-        Jobs.MarkedOnly := true;
-        if Jobs.FindSet() then begin
+        if TEMPJobTasks.FindSet() then begin
             Clear(DataArray);
             repeat
-                JobTasks.SetRange("Job No.", Jobs."No.");
-                JobTasks.SetRange("Job Task Type", JobTasks."Job Task Type"::Posting);
-
                 Clear(JobObject);
-                JobObject.Add('key', Jobs."No."); // string keys are fine
-                JobObject.Add('label', StrSubstNo('%1 - %2', Jobs."No.", Jobs.Description));
+                JobObject.Add('key', TEMPJobTasks."job No."); // string keys are fine
+                JobObject.Add('label', StrSubstNo('%1 - %2', TEMPJobTasks."Job Task No.", TEMPJobTasks.Description));
                 JobObject.Add('open', true);
 
                 Clear(ChildrenArray);
-                if JobTasks.FindSet() then begin
-                    repeat
-                        Clear(TaskObject);
-                        TaskObject.Add('key', Jobs."No." + '|' + JobTasks."Job Task No.");
-                        TaskObject.Add('label', StrSubstNo('%1 - %2', JobTasks."Job Task No.", JobTasks.Description));
-                        TaskObject.Add('open', true);
-                        ChildrenArray.Add(TaskObject);
-
-                    // // Now add children for this task (the Day Tasks)                        
-                    // Clear(ChildrenArray2);
-                    // PlanningLine.SetRange("Job No.", Jobs."No.");
-                    // PlanningLine.SetRange("Job Task No.", JobTasks."Job Task No.");
-                    // if PlanningLine.FindSet() then begin
-                    //     repeat
-                    //         Clear(PlanningLineObject);
-                    //         PlanningLineObject.Add('key', Jobs."No." + '|' + JobTasks."Job Task No.");
-                    //         PlanningLineObject.Add('label', PlanningLine.Description);
-                    //         PlanningLineObject.Add('open', true);
-                    //         ChildrenArray2.Add(PlanningLineObject);
-                    //     until PlanningLine.Next() = 0;
-                    // end;
-                    // TaskObject.Add('children', ChildrenArray2);
-                    until JobTasks.Next() = 0;
+                //if TEMPJobTasks.FindSet() then begin
+                //    repeat
+                if tempJobTasks."Job Task Type" = tempJobTasks."Job Task Type"::Posting then begin
+                    Clear(TaskObject);
+                    TaskObject.Add('key', TEMPJobTasks."job No." + '|' + TEMPJobTasks."Job Task No.");
+                    TaskObject.Add('label', StrSubstNo('%1 - %2', TEMPJobTasks."Job Task No.", TEMPJobTasks.Description));
+                    TaskObject.Add('open', true);
+                    ChildrenArray.Add(TaskObject);
+                    TaskObject.Add('children', ChildrenArray2);
                 end;
+                //    until TEMPJobTasks.Next() = 0;
+                //end;
+
                 JobObject.Add('children', ChildrenArray);
                 DataArray.Add(JobObject);
-            until Jobs.Next() = 0;
+            until TEMPJobTasks.Next() = 0;
             Clear(Root);
             Root.Add('data', DataArray);
 
@@ -216,6 +235,26 @@ codeunit 50604 "DHX Data Handler"
             exit(OutText);
         end;
         exit('');
+    end;
+
+    local procedure GetParentTasks(var TEMPJobTasks: Record "Job Task" temporary)
+    var
+        jobTasks: Record "Job Task";
+    begin
+        if TEMPJobTasks.Indentation > 0 then begin
+            jobtasks.setrange("Job No.", tempJobTasks."Job No.");
+            jobtasks.setfilter("Job Task Type", '<>%1', jobTasks."Job Task Type"::Posting);
+            jobtasks.setfilter(jobtasks."Job Task No.", '<%1', TEMPJobTasks."Job Task No.");
+            jobtasks.setrange("Indentation", 0, TEMPJobTasks.Indentation - 1);
+            if jobtasks.findlast then
+                if not TempJobTasks.Get(jobTasks."Job No.", jobTasks."Job Task No.") then begin
+                    TEMPJobTasks := jobtasks;
+                    TEMPJobTasks.Insert();
+                    if tempJobTasks.Indentation > 0 then
+                        GetParentTasks(TEMPJobTasks);
+                end;
+        end
+
     end;
 
     local procedure GetVendorNoFromDayTask(FromDate: Date; ToDate: Date; ResNo: Code[20]): Text
@@ -1559,6 +1598,28 @@ codeunit 50604 "DHX Data Handler"
         exit((EventsJSon <> '') and (ResouecesJSon <> ''));
     end;
 
+    procedure GetDayTaskAsResourcesAndEventsJSon_Project_StartEnd(StartDate: Date;
+                                                                  EndDate: Date;
+                                                                  JobFilter: Text;
+                                                                  JobTaskFilter: Text;
+                                                                  var ResouecesJSon: Text;
+                                                                  var EventsJSon: Text;
+                                                                  var EarliestPlanningDate: date): Boolean
+    var
+        TimeLineJSonObj: JsonObject;
+        JToken: JsonToken;
+        _DateTime: DateTime;
+        _DateTimeUserZone: DateTime;
+    begin
+        ResouecesJSon := GetYUnitElementsJSON_Project(StartDate,
+                                            StartDate,
+                                            EndDate,
+                                            JobFilter,
+                                            JobTaskFilter,
+                                            EventsJSon,
+                                            EarliestPlanningDate);
+        exit((EventsJSon <> '') and (ResouecesJSon <> ''));
+    end;
 
     procedure GetDayTaskAsResourcesAndEventsJSon_Resource(TimeLineJSon: Text;
                                                           WithDayTask: Boolean;

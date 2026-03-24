@@ -47,8 +47,8 @@
             "request": "attach",
             "type": "al",
             "environmentType": "Sandbox",
-            "environmentName": "NL_Test",
-            "sessionId": 38119,
+            "environmentName": "NL_Copy20240710",
+            "sessionId": 6417,
             "breakOnNext": "WebClient",
             "breakOnError": "ExcludeTry",
             "tenant": "a60762e1-df10-4e4b-8f44-174c51589110"

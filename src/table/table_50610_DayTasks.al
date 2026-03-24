@@ -309,7 +309,6 @@ table 50610 "Day Tasks"
         {
             Caption = 'Requested Hours';
             DecimalPlaces = 0 : 2;
-            Editable = false;
             BlankZero = true;
         }
 

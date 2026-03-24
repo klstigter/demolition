@@ -136,6 +136,8 @@ table 50612 "Resource Weekly Hours"
         DayIndex: Integer;
         YearValue: Integer;
         WeekNoValue: Integer;
+        i, n : integer;
+        DoInsert: Boolean;
     begin
         // Clear existing records
         Reset();
@@ -148,7 +150,6 @@ table 50612 "Resource Weekly Hours"
         DayTask.SetRange("Job No.", JobNo);
         DayTask.SetRange("Job Task No.", JobTaskNo);
 
-
         if not DayTask.FindSet() then
             exit;
 
@@ -158,66 +159,36 @@ table 50612 "Resource Weekly Hours"
             WeekNoValue := Date2DWY(DayTask."Task Date", 2);
             DayIndex := GetDayOfWeekIndex(DayTask."Task Date");
             ResourceNo := DayTask."No.";
+            if (DayTask."Requested Hours" > DayTask."Assigned Hours") and (DayTask."Assigned Hours" <> 0) then
+                n := 2
+            else
+                n := 1;
 
-            if not TempWeekList.Get(ResourceNo, DayTask."Skill", JobNo, JobTaskNo, YearValue, WeekNoValue) then begin
-                // Create new week record
-                TempWeekList.Init();
-                TempWeekList."Resource No." := ResourceNo;
-                TempWeekList."Skill Code" := DayTask."Skill";
-                TempWeekList."Job No." := JobNo;
-                TempWeekList."Job Task No." := JobTaskNo;
-                TempWeekList."Week No." := WeekNoValue;
-                TempWeekList.Year := YearValue;
+            for i := 1 to n do begin
+                if i = 2 then
+                    DoInsert := Not TempWeekList.Get('', DayTask."Skill", DayTask."Job No.", DayTask."Job Task No.", YearValue, WeekNoValue)
+                else
+                    DoInsert := not TempWeekList.Get(DayTask."No.", DayTask."Skill", DayTask."Job No.", DayTask."Job Task No.", YearValue, WeekNoValue);
+                if DoInsert then begin
+                    // Create new week record
+                    TempWeekList.Init();
+                    if i = 1 then
+                        TempWeekList."Resource No." := DayTask."No."
+                    else
+                        TempWeekList."Resource No." := '';
+                    TempWeekList."Skill Code" := DayTask."Skill";
+                    TempWeekList."Job No." := DayTask."Job No.";
+                    TempWeekList."Job Task No." := DayTask."Job Task No.";
+                    TempWeekList."Week No." := WeekNoValue;
+                    TempWeekList.Year := YearValue;
 
-                // Initialize all day hours to 0
-                TempWeekList."Monday Hours" := 0;
-                TempWeekList."Tuesday Hours" := 0;
-                TempWeekList."Wednesday Hours" := 0;
-                TempWeekList."Thursday Hours" := 0;
-                TempWeekList."Friday Hours" := 0;
-                TempWeekList."Saturday Hours" := 0;
-                TempWeekList."Sunday Hours" := 0;
-                TempWeekList."Total Week Hours" := 0;
-
-                // Add hours to appropriate day
-                case DayIndex of
-                    1:
-                        TempWeekList."Monday Hours" := DayTask."Assigned Hours";
-                    2:
-                        TempWeekList."Tuesday Hours" := DayTask."Assigned Hours";
-                    3:
-                        TempWeekList."Wednesday Hours" := DayTask."Assigned Hours";
-                    4:
-                        TempWeekList."Thursday Hours" := DayTask."Assigned Hours";
-                    5:
-                        TempWeekList."Friday Hours" := DayTask."Assigned Hours";
-                    6:
-                        TempWeekList."Saturday Hours" := DayTask."Assigned Hours";
-                    7:
-                        TempWeekList."Sunday Hours" := DayTask."Assigned Hours";
+                    TempWeekList."Total Week Hours" := GetHours(DayIndex, DayTask, TempWeekList);
+                    TempWeekList.Insert();
+                end else begin
+                    // Update existing week record
+                    TempWeekList."Total Week Hours" += GetHours(DayIndex, DayTask, TempWeekList);
+                    TempWeekList.Modify();
                 end;
-                TempWeekList."Total Week Hours" := DayTask."Assigned Hours";
-                TempWeekList.Insert();
-            end else begin
-                // Update existing week record
-                case DayIndex of
-                    1:
-                        TempWeekList."Monday Hours" += DayTask."Assigned Hours";
-                    2:
-                        TempWeekList."Tuesday Hours" += DayTask."Assigned Hours";
-                    3:
-                        TempWeekList."Wednesday Hours" += DayTask."Assigned Hours";
-                    4:
-                        TempWeekList."Thursday Hours" += DayTask."Assigned Hours";
-                    5:
-                        TempWeekList."Friday Hours" += DayTask."Assigned Hours";
-                    6:
-                        TempWeekList."Saturday Hours" += DayTask."Assigned Hours";
-                    7:
-                        TempWeekList."Sunday Hours" += DayTask."Assigned Hours";
-                end;
-                TempWeekList."Total Week Hours" += DayTask."Assigned Hours";
-                TempWeekList.Modify();
             end;
         until DayTask.Next() = 0;
 
@@ -228,5 +199,47 @@ table 50612 "Resource Weekly Hours"
                 Rec := TempWeekList;
                 Insert();
             until TempWeekList.Next() = 0;
+    end;
+
+    Local Procedure GetHours(DayIndex: Integer; DayTask: Record "Day Tasks"; var TempWeekList: Record "Resource Weekly Hours") Hours: Integer
+    begin
+        if TempWeekList."Resource No." = '' then begin
+            case DayIndex of
+                1:
+                    TempWeekList."Monday Hours" := DayTask."Requested Hours" - DayTask."Assigned Hours";
+                2:
+                    TempWeekList."Tuesday Hours" := DayTask."Requested Hours" - DayTask."Assigned Hours";
+                3:
+                    TempWeekList."Wednesday Hours" := DayTask."Requested Hours" - DayTask."Assigned Hours";
+                4:
+                    TempWeekList."Thursday Hours" := DayTask."Requested Hours" - DayTask."Assigned Hours";
+                5:
+                    TempWeekList."Friday Hours" := DayTask."Requested Hours" - DayTask."Assigned Hours";
+                6:
+                    TempWeekList."Saturday Hours" := DayTask."Requested Hours" - DayTask."Assigned Hours";
+                7:
+                    TempWeekList."Sunday Hours" := DayTask."Requested Hours" - DayTask."Assigned Hours";
+            end;
+            exit(DayTask."Requested Hours" - DayTask."Assigned Hours");
+        end else begin
+            case DayIndex of
+                1:
+                    TempWeekList."Monday Hours" := DayTask."Assigned Hours";
+                2:
+                    TempWeekList."Tuesday Hours" := DayTask."Assigned Hours";
+                3:
+                    TempWeekList."Wednesday Hours" := DayTask."Assigned Hours";
+                4:
+                    TempWeekList."Thursday Hours" := DayTask."Assigned Hours";
+                5:
+                    TempWeekList."Friday Hours" := DayTask."Assigned Hours";
+                6:
+                    TempWeekList."Saturday Hours" := DayTask."Assigned Hours";
+                7:
+                    TempWeekList."Sunday Hours" := DayTask."Assigned Hours";
+            end;
+            exit(DayTask."Assigned Hours");
+        end;
+
     end;
 }
