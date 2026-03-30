@@ -1,5 +1,13 @@
 codeunit 50611 "Job Task Indent"
 {
+    var
+        HideMessage: Boolean;
+
+    procedure setHideMessage()
+    begin
+        HideMessage := true;
+    end;
+
     procedure IndentJobTasks(var JobTask: Record "Job Task")
     var
         JobTaskToIndent: Record "Job Task";
@@ -7,7 +15,7 @@ codeunit 50611 "Job Task Indent"
         JobNo: Code[20];
         TasksUpdated: Integer;
     begin
-        if not Confirm('This will update the indentation for all job tasks in job %1. Do you want to continue?', false, JobTask."Job No.") then
+        if (not HideMessage) and (not Confirm('This will update the indentation for all job tasks in job %1. Do you want to continue?', false, JobTask."Job No.")) then
             exit;
 
         JobNo := JobTask."Job No.";
@@ -45,7 +53,8 @@ codeunit 50611 "Job Task Indent"
                 end;
             until JobTaskToIndent.Next() = 0;
 
-        Message('%1 job tasks have been indented.', TasksUpdated);
+        if not HideMessage then
+            Message('%1 job tasks have been indented.', TasksUpdated);
     end;
 
     procedure IndentAllJobTasks()
@@ -53,7 +62,7 @@ codeunit 50611 "Job Task Indent"
         Job: Record Job;
         JobTask: Record "Job Task";
     begin
-        if not Confirm('This will update the indentation for all job tasks in all jobs. Do you want to continue?', false) then
+        if (not HideMessage) and (not Confirm('This will update the indentation for all job tasks in all jobs. Do you want to continue?', false)) then
             exit;
 
         if Job.FindSet() then
