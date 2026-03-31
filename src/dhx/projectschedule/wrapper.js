@@ -97,7 +97,48 @@ window.BOOT = function() {
         background-color: #F8D7DA !important;
         border-color: #DC3545 !important;
         */
-    }   
+    }
+
+    /* ── Right-click context menu ─────────────────────────────── */
+    #dhx-ctx-menu {
+        position: fixed;
+        z-index: 99999;
+        background: #fff;
+        border: 1px solid #c8c8c8;
+        border-radius: 4px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+        padding: 4px 0;
+        min-width: 190px;
+        font-family: "Segoe UI", sans-serif;
+        font-size: 13px;
+        user-select: none;
+    }
+    #dhx-ctx-menu.hidden { display: none; }
+    .dhx-ctx-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 14px;
+        cursor: pointer;
+        color: #333;
+        white-space: nowrap;
+    }
+    .dhx-ctx-item:hover { background: #f0f4ff; color: #1a56db; }
+    .dhx-ctx-item.ctx-cancel { color: #c00; }
+    .dhx-ctx-item.ctx-cancel:hover { background: #fff0f0; }
+    .dhx-ctx-separator {
+        height: 1px;
+        background: #e0e0e0;
+        margin: 4px 0;
+    }
+    .dhx-ctx-icon {
+        width: 16px;
+        height: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
     `;
     document.head.appendChild(style);
     //>>
@@ -584,6 +625,9 @@ function Init(dataelements, EarliestPlanningDate) {
 
     scheduler.init('scheduler_here', EarliestPlanningDate, "timeline");
 
+    // Wire right-click context menu now that scheduler DOM exists
+    setupContextMenu();
+
     // Notify BC
     Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnAfterInit", []);
 }
@@ -850,5 +894,165 @@ function RecreateTimelineView(sections) {
             x_date: "%D %d %M"
         }
     });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Right-click context menu for Events and Sections
+// ═══════════════════════════════════════════════════════════════
+function setupContextMenu() {
+    // ── Build the menu DOM once ──────────────────────────────────
+    var root = document.getElementById('scheduler_here');
+    if (!root || root._ctxWired) return;
+    root._ctxWired = true;
+
+    var menu = document.createElement('div');
+    menu.id = 'dhx-ctx-menu';
+    menu.className = 'hidden';
+    menu.innerHTML =
+        '<div class="dhx-ctx-item" data-action="ShowJobResources">' +
+            '<span class="dhx-ctx-icon">&#128100;</span>Show Job Resources</div>' +
+        '<div class="dhx-ctx-separator"></div>' +
+        '<div class="dhx-ctx-item" data-action="OpenTask">' +
+            '<span class="dhx-ctx-icon">&#128196;</span>Open Task</div>' +
+        '<div class="dhx-ctx-item" data-action="OpenDayTask">' +
+            '<span class="dhx-ctx-icon">&#128197;</span>Open DayTask</div>' +
+        '<div class="dhx-ctx-item" data-action="OpenDayTaskVisual">' +
+            '<span class="dhx-ctx-icon">&#128248;</span>Open DayTask Visual</div>' +
+        '<div class="dhx-ctx-separator"></div>' +
+        '<div class="dhx-ctx-item" data-action="ShowMessage1">' +
+            '<span class="dhx-ctx-icon">&#128172;</span>Show message 1</div>' +
+        '<div class="dhx-ctx-item" data-action="ShowMessage2">' +
+            '<span class="dhx-ctx-icon">&#128172;</span>Show message 2</div>' +
+        '<div class="dhx-ctx-separator"></div>' +
+        '<div class="dhx-ctx-item ctx-cancel" data-action="Cancel">' +
+            '<span class="dhx-ctx-icon">&#10005;</span>Cancel</div>';
+    document.body.appendChild(menu);
+
+    var _ctxTarget = null; // { type: 'event'|'section', id: string, eventData: object|null }
+
+    function showMenu(x, y, target) {
+        _ctxTarget = target;
+        // Show/hide ShowJobResources only when clicking an event
+        menu.querySelector('[data-action="ShowJobResources"]').style.display =
+            (target.type === 'event') ? '' : 'none';
+        // Show DayTask actions only for events
+        menu.querySelector('[data-action="OpenDayTask"]').style.display =
+            (target.type === 'event') ? '' : 'none';
+        menu.querySelector('[data-action="OpenDayTaskVisual"]').style.display =
+            (target.type === 'event') ? '' : 'none';
+
+        menu.className = '';
+        // Keep inside viewport
+        var menuW = 200, menuH = 180;
+        var left = (x + menuW > window.innerWidth)  ? window.innerWidth  - menuW - 4 : x;
+        var top  = (y + menuH > window.innerHeight) ? window.innerHeight - menuH - 4 : y;
+        menu.style.left = left + 'px';
+        menu.style.top  = top  + 'px';
+    }
+
+    function hideMenu() {
+        menu.className = 'hidden';
+        _ctxTarget = null;
+    }
+
+    // ── Menu item click ─────────────────────────────────────────
+    menu.addEventListener('click', function(e) {
+        var item = e.target.closest('.dhx-ctx-item');
+        if (!item) return;
+        var action = item.getAttribute('data-action');
+        if (action && action !== 'Cancel' && _ctxTarget) {
+            var payload = JSON.stringify({
+                action:    action,
+                type:      _ctxTarget.type,
+                id:        _ctxTarget.id,
+                eventData: _ctxTarget.eventData || null
+            });
+            if (_ctxTarget.type === 'event') {
+                Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnEventContextMenu',
+                    [_ctxTarget.id, action, payload]);
+            } else {
+                Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnSectionContextMenu',
+                    [_ctxTarget.id, action, payload]);
+            }
+        }
+        hideMenu();
+        e.stopPropagation();
+    });
+
+    // ── Dismiss on outside click or scroll ──────────────────────
+    document.addEventListener('click',     function(e) { if (!menu.contains(e.target)) hideMenu(); });
+    document.addEventListener('scroll',    hideMenu, true);
+    document.addEventListener('keydown',   function(e) { if (e.key === 'Escape') hideMenu(); });
+
+    // ── Wire contextmenu on the scheduler container ─────────────
+    root.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // ── Check: clicked on an event? ──────────────────────
+            var eventEl = e.target.closest('[event_id]') ||
+                          e.target.closest('.dhx_cal_event_line') ||
+                          e.target.closest('.dhx_cal_event');
+            if (eventEl) {
+                var evId = eventEl.getAttribute('event_id') || eventEl.getAttribute('data-event-id') || '';
+                var ev   = (evId && scheduler.getEvent) ? scheduler.getEvent(evId) : null;
+                var evData = ev ? {
+                    id:         ev.id,
+                    text:       ev.text,
+                    section_id: ev.section_id,
+                    start_date: ev.start_date ? ev.start_date.toISOString() : '',
+                    end_date:   ev.end_date   ? ev.end_date.toISOString()   : ''
+                } : null;
+                showMenu(e.clientX, e.clientY, { type: 'event', id: evId || '', eventData: evData });
+                return;
+            }
+
+            // ── Check: clicked on a section label row? ───────────
+            var sectionRow = e.target.closest('.dhx_timeline_label_row') ||
+                             e.target.closest('[data-row-id]');
+            if (sectionRow) {
+                var sectionId = sectionRow.getAttribute('data-row-id') || '';
+                showMenu(e.clientX, e.clientY, { type: 'section', id: sectionId, eventData: null });
+                return;
+            }
+
+            // Clicked elsewhere — dismiss any open menu
+            hideMenu();
+        });
+}
+
+function get_events_not_match_with_section() {
+    var invalidEvents = [];
+    var sectionsMap = {};
+    if (scheduler.matrix && scheduler.matrix.timeline && Array.isArray(scheduler.matrix.timeline.y_unit)) {
+        scheduler.matrix.timeline.y_unit.forEach(function(section) {
+            sectionsMap[section.key] = true;
+        });
+    }
+    if (scheduler.getEvents) {
+        var allEvents = scheduler.getEvents();
+        allEvents.forEach(function(event) {
+            if (!sectionsMap[event.section_id]) {
+                invalidEvents.push(event);
+            }
+        });
+    }
+    Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnEventsNotMatch', [JSON.stringify(invalidEvents)]);
+}
+
+function getAllEvents() {
+    var allEvents = [];
+    if (scheduler.getEvents) {
+        allEvents = scheduler.getEvents();
+    }
+    Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnGetAllEvents', [JSON.stringify(allEvents)]);
+}
+
+function getAllSections() {
+    var allSections = [];
+    if (scheduler.matrix && scheduler.matrix.timeline && Array.isArray(scheduler.matrix.timeline.y_unit)) {
+        allSections = scheduler.matrix.timeline.y_unit;
+    }
+    Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnGetAllSections', [JSON.stringify(allSections)]);
 }
 

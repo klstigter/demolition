@@ -26,6 +26,7 @@ page 50621 "DHX Scheduler (Project)"
                     //DHXDataHandler.GetOneYearPeriodDates(Today(), startDate, endDate);
                     DHXDataHandler.GetWeekPeriodDates(Today(), startDate, endDate);
                     ResourceJSONTxt := DHXDataHandler.GetYUnitElementsJSON_Project(Today(), startDate, endDate, ResourceFilter, PlanninJsonTxt, EarliestPlanningDate);
+                    DHXDataHandler.ValidateSchedulerSectionMatch(ResourceJSONTxt, PlanninJsonTxt);
                     CurrPage.DhxScheduler.Init(ResourceJSONTxt, EarliestPlanningDate);
                     CurrPage.DhxScheduler.LoadData(PlanninJsonTxt);
                     AnchorDate := startDate;
@@ -149,6 +150,59 @@ page 50621 "DHX Scheduler (Project)"
                     end;
                 end;
                 #endregion Timeline Navigate
+
+                #region Cek Data
+
+                trigger OnEventsNotMatch(EventIdsJsonTxt: Text)
+                begin
+                    Message(EventIdsJsonTxt);
+                end;
+
+                trigger OnGetAllEvents(EventIdsJsonTxt: Text)
+                begin
+                    Message('All Events: %1', EventIdsJsonTxt);
+                end;
+
+                trigger OnGetAllSections(SectionIdsJsonTxt: Text)
+                begin
+                    Message('All Sections: %1', SectionIdsJsonTxt);
+                end;
+
+                #endregion Cek Data
+
+                #region Context Menu
+
+                trigger OnEventContextMenu(eventId: Text; action: Text; payloadJson: Text)
+                begin
+                    case action of
+                        'ShowJobResources':
+                            DHXDataHandler.ShowJobResourcesForEvent(eventId);
+                        'OpenTask':
+                            DHXDataHandler.OpenJobTaskCardFromEventId(eventId);
+                        'OpenDayTask':
+                            DHXDataHandler.OpenDayTask(eventId);
+                        'OpenDayTaskVisual':
+                            DHXDataHandler.OpenDayTaskVisual(eventId);
+                        'ShowMessage1':
+                            Message('message 1 from scheduller');
+                        'ShowMessage2':
+                            Message('message 2 from scheduller');
+                    end;
+                end;
+
+                trigger OnSectionContextMenu(sectionId: Text; action: Text; payloadJson: Text)
+                begin
+                    case action of
+                        'OpenTask':
+                            DHXDataHandler.OpenJobTaskCard(sectionId);
+                        'ShowMessage1':
+                            Message('message 1 from scheduller');
+                        'ShowMessage2':
+                            Message('message 2 from scheduller');
+                    end;
+                end;
+
+                #endregion Context Menu
             }
         }
     }
@@ -201,6 +255,42 @@ page 50621 "DHX Scheduler (Project)"
                     RefreshSchedule();
                 end;
             }
+            action(ExecEventsNotMatch)
+            {
+                Caption = 'Get Events Not Matching Sections';
+                ApplicationArea = All;
+                Image = "Event";
+
+                trigger OnAction()
+                begin
+                    CurrPage.DhxScheduler.get_events_not_match_with_section();
+                end;
+            }
+
+            action(ExecGetAllEvents)
+            {
+                Caption = 'Get All Events';
+                ApplicationArea = All;
+                Image = Task;
+
+                trigger OnAction()
+                begin
+                    CurrPage.DhxScheduler.getAllEvents();
+                end;
+            }
+
+            action(ExecGetAllSections)
+            {
+                Caption = 'Get All Sections';
+                ApplicationArea = All;
+                Image = Resource;
+
+                trigger OnAction()
+                begin
+                    CurrPage.DhxScheduler.getAllSections();
+                end;
+            }
+
             action(DateLookup)
             {
                 Caption = 'Go to Date';

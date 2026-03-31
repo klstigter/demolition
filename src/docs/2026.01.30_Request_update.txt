@@ -54,10 +54,10 @@ Capacity (Pool)
 1. Inspect and adjust generate demo data
       - add one another project
       - resource data panel must exist: capacity + daytask
-2. Gantt Chart -> right clicked -> resource data must exist
+2. Gantt Chart -> right clicked -> resource data based on JOb No., Task No, and Period, Search resources based on Daytask on that period parameter.
 3. caption show/hide resource -> change depend on context panel
    click kanan -> change show job Resources
-4. Daytask -> right klik -> show day Task, dan beberap opsi
+4. Daytask -> right klik -> show day Task, dan beberapa opsi
    double click -> open daytask
 5. Resource Scheduler -> add right clicked also in section tree and events
       tree -> right click : daytask, resource,  and set capacity

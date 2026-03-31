@@ -180,7 +180,7 @@ codeunit 50613 "GanttChartDataHandler"
 
     // Returns only resources assigned to the given Job Task via Day Tasks.
     // Falls back to all resources if no Day Task assignments exist.
-    procedure GetResourcesByJobTaskAsJson(JobNo: Code[20]; JobTaskNo: Code[20]) JsonText: Text
+    procedure GetResourcesByJobTaskAsJson(JobNo: Code[20]; JobTaskNo: Code[20]; FromDate: Date; ToDate: Date) JsonText: Text
     var
         DayTask: Record "Day Tasks";
         Resource: Record Resource;
@@ -193,6 +193,14 @@ codeunit 50613 "GanttChartDataHandler"
         DayTask.SetRange("Job No.", JobNo);
         DayTask.SetRange("Job Task No.", JobTaskNo);
         DayTask.SetRange(Type, DayTask.Type::Resource);
+        if (FromDate <> 0D) and (ToDate <> 0D) then
+            DayTask.SetRange("Task Date", FromDate, ToDate)
+        else
+            if FromDate <> 0D then
+                DayTask.SetFilter("Task Date", '>=%1', FromDate)
+            else
+                if ToDate <> 0D then
+                    DayTask.SetFilter("Task Date", '<=%1', ToDate);
         if DayTask.FindSet() then
             repeat
                 if (DayTask."No." <> '') and (not ResourceNos.Contains(DayTask."No.")) then
@@ -204,6 +212,8 @@ codeunit 50613 "GanttChartDataHandler"
         if ResourceNos.Count() = 0 then begin
             GetEmptyResourceAsJson(JsonArray);
             JsonArray.WriteTo(JsonText);
+            if GuiAllowed then
+                Message('No resources assigned to this task. Showing empty resource list. Click "Show/Hide Resource Panel" to view all resources.');
             exit;
         end;
 

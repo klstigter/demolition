@@ -26,7 +26,7 @@ controladdin "DHX Gantt Control 2"
     event OpenResourceLoadDay(resourceId: Text; workDate: Text);
     event OnLinkCreated(linkData: Text);
     event OnLinkDeleted(linkData: Text);
-    event OnShowResourcesForTask(taskId: Text);
+    event OnShowResourcesForTask(taskId: Text; periodFrom: Text; periodTo: Text);
 
     procedure LoadProject(projectstartdate: date; projectenddate: date);
     procedure Undo();

@@ -89,9 +89,11 @@ codeunit 50604 "DHX Data Handler"
         WeekTemp: record "Aging Band Buffer" temporary;
         Resource: record Resource;
         Ven: Record Vendor;
+        Job: Record Job;
 
         ResNo: Code[20];
         ResName: Text;
+        CurrentJobNo: Code[20];
 
         JobObject, TaskObject, PlanningLineObject : JsonObject;
         ChildrenArray, ChildrenArray2 : JsonArray;
@@ -204,29 +206,38 @@ codeunit 50604 "DHX Data Handler"
 
         if TEMPJobTasks.FindSet() then begin
             Clear(DataArray);
+            CurrentJobNo := '';
             repeat
-                Clear(JobObject);
-                JobObject.Add('key', TEMPJobTasks."job No."); // string keys are fine
-                JobObject.Add('label', StrSubstNo('%1 - %2', TEMPJobTasks."Job Task No.", TEMPJobTasks.Description));
-                JobObject.Add('open', true);
-
-                Clear(ChildrenArray);
-                //if TEMPJobTasks.FindSet() then begin
-                //    repeat
-                if tempJobTasks."Job Task Type" = tempJobTasks."Job Task Type"::Posting then begin
+                // One JobObject per unique Job No. — start a new one when the job changes
+                if TEMPJobTasks."Job No." <> CurrentJobNo then begin
+                    if CurrentJobNo <> '' then begin
+                        JobObject.Add('children', ChildrenArray);
+                        DataArray.Add(JobObject);
+                    end;
+                    CurrentJobNo := TEMPJobTasks."Job No.";
+                    Clear(JobObject);
+                    Clear(ChildrenArray);
+                    JobObject.Add('key', CurrentJobNo);
+                    if Job.Get(CurrentJobNo) then
+                        JobObject.Add('label', StrSubstNo('%1 - %2', CurrentJobNo, Job.Description))
+                    else
+                        JobObject.Add('label', CurrentJobNo);
+                    JobObject.Add('open', true);
+                end;
+                // Only posting tasks become child section rows (events reference section_id = Job No.|Task No.)
+                if TEMPJobTasks."Job Task Type" = TEMPJobTasks."Job Task Type"::Posting then begin
                     Clear(TaskObject);
-                    TaskObject.Add('key', TEMPJobTasks."job No." + '|' + TEMPJobTasks."Job Task No.");
+                    TaskObject.Add('key', TEMPJobTasks."Job No." + '|' + TEMPJobTasks."Job Task No.");
                     TaskObject.Add('label', StrSubstNo('%1 - %2', TEMPJobTasks."Job Task No.", TEMPJobTasks.Description));
                     TaskObject.Add('open', true);
                     ChildrenArray.Add(TaskObject);
-                    TaskObject.Add('children', ChildrenArray2);
                 end;
-                //    until TEMPJobTasks.Next() = 0;
-                //end;
-
+            until TEMPJobTasks.Next() = 0;
+            // Flush the last job
+            if CurrentJobNo <> '' then begin
                 JobObject.Add('children', ChildrenArray);
                 DataArray.Add(JobObject);
-            until TEMPJobTasks.Next() = 0;
+            end;
             Clear(Root);
             Root.Add('data', DataArray);
 
@@ -255,6 +266,71 @@ codeunit 50604 "DHX Data Handler"
                 end;
         end
 
+    end;
+
+    /// <summary>
+    /// Validates that every event's section_id in PlanninJsonTxt has a matching key in ResourceJSONTxt.
+    /// ResourceJSONTxt  = {"data":[{key:"J001", children:[{key:"J001|T001"},...]},...]}
+    /// PlanninJsonTxt   = [{section_id:"J001|T001", ...},...]
+    /// Shows an error message listing all unmatched section IDs.
+    /// </summary>
+    procedure ValidateSchedulerSectionMatch(ResourceJSONTxt: Text; PlanninJsonTxt: Text)
+    var
+        RootObj: JsonObject;
+        DataArr, ChildArr : JsonArray;
+        JobToken, ChildToken, EventToken : JsonToken;
+        JobObj, ChildObj, EventObj : JsonObject;
+        KeyToken, SectionToken : JsonToken;
+        SectionKeys: Dictionary of [Text, Boolean];
+        MissingIds: List of [Text];
+        SectionId: Text;
+        ErrorMsg: Text;
+        MissingId: Text;
+    begin
+        // ── 1. Collect all leaf keys from ResourceJSONTxt ──────────────────────
+        if ResourceJSONTxt = '' then
+            exit;
+        if not RootObj.ReadFrom(ResourceJSONTxt) then
+            exit;
+        if not RootObj.Get('data', JobToken) then
+            exit;
+        DataArr := JobToken.AsArray();
+        foreach JobToken in DataArr do begin
+            JobObj := JobToken.AsObject();
+            if JobObj.Get('children', ChildToken) then begin
+                ChildArr := ChildToken.AsArray();
+                foreach ChildToken in ChildArr do begin
+                    ChildObj := ChildToken.AsObject();
+                    if ChildObj.Get('key', KeyToken) then
+                        SectionKeys.Add(KeyToken.AsValue().AsText(), true);
+                end;
+            end;
+        end;
+
+        // ── 2. Check every event's section_id against collected keys ──────────
+        if PlanninJsonTxt = '' then
+            exit;
+        if not DataArr.ReadFrom(PlanninJsonTxt) then
+            exit;
+        foreach EventToken in DataArr do begin
+            EventObj := EventToken.AsObject();
+            if EventObj.Get('section_id', SectionToken) then begin
+                SectionId := SectionToken.AsValue().AsText();
+                if not SectionKeys.ContainsKey(SectionId) then
+                    if not MissingIds.Contains(SectionId) then
+                        MissingIds.Add(SectionId);
+            end;
+        end;
+
+        // ── 3. Report mismatches ───────────────────────────────────────────────
+        if MissingIds.Count = 0 then
+            exit;
+
+        ErrorMsg := StrSubstNo('DHTMLX Scheduler: %1 event(s) have unmatched section_id:\', MissingIds.Count);
+        foreach MissingId in MissingIds do
+            ErrorMsg += '  • ' + MissingId + '\';
+        ErrorMsg += 'These events will not appear in the scheduler. Check that the job task exists and is of type Posting.';
+        Message(ErrorMsg);
     end;
 
     local procedure GetVendorNoFromDayTask(FromDate: Date; ToDate: Date; ResNo: Code[20]): Text
@@ -2606,5 +2682,74 @@ codeunit 50604 "DHX Data Handler"
         TaskNo := EventIdParts.Get(2);
         JobTask.Get(JobNo, TaskNo);
         PAGE.Run(PAGE::"Opti Job Task Card", JobTask);
+    end;
+
+    /// <summary>
+    /// Opens the Opti Job Task Card from an event ID (format: JobNo|TaskNo|...).
+    /// Used by the right-click context menu "Open Task" on an event.
+    /// </summary>
+    procedure OpenJobTaskCardFromEventId(eventId: Text)
+    var
+        JobTask: Record "Job Task";
+        Parts: List of [Text];
+        JobNo: Code[20];
+        TaskNo: Code[20];
+    begin
+        Parts := eventId.Split('|');
+        if Parts.Count < 2 then
+            exit;
+        JobNo := Parts.Get(1);
+        TaskNo := Parts.Get(2);
+        if JobTask.Get(JobNo, TaskNo) then
+            PAGE.Run(PAGE::"Opti Job Task Card", JobTask)
+        else
+            Message('Job Task not found for event ID: %1', eventId);
+    end;
+
+    /// <summary>
+    /// Opens DHX Scheduler (Project) filtered to the job task linked to the event.
+    /// Used by the right-click context menu "Open DayTask Visual".
+    /// </summary>
+    procedure OpenDayTaskVisual(eventId: Text)
+    var
+        DaytaskScheduler: Page "DHX Scheduler (Project)";
+        Parts: List of [Text];
+        JobNo: Code[20];
+        TaskNo: Code[20];
+    begin
+        Parts := eventId.Split('|');
+        if Parts.Count < 2 then
+            exit;
+        JobNo := Parts.Get(1);
+        TaskNo := Parts.Get(2);
+        DaytaskScheduler.SetJobTaskFilter(JobNo, TaskNo);
+        DaytaskScheduler.RunModal();
+    end;
+
+    /// <summary>
+    /// Opens the Resource Day Tasks page filtered to resources assigned to the
+    /// job task linked to the given event ID.
+    /// Used by the right-click context menu "Show Job Resources".
+    /// </summary>
+    procedure ShowJobResourcesForEvent(eventId: Text)
+    var
+        DayTask: Record "Day Tasks";
+        Parts: List of [Text];
+        JobNo: Code[20];
+        TaskNo: Code[20];
+        TaskDay: Date;
+        DayLineNo: Integer;
+    begin
+        Parts := eventId.Split('|');
+        if Parts.Count < 4 then
+            exit;
+        JobNo := Parts.Get(1);
+        TaskNo := Parts.Get(2);
+        Evaluate(TaskDay, Parts.Get(3));
+        Evaluate(DayLineNo, Parts.Get(4));
+        DayTask.SetRange("Job No.", JobNo);
+        DayTask.SetRange("Job Task No.", TaskNo);
+        DayTask.SetRange("Task Date", TaskDay);
+        PAGE.Run(PAGE::"Resource Day Tasks", DayTask);
     end;
 }

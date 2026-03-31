@@ -395,7 +395,7 @@ window.BOOT = function() {
       menu.id = "gantt-ctx-menu";
 
       var items = [
-        { label: "Show Resources", icon: "👥", cls: "ctx-show-resources" },
+        { label: "Show Job Resources", icon: "👥", cls: "ctx-show-resources" },
         { sep: true },
         { label: "Open Task",      icon: "📋", cls: "ctx-open-task" },
         { label: "Open DayTask",   icon: "📅", cls: "ctx-open-daytask" },
@@ -481,7 +481,11 @@ window.BOOT = function() {
     // Show Resources — open resource panel filtered to this task's Day Task resources
     function _ctxShowResources(id) {
       try {
-        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnShowResourcesForTask", [ String(id) ]);
+        var fmt = gantt.date.date_to_str("%Y-%m-%d");
+        var task = gantt.getTask(id);
+        var periodFrom = task && task.start_date ? fmt(task.start_date) : "";
+        var periodTo   = task && task.end_date   ? fmt(task.end_date)   : "";
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnShowResourcesForTask", [ String(id), periodFrom, periodTo ]);
       } catch (e) {
         console.error("_ctxShowResources failed:", e);
       }
