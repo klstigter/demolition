@@ -30,6 +30,11 @@ controladdin DHXProjectScheduleAddin
     event OnPlanningLineClick(Id: Text; EventJson: Text);
     event OnTimelineNavigate(NavigateJson: Text);
     event OnSectionDblClick(sectionId: Text; label: Text; viewdate: Text);
+    event OnEventsNotMatch(EventIdsJsonTxt: Text);
+    event OnGetAllEvents(EventIdsJsonTxt: Text);
+    event OnGetAllSections(EventIdsJsonTxt: Text);
+    event OnEventContextMenu(eventId: Text; action: Text; payloadJson: Text);
+    event OnSectionContextMenu(sectionId: Text; action: Text; payloadJson: Text);
 
     procedure Init(elements: Text; EarliestPlanningDate: Date);
     procedure LoadData(EventTxt: Text);
@@ -38,4 +43,7 @@ controladdin DHXProjectScheduleAddin
     procedure RefreshTimeline(resourcesJson: Text; eventsJson: Text; DateAnchor: Date);
     procedure RefreshEventData(eventData: Text);
     procedure SetDefaultTabsVisible(Visible: Boolean);
+    procedure get_events_not_match_with_section();
+    procedure getAllEvents();
+    procedure getAllSections();
 }

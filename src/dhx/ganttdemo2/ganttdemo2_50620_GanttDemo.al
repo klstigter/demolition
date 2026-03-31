@@ -54,13 +54,15 @@ page 50620 "Gantt Demo DHX 2"
                     end;
                 end;
 
-                trigger OnShowResourcesForTask(taskId: Text)
+                trigger OnShowResourcesForTask(taskId: Text; periodFrom: Text; periodTo: Text)
                 var
                     EventIDList: List of [Text];
                     JobNo: Code[20];
                     JobTaskNo: Code[20];
                     GanttDataHandler: Codeunit "GanttChartDataHandler";
                     JsonTxtResource: Text;
+                    FromDate: Date;
+                    ToDate: Date;
                 begin
                     // Parse Job No. and Job Task No. from the composite task id ("JobNo|JobTaskNo")
                     EventIDList := taskId.Split('|');
@@ -69,12 +71,18 @@ page 50620 "Gantt Demo DHX 2"
                         JobTaskNo := CopyStr(EventIDList.Get(2), 1, 20);
                     end;
 
+                    // Parse period dates (format: YYYY-MM-DD from JS)
+                    if periodFrom <> '' then
+                        Evaluate(FromDate, periodFrom);
+                    if periodTo <> '' then
+                        Evaluate(ToDate, periodTo);
+
                     // Show the resource panel
                     ResourcePanelFlag := true;
                     CurrPage.DHXGanttControl2.SetResourcePanelVisibility(true);
 
-                    // Load only resources assigned to this task via Day Tasks
-                    JsonTxtResource := GanttDataHandler.GetResourcesByJobTaskAsJson(JobNo, JobTaskNo);
+                    // Load only resources assigned to this task via Day Tasks within the period
+                    JsonTxtResource := GanttDataHandler.GetResourcesByJobTaskAsJson(JobNo, JobTaskNo, FromDate, ToDate);
                     if JsonTxtResource <> '' then
                         CurrPage.DHXGanttControl2.LoadResourcesData(JsonTxtResource);
                 end;
@@ -430,19 +438,31 @@ page 50620 "Gantt Demo DHX 2"
                     CurrPage.DHXGanttControl2.ClearData();
                 end;
             }
-            action(ShoHideResourcePanel)
+            action(ShowResourcePanel)
             {
-                Caption = 'Show/Hide Resource Panel';
+                Caption = 'Show Resource Panel';
                 ApplicationArea = All;
                 Image = Resource;
+                Visible = not ResourcePanelFlag;
 
                 trigger OnAction()
                 begin
-                    ResourcePanelFlag := not ResourcePanelFlag;
-                    CurrPage.DHXGanttControl2.SetResourcePanelVisibility(ResourcePanelFlag);
-                    // When showing panel, always reload ALL resources (clears any task filter)
-                    if ResourcePanelFlag then
-                        LoadResourceData();
+                    ResourcePanelFlag := true;
+                    CurrPage.DHXGanttControl2.SetResourcePanelVisibility(true);
+                    LoadResourceData();
+                end;
+            }
+            action(HideResourcePanel)
+            {
+                Caption = 'Hide Resource Panel';
+                ApplicationArea = All;
+                Image = Resource;
+                Visible = ResourcePanelFlag;
+
+                trigger OnAction()
+                begin
+                    ResourcePanelFlag := false;
+                    CurrPage.DHXGanttControl2.SetResourcePanelVisibility(false);
                 end;
             }
         }
@@ -462,7 +482,8 @@ page 50620 "Gantt Demo DHX 2"
                 actionref("Prev_filter"; PreviousAct) { }
                 actionref("Today_filter"; Todayact) { }
                 actionref("Next_filter"; Nextact) { }
-                actionref("ShowHideResPanel"; ShoHideResourcePanel) { }
+                actionref("ShowResPanel"; ShowResourcePanel) { }
+                actionref("HideResPanel"; HideResourcePanel) { }
             }
             group(Category_Category4)
             {
