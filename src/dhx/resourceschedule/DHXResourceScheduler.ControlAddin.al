@@ -26,6 +26,8 @@ controladdin DHXResourceScheduleAddin
     event OnEventDoubleClick(EventId: Text; ResourceId: Text);
     event OnResourceDoubleClick(ResourceId: Text);
     event OnDateRangeChanged(StartDate: Text; EndDate: Text);
+    event OnEventContextMenu(EventId: Text; action: Text; PeriodStart: Text; PeriodEnd: Text; payloadJson: Text);
+    event OnResourceContextMenu(ResourceId: Text; action: Text; PeriodStart: Text; PeriodEnd: Text; payloadJson: Text);
 
     procedure Init(elements: Text; EarliestPlanningDate: Date);
     procedure LoadData(EventTxt: Text);

@@ -54,12 +54,13 @@
 }
 .dhx-tt-row {
     display: flex;
-    justify-content: space-between;
-    gap: 16px;
+    justify-content: flex-start;
+    gap: 8px;
     padding: 1px 0;
 }
 .dhx-tt-row span:first-child {
     color: #888;
+    min-width: 40px;
 }
 .dhx-tt-row span:last-child {
     font-weight: 600;
