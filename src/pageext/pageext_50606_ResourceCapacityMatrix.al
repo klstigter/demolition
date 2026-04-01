@@ -38,6 +38,14 @@ pageextension 50606 "ResourceCapacityMatrix opt" extends "Resource Capacity Matr
     }
 
     var
+
+    procedure ResourceFilter(pResFilter: Text)
+    begin
+        if pResFilter <> '' then begin
+            Rec.Setfilter("No.", pResFilter);
+            CurrPage.Update();
+        end;
+    end;
 }
 
 // pageextension 50606 "ResourceCapacitySettings opt" extends "Resource Capacity Settings"

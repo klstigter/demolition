@@ -15,6 +15,23 @@ var _initInProgress  = true;    // suppresses onViewChange during Init()
 // ============================================================
 window.BOOT = function() {
     try {
+        // ---- Inject context-menu CSS ----
+        (function() {
+            var s = document.createElement('style');
+            s.textContent =
+                '#dhx-ctx-menu{position:fixed;z-index:99999;background:#fff;border:1px solid #c8c8c8;' +
+                'border-radius:4px;box-shadow:0 4px 12px rgba(0,0,0,.18);padding:4px 0;min-width:190px;' +
+                'font-family:"Segoe UI",sans-serif;font-size:13px;user-select:none;}' +
+                '#dhx-ctx-menu.hidden{display:none;}' +
+                '.dhx-ctx-item{display:flex;align-items:center;gap:8px;padding:7px 14px;cursor:pointer;color:#333;white-space:nowrap;}' +
+                '.dhx-ctx-item:hover{background:#f0f4ff;color:#1a56db;}' +
+                '.dhx-ctx-item.ctx-cancel{color:#c00;}' +
+                '.dhx-ctx-item.ctx-cancel:hover{background:#fff0f0;}' +
+                '.dhx-ctx-separator{height:1px;background:#e0e0e0;margin:4px 0;}' +
+                '.dhx-ctx-icon{width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}';
+            document.head.appendChild(s);
+        })();
+
         // ---- Outer layout: flex row ----
         var addin = document.getElementById("controlAddIn");
         addin.style.cssText = "width:100%;height:100%;margin:0;padding:0;display:flex;flex-direction:row;overflow:hidden;";
@@ -194,6 +211,9 @@ window.BOOT = function() {
 
         // ---- Init scheduler – week view, week of 2026-03-09 ----
         scheduler.init("scheduler_here", new Date(2026, 2, 9), "week");
+
+        // ---- Wire right-click context menu ----
+        setupContextMenu();
 
         // ---- Show all events ----
         RefreshSchedulerEvents();
@@ -613,4 +633,162 @@ function SetShowDayTask(pShow) {
 function SetShowCapacity(pShow) {
     showCapacity = !!pShow;
     RefreshSchedulerEvents();
+}
+
+// ============================================================
+// Right-click context menu – events and resource panel
+// ============================================================
+function setupContextMenu() {
+    // Build menu DOM once
+    var menu = document.getElementById('dhx-ctx-menu');
+    if (!menu) {
+        menu = document.createElement('div');
+        menu.id = 'dhx-ctx-menu';
+        menu.className = 'hidden';
+        document.body.appendChild(menu);
+    }
+    menu.innerHTML =
+        '<div class="dhx-ctx-item" data-action="OpenResource">' +
+            '<span class="dhx-ctx-icon">&#128196;</span>Resource</div>' +
+        '<div class="dhx-ctx-separator"></div>' +
+        '<div class="dhx-ctx-item" data-action="OpenDayTask">' +
+            '<span class="dhx-ctx-icon">&#128172;</span>Daytask</div>' +
+        '<div class="dhx-ctx-item" data-action="OpenCapacity">' +
+            '<span class="dhx-ctx-icon">&#128172;</span>Capacity</div>' +
+        '<div class="dhx-ctx-separator"></div>' +
+        '<div class="dhx-ctx-item ctx-cancel" data-action="Cancel">' +
+            '<span class="dhx-ctx-icon">&#10005;</span>Cancel</div>';
+
+    var _ctxTarget = null;
+
+    function showMenu(x, y, target) {
+        _ctxTarget = target;
+        //var openItem = menu.querySelector('[data-action="OpenResource"]');
+        //if (openItem) openItem.style.display = (target.eventType === 'capacity') ? 'none' : '';
+        menu.className = '';
+        var menuW = 200, menuH = 170;
+        var left = (x + menuW > window.innerWidth)  ? window.innerWidth  - menuW - 4 : x;
+        var top  = (y + menuH > window.innerHeight) ? window.innerHeight - menuH - 4 : y;
+        menu.style.left = left + 'px';
+        menu.style.top  = top  + 'px';
+    }
+
+    function hideMenu() {
+        menu.className = 'hidden';
+        _ctxTarget = null;
+    }
+
+    // Wire menu-item clicks only once
+    if (!menu._clickWired) {
+        menu._clickWired = true;
+
+        menu.addEventListener('click', function(e) {
+            var item = e.target.closest('.dhx-ctx-item');
+            if (!item) return;
+            var action = item.getAttribute('data-action');
+            if (action && action !== 'Cancel' && _ctxTarget) {
+                var state = scheduler.getState ? scheduler.getState() : {};
+                var periodStart, periodEnd;
+                if (_ctxTarget.type === 'event') {
+                    // Period = the single day the event sits on
+                    var evDate = _ctxTarget.eventData && _ctxTarget.eventData.start_date
+                        ? ToDate(_ctxTarget.eventData.start_date)
+                        : null;
+                    var dayStr = evDate ? FmtDateStr(evDate) : '';
+                    periodStart = dayStr;
+                    periodEnd   = dayStr;
+                } else {
+                    // Resource right-click → use the scheduler's visible period
+                    periodStart = state.min_date ? FmtDateStr(state.min_date) : '';
+                    var periodEndDate = state.max_date ? new Date(state.max_date.getTime() - 86400000) : null;
+                    periodEnd = periodEndDate ? FmtDateStr(periodEndDate) : '';
+                }
+                var payload = JSON.stringify({
+                    action:      action,
+                    type:        _ctxTarget.type,
+                    id:          _ctxTarget.id,
+                    eventType:   _ctxTarget.eventType || '',
+                    eventData:   _ctxTarget.eventData || null,
+                    periodStart: periodStart,
+                    periodEnd:   periodEnd
+                });
+                if (_ctxTarget.type === 'event') {
+                    Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnEventContextMenu',
+                        [_ctxTarget.id, action, periodStart, periodEnd, payload]);
+                } else if (_ctxTarget.type === 'resource') {
+                    Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnResourceContextMenu',
+                        [_ctxTarget.id, action, periodStart, periodEnd, payload]);
+                }
+            }
+            hideMenu();
+            e.stopPropagation();
+        });
+
+        document.addEventListener('click',   function(e) { if (!menu.contains(e.target)) hideMenu(); });
+        document.addEventListener('scroll',  hideMenu, true);
+        document.addEventListener('keydown', function(e) { if (e.key === 'Escape') hideMenu(); });
+    }
+
+    // ── Scheduler events right-click ──────────────────────────
+    var schedRoot = document.getElementById('scheduler_here');
+    if (schedRoot && !schedRoot._ctxWired) {
+        schedRoot._ctxWired = true;
+        schedRoot.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var eventEl = e.target.closest('[event_id]') ||
+                          e.target.closest('.dhx_cal_event_line') ||
+                          e.target.closest('.dhx_cal_event');
+            if (eventEl) {
+                var evId  = eventEl.getAttribute('event_id') || '';
+                var ev    = (evId && scheduler && scheduler.getEvent) ? scheduler.getEvent(evId) : null;
+                var evType = '';
+                if (ev && ev.type) {
+                    evType = String(ev.type);
+                } else if (String(evId).indexOf('cap_') === 0) {
+                    evType = 'capacity';
+                } else {
+                    evType = 'daytask';
+                }
+                var evData = ev ? {
+                    id:          ev.id,
+                    text:        ev.text,
+                    resource_id: ev.resource_id,
+                    type:        evType,
+                    start_date:  ev.start_date instanceof Date ? ev.start_date.toISOString() : (ev.start_date || ''),
+                    end_date:    ev.end_date   instanceof Date ? ev.end_date.toISOString()   : (ev.end_date   || '')
+                } : null;
+                showMenu(e.clientX, e.clientY, { type: 'event', id: evId, eventType: evType, eventData: evData });
+                return;
+            }
+            hideMenu();
+        });
+    }
+
+    // ── Resource panel right-click (delegation on static parent) ─
+    var resPanel = document.getElementById('resource-panel');
+    if (resPanel && !resPanel._ctxWired) {
+        resPanel._ctxWired = true;
+        resPanel.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var resRow = e.target.closest('.rp-resource');
+            if (resRow) {
+                var cb = resRow.querySelector('.rp-resource-cb');
+                var resourceId = cb ? (cb.dataset.resourceId || '') : '';
+                var resName = '';
+                for (var i = 0; i < allResources.length; i++) {
+                    if (String(allResources[i].id) === resourceId) { resName = allResources[i].name; break; }
+                }
+                showMenu(e.clientX, e.clientY, {
+                    type:      'resource',
+                    id:        resourceId,
+                    eventType: '',
+                    eventData: { id: resourceId, name: resName }
+                });
+                return;
+            }
+            hideMenu();
+        });
+    }
 }
