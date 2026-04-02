@@ -156,6 +156,79 @@ window.BOOT = function() {
       }, true);
     }
 
+    function InstallResourceGridContextMenu() {
+      if (document._resGridContextMenuInstalled) return;
+      document._resGridContextMenuInstalled = true;
+
+      // Build the floating menu element
+      var menu = document.createElement("div");
+      menu.style.cssText = [
+        "position:fixed",
+        "z-index:99999",
+        "background:#fff",
+        "border:1px solid #ccc",
+        "border-radius:4px",
+        "box-shadow:2px 4px 12px rgba(0,0,0,0.2)",
+        "padding:4px 0",
+        "min-width:170px",
+        "display:none",
+        "font:13px/1.4 sans-serif",
+        "cursor:default"
+      ].join(";");
+
+      var currentResourceId = "";
+
+      function makeItem(label, onClick) {
+        var item = document.createElement("div");
+        item.textContent = label;
+        item.style.cssText = "padding:7px 18px;white-space:nowrap";
+        item.addEventListener("mouseenter", function () { item.style.background = "#e8f0fe"; });
+        item.addEventListener("mouseleave", function () { item.style.background = ""; });
+        item.addEventListener("mousedown", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          hideMenu();
+          onClick();
+        }, true);
+        menu.appendChild(item);
+      }
+
+      makeItem("Show Message 1", function () {
+        alert("Message 1 — Resource: " + currentResourceId);
+      });
+      makeItem("Show Message 2", function () {
+        alert("Message 2 — Resource: " + currentResourceId);
+      });
+
+      function hideMenu() { menu.style.display = "none"; }
+
+      document.body.appendChild(menu);
+
+      // Right-click on a resource name cell → show menu
+      document.addEventListener("contextmenu", function (e) {
+        var cell = e.target.closest(".res-name-cell");
+        if (!cell) { hideMenu(); return; }
+        e.preventDefault();
+        e.stopPropagation();
+        currentResourceId = cell.getAttribute("data-rid") || "";
+        menu.style.left = e.clientX + "px";
+        menu.style.top  = e.clientY + "px";
+        menu.style.display = "block";
+        // Keep menu on screen
+        var rect = menu.getBoundingClientRect();
+        if (rect.right  > window.innerWidth)  menu.style.left = Math.max(0, e.clientX - rect.width)  + "px";
+        if (rect.bottom > window.innerHeight) menu.style.top  = Math.max(0, e.clientY - rect.height) + "px";
+      }, true);
+
+      // Click or Escape anywhere → hide menu
+      document.addEventListener("mousedown", function (e) {
+        if (!menu.contains(e.target)) hideMenu();
+      }, true);
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") hideMenu();
+      });
+    }
+
 
     // -------- DHTMLX PLUGINS --------
     gantt.plugins({
@@ -827,6 +900,7 @@ window.BOOT = function() {
     //InstallDayTaskEvents(); // ✅ install once //ah: the function is hide, see on top lines
     InstallResourceMarkerCustomTooltipsForDayTasks(); // ✅ install once
     InstallResourceGridDblClick(); // ✅ install once
+    InstallResourceGridContextMenu(); // ✅ install once
 
 
     // ✅ Tell AL we are safe to call now
