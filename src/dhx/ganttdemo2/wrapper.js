@@ -485,7 +485,22 @@ window.BOOT = function() {
         var task = gantt.getTask(id);
         var periodFrom = task && task.start_date ? fmt(task.start_date) : "";
         var periodTo   = task && task.end_date   ? fmt(task.end_date)   : "";
-        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnShowResourcesForTask", [ String(id), periodFrom, periodTo ]);
+
+        // Collect direct children of this task
+        var children = [];
+        gantt.eachTask(function(child) {
+          children.push({
+            id: String(child.id),
+            text: child.text || "",
+            bcJobNo: child.bcJobNo || "",
+            bcJobTaskNo: child.bcJobTaskNo || "",
+            start_date: child.start_date ? fmt(child.start_date) : "",
+            end_date: child.end_date ? fmt(child.end_date) : ""
+          });
+        }, id);
+        var childrenJson = JSON.stringify(children);
+
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnShowResourcesForTask", [ String(id), childrenJson, periodFrom, periodTo ]);
       } catch (e) {
         console.error("_ctxShowResources failed:", e);
       }
@@ -721,7 +736,14 @@ window.BOOT = function() {
       var css = ""
         + ".gantt_resource_marker{ border-radius:4px; color:#fff; }"
         + ".gantt_resource_marker_ok{ background:#21b36c; }"
-        + ".gantt_resource_marker_overtime{ background:#e74c3c; }";
+        + ".gantt_resource_marker_overtime{ background:#e74c3c; }"
+        /* ── Panel header: black background, white bold font ── */
+        + ".gantt_grid_scale { background:#000 !important; }"
+        + ".gantt_grid_head_cell { color:#fff !important; font-weight:bold !important; border-color:#333 !important; }"
+        + ".gantt_grid_head_cell .gantt_grid_head_add { color:#fff !important; }"
+        /* resource panel header */
+        + ".gantt_resource_grid .gantt_grid_scale { background:#000 !important; }"
+        + ".gantt_resource_grid .gantt_grid_head_cell { color:#fff !important; font-weight:bold !important; border-color:#333 !important; }";
       var s = document.createElement("style");
       s.textContent = css;
       document.head.appendChild(s);
@@ -809,7 +831,7 @@ function RecreateGanttLayout(showResourcePanel) {
       columns: [
         { name: "name", label: "Name", template: function (r) { return r.text || r.label || ""; } },
         {
-          name: "workload", label: "Workload", template: function (r) {
+          name: "workload", label: "Total Hours", template: function (r) {
             // Calculate total hours from dayTasksStore
             var total = 0;
             if (dayTasksStore) {

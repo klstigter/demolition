@@ -50,15 +50,21 @@ report 50600 "RepairData"
     trigger OnPreReport()
     var
         ResourceCapEntry: Record "Res. Capacity Entry";
+        Daytasks: Record "Day Tasks";
     begin
-        ResourceCapEntry.SetFilter("Entry No.", '<>%1', 718);
-        ResourceCapEntry.SetRange(Date, DMY2Date(3, 2, 2026));
-        ResourceCapEntry.SetRange("Resource No.", 'FABRIKAM');
+        ResourceCapEntry.SetRange(Date, DMY2Date(30, 3, 2026), DMY2Date(3, 5, 2026));
         if ResourceCapEntry.FindSet() then begin
             ResourceCapEntry.DeleteAll();
-            Message('All Resource Capacity Entry records from 1-Feb-2026 have been deleted.');
+            Message('All Resource Capacity Entry records from 30-Mar-2026 to 3-May-2026 have been deleted.');
         end else
             Message('No Resource Capacity Entry records found for deletion.');
+
+        Daytasks.SetRange("Task Date", DMY2Date(30, 3, 2026), DMY2Date(3, 5, 2026));
+        if Daytasks.FindSet() then begin
+            Daytasks.DeleteAll();
+            Message('All Day Tasks records from 30-Mar-2026 to 3-May-2026 have been deleted.');
+        end else
+            Message('No Day Tasks records found for deletion.');
     end;
 
     var

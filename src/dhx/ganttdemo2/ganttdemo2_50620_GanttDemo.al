@@ -54,8 +54,9 @@ page 50620 "Gantt Demo DHX 2"
                     end;
                 end;
 
-                trigger OnShowResourcesForTask(taskId: Text; periodFrom: Text; periodTo: Text)
+                trigger OnShowResourcesForTask(taskId: Text; childrenJson: Text; periodFrom: Text; periodTo: Text)
                 var
+                    JobTask: Record "Job Task";
                     EventIDList: List of [Text];
                     JobNo: Code[20];
                     JobTaskNo: Code[20];
@@ -63,13 +64,40 @@ page 50620 "Gantt Demo DHX 2"
                     JsonTxtResource: Text;
                     FromDate: Date;
                     ToDate: Date;
+                    ChildrenArray: JsonArray;
+                    ChildToken: JsonToken;
+                    ChildObj: JsonObject;
+                    IdToken: JsonToken;
+                    ChildIdTxt: Text;
+                    ChildIdParts: List of [Text];
+                    ChildJobNo: Code[20];
+                    ChildJobTaskNo: Code[20];
                 begin
                     // Parse Job No. and Job Task No. from the composite task id ("JobNo|JobTaskNo")
                     EventIDList := taskId.Split('|');
                     if EventIDList.Count() >= 2 then begin
                         JobNo := CopyStr(EventIDList.Get(1), 1, 20);
                         JobTaskNo := CopyStr(EventIDList.Get(2), 1, 20);
+                        if JobTask.Get(JobNo, JobTaskNo) then
+                            JobTask.Mark(true);
                     end;
+
+                    // Parse childrenJson to get Job No. and Job Task No., after that marking on JobTask
+                    if (childrenJson <> '') and (childrenJson <> '[]') then
+                        if ChildrenArray.ReadFrom(childrenJson) then
+                            foreach ChildToken in ChildrenArray do begin
+                                ChildObj := ChildToken.AsObject();
+                                if ChildObj.Get('id', IdToken) then begin
+                                    ChildIdTxt := IdToken.AsValue().AsText();
+                                    ChildIdParts := ChildIdTxt.Split('|');
+                                    if ChildIdParts.Count() >= 2 then begin
+                                        ChildJobNo := CopyStr(ChildIdParts.Get(1), 1, 20);
+                                        ChildJobTaskNo := CopyStr(ChildIdParts.Get(2), 1, 20);
+                                        if JobTask.Get(ChildJobNo, ChildJobTaskNo) then
+                                            JobTask.Mark(true);
+                                    end;
+                                end;
+                            end;
 
                     // Parse period dates (format: YYYY-MM-DD from JS)
                     if periodFrom <> '' then
@@ -82,7 +110,9 @@ page 50620 "Gantt Demo DHX 2"
                     CurrPage.DHXGanttControl2.SetResourcePanelVisibility(true);
 
                     // Load only resources assigned to this task via Day Tasks within the period
-                    JsonTxtResource := GanttDataHandler.GetResourcesByJobTaskAsJson(JobNo, JobTaskNo, FromDate, ToDate);
+                    JobTask.MarkedOnly := True;
+                    if JobTask.FindSet() then;
+                    JsonTxtResource := GanttDataHandler.GetResourcesByJobTaskAsJson(JobTask, FromDate, ToDate);
                     if JsonTxtResource <> '' then
                         CurrPage.DHXGanttControl2.LoadResourcesData(JsonTxtResource);
                 end;
