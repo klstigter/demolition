@@ -50,15 +50,31 @@ report 50600 "RepairData"
     trigger OnPreReport()
     var
         ResourceCapEntry: Record "Res. Capacity Entry";
+        Daytasks: Record "Day Tasks";
+        JobTask: Record "Job Task";
     begin
-        ResourceCapEntry.SetFilter("Entry No.", '<>%1', 718);
-        ResourceCapEntry.SetRange(Date, DMY2Date(3, 2, 2026));
-        ResourceCapEntry.SetRange("Resource No.", 'FABRIKAM');
+        ResourceCapEntry.SetFilter(Date, '%1..', DMY2Date(30, 3, 2026));
         if ResourceCapEntry.FindSet() then begin
             ResourceCapEntry.DeleteAll();
-            Message('All Resource Capacity Entry records from 1-Feb-2026 have been deleted.');
+            Message('All Resource Capacity Entry records from 30-Mar-2026 to 3-May-2026 have been deleted.');
         end else
             Message('No Resource Capacity Entry records found for deletion.');
+
+        Daytasks.SetFilter("Task Date", '%1..', DMY2Date(30, 3, 2026));
+        if Daytasks.FindSet() then begin
+            Daytasks.DeleteAll();
+            Message('All Day Tasks records from 30-Mar-2026 to 3-May-2026 have been deleted.');
+        end else
+            Message('No Day Tasks records found for deletion.');
+
+        JobTask.SetRange("Job No.", 'JOB002');
+        JobTask.SetFilter(PlannedStartDate, '%1..', DMY2Date(30, 3, 2026));
+        if JobTask.FindSet() then begin
+            JobTask.DeleteAll();
+            Message('All Job Task records for Job No. JOB002 from 30-Mar-2026 to 3-May-2026 have been deleted.');
+        end else
+            Message('No Job Task records found for Job No. JOB002 from 30-Mar-2026 to 3-May-2026.');
+
     end;
 
     var

@@ -73,3 +73,31 @@ Capacity (Pool)
    - see image TimeLineNew.png for bar modification.
 
 
+
+2026.04.02
+
+1. Gantt chart:
+=====================
+add background for header of panel tree: task and resource     (OK)
+daytask right clicked on parent -> show all related resource   (OK)
+Resource Panel:
+	jika ada daytask non resource -> harus tampil di resource panel = requested hours
+	Workload -> rename = total hours    (OK)
+	informasi filter di resource panel
+
+2. generate demo data
+      add working template to create daytask + capacity  (OK)
+      create Link/relation data
+      variative date data  (OK)
+
+3. Daytask
+   Assigned ahours = 0 if resource = blank
+
+4. Resource Assignment
+   see picture ResAssignment.png
+
+DayTask View
+============
+5. caption of view:
+      if resource exist then caption = Andi, else job+task
+      

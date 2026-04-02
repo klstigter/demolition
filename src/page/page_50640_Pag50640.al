@@ -294,8 +294,15 @@ page 50640 "Opti Job Task Lines Subform"
                     ApplicationArea = Jobs;
                     Caption = 'I&ndent Project Tasks';
                     Image = Indent;
-                    RunObject = Codeunit "Job Task-Indent";
+                    //RunObject = Codeunit "Job Task-Indent";
                     ToolTip = 'Move the selected lines in one position to show that the tasks are subcategories of other tasks. Project tasks that are totaled are the ones that lie between one pair of corresponding Begin-Total and End-Total project tasks.';
+
+                    trigger OnAction()
+                    var
+                        Indent: codeunit "Job Task Indent";
+                    begin
+                        Indent.IndentJobTasks(Rec);
+                    end;
                 }
             }
         }

@@ -141,6 +141,21 @@ window.BOOT = function() {
       }, true);
     }
 
+    function InstallResourceGridDblClick() {
+      if (document._resGridDblClickInstalled) return;
+      document._resGridDblClickInstalled = true;
+
+      document.addEventListener("dblclick", function (e) {
+        var cell = e.target.closest(".res-name-cell");
+        if (!cell) return;
+        e.preventDefault();
+        e.stopPropagation();
+        var resourceId = cell.getAttribute("data-rid") || "";
+        if (!resourceId) return;
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnResourceDblClick", [resourceId]);
+      }, true);
+    }
+
 
     // -------- DHTMLX PLUGINS --------
     gantt.plugins({
@@ -485,7 +500,22 @@ window.BOOT = function() {
         var task = gantt.getTask(id);
         var periodFrom = task && task.start_date ? fmt(task.start_date) : "";
         var periodTo   = task && task.end_date   ? fmt(task.end_date)   : "";
-        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnShowResourcesForTask", [ String(id), periodFrom, periodTo ]);
+
+        // Collect direct children of this task
+        var children = [];
+        gantt.eachTask(function(child) {
+          children.push({
+            id: String(child.id),
+            text: child.text || "",
+            bcJobNo: child.bcJobNo || "",
+            bcJobTaskNo: child.bcJobTaskNo || "",
+            start_date: child.start_date ? fmt(child.start_date) : "",
+            end_date: child.end_date ? fmt(child.end_date) : ""
+          });
+        }, id);
+        var childrenJson = JSON.stringify(children);
+
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnShowResourcesForTask", [ String(id), childrenJson, periodFrom, periodTo ]);
       } catch (e) {
         console.error("_ctxShowResources failed:", e);
       }
@@ -721,7 +751,14 @@ window.BOOT = function() {
       var css = ""
         + ".gantt_resource_marker{ border-radius:4px; color:#fff; }"
         + ".gantt_resource_marker_ok{ background:#21b36c; }"
-        + ".gantt_resource_marker_overtime{ background:#e74c3c; }";
+        + ".gantt_resource_marker_overtime{ background:#e74c3c; }"
+        /* ── Panel header: black background, white bold font ── */
+        + ".gantt_grid_scale { background:#000 !important; }"
+        + ".gantt_grid_head_cell { color:#fff !important; font-weight:bold !important; border-color:#333 !important; }"
+        + ".gantt_grid_head_cell .gantt_grid_head_add { color:#fff !important; }"
+        /* resource panel header */
+        + ".gantt_resource_grid .gantt_grid_scale { background:#000 !important; }"
+        + ".gantt_resource_grid .gantt_grid_head_cell { color:#fff !important; font-weight:bold !important; border-color:#333 !important; }";
       var s = document.createElement("style");
       s.textContent = css;
       document.head.appendChild(s);
@@ -789,6 +826,7 @@ window.BOOT = function() {
     //InstallDayTaskLayer();   // ✅ install once
     //InstallDayTaskEvents(); // ✅ install once //ah: the function is hide, see on top lines
     InstallResourceMarkerCustomTooltipsForDayTasks(); // ✅ install once
+    InstallResourceGridDblClick(); // ✅ install once
 
 
     // ✅ Tell AL we are safe to call now
@@ -807,9 +845,14 @@ function RecreateGanttLayout(showResourcePanel) {
     var mainGridConfig = { columns: gantt.config.columns };
     var resourcePanelConfig = {
       columns: [
-        { name: "name", label: "Name", template: function (r) { return r.text || r.label || ""; } },
+        { name: "name", label: "Name", template: function (r) {
+            var id = String(r.id || "").replace(/"/g, "&quot;");
+            var label = r.text || r.label || "";
+            return '<span class="res-name-cell" data-rid="' + id + '">' + label + '</span>';
+          }
+        },
         {
-          name: "workload", label: "Workload", template: function (r) {
+          name: "workload", label: "Total Hours", template: function (r) {
             // Calculate total hours from dayTasksStore
             var total = 0;
             if (dayTasksStore) {

@@ -101,20 +101,6 @@ codeunit 50613 "GanttChartDataHandler"
         SchedulingTypeText := GetSchedulingTypeText(JobTask."Scheduling Type");
         JsonObject.Add('schedulingType', SchedulingTypeText);
 
-        //TODO: Constrain Type
-        // JsonObject.Add('constraint_type', GenUtils.MapConstraintTypeToDhtmlx(JobTask."Constraint Type"));  // e.g., 'fnlt' (Finish No Later Than)
-        // if JobTask."Constraint Type" <> JobTask."Constraint Type"::None then begin
-        //     if JobTask."Constraint Date" <> 0D then begin
-        //         ConstraintDateText := FormatDate(JobTask."Constraint Date");
-        //         JsonObject.Add('constraint_date', ConstraintDateText);
-        //     end;
-        //     if JobTask."Constraint Is Hard" then
-        //         JsonObject.Add('constraint_is_hard', JobTask."Constraint Is Hard");
-        // end;
-
-        // if JobTask."Deadline Date" <> 0D then
-        //     JsonObject.Add('deadline', FormatDate(JobTask."Deadline Date"));
-
         JsonObject.Add('progress', JobTask."Progress" / 100); // Convert percentage to a value between 0 and 1
 
         // TODO: Replace with a real color field from Job Task or a setup/color table.
@@ -180,7 +166,7 @@ codeunit 50613 "GanttChartDataHandler"
 
     // Returns only resources assigned to the given Job Task via Day Tasks.
     // Falls back to all resources if no Day Task assignments exist.
-    procedure GetResourcesByJobTaskAsJson(JobNo: Code[20]; JobTaskNo: Code[20]; FromDate: Date; ToDate: Date) JsonText: Text
+    procedure GetResourcesByJobTaskAsJson(var JobTask: Record "Job Task"; FromDate: Date; ToDate: Date) JsonText: Text
     var
         DayTask: Record "Day Tasks";
         Resource: Record Resource;
@@ -190,22 +176,26 @@ codeunit 50613 "GanttChartDataHandler"
         ResNo: Code[20];
     begin
         // Collect distinct Resource No. values from Day Tasks for this Job Task
-        DayTask.SetRange("Job No.", JobNo);
-        DayTask.SetRange("Job Task No.", JobTaskNo);
-        DayTask.SetRange(Type, DayTask.Type::Resource);
-        if (FromDate <> 0D) and (ToDate <> 0D) then
-            DayTask.SetRange("Task Date", FromDate, ToDate)
-        else
-            if FromDate <> 0D then
-                DayTask.SetFilter("Task Date", '>=%1', FromDate)
+        if not JobTask.FindSet() then
+            exit;
+        repeat
+            DayTask.SetRange("Job No.", JobTask."Job No.");
+            DayTask.SetRange("Job Task No.", JobTask."Job Task No.");
+            DayTask.SetRange(Type, DayTask.Type::Resource);
+            if (FromDate <> 0D) and (ToDate <> 0D) then
+                DayTask.SetRange("Task Date", FromDate, ToDate)
             else
-                if ToDate <> 0D then
-                    DayTask.SetFilter("Task Date", '<=%1', ToDate);
-        if DayTask.FindSet() then
-            repeat
-                if (DayTask."No." <> '') and (not ResourceNos.Contains(DayTask."No.")) then
-                    ResourceNos.Add(DayTask."No.");
-            until DayTask.Next() = 0;
+                if FromDate <> 0D then
+                    DayTask.SetFilter("Task Date", '>=%1', FromDate)
+                else
+                    if ToDate <> 0D then
+                        DayTask.SetFilter("Task Date", '<=%1', ToDate);
+            if DayTask.FindSet() then
+                repeat
+                    if (DayTask."No." <> '') and (not ResourceNos.Contains(DayTask."No.")) then
+                        ResourceNos.Add(DayTask."No.");
+                until DayTask.Next() = 0;
+        until JobTask.Next() = 0;
 
         // If no Day Task assignments found, return empty list (only the - NONE - placeholder).
         // "Show/Hide Resource Panel" button will reload all resources when user wants to see everything.
