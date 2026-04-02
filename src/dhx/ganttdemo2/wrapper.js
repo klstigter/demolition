@@ -141,6 +141,21 @@ window.BOOT = function() {
       }, true);
     }
 
+    function InstallResourceGridDblClick() {
+      if (document._resGridDblClickInstalled) return;
+      document._resGridDblClickInstalled = true;
+
+      document.addEventListener("dblclick", function (e) {
+        var cell = e.target.closest(".res-name-cell");
+        if (!cell) return;
+        e.preventDefault();
+        e.stopPropagation();
+        var resourceId = cell.getAttribute("data-rid") || "";
+        if (!resourceId) return;
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnResourceDblClick", [resourceId]);
+      }, true);
+    }
+
 
     // -------- DHTMLX PLUGINS --------
     gantt.plugins({
@@ -811,6 +826,7 @@ window.BOOT = function() {
     //InstallDayTaskLayer();   // ✅ install once
     //InstallDayTaskEvents(); // ✅ install once //ah: the function is hide, see on top lines
     InstallResourceMarkerCustomTooltipsForDayTasks(); // ✅ install once
+    InstallResourceGridDblClick(); // ✅ install once
 
 
     // ✅ Tell AL we are safe to call now
@@ -829,7 +845,12 @@ function RecreateGanttLayout(showResourcePanel) {
     var mainGridConfig = { columns: gantt.config.columns };
     var resourcePanelConfig = {
       columns: [
-        { name: "name", label: "Name", template: function (r) { return r.text || r.label || ""; } },
+        { name: "name", label: "Name", template: function (r) {
+            var id = String(r.id || "").replace(/"/g, "&quot;");
+            var label = r.text || r.label || "";
+            return '<span class="res-name-cell" data-rid="' + id + '">' + label + '</span>';
+          }
+        },
         {
           name: "workload", label: "Total Hours", template: function (r) {
             // Calculate total hours from dayTasksStore

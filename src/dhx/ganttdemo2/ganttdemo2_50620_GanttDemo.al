@@ -223,6 +223,11 @@ page 50620 "Gantt Demo DHX 2"
                     // Fired from dhtmlx when user removes a dependency arrow
                     LinkHandler.DeleteLinkFromJson(linkData);
                 end;
+
+                trigger OnResourceDblClick(resourceId: Text)
+                begin
+                    Message('Resource: %1', resourceId);
+                end;
             }
         }
     }
