@@ -368,7 +368,10 @@ codeunit 50613 "GanttChartDataHandler"
         EndTimeText := FormatTime(DayTask."End Time");
         JsonObject.Add('end_time', EndTimeText);
 
-        JsonObject.Add('hours', DayTask."Assigned Hours");
+        if DayTask."No." <> '' then
+            JsonObject.Add('hours', DayTask."Assigned Hours")
+        else
+            JsonObject.Add('hours', DayTask."Requested Hours");
 
         // Resource/Vendor information
         ResourceId := GetResourceId(DayTask);
@@ -377,7 +380,7 @@ codeunit 50613 "GanttChartDataHandler"
         TypeText := GetDayTaskTypeText(DayTask.Type);
         JsonObject.Add('type', TypeText);
 
-        if daytask."Vendor No." <> '' then
+        if DayTask."Vendor No." <> '' then
             JsonObject.Add('vendorNo', DayTask."Vendor No.")
         else
             JsonObject.Add('vendorNo', 'null');
@@ -401,10 +404,16 @@ codeunit 50613 "GanttChartDataHandler"
                 DayTask.Type::"G/L Account":
                     ResourceId := 'GL-' + DayTask."No.";
                 else
-                    ResourceId := 'UNASSIGNED';
+                    ResourceId := 'RES-'; //UNASSIGNED
             end;
         end else
-            ResourceId := 'UNASSIGNED';
+            ResourceId := 'RES-'; //UNASSIGNED
+
+        /*
+        JsonObject.Add('key', 'RES-' + '');
+        JsonObject.Add('label', ' - NONE - ');
+        JsonArray.Add(JsonObject);
+        */
     end;
 
     local procedure GetDayTaskTypeText(DayTaskType: Enum "Job Planning Line Type") TypeText: Text

@@ -168,6 +168,9 @@ table 50610 "Day Tasks"
                         "Pool Resource No." := Resource."Pool Resource No.";
 
                 end;
+                if (Type = Type::Resource) and ("No." = '') then begin
+                    validate("Assigned Hours", 0);
+                end;
             end;
 
             trigger OnLookup()
