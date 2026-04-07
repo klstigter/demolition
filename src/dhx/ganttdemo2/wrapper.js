@@ -13,6 +13,7 @@ var _booted = false;
 var resourcesStore = null;
 var dayTasksStore = null;
 var _isRefreshing = false;
+var _resourceFilterInfo = null; // { job, task, periodFrom, periodTo }
 
 // -------------------------------------------------------
 // 1) BOOT (run once)
@@ -831,7 +832,12 @@ window.BOOT = function() {
         + ".gantt_grid_head_cell .gantt_grid_head_add { color:#fff !important; }"
         /* resource panel header */
         + ".gantt_resource_grid .gantt_grid_scale { background:#000 !important; }"
-        + ".gantt_resource_grid .gantt_grid_head_cell { color:#fff !important; font-weight:bold !important; border-color:#333 !important; }";
+        + ".gantt_resource_grid .gantt_grid_head_cell { color:#fff !important; font-weight:bold !important; border-color:#333 !important; }"
+        /* ── Resource filter info icon ── */
+        + ".res-filter-icon { display:inline-block; margin-left:5px; cursor:pointer; font-size:13px; color:#adf; opacity:0.85; vertical-align:middle; }"
+        + ".res-filter-icon:hover { opacity:1; }"
+        /* ── Fixed body-level tooltip (never clipped by overflow:hidden) ── */
+        + "#res-filter-tooltip-popup { display:none; position:fixed; background:#1a1a2e; color:#e0e0e0; border:1px solid #4a6fa5; border-radius:5px; padding:8px 12px; font-size:12px; font-weight:normal; white-space:nowrap; z-index:999999; box-shadow:0 3px 10px rgba(0,0,0,0.5); min-width:180px; pointer-events:none; }";
       var s = document.createElement("style");
       s.textContent = css;
       document.head.appendChild(s);
@@ -902,6 +908,10 @@ window.BOOT = function() {
     InstallResourceGridDblClick(); // ✅ install once
     InstallResourceGridContextMenu(); // ✅ install once
 
+    // ✅ Update resource panel header tooltip after every render
+    gantt.attachEvent("onGanttRender", function() {
+      _updateResourceHeaderTooltip();
+    });
 
     // ✅ Tell AL we are safe to call now
     Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("ControlReady", []);
@@ -1849,4 +1859,99 @@ function SetResourcePanelVisibility(resource_toggle) {
   } catch (e) {
     console.error("SetResourcePanelVisibility failed:", e);
   }
+}
+
+// -------------------------------------------------------
+// Resource Panel Filter Info (AL -> JS)
+// Called by BC to store the filter context shown in tooltip
+// -------------------------------------------------------
+function SetResourcePanelFilterInfo(jobNo, taskNo, periodFrom, periodTo) {
+  _resourceFilterInfo = {
+    job: jobNo || "",
+    task: taskNo || "",
+    periodFrom: periodFrom || "",
+    periodTo: periodTo || ""
+  };
+  _updateResourceHeaderTooltip();
+}
+
+function _updateResourceHeaderTooltip() {
+  try {
+    // DHTMLX Gantt layout gives the resource grid cell the class "resourceGrid_cell"
+    // (derived from id: "resourceGrid" in the layout config)
+    var cell = document.querySelector(".resourceGrid_cell .gantt_grid_head_workload")
+            || document.querySelector(".resourceGrid_cell .gantt_grid_scale .gantt_grid_head_cell:last-child");
+    if (!cell) {
+      // DOM not ready yet (resetLayout() still in progress) — retry once after paint
+      setTimeout(_updateResourceHeaderTooltip, 150);
+      return;
+    }
+
+    // Remove any previously injected icon
+    var existing = cell.querySelector(".res-filter-icon");
+    if (existing) existing.parentNode.removeChild(existing);
+
+    if (!_resourceFilterInfo) return;
+
+    // Ensure fixed tooltip popup exists in body (never clipped by overflow:hidden)
+    var popup = document.getElementById("res-filter-tooltip-popup");
+    if (!popup) {
+      popup = document.createElement("div");
+      popup.id = "res-filter-tooltip-popup";
+      document.body.appendChild(popup);
+    }
+
+    // Build tooltip HTML lines
+    var fi = _resourceFilterInfo;
+    var lines = ["<b>Filter applied:</b>"];
+    if (fi.job) lines.push("Job = " + _escHtml(fi.job));
+    if (fi.task) lines.push("Task = " + _escHtml(fi.task));
+    if (fi.periodFrom || fi.periodTo)
+      lines.push("Period: " + _escHtml(fi.periodFrom) + " to " + _escHtml(fi.periodTo));
+    popup.innerHTML = lines.join("<br/>");
+
+    // Inject icon-only span (no child HTML)
+    var icon = document.createElement("span");
+    icon.className = "res-filter-icon";
+    icon.textContent = "\u24d8"; // ℹ circled i
+
+    icon.addEventListener("mouseenter", function(e) {
+      popup.style.display = "block";
+      _positionResFilterTooltip(e);
+    });
+    icon.addEventListener("mousemove", function(e) {
+      _positionResFilterTooltip(e);
+    });
+    icon.addEventListener("mouseleave", function() {
+      popup.style.display = "none";
+    });
+
+    cell.appendChild(icon);
+  } catch (e) {
+    console.error("_updateResourceHeaderTooltip failed:", e);
+  }
+}
+
+function _positionResFilterTooltip(e) {
+  var popup = document.getElementById("res-filter-tooltip-popup");
+  if (!popup) return;
+  var pad = 14;
+  var vw = window.innerWidth;
+  var vh = window.innerHeight;
+  var w = popup.offsetWidth;
+  var h = popup.offsetHeight;
+  var x = e.clientX + pad;
+  var y = e.clientY + pad;
+  if (x + w > vw - 8) x = e.clientX - w - pad;
+  if (y + h > vh - 8) y = e.clientY - h - pad;
+  popup.style.left = x + "px";
+  popup.style.top  = y + "px";
+}
+
+function _escHtml(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
