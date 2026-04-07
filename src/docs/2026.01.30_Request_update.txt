@@ -81,7 +81,7 @@ Capacity (Pool)
 add background for header of panel tree: task and resource     (OK)
 daytask right clicked on parent -> show all related resource   (OK)
 Resource Panel:
-	jika ada daytask non resource -> harus tampil di resource panel = requested hours
+	jika ada daytask non resource -> harus tampil di resource panel = requested hours   (OK)
 	Workload -> rename = total hours    (OK)
 	informasi filter di resource panel
 
@@ -91,7 +91,7 @@ Resource Panel:
       variative date data  (OK)
 
 3. Daytask
-   Assigned ahours = 0 if resource = blank
+   Assigned hours = 0 if resource = blank (OK)
 
 4. Resource Assignment
    see picture ResAssignment.png
@@ -100,4 +100,5 @@ DayTask View
 ============
 5. caption of view:
       if resource exist then caption = Andi, else job+task
+6. The Structure of tree follow indent, same as tree in gantt
       

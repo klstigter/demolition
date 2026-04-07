@@ -46,6 +46,7 @@ controladdin "DHX Gantt Control 2"
     procedure RenderGantt();
     procedure GetGanttData();
     procedure SetResourcePanelVisibility(resource_toggle: Boolean);
+    procedure SetResourcePanelFilterInfo(jobNo: Text; taskNo: Text; periodFrom: Text; periodTo: Text);
     procedure UpsertLink(linkJsonTxt: Text);
     procedure DeleteLink(linkId: Text);
     procedure LoadLinksData(linksJsonTxt: Text);

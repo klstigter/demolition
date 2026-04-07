@@ -109,6 +109,9 @@ page 50620 "Gantt Demo DHX 2"
                     ResourcePanelFlag := true;
                     CurrPage.DHXGanttControl2.SetResourcePanelVisibility(true);
 
+                    // Pass filter context for the header tooltip
+                    CurrPage.DHXGanttControl2.SetResourcePanelFilterInfo(JobNo, JobTaskNo, Format(FromDate, 0, '<Year4>-<Month,2>-<Day,2>'), Format(ToDate, 0, '<Year4>-<Month,2>-<Day,2>'));
+
                     // Load only resources assigned to this task via Day Tasks within the period
                     JobTask.MarkedOnly := True;
                     if JobTask.FindSet() then;
