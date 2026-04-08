@@ -7,6 +7,7 @@ codeunit 50602 "Create Demo Data"
         //if not job.get('JOB001') then
         CreateJob();
         CreateJobTask();
+        CreateJobTaskLinks();
         CheckResources();
         CreateCapacityAndDayTask();
     end;
@@ -32,10 +33,13 @@ codeunit 50602 "Create Demo Data"
         JobFiltered.Get(job."No.");
         JobFiltered.Mark(true);
 
-        job."No." := 'JOB002';
-        job.Description := 'App Development';
-        job.validate("Sell-to Customer No.", customer."No.");
-        if not job.Insert() then job.Modify();
+        if not job.Get('JOB002') then begin
+            job."No." := 'JOB002';
+            job.Description := 'App Development';
+            job.Insert();
+            job.validate("Sell-to Customer No.", customer."No.");
+            job.Modify();
+        end;
         JobFiltered.Get(job."No.");
         JobFiltered.Mark(true);
     end;
@@ -497,6 +501,38 @@ codeunit 50602 "Create Demo Data"
         end;
     end;
 
+
+    local procedure CreateJobTaskLinks()
+    var
+        Link: Record "BCG Gantt Task Link";
+    begin
+        // JOB002 — Finish-Start dependencies between Posting tasks
+        CreateLink(Link, 'JOB002', '1010', '1020', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // Requirements Gathering → System Architecture Design
+        CreateLink(Link, 'JOB002', '1020', '1030', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // System Architecture Design → Design Review & Sign-off
+        CreateLink(Link, 'JOB002', '1030', '2010', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // Design Review → Backend API Development
+        CreateLink(Link, 'JOB002', '1030', '2020', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // Design Review → Frontend UI Development
+        CreateLink(Link, 'JOB002', '1030', '2030', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // Design Review → Database Migration
+        CreateLink(Link, 'JOB002', '2010', '2040', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // Backend API → Integration & Unit Tests
+        CreateLink(Link, 'JOB002', '2020', '2040', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // Frontend UI → Integration & Unit Tests
+        CreateLink(Link, 'JOB002', '2030', '2040', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // Database Migration → Integration & Unit Tests
+        CreateLink(Link, 'JOB002', '2040', '3010', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // Integration & Unit Tests → System Integration Testing
+        CreateLink(Link, 'JOB002', '3010', '3020', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // System Integration Testing → User Acceptance Testing
+        CreateLink(Link, 'JOB002', '3020', '3030', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // User Acceptance Testing → Bug Fixing & Retest
+        CreateLink(Link, 'JOB002', '3030', '4010', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // Bug Fixing → Production Deployment
+        CreateLink(Link, 'JOB002', '4010', '4020', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // Production Deployment → Go-Live Support & Monitoring
+    end;
+
+    local procedure CreateLink(var Link: Record "BCG Gantt Task Link"; JobNo: Code[20]; SourceTaskNo: Code[20]; TargetTaskNo: Code[20]; LinkType: Enum "BCG Gantt Link Type"; LagDays: Integer)
+    begin
+        Link.Init();
+        Link."Job No." := JobNo;
+        Link."Source Task No." := SourceTaskNo;
+        Link."Target Task No." := TargetTaskNo;
+        Link."Link Type" := LinkType;
+        Link."Lag (Days)" := LagDays;
+        if not Link.Insert() then
+            Link.Modify();
+    end;
 
     local procedure CreateResourceCapacity(ResNo: Code[20]; StartDate: Date; EndDate: Date)
     var
