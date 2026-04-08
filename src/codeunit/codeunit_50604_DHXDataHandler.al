@@ -152,13 +152,16 @@ codeunit 50604 "DHX Data Handler"
                                          ResName);
                 PlanningObject.Add('start_date', StartDateTxt);
                 PlanningObject.Add('end_date', EndDateTxt);
-                if Daytask.Description <> '' then
-                    PlanningObject.Add('text', Daytask.Description)
-                else
-                    if Daytask."No." <> '' then
+                //if Daytask.Description <> '' then
+                //    PlanningObject.Add('text', Daytask.Description)
+                //else
+                if Daytask."No." <> '' then begin
+                    if ResName <> '' then
                         PlanningObject.Add('text', ResName)
                     else
-                        PlanningObject.Add('text', 'vacant');
+                        PlanningObject.Add('text', Daytask.Description);
+                end else
+                    PlanningObject.Add('text', Daytask."Job No." + '|' + Daytask."Job Task No." + ' (vacant)');
 
                 PlanningObject.Add('section_id', Daytask."Job No." + '|' + Daytask."Job Task No.");
                 // if ResNo <> '' then begin
@@ -176,7 +179,7 @@ codeunit 50604 "DHX Data Handler"
                     PlanningObject.Add('color', '#3367D1'); //Blue BC Selection
                     PlanningObject.Add('type', 'daytask_0');
                 end else begin
-                    PlanningObject.Add('color', '#E9E9E9'); //grey BC
+                    PlanningObject.Add('color', '#21B36C'); //Green
                     PlanningObject.Add('type', 'daytask_1');
                 end;
 
