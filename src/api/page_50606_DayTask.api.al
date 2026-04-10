@@ -40,6 +40,14 @@ page 50606 "DayTaskApi Opt"
                 {
                     Caption = 'Description';
                 }
+                field(systemCreatedAt; Rec.SystemCreatedAt)
+                {
+                    Caption = 'Created At';
+                }
+                field(systemModifiedAt; Rec.SystemModifiedAt)
+                {
+                    Caption = 'Modified At';
+                }
             }
         }
     }

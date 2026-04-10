@@ -1,13 +1,13 @@
-page 50605 "JobTaskApi Opt"
+page 50611 "Resource API Optimization"
 {
     PageType = API;
-    Caption = 'Job Task API Optimization';
+    Caption = 'Resource API Optimization';
     APIPublisher = 'BC365Optimizer';
     APIGroup = 'Planning';
     APIVersion = 'v1.0';
-    EntityName = 'jobTask';
-    EntitySetName = 'jobTasks';
-    SourceTable = "Job Task";
+    EntityName = 'Resource';
+    EntitySetName = 'Resources';
+    SourceTable = "Resource";
     DelayedInsert = true;
 
     layout
@@ -16,17 +16,17 @@ page 50605 "JobTaskApi Opt"
         {
             repeater(GroupName)
             {
-                field(jobNo_; Rec."Job No.")
+                field(no_; Rec."No.")
                 {
                     Caption = 'No.';
                 }
-                field(jobTaskNo_; Rec."Job Task No.")
+                field(name; Rec.Name)
                 {
-                    Caption = 'Task No.';
+                    Caption = 'Name';
                 }
-                field(description; Rec.Description)
+                field(resourceGroupNo_; Rec."Resource Group No.")
                 {
-                    Caption = 'Description';
+                    Caption = 'Resource Group No.';
                 }
                 field(systemCreatedAt; Rec.SystemCreatedAt)
                 {

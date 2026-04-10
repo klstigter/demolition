@@ -24,6 +24,14 @@ page 50603 "JobApi Opt"
                 {
                     Caption = 'Description';
                 }
+                field(systemCreatedAt; Rec.SystemCreatedAt)
+                {
+                    Caption = 'Created At';
+                }
+                field(systemModifiedAt; Rec.SystemModifiedAt)
+                {
+                    Caption = 'Modified At';
+                }
             }
         }
     }
