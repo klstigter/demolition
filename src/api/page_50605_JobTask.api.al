@@ -16,6 +16,10 @@ page 50605 "JobTaskApi Opt"
         {
             repeater(GroupName)
             {
+                field(systemId; Rec.SystemId)
+                {
+                    Caption = 'System Id';
+                }
                 field(jobNo_; Rec."Job No.")
                 {
                     Caption = 'No.';

@@ -16,6 +16,10 @@ page 50615 "Resource Group API Opt."
         {
             repeater(GroupName)
             {
+                field(systemId; Rec.SystemId)
+                {
+                    Caption = 'System Id';
+                }
                 field(no_; Rec."No.")
                 {
                     Caption = 'No.';
