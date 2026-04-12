@@ -16,6 +16,10 @@ page 50606 "DayTaskApi Opt"
         {
             repeater(GroupName)
             {
+                field(systemId; Rec.SystemId)
+                {
+                    Caption = 'System Id';
+                }
                 field(taskDate; Rec."Task Date")
                 {
                     Caption = 'Task Date';

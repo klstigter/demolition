@@ -16,6 +16,10 @@ page 50611 "Resource API Optimization"
         {
             repeater(GroupName)
             {
+                field(systemId; Rec.SystemId)
+                {
+                    Caption = 'System Id';
+                }
                 field(no_; Rec."No.")
                 {
                     Caption = 'No.';
