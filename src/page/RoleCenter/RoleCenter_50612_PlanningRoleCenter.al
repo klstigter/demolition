@@ -128,6 +128,12 @@ page 50612 "Planning Role Center"
                     Caption = 'Resource Capacities';
                     RunObject = page "Resource Capacity";
                 }
+                action("Resource Assignment")
+                {
+                    ApplicationArea = Basic, Suite;
+                    Caption = 'Resource Assignment';
+                    RunObject = page "Resource Assignment";
+                }
             }
             group("tests")
             {
