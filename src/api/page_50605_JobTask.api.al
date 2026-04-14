@@ -32,6 +32,14 @@ page 50605 "JobTaskApi Opt"
                 {
                     Caption = 'Description';
                 }
+                field(plannedStartDate; Rec.PlannedStartDate)
+                {
+                    Caption = 'Planned Start Date';
+                }
+                field(plannedEndDate; Rec.PlannedEndDate)
+                {
+                    Caption = 'Planned End Date';
+                }
                 field(systemCreatedAt; Rec.SystemCreatedAt)
                 {
                     Caption = 'Created At';
