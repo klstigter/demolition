@@ -9,6 +9,7 @@ page 50606 "DayTaskApi Opt"
     EntitySetName = 'dayTasks';
     SourceTable = "Day Tasks";
     DelayedInsert = true;
+    ODataKeyFields = SystemId;
 
     layout
     {
@@ -43,6 +44,18 @@ page 50606 "DayTaskApi Opt"
                 field(description; Rec.Description)
                 {
                     Caption = 'Description';
+                }
+                field(assignedHours; Rec."Assigned Hours")
+                {
+                    ApplicationArea = All;
+                }
+                field(requestedHours; Rec."Requested Hours")
+                {
+                    ApplicationArea = All;
+                }
+                field(workedHours; Rec."Worked Hours")
+                {
+                    ApplicationArea = All;
                 }
                 field(systemCreatedAt; Rec.SystemCreatedAt)
                 {
