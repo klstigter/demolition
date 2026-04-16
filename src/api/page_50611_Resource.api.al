@@ -9,6 +9,7 @@ page 50611 "Resource API Optimization"
     EntitySetName = 'Resources';
     SourceTable = "Resource";
     DelayedInsert = true;
+    ODataKeyFields = SystemId;
 
     layout
     {
