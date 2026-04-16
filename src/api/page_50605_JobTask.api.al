@@ -28,6 +28,10 @@ page 50605 "JobTaskApi Opt"
                 {
                     Caption = 'Task No.';
                 }
+                field(taskType; Rec."Job Task Type")
+                {
+                    Caption = 'Task Type';
+                }
                 field(description; Rec.Description)
                 {
                     Caption = 'Description';
@@ -39,6 +43,26 @@ page 50605 "JobTaskApi Opt"
                 field(plannedEndDate; Rec.PlannedEndDate)
                 {
                     Caption = 'Planned End Date';
+                }
+                field(address; Rec."Sell-to Address")
+                {
+                    Caption = 'Sell-to Address';
+                }
+                field(address2; Rec."Sell-to Address 2")
+                {
+                    Caption = 'Sell-to Address 2';
+                }
+                field(city; Rec."Sell-to City")
+                {
+                    Caption = 'Sell-to City';
+                }
+                field(county; Rec."Sell-to County")
+                {
+                    Caption = 'Sell-to County';
+                }
+                field(regionCode; Rec."Sell-to Country/Region Code")
+                {
+                    Caption = 'Sell-to Country/Region Code';
                 }
                 field(systemCreatedAt; Rec.SystemCreatedAt)
                 {
