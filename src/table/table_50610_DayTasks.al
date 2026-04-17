@@ -277,7 +277,6 @@ table 50610 "Day Tasks"
             DataClassification = ToBeClassified;
             Caption = 'Unit of Measure Code';
         }
-
         field(41; "Vendor Name"; Text[100])
         {
             FieldClass = FlowField;
@@ -376,6 +375,11 @@ table 50610 "Day Tasks"
             FieldClass = FlowField;
             Editable = false;
             BlankZero = true;
+        }
+        field(140; "Data Owner"; Enum "Data Owner Opt.")
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Data Owner';
         }
     }
     keys

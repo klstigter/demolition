@@ -57,6 +57,10 @@ page 50606 "DayTaskApi Opt"
                 {
                     ApplicationArea = All;
                 }
+                field(dataOwner; Rec."Data Owner")
+                {
+                    Caption = 'Data Owner';
+                }
                 field(systemCreatedAt; Rec.SystemCreatedAt)
                 {
                     Caption = 'Created At';

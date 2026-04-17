@@ -23,6 +23,10 @@ page 50624 "Day Task Information FactBox"
                     ToolTip = 'Specifies the line number for this day task.';
                     Caption = 'Day Line No.';
                 }
+                field("Data Owner"; Rec."Data Owner")
+                {
+                    Caption = 'Data Owner';
+                }
             }
             group(JobInformation)
             {
