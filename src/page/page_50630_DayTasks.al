@@ -39,7 +39,10 @@ page 50630 "Day Tasks"
                     ToolTip = 'Specifies the job task number.';
                     Visible = false;
                 }
-
+                field("Data Owner"; Rec."Data Owner")
+                {
+                    Caption = 'Data Owner';
+                }
                 field(Type; Rec.Type)
                 {
                     ApplicationArea = All;

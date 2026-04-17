@@ -25,6 +25,10 @@ page 50622 "Resource Day Tasks"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the resource group number.';
                 }
+                field("Data Owner"; Rec."Data Owner")
+                {
+                    Caption = 'Data Owner';
+                }
                 field("Vendor No."; Rec."Vendor No.")
                 {
                     ApplicationArea = All;

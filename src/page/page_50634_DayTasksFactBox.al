@@ -20,6 +20,10 @@ page 50634 "Day Tasks FactBox"
                 {
                     ApplicationArea = All;
                 }
+                field("Data Owner"; Rec."Data Owner")
+                {
+                    Caption = 'Data Owner';
+                }
                 field("Start Time"; Rec."Start Time")
                 {
                     ApplicationArea = All;

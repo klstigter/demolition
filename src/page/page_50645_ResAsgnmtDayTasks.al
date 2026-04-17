@@ -42,6 +42,10 @@ page 50645 "Res. Asgmt. Day Tasks"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the resource, item, or G/L account number.';
                 }
+                field("Data Owner"; Rec."Data Owner")
+                {
+                    Caption = 'Data Owner';
+                }
                 field(Skill; Rec.Skill)
                 {
                     ApplicationArea = All;
