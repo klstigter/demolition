@@ -77,6 +77,11 @@ page 50617 "Job Task List - Project"
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the progress percentage (0-100) for this job task.';
                 }
+                field("Total Day Taks"; Rec."Total Day Taks")
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the total number of related day tasks.';
+                }
                 field("Total Assigned Hours"; Rec."Total Assigned Hours")
                 {
                     ApplicationArea = Jobs;
@@ -90,9 +95,28 @@ page 50617 "Job Task List - Project"
             }
         }
 
-
         area(factboxes)
         {
+
+            part(JobInformation; "Job Information FactBox")
+            {
+                ApplicationArea = Jobs;
+                SubPageLink = "Job No." = field("Job No.");
+            }
+            part(ResourceSummaryFactbox; "Resource Summary FactBox")
+            {
+                ApplicationArea = Jobs;
+                Caption = 'Resource Summary';
+
+            }
+            part(TaskLinkFactbox; "Task Link Factbox")
+            {
+                ApplicationArea = Jobs;
+                SubPageLink = "Job No." = field("Job No."),
+                              "Source Task No." = field("Job Task No.");
+            }
+
+
             systempart(Control1900383207; Links)
             {
                 ApplicationArea = RecordLinks;
@@ -324,6 +348,7 @@ page 50617 "Job Task List - Project"
     trigger OnAfterGetRecord()
     begin
         StyleIsStrong := Rec."Job Task Type" <> Rec."Job Task Type"::Posting;
+        CurrPage.ResourceSummaryFactbox.Page.SetContext(Rec."Job No.", Rec."Job Task No.");
     end;
 
     trigger OnNewRecord(BelowxRec: Boolean)

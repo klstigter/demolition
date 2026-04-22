@@ -233,6 +233,7 @@ page 50620 "Gantt Demo DHX 2"
                 end;
             }
         }
+
     }
 
     actions
@@ -379,8 +380,27 @@ page 50620 "Gantt Demo DHX 2"
                 image = AbsenceCalendar;
 
                 trigger OnAction()
+                var
+                    DayTask: Record "Day Tasks";
+                    Direction: Option Forward,Backward;
                 begin
-                    page.RunModal(Page::"Day Tasks");
+                    DayTask.SetRange("Task Date", AnchorDate, CalcNewAnchorDate(Direction::Forward));
+                    page.RunModal(Page::"Day Tasks", DayTask);
+                end;
+            }
+            action(projectTasks)
+            {
+                Caption = 'Project Tasks';
+                ApplicationArea = All;
+                image = Task;
+
+                trigger OnAction()
+                var
+                    jobTask: Record "Job Task";
+                    Direction: Option Forward,Backward;
+                begin
+                    jobTask.SetFilter("Planning Date Filter", '%1..%2', AnchorDate, CalcNewAnchorDate(Direction::Forward));
+                    page.RunModal(Page::"Job Task List - Project", jobTask);
                 end;
             }
 
@@ -406,16 +426,9 @@ page 50620 "Gantt Demo DHX 2"
                 trigger OnAction()
                 var
                     forDt: text;
+                    Direction: Option Forward,Backward;
                 begin
-                    Case Setup."Date Range Type" of
-                        Setup."Date Range Type"::Weekly:
-                            AnchorDate := CalcDate('<-6W>', AnchorDate);
-                        Setup."Date Range Type"::Calculated:
-                            begin
-                                forDt := StrSubstNo('<-%1D>', setup.GetPeriodLength(AnchorDate));
-                                AnchorDate := CalcDate(forDt, AnchorDate);
-                            end;
-                    End;
+                    AnchorDate := CalcNewAnchorDate(Direction::Forward);
                     RefreshGantt();
                 end;
             }
@@ -429,16 +442,9 @@ page 50620 "Gantt Demo DHX 2"
                 trigger OnAction()
                 var
                     forDt: text;
+                    Direction: Option Forward,Backward;
                 begin
-                    Case Setup."Date Range Type" of
-                        Setup."Date Range Type"::Weekly:
-                            AnchorDate := CalcDate('<6W>', AnchorDate);
-                        Setup."Date Range Type"::Calculated:
-                            begin
-                                forDt := StrSubstNo('<%1D>', setup.GetPeriodLength(AnchorDate));
-                                AnchorDate := CalcDate(forDt, AnchorDate);
-                            end;
-                    End;
+                    AnchorDate := CalcNewAnchorDate(Direction::Backward);
                     RefreshGantt();
                 end;
             }
@@ -534,7 +540,7 @@ page 50620 "Gantt Demo DHX 2"
             {
                 Caption = 'Related';
                 actionref(DayTaks_ref; DayTaks) { }
-
+                actionref(ProjectTasks_ref; projectTasks) { }
             }
             group(Check)
             {
@@ -780,6 +786,36 @@ page 50620 "Gantt Demo DHX 2"
         Evaluate(Year, YearTxt);
 
         ParsedDate := DMY2Date(Day, Month, Year);
+    end;
+
+    local procedure CalcNewAnchorDate(Direction: Option Forward,Backward): date
+    var
+        forDt: text;
+        NewAnchorDate: Date;
+    begin
+        case Direction of
+            Direction::Forward:
+                Case Setup."Date Range Type" of
+                    Setup."Date Range Type"::Weekly:
+                        NewAnchorDate := CalcDate('<-6W>', AnchorDate);
+                    Setup."Date Range Type"::Calculated:
+                        begin
+                            forDt := StrSubstNo('<-%1D>', setup.GetPeriodLength(AnchorDate));
+                            NewAnchorDate := CalcDate(forDt, AnchorDate);
+                        end;
+                End;
+            Direction::Backward:
+                Case Setup."Date Range Type" of
+                    Setup."Date Range Type"::Weekly:
+                        NewAnchorDate := CalcDate('<6W>', AnchorDate);
+                    Setup."Date Range Type"::Calculated:
+                        begin
+                            forDt := StrSubstNo('<%1D>', setup.GetPeriodLength(AnchorDate));
+                            NewAnchorDate := CalcDate(forDt, AnchorDate);
+                        end;
+                End;
+        end;
+        exit(newAnchorDate);
     end;
 
 }
