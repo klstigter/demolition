@@ -36,6 +36,16 @@ page 50634 "Day Tasks FactBox"
                 {
                     ApplicationArea = All;
                 }
+                field("Team Leader"; Rec."Team Leader")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the team leader for this day task.';
+                }
+                field(Leader; Rec.Leader)
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the leader for this day task.';
+                }
             }
         }
     }

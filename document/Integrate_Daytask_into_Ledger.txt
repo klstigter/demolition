@@ -1,0 +1,9 @@
+Job Journal Line (triggerPost=true)
+  → Job Jnl.-Post Batch
+      → Job Jnl.-Post Line (codeunit 1012)
+          → (if Resource) Res. Ledger Entry inserted, Entry No. = X
+          → Job Ledger Entry."Ledger Entry No." = X
+          → OnBeforeJobLedgEntryInsert fires
+              ← EventSubs: JobLedgEntry.DaytaskDate/LineNo = JnlLine.DaytaskDate/LineNo
+              ← EventSubs: ResLedgEntry.Get(X) → Modify with same values
+          → Job Ledger Entry inserted

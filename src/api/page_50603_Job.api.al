@@ -9,6 +9,7 @@ page 50603 "JobApi Opt"
     EntitySetName = 'Jobs';
     SourceTable = "Job";
     DelayedInsert = true;
+    ODataKeyFields = SystemId;
 
     layout
     {
@@ -27,6 +28,10 @@ page 50603 "JobApi Opt"
                 field(description; Rec.Description)
                 {
                     Caption = 'Description';
+                }
+                field(projectManager; Rec."Person Responsible")
+                {
+                    Caption = 'Person Responsible';
                 }
                 field(systemCreatedAt; Rec.SystemCreatedAt)
                 {

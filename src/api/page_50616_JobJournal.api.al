@@ -14,6 +14,8 @@ page 50616 "JobJournal Opt"
     InsertAllowed = true;
     ModifyAllowed = false;
     DeleteAllowed = false;
+    Permissions = tabledata "Res. Ledger Entry" = rm,
+                  tabledata "Job Ledger Entry" = rm;
 
     layout
     {

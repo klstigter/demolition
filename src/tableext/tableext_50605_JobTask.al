@@ -2,7 +2,13 @@ tableextension 50605 "Job Task ext" extends "Job Task"
 {
     fields
     {
-
+        field(50500; "Project Manager"; Code[20])
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Project Manager';
+            ToolTip = 'Specifies the project manager for the project task. The project manager is based on the project manager on the related project planning line.';
+            tableRelation = Resource;
+        }
         field(50521; PlannedStartDate; Date)
         {
             DataClassification = ToBeClassified;

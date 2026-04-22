@@ -61,6 +61,16 @@ page 50606 "DayTaskApi Opt"
                 {
                     Caption = 'Data Owner';
                 }
+                field(teamLeader; Rec."Team Leader")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the team leader for this day task.';
+                }
+                field(leader; Rec.Leader)
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the leader for this day task.';
+                }
                 field(systemCreatedAt; Rec.SystemCreatedAt)
                 {
                     Caption = 'Created At';

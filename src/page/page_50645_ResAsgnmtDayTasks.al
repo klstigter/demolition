@@ -140,6 +140,16 @@ page 50645 "Res. Asgmt. Day Tasks"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the description of the day task.';
                 }
+                field("Team Leader"; Rec."Team Leader")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the team leader for this day task.';
+                }
+                field(Leader; Rec.Leader)
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the leader for this day task.';
+                }
             }
         }
     }

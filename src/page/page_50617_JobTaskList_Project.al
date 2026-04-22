@@ -51,6 +51,12 @@ page 50617 "Job Task List - Project"
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies an interval or a list of project task numbers.';
                 }
+                field("Project Manager"; Rec."Project Manager")
+                {
+                    ApplicationArea = Jobs;
+                    Caption = 'Project Manager';
+                    ToolTip = 'Specifies the project manager for the project task. The project manager is based on the project manager on the related project planning line.';
+                }
                 field(PlannedStartDate; Rec.PlannedStartDate)
                 {
                     ApplicationArea = Jobs;

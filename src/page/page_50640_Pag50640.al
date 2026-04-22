@@ -89,7 +89,12 @@ page 50640 "Opti Job Task Lines Subform"
                     ToolTip = 'Specifies the name of the Work in Process calculation method that is associated with a project. The value in this field comes from the WIP method specified on the project card.';
                     Visible = false;
                 }
-
+                field("Project Manager"; Rec."Project Manager")
+                {
+                    ApplicationArea = Jobs;
+                    Caption = 'Project Manager';
+                    ToolTip = 'Specifies the project manager for the project task. The project manager is based on the project manager on the related project planning line.';
+                }
                 field(PlannedStartDate; Rec.PlannedStartDate)
                 {
                     ApplicationArea = Basic, Suite, Jobs;

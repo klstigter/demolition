@@ -271,6 +271,17 @@ table 50610 "Day Tasks"
             Caption = 'Description';
         }
 
+        field(25; "Team Leader"; Code[20])
+        {
+            DataClassification = ToBeClassified;
+            TableRelation = Resource;
+            Caption = 'Team Leader';
+        }
+        field(26; "Leader"; Boolean)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Leader';
+        }
 
         field(31; "Unit of Measure Code"; Code[10])
         {
