@@ -47,20 +47,14 @@ page 50616 "JobJournal Opt"
             action(post)
             {
                 Caption = 'Post';
+                // Invoke via OData bound action after submitting all lines:
+                // POST .../JobJournals(templateName='X',batchName='Y')/Microsoft.NAV.post
+                // Runs Job Jnl.-Post Batch once for ALL lines in the batch →
+                // creates ONE register entry (same as native BC batch-post behaviour).
 
                 trigger OnAction()
-                var
-                    JobJnlLine: Record "Job Journal Line";
-                    JobJnlPostBatch: Codeunit "Job Jnl.-Post Batch";
                 begin
-                    // Locate lines for the referenced batch in the real (non-temp) table
-                    JobJnlLine.SetRange("Journal Template Name", Rec."Journal Template Name");
-                    JobJnlLine.SetRange("Journal Batch Name", Rec.Name);
-                    if not JobJnlLine.FindFirst() then
-                        Error('No journal lines found for template ''%1'' / batch ''%2''.', Rec."Journal Template Name", Rec.Name);
-
-                    // Post all lines in the batch
-                    JobJnlPostBatch.Run(JobJnlLine);
+                    PostBatchInline(Rec."Journal Template Name", Rec.Name);
                 end;
             }
         }
@@ -77,5 +71,21 @@ page 50616 "JobJournal Opt"
         // Copy real batch data into the temp Rec so SubPageLink fields are correct
         Rec.TransferFields(JobJournalBatch, false);
         exit(true); // insert into temp table so the nested part can resolve its SubPageLink
+    end;
+
+    [CommitBehavior(CommitBehavior::Ignore)]
+    local procedure PostBatchInline(TemplateName: Code[10]; BatchName: Code[10])
+    // CommitBehavior::Ignore suppresses any explicit COMMIT calls inside
+    // Job Jnl.-Post Batch so the entire operation commits atomically when
+    // the OData HTTP response is finalised.
+    var
+        JobJnlLine: Record "Job Journal Line";
+        JobJnlPostBatch: Codeunit "Job Jnl.-Post Batch";
+    begin
+        JobJnlLine.SetRange("Journal Template Name", TemplateName);
+        JobJnlLine.SetRange("Journal Batch Name", BatchName);
+        if not JobJnlLine.FindFirst() then
+            Error('No journal lines found for template ''%1'' / batch ''%2''.', TemplateName, BatchName);
+        JobJnlPostBatch.Run(JobJnlLine);
     end;
 }

@@ -13,8 +13,12 @@ page 50623 "Job Journal Line API Opt."
     EntitySetName = 'JobJournalLines';
     SourceTable = "Job Journal Line";
     // DelayedInsert = true is mandatory for PageType = API (AL0505).
-    // Double-insert is prevented by Rec.Insert(true) + exit(false) in OnInsertRecord —
-    // the framework never reaches its own insert path when exit(false) is returned.
+    // Single-call posting pattern:
+    //   Set "triggerPost": true on the LAST line in the JSON array.
+    //   OnInsertRecord inserts every line, then — only when triggerPost = true —
+    //   calls Job Jnl.-Post Batch ONCE for the whole batch, producing ONE register
+    //   (identical to native BC batch-post behaviour).
+    //   All other lines are simply inserted without posting.
     DelayedInsert = true;
     ODataKeyFields = SystemId;
     InsertAllowed = true;
@@ -144,6 +148,13 @@ page 50623 "Job Journal Line API Opt."
                 {
                     Caption = 'Shortcut Dimension 2 Code';
                 }
+                field(triggerPost; Rec."Opt. Trigger Post")
+                {
+                    // Set to true ONLY on the last line in the array.
+                    // When true, OnInsertRecord posts the entire batch in one run
+                    // so all lines share a single Job Register entry.
+                    Caption = 'Trigger Post';
+                }
             }
         }
     }
@@ -160,15 +171,13 @@ page 50623 "Job Journal Line API Opt."
     end;
 
     trigger OnInsertRecord(BelowxRec: Boolean): Boolean
-    // Inline posting pattern:
-    // 1. Copy incoming data to temp snapshot
+    // Single-call posting pattern:
+    // 1. Copy incoming data to temp snapshot (captures triggerPost flag)
     // 2. Clear Rec to remove stale framework values
     // 3. Restore PK + payload fields
-    // 4. Rec.Insert(true) — record is now in DB within this transaction
-    // 5. Call posting codeunit via [CommitBehavior(CommitBehavior::Ignore)] wrapper
-    //    so internal COMMITs inside Job Jnl.-Post Batch are suppressed and everything
-    //    commits atomically when the HTTP request finishes.
-    // 6. exit(false) — tells BC framework NOT to insert again (we already did in step 4)
+    // 4. Rec.Insert(true) — line is now in DB
+    // 5. If triggerPost = true: post the whole batch in one Job Jnl.-Post Batch run
+    // 6. exit(false) — tells BC framework NOT to insert again
     var
         TempLine: Record "Job Journal Line" temporary;
         ExistingLine: Record "Job Journal Line";
@@ -221,8 +230,9 @@ page 50623 "Job Journal Line API Opt."
         // Step 4: persist the line — now visible to Job Jnl.-Post Batch within same transaction
         Rec.Insert(true);
 
-        // Step 5: post the batch inline (commits inside the codeunit are suppressed)
-        PostBatchInline(Rec."Journal Template Name", Rec."Journal Batch Name");
+        // Step 5: if this is the last line, post the entire batch in one run
+        if TempLine."Opt. Trigger Post" then
+            PostBatchInline(Rec."Journal Template Name", Rec."Journal Batch Name");
 
         // Step 6: BC must NOT insert again
         exit(false);
@@ -233,6 +243,7 @@ page 50623 "Job Journal Line API Opt."
     // CommitBehavior::Ignore suppresses any COMMIT calls inside Job Jnl.-Post Batch.
     // All posted ledger entries and journal line deletions accumulate in the current
     // transaction and are committed atomically when the HTTP response is sent.
+    // Called only ONCE (on the last line), so all lines share a single Job Register entry.
     var
         JobJnlLine: Record "Job Journal Line";
         JobJnlPostBatch: Codeunit "Job Jnl.-Post Batch";
