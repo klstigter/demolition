@@ -173,7 +173,16 @@ page 50630 "Day Tasks"
                     ToolTip = 'Specifies the description.';
                     StyleExpr = StyleStr;
                 }
-
+                field("Team Leader"; Rec."Team Leader")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the team leader for this day task.';
+                }
+                field(Leader; Rec.Leader)
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the leader for this day task.';
+                }
                 field("Work Type Code"; Rec."Work Type Code")
                 {
                     ApplicationArea = All;

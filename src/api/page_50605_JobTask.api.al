@@ -9,6 +9,7 @@ page 50605 "JobTaskApi Opt"
     EntitySetName = 'jobTasks';
     SourceTable = "Job Task";
     DelayedInsert = true;
+    ODataKeyFields = SystemId;
 
     layout
     {
@@ -35,6 +36,10 @@ page 50605 "JobTaskApi Opt"
                 field(description; Rec.Description)
                 {
                     Caption = 'Description';
+                }
+                field(projectManager; Rec."Project Manager")
+                {
+                    Caption = 'Project Manager';
                 }
                 field(plannedStartDate; Rec.PlannedStartDate)
                 {

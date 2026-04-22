@@ -24,6 +24,8 @@ page 50623 "Job Journal Line API Opt."
     InsertAllowed = true;
     ModifyAllowed = true;
     DeleteAllowed = true;
+    Permissions = tabledata "Res. Ledger Entry" = rm,
+                  tabledata "Job Ledger Entry" = rm;
 
     layout
     {
@@ -67,6 +69,14 @@ page 50623 "Job Journal Line API Opt."
                 field(jobTaskNo; Rec."Job Task No.")
                 {
                     Caption = 'Job Task No.';
+                }
+                field(daytaskDate; Rec."Opt. Daytask Date")
+                {
+                    Caption = 'Day Task Date';
+                }
+                field(daytaskLineNo; Rec."Opt. Daytask Line No.")
+                {
+                    Caption = 'Day Task Line No.';
                 }
                 field(type; Rec.Type)
                 {
@@ -181,6 +191,7 @@ page 50623 "Job Journal Line API Opt."
     var
         TempLine: Record "Job Journal Line" temporary;
         ExistingLine: Record "Job Journal Line";
+        Daytask: Record "Day Tasks";
         NextLineNo: Integer;
     begin
         // Step 1 & 2
@@ -212,6 +223,8 @@ page 50623 "Job Journal Line API Opt."
         Rec."External Document No." := TempLine."External Document No.";
         Rec."Job No." := TempLine."Job No.";
         Rec."Job Task No." := TempLine."Job Task No.";
+        Rec."Opt. Daytask Date" := TempLine."Opt. Daytask Date";
+        Rec."Opt. Daytask Line No." := TempLine."Opt. Daytask Line No.";
         Rec.Type := TempLine.Type;
         Rec."No." := TempLine."No.";
         Rec.Description := TempLine.Description;
@@ -226,6 +239,12 @@ page 50623 "Job Journal Line API Opt."
         Rec."Shortcut Dimension 2 Code" := TempLine."Shortcut Dimension 2 Code";
         Rec."Gen. Bus. Posting Group" := TempLine."Gen. Bus. Posting Group";
         Rec."Gen. Prod. Posting Group" := TempLine."Gen. Prod. Posting Group";
+
+        if Rec."Opt. Daytask Date" <> 0D then
+            Daytask.Get(Rec."Opt. Daytask Date",
+                        Rec."Opt. Daytask Line No.",
+                        Rec."Job No.",
+                        Rec."Job Task No.");
 
         // Step 4: persist the line — now visible to Job Jnl.-Post Batch within same transaction
         Rec.Insert(true);
