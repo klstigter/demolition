@@ -345,10 +345,14 @@ page 50617 "Job Task List - Project"
         }
     }
 
+    trigger OnAfterGetCurrRecord()
+    begin
+        CurrPage.ResourceSummaryFactbox.Page.SetContext(Rec."Job No.", Rec."Job Task No.");
+    end;
+
     trigger OnAfterGetRecord()
     begin
         StyleIsStrong := Rec."Job Task Type" <> Rec."Job Task Type"::Posting;
-        CurrPage.ResourceSummaryFactbox.Page.SetContext(Rec."Job No.", Rec."Job Task No.");
     end;
 
     trigger OnNewRecord(BelowxRec: Boolean)
