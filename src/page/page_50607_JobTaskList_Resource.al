@@ -58,17 +58,6 @@ page 50607 "Job Task List - Resource"
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the project posting group of the task.';
                 }
-#if not CLEAN25
-                field("Coupled to Dataverse"; Rec."Coupled to Dataverse")
-                {
-                    ApplicationArea = Jobs;
-                    ToolTip = 'Specifies if the project task is coupled to an entity in Field Service.';
-                    Visible = false;
-                    ObsoleteReason = 'Field Service is moved to Field Service Integration app.';
-                    ObsoleteState = Pending;
-                    ObsoleteTag = '25.0';
-                }
-#endif
             }
         }
         area(factboxes)
