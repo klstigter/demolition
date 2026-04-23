@@ -404,6 +404,34 @@ page 50620 "Gantt Demo DHX 2"
                 end;
             }
 
+            action(ShowResourcePanel)
+            {
+                Caption = 'Show Resource Panel';
+                ApplicationArea = All;
+                Image = Resource;
+                Visible = not ResourcePanelFlag;
+
+                trigger OnAction()
+                begin
+                    ResourcePanelFlag := true;
+                    CurrPage.DHXGanttControl2.SetResourcePanelVisibility(true);
+                    LoadResourceData();
+                end;
+            }
+            action(HideResourcePanel)
+            {
+                Caption = 'Hide Resource Panel';
+                ApplicationArea = All;
+                Image = Resource;
+                Visible = ResourcePanelFlag;
+
+                trigger OnAction()
+                begin
+                    ResourcePanelFlag := false;
+                    CurrPage.DHXGanttControl2.SetResourcePanelVisibility(false);
+                end;
+            }
+
             action(TodayAct)
             {
                 Caption = 'Today';
@@ -482,33 +510,6 @@ page 50620 "Gantt Demo DHX 2"
                     CurrPage.DHXGanttControl2.ClearData();
                 end;
             }
-            action(ShowResourcePanel)
-            {
-                Caption = 'Show Resource Panel';
-                ApplicationArea = All;
-                Image = Resource;
-                Visible = not ResourcePanelFlag;
-
-                trigger OnAction()
-                begin
-                    ResourcePanelFlag := true;
-                    CurrPage.DHXGanttControl2.SetResourcePanelVisibility(true);
-                    LoadResourceData();
-                end;
-            }
-            action(HideResourcePanel)
-            {
-                Caption = 'Hide Resource Panel';
-                ApplicationArea = All;
-                Image = Resource;
-                Visible = ResourcePanelFlag;
-
-                trigger OnAction()
-                begin
-                    ResourcePanelFlag := false;
-                    CurrPage.DHXGanttControl2.SetResourcePanelVisibility(false);
-                end;
-            }
         }
 
 
@@ -526,8 +527,7 @@ page 50620 "Gantt Demo DHX 2"
                 actionref("Prev_filter"; PreviousAct) { }
                 actionref("Today_filter"; Todayact) { }
                 actionref("Next_filter"; Nextact) { }
-                actionref("ShowResPanel"; ShowResourcePanel) { }
-                actionref("HideResPanel"; HideResourcePanel) { }
+
             }
             group(Category_Category4)
             {
@@ -541,6 +541,8 @@ page 50620 "Gantt Demo DHX 2"
                 Caption = 'Related';
                 actionref(DayTaks_ref; DayTaks) { }
                 actionref(ProjectTasks_ref; projectTasks) { }
+                actionref("ShowResPanel"; ShowResourcePanel) { }
+                actionref("HideResPanel"; HideResourcePanel) { }
             }
             group(Check)
             {
