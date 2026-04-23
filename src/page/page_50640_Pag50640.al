@@ -131,7 +131,7 @@ page 50640 "Opti Job Task Lines Subform"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the total worked hours from all related day tasks.';
                 }
-                field("Total Day Taks"; Rec."Total Day Taks")
+                field("Total Day Taks"; Rec."Total Day Tasks")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the value of the Total Day Taks field.', Comment = '%';

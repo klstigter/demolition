@@ -107,7 +107,7 @@ tableextension 50605 "Job Task ext" extends "Job Task"
             BlankNumbers = BlankZero;
             Editable = false;
         }
-        field(50700; "Total Day Taks"; Integer)
+        field(50700; "Total Day Tasks"; Integer)
         {
             FieldClass = FlowField;
             CalcFormula = count("Day Tasks" where("Job No." = field("Job No."), "Job Task No." = field("Job Task No."), "Task Date" = field("Planning Date Filter")));

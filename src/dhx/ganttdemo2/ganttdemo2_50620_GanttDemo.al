@@ -400,6 +400,8 @@ page 50620 "Gantt Demo DHX 2"
                     Direction: Option Forward,Backward;
                 begin
                     jobTask.SetFilter("Planning Date Filter", '%1..%2', AnchorDate, CalcNewAnchorDate(Direction::Forward));
+                    jobTask.SetAutoCalcFields("Total Day Tasks");
+                    jobTask.SetFilter("Total Day Tasks", '>0');
                     page.RunModal(Page::"Job Task List - Project", jobTask);
                 end;
             }

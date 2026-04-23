@@ -77,7 +77,7 @@ page 50617 "Job Task List - Project"
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the progress percentage (0-100) for this job task.';
                 }
-                field("Total Day Taks"; Rec."Total Day Taks")
+                field("Total Day Taks"; Rec."Total Day Tasks")
                 {
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the total number of related day tasks.';
