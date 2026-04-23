@@ -102,3 +102,12 @@ DayTask View
       if resource exist then caption = Andi, else job+task     (OK)
 6. The Structure of tree follow indent, same as tree in gantt
       
+
+2024.04.23
+==========
+1. all link job -> use opti job Card
+      Lines -> Documents -> create invoice -> remove
+50617 -> remove new button
+worksheet -> daytask posting
+update flag on daytask record after posting
+
