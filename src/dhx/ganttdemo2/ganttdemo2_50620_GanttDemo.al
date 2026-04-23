@@ -456,7 +456,7 @@ page 50620 "Gantt Demo DHX 2"
                     forDt: text;
                     Direction: Option Forward,Backward;
                 begin
-                    AnchorDate := CalcNewAnchorDate(Direction::Forward);
+                    AnchorDate := CalcNewAnchorDate(Direction::Backward);
                     RefreshGantt();
                 end;
             }
@@ -472,7 +472,7 @@ page 50620 "Gantt Demo DHX 2"
                     forDt: text;
                     Direction: Option Forward,Backward;
                 begin
-                    AnchorDate := CalcNewAnchorDate(Direction::Backward);
+                    AnchorDate := CalcNewAnchorDate(Direction::Forward);
                     RefreshGantt();
                 end;
             }
@@ -796,7 +796,7 @@ page 50620 "Gantt Demo DHX 2"
         NewAnchorDate: Date;
     begin
         case Direction of
-            Direction::Forward:
+            Direction::Backward:
                 Case Setup."Date Range Type" of
                     Setup."Date Range Type"::Weekly:
                         NewAnchorDate := CalcDate('<-6W>', AnchorDate);
@@ -806,7 +806,7 @@ page 50620 "Gantt Demo DHX 2"
                             NewAnchorDate := CalcDate(forDt, AnchorDate);
                         end;
                 End;
-            Direction::Backward:
+            Direction::Forward:
                 Case Setup."Date Range Type" of
                     Setup."Date Range Type"::Weekly:
                         NewAnchorDate := CalcDate('<6W>', AnchorDate);
