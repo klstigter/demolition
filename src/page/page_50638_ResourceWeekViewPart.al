@@ -1,7 +1,7 @@
 page 50638 "Resource Week View Part"
 {
-    PageType = ListPart;
-    SourceTable = "Resource Weekly Hours";
+    PageType = Card;
+    SourceTable = "Summary Weekly";
     SourceTableTemporary = true;
     Caption = 'Resource Week View';
     Editable = false;
@@ -239,7 +239,7 @@ page 50638 "Resource Week View Part"
     begin
         if (JobNo = '') or (JobTaskNo = '') then
             exit;
-        Rec.FillBuffer(JobNo, JobTaskNo);
+        Rec.FillSummary(JobNo, JobTaskNo);
     end;
 
     local procedure GetWeekStartFromYearWeek(YearValue: Integer; WeekNo: Integer): Date

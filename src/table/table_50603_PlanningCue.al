@@ -106,7 +106,7 @@ table 50603 "PLanning Cue"
     var
         Job: record Job;
         JobCheck: record Job;
-        JobList: page "Job List - Resource";
+        JobList: page "Opti Job List";
         rtv: Integer;
     begin
 

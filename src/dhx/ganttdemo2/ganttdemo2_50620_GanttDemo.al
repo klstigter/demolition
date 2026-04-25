@@ -373,6 +373,21 @@ page 50620 "Gantt Demo DHX 2"
 
         area(Navigation)
         {
+            action(Summary)
+            {
+                Caption = 'Summary';
+                Image = Summary;
+                ApplicationArea = All;
+
+                trigger OnAction()
+                var
+                    SummaryPage: Page "Summary View";
+                    Direction: Option Forward,Backward;
+                begin
+                    SummaryPage.LoadDataSet(StrSubstNo('%1..%2', AnchorDate, CalcNewAnchorDate(Direction::Forward)));
+                    SummaryPage.Run();
+                end;
+            }
             action(DayTaks)
             {
                 Caption = 'Day Tasks';
@@ -541,6 +556,7 @@ page 50620 "Gantt Demo DHX 2"
             group(Category_Category5)
             {
                 Caption = 'Related';
+                actionref(Summary_ref; Summary) { }
                 actionref(DayTaks_ref; DayTaks) { }
                 actionref(ProjectTasks_ref; projectTasks) { }
                 actionref("ShowResPanel"; ShowResourcePanel) { }

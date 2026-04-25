@@ -13,7 +13,7 @@ permissionset 50600 Demolition
         codeunit "Resource DayPilot Handler" = X,
         page "Object Selection" = X,
         page "Job Card - Resource" = X,
-        page "Job List - Resource" = X,
+        page "Opti Job List" = X,
         page "Opti Job Task Card" = X,
         page "Job Task Card - Resource" = X,
         page "Job Task List - Project" = X,

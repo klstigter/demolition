@@ -1,7 +1,7 @@
 page 50636 "Resource Weekly Hours"
 {
     PageType = List;
-    SourceTable = "Resource Weekly Hours";
+    SourceTable = "Summary Weekly";
     SourceTableTemporary = true;
     Caption = 'Resource Weekly Hours';
     Editable = false;
@@ -160,6 +160,6 @@ page 50636 "Resource Weekly Hours"
 
     procedure LoadData(ResourceNo: Code[20]; JobNo: Code[20]; JobTaskNo: Code[20])
     begin
-        Rec.FillBuffer(ResourceNo, JobNo, JobTaskNo);
+        Rec.FillSummary(ResourceNo, JobNo, JobTaskNo);
     end;
 }

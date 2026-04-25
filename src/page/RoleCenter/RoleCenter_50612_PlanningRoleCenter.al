@@ -57,7 +57,7 @@ page 50612 "Planning Role Center"
                     ApplicationArea = Jobs;
                     Caption = 'Projects';
                     Image = Job;
-                    RunObject = Page "Job List - Resource";
+                    RunObject = Page "Opti Job List";
                     ToolTip = 'Define a project activity by creating a project card with integrated project tasks and project planning lines, structured in two layers. The project task enables you to set up project planning lines and to post consumption to the project. The project planning lines specify the detailed use of resources, items, and various general ledger expenses.';
                 }
                 action("Job Tasks Resource")

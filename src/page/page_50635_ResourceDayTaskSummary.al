@@ -61,10 +61,10 @@ page 50635 "Resource DayTask Summary"
 
                 trigger OnAction()
                 var
-                    WeeklyHours: Record "Resource Weekly Hours";
+                    WeeklyHours: Record "Summary Weekly";
                     WeeklyHoursPage: Page "Resource Weekly Hours";
                 begin
-                    WeeklyHours.FillBuffer(Rec."Resource No.", Rec."Job No.", Rec."Job Task No.");
+                    WeeklyHours.FillSummary(Rec."Resource No.", Rec."Job No.", Rec."Job Task No.");
                     WeeklyHoursPage.SetTableView(WeeklyHours);
                     WeeklyHoursPage.Run();
                 end;
