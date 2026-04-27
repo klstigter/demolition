@@ -4,6 +4,7 @@ page 50617 "Job Task List - Project"
     CardPageID = "Opti Job Task Card";
     DataCaptionFields = "Job No.";
     Editable = false;
+    InsertAllowed = false;
     PageType = List;
     SourceTable = "Job Task";
 
@@ -352,6 +353,7 @@ page 50617 "Job Task List - Project"
 
     trigger OnAfterGetRecord()
     begin
+        GlobalSessionVar.SetJobNo(Rec."Job No.");
         StyleIsStrong := Rec."Job Task Type" <> Rec."Job Task Type"::Posting;
     end;
 
@@ -362,5 +364,6 @@ page 50617 "Job Task List - Project"
 
     var
         StyleIsStrong: Boolean;
+        GlobalSessionVar: Codeunit "Global Session Var Opt.";
 }
 

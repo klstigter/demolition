@@ -1,7 +1,8 @@
 codeunit 50603 "EventSubs"
 {
     Permissions = tabledata "Res. Ledger Entry" = rm,
-                  tabledata "Job Ledger Entry" = rm;
+                  tabledata "Job Ledger Entry" = rm,
+                  tabledata "Day Tasks" = m;
 
     trigger OnRun()
     begin
@@ -40,5 +41,32 @@ codeunit 50603 "EventSubs"
                 ResLedgEntry."Opt. Daytask Line No." := JobJournalLine."Opt. Daytask Line No.";
                 ResLedgEntry.Modify();
             end;
+    end;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // After the Job Ledger Entry is inserted (Entry No. is now known),
+    // mark the originating Day Task as Posted and record the ledger entry nos.
+    // ─────────────────────────────────────────────────────────────────────────
+    [EventSubscriber(ObjectType::Codeunit, Codeunit::"Job Jnl.-Post Line", 'OnAfterJobLedgEntryInsert', '', false, false)]
+    local procedure UpdateDayTaskAfterJobLedgEntryInsert(var JobLedgerEntry: Record "Job Ledger Entry"; JobJournalLine: Record "Job Journal Line")
+    var
+        DayTask: Record "Day Tasks";
+    begin
+        if (JobJournalLine."Opt. Daytask Date" = 0D) or (JobJournalLine."Opt. Daytask Line No." = 0) then
+            exit;
+
+        if not DayTask.Get(
+            JobJournalLine."Opt. Daytask Date",
+            JobJournalLine."Opt. Daytask Line No.",
+            JobJournalLine."Job No.",
+            JobJournalLine."Job Task No.")
+        then
+            exit;
+
+        DayTask.Posted := true;
+        DayTask."Job Entry No." := JobLedgerEntry."Entry No.";
+        if JobJournalLine.Type = JobJournalLine.Type::Resource then
+            DayTask."Resource Entry No." := JobLedgerEntry."Ledger Entry No.";
+        DayTask.Modify();
     end;
 }

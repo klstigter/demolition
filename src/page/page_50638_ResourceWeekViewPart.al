@@ -1,6 +1,6 @@
 page 50638 "Resource Week View Part"
 {
-    PageType = Card;
+    PageType = ListPart;
     SourceTable = "Summary Weekly";
     SourceTableTemporary = true;
     Caption = 'Resource Week View';
@@ -232,7 +232,6 @@ page 50638 "Resource Week View Part"
         JobTaskNo := NewJobTaskNo;
         Rec.DeleteAll();
         LoadData();
-        CurrPage.Update(false);
     end;
 
     local procedure LoadData()

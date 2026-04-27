@@ -33,7 +33,6 @@ table 50610 "Day Tasks"
             Caption = 'Job Task No.';
             Editable = false;
         }
-
         field(11; "Start Time"; Time)
         {
             DataClassification = ToBeClassified;
@@ -391,6 +390,21 @@ table 50610 "Day Tasks"
         {
             DataClassification = ToBeClassified;
             Caption = 'Data Owner';
+        }
+        field(150; "Posted"; Boolean)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Posted';
+        }
+        field(151; "Job Entry No."; Integer)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Job Entry No.';
+        }
+        field(152; "Resource Entry No."; Integer)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Resource Entry No.';
         }
     }
     keys

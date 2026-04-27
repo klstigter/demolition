@@ -984,6 +984,7 @@ page 50618 "Opti Job Task Card"
         SellToContact: Record Contact;
         BillToContact: Record Contact;
         FormatAddress: Codeunit "Format Address";
+        GlobalSessionVar: Codeunit "Global Session Var Opt.";
         BillToInformationEditable: Boolean;
         InvoiceCurrencyCodeEditable: Boolean;
         IsBillToCountyVisible: Boolean;
@@ -1009,6 +1010,7 @@ page 50618 "Opti Job Task Card"
 
     trigger OnAfterGetRecord()
     begin
+        GlobalSessionVar.SetJobNo(Rec."Job No.");
         if GuiAllowed() then
             SetControlVisibility();
         UpdateShipToBillToGroupVisibility();
@@ -1025,6 +1027,7 @@ page 50618 "Opti Job Task Card"
 
     trigger OnNewRecord(BelowxRec: Boolean)
     begin
+        Rec."Job No." := GlobalSessionVar.GetJobNo();
         Rec."Job View Type" := Rec."Job View Type"::"Project";
     end;
 
