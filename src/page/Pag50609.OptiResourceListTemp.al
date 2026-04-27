@@ -121,18 +121,16 @@ page 50609 "Opti Resource List Temp"
         }
         area(factboxes)
         {
-#if not CLEAN25
-            part("Attached Documents"; "Document Attachment Factbox")
-            {
-                ObsoleteTag = '25.0';
-                ObsoleteState = Pending;
-                ObsoleteReason = 'The "Document Attachment FactBox" has been replaced by "Doc. Attachment List Factbox", which supports multiple files upload.';
-                ApplicationArea = All;
-                Visible = false;
-                Caption = 'Attachments';
-                SubPageLink = "Table ID" = const(Database::Resource), "No." = field("No.");
-            }
-#endif
+            // part("Attached Documents"; "Document Attachment Factbox")
+            // {
+            //     ObsoleteTag = '25.0';
+            //     ObsoleteState = Pending;
+            //     ObsoleteReason = 'The "Document Attachment FactBox" has been replaced by "Doc. Attachment List Factbox", which supports multiple files upload.';
+            //     ApplicationArea = All;
+            //     Visible = false;
+            //     Caption = 'Attachments';
+            //     SubPageLink = "Table ID" = const(Database::Resource), "No." = field("No.");
+            // }
             part("Attached Documents List"; "Doc. Attachment List Factbox")
             {
                 ApplicationArea = All;
@@ -145,9 +143,7 @@ page 50609 "Opti Resource List Temp"
                 ApplicationArea = Jobs;
                 SubPageLink = "No." = field("No."),
                               "Chargeable Filter" = field("Chargeable Filter"),
-#if not CLEAN25
                               "Service Zone Filter" = field("Service Zone Filter"),
-#endif
                               "Unit of Measure Filter" = field("Unit of Measure Filter");
                 Visible = true;
             }
@@ -156,9 +152,7 @@ page 50609 "Opti Resource List Temp"
                 ApplicationArea = Jobs;
                 SubPageLink = "No." = field("No."),
                               "Chargeable Filter" = field("Chargeable Filter"),
-#if not CLEAN25
                               "Service Zone Filter" = field("Service Zone Filter"),
-#endif
                               "Unit of Measure Filter" = field("Unit of Measure Filter");
                 Visible = true;
             }
@@ -280,10 +274,6 @@ page 50609 "Opti Resource List Temp"
                     ToolTip = 'View or edit the units of measure that are set up for the resource.';
                 }
             }
-
-
-
-#if not CLEAN25
 
             group("Plan&ning")
             {
@@ -435,9 +425,6 @@ page 50609 "Opti Resource List Temp"
                 actionref("Units of Measure_Promoted"; "Units of Measure")
                 {
                 }
-
-
-#endif
             }
             group(Category_Category5)
             {

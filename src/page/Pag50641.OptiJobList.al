@@ -298,7 +298,6 @@ page 50641 "Opti Job List"
                     ToolTip = 'View the Project WIP Cockpit.';
                 }
             }
-#if not CLEAN25
             group("&Prices")
             {
                 Caption = '&Prices';
@@ -347,7 +346,6 @@ page 50641 "Opti Job List"
                     ObsoleteTag = '17.0';
                 }
             }
-#endif
             group(Prices)
             {
                 Caption = '&Prices';
@@ -406,7 +404,6 @@ page 50641 "Opti Job List"
                         PriceUXManagement.ShowPriceListLines(PriceSource, Enum::"Price Amount Type"::Discount);
                     end;
                 }
-#if not CLEAN25
                 action(SalesPriceListsDiscounts)
                 {
                     ApplicationArea = Basic, Suite;
@@ -427,7 +424,6 @@ page 50641 "Opti Job List"
                         PriceUXManagement.ShowPriceLists(Rec, PriceType::Sale, AmountType::Discount);
                     end;
                 }
-#endif
                 action(PurchasePriceLists)
                 {
                     ApplicationArea = Basic, Suite;
@@ -481,7 +477,6 @@ page 50641 "Opti Job List"
                         PriceUXManagement.ShowPriceListLines(PriceSource, Enum::"Price Amount Type"::Discount);
                     end;
                 }
-#if not CLEAN25
                 action(PurchasePriceListsDiscounts)
                 {
                     ApplicationArea = Basic, Suite;
@@ -502,7 +497,6 @@ page 50641 "Opti Job List"
                         PriceUXManagement.ShowPriceLists(Rec, PriceType::Purchase, AmountType::Discount);
                     end;
                 }
-#endif
             }
             group("Plan&ning")
             {
@@ -876,30 +870,24 @@ page 50641 "Opti Job List"
             {
                 Caption = 'Prices & Discounts', Comment = 'Generated from the PromotedActionCategories property index 5.';
 
-#if not CLEAN25
                 actionref("&Resource_Promoted"; "&Resource")
                 {
                     ObsoleteState = Pending;
                     ObsoleteReason = 'Replaced by the new implementation (V16) of price calculation.';
                     ObsoleteTag = '17.0';
                 }
-#endif
-#if not CLEAN25
                 actionref("&Item_Promoted"; "&Item")
                 {
                     ObsoleteState = Pending;
                     ObsoleteReason = 'Replaced by the new implementation (V16) of price calculation.';
                     ObsoleteTag = '17.0';
                 }
-#endif
-#if not CLEAN25
                 actionref("&G/L Account_Promoted"; "&G/L Account")
                 {
                     ObsoleteState = Pending;
                     ObsoleteReason = 'Replaced by the new implementation (V16) of price calculation.';
                     ObsoleteTag = '17.0';
                 }
-#endif
             }
             group(Category_WIP)
             {
@@ -943,22 +931,18 @@ page 50641 "Opti Job List"
                 actionref(PurchDiscountLines_Promoted; PurchDiscountLines)
                 {
                 }
-#if not CLEAN25
                 actionref(SalesPriceListsDiscounts_Promoted; SalesPriceListsDiscounts)
                 {
                     ObsoleteState = Pending;
                     ObsoleteReason = 'Action SalesPriceLists shows all sales price lists with prices and discounts';
                     ObsoleteTag = '18.0';
                 }
-#endif
-#if not CLEAN25
                 actionref(PurchasePriceListsDiscounts_Promoted; PurchasePriceListsDiscounts)
                 {
                     ObsoleteState = Pending;
                     ObsoleteReason = 'Action PurchasePriceLists shows all purchase price lists with prices and discounts';
                     ObsoleteTag = '18.0';
                 }
-#endif
             }
             group(Category_Report)
             {

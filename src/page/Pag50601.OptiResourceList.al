@@ -132,9 +132,7 @@ page 50601 "Opti Resource List"
                 ApplicationArea = Jobs;
                 SubPageLink = "No." = field("No."),
                               "Chargeable Filter" = field("Chargeable Filter"),
-#if not CLEAN25
                               "Service Zone Filter" = field("Service Zone Filter"),
-#endif
                               "Unit of Measure Filter" = field("Unit of Measure Filter");
                 Visible = true;
             }
@@ -143,9 +141,7 @@ page 50601 "Opti Resource List"
                 ApplicationArea = Jobs;
                 SubPageLink = "No." = field("No."),
                               "Chargeable Filter" = field("Chargeable Filter"),
-#if not CLEAN25
                               "Service Zone Filter" = field("Service Zone Filter"),
-#endif
                               "Unit of Measure Filter" = field("Unit of Measure Filter");
                 Visible = true;
             }
@@ -267,10 +263,6 @@ page 50601 "Opti Resource List"
                     ToolTip = 'View or edit the units of measure that are set up for the resource.';
                 }
             }
-
-
-
-#if not CLEAN25
 
             group("Plan&ning")
             {
@@ -422,9 +414,6 @@ page 50601 "Opti Resource List"
                 actionref("Units of Measure_Promoted"; "Units of Measure")
                 {
                 }
-
-
-#endif
             }
             group(Category_Category5)
             {

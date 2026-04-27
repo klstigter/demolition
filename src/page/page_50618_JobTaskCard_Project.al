@@ -803,7 +803,6 @@ page 50618 "Opti Job Task Card"
                     end;
                 }
             }
-#if not CLEAN25
             group(ActionGroupFS)
             {
                 Caption = 'Dynamics 365 Field Service';
@@ -910,7 +909,6 @@ page 50618 "Opti Job Task Card"
                     end;
                 }
             }
-#endif
         }
         area(reporting)
         {
