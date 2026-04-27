@@ -645,7 +645,6 @@ page 50608 "Job Task Card - Resource"
                     end;
                 }
             }
-#if not CLEAN25
             group(ActionGroupFS)
             {
                 Caption = 'Dynamics 365 Field Service';
@@ -752,7 +751,6 @@ page 50608 "Job Task Card - Resource"
                     end;
                 }
             }
-#endif
         }
         area(reporting)
         {

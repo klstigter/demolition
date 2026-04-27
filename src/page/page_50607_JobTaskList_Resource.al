@@ -138,7 +138,6 @@ page 50607 "Job Task List - Resource"
                     ToolTip = 'View statistics for the project task.';
                 }
             }
-#if not CLEAN25
             group(ActionGroupFS)
             {
                 Caption = 'Dynamics 365 Field Service';
@@ -247,7 +246,6 @@ page 50607 "Job Task List - Resource"
                     end;
                 }
             }
-#endif
         }
         area(processing)
         {
