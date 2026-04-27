@@ -108,6 +108,21 @@ DayTask View
 1. all link job -> use opti job Card
       Lines -> Documents -> create invoice -> remove
 50617 -> remove new button
-worksheet -> daytask posting
-update flag on daytask record after posting
+2. worksheet -> daytask posting
+3. update flag on daytask record after posting
+
+4. page 50630 -> factbox tidak refresh
+5. Gantt -> Open Daytask -> apply date range of gantt chart
+6. Daytaskline -> no. (assist) -> existing: capacity filter applied
+	enhance: add button: show all resources
+7. Gantt -> resource panel -> left pane -> right click -> option 1 change: open resource scheduler
+8. Daytask: add 2 fields: Requested start+end, drive by requested hours
+	existing start+end drive by assigned hours
+9. Resouce Scheduler -> Add refresh mechanism
+10. Resource Scheduler: daytask view: split based on number of daytask
+
+
+
+
+
 
