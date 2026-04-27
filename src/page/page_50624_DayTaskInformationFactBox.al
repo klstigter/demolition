@@ -40,7 +40,7 @@ page 50624 "Day Task Information FactBox"
                     trigger OnDrillDown()
                     var
                         Job: Record Job;
-                        JobCard: Page "Job Card";
+                        JobCard: Page "Opti Job Card";
                     begin
                         Job.Get(Rec."Job No.");
                         JobCard.SetRecord(Job);

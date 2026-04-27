@@ -225,51 +225,52 @@ page 50640 "Opti Job Task Lines Subform"
                         end;
                     }
                 }
-                group(Documents)
-                {
-                    Caption = 'Documents';
-                    Image = Invoice;
-                    action("Create &Sales Invoice")
-                    {
-                        ApplicationArea = Jobs;
-                        Caption = 'Create &Sales Invoice';
-                        Ellipsis = true;
-                        Image = JobSalesInvoice;
-                        ToolTip = 'Use a batch job to help you create sales invoices for the involved project tasks.';
+                // Hides the Documents group for now, as the related actions are not yet implemented.
+                // group(Documents)
+                // {
+                //     Caption = 'Documents';
+                //     Image = Invoice;
+                //     action("Create &Sales Invoice")
+                //     {
+                //         ApplicationArea = Jobs;
+                //         Caption = 'Create &Sales Invoice';
+                //         Ellipsis = true;
+                //         Image = JobSalesInvoice;
+                //         ToolTip = 'Use a batch job to help you create sales invoices for the involved project tasks.';
 
-                        trigger OnAction()
-                        var
-                            Job: Record Job;
-                            JobTask: Record "Job Task";
-                        begin
-                            Rec.TestField("Job No.");
-                            Job.Get(Rec."Job No.");
-                            if Job.Blocked = Job.Blocked::All then
-                                Job.TestBlocked();
+                //         trigger OnAction()
+                //         var
+                //             Job: Record Job;
+                //             JobTask: Record "Job Task";
+                //         begin
+                //             Rec.TestField("Job No.");
+                //             Job.Get(Rec."Job No.");
+                //             if Job.Blocked = Job.Blocked::All then
+                //                 Job.TestBlocked();
 
-                            JobTask.SetRange("Job No.", Job."No.");
-                            if Rec."Job Task No." <> '' then
-                                JobTask.SetRange("Job Task No.", Rec."Job Task No.");
+                //             JobTask.SetRange("Job No.", Job."No.");
+                //             if Rec."Job Task No." <> '' then
+                //                 JobTask.SetRange("Job Task No.", Rec."Job Task No.");
 
-                            REPORT.RunModal(REPORT::"Job Create Sales Invoice", true, false, JobTask);
-                        end;
-                    }
-                    action(SalesInvoicesCreditMemos)
-                    {
-                        ApplicationArea = Jobs;
-                        Caption = 'Sales &Invoices/Credit Memos';
-                        Image = GetSourceDoc;
-                        ToolTip = 'View sales invoices or sales credit memos that are related to the selected project task.';
+                //             REPORT.RunModal(REPORT::"Job Create Sales Invoice", true, false, JobTask);
+                //         end;
+                //     }
+                //     action(SalesInvoicesCreditMemos)
+                //     {
+                //         ApplicationArea = Jobs;
+                //         Caption = 'Sales &Invoices/Credit Memos';
+                //         Image = GetSourceDoc;
+                //         ToolTip = 'View sales invoices or sales credit memos that are related to the selected project task.';
 
-                        trigger OnAction()
-                        var
-                            JobInvoices: Page "Job Invoices";
-                        begin
-                            JobInvoices.SetPrJobTask(Rec);
-                            JobInvoices.RunModal();
-                        end;
-                    }
-                }
+                //         trigger OnAction()
+                //         var
+                //             JobInvoices: Page "Job Invoices";
+                //         begin
+                //             JobInvoices.SetPrJobTask(Rec);
+                //             JobInvoices.RunModal();
+                //         end;
+                //     }
+                // }
                 group(History)
                 {
                     Caption = 'History';

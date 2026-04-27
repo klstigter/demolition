@@ -2,7 +2,7 @@ page 50634 "Day Tasks FactBox"
 {
     Caption = 'Day Tasks';
     PageType = CardPart;
-    UsageCategory = Lists;
+    UsageCategory = None; // avoid appear in the list of searchbox
     ApplicationArea = All;
     SourceTable = "Day Tasks";
 

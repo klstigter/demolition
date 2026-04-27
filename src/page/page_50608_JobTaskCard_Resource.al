@@ -75,461 +75,461 @@ page 50608 "Job Task Card - Resource"
                     Caption = 'Non Active';
                     ToolTip = 'Indicates that the project task is not active.';
                 }
-                group("Sell-to")
-                {
-                    Caption = 'Sell-to';
-                    Visible = PerTaskBillingFieldsVisible;
+            }
+            group("Sell-to")
+            {
+                Caption = 'Sell-to';
+                Visible = PerTaskBillingFieldsVisible;
 
-                    field("Sell-to Address"; Rec."Sell-to Address")
+                field("Sell-to Address"; Rec."Sell-to Address")
+                {
+                    ApplicationArea = Jobs;
+                    Caption = 'Address';
+                    Importance = Additional;
+                    QuickEntry = false;
+                    ToolTip = 'Specifies the address where the customer is located.';
+                }
+                field("Sell-to Address 2"; Rec."Sell-to Address 2")
+                {
+                    ApplicationArea = Jobs;
+                    Caption = 'Address 2';
+                    Importance = Additional;
+                    QuickEntry = false;
+                    ToolTip = 'Specifies additional address information.';
+                }
+                field("Sell-to City"; Rec."Sell-to City")
+                {
+                    ApplicationArea = Jobs;
+                    Caption = 'City';
+                    Importance = Additional;
+                    QuickEntry = false;
+                    ToolTip = 'Specifies the city of the customer on the sales document.';
+                }
+                group(Control60)
+                {
+                    ShowCaption = false;
+                    Visible = IsSellToCountyVisible;
+                    field("Sell-to County"; Rec."Sell-to County")
                     {
                         ApplicationArea = Jobs;
-                        Caption = 'Address';
+                        CaptionClass = '5,1,' + Rec."Sell-to Country/Region Code";
                         Importance = Additional;
                         QuickEntry = false;
-                        ToolTip = 'Specifies the address where the customer is located.';
+                        ToolTip = 'Specifies the state, province or county of the address.';
                     }
-                    field("Sell-to Address 2"; Rec."Sell-to Address 2")
+                }
+                field("Sell-to Post Code"; Rec."Sell-to Post Code")
+                {
+                    ApplicationArea = Jobs;
+                    Caption = 'Post Code';
+                    Importance = Additional;
+                    QuickEntry = false;
+                    ToolTip = 'Specifies the postal code.';
+                }
+                field("Sell-to Country/Region Code"; Rec."Sell-to Country/Region Code")
+                {
+                    ApplicationArea = Jobs;
+                    Caption = 'Country/Region Code';
+                    Importance = Additional;
+                    QuickEntry = false;
+                    ToolTip = 'Specifies the country or region of the address.';
+
+                    trigger OnValidate()
+                    begin
+                        IsSellToCountyVisible := FormatAddress.UseCounty(Rec."Sell-to Country/Region Code");
+                    end;
+                }
+                field("Sell-to Contact No."; Rec."Sell-to Contact No.")
+                {
+                    ApplicationArea = Jobs;
+                    Caption = 'Contact No.';
+                    Importance = Additional;
+                    ToolTip = 'Specifies the number of the contact person that the sales document will be sent to.';
+
+                    trigger OnLookup(var Text: Text): Boolean
+                    begin
+                        if not Rec.SelltoContactLookup() then
+                            exit(false);
+                        Text := Rec."Sell-to Contact No.";
+                        SellToContact.Get(Rec."Sell-to Contact No.");
+                        Rec."Sell-to Contact" := SellToContact.Name;
+                        CurrPage.Update();
+                        exit(true);
+                    end;
+
+                    trigger OnValidate()
+                    begin
+                        SellToContact.Get(Rec."Sell-to Contact No.");
+                        Rec."Sell-to Contact" := SellToContact.Name;
+                        CurrPage.Update();
+                    end;
+                }
+                field("Sell-to Contact"; Rec."Sell-to Contact")
+                {
+                    ApplicationArea = Jobs;
+                    Caption = 'Contact';
+                    Importance = Additional;
+                    Editable = Rec."Sell-to Customer No." <> '';
+                    ToolTip = 'Specifies the name of the person to contact at the customer.';
+                }
+            }
+            // field(Totaling; Rec.Totaling)
+            // {
+            //     ApplicationArea = Jobs;
+            //     ToolTip = 'Specifies an interval or a list of project task numbers.';
+            // }
+            field("External Document No."; Rec."External Document No.")
+            {
+                ApplicationArea = Jobs;
+                Visible = PerTaskBillingFieldsVisible;
+                Tooltip = 'Specifies a document number that refers to the customer''s or vendor''s numbering system.';
+            }
+            field("Your Reference"; Rec."Your Reference")
+            {
+                ApplicationArea = Jobs;
+                Visible = PerTaskBillingFieldsVisible;
+                Tooltip = 'Specifies the customer''s reference. The content will be printed on sales documents.';
+            }
+            // field("New Page"; Rec."New Page")
+            // {
+            //     ApplicationArea = Jobs;
+            //     ToolTip = 'Specifies whether you want a new page to start immediately after this project task when you print the project tasks. To start a new page after this project task, select the New Page check box.';
+            // }
+            // field("No. of Blank Lines"; Rec."No. of Blank Lines")
+            // {
+            //     ApplicationArea = Jobs;
+            //     ToolTip = 'Specifies the number of blank lines that you want inserted before this project task in reports that shows project tasks.';
+            // }
+
+            group("Bill-to")
+            {
+                Caption = 'Bill-to';
+                field(BillToOptions; BillToOptions)
+                {
+                    ApplicationArea = Jobs;
+                    Caption = 'Bill-to';
+                    ToolTip = 'Specifies the customer that the sales invoice will be sent to. Default (Customer): The same as the customer on the sales invoice. Another Customer: Any customer that you specify in the fields below.';
+
+                    trigger OnValidate()
+                    begin
+                        if BillToOptions = BillToOptions::"Default (Customer)" then begin
+                            Rec.Validate("Bill-to Customer No.", Rec."Sell-to Customer No.");
+                            Rec.Validate("Bill-to Contact No.", Rec."Sell-to Contact No.");
+                        end;
+
+                        UpdateBillToInformationEditable();
+                    end;
+                }
+                group(Control205)
+                {
+                    ShowCaption = false;
+                    Visible = not (BillToOptions = BillToOptions::"Default (Customer)");
+
+                    field("Bill-to Customer No."; Rec."Bill-to Customer No.")
                     {
                         ApplicationArea = Jobs;
-                        Caption = 'Address 2';
-                        Importance = Additional;
-                        QuickEntry = false;
-                        ToolTip = 'Specifies additional address information.';
-                    }
-                    field("Sell-to City"; Rec."Sell-to City")
-                    {
-                        ApplicationArea = Jobs;
-                        Caption = 'City';
-                        Importance = Additional;
-                        QuickEntry = false;
-                        ToolTip = 'Specifies the city of the customer on the sales document.';
-                    }
-                    group(Control60)
-                    {
-                        ShowCaption = false;
-                        Visible = IsSellToCountyVisible;
-                        field("Sell-to County"; Rec."Sell-to County")
-                        {
-                            ApplicationArea = Jobs;
-                            CaptionClass = '5,1,' + Rec."Sell-to Country/Region Code";
-                            Importance = Additional;
-                            QuickEntry = false;
-                            ToolTip = 'Specifies the state, province or county of the address.';
-                        }
-                    }
-                    field("Sell-to Post Code"; Rec."Sell-to Post Code")
-                    {
-                        ApplicationArea = Jobs;
-                        Caption = 'Post Code';
-                        Importance = Additional;
-                        QuickEntry = false;
-                        ToolTip = 'Specifies the postal code.';
-                    }
-                    field("Sell-to Country/Region Code"; Rec."Sell-to Country/Region Code")
-                    {
-                        ApplicationArea = Jobs;
-                        Caption = 'Country/Region Code';
-                        Importance = Additional;
-                        QuickEntry = false;
-                        ToolTip = 'Specifies the country or region of the address.';
+                        Importance = Promoted;
+                        ToolTip = 'Specifies the number of the customer who pays for the project.';
+                        Visible = false;
 
                         trigger OnValidate()
                         begin
-                            IsSellToCountyVisible := FormatAddress.UseCounty(Rec."Sell-to Country/Region Code");
+                            CurrPage.Update();
                         end;
                     }
-                    field("Sell-to Contact No."; Rec."Sell-to Contact No.")
+                    field("Bill-to Name"; Rec."Bill-to Name")
                     {
+                        Caption = 'Name';
                         ApplicationArea = Jobs;
-                        Caption = 'Contact No.';
+                        Importance = Promoted;
+                        ToolTip = 'Specifies the name of the customer who pays for the project.';
+                        Editable = ((BillToOptions = BillToOptions::"Another Customer") or ((BillToOptions = BillToOptions::"Custom Address") and not ShouldSearchForCustByName));
+                        Enabled = ((BillToOptions = BillToOptions::"Another Customer") or ((BillToOptions = BillToOptions::"Custom Address") and not ShouldSearchForCustByName));
+                        NotBlank = true;
+
+                        trigger OnValidate()
+                        begin
+                            if not ((BillToOptions = BillToOptions::"Custom Address") and not ShouldSearchForCustByName) then begin
+                                if Rec.GetFilter("Bill-to Customer No.") = xRec."Bill-to Customer No." then
+                                    if Rec."Bill-to Customer No." <> xRec."Bill-to Customer No." then
+                                        Rec.SetRange("Bill-to Customer No.");
+
+                                CurrPage.Update();
+                            end;
+                        end;
+                    }
+                    field("Bill-to Address"; Rec."Bill-to Address")
+                    {
+                        Caption = 'Address';
+                        ApplicationArea = Jobs;
                         Importance = Additional;
-                        ToolTip = 'Specifies the number of the contact person that the sales document will be sent to.';
+                        QuickEntry = false;
+                        ToolTip = 'Specifies the address of the customer to whom you will send the invoice.';
+                        Editable = BillToInformationEditable;
+                        Enabled = BillToInformationEditable;
+                    }
+                    field("Bill-to Address 2"; Rec."Bill-to Address 2")
+                    {
+                        Caption = 'Address 2';
+                        ApplicationArea = Jobs;
+                        Importance = Additional;
+                        QuickEntry = false;
+                        ToolTip = 'Specifies an additional line of the address.';
+                        Editable = BillToInformationEditable;
+                        Enabled = BillToInformationEditable;
+                    }
+                    field("Bill-to City"; Rec."Bill-to City")
+                    {
+                        Caption = 'City';
+                        ApplicationArea = Jobs;
+                        Importance = Additional;
+                        QuickEntry = false;
+                        ToolTip = 'Specifies the city of the address.';
+                        Editable = BillToInformationEditable;
+                        Enabled = BillToInformationEditable;
+                    }
+                    group(Control56)
+                    {
+                        ShowCaption = false;
+                        Visible = IsBillToCountyVisible;
+                        field("Bill-to County"; Rec."Bill-to County")
+                        {
+                            ApplicationArea = Jobs;
+                            CaptionClass = '5,1,' + Rec."Bill-to Country/Region Code";
+                            QuickEntry = false;
+                            Importance = Additional;
+                            ToolTip = 'Specifies the county code of the customer''s billing address.';
+                            Editable = BillToInformationEditable;
+                            Enabled = BillToInformationEditable;
+                        }
+                    }
+                    field("Bill-to Post Code"; Rec."Bill-to Post Code")
+                    {
+                        Caption = 'Post Code';
+                        ApplicationArea = Jobs;
+                        Importance = Additional;
+                        QuickEntry = false;
+                        ToolTip = 'Specifies the postal code of the customer who pays for the project.';
+                        Editable = BillToInformationEditable;
+                        Enabled = BillToInformationEditable;
+                    }
+                    field("Bill-to Country/Region Code"; Rec."Bill-to Country/Region Code")
+                    {
+                        Caption = 'Country/Region';
+                        ApplicationArea = Jobs;
+                        Importance = Additional;
+                        QuickEntry = false;
+                        ToolTip = 'Specifies the country/region code of the customer''s billing address.';
+                        Editable = BillToInformationEditable;
+                        Enabled = BillToInformationEditable;
+
+                        trigger OnValidate()
+                        begin
+                            IsBillToCountyVisible := FormatAddress.UseCounty(Rec."Bill-to Country/Region Code");
+                        end;
+                    }
+                    field("Bill-to Contact No."; Rec."Bill-to Contact No.")
+                    {
+                        Caption = 'Contact No.';
+                        ApplicationArea = Jobs;
+                        ToolTip = 'Specifies the number of the contact person at the customer''s billing address.';
+                        Importance = Additional;
+                        Editable = BillToInformationEditable;
+                        Enabled = BillToInformationEditable;
 
                         trigger OnLookup(var Text: Text): Boolean
                         begin
-                            if not Rec.SelltoContactLookup() then
+                            if not Rec.BilltoContactLookup() then
                                 exit(false);
-                            Text := Rec."Sell-to Contact No.";
-                            SellToContact.Get(Rec."Sell-to Contact No.");
-                            Rec."Sell-to Contact" := SellToContact.Name;
-                            CurrPage.Update();
+                            BillToContact.Get(Rec."Bill-to Contact No.");
+                            Text := Rec."Bill-to Contact No.";
                             exit(true);
                         end;
 
                         trigger OnValidate()
                         begin
-                            SellToContact.Get(Rec."Sell-to Contact No.");
-                            Rec."Sell-to Contact" := SellToContact.Name;
-                            CurrPage.Update();
+                            BillToContact.Get(Rec."Bill-to Contact No.");
                         end;
                     }
-                    field("Sell-to Contact"; Rec."Sell-to Contact")
+                    field("Bill-to Contact"; Rec."Bill-to Contact")
                     {
-                        ApplicationArea = Jobs;
                         Caption = 'Contact';
+                        ApplicationArea = Jobs;
                         Importance = Additional;
-                        Editable = Rec."Sell-to Customer No." <> '';
-                        ToolTip = 'Specifies the name of the person to contact at the customer.';
+                        ToolTip = 'Specifies the name of the contact person at the customer who pays for the project.';
+                        Editable = BillToInformationEditable;
+                        Enabled = BillToInformationEditable;
                     }
                 }
-                // field(Totaling; Rec.Totaling)
-                // {
-                //     ApplicationArea = Jobs;
-                //     ToolTip = 'Specifies an interval or a list of project task numbers.';
-                // }
-                field("External Document No."; Rec."External Document No.")
+            }
+            group("Payment Terms")
+            {
+                caption = 'Payment Terms';
+
+                field("Payment Terms Code"; Rec."Payment Terms Code")
                 {
                     ApplicationArea = Jobs;
-                    Visible = PerTaskBillingFieldsVisible;
-                    Tooltip = 'Specifies a document number that refers to the customer''s or vendor''s numbering system.';
+                    Tooltip = 'Specifies a formula that calculates the payment due date, payment discount date, and payment discount amount.';
                 }
-                field("Your Reference"; Rec."Your Reference")
+                field("Payment Method Code"; Rec."Payment Method Code")
                 {
                     ApplicationArea = Jobs;
-                    Visible = PerTaskBillingFieldsVisible;
-                    Tooltip = 'Specifies the customer''s reference. The content will be printed on sales documents.';
+                    Tooltip = 'Specifies how to make payment, such as with bank transfer, cash, or check.';
+                    Importance = Additional;
                 }
-                // field("New Page"; Rec."New Page")
-                // {
-                //     ApplicationArea = Jobs;
-                //     ToolTip = 'Specifies whether you want a new page to start immediately after this project task when you print the project tasks. To start a new page after this project task, select the New Page check box.';
-                // }
-                // field("No. of Blank Lines"; Rec."No. of Blank Lines")
-                // {
-                //     ApplicationArea = Jobs;
-                //     ToolTip = 'Specifies the number of blank lines that you want inserted before this project task in reports that shows project tasks.';
-                // }
+            }
+            group("Ship-to")
+            {
+                Caption = 'Ship-to';
 
-                group("Bill-to")
+                field(ShippingOptions; ShipToOptions)
                 {
-                    Caption = 'Bill-to';
-                    field(BillToOptions; BillToOptions)
-                    {
-                        ApplicationArea = Jobs;
-                        Caption = 'Bill-to';
-                        ToolTip = 'Specifies the customer that the sales invoice will be sent to. Default (Customer): The same as the customer on the sales invoice. Another Customer: Any customer that you specify in the fields below.';
-
-                        trigger OnValidate()
-                        begin
-                            if BillToOptions = BillToOptions::"Default (Customer)" then begin
-                                Rec.Validate("Bill-to Customer No.", Rec."Sell-to Customer No.");
-                                Rec.Validate("Bill-to Contact No.", Rec."Sell-to Contact No.");
-                            end;
-
-                            UpdateBillToInformationEditable();
-                        end;
-                    }
-                    group(Control205)
-                    {
-                        ShowCaption = false;
-                        Visible = not (BillToOptions = BillToOptions::"Default (Customer)");
-
-                        field("Bill-to Customer No."; Rec."Bill-to Customer No.")
-                        {
-                            ApplicationArea = Jobs;
-                            Importance = Promoted;
-                            ToolTip = 'Specifies the number of the customer who pays for the project.';
-                            Visible = false;
-
-                            trigger OnValidate()
-                            begin
-                                CurrPage.Update();
-                            end;
-                        }
-                        field("Bill-to Name"; Rec."Bill-to Name")
-                        {
-                            Caption = 'Name';
-                            ApplicationArea = Jobs;
-                            Importance = Promoted;
-                            ToolTip = 'Specifies the name of the customer who pays for the project.';
-                            Editable = ((BillToOptions = BillToOptions::"Another Customer") or ((BillToOptions = BillToOptions::"Custom Address") and not ShouldSearchForCustByName));
-                            Enabled = ((BillToOptions = BillToOptions::"Another Customer") or ((BillToOptions = BillToOptions::"Custom Address") and not ShouldSearchForCustByName));
-                            NotBlank = true;
-
-                            trigger OnValidate()
-                            begin
-                                if not ((BillToOptions = BillToOptions::"Custom Address") and not ShouldSearchForCustByName) then begin
-                                    if Rec.GetFilter("Bill-to Customer No.") = xRec."Bill-to Customer No." then
-                                        if Rec."Bill-to Customer No." <> xRec."Bill-to Customer No." then
-                                            Rec.SetRange("Bill-to Customer No.");
-
-                                    CurrPage.Update();
-                                end;
-                            end;
-                        }
-                        field("Bill-to Address"; Rec."Bill-to Address")
-                        {
-                            Caption = 'Address';
-                            ApplicationArea = Jobs;
-                            Importance = Additional;
-                            QuickEntry = false;
-                            ToolTip = 'Specifies the address of the customer to whom you will send the invoice.';
-                            Editable = BillToInformationEditable;
-                            Enabled = BillToInformationEditable;
-                        }
-                        field("Bill-to Address 2"; Rec."Bill-to Address 2")
-                        {
-                            Caption = 'Address 2';
-                            ApplicationArea = Jobs;
-                            Importance = Additional;
-                            QuickEntry = false;
-                            ToolTip = 'Specifies an additional line of the address.';
-                            Editable = BillToInformationEditable;
-                            Enabled = BillToInformationEditable;
-                        }
-                        field("Bill-to City"; Rec."Bill-to City")
-                        {
-                            Caption = 'City';
-                            ApplicationArea = Jobs;
-                            Importance = Additional;
-                            QuickEntry = false;
-                            ToolTip = 'Specifies the city of the address.';
-                            Editable = BillToInformationEditable;
-                            Enabled = BillToInformationEditable;
-                        }
-                        group(Control56)
-                        {
-                            ShowCaption = false;
-                            Visible = IsBillToCountyVisible;
-                            field("Bill-to County"; Rec."Bill-to County")
-                            {
-                                ApplicationArea = Jobs;
-                                CaptionClass = '5,1,' + Rec."Bill-to Country/Region Code";
-                                QuickEntry = false;
-                                Importance = Additional;
-                                ToolTip = 'Specifies the county code of the customer''s billing address.';
-                                Editable = BillToInformationEditable;
-                                Enabled = BillToInformationEditable;
-                            }
-                        }
-                        field("Bill-to Post Code"; Rec."Bill-to Post Code")
-                        {
-                            Caption = 'Post Code';
-                            ApplicationArea = Jobs;
-                            Importance = Additional;
-                            QuickEntry = false;
-                            ToolTip = 'Specifies the postal code of the customer who pays for the project.';
-                            Editable = BillToInformationEditable;
-                            Enabled = BillToInformationEditable;
-                        }
-                        field("Bill-to Country/Region Code"; Rec."Bill-to Country/Region Code")
-                        {
-                            Caption = 'Country/Region';
-                            ApplicationArea = Jobs;
-                            Importance = Additional;
-                            QuickEntry = false;
-                            ToolTip = 'Specifies the country/region code of the customer''s billing address.';
-                            Editable = BillToInformationEditable;
-                            Enabled = BillToInformationEditable;
-
-                            trigger OnValidate()
-                            begin
-                                IsBillToCountyVisible := FormatAddress.UseCounty(Rec."Bill-to Country/Region Code");
-                            end;
-                        }
-                        field("Bill-to Contact No."; Rec."Bill-to Contact No.")
-                        {
-                            Caption = 'Contact No.';
-                            ApplicationArea = Jobs;
-                            ToolTip = 'Specifies the number of the contact person at the customer''s billing address.';
-                            Importance = Additional;
-                            Editable = BillToInformationEditable;
-                            Enabled = BillToInformationEditable;
-
-                            trigger OnLookup(var Text: Text): Boolean
-                            begin
-                                if not Rec.BilltoContactLookup() then
-                                    exit(false);
-                                BillToContact.Get(Rec."Bill-to Contact No.");
-                                Text := Rec."Bill-to Contact No.";
-                                exit(true);
-                            end;
-
-                            trigger OnValidate()
-                            begin
-                                BillToContact.Get(Rec."Bill-to Contact No.");
-                            end;
-                        }
-                        field("Bill-to Contact"; Rec."Bill-to Contact")
-                        {
-                            Caption = 'Contact';
-                            ApplicationArea = Jobs;
-                            Importance = Additional;
-                            ToolTip = 'Specifies the name of the contact person at the customer who pays for the project.';
-                            Editable = BillToInformationEditable;
-                            Enabled = BillToInformationEditable;
-                        }
-                    }
-                }
-                group("Payment Terms")
-                {
-                    caption = 'Payment Terms';
-
-                    field("Payment Terms Code"; Rec."Payment Terms Code")
-                    {
-                        ApplicationArea = Jobs;
-                        Tooltip = 'Specifies a formula that calculates the payment due date, payment discount date, and payment discount amount.';
-                    }
-                    field("Payment Method Code"; Rec."Payment Method Code")
-                    {
-                        ApplicationArea = Jobs;
-                        Tooltip = 'Specifies how to make payment, such as with bank transfer, cash, or check.';
-                        Importance = Additional;
-                    }
-                }
-                group("Ship-to")
-                {
+                    ApplicationArea = Jobs;
                     Caption = 'Ship-to';
+                    ToolTip = 'Specifies the address that the products on the sales document are shipped to. Default (Sell-to Address): The same as the customer''s sell-to address. Alternate Ship-to Address: One of the customer''s alternate ship-to addresses. Custom Address: Any ship-to address that you specify in the fields below.';
 
-                    field(ShippingOptions; ShipToOptions)
+                    trigger OnValidate()
+                    var
+                        ShipToAddress: Record "Ship-to Address";
+                        ShipToAddressList: Page "Ship-to Address List";
+                    begin
+                        case ShipToOptions of
+                            ShipToOptions::"Default (Sell-to Address)":
+                                begin
+                                    Rec.Validate("Ship-to Code", '');
+                                    Rec.SyncShipToWithSellTo();
+                                end;
+                            ShipToOptions::"Alternate Shipping Address":
+                                begin
+                                    ShipToAddress.SetRange("Customer No.", Rec."Sell-to Customer No.");
+                                    ShipToAddressList.LookupMode := true;
+                                    ShipToAddressList.SetTableView(ShipToAddress);
+
+                                    if ShipToAddressList.RunModal() = ACTION::LookupOK then begin
+                                        ShipToAddressList.GetRecord(ShipToAddress);
+                                        Rec.Validate("Ship-to Code", ShipToAddress.Code);
+                                        IsShipToCountyVisible := FormatAddress.UseCounty(ShipToAddress."Country/Region Code");
+                                    end else
+                                        ShipToOptions := ShipToOptions::"Custom Address";
+                                end;
+                            ShipToOptions::"Custom Address":
+                                begin
+                                    Rec.Validate("Ship-to Code", '');
+                                    IsShipToCountyVisible := FormatAddress.UseCounty(Rec."Ship-to Country/Region Code");
+                                end;
+                        end;
+                    end;
+                }
+                group(Control202)
+                {
+                    ShowCaption = false;
+                    Visible = not (ShipToOptions = ShipToOptions::"Default (Sell-to Address)");
+                    field("Ship-to Code"; Rec."Ship-to Code")
                     {
                         ApplicationArea = Jobs;
-                        Caption = 'Ship-to';
-                        ToolTip = 'Specifies the address that the products on the sales document are shipped to. Default (Sell-to Address): The same as the customer''s sell-to address. Alternate Ship-to Address: One of the customer''s alternate ship-to addresses. Custom Address: Any ship-to address that you specify in the fields below.';
+                        Caption = 'Code';
+                        Editable = ShipToOptions = ShipToOptions::"Alternate Shipping Address";
+                        Importance = Promoted;
+                        ToolTip = 'Specifies the code for another shipment address than the customer''s own address, which is entered by default.';
 
                         trigger OnValidate()
                         var
                             ShipToAddress: Record "Ship-to Address";
-                            ShipToAddressList: Page "Ship-to Address List";
                         begin
-                            case ShipToOptions of
-                                ShipToOptions::"Default (Sell-to Address)":
-                                    begin
-                                        Rec.Validate("Ship-to Code", '');
-                                        Rec.SyncShipToWithSellTo();
-                                    end;
-                                ShipToOptions::"Alternate Shipping Address":
-                                    begin
-                                        ShipToAddress.SetRange("Customer No.", Rec."Sell-to Customer No.");
-                                        ShipToAddressList.LookupMode := true;
-                                        ShipToAddressList.SetTableView(ShipToAddress);
-
-                                        if ShipToAddressList.RunModal() = ACTION::LookupOK then begin
-                                            ShipToAddressList.GetRecord(ShipToAddress);
-                                            Rec.Validate("Ship-to Code", ShipToAddress.Code);
-                                            IsShipToCountyVisible := FormatAddress.UseCounty(ShipToAddress."Country/Region Code");
-                                        end else
-                                            ShipToOptions := ShipToOptions::"Custom Address";
-                                    end;
-                                ShipToOptions::"Custom Address":
-                                    begin
-                                        Rec.Validate("Ship-to Code", '');
-                                        IsShipToCountyVisible := FormatAddress.UseCounty(Rec."Ship-to Country/Region Code");
-                                    end;
-                            end;
+                            if (xRec."Ship-to Code" <> '') and (Rec."Ship-to Code" = '') then
+                                Error(EmptyShipToCodeErr);
+                            if Rec."Ship-to Code" <> '' then begin
+                                ShipToAddress.Get(Rec."Sell-to Customer No.", Rec."Ship-to Code");
+                                IsShipToCountyVisible := FormatAddress.UseCounty(ShipToAddress."Country/Region Code");
+                            end else
+                                IsShipToCountyVisible := false;
                         end;
                     }
-                    group(Control202)
-                    {
-                        ShowCaption = false;
-                        Visible = not (ShipToOptions = ShipToOptions::"Default (Sell-to Address)");
-                        field("Ship-to Code"; Rec."Ship-to Code")
-                        {
-                            ApplicationArea = Jobs;
-                            Caption = 'Code';
-                            Editable = ShipToOptions = ShipToOptions::"Alternate Shipping Address";
-                            Importance = Promoted;
-                            ToolTip = 'Specifies the code for another shipment address than the customer''s own address, which is entered by default.';
-
-                            trigger OnValidate()
-                            var
-                                ShipToAddress: Record "Ship-to Address";
-                            begin
-                                if (xRec."Ship-to Code" <> '') and (Rec."Ship-to Code" = '') then
-                                    Error(EmptyShipToCodeErr);
-                                if Rec."Ship-to Code" <> '' then begin
-                                    ShipToAddress.Get(Rec."Sell-to Customer No.", Rec."Ship-to Code");
-                                    IsShipToCountyVisible := FormatAddress.UseCounty(ShipToAddress."Country/Region Code");
-                                end else
-                                    IsShipToCountyVisible := false;
-                            end;
-                        }
-                        field("Ship-to Name"; Rec."Ship-to Name")
-                        {
-                            ApplicationArea = Jobs;
-                            Caption = 'Name';
-                            Editable = ShipToOptions = ShipToOptions::"Custom Address";
-                            ToolTip = 'Specifies the name that products on the sales document will be shipped to.';
-                        }
-                        field("Ship-to Name 2"; Rec."Ship-to Name 2")
-                        {
-                            ApplicationArea = Jobs;
-                            Caption = 'Name 2';
-                            Editable = ShipToOptions = ShipToOptions::"Custom Address";
-                            Importance = Additional;
-                            ToolTip = 'Specifies an additional part of the name that products on the sales document will be shipped to.';
-                            QuickEntry = false;
-                            Visible = false;
-                        }
-                        field("Ship-to Address"; Rec."Ship-to Address")
-                        {
-                            ApplicationArea = Jobs;
-                            Caption = 'Address';
-                            Editable = ShipToOptions = ShipToOptions::"Custom Address";
-                            QuickEntry = false;
-                            ToolTip = 'Specifies the address that products on the sales document will be shipped to.';
-                        }
-                        field("Ship-to Address 2"; Rec."Ship-to Address 2")
-                        {
-                            ApplicationArea = Jobs;
-                            Caption = 'Address 2';
-                            Editable = ShipToOptions = ShipToOptions::"Custom Address";
-                            QuickEntry = false;
-                            ToolTip = 'Specifies additional address information.';
-                        }
-                        field("Ship-to City"; Rec."Ship-to City")
-                        {
-                            ApplicationArea = Jobs;
-                            Caption = 'City';
-                            Editable = ShipToOptions = ShipToOptions::"Custom Address";
-                            QuickEntry = false;
-                            ToolTip = 'Specifies the city of the customer on the sales document.';
-                        }
-                        group(Control82)
-                        {
-                            ShowCaption = false;
-                            Visible = IsShipToCountyVisible;
-                            field("Ship-to County"; Rec."Ship-to County")
-                            {
-                                ApplicationArea = Jobs;
-                                CaptionClass = '5,1,' + Rec."Ship-to Country/Region Code";
-                                Editable = ShipToOptions = ShipToOptions::"Custom Address";
-                                QuickEntry = false;
-                                ToolTip = 'Specifies the state, province or county of the address.';
-                            }
-                        }
-                        field("Ship-to Post Code"; Rec."Ship-to Post Code")
-                        {
-                            ApplicationArea = Jobs;
-                            Caption = 'Post Code';
-                            Editable = ShipToOptions = ShipToOptions::"Custom Address";
-                            QuickEntry = false;
-                            ToolTip = 'Specifies the postal code.';
-                        }
-                        field("Ship-to Country/Region Code"; Rec."Ship-to Country/Region Code")
-                        {
-                            ApplicationArea = Jobs;
-                            Caption = 'Country/Region';
-                            Editable = ShipToOptions = ShipToOptions::"Custom Address";
-                            Importance = Additional;
-                            QuickEntry = false;
-                            ToolTip = 'Specifies the customer''s country/region.';
-
-                            trigger OnValidate()
-                            begin
-                                IsShipToCountyVisible := FormatAddress.UseCounty(Rec."Ship-to Country/Region Code");
-                            end;
-                        }
-                    }
-                    field("Ship-to Contact"; Rec."Ship-to Contact")
+                    field("Ship-to Name"; Rec."Ship-to Name")
                     {
                         ApplicationArea = Jobs;
-                        Caption = 'Contact';
-                        ToolTip = 'Specifies the name of the contact person at the address that products on the sales document will be shipped to.';
+                        Caption = 'Name';
+                        Editable = ShipToOptions = ShipToOptions::"Custom Address";
+                        ToolTip = 'Specifies the name that products on the sales document will be shipped to.';
+                    }
+                    field("Ship-to Name 2"; Rec."Ship-to Name 2")
+                    {
+                        ApplicationArea = Jobs;
+                        Caption = 'Name 2';
+                        Editable = ShipToOptions = ShipToOptions::"Custom Address";
+                        Importance = Additional;
+                        ToolTip = 'Specifies an additional part of the name that products on the sales document will be shipped to.';
+                        QuickEntry = false;
+                        Visible = false;
+                    }
+                    field("Ship-to Address"; Rec."Ship-to Address")
+                    {
+                        ApplicationArea = Jobs;
+                        Caption = 'Address';
+                        Editable = ShipToOptions = ShipToOptions::"Custom Address";
+                        QuickEntry = false;
+                        ToolTip = 'Specifies the address that products on the sales document will be shipped to.';
+                    }
+                    field("Ship-to Address 2"; Rec."Ship-to Address 2")
+                    {
+                        ApplicationArea = Jobs;
+                        Caption = 'Address 2';
+                        Editable = ShipToOptions = ShipToOptions::"Custom Address";
+                        QuickEntry = false;
+                        ToolTip = 'Specifies additional address information.';
+                    }
+                    field("Ship-to City"; Rec."Ship-to City")
+                    {
+                        ApplicationArea = Jobs;
+                        Caption = 'City';
+                        Editable = ShipToOptions = ShipToOptions::"Custom Address";
+                        QuickEntry = false;
+                        ToolTip = 'Specifies the city of the customer on the sales document.';
+                    }
+                    group(Control82)
+                    {
+                        ShowCaption = false;
+                        Visible = IsShipToCountyVisible;
+                        field("Ship-to County"; Rec."Ship-to County")
+                        {
+                            ApplicationArea = Jobs;
+                            CaptionClass = '5,1,' + Rec."Ship-to Country/Region Code";
+                            Editable = ShipToOptions = ShipToOptions::"Custom Address";
+                            QuickEntry = false;
+                            ToolTip = 'Specifies the state, province or county of the address.';
+                        }
+                    }
+                    field("Ship-to Post Code"; Rec."Ship-to Post Code")
+                    {
+                        ApplicationArea = Jobs;
+                        Caption = 'Post Code';
+                        Editable = ShipToOptions = ShipToOptions::"Custom Address";
+                        QuickEntry = false;
+                        ToolTip = 'Specifies the postal code.';
+                    }
+                    field("Ship-to Country/Region Code"; Rec."Ship-to Country/Region Code")
+                    {
+                        ApplicationArea = Jobs;
+                        Caption = 'Country/Region';
+                        Editable = ShipToOptions = ShipToOptions::"Custom Address";
+                        Importance = Additional;
+                        QuickEntry = false;
+                        ToolTip = 'Specifies the customer''s country/region.';
+
+                        trigger OnValidate()
+                        begin
+                            IsShipToCountyVisible := FormatAddress.UseCounty(Rec."Ship-to Country/Region Code");
+                        end;
                     }
                 }
-
+                field("Ship-to Contact"; Rec."Ship-to Contact")
+                {
+                    ApplicationArea = Jobs;
+                    Caption = 'Contact';
+                    ToolTip = 'Specifies the name of the contact person at the address that products on the sales document will be shipped to.';
+                }
             }
+
             part(JobPlanningLines; "Job Planning Lines Part")
             {
                 ApplicationArea = Jobs;

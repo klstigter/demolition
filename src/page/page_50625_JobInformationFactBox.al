@@ -19,7 +19,7 @@ page 50625 "Job Information FactBox"
                     Job: Record Job;
                 begin
                     if Job.Get(Rec."Job No.") then
-                        Page.Run(Page::"Job Card", Job);
+                        Page.Run(Page::"Opti Job Card", Job);
                 end;
             }
             field(JobDescription; JobDescription)

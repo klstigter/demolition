@@ -105,12 +105,11 @@ DayTask View
 
 2024.04.23
 ==========
-1. all link job -> use opti job Card
-      Lines -> Documents -> create invoice -> remove
-50617 -> remove new button
+1. all link job -> use opti job Card ---(OK)
+      Lines -> Documents -> create invoice -> remove ---(OK)
+50617 -> new button -> use codeunit with SingleInstance = True;  ---(OK)
 2. worksheet -> daytask posting
 3. update flag on daytask record after posting
-
 4. page 50630 -> factbox tidak refresh
 5. Gantt -> Open Daytask -> apply date range of gantt chart
 6. Daytaskline -> no. (assist) -> existing: capacity filter applied

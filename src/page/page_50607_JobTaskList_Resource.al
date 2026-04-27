@@ -85,7 +85,7 @@ page 50607 "Job Task List - Resource"
                 ApplicationArea = Jobs;
                 Caption = 'Project Card';
                 Image = Job;
-                RunObject = Page "Job Card";
+                RunObject = Page "Opti Job Card";
                 RunPageLink = "No." = field("Job No.");
                 ToolTip = 'View details of the related project.';
             }
