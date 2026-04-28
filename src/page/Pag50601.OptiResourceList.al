@@ -27,6 +27,51 @@ page 50601 "Opti Resource List"
                     Caption = 'Date Filter';
                     ToolTip = 'The date to filter the resources that have day tasks on the specified date.';
                 }
+                field(Filters; RecFilters)
+                {
+                    ApplicationArea = Jobs;
+                    Caption = 'Filters (toggle clear and reapply)';
+                    ToolTip = 'Filters applied to the list. Use this field to identify the filters that are applied to the list, including filters applied through the user interface and programmatically.';
+                    Editable = false;
+
+                    trigger OnAssistEdit()
+                    begin
+                        if (RecFilters <> '') or Rec.MarkedOnly() then begin
+                            // Save view and marked state before clearing
+                            xRecFilters := Rec.GetView();
+                            xRecMarkedOnly := Rec.MarkedOnly();
+                            // Save which records were marked into xRecMarking's own mark table.
+                            // Reset() clears all marks in xRecMarking before saving new ones.
+                            xRecMarking.Reset();
+                            if xRecMarkedOnly then
+                                if Rec.FindSet() then  // FindSet with MarkedOnly=true returns only marked records
+                                    repeat
+                                        if xRecMarking.Get(Rec."No.") then
+                                            xRecMarking.Mark(true);
+                                    until Rec.Next() = 0;
+                            Rec.MarkedOnly(false);
+                            Rec.Reset();
+                            RecFilters := '';
+                        end else begin
+                            if (xRecFilters <> '') or xRecMarkedOnly then begin
+                                Rec.SetView(xRecFilters);
+                                if xRecMarkedOnly then begin
+                                    // Restore marks from xRecMarking back into Rec
+                                    xRecMarking.MarkedOnly(true);
+                                    if xRecMarking.FindSet() then
+                                        repeat
+                                            if Rec.Get(xRecMarking."No.") then
+                                                Rec.Mark(true);
+                                        until xRecMarking.Next() = 0;
+                                    xRecMarking.MarkedOnly(false);
+                                    Rec.MarkedOnly(true);
+                                end;
+                                RecFilters := Rec.GetFilters();
+                            end;
+                        end;
+                        CurrPage.Update(false);
+                    end;
+                }
             }
             group(ResourcesList)
             {
@@ -456,6 +501,8 @@ page 50601 "Opti Resource List"
             if IntegrationTableMapping.Get('RESOURCE-PRODUCT') then
                 BlockedFilterApplied := IntegrationTableMapping.GetTableFilter().Contains('Field38=1(0)');
         ExtendedPriceEnabled := PriceCalculationMgt.IsExtendedPriceCalculationEnabled();
+        RecFilters := Rec.GetFilters();
+        xRecFilters := Rec.GetView();
     end;
 
     var
@@ -463,6 +510,10 @@ page 50601 "Opti Resource List"
         CRMIsCoupledToRecord: Boolean;
         BlockedFilterApplied: Boolean;
         ExtendedPriceEnabled: Boolean;
+        RecFilters: Text;
+        xRecFilters: Text;
+        xRecMarkedOnly: Boolean;
+        xRecMarking: Record Resource;
 
     procedure GetSelectionFilter(): Text
     var
