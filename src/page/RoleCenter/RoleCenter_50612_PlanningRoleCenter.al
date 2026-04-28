@@ -45,6 +45,14 @@ page 50612 "Planning Role Center"
                     RunObject = Page "Day Tasks";
                     ToolTip = 'Open the list of day tasks for the project.';
                 }
+                action("DaytaskPosting")
+                {
+                    ApplicationArea = Jobs;
+                    Caption = 'Daytask Posting';
+                    RunObject = Page "Daytask Journal";
+                    Image = PostBatch;
+                    ToolTip = 'Open the Daytask posting journal to retrieve unposted day tasks and post them to the project ledger.';
+                }
             }
 
             group("ResourcePlanningGroup")
