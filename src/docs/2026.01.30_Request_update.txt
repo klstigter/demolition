@@ -109,16 +109,18 @@ DayTask View
       Lines -> Documents -> create invoice -> remove ---(OK)
 50617 -> new button -> use codeunit with SingleInstance = True;  ---(OK)
 2. worksheet -> daytask posting
-3. update flag on daytask record after posting
+3. update flag on daytask record after posting  ---(OK)
 4. page 50630 -> factbox tidak refresh
 5. Gantt -> Open Daytask -> apply date range of gantt chart
 6. Daytaskline -> no. (assist) -> existing: capacity filter applied
 	enhance: add button: show all resources
 7. Gantt -> resource panel -> left pane -> right click -> option 1 change: open resource scheduler
+   Check resource panel, data must same as detail
 8. Daytask: add 2 fields: Requested start+end, drive by requested hours
 	existing start+end drive by assigned hours
 9. Resouce Scheduler -> Add refresh mechanism
 10. Resource Scheduler: daytask view: split based on number of daytask
+11. Pre-Daytask -> new table
 
 
 
