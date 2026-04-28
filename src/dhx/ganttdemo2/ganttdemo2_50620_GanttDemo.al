@@ -383,8 +383,11 @@ page 50620 "Gantt Demo DHX 2"
                 var
                     SummaryPage: Page "Summary View";
                     Direction: Option Forward,Backward;
+                    DT1: Date;
+                    DT2: Date;
                 begin
-                    SummaryPage.LoadDataSet(StrSubstNo('%1..%2', AnchorDate, CalcNewAnchorDate(Direction::Forward)));
+                    GanttChartDataHandler.GetDateRange(Setup, AnchorDate, DT1, DT2);
+                    SummaryPage.LoadDataSet(StrSubstNo('%1..%2', DT1, DT2));
                     SummaryPage.Run();
                 end;
             }
@@ -398,8 +401,11 @@ page 50620 "Gantt Demo DHX 2"
                 var
                     DayTask: Record "Day Tasks";
                     Direction: Option Forward,Backward;
+                    DT1: Date;
+                    DT2: Date;
                 begin
-                    DayTask.SetRange("Task Date", AnchorDate, CalcNewAnchorDate(Direction::Forward));
+                    GanttChartDataHandler.GetDateRange(Setup, AnchorDate, DT1, DT2);
+                    DayTask.SetRange("Task Date", DT1, DT2);
                     page.RunModal(Page::"Day Tasks", DayTask);
                 end;
             }
@@ -413,8 +419,11 @@ page 50620 "Gantt Demo DHX 2"
                 var
                     jobTask: Record "Job Task";
                     Direction: Option Forward,Backward;
+                    DT1: Date;
+                    DT2: Date;
                 begin
-                    jobTask.SetFilter("Planning Date Filter", '%1..%2', AnchorDate, CalcNewAnchorDate(Direction::Forward));
+                    GanttChartDataHandler.GetDateRange(Setup, AnchorDate, DT1, DT2);
+                    jobTask.SetFilter("Planning Date Filter", '%1..%2', DT1, DT2);
                     jobTask.SetAutoCalcFields("Total Day Tasks");
                     jobTask.SetFilter("Total Day Tasks", '>0');
                     page.RunModal(Page::"Job Task List - Project", jobTask);
@@ -504,6 +513,21 @@ page 50620 "Gantt Demo DHX 2"
                     CurrPage.DHXGanttControl2.GetGanttData();
                 end;
             }
+            action(CheckPagePeriod)
+            {
+                Caption = 'Check Page Period';
+                ApplicationArea = All;
+                Image = Check;
+
+                trigger OnAction()
+                Var
+                    DT1: Date;
+                    DT2: Date;
+                begin
+                    GanttChartDataHandler.GetDateRange(Setup, AnchorDate, DT1, DT2);
+                    Message('Checking Gantt data integrity for period %1 to %2 from anchor date %3', DT1, DT2, AnchorDate);
+                end;
+            }
             action(ShowResourcesForTask)
             {
                 Caption = 'Show Resources for Task';
@@ -566,6 +590,7 @@ page 50620 "Gantt Demo DHX 2"
             {
                 Caption = 'Check';
                 actionref(CheckGanttData; CheckGanttDataAct) { }
+                actionref(CheckPagePeriodAct; CheckPagePeriod) { }
             }
         }
     }

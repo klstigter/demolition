@@ -218,7 +218,9 @@ page 50630 "Day Tasks"
             {
                 ApplicationArea = All;
                 SubPageLink = "Task Date" = field("Task Date"),
-                              "Day Line No." = field("Day Line No.");
+                              "Day Line No." = field("Day Line No."),
+                              "Job No." = field("Job No."),
+                              "Job Task No." = field("Job Task No.");
             }
             part(ResourceSkills; "Resource Skills FactBox Part")
             {
