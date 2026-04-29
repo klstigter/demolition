@@ -113,7 +113,7 @@ DayTask View
 4. page 50630 -> factbox tidak refresh                               ---(OK)
 5. Gantt -> Open Daytask -> apply date range of gantt chart          ---(OK)
 6. Daytaskline -> no. (assist) -> existing: capacity filter applied  ---(OK)
-	enhance: add button: show all resources
+	add button: show all resources -> change to Assist button         ---(OK)
 7. Gantt -> resource panel -> left pane -> right click -> 
    - option 1 change: open resource scheduler
    - Check resource panel, data must same as detail
@@ -122,7 +122,11 @@ DayTask View
 9. Resouce Scheduler -> Add refresh mechanism
 10. Resource Scheduler: daytask view: split based on number of daytask
 11. Pre-Daytask -> new table
-
+12. Gantt -> filtered and reset filter (remove filter) on resource panel
+    Total hours colom -> alignment as center
+13. Hovering on daytask small box still show one record (for multi record case)
+14. Gantt -> resource panel -> daytask small box -> relayout info
+    for daytask more than one then add number of daytask info at top-left
 
 
 
