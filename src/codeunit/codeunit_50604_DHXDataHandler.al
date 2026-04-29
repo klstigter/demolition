@@ -108,7 +108,7 @@ codeunit 50604 "DHX Data Handler"
     begin
         PlanninJsonTxt := '';
         //Marking Job based on Day Tasks within the given date range
-        Daytask.SetCurrentKey("Task Date", "Start Time");
+        Daytask.SetCurrentKey("Task Date", "Start Time Assigned");
         Daytask.SetRange("Task Date", StartDate, EndDate);
         if JobFilter <> '' then
             Daytask.SetFilter("Job No.", JobFilter)
@@ -951,22 +951,22 @@ codeunit 50604 "DHX Data Handler"
             exit;
 
         case true of
-            (DayTask."Start Time" <> 0T) and (DayTask."End Time" <> 0T):
+            (DayTask."Start Time Assigned" <> 0T) and (DayTask."End Time Assigned" <> 0T):
                 begin
-                    StartDateTxt := ToSessionDateTimeTxt(DayTask."Task Date", DayTask."Start Time");
-                    EndDateTxt := ToSessionDateTimeTxt(DayTask."Task Date", DayTask."End Time");
+                    StartDateTxt := ToSessionDateTimeTxt(DayTask."Task Date", DayTask."Start Time Assigned");
+                    EndDateTxt := ToSessionDateTimeTxt(DayTask."Task Date", DayTask."End Time Assigned");
                 end;
-            (DayTask."Start Time" <> 0T) and (DayTask."End Time" = 0T):
+            (DayTask."Start Time Assigned" <> 0T) and (DayTask."End Time Assigned" = 0T):
                 begin
-                    StartDateTxt := ToSessionDateTimeTxt(DayTask."Task Date", DayTask."Start Time");
+                    StartDateTxt := ToSessionDateTimeTxt(DayTask."Task Date", DayTask."Start Time Assigned");
                     EndDateTxt := Format(DayTask."Task Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 23:59:59';
                 end;
-            (DayTask."Start Time" = 0T) and (DayTask."End Time" <> 0T):
+            (DayTask."Start Time Assigned" = 0T) and (DayTask."End Time Assigned" <> 0T):
                 begin
                     StartDateTxt := Format(DayTask."Task Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
-                    EndDateTxt := ToSessionDateTimeTxt(DayTask."Task Date", DayTask."End Time");
+                    EndDateTxt := ToSessionDateTimeTxt(DayTask."Task Date", DayTask."End Time Assigned");
                 end;
-            (DayTask."Start Time" = 0T) and (DayTask."End Time" = 0T):
+            (DayTask."Start Time Assigned" = 0T) and (DayTask."End Time Assigned" = 0T):
                 begin
                     StartDateTxt := Format(DayTask."Task Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
                     EndDateTxt := Format(DayTask."Task Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 23:59:59';
@@ -1095,8 +1095,8 @@ codeunit 50604 "DHX Data Handler"
             EventDataJsonTxt := StrSubstNo(RefreshLbl,
                                 EventId,
                                 DayTask.Description,
-                                ToSessionDateTimeTxt(DayTask."Task Date", DayTask."Start Time"),
-                                ToSessionDateTimeTxt(DayTask."Task Date", DayTask."End Time"),
+                                ToSessionDateTimeTxt(DayTask."Task Date", DayTask."Start Time Assigned"),
+                                ToSessionDateTimeTxt(DayTask."Task Date", DayTask."End Time Assigned"),
                                 DayTask."Job No." + '|' + DayTask."Job Task No.",
                                 DayTask."No.",
                                 DayTask.Description)
@@ -1189,8 +1189,8 @@ codeunit 50604 "DHX Data Handler"
         DayTask."Job Task No." := TaskNo;
 
         DayTask."No." := Res."No.";
-        DayTask."Start Time" := StartTime;
-        DayTask."End Time" := EndTime;
+        DayTask."Start Time Assigned" := StartTime;
+        DayTask."End Time Assigned" := EndTime;
         DayTask.Description := Res.Name;
         UpdateEventIdJsonTxt := StrSubstNo(JsonLbl,
                                             old_eventid,
@@ -1434,12 +1434,12 @@ codeunit 50604 "DHX Data Handler"
         Evaluate(_DateTime, JToken.AsValue().AsText());
         _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
         OldDayTask."Task Date" := DT2Date(_DateTimeUserZone);
-        OldDayTask."Start Time" := DT2Time(_DateTimeUserZone);
+        OldDayTask."Start Time Assigned" := DT2Time(_DateTimeUserZone);
 
         EventJSonObj.Get('end_date', JToken);
         Evaluate(_DateTime, JToken.AsValue().AsText());
         _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
-        OldDayTask."End Time" := DT2Time(_DateTimeUserZone);
+        OldDayTask."End Time Assigned" := DT2Time(_DateTimeUserZone);
 
         EventJSonObj.Get('text', JToken);
         OldDayTask.Description := JToken.AsValue().AsText();

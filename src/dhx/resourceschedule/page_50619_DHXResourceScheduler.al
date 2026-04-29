@@ -41,14 +41,17 @@ page 50619 "DHX Resource Scheduler"
 
                 trigger ControlReady()
                 begin
-                    CurrPage.DhxScheduler.Init(BuildResourcesJson(), Today());
+                    AnchorDate := Today();
+                    if CurrentStartDate <> 0D then
+                        AnchorDate := CurrentStartDate;
+                    CurrPage.DhxScheduler.Init(BuildResourcesJson(), AnchorDate);
                 end;
 
                 trigger OnAfterInit()
                 var
                     DHXHandler: Codeunit "DHX Data Handler";
                 begin
-                    DHXHandler.GetWeekPeriodDates(Today(), CurrentStartDate, CurrentEndDate);
+                    DHXHandler.GetWeekPeriodDates(AnchorDate, CurrentStartDate, CurrentEndDate);
                     CurrPage.DhxScheduler.LoadData(BuildEventsJson(CurrentStartDate, CurrentEndDate));
                     CurrPage.DhxScheduler.LoadCapacity(BuildCapacityJson(CurrentStartDate, CurrentEndDate));
                 end;
@@ -227,12 +230,29 @@ page 50619 "DHX Resource Scheduler"
                 RunObject = page "Resource Capacity";
                 Image = Capacities;
             }
+            action("Scheduler Resfresh")
+            {
+                ApplicationArea = Basic, Suite;
+                Caption = 'Refresh';
+                Image = Refresh;
+                trigger OnAction()
+                var
+                    DHXHandler: Codeunit "DHX Data Handler";
+                begin
+                    if (CurrentStartDate = 0D) or (CurrentEndDate = 0D) then
+                        DHXHandler.GetWeekPeriodDates(AnchorDate, CurrentStartDate, CurrentEndDate);
+                    CurrPage.DhxScheduler.ReloadData(
+                        BuildEventsJson(CurrentStartDate, CurrentEndDate),
+                        BuildCapacityJson(CurrentStartDate, CurrentEndDate));
+                end;
+            }
         }
         area(Promoted)
         {
             group(Category_Process)
             {
                 actionref(Category_Process_01; "Resource Capacities") { }
+                actionref(Category_Process_02; "Scheduler Resfresh") { }
             }
         }
     }
@@ -244,6 +264,7 @@ page 50619 "DHX Resource Scheduler"
     end;
 
     var
+        AnchorDate: Date;
         ResourceFilter: Text;
         ShowDayTask: Boolean;
         ShowCapacity: Boolean;
@@ -281,5 +302,12 @@ page 50619 "DHX Resource Scheduler"
     procedure SetResourceFilter(pResourceFilter: Text)
     begin
         ResourceFilter := pResourceFilter;
+    end;
+
+    procedure SetResourceFilter(pResourceFilter: Text; pStartDateOfWeek: Date; pEndDateOfWeek: Date)
+    begin
+        ResourceFilter := pResourceFilter;
+        CurrentStartDate := pStartDateOfWeek;
+        CurrentEndDate := pEndDateOfWeek;
     end;
 }

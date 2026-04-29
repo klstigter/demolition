@@ -362,10 +362,10 @@ codeunit 50613 "GanttChartDataHandler"
             WorkDateText := '';
         JsonObject.Add('work_date', WorkDateText);
 
-        StartTimeText := FormatTime(DayTask."Start Time");
+        StartTimeText := FormatTime(DayTask."Start Time Assigned");
         JsonObject.Add('start_time', StartTimeText);
 
-        EndTimeText := FormatTime(DayTask."End Time");
+        EndTimeText := FormatTime(DayTask."End Time Assigned");
         JsonObject.Add('end_time', EndTimeText);
 
         if DayTask."No." <> '' then

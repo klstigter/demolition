@@ -105,21 +105,20 @@ DayTask View
 
 2024.04.23
 ==========
-1. all link job -> use opti job Card                                 ---(OK)
-      Lines -> Documents -> create invoice -> remove                 ---(OK)
-50617 -> new button -> use codeunit with SingleInstance = True;      ---(OK)
-2. worksheet -> daytask posting                                      ---(OK)
-3. update flag on daytask record after posting                       ---(OK)
-4. page 50630 -> factbox tidak refresh                               ---(OK)
-5. Gantt -> Open Daytask -> apply date range of gantt chart          ---(OK)
-6. Daytaskline -> no. (assist) -> existing: capacity filter applied  ---(OK)
-	add button: show all resources -> change to Assist button         ---(OK)
-7. Gantt -> resource panel -> left pane -> right click -> 
-   - option 1 change: open resource scheduler
-   - Check resource panel, data must same as detail
-8. Daytask: add 2 fields: Requested start+end, drive by requested hours
-	existing start+end drive by assigned hours
-9. Resouce Scheduler -> Add refresh mechanism
+1. all link job -> use opti job Card                                    ---(OK)
+      Lines -> Documents -> create invoice -> remove                    ---(OK)
+50617 -> new button -> use codeunit with SingleInstance = True;         ---(OK)
+2. worksheet -> daytask posting                                         ---(OK)
+3. update flag on daytask record after posting                          ---(OK)
+4. page 50630 -> factbox tidak refresh                                  ---(OK)
+5. Gantt -> Open Daytask -> apply date range of gantt chart             ---(OK)
+6. Daytaskline -> no. (assist) -> existing: capacity filter applied     ---(OK)
+	add button: show all resources -> change to Assist button            ---(OK)
+7. Gantt -> resource panel -> left pane -> right click 
+   - change dummy message on Option 1 with open resource scheduler      ---(OK)
+   - Check resource panel, data must same as detail                     ---(OK)
+8. Daytask: add 2 fields: Requested start+end, hours drive by Start/End ---(OK)   
+9. Resouce Scheduler -> Add refresh mechanism                           ---(OK)
 10. Resource Scheduler: daytask view: split based on number of daytask
 11. Pre-Daytask -> new table
 12. Gantt -> filtered and reset filter (remove filter) on resource panel
@@ -127,6 +126,10 @@ DayTask View
 13. Hovering on daytask small box still show one record (for multi record case)
 14. Gantt -> resource panel -> daytask small box -> relayout info
     for daytask more than one then add number of daytask info at top-left
+
+API - 2026.04.29
+=================
+1. define response for Job Journal Posting
 
 
 

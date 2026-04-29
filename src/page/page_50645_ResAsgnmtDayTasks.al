@@ -74,12 +74,22 @@ page 50645 "Res. Asgmt. Day Tasks"
                     ToolTip = 'Specifies the capacity of the resource on this date.';
                     Editable = false;
                 }
-                field("Start Time"; Rec."Start Time")
+                field("Start Time Assigned"; Rec."Start Time Assigned")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the start time for this day task.';
                 }
-                field("End Time"; Rec."End Time")
+                field("End Time Assigned"; Rec."End Time Assigned")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the end time for this day task.';
+                }
+                field("Start Time Requested"; Rec."Start Time Requested")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the start time for this day task.';
+                }
+                field("End Time Requested"; Rec."End Time Requested")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the end time for this day task.';

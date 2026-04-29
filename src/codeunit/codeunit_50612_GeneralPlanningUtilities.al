@@ -119,8 +119,8 @@ codeunit 50612 "General Planning Utilities"
         DayTask.SetRange("Task Date", pDayTask."task Date");
         DayTask.SetRange("No.", ResourceNo);
         DayTask.SetFilter("Day Line No.", '<>%1', pDayTask."Day Line No.");
-        DayTask.SetFilter("Start Time", '<>%1', 0T);
-        DayTask.SetFilter("End Time", '<>%1', 0T);
+        DayTask.SetFilter("Start Time Assigned", '<>%1', 0T);
+        DayTask.SetFilter("End Time Assigned", '<>%1', 0T);
         if DayTask.FindFirst() then
             repeat
                 WorkingMinutes += GetWorkingMinutes(DayTask);
@@ -139,7 +139,7 @@ codeunit 50612 "General Planning Utilities"
     var
         WorkingMinutes: Decimal;
     begin
-        WorkingMinutes := (DayTask."End Time" - DayTask."Start Time") div 60000;
+        WorkingMinutes := (DayTask."End Time Assigned" - DayTask."Start Time Assigned") div 60000;
         WorkingMinutes := WorkingMinutes - DayTask."Non Working Minutes";
         exit(WorkingMinutes);
     end;

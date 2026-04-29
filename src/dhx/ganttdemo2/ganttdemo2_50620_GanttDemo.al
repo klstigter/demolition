@@ -194,19 +194,21 @@ page 50620 "Gantt Demo DHX 2"
                     // Now update Job Task + regenerate Day Tasks
                 end;
 
-                trigger OpenResourceLoadDay(ResourceId: Text; workDate: Text)
+                trigger OpenResourceLoadDay(ResourceId: Text; pWorkDate: Text)
                 var
                     DayTask: Record "Day Tasks";
                     WorkDt: Date;
                     PlType: enum "Job Planning Line Type";
                     Tp: array[2] of text;
                 begin
-                    Evaluate(WorkDt, workDate); // expects YYYY-MM-DD
+                    Evaluate(WorkDt, pWorkDate); // expects YYYY-MM-DD
                     tp[1] := CopyStr(ResourceId, 1, 4);
                     tp[2] := CopyStr(ResourceId, 5);
                     PlType := PlType::Resource;
                     DayTask.SetRange("Task Date", WorkDt);
                     DayTask.setrange(Type, PlType);
+                    if JobFilter <> '' then
+                        DayTask.SetFilter("Job No.", JobFilter);
                     if tp[1] = 'RES-' then
                         DayTask.SetRange("No.", tp[2]);
                     if tp[1] = 'VEN-' then
@@ -230,6 +232,67 @@ page 50620 "Gantt Demo DHX 2"
                 trigger OnResourceDblClick(resourceId: Text)
                 begin
                     Message('Resource: %1', resourceId);
+                end;
+
+                trigger onOpenResourceScheduler(resourceId: Text)
+                var
+                    ResScheduler: page "DHX Resource Scheduler";
+                    DHXDataHandler: Codeunit "DHX Data Handler";
+                    TextList: List of [Text];
+                    ResNo: Code[20];
+                    GanttStart: Date;
+                    GanttEnd: Date;
+                    WeekStart: Date;
+                    WeekEnd: Date;
+                    WeekStartDate: List of [Date];
+                    WeekEndDate: List of [Date];
+                    OptionString: Text;
+                    OptionItem: Text;
+                    Selection: Integer;
+                    WeekIdx: Integer;
+                begin
+                    if StrPos(resourceId, '-') = 0 then begin
+                        Message('Invalid resource ID format: %1, resource ID should be in the format "TYPE-ID", ex. RES-1234', resourceId);
+                        exit;
+                    end;
+                    TextList := resourceId.Split('-');
+                    Evaluate(ResNo, TextList.Get(2)); // expects format like "RES-1234"
+
+                    // Derive the active Gantt period from current setup and anchor date
+                    GanttChartDataHandler.GetDateRange(Setup, AnchorDate, GanttStart, GanttEnd);
+
+                    // Build week lists by walking the Gantt period week by week
+                    DHXDataHandler.GetWeekPeriodDates(GanttStart, WeekStart, WeekEnd);
+                    while WeekStart <= GanttEnd do begin
+                        WeekStartDate.Add(WeekStart);
+                        WeekEndDate.Add(WeekEnd);
+                        WeekStart := CalcDate('<1W>', WeekStart);
+                        WeekEnd := CalcDate('<1W>', WeekEnd);
+                    end;
+
+                    if WeekStartDate.Count() = 0 then begin
+                        Message('No weeks found in the current Gantt period (%1 – %2).', GanttStart, GanttEnd);
+                        exit;
+                    end;
+
+                    // Build dynamic option string using actual calendar week numbers: "W09: 24-02-2026 – 01-03-2026, ..."
+                    for WeekIdx := 1 to WeekStartDate.Count() do begin
+                        OptionItem := StrSubstNo('W%1: %2 – %3',
+                            Format(Date2DWY(WeekStartDate.Get(WeekIdx), 2), 0, '<Integer,2>'),
+                            Format(WeekStartDate.Get(WeekIdx), 0, '<Day,2>-<Month,2>-<Year4>'),
+                            Format(WeekEndDate.Get(WeekIdx), 0, '<Day,2>-<Month,2>-<Year4>'));
+                        if OptionString <> '' then
+                            OptionString += ',';
+                        OptionString += OptionItem;
+                    end;
+
+                    // Standard BC popup for option selection (returns 0 on cancel)
+                    Selection := StrMenu(OptionString, 1, 'Select a week to open the Resource Scheduler');
+                    if Selection = 0 then
+                        exit;
+
+                    ResScheduler.SetResourceFilter(ResNo, WeekStartDate.Get(Selection), WeekEndDate.Get(Selection));
+                    ResScheduler.RunModal();
                 end;
             }
         }
@@ -406,6 +469,8 @@ page 50620 "Gantt Demo DHX 2"
                 begin
                     GanttChartDataHandler.GetDateRange(Setup, AnchorDate, DT1, DT2);
                     DayTask.SetRange("Task Date", DT1, DT2);
+                    if JobFilter <> '' then
+                        DayTask.SetFilter("Job No.", JobFilter);
                     page.RunModal(Page::"Day Tasks", DayTask);
                 end;
             }
@@ -426,6 +491,8 @@ page 50620 "Gantt Demo DHX 2"
                     jobTask.SetFilter("Planning Date Filter", '%1..%2', DT1, DT2);
                     jobTask.SetAutoCalcFields("Total Day Tasks");
                     jobTask.SetFilter("Total Day Tasks", '>0');
+                    if JobFilter <> '' then
+                        jobTask.SetFilter("Job No.", JobFilter);
                     page.RunModal(Page::"Job Task List - Project", jobTask);
                 end;
             }
@@ -690,8 +757,11 @@ page 50620 "Gantt Demo DHX 2"
     begin
         JobFilterUsed := setup."Job No. Filter";
         if JobFilter <> '' then
-            JobFilterUsed := JobFilter; // override with global filter if set
-        JsonTxtDayTasks := GanttChartDataHandler.GetDayTasksAsJson(AnchorDate, JobFilterUsed);
+            JobFilterUsed := JobFilter // override with global filter if set
+        else
+            if JobFilterUsed <> '' then
+                JobFilter := JobFilterUsed;
+        JsonTxtDayTasks := GanttChartDataHandler.GetDayTasksAsJson(AnchorDate, JobFilter);
         if JsonTxtDayTasks <> '' then
             CurrPage.DHXGanttControl2.LoadDayTasksData(JsonTxtDayTasks);
     end;
