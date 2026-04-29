@@ -194,8 +194,10 @@ window.BOOT = function() {
         menu.appendChild(item);
       }
 
-      makeItem("Show Message 1", function () {
-        alert("Message 1 — Resource: " + currentResourceId);
+      makeItem("Resource Scheduler", function () {
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("onOpenResourceScheduler", [
+          currentResourceId
+        ]);
       });
       makeItem("Show Message 2", function () {
         alert("Message 2 — Resource: " + currentResourceId);

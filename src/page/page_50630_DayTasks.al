@@ -110,16 +110,28 @@ page 50630 "Day Tasks"
                     StyleExpr = StyleStr;
                     Visible = false;
                 }
-                field("Start Time"; Rec."Start Time")
+                field("Start Time Assigned"; Rec."Start Time Assigned")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the start time for this day.';
                     StyleExpr = StyleStr;
                 }
-                field("End Time"; Rec."End Time")
+                field("End Time Assigned"; Rec."End Time Assigned")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the end time for this day.';
+                    StyleExpr = StyleStr;
+                }
+                field("Start Time Requested"; Rec."Start Time Requested")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the start time for this day task.';
+                    StyleExpr = StyleStr;
+                }
+                field("End Time Requested"; Rec."End Time Requested")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the end time for this day task.';
                     StyleExpr = StyleStr;
                 }
                 field("Non Working Hours"; Rec."Non Working Minutes")

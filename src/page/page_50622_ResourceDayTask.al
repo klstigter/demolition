@@ -49,13 +49,23 @@ page 50622 "Resource Day Tasks"
                 {
                     ApplicationArea = All;
                 }
-                field("Start Time"; Rec."Start Time")
+                field("Start Time Assigned"; Rec."Start Time Assigned")
                 {
                     ApplicationArea = All;
                 }
-                field("End Time"; Rec."End Time")
+                field("End Time Assigned"; Rec."End Time Assigned")
                 {
                     ApplicationArea = All;
+                }
+                field("Start Time Requested"; Rec."Start Time Requested")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the start time for this day task.';
+                }
+                field("End Time Requested"; Rec."End Time Requested")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the end time for this day task.';
                 }
                 field("Description"; Rec."Description")
                 {

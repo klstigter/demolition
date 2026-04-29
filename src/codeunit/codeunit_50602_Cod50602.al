@@ -457,10 +457,10 @@ codeunit 50602 "Create Demo Data"
                 DayTask."Job Task No." := TaskNo;
                 DayTask.Type := DayTask.Type::Resource;
                 DayTask.Validate("No.", ResNo);
-                DayTask."Start Time" := 080000T;
+                DayTask."Start Time Assigned" := 080000T;
                 DayTask.Description := 'Work on ' + JobNo + '-' + TaskNo;
-                DayTask.Validate("End Time", 140000T);
-                DayTask."Assigned Hours" := (DayTask."End Time" - DayTask."Start Time") / 3600000;
+                DayTask.Validate("End Time Assigned", 140000T);
+                DayTask."Assigned Hours" := (DayTask."End Time Assigned" - DayTask."Start Time Assigned") / 3600000;
                 DayTask.Insert();
             end else begin
                 if DayTask.Type = DayTask.Type::Resource then begin
@@ -468,11 +468,11 @@ codeunit 50602 "Create Demo Data"
                         DayTask.Validate("No.", ResNo);
                     if DayTask.Description = '' then
                         DayTask.Description := 'Work on ' + JobNo + '-' + TaskNo;
-                    if (DayTask."Start Time" = 0T) OR (DayTask."End Time" = 0T) then begin
-                        DayTask."Start Time" := 080000T;
-                        DayTask.Validate("End Time", 140000T);
+                    if (DayTask."Start Time Assigned" = 0T) OR (DayTask."End Time Assigned" = 0T) then begin
+                        DayTask."Start Time Assigned" := 080000T;
+                        DayTask.Validate("End Time Assigned", 140000T);
                     end;
-                    DayTask."Assigned Hours" := (DayTask."End Time" - DayTask."Start Time") / 3600000;
+                    DayTask."Assigned Hours" := (DayTask."End Time Assigned" - DayTask."Start Time Assigned") / 3600000;
                     DayTask.Modify();
                 end;
             end;

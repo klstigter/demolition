@@ -70,13 +70,17 @@ page 50623 "Job Journal Line API Opt."
                 {
                     Caption = 'Job Task No.';
                 }
-                field(daytaskDate; Rec."Opt. Daytask Date")
+                // field(daytaskDate; Rec."Opt. Daytask Date")
+                // {
+                //     Caption = 'Day Task Date';
+                // }
+                // field(daytaskLineNo; Rec."Opt. Daytask Line No.")
+                // {
+                //     Caption = 'Day Task Line No.';
+                // }
+                field(dayTaskSystemId; DayTaskSystemId)
                 {
-                    Caption = 'Day Task Date';
-                }
-                field(daytaskLineNo; Rec."Opt. Daytask Line No.")
-                {
-                    Caption = 'Day Task Line No.';
+                    Caption = 'Daytask System Id';
                 }
                 field(type; Rec.Type)
                 {
@@ -193,6 +197,7 @@ page 50623 "Job Journal Line API Opt."
         ExistingLine: Record "Job Journal Line";
         Daytask: Record "Day Tasks";
         NextLineNo: Integer;
+        GuidVar: Guid;
     begin
         // Step 1 & 2
         TempLine.Copy(Rec);
@@ -221,10 +226,15 @@ page 50623 "Job Journal Line API Opt."
         Rec."Document Date" := TempLine."Document Date";
         Rec."Document No." := TempLine."Document No.";
         Rec."External Document No." := TempLine."External Document No.";
-        Rec."Job No." := TempLine."Job No.";
-        Rec."Job Task No." := TempLine."Job Task No.";
-        Rec."Opt. Daytask Date" := TempLine."Opt. Daytask Date";
-        Rec."Opt. Daytask Line No." := TempLine."Opt. Daytask Line No.";
+
+        Evaluate(GuidVar, DayTaskSystemId);
+        Daytask.GetBySystemId(GuidVar);
+
+        Rec."Opt. Daytask Date" := Daytask."Task Date";
+        Rec."Opt. Daytask Line No." := Daytask."Day Line No.";
+        Rec."Job No." := Daytask."Job No.";
+        Rec."Job Task No." := Daytask."Job Task No.";
+
         Rec.Type := TempLine.Type;
         Rec."No." := TempLine."No.";
         Rec.Description := TempLine.Description;
@@ -240,12 +250,6 @@ page 50623 "Job Journal Line API Opt."
         Rec."Gen. Bus. Posting Group" := TempLine."Gen. Bus. Posting Group";
         Rec."Gen. Prod. Posting Group" := TempLine."Gen. Prod. Posting Group";
 
-        if Rec."Opt. Daytask Date" <> 0D then
-            Daytask.Get(Rec."Opt. Daytask Date",
-                        Rec."Opt. Daytask Line No.",
-                        Rec."Job No.",
-                        Rec."Job Task No.");
-
         // Step 4: persist the line — now visible to Job Jnl.-Post Batch within same transaction
         Rec.Insert(true);
 
@@ -256,6 +260,9 @@ page 50623 "Job Journal Line API Opt."
         // Step 6: BC must NOT insert again
         exit(false);
     end;
+
+    var
+        DayTaskSystemId: Text[50];
 
     [CommitBehavior(CommitBehavior::Ignore)]
     local procedure PostBatchInline(TemplateName: Code[10]; BatchName: Code[10])

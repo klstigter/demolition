@@ -33,20 +33,40 @@ table 50610 "Day Tasks"
             Caption = 'Job Task No.';
             Editable = false;
         }
-        field(11; "Start Time"; Time)
+        field(11; "Start Time Assigned"; Time)
         {
             DataClassification = ToBeClassified;
-            Caption = 'Start Time';
+            Caption = 'Start Time Assigned';
 
             trigger OnValidate()
             begin
                 CalculateWorkingHours();
             end;
         }
-        field(12; "End Time"; Time)
+        field(12; "End Time Assigned"; Time)
         {
             DataClassification = ToBeClassified;
-            Caption = 'End Time';
+            Caption = 'End Time Assigned';
+
+            trigger OnValidate()
+            begin
+                CalculateWorkingHours();
+            end;
+        }
+        field(13; "Start Time Requested"; Time)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Start Time Requested';
+
+            trigger OnValidate()
+            begin
+                CalculateWorkingHours();
+            end;
+        }
+        field(14; "End Time Requested"; Time)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'End Time Requested';
 
             trigger OnValidate()
             begin
@@ -416,7 +436,7 @@ table 50610 "Day Tasks"
         key(Rec1; "Job No.", "Job Task No.", "Task Date", "Day Line No.")
         {
         }
-        key(DateKey; "Task Date", "Start Time")
+        key(DateKey; "Task Date", "Start Time Assigned")
         {
         }
     }
@@ -432,27 +452,45 @@ table 50610 "Day Tasks"
         generalutils: Codeunit "General Planning Utilities";
 
     procedure CalculateWorkingHours()
+    begin
+        CalculateAssignedWorkingHours();
+        CalculateRequestedWorkingHours();
+    end;
+
+    local procedure CalculateAssignedWorkingHours()
     var
         PlanningUtil: codeunit "General Planning Utilities";
         WorkingMinutes: Integer;
-        RequestedHours: Decimal;
+        AssignedHours: Decimal;
         Capacity: Decimal;
     begin
         // If either time is not set, clear both hours fields
-        if ("Start Time" = 0T) or ("End Time" = 0T) then begin
+        if ("Start Time Assigned" = 0T) or ("End Time Assigned" = 0T) then begin
             "Assigned Hours" := 0;
             "Non Working Minutes" := 0;
             exit;
         end;
 
-        "Capacity Fully Utilized" := PlanningUtil.DayTaskFulFillment(Rec, RequestedHours, Capacity);
-        "Requested Hours" := RequestedHours;
-
+        "Capacity Fully Utilized" := PlanningUtil.DayTaskFulFillment(Rec, AssignedHours, Capacity);
+        "Assigned Hours" := AssignedHours;
     end;
 
-    procedure CheckFirstandLastDay("Job No.": Code[20]);
+    local procedure CalculateRequestedWorkingHours()
+    var
+        PlanningUtil: codeunit "General Planning Utilities";
+        WorkingMinutes: Integer;
+        RequestedHours: Decimal;
+        Capacity: Decimal;
+        BoolVar: Boolean;
     begin
+        // If either time is not set, clear both hours fields
+        if ("Start Time Requested" = 0T) or ("End Time Requested" = 0T) then begin
+            "Requested Hours" := 0;
+            exit;
+        end;
 
+        BoolVar := PlanningUtil.DayTaskFulFillment(Rec, RequestedHours, Capacity);
+        "Requested Hours" := RequestedHours;
     end;
 
     procedure GetNextDayLineNo(TaskDay: date; "Job No.": Code[20]; "Job Task No.": Code[20]): Integer

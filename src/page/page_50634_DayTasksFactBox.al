@@ -24,11 +24,11 @@ page 50634 "Day Tasks FactBox"
                 {
                     Caption = 'Data Owner';
                 }
-                field("Start Time"; Rec."Start Time")
+                field("Start Time"; Rec."Start Time Assigned")
                 {
                     ApplicationArea = All;
                 }
-                field("End Time"; Rec."End Time")
+                field("End Time"; Rec."End Time Assigned")
                 {
                     ApplicationArea = All;
                 }

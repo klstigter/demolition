@@ -114,8 +114,8 @@ codeunit 50610 "Day Tasks Mgt."
                 else
                     NonWorkingHours := WorkHoursTemplate."Non Working Minutes";
 
-                DayTasks."Start Time" := DayStartTime;
-                DayTasks."End Time" := DayEndTime;
+                DayTasks."Start Time Assigned" := DayStartTime;
+                DayTasks."End Time Assigned" := DayEndTime;
                 DayTasks.VALIDATE("Non Working Minutes", NonWorkingHours);
 
 
