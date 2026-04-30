@@ -31,6 +31,10 @@ page 50616 "JobJournal Opt"
                 {
                     Caption = 'Name';
                 }
+                field(postResult; GetPostresult())
+                {
+                    Caption = 'Description';
+                }
             }
             part(jobJournalLines; "Job Journal Line API Opt.")
             {
@@ -55,4 +59,51 @@ page 50616 "JobJournal Opt"
         exit(true); // insert into temp table so the nested part can resolve its SubPageLink
     end;
 
+    procedure GetPostresult(): Text
+    var
+        JobRegister: Record "Job Register";
+        JobLedgEntry: Record "Job Ledger Entry";
+        ResultJson: JsonObject;
+        LinesArray: JsonArray;
+        LineJson: JsonObject;
+        ResultText: Text;
+        DayTask: Record "Day Tasks";
+    begin
+        JobRegister.Reset();
+        if not JobRegister.FindLast() then
+            exit('{}');
+
+        ResultJson.Add('jobRegisterNo', JobRegister."No.");
+        ResultJson.Add('fromEntryNo', JobRegister."From Entry No.");
+        ResultJson.Add('toEntryNo', JobRegister."To Entry No.");
+        ResultJson.Add('postedLinesCount', JobRegister."To Entry No." - JobRegister."From Entry No." + 1);
+        ResultJson.Add('creationDate', Format(JobRegister."Creation Date", 0, '<Year4>-<Month,2>-<Day,2>'));
+        ResultJson.Add('userId', JobRegister."User ID");
+
+        JobLedgEntry.SetRange("Entry No.", JobRegister."From Entry No.", JobRegister."To Entry No.");
+        if JobLedgEntry.FindSet() then
+            repeat
+                Clear(LineJson);
+                LineJson.Add('entryNo', JobLedgEntry."Entry No.");
+                LineJson.Add('postingDate', Format(JobLedgEntry."Posting Date", 0, '<Year4>-<Month,2>-<Day,2>'));
+                LineJson.Add('documentNo', JobLedgEntry."Document No.");
+                LineJson.Add('jobNo', JobLedgEntry."Job No.");
+                LineJson.Add('jobTaskNo', JobLedgEntry."Job Task No.");
+                LineJson.Add('type', Format(JobLedgEntry.Type));
+                LineJson.Add('no', JobLedgEntry."No.");
+                LineJson.Add('description', JobLedgEntry.Description);
+                LineJson.Add('quantity', JobLedgEntry.Quantity);
+                LineJson.Add('unitPrice', JobLedgEntry."Unit Price");
+                LineJson.Add('totalPrice', JobLedgEntry."Total Price");
+                LineJson.Add('dayTaskDate', Format(JobLedgEntry."Opt. Daytask Date", 0, '<Year4>-<Month,2>-<Day,2>'));
+                LineJson.Add('dayTaskLineNo', JobLedgEntry."Opt. Daytask Line No.");
+                DayTask.Get(JobLedgEntry."Opt. Daytask Date", JobLedgEntry."Opt. Daytask Line No.", JobLedgEntry."Job No.", JobLedgEntry."Job Task No.");
+                LineJson.Add('dayTaskSystemId', DayTask.SystemId);
+                LinesArray.Add(LineJson);
+            until JobLedgEntry.Next() = 0;
+
+        ResultJson.Add('postedLines', LinesArray);
+        ResultJson.WriteTo(ResultText);
+        exit(ResultText);
+    end;
 }
