@@ -42,26 +42,6 @@ page 50616 "JobJournal Opt"
         }
     }
 
-    actions
-    {
-        area(Processing)
-        {
-            action(post)
-            {
-                Caption = 'Post';
-                // Invoke via OData bound action after submitting all lines:
-                // POST .../JobJournals(templateName='X',batchName='Y')/Microsoft.NAV.post
-                // Runs Job Jnl.-Post Batch once for ALL lines in the batch →
-                // creates ONE register entry (same as native BC batch-post behaviour).
-
-                trigger OnAction()
-                begin
-                    PostBatchInline(Rec."Journal Template Name", Rec.Name);
-                end;
-            }
-        }
-    }
-
     trigger OnInsertRecord(BelowxRec: Boolean): Boolean
     var
         JobJournalBatch: Record "Job Journal Batch";
@@ -75,19 +55,4 @@ page 50616 "JobJournal Opt"
         exit(true); // insert into temp table so the nested part can resolve its SubPageLink
     end;
 
-    [CommitBehavior(CommitBehavior::Ignore)]
-    local procedure PostBatchInline(TemplateName: Code[10]; BatchName: Code[10])
-    // CommitBehavior::Ignore suppresses any explicit COMMIT calls inside
-    // Job Jnl.-Post Batch so the entire operation commits atomically when
-    // the OData HTTP response is finalised.
-    var
-        JobJnlLine: Record "Job Journal Line";
-        JobJnlPostBatch: Codeunit "Job Jnl.-Post Batch";
-    begin
-        JobJnlLine.SetRange("Journal Template Name", TemplateName);
-        JobJnlLine.SetRange("Journal Batch Name", BatchName);
-        if not JobJnlLine.FindFirst() then
-            Error('No journal lines found for template ''%1'' / batch ''%2''.', TemplateName, BatchName);
-        JobJnlPostBatch.Run(JobJnlLine);
-    end;
 }

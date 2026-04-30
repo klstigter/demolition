@@ -162,7 +162,7 @@ page 50623 "Job Journal Line API Opt."
                 {
                     Caption = 'Shortcut Dimension 2 Code';
                 }
-                field(triggerPost; Rec."Opt. Trigger Post")
+                field(triggerPost; TriggerPost)
                 {
                     // Set to true ONLY on the last line in the array.
                     // When true, OnInsertRecord posts the entire batch in one run
@@ -250,11 +250,21 @@ page 50623 "Job Journal Line API Opt."
         Rec."Gen. Bus. Posting Group" := TempLine."Gen. Bus. Posting Group";
         Rec."Gen. Prod. Posting Group" := TempLine."Gen. Prod. Posting Group";
 
+        // Validation
+        Rec.TestField("Posting Date");
+        Rec.TestField("Document No.");
+        Rec.TestField("Opt. Daytask Date");
+        Rec.TestField("Opt. Daytask Line No.");
+        Rec.TestField("Job No.");
+        Rec.TestField("Job Task No.");
+        Rec.TestField(Quantity);
+        Rec.TestField("Unit of Measure Code");
+
         // Step 4: persist the line — now visible to Job Jnl.-Post Batch within same transaction
         Rec.Insert(true);
 
         // Step 5: if this is the last line, post the entire batch in one run
-        if TempLine."Opt. Trigger Post" then
+        if TriggerPost then
             PostBatchInline(Rec."Journal Template Name", Rec."Journal Batch Name");
 
         // Step 6: BC must NOT insert again
@@ -263,6 +273,7 @@ page 50623 "Job Journal Line API Opt."
 
     var
         DayTaskSystemId: Text[50];
+        TriggerPost: Boolean;
 
     [CommitBehavior(CommitBehavior::Ignore)]
     local procedure PostBatchInline(TemplateName: Code[10]; BatchName: Code[10])
