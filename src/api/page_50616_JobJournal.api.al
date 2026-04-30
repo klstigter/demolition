@@ -35,6 +35,10 @@ page 50616 "JobJournal Opt"
                 {
                     Caption = 'Description';
                 }
+                field(unPostedDayTask; GetUnpostedDayTask())
+                {
+                    Caption = 'Unposted Day Task';
+                }
             }
             part(jobJournalLines; "Job Journal Line API Opt.")
             {
@@ -97,12 +101,69 @@ page 50616 "JobJournal Opt"
                 LineJson.Add('totalPrice', JobLedgEntry."Total Price");
                 LineJson.Add('dayTaskDate', Format(JobLedgEntry."Opt. Daytask Date", 0, '<Year4>-<Month,2>-<Day,2>'));
                 LineJson.Add('dayTaskLineNo', JobLedgEntry."Opt. Daytask Line No.");
-                DayTask.Get(JobLedgEntry."Opt. Daytask Date", JobLedgEntry."Opt. Daytask Line No.", JobLedgEntry."Job No.", JobLedgEntry."Job Task No.");
-                LineJson.Add('dayTaskSystemId', DayTask.SystemId);
+                if DayTask.Get(
+                    JobLedgEntry."Opt. Daytask Date",
+                    JobLedgEntry."Opt. Daytask Line No.",
+                    JobLedgEntry."Job No.",
+                    JobLedgEntry."Job Task No.")
+                then
+                    LineJson.Add('dayTaskSystemId', DayTask.SystemId)
+                else
+                    LineJson.Add('dayTaskSystemId', '');
                 LinesArray.Add(LineJson);
             until JobLedgEntry.Next() = 0;
 
         ResultJson.Add('postedLines', LinesArray);
+        ResultJson.WriteTo(ResultText);
+        exit(ResultText);
+    end;
+
+    procedure GetUnpostedDayTask(): Text
+    var
+        JobJnlLine: Record "Job Journal Line";
+        DayTask: Record "Day Tasks";
+        ResultJson: JsonObject;
+        LinesArray: JsonArray;
+        LineJson: JsonObject;
+        ResultText: Text;
+        LineCount: Integer;
+    begin
+        JobJnlLine.SetRange("Journal Template Name", Rec."Journal Template Name");
+        JobJnlLine.SetRange("Journal Batch Name", Rec.Name);
+        LineCount := JobJnlLine.Count();
+
+        ResultJson.Add('templateName', Rec."Journal Template Name");
+        ResultJson.Add('batchName', Rec.Name);
+        ResultJson.Add('unpostedLineCount', LineCount);
+
+        if JobJnlLine.FindSet() then
+            repeat
+                Clear(LineJson);
+                LineJson.Add('lineNo', JobJnlLine."Line No.");
+                LineJson.Add('postingDate', Format(JobJnlLine."Posting Date", 0, '<Year4>-<Month,2>-<Day,2>'));
+                LineJson.Add('documentNo', JobJnlLine."Document No.");
+                LineJson.Add('jobNo', JobJnlLine."Job No.");
+                LineJson.Add('jobTaskNo', JobJnlLine."Job Task No.");
+                LineJson.Add('type', Format(JobJnlLine.Type));
+                LineJson.Add('no', JobJnlLine."No.");
+                LineJson.Add('description', JobJnlLine.Description);
+                LineJson.Add('quantity', JobJnlLine.Quantity);
+                LineJson.Add('unitOfMeasureCode', JobJnlLine."Unit of Measure Code");
+                LineJson.Add('dayTaskDate', Format(JobJnlLine."Opt. Daytask Date", 0, '<Year4>-<Month,2>-<Day,2>'));
+                LineJson.Add('dayTaskLineNo', JobJnlLine."Opt. Daytask Line No.");
+                if DayTask.Get(
+                    JobJnlLine."Opt. Daytask Date",
+                    JobJnlLine."Opt. Daytask Line No.",
+                    JobJnlLine."Job No.",
+                    JobJnlLine."Job Task No.")
+                then
+                    LineJson.Add('dayTaskSystemId', Format(DayTask.SystemId, 0, 4))
+                else
+                    LineJson.Add('dayTaskSystemId', '');
+                LinesArray.Add(LineJson);
+            until JobJnlLine.Next() = 0;
+
+        ResultJson.Add('unpostedLines', LinesArray);
         ResultJson.WriteTo(ResultText);
         exit(ResultText);
     end;

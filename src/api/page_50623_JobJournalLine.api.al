@@ -185,50 +185,59 @@ page 50623 "Job Journal Line API Opt."
     end;
 
     trigger OnInsertRecord(BelowxRec: Boolean): Boolean
-    // Single-call posting pattern:
-    // 1. Copy incoming data to temp snapshot (captures triggerPost flag)
-    // 2. Clear Rec to remove stale framework values
-    // 3. Restore PK + payload fields
-    // 4. Rec.Insert(true) — line is now in DB
-    // 5. If triggerPost = true: post the whole batch in one Job Jnl.-Post Batch run
-    // 6. exit(false) — tells BC framework NOT to insert again
     var
         TempLine: Record "Job Journal Line" temporary;
         ExistingLine: Record "Job Journal Line";
         Daytask: Record "Day Tasks";
         NextLineNo: Integer;
         GuidVar: Guid;
+        ModifyRec: Boolean;
     begin
-        // Step 1 & 2
+        // Step 1: snapshot ALL incoming API data FIRST, before Rec is touched
         TempLine.Copy(Rec);
-        Clear(Rec);
 
-        // Step 3: PK fields
-        Rec."Journal Template Name" := TempLine."Journal Template Name";
-        Rec."Journal Batch Name" := TempLine."Journal Batch Name";
+        Evaluate(GuidVar, DayTaskSystemId);
+        Daytask.GetBySystemId(GuidVar);
+        if Daytask.Posted then
+            Error('The specified Day Task (System Id = %1) has already been posted and cannot be referenced in a Job Journal Line.', DayTaskSystemId);
 
-        if TempLine."Line No." <> 0 then
-            NextLineNo := TempLine."Line No."
-        else begin
-            ExistingLine.Reset();
-            ExistingLine.SetRange("Journal Template Name", Rec."Journal Template Name");
-            ExistingLine.SetRange("Journal Batch Name", Rec."Journal Batch Name");
-            if ExistingLine.FindLast() then
-                NextLineNo := ExistingLine."Line No." + 10000
-            else
-                NextLineNo := 10000;
+        // Check if a line for the same DayTask already exists in this batch
+        ExistingLine.Reset();
+        ExistingLine.SetRange("Journal Template Name", TempLine."Journal Template Name");
+        ExistingLine.SetRange("Journal Batch Name", TempLine."Journal Batch Name");
+        ExistingLine.SetRange("Opt. Daytask Date", Daytask."Task Date");
+        ExistingLine.SetRange("Opt. Daytask Line No.", Daytask."Day Line No.");
+        if ExistingLine.FindFirst() then begin
+            // Modify path: load existing PK into Rec; payload comes from TempLine (incoming)
+            ModifyRec := true;
+            Rec := ExistingLine;
+        end else begin
+            // Insert path: clear stale framework values and rebuild PK
+            ModifyRec := false;
+            Clear(Rec);
+            Rec."Journal Template Name" := TempLine."Journal Template Name";
+            Rec."Journal Batch Name" := TempLine."Journal Batch Name";
+
+            if TempLine."Line No." <> 0 then
+                NextLineNo := TempLine."Line No."
+            else begin
+                ExistingLine.Reset();
+                ExistingLine.SetRange("Journal Template Name", Rec."Journal Template Name");
+                ExistingLine.SetRange("Journal Batch Name", Rec."Journal Batch Name");
+                if ExistingLine.FindLast() then
+                    NextLineNo := ExistingLine."Line No." + 10000
+                else
+                    NextLineNo := 10000;
+            end;
+            Rec."Line No." := NextLineNo;
         end;
-        Rec."Line No." := NextLineNo;
 
-        // Step 3: payload fields
+        // Apply incoming payload — TempLine always holds the API-submitted values
         Rec."Line Type" := TempLine."Line Type";
         Rec."Posting Date" := TempLine."Posting Date";
         Rec."Document Date" := TempLine."Document Date";
         Rec."Document No." := TempLine."Document No.";
         Rec."External Document No." := TempLine."External Document No.";
-
-        Evaluate(GuidVar, DayTaskSystemId);
-        Daytask.GetBySystemId(GuidVar);
 
         Rec."Opt. Daytask Date" := Daytask."Task Date";
         Rec."Opt. Daytask Line No." := Daytask."Day Line No.";
@@ -260,14 +269,16 @@ page 50623 "Job Journal Line API Opt."
         Rec.TestField(Quantity);
         Rec.TestField("Unit of Measure Code");
 
-        // Step 4: persist the line — now visible to Job Jnl.-Post Batch within same transaction
-        Rec.Insert(true);
+        if ModifyRec then
+            Rec.Modify()
+        else
+            Rec.Insert(true);
 
-        // Step 5: if this is the last line, post the entire batch in one run
+        // If this is the last line, post the entire batch in one run
         if TriggerPost then
             PostBatchInline(Rec."Journal Template Name", Rec."Journal Batch Name");
 
-        // Step 6: BC must NOT insert again
+        // BC must NOT insert again
         exit(false);
     end;
 
