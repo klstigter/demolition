@@ -11,6 +11,41 @@ page 50630 "Day Tasks"
     {
         area(Content)
         {
+            Group(JobFilter)
+
+            {
+                Caption = 'Filters';
+                Visible = ShowFIlters;
+                field("Job No. Filter"; GetTableViewFilter(rec.FieldNo("Job No.")))
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the job number to filter on.';
+                    Visible = Not ShowJob;
+                    Editable = false;
+                }
+                field("Job Task No. Filter"; GetTableViewFilter(rec.FieldNo("Job Task No.")))
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the job task number to filter on.';
+                    Visible = Not ShowJobTask;
+                    Editable = false;
+                }
+                field("No. Filter"; GetTableViewFilter(rec.FieldNo("No.")))
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the task date to filter on.';
+                    Visible = Not ShowResource;
+                    Editable = false;
+                }
+                field("Skill Filter"; GetTableViewFilter(rec.FieldNo("Skill")))
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the skill to filter on.';
+                    Visible = Not ShowSkill;
+                    Editable = false;
+                }
+
+            }
             repeater(Lines)
             {
                 field("Task Date"; Rec."Task Date")
@@ -31,13 +66,13 @@ page 50630 "Day Tasks"
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the job number.';
-                    Visible = false;
+                    Visible = SHowJob;
                 }
                 field("Job Task No."; Rec."Job Task No.")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the job task number.';
-                    Visible = false;
+                    Visible = ShowJobTask;
                 }
                 field("Data Owner"; Rec."Data Owner")
                 {
@@ -55,12 +90,14 @@ page 50630 "Day Tasks"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the number of the resource, item, or G/L account.';
                     StyleExpr = StyleStr;
+                    Visible = ShowResource;
                 }
                 field(skill; Rec.skill)
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the skill associated with the resource.';
                     StyleExpr = StyleStr;
+                    Visible = ShowSkill;
                 }
                 field("Assigned Hours"; Rec."Assigned Hours")
                 {
@@ -274,7 +311,24 @@ page 50630 "Day Tasks"
         StyleStr: text;
         GenUtilties: Codeunit "General Planning Utilities";
         TotAssignedHours: Decimal;
+        SHowJob: Boolean;
+        ShowJobTask: Boolean;
+        ShowResource: Boolean;
+        ShowSkill: Boolean;
+        ShowFIlters: Boolean;
 
+    trigger OnInit()
+    begin
+        ShowJob := true;
+        ShowJobTask := true;
+        ShowResource := true;
+        ShowSkill := true;
+    end;
+
+    trigger OnOpenPage()
+    begin
+
+    end;
 
     trigger OnAfterGetRecord()
     begin
@@ -288,13 +342,27 @@ page 50630 "Day Tasks"
         GetTotalAssignedHours();
     end;
 
+    trigger OnNewRecord(BelowxRec: Boolean)
+    begin
+        if not ShowJob then
+            Rec."Job No." := GetTableViewFilter(rec.FieldNo("Job No."));
+        if not ShowJobTask then
+            Rec."Job Task No." := GetTableViewFilter(rec.FieldNo("Job Task No."));
+        if not ShowResource then
+            Rec."No." := GetTableViewFilter(rec.FieldNo("No."));
+        if not ShowSkill then
+            Rec.Skill := GetTableViewFilter(rec.FieldNo("Skill"));
+
+    end;
 
     trigger OnInsertRecord(BelowxRec: Boolean): Boolean
 
     var
         DayNo: Integer;
     begin
-        Rec."Day Line No." := rec.GetNextDayLineNo(rec."Task Date", rec."Job No.", rec."Job Task No.");
+        rec."Day Line No." := rec.GetNextDayLineNo(rec."Task Date", rec."Job No.", rec."Job Task No.");
+        rec.TestField("No.");
+        exit(true);
     end;
 
     local procedure CalculateStyle()
@@ -326,4 +394,30 @@ page 50630 "Day Tasks"
 
     end;
 
+    procedure SetColumsVisible(pShowJob: Boolean; pShowJobTask: Boolean; pShowResource: Boolean; pShowSkill: Boolean);
+    begin
+        ShowJob := not pShowJob;
+        ShowJobTask := not pShowJobTask;
+        ShowResource := not pShowResource;
+        ShowSkill := not pShowSkill;
+        ShowFIlters := True;
+    end;
+
+    local procedure GetTableViewFilter(FieldNo: Integer) fieldFilter: text
+    begin
+        rec.FilterGroup(2);
+        case FieldNo of
+            rec.FieldNo("Job No."):
+                fieldFilter := Rec.GetFilter("Job No.");
+            rec.FieldNo("Job Task No."):
+                fieldFilter := Rec.GetFilter("Job Task No.");
+            rec.FieldNo("No."):
+                fieldFilter := Rec.GetFilter("No.");
+            rec.FieldNo("Skill"):
+                fieldFilter := Rec.GetFilter("Skill");
+        end;
+        rec.FilterGroup(0);
+        if fieldFilter = '''''' then
+            fieldFilter := '';
+    end;
 }

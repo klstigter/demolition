@@ -137,6 +137,11 @@ page 50636 "Resource Weekly Hours"
         }
     }
 
+    trigger OnClosePage()
+    begin
+        message('KLaas: is this page in use or can I delete it?');
+    end;
+
     var
         WeekdayStyle: Text;
         WeekendStyle: Text;

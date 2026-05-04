@@ -51,48 +51,80 @@ page 50638 "Resource Week View Part"
                     ApplicationArea = All;
                     ToolTip = 'Specifies total hours for the week.';
                     Style = Strong;
+                    trigger OnDrillDown()
+                    begin
+                        DrillDown2DayTaks(0);
+                    end;
                 }
                 field("Monday Hours"; Rec."Monday Hours")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies hours on Monday.';
                     StyleExpr = WeekdayStyle;
+                    trigger OnDrillDown()
+                    begin
+                        DrillDown2DayTaks(1);
+                    end;
                 }
                 field("Tuesday Hours"; Rec."Tuesday Hours")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies hours on Tuesday.';
                     StyleExpr = WeekdayStyle;
+                    trigger OnDrillDown()
+                    begin
+                        DrillDown2DayTaks(2);
+                    end;
                 }
                 field("Wednesday Hours"; Rec."Wednesday Hours")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies hours on Wednesday.';
                     StyleExpr = WeekdayStyle;
+                    trigger OnDrillDown()
+                    begin
+                        DrillDown2DayTaks(3);
+                    end;
                 }
                 field("Thursday Hours"; Rec."Thursday Hours")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies hours on Thursday.';
                     StyleExpr = WeekdayStyle;
+                    trigger OnDrillDown()
+                    begin
+                        DrillDown2DayTaks(4);
+                    end;
                 }
                 field("Friday Hours"; Rec."Friday Hours")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies hours on Friday.';
                     StyleExpr = WeekdayStyle;
+                    trigger OnDrillDown()
+                    begin
+                        DrillDown2DayTaks(5);
+                    end;
                 }
                 field("Saturday Hours"; Rec."Saturday Hours")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies hours on Saturday.';
                     StyleExpr = WeekendStyle;
+                    trigger OnDrillDown()
+                    begin
+                        DrillDown2DayTaks(6);
+                    end;
                 }
                 field("Sunday Hours"; Rec."Sunday Hours")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies hours on Sunday.';
                     StyleExpr = WeekendStyle;
+                    trigger OnDrillDown()
+                    begin
+                        DrillDown2DayTaks(7);
+                    end;
                 }
 
             }
@@ -247,5 +279,33 @@ page 50638 "Resource Week View Part"
         Week1Monday: Date;
     begin
         Exit(DWY2Date(1, WeekNo, YearValue));
+    end;
+
+    local procedure DrillDown2DayTaks(WeekDayNo: Integer)
+    var
+        Pg: Page "Day Tasks";
+        Rc: Record "Day Tasks";
+        WeekFilter: Text;
+    begin
+        if WeekDayNo = 0 then begin
+            WeekFilter := StrSubstNo('%1..%2', Format(DWY2Date(1, rec."Week No.", rec.Year)), Format(DWY2Date(7, rec."Week No.", rec.Year)));
+            rc.SetFilter("Task Date", WeekFilter);
+        end else
+            rc.SetRange("Task Date", DWY2Date(WeekDayNo, rec."Week No.", rec.Year));
+
+        // rc.FilterGroup(2);
+        // if ShowJob then
+        rc.SetRange("Job No.", Rec."Job No.");
+        // if ShowJobTask then
+        Rc.SetRange("Job Task No.", Rec."Job Task No.");
+        // if ShowResource then
+        rc.SetRange("No.", Rec."Resource No.");
+        // if ShowSkillCode then
+        rc.SetRange("Skill", Rec."Skill Code");
+        // rc.FilterGroup(0);
+        PG.SetTableView(Rc);
+
+        // pg.SetColumsVisible(ShowJob, ShowJobTask, ShowResource, ShowSkillCode);
+        Pg.Run();
     end;
 }

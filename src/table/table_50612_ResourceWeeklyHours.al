@@ -118,15 +118,24 @@ table 50612 "Summary Weekly"
         exit(Date2DWY(TaskDate, 1));
     end;
 
-    local procedure GetWeekStartFromYearWeek(YearValue: Integer; WeekNo: Integer): Date
-    var
-        Jan4: Date;
-        Week1Monday: Date;
+
+
+    /// <summary>
+    /// Extracts the year and ISO week number from an Integer in YYYYWW format.
+    /// </summary>
+    /// <param name="InputInteger">Integer in YYYYWW format</param>
+    /// <param name="Year">Extracted year value</param>
+    /// <param name="WeekNo">Extracted week number value</param>
+    procedure ExtractYearAndWeek(InputInteger: Integer; var Year: Integer; var WeekNo: Integer)
     begin
-        // ISO 8601: Week 1 is the week with Jan 4th
-        Jan4 := DMY2Date(4, 1, YearValue);
-        Week1Monday := CalcDate(StrSubstNo('<-%1D>', Date2DWY(Jan4, 1) - 1), Jan4);
-        exit(CalcDate(StrSubstNo('<+%1W>', WeekNo - 1), Week1Monday));
+        if InputInteger = 0 then begin
+            Year := 0;
+            WeekNo := 0;
+            exit;
+        end;
+
+        Year := InputInteger div 100;
+        WeekNo := InputInteger mod 100;
     end;
 
 
@@ -473,12 +482,12 @@ table 50612 "Summary Weekly"
         n: Integer;
     begin
         n := TempDayTask.Count;
-        FillSummary(TempDayTask); // Copy from temp to Rec
+        FillSummary(TempDayTask);
     end;
 
     procedure LoadSummary(var TempDTask: Record "Day Tasks")
     begin
-        FillSummary(TempDTask); // Copy from temp to Rec
+        FillSummary(TempDTask);
     end;
 
 
@@ -503,6 +512,7 @@ table 50612 "Summary Weekly"
 
     procedure HandOverToPage(var Pg: Page "Opti Resource List Temp")
     begin
+
         Pg.SetTempResource(TEMPResource);
     end;
 
@@ -510,5 +520,15 @@ table 50612 "Summary Weekly"
     begin
         Pg.SetTempSkill(TempSkill);
     end;
+
+    procedure HandOverToPage(var Pg: Page "Week View")
+    begin
+        Pg.SetTempYearWeek(TempYearWeek);
+    end;
+
+
+
+
+
 
 }

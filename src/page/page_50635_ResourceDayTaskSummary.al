@@ -104,6 +104,10 @@ page 50635 "Resource DayTask Summary"
             }
         }
     }
+    trigger OnClosePage()
+    begin
+        message('KLaas: is this page in use or can I delete it?');
+    end;
 
     procedure LoadData(JobNo: Code[20]; JobTaskNo: Code[20])
     begin
