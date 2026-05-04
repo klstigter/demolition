@@ -1556,15 +1556,55 @@ var renderResourceLine = function (resource, timeline) {
       "position:absolute",
       "height:" + (gantt.config.row_height - 1) + "px",
       "top:" + sizes.top + "px",
-      "text-align:center",
-      "font-weight:600"
+      "display:flex",
+      "align-items:center",
+      "justify-content:center",
+      "font-weight:600",
+      "position:absolute"
     ].join(";");
-    cell.innerHTML = day.value;
 
-    // ✅ double click → call BC
+    // Count daytasks for this resource on this day
+    var dayStr = gantt.date.date_to_str("%Y-%m-%d")(day.start_date);
+    var dtCount = 0;
+    if (dayTasksStore) {
+      var allDT = dayTasksStore.getItems();
+      for (var j = 0; j < allDT.length; j++) {
+        var dt = allDT[j];
+        if (String(dt.resource_id || "") !== String(resource.id || "")) continue;
+        var dtDate = gantt.date.date_to_str("%Y-%m-%d")(
+          _toGanttDate(dt.work_date) || new Date(dt.work_date)
+        );
+        if (dtDate === dayStr) dtCount++;
+      }
+    }
+
+    // Hours label (centered)
+    var hoursSpan = document.createElement("span");
+    hoursSpan.textContent = day.value;
+    cell.appendChild(hoursSpan);
+
+    // Top-left badge: only when more than 1 daytask
+    if (dtCount > 1) {
+      var badge = document.createElement("span");
+      badge.textContent = dtCount;
+      badge.style.cssText = [
+        "position:absolute",
+        "top:2px",
+        "left:3px",
+        "font-size:10px",
+        "font-weight:700",
+        "line-height:1",
+        "background:rgba(0,0,0,0.25)",
+        "color:#fff",
+        "border-radius:8px",
+        "padding:1px 4px",
+        "pointer-events:none"
+      ].join(";");
+      cell.appendChild(badge);
+    }
 
     cell.dataset.resourceId = resource.id;
-    cell.dataset.workDate = gantt.date.date_to_str("%Y-%m-%d")(day.start_date);
+    cell.dataset.workDate = dayStr;
     cell.style.cursor = "pointer";
 
     cell.addEventListener("dblclick", function (e) {
