@@ -5,12 +5,6 @@ tableextension 50617 "Opt. Job Journal Line" extends "Job Journal Line"
     //                      and Res. Ledger Entry during posting via EventSubs (codeunit 50603).
     fields
     {
-        field(50617; "Opt. Trigger Post"; Boolean)
-        {
-            Caption = 'Trigger Post';
-            DataClassification = SystemMetadata;
-        }
-
         field(50618; "Opt. Daytask Date"; Date)
         {
             Caption = 'Day Task Date';

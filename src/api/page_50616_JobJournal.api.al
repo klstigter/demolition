@@ -31,6 +31,14 @@ page 50616 "JobJournal Opt"
                 {
                     Caption = 'Name';
                 }
+                field(postResult; GetPostresult())
+                {
+                    Caption = 'Description';
+                }
+                field(unPostedDayTask; GetUnpostedDayTask())
+                {
+                    Caption = 'Unposted Day Task';
+                }
             }
             part(jobJournalLines; "Job Journal Line API Opt.")
             {
@@ -38,26 +46,6 @@ page 50616 "JobJournal Opt"
                 EntitySetName = 'JobJournalLines';
                 SubPageLink = "Journal Template Name" = field("Journal Template Name"),
                               "Journal Batch Name" = field(Name);
-            }
-        }
-    }
-
-    actions
-    {
-        area(Processing)
-        {
-            action(post)
-            {
-                Caption = 'Post';
-                // Invoke via OData bound action after submitting all lines:
-                // POST .../JobJournals(templateName='X',batchName='Y')/Microsoft.NAV.post
-                // Runs Job Jnl.-Post Batch once for ALL lines in the batch →
-                // creates ONE register entry (same as native BC batch-post behaviour).
-
-                trigger OnAction()
-                begin
-                    PostBatchInline(Rec."Journal Template Name", Rec.Name);
-                end;
             }
         }
     }
@@ -75,19 +63,108 @@ page 50616 "JobJournal Opt"
         exit(true); // insert into temp table so the nested part can resolve its SubPageLink
     end;
 
-    [CommitBehavior(CommitBehavior::Ignore)]
-    local procedure PostBatchInline(TemplateName: Code[10]; BatchName: Code[10])
-    // CommitBehavior::Ignore suppresses any explicit COMMIT calls inside
-    // Job Jnl.-Post Batch so the entire operation commits atomically when
-    // the OData HTTP response is finalised.
+    procedure GetPostresult(): Text
+    var
+        JobRegister: Record "Job Register";
+        JobLedgEntry: Record "Job Ledger Entry";
+        ResultJson: JsonObject;
+        LinesArray: JsonArray;
+        LineJson: JsonObject;
+        ResultText: Text;
+        DayTask: Record "Day Tasks";
+    begin
+        JobRegister.Reset();
+        if not JobRegister.FindLast() then
+            exit('{}');
+
+        ResultJson.Add('jobRegisterNo', JobRegister."No.");
+        ResultJson.Add('fromEntryNo', JobRegister."From Entry No.");
+        ResultJson.Add('toEntryNo', JobRegister."To Entry No.");
+        ResultJson.Add('postedLinesCount', JobRegister."To Entry No." - JobRegister."From Entry No." + 1);
+        ResultJson.Add('creationDate', Format(JobRegister."Creation Date", 0, '<Year4>-<Month,2>-<Day,2>'));
+        ResultJson.Add('userId', JobRegister."User ID");
+
+        JobLedgEntry.SetRange("Entry No.", JobRegister."From Entry No.", JobRegister."To Entry No.");
+        if JobLedgEntry.FindSet() then
+            repeat
+                Clear(LineJson);
+                LineJson.Add('entryNo', JobLedgEntry."Entry No.");
+                LineJson.Add('postingDate', Format(JobLedgEntry."Posting Date", 0, '<Year4>-<Month,2>-<Day,2>'));
+                LineJson.Add('documentNo', JobLedgEntry."Document No.");
+                LineJson.Add('jobNo', JobLedgEntry."Job No.");
+                LineJson.Add('jobTaskNo', JobLedgEntry."Job Task No.");
+                LineJson.Add('type', Format(JobLedgEntry.Type));
+                LineJson.Add('no', JobLedgEntry."No.");
+                LineJson.Add('description', JobLedgEntry.Description);
+                LineJson.Add('quantity', JobLedgEntry.Quantity);
+                LineJson.Add('unitPrice', JobLedgEntry."Unit Price");
+                LineJson.Add('totalPrice', JobLedgEntry."Total Price");
+                LineJson.Add('dayTaskDate', Format(JobLedgEntry."Opt. Daytask Date", 0, '<Year4>-<Month,2>-<Day,2>'));
+                LineJson.Add('dayTaskLineNo', JobLedgEntry."Opt. Daytask Line No.");
+                if DayTask.Get(
+                    JobLedgEntry."Opt. Daytask Date",
+                    JobLedgEntry."Opt. Daytask Line No.",
+                    JobLedgEntry."Job No.",
+                    JobLedgEntry."Job Task No.")
+                then
+                    LineJson.Add('dayTaskSystemId', DayTask.SystemId)
+                else
+                    LineJson.Add('dayTaskSystemId', '');
+                LinesArray.Add(LineJson);
+            until JobLedgEntry.Next() = 0;
+
+        ResultJson.Add('postedLines', LinesArray);
+        ResultJson.WriteTo(ResultText);
+        exit(ResultText);
+    end;
+
+    procedure GetUnpostedDayTask(): Text
     var
         JobJnlLine: Record "Job Journal Line";
-        JobJnlPostBatch: Codeunit "Job Jnl.-Post Batch";
+        DayTask: Record "Day Tasks";
+        ResultJson: JsonObject;
+        LinesArray: JsonArray;
+        LineJson: JsonObject;
+        ResultText: Text;
+        LineCount: Integer;
     begin
-        JobJnlLine.SetRange("Journal Template Name", TemplateName);
-        JobJnlLine.SetRange("Journal Batch Name", BatchName);
-        if not JobJnlLine.FindFirst() then
-            Error('No journal lines found for template ''%1'' / batch ''%2''.', TemplateName, BatchName);
-        JobJnlPostBatch.Run(JobJnlLine);
+        JobJnlLine.SetRange("Journal Template Name", Rec."Journal Template Name");
+        JobJnlLine.SetRange("Journal Batch Name", Rec.Name);
+        LineCount := JobJnlLine.Count();
+
+        ResultJson.Add('templateName', Rec."Journal Template Name");
+        ResultJson.Add('batchName', Rec.Name);
+        ResultJson.Add('unpostedLineCount', LineCount);
+
+        if JobJnlLine.FindSet() then
+            repeat
+                Clear(LineJson);
+                LineJson.Add('lineNo', JobJnlLine."Line No.");
+                LineJson.Add('postingDate', Format(JobJnlLine."Posting Date", 0, '<Year4>-<Month,2>-<Day,2>'));
+                LineJson.Add('documentNo', JobJnlLine."Document No.");
+                LineJson.Add('jobNo', JobJnlLine."Job No.");
+                LineJson.Add('jobTaskNo', JobJnlLine."Job Task No.");
+                LineJson.Add('type', Format(JobJnlLine.Type));
+                LineJson.Add('no', JobJnlLine."No.");
+                LineJson.Add('description', JobJnlLine.Description);
+                LineJson.Add('quantity', JobJnlLine.Quantity);
+                LineJson.Add('unitOfMeasureCode', JobJnlLine."Unit of Measure Code");
+                LineJson.Add('dayTaskDate', Format(JobJnlLine."Opt. Daytask Date", 0, '<Year4>-<Month,2>-<Day,2>'));
+                LineJson.Add('dayTaskLineNo', JobJnlLine."Opt. Daytask Line No.");
+                if DayTask.Get(
+                    JobJnlLine."Opt. Daytask Date",
+                    JobJnlLine."Opt. Daytask Line No.",
+                    JobJnlLine."Job No.",
+                    JobJnlLine."Job Task No.")
+                then
+                    LineJson.Add('dayTaskSystemId', Format(DayTask.SystemId, 0, 4))
+                else
+                    LineJson.Add('dayTaskSystemId', '');
+                LinesArray.Add(LineJson);
+            until JobJnlLine.Next() = 0;
+
+        ResultJson.Add('unpostedLines', LinesArray);
+        ResultJson.WriteTo(ResultText);
+        exit(ResultText);
     end;
 }
