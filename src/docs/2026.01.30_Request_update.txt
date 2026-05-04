@@ -119,13 +119,13 @@ DayTask View
    - Check resource panel, data must same as detail                     ---(OK)
 8. Daytask: add 2 fields: Requested start+end, hours drive by Start/End ---(OK)   
 9. Resouce Scheduler -> Add refresh mechanism                           ---(OK)
-10. Resource Scheduler: daytask view: split based on number of daytask
-11. Pre-Daytask -> new table
-12. Gantt -> filtered and reset filter (remove filter) on resource panel
-    Total hours colom -> alignment as center
-13. Hovering on daytask small box still show one record (for multi record case)
+10. Resource Scheduler: daytask view: split based on number of daytask  ---(OK)
+11. Pre-Daytask -> new table                 
+12. Gantt -> filtered and reset filter (remove filter) on resource panel---(OK)
+    Total hours colom -> alignment as center                            ---(OK)
+13. Hovering on daytask small box still show one record (for multi record case)  ---(OK)
 14. Gantt -> resource panel -> daytask small box -> relayout info
-    for daytask more than one then add number of daytask info at top-left
+    for daytask more than 1 then add number of daytask info at top-left
 
 API - 2026.04.29
 =================

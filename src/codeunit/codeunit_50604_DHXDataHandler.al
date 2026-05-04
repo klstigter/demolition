@@ -725,6 +725,7 @@ codeunit 50604 "DHX Data Handler"
                                                     Daytask."Job Task No." + '|' +
                                                     Format(Daytask."Task Date") + '|' +
                                                     Format(Daytask."Day Line No."));
+                            GetStartEndTxt(Daytask, StartDateTxt, EndDateTxt);
                             PlanningObject.Add('start_date', StartDateTxt);
                             PlanningObject.Add('end_date', EndDateTxt);
                             if Daytask.Description <> '' then
