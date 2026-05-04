@@ -144,26 +144,13 @@ window.BOOT = function() {
 
             var isAvailable = String(ev.id).indexOf("cap_") === 0;
             if (!isAvailable) {
-                var dayStart = null, dayEnd = null, taskLabels = [];
-                for (var ei = 0; ei < allEvents.length; ei++) {
-                    var e2 = allEvents[ei];
-                    if (String(e2.resource_id) !== resId) continue;
-                    var es = ToDate(e2.start_date);
-                    if (!es || !evDate || es.toDateString() !== evDate.toDateString()) continue;
-                    var ee = ToDate(e2.end_date);
-                    if (!dayStart || es < dayStart) dayStart = es;
-                    if (!dayEnd   || ee > dayEnd)   dayEnd   = ee;
-                    if (e2.text) taskLabels.push(e2.text);
-                }
-                if (dayStart) {
-                    html += '<div class="dhx-tt-section">DayTask</div>';
-                    html += '<div class="dhx-tt-rows">';
-                    html += '<div class="dhx-tt-row"><span>Start:</span><span>' + fmt(dayStart) + '</span></div>';
-                    html += '<div class="dhx-tt-row"><span>End:</span><span>' + fmt(dayEnd) + '</span></div>';
-                    if (taskLabels.length)
-                        html += '<div class="dhx-tt-row"><span>Task:</span><span>' + taskLabels.join(", ") + '</span></div>';
-                    html += '</div>';
-                }
+                html += '<div class="dhx-tt-section">DayTask</div>';
+                html += '<div class="dhx-tt-rows">';
+                html += '<div class="dhx-tt-row"><span>Start:</span><span>' + fmt(ev.start_date) + '</span></div>';
+                html += '<div class="dhx-tt-row"><span>End:</span><span>' + fmt(ev.end_date) + '</span></div>';
+                if (ev.text)
+                    html += '<div class="dhx-tt-row"><span>Task:</span><span>' + ev.text + '</span></div>';
+                html += '</div>';
             }
 
             html += '</div>';
@@ -328,112 +315,19 @@ function RefreshSchedulerEvents() {
         return !!checkedResources[ev.resource_id];
     }) : [];
 
-    var consumedCap = {};
-
-    // --- Step 1: group tasks by resource_id + date ---
-    var groups = {};      // key -> { resource_id, date, tasks[], firstEv }
-    var groupOrder = [];  // preserves insertion order
-    filtered.forEach(function(ev) {
-        var d = ToDate(ev.start_date);
-        if (!d) return;
-        var key = String(ev.resource_id) + "|" + d.toDateString();
-        if (!groups[key]) {
-            groups[key] = { resource_id: String(ev.resource_id), date: d, tasks: [], firstEv: ev };
-            groupOrder.push(key);
-        }
-        var ts = ToDate(ev.start_date);
-        var te = ToDate(ev.end_date);
-        if (ts && te) groups[key].tasks.push({ start: ts, end: te, text: ev.text || "" });
-    });
-
-    // --- Step 2: merge each group with its capacity entry ---
+    // --- Step 1: each task becomes its own separate scheduler event ---
     var merged = [];
-    groupOrder.forEach(function(key) {
-        var g = groups[key];
-
-        var startTimes = g.tasks.map(function(t) { return t.start.getTime(); });
-        var earliestMs = Math.min.apply(null, startTimes);
-
-        // Find the capacity entry for this resource+date (only when showCapacity is on)
-        var cap = null;
-        if (!showCapacity) { /* skip capacity lookup */ }
-        else for (var i = 0; i < allCapacity.length; i++) {
-            var c = allCapacity[i];
-            if (String(c.resource_id) !== g.resource_id) continue;
-            var cStart = ToDate(c.start_date);
-            var cEnd   = ToDate(c.end_date);
-            if (!cStart || !cEnd) continue;
-            if (cStart.toDateString() === g.date.toDateString() &&
-                cStart.getTime() <= earliestMs) {
-                cap = { start: cStart, end: cEnd, classname: c.classname || "", idx: i };
-                break;
-            }
-        }
-
-        if (cap) {
-            consumedCap[cap.idx] = true;
-
-            // Block spans cap.start → max(cap.end, latest task end)
-            var endTimes   = g.tasks.map(function(t) { return t.end.getTime(); });
-            var latestMs   = Math.max.apply(null, endTimes);
-            var blockStart = cap.start;
-            var blockEnd   = new Date(Math.max(cap.end.getTime(), latestMs));
-            var totalMs    = blockEnd.getTime() - blockStart.getTime();
-
-            // One fill segment per task
-            var segments = [];
-            g.tasks.forEach(function(t) {
-                var segStartMs    = Math.max(t.start.getTime(), blockStart.getTime());
-                var segEndInCapMs = Math.min(t.end.getTime(), cap.end.getTime());
-                var offsetPct = totalMs > 0 ? ((segStartMs - blockStart.getTime()) / totalMs * 100).toFixed(1) : "0.0";
-                var fillPct   = totalMs > 0 ? (Math.max(0, segEndInCapMs - segStartMs) / totalMs * 100).toFixed(1) : "0.0";
-                segments.push({ offsetPct: offsetPct, fillPct: fillPct });
-            });
-
-            // Overtime: tasks extending past cap.end
-            var capEndPct   = totalMs > 0 ? ((cap.end.getTime() - blockStart.getTime()) / totalMs * 100).toFixed(1) : "100.0";
-            var overflowMs  = Math.max(0, latestMs - cap.end.getTime());
-            var overflowPct = totalMs > 0 ? (overflowMs / totalMs * 100).toFixed(1) : "0.0";
-
-            var labels = g.tasks.map(function(t) { return t.text; }).filter(Boolean).join(" \u00b7 ");
-
-            merged.push(Object.assign({}, g.firstEv, {
-                start_date:    blockStart,
-                end_date:      blockEnd,
-                classname:     cap.classname,
-                _segments:     segments,
-                _cap_end_pct:  capEndPct,
-                _overflow_pct: overflowPct,
-                _task_text:    labels
-            }));
-
-        } else {
-            // No capacity: merge all tasks for this resource+day into one block
-            var allStartMs2 = g.tasks.map(function(t) { return t.start.getTime(); });
-            var allEndMs2   = g.tasks.map(function(t) { return t.end.getTime(); });
-            var labels2     = g.tasks.map(function(t) { return t.text; }).filter(Boolean).join(" \u00b7 ");
-            merged.push(Object.assign({}, g.firstEv, {
-                start_date: new Date(Math.min.apply(null, allStartMs2)),
-                end_date:   new Date(Math.max.apply(null, allEndMs2)),
-                text:       labels2
-            }));
-        }
+    filtered.forEach(function(ev) {
+        merged.push(Object.assign({}, ev, {
+            start_date: ToDate(ev.start_date) || ev.start_date,
+            end_date:   ToDate(ev.end_date)   || ev.end_date
+        }));
     });
 
-    // --- Step 3: Available blocks for capacity entries with no day task ---
-    // Build set of resource+date combos covered by tasks to suppress extra blocks
-    var taskSlots = {};
-    groupOrder.forEach(function(key) {
-        var g = groups[key];
-        taskSlots[g.resource_id + "|" + g.date.toDateString()] = true;
-    });
-
+    // --- Step 2: Capacity blocks — always shown for checked resources when showCapacity is ON ---
     if (showCapacity) {
         allCapacity.forEach(function(c, i) {
-            if (consumedCap[i]) return;
             if (!checkedResources[c.resource_id]) return;
-            var cStart = ToDate(c.start_date);
-            if (showDayTask && cStart && taskSlots[String(c.resource_id) + "|" + cStart.toDateString()]) return;
             merged.push({
                 id:          "cap_" + i,
                 resource_id: c.resource_id,
