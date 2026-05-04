@@ -29,6 +29,7 @@ controladdin "DHX Gantt Control 2"
     event OnShowResourcesForTask(taskId: Text; childrenJson: Text; periodFrom: Text; periodTo: Text);
     event OnResourceDblClick(resourceId: Text);
     event onOpenResourceScheduler(resourceId: Text);
+    event OnResetResourceFilter();
 
     procedure LoadProject(projectstartdate: date; projectenddate: date);
     procedure Undo();
@@ -48,6 +49,7 @@ controladdin "DHX Gantt Control 2"
     procedure GetGanttData();
     procedure SetResourcePanelVisibility(resource_toggle: Boolean);
     procedure SetResourcePanelFilterInfo(jobNo: Text; taskNo: Text; periodFrom: Text; periodTo: Text);
+    procedure ClearResourceFilter();
     procedure UpsertLink(linkJsonTxt: Text);
     procedure DeleteLink(linkId: Text);
     procedure LoadLinksData(linksJsonTxt: Text);

@@ -938,7 +938,7 @@ function RecreateGanttLayout(showResourcePanel) {
           }
         },
         {
-          name: "workload", label: "Total Hours", template: function (r) {
+          name: "workload", label: "Total Hours", align: "center", template: function (r) {
             // Calculate total hours from dayTasksStore
             var total = 0;
             if (dayTasksStore) {
@@ -950,7 +950,7 @@ function RecreateGanttLayout(showResourcePanel) {
                 }
               }
             }
-            return total + "h";
+            return '<div style="text-align:center;width:100%;">' + total + 'h</div>';
           }
         }
       ]
@@ -1867,8 +1867,7 @@ function SetResourcePanelVisibility(resource_toggle) {
 // Resource Panel Filter Info (AL -> JS)
 // Called by BC to store the filter context shown in tooltip
 // -------------------------------------------------------
-function SetResourcePanelFilterInfo(jobNo, taskNo, periodFrom, periodTo) {
-  _resourceFilterInfo = {
+function SetResourcePanelFilterInfo(jobNo, taskNo, periodFrom, periodTo) {  _resourceFilterInfo = {
     job: jobNo || "",
     task: taskNo || "",
     periodFrom: periodFrom || "",
@@ -1876,6 +1875,13 @@ function SetResourcePanelFilterInfo(jobNo, taskNo, periodFrom, periodTo) {
   };
   _updateResourceHeaderTooltip();
 }
+
+// Called by BC to clear the active resource filter and hide the (ℹ) button
+function ClearResourceFilter() {
+  _resourceFilterInfo = null;
+  _updateResourceHeaderTooltip();
+}
+window.ClearResourceFilter = ClearResourceFilter;
 
 function _updateResourceHeaderTooltip() {
   try {
@@ -1889,9 +1895,10 @@ function _updateResourceHeaderTooltip() {
       return;
     }
 
-    // Remove any previously injected icon
-    var existing = cell.querySelector(".res-filter-icon");
-    if (existing) existing.parentNode.removeChild(existing);
+    // Remove any previously injected filter buttons
+    cell.querySelectorAll(".res-filter-icon, .res-filter-reset").forEach(function(el) {
+      el.parentNode.removeChild(el);
+    });
 
     if (!_resourceFilterInfo) return;
 
@@ -1912,23 +1919,38 @@ function _updateResourceHeaderTooltip() {
       lines.push("Period: " + _escHtml(fi.periodFrom) + " to " + _escHtml(fi.periodTo));
     popup.innerHTML = lines.join("<br/>");
 
-    // Inject icon-only span (no child HTML)
-    var icon = document.createElement("span");
-    icon.className = "res-filter-icon";
-    icon.textContent = "\u24d8"; // ℹ circled i
+    // (ℹ) Info button — hover shows filter details, no click action
+    var infoBtn = document.createElement("button");
+    infoBtn.className = "res-filter-icon";
+    infoBtn.textContent = "\u24d8"; // ℹ circled i
+    infoBtn.style.cssText = "background:#1a73e8;border:none;border-radius:50%;width:20px;height:20px;line-height:20px;text-align:center;padding:0;margin-left:6px;cursor:default;font-size:13px;font-weight:700;color:#fff;vertical-align:middle;display:inline-block;"; 
 
-    icon.addEventListener("mouseenter", function(e) {
+    infoBtn.addEventListener("mouseenter", function(e) {
       popup.style.display = "block";
       _positionResFilterTooltip(e);
     });
-    icon.addEventListener("mousemove", function(e) {
+    infoBtn.addEventListener("mousemove", function(e) {
       _positionResFilterTooltip(e);
     });
-    icon.addEventListener("mouseleave", function() {
+    infoBtn.addEventListener("mouseleave", function() {
       popup.style.display = "none";
     });
 
-    cell.appendChild(icon);
+    // (✕) Reset button — hover shows "Click to Reset Filter", click resets
+    var resetBtn = document.createElement("button");
+    resetBtn.className = "res-filter-reset";
+    resetBtn.title = "Click to Reset Filter";
+    resetBtn.textContent = "\u2715"; // ✕
+    resetBtn.style.cssText = "background:#c0392b;border:none;border-radius:50%;width:20px;height:20px;line-height:20px;text-align:center;padding:0;margin-left:4px;cursor:pointer;font-size:13px;font-weight:700;color:#fff;vertical-align:middle;display:inline-block;";
+
+    resetBtn.addEventListener("click", function(e) {
+      e.stopPropagation();
+      popup.style.display = "none";
+      Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnResetResourceFilter", []);
+    });
+
+    cell.appendChild(infoBtn);
+    cell.appendChild(resetBtn);
   } catch (e) {
     console.error("_updateResourceHeaderTooltip failed:", e);
   }

@@ -294,6 +294,14 @@ page 50620 "Gantt Demo DHX 2"
                     ResScheduler.SetResourceFilter(ResNo, WeekStartDate.Get(Selection), WeekEndDate.Get(Selection));
                     ResScheduler.RunModal();
                 end;
+
+                trigger OnResetResourceFilter()
+                begin
+                    // User clicked the (ℹ) button — clear the task-based resource filter
+                    // and reload all resources driven by the default Gantt context.
+                    CurrPage.DHXGanttControl2.ClearResourceFilter();
+                    LoadResourceData();
+                end;
             }
         }
 
@@ -508,6 +516,7 @@ page 50620 "Gantt Demo DHX 2"
                 begin
                     ResourcePanelFlag := true;
                     CurrPage.DHXGanttControl2.SetResourcePanelVisibility(true);
+                    CurrPage.DHXGanttControl2.ClearResourceFilter(); // no task filter when opening from toolbar
                     LoadResourceData();
                 end;
             }
