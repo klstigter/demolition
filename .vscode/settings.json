@@ -1,0 +1,6 @@
+{
+    "al.compilationOptions": {
+    },
+    // "al.enableCodeAnalysis": true,
+    // "al.codeAnalyzers": ["${AppSourceCop}", "${CodeCop}", "${PerTenantExtensionCop}", "${UICop}"]
+}
