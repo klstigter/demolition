@@ -1,3 +1,18 @@
+Add your App to Marketplace:
+   https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/administration/appsource
+
+   Technical Validation Checklist:
+      https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/developer/devenv-checklist-submission
+      
+      The code analysis tool:
+         https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/developer/devenv-using-code-analysis-tool
+         
+   Marketing Validation Checklist:
+      https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/developer/readiness/readiness-checklist-marketing
+
+
+
+
 (OK) 1. Capacity ->Header Caption -> hide/remove
 (OK) 2. Capacity -> Warna biru satu baris penuh, tapi hanya untuk Vendor/Internal
 (OK) 3. Syncronkan pola warna antara daytask dan capacity
@@ -120,16 +135,37 @@ DayTask View
 8. Daytask: add 2 fields: Requested start+end, hours drive by Start/End ---(OK)   
 9. Resouce Scheduler -> Add refresh mechanism                           ---(OK)
 10. Resource Scheduler: daytask view: split based on number of daytask  ---(OK)
-11. Pre-Daytask -> new table                 
+
+11. Pre-Daytask -> new table (order intake)
+      Status: open
+              ready
+              released
+              Done 
+      visual: kanban
+
 12. Gantt -> filtered and reset filter (remove filter) on resource panel---(OK)
     Total hours colom -> alignment as center                            ---(OK)
 13. Hovering on daytask small box still show one record (for multi record case)  ---(OK)
-14. Gantt -> resource panel -> daytask small box -> relayout info
+14. Gantt -> resource panel -> daytask small box -> relayout info       ---(OK)
     for daytask more than 1 then add number of daytask info at top-left
 
 API - 2026.04.29
 =================
 1. define response for Job Journal Posting   ---(OK)
+
+15. Opti Job Task Card (50618, Card) -> Resource week tab -> filter: thisweek..
+16. Resource Scheduler
+      flag: Internal
+               active/non active
+            External
+               active/non active
+               has Daytask
+
+      not show -> not show non active resources
+      Show Always -> all resources
+      Show only in daytask
+17. Resource Card (76, Card) -> daytask factbox is not sync
+18. Resource: new list+card pages
 
 
 
