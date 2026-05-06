@@ -1,0 +1,203 @@
+/* ============================================================
+   DHX Order Intake Kanban – custom.css
+   Light & modern theme
+   Status colours:
+     Open (0)     = green   #22c55e
+     Ready (1)    = blue    #3b82f6
+     Released (2) = amber   #f59e0b
+     Done (3)     = purple  #8b5cf6
+   ============================================================ */
+
+/* ---- Base / host ---- */
+#controlAddIn {
+    box-sizing: border-box;
+    font-family: "Segoe UI", system-ui, Arial, sans-serif;
+    background: #f1f5f9;
+}
+
+/* ---- Toolbar ---- */
+#kanban-toolbar {
+    flex-shrink: 0;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* ---- Board wrapper ---- */
+#kanban-board {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    background: #f1f5f9;
+    padding: 12px 8px;
+}
+
+/* ============================================================
+   Board / columns
+   ============================================================ */
+
+/* Board background */
+.wx-kanban {
+    background: transparent;
+    gap: 10px;
+}
+
+/* Individual column */
+.wx-kanban .wx-column {
+    border-radius: 14px;
+    padding: 0 0 8px 0;
+    min-width: 240px;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+}
+
+/* ---- Column background by status position ---- */
+/* Open – pale green */
+.wx-kanban .wx-column:nth-child(1) {
+    background: #f0fdf4;
+}
+/* Ready – pale blue */
+.wx-kanban .wx-column:nth-child(2) {
+    background: #eff6ff;
+}
+/* Released – pale amber */
+.wx-kanban .wx-column:nth-child(3) {
+    background: #fffbeb;
+}
+/* Done – pale lavender */
+.wx-kanban .wx-column:nth-child(4) {
+    background: #faf5ff;
+}
+
+/* ---- Column headers ---- */
+.wx-kanban .wx-column .wx-column-header {
+    background: transparent;
+    border-radius: 14px 14px 0 0;
+    padding: 12px 14px 10px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    border-bottom: 2px solid transparent;
+}
+
+/* Header accent lines + text colour per column */
+.wx-kanban .wx-column:nth-child(1) .wx-column-header {
+    border-bottom-color: #22c55e;
+    color: #15803d;
+}
+.wx-kanban .wx-column:nth-child(2) .wx-column-header {
+    border-bottom-color: #3b82f6;
+    color: #1d4ed8;
+}
+.wx-kanban .wx-column:nth-child(3) .wx-column-header {
+    border-bottom-color: #f59e0b;
+    color: #b45309;
+}
+.wx-kanban .wx-column:nth-child(4) .wx-column-header {
+    border-bottom-color: #8b5cf6;
+    color: #6d28d9;
+}
+
+/* Column card count badge */
+.wx-kanban .wx-column .wx-label .wx-count {
+    display: inline-block;
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 999px;
+    padding: 1px 8px;
+    font-size: 11px;
+    margin-left: 6px;
+    font-weight: 600;
+}
+
+/* ============================================================
+   Cards
+   ============================================================ */
+
+.wx-kanban .wx-card {
+    background: #ffffff;
+    border-radius: 10px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.07);
+    margin: 6px 8px;
+    padding: 10px 12px;
+    transition: transform 0.14s ease, box-shadow 0.14s ease;
+}
+
+.wx-kanban .wx-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.13);
+}
+
+/* Left accent bar per column */
+.wx-kanban .wx-column:nth-child(1) .wx-card { border-left: 4px solid #22c55e; }
+.wx-kanban .wx-column:nth-child(2) .wx-card { border-left: 4px solid #3b82f6; }
+.wx-kanban .wx-column:nth-child(3) .wx-card { border-left: 4px solid #f59e0b; }
+.wx-kanban .wx-column:nth-child(4) .wx-card { border-left: 4px solid #8b5cf6; }
+
+/* Card title */
+.wx-kanban .wx-card .wx-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.4;
+    margin-bottom: 4px;
+}
+
+/* Card description – base */
+.wx-kanban .wx-card .wx-description {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b; /* fallback when no status class */
+    line-height: 1.5;
+    margin-bottom: 6px;
+}
+
+/* Description text coloured by the status-N class on the card */
+.wx-kanban .wx-card.status-0 .wx-description { color: #16a34a; } /* Open     – green  */
+.wx-kanban .wx-card.status-1 .wx-description { color: #2563eb; } /* Ready    – blue   */
+.wx-kanban .wx-card.status-2 .wx-description { color: #d97706; } /* Released – amber  */
+.wx-kanban .wx-card.status-3 .wx-description { color: #7c3aed; } /* Done     – purple */
+
+/* Date chip */
+.wx-kanban .wx-card .wx-start-date,
+.wx-kanban .wx-card .wx-end-date {
+    font-size: 11px;
+    font-weight: 600;
+    color: #475569;
+    background: #f1f5f9;
+    border-radius: 4px;
+    padding: 1px 5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+/* ---- "Add card" button at column bottom ---- */
+.wx-kanban .wx-add-card {
+    color: #94a3b8;
+    font-size: 12px;
+    margin: 4px 8px 0;
+    border-radius: 8px;
+    padding: 6px 10px;
+    transition: background 0.12s ease, color 0.12s ease;
+}
+.wx-kanban .wx-add-card:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: #334155;
+}
+
+/* ============================================================
+   Drag-over visual feedback
+   ============================================================ */
+.wx-kanban .wx-column.wx-drop-target {
+    outline: 2px dashed #94a3b8;
+    outline-offset: -4px;
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Card being dragged */
+.wx-kanban .wx-card.wx-dragging {
+    opacity: 0.55;
+    transform: rotate(2deg) scale(1.02);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+}
