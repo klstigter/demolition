@@ -143,4 +143,51 @@ codeunit 50661 "Order Intake Kanban Handler"
         OrderIntake.Status := NewStatus;
         OrderIntake.Modify(true);
     end;
+
+    /// <summary>
+    /// Inserts a new Daytask Order Intake record from the Kanban "Add new card" action.
+    /// </summary>
+    /// <param name="ColumnIdInt">Status integer from the target column.</param>
+    /// <param name="CardLabel">Card title entered by the user – stored as Description.</param>
+    procedure InsertCard(ColumnIdInt: Integer; CardLabel: Text)
+    var
+        OrderIntake: Record "Daytask Order Intake Opt.";
+    begin
+        OrderIntake.Init();
+        OrderIntake.Status := Enum::"Daytask Order Intake Status".FromInteger(ColumnIdInt);
+        if CardLabel <> '' then
+            OrderIntake.Description := CopyStr(CardLabel, 1, MaxStrLen(OrderIntake.Description));
+        OrderIntake."Daytask Date" := Today();
+        OrderIntake.Insert(true);
+    end;
+
+    /// <summary>
+    /// Duplicates an existing Daytask Order Intake record.
+    /// The new record inherits all field values from the source; Entry No. is auto-assigned.
+    /// </summary>
+    /// <param name="SourceEntryNo">Entry No. of the record to copy.</param>
+    procedure DuplicateCard(SourceEntryNo: Integer)
+    var
+        Source: Record "Daytask Order Intake Opt.";
+        New: Record "Daytask Order Intake Opt.";
+    begin
+        if not Source.Get(SourceEntryNo) then
+            exit;
+
+        New := Source;
+        New."Entry No." := 0; // AutoIncrement will assign the next value
+        New.Insert(true);
+    end;
+
+    /// <summary>
+    /// Deletes a Daytask Order Intake record.
+    /// </summary>
+    /// <param name="EntryNo">Primary key of the record to delete.</param>
+    procedure DeleteCard(EntryNo: Integer)
+    var
+        OrderIntake: Record "Daytask Order Intake Opt.";
+    begin
+        if OrderIntake.Get(EntryNo) then
+            OrderIntake.Delete(true);
+    end;
 }

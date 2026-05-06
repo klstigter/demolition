@@ -37,6 +37,29 @@ controladdin DHXKanbanAddin
     event OnCardSelected(EntryNo: Text);
 
     /// <summary>
+    /// Fired when the user submits the "Add new card" form.
+    /// ColumnId – the target Status column integer (as text).
+    /// Label    – the card title entered by the user.
+    /// BC should insert the record and refresh the board.
+    /// </summary>
+    event OnCardAdded(ColumnId: Text; Label: Text);
+
+    /// <summary>
+    /// Fired when the user clicks Duplicate on a card menu.
+    /// EntryNo  – Entry No. of the source record.
+    /// ColumnId – column where the duplicate will appear (same column by default).
+    /// BC should copy the record and refresh the board.
+    /// </summary>
+    event OnCardDuplicated(EntryNo: Text; ColumnId: Text);
+
+    /// <summary>
+    /// Fired when the user clicks Delete on a card menu.
+    /// EntryNo – Entry No. of the record to delete.
+    /// BC should delete the record and refresh the board.
+    /// </summary>
+    event OnCardDeleted(EntryNo: Text);
+
+    /// <summary>
     /// Loads (or replaces) all board data.
     /// JsonText must be: { "columns": [...], "cards": [...] }
     /// </summary>

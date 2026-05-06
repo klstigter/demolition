@@ -143,6 +143,8 @@ DayTask View
               Done 
       visual: kanban
 
+      Design: Header + Lines as ussual BC List+Card
+
 12. Gantt -> filtered and reset filter (remove filter) on resource panel---(OK)
     Total hours colom -> alignment as center                            ---(OK)
 13. Hovering on daytask small box still show one record (for multi record case)  ---(OK)
