@@ -27,6 +27,11 @@ page 50641 "Opti Job List"
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies a short description of the project.';
                 }
+                field("Project Type"; Rec."Project Type")
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the type of the project. The project type is used to categorize projects. You can set up different project types based on your business needs.';
+                }
                 field("Task Billing Method"; Rec."Task Billing Method")
                 {
                     ApplicationArea = Jobs;

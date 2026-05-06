@@ -166,6 +166,7 @@ API - 2026.04.29
       Show only in daytask
 17. Resource Card (76, Card) -> daytask factbox is not sync
 18. Resource: new list+card pages
+19. Project -> Project Type (lookup new support table+page) -> publish in API ---(OK)
 
 
 

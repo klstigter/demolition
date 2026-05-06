@@ -186,7 +186,13 @@ page 50612 "Planning Role Center"
                     ApplicationArea = All;
                     RunObject = page "Planning Color opt";
                 }
-
+                action("Projejct Type")
+                {
+                    Caption = 'Project Type';
+                    Image = ProjectExpense;
+                    ApplicationArea = All;
+                    RunObject = page "Project Type List Opt.";
+                }
             }
         }
     }

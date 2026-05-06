@@ -1,13 +1,13 @@
-page 50603 "JobApi Opt"
+page 50649 ApiProjectTypeOpt
 {
     PageType = API;
-    Caption = 'Job API Optimization';
+    Caption = 'Project Type API Optimization';
     APIPublisher = 'BC365Optimizer';
     APIGroup = 'Planning';
     APIVersion = 'v1.0';
-    EntityName = 'Job';
-    EntitySetName = 'Jobs';
-    SourceTable = "Job";
+    EntityName = 'projectType';
+    EntitySetName = 'projectTypes';
+    SourceTable = "Project Type Opt.";
     DelayedInsert = true;
     ODataKeyFields = SystemId;
 
@@ -21,25 +21,13 @@ page 50603 "JobApi Opt"
                 {
                     Caption = 'System Id';
                 }
-                field(no_; Rec."No.")
+                field(code; Rec."Code")
                 {
-                    Caption = 'No.';
+                    Caption = 'Code';
                 }
                 field(description; Rec.Description)
                 {
                     Caption = 'Description';
-                }
-                field(projectType; Rec."Project Type")
-                {
-                    Caption = 'Project Type';
-                }
-                field(status; Rec.Status)
-                {
-                    Caption = 'Status';
-                }
-                field(projectManager; Rec."Person Responsible")
-                {
-                    Caption = 'Person Responsible';
                 }
                 field(systemCreatedAt; Rec.SystemCreatedAt)
                 {
