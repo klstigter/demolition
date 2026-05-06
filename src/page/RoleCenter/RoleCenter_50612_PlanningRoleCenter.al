@@ -53,6 +53,14 @@ page 50612 "Planning Role Center"
                     Image = PostBatch;
                     ToolTip = 'Open the Daytask posting journal to retrieve unposted day tasks and post them to the project ledger.';
                 }
+                action("DaytaskOrderIntake")
+                {
+                    ApplicationArea = Jobs;
+                    Caption = 'Order Intake';
+                    RunObject = Page "Daytask Order Intake Opt.";
+                    Image = Quote;
+                    ToolTip = 'Open the Daytask Order Intake page to manage daytask orders.';
+                }
             }
 
             group("ResourcePlanningGroup")
@@ -111,6 +119,12 @@ page 50612 "Planning Role Center"
                     ApplicationArea = All;
                     Caption = 'Resources Scheduler';
                     RunObject = page "DHX Resource Scheduler";
+                }
+                action("VisualPlanning6")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Order Intake Kanban';
+                    RunObject = page "DHX Order Intake Kanban";
                 }
             }
 
