@@ -11,6 +11,11 @@ tableextension 50602 "Job Ext" extends Job
         {
             DataClassification = ToBeClassified;
         }
+        field(50602; "Project Type"; Code[20])
+        {
+            DataClassification = ToBeClassified;
+            TableRelation = "Project Type Opt.";
+        }
     }
 
     keys
