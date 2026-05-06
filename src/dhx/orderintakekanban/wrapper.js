@@ -94,6 +94,38 @@ window.BOOT = function () {
             }
         });
 
+        // ---- Add new card ----
+        // Intercept BEFORE the board inserts the card locally.
+        // BC creates the record and refreshes the whole board.
+        // obj = { columnId, before, rowId, card: { label, ... } }
+        kanbanBoard.api.intercept("add-card", function (obj) {
+            var colId = (obj && obj.columnId !== undefined) ? String(obj.columnId) : "0";
+            var label = (obj && obj.card && obj.card.label) ? String(obj.card.label) : "";
+            Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnCardAdded", [colId, label]);
+            return false; // prevent local board insert – BC will refresh
+        });
+
+        // ---- Duplicate card ("Duplicate" in the card menu) ----
+        // obj = { id, columnId, before, rowId }
+        kanbanBoard.api.intercept("copy-card", function (obj) {
+            if (obj && obj.id !== undefined) {
+                var colId = (obj.columnId !== undefined) ? String(obj.columnId) : "";
+                Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnCardDuplicated",
+                    [String(obj.id), colId]);
+            }
+            return false; // prevent local duplicate – BC will refresh
+        });
+
+        // ---- Delete card ("Delete" in the card menu) ----
+        // obj = { id }
+        kanbanBoard.api.intercept("delete-card", function (obj) {
+            if (obj && obj.id !== undefined) {
+                Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnCardDeleted",
+                    [String(obj.id)]);
+            }
+            return false; // prevent local delete – BC will refresh
+        });
+
         _kanbanReady = true;
 
         // Signal BC: add-in is initialised and ready to receive data.

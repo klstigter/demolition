@@ -49,6 +49,51 @@ page 50653 "DHX Order Intake Kanban"
                         if OrderIntake.Get(EntryNoInt) then
                             Page.Run(Page::"Daytask Order Intake Opt.", OrderIntake);
                 end;
+
+                // ----------------------------------------------------------------
+                // OnCardAdded – user submitted "Add new card".
+                // Insert a new record in BC and refresh the board.
+                // ----------------------------------------------------------------
+                trigger OnCardAdded(ColumnId: Text; Label: Text)
+                var
+                    KanbanHandler: Codeunit "Order Intake Kanban Handler";
+                    ColumnIdInt: Integer;
+                begin
+                    if not Evaluate(ColumnIdInt, ColumnId) then
+                        ColumnIdInt := 0;
+                    KanbanHandler.InsertCard(ColumnIdInt, Label);
+                    CurrPage.DhxKanban.RefreshKanbanData(KanbanHandler.BuildKanbanJson());
+                end;
+
+                // ----------------------------------------------------------------
+                // OnCardDuplicated – user clicked Duplicate on a card menu.
+                // Copy the record in BC and refresh the board.
+                // ----------------------------------------------------------------
+                trigger OnCardDuplicated(EntryNo: Text; ColumnId: Text)
+                var
+                    KanbanHandler: Codeunit "Order Intake Kanban Handler";
+                    EntryNoInt: Integer;
+                begin
+                    if Evaluate(EntryNoInt, EntryNo) then begin
+                        KanbanHandler.DuplicateCard(EntryNoInt);
+                        CurrPage.DhxKanban.RefreshKanbanData(KanbanHandler.BuildKanbanJson());
+                    end;
+                end;
+
+                // ----------------------------------------------------------------
+                // OnCardDeleted – user clicked Delete on a card menu.
+                // Delete the record from BC and refresh the board.
+                // ----------------------------------------------------------------
+                trigger OnCardDeleted(EntryNo: Text)
+                var
+                    KanbanHandler: Codeunit "Order Intake Kanban Handler";
+                    EntryNoInt: Integer;
+                begin
+                    if Evaluate(EntryNoInt, EntryNo) then begin
+                        KanbanHandler.DeleteCard(EntryNoInt);
+                        CurrPage.DhxKanban.RefreshKanbanData(KanbanHandler.BuildKanbanJson());
+                    end;
+                end;
             }
         }
     }
