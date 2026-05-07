@@ -1,4 +1,4 @@
-pageextension 50624 "Order Intake Kanban Ext" extends "Daytask Order Intake Opt."
+pageextension 50624 "Order Intake Kanban Ext" extends "Order Intake Opt."
 {
     actions
     {

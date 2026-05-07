@@ -42,12 +42,12 @@ page 50653 "DHX Order Intake Kanban"
                 // ----------------------------------------------------------------
                 trigger OnCardSelected(EntryNo: Text)
                 var
-                    OrderIntake: Record "Daytask Order Intake Opt.";
+                    OrderIntake: Record "Order Intake Header Opt.";
                     EntryNoInt: Integer;
                 begin
                     if Evaluate(EntryNoInt, EntryNo) then
                         if OrderIntake.Get(EntryNoInt) then
-                            Page.Run(Page::"Daytask Order Intake Opt.", OrderIntake);
+                            Page.Run(Page::"Order Intake Opt.", OrderIntake);
                 end;
 
                 // ----------------------------------------------------------------

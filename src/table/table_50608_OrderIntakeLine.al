@@ -1,15 +1,19 @@
-table 50604 "Daytask Order Intake Opt."
+table 50608 "Order Intake Line Opt."
 {
     DataClassification = CustomerContent;
-    Caption = 'Daytask Order Intake';
+    Caption = 'Order Intake Line';
 
     fields
     {
-        field(1; "Entry No."; Integer)
+        field(1; "Document No."; Code[20])
         {
             DataClassification = CustomerContent;
-            AutoIncrement = true;
-            Caption = 'Entry No.';
+            Caption = 'Document No.';
+        }
+        field(2; "Line No."; Integer)
+        {
+            DataClassification = CustomerContent;
+            Caption = 'Line No.';
         }
         field(10; "Daytask Date"; Date)
         {
@@ -50,16 +54,11 @@ table 50604 "Daytask Order Intake Opt."
             TableRelation = "Skill Code";
             Caption = 'Skill';
         }
-        field(40; Status; Enum "Daytask Order Intake Status")
-        {
-            DataClassification = CustomerContent;
-            Caption = 'Status';
-        }
     }
 
     keys
     {
-        key(Key1; "Entry No.")
+        key(Key1; "Document No.", "Line No.")
         {
             Clustered = true;
         }
