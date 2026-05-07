@@ -57,7 +57,7 @@ page 50612 "Planning Role Center"
                 {
                     ApplicationArea = Jobs;
                     Caption = 'Order Intake';
-                    RunObject = Page "Daytask Order Intake Opt.";
+                    RunObject = Page "Order Intake Opt.";
                     Image = Quote;
                     ToolTip = 'Open the Daytask Order Intake page to manage daytask orders.';
                 }
@@ -206,6 +206,13 @@ page 50612 "Planning Role Center"
                     Image = ProjectExpense;
                     ApplicationArea = All;
                     RunObject = page "Project Type List Opt.";
+                }
+                action("Daily Optimizer Setup")
+                {
+                    Caption = 'Daily Optimizer Setup';
+                    Image = Setup;
+                    ApplicationArea = All;
+                    RunObject = page "Daily Optimizer Setup";
                 }
             }
         }

@@ -1,12 +1,9 @@
-page 50651 "Daytask Order Intake Opt."
+page 50656 "Order Intake Sub Card"
 {
-    PageType = List;
-    ApplicationArea = All;
-    UsageCategory = Lists;
-    SourceTable = "Daytask Order Intake Opt.";
-    Caption = 'Daytask Order Intake';
-    SourceTableView = sorting("Daytask Date")
-                      order(ascending);
+    PageType = ListPart;
+    SourceTable = "Order Intake Line Opt.";
+    DelayedInsert = true;
+    AutoSplitKey = true;
 
     layout
     {
@@ -14,11 +11,6 @@ page 50651 "Daytask Order Intake Opt."
         {
             repeater(GroupName)
             {
-                field("Entry No."; Rec."Entry No.")
-                {
-                    ApplicationArea = All;
-                    Editable = false;
-                }
                 field("Daytask Date"; Rec."Daytask Date")
                 {
                     ApplicationArea = All;
@@ -38,28 +30,16 @@ page 50651 "Daytask Order Intake Opt."
                 field("Resource No."; Rec."Resource No.")
                 {
                     ApplicationArea = All;
-                    trigger OnValidate()
-                    begin
-                        CurrPage.Update();
-                    end;
                 }
                 field("Resource Name"; Rec."Resource Name")
                 {
                     ApplicationArea = All;
                 }
-                field("Skill"; Rec."Skill")
-                {
-                    ApplicationArea = All;
-                }
-                field("Status"; Rec."Status")
+                field(Skill; Rec.Skill)
                 {
                     ApplicationArea = All;
                 }
             }
-        }
-        area(Factboxes)
-        {
-
         }
     }
 

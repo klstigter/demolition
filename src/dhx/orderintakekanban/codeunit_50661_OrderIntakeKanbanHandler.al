@@ -15,7 +15,7 @@ codeunit 50661 "Order Intake Kanban Handler"
     /// </summary>
     procedure BuildKanbanJson(): Text
     var
-        OrderIntake: Record "Daytask Order Intake Opt.";
+        OrderIntake: Record "Order Intake Header Opt.";
         Columns: JsonArray;
         Cards: JsonArray;
         Root: JsonObject;
@@ -51,7 +51,7 @@ codeunit 50661 "Order Intake Kanban Handler"
                 StatusInt := OrderIntake.Status.AsInteger();
 
                 // Primary key used as the card ID on the board
-                Card.Add('id', Format(OrderIntake."Entry No."));
+                Card.Add('id', Format(OrderIntake."No."));
 
                 // Map Status enum integer → column id
                 Card.Add('column', Format(StatusInt));
@@ -60,7 +60,7 @@ codeunit 50661 "Order Intake Kanban Handler"
                 if OrderIntake.Description <> '' then
                     Card.Add('label', OrderIntake.Description)
                 else
-                    Card.Add('label', StrSubstNo('Entry %1', OrderIntake."Entry No."));
+                    Card.Add('label', StrSubstNo('Entry %1', OrderIntake."No."));
 
                 // Coloured top bar: status colour
                 Card.Add('color', GetStatusColor(StatusInt));
@@ -68,33 +68,10 @@ codeunit 50661 "Order Intake Kanban Handler"
                 // CSS class for description text colouring (status-0 .. status-3)
                 Card.Add('css', 'status-' + Format(StatusInt));
 
-                // Description: HH:MM – HH:MM  |  ResourceNo  |  Skill
-                // Times come first – most prominent info on the card face
-                CardDesc := '';
-                TimeLine := '';
-                if OrderIntake."Daytask Start" <> 0T then
-                    TimeLine := Format(OrderIntake."Daytask Start", 0, '<Hours24,2>:<Minutes,2>');
-                if OrderIntake."Daytask End" <> 0T then begin
-                    if TimeLine <> '' then TimeLine += ' - ';
-                    TimeLine += Format(OrderIntake."Daytask End", 0, '<Hours24,2>:<Minutes,2>');
-                end;
-                if TimeLine <> '' then
-                    CardDesc := TimeLine;
-                if OrderIntake."Resource No." <> '' then begin
-                    if CardDesc <> '' then CardDesc += '  |  ';
-                    CardDesc += OrderIntake."Resource No.";
-                end;
-                if OrderIntake.Skill <> '' then begin
-                    if CardDesc <> '' then CardDesc += '  |  ';
-                    CardDesc += 'Skill: ' + OrderIntake.Skill;
-                end;
-                if CardDesc <> '' then
-                    Card.Add('description', CardDesc);
-
-                // Daytask Date displayed as the card date chip
-                if OrderIntake."Daytask Date" <> 0D then
+                // Order Date displayed as the card date chip
+                if OrderIntake."Order Date" <> 0D then
                     Card.Add('start_date',
-                        Format(OrderIntake."Daytask Date", 0, '<Year4>-<Month,2>-<Day,2>'));
+                        Format(OrderIntake."Order Date", 0, '<Year4>-<Month,2>-<Day,2>'));
 
                 Cards.Add(Card);
             until OrderIntake.Next() = 0;
@@ -129,7 +106,7 @@ codeunit 50661 "Order Intake Kanban Handler"
     /// <param name="NewStatusInt">Integer value of the target Status enum.</param>
     procedure UpdateCardStatus(EntryNo: Integer; NewStatusInt: Integer)
     var
-        OrderIntake: Record "Daytask Order Intake Opt.";
+        OrderIntake: Record "Order Intake Header Opt.";
         NewStatus: Enum "Daytask Order Intake Status";
     begin
         if not OrderIntake.Get(EntryNo) then
@@ -151,13 +128,13 @@ codeunit 50661 "Order Intake Kanban Handler"
     /// <param name="CardLabel">Card title entered by the user – stored as Description.</param>
     procedure InsertCard(ColumnIdInt: Integer; CardLabel: Text)
     var
-        OrderIntake: Record "Daytask Order Intake Opt.";
+        OrderIntake: Record "Order Intake Header Opt.";
     begin
         OrderIntake.Init();
         OrderIntake.Status := Enum::"Daytask Order Intake Status".FromInteger(ColumnIdInt);
         if CardLabel <> '' then
             OrderIntake.Description := CopyStr(CardLabel, 1, MaxStrLen(OrderIntake.Description));
-        OrderIntake."Daytask Date" := Today();
+        OrderIntake."Order Date" := Today();
         OrderIntake.Insert(true);
     end;
 
@@ -168,14 +145,14 @@ codeunit 50661 "Order Intake Kanban Handler"
     /// <param name="SourceEntryNo">Entry No. of the record to copy.</param>
     procedure DuplicateCard(SourceEntryNo: Integer)
     var
-        Source: Record "Daytask Order Intake Opt.";
-        New: Record "Daytask Order Intake Opt.";
+        Source: Record "Order Intake Header Opt.";
+        New: Record "Order Intake Header Opt.";
     begin
         if not Source.Get(SourceEntryNo) then
             exit;
 
         New := Source;
-        New."Entry No." := 0; // AutoIncrement will assign the next value
+        New."No." := ''; // AutoIncrement will assign the next value
         New.Insert(true);
     end;
 
@@ -185,7 +162,7 @@ codeunit 50661 "Order Intake Kanban Handler"
     /// <param name="EntryNo">Primary key of the record to delete.</param>
     procedure DeleteCard(EntryNo: Integer)
     var
-        OrderIntake: Record "Daytask Order Intake Opt.";
+        OrderIntake: Record "Order Intake Header Opt.";
     begin
         if OrderIntake.Get(EntryNo) then
             OrderIntake.Delete(true);
