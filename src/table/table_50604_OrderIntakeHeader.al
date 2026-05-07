@@ -33,7 +33,9 @@ table 50604 "Order Intake Header Opt."
         field(10; "Order Date"; Date)
         {
             DataClassification = CustomerContent;
-            Caption = 'Daytask Date';
+            Caption = 'Order Date';
+            ToolTip = 'Specifies the date of the order intake. The date is used for scheduling and planning purposes, and is based on the date on the related project planning line.';
+            //InitValue = format(today(),0,'<year,4>-<month,2>-<day,2>');
         }
         field(13; Description; Text[250])
         {
@@ -104,6 +106,7 @@ table 50604 "Order Intake Header Opt."
             while OrderIntake.Get("No.") do
                 "No." := NoSeries.GetNextNo("No. Series");
         end;
+        "Order Date" := Today();
     end;
 
     trigger OnModify()
