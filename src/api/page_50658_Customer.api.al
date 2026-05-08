@@ -1,13 +1,13 @@
-page 50611 "Resource API Optimization"
+page 50658 CustomersOpt
 {
     PageType = API;
-    Caption = 'Resource API Optimization';
+    Caption = 'Job API Optimization';
     APIPublisher = 'BC365Optimizer';
     APIGroup = 'Planning';
     APIVersion = 'v1.0';
-    EntityName = 'Resource';
-    EntitySetName = 'Resources';
-    SourceTable = "Resource";
+    EntityName = 'Customer';
+    EntitySetName = 'Customers';
+    SourceTable = "Customer";
     DelayedInsert = true;
     ODataKeyFields = SystemId;
 
@@ -21,7 +21,7 @@ page 50611 "Resource API Optimization"
                 {
                     Caption = 'System Id';
                 }
-                field(no_; Rec."No.")
+                field(no; Rec."No.")
                 {
                     Caption = 'No.';
                 }
@@ -29,13 +29,29 @@ page 50611 "Resource API Optimization"
                 {
                     Caption = 'Name';
                 }
-                field(resourceGroupNo_; Rec."Resource Group No.")
+                field(address; Rec.Address)
                 {
-                    Caption = 'Resource Group No.';
+                    Caption = 'Address';
                 }
-                field(vendorNo; Rec."Vendor No.")
+                field(address2; Rec."Address 2")
                 {
-                    Caption = 'Vendor No.';
+                    Caption = 'Address 2';
+                }
+                field(city; Rec.City)
+                {
+                    Caption = 'City';
+                }
+                field(County; Rec.County)
+                {
+                    Caption = 'County';
+                }
+                field(postCode; Rec."Post Code")
+                {
+                    Caption = 'Postal Code';
+                }
+                field(countryRegionId; Rec."Country/Region Code")
+                {
+                    Caption = 'Country Region Code';
                 }
                 field(systemCreatedAt; Rec.SystemCreatedAt)
                 {

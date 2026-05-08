@@ -37,9 +37,25 @@ page 50603 "JobApi Opt"
                 {
                     Caption = 'Status';
                 }
-                field(projectManager; Rec."Person Responsible")
+                field(projectManager; Rec."Project Manager")
                 {
                     Caption = 'Person Responsible';
+                }
+                field(projectManagerId; GetProjectManagerId())
+                {
+                    Caption = 'Person Responsible';
+                }
+                field(personResponsible; Rec."Person Responsible")
+                {
+                    Caption = 'Person Responsible';
+                }
+                field(personResponsibleId; GetPersonResponsibleId())
+                {
+                    Caption = 'Person Responsible';
+                }
+                field(billtoCustomerNo; Rec."Bill-to Customer No.")
+                {
+                    Caption = 'Bill-to Customer No.';
                 }
                 field(systemCreatedAt; Rec.SystemCreatedAt)
                 {
@@ -52,4 +68,26 @@ page 50603 "JobApi Opt"
             }
         }
     }
+
+    local procedure GetProjectManagerId(): Guid
+    var
+        UserSetup: Record "User Setup";
+        EmptyGuid: Guid;
+    begin
+        if Rec."Project Manager" <> '' then
+            if UserSetup.Get(Rec."Project Manager") then
+                exit(UserSetup.SystemId);
+        exit(EmptyGuid);
+    end;
+
+    local procedure GetPersonResponsibleId(): Guid
+    var
+        Res: Record Resource;
+        EmptyGuid: Guid;
+    begin
+        if Rec."Person Responsible" <> '' then
+            if Res.Get(Rec."Person Responsible") then
+                exit(Res.SystemId);
+        exit(EmptyGuid);
+    end;
 }
