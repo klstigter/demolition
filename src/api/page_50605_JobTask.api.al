@@ -69,6 +69,10 @@ page 50605 "JobTaskApi Opt"
                 {
                     Caption = 'Sell-to Country/Region Code';
                 }
+                field(billtoCustomerNo; Rec."Bill-to Customer No.")
+                {
+                    Caption = 'Bill-to Customer No.';
+                }
                 field(systemCreatedAt; Rec.SystemCreatedAt)
                 {
                     Caption = 'Created At';

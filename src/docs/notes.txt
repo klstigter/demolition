@@ -154,6 +154,11 @@ DayTask View
 API - 2026.04.29
 =================
 1. define response for Job Journal Posting   ---(OK)
+2. Customer                                  ---(OK)
+3. Vendor                                    ---(OK)
+4. Task -> Bill-to Customer No.              ---(OK)
+5. Resource : Vendor No.                     ---(OK) -> Customer No tidka ada di Resource
+6. Job -> Bill-to Customer No.               ---(OK)
 
 15. Opti Job Task Card (50618, Card) -> Resource week tab -> filter: thisweek..
 16. Resource Scheduler
