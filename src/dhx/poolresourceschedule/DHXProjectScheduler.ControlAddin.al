@@ -11,15 +11,15 @@ controladdin DHXPoolResourceScheduleAddin
     HorizontalShrink = true;
 
     Scripts =
-        'src\dhx\dhtmlxscheduler.js',
-        'src\dhx\GlobalFunction.js',
-        'src\dhx\poolresourceschedule\wrapper.js';
+        'src/dhx/dhtmlxscheduler.js',
+        'src/dhx/GlobalFunction.js',
+        'src/dhx/poolresourceschedule/wrapper.js';
 
-    StartupScript = 'src\dhx\poolresourceschedule\startupScript.js';
+    StartupScript = 'src/dhx/poolresourceschedule/startupScript.js';
 
     StyleSheets =
-        'src\dhx\dhtmlxscheduler.css',
-        'src\dhx\poolresourceschedule\style.css';
+        'src/dhx/dhtmlxscheduler.css',
+        'src/dhx/poolresourceschedule/style.css';
 
     event ControlReady();
     event OnEventDblClick(eventId: Text; eventData: Text);
