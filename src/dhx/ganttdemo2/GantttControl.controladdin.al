@@ -9,13 +9,13 @@ controladdin "DHX Gantt Control 2"
     MinimumWidth = 700;
     HorizontalStretch = true;
     HorizontalShrink = true;
-    Scripts = 'src\dhx\dhtmlxgantt.js',
-              'src\dhx\ganttdemo2\wrapper.js';
+    Scripts = 'src/dhx/dhtmlxgantt.js',
+              'src/dhx/ganttdemo2/wrapper.js';
 
     StyleSheets = 'src/dhx/dhtmlxgantt.css',
                   'src/dhx/ganttdemo2/style.css';
 
-    StartupScript = 'src\dhx\ganttdemo2\startupScript.js';
+    StartupScript = 'src/dhx/ganttdemo2/startupScript.js';
 
     event ControlReady();
     event OnAfterInit();

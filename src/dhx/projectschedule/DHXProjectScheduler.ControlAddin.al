@@ -11,15 +11,15 @@ controladdin DHXProjectScheduleAddin
     HorizontalShrink = true;
 
     Scripts =
-        'src\dhx\dhtmlxscheduler.js',
-        'src\dhx\GlobalFunction.js',
-        'src\dhx\projectschedule\wrapper.js';
+        'src/dhx/dhtmlxscheduler.js',
+        'src/dhx/GlobalFunction.js',
+        'src/dhx/projectschedule/wrapper.js';
 
-    StartupScript = 'src\dhx\projectschedule\startupScript.js';
+    StartupScript = 'src/dhx/projectschedule/startupScript.js';
 
     StyleSheets =
-        'src\dhx\dhtmlxscheduler.css',
-        'src\dhx\projectschedule\style.css';
+        'src/dhx/dhtmlxscheduler.css',
+        'src/dhx/projectschedule/style.css';
 
     event ControlReady();
     event OnEventDblClick(eventId: Text; eventData: Text);
