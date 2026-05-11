@@ -73,15 +73,15 @@ table 50604 "Order Intake Header Opt."
 
     trigger OnDelete()
     var
-        OrderLine: Record "Order Intake Line Opt.";
+        Workload: Record "Workorder";
         MsgLbl: Label 'Cannot delete Order Intake with status Released or Done.';
     begin
         if Status in [Status::Released, Status::Done] then begin
             Message(MsgLbl);
             exit; // Prevent deletion of records that are in use
         end;
-        OrderLine.SetRange("Document No.", "No.");
-        OrderLine.DeleteAll(true);
+        Workload.SetRange("Order Intake No.", "No.");
+        Workload.DeleteAll(true);
     end;
 
     trigger OnInsert()

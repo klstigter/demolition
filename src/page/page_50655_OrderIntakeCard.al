@@ -35,10 +35,10 @@ page 50655 "Order Intake Card"
                     MultiLine = true;
                 }
             }
-            part(OrderLines; "Order Intake Sub Card")
+            part(OrderLines; Workorder)
             {
                 ApplicationArea = All;
-                SubPageLink = "Document No." = field("No.");
+                SubPageLink = "Order Intake No." = field("No.");
             }
         }
     }
@@ -52,36 +52,19 @@ page 50655 "Order Intake Card"
             /// user confirms, invokes codeunit 50613 to insert planning lines into
             /// table 50608 "Order Intake Line Opt." for the current document.
             /// </summary>
-            action(GeneratePreDaytasks)
+            action(GenerateDaytasks)
             {
-                Caption = 'Generate pre Daytasks';
+                Caption = 'Generate Daytasks';
                 ApplicationArea = All;
                 Image = Process;
                 ToolTip = 'Opens a dialog to configure scheduling parameters and generate preliminary Daytask planning lines for this Order Intake document.';
 
                 trigger OnAction()
                 var
-                    GenerateDlg: Page "Generate Pre Daytasks";
-                    PreDaytaskGen: Codeunit "Pre Daytask Generator";
-                    RequestBuf: Record "Pre Daytask Request Buf.";
-                    LinesCreated: Integer;
-                    SuccessMsg: Label '%1 pre-Daytask line(s) were created for Order Intake %2.', Comment = '%1 = number of lines, %2 = document number';
+
                 begin
                     // Pass document context to the dialog before opening
-                    GenerateDlg.SetContext(Rec."No.", Rec.Description);
 
-                    if GenerateDlg.RunModal() = Action::OK then begin
-                        // Retrieve the completed request buffer from the dialog
-                        GenerateDlg.GetRequestBuffer(RequestBuf);
-
-                        // Execute the generation logic (validates + creates lines)
-                        LinesCreated := PreDaytaskGen.GenerateLines(RequestBuf, Rec."No.");
-
-                        // Refresh the subform to show the newly created lines
-                        CurrPage.Update(false);
-
-                        Message(SuccessMsg, LinesCreated, Rec."No.");
-                    end;
                 end;
             }
         }
@@ -90,7 +73,7 @@ page 50655 "Order Intake Card"
             group(Category_Process)
             {
                 Caption = 'Actions';
-                actionref(Action_ref_1; GeneratePreDaytasks) { }
+                actionref(Action_ref_1; GenerateDaytasks) { }
             }
         }
     }

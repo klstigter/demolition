@@ -305,4 +305,18 @@ tableextension 50605 "Job Task ext" extends "Job Task"
         if job."No." <> Rec."Job No." then
             job.Get(Rec."Job No.");
     end;
+
+    procedure GetNextCustomerTaskNo(CustNo: Code[20]): Code[20]
+    var
+        JobTaskRec: Record "Job Task";
+        CstN: Code[14];
+    begin
+        JobTaskRec.SetRange("Job No.", CustNo);
+        if JobTaskRec.FindLast() then
+            exit(IncStr(JobTaskRec."Job Task No."))
+        else begin
+            CstN := CopyStr(CustNo, 1, 14);
+            exit(CstN + '-1');
+        end;
+    end;
 }

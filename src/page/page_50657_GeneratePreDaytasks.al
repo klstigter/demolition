@@ -248,11 +248,9 @@ page 50657 "Generate Pre Daytasks"
     /// </summary>
     trigger OnQueryClosePage(CloseAction: Action): Boolean
     var
-        PreDaytaskGen: Codeunit "Pre Daytask Generator";
     begin
         if CloseAction = Action::OK then
-            PreDaytaskGen.ValidateRequest(Rec);
-        exit(true);
+            exit(true);
     end;
 
 }
