@@ -118,6 +118,13 @@ page 50620 "Gantt Demo DHX 2"
                     JsonTxtResource := GanttDataHandler.GetResourcesByJobTaskAsJson(JobTask, FromDate, ToDate);
                     if JsonTxtResource <> '' then
                         CurrPage.DHXGanttControl2.LoadResourcesData(JsonTxtResource);
+
+                    // Reload day task events filtered to only this task (and its children) so the
+                    // resource panel timeline shows the correct events instead of all job tasks.
+                    JobTask.MarkedOnly := True;
+                    if JobTask.FindSet() then;
+                    CurrPage.DHXGanttControl2.LoadDayTasksData(
+                        GanttDataHandler.GetDayTasksByJobTaskAsJson(JobTask, FromDate, ToDate));
                 end;
 
                 trigger onOpenDayTask(taskId: Text; eventData: Text)
@@ -298,9 +305,10 @@ page 50620 "Gantt Demo DHX 2"
                 trigger OnResetResourceFilter()
                 begin
                     // User clicked the (ℹ) button — clear the task-based resource filter
-                    // and reload all resources driven by the default Gantt context.
+                    // and reload all resources + all day tasks driven by the default Gantt context.
                     CurrPage.DHXGanttControl2.ClearResourceFilter();
                     LoadResourceData();
+                    LoadDayTaskData();
                 end;
             }
         }

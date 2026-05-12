@@ -176,6 +176,21 @@ API - 2026.04.29
 19. Project -> Project Type (lookup new support table+page) -> publish in API ---(OK)
 
 
+Order intake:
+	- Text addin   ---(OK)
+
+Gantt:
+	- filtering: right clicked -> resources -> filter is not correct
+	- Daytask yg belum ada tgl pasti
+	- task geser: day task harus ikut range
+	
+
+Resource schedule:
+	- Workorder list, how to do that?
+	
+Daytask:
+	- Lepas date from primarykey
+
 
 
 

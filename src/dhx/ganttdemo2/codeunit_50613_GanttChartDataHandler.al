@@ -166,6 +166,42 @@ codeunit 50613 "GanttChartDataHandler"
 
     // Returns only resources assigned to the given Job Task via Day Tasks.
     // Falls back to all resources if no Day Task assignments exist.
+    /// <summary>
+    /// Returns day task JSON for all job tasks in the marked set, filtered to FromDate..ToDate.
+    /// Used to reload only the relevant events in the resource panel when the user
+    /// right-clicks a task in the Gantt → Show Job Resources.
+    /// </summary>
+    procedure GetDayTasksByJobTaskAsJson(var JobTask: Record "Job Task"; FromDate: Date; ToDate: Date) JsonText: Text
+    var
+        DayTask: Record "Day Tasks";
+        JsonArray: JsonArray;
+        JsonObject: JsonObject;
+    begin
+        if not JobTask.FindSet() then begin
+            JsonArray.WriteTo(JsonText);
+            exit;
+        end;
+        repeat
+            DayTask.Reset();
+            DayTask.SetRange("Job No.", JobTask."Job No.");
+            DayTask.SetRange("Job Task No.", JobTask."Job Task No.");
+            if (FromDate <> 0D) and (ToDate <> 0D) then
+                DayTask.SetRange("Task Date", FromDate, ToDate)
+            else
+                if FromDate <> 0D then
+                    DayTask.SetFilter("Task Date", '>=%1', FromDate)
+                else
+                    if ToDate <> 0D then
+                        DayTask.SetFilter("Task Date", '<=%1', ToDate);
+            if DayTask.FindSet() then
+                repeat
+                    JsonObject := CreateDayTaskJsonObject(DayTask);
+                    JsonArray.Add(JsonObject);
+                until DayTask.Next() = 0;
+        until JobTask.Next() = 0;
+        JsonArray.WriteTo(JsonText);
+    end;
+
     procedure GetResourcesByJobTaskAsJson(var JobTask: Record "Job Task"; FromDate: Date; ToDate: Date) JsonText: Text
     var
         DayTask: Record "Day Tasks";
