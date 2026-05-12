@@ -198,7 +198,7 @@ page 50620 "Gantt Demo DHX 2"
                     GantUpdatedata: Codeunit "Gantt Update Data";
                 begin
                     GantUpdatedata.UpdateJobTaskFromJson(eventData);
-                    // Now update Job Task + regenerate Day Tasks
+                    LoadDayTaskData();
                 end;
 
                 trigger OpenResourceLoadDay(ResourceId: Text; pWorkDate: Text)
