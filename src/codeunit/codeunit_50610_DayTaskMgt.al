@@ -153,7 +153,7 @@ codeunit 50610 "Day Tasks Mgt."
     var
         daytask: Record "Day Tasks";
     begin
-        if daytask.Get(NewDayTask."Task Date", NewDayTask."Day Line No.", NewDayTask."Job No.", NewDayTask."Job Task No.") then
+        if daytask.Get(NewDayTask."Job No.", NewDayTask."Job Task No.", NewDayTask."Day Line No.") then
             Exit(not daytask."Manual Modified");
         exit(true);
 

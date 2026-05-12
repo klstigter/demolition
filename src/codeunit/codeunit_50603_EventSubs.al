@@ -56,10 +56,9 @@ codeunit 50603 "EventSubs"
             exit;
 
         if not DayTask.Get(
-            JobJournalLine."Opt. Daytask Date",
-            JobJournalLine."Opt. Daytask Line No.",
             JobJournalLine."Job No.",
-            JobJournalLine."Job Task No.")
+            JobJournalLine."Job Task No.",
+            JobJournalLine."Opt. Daytask Line No.")
         then
             exit;
 

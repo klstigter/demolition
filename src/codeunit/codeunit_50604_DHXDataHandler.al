@@ -1075,7 +1075,7 @@ codeunit 50604 "DHX Data Handler"
         Evaluate(PlanningLineNo, EventIdParts.Get(3));
         Evaluate(DayNo, EventIdParts.Get(4));
         Evaluate(DayLineNo, EventIdParts.Get(5));
-        rtv := DayTask.Get(DayNo, DayLineNo, JobNo, TaskNo, PlanningLineNo);
+        rtv := DayTask.Get(JobNo, TaskNo, DayLineNo);
         if rtv then begin
             /**
             * Refresh a single event's data without reloading all events.
@@ -1390,7 +1390,7 @@ codeunit 50604 "DHX Data Handler"
         Evaluate(Old_DayLineNo, EventIdParts.Get(5));
         OldTask.Get(Old_JobNo, Old_TaskNo);
         OldPlanningLIne.Get(Old_JobNo, Old_TaskNo, Old_PlanningLineNo);
-        OldDayTask.Get(Old_DayNo, Old_DayLineNo, Old_JobNo, Old_TaskNo, Old_PlanningLineNo);
+        OldDayTask.Get(Old_JobNo, Old_TaskNo, Old_DayLineNo);
 
         EventJSonObj.ReadFrom(EventData);
 
@@ -1414,17 +1414,17 @@ codeunit 50604 "DHX Data Handler"
         OldDayTask_forUpdate := OldDayTask;
         if OldPlanningLIne.RecordId <> NewPlanningLIne.RecordId then begin
             //sift up / down within different task
-            if not DayTaskCheck.Get(New_DayNo, Old_DayLineNo, New_JobNo, New_TaskNo, New_PlanningLineNo) then
-                OldDayTask.Rename(New_DayNo, Old_DayLineNo, New_JobNo, New_TaskNo, New_PlanningLineNo)
+            // PK is now (Job No., Job Task No., Day Line No.) — check if target slot is free.
+            if not DayTaskCheck.Get(New_JobNo, New_TaskNo, Old_DayLineNo) then
+                OldDayTask.Rename(New_JobNo, New_TaskNo, Old_DayLineNo)
             else begin
-                DayTaskCheck.SetCurrentKey("Job No.", "Job Task No.", "Task Date", "Day Line No.");
+                // Slot taken: find max DayLineNo for the target task and append after it.
                 DayTaskCheck.SetRange("Job No.", New_JobNo);
                 DayTaskCheck.SetRange("Job Task No.", New_TaskNo);
-                DayTaskCheck.SetRange("Task Date", New_Date);
                 if DayTaskCheck.FindLast() then
-                    OldDayTask.Rename(New_DayNo, DayTaskCheck."Day Line No." + 10000, New_JobNo, New_TaskNo, New_PlanningLineNo)
+                    OldDayTask.Rename(New_JobNo, New_TaskNo, DayTaskCheck."Day Line No." + 10000)
                 else
-                    OldDayTask.Rename(New_DayNo, 10000, New_JobNo, New_TaskNo, New_PlanningLineNo);
+                    OldDayTask.Rename(New_JobNo, New_TaskNo, 10000);
             end;
             NewDayTask_forUpdate := OldDayTask;
             UpdateEventID := true;

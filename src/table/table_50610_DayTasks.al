@@ -427,10 +427,17 @@ table 50610 "Day Tasks"
     }
     keys
     {
-        key(PK; "Task Date", "Day Line No.", "Job No.", "Job Task No.")
+        //<< OLD:
+        // key(PK; "Task Date", "Day Line No.", "Job No.", "Job Task No.")
+        // {
+        //     Clustered = true;
+        // }
+        // NEW:
+        key(PK; "Job No.", "Job Task No.", "Day Line No.")
         {
             Clustered = true;
         }
+        //>>
         key(Rec1; "Job No.", "Job Task No.", "Task Date", "Day Line No.")
         {
         }
@@ -495,7 +502,8 @@ table 50610 "Day Tasks"
     var
         DayTask: Record "Day Tasks";
     begin
-        DayTask.setrange("Task Date", TaskDay);
+        // TaskDay is intentionally unused: DayLineNo must now be unique across
+        // all dates for a given (Job No., Job Task No.) per the new PK.
         DayTask.SetRange("Job No.", "Job No.");
         DayTask.SetRange("Job Task No.", "Job Task No.");
         if DayTask.FindLast() then

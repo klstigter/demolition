@@ -102,10 +102,9 @@ page 50616 "JobJournal Opt"
                 LineJson.Add('dayTaskDate', Format(JobLedgEntry."Opt. Daytask Date", 0, '<Year4>-<Month,2>-<Day,2>'));
                 LineJson.Add('dayTaskLineNo', JobLedgEntry."Opt. Daytask Line No.");
                 if DayTask.Get(
-                    JobLedgEntry."Opt. Daytask Date",
-                    JobLedgEntry."Opt. Daytask Line No.",
                     JobLedgEntry."Job No.",
-                    JobLedgEntry."Job Task No.")
+                    JobLedgEntry."Job Task No.",
+                    JobLedgEntry."Opt. Daytask Line No.")
                 then
                     LineJson.Add('dayTaskSystemId', DayTask.SystemId)
                 else
@@ -152,10 +151,9 @@ page 50616 "JobJournal Opt"
                 LineJson.Add('dayTaskDate', Format(JobJnlLine."Opt. Daytask Date", 0, '<Year4>-<Month,2>-<Day,2>'));
                 LineJson.Add('dayTaskLineNo', JobJnlLine."Opt. Daytask Line No.");
                 if DayTask.Get(
-                    JobJnlLine."Opt. Daytask Date",
-                    JobJnlLine."Opt. Daytask Line No.",
                     JobJnlLine."Job No.",
-                    JobJnlLine."Job Task No.")
+                    JobJnlLine."Job Task No.",
+                    JobJnlLine."Opt. Daytask Line No.")
                 then
                     LineJson.Add('dayTaskSystemId', Format(DayTask.SystemId, 0, 4))
                 else
