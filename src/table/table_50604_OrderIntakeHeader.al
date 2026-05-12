@@ -37,7 +37,7 @@ table 50604 "Order Intake Header Opt."
             ToolTip = 'Specifies the date of the order intake. The date is used for scheduling and planning purposes, and is based on the date on the related project planning line.';
             //InitValue = format(today(),0,'<year,4>-<month,2>-<day,2>');
         }
-        field(13; Description; Text[250])
+        field(13; Description; Blob)
         {
             DataClassification = CustomerContent;
             Caption = 'Description';
@@ -143,6 +143,31 @@ table 50604 "Order Intake Header Opt."
             exit(true);
         end;
     end;
+
+    procedure SetDescription(pDescBody: Text)
+    var
+        OutStream: OutStream;
+    begin
+        Clear(Rec.Description);
+        Rec.Description.CreateOutStream(OutStream);
+        OutStream.WriteText(pDescBody);
+        Rec.Modify();
+    end;
+
+    procedure GetDescription(): Text
+    var
+        InStream: InStream;
+        DescText: Text;
+    begin
+        DescText := '';
+        Rec.CalcFields(Description);
+        if Rec.Description.HasValue() then begin
+            Rec.Description.CreateInStream(InStream);
+            InStream.ReadText(DescText);
+        end;
+        exit(DescText);
+    end;
+
 
     [IntegrationEvent(false, false)]
     local procedure OnBeforeValidateNo(var OrderIntakeHeader: Record "Order Intake Header Opt."; xOrderIntakeHeader: Record "Order Intake Header Opt."; var IsHandled: Boolean)

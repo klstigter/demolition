@@ -25,6 +25,7 @@ codeunit 50661 "Order Intake Kanban Handler"
         TimeLine: Text;
         Result: Text;
         StatusInt: Integer;
+        Desc: Text;
     begin
         // ---- Columns – one per Status enum value ----
         Clear(Col);
@@ -57,8 +58,9 @@ codeunit 50661 "Order Intake Kanban Handler"
                 Card.Add('column', Format(StatusInt));
 
                 // Card title – use Description; fall back to "Entry <N>"
-                if OrderIntake.Description <> '' then
-                    Card.Add('label', OrderIntake.Description)
+                Desc := OrderIntake.GetDescription();
+                if Desc <> '' then
+                    Card.Add('label', Desc)
                 else
                     Card.Add('label', StrSubstNo('Entry %1', OrderIntake."No."));
 
@@ -132,8 +134,6 @@ codeunit 50661 "Order Intake Kanban Handler"
     begin
         OrderIntake.Init();
         OrderIntake.Status := Enum::"Daytask Order Intake Status".FromInteger(ColumnIdInt);
-        if CardLabel <> '' then
-            OrderIntake.Description := CopyStr(CardLabel, 1, MaxStrLen(OrderIntake.Description));
         OrderIntake."Order Date" := Today();
         OrderIntake.Insert(true);
     end;
