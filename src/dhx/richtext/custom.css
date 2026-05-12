@@ -1,0 +1,43 @@
+/* ============================================================
+   DHX RichText Addin – custom.css
+   Forces the editor and all its inner containers to fill the
+   full height BC allocates to the addin (VerticalStretch = true).
+   When General / Workorder FastTabs collapse, the addin height
+   grows automatically and these rules keep the editor filling it.
+   ============================================================ */
+
+/* The BC addin host root */
+#controlAddIn {
+    height: 100% !important;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+
+/* Our wrapper div */
+#dhx-richtext-editor {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+
+/* DHTMLX RichText outer wrapper and editor body – fill the column */
+#dhx-richtext-editor .wx-richtext,
+#dhx-richtext-editor .wx-editor-wrap,
+#dhx-richtext-editor .wx-editor {
+    flex: 1 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+
+/* The contenteditable area itself */
+#dhx-richtext-editor .wx-editor [contenteditable="true"] {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}

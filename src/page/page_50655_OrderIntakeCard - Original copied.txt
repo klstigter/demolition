@@ -35,28 +35,30 @@ page 50655 "Order Intake Card"
                     }
                 }
             }
-            usercontrol(RichTextEditor; DHXRichTextAddin)
+            group(HTMLFormattedBody)
             {
-                ApplicationArea = All;
+                ShowCaption = false;
+                Caption = ' ';
 
-                /// <summary>
-                /// Fires once when the DHTMLX RichText editor is ready.
-                /// Load the current record's blob content into the editor.
-                /// </summary>
-                trigger ControlReady()
-                begin
-                    AddinReady := true;
-                    CurrPage.RichTextEditor.SetValue(Rec.GetDescription());
-                end;
+                field(Description; DescBody)
+                {
+                    Caption = 'Description';
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the content of the Order Intake.';
+                    MultiLine = true;
+                    ExtendedDatatype = RichContent;
+                    /*
+                    The client handles the field as a rich text field, which allows for styling and formatting. 
+                    To enable a rich text field, the field must have the MultiLine property set to true and must reside alone within a FastTab group.
+                    */
 
-                /// <summary>
-                /// Fires ~800 ms after the user stops typing (debounced in JS).
-                /// Persist the HTML into the blob field on the record.
-                /// </summary>
-                trigger OnTextChanged(Html: Text)
-                begin
-                    Rec.SetDescription(Html);
-                end;
+
+                    trigger OnValidate()
+                    begin
+                        Rec.SetDescription(DescBody);
+                        Rec.Modify();
+                    end;
+                }
             }
             part(OrderLines; Workorder)
             {
@@ -103,12 +105,10 @@ page 50655 "Order Intake Card"
 
     trigger OnAfterGetCurrRecord()
     begin
-        // Push the blob content into the editor whenever the record changes.
-        // Guard with AddinReady: on first load ControlReady fires the initial load.
-        if AddinReady then
-            CurrPage.RichTextEditor.SetValue(Rec.GetDescription());
+        DescBody := Rec.GetDescription();
+        CurrPage.Update();
     end;
 
     var
-        AddinReady: Boolean;
+        DescBody: Text;
 }
