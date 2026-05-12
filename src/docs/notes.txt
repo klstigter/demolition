@@ -177,10 +177,10 @@ API - 2026.04.29
 
 
 Order intake:
-	- Text addin   ---(OK)
+	- Text addin                                                      ---(OK)
 
 Gantt:
-	- filtering: right clicked -> resources -> filter is not correct
+	- filtering: right clicked -> resources -> filter is not correct  ---(OK)
 	- Daytask yg belum ada tgl pasti
 	- task geser: day task harus ikut range
 	
