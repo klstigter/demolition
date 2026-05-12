@@ -181,15 +181,14 @@ Order intake:
 
 Gantt:
 	- filtering: right clicked -> resources -> filter is not correct  ---(OK)
-	- Daytask yg belum ada tgl pasti
-	- task geser: day task harus ikut range
+	- task geser: day task harus ikut range                           ---(OK)
 	
 
 Resource schedule:
 	- Workorder list, how to do that?
 	
 Daytask:
-	- Lepas date from primarykey
+	- Lepas date from primarykey                                      ---(OK)
 
 
 
