@@ -11,14 +11,14 @@ controladdin DHXKanbanAddin
     HorizontalShrink = true;
 
     Scripts =
-        'src\dhx\kanban.js',
-        'src\dhx\orderintakekanban\wrapper.js';
+        'src/dhx/kanban.js',
+        'src/dhx/orderintakekanban/wrapper.js';
 
-    StartupScript = 'src\dhx\orderintakekanban\startupScript.js';
+    StartupScript = 'src/dhx/orderintakekanban/startupScript.js';
 
     StyleSheets =
-        'src\dhx\kanban.css',
-        'src\dhx\orderintakekanban\custom.css';
+        'src/dhx/kanban.css',
+        'src/dhx/orderintakekanban/custom.css';
 
     /// <summary>Fired when the Kanban board is fully initialised and ready to receive data.</summary>
     event ControlReady();

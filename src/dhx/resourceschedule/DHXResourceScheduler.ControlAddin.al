@@ -11,15 +11,15 @@ controladdin DHXResourceScheduleAddin
     HorizontalShrink = true;
 
     Scripts =
-        'src\dhx\dhtmlxscheduler.js',
-        'src\dhx\GlobalFunction.js',
-        'src\dhx\resourceschedule\wrapper.js';
+        'src/dhx/dhtmlxscheduler.js',
+        'src/dhx/GlobalFunction.js',
+        'src/dhx/resourceschedule/wrapper.js';
 
-    StartupScript = 'src\dhx\resourceschedule\startupScript.js';
+    StartupScript = 'src/dhx/resourceschedule/startupScript.js';
 
     StyleSheets =
-        'src\dhx\dhtmlxscheduler.css',
-        'src\dhx\resourceschedule\style.css';
+        'src/dhx/dhtmlxscheduler.css',
+        'src/dhx/resourceschedule/style.css';
 
     event ControlReady();
     event OnAfterInit();
