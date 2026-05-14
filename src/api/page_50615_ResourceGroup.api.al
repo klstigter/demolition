@@ -9,6 +9,7 @@ page 50615 "Resource Group API Opt."
     EntitySetName = 'ResourceGroups';
     SourceTable = "Resource Group";
     DelayedInsert = true;
+    ODataKeyFields = SystemId;
 
     layout
     {
@@ -28,14 +29,14 @@ page 50615 "Resource Group API Opt."
                 {
                     Caption = 'Name';
                 }
-                field(dimension1Code; Rec."Global Dimension 1 Code")
-                {
-                    Caption = 'Global Dimension 1 Code';
-                }
-                field(dimension2Code; Rec."Global Dimension 2 Code")
-                {
-                    Caption = 'Global Dimension 2 Code';
-                }
+                // field(dimension1Code; Rec."Global Dimension 1 Code")
+                // {
+                //     Caption = 'Global Dimension 1 Code';
+                // }
+                // field(dimension2Code; Rec."Global Dimension 2 Code")
+                // {
+                //     Caption = 'Global Dimension 2 Code';
+                // }
                 field(systemCreatedAt; Rec.SystemCreatedAt)
                 {
                     Caption = 'Created At';

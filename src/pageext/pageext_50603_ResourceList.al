@@ -3,6 +3,17 @@ pageextension 50603 "Opt ResourceList" extends "Resource List"
     layout
     {
         // Add changes to page layout here
+        addafter(Type)
+        {
+            field("Pool Resource No."; Rec."Pool Resource No.")
+            {
+                ApplicationArea = All;
+            }
+            field("Vendor No."; Rec."Vendor No.")
+            {
+                ApplicationArea = All;
+            }
+        }
     }
 
     actions
