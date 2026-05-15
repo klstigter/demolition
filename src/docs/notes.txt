@@ -193,7 +193,7 @@ Daytask:
 
 
 Resouce
-   - Vendor No. able to fill in if resource is pool
+   - Vendor No. able to fill in if resource is pool                  ---(OK)
 
 
 

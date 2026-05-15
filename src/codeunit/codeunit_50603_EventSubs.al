@@ -68,4 +68,16 @@ codeunit 50603 "EventSubs"
             DayTask."Resource Entry No." := JobLedgerEntry."Ledger Entry No.";
         DayTask.Modify();
     end;
+
+    // Vendor No. able to fill in if resource is pool
+    [EventSubscriber(ObjectType::Table, Database::"Resource", 'OnAfterValidateEvent', 'Vendor No.', false, false)]
+    local procedure Table_Resource_OnAfterValidateEvent(var Rec: Record Resource; xRec: Record Resource; CurrFieldNo: Integer)
+    var
+        Text003: Label '%1 must be applied to a pool resource. Selected resource: %2. is not a pool.';
+    begin
+        if Rec."Vendor No." <> '' then begin
+            if Rec."No." <> Rec."Pool Resource No." then
+                Error(Text003, Rec.FieldCaption("Vendor No."), Rec."No.");
+        end;
+    end;
 }
