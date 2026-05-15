@@ -178,6 +178,7 @@ API - 2026.04.29
 
 Order intake:
 	- Text addin                                                      ---(OK)
+   - Add "Plan Start Date" -> for planning/gantt chart
 
 Gantt:
 	- filtering: right clicked -> resources -> filter is not correct  ---(OK)
@@ -190,6 +191,9 @@ Resource schedule:
 Daytask:
 	- Lepas date from primarykey                                      ---(OK)
 
+
+Resouce
+   - Vendor No. able to fill in if resource is pool
 
 
 
