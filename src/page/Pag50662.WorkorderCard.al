@@ -2,7 +2,7 @@ page 50662 "Workorder Card"
 {
     Caption = 'Workorder';
     PageType = Card;
-    SourceTable = "Workorder";
+    SourceTable = "Work Order";
     ApplicationArea = All;
     UsageCategory = Tasks;
 
@@ -12,15 +12,30 @@ page 50662 "Workorder Card"
         {
             group(General)
             {
-                field("No."; Rec."Workorder No.")
+                field("No."; Rec."Work Order No.")
                 {
                     ApplicationArea = All;
+                    Visible = false;
+                    trigger OnAssistEdit()
+                    begin
+                        if rec.AssistEdit(rec) then
+                            CurrPage.Update();
+                    end;
                 }
                 field("Order Intake No."; Rec."Order Intake No.")
                 {
                     ApplicationArea = All;
+                    Visible = false;
                 }
                 field("Customer No."; Rec."Customer No.")
+                {
+                    ApplicationArea = All;
+                }
+                field("Project No."; Rec."Project No.")
+                {
+                    ApplicationArea = All;
+                }
+                field("Project Task No."; Rec."Project Task No.")
                 {
                     ApplicationArea = All;
                 }
@@ -30,26 +45,10 @@ page 50662 "Workorder Card"
                 }
 
             }
-            Group(RichtTextEditor)
-            {
-                Caption = 'Description';
-                field("Long Description"; Rec."Long Description")
-                {
-                    ApplicationArea = All;
-                    MultiLine = true;
-                }
-            }
 
             group(Scheduling)
             {
-                field("Project No."; Rec."Project No.")
-                {
-                    ApplicationArea = All;
-                }
-                field("Project Task No."; Rec."Project Task No.")
-                {
-                    ApplicationArea = All;
-                }
+
                 group(Dates)
                 {
                     ShowCaption = false;
@@ -62,6 +61,10 @@ page 50662 "Workorder Card"
                         ApplicationArea = All;
                     }
                     field("Deadline Date"; Rec."Deadline Date")
+                    {
+                        ApplicationArea = All;
+                    }
+                    field("Placeholder Date"; Rec."Placeholder Date")
                     {
                         ApplicationArea = All;
                     }
@@ -81,12 +84,103 @@ page 50662 "Workorder Card"
                     ApplicationArea = All;
                 }
             }
+            usercontrol(RichTextEditor; DHXRichTextAddin)
+            {
+                ApplicationArea = All;
+
+                /// <summary>
+                /// Fires once when the DHTMLX RichText editor is ready.
+                /// Load the current record's blob content into the editor.
+                /// </summary>
+                trigger ControlReady()
+                begin
+                    AddinReady := true;
+                    CurrPage.RichTextEditor.SetValue(Rec.GetDescription());
+                end;
+
+                /// <summary>
+                /// Fires ~800 ms after the user stops typing (debounced in JS).
+                /// Persist the HTML into the blob field on the record.
+                /// </summary>
+                trigger OnTextChanged(Html: Text)
+                begin
+                    Rec.SetDescription(Html);
+                end;
+            }
 
             part(SpecificationLines; "Workorder Cap. Req. Subfrm")
             {
                 ApplicationArea = All;
-                SubPageLink = "Workorder No." = FIELD("Workorder No.");
+                SubPageLink = "Workorder No." = FIELD("Work Order No.");
             }
         }
     }
+    actions
+    {
+        area(Processing)
+        {
+            action(DayTasksCreation)
+            {
+                ApplicationArea = All;
+                Promoted = true;
+                PromotedIsBig = true;
+                PromotedCategory = Process;
+                Caption = 'Day tasks creation';
+                Image = HumanResources;
+                ShortCutKey = 'Alt+D';
+                ToolTip = 'View or edit dimensions, such as area, project, or department, that you can assign to sales and purchase documents to distribute costs and analyze transaction history.';
+                trigger OnAction()
+                var
+                    Page: Page "Day Task Generator";
+                    DayTaskGen: Record "Day Task generator";
+                begin
+                    page.fillbuffer(Rec."Project No.", Rec."Project Task No.");
+                    Page.Run();
+                    CurrPage.Update();
+
+                end;
+            }
+            action(DayTasks)
+            {
+                ApplicationArea = All;
+                Caption = 'Day tasks';
+                Promoted = true;
+                PromotedIsBig = true;
+                PromotedCategory = Process;
+                Image = HumanResources;
+                ShortCutKey = 'Alt+D';
+                ToolTip = 'View or edit dimensions, such as area, project, or department, that you can assign to sales and purchase documents to distribute costs and analyze transaction history.';
+                trigger OnAction()
+                var
+                    ResourcePage: Page "Day Tasks";
+                    DayTask: Record "Day Tasks";
+                begin
+                    DayTask.SetRange("Job No.", Rec."Project No.");
+                    DayTask.SetRange("Job Task No.", Rec."Project Task No.");
+                    ResourcePage.SetTableView(DayTask);
+                    ResourcePage.Run();
+                end;
+            }
+            action(GanttChartDHX)
+            {
+                ApplicationArea = All;
+                Image = GanttChart;
+                Caption = 'Gantt Chart';
+                Promoted = true;
+                PromotedIsBig = true;
+                PromotedCategory = Process;
+                //RunObject = page "Gantt Demo DHX 2";
+                trigger OnAction()
+                var
+                    Gantt: page "Gantt Demo DHX 2";
+                begin
+                    Gantt.SetJobFilter(Rec."Project No.");
+                    Gantt.RunModal();
+                end;
+
+            }
+        }
+    }
+    var
+        AddinReady: Boolean;
 }

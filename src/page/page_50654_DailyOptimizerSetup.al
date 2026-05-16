@@ -31,6 +31,10 @@ page 50654 "Daily Optimizer Setup"
                 {
                     ApplicationArea = All;
                 }
+                field("Work Order Nos"; Rec."Work Order Nos")
+                {
+                    ApplicationArea = All;
+                }
             }
         }
     }

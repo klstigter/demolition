@@ -1,7 +1,7 @@
-page 50656 Workorder
+page 50656 "Work Order Sub"
 {
     PageType = ListPart;
-    SourceTable = "Workorder";
+    SourceTable = "Work Order";
     DelayedInsert = true;
 
 
@@ -11,10 +11,15 @@ page 50656 Workorder
         {
             repeater(GroupName)
             {
-                field(workorderNo; Rec."Workorder No.")
+                field(workorderNo; Rec."Work Order No.")
                 {
                     ApplicationArea = All;
                     Visible = true;
+                    trigger OnAssistEdit()
+                    begin
+                        if rec.AssistEdit(rec) then
+                            CurrPage.Update();
+                    end;
                 }
                 field(orderIntakeNo; Rec."Order Intake No.")
                 {
@@ -30,11 +35,6 @@ page 50656 Workorder
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the value of the Description field.', Comment = '%';
-                }
-                field("Long Description"; Rec."Long Description")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the value of the Long Description field.', Comment = '%';
                 }
 
                 field("Project No."; Rec."Project No.")
@@ -105,7 +105,7 @@ page 50656 Workorder
                     JobTaskRec.Description := rec.Description;
                     JobTaskRec.insert();
 
-                    rec."Project No." := JobTaskRec."Job Task No.";
+                    rec."Project No." := JobTaskRec."Job No.";
                     rec."Project Task No." := JobTaskRec."Job Task No.";
                 end;
             }
@@ -114,10 +114,10 @@ page 50656 Workorder
                 ApplicationArea = All;
                 trigger OnAction()
                 var
-                    Workload: Record "Workorder";
+                    Workload: Record "Work Order";
                     pg: page "Workorder Card";
                 begin
-                    Workload.SetRange("Workorder No.", Rec."Workorder No.");
+                    Workload.SetRange("Work Order No.", Rec."Work Order No.");
                     pg.SetTableView(Workload);
                     pg.SetRecord(Workload);
                     pg.RunModal();
@@ -125,4 +125,25 @@ page 50656 Workorder
             }
         }
     }
+
+    trigger OnInsertRecord(belowxRec: Boolean): Boolean
+    var
+        OrderIntak: Record "Order Intake Header opt.";
+        OptimizerSetup: record "Daily Optimizer Setup";
+        NoSeries: Codeunit "No. Series";
+    begin
+        OptimizerSetup.Get();
+        OptimizerSetup.TestField("Work Order Nos");
+        rec."Work Order NOS" := OptimizerSetup."Work Order Nos";
+        rec."Work Order No." := NoSeries.GetNextNo(rec."Work Order NOS");
+        rec.FilterGroup(4);
+        rec."Order Intake No." := rec.GetFilter("Order Intake No.");
+        if rec."Order Intake No." <> '' then begin
+            OrderIntak.Get(rec."Order Intake No.");
+            rec."Customer No." := OrderIntak."Customer No.";
+        end;
+        rec.FilterGroup(0);
+    end;
+
+
 }

@@ -1,6 +1,6 @@
 controladdin DHXRichTextAddin
 {
-    RequestedHeight = 400;
+    RequestedHeight = 350;
     MinimumHeight = 200;
     VerticalShrink = true;
     VerticalStretch = true;

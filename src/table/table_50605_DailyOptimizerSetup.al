@@ -26,6 +26,12 @@ table 50605 "Daily Optimizer Setup"
             Caption = 'Order Intake Nos';
             TableRelation = "No. Series";
         }
+        field(21; "Work Order Nos"; Code[20])
+        {
+            DataClassification = CustomerContent;
+            Caption = 'Work Order Nos';
+            TableRelation = "No. Series";
+        }
     }
 
     keys

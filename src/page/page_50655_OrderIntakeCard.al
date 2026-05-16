@@ -12,29 +12,64 @@ page 50655 "Order Intake Card"
         {
             group(General)
             {
-                grid("Email Details Grid")
-                {
-                    ShowCaption = false;
+                Caption = 'General';
 
-                    field("No."; Rec."No.")
+                grid(HeaderGrid)
+                {
+                    GridLayout = Columns;
+
+                    group(Col1)
                     {
-                        ApplicationArea = All;
-                        trigger OnAssistEdit()
-                        begin
-                            if Rec.AssistEdit(xRec) then
-                                CurrPage.Update();
-                        end;
+                        ShowCaption = false;
+
+                        field("No."; Rec."No.")
+                        {
+                            ApplicationArea = All;
+                            trigger OnAssistEdit()
+                            begin
+                                if rec.AssistEdit(rec) then
+                                    CurrPage.Update();
+                            end;
+                        }
+
+                        field("Order Date"; Rec."Order Date")
+                        {
+                            ApplicationArea = All;
+                        }
                     }
-                    field("Order Date"; Rec."Order Date")
+
+                    group(Col2)
                     {
-                        ApplicationArea = All;
+                        ShowCaption = false;
+
+                        field(Status; Rec.Status)
+                        {
+                            ApplicationArea = All;
+                        }
+
+                        field("Customer No."; Rec."Customer No.")
+                        {
+                            ApplicationArea = All;
+                        }
                     }
-                    field("Status"; Rec."Status")
+
+                    group(Col3)
                     {
-                        ApplicationArea = All;
+                        ShowCaption = false;
+
+                        field("Customer Name"; Rec."Customer Name")
+                        {
+                            ApplicationArea = All;
+                        }
+
+                        field("Contact No."; Rec."Contact No.")
+                        {
+                            ApplicationArea = All;
+                        }
                     }
                 }
             }
+
             usercontrol(RichTextEditor; DHXRichTextAddin)
             {
                 ApplicationArea = All;
@@ -58,7 +93,7 @@ page 50655 "Order Intake Card"
                     Rec.SetDescription(Html);
                 end;
             }
-            part(OrderLines; Workorder)
+            part(OrderLines; "Work Order Sub")
             {
                 ApplicationArea = All;
                 SubPageLink = "Order Intake No." = field("No.");

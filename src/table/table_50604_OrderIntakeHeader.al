@@ -37,6 +37,27 @@ table 50604 "Order Intake Header Opt."
             ToolTip = 'Specifies the date of the order intake. The date is used for scheduling and planning purposes, and is based on the date on the related project planning line.';
             //InitValue = format(today(),0,'<year,4>-<month,2>-<day,2>');
         }
+        field(20; "Customer No."; Code[20])
+        {
+            DataClassification = CustomerContent;
+            Caption = 'Customer No.';
+            ToolTip = 'Specifies the customer number for the order intake. The customer number is used to link the order intake to a specific customer in the system.';
+            TableRelation = Customer;
+        }
+        field(25; "Customer Name"; Text[100])
+        {
+            DataClassification = CustomerContent;
+            Caption = 'Customer Name';
+            ToolTip = 'Specifies the name of the customer for the order intake. This field is typically used for display purposes and is not required, as the customer number can be used to retrieve the customer name from the related customer record.';
+        }
+        field(26; "Contact No."; Code[20])
+        {
+            DataClassification = CustomerContent;
+            Caption = 'Contact No.';
+            ToolTip = 'Specifies the contact number for the order intake. This field is typically used for display purposes and is not required, as the customer number can be used to retrieve the contact number from the related customer record.';
+            TableRelation = "Contact" where(Type = const(Person), "Company No." = field("Customer No."));
+        }
+
         field(13; Description; Blob)
         {
             DataClassification = CustomerContent;
@@ -73,7 +94,7 @@ table 50604 "Order Intake Header Opt."
 
     trigger OnDelete()
     var
-        Workload: Record "Workorder";
+        Workload: Record "Work Order";
         MsgLbl: Label 'Cannot delete Order Intake with status Released or Done.';
     begin
         if Status in [Status::Released, Status::Done] then begin

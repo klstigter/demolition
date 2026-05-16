@@ -17,7 +17,7 @@ page 50661 "Workorder Cap. Req. Subfrm"
                     ApplicationArea = All;
                     Visible = true;
                 }
-                field("Sequence No."; Rec."Sequence No.")
+                field("Sequence No."; Rec."Offset No.")
                 {
                     ApplicationArea = All;
                 }

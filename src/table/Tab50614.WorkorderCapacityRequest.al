@@ -10,7 +10,7 @@ table 50614 "Workorder Capacity Request"
         field(1; "Workorder No."; Code[20])
         {
             Caption = 'Workorder No.';
-            TableRelation = "Workorder"."Workorder No.";
+            TableRelation = "Work Order"."Work Order No.";
         }
 
         field(2; "Line No."; Integer)
@@ -18,9 +18,9 @@ table 50614 "Workorder Capacity Request"
             Caption = 'Line No.';
         }
 
-        field(10; "Sequence No."; Integer)
+        field(10; "Offset No."; Integer)
         {
-            Caption = 'Sequence No.';
+            Caption = 'Offset No.';
         }
         field(20; "Resource No."; Code[20])
         {
@@ -120,17 +120,17 @@ table 50614 "Workorder Capacity Request"
             Clustered = true;
         }
 
-        key(Key1; "Sequence No.")
+        key(Key1; "Offset No.")
         {
         }
 
     }
     var
-        WorkOrder: Record "Workorder";
+        WorkOrder: Record "Work Order";
 
     procedure GetWorkOrder()
     begin
-        if WorkOrder."Workorder No." <> Rec."Workorder No." then
+        if WorkOrder."Work Order No." <> Rec."Workorder No." then
             WorkOrder.Get("Workorder No.");
     end;
 

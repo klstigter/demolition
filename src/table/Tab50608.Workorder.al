@@ -1,15 +1,15 @@
-table 50608 "Workorder"
+table 50608 "Work Order"
 {
     Caption = 'Workorder';
     DataClassification = CustomerContent;
 
     fields
     {
-        field(1; "Workorder No."; Code[20])
+        field(1; "Work Order No."; Code[20])
         {
             Caption = 'No.';
             DataClassification = CustomerContent;
-            NotBlank = true;
+
         }
 
         field(10; "Order Intake No."; Code[20])
@@ -24,8 +24,14 @@ table 50608 "Workorder"
             Caption = 'Description';
             DataClassification = CustomerContent;
         }
+        field(25; "Work Order NOS"; Code[20])
+        {
+            Caption = 'Work Order NOS';
+            DataClassification = CustomerContent;
+            tableRelation = "No. Series";
+        }
 
-        field(30; "Long Description"; Text[2048])
+        field(30; "Long Description"; blob)
         {
             Caption = 'Long Description';
             DataClassification = CustomerContent;
@@ -97,7 +103,7 @@ table 50608 "Workorder"
             var
                 WorkloadSpec: Record "Workorder Capacity Request";
             begin
-                WorkloadSpec.SetRange("Workorder No.", "Workorder No.");
+                WorkloadSpec.SetRange("Workorder No.", "Work Order No.");
                 if WorkloadSpec.FindFirst() then
                     repeat
                         WorkloadSpec.CalcTotalHours("Time Span Days");
@@ -105,14 +111,19 @@ table 50608 "Workorder"
 
             end;
         }
+        field(225; "Placeholder Date"; Date)
+        {
+            Caption = 'Placeholder Date';
+            DataClassification = CustomerContent;
+        }
 
         field(230; "Requested Hours"; Decimal)
         {
             Caption = 'Requested Hours';
             DecimalPlaces = 0 : 5;
             FieldClass = FlowField;
-            CalcFormula = sum("Workorder Capacity Request"."Total Hours Workorder Spec." where("Workorder No." = FIELD("Workorder No.")));
-            //Editable = false;
+            CalcFormula = sum("Workorder Capacity Request"."Total Hours Workorder Spec." where("Workorder No." = FIELD("Work Order No.")));
+            Editable = false;
 
         }
 
@@ -161,11 +172,17 @@ table 50608 "Workorder"
             Editable = false;
             DataClassification = EndUserIdentifiableInformation;
         }
+        field(1000; "No. Series"; Code[20])
+        {
+            Caption = 'No. Series';
+            Editable = false;
+            TableRelation = "No. Series";
+        }
     }
 
     keys
     {
-        key(PK; "Workorder No.")
+        key(PK; "Work Order No.")
         {
             Clustered = true;
         }
@@ -185,17 +202,18 @@ table 50608 "Workorder"
 
     fieldgroups
     {
-        fieldgroup(DropDown; "Workorder No.", Description, "Customer No.", "Date Window Start", "Date Window End")
+        fieldgroup(DropDown; "Work Order No.", Description, "Customer No.", "Date Window Start", "Date Window End")
         {
         }
 
-        fieldgroup(Brick; "Workorder No.", Description, "Customer No.", "Requested Hours")
+        fieldgroup(Brick; "Work Order No.", Description, "Customer No.", "Requested Hours")
         {
         }
     }
 
     trigger OnInsert()
     begin
+        testfield("Work Order No.");
         "Created DateTime" := CurrentDateTime();
         "Created By" := CopyStr(UserId(), 1, MaxStrLen("Created By"));
         SetLastModified();
@@ -206,9 +224,61 @@ table 50608 "Workorder"
         SetLastModified();
     end;
 
+    var
+        WorkOrder: Record "Work Order";
+        OptimizerSetup: record "Daily Optimizer Setup";
+        NoSeries: Codeunit "No. Series";
+
+    procedure AssistEdit(OldWorkOrder: Record "Work Order") Result: Boolean
+    var
+        IsHandled: Boolean;
+    begin
+        IsHandled := false;
+        OnBeforeAssistEdit(Rec, OldWorkOrder, IsHandled, Result);
+        if IsHandled then
+            exit(Result);
+
+        WorkOrder := Rec;
+        OptimizerSetup.Get();
+        OptimizerSetup.TestField("Order Intake Nos");
+        if NoSeries.LookupRelatedNoSeries(OptimizerSetup."Order Intake Nos", OldWorkOrder."No. Series", WorkOrder."No. Series") then begin
+            WorkOrder."Work Order No." := NoSeries.GetNextNo(WorkOrder."No. Series");
+            Rec := WorkOrder;
+            exit(true);
+        end;
+    end;
+
+    procedure SetDescription(pDescBody: Text)
+    var
+        OutStream: OutStream;
+    begin
+        Rec."Long Description".CreateOutStream(OutStream);
+        OutStream.WriteText(pDescBody);
+        Rec.Modify();
+    end;
+
+    procedure GetDescription(): Text
+    var
+        InStream: InStream;
+        DescText: Text;
+    begin
+        DescText := '';
+        Rec.CalcFields("Long Description");
+        if Rec."Long Description".HasValue() then begin
+            Rec."Long Description".CreateInStream(InStream);
+            InStream.ReadText(DescText);
+        end;
+        exit(DescText);
+    end;
+
     local procedure SetLastModified()
     begin
         "Last Modified DateTime" := CurrentDateTime();
         "Last Modified By" := CopyStr(UserId(), 1, MaxStrLen("Last Modified By"));
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnBeforeAssistEdit(var OrderIntakeHeader: Record "Work Order"; xOldOrderIntakeHeader: Record "Work Order"; var IsHandled: Boolean; var Result: Boolean)
+    begin
     end;
 }

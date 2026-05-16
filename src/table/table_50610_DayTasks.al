@@ -31,6 +31,11 @@ table 50610 "Day Tasks"
             TableRelation = "Job Task"."Job Task No." where("Job No." = field("Job No."));
             Caption = 'Job Task No.';
         }
+        field(5; "Plan Status"; Enum "Plan Status")
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Plan Status';
+        }
         field(11; "Start Time Assigned"; Time)
         {
             DataClassification = ToBeClassified;

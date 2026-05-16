@@ -271,6 +271,11 @@ page 50626 "Summary View"
             repeater(Summary)
             {
 
+                field("Job No."; Rec."Job No.")
+                {
+                    ToolTip = 'Specifies the value of the Job No. field.', Comment = '%';
+                    Visible = ShowJob;
+                }
                 field("Job Task No."; Rec."Job Task No.")
                 {
                     ToolTip = 'Specifies the value of the Job Task No. field.', Comment = '%';

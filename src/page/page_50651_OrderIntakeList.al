@@ -28,6 +28,19 @@ page 50651 "Order Intake Opt."
                 {
                     ApplicationArea = All;
                 }
+                field("Customer No."; Rec."Customer No.")
+                {
+                    ApplicationArea = All;
+                }
+                field("Contact No."; Rec."Contact No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the contact number for the order intake. This field is typically used for display purposes and is not required, as the customer number can be used to retrieve the contact number from the related customer record.';
+                }
+                field(CustomerName; Rec."Customer Name")
+                {
+                    ApplicationArea = All;
+                }
                 field("Status"; Rec."Status")
                 {
                     ApplicationArea = All;

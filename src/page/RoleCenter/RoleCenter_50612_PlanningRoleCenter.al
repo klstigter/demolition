@@ -25,6 +25,14 @@ page 50612 "Planning Role Center"
             group("ProjectPlanningGroup")
             {
                 Caption = 'Project Planning';
+                action("DaytaskOrderIntake")
+                {
+                    ApplicationArea = Jobs;
+                    Caption = 'Order Intake';
+                    RunObject = Page "Order Intake Opt.";
+                    Image = Quote;
+                    ToolTip = 'Open the Daytask Order Intake page to manage daytask orders.';
+                }
                 action("Jobs")
                 {
                     ApplicationArea = Jobs;
@@ -53,14 +61,7 @@ page 50612 "Planning Role Center"
                     Image = PostBatch;
                     ToolTip = 'Open the Daytask posting journal to retrieve unposted day tasks and post them to the project ledger.';
                 }
-                action("DaytaskOrderIntake")
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Order Intake';
-                    RunObject = Page "Order Intake Opt.";
-                    Image = Quote;
-                    ToolTip = 'Open the Daytask Order Intake page to manage daytask orders.';
-                }
+
             }
 
             group("ResourcePlanningGroup")
