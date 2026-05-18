@@ -390,16 +390,29 @@ codeunit 50602 "Create Demo Data"
 
     local procedure CreateCapacityAndDayTask()
     var
+        ReCap: Record "Res. Capacity Entry";
+        DayTask: Record "Day Tasks";
         ResNo: Code[20];
         JobNo: Code[20];
         StarDate: Date;
         EndDate: Date;
         n: Integer;
+        confirmLbl: Label 'Do you want delete all existing Capacity and Day Task entries in period %1 to %2?';
     begin
         // Load work-hour template once — used to skip non-working days
         gWorkHoursTemplate.Get('BASIS');
         StarDate := calcdate('<WD1-1W>', Today);
         EndDate := CalcDate('+5W', StarDate);
+
+        if Confirm(confirmLbl, false, StarDate, EndDate) then begin
+            ReCap.SetRange(Date, StarDate, EndDate);
+            if ReCap.FindSet() then
+                ReCap.DeleteAll();
+            DayTask.SetRange("Task Date", StarDate, EndDate);
+            if DayTask.FindSet() then
+                DayTask.DeleteAll();
+        end;
+
         for n := 1 to 2 do begin
             case n of
                 1:
