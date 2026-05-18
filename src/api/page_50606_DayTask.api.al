@@ -45,6 +45,10 @@ page 50606 "DayTaskApi Opt"
                 {
                     Caption = 'Description';
                 }
+                field(planStatus; Rec."Plan Status")
+                {
+                    ApplicationArea = All;
+                }
                 field(assignedHours; Rec."Assigned Hours")
                 {
                     ApplicationArea = All;

@@ -53,7 +53,12 @@ page 50630 "Day Tasks"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the day number in the sequence.';
                     StyleExpr = StyleStr;
-
+                }
+                field("Plan Status"; Rec."Plan Status")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the plan status of the day task.';
+                    StyleExpr = StyleStr;
                 }
                 field(DayLineNo; Rec."Day Line No.")
                 {

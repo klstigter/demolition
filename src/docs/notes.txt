@@ -162,11 +162,9 @@ API - 2026.04.29
 
 15. Opti Job Task Card (50618, Card) -> Resource week tab -> filter: thisweek..
 16. Resource Scheduler
-      flag: Internal
-               active/non active
-            External
-               active/non active
-               has Daytask
+      new field flag: Internal/External
+      new field: active/non active (has Daytask?) -> name: Mandatory Schedulling
+      new field: Team Leader
 
       not show -> not show non active resources
       Show Always -> all resources
@@ -176,24 +174,22 @@ API - 2026.04.29
 19. Project -> Project Type (lookup new support table+page) -> publish in API ---(OK)
 
 
-Order intake:
+20. Order intake:
 	- Text addin                                                      ---(OK)
-   - Add "Plan Start Date" -> for planning/gantt chart
+   - Add "Place Holder Date" in Workorder                            ---(OK)
 
-Gantt:
+21. Gantt:
 	- filtering: right clicked -> resources -> filter is not correct  ---(OK)
 	- task geser: day task harus ikut range                           ---(OK)
 	
-
-Resource schedule:
-	- Workorder list, how to do that?
-	
-Daytask:
+22. Daytask:
 	- Lepas date from primarykey                                      ---(OK)
 
-
-Resouce
+23. Resouce
    - Vendor No. able to fill in if resource is pool                  ---(OK)
 
-
+24. Daytask
+      - Add New field: Day No. -> planner able to add day number
+         Daytask Date is blank, but the gantt follow Place Order Date to visualized
+         the actual date is after plnner place exact date in gantt and plan status changed
 
