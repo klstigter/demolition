@@ -408,6 +408,7 @@ page 50626 "Summary View"
         ShowJobTask: Boolean;
         ShowYear: Boolean;
         ShowWeekNo: Boolean;
+        ShowPlanStatus: Boolean;
 
     procedure LoadDataSet(DateRangeFilter: Text)
     begin
@@ -507,10 +508,13 @@ page 50626 "Summary View"
             rc.SetRange("No.", Rec."Resource No.");
         if ShowSkillCode then
             rc.SetRange("Skill", Rec."Skill Code");
+        //if SHowPlanStatus then
+        //    rc.SetRange("Plan Status", Rec."Plan Status");
+        ShowPlanStatus := true;
         rc.FilterGroup(0);
         PG.SetTableView(Rc);
 
-        pg.SetColumsVisible(ShowJob, ShowJobTask, ShowResource, ShowSkillCode);
+        pg.SetColumsVisible(ShowJob, ShowJobTask, ShowResource, ShowSkillCode, SHowPlanStatus);
         Pg.Run();
     end;
 

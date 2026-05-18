@@ -44,24 +44,17 @@ page 50630 "Day Tasks"
                     Visible = Not ShowSkill;
                     Editable = false;
                 }
+                field("Plan Status Filter"; GetTableViewFilter(rec.FieldNo("Plan Status")))
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the planning status to filter on.';
+                    Visible = Not ShowPlanStatus;
+                    Editable = false;
+                }
 
             }
             repeater(Lines)
             {
-                field("Task Date"; Rec."Task Date")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the day number in the sequence.';
-                    StyleExpr = StyleStr;
-
-                }
-                field(DayLineNo; Rec."Day Line No.")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the line number for this day task.';
-                    StyleExpr = StyleStr;
-                    visible = false;
-                }
                 field("Job No."; Rec."Job No.")
                 {
                     ApplicationArea = All;
@@ -74,6 +67,28 @@ page 50630 "Day Tasks"
                     ToolTip = 'Specifies the job task number.';
                     Visible = ShowJobTask;
                 }
+                field(DayLineNo; Rec."Day Line No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the line number for this day task.';
+                    StyleExpr = StyleStr;
+                    visible = false;
+                }
+                field("Plan Status"; Rec."Plan Status")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the planning status of this day task.';
+                    StyleExpr = StyleStr;
+                }
+
+                field("Task Date"; Rec."Task Date")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the day number in the sequence.';
+                    StyleExpr = StyleStr;
+
+                }
+
                 field("Data Owner"; Rec."Data Owner")
                 {
                     Caption = 'Data Owner';
@@ -315,6 +330,7 @@ page 50630 "Day Tasks"
         ShowJobTask: Boolean;
         ShowResource: Boolean;
         ShowSkill: Boolean;
+        ShowPlanStatus: Boolean;
         ShowFIlters: Boolean;
 
     trigger OnInit()
@@ -394,12 +410,13 @@ page 50630 "Day Tasks"
 
     end;
 
-    procedure SetColumsVisible(pShowJob: Boolean; pShowJobTask: Boolean; pShowResource: Boolean; pShowSkill: Boolean);
+    procedure SetColumsVisible(pShowJob: Boolean; pShowJobTask: Boolean; pShowResource: Boolean; pShowSkill: Boolean; pShowPlanStatus: Boolean);
     begin
         ShowJob := not pShowJob;
         ShowJobTask := not pShowJobTask;
         ShowResource := not pShowResource;
         ShowSkill := not pShowSkill;
+        ShowPlanStatus := not pShowPlanStatus;
         ShowFIlters := True;
     end;
 
