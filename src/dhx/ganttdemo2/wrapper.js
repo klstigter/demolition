@@ -332,7 +332,10 @@ window.BOOT = function() {
     gantt.config.show_progress = true;
 
     // -------- WORK TIME --------
-    gantt.config.work_time = true;
+    // Keep work_time OFF so that `duration` is always calendar days (matching BC's
+    // Integer Duration field).  With work_time=true, DHTMLX interprets duration as
+    // working days, which stretches the bar length whenever a drag crosses weekends.
+    gantt.config.work_time = false;
     gantt.config.min_column_width = 55;
 
         // -------- EDITORS --------
@@ -415,6 +418,7 @@ window.BOOT = function() {
       return `
         <b>Job: ${task.bcJobNo || "-"}<br/>
         Task: ${task.bcJobTaskNo || "-"}<br/>
+        Period: ${task.start_date ? gantt.templates.date_grid(task.start_date) : "-"} - ${task.end_date ? gantt.templates.date_grid(task.end_date) : "-"}<br/>
         <hr/>
         Constraint: ${constraintText}
       `;
@@ -734,7 +738,52 @@ window.BOOT = function() {
     });
 
     // -------- EVENTS (BC callback) --------
+    // _dragInProgress is true from the moment onAfterTaskDrag fires until a
+    // short timeout clears it. This suppresses ALL onAfterTaskUpdate calls
+    // that originate from the drag itself OR from auto-scheduling cascades
+    // (dependent tasks with different IDs that would otherwise each open
+    // their own BC popup).
+    var _dragInProgress = false;
+
+    // _reloadInProgress is true while LoadProjectData is running a gantt.silent()
+    // reload. gantt.silent() defers events and flushes them synchronously when
+    // the block exits, which can fire onAfterTaskUpdate for every reloaded task
+    // (even though the data came from BC, not from a user edit). Without this
+    // guard, each of those phantom updates would re-open the period-sync popup.
+    var _reloadInProgress = false;
+
+    // ── Drag: send OnJobTaskUpdated exactly once per drag operation ──────────
+    gantt.attachEvent("onAfterTaskDrag", function (id, mode, e) {
+      var task = gantt.getTask(id);
+      // Block ALL onAfterTaskUpdate calls while drag + auto-scheduling settle.
+      _dragInProgress = true;
+      setTimeout(function () { _dragInProgress = false; }, 300);
+      try {
+        var fmt = gantt.date.date_to_str(gantt.config.date_format);
+        var payload = {
+          id: String(id),
+          bcJobNo: task.bcJobNo || "",
+          bcJobTaskNo: task.bcJobTaskNo || "",
+          text: task.text || "",
+          start_date: task.start_date ? fmt(task.start_date) : null,
+          end_date: task.end_date ? fmt(task.end_date) : null,
+          duration: task.duration || 0,
+          schedulingType: task.schedulingType || "",
+          constraint_type: task.constraint_type || "",
+          constraint_date: task.constraint_date ? fmt(task.constraint_date) : null
+        };
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(
+          "OnJobTaskUpdated",
+          [ JSON.stringify(payload) ]
+        );
+      } catch (e) { /* ignore */ }
+      return true;
+    });
+
+    // ── Non-drag saves (lightbox, inline edit) ────────────────────────────────
     gantt.attachEvent("onAfterTaskUpdate", function (id, task) {
+      // Suppress updates from a drag cascade OR from a BC-triggered reload.
+      if (_dragInProgress || _reloadInProgress) return;
       try {
         var fmt = gantt.date.date_to_str(gantt.config.date_format);
 
@@ -1327,6 +1376,10 @@ function LoadProjectData(projectJsonTxt) {
       gantt.config.project_end = _toGanttDate(payload.project_end) || gantt.config.project_end;
 
     // 🔇 SILENT LOAD (this is the key)
+    // Set the reload guard BEFORE silent() so that any onAfterTaskUpdate events
+    // deferred inside the block (and flushed synchronously on silent() exit)
+    // are suppressed and do not trigger another OnJobTaskUpdated BC round-trip.
+    _reloadInProgress = true;
     gantt.silent(function () {
 
       validateConstraintsBeforeParse(tasks);
@@ -1339,6 +1392,11 @@ function LoadProjectData(projectJsonTxt) {
       if (gantt.setSizes) gantt.setSizes();
       if (gantt.resetLayout) gantt.resetLayout();
     });
+    // Deferred events from gantt.silent() fire synchronously at this point.
+    // Use a 500 ms window (instead of 0) so that async auto-scheduling cascades
+    // triggered by the subsequent LoadLinksData / RenderGantt calls are also
+    // suppressed before the guard resets.
+    setTimeout(function () { _reloadInProgress = false; }, 500);
 
     // 🔔 Notify BC AFTER load (no task updates fired)
     Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(

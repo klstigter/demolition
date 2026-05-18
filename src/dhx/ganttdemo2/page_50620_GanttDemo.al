@@ -129,6 +129,7 @@ page 50620 "Gantt Demo DHX 2"
 
                 trigger onOpenDayTask(taskId: Text; eventData: Text)
                 var
+                    JobTask: Record "Job Task";
                     JsonObj: JsonObject;
                     JsonToken: JsonToken;
                     JobNo: Code[20];
@@ -155,7 +156,18 @@ page 50620 "Gantt Demo DHX 2"
                         DayTask.SetRange("Job No.", JobNo);
                     if JobTaskNo <> '' then
                         DayTask.SetRange("Job Task No.", JobTaskNo);
+                    if (JobNo <> '') and (JobTaskNo <> '') then begin
+                        JobTask.Get(JobNo, JobTaskNo);
+                        case true of
+                            (JobTask.PlannedStartDate <> 0D) and (JobTask.PlannedEndDate <> 0D):
+                                DayTask.SetRange("Task Date", JobTask.PlannedStartDate, JobTask.PlannedEndDate);
+                            (JobTask.PlannedStartDate = 0D) and (JobTask.PlannedEndDate <> 0D):
+                                DayTask.Setfilter("Task Date", '..%1', JobTask.PlannedEndDate);
+                            (JobTask.PlannedStartDate <> 0D) and (JobTask.PlannedEndDate = 0D):
+                                DayTask.Setfilter("Task Date", '%1..', JobTask.PlannedStartDate);
+                        end;
 
+                    end;
                     Page.Run(Page::"Day Tasks", DayTask);
                 end;
 
@@ -197,7 +209,18 @@ page 50620 "Gantt Demo DHX 2"
                 var
                     GantUpdatedata: Codeunit "Gantt Update Data";
                 begin
-                    GantUpdatedata.UpdateJobTaskFromJson(eventData);
+                    // UpdateJobTaskFromJson returns false when the user closed the
+                    // DayTask Period Sync Preview popup without clicking Apply Changes
+                    // (OnClosePage fires on the preview page, Applied stays false).
+                    // In that case reload task + link data so the Gantt bar reverts to
+                    // the original DB position instead of staying at the dragged spot.
+                    if not GantUpdatedata.UpdateJobTaskFromJson(eventData) then begin
+                        LoadTaskData();
+                        LoadLinkData();
+                        LoadDayTaskData();
+                        CurrPage.DHXGanttControl2.RenderGantt();
+                        exit;
+                    end;
                     LoadDayTaskData();
                 end;
 
