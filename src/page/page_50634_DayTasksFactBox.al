@@ -20,6 +20,11 @@ page 50634 "Day Tasks FactBox"
                 {
                     ApplicationArea = All;
                 }
+                field("Plan Status"; Rec."Plan Status")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the plan status of the day task.';
+                }
                 field("Data Owner"; Rec."Data Owner")
                 {
                     Caption = 'Data Owner';

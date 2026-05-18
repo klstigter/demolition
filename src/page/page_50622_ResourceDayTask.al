@@ -25,6 +25,11 @@ page 50622 "Resource Day Tasks"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the resource group number.';
                 }
+                field("Plan Status"; Rec."Plan Status")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the plan status of the day task.';
+                }
                 field("Data Owner"; Rec."Data Owner")
                 {
                     Caption = 'Data Owner';

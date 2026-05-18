@@ -59,7 +59,7 @@ page 50630 "Day Tasks"
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the job number.';
-                    Visible = SHowJob;
+                    Visible = ShowJob;
                 }
                 field("Job Task No."; Rec."Job Task No.")
                 {

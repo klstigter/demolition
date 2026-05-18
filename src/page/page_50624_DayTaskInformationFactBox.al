@@ -17,6 +17,11 @@ page 50624 "Day Task Information FactBox"
                     ToolTip = 'Specifies the day number in the sequence.';
                     Caption = 'Day No.';
                 }
+                field("Plan Status"; Rec."Plan Status")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the plan status of the day task.';
+                }
                 field(DayLineNo; Rec."Day Line No.")
                 {
                     ApplicationArea = All;
