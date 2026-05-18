@@ -17,6 +17,10 @@ tableextension 50605 "Job Task ext" extends "Job Task"
             trigger OnValidate()
             begin
                 CalculateDuration();
+                if not DayTaskPeriodSyncMgt.HandleJobTaskPeriodChange(Rec, xRec.PlannedStartDate, xRec.PlannedEndDate, true) then begin
+                    Rec.PlannedStartDate := xRec.PlannedStartDate;
+                    Rec.Duration := xRec.Duration;
+                end;
             end;
         }
         field(50522; PlannedEndDate; Date)
@@ -27,6 +31,12 @@ tableextension 50605 "Job Task ext" extends "Job Task"
             trigger OnValidate()
             begin
                 CalculateDuration();
+                if not DayTaskPeriodSyncMgt.HandleJobTaskPeriodChange(Rec, xRec.PlannedStartDate, xRec.PlannedEndDate, true) then begin
+                    Rec.PlannedEndDate := xRec.PlannedEndDate;
+                    Rec.Duration := xRec.Duration;
+                    if GuiAllowed then
+                        Message('Period change was cancelled. Planned Start and End Date reverted to %1 - %2', Rec.PlannedStartDate, Rec.PlannedEndDate);
+                end;
             end;
         }
         field(50523; "Start Time"; Time)
@@ -140,6 +150,7 @@ tableextension 50605 "Job Task ext" extends "Job Task"
 
     var
         DayTaskMgt: Codeunit "Day Tasks Mgt.";
+        DayTaskPeriodSyncMgt: Codeunit "DayTask Period Sync Mgt.";
         Job: Record Job;
 
     procedure CalculateDuration()

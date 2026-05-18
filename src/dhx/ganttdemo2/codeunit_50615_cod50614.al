@@ -52,6 +52,11 @@ codeunit 50615 "Gantt Update Data"
                     'text':
                         begin
                             Description := CopyStr(JsonValue.AsText(), 1, MaxStrLen(Description));
+                            // GanttChartDataHandler prefixes Posting tasks with "TaskNo - " for display
+                            // (e.g. "2010 - Spare Parts Procurement"). Strip that prefix here so it is
+                            // never written back to Description, preventing the accumulation bug.
+                            if CopyStr(Description, 1, StrLen(JobTask."Job Task No.") + 3) = JobTask."Job Task No." + ' - ' then
+                                Description := CopyStr(Description, StrLen(JobTask."Job Task No.") + 4, MaxStrLen(Description));
                             JobTask.Description := Description;
                         end;
                     'start_date':
@@ -64,7 +69,7 @@ codeunit 50615 "Gantt Update Data"
                         begin
                             d := JsonValue.AsDate();
                             if d <> JobTask."PlannedEndDate" then
-                                JobTask.validate("PlannedEndDate", d);
+                                JobTask."PlannedEndDate" := d;
                         end;
                     'duration':
                         begin
@@ -93,7 +98,7 @@ codeunit 50615 "Gantt Update Data"
            ((NewStartDate <> OldStartDate) or (NewEndDate <> OldEndDate)) then begin
             // Period changed: open preview page. Returns FALSE if user cancelled
             // → neither JobTask nor DayTask records are written to the database.
-            if not DayTaskPeriodSyncMgt.ShowPreview(JobTask, JobNo, JobTaskNo, OldStartDate, OldEndDate, NewStartDate, NewEndDate) then
+            if not DayTaskPeriodSyncMgt.HandleJobTaskPeriodChange(JobTask, OldStartDate, OldEndDate, false) then
                 exit(false);
         end else begin
             // No period change: save immediately for other field changes (description, etc.)
