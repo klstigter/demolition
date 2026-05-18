@@ -122,4 +122,45 @@ codeunit 50617 "DayTask Period Sync Mgt."
 
         Commit();
     end;
+
+    /// <summary>
+    /// Shared entry point for handling a Job Task period change from any source (Gantt or page OnValidate).
+    /// When SkipJobTaskModify = TRUE the preview only updates DayTask records; the page is responsible
+    /// for persisting the JobTask. When FALSE the original Gantt behaviour applies (Modify + Commit).
+    /// If no DayTask records are affected and SkipJobTaskModify = TRUE, returns TRUE immediately
+    /// without opening any dialog. Returns FALSE when the user cancels the preview.
+    /// </summary>
+    procedure HandleJobTaskPeriodChange(var JobTask: Record "Job Task"; OldStart: Date; OldEnd: Date; SkipJobTaskModify: Boolean): Boolean
+    var
+        TempPreviewBuffer: Record "DayTask Sync Preview Buffer" temporary;
+        PreviewPage: Page "DayTask Period Sync Preview";
+    begin
+        if not CalculateChanges(JobTask."Job No.", JobTask."Job Task No.", OldStart, OldEnd, JobTask.PlannedStartDate, JobTask.PlannedEndDate, TempPreviewBuffer) then
+            if SkipJobTaskModify then
+                exit(true); // No DayTasks affected; the calling page handles the JobTask persist.
+
+        PreviewPage.SetPreviewData(TempPreviewBuffer);
+        PreviewPage.SetJobTask(JobTask);
+        PreviewPage.SetSkipJobTaskModify(SkipJobTaskModify);
+        PreviewPage.RunModal();
+        exit(PreviewPage.WasApplied());
+    end;
+
+    /// <summary>
+    /// Updates DayTask dates from the preview buffer without calling JobTask.Modify or Commit.
+    /// Used when the calling page manages the full transaction (SkipJobTaskModify = TRUE path).
+    /// </summary>
+    procedure ApplyChangesOnly(var TempPreviewBuffer: Record "DayTask Sync Preview Buffer")
+    var
+        DayTask: Record "Day Tasks";
+    begin
+        TempPreviewBuffer.Reset();
+        if TempPreviewBuffer.FindSet() then
+            repeat
+                if DayTask.Get(TempPreviewBuffer."Job No.", TempPreviewBuffer."Job Task No.", TempPreviewBuffer."Day Line No.") then begin
+                    DayTask."Task Date" := TempPreviewBuffer."New Task Date";
+                    DayTask.Modify();
+                end;
+            until TempPreviewBuffer.Next() = 0;
+    end;
 }

@@ -842,14 +842,21 @@ page 50620 "Gantt Demo DHX 2"
             Error('Invalid JSON format');
 
         // Extract BC bindings
-        if JsonObj.Get('id', JsonToken) then
-            JobNo := JsonToken.AsValue().AsCode()
-        else
+        if JsonObj.Get('id', JsonToken) then begin
+            JobNo := CopyStr(JsonToken.AsValue().AsText().Split('|').Get(1), 1, MaxStrLen(JobNo));
+            JobTaskNo := CopyStr(JsonToken.AsValue().AsText().Split('|').Get(2), 1, MaxStrLen(JobTaskNo));
+        end else
             Error('id. missing in JSON');
+
+        if not JobTask.Get(JobNo, JobTaskNo) then
+            exit;
 
         // Extract and update Description
         if JsonObj.Get('text', JsonToken) then begin
-            Description := CopyStr(JsonToken.AsValue().AsText(), 1, MaxStrLen(JobTask.Description));
+            Description := CopyStr(JsonToken.AsValue().AsText(), 1, MaxStrLen(Description));
+            // Strip the "TaskNo - " display prefix added by GanttChartDataHandler to prevent accumulation
+            if CopyStr(Description, 1, StrLen(JobTask."Job Task No.") + 3) = JobTask."Job Task No." + ' - ' then
+                Description := CopyStr(Description, StrLen(JobTask."Job Task No.") + 4, MaxStrLen(Description));
             if JobTask.Description <> Description then
                 JobTask.Description := Description;
         end;

@@ -90,7 +90,10 @@ page 50663 "DayTask Period Sync Preview"
                 begin
                     Rec.Reset();
                     RecordCount := Rec.Count();
-                    DayTaskPeriodSyncMgt.ApplyChanges(SavedJobTask, Rec);
+                    if SkipJobTaskModify then
+                        DayTaskPeriodSyncMgt.ApplyChangesOnly(Rec)
+                    else
+                        DayTaskPeriodSyncMgt.ApplyChanges(SavedJobTask, Rec);
                     Applied := true;
                     Message(AppliedMsg, RecordCount);
                     CurrPage.Close();
@@ -134,6 +137,16 @@ page 50663 "DayTask Period Sync Preview"
         SavedJobTask := JT;
     end;
 
+    /// <summary>
+    /// When TRUE the Apply Changes action calls ApplyChangesOnly (no JobTask.Modify / Commit).
+    /// Set to TRUE when the preview is opened from a table extension OnValidate trigger;
+    /// the page that owns the record handles the persist automatically.
+    /// </summary>
+    procedure SetSkipJobTaskModify(Value: Boolean)
+    begin
+        SkipJobTaskModify := Value;
+    end;
+
     procedure WasApplied(): Boolean
     begin
         exit(Applied);
@@ -142,5 +155,6 @@ page 50663 "DayTask Period Sync Preview"
     var
         InfoTxt: Text;
         Applied: Boolean;
+        SkipJobTaskModify: Boolean;
         SavedJobTask: Record "Job Task";
 }
