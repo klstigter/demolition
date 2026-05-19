@@ -193,3 +193,8 @@ API - 2026.04.29
          Daytask Date is blank, but the gantt follow Place Order Date to visualized
          the actual date is after plnner place exact date in gantt and plan status changed
 
+25. Calling Summary in Gantt chart depend on context of all gantt and per project task
+
+26. Add parameter Calendar + hours setup into project task changes
+
+27. new Lookup page to edit/changes start-end date for project task

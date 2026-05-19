@@ -109,6 +109,7 @@ codeunit 50615 "Gantt Update Data"
         exit(true);
     end;
 
+    // Related to Duration / Progress
     local procedure ConvertSchedulingType(value: text) schedulingType: Enum "schedulingType"
     begin
         case value of
@@ -123,6 +124,7 @@ codeunit 50615 "Gantt Update Data"
         end;
     end;
 
+    // Related to start -end date
     local procedure ConvertConstraint_type(value: text) ganttConstraintType: Enum "Gantt Constraint Type"
     begin
         case value of
