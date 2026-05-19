@@ -42,26 +42,21 @@ report 50600 "RepairData"
 
     trigger OnPreReport()
     var
-        JobTask: Record "Job Task";
-        Prefix: Text;
-        Fixed: Integer;
+        Res0: Record Resource;
+        Res: Record Resource;
+        n: Integer;
     begin
-        // Repair description accumulation caused by GanttChartDataHandler prepending
-        // "TaskNo - " to the Gantt text field, which was then saved back to Description.
-        // Example: "2010 - 2010 - 2010 - Spare Parts Procurement" → "Spare Parts Procurement"
-        JobTask.SetRange("Job Task Type", JobTask."Job Task Type"::Posting);
-        if JobTask.FindSet(true) then
+        Res0.SetFilter("Pool Resource No.", '<>%1', '');
+        if Res0.FindSet() then
             repeat
-                Prefix := JobTask."Job Task No." + ' - ';
-                // Strip all accumulated copies of the prefix
-                while CopyStr(JobTask.Description, 1, StrLen(Prefix)) = Prefix do begin
-                    JobTask.Description := CopyStr(JobTask.Description, StrLen(Prefix) + 1, MaxStrLen(JobTask.Description));
-                    Fixed += 1;
+                Res.Get(Res0."Pool Resource No.");
+                if Res."Vendor No." <> '' then begin
+                    Res0."External Resource" := true;
+                    Res0.Modify();
+                    n += 1;
                 end;
-                JobTask.Modify();
-            until JobTask.Next() = 0;
-
-        Message('Finished. %1 description(s) repaired.', Fixed);
+            until Res0.Next() = 0;
+        Message('Finished. %1 resource(s) repaired.', n);
     end;
 
     var
