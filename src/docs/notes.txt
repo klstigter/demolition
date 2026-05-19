@@ -160,19 +160,15 @@ API - 2026.04.29
 5. Resource : Vendor No.                     ---(OK) -> Customer No tidka ada di Resource
 6. Job -> Bill-to Customer No.               ---(OK)
 
-15. Opti Job Task Card (50618, Card) -> Resource week tab -> filter: thisweek       ---(OK)
+15. Opti Job Task Card (50618, Card) -> Resource week tab -> filter: thisweek          ---(OK)
 16. Resource Scheduler
       in Resource Table:
-         new field flag: Internal/External -> from validation of resource pool or not
-         new field: active/non active (has Daytask?) -> name: Mandatory Schedulling
-         new field: Team Leader
-
-      not show -> not show non active resources
-      Show Always -> all resources
-      Show only in daytask
-17. Resource Card (76, Card) -> daytask factbox is not sync
+         new field flag: Internal/External -> from validation of resource pool or not  ---(OK)
+         new field: active/non active (has Daytask?) -> name: Mandatory Schedulling    ---(OK)
+         new field: Team Leader                                                        ---(OK)
+17. Resource Card (76,Card)-> daytask factbox does not sync-> not relevan as #18 below ---(OK)
 18. Resource: new list+card pages
-19. Project -> Project Type (lookup new support table+page) -> publish in API ---(OK)
+19. Project -> Project Type (lookup new support table+page) -> publish in API          ---(OK)
 
 
 20. Order intake:
