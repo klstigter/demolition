@@ -49,6 +49,22 @@ tableextension 50603 "Resource Opt" extends Resource
             FieldClass = FlowField;
             Editable = false;
         }
+        field(50620; "Mandatory Schedulling"; Boolean)
+        {
+            DataClassification = ToBeClassified;
+        }
+        field(50630; "Team Leader"; Code[20])
+        {
+            DataClassification = ToBeClassified;
+            tablerelation = Resource;
+        }
+        field(50621; "Team Leader Name"; Text[100])
+        {
+            Caption = 'Team Leader Name';
+            FieldClass = FlowField;
+            CalcFormula = Lookup(Resource.Name Where("No." = field("Team Leader")));
+            Editable = false;
+        }
     }
 
     keys

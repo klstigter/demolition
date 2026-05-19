@@ -31,6 +31,18 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
                 {
                     ApplicationArea = All;
                 }
+                field("Team Leader"; Rec."Team Leader")
+                {
+                    ApplicationArea = All;
+                }
+                field("Team Leader Name"; Rec."Team Leader Name")
+                {
+                    ApplicationArea = All;
+                }
+                field("Mandatory Schedulling"; Rec."Mandatory Schedulling")
+                {
+                    ApplicationArea = All;
+                }
             }
         }
         addafter(Control1906609707)
