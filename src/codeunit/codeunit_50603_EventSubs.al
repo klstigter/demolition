@@ -73,11 +73,21 @@ codeunit 50603 "EventSubs"
     [EventSubscriber(ObjectType::Table, Database::"Resource", 'OnAfterValidateEvent', 'Vendor No.', false, false)]
     local procedure Table_Resource_OnAfterValidateEvent(var Rec: Record Resource; xRec: Record Resource; CurrFieldNo: Integer)
     var
+        Res: Record Resource;
+        Extrnl: Boolean;
         Text003: Label '%1 must be applied to a pool resource. Selected resource: %2. is not a pool.';
     begin
-        if Rec."Vendor No." <> '' then begin
+        Extrnl := Rec."Vendor No." <> '';
+        if Extrnl then begin
             if Rec."No." <> Rec."Pool Resource No." then
                 Error(Text003, Rec.FieldCaption("Vendor No."), Rec."No.");
         end;
+        Rec."External Resource" := Extrnl;
+        Rec.Modify();
+        // update "External Resource" = true for all member
+        Res.SetRange("Pool Resource No.", Rec."No.");
+        Res.SetFilter("No.", '<>%1', Rec."No.");
+        if Res.FindSet() then
+            Res.ModifyAll("External Resource", Extrnl);
     end;
 }

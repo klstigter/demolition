@@ -271,6 +271,8 @@ page 50638 "Resource Week View Part"
         if (JobNo = '') or (JobTaskNo = '') then
             exit;
         Rec.FillSummary(JobNo, JobTaskNo);
+        Rec.SetRange("Week No.", Date2DWY(Today(), 2));
+        CurrPage.Update(false);
     end;
 
     local procedure GetWeekStartFromYearWeek(YearValue: Integer; WeekNo: Integer): Date

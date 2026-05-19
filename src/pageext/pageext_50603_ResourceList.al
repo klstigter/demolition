@@ -13,6 +13,10 @@ pageextension 50603 "Opt ResourceList" extends "Resource List"
             {
                 ApplicationArea = All;
             }
+            field("External Resource"; Rec."External Resource")
+            {
+                ApplicationArea = All;
+            }
         }
     }
 

@@ -27,6 +27,10 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the pool resource number associated with the resource.';
                 }
+                field("External Resource"; Rec."External Resource")
+                {
+                    ApplicationArea = All;
+                }
             }
         }
         addafter(Control1906609707)
