@@ -14,6 +14,7 @@ var resourcesStore = null;
 var dayTasksStore = null;
 var _isRefreshing = false;
 var _resourceFilterInfo = null; // { job, task, periodFrom, periodTo }
+var _ganttHolidays = {}; // { "YYYY-MM-DD": "Description", ... } loaded from BC Base Calendar
 
 // -------------------------------------------------------
 // 1) BOOT (run once)
@@ -284,12 +285,19 @@ window.BOOT = function() {
     gantt.config.resource_property = "resource_id";
 
 
-    // -------- WEEKEND HIGHLIGHT --------
+    // -------- WEEKEND + HOLIDAY HIGHLIGHT --------
+    var _dateFmt = gantt.date.date_to_str("%Y-%m-%d");
     gantt.templates.scale_cell_class = function (date) {
-      return (date.getDay() === 0 || date.getDay() === 6) ? "weekend" : "";
+      var d = date.getDay();
+      if (d === 0 || d === 6) return "weekend";
+      if (_ganttHolidays[_dateFmt(date)]) return "holiday";
+      return "";
     };
     gantt.templates.timeline_cell_class = function (item, date) {
-      return (date.getDay() === 0 || date.getDay() === 6) ? "weekend" : "";
+      var d = date.getDay();
+      if (d === 0 || d === 6) return "weekend";
+      if (_ganttHolidays[_dateFmt(date)]) return "holiday";
+      return "";
     };
 
     // -------- TASK TYPE CLASS (CSS hook) --------
@@ -332,8 +340,8 @@ window.BOOT = function() {
     gantt.config.show_progress = true;
 
     // -------- WORK TIME --------
-    // Keep work_time OFF so that `duration` is always calendar days (matching BC's
-    // Integer Duration field).  With work_time=true, DHTMLX interprets duration as
+    // Keep work_time OFF so that `duration` is always calendar days (matching BC's Integer Duration field).  
+    // With work_time=true, DHTMLX interprets duration as
     // working days, which stretches the bar length whenever a drag crosses weekends.
     gantt.config.work_time = false;
     gantt.config.min_column_width = 55;
@@ -2107,3 +2115,26 @@ function _escHtml(str) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
+
+// -------------------------------------------------------
+// LoadHolidaysData - called from BC with Base Calendar non-working days
+// JSON: [{ "date": "2026-01-01", "description": "New Year", "type": "holiday" }, ...]
+// -------------------------------------------------------
+function LoadHolidaysData(holidaysJsonTxt) {
+  _ganttHolidays = {};
+  try {
+    var data = JSON.parse(holidaysJsonTxt || "[]");
+    if (Array.isArray(data)) {
+      data.forEach(function(h) {
+        if (h.date) _ganttHolidays[h.date] = h.description || "Holiday";
+      });
+    }
+  } catch (e) {
+    console.error("LoadHolidaysData parse error:", e);
+  }
+  // Re-render so the new highlighting takes effect immediately
+  if (gantt && typeof gantt.render === "function") {
+    gantt.render();
+  }
+}
+window.LoadHolidaysData = LoadHolidaysData;

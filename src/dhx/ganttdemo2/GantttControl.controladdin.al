@@ -54,4 +54,5 @@ controladdin "DHX Gantt Control 2"
     procedure UpsertLink(linkJsonTxt: Text);
     procedure DeleteLink(linkId: Text);
     procedure LoadLinksData(linksJsonTxt: Text);
+    procedure LoadHolidaysData(holidaysJsonTxt: Text);
 }

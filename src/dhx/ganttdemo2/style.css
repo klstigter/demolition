@@ -7,7 +7,11 @@ html,
 		}
 
 		.weekend {
-			background: var(--dhx-gantt-base-colors-background-alt);
+			background: #ffe0e0; /* light red for Saturday / Sunday */
+		}
+
+		.holiday {
+			background: #fff3cd; /* light amber for public holidays */
 		}
 
 		[data-column-name='constraint_type'] .gantt_tree_content {
