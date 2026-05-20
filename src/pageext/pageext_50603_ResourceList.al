@@ -17,6 +17,18 @@ pageextension 50603 "Opt ResourceList" extends "Resource List"
             {
                 ApplicationArea = All;
             }
+            field("Is Pool"; Rec."Is Pool")
+            {
+                ApplicationArea = All;
+            }
+            field("Is Foreman"; Rec."Is Foreman")
+            {
+                ApplicationArea = All;
+            }
+            field("Mandatory Schedulling"; Rec."Mandatory Schedulling")
+            {
+                ApplicationArea = All;
+            }
             field("Team Leader"; Rec."Team Leader")
             {
                 ApplicationArea = All;
@@ -25,10 +37,7 @@ pageextension 50603 "Opt ResourceList" extends "Resource List"
             {
                 ApplicationArea = All;
             }
-            field("Mandatory Schedulling"; Rec."Mandatory Schedulling")
-            {
-                ApplicationArea = All;
-            }
+
         }
     }
 

@@ -6,7 +6,7 @@ tableextension 50603 "Resource Opt" extends Resource
         field(50600; "Pool Resource No."; Code[20])
         {
             DataClassification = ToBeClassified;
-            tablerelation = Resource;
+            tablerelation = Resource where("is pool" = const(true));
 
             trigger OnValidate()
             var
@@ -53,30 +53,35 @@ tableextension 50603 "Resource Opt" extends Resource
         {
             DataClassification = ToBeClassified;
         }
+        field(50622; "Is Foreman"; Boolean)
+        {
+            Caption = 'Is Foreman';
+        }
+        field(50624; "Is Pool"; Boolean)
+        {
+            Caption = 'Is Pool';
+            trigger OnValidate()
+            begin
+                if "Is Pool" then begin
+                    "Pool Resource No." := "No.";
+                    "External Resource" := true;
+                end else
+                    "Pool Resource No." := '';
+            end;
+        }
         field(50630; "Team Leader"; Code[20])
         {
             DataClassification = ToBeClassified;
             tablerelation = Resource;
         }
-        field(50621; "Team Leader Name"; Text[100])
+        field(50631; "Team Leader Name"; Text[100])
         {
             Caption = 'Team Leader Name';
             FieldClass = FlowField;
             CalcFormula = Lookup(Resource.Name Where("No." = field("Team Leader")));
             Editable = false;
         }
-        field(50622; "Is Pool"; Boolean)
-        {
-            Caption = 'Is Pool';
-            Editable = false;
-            trigger OnValidate()
-            begin
-                if "Is Pool" then
-                    "Pool Resource No." := "No."
-                else
-                    "Pool Resource No." := '';
-            end;
-        }
+
     }
 
     keys

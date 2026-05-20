@@ -256,40 +256,40 @@ table 50612 "Summary Weekly"
 
     Local Procedure GetHours(DayIndex: Integer; DayTask: Record "Day Tasks"; var TempWeekList: Record "Summary Weekly") Hours: Integer
     begin
-        if TempWeekList."Resource No." = '' then begin
+        if (TempWeekList."Resource No." = '') then begin
             case DayIndex of
                 1:
-                    TempWeekList."Monday Hours" := DayTask."Requested Hours" - DayTask."Assigned Hours";
+                    TempWeekList."Monday Hours" += DayTask."Requested Hours";
                 2:
-                    TempWeekList."Tuesday Hours" := DayTask."Requested Hours" - DayTask."Assigned Hours";
+                    TempWeekList."Tuesday Hours" += DayTask."Requested Hours";
                 3:
-                    TempWeekList."Wednesday Hours" := DayTask."Requested Hours" - DayTask."Assigned Hours";
+                    TempWeekList."Wednesday Hours" += DayTask."Requested Hours";
                 4:
-                    TempWeekList."Thursday Hours" := DayTask."Requested Hours" - DayTask."Assigned Hours";
+                    TempWeekList."Thursday Hours" += DayTask."Requested Hours";
                 5:
-                    TempWeekList."Friday Hours" := DayTask."Requested Hours" - DayTask."Assigned Hours";
+                    TempWeekList."Friday Hours" += DayTask."Requested Hours";
                 6:
-                    TempWeekList."Saturday Hours" := DayTask."Requested Hours" - DayTask."Assigned Hours";
+                    TempWeekList."Saturday Hours" += DayTask."Requested Hours";
                 7:
-                    TempWeekList."Sunday Hours" := DayTask."Requested Hours" - DayTask."Assigned Hours";
+                    TempWeekList."Sunday Hours" += DayTask."Requested Hours";
             end;
-            exit(DayTask."Requested Hours" - DayTask."Assigned Hours");
+            exit(DayTask."Requested Hours");
         end else begin
             case DayIndex of
                 1:
-                    TempWeekList."Monday Hours" := DayTask."Assigned Hours";
+                    TempWeekList."Monday Hours" += DayTask."Assigned Hours";
                 2:
-                    TempWeekList."Tuesday Hours" := DayTask."Assigned Hours";
+                    TempWeekList."Tuesday Hours" += DayTask."Assigned Hours";
                 3:
-                    TempWeekList."Wednesday Hours" := DayTask."Assigned Hours";
+                    TempWeekList."Wednesday Hours" += DayTask."Assigned Hours";
                 4:
-                    TempWeekList."Thursday Hours" := DayTask."Assigned Hours";
+                    TempWeekList."Thursday Hours" += DayTask."Assigned Hours";
                 5:
-                    TempWeekList."Friday Hours" := DayTask."Assigned Hours";
+                    TempWeekList."Friday Hours" += DayTask."Assigned Hours";
                 6:
-                    TempWeekList."Saturday Hours" := DayTask."Assigned Hours";
+                    TempWeekList."Saturday Hours" += DayTask."Assigned Hours";
                 7:
-                    TempWeekList."Sunday Hours" := DayTask."Assigned Hours";
+                    TempWeekList."Sunday Hours" += DayTask."Assigned Hours";
             end;
             exit(DayTask."Assigned Hours");
         end;
@@ -357,6 +357,8 @@ table 50612 "Summary Weekly"
     begin
         TempYearWeek.Reset();
         TempYearWeek.DeleteAll();
+        TempDayTask.reset;
+        TempDayTask.DeleteAll();
 
         if DayTask.FindSet() then
             repeat

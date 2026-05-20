@@ -127,6 +127,30 @@ page 50601 "Opti Resource List"
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Specifies the pool resource that this resource is assigned to.';
+                        Visible = true;
+                    }
+                    field("Vendor No."; Rec."Vendor No.")
+                    {
+                        ApplicationArea = Jobs;
+                        ToolTip = 'Specifies the vendor number associated with the resource.';
+                        Visible = false;
+                    }
+                    field("External Resource"; Rec."External Resource")
+                    {
+                        ApplicationArea = Jobs;
+                        ToolTip = 'Indicates whether the resource is an external resource.';
+                        Visible = false;
+                    }
+                    field("Is Foreman"; Rec."Is Foreman")
+                    {
+                        ApplicationArea = Jobs;
+                        ToolTip = 'Indicates whether the resource is a foreman.';
+                        Visible = true;
+                    }
+                    field("Team Leader"; Rec."Team Leader")
+                    {
+                        ApplicationArea = Jobs;
+                        ToolTip = 'Specifies the team leader responsible for the resource.';
                         Visible = false;
                     }
 

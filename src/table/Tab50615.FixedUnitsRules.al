@@ -65,9 +65,12 @@ table 50615 "Fixed Units Rules"
             TableRelation = Resource."No.";
 
             trigger OnValidate()
+            var
+                errorMessage: Label 'Resource No. can only be filled when Rule Type is Named Resource or Foreman.';
             begin
                 if "Resource No." <> '' then
-                    TestField("Rule Type", "Rule Type"::"Named Resource");
+                    if not (("Rule Type" = "Rule Type"::"Named Resource") or ("Rule Type" = "Rule Type"::Foreman)) then
+                        Error(errorMessage);
             end;
         }
         field(9; "Skill Code"; Code[20])
@@ -89,7 +92,7 @@ table 50615 "Fixed Units Rules"
         }
         field(12; "Is Foreman"; Boolean)
         {
-            Caption = 'Mandatory';
+            Caption = 'Is Foreman';
         }
         field(13; "Pool Quantity of Lines"; Integer)
         {

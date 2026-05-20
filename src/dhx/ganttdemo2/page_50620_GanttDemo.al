@@ -509,7 +509,7 @@ page 50620 "Gantt Demo DHX 2"
             action(Summary)
             {
                 Caption = 'Summary';
-                Image = Summary;
+                Image = BusinessRelation;
                 ApplicationArea = All;
 
                 trigger OnAction()
@@ -521,6 +521,7 @@ page 50620 "Gantt Demo DHX 2"
                 begin
                     GanttChartDataHandler.GetDateRange(Setup, AnchorDate, DT1, DT2);
                     SummaryPage.LoadDataSet(StrSubstNo('%1..%2', DT1, DT2));
+                    SummaryPage.SetDefaultView();
                     SummaryPage.Run();
                 end;
             }

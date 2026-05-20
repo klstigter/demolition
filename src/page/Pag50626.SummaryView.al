@@ -22,6 +22,7 @@ page 50626 "Summary View"
                     begin
                         ResourceNoFilter := '';
                         GroupByDataSet();
+                        CalcFilters();
                     end;
                 }
                 field(ShowSkillCode; ShowSkillCode)
@@ -31,6 +32,7 @@ page 50626 "Summary View"
                     begin
                         SkillCodeFilter := '';
                         GroupByDataSet();
+                        CalcFilters();
                     end;
                 }
                 field(ShowJob; ShowJob)
@@ -44,6 +46,7 @@ page 50626 "Summary View"
                             JobTaskNoFilter := '';
                         end;
                         GroupByDataSet();
+                        CalcFilters();
                     end;
                 }
                 field(ShowJobTask; ShowJobTask)
@@ -55,6 +58,7 @@ page 50626 "Summary View"
                         if ShowJobTask then
                             ShowJob := true;
                         GroupByDataSet();
+                        CalcFilters();
                     end;
                 }
                 field(ShowYear; ShowYear)
@@ -67,6 +71,7 @@ page 50626 "Summary View"
                             WeekFilter := '';
                         end;
                         GroupByDataSet();
+                        CalcFilters();
                     end;
                 }
                 field(ShowWeekNo; ShowWeekNo)
@@ -83,6 +88,7 @@ page 50626 "Summary View"
                                 rec.setfilter("Year", WeekFilter);
                             end;
                         GroupByDataSet();
+                        CalcFilters();
                     end;
                 }
             }
@@ -101,10 +107,7 @@ page 50626 "Summary View"
                         ToolTip = 'Specifies the job number for the new day task.';
                         trigger OnValidate()
                         begin
-                            if JobNoFilter <> '' then
-                                rec.setfilter("Job No.", JobNoFilter)
-                            else
-                                rec.SetRange("Job No.");
+                            CalcJobFilter();
                             CurrPage.Update();
                         end;
 
@@ -132,10 +135,7 @@ page 50626 "Summary View"
                         ToolTip = 'Specifies the job task number for the new day task.';
                         trigger OnValidate()
                         begin
-                            if JobTaskNoFilter <> '' then
-                                rec.setfilter("Job Task No.", JobTaskNoFilter)
-                            else
-                                rec.SetRange("Job Task No.");
+                            CalcJobTaskFilter();
                             CurrPage.Update();
                         end;
 
@@ -168,10 +168,7 @@ page 50626 "Summary View"
                         ToolTip = 'Specifies the resource number for the new day task.';
                         trigger OnValidate()
                         begin
-                            if ResourceNoFilter <> '' then
-                                rec.setfilter("Resource No.", ResourceNoFilter)
-                            else
-                                rec.SetRange("Resource No.");
+                            CalcResourceFilter();
                             CurrPage.Update();
                         end;
 
@@ -181,7 +178,7 @@ page 50626 "Summary View"
                             Pg: Page "Opti Resource List Temp";
                         begin
                             rec.HandOverToPage(Pg);
-
+                            pg.LookupMode(true);
                             if Pg.RunModal() = Action::LookupOK then begin
                                 pg.GetRecord(Resource);
                                 Text := Resource."No.";
@@ -199,10 +196,7 @@ page 50626 "Summary View"
                         ToolTip = 'Specifies the skill code for the new day task.';
                         trigger OnValidate()
                         begin
-                            if SkillCodeFilter <> '' then
-                                rec.setfilter("Skill Code", SkillCodeFilter)
-                            else
-                                rec.SetRange("Skill Code");
+                            CalcSkillCodeFilter();
                             CurrPage.Update();
                         end;
 
@@ -233,14 +227,7 @@ page 50626 "Summary View"
                         ToolTip = 'Specifies the year and week number, or only the year for filtering. Format should be YYYY-WW or YYYY.';
                         trigger OnValidate()
                         begin
-                            if ValidateYrWkFilterFormat(WeekFilter) then begin
-                                rec.setfilter("Year", CopyStr(WeekFilter, 1, 4));
-                                if ShowWeekNo then
-                                    rec.setfilter("Week No.", CopyStr(WeekFilter, 6, 2));
-                            end else begin
-                                rec.SetRange("Year");
-                                rec.SetRange("Week No.");
-                            end;
+                            CalcWeekFilter();
                             CurrPage.Update();
                         end;
 
@@ -275,16 +262,20 @@ page 50626 "Summary View"
                 {
                     ToolTip = 'Specifies the value of the Job No. field.', Comment = '%';
                     Visible = ShowJob;
+                    StyleExpr = StyleStr;
                 }
                 field("Job Task No."; Rec."Job Task No.")
                 {
                     ToolTip = 'Specifies the value of the Job Task No. field.', Comment = '%';
                     Visible = ShowJobTask;
+                    StyleExpr = StyleStr;
+
                 }
                 field(Purpose; Rec.Purpose)
                 {
                     ToolTip = 'Specifies the value of the Purpose field.', Comment = '%';
                     Visible = False;
+                    StyleExpr = StyleStr;
                 }
                 field("Resource No."; Rec."Resource No.")
                 {
@@ -300,15 +291,21 @@ page 50626 "Summary View"
                 {
                     ToolTip = 'Specifies the year.';
                     Visible = ShowYear;
+                    StyleExpr = StyleStr;
+
                 }
                 field("Week No."; Rec."Week No.")
                 {
                     ToolTip = 'Specifies the ISO week number.';
                     Visible = ShowWeekNo;
+                    StyleExpr = StyleStr;
+
                 }
                 field("Total Week Hours"; Rec."Total Week Hours")
                 {
                     ToolTip = 'Specifies total hours for the entire week.';
+                    StyleExpr = StyleStr;
+
                     trigger OnDrillDown()
                     begin
                         DrillDown2DayTaks(0);
@@ -317,6 +314,8 @@ page 50626 "Summary View"
                 field("Monday Hours"; Rec."Monday Hours")
                 {
                     ToolTip = 'Specifies total hours on Monday.';
+                    StyleExpr = StyleStr;
+
                     trigger OnDrillDown()
                     begin
                         DrillDown2DayTaks(1);
@@ -325,6 +324,8 @@ page 50626 "Summary View"
                 field("Tuesday Hours"; Rec."Tuesday Hours")
                 {
                     ToolTip = 'Specifies total hours on Tuesday.';
+                    StyleExpr = StyleStr;
+
                     trigger OnDrillDown()
                     begin
                         DrillDown2DayTaks(2);
@@ -333,6 +334,8 @@ page 50626 "Summary View"
                 field("Wednesday Hours"; Rec."Wednesday Hours")
                 {
                     ToolTip = 'Specifies total hours on Wednesday.';
+                    StyleExpr = StyleStr;
+
                     trigger OnDrillDown()
                     begin
                         DrillDown2DayTaks(3);
@@ -341,6 +344,8 @@ page 50626 "Summary View"
                 field("Thursday Hours"; Rec."Thursday Hours")
                 {
                     ToolTip = 'Specifies total hours on Thursday.';
+                    StyleExpr = StyleStr;
+
                     trigger OnDrillDown()
                     begin
                         DrillDown2DayTaks(4);
@@ -349,6 +354,8 @@ page 50626 "Summary View"
                 field("Friday Hours"; Rec."Friday Hours")
                 {
                     ToolTip = 'Specifies total hours on Friday.';
+                    StyleExpr = StyleStr;
+
                     trigger OnDrillDown()
                     begin
                         DrillDown2DayTaks(5);
@@ -357,6 +364,8 @@ page 50626 "Summary View"
                 field("Saturday Hours"; Rec."Saturday Hours")
                 {
                     ToolTip = 'Specifies total hours on Saturday.';
+                    StyleExpr = StyleStr;
+
                     trigger OnDrillDown()
                     begin
                         DrillDown2DayTaks(6);
@@ -365,6 +374,8 @@ page 50626 "Summary View"
                 field("Sunday Hours"; Rec."Sunday Hours")
                 {
                     ToolTip = 'Specifies total hours on Sunday.';
+                    StyleExpr = StyleStr;
+
                     trigger OnDrillDown()
                     begin
                         DrillDown2DayTaks(7);
@@ -386,7 +397,10 @@ page 50626 "Summary View"
         {
             action(ResetData)
             {
-
+                Caption = 'Reset Data';
+                Promoted = true;
+                PromotedIsBig = true;
+                PromotedCategory = Process;
                 trigger OnAction()
                 begin
                     LoadDataSet(DateFilter);
@@ -409,9 +423,21 @@ page 50626 "Summary View"
         ShowYear: Boolean;
         ShowWeekNo: Boolean;
         ShowPlanStatus: Boolean;
+        StyleStr: Text;
 
+    trigger OnAfterGetRecord()
+    begin
+        if rec."Resource No." = '' then
+            StyleStr := 'Attention'
+        else
+            StyleStr := '';
+    end;
+
+    #region  Procedures
     procedure LoadDataSet(DateRangeFilter: Text)
     begin
+        rec.reset;
+        rec.DeleteAll();
         SetAllShowTrue();
         DateFilter := DateRangeFilter;
         rec.ScanDayTaskDateFilter(DateFilter);
@@ -431,6 +457,40 @@ page 50626 "Summary View"
             rec.SetFilter("Job Task No.", JobTaskNoFilter);
     end;
 
+    procedure SetDefaultView()
+    begin
+        ShowSkillCode := False;
+        ShowJob := False;
+        ShowJobTask := False;
+        GroupByDataSet();
+        WeekFilter := GetYearWeekFromDateFilter(DateFilter);
+        CalcFilters();
+    end;
+
+    local procedure GetYearWeekFromDateFilter(pDateFilter: Text): Text
+    var
+        d: Date;
+        y, w : Integer;
+        FilterPart: Text;
+    begin
+        if pDateFilter = '' then
+            exit('');
+        if pDateFilter.Contains('..') then
+            FilterPart := pDateFilter.Split('..').Get(1)
+        else
+            FilterPart := pDateFilter;
+        if not Evaluate(d, FilterPart) then
+            exit('');
+        if d = 0D then
+            exit('');
+        y := Date2DWY(d, 3);
+        w := Date2DWY(d, 2);
+        // if w < 10 then
+        //     exit(Format(y) + '-0' + Format(w))
+        // else
+        exit(Format(y) + '-' + Format(w));
+    end;
+
     Local procedure SetAllShowTrue()
     begin
         ShowResource := True;
@@ -448,6 +508,7 @@ page 50626 "Summary View"
     begin
 
         rec.LoadSummary();
+
         if ShowResource and ShowSkillCode and ShowJob and ShowJobTask and ShowYear and ShowWeekNo then
             exit;
         if rec.FindSet() then
@@ -561,6 +622,57 @@ page 50626 "Summary View"
                 Error('Invalid format. Please enter in YYYY-WW format.');
         exit(true)
     end;
+    #endregion
+    local procedure CalcFilters()
+    begin
+        CalcResourceFilter();
+        CalcSkillCodeFilter();
+        CalcJobFilter();
+        CalcJobTaskFilter();
+        CalcWeekFilter();
+    end;
 
+    local procedure CalcResourceFilter()
+    begin
+        if ResourceNoFilter <> '' then
+            rec.setfilter("Resource No.", ResourceNoFilter)
+        else
+            rec.SetRange("Resource No.");
+    end;
 
+    local procedure CalcSkillCodeFilter()
+    begin
+        if SkillCodeFilter <> '' then
+            rec.setfilter("Skill Code", SkillCodeFilter)
+        else
+            rec.SetRange("Skill Code");
+    end;
+
+    local procedure CalcJobFilter()
+    begin
+        if JobNoFilter <> '' then
+            rec.setfilter("Job No.", JobNoFilter)
+        else
+            rec.SetRange("Job No.");
+    end;
+
+    local procedure CalcJobTaskFilter()
+    begin
+        if JobTaskNoFilter <> '' then
+            rec.setfilter("Job Task No.", JobTaskNoFilter)
+        else
+            rec.SetRange("Job Task No.");
+    end;
+
+    local procedure CalcWeekFilter()
+    begin
+        if ValidateYrWkFilterFormat(WeekFilter) then begin
+            rec.setfilter("Year", CopyStr(WeekFilter, 1, 4));
+            if ShowWeekNo then
+                rec.setfilter("Week No.", CopyStr(WeekFilter, 6, 2));
+        end else begin
+            rec.SetRange("Year");
+            rec.SetRange("Week No.");
+        end;
+    end;
 }

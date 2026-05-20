@@ -69,29 +69,32 @@ page 50655 "Order Intake Card"
                     }
                 }
             }
-
-            usercontrol(RichTextEditor; DHXRichTextAddin)
+            Group(Description)
             {
-                ApplicationArea = All;
+                Caption = 'Long Description';
+                usercontrol(RichTextEditor; DHXRichTextAddin)
+                {
+                    ApplicationArea = All;
 
-                /// <summary>
-                /// Fires once when the DHTMLX RichText editor is ready.
-                /// Load the current record's blob content into the editor.
-                /// </summary>
-                trigger ControlReady()
-                begin
-                    AddinReady := true;
-                    CurrPage.RichTextEditor.SetValue(Rec.GetDescription());
-                end;
+                    /// <summary>
+                    /// Fires once when the DHTMLX RichText editor is ready.
+                    /// Load the current record's blob content into the editor.
+                    /// </summary>
+                    trigger ControlReady()
+                    begin
+                        AddinReady := true;
+                        CurrPage.RichTextEditor.SetValue(Rec.GetDescription());
+                    end;
 
-                /// <summary>
-                /// Fires ~800 ms after the user stops typing (debounced in JS).
-                /// Persist the HTML into the blob field on the record.
-                /// </summary>
-                trigger OnTextChanged(Html: Text)
-                begin
-                    Rec.SetDescription(Html);
-                end;
+                    /// <summary>
+                    /// Fires ~800 ms after the user stops typing (debounced in JS).
+                    /// Persist the HTML into the blob field on the record.
+                    /// </summary>
+                    trigger OnTextChanged(Html: Text)
+                    begin
+                        Rec.SetDescription(Html);
+                    end;
+                }
             }
             part(OrderLines; "Work Order Sub")
             {
