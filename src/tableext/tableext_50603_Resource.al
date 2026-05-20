@@ -65,7 +65,7 @@ tableextension 50603 "Resource Opt" extends Resource
             CalcFormula = Lookup(Resource.Name Where("No." = field("Team Leader")));
             Editable = false;
         }
-        field(50620; "Is Pool"; Boolean)
+        field(50622; "Is Pool"; Boolean)
         {
             Caption = 'Is Pool';
             Editable = false;
