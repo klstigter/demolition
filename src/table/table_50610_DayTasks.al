@@ -7,18 +7,6 @@ table 50610 "Day Tasks"
 
     fields
     {
-        field(1; "Task Date"; Date)
-        {
-            DataClassification = ToBeClassified;
-            Caption = 'Task Date';
-
-        }
-        field(2; "Day Line No."; Integer)
-        {
-            DataClassification = ToBeClassified;
-            Caption = 'Day Line No.';
-            editable = false;
-        }
         field(3; "Job No."; Code[20])
         {
             DataClassification = ToBeClassified;
@@ -30,6 +18,22 @@ table 50610 "Day Tasks"
             DataClassification = ToBeClassified;
             TableRelation = "Job Task"."Job Task No." where("Job No." = field("Job No."));
             Caption = 'Job Task No.';
+        }
+        field(2; "Day Line No."; Integer)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Day Line No.';
+            editable = false;
+        }
+        field(10; "Day No."; Integer)
+        {
+            DataClassification = ToBeClassified;
+        }
+        field(1; "Task Date"; Date)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Task Date';
+
         }
         field(5; "Plan Status"; Enum "Plan Status")
         {

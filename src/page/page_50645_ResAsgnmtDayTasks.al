@@ -27,6 +27,12 @@ page 50645 "Res. Asgmt. Day Tasks"
             }
             repeater(DayTaskLines)
             {
+                field("Day No."; Rec."Day No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the day number in the sequence.';
+                    Caption = 'Day No.';
+                }
                 field("Task Date"; Rec."Task Date")
                 {
                     ApplicationArea = All;

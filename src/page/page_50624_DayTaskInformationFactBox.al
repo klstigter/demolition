@@ -11,6 +11,12 @@ page 50624 "Day Task Information FactBox"
             group(DayTaskDetails)
             {
                 Caption = 'Day Task Details';
+                field("Day No."; Rec."Day No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the day number in the sequence.';
+                    Caption = 'Day No.';
+                }
                 field("Task Date"; Rec."Task Date")
                 {
                     ApplicationArea = All;

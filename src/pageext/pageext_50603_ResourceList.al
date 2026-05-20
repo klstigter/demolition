@@ -13,6 +13,22 @@ pageextension 50603 "Opt ResourceList" extends "Resource List"
             {
                 ApplicationArea = All;
             }
+            field("External Resource"; Rec."External Resource")
+            {
+                ApplicationArea = All;
+            }
+            field("Team Leader"; Rec."Team Leader")
+            {
+                ApplicationArea = All;
+            }
+            field("Team Leader Name"; Rec."Team Leader Name")
+            {
+                ApplicationArea = All;
+            }
+            field("Mandatory Schedulling"; Rec."Mandatory Schedulling")
+            {
+                ApplicationArea = All;
+            }
         }
     }
 

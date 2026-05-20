@@ -74,6 +74,12 @@ page 50630 "Day Tasks"
                     StyleExpr = StyleStr;
                     visible = false;
                 }
+                field("Day No."; Rec."Day No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the day number in the sequence.';
+                    Caption = 'Day No.';
+                }
                 field("Plan Status"; Rec."Plan Status")
                 {
                     ApplicationArea = All;

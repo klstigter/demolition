@@ -7,7 +7,38 @@ tableextension 50603 "Resource Opt" extends Resource
         {
             DataClassification = ToBeClassified;
             tablerelation = Resource;
+
+            trigger OnValidate()
+            var
+                Res: Record Resource;
+            begin
+                if "Pool Resource No." = '' then begin
+                    "External Resource" := false;
+                end else begin
+                    Res.Get("Pool Resource No.");
+                    "External Resource" := Res."Vendor No." <> '';
+                end;
+            end;
+        }
+        field(50601; "Day Tasks"; Decimal)
+        {
+
             Editable = false;
+            FieldClass = FlowField;
+            CalcFormula = sum("Day Tasks"."Assigned Hours" where("No." = field("No."),
+              "Task Date" = field("Date Filter")));
+        }
+        field(50602; "Skills"; integer)
+        {
+            Caption = 'Skills';
+
+            FieldClass = FlowField;
+            CalcFormula = Count("Resource Skill" where("No." = field("No."), type = const(Resource)));
+        }
+        field(50603; "External Resource"; Boolean)
+        {
+            DataClassification = ToBeClassified;
+            Editable = false; // Control by "Pool Resource No.";
         }
         field(50610; "Day Task"; Decimal)
         {
@@ -16,6 +47,22 @@ tableextension 50603 "Resource Opt" extends Resource
             Caption = 'Capacity';
             DecimalPlaces = 0 : 5;
             FieldClass = FlowField;
+            Editable = false;
+        }
+        field(50620; "Mandatory Schedulling"; Boolean)
+        {
+            DataClassification = ToBeClassified;
+        }
+        field(50630; "Team Leader"; Code[20])
+        {
+            DataClassification = ToBeClassified;
+            tablerelation = Resource;
+        }
+        field(50621; "Team Leader Name"; Text[100])
+        {
+            Caption = 'Team Leader Name';
+            FieldClass = FlowField;
+            CalcFormula = Lookup(Resource.Name Where("No." = field("Team Leader")));
             Editable = false;
         }
         field(50620; "Is Pool"; Boolean)

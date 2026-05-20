@@ -12,6 +12,12 @@ page 50622 "Resource Day Tasks"
         {
             repeater(GroupName)
             {
+                field("Day No."; Rec."Day No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the day number in the sequence.';
+                    Caption = 'Day No.';
+                }
                 field("Type"; Rec.Type)
                 {
                     ApplicationArea = All;
