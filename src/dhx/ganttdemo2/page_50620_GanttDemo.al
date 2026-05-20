@@ -75,7 +75,7 @@ page 50620 "Gantt Demo DHX 2"
                     periodFrom: 2026-05-25, 
                     periodTo: 2026-06-06
                     */
-                    // Parse Job No. and Job Task No. from the composite task id ("JobNo|JobTaskNo") LAGI
+                    // Parse Job No. and Job Task No. from the composite task id ("JobNo|JobTaskNo")
                     EventIDList := taskId.Split('|');
                     if EventIDList.Count() >= 2 then begin
                         JobNo := CopyStr(EventIDList.Get(1), 1, 20);
@@ -83,19 +83,6 @@ page 50620 "Gantt Demo DHX 2"
                     end;
                     SummaryPage.LoadDataSet(JobNo, JobTaskNo);
                     SummaryPage.Runmodal();
-                    /*
-                    trigger OnAction()
-                    var
-                        SummaryPage: Page "Summary View";
-                        Direction: Option Forward,Backward;
-                        DT1: Date;
-                        DT2: Date;
-                    begin
-                        GanttChartDataHandler.GetDateRange(Setup, AnchorDate, DT1, DT2);
-                        SummaryPage.LoadDataSet(StrSubstNo('%1..%2', DT1, DT2));
-                        SummaryPage.Run();
-                    end;
-                    */
                 end;
 
                 trigger OnShowResourcesForTask(taskId: Text; childrenJson: Text; periodFrom: Text; periodTo: Text)
@@ -789,6 +776,9 @@ page 50620 "Gantt Demo DHX 2"
         // Set project range first
         CurrPage.DHXGanttControl2.LoadProject(StartDate, EndDate);
 
+        // Load holiday/non-working days from Base Calendar
+        LoadHolidaysData(StartDate, EndDate);
+
         // Apply column settings
         CurrPage.DHXGanttControl2.SetColumnVisibility(
             Setup."Show Start Date",
@@ -861,6 +851,15 @@ page 50620 "Gantt Demo DHX 2"
         JsonTxtLinks := LinkHandler.GetLinksAsJson(JobFilterUsed);
         // Always send to JS — even '[]' clears stale arrows after refresh
         CurrPage.DHXGanttControl2.LoadLinksData(JsonTxtLinks);
+    end;
+
+    local procedure LoadHolidaysData(StartDate: Date; EndDate: Date)
+    var
+        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
+        JsonTxtHolidays: Text;
+    begin
+        JsonTxtHolidays := GanttChartDataHandler.GetHolidaysAsJson(StartDate, EndDate);
+        CurrPage.DHXGanttControl2.LoadHolidaysData(JsonTxtHolidays);
     end;
 
     procedure OnJobTaskUpdated(TaskJson: Text)

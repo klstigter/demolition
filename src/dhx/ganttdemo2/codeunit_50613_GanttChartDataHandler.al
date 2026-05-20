@@ -468,6 +468,70 @@ codeunit 50613 "GanttChartDataHandler"
         end;
     end;
 
+    /// <summary>
+    /// Returns non-working days from the Base Calendar configured in "Daily Optimizer Setup"
+    /// as a JSON array: [{ "date": "YYYY-MM-DD", "description": "...", "type": "holiday" }, ...]
+    /// Recurring entries are expanded for every year within StartDate..EndDate.
+    /// </summary>
+    procedure GetHolidaysAsJson(StartDate: Date; EndDate: Date) JsonText: Text
+    var
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        BaseCalendarChange: Record "Base Calendar Change";
+        JsonArray: JsonArray;
+        JsonObject: JsonObject;
+        CalCode: Code[10];
+        HolidayDate: Date;
+        Year: Integer;
+    begin
+        if not DailyOptimizerSetup.FindFirst() then begin
+            JsonArray.WriteTo(JsonText);
+            exit;
+        end;
+        CalCode := DailyOptimizerSetup."Base Calendar";
+        if CalCode = '' then begin
+            JsonArray.WriteTo(JsonText);
+            exit;
+        end;
+
+        BaseCalendarChange.SetRange("Base Calendar Code", CalCode);
+        BaseCalendarChange.SetRange(Nonworking, true);
+        // Skip Weekly Recurring entries (weekday patterns) — they are already handled by the JS weekend check.
+        // Include: Annual Recurring (1) = holiday same day/month every year, and non-recurring (0) = one-off dates.
+        BaseCalendarChange.SetFilter("Recurring System", '%1|%2',
+            BaseCalendarChange."Recurring System"::" ",
+            BaseCalendarChange."Recurring System"::"Annual Recurring");
+        if BaseCalendarChange.FindSet() then
+            repeat
+                if BaseCalendarChange."Recurring System" = BaseCalendarChange."Recurring System"::"Annual Recurring" then begin
+                    // Expand annual entry for each year in the requested range
+                    for Year := Date2DMY(StartDate, 3) to Date2DMY(EndDate, 3) do begin
+                        HolidayDate := DMY2Date(
+                            Date2DMY(BaseCalendarChange.Date, 1),
+                            Date2DMY(BaseCalendarChange.Date, 2),
+                            Year);
+                        if (HolidayDate >= StartDate) and (HolidayDate <= EndDate) then begin
+                            Clear(JsonObject);
+                            JsonObject.Add('date', FormatDate(HolidayDate));
+                            JsonObject.Add('description', BaseCalendarChange.Description);
+                            JsonObject.Add('type', 'holiday');
+                            JsonArray.Add(JsonObject);
+                        end;
+                    end;
+                end else begin
+                    // Non-recurring: use the exact date
+                    if (BaseCalendarChange.Date >= StartDate) and (BaseCalendarChange.Date <= EndDate) then begin
+                        Clear(JsonObject);
+                        JsonObject.Add('date', FormatDate(BaseCalendarChange.Date));
+                        JsonObject.Add('description', BaseCalendarChange.Description);
+                        JsonObject.Add('type', 'holiday');
+                        JsonArray.Add(JsonObject);
+                    end;
+                end;
+            until BaseCalendarChange.Next() = 0;
+
+        JsonArray.WriteTo(JsonText);
+    end;
+
 }
 
 
