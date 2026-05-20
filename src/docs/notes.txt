@@ -200,3 +200,16 @@ API - 2026.04.29
 28. Gantt:
    - Projext Task Bar -> apply diff color if non active day. ex. saturday, sunday, and public holiday
 
+29. resource -> is pool = true:
+   - must have vendor no.
+   - field pool resource can be hide
+
+30. gantt -> project bar -> apply warna dari posting dan non posting
+
+31. gantt -> project bar > show progress
+
+
+
+
+scheduling type:
+planning type: fix duration / fix unit / fix work
