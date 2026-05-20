@@ -20,6 +20,12 @@ page 50634 "Day Tasks FactBox"
                 {
                     ApplicationArea = All;
                 }
+                field("Day No."; Rec."Day No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the day number in the sequence.';
+                    Caption = 'Day No.';
+                }
                 field("Plan Status"; Rec."Plan Status")
                 {
                     ApplicationArea = All;

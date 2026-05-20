@@ -54,6 +54,50 @@ page 50620 "Gantt Demo DHX 2"
                     end;
                 end;
 
+                trigger OnShowSummaryForTask(taskId: Text; childrenJson: Text; periodFrom: Text; periodTo: Text)
+                var
+                    SummaryPage: Page "Summary View";
+                    EventIDList: List of [Text];
+                    JobNo: Code[20];
+                    JobTaskNo: Code[20];
+                    FromDate: Date;
+                    ToDate: Date;
+                begin
+                    //message('taskId: %1, childrenJson: %2, periodFrom: %3, periodTo: %4', taskId, childrenJson, periodFrom, periodTo);
+                    /*
+                    taskId: JOB001|2, 
+                    childrenJson: 
+                        [
+                            {"id":"JOB001|2010","text":"2010 - Spare Parts Procurement","bcJobNo":"JOB001","bcJobTaskNo":"2010","start_date":"2026-05-26","end_date":"2026-06-05"},
+                            {"id":"JOB001|2020","text":"2020 - Remove old and install new parts","bcJobNo":"JOB001","bcJobTaskNo":"2020","start_date":"2026-05-27","end_date":"2026-05-29"},
+                            {"id":"JOB001|2030","text":"2030 - Cat and bodywork","bcJobNo":"JOB001","bcJobTaskNo":"2030","start_date":"2026-05-28","end_date":"2026-06-04"}
+                        ], 
+                    periodFrom: 2026-05-25, 
+                    periodTo: 2026-06-06
+                    */
+                    // Parse Job No. and Job Task No. from the composite task id ("JobNo|JobTaskNo") LAGI
+                    EventIDList := taskId.Split('|');
+                    if EventIDList.Count() >= 2 then begin
+                        JobNo := CopyStr(EventIDList.Get(1), 1, 20);
+                        JobTaskNo := CopyStr(EventIDList.Get(2), 1, 20);
+                    end;
+                    SummaryPage.LoadDataSet(JobNo, JobTaskNo);
+                    SummaryPage.Runmodal();
+                    /*
+                    trigger OnAction()
+                    var
+                        SummaryPage: Page "Summary View";
+                        Direction: Option Forward,Backward;
+                        DT1: Date;
+                        DT2: Date;
+                    begin
+                        GanttChartDataHandler.GetDateRange(Setup, AnchorDate, DT1, DT2);
+                        SummaryPage.LoadDataSet(StrSubstNo('%1..%2', DT1, DT2));
+                        SummaryPage.Run();
+                    end;
+                    */
+                end;
+
                 trigger OnShowResourcesForTask(taskId: Text; childrenJson: Text; periodFrom: Text; periodTo: Text)
                 var
                     JobTask: Record "Job Task";
