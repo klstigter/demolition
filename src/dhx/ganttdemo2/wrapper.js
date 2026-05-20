@@ -490,13 +490,14 @@ window.BOOT = function() {
       menu.id = "gantt-ctx-menu";
 
       var items = [
-        { label: "Show Job Resources", icon: "👥", cls: "ctx-show-resources" },
+        { label: "Summary",              icon: "&#x1F4C4;", cls: "ctx-show-summary" },
+        { label: "Show Job Resources",   icon: "&#x1F465;", cls: "ctx-show-resources" },
         { sep: true },
-        { label: "Open Task",      icon: "📋", cls: "ctx-open-task" },
-        { label: "Open DayTask",   icon: "📅", cls: "ctx-open-daytask" },
-        { label: "Open DayTask Visual",   icon: "📅", cls: "ctx-open-daytaskvisual" },
+        { label: "Open Task",            icon: "&#x1F4CB;", cls: "ctx-open-task" },
+        { label: "Open DayTask",         icon: "&#x1F4C5;", cls: "ctx-open-daytask" },
+        { label: "Open DayTask Visual",  icon: "&#x1F4C5;", cls: "ctx-open-daytaskvisual" },
         { sep: true },
-        { label: "Cancel",         icon: "✕",  cls: "ctx-cancel" }
+        { label: "Cancel",               icon: "&#x2715;",  cls: "ctx-cancel" }
       ];
 
       items.forEach(function(item) {
@@ -512,6 +513,7 @@ window.BOOT = function() {
         el.addEventListener("mousedown", function(e) { e.stopPropagation(); });
         el.addEventListener("click", function() {
           _hideContextMenu();
+          if (item.cls === "ctx-show-summary") _ctxShowSummary(taskId);
           if (item.cls === "ctx-show-resources") _ctxShowResources(taskId);
           if (item.cls === "ctx-open-task")      _ctxOpenTask(taskId);
           if (item.cls === "ctx-open-daytask")   _ctxOpenDayTask(taskId);
@@ -570,6 +572,34 @@ window.BOOT = function() {
         ]);
       } catch (e) {
         console.error("_ctxOpenTask failed:", e);
+      }
+    }
+
+    // Show Summary — open summary panel for this task
+    function _ctxShowSummary(id) {
+      try {
+        var fmt = gantt.date.date_to_str("%Y-%m-%d");
+        var task = gantt.getTask(id);
+        var periodFrom = task && task.start_date ? fmt(task.start_date) : "";
+        var periodTo   = task && task.end_date   ? fmt(task.end_date)   : "";
+
+        // Collect direct children of this task
+        var children = [];
+        gantt.eachTask(function(child) {
+          children.push({
+            id: String(child.id),
+            text: child.text || "",
+            bcJobNo: child.bcJobNo || "",
+            bcJobTaskNo: child.bcJobTaskNo || "",
+            start_date: child.start_date ? fmt(child.start_date) : "",
+            end_date: child.end_date ? fmt(child.end_date) : ""
+          });
+        }, id);
+        var childrenJson = JSON.stringify(children);
+
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnShowSummaryForTask", [ String(id), childrenJson, periodFrom, periodTo ]);
+      } catch (e) {
+        console.error("_ctxShowSummary failed:", e);
       }
     }
 

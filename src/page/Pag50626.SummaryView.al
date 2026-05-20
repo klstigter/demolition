@@ -418,6 +418,19 @@ page 50626 "Summary View"
         rec.LoadSummary();
     end;
 
+    procedure LoadDataSet(pJobNoFilter: Text; pJobTaskNoFilter: Text)
+    begin
+        SetAllShowTrue();
+        JobNoFilter := CopyStr(pJobNoFilter, 1, MaxStrLen(JobNoFilter));
+        JobTaskNoFilter := CopyStr(pJobTaskNoFilter, 1, MaxStrLen(JobTaskNoFilter));
+        rec.ScanDayTaskFilter(pJobNoFilter, pJobTaskNoFilter);
+        rec.LoadSummary();
+        if JobNoFilter <> '' then
+            rec.SetFilter("Job No.", JobNoFilter);
+        if JobTaskNoFilter <> '' then
+            rec.SetFilter("Job Task No.", JobTaskNoFilter);
+    end;
+
     Local procedure SetAllShowTrue()
     begin
         ShowResource := True;
