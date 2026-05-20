@@ -751,6 +751,23 @@ page 50618 "Opti Job Task Card"
                     DaytaskScheduler.RunModal();
                 end;
             }
+            action("FixedUnitRule")
+            {
+                ApplicationArea = All;
+                Image = Resource;
+                Caption = 'Fixed Units Rules';
+                trigger OnAction()
+                var
+                    FixedUnitsRulesPage: Page "Fixed Units Rules";
+                    FixedUnitsRulesRec: Record "Fixed Units Rules";
+                begin
+                    FixedUnitsRulesRec.setrange("Source Type", FixedUnitsRulesRec."Source Type"::JobTask);
+                    FixedUnitsRulesRec.SetRange("No.", Rec."Job No.");
+                    FixedUnitsRulesRec.SetRange("Job Task No.", Rec."Job Task No.");
+                    FixedUnitsRulesPage.SetTableView(FixedUnitsRulesRec);
+                    FixedUnitsRulesPage.RunModal();
+                end;
+            }
 
 
             action(ResourcesSummary)
@@ -962,6 +979,9 @@ page 50618 "Opti Job Task Card"
                 {
                 }
                 actionref(DayTaskVisual_Promoted; DayTasksVisual)
+                {
+                }
+                actionref(FixedUnitRule_Promoted; FixedUnitRule)
                 {
                 }
 

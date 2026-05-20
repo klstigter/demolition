@@ -7,6 +7,7 @@ tableextension 50603 "Resource Opt" extends Resource
         {
             DataClassification = ToBeClassified;
             tablerelation = Resource;
+            Editable = false;
         }
         field(50610; "Day Task"; Decimal)
         {
@@ -17,11 +18,23 @@ tableextension 50603 "Resource Opt" extends Resource
             FieldClass = FlowField;
             Editable = false;
         }
+        field(50620; "Is Pool"; Boolean)
+        {
+            Caption = 'Is Pool';
+            Editable = false;
+            trigger OnValidate()
+            begin
+                if "Is Pool" then
+                    "Pool Resource No." := "No."
+                else
+                    "Pool Resource No." := '';
+            end;
+        }
     }
 
     keys
     {
-        // Add changes to keys here
+        key(PoolResource; "Is Pool", "Pool Resource No.") { }
     }
 
     fieldgroups
@@ -29,6 +42,7 @@ tableextension 50603 "Resource Opt" extends Resource
         addlast(DropDown; "Resource Group No.")
         {
         }
+
     }
 
     var

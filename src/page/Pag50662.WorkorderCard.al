@@ -179,6 +179,25 @@ page 50662 "Workorder Card"
                 end;
 
             }
+            action("Fixed Units Rules")
+            {
+                ApplicationArea = All;
+                Image = Resource;
+                Caption = 'Fixed Units Rules';
+                Promoted = true;
+                PromotedIsBig = true;
+                PromotedCategory = Process;
+                trigger OnAction()
+                var
+                    FixedUnitsRulesPage: Page "Fixed Units Rules";
+                    FixedUnitsRulesRec: Record "Fixed Units Rules";
+                begin
+                    FixedUnitsRulesRec.setrange("Source Type", FixedUnitsRulesRec."Source Type"::WorkOrder);
+                    FixedUnitsRulesRec.SetRange("No.", Rec."Work Order No.");
+                    FixedUnitsRulesPage.SetTableView(FixedUnitsRulesRec);
+                    FixedUnitsRulesPage.RunModal();
+                end;
+            }
         }
     }
     var
