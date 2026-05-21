@@ -85,8 +85,25 @@ report 50601 "Job Task Planned Date Updater"
     // }
 
     trigger OnPostReport()
+    var
+        DayTaskPeriodSyncMgt: Codeunit "DayTask Period Sync Mgt.";
     begin
-        Message('Planned Start Date: %1, Planned End Date: %2, Duration: %3 will be updated for %4', PlannedStartDate, PlannedEndDate, Duration, ProjectTask.Description);
+        // popup page editor:
+        if (ProjectTask.PlannedStartDate <> PlannedStartDate) or (ProjectTask.PlannedEndDate <> PlannedEndDate) then
+            if DayTaskPeriodSyncMgt.ShowPreview(ProjectTask,
+                                                ProjectTask."Job No.",
+                                                ProjectTask."Job Task No.",
+                                                ProjectTask.PlannedStartDate,
+                                                ProjectTask.PlannedEndDate,
+                                                PlannedStartDate,
+                                                PlannedEndDate) then begin
+
+                ProjectTask.PlannedStartDate := PlannedStartDate;
+                ProjectTask.PlannedEndDate := PlannedEndDate;
+                ProjectTask.Duration := Duration;
+                ProjectTask.Modify();
+
+            end;
     end;
 
     var
