@@ -122,7 +122,12 @@ window.BOOT = function() {
           const st = String(x.start_time || "").trim();
           const et = String(x.end_time || "").trim();
           const label = x.task || (x.jobNo + "-" + x.jobTaskNo) || "-";
-          return `${label} • ${x.hours || 0}h • ${st}-${et}`;
+          const statusTag = x.plan_status === "Request"
+            ? ` <span style="background:#909090;color:#fff;border-radius:3px;padding:0 4px;font-size:10px">Request</span>`
+            : "";
+          const woTag = x.work_order_no ? ` WO:${x.work_order_no}` : "";
+          const phTag = x.placeholder_date ? ` (placeholder: ${x.placeholder_date})` : "";
+          return `${label}${statusTag}${woTag} • ${x.hours || 0}h • ${st}-${et}${phTag}`;
         }).join("<br/>");
 
         _showCustomTooltip(
@@ -302,7 +307,11 @@ window.BOOT = function() {
 
     // -------- TASK TYPE CLASS (CSS hook) --------
     gantt.templates.task_class = function (start, end, task) {
-      return task.schedulingType || "";
+      var cls = task.schedulingType || "";
+      if (window.requestJobTaskSet && window.requestJobTaskSet[task.id]) {
+        cls = (cls ? cls + " " : "") + "bc-task-bold";
+      }
+      return cls;
     };
 
     // -------- PROGRESS TEXT ON TASK BAR --------
@@ -915,6 +924,7 @@ window.BOOT = function() {
         + ".gantt_resource_marker{ border-radius:4px; color:#fff; }"
         + ".gantt_resource_marker_ok{ background:#21b36c; }"
         + ".gantt_resource_marker_overtime{ background:#e74c3c; }"
+        + ".gantt_resource_marker_request{ background:#909090 !important; border:1px solid #666 !important; opacity:0.9; }"
         /* ── Panel header: black background, white bold font ── */
         + ".gantt_grid_scale { background:#000 !important; }"
         + ".gantt_grid_head_cell { color:#fff !important; font-weight:bold !important; border-color:#333 !important; }"
@@ -983,6 +993,10 @@ window.BOOT = function() {
     RecreateGanttLayout(true);
     gantt.init("gantt_here");
 
+    // ── Placeholder-date bar: injected directly into $task_data on every render ──────────────────
+    // (addTaskLayer wrapper approach was unreliable; direct DOM injection is simpler and guaranteed)
+    // NOTE: _renderRequestBars() is called from onGanttRender below
+
     // Apply queued column settings if AL called too early
     if (_queuedColumnArgs) {
       _applyColumnSettings(_queuedColumnArgs);
@@ -997,9 +1011,10 @@ window.BOOT = function() {
     InstallResourceGridDblClick(); // ✅ install once
     InstallResourceGridContextMenu(); // ✅ install once
 
-    // ✅ Update resource panel header tooltip after every render
+    // ✅ Update resource panel header tooltip + Request bar overlays after every render
     gantt.attachEvent("onGanttRender", function() {
       _updateResourceHeaderTooltip();
+      _renderRequestBars();
     });
 
     // ✅ Tell AL we are safe to call now
@@ -1007,6 +1022,64 @@ window.BOOT = function() {
 
   } catch (e) {
     console.warn("BOOT warning:", e);
+  }
+}
+
+// -------------------------------------------------------
+// Request-daytask bar overlay — rendered directly into $task_data after each gantt render
+// -------------------------------------------------------
+function _renderRequestBars() {
+  try {
+    if (!window.dayTasksByTask) return;
+
+    // Resolve $task_data container (handles both simple and multi-view layouts)
+    var container = gantt.$task_data
+      || (gantt.$ui && gantt.$ui.getView("timeline") && gantt.$ui.getView("timeline").$task_data);
+    if (!container) return;
+
+    // Remove bars from previous render
+    var old = container.querySelectorAll(".bc-req-bar");
+    for (var i = 0; i < old.length; i++) {
+      old[i].parentNode && old[i].parentNode.removeChild(old[i]);
+    }
+
+    gantt.eachTask(function (task) {
+      var dtList = window.dayTasksByTask[task.id];
+      if (!dtList || !dtList.length) return;
+
+      var taskPos = gantt.getTaskPosition(task, task.start_date, task.end_date);
+      if (!taskPos) return;
+
+      var seenDate = Object.create(null);
+      for (var i = 0; i < dtList.length; i++) {
+        var dt = dtList[i];
+        if (dt.plan_status !== "Request" || !dt.placeholder_date) continue;
+        if (seenDate[dt.placeholder_date]) continue;
+        seenDate[dt.placeholder_date] = true;
+
+        var pd = gantt.date.parseDate(dt.placeholder_date, "%Y-%m-%d");
+        if (!pd) continue;
+        var pdEnd = gantt.date.add(new Date(pd.valueOf()), 1, "day");
+
+        var pos = gantt.getTaskPosition(task, pd, pdEnd);
+        if (!pos) continue;
+
+        var el = document.createElement("div");
+        el.className = "bc-req-bar";
+        el.style.position = "absolute";
+        el.style.left    = pos.left + "px";
+        el.style.top     = taskPos.top + "px";
+        el.style.width   = Math.max(pos.width, 6) + "px";
+        el.style.height  = taskPos.height + "px";
+        el.style.background    = "rgba(0,0,0,0.85)";
+        el.style.borderRadius  = "3px";
+        el.style.pointerEvents = "none";
+        el.style.zIndex        = "10";
+        container.appendChild(el);
+      }
+    });
+  } catch (e) {
+    console.warn("_renderRequestBars:", e);
   }
 }
 
@@ -1614,6 +1687,7 @@ function calculateResourceLoad(resource, scale) {
     if (!dt) continue;
 
     if (String(dt.resource_id || "") !== String(resource.id || "")) continue;
+    if (dt.plan_status === "Request") continue; // Request tasks shown as grey boxes, not counted in load
 
     var d = _toGanttDate(dt.work_date);
     if (!d) continue;
@@ -1641,6 +1715,25 @@ var renderResourceLine = function (resource, timeline) {
   var tasks = gantt.getTaskBy("user", resource.id);
   var timetable = calculateResourceLoad(resource, timeline.getScale());
   var row = document.createElement("div");
+
+  // ── Build Request day-task map BEFORE the regular loop ───────────────────
+  var requestDateMap = Object.create(null); // { dateStr: [dt,...] }
+  if (dayTasksStore) {
+    var allDTReq = dayTasksStore.getItems();
+    for (var ri = 0; ri < allDTReq.length; ri++) {
+      var rdt = allDTReq[ri];
+      if (!rdt || !rdt.work_date || rdt.plan_status !== "Request") continue;
+      if (String(rdt.resource_id || "") !== String(resource.id || "")) continue;
+      var rdtDate = gantt.date.date_to_str("%Y-%m-%d")(
+        _toGanttDate(rdt.work_date) || new Date(rdt.work_date)
+      );
+      if (!requestDateMap[rdtDate]) requestDateMap[rdtDate] = [];
+      requestDateMap[rdtDate].push(rdt);
+    }
+  }
+  // ── Track which Request dates got a planned cell rendered ─────────────────
+  var requestDateHandled = Object.create(null); // { dateStr: true }
+
   for (var i = 0; i < timetable.length; i++) {
     var day = timetable[i];
     var sizes = timeline.getItemPosition(resource, day.start_date, day.end_date);
@@ -1699,6 +1792,23 @@ var renderResourceLine = function (resource, timeline) {
       cell.appendChild(badge);
     }
 
+    // ── If a Request task exists on this same date → add black bar at bottom of THIS cell ──
+    if (requestDateMap[dayStr]) {
+      var blackBar = document.createElement("div");
+      blackBar.style.cssText = [
+        "position:absolute",
+        "bottom:0",
+        "left:0",
+        "right:0",
+        "height:6px",
+        "background:#000000",
+        "border-radius:0 0 3px 3px",
+        "pointer-events:none"
+      ].join(";");
+      cell.appendChild(blackBar);
+      requestDateHandled[dayStr] = true; // mark: this date already has a planned cell
+    }
+
     cell.dataset.resourceId = resource.id;
     cell.dataset.workDate = dayStr;
     cell.style.cursor = "pointer";
@@ -1718,6 +1828,76 @@ var renderResourceLine = function (resource, timeline) {
     
     row.appendChild(cell);
   }
+
+  // ── Grey boxes ONLY for standalone Request tasks (no planned cell on that date) ───────────
+  for (var rdateStr in requestDateMap) {
+    if (requestDateHandled[rdateStr]) continue; // already handled by planned cell above
+
+    var rfrom = gantt.date.parseDate(rdateStr, "%Y-%m-%d");
+    if (!rfrom) continue;
+    var rto = gantt.date.add(rfrom, 1, "day");
+    var rsizes = timeline.getItemPosition(resource, rfrom, rto);
+    if (!rsizes || rsizes.width <= 0) continue;
+
+    var reqItems = requestDateMap[rdateStr];
+    var reqHours = reqItems.reduce(function(s, x) { return s + (Number(x.hours) || 0); }, 0);
+
+    var reqCell = document.createElement("div");
+    reqCell.className = "gantt_resource_marker gantt_resource_marker_request";
+    reqCell.style.cssText = [
+      "left:" + rsizes.left + "px",
+      "width:" + rsizes.width + "px",
+      "position:absolute",
+      "height:" + (gantt.config.row_height - 1) + "px",
+      "top:" + rsizes.top + "px",
+      "display:flex",
+      "align-items:center",
+      "justify-content:center",
+      "font-weight:600"
+    ].join(";");
+
+    var reqHoursSpan = document.createElement("span");
+    reqHoursSpan.textContent = reqHours > 0 ? reqHours : "";
+    reqCell.appendChild(reqHoursSpan);
+
+    // Badge: show count of Request tasks when more than 1 (same mechanism as planned cells)
+    if (reqItems.length > 1) {
+      var reqBadge = document.createElement("span");
+      reqBadge.textContent = reqItems.length;
+      reqBadge.style.cssText = [
+        "position:absolute",
+        "top:2px",
+        "left:3px",
+        "font-size:10px",
+        "font-weight:700",
+        "line-height:1",
+        "background:rgba(0,0,0,0.25)",
+        "color:#fff",
+        "border-radius:8px",
+        "padding:1px 4px",
+        "pointer-events:none"
+      ].join(";");
+      reqCell.appendChild(reqBadge);
+    }
+
+    reqCell.dataset.resourceId = resource.id;
+    reqCell.dataset.workDate = rdateStr;
+    reqCell.dataset.isRequest = "1";
+    reqCell.style.cursor = "pointer";
+
+    reqCell.addEventListener("dblclick", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(
+        "OpenResourceLoadDay",
+        [this.dataset.resourceId, this.dataset.workDate]
+      );
+      return false;
+    }, true);
+
+    row.appendChild(reqCell);
+  }
+  // ── end Request grey boxes ────────────────────────────────────────────────
   return row;
 };
 var resourceLayers = [renderResourceLine, "taskBg"];
@@ -1780,31 +1960,40 @@ function LoadDayTasksData(dayTasksJsonTxt) {
       items = items.daytasks || items.dayTasks || items.DayTasks || [];
     }
 
-    // ✅ rebuild index every load
+    // ✅ rebuild indexes every load
     window.dayTasksByTask = Object.create(null);
+    window.requestJobTaskSet = Object.create(null); // task IDs that have ≥1 Request daytask
 
-    // IMPORTANT:
-    // daytask.task MUST match gantt task.id (planning-line level)
+    // Key = jobNo + "|" + jobTaskNo  →  matches gantt task.id exactly (pipe separator)
+    // (AL daytask.task field uses dash; gantt task.id uses pipe — must use jobNo/jobTaskNo fields)
     for (var i = 0; i < items.length; i++) {
       var x = items[i];
-      var taskId = x.task;
-
-      if (!taskId) continue;
+      var jNo  = x.jobNo  || "";
+      var jtNo = x.jobTaskNo || "";
+      if (!jNo && !jtNo) continue;
+      var taskId = jNo + "|" + jtNo;
 
       if (!window.dayTasksByTask[taskId]) {
         window.dayTasksByTask[taskId] = [];
       }
-
       window.dayTasksByTask[taskId].push(x);
+
+      if (x.plan_status === "Request") {
+        window.requestJobTaskSet[taskId] = true;
+      }
     }
 
     // Replace all
     if (dayTasksStore.clearAll) dayTasksStore.clearAll();
     dayTasksStore.parse(items);
-    
-    // Force repaint of resource timeline/grid only if resources exist
-    if (resourcesStore && gantt.$root && !_isRefreshing) {
-      gantt.render();
+
+    // addTaskLayer will now find the correct daytasks via task.id and render black bars
+    if (gantt.$root && !_isRefreshing) {
+      if (resourcesStore) {
+        gantt.render(); // full render including resource panel
+      } else {
+        gantt.refreshData(); // refresh task bars only (resources not loaded yet)
+      }
     }
   } catch (e) {
     console.error("LoadDayTasksData failed:", e);
