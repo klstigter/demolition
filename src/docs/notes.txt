@@ -167,7 +167,7 @@ API - 2026.04.29
          new field: active/non active (has Daytask?) -> name: Mandatory Schedulling    ---(OK)
          new field: Team Leader                                                        ---(OK)
 17. Resource Card (76,Card)-> daytask factbox does not sync-> not relevan as #18 below ---(OK)
-18. Resource: new list+card pages
+18. Resource: new list+card pages                                                      ?**********************OPEN
 19. Project -> Project Type (lookup new support table+page) -> publish in API          ---(OK)
 
 
@@ -188,12 +188,12 @@ API - 2026.04.29
 24. Daytask
       - Add New field: Day No. -> planner able to add day number     ---(OK)
       - Gantt:
-      Daytask Date is blank, but the gantt follow Place Order Date to visualized
+      Daytask Date is blank, but the gantt follow Place Order Date to visualized          ?**********************OPEN
       the actual date is after planner place exact date in gantt and plan status changed
 
 25. Calling Summary in Gantt chart depend on context of all gantt and per project task    ---(OK)
 
-26. Add parameter Calendar + hours setup into project task changes
+26. Add parameter Calendar + hours setup into project task changes                        ?**********************OPEN
 
 27. new Lookup page to edit/changes start-end date for project task                       ---(OK)
 
@@ -201,13 +201,13 @@ API - 2026.04.29
    - Projext Task background: apply diff color on day-off.                                ---(OK)
                               ex. saturday, sunday, and public holiday
 
-29. resource -> is pool = true:
+29. resource -> is pool = true:                                                           ?**********************OPEN
    - must have vendor no.
    - field pool resource can be hide
 
-30. gantt -> project bar -> apply warna dari posting dan non posting
+30. gantt -> project bar -> Apply colors for posting and non-posting Job Task Type        ---(OK)
 
-31. gantt -> project bar > show progress
+31. gantt -> project bar > show progress                                                  ?**********************OPEN
 
 
 

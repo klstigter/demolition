@@ -2,16 +2,16 @@ table 50600 "Planning Color Opt."
 {
     DataClassification = ToBeClassified;
     Caption = 'Planning Color';
-    LookupPageId = "Planning Color opt";
-    DrillDownPageId = "Planning Color opt";
+    LookupPageId = "Resource Scheduler Color opt";
+    DrillDownPageId = "Resource Scheduler Color opt";
 
     fields
     {
-        field(1; "No."; Code[20]) // Resource No. or Task No. depending on Type
+        field(2; Type; enum "Planning Color Opt.")
         {
             DataClassification = ToBeClassified;
         }
-        field(2; Type; enum "Planning Color Opt.")
+        field(1; "No."; Code[20]) // Resource No. or Task No. depending on Type
         {
             DataClassification = ToBeClassified;
         }
@@ -23,7 +23,6 @@ table 50600 "Planning Color Opt."
         {
             DataClassification = ToBeClassified;
         }
-
         field(10; "Day Task"; Text[30])
         {
             DataClassification = ToBeClassified;

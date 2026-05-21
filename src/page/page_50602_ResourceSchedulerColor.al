@@ -1,10 +1,11 @@
-page 50602 "Planning Color opt"
+page 50602 "Resource Scheduler Color opt"
 {
     PageType = List;
     ApplicationArea = All;
-    UsageCategory = Lists;
+    UsageCategory = None;
     SourceTable = "Planning Color Opt.";
-    Caption = 'Planning Color';
+    SourceTableView = sorting("No.") where(Type = const("Resource Scheduler"));
+    Caption = 'Resource Scheduler Color';
 
     layout
     {
@@ -18,21 +19,15 @@ page 50602 "Planning Color opt"
                 }
                 field("No."; Rec."No.")
                 {
+                    Caption = 'Resource No.';
                     ApplicationArea = All;
-                }
-                field("No. 2"; Rec."No. 2")
-                {
-                    ApplicationArea = All;
+                    TableRelation = Resource;
                 }
                 field("Day Task"; Rec."Day Task")
                 {
                     ApplicationArea = All;
                 }
                 field("Capacity"; Rec."Capacity")
-                {
-                    ApplicationArea = All;
-                }
-                field("Task"; Rec."Task")
                 {
                     ApplicationArea = All;
                 }
@@ -94,9 +89,9 @@ page 50602 "Planning Color opt"
                         repeat
                             Count += 1;
                             Idx := ((Count - 1) mod 8) + 1;
-                            if not ResColor.Get(ResColor.Type::Resource, Res."No.", '', '') then begin
+                            if not ResColor.Get(ResColor.Type::"Resource Scheduler", Res."No.", '', '') then begin
                                 ResColor.Init();
-                                ResColor.Type := ResColor.Type::Resource;
+                                ResColor.Type := ResColor.Type::"Resource Scheduler";
                                 ResColor."No." := Res."No.";
                                 ResColor."Day Task" := DayTaskColors[Idx];
                                 ResColor.Capacity := CapColors[Idx];

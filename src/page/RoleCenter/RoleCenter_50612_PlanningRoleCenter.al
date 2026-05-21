@@ -199,7 +199,7 @@ page 50612 "Planning Role Center"
                     Caption = 'Resource Color';
                     Image = Setup;
                     ApplicationArea = All;
-                    RunObject = page "Planning Color opt";
+                    RunObject = page "Resource Scheduler Color opt";
                 }
                 action("Projejct Type")
                 {

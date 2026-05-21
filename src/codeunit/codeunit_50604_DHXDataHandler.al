@@ -2529,7 +2529,7 @@ codeunit 50604 "DHX Data Handler"
         FallbackColors[2] := 'green';
         FallbackColors[3] := 'violet';
         FallbackColors[4] := 'yellow';
-        if ResColor.Get(ResColor.Type::Resource, pResourceNo, '', '') then begin
+        if ResColor.Get(ResColor.Type::"Resource Scheduler", pResourceNo, '', '') then begin
             case pColorType of
                 'daytask':
                     ColorValue := ResColor."Day Task";
