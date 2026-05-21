@@ -38,6 +38,10 @@ page 50624 "Day Task Information FactBox"
                 {
                     Caption = 'Data Owner';
                 }
+                field("Work Order No."; Rec."Work Order No.")
+                {
+                    ApplicationArea = All;
+                }
             }
             group(JobInformation)
             {

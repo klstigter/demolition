@@ -53,6 +53,10 @@ page 50645 "Res. Asgmt. Day Tasks"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the plan status of the day task.';
                 }
+                field("Work Order No."; Rec."Work Order No.")
+                {
+                    ApplicationArea = All;
+                }
                 field("Data Owner"; Rec."Data Owner")
                 {
                     Caption = 'Data Owner';

@@ -92,6 +92,10 @@ page 50622 "Resource Day Tasks"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the leader for this day task.';
                 }
+                field("Work Order No."; Rec."Work Order No.")
+                {
+                    ApplicationArea = All;
+                }
 
             }
         }

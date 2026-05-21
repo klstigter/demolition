@@ -35,6 +35,10 @@ page 50634 "Day Tasks FactBox"
                 {
                     Caption = 'Data Owner';
                 }
+                field("Work Order No."; Rec."Work Order No.")
+                {
+                    ApplicationArea = All;
+                }
                 field("Start Time"; Rec."Start Time Assigned")
                 {
                     ApplicationArea = All;

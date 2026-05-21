@@ -334,6 +334,12 @@ table 50610 "Day Tasks"
             TableRelation = "Work Type";
             Caption = 'Work Type Code';
         }
+        field(55; "Work Order No."; Code[20])
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Work Order No.';
+            TableRelation = "Work Order";
+        }
         field(60; Depth; Decimal)
         {
             DataClassification = ToBeClassified;
