@@ -13,50 +13,21 @@ report 50600 "RepairData"
 
     }
 
-    // trigger OnPreReport()
-    // var
-    //     Daytasks: Record "Day Tasks";
-    //     n: Integer;
-    // begin
-    //     Daytasks.SetFilter("No.", '<>%1', '');
-    //     if Daytasks.FindSet() then begin
-    //         repeat
-    //             Daytasks."Data Owner" := Daytasks."Data Owner"::"ProjectManager";
-    //             Daytasks.Modify();
-    //         until Daytasks.Next() = 0;
-    //     end;
-
-    //     Daytasks.SetRange("No.", '');
-    //     if Daytasks.FindSet() then begin
-    //         repeat
-    //             n += 1;
-    //             if (n mod 2) = 0 then begin
-    //                 Daytasks."Data Owner" := Daytasks."Data Owner"::"ProjectManager";
-    //                 Daytasks.Modify();
-    //             end;
-    //         until Daytasks.Next() = 0;
-    //     end;
-
-    //     Message('finished updating records');
-    // end;
-
     trigger OnPreReport()
     var
-        Res0: Record Resource;
-        Res: Record Resource;
+        JobTask: Record "Job Task";
         n: Integer;
     begin
-        Res0.SetFilter("Pool Resource No.", '<>%1', '');
-        if Res0.FindSet() then
+        //<< create code here
+        JobTask.SetRange("Job Task Type", JobTask."Job Task Type"::Posting);
+        if JobTask.FindSet(true) then
             repeat
-                Res.Get(Res0."Pool Resource No.");
-                if Res."Vendor No." <> '' then begin
-                    Res0."External Resource" := true;
-                    Res0.Modify();
-                    n += 1;
-                end;
-            until Res0.Next() = 0;
-        Message('Finished. %1 resource(s) repaired.', n);
+                JobTask.Progress := 30 + Random(41) - 1;
+                JobTask.Modify(true);
+                n += 1;
+            until JobTask.Next() = 0;
+        //>>
+        Message('Finished. %1 record(s) repaired.', n);
     end;
 
     var

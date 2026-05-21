@@ -207,10 +207,15 @@ API - 2026.04.29
 
 30. gantt -> project bar -> Apply colors for posting and non-posting Job Task Type        ---(OK)
 
-31. gantt -> project bar > show progress                                                  ?**********************OPEN
+31. gantt -> project bar > show progress                                                  ---(OK)
+
+32. API -> mechanism Daytask entry from API
+33. API -> new api for Skill
+34. API -> new api for Capacity
 
 
 
 
 scheduling type:
 planning type: fix duration / fix unit / fix work
+
