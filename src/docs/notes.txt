@@ -195,10 +195,11 @@ API - 2026.04.29
 
 26. Add parameter Calendar + hours setup into project task changes
 
-27. new Lookup page to edit/changes start-end date for project task
+27. new Lookup page to edit/changes start-end date for project task                       ---(OK)
 
 28. Gantt:
-   - Projext Task Bar -> apply diff color if non active day. ex. saturday, sunday, and public holiday
+   - Projext Task background: apply diff color on day-off.                                ---(OK)
+                              ex. saturday, sunday, and public holiday
 
 29. resource -> is pool = true:
    - must have vendor no.
