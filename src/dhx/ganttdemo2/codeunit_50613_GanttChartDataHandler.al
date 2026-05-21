@@ -85,6 +85,7 @@ codeunit 50613 "GanttChartDataHandler"
         StartEndText: Text;
         ConstraintDateText: Text;
         SchedulingTypeText: Text;
+        Codevar: Code[20];
     begin
 
         JsonObject.Add('id', Format(JobTask."Job No.") + '|' + Format(JobTask."Job Task No."));
@@ -109,9 +110,16 @@ codeunit 50613 "GanttChartDataHandler"
         //   JsonObject.Add('color', Job."Color");
         // The progressColor (darker shade) is automatically derived in JS from this value.
         ColorTxt := '#3b8ef0';
+        // Check setting color for project task type.
+        if evaluate(Codevar, Format(JobTask."Job Task Type")) then
+            if Color.Get(Color.Type::"Project Task Type", Codevar, '', '') then
+                if Color.Task <> '' then
+                    ColorTxt := Color.Task;
+        // setting color on Task is mandatory.
         if Color.Get(Color.Type::Task, JobTask."Job Task No.", JobTask."Job No.") then
             if Color.Task <> '' then
                 ColorTxt := Color.Task;
+
         JsonObject.Add('color', ColorTxt); // dummy: blue. Replace with real BC field later.
 
         JsonObject.Add('indentation', JobTask.Indentation);
