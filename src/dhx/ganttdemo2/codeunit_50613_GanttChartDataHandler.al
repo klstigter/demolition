@@ -357,6 +357,7 @@ codeunit 50613 "GanttChartDataHandler"
     var
         GanttSetup: Record "Gantt Chart Setup";
         DayTask: Record "Day Tasks";
+        WorkOrder: Record "Work Order";
         StartDate: Date;
         EndDate: Date;
         JsonArray: JsonArray;
@@ -379,6 +380,24 @@ codeunit 50613 "GanttChartDataHandler"
                 JsonArray.Add(JsonObject);
             until DayTask.Next() = 0;
 
+        // --- Second pass: Request day tasks with blank Task Date but Work Order Placeholder Date in range ---
+        DayTask.Reset();
+        if JobNo <> '' then
+            DayTask.SetRange("Job No.", JobNo);
+        if JobTaskNo <> '' then
+            DayTask.SetRange("Job Task No.", JobTaskNo);
+        DayTask.SetRange("Plan Status", DayTask."Plan Status"::Request);
+        DayTask.SetRange("Task Date", 0D);
+        DayTask.SetFilter("Work Order No.", '<>%1', '');
+        if DayTask.FindSet() then
+            repeat
+                if WorkOrder.Get(DayTask."Work Order No.") then
+                    if (WorkOrder."Placeholder Date" >= StartDate) and (WorkOrder."Placeholder Date" <= EndDate) then begin
+                        JsonObject := CreateDayTaskJsonObjectRequest(DayTask, WorkOrder."Placeholder Date");
+                        JsonArray.Add(JsonObject);
+                    end;
+            until DayTask.Next() = 0;
+
         JsonArray.WriteTo(JsonText);
     end;
 
@@ -389,6 +408,7 @@ codeunit 50613 "GanttChartDataHandler"
         EndTimeText: Text;
         ResourceId: Text;
         TypeText: Text;
+        PlanStatusText: Text;
     begin
         // SystemId as unique ID
         JsonObject.Add('id', Format(DayTask.SystemId));
@@ -405,6 +425,7 @@ codeunit 50613 "GanttChartDataHandler"
         else
             WorkDateText := '';
         JsonObject.Add('work_date', WorkDateText);
+        JsonObject.Add('placeholder_date', '');
 
         StartTimeText := FormatTime(DayTask."Start Time Assigned");
         JsonObject.Add('start_time', StartTimeText);
@@ -428,6 +449,62 @@ codeunit 50613 "GanttChartDataHandler"
             JsonObject.Add('vendorNo', DayTask."Vendor No.")
         else
             JsonObject.Add('vendorNo', 'null');
+
+        // Plan status
+        case DayTask."Plan Status" of
+            DayTask."Plan Status"::Request:
+                PlanStatusText := 'Request';
+            DayTask."Plan Status"::Planned:
+                PlanStatusText := 'Planned';
+            DayTask."Plan Status"::Completed:
+                PlanStatusText := 'Completed';
+            else
+                PlanStatusText := '';
+        end;
+        JsonObject.Add('plan_status', PlanStatusText);
+        JsonObject.Add('work_order_no', DayTask."Work Order No.");
+    end;
+
+    local procedure CreateDayTaskJsonObjectRequest(DayTask: Record "Day Tasks"; PlaceholderDate: Date) JsonObject: JsonObject
+    var
+        StartTimeText: Text;
+        EndTimeText: Text;
+        ResourceId: Text;
+        TypeText: Text;
+    begin
+        // Use SystemId as ID (no Task Date so no collision with normal records)
+        JsonObject.Add('id', Format(DayTask.SystemId));
+        JsonObject.Add('task', Format(DayTask."Job No.") + '-' + Format(DayTask."Job Task No."));
+        JsonObject.Add('dayNo', DayTask."Task Date");
+        JsonObject.Add('dayLineNo', DayTask."Day Line No.");
+        JsonObject.Add('jobNo', DayTask."Job No.");
+        JsonObject.Add('jobTaskNo', DayTask."Job Task No.");
+
+        // Use Work Order Placeholder Date as display date
+        JsonObject.Add('work_date', FormatDate(PlaceholderDate));
+        JsonObject.Add('placeholder_date', FormatDate(PlaceholderDate));
+
+        StartTimeText := FormatTime(DayTask."Start Time Assigned");
+        JsonObject.Add('start_time', StartTimeText);
+
+        EndTimeText := FormatTime(DayTask."End Time Assigned");
+        JsonObject.Add('end_time', EndTimeText);
+
+        JsonObject.Add('hours', DayTask."Requested Hours");
+
+        ResourceId := GetResourceId(DayTask);
+        JsonObject.Add('resource_id', ResourceId);
+
+        TypeText := GetDayTaskTypeText(DayTask.Type);
+        JsonObject.Add('type', TypeText);
+
+        if DayTask."Vendor No." <> '' then
+            JsonObject.Add('vendorNo', DayTask."Vendor No.")
+        else
+            JsonObject.Add('vendorNo', 'null');
+
+        JsonObject.Add('plan_status', 'Request');
+        JsonObject.Add('work_order_no', DayTask."Work Order No.");
     end;
 
     local procedure FormatTime(InputTime: Time) FormattedTime: Text
