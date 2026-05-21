@@ -68,12 +68,14 @@ page 50606 "DayTaskApi Opt"
                 field(teamLeader; Rec."Team Leader")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the team leader for this day task.';
                 }
                 field(leader; Rec.Leader)
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the leader for this day task.';
+                }
+                field(workOrderNo; Rec."Work Order No.")
+                {
+                    ApplicationArea = All;
                 }
                 field(systemCreatedAt; Rec.SystemCreatedAt)
                 {

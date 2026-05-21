@@ -92,9 +92,11 @@ page 50630 "Day Tasks"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the day number in the sequence.';
                     StyleExpr = StyleStr;
-
                 }
-
+                field("Work Order No."; Rec."Work Order No.")
+                {
+                    ApplicationArea = All;
+                }
                 field("Data Owner"; Rec."Data Owner")
                 {
                     Caption = 'Data Owner';
@@ -383,7 +385,8 @@ page 50630 "Day Tasks"
         DayNo: Integer;
     begin
         rec."Day Line No." := rec.GetNextDayLineNo(rec."Task Date", rec."Job No.", rec."Job Task No.");
-        rec.TestField("No.");
+        if Rec."Plan Status" <> Rec."Plan Status"::Request then
+            Rec.TestField("No.");
         exit(true);
     end;
 

@@ -16,7 +16,7 @@ table 50608 "Work Order"
         {
             Caption = 'Order Intake No.';
             DataClassification = CustomerContent;
-            // TODO: Add TableRelation = "Order Intake Header"."No.";
+            TableRelation = "Order Intake Header Opt.";
         }
 
         field(20; Description; Text[100])
