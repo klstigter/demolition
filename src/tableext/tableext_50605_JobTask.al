@@ -79,6 +79,22 @@ tableextension 50605 "Job Task ext" extends "Job Task"
             DataClassification = ToBeClassified;
             Caption = 'Duration';
             MinValue = 0;
+
+            trigger OnValidate()
+            var
+                durationTxt: Text;
+                durationLbl: Label '<%1D>';
+            begin
+                if (PlannedStartDate <> 0D) and (Duration >= 1) then begin
+                    if Duration = 1 then
+                        PlannedEndDate := PlannedStartDate
+                    else begin
+                        durationTxt := StrSubstNo(durationLbl, Duration - 1);
+                        PlannedEndDate := CalcDate(durationTxt, PlannedStartDate);
+                    end;
+                end else
+                    Duration := 0;
+            end;
         }
 
         field(50601; Progress; Integer)

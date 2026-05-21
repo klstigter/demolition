@@ -552,11 +552,21 @@ page 50618 "Opti Job Task Card"
                     field("Planned Start Date"; Rec.PlannedStartDate)
                     {
                         ApplicationArea = All;
+                        Editable = false; //use assist edit to change the value
                         ToolTip = 'Specifies the start date for the project task. The date is based on the date on the related project planning line.';
+
+                        trigger OnAssistEdit()
+                        var
+                            PlannedDateUpdater: Report "Job Task Planned Date Updater";
+                        begin
+                            PlannedDateUpdater.SetPlannedDates(Rec);
+                            PlannedDateUpdater.RunModal();
+                        end;
                     }
                     field("Planned End Date"; Rec.PlannedEndDate)
                     {
                         ApplicationArea = All;
+                        Editable = false; //use assist edit to change the value
                         ToolTip = 'Specifies the end date for the project task. The date is based on the date on the related project planning line.';
                     }
                     field(DurationTask; Rec.Duration)
