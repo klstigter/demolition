@@ -167,9 +167,7 @@ window.BOOT = function() {
       if (document._resGridContextMenuInstalled) return;
       document._resGridContextMenuInstalled = true;
 
-      // Build the floating menu element
-      var menu = document.createElement("div");
-      menu.style.cssText = [
+      var menuCss = [
         "position:fixed",
         "z-index:99999",
         "background:#fff",
@@ -183,9 +181,18 @@ window.BOOT = function() {
         "cursor:default"
       ].join(";");
 
+      // ── Resource name menu ──
+      var menu = document.createElement("div");
+      menu.style.cssText = menuCss;
       var currentResourceId = "";
 
-      function makeItem(label, onClick) {
+      // ── Daytask marker menu ──
+      var markerMenu = document.createElement("div");
+      markerMenu.style.cssText = menuCss;
+      var currentMarkerResourceId = "";
+      var currentMarkerWorkDate = "";
+
+      function makeItem(parentMenu, label, onClick) {
         var item = document.createElement("div");
         item.textContent = label;
         item.style.cssText = "padding:7px 18px;white-space:nowrap";
@@ -194,47 +201,71 @@ window.BOOT = function() {
         item.addEventListener("mousedown", function (e) {
           e.preventDefault();
           e.stopPropagation();
-          hideMenu();
+          hideMenus();
           onClick();
         }, true);
-        menu.appendChild(item);
+        parentMenu.appendChild(item);
       }
 
-      makeItem("Resource Scheduler", function () {
+      makeItem(menu, "Resource Scheduler", function () {
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("onOpenResourceScheduler", [
           currentResourceId
         ]);
       });
-      makeItem("Show Message 2", function () {
+      makeItem(menu, "Show Message 2", function () {
         alert("Message 2 — Resource: " + currentResourceId);
       });
 
-      function hideMenu() { menu.style.display = "none"; }
+      makeItem(markerMenu, "Open Day Tasks", function () {
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OpenResourceLoadDay", [
+          currentMarkerResourceId,
+          currentMarkerWorkDate
+        ]);
+      });
+
+      function hideMenus() {
+        menu.style.display = "none";
+        markerMenu.style.display = "none";
+      }
+
+      function positionMenu(m, x, y) {
+        m.style.left = x + "px";
+        m.style.top  = y + "px";
+        m.style.display = "block";
+        var rect = m.getBoundingClientRect();
+        if (rect.right  > window.innerWidth)  m.style.left = Math.max(0, x - rect.width)  + "px";
+        if (rect.bottom > window.innerHeight) m.style.top  = Math.max(0, y - rect.height) + "px";
+      }
 
       document.body.appendChild(menu);
+      document.body.appendChild(markerMenu);
 
-      // Right-click on a resource name cell → show menu
+      // Right-click on a resource name cell OR a daytask marker → show appropriate menu
       document.addEventListener("contextmenu", function (e) {
-        var cell = e.target.closest(".res-name-cell");
-        if (!cell) { hideMenu(); return; }
+        var resCell    = e.target.closest(".res-name-cell");
+        var markerCell = e.target.closest(".gantt_resource_marker");
+
+        if (!resCell && !markerCell) { hideMenus(); return; }
         e.preventDefault();
         e.stopPropagation();
-        currentResourceId = cell.getAttribute("data-rid") || "";
-        menu.style.left = e.clientX + "px";
-        menu.style.top  = e.clientY + "px";
-        menu.style.display = "block";
-        // Keep menu on screen
-        var rect = menu.getBoundingClientRect();
-        if (rect.right  > window.innerWidth)  menu.style.left = Math.max(0, e.clientX - rect.width)  + "px";
-        if (rect.bottom > window.innerHeight) menu.style.top  = Math.max(0, e.clientY - rect.height) + "px";
+        hideMenus();
+
+        if (markerCell) {
+          currentMarkerResourceId = markerCell.dataset.resourceId || "";
+          currentMarkerWorkDate   = markerCell.dataset.workDate   || "";
+          positionMenu(markerMenu, e.clientX, e.clientY);
+        } else {
+          currentResourceId = resCell.getAttribute("data-rid") || "";
+          positionMenu(menu, e.clientX, e.clientY);
+        }
       }, true);
 
-      // Click or Escape anywhere → hide menu
+      // Click or Escape anywhere → hide both menus
       document.addEventListener("mousedown", function (e) {
-        if (!menu.contains(e.target)) hideMenu();
+        if (!menu.contains(e.target) && !markerMenu.contains(e.target)) hideMenus();
       }, true);
       document.addEventListener("keydown", function (e) {
-        if (e.key === "Escape") hideMenu();
+        if (e.key === "Escape") hideMenus();
       });
     }
 
@@ -799,12 +830,20 @@ window.BOOT = function() {
     // guard, each of those phantom updates would re-open the period-sync popup.
     var _reloadInProgress = false;
 
+    // ── Drag: redraw request overlay bars in real-time as the task moves ─────
+    gantt.attachEvent("onTaskDrag", function (id, mode, task, original) {
+      _renderRequestBars();
+      return true;
+    });
+
     // ── Drag: send OnJobTaskUpdated exactly once per drag operation ──────────
     gantt.attachEvent("onAfterTaskDrag", function (id, mode, e) {
       var task = gantt.getTask(id);
       // Block ALL onAfterTaskUpdate calls while drag + auto-scheduling settle.
       _dragInProgress = true;
       setTimeout(function () { _dragInProgress = false; }, 300);
+      // Redraw overlay bars to their final position after the drag snaps
+      _renderRequestBars();
       try {
         var fmt = gantt.date.date_to_str(gantt.config.date_format);
         var payload = {

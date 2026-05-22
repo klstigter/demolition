@@ -188,7 +188,7 @@ API - 2026.04.29
 24. Daytask
       - Add New field: Day No. -> planner able to add day number     ---(OK)
       - Gantt:
-      Daytask Date is blank, but the gantt follow Place Order Date to visualized          ?**********************OPEN
+      Daytask Date is blank, but the gantt follow Place Order Date to visualized          ---(OK) -> but need to improve
       the actual date is after planner place exact date in gantt and plan status changed
 
 25. Calling Summary in Gantt chart depend on context of all gantt and per project task    ---(OK)
@@ -201,7 +201,7 @@ API - 2026.04.29
    - Projext Task background: apply diff color on day-off.                                ---(OK)
                               ex. saturday, sunday, and public holiday
 
-29. resource -> is pool = true:                                                           ?**********************OPEN
+29. resource -> is pool = true:                                                           ---(OK)
    - must have vendor no.
    - field pool resource can be hide
 
@@ -212,6 +212,15 @@ API - 2026.04.29
 32. API -> mechanism Daytask entry from API
 33. API -> new api for Skill
 34. API -> new api for Capacity
+ 
+35. Daytask Table
+      - remove field type
+      - Add new Field Requested Resource No.
+      - Rename Field: No. -> Assigned Resource No.
+36. Daytask Card -> new add button -> open card for entry
+37. Gantt Card -> resource panel -> Daytask section -> able to right click on non daytask cells -> ex. add daytask
+38. open summary from project task -> see picture
+
 
 
 
