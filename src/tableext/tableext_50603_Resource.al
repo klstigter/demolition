@@ -13,10 +13,19 @@ tableextension 50603 "Resource Opt" extends Resource
                 Res: Record Resource;
             begin
                 if "Pool Resource No." = '' then begin
-                    "External Resource" := false;
+                    "is Pool" := false;
+                    if (xRec."Pool Resource No." <> '') and (xRec."Pool Resource No." = "No.") then begin
+                        Res.SetRange("Pool Resource No.", "No.");
+                        Res.SetFilter("No.", '<>%1', "No.");
+                        if Res.FindSet() then
+                            Res.ModifyAll("Pool Resource No.", '');
+                    end;
                 end else begin
-                    Res.Get("Pool Resource No.");
-                    "External Resource" := Res."Vendor No." <> '';
+                    "is Pool" := "Pool Resource No." = "No.";
+                    if not "is Pool" then begin
+                        Res.Get("Pool Resource No.");
+                        "External Resource" := Res."Vendor No." <> '';
+                    end;
                 end;
             end;
         }
@@ -61,12 +70,22 @@ tableextension 50603 "Resource Opt" extends Resource
         {
             Caption = 'Is Pool';
             trigger OnValidate()
+            var
+                Res: Record Resource;
             begin
                 if "Is Pool" then begin
+                    testfield("Vendor No.");
                     "Pool Resource No." := "No.";
                     "External Resource" := true;
-                end else
+                end else begin
                     "Pool Resource No." := '';
+                    if (xRec."Pool Resource No." <> '') and (xRec."Pool Resource No." = "No.") then begin
+                        Res.SetRange("Pool Resource No.", "No.");
+                        Res.SetFilter("No.", '<>%1', "No.");
+                        if Res.FindSet() then
+                            Res.ModifyAll("Pool Resource No.", '');
+                    end;
+                end;
             end;
         }
         field(50630; "Team Leader"; Code[20])
