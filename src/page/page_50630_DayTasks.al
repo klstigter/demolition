@@ -30,7 +30,7 @@ page 50630 "Day Tasks"
                     Visible = Not ShowJobTask;
                     Editable = false;
                 }
-                field("No. Filter"; GetTableViewFilter(rec.FieldNo("No.")))
+                field("No. Filter"; GetTableViewFilter(rec.FieldNo("Assigned Resource No.")))
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the task date to filter on.';
@@ -101,10 +101,17 @@ page 50630 "Day Tasks"
                 {
                     Caption = 'Data Owner';
                 }
-                field("No."; Rec."No.")
+                field("Assigned Resource No."; Rec."Assigned Resource No.")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the number of the resource, item, or G/L account.';
+                    ToolTip = 'Specifies the number of the assigned resource.';
+                    StyleExpr = StyleStr;
+                    Visible = ShowResource;
+                }
+                field("Requested Resource No."; Rec."Requested Resource No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the number of the requested resource.';
                     StyleExpr = StyleStr;
                     Visible = ShowResource;
                 }
@@ -141,9 +148,9 @@ page 50630 "Day Tasks"
                         DayTaskRec: Record "Day Tasks";
                     begin
 
-                        if rec."No." = '' then
+                        if rec."Assigned Resource No." = '' then
                             exit;
-                        DayTaskRec.setrange("No.", Rec."No.");
+                        DayTaskRec.setrange("Assigned Resource No.", Rec."Assigned Resource No.");
                         DayTaskRec.SetRange("Task Date", Rec."Task Date");
                         DayTask.SetTableView(DayTaskRec);
                         DayTask.RunModal();
@@ -291,13 +298,13 @@ page 50630 "Day Tasks"
             {
                 ApplicationArea = All;
                 Caption = 'Resource Skills';
-                SubPageLink = Type = const(Resource), "No." = field("No.");
+                SubPageLink = Type = const(Resource), "No." = field("Assigned Resource No.");
             }
             part(ResourceCapacity; "Res. Capacity FactBox Part")
             {
                 ApplicationArea = All;
                 Caption = 'Resource Capacity';
-                SubPageLink = "Resource No." = field("No."),
+                SubPageLink = "Resource No." = field("Assigned Resource No."),
                               Date = field("Task Date");
             }
         }
@@ -366,7 +373,7 @@ page 50630 "Day Tasks"
         if not ShowJobTask then
             Rec."Job Task No." := GetTableViewFilter(rec.FieldNo("Job Task No."));
         if not ShowResource then
-            Rec."No." := GetTableViewFilter(rec.FieldNo("No."));
+            Rec."Assigned Resource No." := GetTableViewFilter(rec.FieldNo("Assigned Resource No."));
         if not ShowSkill then
             Rec.Skill := GetTableViewFilter(rec.FieldNo("Skill"));
 
@@ -379,7 +386,7 @@ page 50630 "Day Tasks"
     begin
         rec."Day Line No." := rec.GetNextDayLineNo(rec."Task Date", rec."Job No.", rec."Job Task No.");
         if Rec."Plan Status" <> Rec."Plan Status"::Request then
-            Rec.TestField("No.");
+            Rec.TestField("Assigned Resource No.");
         exit(true);
     end;
 
@@ -387,7 +394,7 @@ page 50630 "Day Tasks"
     begin
         rec.CalcFields(Capacity, "Total Assigned Hours");
         case true of
-            rec."No." = '':
+            rec."Assigned Resource No." = '':
                 StyleOpt := StyleOpt::StrongAccent;
             rec.Capacity = 0:
                 StyleOpt := StyleOpt::Unfavorable;
@@ -403,7 +410,7 @@ page 50630 "Day Tasks"
 
     procedure GetTotalAssignedHours(): Decimal
     begin
-        if rec."No." = '' then
+        if rec."Assigned Resource No." = '' then
             TotAssignedHours := 0
         else begin
             rec.CalcFields("Total Assigned Hours");
@@ -430,8 +437,8 @@ page 50630 "Day Tasks"
                 fieldFilter := Rec.GetFilter("Job No.");
             rec.FieldNo("Job Task No."):
                 fieldFilter := Rec.GetFilter("Job Task No.");
-            rec.FieldNo("No."):
-                fieldFilter := Rec.GetFilter("No.");
+            rec.FieldNo("Assigned Resource No."):
+                fieldFilter := Rec.GetFilter("Assigned Resource No.");
             rec.FieldNo("Skill"):
                 fieldFilter := Rec.GetFilter("Skill");
         end;

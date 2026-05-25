@@ -38,7 +38,7 @@ report 50602 DayTask
                     , "Task Date" = field("Task Date");
 
                     column(ResourceNo;
-                    DayTask2."No.")
+                    DayTask2."Assigned Resource No.")
                     {
                         Caption = 'Resource No.';
                     }
@@ -73,10 +73,10 @@ report 50602 DayTask
 
                     begin
                         // Populate the temporary table with necessary fields from related tables
-                        if resource.Get(DayTask2."No.") then begin
-                            if not TEMPresource.Get(dayTask2."No.") then begin
+                        if resource.Get(DayTask2."Assigned Resource No.") then begin
+                            if not TEMPresource.Get(dayTask2."Assigned Resource No.") then begin
                                 TEMPresource.Init();
-                                TEMPresource."No." := dayTask2."No.";
+                                TEMPresource."No." := dayTask2."Assigned Resource No.";
                                 TEMPresource."Is Pool" := resource."Is Pool";
                                 TEMPresource."Pool Resource no." := resource."pool Resource no.";
                                 TEMPresource."Is Foreman" := resource."Is Foreman";
@@ -124,7 +124,7 @@ report 50602 DayTask
 
                 jobTaskDescription := ' - ' + jobTask."Job Task No." + ' ' + jobTask.Description;
 
-                if not resource.Get(DayTask."No.") then
+                if not resource.Get(DayTask."Assigned Resource No.") then
                     clear(resource);
 
                 dayTask.SetRange("Job No.", DayTask."Job No.");

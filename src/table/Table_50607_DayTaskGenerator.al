@@ -253,7 +253,7 @@ table 50607 "Day Task Generator"
                 rec.Init();
                 rec."Job No." := JobNo;
                 rec."Job Task No." := JobTaskNo;
-                rec."Resource No." := daytask."No.";
+                rec."Resource No." := daytask."Assigned Resource No.";
                 rec.SkillsRequired := daytask.Skill;
                 if rec.Find('=') then begin
                     if daytask."Task Date" < rec."Start Date" then
@@ -264,7 +264,7 @@ table 50607 "Day Task Generator"
                 end else begin
                     rec."Start Date" := daytask."Task Date";
                     rec."End Date" := daytask."Task Date";
-                    if Resource.get(daytask."No.") then
+                    if Resource.get(daytask."Assigned Resource No.") then
                         if Resource."Pool Resource No." <> '' then begin
                             rec."Is Pool" := Resource."Pool Resource No." <> Resource."No.";
                             rec."Pool Resource No." := Resource."Pool Resource No.";

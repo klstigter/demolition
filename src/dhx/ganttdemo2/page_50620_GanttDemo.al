@@ -269,7 +269,7 @@ page 50620 "Gantt Demo DHX 2"
                     if JobFilter <> '' then
                         DayTask.SetFilter("Job No.", JobFilter);
                     if tp[1] = 'RES-' then
-                        DayTask.SetRange("No.", tp[2]);
+                        DayTask.SetRange("Assigned Resource No.", tp[2]);
                     if tp[1] = 'VEN-' then
                         DayTask.SetRange("Vendor No.", tp[2]);
                     Page.Run(Page::"Day Tasks", DayTask);

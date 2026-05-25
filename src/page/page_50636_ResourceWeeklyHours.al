@@ -97,7 +97,7 @@ page 50636 "Resource Weekly Hours"
                     WeekStart := GetWeekStartFromYearWeek(Rec.Year, Rec."Week No.");
                     WeekEnd := CalcDate('<+6D>', WeekStart);
                     DayTask.Reset();
-                    DayTask.SetRange("No.", Rec."Resource No.");
+                    DayTask.SetRange("Assigned Resource No.", Rec."Resource No.");
                     DayTask.SetRange("Job No.", Rec."Job No.");
                     DayTask.SetRange("Job Task No.", Rec."Job Task No.");
                     DayTask.SetRange("Task Date", WeekStart, WeekEnd);

@@ -37,7 +37,7 @@ page 50606 "DayTaskApi Opt"
                 {
                     Caption = 'Task No.';
                 }
-                field(no_; Rec."No.")
+                field(no_; Rec."Assigned Resource No.")
                 {
                     Caption = 'No.';
                 }

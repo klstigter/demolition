@@ -9,7 +9,7 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
             {
                 ApplicationArea = All;
                 SubPageView = sorting("Task Date", "Day Line No.");
-                SubPageLink = "No." = field("No.");
+                SubPageLink = "Assigned Resource No." = field("No.");
                 UpdatePropagation = Both;
             }
         }
@@ -67,7 +67,7 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
             {
                 ApplicationArea = All;
                 Caption = 'Day Tasks';
-                SubPageLink = "No." = field("No.");
+                SubPageLink = "Assigned Resource No." = field("No.");
             }
         }
     }
