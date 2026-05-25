@@ -2,13 +2,16 @@ enum 50613 "Plan Status"
 {
     Extensible = true;
 
-    value(0; Request)
+    value(0; Inrequest)
     {
     }
-    value(1; Planned)
+    value(1; Inprocess)
     {
     }
-    value(2; Completed)
+    value(2; Rejected)
+    {
+    }
+    value(3; Accepted)
     {
     }
 }

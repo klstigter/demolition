@@ -386,7 +386,7 @@ codeunit 50613 "GanttChartDataHandler"
             DayTask.SetRange("Job No.", JobNo);
         if JobTaskNo <> '' then
             DayTask.SetRange("Job Task No.", JobTaskNo);
-        DayTask.SetRange("Plan Status", DayTask."Plan Status"::Request);
+        DayTask.SetRange("Plan Status", DayTask."Plan Status"::Inrequest);
         DayTask.SetRange("Task Date", 0D);
         DayTask.SetFilter("Work Order No.", '<>%1', '');
         if DayTask.FindSet() then
@@ -450,12 +450,14 @@ codeunit 50613 "GanttChartDataHandler"
 
         // Plan status
         case DayTask."Plan Status" of
-            DayTask."Plan Status"::Request:
+            DayTask."Plan Status"::Inrequest:
                 PlanStatusText := 'Request';
-            DayTask."Plan Status"::Planned:
+            DayTask."Plan Status"::Inprocess:
                 PlanStatusText := 'Planned';
-            DayTask."Plan Status"::Completed:
-                PlanStatusText := 'Completed';
+            DayTask."Plan Status"::Rejected:
+                PlanStatusText := 'Rejected';
+            DayTask."Plan Status"::Accepted:
+                PlanStatusText := 'Accepted';
             else
                 PlanStatusText := '';
         end;

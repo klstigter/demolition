@@ -216,9 +216,24 @@ API - 2026.04.29
       - remove field type                                   ---(OK)
       - Add new Field Requested Resource No.                ---(OK)
       - Rename Field: No. -> Assigned Resource No.          ---(OK)
-36. Daytask Card -> new add button -> open card for entry
+36. Daytask List -> open card for entry                     ---(OK)
 37. Gantt Card -> resource panel -> Daytask section -> able to right click on non daytask cells -> ex. add daytask
 38. open summary from project task -> see picture: docs/SummaryFromTask.png   ---(OK)
+
+39. Daytask Plan status: add rename and new status:         ---(OK)          
+                           (0) Requested -> Inrequest
+                           (1) Planned -> Inprocess
+                           (2) Rejected
+                           (3) Accepted
+
+40. Data Owner :                                            ---(OK)
+         Planner
+         Project Manager
+         Customer
+         Vendor
+         Team member
+         Team Leader
+
 
 
 

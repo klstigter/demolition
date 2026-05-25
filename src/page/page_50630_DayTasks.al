@@ -5,6 +5,7 @@ page 50630 "Day Tasks"
     UsageCategory = Lists;
     SourceTable = "Day Tasks";
     Caption = 'Day Tasks';
+    CardPageId = "Day Task Card Opt";
     //Editable = false;
     DelayedInsert = true;
     layout
@@ -385,7 +386,7 @@ page 50630 "Day Tasks"
         DayNo: Integer;
     begin
         rec."Day Line No." := rec.GetNextDayLineNo(rec."Task Date", rec."Job No.", rec."Job Task No.");
-        if Rec."Plan Status" <> Rec."Plan Status"::Request then
+        if Rec."Plan Status" <> Rec."Plan Status"::Inrequest then
             Rec.TestField("Assigned Resource No.");
         exit(true);
     end;
