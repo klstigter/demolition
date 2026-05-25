@@ -185,8 +185,6 @@ page 50645 "Res. Asgmt. Day Tasks"
         NewDate: Date;
         NextLineNo: Integer;
     begin
-        Rec.Type := Rec.Type::Resource;
-
         // Inherit date from current filter if set
         Rec.FilterGroup(2);
         if Rec.GetFilter("Task Date") <> '' then

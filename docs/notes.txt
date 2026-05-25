@@ -213,7 +213,7 @@ API - 2026.04.29
 34. API -> new api for Capacity
  
 35. Daytask Table
-      - remove field type
+      - remove field type                          ---(OK)
       - Add new Field Requested Resource No.
       - Rename Field: No. -> Assigned Resource No.
 36. Daytask Card -> new add button -> open card for entry
