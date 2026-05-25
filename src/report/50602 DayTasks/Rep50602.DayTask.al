@@ -18,10 +18,6 @@ report 50602 DayTask
             {
                 Caption = 'Job Task No.';
             }
-            column(LineNo; DayTask."Day Line No.")
-            {
-                Caption = 'Job Line No.';
-            }
             column(TaskDate; DayTask."Task Date")
             {
                 Caption = 'Task Date';
@@ -179,18 +175,15 @@ report 50602 DayTask
                 }
             }
         }
-
-
-
     }
 
     rendering
     {
-        layout(LayoutName)
-        {
-            Type = Excel;
-            LayoutFile = 'src/report/50602 DayTasks/mySpreadsheet.xlsx';
-        }
+        // layout(LayoutName)
+        // {
+        //     Type = Excel;
+        //     LayoutFile = 'src/report/50602 DayTasks/mySpreadsheet.xlsx';
+        // }
         layout(DayTaskReport)
         {
             Type = Rdlc;

@@ -328,9 +328,6 @@ End Function
         <Field Name="JobTaskNo">
           <DataField>JobTaskNo</DataField>
         </Field>
-        <Field Name="LineNo">
-          <DataField>LineNo</DataField>
-        </Field>
         <Field Name="TaskDate">
           <DataField>TaskDate</DataField>
         </Field>

@@ -721,6 +721,22 @@ page 50620 "Gantt Demo DHX 2"
         }
         area(Reporting)
         {
+            action(DayTasksDetail)
+            {
+                Caption = 'Day Tasks Detail';
+                ApplicationArea = All;
+                Image = Report;
+                trigger OnAction()
+                var
+                    DayTaskDetails: Report "Day Task Details";
+                    StartDate: Date;
+                    EndDate: Date;
+                begin
+                    GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
+                    DayTaskDetails.SetDataViewDateRange(StartDate, EndDate);
+                    DayTaskDetails.RunModal();
+                end;
+            }
             action(DayTasksOverview)
             {
                 Caption = 'Day Tasks Overview';
@@ -782,6 +798,7 @@ page 50620 "Gantt Demo DHX 2"
             Group(Reports)
             {
                 Caption = 'Reports';
+                actionref(DayTasksDetail_ref; DayTasksDetail) { }
                 actionref(DayTasksOverview_ref; DayTasksOverview) { }
             }
         }
