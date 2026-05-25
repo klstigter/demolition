@@ -417,6 +417,20 @@ table 50610 "Day Tasks"
     var
         generalutils: Codeunit "General Planning Utilities";
 
+    procedure GetNextDayLineNo();
+    var
+        DayTasks: Record "Day Tasks";
+        DayLineNo: Integer;
+    begin
+        DayTasks.SetRange("Job No.", "Job No.");
+        DayTasks.SetRange("Job Task No.", "Job Task No.");
+        if DayTasks.FindLast() then
+            DayLineNo := DayTasks."Day Line No." + 10000
+        else
+            DayLineNo := 10000;
+        Rec."Day Line No." := DayLineNo;
+    end;
+
     procedure CalculateWorkingHours()
     begin
         CalculateAssignedWorkingHours();

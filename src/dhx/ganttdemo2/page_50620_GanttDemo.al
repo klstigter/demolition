@@ -293,6 +293,40 @@ page 50620 "Gantt Demo DHX 2"
                     Message('Resource: %1', resourceId);
                 end;
 
+                trigger onAddDayTask(resourceId: Text; workDate: Text)
+                var
+                    DayTask: Record "Day Tasks";
+                    DayTaskCard: Page "Day Task Card - New Record";
+                    WorkDt: Date;
+                    Prefix: Text[4];
+                    ResourceCode: Code[20];
+                    IsTemp: Boolean;
+                begin
+                    Evaluate(WorkDt, workDate); // expects YYYY-MM-DD
+                    Prefix := CopyStr(resourceId, 1, 4);
+                    ResourceCode := CopyStr(resourceId, 5, MaxStrLen(ResourceCode));
+                    DayTask.Init();
+                    DayTask."Task Date" := WorkDt;
+                    if Prefix = 'RES-' then
+                        DayTask.Validate("Assigned Resource No.", ResourceCode)
+                    else
+                        if Prefix = 'VEN-' then
+                            DayTask.Validate("Vendor No.", ResourceCode);
+
+                    Clear(DayTaskCard);
+                    DayTaskCard.LookupMode(true);
+                    DayTaskCard.SetNewRecordToSave(DayTask);
+                    if DayTaskCard.RunModal() = Action::LookupOK then begin
+                        DayTaskCard.GetRecord(DayTask);
+                        DayTask.TestField("Job No.");
+                        DayTask.TestField("Job Task No.");
+                        DayTask.TestField("Task Date");
+                        DayTask.GetNextDayLineNo();
+                        DayTask.Insert();
+                        RefreshGantt();
+                    end;
+                end;
+
                 trigger onOpenResourceScheduler(resourceId: Text)
                 var
                     ResScheduler: page "DHX Resource Scheduler";

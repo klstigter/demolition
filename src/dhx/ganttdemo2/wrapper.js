@@ -223,9 +223,24 @@ window.BOOT = function() {
         ]);
       });
 
+      // ── Empty resource timeline cell menu ──
+      var emptyMenu = document.createElement("div");
+      emptyMenu.style.cssText = menuCss;
+      var RightClickedResourceId = "";
+      var RightClickedWorkDate   = "";
+
+      makeItem(emptyMenu, "Add Day Task", function () {
+        if (!RightClickedResourceId || !RightClickedWorkDate) return;
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("onAddDayTask", [
+          RightClickedResourceId,
+          RightClickedWorkDate
+        ]);
+      });
+
       function hideMenus() {
         menu.style.display = "none";
         markerMenu.style.display = "none";
+        emptyMenu.style.display = "none";
       }
 
       function positionMenu(m, x, y) {
@@ -239,13 +254,25 @@ window.BOOT = function() {
 
       document.body.appendChild(menu);
       document.body.appendChild(markerMenu);
+      document.body.appendChild(emptyMenu);
 
-      // Right-click on a resource name cell OR a daytask marker → show appropriate menu
+      // Right-click on a resource name cell, a daytask marker, or an empty timeline cell
       document.addEventListener("contextmenu", function (e) {
         var resCell    = e.target.closest(".res-name-cell");
         var markerCell = e.target.closest(".gantt_resource_marker");
 
-        if (!resCell && !markerCell) { hideMenus(); return; }
+        // Detect empty resource timeline cell (click lands on timeline bg, not a marker)
+        var emptyCell = null;
+        if (!resCell && !markerCell) {
+          try {
+            var rtView = gantt.$ui && gantt.$ui.getView && gantt.$ui.getView("resourceTimeline");
+            if (rtView && rtView.$task_data && rtView.$task_data.contains(e.target)) {
+              emptyCell = e.target;
+            }
+          } catch (_) {}
+        }
+
+        if (!resCell && !markerCell && !emptyCell) { hideMenus(); return; }
         e.preventDefault();
         e.stopPropagation();
         hideMenus();
@@ -254,15 +281,35 @@ window.BOOT = function() {
           currentMarkerResourceId = markerCell.dataset.resourceId || "";
           currentMarkerWorkDate   = markerCell.dataset.workDate   || "";
           positionMenu(markerMenu, e.clientX, e.clientY);
+        } else if (emptyCell) {
+          try {
+            var rtView2  = gantt.$ui.getView("resourceTimeline");
+            var rect     = rtView2.$task_data.getBoundingClientRect();
+            var scroll   = gantt.getScrollState();
+            var x        = e.clientX - rect.left + (scroll ? scroll.x : 0);
+            var clickDate = gantt.dateFromPos ? gantt.dateFromPos(x) : null;
+            if (!clickDate) { return; }
+            clickDate = gantt.date.day_start(clickDate);
+            var fmt = gantt.date.date_to_str("%Y-%m-%d");
+            RightClickedWorkDate = fmt(clickDate);
+
+            var resScrollTop = rtView2.$task_data.scrollTop || 0;
+            var relY     = e.clientY - rect.top + resScrollTop;
+            var rowIndex = Math.floor(relY / (gantt.config.row_height || 30));
+            var resources = resourcesStore ? resourcesStore.getItems() : [];
+            var resource  = (rowIndex >= 0 && rowIndex < resources.length) ? resources[rowIndex] : null;
+            RightClickedResourceId = resource ? String(resource.id) : "";
+            positionMenu(emptyMenu, e.clientX, e.clientY);
+          } catch (_) {}
         } else {
           currentResourceId = resCell.getAttribute("data-rid") || "";
           positionMenu(menu, e.clientX, e.clientY);
         }
       }, true);
 
-      // Click or Escape anywhere → hide both menus
+      // Click or Escape anywhere → hide all menus
       document.addEventListener("mousedown", function (e) {
-        if (!menu.contains(e.target) && !markerMenu.contains(e.target)) hideMenus();
+        if (!menu.contains(e.target) && !markerMenu.contains(e.target) && !emptyMenu.contains(e.target)) hideMenus();
       }, true);
       document.addEventListener("keydown", function (e) {
         if (e.key === "Escape") hideMenus();

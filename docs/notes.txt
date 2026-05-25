@@ -217,7 +217,7 @@ API - 2026.04.29
       - Add new Field Requested Resource No.                ---(OK)
       - Rename Field: No. -> Assigned Resource No.          ---(OK)
 36. Daytask List -> open card for entry                     ---(OK)
-37. Gantt Card -> resource panel -> Daytask section -> able to right click on non daytask cells -> ex. add daytask
+37. Gantt Card -> resource panel -> Daytask section -> able to right click on non daytask cells -> ex. add daytask   ---(OK)
 38. open summary from project task -> see picture: docs/SummaryFromTask.png   ---(OK)
 
 39. Daytask Plan status: add rename and new status:         ---(OK)          
