@@ -196,6 +196,8 @@ table 50612 "Summary Weekly"
         WeekNoValue: Integer;
         i, n : integer;
         DoInsert: Boolean;
+        TaskDate: Date;
+        WorkOrder: Record "Work Order";
     begin
         // Clear existing records
         Reset();
@@ -208,9 +210,17 @@ table 50612 "Summary Weekly"
 
         // Group by week and distribute hours to weekdays
         repeat
-            YearValue := Date2DWY(DayTask."Task Date", 3);
-            WeekNoValue := Date2DWY(DayTask."Task Date", 2);
-            DayIndex := GetDayOfWeekIndex(DayTask."Task Date");
+            TaskDate := DayTask."Task Date";
+            if TaskDate = 0D Then Begin
+                if WorkOrder.Get(DayTask."Work Order No.") then
+                    TaskDate := WorkOrder."Placeholder Date";
+            End;
+            if TaskDate = 0D then
+                continue;
+
+            YearValue := Date2DWY(TaskDate, 3);
+            WeekNoValue := Date2DWY(TaskDate, 2);
+            DayIndex := GetDayOfWeekIndex(TaskDate);
             //if (DayTask."Requested Hours" > DayTask."Assigned Hours") and (DayTask."Assigned Hours" <> 0) then
             //    n := 2
             //else
