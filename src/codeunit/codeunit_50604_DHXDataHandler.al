@@ -134,7 +134,7 @@ codeunit 50604 "DHX Data Handler"
                 clear(Resource);
                 ResNo := '';
                 ResName := '';
-                if (Daytask.Type = Daytask.Type::Resource) and Resource.Get(Daytask."No.") then begin
+                if Resource.Get(Daytask."No.") then begin
                     ResNo := Resource."No.";
                     ResName := Resource.Name;
                 end;
@@ -344,7 +344,6 @@ codeunit 50604 "DHX Data Handler"
     begin
         rtv := '';
         Daytask.SetRange("Task Date", FromDate, ToDate);
-        Daytask.SetRange(Type, Daytask.Type::Resource);
         Daytask.SetRange("No.", ResNo);
         Daytask.Setfilter("Vendor No.", '<>%1', '');
         if Daytask.FindFirst() then
@@ -365,7 +364,6 @@ codeunit 50604 "DHX Data Handler"
     begin
         rtv := '';
         Daytask.SetRange("Task Date", FromDate, ToDate);
-        Daytask.SetRange(Type, Daytask.Type::Resource);
         Daytask.SetRange("No.", ResNo);
         Daytask.Setfilter("Pool Resource No.", '<>%1', '');
         if Daytask.FindFirst() then
@@ -463,7 +461,6 @@ codeunit 50604 "DHX Data Handler"
 
                 //Add Event of Daytask
                 if WithDayTask then begin
-                    Daytask.setrange(Type, Daytask.Type::Resource);
                     Daytask.setrange("Task Date", DateRec."Period Start");
                     if Daytask.findset then
                         repeat
@@ -709,7 +706,6 @@ codeunit 50604 "DHX Data Handler"
 
                 //Add Event of Daytask
                 if WithDayTask then begin
-                    Daytask.setrange(Type, Daytask.Type::Resource);
                     Daytask.setrange("Task Date", DateRec."Period Start");
                     if Daytask.findset then
                         repeat
@@ -1866,7 +1862,6 @@ codeunit 50604 "DHX Data Handler"
         end;
         //end;
 
-        DayTasks.SetRange(Type, DayTasks.Type::Resource);
         DayTasks.SetRange("Task Date", StartDate, EndDate);
         DayTasks.SetRange("Resource Group No.", ResGroupNo);
         DayTasks.SetRange("Vendor No.", VendorNo);
@@ -1977,7 +1972,6 @@ codeunit 50604 "DHX Data Handler"
             UniqueResQry.Close();
         end;
 
-        DayTasks.SetRange(Type, DayTasks.Type::Resource);
         DayTasks.SetRange("Task Date", StartDate, EndDate);
         DayTasks.SetRange("Resource Group No.", ResGroupNo);
         DayTasks.SetRange("Pool Resource No.", PoolNo);
@@ -2203,7 +2197,6 @@ codeunit 50604 "DHX Data Handler"
 
         VacantNo := VacantLbl;
 
-        DayTask.SetRange(Type, DayTask.Type::Resource);
         DayTask.SetRange("Task Date", StartDate, EndDate);
         DayTask.SetRange("Resource Group No.", ResGroupNo);
         if DayTask.FindSet() then
@@ -2246,7 +2239,6 @@ codeunit 50604 "DHX Data Handler"
                     //<<2026.02.10
                     AllowInsert := true;
                     if PoolNo = '' then begin
-                        DayTaskCheck.SetRange(Type, DayTask.Type::Resource);
                         DayTaskCheck.SetRange("Task Date", StartDate, EndDate);
                         DayTaskCheck.SetRange("Resource Group No.", ResGroupNo);
                         DayTaskCheck.SetRange("No.", '');
@@ -2382,7 +2374,6 @@ codeunit 50604 "DHX Data Handler"
         eventColor: Text;
     begin
         DayTask.Reset();
-        DayTask.SetRange(Type, DayTask.Type::Resource);
         if ResourceFilter <> '' then
             DayTask.SetFilter("No.", ResourceFilter)
         else
@@ -2562,7 +2553,6 @@ codeunit 50604 "DHX Data Handler"
         eventColor: Text;
     begin
         DayTask.Reset();
-        DayTask.SetRange(Type, DayTask.Type::Resource);
         if (StartDate <> 0D) and (EndDate <> 0D) then
             DayTask.SetRange("Task Date", StartDate, EndDate);
         if ResourceFilter <> '' then

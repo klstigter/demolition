@@ -260,15 +260,12 @@ page 50620 "Gantt Demo DHX 2"
                 var
                     DayTask: Record "Day Tasks";
                     WorkDt: Date;
-                    PlType: enum "Job Planning Line Type";
                     Tp: array[2] of text;
                 begin
                     Evaluate(WorkDt, pWorkDate); // expects YYYY-MM-DD
                     tp[1] := CopyStr(ResourceId, 1, 4);
                     tp[2] := CopyStr(ResourceId, 5);
-                    PlType := PlType::Resource;
                     DayTask.SetRange("Task Date", WorkDt);
-                    DayTask.setrange(Type, PlType);
                     if JobFilter <> '' then
                         DayTask.SetFilter("Job No.", JobFilter);
                     if tp[1] = 'RES-' then

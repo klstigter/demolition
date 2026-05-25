@@ -109,8 +109,6 @@ codeunit 50612 "General Planning Utilities"
         WorkingMinutes: Decimal;
         CapacityIsUsed: boolean;
     begin
-        if pDayTask.Type <> pDayTask.Type::Resource then
-            exit;
         ResourceNo := pDayTask."No.";
         if pDayTask."No." = '' then
             exit;

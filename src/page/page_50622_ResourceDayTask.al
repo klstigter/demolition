@@ -18,10 +18,6 @@ page 50622 "Resource Day Tasks"
                     ToolTip = 'Specifies the day number in the sequence.';
                     Caption = 'Day No.';
                 }
-                field("Type"; Rec.Type)
-                {
-                    ApplicationArea = All;
-                }
                 field("No."; Rec."No.")
                 {
                     ApplicationArea = All;
@@ -123,8 +119,6 @@ page 50622 "Resource Day Tasks"
         NewDate: Date;
         DayLineNo: Integer;
     begin
-        Rec.Type := Rec.Type::Resource;
-
         // Get the No. from the SubPageLink filter (FilterGroup 4)
         Rec.FilterGroup(4);
         if Rec.GetFilter("No.") <> '' then

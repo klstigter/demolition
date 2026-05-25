@@ -101,13 +101,6 @@ page 50630 "Day Tasks"
                 {
                     Caption = 'Data Owner';
                 }
-                field(Type; Rec.Type)
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the type of planning line.';
-                    StyleExpr = StyleStr;
-                    Visible = false;
-                }
                 field("No."; Rec."No.")
                 {
                     ApplicationArea = All;

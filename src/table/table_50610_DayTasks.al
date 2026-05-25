@@ -80,11 +80,6 @@ table 50610 "Day Tasks"
                 CalculateWorkingHours();
             end;
         }
-        field(20; Type; Enum "Job Planning Line Type")
-        {
-            DataClassification = ToBeClassified;
-            Caption = 'Type';
-        }
 
         // **** control Resource No.
         field(39; "Pool Resource No."; Code[20])
@@ -96,7 +91,7 @@ table 50610 "Day Tasks"
             var
                 Resource: Record Resource;
             begin
-                if ("Pool Resource No." <> '') and (Type = Type::Resource) and ("No." <> '') then begin
+                if ("Pool Resource No." <> '') and ("No." <> '') then begin
                     Resource.Get("No.");
                     if Resource."Pool Resource No." <> "Pool Resource No." then
                         Error('Resource %1 does not belong to Pool Resource %2.', "No.", "Pool Resource No.");
@@ -132,7 +127,7 @@ table 50610 "Day Tasks"
             var
                 Resource: Record Resource;
             begin
-                if ("Vendor No." <> '') and (Type = Type::Resource) and ("No." <> '') then begin
+                if ("Vendor No." <> '') and ("No." <> '') then begin
                     Resource.Get("No.");
                     if Resource."Vendor No." <> "Vendor No." then
                         Error('Resource %1 does not belong to Vendor %2.', "No.", "Vendor No.");
@@ -149,7 +144,7 @@ table 50610 "Day Tasks"
             var
                 Resource: Record Resource;
             begin
-                if ("Resource Group No." <> '') and (Type = Type::Resource) and ("No." <> '') then begin
+                if ("Resource Group No." <> '') and ("No." <> '') then begin
                     Resource.Get("No.");
                     if Resource."Resource Group No." <> "Resource Group No." then
                         Error('Resource %1 does not belong to Resource Group %2.', "No.", "Resource Group No.");
@@ -165,7 +160,7 @@ table 50610 "Day Tasks"
             var
                 SkillRes: Record "Resource Skill";
             begin
-                if ("Skill" <> '') and (Type = Type::Resource) and ("No." <> '') then begin
+                if ("Skill" <> '') and ("No." <> '') then begin
                     if not SkillRes.Get(SkillRes.Type::Resource, "No.", "Skill") then
                         Error('Resource %1 does not have skill %2.', "No.", "Skill");
                 end;
@@ -177,15 +172,13 @@ table 50610 "Day Tasks"
         {
             DataClassification = ToBeClassified;
             Caption = 'No.';
-            TableRelation = if (Type = const(Resource)) Resource
-            else if (Type = const(Item)) Item
-            else if (Type = const("G/L Account")) "G/L Account";
+            TableRelation = Resource;
 
             trigger OnValidate()
             var
                 Resource: Record Resource;
             begin
-                if (Type = Type::Resource) and ("No." <> '') then begin
+                if ("No." <> '') then begin
                     Resource.Get("No.");
                     "Resource Group No." := Resource."Resource Group No.";
                     if Resource."Vendor No." <> '' then
@@ -193,8 +186,7 @@ table 50610 "Day Tasks"
                     if Resource."Pool Resource No." <> '' then
                         "Pool Resource No." := Resource."Pool Resource No.";
 
-                end;
-                if (Type = Type::Resource) and ("No." = '') then begin
+                end else begin
                     validate("Assigned Hours", 0);
                 end;
             end;
@@ -210,85 +202,35 @@ table 50610 "Day Tasks"
                 ResLookupPage: Page "Opti Resource List";
                 TempText: Text;
             begin
-                if Type = Type::Resource then begin
-                    Resource.Reset();
-                    // Check Existing capacity entries for the resource
-                    clear(CapacityUniqueResource);
-                    CapacityUniqueResource.SetRange(EntryDateFilter, "Task Date");
-                    CapacityUniqueResource.Open();
-                    while CapacityUniqueResource.Read() do begin
-                        if Resource.Get(CapacityUniqueResource.Resource_No_) then
-                            Resource.Mark(true);
-                    end;
-                    Resource.MarkedOnly(true);  // Get marked resources
-                    CapacityUniqueResource.Close();
-                    if "Skill" <> '' then begin
-                        if Resource.FindSet() then
-                            repeat
-                                if not ResSklill.Get(ResSklill.Type::Resource, Resource."No.", Skill) then
-                                    Resource.Mark(false);
-                            until Resource.Next() = 0;
-                    end;
-                    Resource.MarkedOnly(true);  // Get marked resources
 
-
-                    // // set limitation if skill is set in Day Task
-                    // if "Skill" <> '' then begin
-                    //     ResSklill.SetRange(Type, ResSklill.Type::Resource);
-                    //     ResSklill.SetFilter("No.", '<>%1', '');
-                    //     ResSklill.SetRange("Skill Code", "Skill");
-                    //     if ResSklill.FindSet() then
-                    //         repeat
-                    //             if Resource.Get(ResSklill."No.") then
-                    //                 Resource.Mark(true);
-                    //         until ResSklill.Next() = 0;
-                    //     Resource.MarkedOnly(true);
-                    // end else
-                    //     Resource.Reset();
-                    // // // Get Resouce from group, vendor, and pool resource
-                    // // if "Resource Group No." <> '' then
-                    // //     Resource.SetRange("Resource Group No.", "Resource Group No.");
-                    // // if "Vendor No." <> '' then
-                    // //     Resource.SetRange("Vendor No.", "Vendor No.");
-                    // // if "Pool Resource No." <> '' then
-                    // //     Resource.SetRange("Pool Resource No.", "Pool Resource No.");
-                    // if Resource.FindSet() then
-                    //     repeat
-                    //         Resource.Mark(true);
-                    //         // Check Existing capacity entries for the resource
-                    //         clear(CapacityUniqueResource);
-                    //         CapacityUniqueResource.SetRange(EntryDateFilter, "Task Date");
-                    //         if "Resource Group No." <> '' then
-                    //             CapacityUniqueResource.SetRange(Resource_Group_No_, "Resource Group No.");
-                    //         CapacityUniqueResource.SetRange(Resource_No_, Resource."No.");
-                    //         CapacityUniqueResource.Open();
-                    //         if not CapacityUniqueResource.Read() then
-                    //             Resource.Mark(false);
-                    //         CapacityUniqueResource.Close();
-                    //     until Resource.Next() = 0;
-                    // Resource.MarkedOnly(true);  // Get marked resources
-
-                    Resource.SetFilter("Date Filter", '%1', "Task Date");
-                    ResLookupPage.SetTableView(Resource);
-                    ResLookupPage.LookupMode(true);
-                    if ResLookupPage.RunModal() = ACTION::LookupOK then begin
-                        ResLookupPage.GetRecord(Resource);
-                        Validate("No.", Resource."No.");
-                        Description := Resource.Name;
-                    end;
-                end else if Type = Type::Item then begin
-                    Item.Reset();
-                    if page.RunModal(50601, Item) = ACTION::LookupOK then begin
-                        "No." := Item."No.";
-                        Description := Item."No.";
-                    end;
-                end else if Type = Type::"G/L Account" then begin
-                    GLAccount.Reset();
-                    if page.RunModal(50601, GLAccount) = ACTION::LookupOK then begin
-                        "No." := GLAccount."No.";
-                        Description := GLAccount."No.";
-                    end;
+                Resource.Reset();
+                // Check Existing capacity entries for the resource
+                clear(CapacityUniqueResource);
+                CapacityUniqueResource.SetRange(EntryDateFilter, "Task Date");
+                CapacityUniqueResource.Open();
+                while CapacityUniqueResource.Read() do begin
+                    if Resource.Get(CapacityUniqueResource.Resource_No_) then
+                        Resource.Mark(true);
                 end;
+                Resource.MarkedOnly(true);  // Get marked resources
+                CapacityUniqueResource.Close();
+                if "Skill" <> '' then begin
+                    if Resource.FindSet() then
+                        repeat
+                            if not ResSklill.Get(ResSklill.Type::Resource, Resource."No.", Skill) then
+                                Resource.Mark(false);
+                        until Resource.Next() = 0;
+                end;
+                Resource.MarkedOnly(true);  // Get marked resources with the skill
+                Resource.SetFilter("Date Filter", '%1', "Task Date");
+                ResLookupPage.SetTableView(Resource);
+                ResLookupPage.LookupMode(true);
+                if ResLookupPage.RunModal() = ACTION::LookupOK then begin
+                    ResLookupPage.GetRecord(Resource);
+                    Validate("No.", Resource."No.");
+                    Description := Resource.Name;
+                end;
+
             end;
         }
         field(22; Description; Text[100])
