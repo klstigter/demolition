@@ -213,9 +213,9 @@ API - 2026.04.29
 34. API -> new api for Capacity
  
 35. Daytask Table
-      - remove field type                          ---(OK)
-      - Add new Field Requested Resource No.
-      - Rename Field: No. -> Assigned Resource No.
+      - remove field type                                   ---(OK)
+      - Add new Field Requested Resource No.                ---(OK)
+      - Rename Field: No. -> Assigned Resource No.          ---(OK)
 36. Daytask Card -> new add button -> open card for entry
 37. Gantt Card -> resource panel -> Daytask section -> able to right click on non daytask cells -> ex. add daytask
 38. open summary from project task -> see picture: docs/SummaryFromTask.png   ---(OK)

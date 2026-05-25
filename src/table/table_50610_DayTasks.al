@@ -91,10 +91,10 @@ table 50610 "Day Tasks"
             var
                 Resource: Record Resource;
             begin
-                if ("Pool Resource No." <> '') and ("No." <> '') then begin
-                    Resource.Get("No.");
+                if ("Pool Resource No." <> '') and ("Assigned Resource No." <> '') then begin
+                    Resource.Get("Assigned Resource No.");
                     if Resource."Pool Resource No." <> "Pool Resource No." then
-                        Error('Resource %1 does not belong to Pool Resource %2.', "No.", "Pool Resource No.");
+                        Error('Resource %1 does not belong to Pool Resource %2.', "Assigned Resource No.", "Pool Resource No.");
                 end
             end;
 
@@ -127,10 +127,10 @@ table 50610 "Day Tasks"
             var
                 Resource: Record Resource;
             begin
-                if ("Vendor No." <> '') and ("No." <> '') then begin
-                    Resource.Get("No.");
+                if ("Vendor No." <> '') and ("Assigned Resource No." <> '') then begin
+                    Resource.Get("Assigned Resource No.");
                     if Resource."Vendor No." <> "Vendor No." then
-                        Error('Resource %1 does not belong to Vendor %2.', "No.", "Vendor No.");
+                        Error('Resource %1 does not belong to Vendor %2.', "Assigned Resource No.", "Vendor No.");
                 end
             end;
         }
@@ -144,10 +144,10 @@ table 50610 "Day Tasks"
             var
                 Resource: Record Resource;
             begin
-                if ("Resource Group No." <> '') and ("No." <> '') then begin
-                    Resource.Get("No.");
+                if ("Resource Group No." <> '') and ("Assigned Resource No." <> '') then begin
+                    Resource.Get("Assigned Resource No.");
                     if Resource."Resource Group No." <> "Resource Group No." then
-                        Error('Resource %1 does not belong to Resource Group %2.', "No.", "Resource Group No.");
+                        Error('Resource %1 does not belong to Resource Group %2.', "Assigned Resource No.", "Resource Group No.");
                 end;
             end;
         }
@@ -160,26 +160,26 @@ table 50610 "Day Tasks"
             var
                 SkillRes: Record "Resource Skill";
             begin
-                if ("Skill" <> '') and ("No." <> '') then begin
-                    if not SkillRes.Get(SkillRes.Type::Resource, "No.", "Skill") then
-                        Error('Resource %1 does not have skill %2.', "No.", "Skill");
+                if ("Skill" <> '') and ("Assigned Resource No." <> '') then begin
+                    if not SkillRes.Get(SkillRes.Type::Resource, "Assigned Resource No.", "Skill") then
+                        Error('Resource %1 does not have skill %2.', "Assigned Resource No.", "Skill");
                 end;
             end;
         }
         // *****
 
-        field(21; "No."; Code[20])
+        field(21; "Assigned Resource No."; Code[20])
         {
             DataClassification = ToBeClassified;
-            Caption = 'No.';
+            Caption = 'Assigned Resource No.';
             TableRelation = Resource;
 
             trigger OnValidate()
             var
                 Resource: Record Resource;
             begin
-                if ("No." <> '') then begin
-                    Resource.Get("No.");
+                if ("Assigned Resource No." <> '') then begin
+                    Resource.Get("Assigned Resource No.");
                     "Resource Group No." := Resource."Resource Group No.";
                     if Resource."Vendor No." <> '' then
                         "Vendor No." := Resource."Vendor No.";
@@ -227,7 +227,7 @@ table 50610 "Day Tasks"
                 ResLookupPage.LookupMode(true);
                 if ResLookupPage.RunModal() = ACTION::LookupOK then begin
                     ResLookupPage.GetRecord(Resource);
-                    Validate("No.", Resource."No.");
+                    Validate("Assigned Resource No.", Resource."No.");
                     Description := Resource.Name;
                 end;
 
@@ -238,7 +238,6 @@ table 50610 "Day Tasks"
             DataClassification = ToBeClassified;
             Caption = 'Description';
         }
-
         field(25; "Team Leader"; Code[20])
         {
             DataClassification = ToBeClassified;
@@ -250,7 +249,12 @@ table 50610 "Day Tasks"
             DataClassification = ToBeClassified;
             Caption = 'Leader';
         }
-
+        field(27; "Requested Resource No."; Code[20])
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Requested Resource No.';
+            TableRelation = Resource;
+        }
         field(31; "Unit of Measure Code"; Code[10])
         {
             DataClassification = ToBeClassified;
@@ -340,7 +344,7 @@ table 50610 "Day Tasks"
 
         field(110; Capacity; Decimal)
         {
-            CalcFormula = sum("Res. Capacity Entry".Capacity where("Resource No." = field("No."),
+            CalcFormula = sum("Res. Capacity Entry".Capacity where("Resource No." = field("Assigned Resource No."),
                                                                     Date = field("Task Date")));
             Caption = 'Capacity';
             DecimalPlaces = 0 : 5;
@@ -354,7 +358,7 @@ table 50610 "Day Tasks"
         Field(132; "Total Assigned Hours"; Decimal)
         {
             Caption = 'Total Assigned Hours';
-            CalcFormula = sum("Day Tasks"."Assigned Hours" where("No." = field("No."),
+            CalcFormula = sum("Day Tasks"."Assigned Hours" where("Assigned Resource No." = field("Assigned Resource No."),
               "Task Date" = field("Task Date")));
             DecimalPlaces = 0 : 2;
             FieldClass = FlowField;

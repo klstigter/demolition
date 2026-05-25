@@ -254,7 +254,7 @@ page 50644 "Res. Asgmt. Job Matrix"
         TotalCount := DayTask.Count();
         if TotalCount = 0 then
             exit('');
-        DayTask.SetFilter("No.", '<>%1', '');
+        DayTask.SetFilter("Assigned Resource No.", '<>%1', '');
         WithResourceCount := DayTask.Count();
         exit(Format(TotalCount) + ' | ' + Format(WithResourceCount));
     end;

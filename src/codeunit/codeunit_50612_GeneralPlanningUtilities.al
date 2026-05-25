@@ -109,13 +109,13 @@ codeunit 50612 "General Planning Utilities"
         WorkingMinutes: Decimal;
         CapacityIsUsed: boolean;
     begin
-        ResourceNo := pDayTask."No.";
-        if pDayTask."No." = '' then
+        ResourceNo := pDayTask."Assigned Resource No.";
+        if pDayTask."Assigned Resource No." = '' then
             exit;
         WorkingMinutes := GetWorkingMinutes(pDayTask);
         // Find Day Task with complete start and end time and same resource and day no
         DayTask.SetRange("Task Date", pDayTask."task Date");
-        DayTask.SetRange("No.", ResourceNo);
+        DayTask.SetRange("Assigned Resource No.", ResourceNo);
         DayTask.SetFilter("Day Line No.", '<>%1', pDayTask."Day Line No.");
         DayTask.SetFilter("Start Time Assigned", '<>%1', 0T);
         DayTask.SetFilter("End Time Assigned", '<>%1', 0T);

@@ -83,7 +83,7 @@ page 50635 "Resource DayTask Summary"
                     DayTask.Reset();
                     DayTask.SetRange("Job No.", Rec."Job No.");
                     DayTask.SetRange("Job Task No.", Rec."Job Task No.");
-                    DayTask.SetRange("No.", Rec."Resource No.");
+                    DayTask.SetRange("Assigned Resource No.", Rec."Resource No.");
                     Page.Run(Page::"Day Tasks", DayTask);
                 end;
             }

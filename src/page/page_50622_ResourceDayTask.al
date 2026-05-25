@@ -18,7 +18,7 @@ page 50622 "Resource Day Tasks"
                     ToolTip = 'Specifies the day number in the sequence.';
                     Caption = 'Day No.';
                 }
-                field("No."; Rec."No.")
+                field("No."; Rec."Assigned Resource No.")
                 {
                     ApplicationArea = All;
                 }
@@ -121,12 +121,12 @@ page 50622 "Resource Day Tasks"
     begin
         // Get the No. from the SubPageLink filter (FilterGroup 4)
         Rec.FilterGroup(4);
-        if Rec.GetFilter("No.") <> '' then
-            ResourceNo := Rec.GetRangeMin("No.");
+        if Rec.GetFilter("Assigned Resource No.") <> '' then
+            ResourceNo := Rec.GetRangeMin("Assigned Resource No.");
         Rec.FilterGroup(0);
 
         if ResourceNo <> '' then
-            Rec."No." := ResourceNo;
+            Rec."Assigned Resource No." := ResourceNo;
 
         NewDate := Today();
         DayLineNo := 10000;

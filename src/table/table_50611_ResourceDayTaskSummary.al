@@ -76,7 +76,7 @@ table 50611 "Resource DayTask Summary"
         DayTask.Reset();
         DayTask.SetRange("Job No.", JobNo);
         DayTask.SetRange("Job Task No.", JobTaskNo);
-        DayTask.SetFilter("No.", '<>%1', ''); // Only records with a Resource No.
+        DayTask.SetFilter("Assigned Resource No.", '<>%1', ''); // Only records with a Resource No.
         if not DayTask.FindSet() then
             exit;
 
@@ -85,7 +85,7 @@ table 50611 "Resource DayTask Summary"
             Rec.Init();
             Rec."Job No." := DayTask."Job No.";
             Rec."Job Task No." := DayTask."Job Task No.";
-            Rec."Resource No." := DayTask."No.";
+            Rec."Resource No." := DayTask."Assigned Resource No.";
 
             if Rec.Find() then begin
                 // Update existing summary record

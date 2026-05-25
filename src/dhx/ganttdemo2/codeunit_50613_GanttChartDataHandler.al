@@ -236,8 +236,8 @@ codeunit 50613 "GanttChartDataHandler"
                         DayTask.SetFilter("Task Date", '<=%1', ToDate);
             if DayTask.FindSet() then
                 repeat
-                    if (DayTask."No." <> '') and (not ResourceNos.Contains(DayTask."No.")) then
-                        ResourceNos.Add(DayTask."No.");
+                    if (DayTask."Assigned Resource No." <> '') and (not ResourceNos.Contains(DayTask."Assigned Resource No.")) then
+                        ResourceNos.Add(DayTask."Assigned Resource No.");
                 until DayTask.Next() = 0;
         until JobTask.Next() = 0;
 
@@ -432,7 +432,7 @@ codeunit 50613 "GanttChartDataHandler"
         EndTimeText := FormatTime(DayTask."End Time Assigned");
         JsonObject.Add('end_time', EndTimeText);
 
-        if DayTask."No." <> '' then
+        if DayTask."Assigned Resource No." <> '' then
             JsonObject.Add('hours', DayTask."Assigned Hours")
         else
             JsonObject.Add('hours', DayTask."Requested Hours");
@@ -512,8 +512,8 @@ codeunit 50613 "GanttChartDataHandler"
 
     local procedure GetResourceId(DayTask: Record "Day Tasks") ResourceId: Text
     begin
-        if DayTask."No." <> '' then begin
-            ResourceId := 'RES-' + DayTask."No.";
+        if DayTask."Assigned Resource No." <> '' then begin
+            ResourceId := 'RES-' + DayTask."Assigned Resource No.";
         end else
             ResourceId := 'RES-'; //UNASSIGNED
     end;

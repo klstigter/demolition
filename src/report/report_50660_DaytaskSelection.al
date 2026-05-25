@@ -9,12 +9,12 @@ report 50660 "Daytask Selection"
     {
         dataitem(DayTask; "Day Tasks")
         {
-            RequestFilterFields = "Task Date", "Job No.", "Job Task No.", "No.";
+            RequestFilterFields = "Task Date", "Job No.", "Job Task No.", "Assigned Resource No.";
             DataItemTableView = where(Posted = const(false));
 
             trigger OnPreDataItem()
             begin
-                DayTask.SetFilter("No.", '<>%1', '');
+                DayTask.SetFilter("Assigned Resource No.", '<>%1', '');
                 DayTask.SetFilter("Assigned Hours", '<>0');
                 if TemplateName = '' then
                     Error(TemplateNameMissingErr);
@@ -38,7 +38,7 @@ report 50660 "Daytask Selection"
                 DaytaskJnlLine."Document No." := GetDocumentNo(DayTask."Task Date");
                 DaytaskJnlLine."Job No." := DayTask."Job No.";
                 DaytaskJnlLine."Job Task No." := DayTask."Job Task No.";
-                DaytaskJnlLine."Resource No." := DayTask."No.";
+                DaytaskJnlLine."Resource No." := DayTask."Assigned Resource No.";
                 DaytaskJnlLine."Hours" := DayTask."Assigned Hours";
                 FillDimensions(DaytaskJnlLine, DayTask);
                 DaytaskJnlLine.Insert(true);
@@ -95,8 +95,8 @@ report 50660 "Daytask Selection"
     begin
         DimMgt.AddDimSource(DefaultDimSource, Database::Job, DayTask."Job No.");
         DimMgt.AddDimSource(DefaultDimSource, Database::"Job Task", DayTask."Job Task No.");
-        if DayTask."No." <> '' then
-            DimMgt.AddDimSource(DefaultDimSource, Database::Resource, DayTask."No.");
+        if DayTask."Assigned Resource No." <> '' then
+            DimMgt.AddDimSource(DefaultDimSource, Database::Resource, DayTask."Assigned Resource No.");
         DaytaskJnlLine."Dimension Set ID" :=
             DimMgt.GetDefaultDimID(DefaultDimSource, '', Dim1Code, Dim2Code, 0, 0);
         DaytaskJnlLine."Global Dimension 1 Code" := Dim1Code;
