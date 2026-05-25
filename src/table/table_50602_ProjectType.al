@@ -2,6 +2,8 @@ table 50602 "Project Type Opt."
 {
     DataClassification = CustomerContent;
     Caption = 'Project Type';
+    DrillDownPageId = "Project Type List Opt.";
+    LookupPageId = "Project Type List Opt.";
 
     fields
     {

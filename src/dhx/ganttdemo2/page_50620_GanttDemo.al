@@ -545,6 +545,33 @@ page 50620 "Gantt Demo DHX 2"
                     page.RunModal(Page::"Day Tasks", DayTask);
                 end;
             }
+            action(projects)
+            {
+                Caption = 'Projects';
+                ApplicationArea = All;
+                image = Task;
+
+                trigger OnAction()
+                var
+                    job: Record "Job";
+                    Pg: Page "Opti Job List";
+                    Direction: Option Forward,Backward;
+                    DT1: Date;
+                    DT2: Date;
+                begin
+                    //GanttChartDataHandler.GetDateRange(Setup, AnchorDate, DT1, DT2);
+                    //jobTask.SetFilter("Planning Date Filter", '%1..%2', DT1, DT2);
+                    //jobTask.SetAutoCalcFields("Total Day Tasks");
+                    //jobTask.SetFilter("Total Day Tasks", '>0');
+                    //if JobFilter <> '' then
+                    job.SetFilter("No.", JobFilter);
+                    if job.FindSet() then;
+                    Job.setrange("No.");
+                    pg.SetRecord(job);
+                    pg.RunModal();
+                end;
+            }
+
             action(projectTasks)
             {
                 Caption = 'Project Tasks';
@@ -740,6 +767,7 @@ page 50620 "Gantt Demo DHX 2"
                 Caption = 'Related';
                 actionref(Summary_ref; Summary) { }
                 actionref(DayTaks_ref; DayTaks) { }
+                actionref(Projects_ref; projects) { }
                 actionref(ProjectTasks_ref; projectTasks) { }
                 actionref("ShowResPanel"; ShowResourcePanel) { }
                 actionref("HideResPanel"; HideResourcePanel) { }
