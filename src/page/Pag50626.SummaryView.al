@@ -38,6 +38,7 @@ page 50626 "Summary View"
                 field(ShowJob; ShowJob)
                 {
                     ToolTip = 'Set the Job field visible or not. Visible by default.';
+                    Visible = Job_Visible;
                     trigger OnValidate()
                     begin
                         JobNoFilter := '';
@@ -52,6 +53,7 @@ page 50626 "Summary View"
                 field(ShowJobTask; ShowJobTask)
                 {
                     ToolTip = 'Set the Job Task field visible or not. Visible by default.';
+                    Visible = Job_Visible;
                     trigger OnValidate()
                     begin
                         JobTaskNoFilter := '';
@@ -100,7 +102,8 @@ page 50626 "Summary View"
                 group(job)
                 {
                     ShowCaption = false;
-                    Visible = ShowJob;
+                    Visible = ShowJob or (Not Job_Visible);
+                    editable = ShowJob or Job_Visible;
 
                     field("JobNoFilter"; JobNoFilter)
                     {
@@ -129,7 +132,9 @@ page 50626 "Summary View"
                 group(JobTask)
                 {
                     ShowCaption = false;
-                    Visible = ShowJobTask;
+                    Visible = ShowJobTask or (Not Job_Visible);
+                    editable = ShowJob or Job_Visible;
+
                     field("JobTaskNoFilter"; JobTaskNoFilter)
                     {
                         ToolTip = 'Specifies the job task number for the new day task.';
@@ -420,6 +425,7 @@ page 50626 "Summary View"
         ShowSkillCode: Boolean;
         ShowJob: Boolean;
         ShowJobTask: Boolean;
+        Job_Visible: Boolean;
         ShowYear: Boolean;
         ShowWeekNo: Boolean;
         ShowPlanStatus: Boolean;
@@ -434,6 +440,15 @@ page 50626 "Summary View"
     end;
 
     #region  Procedures
+    procedure SetJobAndJobTaskVisibility(Visible: Boolean)
+    begin
+        Job_Visible := Visible;
+        if not Visible then begin
+            ShowJob := false;
+            ShowJobTask := false;
+        end;
+    end;
+
     procedure LoadDataSet(DateRangeFilter: Text)
     begin
         rec.reset;
@@ -499,6 +514,7 @@ page 50626 "Summary View"
         ShowJobTask := True;
         ShowYear := True;
         ShowWeekNo := True;
+        Job_Visible := True;
     end;
 
     procedure GroupByDataSet()

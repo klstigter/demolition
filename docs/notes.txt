@@ -203,7 +203,6 @@ API - 2026.04.29
 
 29. resource -> is pool = true:                                                           ---(OK)
    - must have vendor no.
-   - field pool resource can be hide
 
 30. gantt -> project bar -> Apply colors for posting and non-posting Job Task Type        ---(OK)
 
@@ -219,7 +218,7 @@ API - 2026.04.29
       - Rename Field: No. -> Assigned Resource No.
 36. Daytask Card -> new add button -> open card for entry
 37. Gantt Card -> resource panel -> Daytask section -> able to right click on non daytask cells -> ex. add daytask
-38. open summary from project task -> see picture
+38. open summary from project task -> see picture: docs/SummaryFromTask.png   ---(OK)
 
 
 
