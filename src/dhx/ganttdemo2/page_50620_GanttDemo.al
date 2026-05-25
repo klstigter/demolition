@@ -691,6 +691,25 @@ page 50620 "Gantt Demo DHX 2"
                 end;
             }
         }
+        area(Reporting)
+        {
+            action(DayTasksOverview)
+            {
+                Caption = 'Day Tasks Overview';
+                ApplicationArea = All;
+                Image = Report;
+                trigger OnAction()
+                var
+                    DayTask: Report "DayTask";
+                    StartDate: Date;
+                    EndDate: Date;
+                begin
+                    GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
+                    daytask.SetDataViewDateRange(StartDate, EndDate);
+                    DayTask.RunModal();
+                end;
+            }// Placeholder for any future reports related to the Gantt data
+        }
 
 
         area(Promoted)
@@ -730,6 +749,11 @@ page 50620 "Gantt Demo DHX 2"
                 Caption = 'Check';
                 actionref(CheckGanttData; CheckGanttDataAct) { }
                 actionref(CheckPagePeriodAct; CheckPagePeriod) { }
+            }
+            Group(Reports)
+            {
+                Caption = 'Reports';
+                actionref(DayTasksOverview_ref; DayTasksOverview) { }
             }
         }
     }
@@ -939,8 +963,8 @@ page 50620 "Gantt Demo DHX 2"
             case SchedulingTypeTxt of
                 'fixed_duration':
                     JobTask."Scheduling Type" := JobTask."Scheduling Type"::FixedDuration;
-                'fixed_units':
-                    JobTask."Scheduling Type" := JobTask."Scheduling Type"::FixedUnits;
+                // 'fixed_units':
+                //     JobTask."Scheduling Type" := JobTask."Scheduling Type"::FixedUnits;
                 'fixed_work':
                     JobTask."Scheduling Type" := JobTask."Scheduling Type"::FixedWork;
             end;

@@ -145,8 +145,9 @@ codeunit 50613 "GanttChartDataHandler"
         case SchedulingType of
             SchedulingType::FixedDuration:
                 SchedulingTypeText := 'fixed_duration';
-            SchedulingType::FixedUnits:
-                SchedulingTypeText := 'fixed_units';
+            //TODO
+            // SchedulingType::FixedUnits:
+            //     SchedulingTypeText := 'fixed_units';
             SchedulingType::FixedWork:
                 SchedulingTypeText := 'fixed_work';
             else

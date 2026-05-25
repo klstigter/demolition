@@ -115,8 +115,9 @@ codeunit 50615 "Gantt Update Data"
         case value of
             'fixed_duration':
                 exit(schedulingType::FixedDuration);
-            'fixed_units':
-                exit(schedulingType::FixedUnits);
+            //TODO: re-enable when we support Fixed Units scheduling type in the UI
+            // 'fixed_units':
+            //     exit(schedulingType::FixedUnits);
             'fixed_work':
                 exit(schedulingType::FixedWork);
             else

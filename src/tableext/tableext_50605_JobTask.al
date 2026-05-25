@@ -186,15 +186,15 @@ tableextension 50605 "Job Task ext" extends "Job Task"
 
                     rec.Duration := "PlannedEndDate" - "PlannedStartDate" + 1;
                 end;
+            // TODO
+            // schedulingType::FixedUnits:
+            //     begin
+            //     // Implement Fixed Units duration calculation if needed
+            //     if ("PlannedStartDate" = 0D) or ("PlannedEndDate" = 0D) then
+            //         exit;
 
-            schedulingType::FixedUnits:
-                begin
-                    // Implement Fixed Units duration calculation if needed
-                    if ("PlannedStartDate" = 0D) or ("PlannedEndDate" = 0D) then
-                        exit;
-
-                    rec.Duration := "PlannedEndDate" - "PlannedStartDate";
-                end;
+            //     rec.Duration := "PlannedEndDate" - "PlannedStartDate";
+            // end;
             schedulingType::FixedWork:
                 begin
                     if ("PlannedStartDate" = 0D) or ("PlannedEndDate" = 0D) then begin
