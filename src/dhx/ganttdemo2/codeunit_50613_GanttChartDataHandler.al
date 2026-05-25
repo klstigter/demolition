@@ -226,7 +226,6 @@ codeunit 50613 "GanttChartDataHandler"
         repeat
             DayTask.SetRange("Job No.", JobTask."Job No.");
             DayTask.SetRange("Job Task No.", JobTask."Job Task No.");
-            DayTask.SetRange(Type, DayTask.Type::Resource);
             if (FromDate <> 0D) and (ToDate <> 0D) then
                 DayTask.SetRange("Task Date", FromDate, ToDate)
             else
@@ -237,8 +236,8 @@ codeunit 50613 "GanttChartDataHandler"
                         DayTask.SetFilter("Task Date", '<=%1', ToDate);
             if DayTask.FindSet() then
                 repeat
-                    if (DayTask."No." <> '') and (not ResourceNos.Contains(DayTask."No.")) then
-                        ResourceNos.Add(DayTask."No.");
+                    if (DayTask."Assigned Resource No." <> '') and (not ResourceNos.Contains(DayTask."Assigned Resource No.")) then
+                        ResourceNos.Add(DayTask."Assigned Resource No.");
                 until DayTask.Next() = 0;
         until JobTask.Next() = 0;
 
@@ -387,7 +386,7 @@ codeunit 50613 "GanttChartDataHandler"
             DayTask.SetRange("Job No.", JobNo);
         if JobTaskNo <> '' then
             DayTask.SetRange("Job Task No.", JobTaskNo);
-        DayTask.SetRange("Plan Status", DayTask."Plan Status"::Request);
+        DayTask.SetRange("Plan Status", DayTask."Plan Status"::Inrequest);
         DayTask.SetRange("Task Date", 0D);
         DayTask.SetFilter("Work Order No.", '<>%1', '');
         if DayTask.FindSet() then
@@ -408,7 +407,6 @@ codeunit 50613 "GanttChartDataHandler"
         StartTimeText: Text;
         EndTimeText: Text;
         ResourceId: Text;
-        TypeText: Text;
         PlanStatusText: Text;
     begin
         // SystemId as unique ID
@@ -434,7 +432,7 @@ codeunit 50613 "GanttChartDataHandler"
         EndTimeText := FormatTime(DayTask."End Time Assigned");
         JsonObject.Add('end_time', EndTimeText);
 
-        if DayTask."No." <> '' then
+        if DayTask."Assigned Resource No." <> '' then
             JsonObject.Add('hours', DayTask."Assigned Hours")
         else
             JsonObject.Add('hours', DayTask."Requested Hours");
@@ -443,8 +441,7 @@ codeunit 50613 "GanttChartDataHandler"
         ResourceId := GetResourceId(DayTask);
         JsonObject.Add('resource_id', ResourceId);
 
-        TypeText := GetDayTaskTypeText(DayTask.Type);
-        JsonObject.Add('type', TypeText);
+        JsonObject.Add('type', 'Resource');
 
         if DayTask."Vendor No." <> '' then
             JsonObject.Add('vendorNo', DayTask."Vendor No.")
@@ -453,12 +450,14 @@ codeunit 50613 "GanttChartDataHandler"
 
         // Plan status
         case DayTask."Plan Status" of
-            DayTask."Plan Status"::Request:
+            DayTask."Plan Status"::Inrequest:
                 PlanStatusText := 'Request';
-            DayTask."Plan Status"::Planned:
+            DayTask."Plan Status"::Inprocess:
                 PlanStatusText := 'Planned';
-            DayTask."Plan Status"::Completed:
-                PlanStatusText := 'Completed';
+            DayTask."Plan Status"::Rejected:
+                PlanStatusText := 'Rejected';
+            DayTask."Plan Status"::Accepted:
+                PlanStatusText := 'Accepted';
             else
                 PlanStatusText := '';
         end;
@@ -471,7 +470,6 @@ codeunit 50613 "GanttChartDataHandler"
         StartTimeText: Text;
         EndTimeText: Text;
         ResourceId: Text;
-        TypeText: Text;
     begin
         // Use SystemId as ID (no Task Date so no collision with normal records)
         JsonObject.Add('id', Format(DayTask.SystemId));
@@ -496,8 +494,7 @@ codeunit 50613 "GanttChartDataHandler"
         ResourceId := GetResourceId(DayTask);
         JsonObject.Add('resource_id', ResourceId);
 
-        TypeText := GetDayTaskTypeText(DayTask.Type);
-        JsonObject.Add('type', TypeText);
+        JsonObject.Add('type', 'Resource');
 
         if DayTask."Vendor No." <> '' then
             JsonObject.Add('vendorNo', DayTask."Vendor No.")
@@ -517,25 +514,10 @@ codeunit 50613 "GanttChartDataHandler"
 
     local procedure GetResourceId(DayTask: Record "Day Tasks") ResourceId: Text
     begin
-        if DayTask."No." <> '' then begin
-            case DayTask.Type of
-                DayTask.Type::Resource:
-                    ResourceId := 'RES-' + DayTask."No.";
-                DayTask.Type::Item:
-                    ResourceId := 'ITEM-' + DayTask."No.";
-                DayTask.Type::"G/L Account":
-                    ResourceId := 'GL-' + DayTask."No.";
-                else
-                    ResourceId := 'RES-'; //UNASSIGNED
-            end;
+        if DayTask."Assigned Resource No." <> '' then begin
+            ResourceId := 'RES-' + DayTask."Assigned Resource No.";
         end else
             ResourceId := 'RES-'; //UNASSIGNED
-
-        /*
-        JsonObject.Add('key', 'RES-' + '');
-        JsonObject.Add('label', ' - NONE - ');
-        JsonArray.Add(JsonObject);
-        */
     end;
 
     local procedure GetDayTaskTypeText(DayTaskType: Enum "Job Planning Line Type") TypeText: Text

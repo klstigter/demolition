@@ -595,7 +595,7 @@ page 50626 "Summary View"
         if ShowJobTask then
             Rc.SetRange("Job Task No.", Rec."Job Task No.");
         if ShowResource then
-            rc.SetRange("No.", Rec."Resource No.");
+            rc.SetRange("Assigned Resource No.", Rec."Resource No.");
         if ShowSkillCode then
             rc.SetRange("Skill", Rec."Skill Code");
         //if SHowPlanStatus then

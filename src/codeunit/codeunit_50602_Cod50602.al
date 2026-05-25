@@ -475,26 +475,23 @@ codeunit 50602 "Create Demo Data"
                 DayTask."Job Task No." := TaskNo;
                 DayTask."Task Date" := DT;
                 DayTask."Day Line No." := DayTask.GetNextDayLineNo(DT, JobNo, TaskNo);
-                DayTask.Type := DayTask.Type::Resource;
-                DayTask.Validate("No.", ResNo);
+                DayTask.Validate("Assigned Resource No.", ResNo);
                 DayTask."Start Time Assigned" := 080000T;
                 DayTask.Description := 'Work on ' + JobNo + '-' + TaskNo;
                 DayTask.Validate("End Time Assigned", 140000T);
                 DayTask."Assigned Hours" := (DayTask."End Time Assigned" - DayTask."Start Time Assigned") / 3600000;
                 DayTask.Insert();
             end else begin
-                if ExistingDayTask.Type = ExistingDayTask.Type::Resource then begin
-                    if ExistingDayTask."No." = '' then
-                        ExistingDayTask.Validate("No.", ResNo);
-                    if ExistingDayTask.Description = '' then
-                        ExistingDayTask.Description := 'Work on ' + JobNo + '-' + TaskNo;
-                    if (ExistingDayTask."Start Time Assigned" = 0T) or (ExistingDayTask."End Time Assigned" = 0T) then begin
-                        ExistingDayTask."Start Time Assigned" := 080000T;
-                        ExistingDayTask.Validate("End Time Assigned", 140000T);
-                    end;
-                    ExistingDayTask."Assigned Hours" := (ExistingDayTask."End Time Assigned" - ExistingDayTask."Start Time Assigned") / 3600000;
-                    ExistingDayTask.Modify();
+                if ExistingDayTask."Assigned Resource No." = '' then
+                    ExistingDayTask.Validate("Assigned Resource No.", ResNo);
+                if ExistingDayTask.Description = '' then
+                    ExistingDayTask.Description := 'Work on ' + JobNo + '-' + TaskNo;
+                if (ExistingDayTask."Start Time Assigned" = 0T) or (ExistingDayTask."End Time Assigned" = 0T) then begin
+                    ExistingDayTask."Start Time Assigned" := 080000T;
+                    ExistingDayTask.Validate("End Time Assigned", 140000T);
                 end;
+                ExistingDayTask."Assigned Hours" := (ExistingDayTask."End Time Assigned" - ExistingDayTask."Start Time Assigned") / 3600000;
+                ExistingDayTask.Modify();
             end;
         end;
     end;

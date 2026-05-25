@@ -260,19 +260,16 @@ page 50620 "Gantt Demo DHX 2"
                 var
                     DayTask: Record "Day Tasks";
                     WorkDt: Date;
-                    PlType: enum "Job Planning Line Type";
                     Tp: array[2] of text;
                 begin
                     Evaluate(WorkDt, pWorkDate); // expects YYYY-MM-DD
                     tp[1] := CopyStr(ResourceId, 1, 4);
                     tp[2] := CopyStr(ResourceId, 5);
-                    PlType := PlType::Resource;
                     DayTask.SetRange("Task Date", WorkDt);
-                    DayTask.setrange(Type, PlType);
                     if JobFilter <> '' then
                         DayTask.SetFilter("Job No.", JobFilter);
                     if tp[1] = 'RES-' then
-                        DayTask.SetRange("No.", tp[2]);
+                        DayTask.SetRange("Assigned Resource No.", tp[2]);
                     if tp[1] = 'VEN-' then
                         DayTask.SetRange("Vendor No.", tp[2]);
                     Page.Run(Page::"Day Tasks", DayTask);
@@ -294,6 +291,40 @@ page 50620 "Gantt Demo DHX 2"
                 trigger OnResourceDblClick(resourceId: Text)
                 begin
                     Message('Resource: %1', resourceId);
+                end;
+
+                trigger onAddDayTask(resourceId: Text; workDate: Text)
+                var
+                    DayTask: Record "Day Tasks";
+                    DayTaskCard: Page "Day Task Card - New Record";
+                    WorkDt: Date;
+                    Prefix: Text[4];
+                    ResourceCode: Code[20];
+                    IsTemp: Boolean;
+                begin
+                    Evaluate(WorkDt, workDate); // expects YYYY-MM-DD
+                    Prefix := CopyStr(resourceId, 1, 4);
+                    ResourceCode := CopyStr(resourceId, 5, MaxStrLen(ResourceCode));
+                    DayTask.Init();
+                    DayTask."Task Date" := WorkDt;
+                    if Prefix = 'RES-' then
+                        DayTask.Validate("Assigned Resource No.", ResourceCode)
+                    else
+                        if Prefix = 'VEN-' then
+                            DayTask.Validate("Vendor No.", ResourceCode);
+
+                    Clear(DayTaskCard);
+                    DayTaskCard.LookupMode(true);
+                    DayTaskCard.SetNewRecordToSave(DayTask);
+                    if DayTaskCard.RunModal() = Action::LookupOK then begin
+                        DayTaskCard.GetRecord(DayTask);
+                        DayTask.TestField("Job No.");
+                        DayTask.TestField("Job Task No.");
+                        DayTask.TestField("Task Date");
+                        DayTask.GetNextDayLineNo();
+                        DayTask.Insert();
+                        RefreshGantt();
+                    end;
                 end;
 
                 trigger onOpenResourceScheduler(resourceId: Text)

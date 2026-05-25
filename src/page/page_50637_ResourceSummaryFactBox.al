@@ -54,7 +54,7 @@ page 50637 "Resource Summary FactBox"
                     if rec."Job Task No." <> '' then
                         DayTaskRec."Job Task No." := Rec."Job Task No.";
                     if rec."Resource No." <> '' then
-                        DayTaskRec."No." := Rec."Resource No.";
+                        DayTaskRec."Assigned Resource No." := Rec."Resource No.";
                     DayTask.SetRecord(DayTaskRec);
                     DayTask.RunModal();
 

@@ -157,7 +157,7 @@ page 50638 "Resource Week View Part"
                     WeekEnd := CalcDate('<+6D>', WeekStart);
                     DayTask.Reset();
                     if rec."Resource No." <> '' then
-                        DayTask.SetRange("No.", Rec."Resource No.");
+                        DayTask.SetRange("Assigned Resource No.", Rec."Resource No.");
                     if rec."Skill Code" <> '' then
                         DayTask.SetRange("Skill", Rec."Skill Code");
                     DayTask.SetRange("Job No.", Rec."Job No.");
@@ -301,7 +301,7 @@ page 50638 "Resource Week View Part"
         // if ShowJobTask then
         Rc.SetRange("Job Task No.", Rec."Job Task No.");
         // if ShowResource then
-        rc.SetRange("No.", Rec."Resource No.");
+        rc.SetRange("Assigned Resource No.", Rec."Resource No.");
         // if ShowSkillCode then
         rc.SetRange("Skill", Rec."Skill Code");
         // rc.FilterGroup(0);

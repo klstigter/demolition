@@ -31,6 +31,7 @@ controladdin "DHX Gantt Control 2"
     event OnResourceDblClick(resourceId: Text);
     event onOpenResourceScheduler(resourceId: Text);
     event OnResetResourceFilter();
+    event onAddDayTask(resourceId: Text; workDate: Text);
 
     procedure LoadProject(projectstartdate: date; projectenddate: date);
     procedure Undo();

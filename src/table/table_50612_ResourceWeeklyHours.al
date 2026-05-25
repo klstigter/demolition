@@ -164,7 +164,7 @@ table 50612 "Summary Weekly"
         DayTask: Record "Day Tasks";
     begin
         if ResourceNoFilter <> '' then
-            DayTask.SetFilter("No.", ResourceNoFilter);
+            DayTask.SetFilter("Assigned Resource No.", ResourceNoFilter);
         FillSummary(DayTask);
     end;
 
@@ -182,7 +182,7 @@ table 50612 "Summary Weekly"
         DayTask: Record "Day Tasks";
     begin
         if ResourceNo <> '' then
-            DayTask.SetRange("No.", ResourceNo);
+            DayTask.SetRange("Assigned Resource No.", ResourceNo);
         DayTask.SetRange("Job No.", JobNo);
         DayTask.SetRange("Job Task No.", JobTaskNo);
         FillSummary(DayTask);
@@ -230,12 +230,12 @@ table 50612 "Summary Weekly"
                 if i = 2 then
                     DoInsert := Not rec.Get('', DayTask."Skill", DayTask."Job No.", DayTask."Job Task No.", YearValue, WeekNoValue)
                 else
-                    DoInsert := not rec.Get(DayTask."No.", DayTask."Skill", DayTask."Job No.", DayTask."Job Task No.", YearValue, WeekNoValue);
+                    DoInsert := not rec.Get(DayTask."Assigned Resource No.", DayTask."Skill", DayTask."Job No.", DayTask."Job Task No.", YearValue, WeekNoValue);
                 if DoInsert then begin
                     // Create new week record
                     rec.Init();
                     if i = 1 then
-                        rec."Resource No." := DayTask."No."
+                        rec."Resource No." := DayTask."Assigned Resource No."
                     else
                         rec."Resource No." := '';
                     rec."Skill Code" := DayTask."Skill";
@@ -342,7 +342,7 @@ table 50612 "Summary Weekly"
         DayTask: Record "Day Tasks";
     begin
         if ResourceFilter <> '' then
-            DayTask.SetFilter("No.", ResourceFilter);
+            DayTask.SetFilter("Assigned Resource No.", ResourceFilter);
         ScanTEMPDayTask(DayTask)
     end;
 
@@ -391,7 +391,7 @@ table 50612 "Summary Weekly"
                     JobTaskNoOld := TempDayTask."Job Task No.";
                     TryInsertTempTask(TempDayTask."Job No.", TempDayTask."Job Task No.");
                 end;
-                TryInsertTempResource(TempDayTask."No.");
+                TryInsertTempResource(TempDayTask."Assigned Resource No.");
                 if (SkillOld <> TempDayTask."Skill") then begin
                     SkillOld := TempDayTask."Skill";
                     TryInsertTempSkill(TempDayTask."Skill");

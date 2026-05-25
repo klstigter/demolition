@@ -94,7 +94,7 @@ page 50619 "DHX Resource Scheduler"
                         RecRef.SetTable(DayTaskRec);
                         Page.Run(Page::"Day Tasks", DayTaskRec);
                     end else begin
-                        DayTaskRec.SetFilter("No.", ResourceId);
+                        DayTaskRec.SetFilter("Assigned Resource No.", ResourceId);
                         Page.Run(Page::"Day Tasks", DayTaskRec);
                     end;
                 end;
@@ -161,7 +161,7 @@ page 50619 "DHX Resource Scheduler"
                         'OpenDayTask':
                             begin
                                 message('ResourceId = %1, DT1 = %2, DT2 = %3', ResourceId, DT1, DT2);
-                                DayTaskRec.SetRange("No.", ResourceId);
+                                DayTaskRec.SetRange("Assigned Resource No.", ResourceId);
                                 DayTaskRec.SetRange("Task Date", DT1, DT2);
                                 DayTaskList.SetTableView(DayTaskRec);
                                 DayTaskList.Run();
@@ -196,7 +196,7 @@ page 50619 "DHX Resource Scheduler"
                         'OpenDayTask':
                             begin
                                 //message('exec OpenDayTask, parameter ResourceId: %1, PeriodStart: %2, PeriodEnd: %3', ResourceId, PeriodStart, PeriodEnd);
-                                Daytasks.SetRange("No.", ResourceId);
+                                Daytasks.SetRange("Assigned Resource No.", ResourceId);
                                 Daytasks.SetRange("Task Date", DT1, DT2);
                                 DayTaskList.SetTableView(Daytasks);
                                 DayTaskList.Run();

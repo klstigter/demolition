@@ -90,7 +90,7 @@ codeunit 50617 "DayTask Period Sync Mgt."
                 TempPreviewBuffer."Day Line No." := DayTask."Day Line No.";
                 TempPreviewBuffer."Old Task Date" := DayTask."Task Date";
                 TempPreviewBuffer."New Task Date" := NewDate;
-                TempPreviewBuffer."Resource No." := DayTask."No.";
+                TempPreviewBuffer."Resource No." := DayTask."Assigned Resource No.";
                 TempPreviewBuffer.Description := DayTask.Description;
                 TempPreviewBuffer.Insert();
             end;

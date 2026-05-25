@@ -120,8 +120,7 @@ codeunit 50610 "Day Tasks Mgt."
 
 
                 // Copy other fields from job planning line
-                DayTasks.Type := DayTasks.Type::Resource;
-                DayTasks."No." := DayTaskGenerator."Resource No.";
+                DayTasks."Assigned Resource No." := DayTaskGenerator."Resource No.";
                 // Calculate working hours
                 DayTasks."Requested Hours" := DayTaskGenerator."Requested Hours";
 

@@ -43,10 +43,15 @@ page 50645 "Res. Asgmt. Day Tasks"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the line number for this day task.';
                 }
-                field("No."; Rec."No.")
+                field("Assigned Resource No."; Rec."Assigned Resource No.")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the resource, item, or G/L account number.';
+                    ToolTip = 'Specifies the number of the assigned resource.';
+                }
+                field("Requested Resource No."; Rec."Requested Resource No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the number of the requested resource.';
                 }
                 field("Plan Status"; Rec."Plan Status")
                 {
@@ -185,8 +190,6 @@ page 50645 "Res. Asgmt. Day Tasks"
         NewDate: Date;
         NextLineNo: Integer;
     begin
-        Rec.Type := Rec.Type::Resource;
-
         // Inherit date from current filter if set
         Rec.FilterGroup(2);
         if Rec.GetFilter("Task Date") <> '' then
