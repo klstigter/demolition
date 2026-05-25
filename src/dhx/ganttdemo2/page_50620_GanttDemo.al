@@ -82,6 +82,7 @@ page 50620 "Gantt Demo DHX 2"
                         JobTaskNo := CopyStr(EventIDList.Get(2), 1, 20);
                     end;
                     SummaryPage.LoadDataSet(JobNo, JobTaskNo);
+                    SummaryPage.SetJobAndJobTaskVisibility(False);
                     SummaryPage.Runmodal();
                 end;
 
