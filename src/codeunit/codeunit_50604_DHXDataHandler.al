@@ -97,6 +97,13 @@ codeunit 50604 "DHX Data Handler"
 
         JobObject, TaskObject, PlanningLineObject : JsonObject;
         ChildrenArray, ChildrenArray2 : JsonArray;
+        StackArr: array[50] of JsonArray;
+        StackObj: array[50] of JsonObject;
+        StackIndent: array[50] of Integer;
+        StackDepth: Integer;
+        TaskLeaf: JsonObject;
+        HeadingNode: JsonObject;
+        FreshArr: JsonArray;   // Used to reliably reset StackArr elements (Clear on array elements is unreliable)
         PlanningObject, Root : JsonObject;
         PlanningArray, DataArray : JsonArray;
         OutText: Text;
@@ -127,7 +134,6 @@ codeunit 50604 "DHX Data Handler"
                 TEMPJobTasks := JobTasks;
                 if not tempjobtasks.get(jobTasks."Job No.", jobTasks."Job Task No.") then begin
                     TEMPJobTasks.insert();
-                    GetParentTasks(TEMPJobTasks);
                 end;
 
                 // resource data
@@ -207,19 +213,33 @@ codeunit 50604 "DHX Data Handler"
         end else
             EarliestPlanningDate := Today();
 
+        // Rebuild ancestor hierarchy: for every posting task in TEMPJobTasks that has
+        // indentation > 0, walk up the real Job Task table and insert every missing
+        // Begin-Total / Heading ancestor so the Y-axis tree mirrors Page 1 structure.
+        AddAncestorsToTemp(TEMPJobTasks);
+
         if TEMPJobTasks.FindSet() then begin
             Clear(DataArray);
             CurrentJobNo := '';
+            StackDepth := 0;
             repeat
                 // One JobObject per unique Job No. — start a new one when the job changes
                 if TEMPJobTasks."Job No." <> CurrentJobNo then begin
                     if CurrentJobNo <> '' then begin
-                        JobObject.Add('children', ChildrenArray);
+                        // Flush remaining stack for the previous job
+                        while StackDepth > 0 do begin
+                            StackObj[StackDepth].Add('children', StackArr[StackDepth + 1]);
+                            StackArr[StackDepth].Add(StackObj[StackDepth]);
+                            StackDepth -= 1;
+                        end;
+                        JobObject.Add('children', StackArr[1]);
                         DataArray.Add(JobObject);
                     end;
                     CurrentJobNo := TEMPJobTasks."Job No.";
                     Clear(JobObject);
-                    Clear(ChildrenArray);
+                    Clear(FreshArr);
+                    StackArr[1] := FreshArr;
+                    StackDepth := 0;
                     JobObject.Add('key', CurrentJobNo);
                     if Job.Get(CurrentJobNo) then
                         JobObject.Add('label', StrSubstNo('%1 - %2', CurrentJobNo, Job.Description))
@@ -227,18 +247,53 @@ codeunit 50604 "DHX Data Handler"
                         JobObject.Add('label', CurrentJobNo);
                     JobObject.Add('open', true);
                 end;
-                // Only posting tasks become child section rows (events reference section_id = Job No.|Task No.)
+
+                // Pop stack entries whose indentation >= current task's indentation
+                // Note: BC AL does not short-circuit 'and', so StackIndent[StackDepth]
+                // would be evaluated even when StackDepth=0 (index 0 = out of bounds).
+                // Use a nested if+break instead.
+                while StackDepth > 0 do begin
+                    if StackIndent[StackDepth] < TEMPJobTasks.Indentation then
+                        break;
+                    StackObj[StackDepth].Add('children', StackArr[StackDepth + 1]);
+                    StackArr[StackDepth].Add(StackObj[StackDepth]);
+                    StackDepth -= 1;
+                end;
+
                 if TEMPJobTasks."Job Task Type" = TEMPJobTasks."Job Task Type"::Posting then begin
-                    Clear(TaskObject);
-                    TaskObject.Add('key', TEMPJobTasks."Job No." + '|' + TEMPJobTasks."Job Task No.");
-                    TaskObject.Add('label', StrSubstNo('%1 - %2', TEMPJobTasks."Job Task No.", TEMPJobTasks.Description));
-                    TaskObject.Add('open', true);
-                    ChildrenArray.Add(TaskObject);
+                    // Leaf: add directly to the active level's children array
+                    Clear(TaskLeaf);
+                    TaskLeaf.Add('key', TEMPJobTasks."Job No." + '|' + TEMPJobTasks."Job Task No.");
+                    TaskLeaf.Add('label', StrSubstNo('%1 - %2', TEMPJobTasks."Job Task No.", TEMPJobTasks.Description));
+                    StackArr[StackDepth + 1].Add(TaskLeaf);
+                end else if (TEMPJobTasks."Job Task Type" = TEMPJobTasks."Job Task Type"::"End-Total") or
+                            (TEMPJobTasks."Job Task Type" = TEMPJobTasks."Job Task Type"::Total) then begin
+                    // End-Total and Total are accounting markers — not visual nodes, skip them
+                end else begin
+                    // Heading / Begin-Total: push a new nesting level onto the stack
+                    // Use a local variable (HeadingNode) instead of clearing the array element directly,
+                    // because Clear() on JsonObject array elements is unreliable in BC AL.
+                    if StackDepth < 49 then begin
+                        StackDepth += 1;
+                        Clear(HeadingNode);
+                        HeadingNode.Add('key', TEMPJobTasks."Job No." + '|' + TEMPJobTasks."Job Task No.");
+                        HeadingNode.Add('label', StrSubstNo('%1 - %2', TEMPJobTasks."Job Task No.", TEMPJobTasks.Description));
+                        HeadingNode.Add('open', true);
+                        StackObj[StackDepth] := HeadingNode;
+                        Clear(FreshArr);
+                        StackArr[StackDepth + 1] := FreshArr;
+                        StackIndent[StackDepth] := TEMPJobTasks.Indentation;
+                    end;
                 end;
             until TEMPJobTasks.Next() = 0;
             // Flush the last job
             if CurrentJobNo <> '' then begin
-                JobObject.Add('children', ChildrenArray);
+                while StackDepth > 0 do begin
+                    StackObj[StackDepth].Add('children', StackArr[StackDepth + 1]);
+                    StackArr[StackDepth].Add(StackObj[StackDepth]);
+                    StackDepth -= 1;
+                end;
+                JobObject.Add('children', StackArr[1]);
                 DataArray.Add(JobObject);
             end;
             Clear(Root);
@@ -251,24 +306,53 @@ codeunit 50604 "DHX Data Handler"
         exit('');
     end;
 
-    local procedure GetParentTasks(var TEMPJobTasks: Record "Job Task" temporary)
+    // Iteratively adds all ancestor Begin-Total / Heading tasks for every task in
+    // TEMPJobTasks that has Indentation > 0.  A snapshot is taken each pass so
+    // we never modify the table while iterating it.  The loop repeats until a full
+    // pass produces no new insertions, which handles arbitrary nesting depth.
+    local procedure AddAncestorsToTemp(var TEMPJobTasks: Record "Job Task" temporary)
     var
-        jobTasks: Record "Job Task";
+        JobTaskReal: Record "Job Task";
+        TempSnapshot: Record "Job Task" temporary;
+        NewAncestorAdded: Boolean;
     begin
-        if TEMPJobTasks.Indentation > 0 then begin
-            jobtasks.setrange("Job No.", tempJobTasks."Job No.");
-            jobtasks.setfilter("Job Task Type", '<>%1', jobTasks."Job Task Type"::Posting);
-            jobtasks.setfilter(jobtasks."Job Task No.", '<%1', TEMPJobTasks."Job Task No.");
-            jobtasks.setrange("Indentation", 0, TEMPJobTasks.Indentation - 1);
-            if jobtasks.findlast then
-                if not TempJobTasks.Get(jobTasks."Job No.", jobTasks."Job Task No.") then begin
-                    TEMPJobTasks := jobtasks;
-                    TEMPJobTasks.Insert();
-                    if tempJobTasks.Indentation > 0 then
-                        GetParentTasks(TEMPJobTasks);
-                end;
-        end
+        repeat
+            NewAncestorAdded := false;
 
+            // Snapshot the current contents of TEMPJobTasks
+            TempSnapshot.Reset();
+            TempSnapshot.DeleteAll();
+            TEMPJobTasks.Reset();
+            if TEMPJobTasks.FindSet() then
+                repeat
+                    TempSnapshot := TEMPJobTasks;
+                    TempSnapshot.Insert();
+                until TEMPJobTasks.Next() = 0;
+
+            // For each task with indentation > 0, find its direct parent heading
+            if TempSnapshot.FindSet() then
+                repeat
+                    if TempSnapshot.Indentation > 0 then begin
+                        // Direct parent = last Begin-Total or Heading before this task
+                        // at exactly Indentation - 1.  Exclude Posting, End-Total, Total
+                        // so that closing markers are never treated as parent nodes.
+                        JobTaskReal.Reset();
+                        JobTaskReal.SetRange("Job No.", TempSnapshot."Job No.");
+                        JobTaskReal.SetFilter("Job Task Type", '<>%1&<>%2&<>%3',
+                            JobTaskReal."Job Task Type"::Posting,
+                            JobTaskReal."Job Task Type"::"End-Total",
+                            JobTaskReal."Job Task Type"::Total);
+                        JobTaskReal.SetFilter("Job Task No.", '<%1', TempSnapshot."Job Task No.");
+                        JobTaskReal.SetRange("Indentation", TempSnapshot.Indentation - 1);
+                        if JobTaskReal.FindLast() then
+                            if not TEMPJobTasks.Get(JobTaskReal."Job No.", JobTaskReal."Job Task No.") then begin
+                                TEMPJobTasks := JobTaskReal;
+                                TEMPJobTasks.Insert();
+                                NewAncestorAdded := true;
+                            end;
+                    end;
+                until TempSnapshot.Next() = 0;
+        until not NewAncestorAdded;
     end;
 
     /// <summary>
@@ -280,17 +364,17 @@ codeunit 50604 "DHX Data Handler"
     procedure ValidateSchedulerSectionMatch(ResourceJSONTxt: Text; PlanninJsonTxt: Text)
     var
         RootObj: JsonObject;
-        DataArr, ChildArr : JsonArray;
-        JobToken, ChildToken, EventToken : JsonToken;
-        JobObj, ChildObj, EventObj : JsonObject;
-        KeyToken, SectionToken : JsonToken;
+        DataArr: JsonArray;
+        JobToken, EventToken : JsonToken;
+        EventObj: JsonObject;
+        SectionToken: JsonToken;
         SectionKeys: Dictionary of [Text, Boolean];
         MissingIds: List of [Text];
         SectionId: Text;
         ErrorMsg: Text;
         MissingId: Text;
     begin
-        // ── 1. Collect all leaf keys from ResourceJSONTxt ──────────────────────
+        // ── 1. Collect all section keys at any depth from ResourceJSONTxt ──────
         if ResourceJSONTxt = '' then
             exit;
         if not RootObj.ReadFrom(ResourceJSONTxt) then
@@ -298,17 +382,7 @@ codeunit 50604 "DHX Data Handler"
         if not RootObj.Get('data', JobToken) then
             exit;
         DataArr := JobToken.AsArray();
-        foreach JobToken in DataArr do begin
-            JobObj := JobToken.AsObject();
-            if JobObj.Get('children', ChildToken) then begin
-                ChildArr := ChildToken.AsArray();
-                foreach ChildToken in ChildArr do begin
-                    ChildObj := ChildToken.AsObject();
-                    if ChildObj.Get('key', KeyToken) then
-                        SectionKeys.Add(KeyToken.AsValue().AsText(), true);
-                end;
-            end;
-        end;
+        CollectSectionKeys(DataArr, SectionKeys);
 
         // ── 2. Check every event's section_id against collected keys ──────────
         if PlanninJsonTxt = '' then
@@ -334,6 +408,26 @@ codeunit 50604 "DHX Data Handler"
             ErrorMsg += '  • ' + MissingId + '\';
         ErrorMsg += 'These events will not appear in the scheduler. Check that the job task exists and is of type Posting.';
         Message(ErrorMsg);
+    end;
+
+    local procedure CollectSectionKeys(Nodes: JsonArray; var Keys: Dictionary of [Text, Boolean])
+    var
+        NodeToken: JsonToken;
+        NodeObj: JsonObject;
+        KeyToken: JsonToken;
+        ChildToken: JsonToken;
+        ChildArr: JsonArray;
+    begin
+        foreach NodeToken in Nodes do begin
+            NodeObj := NodeToken.AsObject();
+            if NodeObj.Get('key', KeyToken) then
+                if not Keys.ContainsKey(KeyToken.AsValue().AsText()) then
+                    Keys.Add(KeyToken.AsValue().AsText(), true);
+            if NodeObj.Get('children', ChildToken) then begin
+                ChildArr := ChildToken.AsArray();
+                CollectSectionKeys(ChildArr, Keys);
+            end;
+        end;
     end;
 
     local procedure GetVendorNoFromDayTask(FromDate: Date; ToDate: Date; ResNo: Code[20]): Text
