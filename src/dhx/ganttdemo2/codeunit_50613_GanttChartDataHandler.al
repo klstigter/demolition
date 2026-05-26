@@ -600,6 +600,23 @@ codeunit 50613 "GanttChartDataHandler"
         JsonArray.WriteTo(JsonText);
     end;
 
+    procedure DownloadJsonTextData(pJsonText: Text; FileName: Text)
+    var
+        tempblob: Codeunit "Temp Blob";
+        instream: InStream;
+        outstream: OutStream;
+        va: variant;
+    begin
+        if pJsonText <> '' then begin
+            // Download the JSON to a file for inspection
+            tempblob.CreateOutStream(outstream);
+            outstream.WriteText(pJsonText);
+            tempblob.CreateInStream(instream);
+            va := FileName;
+            DownloadFromStream(instream, FileName, '', 'application/json', va);
+        end;
+    end;
+
 }
 
 

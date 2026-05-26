@@ -90,6 +90,11 @@ page 50650 "Gantt Chart Setup"
                 }
 
             }
+            group(DataInspection)
+            {
+                Caption = 'Data Inspection';
+                field("Download Data for Inspection"; rec."Download Data for Inspection") { }
+            }
         }
     }
 

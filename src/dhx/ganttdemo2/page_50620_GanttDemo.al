@@ -928,18 +928,30 @@ page 50620 "Gantt Demo DHX 2"
         JsonTxtTasks: Text;
     begin
         JsonTxtTasks := GanttChartDataHandler.GetJobTasksAsJson(AnchorDate, JobFilter);
-        if JsonTxtTasks <> '' then
+        if JsonTxtTasks <> '' then begin
             CurrPage.DHXGanttControl2.LoadProjectData(JsonTxtTasks);
+            if setup."Download Data for Inspection" and GuiAllowed then
+                if Confirm('Gantt Setting for %1 is enabled. Do you want to download the project task data for inspection purposes?', false, setup.FieldCaption("Download Data for Inspection")) then
+                    GanttChartDataHandler.DownloadJsonTextData(JsonTxtTasks, 'GanttProjectTaskData.json');
+        end;
     end;
 
     local procedure LoadResourceData()
     var
         GanttChartDataHandler: Codeunit "GanttChartDataHandler";
         JsonTxtResource: Text;
+        tempblob: Codeunit "Temp Blob";
+        instream: InStream;
+        outstream: OutStream;
+        va: variant;
     begin
         JsonTxtResource := GanttChartDataHandler.GetResourcesAsJson();
-        if JsonTxtResource <> '' then
+        if JsonTxtResource <> '' then begin
             CurrPage.DHXGanttControl2.LoadResourcesData(JsonTxtResource);
+            if setup."Download Data for Inspection" and GuiAllowed then
+                if Confirm('Gantt Setting for %1 is enabled. Do you want to download the resources data for inspection purposes?', false, setup.FieldCaption("Download Data for Inspection")) then
+                    GanttChartDataHandler.DownloadJsonTextData(JsonTxtResource, 'GanttResourcesData.json');
+        end;
     end;
 
     local procedure LoadDayTaskData()
