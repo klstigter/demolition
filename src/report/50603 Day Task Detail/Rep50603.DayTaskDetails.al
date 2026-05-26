@@ -8,7 +8,7 @@ report 50603 "Day Task Details"
     {
         dataitem(DayTask; "Day Tasks")
         {
-            dataitemtableview = sorting("Job No.", "Job Task No.", "Task Date") where("plan status" = const(Planned));
+            dataitemtableview = sorting("Job No.", "Job Task No.", "Task Date") where("plan status" = const(Inprocess));
             RequestFilterFields = "Task Date", "Job No.", "Job Task No.";
 
             column(JobNo; JobDescription)
@@ -39,7 +39,7 @@ report 50603 "Day Task Details"
                         ColumnNo: Integer;
                     begin
 
-                        if not resource.Get(DayTask2."No.") then
+                        if not resource.Get(DayTask2."Assigned Resource No.") then
                             clear(resource);
                         Case true of
                             resource."Is Pool":
@@ -73,8 +73,6 @@ report 50603 "Day Task Details"
                         end;
                     End;
                 }
-
-
             }
 
             dataItem(Output; Integer)
@@ -83,22 +81,22 @@ report 50603 "Day Task Details"
                 Column(Number; Output.Number) { }
 
                 Column(InternalLineNo; tempdaytask1."Day Line No.") { }
-                Column(InternalNo; tempdaytask1."No.") { }
+                Column(InternalNo; tempdaytask1."Assigned Resource No.") { }
                 Column(InternalDescription; tempdaytask1.Description) { }
                 Column(TimeAssigned1; Time1) { }
                 column(Jobentryno1; tempdaytask1."Job Entry No.") { }
 
 
-                Column(ExternalLineNo; tempdaytask2."No.") { }
-                Column(ExternalNo; tempdaytask2."No.") { }
+                Column(ExternalLineNo; tempdaytask2."Day Line No.") { }
+                Column(ExternalNo; tempdaytask2."Assigned Resource No.") { }
                 Column(ExternalDescription; tempdaytask2.Description) { }
                 Column(TimeAssigned2; Time2) { }
                 column(Jobentryno2; tempdaytask2."Job Entry No.") { }
 
                 trigger OnPreDataItem()
                 begin
-                    tempDayTask1.setcurrentkey("Job Entry No.", "No.");
-                    tempDayTask2.setcurrentkey("Job Entry No.", "No.");
+                    tempDayTask1.setcurrentkey("Job Entry No.", "Assigned Resource No.");
+                    tempDayTask2.setcurrentkey("Job Entry No.", "Assigned Resource No.");
                 end;
 
                 trigger OnAfterGetRecord()

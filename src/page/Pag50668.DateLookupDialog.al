@@ -1,4 +1,4 @@
-page 50668 "Date Lookup Dialog"
+page 50670 "Date Lookup Dialog"
 {
     PageType = List;
     SourceTable = Date;

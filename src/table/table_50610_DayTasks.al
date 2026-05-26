@@ -405,6 +405,9 @@ table 50610 "Day Tasks"
         key(DateKey; "Task Date", "Start Time Assigned")
         {
         }
+        Key(Key2; "Task Date", "Assigned Resource No.", "Start Time Assigned")
+        {
+        }
     }
 
     fieldgroups
@@ -412,6 +415,7 @@ table 50610 "Day Tasks"
         fieldgroup(DropDown; "Job No.", "Job Task No.", "Task Date", Description)
         {
         }
+
     }
 
     var
