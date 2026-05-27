@@ -12,6 +12,7 @@ page 50601 "Opti Resource List"
     DeleteAllowed = false;
     ModifyAllowed = true;
     InsertAllowed = false;
+    SourceTableView = sorting("pool resource no.", "No.");
 
     layout
     {
@@ -75,10 +76,12 @@ page 50601 "Opti Resource List"
             }
             group(ResourcesList)
             {
+
                 repeater(Control1)
                 {
                     ShowCaption = false;
                     Editable = false;
+
 
                     field("No."; Rec."No.")
                     {
@@ -89,69 +92,101 @@ page 50601 "Opti Resource List"
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Specifies a description of the resource.';
-                    }
-                    field(Type; Rec.Type)
-                    {
-                        ApplicationArea = Jobs;
-                        ToolTip = 'Specifies whether the resource is a person or a machine.';
-                        Visible = false;
-                    }
-                    field("Base Unit of Measure"; Rec."Base Unit of Measure")
-                    {
-                        ApplicationArea = Jobs;
-                        ToolTip = 'Specifies the base unit used to measure the resource, such as hour, piece, or kilometer.';
-                    }
-                    field(capacity; Rec.Capacity)
-                    {
-                        ApplicationArea = Jobs;
-                        Caption = 'Capacity';
+                        StyleExpr = Stylexp;
 
-                    }
-                    field("Day Tasks"; Rec."Day Task")
-                    {
-                        ApplicationArea = Jobs;
-                        Caption = 'Day Tasks';
-                    }
-                    field("Resource Group No."; Rec."Resource Group No.")
-                    {
-                        ApplicationArea = Jobs;
-                        ToolTip = 'Specifies the resource group that this resource is assigned to.';
-                        Visible = true;
-                    }
-                    field(Skills; Rec.Skills)
-                    {
-                        ApplicationArea = Jobs;
-                        ToolTip = 'Specifies the number of skills associated with this resource.';
                     }
                     field("Pool Resource No."; Rec."Pool Resource No.")
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Specifies the pool resource that this resource is assigned to.';
                         Visible = true;
+                        StyleExpr = Stylexp;
+
                     }
+                    field(Type; Rec.Type)
+                    {
+                        ApplicationArea = Jobs;
+                        ToolTip = 'Specifies whether the resource is a person or a machine.';
+                        Visible = false;
+                        StyleExpr = Stylexp;
+
+                    }
+                    field("Base Unit of Measure"; Rec."Base Unit of Measure")
+                    {
+                        ApplicationArea = Jobs;
+                        ToolTip = 'Specifies the base unit used to measure the resource, such as hour, piece, or kilometer.';
+                        StyleExpr = Stylexp;
+
+                    }
+                    field(capacity; Rec.Capacity)
+                    {
+                        ApplicationArea = Jobs;
+                        Caption = 'Capacity';
+
+
+
+                    }
+                    field("Day Tasks"; Rec."Assigned Hours")
+                    {
+                        ApplicationArea = Jobs;
+                        Caption = 'Day Tasks';
+
+
+                    }
+                    field("Resource Group No."; Rec."Resource Group No.")
+                    {
+                        ApplicationArea = Jobs;
+                        ToolTip = 'Specifies the resource group that this resource is assigned to.';
+                        Visible = true;
+                        StyleExpr = Stylexp;
+
+                    }
+                    field(Skills; Rec.Skills)
+                    {
+                        ApplicationArea = Jobs;
+                        ToolTip = 'Specifies the number of skills associated with this resource.';
+
+
+                    }
+
                     field("Vendor No."; Rec."Vendor No.")
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Specifies the vendor number associated with the resource.';
                         Visible = false;
+                        StyleExpr = Stylexp;
+
                     }
                     field("External Resource"; Rec."External Resource")
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Indicates whether the resource is an external resource.';
                         Visible = false;
+                        StyleExpr = Stylexp;
                     }
                     field("Is Foreman"; Rec."Is Foreman")
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Indicates whether the resource is a foreman.';
                         Visible = true;
+                        StyleExpr = Stylexp;
+
+                    }
+                    field("Is Pool"; Rec."Is Pool")
+                    {
+                        ApplicationArea = Jobs;
+                        ToolTip = 'Indicates whether the resource is a pool resource.';
+                        Visible = true;
+                        StyleExpr = Stylexp;
+
                     }
                     field("Team Leader"; Rec."Team Leader")
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Specifies the team leader responsible for the resource.';
                         Visible = false;
+                        StyleExpr = Stylexp;
+
                     }
 
                     field("Gen. Prod. Posting Group"; Rec."Gen. Prod. Posting Group")
@@ -159,33 +194,46 @@ page 50601 "Opti Resource List"
                         ApplicationArea = Jobs;
                         ToolTip = 'Specifies the item''s product type to link transactions made for this item with the appropriate general ledger account according to the general posting setup.';
                         Visible = false;
+                        StyleExpr = Stylexp;
+
                     }
                     field("VAT Prod. Posting Group"; Rec."VAT Prod. Posting Group")
                     {
                         ApplicationArea = Basic, Suite;
                         ToolTip = 'Specifies the VAT specification of the involved item or resource to link transactions made for this record with the appropriate general ledger account according to the VAT posting setup.';
                         Visible = false;
+                        StyleExpr = Stylexp;
+
                     }
                     field("Privacy Blocked"; Rec."Privacy Blocked")
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Specifies whether to limit access to data for the data subject during daily operations. This is useful, for example, when protecting data from changes while it is under privacy review.';
                         Visible = false;
+                        StyleExpr = Stylexp;
+
                     }
                     field("Search Name"; Rec."Search Name")
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Specifies an alternate name that you can use to search for the record in question when you cannot remember the value in the Name field.';
+                        StyleExpr = Stylexp;
+
                     }
                     field("Default Deferral Template Code"; Rec."Default Deferral Template Code")
                     {
                         ApplicationArea = Jobs;
                         Caption = 'Default Deferral Template';
                         ToolTip = 'Specifies the default template that governs how to defer revenues and expenses to the periods when they occurred.';
+                        StyleExpr = Stylexp;
+
                     }
 
+
                 }
+
             }
+
         }
         area(factboxes)
         {
@@ -224,7 +272,9 @@ page 50601 "Opti Resource List"
                 ApplicationArea = Notes;
                 Visible = true;
             }
+
         }
+
     }
 
     actions
@@ -369,6 +419,7 @@ page 50601 "Opti Resource List"
                 RunObject = Page "Resource Groups";
                 RunPageMode = Create;
                 ToolTip = 'Create a new resource.';
+
             }
         }
         area(reporting)
@@ -514,6 +565,14 @@ page 50601 "Opti Resource List"
             CRMIsCoupledToRecord := CRMCouplingManagement.IsRecordCoupledToCRM(Rec.RecordId);
     end;
 
+    trigger OnAfterGetRecord()
+    begin
+        Stylexp := '';
+        if rec."Is Pool" then
+            Stylexp := 'Strong';
+
+    end;
+
     trigger OnOpenPage()
     var
         IntegrationTableMapping: Record "Integration Table Mapping";
@@ -536,6 +595,7 @@ page 50601 "Opti Resource List"
         ExtendedPriceEnabled: Boolean;
         RecFilters: Text;
         xRecFilters: Text;
+        Stylexp: Text;
         xRecMarkedOnly: Boolean;
         xRecMarking: Record Resource;
 

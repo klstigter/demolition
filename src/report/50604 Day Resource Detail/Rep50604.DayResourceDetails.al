@@ -11,21 +11,24 @@ report 50604 "Day Resource Details"
             dataitemtableview = sorting("Task Date", "Assigned Resource No.") where("plan status" = const(Inprocess),
                 "assigned Resource No." = filter(<> ''));
             RequestFilterFields = "Task Date";
+            Column(TodayFormatted; Format(Today, 0, 4)) { }
+            Column(CompanyName; COMPANYPROPERTY.DisplayName()) { }
+            Column(ReportCaption; ReportCaption) { }
+            Column(CurrReportPageNoCaption; CurrReportPageNoCaption) { }
 
             column(TaskDate; DayTask."Task Date") { }
-            column(assignedResourceNo; DayTask."Assigned Resource No.") { }
-
             column(JobNo; JobDescription) { }
             column(JobTaskNo; JobTaskDescription) { }
 
             Column(DayLineNo; DayTask."Day Line No.") { }
             Column(AssResNo; DayTask."Assigned Resource No.") { }
             Column(Description; resource.Name) { }
+            Column(assignedHours; DayTask."Assigned Hours") { }
             Column(TimeAssigned; Time1) { }
             column(Mandatory; resource."Mandatory schedulling") { }
             Column(jobTaskDescription; jobTaskDescription) { }
-
-
+            Column(Capacity; Resource.Capacity) { }
+            Column(TotassignedHours; resource."Assigned Hours") { }
 
             Trigger OnPreDataItem()
             begin
@@ -36,6 +39,7 @@ report 50604 "Day Resource Details"
                         TEMPresource.Insert();
                     until resource.Next() = 0;
             end;
+
 
             trigger OnAfterGetRecord()
             var
@@ -57,6 +61,9 @@ report 50604 "Day Resource Details"
                     clear(jobTask);
                 jobTaskDescription := jobTask."Job Task No." + ' ' + jobTask.Description;
 
+                resource.setrange("date filter", dayTask."Task Date");
+                resource.CalcFields(Capacity, "Assigned Hours");
+
             end;
         }
         DataItem(TempRes; Integer)
@@ -67,6 +74,7 @@ report 50604 "Day Resource Details"
             Column(ResourceName; TEMPresource.Name) { }
             Column(NeedSchedulling; true) { }
             column(TaskDate2; DayTask."Task Date") { }
+            Column(Capacity2; TEMPresource.Capacity) { }
 
             trigger OnPreDataItem()
             begin
@@ -79,6 +87,8 @@ report 50604 "Day Resource Details"
                     TEMPresource.FindSet()
                 else
                     TEMPresource.Next();
+                TEMPresource.setrange("date filter", dayTask."Task Date");
+                TEMPresource.CalcFields(Capacity);
             end;
         }
     }
@@ -111,6 +121,8 @@ report 50604 "Day Resource Details"
         DateSelectionFilter: Text;
 
         Time1, Time2 : Text;
+        ReportCaption: Label 'Resource Details Planning';
+        CurrReportPageNoCaption: Label 'Page';
 
 
 

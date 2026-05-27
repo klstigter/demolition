@@ -770,7 +770,7 @@ page 50620 "Gantt Demo DHX 2"
             }
             action(DayTasksDetail)
             {
-                Caption = 'Day Tasks Detail';
+                Caption = 'Day Overview';
                 ApplicationArea = All;
                 Image = Report;
                 trigger OnAction()
@@ -784,9 +784,9 @@ page 50620 "Gantt Demo DHX 2"
                     DayTaskDetails.RunModal();
                 end;
             }
-            action(DayTasksOverview)
+            action(DayTasksWeekOverview)
             {
-                Caption = 'Day Tasks Overview';
+                Caption = 'Week Overview';
                 ApplicationArea = All;
                 Image = Report;
                 trigger OnAction()
@@ -847,7 +847,7 @@ page 50620 "Gantt Demo DHX 2"
                 Caption = 'Reports';
                 actionref(DayResourceDetail_ref; DayResourceDetail) { }
                 actionref(DayTasksDetail_ref; DayTasksDetail) { }
-                actionref(DayTasksOverview_ref; DayTasksOverview) { }
+                actionref(DayTasksOverview_ref; DayTasksWeekOverview) { }
             }
         }
     }

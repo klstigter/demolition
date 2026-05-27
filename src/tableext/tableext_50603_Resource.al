@@ -49,7 +49,7 @@ tableextension 50603 "Resource Opt" extends Resource
             DataClassification = ToBeClassified;
             Editable = false; // Control by "Pool Resource No.";
         }
-        field(50610; "Day Task"; Decimal)
+        field(50610; "Assigned Hours"; Decimal)
         {
             CalcFormula = sum("Day Tasks"."Assigned Hours" where("Assigned Resource No." = field("No."),
                                                                     "Task Date" = field("Date Filter")));

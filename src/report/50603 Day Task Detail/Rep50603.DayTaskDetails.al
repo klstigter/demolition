@@ -9,7 +9,6 @@ report 50603 "Day Task Details"
         dataitem(DayTask; "Day Tasks")
         {
             dataitemtableview = sorting("Job No.", "Job Task No.", "Task Date") where("plan status" = const(Inprocess));
-            dataitemtableview = sorting("Job No.", "Job Task No.", "Task Date") where("plan status" = const(Inprocess));
             RequestFilterFields = "Task Date", "Job No.", "Job Task No.";
 
             column(JobNo; JobDescription)
@@ -82,7 +81,6 @@ report 50603 "Day Task Details"
                 Column(Number; Output.Number) { }
 
                 Column(InternalLineNo; tempdaytask1."Day Line No.") { }
-                Column(InternalNo; tempdaytask1."Assigned Resource No.") { }
                 Column(InternalNo; tempdaytask1."Assigned Resource No.") { }
                 Column(InternalDescription; tempdaytask1.Description) { }
                 Column(TimeAssigned1; Time1) { }

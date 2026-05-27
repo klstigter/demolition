@@ -63,7 +63,7 @@ page 50609 "Opti Resource List Temp"
                         Caption = 'Capacity';
 
                     }
-                    field("Day Tasks"; Rec."Day Task")
+                    field("Day Tasks"; Rec."Assigned Hours")
                     {
                         ApplicationArea = Jobs;
                         Caption = 'Day Tasks';
