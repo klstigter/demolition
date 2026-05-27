@@ -73,6 +73,11 @@ table 50620 "Gantt Chart Setup"
             Caption = 'Load Day Tasks';
             ToolTip = 'Specifies whether to load day tasks for job tasks.';
         }
+        field(50; "Download Data for Inspection"; Boolean)
+        {
+            Caption = 'Download Data for Inspection';
+            ToolTip = 'Specifies whether to download Gantt chart data for inspection purposes.';
+        }
     }
 
     keys

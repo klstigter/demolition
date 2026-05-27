@@ -115,7 +115,7 @@ DayTask View
 ============
 5. caption of view:
       if resource exist then caption = Andi, else job+task     (OK)
-6. The Structure of tree follow indent, same as tree in gantt  ?**********************OPEN
+6. The Structure of tree follow indent, same as tree in gantt  (OK)
       
 
 2024.04.23
