@@ -2309,7 +2309,7 @@ codeunit 50604 "DHX Data Handler"
                         TempResource."Pool Resource No." := PoolNo;
                         TempResource.Insert();
                     end;
-                end else begin //LAGI:2026.02.10
+                end else begin
                     if (ResNo = '') and (DayTask."Pool Resource No." <> '') then begin
                         VacantNo := IncStr(VacantNo);
                         TempResource.Reset();

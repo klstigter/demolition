@@ -291,6 +291,12 @@ page 50620 "Gantt Demo DHX 2"
                     Prefix: Text[4];
                     ResourceCode: Code[20];
                     IsTemp: Boolean;
+                    FilterJson: JsonObject;
+                    FilterToken: JsonToken;
+                    FilterJobNo: Code[20];
+                    FilterJobTaskNo: Code[20];
+                    FilterFromDate: Date;
+                    FilterToDate: Date;
                 begin
                     Evaluate(WorkDt, workDate); // expects YYYY-MM-DD
                     Prefix := CopyStr(resourceId, 1, 4);
@@ -310,6 +316,21 @@ page 50620 "Gantt Demo DHX 2"
                         DayTask.Validate("End Time Requested", WorkHourTemplate."Default End Time");
                         DayTask."Requested Hours" := WorkHourTemplate."Working Hours";
                     end;
+                    if CurrentResourcePanelFilterJsonString <> '' then
+                        if FilterJson.ReadFrom(CurrentResourcePanelFilterJsonString) then begin
+                            // Extract filter fields stored by SetResourcePanelFilterInfo: { job, task, periodFrom, periodTo }
+                            if FilterJson.Get('job', FilterToken) then
+                                FilterJobNo := CopyStr(FilterToken.AsValue().AsText(), 1, MaxStrLen(FilterJobNo));
+                            if FilterJson.Get('task', FilterToken) then
+                                FilterJobTaskNo := CopyStr(FilterToken.AsValue().AsText(), 1, MaxStrLen(FilterJobTaskNo));
+                            if FilterJson.Get('periodFrom', FilterToken) then
+                                Evaluate(FilterFromDate, FilterToken.AsValue().AsText());
+                            if FilterJson.Get('periodTo', FilterToken) then
+                                Evaluate(FilterToDate, FilterToken.AsValue().AsText());
+
+                            DayTask.Validate("Job No.", FilterJobNo);
+                            DayTask.Validate("Job Task No.", FilterJobTaskNo);
+                        end;
 
                     Clear(DayTaskCard);
                     DayTaskCard.LookupMode(true);
@@ -319,6 +340,7 @@ page 50620 "Gantt Demo DHX 2"
                         DayTask.TestField("Job No.");
                         DayTask.TestField("Job Task No.");
                         DayTask.TestField("Task Date");
+                        DayTask.CheckDayTaskDateInProjectTaskRange();
                         DayTask.GetNextDayLineNo();
                         DayTask.Insert();
                         RefreshGantt();

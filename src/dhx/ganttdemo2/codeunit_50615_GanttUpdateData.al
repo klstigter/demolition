@@ -99,7 +99,7 @@ codeunit 50615 "Gantt Update Data"
             // Period changed: open preview page. Returns FALSE if user cancelled
             // → neither JobTask nor DayTask records are written to the database.
             if not DayTaskPeriodSyncMgt.HandleJobTaskPeriodChange(JobTask, OldStartDate, OldEndDate, false) then
-                exit(false);
+                exit(false); //LAGI
         end else begin
             // No period change: save immediately for other field changes (description, etc.)
             if not JobTask.Modify(true) then

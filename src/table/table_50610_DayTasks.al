@@ -524,4 +524,17 @@ table 50610 "Day Tasks"
         end;
     end;
 
+    procedure CheckDayTaskDateInProjectTaskRange()
+    var
+        JobTask: Record "Job Task";
+        ErrLbl: Label 'The Task Date %1 must be within the planned start date %2 and end date %3 of the Job Task.';
+    begin
+        if "Job Task No." = '' then
+            exit; // skip check if Job Task is not specified
+
+        JobTask.get("Job No.", "Job Task No.");
+        if ("Task Date" < JobTask.PlannedStartDate) or ("Task Date" > JobTask.PlannedEndDate) then
+            Error(ErrLbl, "Task Date", JobTask.PlannedStartDate, JobTask.PlannedEndDate);
+    end;
+
 }

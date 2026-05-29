@@ -108,20 +108,34 @@ page 50669 "Day Task Card - New Record"
         }
     }
 
-    // actions
-    // {
-    //     area(Processing)
-    //     {
-    //         action(ActionName)
-    //         {
+    actions
+    {
+        area(Processing)
+        {
+            action(CopyRequestedToAssigned)
+            {
+                Caption = 'Copy Requested to Assigned';
+                ApplicationArea = All;
+                Image = Copy;
 
-    //             trigger OnAction()
-    //             begin
-
-    //             end;
-    //         }
-    //     }
-    // }
+                trigger OnAction()
+                begin
+                    Rec."Assigned Resource No." := Rec."Requested Resource No.";
+                    Rec."Assigned Hours" := Rec."Requested Hours";
+                    Rec."Start Time Assigned" := Rec."Start Time Requested";
+                    Rec.Validate("End Time Assigned", Rec."End Time Requested");
+                    Rec.Modify();
+                end;
+            }
+        }
+        area(Promoted)
+        {
+            group(Category_Process)
+            {
+                actionref(ActionRefName; CopyRequestedToAssigned) { }
+            }
+        }
+    }
 
     var
         JobNo: Code[20];
@@ -131,5 +145,7 @@ page 50669 "Day Task Card - New Record"
     begin
         Rec := DayTask;
         Rec.Insert();
+        JobNo := Rec."Job No.";
+        JobTaskNo := Rec."Job Task No.";
     end;
 }
