@@ -49,6 +49,14 @@ page 50606 "DayTaskApi Opt"
                 {
                     ApplicationArea = All;
                 }
+                field(startTimeAssigned; Rec."Start Time Assigned")
+                {
+                    Caption = 'Start Time Assigned';
+                }
+                field(endTimeAssigned; Rec."End Time Assigned")
+                {
+                    Caption = 'End Time Assigned';
+                }
                 field(assignedHours; Rec."Assigned Hours")
                 {
                     ApplicationArea = All;
