@@ -92,8 +92,6 @@ page 50620 "Gantt Demo DHX 2"
                     EventIDList: List of [Text];
                     JobNo: Code[20];
                     JobTaskNo: Code[20];
-                    GanttDataHandler: Codeunit "GanttChartDataHandler";
-                    JsonTxtResource: Text;
                     FromDate: Date;
                     ToDate: Date;
                     ChildrenArray: JsonArray;
@@ -144,19 +142,10 @@ page 50620 "Gantt Demo DHX 2"
                     // Pass filter context for the header tooltip
                     CurrPage.DHXGanttControl2.SetResourcePanelFilterInfo(JobNo, JobTaskNo, Format(FromDate, 0, '<Year4>-<Month,2>-<Day,2>'), Format(ToDate, 0, '<Year4>-<Month,2>-<Day,2>'));
 
-                    // Load only resources assigned to this task via Day Tasks within the period
-                    JobTask.MarkedOnly := True;
-                    if JobTask.FindSet() then;
-                    JsonTxtResource := GanttDataHandler.GetResourcesByJobTaskAsJson(JobTask, FromDate, ToDate);
-                    if JsonTxtResource <> '' then
-                        CurrPage.DHXGanttControl2.LoadResourcesData(JsonTxtResource);
+                    // Load resources and day tasks filtered to this task (and its children)
+                    LoadFilteredResourcesAndDayTasks(JobTask, FromDate, ToDate);
 
-                    // Reload day task events filtered to only this task (and its children) so the
-                    // resource panel timeline shows the correct events instead of all job tasks.
-                    JobTask.MarkedOnly := True;
-                    if JobTask.FindSet() then;
-                    CurrPage.DHXGanttControl2.LoadDayTasksData(
-                        GanttDataHandler.GetDayTasksByJobTaskAsJson(JobTask, FromDate, ToDate));
+                    CurrPage.DHXGanttControl2.GetResourceFilter(); // Get the active resource filter and saved it into global page var
                 end;
 
                 trigger onOpenDayTask(taskId: Text; eventData: Text)
@@ -296,6 +285,7 @@ page 50620 "Gantt Demo DHX 2"
                 trigger onAddDayTask(resourceId: Text; workDate: Text)
                 var
                     DayTask: Record "Day Tasks";
+                    WorkHourTemplate: record "Work-Hour Template";
                     DayTaskCard: Page "Day Task Card - New Record";
                     WorkDt: Date;
                     Prefix: Text[4];
@@ -308,10 +298,18 @@ page 50620 "Gantt Demo DHX 2"
                     DayTask.Init();
                     DayTask."Task Date" := WorkDt;
                     if Prefix = 'RES-' then
-                        DayTask.Validate("Assigned Resource No.", ResourceCode)
+                        DayTask.Validate("Requested Resource No.", ResourceCode)
                     else
                         if Prefix = 'VEN-' then
                             DayTask.Validate("Vendor No.", ResourceCode);
+                    DayTask."Plan Status" := DayTask."Plan Status"::Inprocess;
+                    if OptiSetup."Work hour Template" <> '' then begin
+                        WorkHourTemplate.Get(OptiSetup."Work hour Template");
+                        DayTask."Non Working Minutes" := WorkHourTemplate."Non Working Minutes";
+                        DayTask.Validate("Start Time Requested", WorkHourTemplate."Default Start Time");
+                        DayTask.Validate("End Time Requested", WorkHourTemplate."Default End Time");
+                        DayTask."Requested Hours" := WorkHourTemplate."Working Hours";
+                    end;
 
                     Clear(DayTaskCard);
                     DayTaskCard.LookupMode(true);
@@ -392,9 +390,14 @@ page 50620 "Gantt Demo DHX 2"
                 begin
                     // User clicked the (ℹ) button — clear the task-based resource filter
                     // and reload all resources + all day tasks driven by the default Gantt context.
-                    CurrPage.DHXGanttControl2.ClearResourceFilter();
+                    ClearResourcePanelFilter();
                     LoadResourceData();
                     LoadDayTaskData();
+                end;
+
+                trigger OnResourceFilterRetrieved(filterJson: Text)
+                begin
+                    CurrentResourcePanelFilterJsonString := filterJson;
                 end;
             }
         }
@@ -638,7 +641,7 @@ page 50620 "Gantt Demo DHX 2"
                 begin
                     ResourcePanelFlag := true;
                     CurrPage.DHXGanttControl2.SetResourcePanelVisibility(true);
-                    CurrPage.DHXGanttControl2.ClearResourceFilter(); // no task filter when opening from toolbar
+                    ClearResourcePanelFilter(); // clear any existing filter context when manually showing the panel, to avoid confusion
                     LoadResourceData();
                 end;
             }
@@ -724,6 +727,18 @@ page 50620 "Gantt Demo DHX 2"
                 begin
                     GanttChartDataHandler.GetDateRange(Setup, AnchorDate, DT1, DT2);
                     Message('Checking Gantt data integrity for period %1 to %2 from anchor date %3', DT1, DT2, AnchorDate);
+                end;
+            }
+            action(CheckResourcvePanelFilter)
+            {
+                Caption = 'Check Resource Panel Filter';
+                ApplicationArea = All;
+                Image = Check;
+
+                trigger OnAction()
+                begin
+                    CurrPage.DHXGanttControl2.GetResourceFilter();
+                    Message('Current Resource Panel Filter JSON: %1', CurrentResourcePanelFilterJsonString);
                 end;
             }
             action(ShowResourcesForTask)
@@ -841,6 +856,7 @@ page 50620 "Gantt Demo DHX 2"
                 Caption = 'Check';
                 actionref(CheckGanttData; CheckGanttDataAct) { }
                 actionref(CheckPagePeriodAct; CheckPagePeriod) { }
+                actionref(CheckResourcePanelFilter; CheckResourcvePanelFilter) { }
             }
             Group(Reports)
             {
@@ -854,6 +870,7 @@ page 50620 "Gantt Demo DHX 2"
 
     trigger OnOpenPage()
     begin
+        OptiSetup.Get();
         Setup.Get(UserId);
         AnchorDate := Today();
         ResourcePanelFlag := true;
@@ -861,16 +878,24 @@ page 50620 "Gantt Demo DHX 2"
     end;
 
     var
+        Setup: Record "Gantt Chart Setup";
+        OptiSetup: Record "Daily Optimizer Setup";
         AnchorDate: Date;
         ToggleAutoScheduling: Boolean;
         PageHandler: Codeunit "Gantt BC Page Handler";
         general: Codeunit "General Planning Utilities";
-        Setup: Record "Gantt Chart Setup";
         GanttChartDataHandler: Codeunit "GanttChartDataHandler";
         LinkHandler: Codeunit "Gantt Chart Link Handler";
         ShowPreviousNext: Boolean;
         ResourcePanelFlag: Boolean;
         JobFilter: Text;
+        CurrentResourcePanelFilterJsonString: Text;
+
+    local procedure ClearResourcePanelFilter()
+    begin
+        CurrentResourcePanelFilterJsonString := '';
+        CurrPage.DHXGanttControl2.ClearResourceFilter();
+    end;
 
     procedure RefreshGantt()
     begin
@@ -889,6 +914,14 @@ page 50620 "Gantt Demo DHX 2"
         GanttChartDataHandler: Codeunit "GanttChartDataHandler";
         StartDate: Date;
         EndDate: Date;
+        LoadWithOutResourcePanelFilter: Boolean;
+        FilterJson: JsonObject;
+        FilterToken: JsonToken;
+        FilterJobNo: Code[20];
+        FilterJobTaskNo: Code[20];
+        FilterFromDate: Date;
+        FilterToDate: Date;
+        JobTask: Record "Job Task";
     begin
         GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
 
@@ -912,14 +945,71 @@ page 50620 "Gantt Demo DHX 2"
         // Load dependency links after tasks
         LoadLinkData();
 
-        if setup."Load Resources" and ResourcePanelFlag then
-            LoadResourceData();
+        CurrPage.DHXGanttControl2.GetResourceFilter(); // triggers OnResourceFilterRetrieved where we decide whether to apply the stored filter or load all resources
+        LoadWithOutResourcePanelFilter := true;
+        if CurrentResourcePanelFilterJsonString <> '' then
+            if FilterJson.ReadFrom(CurrentResourcePanelFilterJsonString) then begin
+                // Extract filter fields stored by SetResourcePanelFilterInfo: { job, task, periodFrom, periodTo }
+                if FilterJson.Get('job', FilterToken) then
+                    FilterJobNo := CopyStr(FilterToken.AsValue().AsText(), 1, MaxStrLen(FilterJobNo));
+                if FilterJson.Get('task', FilterToken) then
+                    FilterJobTaskNo := CopyStr(FilterToken.AsValue().AsText(), 1, MaxStrLen(FilterJobTaskNo));
+                if FilterJson.Get('periodFrom', FilterToken) then
+                    Evaluate(FilterFromDate, FilterToken.AsValue().AsText());
+                if FilterJson.Get('periodTo', FilterToken) then
+                    Evaluate(FilterToDate, FilterToken.AsValue().AsText());
 
-        if setup."Load Day Tasks" then
-            LoadDayTaskData();
+                // Only apply the stored filter when both job and task are present
+                if (FilterJobNo <> '') and (FilterJobTaskNo <> '') then begin
+                    LoadWithOutResourcePanelFilter := false;
+
+                    // // Re-apply the header tooltip so the (ℹ) button stays visible after refresh
+                    // CurrPage.DHXGanttControl2.SetResourcePanelFilterInfo(
+                    //     FilterJobNo, FilterJobTaskNo,
+                    //     Format(FilterFromDate, 0, '<Year4>-<Month,2>-<Day,2>'),
+                    //     Format(FilterToDate, 0, '<Year4>-<Month,2>-<Day,2>'));
+
+                    // Mark the single task then load filtered resources + day tasks
+                    JobTask.Reset();
+                    JobTask.SetRange("Job No.", FilterJobNo);
+                    JobTask.SetRange("Job Task No.", FilterJobTaskNo);
+                    if JobTask.FindFirst() then
+                        JobTask.Mark(true);
+                    LoadFilteredResourcesAndDayTasks(JobTask, FilterFromDate, FilterToDate);
+                end;
+            end;
+
+        if LoadWithOutResourcePanelFilter then begin
+            if setup."Load Resources" and ResourcePanelFlag then
+                LoadResourceData();
+
+            if setup."Load Day Tasks" then
+                LoadDayTaskData();
+        end;
 
         // Finalize: render and reset refresh flag
         CurrPage.DHXGanttControl2.RenderGantt();
+    end;
+
+    /// <summary>
+    /// Loads resources and day tasks filtered to the marked JobTask records within the given period.
+    /// Callers are responsible for marking the relevant Job Task records before calling this procedure.
+    /// </summary>
+    local procedure LoadFilteredResourcesAndDayTasks(var pJobTask: Record "Job Task"; pFromDate: Date; pToDate: Date)
+    var
+        GanttDataHandler: Codeunit "GanttChartDataHandler";
+        JsonTxtResource: Text;
+    begin
+        pJobTask.MarkedOnly := true;
+        if pJobTask.FindSet() then;
+        JsonTxtResource := GanttDataHandler.GetResourcesByJobTaskAsJson(pJobTask, pFromDate, pToDate);
+        if JsonTxtResource <> '' then
+            CurrPage.DHXGanttControl2.LoadResourcesData(JsonTxtResource);
+
+        pJobTask.MarkedOnly := true;
+        if pJobTask.FindSet() then;
+        CurrPage.DHXGanttControl2.LoadDayTasksData(
+            GanttDataHandler.GetDayTasksByJobTaskAsJson(pJobTask, pFromDate, pToDate));
     end;
 
     local procedure LoadTaskData()

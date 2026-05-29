@@ -32,6 +32,7 @@ controladdin "DHX Gantt Control 2"
     event onOpenResourceScheduler(resourceId: Text);
     event OnResetResourceFilter();
     event onAddDayTask(resourceId: Text; workDate: Text);
+    event OnResourceFilterRetrieved(filterJson: Text);
 
     procedure LoadProject(projectstartdate: date; projectenddate: date);
     procedure Undo();
@@ -56,4 +57,5 @@ controladdin "DHX Gantt Control 2"
     procedure DeleteLink(linkId: Text);
     procedure LoadLinksData(linksJsonTxt: Text);
     procedure LoadHolidaysData(holidaysJsonTxt: Text);
+    procedure GetResourceFilter();
 }

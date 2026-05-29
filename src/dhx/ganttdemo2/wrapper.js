@@ -2287,6 +2287,12 @@ function SetResourcePanelFilterInfo(jobNo, taskNo, periodFrom, periodTo) {  _res
   _updateResourceHeaderTooltip();
 }
 
+// Called by BC to get the active resource filter info — result is sent back via OnResourceFilterRetrieved event
+function GetResourceFilter() {
+  Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnResourceFilterRetrieved', [JSON.stringify(_resourceFilterInfo || {})]);
+}
+window.GetResourceFilter = GetResourceFilter;
+
 // Called by BC to clear the active resource filter and hide the (ℹ) button
 function ClearResourceFilter() {
   _resourceFilterInfo = null;
