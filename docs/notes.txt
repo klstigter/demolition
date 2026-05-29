@@ -234,8 +234,10 @@ API - 2026.04.29
          Team member
          Team Leader
 
-41. API: Daytask multiple insert record
-
+41. API: Daytask multiple insert record                     ---(OK)
+42. Gantt -> resource panel -> free cell daytask:
+      - Add Daytask -> use setup as default value
+      - new action menu: Daytask Generator
 
 
 
