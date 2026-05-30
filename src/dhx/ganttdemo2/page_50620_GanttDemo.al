@@ -230,16 +230,25 @@ page 50620 "Gantt Demo DHX 2"
                 var
                     GantUpdatedata: Codeunit "Gantt Update Data";
                 begin
+                    // Guard: RenderGantt(true) suppresses only the first onAfterTaskUpdate
+                    // in JS; a second event (e.g. from auto-scheduling cascade) still fires
+                    // and would re-open the preview. PreviewCancelled absorbs that re-entry.
+                    if PreviewCancelled then begin
+                        PreviewCancelled := false;
+                        exit;
+                    end;
+
                     // UpdateJobTaskFromJson returns false when the user closed the
                     // DayTask Period Sync Preview popup without clicking Apply Changes
                     // (OnClosePage fires on the preview page, Applied stays false).
                     // In that case reload task + link data so the Gantt bar reverts to
                     // the original DB position instead of staying at the dragged spot.
                     if not GantUpdatedata.UpdateJobTaskFromJson(eventData) then begin
+                        PreviewCancelled := true; // absorb the RenderGantt re-entry event
                         LoadTaskData();
                         LoadLinkData();
                         LoadDayTaskData();
-                        CurrPage.DHXGanttControl2.RenderGantt();
+                        CurrPage.DHXGanttControl2.RenderGantt(true); // force full re-render to reset task positions
                         exit;
                     end;
                     LoadDayTaskData();
@@ -912,6 +921,7 @@ page 50620 "Gantt Demo DHX 2"
         ResourcePanelFlag: Boolean;
         JobFilter: Text;
         CurrentResourcePanelFilterJsonString: Text;
+        PreviewCancelled: Boolean;
 
     local procedure ClearResourcePanelFilter()
     begin
@@ -1010,7 +1020,7 @@ page 50620 "Gantt Demo DHX 2"
         end;
 
         // Finalize: render and reset refresh flag
-        CurrPage.DHXGanttControl2.RenderGantt();
+        CurrPage.DHXGanttControl2.RenderGantt(false);
     end;
 
     /// <summary>
