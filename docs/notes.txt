@@ -240,6 +240,7 @@ API - 2026.04.29
       - new action menu: Daytask Generator
 
 43. Respect Resource panel Filter during Refresh Gantt      ---(OK)
+44. "DayTask Period Change Preview" page, do not reopen page if cancel/closed    ---(OK)
 
 
 

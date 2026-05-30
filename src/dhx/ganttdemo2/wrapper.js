@@ -15,6 +15,7 @@ var dayTasksStore = null;
 var _isRefreshing = false;
 var _resourceFilterInfo = null; // { job, task, periodFrom, periodTo }
 var _ganttHolidays = {}; // { "YYYY-MM-DD": "Description", ... } loaded from BC Base Calendar
+var skipTrigger_OnJobTaskUpdated = false;
 
 // -------------------------------------------------------
 // 1) BOOT (run once)
@@ -905,10 +906,16 @@ window.BOOT = function() {
           constraint_type: task.constraint_type || "",
           constraint_date: task.constraint_date ? fmt(task.constraint_date) : null
         };
-        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(
-          "OnJobTaskUpdated",
-          [ JSON.stringify(payload) ]
-        );
+        debugger;
+        if (!skipTrigger_OnJobTaskUpdated)
+        { 
+            Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(
+              "OnJobTaskUpdated",
+              [ JSON.stringify(payload) ]
+            );
+        } else {
+          skipTrigger_OnJobTaskUpdated = false; // reset for next time
+        }
       } catch (e) { /* ignore */ }
       return true;
     });
@@ -937,11 +944,16 @@ window.BOOT = function() {
           constraint_type: task.constraint_type || "",
           constraint_date: task.constraint_date ? fmt(task.constraint_date) : null
         };
-
-        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(
-          "OnJobTaskUpdated",
-          [ JSON.stringify(payload) ]
-        );
+        debugger;
+        if (!skipTrigger_OnJobTaskUpdated)
+        {
+            Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(
+              "OnJobTaskUpdated",
+              [ JSON.stringify(payload) ]
+            );
+        } else {
+          skipTrigger_OnJobTaskUpdated = false; // reset for next time
+        }
       } catch (e) {
         // ignore if not wired yet
       }
@@ -1296,8 +1308,9 @@ function LoadProject(projectstartdate, projectenddate) {
 // -------------------------------------------------------
 // Finalize Refresh - Call this after all data is loaded
 // -------------------------------------------------------
-function RenderGantt() {
-  try {
+function RenderGantt(pskipTrigger_OnJobTaskUpdated) {
+  try {  
+    skipTrigger_OnJobTaskUpdated = pskipTrigger_OnJobTaskUpdated;
     if (!gantt_here || typeof gantt === "undefined" || !gantt.$root) {
       console.warn("RenderGantt: Gantt not initialized");
       return;

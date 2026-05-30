@@ -828,15 +828,10 @@ codeunit 50604 "DHX Data Handler"
 
                             section_id := Daytask."Resource Group No." + '|' + ResNo + '|' + Daytask."Pool Resource No.";
                             if Resource."Pool Resource No." = '' then begin
-                                //<<LAGI-2026.02.10
-                                //OLD:
-                                //section_id := section_id + '|Pool'
-                                //NEW:
                                 if Daytask."Pool Resource No." = '' then
                                     section_id := section_id + '|Pool'
                                 else
                                     section_id := section_id + '|Resource'
-                                //>>
                             end else
                                 section_id := section_id + '|Resource';
                             PlanningObject.Add('section_id', section_id);
@@ -915,12 +910,7 @@ codeunit 50604 "DHX Data Handler"
                                     if not Resource.Get(ResourceTemp."No.") then
                                         Clear(Resource);
                                     Clear(ResourceObject);
-                                    //<<LAGI:2026.02.110
-                                    //OLD:
-                                    //ResourceObject.Add('key', TempResGroup."No." + '|' + ResourceTemp."No." + '|' + Resource."Pool Resource No." + '|Resource');
-                                    //NEW:
                                     ResourceObject.Add('key', TempResGroup."No." + '|' + Resource."No." + '|' + ResourceTemp."Pool Resource No." + '|Resource');
-                                    //>>
                                     ResourceObject.Add('label', ResourceTemp.Name);
                                     ResourceObject.Add('category', 'Resource');
                                     InternalExternalChildrenArray.Add(ResourceObject);
