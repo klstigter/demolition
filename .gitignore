@@ -1,5 +1,6 @@
 .vscode/rad.json
 .vscode/.alcache/
+.vscode/settings.json
 .alpackages/
 *.app
 #*.xlf

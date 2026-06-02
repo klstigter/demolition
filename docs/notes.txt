@@ -244,6 +244,9 @@ API - 2026.04.29
 
 
 
+Daytask Generator: key: job no. + job task no. + Line No.
+
+
 scheduling type:
 planning type: fix duration / fix unit / fix work
 
