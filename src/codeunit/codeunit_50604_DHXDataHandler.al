@@ -1279,7 +1279,7 @@ codeunit 50604 "DHX Data Handler"
                                             DayTask."Job Task No.",
                                             format(DayTask."Task Date"),
                                             format(DayTask."Day Line No."));
-        rtv := DayTask.Insert();
+        rtv := DayTask.Insert(true);
         exit(rtv);
     end;
 

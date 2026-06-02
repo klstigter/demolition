@@ -83,6 +83,7 @@ page 50674 "Daytask Header Opt"
                 LineJson.Add('jobTaskNo', DayTaskTemp."Job Task No.");
                 LineJson.Add('assignedResourceNo', DayTaskTemp."Assigned Resource No.");
                 LineJson.Add('description', DayTaskTemp.Description);
+                LineJson.Add('skill', DayTaskTemp."Skill");
                 LineJson.Add('planStatus', Format(DayTaskTemp."Plan Status"));
                 LineJson.Add('startTimeAssigned', Format(DayTaskTemp."Start Time Assigned", 0, '<Hours24,2>:<Minutes,2>:<Seconds,2>'));
                 LineJson.Add('endTimeAssigned', Format(DayTaskTemp."End Time Assigned", 0, '<Hours24,2>:<Minutes,2>:<Seconds,2>'));

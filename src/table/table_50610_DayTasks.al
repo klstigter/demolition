@@ -418,6 +418,17 @@ table 50610 "Day Tasks"
 
     }
 
+    trigger OnInsert()
+    var
+        DailyOptimizerSetup: record "Daily Optimizer Setup";
+    begin
+        if Rec.Skill = '' then begin
+            DailyOptimizerSetup.Get();
+            if DailyOptimizerSetup."Default Skill" <> '' then
+                Rec.Skill := DailyOptimizerSetup."Default Skill";
+        end;
+    end;
+
     var
         generalutils: Codeunit "General Planning Utilities";
 

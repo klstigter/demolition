@@ -5,7 +5,7 @@ enum 50613 "Plan Status"
     value(0; Inrequest)
     {
     }
-    value(1; Inprocess)
+    value(1; Inprogress)
     {
     }
     value(2; Rejected)

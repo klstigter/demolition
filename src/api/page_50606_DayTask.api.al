@@ -85,6 +85,10 @@ page 50606 "DayTaskApi Opt"
                 {
                     ApplicationArea = All;
                 }
+                field(skill; Rec."Skill")
+                {
+                    Caption = 'Skill';
+                }
                 field(systemCreatedAt; Rec.SystemCreatedAt)
                 {
                     Caption = 'Created At';

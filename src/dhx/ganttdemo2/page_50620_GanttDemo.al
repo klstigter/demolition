@@ -317,7 +317,7 @@ page 50620 "Gantt Demo DHX 2"
                     else
                         if Prefix = 'VEN-' then
                             DayTask.Validate("Vendor No.", ResourceCode);
-                    DayTask."Plan Status" := DayTask."Plan Status"::Inprocess;
+                    DayTask."Plan Status" := DayTask."Plan Status"::Inprogress;
                     if OptiSetup."Work hour Template" <> '' then begin
                         WorkHourTemplate.Get(OptiSetup."Work hour Template");
                         DayTask."Non Working Minutes" := WorkHourTemplate."Non Working Minutes";
@@ -351,7 +351,7 @@ page 50620 "Gantt Demo DHX 2"
                         DayTask.TestField("Task Date");
                         DayTask.CheckDayTaskDateInProjectTaskRange();
                         DayTask.GetNextDayLineNo();
-                        DayTask.Insert();
+                        DayTask.Insert(true);
                         RefreshGantt();
                     end;
                 end;

@@ -134,12 +134,12 @@ codeunit 50610 "Day Tasks Mgt."
 
                 // Calculate quantity for this day (proportional distribution)
                 if CheckMayChange(DayTasks) then
-                    if DayTasks.Insert() then
+                    if DayTasks.Insert(true) then
                         Counter += 1;
                 for n := 2 to DayTaskGenerator."Quantity of Lines" do begin
                     DayTasks."Day Line No." := n * 10000;
                     if CheckMayChange(DayTasks) then
-                        if DayTasks.Insert() then
+                        if DayTasks.Insert(true) then
                             Counter += 1;
                 end;
             end;

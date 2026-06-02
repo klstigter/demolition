@@ -23,6 +23,10 @@ page 50654 "Daily Optimizer Setup"
                 {
                     ApplicationArea = All;
                 }
+                field("Default Skill"; Rec."Default Skill")
+                {
+                    ApplicationArea = All;
+                }
             }
             group(Numbering)
             {

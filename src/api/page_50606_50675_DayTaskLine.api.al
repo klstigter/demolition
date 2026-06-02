@@ -47,6 +47,10 @@ page 50675 "Daytask Line Opt"
                 {
                     Caption = 'Description';
                 }
+                field(skill; Rec."Skill")
+                {
+                    Caption = 'Skill';
+                }
                 field(planStatus; Rec."Plan Status")
                 {
                     ApplicationArea = All;
@@ -148,6 +152,7 @@ page 50675 "Daytask Line Opt"
         Rec."Team Leader" := TempLine."Team Leader";
         Rec.Leader := TempLine.Leader;
         Rec."Work Order No." := TempLine."Work Order No.";
+        Rec."Skill" := TempLine."Skill";
 
         if ModifyRec then
             Rec.Modify()

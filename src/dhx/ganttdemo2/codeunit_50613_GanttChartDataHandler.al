@@ -452,7 +452,7 @@ codeunit 50613 "GanttChartDataHandler"
         case DayTask."Plan Status" of
             DayTask."Plan Status"::Inrequest:
                 PlanStatusText := 'Request';
-            DayTask."Plan Status"::Inprocess:
+            DayTask."Plan Status"::Inprogress:
                 PlanStatusText := 'Planned';
             DayTask."Plan Status"::Rejected:
                 PlanStatusText := 'Rejected';

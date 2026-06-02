@@ -373,7 +373,7 @@ table 50612 "Summary Weekly"
         if DayTask.FindSet() then
             repeat
                 TempDayTask := DayTask;
-                TempDayTask.Insert();
+                TempDayTask.Insert(true);
                 if DateOld <> TempDayTask."Task Date" then begin
                     DateOld := TempDayTask."Task Date";
                     ywNew := CreateYW(TempDayTask."Task Date");
@@ -508,7 +508,7 @@ table 50612 "Summary Weekly"
         if TempDayTask.FindSet() then
             repeat
                 DayTask := TempDayTask;
-                DayTask.Insert();
+                DayTask.Insert(true);
             until TempDayTask.Next() = 0;
     end;
 
