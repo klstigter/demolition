@@ -480,7 +480,7 @@ codeunit 50602 "Create Demo Data"
                 DayTask.Description := 'Work on ' + JobNo + '-' + TaskNo;
                 DayTask.Validate("End Time Assigned", 140000T);
                 DayTask."Assigned Hours" := (DayTask."End Time Assigned" - DayTask."Start Time Assigned") / 3600000;
-                DayTask.Insert();
+                DayTask.Insert(true);
             end else begin
                 if ExistingDayTask."Assigned Resource No." = '' then
                     ExistingDayTask.Validate("Assigned Resource No.", ResNo);

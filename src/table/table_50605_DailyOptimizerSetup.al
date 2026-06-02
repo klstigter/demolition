@@ -32,6 +32,12 @@ table 50605 "Daily Optimizer Setup"
             Caption = 'Work Order Nos';
             TableRelation = "No. Series";
         }
+        field(30; "Default Skill"; Code[20])
+        {
+            DataClassification = CustomerContent;
+            Caption = 'Default Skill';
+            TableRelation = "Skill Code";
+        }
     }
 
     keys

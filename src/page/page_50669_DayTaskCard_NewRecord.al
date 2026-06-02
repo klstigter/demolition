@@ -144,7 +144,7 @@ page 50669 "Day Task Card - New Record"
     procedure SetNewRecordToSave(DayTask: Record "Day Tasks")
     begin
         Rec := DayTask;
-        Rec.Insert();
+        Rec.Insert(true);
         JobNo := Rec."Job No.";
         JobTaskNo := Rec."Job Task No.";
     end;

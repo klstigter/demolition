@@ -8,7 +8,7 @@ report 50603 "Day Task Details"
     {
         dataitem(DayTask; "Day Tasks")
         {
-            dataitemtableview = sorting("Job No.", "Job Task No.", "Task Date") where("plan status" = const(Inprocess));
+            dataitemtableview = sorting("Job No.", "Job Task No.", "Task Date") where("plan status" = const(Inprogress));
             RequestFilterFields = "Task Date", "Job No.", "Job Task No.";
 
             column(JobNo; JobDescription)
@@ -47,7 +47,7 @@ report 50603 "Day Task Details"
                                     TempDayTask2 := DayTask2;
                                     TempDayTask2."Job Entry No." := 4;
                                     TempDayTask2.Description := resource.Name;
-                                    TempDayTask2.Insert();
+                                    TempDayTask2.Insert(true);
                                 end;
                             resource."external resource":
                                 begin
@@ -59,7 +59,7 @@ report 50603 "Day Task Details"
                                     if resource."Is Foreman" then
                                         TempDayTask2."Job Entry No." := 1;
                                     TempDayTask2.Description := resource.Name;
-                                    TempDayTask2.Insert();
+                                    TempDayTask2.Insert(true);
                                 end;
                             else begin
                                 TempDayTask1 := DayTask2;
@@ -68,7 +68,7 @@ report 50603 "Day Task Details"
                                 else
                                     TempDayTask1."Job Entry No." := 2;
                                 TempDayTask1.Description := resource.Name;
-                                TempDayTask1.Insert();
+                                TempDayTask1.Insert(true);
                             end;
                         end;
                     End;
