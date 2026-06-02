@@ -111,10 +111,15 @@ page 50662 "Workorder Card"
                     end;
                 }
             }
-            part(SpecificationLines; "Workorder Cap. Req. Subfrm")
+            // part(SpecificationLines; "Workorder Cap. Req. Subfrm")
+            // {
+            //     ApplicationArea = All;
+            //     SubPageLink = "Workorder No." = FIELD("Work Order No.");
+            // }
+            part("Day Tasks"; "Work Order Day Tasks")
             {
                 ApplicationArea = All;
-                SubPageLink = "Workorder No." = FIELD("Work Order No.");
+                SubPageLink = "Work Order No." = FIELD("Work Order No.");
             }
         }
     }
@@ -135,12 +140,10 @@ page 50662 "Workorder Card"
                 trigger OnAction()
                 var
                     Page: Page "Day Task Generator";
-                    DayTaskGen: Record "Day Task generator";
                 begin
-                    page.fillbuffer(Rec."Project No.", Rec."Project Task No.");
+                    page.fillbuffer(Rec."Project No.", Rec."Project Task No.", Rec."Work Order No.");
                     Page.Run();
                     CurrPage.Update();
-
                 end;
             }
             action(DayTasks)

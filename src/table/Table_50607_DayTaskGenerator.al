@@ -19,6 +19,11 @@ table 50607 "Day Task Generator"
             Editable = false;
             TableRelation = "Job Task"."Job Task No." where("job No." = field("job No."));
         }
+        field(5; "Line No."; Integer)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Line No.';
+        }
         field(3; "Resource No."; Code[20])
         {
             Caption = 'Resource No.';
@@ -47,6 +52,13 @@ table 50607 "Day Task Generator"
                     this.CalculateNonWorkingHours();
                 end;
             end;
+        }
+
+        field(15; "Work Order No."; Code[20])
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Work Order No.';
+            TableRelation = "Work Order";
         }
 
         field(20; "Start Date"; Date)
@@ -145,7 +157,7 @@ table 50607 "Day Task Generator"
 
     keys
     {
-        key(Key1; "Job No.", "Job Task No.", "Resource No.", SkillsRequired)
+        key(Key1; "Job No.", "Job Task No.", "Line No.")
         {
             Clustered = true;
         }

@@ -7,6 +7,7 @@ page 50639 "Day Task Generator"
     AboutTitle = 'Create Day Tasks for Job Task';
     DataCaptionExpression = '"Job No.": ' + jobnofilter + ' - ' + '"Job Task No.": ' + JobTaskNoFilter;
     DelayedInsert = true;
+    AutoSplitKey = true;
 
     layout
     {
@@ -25,6 +26,11 @@ page 50639 "Day Task Generator"
                     ToolTip = 'Specifies the value of the Project Task No. field.', Comment = '%';
                     Visible = false;
                 }
+                field("Line No."; Rec."Line No.")
+                {
+                    ToolTip = 'Specifies the value of the Line No. field.', Comment = '%';
+                    Visible = false;
+                }
                 field("Resource No."; Rec."Resource No.")
                 {
                     ToolTip = 'Specifies the value of the Resource No. field.', Comment = '%';
@@ -40,6 +46,10 @@ page 50639 "Day Task Generator"
                 field("Quantity of Lines"; Rec."Quantity of Lines")
                 {
                     ToolTip = 'Specifies the value of the Quantity of Lines field.', Comment = '%';
+                }
+                field("Work Order No."; Rec."Work Order No.")
+                {
+                    ToolTip = 'Specifies the value of the Work Order No. field.', Comment = '%';
                 }
                 field("Start Date"; Rec."Start Date")
                 {
@@ -106,19 +116,47 @@ page 50639 "Day Task Generator"
         }
     }
 
+    trigger OnNewRecord(BelowxRec: Boolean)
+    var
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        WorkHourTemplate: Record "Work-Hour Template";
+        WorkOrder: Record "Work Order";
+    begin
+        DailyOptimizerSetup.Get();
+        Rec."Work-Hour Template" := DailyOptimizerSetup."Work hour Template";
+        Rec.SkillsRequired := DailyOptimizerSetup."Default Skill";
+        Rec."Quantity of Lines" := 1;
+        if Rec."Work-Hour Template" <> '' then begin
+            WorkHourTemplate.Get(Rec."Work-Hour Template");
+            Rec."Start Time" := WorkHourTemplate."Default Start Time";
+            Rec."End Time" := WorkHourTemplate."Default End Time";
+            Rec."Non Working Minutes" := WorkHourTemplate."Non Working Minutes";
+        end;
+        if WorkOrderNoFilter <> '' then begin
+            WorkOrder.SetFilter("Work Order No.", WorkOrderNoFilter);
+            if WorkOrder.FindFirst() then begin
+                Rec."Work Order No." := WorkOrder."Work Order No.";
+                Rec."Start Date" := WorkOrder."Date Window Start";
+                Rec."End Date" := WorkOrder."Date Window End";
+            end;
+        end;
+    end;
 
     var
         JobNoFilter: Code[20];
         JobTaskNoFilter: Code[20];
+        WorkOrderNoFilter: Code[20];
 
-    procedure fillbuffer(JobNo: Code[20]; JobTaskNo: Code[20])
+    procedure fillbuffer(JobNo: Code[20]; JobTaskNo: Code[20]; WorkOrderNo: Code[20])
     begin
         rec.FillBuffer(JobNo, JobTaskNo);
         JobNoFilter := JobNo;
         JobTaskNoFilter := JobTaskNo;
+        WorkOrderNoFilter := WorkOrderNo;
         rec.FilterGroup(2);
         rec.SetRange("Job No.", JobNo);
         rec.SetRange("Job Task No.", JobTaskNo);
+        rec.SetRange("Work Order No.", WorkOrderNo);
         rec.FilterGroup(0);
     end;
 }
