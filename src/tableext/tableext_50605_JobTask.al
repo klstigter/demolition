@@ -345,7 +345,7 @@ tableextension 50605 "Job Task ext" extends "Job Task"
             exit(IncStr(JobTaskRec."Job Task No."))
         else begin
             CstN := CopyStr(CustNo, 1, 14);
-            exit(CstN + '-1');
+            exit(CstN + '-0001'); //become error if there is record -10, because FindLast record is -9 (not -10), and increament will be -10 which is conflict with existing record.
         end;
     end;
 }
