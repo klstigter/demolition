@@ -102,7 +102,6 @@ report 50601 "Job Task Planned Date Updater"
                 ProjectTask.PlannedEndDate := PlannedEndDate;
                 ProjectTask.Duration := Duration;
                 ProjectTask.Modify();
-
             end;
     end;
 
@@ -130,9 +129,11 @@ report 50601 "Job Task Planned Date Updater"
             ChangedFrom::"Planned Start Date",
             ChangedFrom::"Planned End Date":
                 begin
-                    if PlannedStartDate > PlannedEndDate then
-                        Error(ErrLbl01);
-                    Duration := PlannedEndDate - PlannedStartDate + 1;
+                    if PlannedEndDate <> 0D then
+                        if PlannedStartDate > PlannedEndDate then
+                            Error(ErrLbl01);
+                    if (PlannedEndDate <> 0D) and (PlannedStartDate <> 0D) then
+                        Duration := PlannedEndDate - PlannedStartDate + 1;
                 end;
             ChangedFrom::Duration:
                 begin

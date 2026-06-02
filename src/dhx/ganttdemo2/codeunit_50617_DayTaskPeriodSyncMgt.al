@@ -12,6 +12,9 @@ codeunit 50617 "DayTask Period Sync Mgt."
     begin
         // Calculate impacted DayTask records (buffer may be empty when no Day Tasks are linked).
         // Always open the preview page so the user can confirm or cancel the period change.
+        if (OldStart = 0D) or (OldEnd = 0D) or (NewStart = 0D) or (NewEnd = 0D) then
+            exit(true); // No valid dates to compare, skip preview and apply changes directly.
+
         CalculateChanges(JobNo, JobTaskNo, OldStart, OldEnd, NewStart, NewEnd, TempPreviewBuffer);
 
         PreviewPage.SetPreviewData(TempPreviewBuffer);

@@ -98,7 +98,7 @@ codeunit 50610 "Day Tasks Mgt."
                 DayTasks."Day Line No." := DayTasks.GetNextDayLineNo(NewTaskDate, DayTaskGenerator."Job No.", DayTaskGenerator."Job Task No.");
                 DayTasks."Job No." := DayTaskGenerator."Job No.";
                 DayTasks."Job Task No." := DayTaskGenerator."Job Task No.";
-
+                Daytasks."Work Order No." := DayTaskGenerator."Work Order No.";
 
                 // Calculate start and end times for this day
                 if DayTaskGenerator."Start Time" <> 0T then

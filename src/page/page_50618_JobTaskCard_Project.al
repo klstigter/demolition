@@ -723,9 +723,8 @@ page 50618 "Opti Job Task Card"
                 trigger OnAction()
                 var
                     Page: Page "Day Task Generator";
-                    DayTaskGen: Record "Day Task generator";
                 begin
-                    page.fillbuffer(Rec."Job No.", Rec."Job Task No.");
+                    page.fillbuffer(Rec."Job No.", Rec."Job Task No.", '');
                     Page.Run();
                     CurrPage.Update();
                     CurrPage.ResourceWeekView.Page.Update();

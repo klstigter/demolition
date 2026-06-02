@@ -99,11 +99,18 @@ page 50656 "Work Order Sub"
                         JobRec."No." := rec."Customer No.";
                         JobRec.insert();
                     end;
-                    JobTaskRec.init();
-                    JobTaskRec."Job No." := rec."Customer No.";
-                    JobTaskRec."Job Task No." := JobTaskRec.GetNextCustomerTaskNo(rec."Customer No.");
-                    JobTaskRec.Description := rec.Description;
-                    JobTaskRec.insert();
+                    if not JobTaskRec.Get(JobRec."No.", Rec."Work Order No.") then begin
+                        JobTaskRec.init();
+                        JobTaskRec."Job No." := JobRec."No.";
+                        JobTaskRec."Job Task No." := Rec."Work Order No.";
+                        JobTaskRec.Description := rec.Description;
+                        JobTaskRec.insert();
+                    end;
+                    // JobTaskRec.init();
+                    // JobTaskRec."Job No." := rec."Customer No.";
+                    // JobTaskRec."Job Task No." := JobTaskRec.GetNextCustomerTaskNo(rec."Customer No.");
+                    // JobTaskRec.Description := rec.Description;
+                    // JobTaskRec.insert();
 
                     rec."Project No." := JobTaskRec."Job No.";
                     rec."Project Task No." := JobTaskRec."Job Task No.";
