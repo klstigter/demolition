@@ -539,63 +539,51 @@ codeunit 50613 "GanttChartDataHandler"
     /// <summary>
     /// Returns non-working days from the Base Calendar configured in "Daily Optimizer Setup"
     /// as a JSON array: [{ "date": "YYYY-MM-DD", "description": "...", "type": "holiday" }, ...]
-    /// Recurring entries are expanded for every year within StartDate..EndDate.
+    /// Uses the standard Calendar Management codeunit which handles one-off, annual recurring,
+    /// and weekly recurring entries automatically.
+    /// Weekend days (Sat/Sun) are excluded — they are already shaded by the JS side.
     /// </summary>
     procedure GetHolidaysAsJson(StartDate: Date; EndDate: Date) JsonText: Text
     var
         DailyOptimizerSetup: Record "Daily Optimizer Setup";
-        BaseCalendarChange: Record "Base Calendar Change";
+        BaseCalendar: Record "Base Calendar";
+        CalendarMgt: Codeunit "Calendar Management";
+        CustomizedCalendarChange: Record "Customized Calendar Change";
         JsonArray: JsonArray;
         JsonObject: JsonObject;
-        CalCode: Code[10];
-        HolidayDate: Date;
-        Year: Integer;
+        CurrentDate: Date;
     begin
         if not DailyOptimizerSetup.FindFirst() then begin
             JsonArray.WriteTo(JsonText);
             exit;
         end;
-        CalCode := DailyOptimizerSetup."Base Calendar";
-        if CalCode = '' then begin
+        if DailyOptimizerSetup."Base Calendar" = '' then begin
+            JsonArray.WriteTo(JsonText);
+            exit;
+        end;
+        if not BaseCalendar.Get(DailyOptimizerSetup."Base Calendar") then begin
             JsonArray.WriteTo(JsonText);
             exit;
         end;
 
-        BaseCalendarChange.SetRange("Base Calendar Code", CalCode);
-        BaseCalendarChange.SetRange(Nonworking, true);
-        // Skip Weekly Recurring entries (weekday patterns) — they are already handled by the JS weekend check.
-        // Include: Annual Recurring (1) = holiday same day/month every year, and non-recurring (0) = one-off dates.
-        BaseCalendarChange.SetFilter("Recurring System", '%1|%2',
-            BaseCalendarChange."Recurring System"::" ",
-            BaseCalendarChange."Recurring System"::"Annual Recurring");
-        if BaseCalendarChange.FindSet() then
-            repeat
-                if BaseCalendarChange."Recurring System" = BaseCalendarChange."Recurring System"::"Annual Recurring" then begin
-                    // Expand annual entry for each year in the requested range
-                    for Year := Date2DMY(StartDate, 3) to Date2DMY(EndDate, 3) do begin
-                        HolidayDate := DMY2Date(
-                            Date2DMY(BaseCalendarChange.Date, 1),
-                            Date2DMY(BaseCalendarChange.Date, 2),
-                            Year);
-                        if (HolidayDate >= StartDate) and (HolidayDate <= EndDate) then begin
-                            Clear(JsonObject);
-                            JsonObject.Add('date', FormatDate(HolidayDate));
-                            JsonObject.Add('description', BaseCalendarChange.Description);
-                            JsonObject.Add('type', 'holiday');
-                            JsonArray.Add(JsonObject);
-                        end;
-                    end;
-                end else begin
-                    // Non-recurring: use the exact date
-                    if (BaseCalendarChange.Date >= StartDate) and (BaseCalendarChange.Date <= EndDate) then begin
-                        Clear(JsonObject);
-                        JsonObject.Add('date', FormatDate(BaseCalendarChange.Date));
-                        JsonObject.Add('description', BaseCalendarChange.Description);
-                        JsonObject.Add('type', 'holiday');
-                        JsonArray.Add(JsonObject);
-                    end;
+        // SetSource loads all Base Calendar Change entries into the codeunit cache once.
+        // IsNonworkingDay then reuses the cache for every date — no repeated DB reads.
+        CalendarMgt.SetSource(BaseCalendar, CustomizedCalendarChange);
+
+        CurrentDate := StartDate;
+        while CurrentDate <= EndDate do begin
+            if CalendarMgt.IsNonworkingDay(CurrentDate, CustomizedCalendarChange) then
+                // Skip Sat (6) / Sun (7) — the Gantt JS already shades weekends.
+                // Only emit Mon–Fri non-working days (public holidays, day-off entries).
+                if not (Date2DWY(CurrentDate, 1) in [6, 7]) then begin
+                    Clear(JsonObject);
+                    JsonObject.Add('date', FormatDate(CurrentDate));
+                    JsonObject.Add('description', CustomizedCalendarChange.Description);
+                    JsonObject.Add('type', 'holiday');
+                    JsonArray.Add(JsonObject);
                 end;
-            until BaseCalendarChange.Next() = 0;
+            CurrentDate := CalcDate('<+1D>', CurrentDate);
+        end;
 
         JsonArray.WriteTo(JsonText);
     end;

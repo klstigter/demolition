@@ -90,7 +90,7 @@ codeunit 50610 "Day Tasks Mgt."
 
         while NewTaskDate <= EndDate do begin
             // Check if this day is a working day in the template   
-            if CheckIsWorkingDay(NewTaskDate) then begin
+            if CheckIsWorkingDay(NewTaskDate) or ExpectedWeekDay(DayTaskGenerator, NewTaskDate, true) then begin
 
                 Clear(DayTasks);
                 DayNo := GeneralUtil.DateToInteger(NewTaskDate);
@@ -164,6 +164,36 @@ codeunit 50610 "Day Tasks Mgt."
         JobDayPlanningLine: Record "Day Task Generator";
     begin
         JobDayPlanningLine.DeleteAll();
+    end;
+
+    local procedure ExpectedWeekDay(DayTaskGenerator: Record "Day Task Generator";
+                                    NewTaskDate: Date;
+                                    OffOnWeekEndAndPublicHoliday: Boolean): Boolean
+    var
+        OptimizerSetup: Record "Daily Optimizer Setup";
+        BaseCalendar: Record "Base Calendar";
+        CustomizedCalendarChange: Record "Customized Calendar Change";
+        CalendarMgt: Codeunit "Calendar Management";
+        DayOfWeek: Integer;
+        Rtv: Boolean;
+    begin
+        Rtv := true;
+
+        OptimizerSetup.Get();
+        OptimizerSetup.TestField("Base Calendar");
+
+        BaseCalendar.Get(OptimizerSetup."Base Calendar");
+        CalendarMgt.SetSource(BaseCalendar, CustomizedCalendarChange);
+
+        DayOfWeek := Date2DWY(NewTaskDate, 1);
+        case true of
+            OffOnWeekEndAndPublicHoliday and (DayOfWeek in [6, 7]):
+                Rtv := false;
+            OffOnWeekEndAndPublicHoliday and CalendarMgt.IsNonworkingDay(NewTaskDate, CustomizedCalendarChange):
+                Rtv := false;
+        end;
+
+        exit(Rtv);
     end;
 
     procedure CheckIsWorkingDay(DateToCheck: Date) IsWorkingDay: Boolean

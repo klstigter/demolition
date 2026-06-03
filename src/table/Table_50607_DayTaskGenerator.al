@@ -107,6 +107,42 @@ table 50607 "Day Task Generator"
             MinValue = 0;
         }
 
+        field(50; "Day 1"; boolean)
+        {
+            DataClassification = ToBeClassified;
+            Caption = '1';
+        }
+        field(51; "Day 2"; boolean)
+        {
+            DataClassification = ToBeClassified;
+            Caption = '2';
+        }
+        field(52; "Day 3"; boolean)
+        {
+            DataClassification = ToBeClassified;
+            Caption = '3';
+        }
+        field(53; "Day 4"; boolean)
+        {
+            DataClassification = ToBeClassified;
+            Caption = '4';
+        }
+        field(54; "Day 5"; boolean)
+        {
+            DataClassification = ToBeClassified;
+            Caption = '5';
+        }
+        field(55; "Day 6"; boolean)
+        {
+            DataClassification = ToBeClassified;
+            Caption = '6';
+        }
+        field(56; "Day 7"; boolean)
+        {
+            DataClassification = ToBeClassified;
+            Caption = '7';
+        }
+
         field(50615; "Vendor No."; Code[20])
         {
             DataClassification = ToBeClassified;

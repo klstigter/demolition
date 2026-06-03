@@ -75,15 +75,42 @@ page 50639 "Day Task Generator"
                 {
                     ToolTip = 'Specifies the value of the Non Working Minutes field.', Comment = '%';
                 }
-                field("Vendor Name"; Rec."Vendor Name")
-                {
-                    ToolTip = 'Specifies the value of the Vendor Name field.', Comment = '%';
-                }
                 field("Vendor No."; Rec."Vendor No.")
                 {
                     ToolTip = 'Specifies the value of the Vendor No. field.', Comment = '%';
                 }
-
+                field("Vendor Name"; Rec."Vendor Name")
+                {
+                    ToolTip = 'Specifies the value of the Vendor Name field.', Comment = '%';
+                }
+                field("Day 1"; Rec."Day 1")
+                {
+                    ToolTip = 'Specifies the value of the Day 1 field.', Comment = '%';
+                }
+                field("Day 2"; Rec."Day 2")
+                {
+                    ToolTip = 'Specifies the value of the Day 2 field.', Comment = '%';
+                }
+                field("Day 3"; Rec."Day 3")
+                {
+                    ToolTip = 'Specifies the value of the Day 3 field.', Comment = '%';
+                }
+                field("Day 4"; Rec."Day 4")
+                {
+                    ToolTip = 'Specifies the value of the Day 4 field.', Comment = '%';
+                }
+                field("Day 5"; Rec."Day 5")
+                {
+                    ToolTip = 'Specifies the value of the Day 5 field.', Comment = '%';
+                }
+                field("Day 6"; Rec."Day 6")
+                {
+                    ToolTip = 'Specifies the value of the Day 6 field.', Comment = '%';
+                }
+                field("Day 7"; Rec."Day 7")
+                {
+                    ToolTip = 'Specifies the value of the Day 7 field.', Comment = '%';
+                }
 
             }
         }
