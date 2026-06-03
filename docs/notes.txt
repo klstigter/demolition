@@ -244,7 +244,27 @@ API - 2026.04.29
 
 
 
-Daytask Generator: key: job no. + job task no. + Line No.
+Daytask Generator: key: job no. + job task no. + Line No.   ---(OK)
+
+
+- mechanism start-end for query project task based on avaibility of daytask.
+
+- harus ada constrain field di project task
+- harus ada hubungan dengan start-end
+- saat tampil di gantt chart -> bagaimana caranya?
+
+Automatic progress handler
+- start-end date
+- progress
+- berhitung:
+	- lebih banyak capacity atau tidak/mengurangi
+		- triggerya from edit expand-reduce job task
+	- lebih banyak resource atau tidak
+		- triggernya from edit progress %
+		- harus ada logging untuk progress
+
+
+
 
 
 scheduling type:
