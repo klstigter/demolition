@@ -173,8 +173,10 @@ codeunit 50610 "Day Tasks Mgt."
         OptimizerSetup: Record "Daily Optimizer Setup";
         BaseCalendar: Record "Base Calendar";
         CustomizedCalendarChange: Record "Customized Calendar Change";
+        WeekDaysTemp: Record Integer Temporary;
         CalendarMgt: Codeunit "Calendar Management";
         DayOfWeek: Integer;
+        ActiveWeekDay: Boolean;
         Rtv: Boolean;
     begin
         Rtv := true;
@@ -182,18 +184,66 @@ codeunit 50610 "Day Tasks Mgt."
         OptimizerSetup.Get();
         OptimizerSetup.TestField("Base Calendar");
 
+        GetWeekDaysFromDayTaskGenerator(DayTaskGenerator, WeekDaysTemp);
+
         BaseCalendar.Get(OptimizerSetup."Base Calendar");
         CalendarMgt.SetSource(BaseCalendar, CustomizedCalendarChange);
 
         DayOfWeek := Date2DWY(NewTaskDate, 1);
+        ActiveWeekDay := true;
+        if not WeekDaysTemp.IsEmpty() then
+            ActiveWeekDay := WeekDaysTemp.Get(DayOfWeek);
         case true of
             OffOnWeekEndAndPublicHoliday and (DayOfWeek in [6, 7]):
                 Rtv := false;
-            OffOnWeekEndAndPublicHoliday and CalendarMgt.IsNonworkingDay(NewTaskDate, CustomizedCalendarChange):
+            OffOnWeekEndAndPublicHoliday
+            and CalendarMgt.IsNonworkingDay(NewTaskDate, CustomizedCalendarChange)
+            and (not ActiveWeekDay):
                 Rtv := false;
         end;
 
         exit(Rtv);
+    end;
+
+    local procedure GetWeekDaysFromDayTaskGenerator(DayTaskGenerator: Record "Day Task Generator"; var WeekDays: Record Integer Temporary)
+    begin
+        WeekDays.Reset();
+        WeekDays.DeleteAll();
+        if DayTaskGenerator."Day 1" then begin
+            WeekDays.Init();
+            WeekDays.Number := 1;
+            WeekDays.Insert();
+        end;
+        if DayTaskGenerator."Day 2" then begin
+            WeekDays.Init();
+            WeekDays.Number := 2;
+            WeekDays.Insert();
+        end;
+        if DayTaskGenerator."Day 3" then begin
+            WeekDays.Init();
+            WeekDays.Number := 3;
+            WeekDays.Insert();
+        end;
+        if DayTaskGenerator."Day 4" then begin
+            WeekDays.Init();
+            WeekDays.Number := 4;
+            WeekDays.Insert();
+        end;
+        if DayTaskGenerator."Day 5" then begin
+            WeekDays.Init();
+            WeekDays.Number := 5;
+            WeekDays.Insert();
+        end;
+        if DayTaskGenerator."Day 6" then begin
+            WeekDays.Init();
+            WeekDays.Number := 6;
+            WeekDays.Insert();
+        end;
+        if DayTaskGenerator."Day 7" then begin
+            WeekDays.Init();
+            WeekDays.Number := 7;
+            WeekDays.Insert();
+        end;
     end;
 
     procedure CheckIsWorkingDay(DateToCheck: Date) IsWorkingDay: Boolean
