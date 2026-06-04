@@ -80,14 +80,6 @@ codeunit 50610 "Day Tasks Mgt."
         if (StartDate = 0D) then
             exit;
 
-        //Update Job Task Start - End Date
-        JobTask.Get(DayTaskGenerator."Job No.", DayTaskGenerator."Job Task No.");
-        if JobTask.PlannedStartDate = 0D then
-            JobTask.PlannedStartDate := StartDate;
-        if JobTask.PlannedEndDate = 0D then
-            JobTask.Validate(PlannedEndDate, EndDate);
-        JobTask.Modify();
-
         // Delete existing day planning lines for this job planning line
         if not DoDeleteAll then begin
             DayTasks.SetRange("Job No.", DayTaskGenerator."Job No.");
@@ -99,7 +91,7 @@ codeunit 50610 "Day Tasks Mgt."
 
         while NewTaskDate <= EndDate do begin
             // Check if this day is a working day in the template   
-            if CheckIsWorkingDay(NewTaskDate) or ExpectedWeekDay(DayTaskGenerator, NewTaskDate, true) then begin
+            if ExpectedWeekDay(DayTaskGenerator, NewTaskDate, true) then begin
 
                 Clear(DayTasks);
                 DayNo := GeneralUtil.DateToInteger(NewTaskDate);
@@ -125,8 +117,9 @@ codeunit 50610 "Day Tasks Mgt."
 
                 DayTasks."Start Time Assigned" := DayStartTime;
                 DayTasks."End Time Assigned" := DayEndTime;
+                DayTasks."Start Time Requested" := DayStartTime;
+                DayTasks."End Time Requested" := DayEndTime;
                 DayTasks.VALIDATE("Non Working Minutes", NonWorkingHours);
-
 
                 // Copy other fields from job planning line
                 DayTasks."Assigned Resource No." := DayTaskGenerator."Resource No.";
@@ -154,6 +147,24 @@ codeunit 50610 "Day Tasks Mgt."
             end;
             NewTaskDate := CalcDate('<+1D>', NewTaskDate);
         END;
+
+        //Update Job Task Start - End Date
+        JobTask.Get(DayTaskGenerator."Job No.", DayTaskGenerator."Job Task No.");
+        DayTasks.Reset();
+        DayTasks.SetCurrentKey("Task Date");
+        DayTasks.SetRange("Job No.", JobTask."Job No.");
+        DayTasks.SetRange("Job Task No.", JobTask."Job Task No.");
+        if DayTasks.FindFirst() then
+            StartDate := DayTasks."Task Date";
+        if DayTasks.FindLast() then
+            EndDate := DayTasks."Task Date";
+
+        if (JobTask.PlannedStartDate = 0D) or (StartDate < JobTask.PlannedStartDate) then
+            JobTask.PlannedStartDate := StartDate;
+        if (JobTask.PlannedEndDate = 0D) or (EndDate > JobTask.PlannedEndDate) then
+            JobTask.Validate(PlannedEndDate, EndDate);
+        JobTask.Modify();
+
         Message('%1 day planning lines created for Job %2, Task %3.', Counter, DayTaskGenerator."Job No.", DayTaskGenerator."Job Task No.");
     END;
 
@@ -186,10 +197,9 @@ codeunit 50610 "Day Tasks Mgt."
         CalendarMgt: Codeunit "Calendar Management";
         DayOfWeek: Integer;
         ActiveWeekDay: Boolean;
+        IsNonworkingDay: Boolean;
         Rtv: Boolean;
     begin
-        Rtv := true;
-
         OptimizerSetup.Get();
         OptimizerSetup.TestField("Base Calendar");
 
@@ -202,16 +212,27 @@ codeunit 50610 "Day Tasks Mgt."
         ActiveWeekDay := true;
         if not WeekDaysTemp.IsEmpty() then
             ActiveWeekDay := WeekDaysTemp.Get(DayOfWeek);
-        case true of
-            OffOnWeekEndAndPublicHoliday and (DayOfWeek in [6, 7]):
-                Rtv := false;
-            OffOnWeekEndAndPublicHoliday
-            and CalendarMgt.IsNonworkingDay(NewTaskDate, CustomizedCalendarChange)
-            and (not ActiveWeekDay):
-                Rtv := false;
-            not OffOnWeekEndAndPublicHoliday:
-                Rtv := ActiveWeekDay;
-        end;
+
+        IsNonworkingDay := CalendarMgt.IsNonworkingDay(NewTaskDate, CustomizedCalendarChange);
+
+        /*
+        The truth table is now:
+        ActiveWeekDay	OffOnWeekEndAndPublicHoliday	IsNonworkingDay	    Rtv
+        false	        any	                            any	                false
+        true	        false	                        any	                true
+        true	        true	                        false	            true
+        true	        true	                        true	            false
+        - If the day-of-week isn't checked in the generator → skip it.
+        - If the day is active but it's a calendar non-working day and we're honouring that flag → skip it.
+        - Otherwise → create the task.
+        */
+
+        if not ActiveWeekDay then
+            Rtv := false
+        else if OffOnWeekEndAndPublicHoliday and IsNonworkingDay then
+            Rtv := false
+        else
+            Rtv := true;
 
         exit(Rtv);
     end;
@@ -254,26 +275,6 @@ codeunit 50610 "Day Tasks Mgt."
             WeekDays.Init();
             WeekDays.Number := 7;
             WeekDays.Insert();
-        end;
-    end;
-
-    procedure CheckIsWorkingDay(DateToCheck: Date) IsWorkingDay: Boolean
-    begin
-        case Date2DWY(DateToCheck, 1) of
-            1:
-                IsWorkingDay := WorkHoursTemplate.Monday <> 0;
-            2:
-                IsWorkingDay := WorkHoursTemplate.Tuesday <> 0;
-            3:
-                IsWorkingDay := WorkHoursTemplate.Wednesday <> 0;
-            4:
-                IsWorkingDay := WorkHoursTemplate.Thursday <> 0;
-            5:
-                IsWorkingDay := WorkHoursTemplate.Friday <> 0;
-            6:
-                IsWorkingDay := WorkHoursTemplate.Saturday <> 0;
-            7:
-                IsWorkingDay := WorkHoursTemplate.Sunday <> 0;
         end;
     end;
 

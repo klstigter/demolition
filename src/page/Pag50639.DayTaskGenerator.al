@@ -167,6 +167,8 @@ page 50639 "Day Task Generator"
                 Rec."End Date" := WorkOrder."Date Window End";
             end;
         end;
+        if (rec."Start Date" <> 0D) and (rec."End Date" <> 0D) then
+            Rec.Validate("End Time");
     end;
 
     var
