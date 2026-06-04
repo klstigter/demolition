@@ -246,9 +246,6 @@ API - 2026.04.29
 
 Daytask Generator: key: job no. + job task no. + Line No.   ---(OK)
 
-
-- mechanism start-end for query project task based on avaibility of daytask.
-
 - harus ada constrain field di project task
 - harus ada hubungan dengan start-end
 - saat tampil di gantt chart -> bagaimana caranya?

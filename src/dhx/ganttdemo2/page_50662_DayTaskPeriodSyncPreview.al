@@ -78,7 +78,7 @@ page 50663 "DayTask Period Sync Preview"
             {
                 ApplicationArea = All;
                 Caption = 'Apply Changes';
-                Image = Approve;
+                Image = Apply;
                 InFooterBar = true;
                 ToolTip = 'Apply all calculated date changes to the DayTask records. The Gantt chart will reflect the updates on the next data load.';
 
@@ -99,6 +99,10 @@ page 50663 "DayTask Period Sync Preview"
                     CurrPage.Close();
                 end;
             }
+        }
+        area(Promoted)
+        {
+            actionref(ApplyChanges_Promoted; ApplyChanges) { }
         }
     }
 
