@@ -110,7 +110,12 @@ tableextension 50605 "Job Task ext" extends "Job Task"
             DataClassification = ToBeClassified;
         }
 
-
+        field(50610; "Daytask Week Pattern"; Code[20])
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Daytask Week Pattern';
+            ToolTip = 'Specifies the week pattern for the project task. ex. 1|2|3|4|5|6|7 for all days, 1|4 for only Monday and Thursday, etc.';
+        }
 
         field(50660; Depth; Decimal)
         {

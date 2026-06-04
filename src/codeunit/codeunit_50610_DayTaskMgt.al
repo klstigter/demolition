@@ -30,6 +30,7 @@ codeunit 50610 "Day Tasks Mgt."
 
     local procedure CreateDayTask(DayTaskGenerator: Record "Day Task Generator"; DoDeleteAll: Boolean)
     var
+        JobTask: Record "Job Task";
         DayTasks: Record "Day Tasks";
         StartDate: Date;
         EndDate: Date;
@@ -78,6 +79,14 @@ codeunit 50610 "Day Tasks Mgt."
         // If no valid date range, skip
         if (StartDate = 0D) then
             exit;
+
+        //Update Job Task Start - End Date
+        JobTask.Get(DayTaskGenerator."Job No.", DayTaskGenerator."Job Task No.");
+        if JobTask.PlannedStartDate = 0D then
+            JobTask.PlannedStartDate := StartDate;
+        if JobTask.PlannedEndDate = 0D then
+            JobTask.Validate(PlannedEndDate, EndDate);
+        JobTask.Modify();
 
         // Delete existing day planning lines for this job planning line
         if not DoDeleteAll then begin
@@ -200,6 +209,8 @@ codeunit 50610 "Day Tasks Mgt."
             and CalendarMgt.IsNonworkingDay(NewTaskDate, CustomizedCalendarChange)
             and (not ActiveWeekDay):
                 Rtv := false;
+            not OffOnWeekEndAndPublicHoliday:
+                Rtv := ActiveWeekDay;
         end;
 
         exit(Rtv);
