@@ -98,7 +98,16 @@ codeunit 50615 "Gantt Update Data"
            ((NewStartDate <> OldStartDate) or (NewEndDate <> OldEndDate)) then begin
             // Period changed: open preview page. Returns FALSE if user cancelled
             // → neither JobTask nor DayTask records are written to the database.
-            if not DayTaskPeriodSyncMgt.HandleJobTaskPeriodChange(JobTask, OldStartDate, OldEndDate, false) then
+            if DayTaskPeriodSyncMgt.HandleJobTaskPeriodChange(JobTask, OldStartDate, OldEndDate, false) then begin
+                // Re-read to get the latest record timestamp before modifying.
+                // HandleJobTaskPeriodChange (or its event subscribers) may have written
+                // the record, making our in-memory copy stale and causing a concurrency error.
+                JobTask.Get(JobTask."Job No.", JobTask."Job Task No.");
+                JobTask.PlannedStartDate := NewStartDate;
+                JobTask.PlannedEndDate := NewEndDate;
+                JobTask.Duration := NewEndDate - NewStartDate + 1;
+                JobTask.Modify();
+            end else
                 exit(false); //LAGI
         end else begin
             // No period change: save immediately for other field changes (description, etc.)

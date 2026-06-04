@@ -15,7 +15,8 @@ codeunit 50617 "DayTask Period Sync Mgt."
         if (OldStart = 0D) or (OldEnd = 0D) or (NewStart = 0D) or (NewEnd = 0D) then
             exit(true); // No valid dates to compare, skip preview and apply changes directly.
 
-        CalculateChanges(JobNo, JobTaskNo, OldStart, OldEnd, NewStart, NewEnd, TempPreviewBuffer);
+        if not CalculateChanges(JobNo, JobTaskNo, OldStart, OldEnd, NewStart, NewEnd, TempPreviewBuffer) then
+            exit(true); // No changes detected, skip preview and apply changes directly.
 
         PreviewPage.SetPreviewData(TempPreviewBuffer);
         PreviewPage.SetJobTask(JobTask);
@@ -139,8 +140,9 @@ codeunit 50617 "DayTask Period Sync Mgt."
         PreviewPage: Page "DayTask Period Sync Preview";
     begin
         if not CalculateChanges(JobTask."Job No.", JobTask."Job Task No.", OldStart, OldEnd, JobTask.PlannedStartDate, JobTask.PlannedEndDate, TempPreviewBuffer) then
-            if SkipJobTaskModify then
-                exit(true); // No DayTasks affected; the calling page handles the JobTask persist.
+            exit(true);
+        if SkipJobTaskModify then
+            exit(true); // No DayTasks affected; the calling page handles the JobTask persist.
 
         PreviewPage.SetPreviewData(TempPreviewBuffer);
         PreviewPage.SetJobTask(JobTask);
