@@ -106,37 +106,37 @@ page 50655 "Order Intake Card"
 
     actions
     {
-        area(Processing)
-        {
-            /// <summary>
-            /// Opens the "Generate Pre Daytasks" dialog (page 50657) and, if the
-            /// user confirms, invokes codeunit 50613 to insert planning lines into
-            /// table 50608 "Order Intake Line Opt." for the current document.
-            /// </summary>
-            action(GenerateDaytasks)
-            {
-                Caption = 'Generate Daytasks';
-                ApplicationArea = All;
-                Image = Process;
-                ToolTip = 'Opens a dialog to configure scheduling parameters and generate preliminary Daytask planning lines for this Order Intake document.';
+        // area(Processing)
+        // {
+        //     /// <summary>
+        //     /// Opens the "Generate Pre Daytasks" dialog (page 50657) and, if the
+        //     /// user confirms, invokes codeunit 50613 to insert planning lines into
+        //     /// table 50608 "Order Intake Line Opt." for the current document.
+        //     /// </summary>
+        //     action(GenerateDaytasks)
+        //     {
+        //         Caption = 'Generate Daytasks';
+        //         ApplicationArea = All;
+        //         Image = Process;
+        //         ToolTip = 'Opens a dialog to configure scheduling parameters and generate preliminary Daytask planning lines for this Order Intake document.';
 
-                trigger OnAction()
-                var
+        //         trigger OnAction()
+        //         var
 
-                begin
-                    // Pass document context to the dialog before opening
+        //         begin
+        //             // Pass document context to the dialog before opening
 
-                end;
-            }
-        }
-        area(Promoted)
-        {
-            group(Category_Process)
-            {
-                Caption = 'Actions';
-                actionref(Action_ref_1; GenerateDaytasks) { }
-            }
-        }
+        //         end;
+        //     }
+        // }
+        // area(Promoted)
+        // {
+        //     group(Category_Process)
+        //     {
+        //         Caption = 'Actions';
+        //         actionref(Action_ref_1; GenerateDaytasks) { }
+        //     }
+        // }
     }
 
     trigger OnAfterGetCurrRecord()
