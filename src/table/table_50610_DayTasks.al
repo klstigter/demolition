@@ -185,7 +185,7 @@ table 50610 "Day Tasks"
                         "Vendor No." := Resource."Vendor No.";
                     if Resource."Pool Resource No." <> '' then
                         "Pool Resource No." := Resource."Pool Resource No.";
-
+                    CalculateWorkingHours();
                 end else begin
                     validate("Assigned Hours", 0);
                 end;

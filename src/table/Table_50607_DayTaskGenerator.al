@@ -288,10 +288,13 @@ table 50607 "Day Task Generator"
 
     procedure FillBuffer(JobNo: Code[20]; JobTaskNo: Code[20])
     var
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        WorkHourTemplate: Record "Work-Hour Template";
         daytask: Record "Day Tasks";
         DoInSert: Boolean;
         Resource: Record Resource;
     begin
+        DailyOptimizerSetup.Get();
         reset;
         DeleteAll();
         daytask.SetRange("Job No.", JobNo);
@@ -303,6 +306,14 @@ table 50607 "Day Task Generator"
                 rec."Job Task No." := JobTaskNo;
                 rec."Resource No." := daytask."Assigned Resource No.";
                 rec.SkillsRequired := daytask.Skill;
+                Rec."Work-Hour Template" := DailyOptimizerSetup."Work hour Template";
+                if Rec."Work-Hour Template" <> '' then begin
+                    WorkHourTemplate.Get(Rec."Work-Hour Template");
+                    Rec."Start Time" := WorkHourTemplate."Default Start Time";
+                    Rec."End Time" := WorkHourTemplate."Default End Time";
+                    Rec."Non Working Minutes" := WorkHourTemplate."Non Working Minutes";
+                end;
+                Rec."Quantity of Lines" := 1;
                 if rec.Find('=') then begin
                     if daytask."Task Date" < rec."Start Date" then
                         rec."Start Date" := daytask."Task Date";
@@ -319,6 +330,10 @@ table 50607 "Day Task Generator"
                             rec."Vendor No." := Resource."Vendor No.";
                         end;
                     rec.Insert();
+                end;
+                if (rec."Start Date" <> 0D) and (rec."End Date" <> 0D) then begin
+                    Rec.Validate("End Time");
+                    Rec.Modify();
                 end;
             until daytask.Next() = 0;
     end;
