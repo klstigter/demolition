@@ -260,7 +260,12 @@ Automatic progress handler
 		- triggernya from edit progress %
 		- harus ada logging untuk progress
 
-
+Resource Category, enum: -> daytask creation
+   any available
+   internal
+   External
+   pool
+   Named
 
 
 
