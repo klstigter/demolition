@@ -63,7 +63,7 @@ codeunit 50617 "DayTask Period Sync Mgt."
             // ── 1.2  Enlarge / Reduce Right Bar ─────────────────────────────────────
             // Only end date changed → tasks that now fall beyond the new end must move.
             else if (OldStart = NewStart) and (OldEnd <> NewEnd) then begin
-                // Scenario A – Right bar enlarged: no action needed.
+                // Scenario A – Right bar enlarged: no action needed. >>LAGI
                 // Scenario B – Right bar reduced: clamp tasks that exceed the new end.
                 if (NewEnd < OldEnd) and (DayTask."Task Date" > NewEnd) then
                     NewDate := NewEnd;

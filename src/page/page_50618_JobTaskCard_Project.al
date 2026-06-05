@@ -575,6 +575,11 @@ page 50618 "Opti Job Task Card"
                         ToolTip = 'Specifies the duration of the project task in days.';
                         importance = Promoted;
                     }
+                    field("Daytask Week Pattern"; Rec."Daytask Week Pattern")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Specifies the week pattern for the project task. ex. 1|2|3|4|5|6|7 for all days, 1|4 for only Monday and Thursday, etc.';
+                    }
                 }
 
 

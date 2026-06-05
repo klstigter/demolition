@@ -108,7 +108,7 @@ codeunit 50615 "Gantt Update Data"
                 JobTask.Duration := NewEndDate - NewStartDate + 1;
                 JobTask.Modify();
             end else
-                exit(false); //LAGI
+                exit(false);
         end else begin
             // No period change: save immediately for other field changes (description, etc.)
             if not JobTask.Modify(true) then
