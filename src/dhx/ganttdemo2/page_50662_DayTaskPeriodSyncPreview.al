@@ -4,9 +4,8 @@ page 50663 "DayTask Period Sync Preview"
     PageType = List;
     SourceTable = "DayTask Sync Preview Buffer";
     SourceTableTemporary = true;
-    Editable = false;
     InsertAllowed = false;
-    ModifyAllowed = false;
+    ModifyAllowed = true;
     DeleteAllowed = false;
     UsageCategory = None;
 
@@ -35,36 +34,57 @@ page 50663 "DayTask Period Sync Preview"
                 {
                     ApplicationArea = All;
                     Caption = 'DayTask No.';
-                    ToolTip = 'DayTask line number.';
+                    Editable = false;
+                    StyleExpr = RowStyleExpr;
+                    ToolTip = 'DayTask line number. 0 = new DayTask to be created.';
                 }
                 field(Description; Rec.Description)
                 {
                     ApplicationArea = All;
                     Caption = 'Description';
+                    Editable = false;
+                    StyleExpr = RowStyleExpr;
                     ToolTip = 'Description of the DayTask record.';
                 }
                 field("Resource No."; Rec."Resource No.")
                 {
                     ApplicationArea = All;
                     Caption = 'Resource';
+                    Editable = false;
+                    StyleExpr = RowStyleExpr;
                     ToolTip = 'Resource assigned to this DayTask.';
                 }
                 field("Old Task Date"; Rec."Old Task Date")
                 {
                     ApplicationArea = All;
                     Caption = 'Current Date';
-                    Style = Unfavorable;
-                    StyleExpr = true;
-                    ToolTip = 'The current DayTask date before the period change is applied.';
+                    Editable = false;
+                    StyleExpr = OldDateStyleExpr;
+                    ToolTip = 'The current DayTask date before the period change is applied. Blank for new DayTask entries.';
                 }
-                // ── Right Pane: calculated values ───────────────────────────────────
+                // ── Right Pane: calculated / new values ───────────────────────────
                 field("New Task Date"; Rec."New Task Date")
                 {
                     ApplicationArea = All;
                     Caption = 'New Date';
-                    Style = Favorable;
-                    StyleExpr = true;
+                    Editable = false;
+                    StyleExpr = NewDateStyleExpr;
                     ToolTip = 'The calculated new DayTask date after the period change is applied.';
+                }
+                field("Day Type"; Rec."Day Type")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Day Type';
+                    Editable = false;
+                    StyleExpr = RowStyleExpr;
+                    ToolTip = 'Indicates whether the new date falls on a Work-day, Weekend, or Public Holiday.';
+                }
+                field("Convert to DayTask"; Rec."Convert to DayTask")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Convert to DayTask';
+                    StyleExpr = RowStyleExpr;
+                    ToolTip = 'Uncheck to exclude this date from the DayTask creation when Apply Changes is clicked.';
                 }
             }
         }
@@ -89,7 +109,9 @@ page 50663 "DayTask Period Sync Preview"
                     RecordCount: Integer;
                 begin
                     Rec.Reset();
+                    Rec.SetRange("Convert to DayTask", true);
                     RecordCount := Rec.Count();
+                    Rec.Reset();
                     if SkipJobTaskModify then
                         DayTaskPeriodSyncMgt.ApplyChangesOnly(Rec)
                     else
@@ -113,7 +135,26 @@ page 50663 "DayTask Period Sync Preview"
                        'Click Apply Changes to save the new period to the project task, or close this page to cancel.'
         else
             InfoTxt := 'The following DayTask records are affected by the project task period change. ' +
-                       'Review the Current Date and New Date columns, then click Apply Changes to confirm.';
+                       'Rows shown in red are Weekend or Public Holiday dates – uncheck “Convert to DayTask” to skip them. ' +
+                       'Click Apply Changes to confirm.';
+    end;
+
+    trigger OnAfterGetRecord()
+    begin
+        case Rec."Day Type" of
+            Rec."Day Type"::Weekend,
+            Rec."Day Type"::"Public-Holiday":
+                begin
+                    RowStyleExpr := 'Unfavorable';
+                    OldDateStyleExpr := 'Unfavorable';
+                    NewDateStyleExpr := 'Unfavorable';
+                end;
+            else begin
+                RowStyleExpr := '';
+                OldDateStyleExpr := 'Unfavorable';
+                NewDateStyleExpr := 'Favorable';
+            end;
+        end;
     end;
 
     trigger OnClosePage()
@@ -161,4 +202,7 @@ page 50663 "DayTask Period Sync Preview"
         Applied: Boolean;
         SkipJobTaskModify: Boolean;
         SavedJobTask: Record "Job Task";
+        RowStyleExpr: Text;
+        OldDateStyleExpr: Text;
+        NewDateStyleExpr: Text;
 }
