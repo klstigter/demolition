@@ -1,0 +1,2 @@
+- [User Role](user_role.md) — Ahmad is the primary AL dev on DailyOptimizer; co-dev klstigter on GitHub
+- [Project: DailyOptimizer](project_dailyoptimizer.md) — ID ranges, core tables, key codeunits, active "Daytask Week Pattern" feature
