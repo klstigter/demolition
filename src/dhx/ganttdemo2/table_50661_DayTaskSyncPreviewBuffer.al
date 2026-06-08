@@ -46,6 +46,22 @@ table 50661 "DayTask Sync Preview Buffer"
             DataClassification = SystemMetadata;
             Caption = 'Description';
         }
+        field(9; "Day Type"; Enum "DayTask Date Type")
+        {
+            DataClassification = SystemMetadata;
+            Caption = 'Day Type';
+        }
+        field(10; "Convert to DayTask"; Boolean)
+        {
+            DataClassification = SystemMetadata;
+            Caption = 'Convert to DayTask';
+            InitValue = true;
+        }
+        field(11; "Is New Record"; Boolean)
+        {
+            DataClassification = SystemMetadata;
+            Caption = 'Is New Record';
+        }
     }
 
     keys
