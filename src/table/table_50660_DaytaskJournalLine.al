@@ -1,9 +1,9 @@
-table 50660 "Daytask Journal Line"
+table 50660 "DayPlanning Journal Line"
 {
-    Caption = 'Daytask Journal Line';
+    Caption = 'DayPlanning Journal Line';
     DataClassification = CustomerContent;
-    LookupPageId = "Daytask Journal";
-    DrillDownPageId = "Daytask Journal";
+    LookupPageId = "DayPlanning Journal";
+    DrillDownPageId = "DayPlanning Journal";
 
     fields
     {
@@ -19,14 +19,14 @@ table 50660 "Daytask Journal Line"
             TableRelation = "Job Journal Batch".Name where("Journal Template Name" = field("Template Name"));
             DataClassification = CustomerContent;
         }
-        field(3; "Daytask Date"; Date)
+        field(3; "DayPlanning Date"; Date)
         {
-            Caption = 'Daytask Date';
+            Caption = 'DayPlanning Date';
             DataClassification = CustomerContent;
         }
-        field(4; "Daytask Line No."; Integer)
+        field(4; "DayPlanning Line No."; Integer)
         {
-            Caption = 'Daytask Line No.';
+            Caption = 'DayPlanning Line No.';
             DataClassification = CustomerContent;
         }
         field(5; "Document No."; Code[20])
@@ -111,11 +111,11 @@ table 50660 "Daytask Journal Line"
 
     keys
     {
-        key(PK; "Template Name", "Batch Name", "Daytask Date", "Daytask Line No.")
+        key(PK; "Template Name", "Batch Name", "DayPlanning Date", "DayPlanning Line No.")
         {
             Clustered = true;
         }
-        key(JobDateKey; "Job No.", "Job Task No.", "Daytask Date")
+        key(JobDateKey; "Job No.", "Job Task No.", "DayPlanning Date")
         {
         }
     }
@@ -129,7 +129,7 @@ table 50660 "Daytask Journal Line"
         "Dimension Set ID" :=
             DimMgt.EditDimensionSet(
                 "Dimension Set ID",
-                StrSubstNo('%1 %2 %3', "Template Name", "Batch Name", "Daytask Date"));
+                StrSubstNo('%1 %2 %3', "Template Name", "Batch Name", "DayPlanning Date"));
         if OldDimSetID <> "Dimension Set ID" then begin
             DimMgt.UpdateGlobalDimFromDimSetID(
                 "Dimension Set ID",

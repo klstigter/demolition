@@ -51,7 +51,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
                     _DateTimeUserZone := DHXDataHandler.ConvertToUserTimeZone(_DateTime);
                     StartDate := DT2Date(_DateTimeUserZone);
                     AnchorDate := StartDate;
-                    RefreshSchedule(ShowHideDayTasks);
+                    RefreshSchedule(ShowHideDayPlannings);
                 end;
 
                 #endregion Section doubleclick
@@ -72,18 +72,18 @@ page 50600 "DHX Scheduler (Pool Resource)"
                                 Evaluate(_DateTime, StartDateTxt);
                                 _DateTimeUserZone := DHXDataHandler.ConvertToUserTimeZone(_DateTime);
                                 DateRef := DT2Date(_DateTimeUserZone);
-                                DHXDataHandler.OpenCapacity(eventId, DateRef); //DHXDataHandler.OpenDayTask(eventId);
+                                DHXDataHandler.OpenCapacity(eventId, DateRef); //DHXDataHandler.OpenDayPlanning(eventId);
                                 if DateRef <> 0D then begin
                                     AnchorDate := DateRef;
-                                    RefreshSchedule(ShowHideDayTasks);
+                                    RefreshSchedule(ShowHideDayPlannings);
                                 end;
                             end;
-                        'daytask_0', 'daytask_1', 'vacancy':
+                        'DayPlanning_0', 'DayPlanning_1', 'vacancy':
                             begin
-                                DateRef := DHXDataHandler.OpenDayTask(eventId);
+                                DateRef := DHXDataHandler.OpenDayPlanning(eventId);
                                 if DateRef <> 0D then begin
                                     AnchorDate := DateRef;
-                                    RefreshSchedule(ShowHideDayTasks);
+                                    RefreshSchedule(ShowHideDayPlannings);
                                 end;
                             end;
                     end;
@@ -124,7 +124,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
                                                   eventData,
                                                   DateRef);
                     AnchorDate := DateRef;
-                    RefreshSchedule(ShowHideDayTasks);
+                    RefreshSchedule(ShowHideDayPlannings);
                 end;
 
                 trigger OnAfterEventIdUpdated(oldid: Text; newid: Text)
@@ -167,7 +167,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
                     StartDate: Date;
                     EndDate: Date;
                 begin
-                    if DHXDataHandler.GetDayTaskAsResourcesAndEventsJSon_Resource(NavigateJson, False, ResourceJSONTxt, EventsJsonTxt) then begin
+                    if DHXDataHandler.GetDayPlanningAsResourcesAndEventsJSon_Resource(NavigateJson, False, ResourceJSONTxt, EventsJsonTxt) then begin
                         DHXDataHandler.GetStartEndDatesFromTimeLineJSon(NavigateJson, startDate, endDate);
                         CurrPage.DhxScheduler.RefreshTimeline(ResourceJSONTxt, EventsJsonTxt, startDate); //TODO: pass resourcesJson and eventsJson
                         AnchorDate := startDate;
@@ -220,7 +220,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
                 trigger OnAction()
                 begin
                     AnchorDate := Today();
-                    RefreshSchedule(ShowHideDayTasks);
+                    RefreshSchedule(ShowHideDayPlannings);
                 end;
             }
             action(PreviousAct)
@@ -231,7 +231,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
                 trigger OnAction()
                 begin
                     AnchorDate := CalcDate('<-1W>', AnchorDate);
-                    RefreshSchedule(ShowHideDayTasks);
+                    RefreshSchedule(ShowHideDayPlannings);
                 end;
             }
             action(NextAct)
@@ -242,7 +242,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
                 trigger OnAction()
                 begin
                     AnchorDate := CalcDate('<1W>', AnchorDate);
-                    RefreshSchedule(ShowHideDayTasks);
+                    RefreshSchedule(ShowHideDayPlannings);
                 end;
             }
 
@@ -253,7 +253,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
                 Image = Refresh;
                 trigger OnAction()
                 begin
-                    RefreshSchedule(ShowHideDayTasks);
+                    RefreshSchedule(ShowHideDayPlannings);
                 end;
             }
 
@@ -273,7 +273,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
                         DateSelectorPage.GetRecord(DateRec);
                         SelectedDate := DateRec."Period Start";
                         AnchorDate := SelectedDate;
-                        RefreshSchedule(ShowHideDayTasks);
+                        RefreshSchedule(ShowHideDayPlannings);
                     end;
                 end;
             }
@@ -315,29 +315,29 @@ page 50600 "DHX Scheduler (Pool Resource)"
             }
 
 
-            group(Daytask)
+            group(DayPlanning)
             {
-                Caption = 'Day Tasks';
-                action(ShowDayTask)
+                Caption = 'Day Plannings';
+                action(ShowDayPlanning)
                 {
                     ApplicationArea = All;
-                    Caption = 'Show Day Tasks';
+                    Caption = 'Show Day Plannings';
                     Image = AddWatch;
                     trigger OnAction()
                     begin
-                        ShowHideDayTasks := true;
-                        RefreshSchedule(ShowHideDayTasks);
+                        ShowHideDayPlannings := true;
+                        RefreshSchedule(ShowHideDayPlannings);
                     end;
                 }
-                action(HideDayTask)
+                action(HideDayPlanning)
                 {
                     ApplicationArea = All;
-                    Caption = 'Hide Day Tasks';
+                    Caption = 'Hide Day Plannings';
                     Image = RemoveContacts;
                     trigger OnAction()
                     begin
-                        ShowHideDayTasks := false;
-                        RefreshSchedule(ShowHideDayTasks);
+                        ShowHideDayPlannings := false;
+                        RefreshSchedule(ShowHideDayPlannings);
                     end;
                 }
             }
@@ -353,8 +353,8 @@ page 50600 "DHX Scheduler (Pool Resource)"
                 actionref("Today_filter"; Todayact) { }
                 actionref("Next_filter"; Nextact) { }
                 actionref("Refresh_filter"; Refresh) { }
-                actionref("Show_DayTask"; ShowDayTask) { }
-                actionref("Hide_DayTask"; HideDayTask) { }
+                actionref("Show_DayPlanning"; ShowDayPlanning) { }
+                actionref("Hide_DayPlanning"; HideDayPlanning) { }
             }
         }
     }
@@ -363,9 +363,9 @@ page 50600 "DHX Scheduler (Pool Resource)"
         DHXDataHandler: Codeunit "DHX Data Handler";
         ShowDefaultTabs: Boolean;
         AnchorDate: Date;
-        ShowHideDayTasks: Boolean;
+        ShowHideDayPlannings: Boolean;
 
-    local procedure RefreshSchedule(WithDayTask: Boolean)
+    local procedure RefreshSchedule(WithDayPlanning: Boolean)
     var
         DHXDataHandler: Codeunit "DHX Data Handler";
         startDate: Date;
@@ -375,9 +375,9 @@ page 50600 "DHX Scheduler (Pool Resource)"
         EarliestPlanningDate: Date;
     begin
         DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
-        DHXDataHandler.GetDayTaskAsResourcesAndEventsJSon_Pool_StartEnd(startDate,
+        DHXDataHandler.GetDayPlanningAsResourcesAndEventsJSon_Pool_StartEnd(startDate,
                                                                       endDate,
-                                                                      WithDayTask,
+                                                                      WithDayPlanning,
                                                                       ResourceJSONTxt,
                                                                       EventsJsonTxt,
                                                                       EarliestPlanningDate);

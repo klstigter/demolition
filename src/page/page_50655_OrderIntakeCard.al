@@ -109,16 +109,16 @@ page 50655 "Order Intake Card"
         // area(Processing)
         // {
         //     /// <summary>
-        //     /// Opens the "Generate Pre Daytasks" dialog (page 50657) and, if the
+        //     /// Opens the "Generate Pre DayPlannings" dialog (page 50657) and, if the
         //     /// user confirms, invokes codeunit 50613 to insert planning lines into
         //     /// table 50608 "Order Intake Line Opt." for the current document.
         //     /// </summary>
-        //     action(GenerateDaytasks)
+        //     action(GenerateDayPlannings)
         //     {
-        //         Caption = 'Generate Daytasks';
+        //         Caption = 'Generate DayPlannings';
         //         ApplicationArea = All;
         //         Image = Process;
-        //         ToolTip = 'Opens a dialog to configure scheduling parameters and generate preliminary Daytask planning lines for this Order Intake document.';
+        //         ToolTip = 'Opens a dialog to configure scheduling parameters and generate preliminary DayPlanning planning lines for this Order Intake document.';
 
         //         trigger OnAction()
         //         var
@@ -134,7 +134,7 @@ page 50655 "Order Intake Card"
         //     group(Category_Process)
         //     {
         //         Caption = 'Actions';
-        //         actionref(Action_ref_1; GenerateDaytasks) { }
+        //         actionref(Action_ref_1; GenerateDayPlannings) { }
         //     }
         // }
     }

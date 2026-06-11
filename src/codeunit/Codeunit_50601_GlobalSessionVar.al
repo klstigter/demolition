@@ -9,7 +9,7 @@ codeunit 50601 "Global Session Var Opt."
 
     var
         JobNo: Code[20];
-        DayTaskTemp: Record "Day Tasks" temporary;
+        DayPlanningTemp: Record "Day Planning" temporary;
 
     procedure SetJobNo(NewJobNo: Code[20])
     begin
@@ -21,27 +21,27 @@ codeunit 50601 "Global Session Var Opt."
         exit(JobNo);
     end;
 
-    procedure ResetDayTaskTemp()
+    procedure ResetDayPlanningTemp()
     begin
-        DayTaskTemp.Reset();
-        DayTaskTemp.DeleteAll();
+        DayPlanningTemp.Reset();
+        DayPlanningTemp.DeleteAll();
     end;
 
-    procedure SetDayTaskTemp(DayTask: Record "Day Tasks")
+    procedure SetDayPlanningTemp(DayPlanning: Record "Day Planning")
     begin
-        DayTaskTemp := DayTask;
-        if DayTaskTemp.Insert() then;
+        DayPlanningTemp := DayPlanning;
+        if DayPlanningTemp.Insert() then;
     end;
 
-    procedure GetDayTaskTemp(var pDayTaskTemp: Record "Day Tasks" temporary)
+    procedure GetDayPlanningTemp(var pDayPlanningTemp: Record "Day Planning" temporary)
     begin
-        pDayTaskTemp.Reset();
-        pDayTaskTemp.DeleteAll();
-        DayTaskTemp.Reset();
-        if DayTaskTemp.FindSet() then
+        pDayPlanningTemp.Reset();
+        pDayPlanningTemp.DeleteAll();
+        DayPlanningTemp.Reset();
+        if DayPlanningTemp.FindSet() then
             repeat
-                pDayTaskTemp := DayTaskTemp;
-                if pDayTaskTemp.Insert() then;
-            until DayTaskTemp.Next() = 0;
+                pDayPlanningTemp := DayPlanningTemp;
+                if pDayPlanningTemp.Insert() then;
+            until DayPlanningTemp.Next() = 0;
     end;
 }

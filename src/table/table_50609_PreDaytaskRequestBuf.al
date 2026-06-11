@@ -1,11 +1,11 @@
 /// <summary>
 /// In-memory (temporary) buffer that holds all user-defined parameters for
-/// a single "Generate pre Daytasks" request.  One record per invocation.
+/// a single "Generate pre DayPlannings" request.  One record per invocation.
 /// </summary>
-table 50609 "Pre Daytask Request Buf."
+table 50609 "Pre DayPlanning Request Buf."
 {
     TableType = Temporary;
-    Caption = 'Pre Daytask Request Buffer';
+    Caption = 'Pre DayPlanning Request Buffer';
     DataClassification = CustomerContent;
 
     fields
@@ -70,7 +70,7 @@ table 50609 "Pre Daytask Request Buf."
         // ── Recurrence ─────────────────────────────────────────────────────────
 
         /// <summary>The recurrence pattern applied to the date range.</summary>
-        field(50; Recurrence; Enum "Pre Daytask Recurrence")
+        field(50; Recurrence; Enum "Pre DayPlanning Recurrence")
         {
             Caption = 'Recurrence';
             DataClassification = CustomerContent;
@@ -132,7 +132,7 @@ table 50609 "Pre Daytask Request Buf."
         // ── Work hours & calendar ──────────────────────────────────────────────
 
         /// <summary>Work-Hour Template to derive default start/end times.
-        /// Validates automatically and populates Daytask Start/End.</summary>
+        /// Validates automatically and populates DayPlanning Start/End.</summary>
         field(70; "Work-Hour Template"; Code[10])
         {
             Caption = 'Work-Hour Template';
@@ -145,11 +145,11 @@ table 50609 "Pre Daytask Request Buf."
             begin
                 // Populate start/end time defaults from the selected template
                 if WHTemplate.Get(Rec."Work-Hour Template") then begin
-                    Rec."Daytask Start" := WHTemplate."Default Start Time";
-                    Rec."Daytask End" := WHTemplate."Default End Time";
+                    Rec."DayPlanning Start" := WHTemplate."Default Start Time";
+                    Rec."DayPlanning End" := WHTemplate."Default End Time";
                 end else begin
-                    Rec."Daytask Start" := 0T;
-                    Rec."Daytask End" := 0T;
+                    Rec."DayPlanning Start" := 0T;
+                    Rec."DayPlanning End" := 0T;
                 end;
             end;
         }
@@ -164,7 +164,7 @@ table 50609 "Pre Daytask Request Buf."
 
         /// <summary>Planned start time for each generated line.
         /// Pre-populated from the Work-Hour Template.</summary>
-        field(75; "Daytask Start"; Time)
+        field(75; "DayPlanning Start"; Time)
         {
             Caption = 'Start Time';
             DataClassification = CustomerContent;
@@ -172,7 +172,7 @@ table 50609 "Pre Daytask Request Buf."
 
         /// <summary>Planned end time for each generated line.
         /// Pre-populated from the Work-Hour Template.</summary>
-        field(76; "Daytask End"; Time)
+        field(76; "DayPlanning End"; Time)
         {
             Caption = 'End Time';
             DataClassification = CustomerContent;

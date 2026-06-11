@@ -23,7 +23,7 @@ page 50602 "Resource Scheduler Color opt"
                     ApplicationArea = All;
                     TableRelation = Resource;
                 }
-                field("Day Task"; Rec."Day Task")
+                field("Day Planning"; Rec."Day Planning")
                 {
                     ApplicationArea = All;
                 }
@@ -47,14 +47,14 @@ page 50602 "Resource Scheduler Color opt"
             {
                 ApplicationArea = All;
                 Caption = 'Generate Colors';
-                ToolTip = 'Auto-assign modern complementary colors to all resources for Day Task and Capacity fields. Existing entries will be overwritten.';
+                ToolTip = 'Auto-assign modern complementary colors to all resources for Day Planning and Capacity fields. Existing entries will be overwritten.';
                 Image = SetupList;
 
                 trigger OnAction()
                 var
                     Res: Record Resource;
                     ResColor: Record "Planning Color Opt.";
-                    DayTaskColors: array[8] of Text[30];
+                    DayPlanningColors: array[8] of Text[30];
                     CapColors: array[8] of Text[30];
                     Idx: Integer;
                     Count: Integer;
@@ -64,22 +64,22 @@ page 50602 "Resource Scheduler Color opt"
                     if not Confirm(ConfirmLbl, false) then
                         exit;
 
-                    // Modern complementary pairs: lighter shade for Day Task, deeper shade for Capacity
-                    DayTaskColors[1] := 'sky';
+                    // Modern complementary pairs: lighter shade for Day Planning, deeper shade for Capacity
+                    DayPlanningColors[1] := 'sky';
                     CapColors[1] := 'ocean';
-                    DayTaskColors[2] := 'coral';
+                    DayPlanningColors[2] := 'coral';
                     CapColors[2] := 'crimson';
-                    DayTaskColors[3] := 'mint';
+                    DayPlanningColors[3] := 'mint';
                     CapColors[3] := 'teal';
-                    DayTaskColors[4] := 'sand';
+                    DayPlanningColors[4] := 'sand';
                     CapColors[4] := 'amber';
-                    DayTaskColors[5] := 'rose';
+                    DayPlanningColors[5] := 'rose';
                     CapColors[5] := 'plum';
-                    DayTaskColors[6] := 'lavender';
+                    DayPlanningColors[6] := 'lavender';
                     CapColors[6] := 'indigo';
-                    DayTaskColors[7] := 'green';
+                    DayPlanningColors[7] := 'green';
                     CapColors[7] := 'violet';
-                    DayTaskColors[8] := 'yellow';
+                    DayPlanningColors[8] := 'yellow';
                     CapColors[8] := 'blue';
 
                     Count := 0;
@@ -93,11 +93,11 @@ page 50602 "Resource Scheduler Color opt"
                                 ResColor.Init();
                                 ResColor.Type := ResColor.Type::"Resource Scheduler";
                                 ResColor."No." := Res."No.";
-                                ResColor."Day Task" := DayTaskColors[Idx];
+                                ResColor."Day Planning" := DayPlanningColors[Idx];
                                 ResColor.Capacity := CapColors[Idx];
                                 ResColor.Insert();
                             end else begin
-                                ResColor."Day Task" := DayTaskColors[Idx];
+                                ResColor."Day Planning" := DayPlanningColors[Idx];
                                 ResColor.Capacity := CapColors[Idx];
                                 ResColor.Modify();
                             end;

@@ -162,12 +162,12 @@ window.BOOT = function() {
         */
     }
 
-    /* Daytask_0 events */
-    .dhx_cal_event.event-daytask_0,
-    .dhx_cal_event_line.event-daytask_0,
-    .dhx_event_line.event-daytask_0,
-    .dhx_cal_event.event-daytask_0 .dhx_title,
-    .dhx_cal_event.event-daytask_0 .dhx_body {
+    /* DayPlanning_0 events */
+    .dhx_cal_event.event-DayPlanning_0,
+    .dhx_cal_event_line.event-DayPlanning_0,
+    .dhx_event_line.event-DayPlanning_0,
+    .dhx_cal_event.event-DayPlanning_0 .dhx_title,
+    .dhx_cal_event.event-DayPlanning_0 .dhx_body {
         color: white !important;
         font-size: 14px !important;
         /*
@@ -176,12 +176,12 @@ window.BOOT = function() {
         */
     }
 
-    /* Daytask_1 events */
-    .dhx_cal_event.event-daytask_1,
-    .dhx_cal_event_line.event-daytask_1,
-    .dhx_event_line.event-daytask_1,
-    .dhx_cal_event.event-daytask_1 .dhx_title,
-    .dhx_cal_event.event-daytask_1 .dhx_body {
+    /* DayPlanning_1 events */
+    .dhx_cal_event.event-DayPlanning_1,
+    .dhx_cal_event_line.event-DayPlanning_1,
+    .dhx_event_line.event-DayPlanning_1,
+    .dhx_cal_event.event-DayPlanning_1 .dhx_title,
+    .dhx_cal_event.event-DayPlanning_1 .dhx_body {
         color: black !important;
         font-size: 14px !important;
         /*
@@ -230,10 +230,10 @@ window.BOOT = function() {
             typeClass = "event-capacity";
         } else if (ev.type === "vacancy") {
             typeClass = "event-vacancy";
-        } else if (ev.type === "daytask_0") {
-            typeClass = "event-daytask_0";
-        } else if (ev.type === "daytask_1") {
-            typeClass = "event-daytask_1";
+        } else if (ev.type === "DayPlanning_0") {
+            typeClass = "event-DayPlanning_0";
+        } else if (ev.type === "DayPlanning_1") {
+            typeClass = "event-DayPlanning_1";
         }
         return typeClass;
     };
@@ -265,13 +265,13 @@ window.BOOT = function() {
                    "<b>End Time:</b> " + formatTimeOnly(end) + "<br/>" +         
                    "-----------------------------------<br/>" +                             
                    "<b>Capacity entry no.:</b> " + (ev.id || "") + "<br/>";
-        } else if (ev.type === "daytask_0" || ev.type === "daytask_1" || ev.type === "vacancy") {
+        } else if (ev.type === "DayPlanning_0" || ev.type === "DayPlanning_1" || ev.type === "vacancy") {
             // var parts = String(ev.section_id).split('|');
             // var vendor_no = "";
             // if (parts.length >= 3) {
             //     vendor_no = parts[2] || "";
             // }
-            html = "<b>Daytask:</b> " + (ev.text || "") + "<br/>" +
+            html = "<b>DayPlanning:</b> " + (ev.text || "") + "<br/>" +
                    "<b>Date:</b> " + formatDateOnly(start) + "<br/>" +
                    "<b>Start Time:</b> " + formatTimeOnly(start) + "<br/>" +
                    "<b>End Time:</b> " + formatTimeOnly(end) + "<br/>" +

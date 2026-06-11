@@ -23,7 +23,7 @@ table 50600 "Planning Color Opt."
         {
             DataClassification = ToBeClassified;
         }
-        field(10; "Day Task"; Text[30])
+        field(10; "Day Planning"; Text[30])
         {
             DataClassification = ToBeClassified;
         }

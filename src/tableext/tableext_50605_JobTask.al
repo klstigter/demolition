@@ -18,7 +18,7 @@ tableextension 50605 "Job Task ext" extends "Job Task"
             begin
                 CalculateDuration();
                 // Change to popup page editor:
-                // if not DayTaskPeriodSyncMgt.HandleJobTaskPeriodChange(Rec, xRec.PlannedStartDate, xRec.PlannedEndDate, true) then begin
+                // if not DayPlanningPeriodSyncMgt.HandleJobTaskPeriodChange(Rec, xRec.PlannedStartDate, xRec.PlannedEndDate, true) then begin
                 //     Rec.PlannedStartDate := xRec.PlannedStartDate;
                 //     Rec.Duration := xRec.Duration;
                 // end;
@@ -33,7 +33,7 @@ tableextension 50605 "Job Task ext" extends "Job Task"
             begin
                 CalculateDuration();
                 // Change to popup page editor:
-                // if not DayTaskPeriodSyncMgt.HandleJobTaskPeriodChange(Rec, xRec.PlannedStartDate, xRec.PlannedEndDate, true) then begin
+                // if not DayPlanningPeriodSyncMgt.HandleJobTaskPeriodChange(Rec, xRec.PlannedStartDate, xRec.PlannedEndDate, true) then begin
                 //     Rec.PlannedEndDate := xRec.PlannedEndDate;
                 //     Rec.Duration := xRec.Duration;
                 //     if GuiAllowed then
@@ -110,10 +110,10 @@ tableextension 50605 "Job Task ext" extends "Job Task"
             DataClassification = ToBeClassified;
         }
 
-        field(50610; "Daytask Week Pattern"; Code[20])
+        field(50610; "DayPlanning Week Pattern"; Code[20])
         {
             DataClassification = ToBeClassified;
-            Caption = 'Daytask Week Pattern';
+            Caption = 'DayPlanning Week Pattern';
             ToolTip = 'Specifies the week pattern for the project task. ex. 1|2|3|4|5|6|7 for all days, 1|4 for only Monday and Thursday, etc.';
         }
 
@@ -136,14 +136,14 @@ tableextension 50605 "Job Task ext" extends "Job Task"
         field(50690; "Total Assigned Hours"; Decimal)
         {
             FieldClass = FlowField;
-            CalcFormula = sum("Day Tasks"."Assigned Hours" where("Job No." = field("Job No."), "Job Task No." = field("Job Task No."), "Task Date" = field("Planning Date Filter")));
+            CalcFormula = sum("Day Planning"."Assigned Hours" where("Job No." = field("Job No."), "Job Task No." = field("Job Task No."), "Task Date" = field("Planning Date Filter")));
             BlankNumbers = BlankZero;
             Editable = false;
         }
-        field(50700; "Total Day Tasks"; Integer)
+        field(50700; "Total Day Plannings"; Integer)
         {
             FieldClass = FlowField;
-            CalcFormula = count("Day Tasks" where("Job No." = field("Job No."), "Job Task No." = field("Job Task No."), "Task Date" = field("Planning Date Filter")));
+            CalcFormula = count("Day Planning" where("Job No." = field("Job No."), "Job Task No." = field("Job Task No."), "Task Date" = field("Planning Date Filter")));
             BlankNumbers = BlankZero;
             Editable = false;
         }
@@ -172,8 +172,8 @@ tableextension 50605 "Job Task ext" extends "Job Task"
     end;
 
     var
-        DayTaskMgt: Codeunit "Day Tasks Mgt.";
-        // DayTaskPeriodSyncMgt: Codeunit "DayTask Period Sync Mgt.";
+        DayPlanningMgt: Codeunit "Day Plannings Mgt.";
+        // DayPlanningPeriodSyncMgt: Codeunit "DayPlanning Period Sync Mgt.";
         Job: Record Job;
 
     procedure CalculateDuration()
@@ -220,12 +220,15 @@ tableextension 50605 "Job Task ext" extends "Job Task"
 
     procedure CheckDataLimitations()
     var
-        MinDayTaskDate: Date;
-        MaxDayTaskDate: Date;
+        MinDayPlanningDate: Date;
+        MaxDayPlanningDate: Date;
         JobStartDate: Date;
         JobEndDate: Date;
+        Err01Lbl: Label 'Start en End Date overlaped!';
+        Err02Lbl: Label 'Day Plannings exist before Planned Start Date!';
+        Err03Lbl: Label 'Day Plannings exist after Planned End Date!';
     begin
-        DayTaskMgt.GetDateRange(Rec."Job No.", Rec."Job Task No.", MinDayTaskDate, MaxDayTaskDate);
+        DayPlanningMgt.GetDateRange(Rec."Job No.", Rec."Job Task No.", MinDayPlanningDate, MaxDayPlanningDate);
         JobStartDate := 0D;
         JobEndDate := DMY2Date(31, 12, 2999);
         if ("PlannedStartDate" <> 0D) then begin
@@ -235,11 +238,11 @@ tableextension 50605 "Job Task ext" extends "Job Task"
             JobEndDate := "PlannedEndDate";
         end;
         if HasOverlap(JobStartDate, JobEndDate) then
-            error('Start en End Date overlaped!');
-        if HasOverlap(JobStartDate, MinDayTaskDate) then
-            error('Day Tasks exist before Planned Start Date!');
-        if HasOverlap(MaxDayTaskDate, JobEndDate) then
-            error('Day Tasks exist after Planned End Date!');
+            error(Err01Lbl);
+        if HasOverlap(JobStartDate, MinDayPlanningDate) then
+            error(Err02Lbl);
+        if HasOverlap(MaxDayPlanningDate, JobEndDate) then
+            error(Err03Lbl);
     end;
 
     local procedure HasOverlap(DTstart: Date; DTend: Date): Boolean

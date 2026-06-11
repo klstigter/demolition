@@ -1,8 +1,8 @@
 pageextension 50621 "Opt. Job Journal" extends "Job Journal"
 {
-    // Adds Day Task Date and Day Task Line No. to the Project Journal worksheet.
+    // Adds Day Planning Date and Day Planning Line No. to the Project Journal worksheet.
     // Both fields are only editable when Job No. and Job Task No. are filled.
-    // Day Task Line No. additionally requires Day Task Date to be set first.
+    // Day Planning Line No. additionally requires Day Planning Date to be set first.
     //
     // Editable uses page-level Boolean vars (updated in OnAfterGetCurrRecord)
     // because AL does not allow inline record-field expressions in the Editable property
@@ -11,24 +11,24 @@ pageextension 50621 "Opt. Job Journal" extends "Job Journal"
     {
         addafter("Job Task No.")
         {
-            field("Opt. Daytask Date"; Rec."Opt. Daytask Date")
+            field("Opt. DayPlanning Date"; Rec."Opt. DayPlanning Date")
             {
                 ApplicationArea = All;
-                Caption = 'Day Task Date';
-                ToolTip = 'Specifies the date of the Day Task entry linked to this journal line. Requires Project No. and Project Task No. to be filled.';
-                Editable = DaytaskDateEditable;
+                Caption = 'Day Planning Date';
+                ToolTip = 'Specifies the date of the Day Planning entry linked to this journal line. Requires Project No. and Project Task No. to be filled.';
+                Editable = DayPlanningDateEditable;
 
                 trigger OnValidate()
                 begin
                     UpdateEditableVars();
                 end;
             }
-            field("Opt. Daytask Line No."; Rec."Opt. Daytask Line No.")
+            field("Opt. DayPlanning Line No."; Rec."Opt. DayPlanning Line No.")
             {
                 ApplicationArea = All;
-                Caption = 'Day Task Line No.';
-                ToolTip = 'Specifies the line number of the Day Task entry linked to this journal line. Requires Day Task Date to be set.';
-                Editable = DaytaskLineNoEditable;
+                Caption = 'Day Planning Line No.';
+                ToolTip = 'Specifies the line number of the Day Planning entry linked to this journal line. Requires Day Planning Date to be set.';
+                Editable = DayPlanningLineNoEditable;
             }
         }
     }
@@ -40,12 +40,12 @@ pageextension 50621 "Opt. Job Journal" extends "Job Journal"
 
     local procedure UpdateEditableVars()
     begin
-        DaytaskDateEditable := (Rec."Job No." <> '') and (Rec."Job Task No." <> '');
-        DaytaskLineNoEditable := DaytaskDateEditable and (Rec."Opt. Daytask Date" <> 0D);
+        DayPlanningDateEditable := (Rec."Job No." <> '') and (Rec."Job Task No." <> '');
+        DayPlanningLineNoEditable := DayPlanningDateEditable and (Rec."Opt. DayPlanning Date" <> 0D);
     end;
 
     var
-        DaytaskDateEditable: Boolean;
-        DaytaskLineNoEditable: Boolean;
+        DayPlanningDateEditable: Boolean;
+        DayPlanningLineNoEditable: Boolean;
 }
 

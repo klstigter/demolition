@@ -135,16 +135,16 @@ page 50638 "Resource Week View Part"
     {
         area(Processing)
         {
-            action(ShowDayTasks)
+            action(ShowDayPlannings)
             {
                 ApplicationArea = All;
-                Caption = 'Show Day Tasks';
+                Caption = 'Show Day Plannings';
                 Image = TaskList;
-                ToolTip = 'View all day tasks for this resource and week.';
+                ToolTip = 'View all day plannings for this resource and week.';
 
                 trigger OnAction()
                 var
-                    DayTask: Record "Day Tasks";
+                    DayPlanning: Record "Day Planning";
                     WeekStart: Date;
                     WeekEnd: Date;
                 begin
@@ -155,15 +155,15 @@ page 50638 "Resource Week View Part"
 
                     WeekStart := GetWeekStartFromYearWeek(Rec.Year, Rec."Week No.");
                     WeekEnd := CalcDate('<+6D>', WeekStart);
-                    DayTask.Reset();
+                    DayPlanning.Reset();
                     if rec."Resource No." <> '' then
-                        DayTask.SetRange("Assigned Resource No.", Rec."Resource No.");
+                        DayPlanning.SetRange("Assigned Resource No.", Rec."Resource No.");
                     if rec."Skill Code" <> '' then
-                        DayTask.SetRange("Skill", Rec."Skill Code");
-                    DayTask.SetRange("Job No.", Rec."Job No.");
-                    DayTask.SetRange("Job Task No.", Rec."Job Task No.");
-                    DayTask.SetRange("Task Date", WeekStart, WeekEnd);
-                    Page.Run(Page::"Day Tasks", DayTask);
+                        DayPlanning.SetRange("Skill", Rec."Skill Code");
+                    DayPlanning.SetRange("Job No.", Rec."Job No.");
+                    DayPlanning.SetRange("Job Task No.", Rec."Job Task No.");
+                    DayPlanning.SetRange("Task Date", WeekStart, WeekEnd);
+                    Page.Run(Page::"Day Plannings", DayPlanning);
                 end;
             }
             action(OpenSkills)
@@ -187,7 +187,7 @@ page 50638 "Resource Week View Part"
 
                 end;
             }
-            action("Day Tasks (Visual)")
+            action("Day Plannings (Visual)")
             {
                 ApplicationArea = All;
                 Image = Capacities;
@@ -285,8 +285,8 @@ page 50638 "Resource Week View Part"
 
     local procedure DrillDown2DayTaks(WeekDayNo: Integer)
     var
-        Pg: Page "Day Tasks";
-        Rc: Record "Day Tasks";
+        Pg: Page "Day Plannings";
+        Rc: Record "Day Planning";
         WeekFilter: Text;
     begin
         if WeekDayNo = 0 then begin

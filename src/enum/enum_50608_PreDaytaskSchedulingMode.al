@@ -1,8 +1,8 @@
 /// <summary>
-/// Defines the scheduling mode used when generating pre-Daytask planning lines
+/// Defines the scheduling mode used when generating pre-DayPlanning planning lines
 /// from an Order Intake document.
 /// </summary>
-enum 50608 "Pre Daytask Scheduling Mode"
+enum 50608 "Pre DayPlanning Scheduling Mode"
 {
     Extensible = true;
     Caption = 'Scheduling Mode';

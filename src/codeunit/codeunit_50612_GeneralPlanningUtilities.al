@@ -99,46 +99,46 @@ codeunit 50612 "General Planning Utilities"
         end;
         */
 
-    procedure DayTaskFulFillment(pDayTask: Record "Day Tasks";
+    procedure DayPlanningFulFillment(pDayPlanning: Record "Day Planning";
                                  var RequestedHours: Decimal;
                                  var Capacity: Decimal): Boolean
     var
         Resource: Record Resource;
-        DayTask: Record "Day Tasks";
+        DayPlanning: Record "Day Planning";
         ResourceNo: Code[20];
         WorkingMinutes: Decimal;
         CapacityIsUsed: boolean;
     begin
-        ResourceNo := pDayTask."Assigned Resource No.";
-        if pDayTask."Assigned Resource No." = '' then
+        ResourceNo := pDayPlanning."Assigned Resource No.";
+        if pDayPlanning."Assigned Resource No." = '' then
             exit;
-        WorkingMinutes := GetWorkingMinutes(pDayTask);
-        // Find Day Task with complete start and end time and same resource and day no
-        DayTask.SetRange("Task Date", pDayTask."task Date");
-        DayTask.SetRange("Assigned Resource No.", ResourceNo);
-        DayTask.SetFilter("Day Line No.", '<>%1', pDayTask."Day Line No.");
-        DayTask.SetFilter("Start Time Assigned", '<>%1', 0T);
-        DayTask.SetFilter("End Time Assigned", '<>%1', 0T);
-        if DayTask.FindFirst() then
+        WorkingMinutes := GetWorkingMinutes(pDayPlanning);
+        // Find Day Planning with complete start and end time and same resource and day no
+        DayPlanning.SetRange("Task Date", pDayPlanning."task Date");
+        DayPlanning.SetRange("Assigned Resource No.", ResourceNo);
+        DayPlanning.SetFilter("Day Line No.", '<>%1', pDayPlanning."Day Line No.");
+        DayPlanning.SetFilter("Start Time Assigned", '<>%1', 0T);
+        DayPlanning.SetFilter("End Time Assigned", '<>%1', 0T);
+        if DayPlanning.FindFirst() then
             repeat
-                WorkingMinutes += GetWorkingMinutes(DayTask);
-            until DayTask.Next() = 0;
+                WorkingMinutes += GetWorkingMinutes(DayPlanning);
+            until DayPlanning.Next() = 0;
 
         RequestedHours += WorkingMinutes / 60;
-        // Find Capacity Entry per Daytask Date and Resource No.
-        pDayTask.CalcFields(Capacity);
-        Capacity := pDayTask.Capacity;
+        // Find Capacity Entry per DayPlanning Date and Resource No.
+        pDayPlanning.CalcFields(Capacity);
+        Capacity := pDayPlanning.Capacity;
 
         CapacityIsUsed := RequestedHours >= Capacity;
         exit(CapacityIsUsed);
     end;
 
-    local procedure GetWorkingMinutes(DayTask: Record "Day Tasks"): Decimal
+    local procedure GetWorkingMinutes(DayPlanning: Record "Day Planning"): Decimal
     var
         WorkingMinutes: Decimal;
     begin
-        WorkingMinutes := (DayTask."End Time Assigned" - DayTask."Start Time Assigned") div 60000;
-        WorkingMinutes := WorkingMinutes - DayTask."Non Working Minutes";
+        WorkingMinutes := (DayPlanning."End Time Assigned" - DayPlanning."Start Time Assigned") div 60000;
+        WorkingMinutes := WorkingMinutes - DayPlanning."Non Working Minutes";
         exit(WorkingMinutes);
     end;
 

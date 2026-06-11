@@ -38,18 +38,18 @@ table 50603 "PLanning Cue"
             Caption = 'Capacity (Tomorrow)';
             Editable = false;
         }
-        field(50; "Daytask (Today)"; Integer)
+        field(50; "DayPlanning (Today)"; Integer)
         {
             FieldClass = FlowField;
-            CalcFormula = Count("Day Tasks" where("Task Date" = field("Date Filter")));
-            Caption = 'Daytask (Today)';
+            CalcFormula = Count("Day Planning" where("Task Date" = field("Date Filter")));
+            Caption = 'DayPlanning (Today)';
             Editable = false;
         }
-        field(60; "Daytask (Tomorrow)"; Integer)
+        field(60; "DayPlanning (Tomorrow)"; Integer)
         {
             FieldClass = FlowField;
-            CalcFormula = Count("Day Tasks" where("Task Date" = field("Date Filter2")));
-            Caption = 'Daytask (Tomorrow)';
+            CalcFormula = Count("Day Planning" where("Task Date" = field("Date Filter2")));
+            Caption = 'DayPlanning (Tomorrow)';
             Editable = false;
         }
         field(100; "Date Filter"; Date)

@@ -151,7 +151,7 @@
     --dhx-scheduler-event-color: #333;
 }
 
-/* Modern extended palette – complementary pairs (lighter=DayTask, deeper=Capacity) */
+/* Modern extended palette – complementary pairs (lighter=DayPlanning, deeper=Capacity) */
 .sky {
     --dhx-scheduler-event-background: linear-gradient(180deg, #38BDF8 0%, #7DD3FC 100%);
     --dhx-scheduler-event-color: #fff;
@@ -254,7 +254,7 @@
 }
 
 /* ============================================================
-   Available capacity block (capacity exists, no day task)
+   Available capacity block (capacity exists, no day planning)
    Shown as a faint diagonal-hatch to signal free time.
    ============================================================ */
 .dhx_cal_event.cap-available .dhx_body {

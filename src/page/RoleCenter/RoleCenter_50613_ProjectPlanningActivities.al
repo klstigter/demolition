@@ -43,11 +43,11 @@ page 50613 "Project Planning Activities"
                     ApplicationArea = Basic, Suite;
                     ToolTip = 'Capacity for today.';
                 }
-                field("Daytask (Today)"; Rec."Daytask (Today)")
+                field("DayPlanning (Today)"; Rec."DayPlanning (Today)")
                 {
-                    Caption = 'Daytask';
+                    Caption = 'DayPlanning';
                     ApplicationArea = Basic, Suite;
-                    ToolTip = 'Number of day tasks for today.';
+                    ToolTip = 'Number of day plannings for today.';
                 }
             }
             cuegroup("Tomorrow")
@@ -82,11 +82,11 @@ page 50613 "Project Planning Activities"
                     ApplicationArea = Basic, Suite;
                     ToolTip = 'Capacity for tomorrow.';
                 }
-                field("Daytask (Tomorrow)"; Rec."Daytask (Tomorrow)")
+                field("DayPlanning (Tomorrow)"; Rec."DayPlanning (Tomorrow)")
                 {
-                    Caption = 'Daytask';
+                    Caption = 'DayPlanning';
                     ApplicationArea = Basic, Suite;
-                    ToolTip = 'Number of day tasks for tomorrow.';
+                    ToolTip = 'Number of day plannings for tomorrow.';
                 }
             }
 

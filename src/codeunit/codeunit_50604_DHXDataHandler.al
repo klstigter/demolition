@@ -85,7 +85,7 @@ codeunit 50604 "DHX Data Handler"
         JobTasks: Record "Job Task";
         TEMPJobTasks: Record "Job Task" temporary;
         //PlanningLine: Record "Job Task";
-        Daytask: Record "Day Tasks";
+        DayPlanning: Record "Day Planning";
         WeekTemp: record "Aging Band Buffer" temporary;
         Resource: record Resource;
         Ven: Record Vendor;
@@ -114,23 +114,23 @@ codeunit 50604 "DHX Data Handler"
         DetailsLabel: Label '%1 - %2|%3 - %4|%5 - %6';
     begin
         PlanninJsonTxt := '';
-        //Marking Job based on Day Tasks within the given date range
-        Daytask.SetCurrentKey("Task Date", "Start Time Assigned");
-        Daytask.SetRange("Task Date", StartDate, EndDate);
+        //Marking Job based on Day Plannings within the given date range
+        DayPlanning.SetCurrentKey("Task Date", "Start Time Assigned");
+        DayPlanning.SetRange("Task Date", StartDate, EndDate);
         if JobFilter <> '' then
-            Daytask.SetFilter("Job No.", JobFilter)
+            DayPlanning.SetFilter("Job No.", JobFilter)
         else
-            Daytask.SetFilter("Job No.", '<>%1', ''); //Exclude blank Job Nos
+            DayPlanning.SetFilter("Job No.", '<>%1', ''); //Exclude blank Job Nos
         if jobTaskFilter <> '' then
-            Daytask.SetFilter("Job Task No.", jobTaskFilter)
+            DayPlanning.SetFilter("Job Task No.", jobTaskFilter)
         else
-            Daytask.SetFilter("Job Task No.", '<>%1', ''); //Exclude blank task Nos
+            DayPlanning.SetFilter("Job Task No.", '<>%1', ''); //Exclude blank task Nos
         if ResourceFilter <> '' then
-            Daytask.Setfilter("Assigned Resource No.", ResourceFilter);
-        //Daytask.SetRange(Type, Daytask.Type::Resource);
-        if Daytask.FindSet() then begin
+            DayPlanning.Setfilter("Assigned Resource No.", ResourceFilter);
+        //DayPlanning.SetRange(Type, DayPlanning.Type::Resource);
+        if DayPlanning.FindSet() then begin
             repeat
-                JobTasks.Get(Daytask."Job No.", Daytask."Job Task No.");
+                JobTasks.Get(DayPlanning."Job No.", DayPlanning."Job Task No.");
                 TEMPJobTasks := JobTasks;
                 if not tempjobtasks.get(jobTasks."Job No.", jobTasks."Job Task No.") then begin
                     TEMPJobTasks.insert();
@@ -140,65 +140,65 @@ codeunit 50604 "DHX Data Handler"
                 clear(Resource);
                 ResNo := '';
                 ResName := '';
-                if Resource.Get(Daytask."Assigned Resource No.") then begin
+                if Resource.Get(DayPlanning."Assigned Resource No.") then begin
                     ResNo := Resource."No.";
                     ResName := Resource.Name;
                 end;
                 // create event data
                 if AnchorDate = 0D then
-                    CountToWeekNumber(Daytask."Task Date", WeekTemp);
+                    CountToWeekNumber(DayPlanning."Task Date", WeekTemp);
 
-                GetStartEndTxt(Daytask, StartDateTxt, EndDateTxt);
+                GetStartEndTxt(DayPlanning, StartDateTxt, EndDateTxt);
                 Clear(PlanningObject);
-                PlanningObject.Add('id', Daytask."Job No." + '|' +
-                                         Daytask."Job Task No." + '|' +
-                                         Format(Daytask."Task Date") + '|' +
-                                         Format(Daytask."Day Line No.") + '|' +
+                PlanningObject.Add('id', DayPlanning."Job No." + '|' +
+                                         DayPlanning."Job Task No." + '|' +
+                                         Format(DayPlanning."Task Date") + '|' +
+                                         Format(DayPlanning."Day Line No.") + '|' +
                                          ResNo + '|' +
                                          ResName);
                 PlanningObject.Add('start_date', StartDateTxt);
                 PlanningObject.Add('end_date', EndDateTxt);
-                //if Daytask.Description <> '' then
-                //    PlanningObject.Add('text', Daytask.Description)
+                //if DayPlanning.Description <> '' then
+                //    PlanningObject.Add('text', DayPlanning.Description)
                 //else
-                if Daytask."Assigned Resource No." <> '' then begin
+                if DayPlanning."Assigned Resource No." <> '' then begin
                     if ResName <> '' then
                         PlanningObject.Add('text', ResName)
                     else
-                        PlanningObject.Add('text', Daytask.Description);
+                        PlanningObject.Add('text', DayPlanning.Description);
                 end else
-                    PlanningObject.Add('text', Daytask."Job No." + '|' + Daytask."Job Task No." + ' (vacant)');
+                    PlanningObject.Add('text', DayPlanning."Job No." + '|' + DayPlanning."Job Task No." + ' (vacant)');
 
-                PlanningObject.Add('section_id', Daytask."Job No." + '|' + Daytask."Job Task No.");
+                PlanningObject.Add('section_id', DayPlanning."Job No." + '|' + DayPlanning."Job Task No.");
                 // if ResNo <> '' then begin
-                //     if Daytask."Vendor No." <> '' then
+                //     if DayPlanning."Vendor No." <> '' then
                 //         PlanningObject.Add('color', 'grey')
                 //     else
                 //         PlanningObject.Add('color', 'green');
                 // end else begin // no resource assigned
-                //     if Daytask."Vendor No." <> '' then
+                //     if DayPlanning."Vendor No." <> '' then
                 //         PlanningObject.Add('color', 'grey')
                 //     else
                 //         PlanningObject.Add('color', 'green');
                 // end;
                 if ResNo = '' then begin
                     PlanningObject.Add('color', '#3367D1'); //Blue BC Selection
-                    PlanningObject.Add('type', 'daytask_0');
+                    PlanningObject.Add('type', 'DayPlanning_0');
                 end else begin
                     PlanningObject.Add('color', '#21B36C'); //Green
-                    PlanningObject.Add('type', 'daytask_1');
+                    PlanningObject.Add('type', 'DayPlanning_1');
                 end;
 
-                if not Ven.Get(Daytask."Vendor No.") then
+                if not Ven.Get(DayPlanning."Vendor No.") then
                     Clear(Ven);
                 PlanningObject.Add('details', Ven.Name);
                 // StrSubstNo(DetailsLabel, Ven."No.", Ven.Name
-                // , Daytask."Job No.", Jobs.Description
-                // , Daytask."Job Task No.", JobTasks.Description));
+                // , DayPlanning."Job No.", Jobs.Description
+                // , DayPlanning."Job Task No.", JobTasks.Description));
 
                 PlanningArray.Add(PlanningObject);
                 PlanningArray.WriteTo(PlanninJsonTxt);
-            until Daytask.Next() = 0;
+            until DayPlanning.Next() = 0;
 
             if AnchorDate = 0D then begin
                 WeekTemp.Reset();
@@ -430,42 +430,42 @@ codeunit 50604 "DHX Data Handler"
         end;
     end;
 
-    local procedure GetVendorNoFromDayTask(FromDate: Date; ToDate: Date; ResNo: Code[20]): Text
+    local procedure GetVendorNoFromDayPlanning(FromDate: Date; ToDate: Date; ResNo: Code[20]): Text
     var
-        Daytask: record "Day Tasks";
+        DayPlanning: record "Day Planning";
         VendorNo: Text;
         rtv: Text;
     begin
         rtv := '';
-        Daytask.SetRange("Task Date", FromDate, ToDate);
-        Daytask.SetRange("Assigned Resource No.", ResNo);
-        Daytask.Setfilter("Vendor No.", '<>%1', '');
-        if Daytask.FindFirst() then
-            rtv := Daytask."Resource Group No." + '|' + Daytask."Assigned Resource No." + '|' + Daytask."Vendor No."
+        DayPlanning.SetRange("Task Date", FromDate, ToDate);
+        DayPlanning.SetRange("Assigned Resource No.", ResNo);
+        DayPlanning.Setfilter("Vendor No.", '<>%1', '');
+        if DayPlanning.FindFirst() then
+            rtv := DayPlanning."Resource Group No." + '|' + DayPlanning."Assigned Resource No." + '|' + DayPlanning."Vendor No."
         else begin
-            Daytask.Setfilter("Vendor No.", '');
-            if Daytask.FindFirst() then
-                rtv := Daytask."Resource Group No." + '|' + Daytask."Assigned Resource No." + '|' + Daytask."Vendor No.";
+            DayPlanning.Setfilter("Vendor No.", '');
+            if DayPlanning.FindFirst() then
+                rtv := DayPlanning."Resource Group No." + '|' + DayPlanning."Assigned Resource No." + '|' + DayPlanning."Vendor No.";
         end;
         exit(rtv);
     end;
 
-    local procedure GetPoolNoFromDayTask(FromDate: Date; ToDate: Date; ResNo: Code[20]): Text
+    local procedure GetPoolNoFromDayPlanning(FromDate: Date; ToDate: Date; ResNo: Code[20]): Text
     var
-        Daytask: record "Day Tasks";
+        DayPlanning: record "Day Planning";
         PoolNo: Text;
         rtv: Text;
     begin
         rtv := '';
-        Daytask.SetRange("Task Date", FromDate, ToDate);
-        Daytask.SetRange("Assigned Resource No.", ResNo);
-        Daytask.Setfilter("Pool Resource No.", '<>%1', '');
-        if Daytask.FindFirst() then
-            rtv := Daytask."Resource Group No." + '|' + Daytask."Assigned Resource No." + '|' + Daytask."Pool Resource No."
+        DayPlanning.SetRange("Task Date", FromDate, ToDate);
+        DayPlanning.SetRange("Assigned Resource No.", ResNo);
+        DayPlanning.Setfilter("Pool Resource No.", '<>%1', '');
+        if DayPlanning.FindFirst() then
+            rtv := DayPlanning."Resource Group No." + '|' + DayPlanning."Assigned Resource No." + '|' + DayPlanning."Pool Resource No."
         else begin
-            Daytask.Setfilter("Pool Resource No.", '');
-            if Daytask.FindFirst() then
-                rtv := Daytask."Resource Group No." + '|' + Daytask."Assigned Resource No." + '|' + Daytask."Pool Resource No.";
+            DayPlanning.Setfilter("Pool Resource No.", '');
+            if DayPlanning.FindFirst() then
+                rtv := DayPlanning."Resource Group No." + '|' + DayPlanning."Assigned Resource No." + '|' + DayPlanning."Pool Resource No.";
         end;
         exit(rtv);
     end;
@@ -473,7 +473,7 @@ codeunit 50604 "DHX Data Handler"
     procedure GetYUnitElementsJSON_Resource(AnchorDate: Date;
                                    StartDate: Date;
                                    EndDate: Date;
-                                   WithDayTask: Boolean;
+                                   WithDayPlanning: Boolean;
                                    var PlanninJsonTxt: Text;
                                    var EarliestPlanningDate: Date): Text
     var
@@ -485,7 +485,7 @@ codeunit 50604 "DHX Data Handler"
         ResourceTemp: Record Resource temporary;
         TempVen: record Vendor temporary;
         DateRec: Record Date;
-        Daytask: record "Day Tasks";
+        DayPlanning: record "Day Planning";
         Resource: Record Resource;
         Job: Record Job;
         Task: Record "Job Task";
@@ -508,7 +508,7 @@ codeunit 50604 "DHX Data Handler"
         DetailsLabel: Label '%1 - %2|%3 - %4|%5 - %6';
     begin
         PlanninJsonTxt := '';
-        //Marking Job based on Day Tasks within the given date range
+        //Marking Job based on Day Plannings within the given date range
         WeekTemp.Reset();
         WeekTemp.DeleteAll();
 
@@ -528,8 +528,8 @@ codeunit 50604 "DHX Data Handler"
                         PlanningObject.Add('start_date', StartDateTxt);
                         PlanningObject.Add('end_date', EndDateTxt);
                         PlanningObject.Add('text', 'capacity');
-                        if WithDayTask then begin
-                            New_section_id := GetVendorNoFromDayTask(StartDate, EndDate, ResCap."Resource No."); //move into seciton id with daytask source no. and posibility has a vendor
+                        if WithDayPlanning then begin
+                            New_section_id := GetVendorNoFromDayPlanning(StartDate, EndDate, ResCap."Resource No."); //move into seciton id with DayPlanning source no. and posibility has a vendor
                             if New_section_id = '' then begin
                                 if not Resource.Get(ResCap."Resource No.") then
                                     Clear(Resource);
@@ -553,48 +553,48 @@ codeunit 50604 "DHX Data Handler"
                     ResCapQry.Close();
                 end;
 
-                //Add Event of Daytask
-                if WithDayTask then begin
-                    Daytask.setrange("Task Date", DateRec."Period Start");
-                    if Daytask.findset then
+                //Add Event of DayPlanning
+                if WithDayPlanning then begin
+                    DayPlanning.setrange("Task Date", DateRec."Period Start");
+                    if DayPlanning.findset then
                         repeat
-                            if not Job.Get(Daytask."Job No.") then
+                            if not Job.Get(DayPlanning."Job No.") then
                                 Clear(Job);
-                            if not Task.Get(Daytask."Job No.", Daytask."Job Task No.") then
+                            if not Task.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
                                 Clear(Task);
-                            ResNo := Daytask."Assigned Resource No.";
+                            ResNo := DayPlanning."Assigned Resource No.";
                             if not Resource.Get(ResNo) then
                                 Clear(Resource);
                             Clear(PlanningObject);
-                            PlanningObject.Add('id', Daytask."Job No." + '|' +
-                                                    Daytask."Job Task No." + '|' +
-                                                    Format(Daytask."Task Date") + '|' +
-                                                    Format(Daytask."Day Line No."));
+                            PlanningObject.Add('id', DayPlanning."Job No." + '|' +
+                                                    DayPlanning."Job Task No." + '|' +
+                                                    Format(DayPlanning."Task Date") + '|' +
+                                                    Format(DayPlanning."Day Line No."));
                             PlanningObject.Add('start_date', StartDateTxt);
                             PlanningObject.Add('end_date', EndDateTxt);
-                            if Daytask.Description <> '' then
-                                PlanningObject.Add('text', Daytask.Description)
+                            if DayPlanning.Description <> '' then
+                                PlanningObject.Add('text', DayPlanning.Description)
                             else
-                                if Daytask."Assigned Resource No." <> '' then
+                                if DayPlanning."Assigned Resource No." <> '' then
                                     PlanningObject.Add('text', Resource.Name)
                                 else
                                     PlanningObject.Add('text', 'vacant');
-                            PlanningObject.Add('section_id', Daytask."Resource Group No." + '|' + ResNo + '|' + Daytask."Vendor No.");
-                            if not Ven.Get(Daytask."Vendor No.") then
+                            PlanningObject.Add('section_id', DayPlanning."Resource Group No." + '|' + ResNo + '|' + DayPlanning."Vendor No.");
+                            if not Ven.Get(DayPlanning."Vendor No.") then
                                 Clear(Ven);
                             PlanningObject.Add('details', StrSubstNo(DetailsLabel, Ven."No.", Ven.Name
-                                                                                     , Daytask."Job No.", Job.Description
-                                                                                     , Daytask."Job Task No.", Task.Description));
-                            if Daytask."Vendor No." = '' then begin
+                                                                                     , DayPlanning."Job No.", Job.Description
+                                                                                     , DayPlanning."Job Task No.", Task.Description));
+                            if DayPlanning."Vendor No." = '' then begin
                                 PlanningObject.Add('color', 'green');
-                                PlanningObject.Add('type', 'daytask_0');
+                                PlanningObject.Add('type', 'DayPlanning_0');
                             end else begin
                                 PlanningObject.Add('color', 'grey');
-                                PlanningObject.Add('type', 'daytask_1');
+                                PlanningObject.Add('type', 'DayPlanning_1');
                             end;
 
                             PlanningArray.Add(PlanningObject);
-                        until Daytask.next = 0;
+                        until DayPlanning.next = 0;
                 end;
 
             until DateRec.Next() = 0;
@@ -614,7 +614,7 @@ codeunit 50604 "DHX Data Handler"
 
         //DownloadResourceTempToExcel(ResourceTemp); // For testing purposes
 
-        GetUniqueResGroupFromCapacity(TempResGroup, WithDayTask, StartDate, EndDate);
+        GetUniqueResGroupFromCapacity(TempResGroup, WithDayPlanning, StartDate, EndDate);
         if TempResGroup.FindSet() then begin
             Clear(DataArray);
             repeat
@@ -626,9 +626,9 @@ codeunit 50604 "DHX Data Handler"
                 GroupResObject.Add('open', true);
                 Clear(GroupChildrenArray);
 
-                if WithDayTask then begin
+                if WithDayPlanning then begin
                     // 2. Internal / Vendor
-                    GetUniqueVendorsFromDayTasks(TempVendor, TempResGroup."No.", StartDate, EndDate);
+                    GetUniqueVendorsFromDayPlannings(TempVendor, TempResGroup."No.", StartDate, EndDate);
                     if TempVendor.FindSet() then
                         repeat
                             VenNo := TempVendor."Currency Code";
@@ -711,7 +711,7 @@ codeunit 50604 "DHX Data Handler"
     procedure GetYUnitElementsJSON_Pool(AnchorDate: Date;
                                    StartDate: Date;
                                    EndDate: Date;
-                                   WithDayTask: Boolean;
+                                   WithDayPlanning: Boolean;
                                    var PlanninJsonTxt: Text;
                                    var EarliestPlanningDate: Date): Text
     var
@@ -723,7 +723,7 @@ codeunit 50604 "DHX Data Handler"
         ResourceTemp: Record Resource temporary;
         TempPool: record Resource temporary;
         DateRec: Record Date;
-        Daytask: record "Day Tasks";
+        DayPlanning: record "Day Planning";
         Resource: Record Resource;
         Job: Record Job;
         Task: Record "Job Task";
@@ -746,7 +746,7 @@ codeunit 50604 "DHX Data Handler"
         DetailsLabel: Label '%1 - %2|%3 - %4|%5 - %6';
     begin
         PlanninJsonTxt := '';
-        //Marking Job based on Day Tasks within the given date range
+        //Marking Job based on Day Plannings within the given date range
         WeekTemp.Reset();
         WeekTemp.DeleteAll();
 
@@ -766,10 +766,10 @@ codeunit 50604 "DHX Data Handler"
                         PlanningObject.Add('start_date', StartDateTxt);
                         PlanningObject.Add('end_date', EndDateTxt);
                         PlanningObject.Add('text', 'capacity');
-                        if WithDayTask then begin
+                        if WithDayPlanning then begin
                             if not Resource.Get(ResCap."Resource No.") then
                                 Clear(Resource);
-                            New_section_id := GetPoolNoFromDayTask(StartDate, EndDate, ResCap."Resource No."); //move into seciton id with daytask source no. and posibility has a vendor
+                            New_section_id := GetPoolNoFromDayPlanning(StartDate, EndDate, ResCap."Resource No."); //move into seciton id with DayPlanning source no. and posibility has a vendor
                             if New_section_id = '' then begin
                                 if Resource."Pool Resource No." = '' then
                                     section_id := section_id + '|' + Resource."Pool Resource No." + '|Pool'
@@ -798,37 +798,37 @@ codeunit 50604 "DHX Data Handler"
                     ResCapQry.Close();
                 end;
 
-                //Add Event of Daytask
-                if WithDayTask then begin
-                    Daytask.setrange("Task Date", DateRec."Period Start");
-                    if Daytask.findset then
+                //Add Event of DayPlanning
+                if WithDayPlanning then begin
+                    DayPlanning.setrange("Task Date", DateRec."Period Start");
+                    if DayPlanning.findset then
                         repeat
-                            if not Job.Get(Daytask."Job No.") then
+                            if not Job.Get(DayPlanning."Job No.") then
                                 Clear(Job);
-                            if not Task.Get(Daytask."Job No.", Daytask."Job Task No.") then
+                            if not Task.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
                                 Clear(Task);
-                            ResNo := Daytask."Assigned Resource No.";
+                            ResNo := DayPlanning."Assigned Resource No.";
                             if not Resource.Get(ResNo) then
                                 Clear(Resource);
                             Clear(PlanningObject);
-                            PlanningObject.Add('id', Daytask."Job No." + '|' +
-                                                    Daytask."Job Task No." + '|' +
-                                                    Format(Daytask."Task Date") + '|' +
-                                                    Format(Daytask."Day Line No."));
-                            GetStartEndTxt(Daytask, StartDateTxt, EndDateTxt);
+                            PlanningObject.Add('id', DayPlanning."Job No." + '|' +
+                                                    DayPlanning."Job Task No." + '|' +
+                                                    Format(DayPlanning."Task Date") + '|' +
+                                                    Format(DayPlanning."Day Line No."));
+                            GetStartEndTxt(DayPlanning, StartDateTxt, EndDateTxt);
                             PlanningObject.Add('start_date', StartDateTxt);
                             PlanningObject.Add('end_date', EndDateTxt);
-                            if Daytask.Description <> '' then
-                                PlanningObject.Add('text', Daytask.Description)
+                            if DayPlanning.Description <> '' then
+                                PlanningObject.Add('text', DayPlanning.Description)
                             else
-                                if Daytask."Assigned Resource No." <> '' then
+                                if DayPlanning."Assigned Resource No." <> '' then
                                     PlanningObject.Add('text', Resource.Name)
                                 else
                                     PlanningObject.Add('text', 'vacant');
 
-                            section_id := Daytask."Resource Group No." + '|' + ResNo + '|' + Daytask."Pool Resource No.";
+                            section_id := DayPlanning."Resource Group No." + '|' + ResNo + '|' + DayPlanning."Pool Resource No.";
                             if Resource."Pool Resource No." = '' then begin
-                                if Daytask."Pool Resource No." = '' then
+                                if DayPlanning."Pool Resource No." = '' then
                                     section_id := section_id + '|Pool'
                                 else
                                     section_id := section_id + '|Resource'
@@ -836,22 +836,22 @@ codeunit 50604 "DHX Data Handler"
                                 section_id := section_id + '|Resource';
                             PlanningObject.Add('section_id', section_id);
 
-                            if not PoolRes.Get(Daytask."Pool Resource No.") then
+                            if not PoolRes.Get(DayPlanning."Pool Resource No.") then
                                 Clear(PoolRes);
                             PlanningObject.Add('details', StrSubstNo(DetailsLabel, PoolRes."No.", PoolRes.Name
-                                                                                     , Daytask."Job No.", Job.Description
-                                                                                     , Daytask."Job Task No.", Task.Description));
-                            if Daytask."Assigned Resource No." = '' then begin
+                                                                                     , DayPlanning."Job No.", Job.Description
+                                                                                     , DayPlanning."Job Task No.", Task.Description));
+                            if DayPlanning."Assigned Resource No." = '' then begin
                                 PlanningObject.Add('color', '#3367D1'); //Blue BC Selection
-                                PlanningObject.Add('type', 'daytask_0');
+                                PlanningObject.Add('type', 'DayPlanning_0');
                             end else begin
                                 PlanningObject.Add('color', '#E9E9E9'); //grey BC
-                                PlanningObject.Add('type', 'daytask_1');
+                                PlanningObject.Add('type', 'DayPlanning_1');
                             end;
 
 
                             PlanningArray.Add(PlanningObject);
-                        until Daytask.next = 0;
+                        until DayPlanning.next = 0;
                 end;
 
             until DateRec.Next() = 0;
@@ -871,7 +871,7 @@ codeunit 50604 "DHX Data Handler"
 
         //DownloadResourceTempToExcel(ResourceTemp); // For testing purposes
 
-        GetUniqueResGroupFromCapacity(TempResGroup, WithDayTask, StartDate, EndDate);
+        GetUniqueResGroupFromCapacity(TempResGroup, WithDayPlanning, StartDate, EndDate);
         if TempResGroup.FindSet() then begin
             Clear(DataArray);
             repeat
@@ -883,9 +883,9 @@ codeunit 50604 "DHX Data Handler"
                 GroupResObject.Add('open', true);
                 Clear(GroupChildrenArray);
 
-                if WithDayTask then begin
+                if WithDayPlanning then begin
                     // 2. Internal / Pool Resource
-                    GetUniquePoolFromDayTasks(ResourceTemp, TempPool, TempResGroup."No.", StartDate, EndDate);
+                    GetUniquePoolFromDayPlannings(ResourceTemp, TempPool, TempResGroup."No.", StartDate, EndDate);
                     TempPool.Setcurrentkey("Pool Resource No.", "No.");
                     if TempPool.FindSet() then
                         repeat
@@ -1021,36 +1021,36 @@ codeunit 50604 "DHX Data Handler"
         end;
     end;
 
-    procedure GetStartEndTxt(DayTask: Record "Day Tasks";
+    procedure GetStartEndTxt(DayPlanning: Record "Day Planning";
                                    var StartDateTxt: Text;
                                    var EndDateTxt: Text)
     var
     begin
         StartDateTxt := '';
         EndDateTxt := '';
-        if DayTask."Task Date" = 0D then
+        if DayPlanning."Task Date" = 0D then
             exit;
 
         case true of
-            (DayTask."Start Time Assigned" <> 0T) and (DayTask."End Time Assigned" <> 0T):
+            (DayPlanning."Start Time Assigned" <> 0T) and (DayPlanning."End Time Assigned" <> 0T):
                 begin
-                    StartDateTxt := ToSessionDateTimeTxt(DayTask."Task Date", DayTask."Start Time Assigned");
-                    EndDateTxt := ToSessionDateTimeTxt(DayTask."Task Date", DayTask."End Time Assigned");
+                    StartDateTxt := ToSessionDateTimeTxt(DayPlanning."Task Date", DayPlanning."Start Time Assigned");
+                    EndDateTxt := ToSessionDateTimeTxt(DayPlanning."Task Date", DayPlanning."End Time Assigned");
                 end;
-            (DayTask."Start Time Assigned" <> 0T) and (DayTask."End Time Assigned" = 0T):
+            (DayPlanning."Start Time Assigned" <> 0T) and (DayPlanning."End Time Assigned" = 0T):
                 begin
-                    StartDateTxt := ToSessionDateTimeTxt(DayTask."Task Date", DayTask."Start Time Assigned");
-                    EndDateTxt := Format(DayTask."Task Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 23:59:59';
+                    StartDateTxt := ToSessionDateTimeTxt(DayPlanning."Task Date", DayPlanning."Start Time Assigned");
+                    EndDateTxt := Format(DayPlanning."Task Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 23:59:59';
                 end;
-            (DayTask."Start Time Assigned" = 0T) and (DayTask."End Time Assigned" <> 0T):
+            (DayPlanning."Start Time Assigned" = 0T) and (DayPlanning."End Time Assigned" <> 0T):
                 begin
-                    StartDateTxt := Format(DayTask."Task Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
-                    EndDateTxt := ToSessionDateTimeTxt(DayTask."Task Date", DayTask."End Time Assigned");
+                    StartDateTxt := Format(DayPlanning."Task Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
+                    EndDateTxt := ToSessionDateTimeTxt(DayPlanning."Task Date", DayPlanning."End Time Assigned");
                 end;
-            (DayTask."Start Time Assigned" = 0T) and (DayTask."End Time Assigned" = 0T):
+            (DayPlanning."Start Time Assigned" = 0T) and (DayPlanning."End Time Assigned" = 0T):
                 begin
-                    StartDateTxt := Format(DayTask."Task Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
-                    EndDateTxt := Format(DayTask."Task Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 23:59:59';
+                    StartDateTxt := Format(DayPlanning."Task Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
+                    EndDateTxt := Format(DayPlanning."Task Date", 0, '<Year4>-<Month,2>-<Day,2>') + ' 23:59:59';
                 end;
         end;
     end;
@@ -1138,7 +1138,7 @@ codeunit 50604 "DHX Data Handler"
 
     procedure GetEventDataFromEventId(EventId: Text; var EventDataJsonTxt: Text): Boolean
     var
-        DayTask: record "Day Tasks";
+        DayPlanning: record "Day Planning";
         EventIdParts: List of [Text];
         JobNo: Code[20];
         TaskNo: Code[20];
@@ -1155,7 +1155,7 @@ codeunit 50604 "DHX Data Handler"
         Evaluate(PlanningLineNo, EventIdParts.Get(3));
         Evaluate(DayNo, EventIdParts.Get(4));
         Evaluate(DayLineNo, EventIdParts.Get(5));
-        rtv := DayTask.Get(JobNo, TaskNo, DayLineNo);
+        rtv := DayPlanning.Get(JobNo, TaskNo, DayLineNo);
         if rtv then begin
             /**
             * Refresh a single event's data without reloading all events.
@@ -1175,12 +1175,12 @@ codeunit 50604 "DHX Data Handler"
             */
             EventDataJsonTxt := StrSubstNo(RefreshLbl,
                                 EventId,
-                                DayTask.Description,
-                                ToSessionDateTimeTxt(DayTask."Task Date", DayTask."Start Time Assigned"),
-                                ToSessionDateTimeTxt(DayTask."Task Date", DayTask."End Time Assigned"),
-                                DayTask."Job No." + '|' + DayTask."Job Task No.",
-                                DayTask."Assigned Resource No.",
-                                DayTask.Description)
+                                DayPlanning.Description,
+                                ToSessionDateTimeTxt(DayPlanning."Task Date", DayPlanning."Start Time Assigned"),
+                                ToSessionDateTimeTxt(DayPlanning."Task Date", DayPlanning."End Time Assigned"),
+                                DayPlanning."Job No." + '|' + DayPlanning."Job Task No.",
+                                DayPlanning."Assigned Resource No.",
+                                DayPlanning.Description)
         end;
         exit(rtv);
     end;
@@ -1189,7 +1189,7 @@ codeunit 50604 "DHX Data Handler"
     var
         Task: record "Job Task";
         PlanningLine: record "Job Task";
-        DayTask: record "Day Tasks";
+        DayPlanning: record "Day Planning";
         Res: record Resource;
         EventJSonObj: JsonObject;
         JToken: JsonToken;
@@ -1257,29 +1257,29 @@ codeunit 50604 "DHX Data Handler"
         Res.Get(JToken.AsValue().AsText().ToUpper());
 
         LineNo := 10000;
-        DayTask.SetRange("Job No.", JobNo);
-        DayTask.SetRange("Job Task No.", TaskNo);
-        DayTask.SetRange("Task Date", PlanningDate);
-        if DayTask.FindLast() then
-            LineNo := DayTask."Day Line No." + 10000;
+        DayPlanning.SetRange("Job No.", JobNo);
+        DayPlanning.SetRange("Job Task No.", TaskNo);
+        DayPlanning.SetRange("Task Date", PlanningDate);
+        if DayPlanning.FindLast() then
+            LineNo := DayPlanning."Day Line No." + 10000;
 
-        DayTask.Init();
-        DayTask."Task Date" := PlanningDate;
-        DayTask."Day Line No." := LineNo;
-        DayTask."Job No." := JobNo;
-        DayTask."Job Task No." := TaskNo;
+        DayPlanning.Init();
+        DayPlanning."Task Date" := PlanningDate;
+        DayPlanning."Day Line No." := LineNo;
+        DayPlanning."Job No." := JobNo;
+        DayPlanning."Job Task No." := TaskNo;
 
-        DayTask."Assigned Resource No." := Res."No.";
-        DayTask."Start Time Assigned" := StartTime;
-        DayTask."End Time Assigned" := EndTime;
-        DayTask.Description := Res.Name;
+        DayPlanning."Assigned Resource No." := Res."No.";
+        DayPlanning."Start Time Assigned" := StartTime;
+        DayPlanning."End Time Assigned" := EndTime;
+        DayPlanning.Description := Res.Name;
         UpdateEventIdJsonTxt := StrSubstNo(JsonLbl,
                                             old_eventid,
-                                            DayTask."Job No.",
-                                            DayTask."Job Task No.",
-                                            format(DayTask."Task Date"),
-                                            format(DayTask."Day Line No."));
-        rtv := DayTask.Insert(true);
+                                            DayPlanning."Job No.",
+                                            DayPlanning."Job Task No.",
+                                            format(DayPlanning."Task Date"),
+                                            format(DayPlanning."Day Line No."));
+        rtv := DayPlanning.Insert(true);
         exit(rtv);
     end;
 
@@ -1289,7 +1289,7 @@ codeunit 50604 "DHX Data Handler"
     var
         OldTask: record "Job Task";
         OldPlanningLIne: record "Job Task";
-        OldDayTask: record "Day Tasks";
+        OldDayPlanning: record "Day Planning";
         OldResource: record Resource;
         OldVendor: Record Vendor;
 
@@ -1350,14 +1350,14 @@ codeunit 50604 "DHX Data Handler"
         // Evaluate(OldDayLineNo, EventIdParts.Get(5));
         // OldTask.Get(OldJobNo, OldTaskNo);
         // OldPlanningLIne.Get(OldJobNo, OldTaskNo, OldPlanningLineNo);
-        // OldDayTask.Get(OldDayNo, OldDayLineNo, OldJobNo, OldTaskNo, OldPlanningLineNo);
-        // if not OldResource.Get(OldDayTask."No.") then begin
+        // OldDayPlanning.Get(OldDayNo, OldDayLineNo, OldJobNo, OldTaskNo, OldPlanningLineNo);
+        // if not OldResource.Get(OldDayPlanning."No.") then begin
         //     OldResource.Init;
-        //     OldResource."No." := OldDayTask."No.";
+        //     OldResource."No." := OldDayPlanning."No.";
         // end;
-        // if not OldVendor.Get(OldDayTask."Vendor No.") then begin
+        // if not OldVendor.Get(OldDayPlanning."Vendor No.") then begin
         //     OldVendor.Init;
-        //     OldVendor."No." := OldDayTask."Vendor No.";
+        //     OldVendor."No." := OldDayPlanning."Vendor No.";
         // end;
 
 
@@ -1374,16 +1374,16 @@ codeunit 50604 "DHX Data Handler"
         // if OldResource.RecordId <> NewResource.RecordId then begin
         //     //sift up / down within different task
         //     if ResourceCheck.Get(NewResource."No.") then begin
-        //         OldDayTask."No." := NewResource."No.";
-        //         OldDayTask.Modify();
+        //         OldDayPlanning."No." := NewResource."No.";
+        //         OldDayPlanning.Modify();
         //     end;
         // end;
 
         // if OldVendor.RecordId <> NewVendor.RecordId then begin
         //     //sift up / down within different task
         //     if VendorCheck.Get(NewVendor."No.") then begin
-        //         OldDayTask."Vendor No." := NewVendor."No.";
-        //         OldDayTask.Modify();
+        //         OldDayPlanning."Vendor No." := NewVendor."No.";
+        //         OldDayPlanning.Modify();
         //     end;
         // end;
 
@@ -1391,33 +1391,33 @@ codeunit 50604 "DHX Data Handler"
         // EventJSonObj.Get('start_date', JToken);
         // Evaluate(_DateTime, JToken.AsValue().AsText());
         // _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
-        // OldDayTask."Task Date" := DT2Date(_DateTimeUserZone);
-        // OldDayTask."Start Time" := DT2Time(_DateTimeUserZone);
+        // OldDayPlanning."Task Date" := DT2Date(_DateTimeUserZone);
+        // OldDayPlanning."Start Time" := DT2Time(_DateTimeUserZone);
 
         // EventJSonObj.Get('end_date', JToken);
         // Evaluate(_DateTime, JToken.AsValue().AsText());
         // _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
-        // OldDayTask."End Time" := DT2Time(_DateTimeUserZone);
+        // OldDayPlanning."End Time" := DT2Time(_DateTimeUserZone);
 
         // EventJSonObj.Get('text', JToken);
-        // OldDayTask.Description := JToken.AsValue().AsText();
+        // OldDayPlanning.Description := JToken.AsValue().AsText();
 
-        // OldDayTask.Modify();
+        // OldDayPlanning.Modify();
 
     end;
 
     procedure OnEventChanged_Project(EventId: Text;
                              EventData: Text;
                              var UpdateEventID: Boolean;
-                             var OldDayTask_forUpdate: record "Day Tasks";
-                             var NewDayTask_forUpdate: record "Day Tasks")
+                             var OldDayPlanning_forUpdate: record "Day Planning";
+                             var NewDayPlanning_forUpdate: record "Day Planning")
     var
         OldTask: record "Job Task";
         NewTask: record "Job Task";
         OldPlanningLIne: record "Job Task";
         NewPlanningLIne: record "Job Task";
-        OldDayTask: record "Day Tasks";
-        DayTaskCheck: record "Day Tasks";
+        OldDayPlanning: record "Day Planning";
+        DayPlanningCheck: record "Day Planning";
 
         EventJSonObj: JsonObject;
         JToken: JsonToken;
@@ -1470,7 +1470,7 @@ codeunit 50604 "DHX Data Handler"
         Evaluate(Old_DayLineNo, EventIdParts.Get(5));
         OldTask.Get(Old_JobNo, Old_TaskNo);
         OldPlanningLIne.Get(Old_JobNo, Old_TaskNo, Old_PlanningLineNo);
-        OldDayTask.Get(Old_JobNo, Old_TaskNo, Old_DayLineNo);
+        OldDayPlanning.Get(Old_JobNo, Old_TaskNo, Old_DayLineNo);
 
         EventJSonObj.ReadFrom(EventData);
 
@@ -1491,22 +1491,22 @@ codeunit 50604 "DHX Data Handler"
         Evaluate(New_DayNo, Format(New_Date, 0, '<Year4><Month,2><Day,2>'));
 
         UpdateEventID := false;
-        OldDayTask_forUpdate := OldDayTask;
+        OldDayPlanning_forUpdate := OldDayPlanning;
         if OldPlanningLIne.RecordId <> NewPlanningLIne.RecordId then begin
             //sift up / down within different task
             // PK is now (Job No., Job Task No., Day Line No.) — check if target slot is free.
-            if not DayTaskCheck.Get(New_JobNo, New_TaskNo, Old_DayLineNo) then
-                OldDayTask.Rename(New_JobNo, New_TaskNo, Old_DayLineNo)
+            if not DayPlanningCheck.Get(New_JobNo, New_TaskNo, Old_DayLineNo) then
+                OldDayPlanning.Rename(New_JobNo, New_TaskNo, Old_DayLineNo)
             else begin
                 // Slot taken: find max DayLineNo for the target task and append after it.
-                DayTaskCheck.SetRange("Job No.", New_JobNo);
-                DayTaskCheck.SetRange("Job Task No.", New_TaskNo);
-                if DayTaskCheck.FindLast() then
-                    OldDayTask.Rename(New_JobNo, New_TaskNo, DayTaskCheck."Day Line No." + 10000)
+                DayPlanningCheck.SetRange("Job No.", New_JobNo);
+                DayPlanningCheck.SetRange("Job Task No.", New_TaskNo);
+                if DayPlanningCheck.FindLast() then
+                    OldDayPlanning.Rename(New_JobNo, New_TaskNo, DayPlanningCheck."Day Line No." + 10000)
                 else
-                    OldDayTask.Rename(New_JobNo, New_TaskNo, 10000);
+                    OldDayPlanning.Rename(New_JobNo, New_TaskNo, 10000);
             end;
-            NewDayTask_forUpdate := OldDayTask;
+            NewDayPlanning_forUpdate := OldDayPlanning;
             UpdateEventID := true;
         end;
 
@@ -1514,37 +1514,37 @@ codeunit 50604 "DHX Data Handler"
         EventJSonObj.Get('start_date', JToken);
         Evaluate(_DateTime, JToken.AsValue().AsText());
         _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
-        OldDayTask."Task Date" := DT2Date(_DateTimeUserZone);
-        OldDayTask."Start Time Assigned" := DT2Time(_DateTimeUserZone);
+        OldDayPlanning."Task Date" := DT2Date(_DateTimeUserZone);
+        OldDayPlanning."Start Time Assigned" := DT2Time(_DateTimeUserZone);
 
         EventJSonObj.Get('end_date', JToken);
         Evaluate(_DateTime, JToken.AsValue().AsText());
         _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
-        OldDayTask."End Time Assigned" := DT2Time(_DateTimeUserZone);
+        OldDayPlanning."End Time Assigned" := DT2Time(_DateTimeUserZone);
 
         EventJSonObj.Get('text', JToken);
-        OldDayTask.Description := JToken.AsValue().AsText();
+        OldDayPlanning.Description := JToken.AsValue().AsText();
 
-        OldDayTask.Modify();
+        OldDayPlanning.Modify();
 
         if UpdateEventID then
-            UpdateEventID(OldDayTask_forUpdate, NewDayTask_forUpdate);
+            UpdateEventID(OldDayPlanning_forUpdate, NewDayPlanning_forUpdate);
     end;
 
-    procedure UpdateEventID(OldDayTask: Record "Day Tasks"; NewDayTask: Record "Day Tasks"): Text
+    procedure UpdateEventID(OldDayPlanning: Record "Day Planning"; NewDayPlanning: Record "Day Planning"): Text
     var
         rtv: text;
         JsonLbl: Label '{"OldEventId": "%1|%2|%3|%4|%5", "NewEventId": "%6|%7|%8|%9|%10"}';
     begin
         rtv := StrSubstNo(JsonLbl,
-                         OldDayTask."Job No.",
-                         OldDayTask."Job Task No.",
-                         Format(OldDayTask."Task Date"),
-                         Format(OldDayTask."Day Line No."),
-                         NewDayTask."Job No.",
-                         NewDayTask."Job Task No.",
-                         Format(NewDayTask."Task Date"),
-                         Format(NewDayTask."Day Line No."));
+                         OldDayPlanning."Job No.",
+                         OldDayPlanning."Job Task No.",
+                         Format(OldDayPlanning."Task Date"),
+                         Format(OldDayPlanning."Day Line No."),
+                         NewDayPlanning."Job No.",
+                         NewDayPlanning."Job Task No.",
+                         Format(NewDayPlanning."Task Date"),
+                         Format(NewDayPlanning."Day Line No."));
         exit(rtv);
     end;
 
@@ -1620,36 +1620,37 @@ codeunit 50604 "DHX Data Handler"
             Error(ResNotFound, eventId);
     end;
 
-    procedure OpenDayTask(eventId: Text): Date
+    procedure OpenDayPlanning(eventId: Text): Date
     var
-        DayTask: Record "Day Tasks";
-        DayTasks: page "Day Tasks";
+        DayPlanning: Record "Day Planning";
+        DayPlannings: page "Day Plannings";
         EventIDList: List of [Text];
         JobNo: Code[20];
         TaskNo: Code[20];
         //PlanningLineNo: Integer;
         TaskDay: Date;
         DayLineNo: Integer;
-        DateOfDayTask: Date;
+        DateOfDayPlanning: Date;
+        MsgLbl: Label 'Day planning not found for Event ID: %1';
     begin
-        DateOfDayTask := 0D;
+        DateOfDayPlanning := 0D;
         EventIDList := eventId.Split('|');
         JobNo := EventIDList.Get(1);
         TaskNo := EventIDList.Get(2);
         Evaluate(TaskDay, EventIDList.Get(3));
         Evaluate(DayLineNo, EventIDList.Get(4));
-        DayTask.SetRange("Task Date", TaskDay);
-        //DayTask.SetRange("DayLineNo", DayLineNo);
-        DayTask.SetRange("Job No.", JobNo);
-        DayTask.SetRange("Job Task No.", TaskNo);
-        if DayTask.FindFirst() then begin
-            DateOfDayTask := DayTask."Task Date";
-            Clear(DayTasks);
-            DayTasks.SetTableView(DayTask);
-            DayTasks.RunModal();
+        DayPlanning.SetRange("Task Date", TaskDay);
+        //DayPlanning.SetRange("DayLineNo", DayLineNo);
+        DayPlanning.SetRange("Job No.", JobNo);
+        DayPlanning.SetRange("Job Task No.", TaskNo);
+        if DayPlanning.FindFirst() then begin
+            DateOfDayPlanning := DayPlanning."Task Date";
+            Clear(DayPlannings);
+            DayPlannings.SetTableView(DayPlanning);
+            DayPlannings.RunModal();
         end else
-            Message('Day Task not found for Event ID: %1', eventId);
-        exit(DateOfDayTask);
+            Message(MsgLbl, eventId);
+        exit(DateOfDayPlanning);
     end;
 
     procedure OpenResourceCard(SectionId: Text)
@@ -1715,7 +1716,7 @@ codeunit 50604 "DHX Data Handler"
         EndDate := DT2Date(_DateTimeUserZone);
     end;
 
-    procedure GetDayTaskAsResourcesAndEventsJSon_Project(TimeLineJSon: Text; ResourceFilter: Text; var ResouecesJSon: Text; var EventsJSon: Text): Boolean
+    procedure GetDayPlanningAsResourcesAndEventsJSon_Project(TimeLineJSon: Text; ResourceFilter: Text; var ResouecesJSon: Text; var EventsJSon: Text): Boolean
     var
         StartDate: Date;
         EndDate: Date;
@@ -1728,7 +1729,7 @@ codeunit 50604 "DHX Data Handler"
         {"mode":"timeline","start":"2025-12-14T17:00:00.000Z","end":"2025-12-21T17:00:00.000Z"}
         */
         GetStartEndDatesFromTimeLineJSon(TimeLineJSon, StartDate, EndDate);
-        Rtv := GetDayTaskAsResourcesAndEventsJSon_Project_StartEnd(StartDate,
+        Rtv := GetDayPlanningAsResourcesAndEventsJSon_Project_StartEnd(StartDate,
                                                             EndDate,
                                                             ResourceFilter,
                                                             ResouecesJSon,
@@ -1737,7 +1738,7 @@ codeunit 50604 "DHX Data Handler"
         exit(Rtv);
     end;
 
-    procedure GetDayTaskAsResourcesAndEventsJSon_Project_StartEnd(StartDate: Date;
+    procedure GetDayPlanningAsResourcesAndEventsJSon_Project_StartEnd(StartDate: Date;
                                                                   EndDate: Date;
                                                                   ResourceFilter: Text;
                                                                   var ResouecesJSon: Text;
@@ -1758,7 +1759,7 @@ codeunit 50604 "DHX Data Handler"
         exit((EventsJSon <> '') and (ResouecesJSon <> ''));
     end;
 
-    procedure GetDayTaskAsResourcesAndEventsJSon_Project_StartEnd(StartDate: Date;
+    procedure GetDayPlanningAsResourcesAndEventsJSon_Project_StartEnd(StartDate: Date;
                                                                   EndDate: Date;
                                                                   JobFilter: Text;
                                                                   JobTaskFilter: Text;
@@ -1781,8 +1782,8 @@ codeunit 50604 "DHX Data Handler"
         exit((EventsJSon <> '') and (ResouecesJSon <> ''));
     end;
 
-    procedure GetDayTaskAsResourcesAndEventsJSon_Resource(TimeLineJSon: Text;
-                                                          WithDayTask: Boolean;
+    procedure GetDayPlanningAsResourcesAndEventsJSon_Resource(TimeLineJSon: Text;
+                                                          WithDayPlanning: Boolean;
                                                           var ResouecesJSon: Text;
                                                           var EventsJSon: Text): Boolean
     var
@@ -1797,18 +1798,18 @@ codeunit 50604 "DHX Data Handler"
         {"mode":"timeline","start":"2025-12-14T17:00:00.000Z","end":"2025-12-21T17:00:00.000Z"}
         */
         GetStartEndDatesFromTimeLineJSon(TimeLineJSon, StartDate, EndDate);
-        Rtv := GetDayTaskAsResourcesAndEventsJSon_Resource_StartEnd(StartDate,
+        Rtv := GetDayPlanningAsResourcesAndEventsJSon_Resource_StartEnd(StartDate,
                                                             EndDate,
-                                                            WithDayTask,
+                                                            WithDayPlanning,
                                                             ResouecesJSon,
                                                             EventsJSon,
                                                             EarliestPlanningDate);
         exit(Rtv);
     end;
 
-    procedure GetDayTaskAsResourcesAndEventsJSon_Resource_StartEnd(StartDate: Date;
+    procedure GetDayPlanningAsResourcesAndEventsJSon_Resource_StartEnd(StartDate: Date;
                                                                    EndDate: Date;
-                                                                   WithDayTask: Boolean;
+                                                                   WithDayPlanning: Boolean;
                                                                    var ResouecesJSon: Text;
                                                                    var EventsJSon: Text;
                                                                    var EarliestPlanningDate: date): Boolean
@@ -1821,15 +1822,15 @@ codeunit 50604 "DHX Data Handler"
         ResouecesJSon := GetYUnitElementsJSON_Resource(StartDate,
                                             StartDate,
                                             EndDate,
-                                            WithDayTask,
+                                            WithDayPlanning,
                                             EventsJSon,
                                             EarliestPlanningDate);
         exit((EventsJSon <> '') and (ResouecesJSon <> ''));
     end;
 
-    procedure GetDayTaskAsResourcesAndEventsJSon_Pool_StartEnd(StartDate: Date;
+    procedure GetDayPlanningAsResourcesAndEventsJSon_Pool_StartEnd(StartDate: Date;
                                                                    EndDate: Date;
-                                                                   WithDayTask: Boolean;
+                                                                   WithDayPlanning: Boolean;
                                                                    var ResouecesJSon: Text;
                                                                    var EventsJSon: Text;
                                                                    var EarliestPlanningDate: date): Boolean
@@ -1842,7 +1843,7 @@ codeunit 50604 "DHX Data Handler"
         ResouecesJSon := GetYUnitElementsJSON_Pool(StartDate,
                                             StartDate,
                                             EndDate,
-                                            WithDayTask,
+                                            WithDayPlanning,
                                             EventsJSon,
                                             EarliestPlanningDate);
         exit((EventsJSon <> '') and (ResouecesJSon <> ''));
@@ -1912,7 +1913,7 @@ codeunit 50604 "DHX Data Handler"
                                        EndDate: Date)
     var
         Res: record Resource;
-        DayTasks: record "Day Tasks";
+        DayPlannings: record "Day Planning";
         UniqueResQry: Query "Unique Resource in Capacity";
         ResNo: Code[20];
     begin
@@ -1927,8 +1928,8 @@ codeunit 50604 "DHX Data Handler"
         if UniqueResQry.Open() then begin
             while UniqueResQry.Read() do begin
                 ResNo := UniqueResQry.Resource_No_;
-                if GetVendorNoFromDayTask(StartDate, EndDate, ResNo) = '' then
-                    //if <> '' then it does not create section, because it will meet on below next block of codes with daytask source no. and posibility has a vendor
+                if GetVendorNoFromDayPlanning(StartDate, EndDate, ResNo) = '' then
+                    //if <> '' then it does not create section, because it will meet on below next block of codes with DayPlanning source no. and posibility has a vendor
                     if not TempRes.Get(ResNo) then begin
                         TempRes.Init();
                         TempRes."No." := ResNo;
@@ -1946,12 +1947,12 @@ codeunit 50604 "DHX Data Handler"
         end;
         //end;
 
-        DayTasks.SetRange("Task Date", StartDate, EndDate);
-        DayTasks.SetRange("Resource Group No.", ResGroupNo);
-        DayTasks.SetRange("Vendor No.", VendorNo);
-        if DayTasks.FindSet() then
+        DayPlannings.SetRange("Task Date", StartDate, EndDate);
+        DayPlannings.SetRange("Resource Group No.", ResGroupNo);
+        DayPlannings.SetRange("Vendor No.", VendorNo);
+        if DayPlannings.FindSet() then
             repeat
-                ResNo := DayTasks."Assigned Resource No.";
+                ResNo := DayPlannings."Assigned Resource No.";
                 if not TempRes.Get(ResNo) then begin
                     TempRes.Init();
                     TempRes."No." := ResNo;
@@ -1964,7 +1965,7 @@ codeunit 50604 "DHX Data Handler"
                     end;
                     TempRes.Insert();
                 end;
-            until DayTasks.Next() = 0;
+            until DayPlannings.Next() = 0;
 
     end;
 
@@ -2024,7 +2025,7 @@ codeunit 50604 "DHX Data Handler"
                                        EndDate: Date)
     var
         Res: record Resource;
-        DayTasks: record "Day Tasks";
+        DayPlannings: record "Day Planning";
         UniqueResQry: Query "Unique Resource in Capacity";
         ResNo: Code[20];
     begin
@@ -2038,8 +2039,8 @@ codeunit 50604 "DHX Data Handler"
         if UniqueResQry.Open() then begin
             while UniqueResQry.Read() do begin
                 ResNo := UniqueResQry.Resource_No_;
-                if GetPoolNoFromDayTask(StartDate, EndDate, ResNo) = '' then
-                    //if <> '' then it does not create section, because it will meet on below next block of codes with daytask source no. and posibility has a vendor
+                if GetPoolNoFromDayPlanning(StartDate, EndDate, ResNo) = '' then
+                    //if <> '' then it does not create section, because it will meet on below next block of codes with DayPlanning source no. and posibility has a vendor
                     if not TempRes.Get(ResNo) then begin
                         TempRes.Init();
                         TempRes."No." := ResNo;
@@ -2056,12 +2057,12 @@ codeunit 50604 "DHX Data Handler"
             UniqueResQry.Close();
         end;
 
-        DayTasks.SetRange("Task Date", StartDate, EndDate);
-        DayTasks.SetRange("Resource Group No.", ResGroupNo);
-        DayTasks.SetRange("Pool Resource No.", PoolNo);
-        if DayTasks.FindSet() then
+        DayPlannings.SetRange("Task Date", StartDate, EndDate);
+        DayPlannings.SetRange("Resource Group No.", ResGroupNo);
+        DayPlannings.SetRange("Pool Resource No.", PoolNo);
+        if DayPlannings.FindSet() then
             repeat
-                ResNo := DayTasks."Assigned Resource No.";
+                ResNo := DayPlannings."Assigned Resource No.";
                 if not TempRes.Get(ResNo) then begin
                     TempRes.Init();
                     TempRes."No." := ResNo;
@@ -2074,7 +2075,7 @@ codeunit 50604 "DHX Data Handler"
                     end;
                     TempRes.Insert();
                 end;
-            until DayTasks.Next() = 0;
+            until DayPlannings.Next() = 0;
 
     end;
 
@@ -2129,11 +2130,11 @@ codeunit 50604 "DHX Data Handler"
         end;
     end;
 
-    procedure GetUniqueResGroupFromCapacity(var TempResGroup: record "Resource Group" temporary; WithDayTask: Boolean; StartDate: Date; EndDate: Date)
+    procedure GetUniqueResGroupFromCapacity(var TempResGroup: record "Resource Group" temporary; WithDayPlanning: Boolean; StartDate: Date; EndDate: Date)
     var
         ResGroup: record "Resource Group";
         UniqueGroupQry: Query "Unique Group in Capacity";
-        UniqueDayTaskResGroupQry: Query "Unique ResGroup in Day Tasks";
+        UniqueDayPlanningResGroupQry: Query "Unique ResGrp in DayPlannings";
         ResGroupNo: Code[20];
 
     begin
@@ -2159,11 +2160,11 @@ codeunit 50604 "DHX Data Handler"
             UniqueGroupQry.Close();
         end;
 
-        if WithDayTask then begin
-            UniqueDayTaskResGroupQry.SetRange(TaskDateFilter, StartDate, EndDate);
-            if UniqueDayTaskResGroupQry.Open() then begin
-                while UniqueDayTaskResGroupQry.Read() do begin
-                    ResGroupNo := UniqueDayTaskResGroupQry.Resource_Group_No_;
+        if WithDayPlanning then begin
+            UniqueDayPlanningResGroupQry.SetRange(TaskDateFilter, StartDate, EndDate);
+            if UniqueDayPlanningResGroupQry.Open() then begin
+                while UniqueDayPlanningResGroupQry.Read() do begin
+                    ResGroupNo := UniqueDayPlanningResGroupQry.Resource_Group_No_;
                     if not TempResGroup.Get(ResGroupNo) then begin
                         TempResGroup.Init();
                         TempResGroup."No." := ResGroupNo;
@@ -2174,19 +2175,19 @@ codeunit 50604 "DHX Data Handler"
                         TempResGroup.Insert();
                     end;
                 end;
-                UniqueDayTaskResGroupQry.Close();
+                UniqueDayPlanningResGroupQry.Close();
             end;
         end;
     end;
 
-    procedure GetUniqueVendorsFromDayTasks(var TempRecord: record "Aging Band Buffer" temporary;
+    procedure GetUniqueVendorsFromDayPlannings(var TempRecord: record "Aging Band Buffer" temporary;
                                            ResGroupNo: Code[20];
                                            StartDate: Date;
                                            EndDate: Date)
     var
         TempRes: record "Resource" temporary;
         TempVen: record Vendor temporary;
-        UniqueVendorsQuery: Query "Unique Vendors in Day Tasks";
+        UniqueVendorsQuery: Query "Unique Vend in Day Plannings";
         Vendor: Record Vendor;
         VendorNo: Code[20];
     begin
@@ -2255,14 +2256,14 @@ codeunit 50604 "DHX Data Handler"
 
     end;
 
-    procedure GetUniquePoolFromDayTasks(var TempResource: record "Resource" temporary;
+    procedure GetUniquePoolFromDayPlannings(var TempResource: record "Resource" temporary;
                                         var TempPoolRes: record Resource temporary;
                                         ResGroupNo: Code[20];
                                         StartDate: Date;
                                         EndDate: Date)
     var
-        DayTask: Record "Day Tasks";
-        DayTaskCheck: Record "Day Tasks";
+        DayPlanning: Record "Day Planning";
+        DayPlanningCheck: Record "Day Planning";
         Res: record Resource;
         TempRes: record "Resource" temporary;
         TempPool: record Resource temporary;
@@ -2281,12 +2282,12 @@ codeunit 50604 "DHX Data Handler"
 
         VacantNo := VacantLbl;
 
-        DayTask.SetRange("Task Date", StartDate, EndDate);
-        DayTask.SetRange("Resource Group No.", ResGroupNo);
-        if DayTask.FindSet() then
+        DayPlanning.SetRange("Task Date", StartDate, EndDate);
+        DayPlanning.SetRange("Resource Group No.", ResGroupNo);
+        if DayPlanning.FindSet() then
             repeat
                 PoolNo := '';
-                ResNo := DayTask."Assigned Resource No.";
+                ResNo := DayPlanning."Assigned Resource No.";
                 //if not TempResource.Get(ResNo) then begin
                 if not Res.Get(ResNo) then
                     Clear(Res);
@@ -2300,16 +2301,16 @@ codeunit 50604 "DHX Data Handler"
                         TempResource.Insert();
                     end;
                 end else begin
-                    if (ResNo = '') and (DayTask."Pool Resource No." <> '') then begin
+                    if (ResNo = '') and (DayPlanning."Pool Resource No." <> '') then begin
                         VacantNo := IncStr(VacantNo);
                         TempResource.Reset();
                         TempResource.Setfilter("No.", '*VACANT*');
-                        TempResource.SetRange("Pool Resource No.", DayTask."Pool Resource No.");
+                        TempResource.SetRange("Pool Resource No.", DayPlanning."Pool Resource No.");
                         if not TempResource.FindSet() then begin
                             TempResource.Init();
                             TempResource."No." := VacantNo;
                             TempResource.Name := 'Vacant';
-                            TempResource."Pool Resource No." := DayTask."Pool Resource No.";
+                            TempResource."Pool Resource No." := DayPlanning."Pool Resource No.";
                             TempResource.Insert();
                         end;
                         TempResource.Reset();
@@ -2323,11 +2324,11 @@ codeunit 50604 "DHX Data Handler"
                     //<<2026.02.10
                     AllowInsert := true;
                     if PoolNo = '' then begin
-                        DayTaskCheck.SetRange("Task Date", StartDate, EndDate);
-                        DayTaskCheck.SetRange("Resource Group No.", ResGroupNo);
-                        DayTaskCheck.SetRange("Assigned Resource No.", '');
-                        DayTaskCheck.Setrange("Pool Resource No.", '');
-                        AllowInsert := DayTaskCheck.FindFirst();
+                        DayPlanningCheck.SetRange("Task Date", StartDate, EndDate);
+                        DayPlanningCheck.SetRange("Resource Group No.", ResGroupNo);
+                        DayPlanningCheck.SetRange("Assigned Resource No.", '');
+                        DayPlanningCheck.Setrange("Pool Resource No.", '');
+                        AllowInsert := DayPlanningCheck.FindFirst();
                     end;
                     //>>
                     if AllowInsert then begin
@@ -2342,7 +2343,7 @@ codeunit 50604 "DHX Data Handler"
                     end;
                 end;
             //end;
-            until DayTask.Next() = 0;
+            until DayPlanning.Next() = 0;
 
 
 
@@ -2449,7 +2450,7 @@ codeunit 50604 "DHX Data Handler"
 
     procedure ResScheduler_BuildEventsJson(ResourceFilter: Text): Text
     var
-        DayTask: Record "Day Tasks";
+        DayPlanning: Record "Day Planning";
         StarDateTimeStr: Text;
         EndDateTimeStr: Text;
         JArray: JsonArray;
@@ -2457,27 +2458,27 @@ codeunit 50604 "DHX Data Handler"
         Result: Text;
         eventColor: Text;
     begin
-        DayTask.Reset();
+        DayPlanning.Reset();
         if ResourceFilter <> '' then
-            DayTask.SetFilter("Assigned Resource No.", ResourceFilter)
+            DayPlanning.SetFilter("Assigned Resource No.", ResourceFilter)
         else
-            DayTask.SetFilter("Assigned Resource No.", '<>%1', '');
-        if DayTask.FindSet() then
+            DayPlanning.SetFilter("Assigned Resource No.", '<>%1', '');
+        if DayPlanning.FindSet() then
             repeat
-                GetStartEndTxt(DayTask, StarDateTimeStr, EndDateTimeStr);
+                GetStartEndTxt(DayPlanning, StarDateTimeStr, EndDateTimeStr);
                 if (StarDateTimeStr <> '') and (EndDateTimeStr <> '') then begin
-                    eventColor := ResScheduler_GetResourceColor(DayTask."Assigned Resource No.", 'daytask');
+                    eventColor := ResScheduler_GetResourceColor(DayPlanning."Assigned Resource No.", 'DayPlanning');
                     ResScheduler_AddEvent(
                         JArray,
-                        Format(DayTask.RecordId),
-                        DayTask."Assigned Resource No.",
+                        Format(DayPlanning.RecordId),
+                        DayPlanning."Assigned Resource No.",
                         eventColor,
                         StarDateTimeStr,
                         EndDateTimeStr,
-                        DayTask.Description,
-                        'daytask');
+                        DayPlanning.Description,
+                        'DayPlanning');
                 end;
-            until DayTask.Next() = 0;
+            until DayPlanning.Next() = 0;
         Clear(JRoot);
         JRoot.Add('data', JArray);
         JRoot.WriteTo(Result);
@@ -2606,8 +2607,8 @@ codeunit 50604 "DHX Data Handler"
         FallbackColors[4] := 'yellow';
         if ResColor.Get(ResColor.Type::"Resource Scheduler", pResourceNo, '', '') then begin
             case pColorType of
-                'daytask':
-                    ColorValue := ResColor."Day Task";
+                'DayPlanning':
+                    ColorValue := ResColor."Day Planning";
                 'capacity':
                     ColorValue := ResColor."Capacity";
             end;
@@ -2628,7 +2629,7 @@ codeunit 50604 "DHX Data Handler"
 
     procedure ResScheduler_BuildEventsJson(ResourceFilter: Text; StartDate: Date; EndDate: Date): Text
     var
-        DayTask: Record "Day Tasks";
+        DayPlanning: Record "Day Planning";
         StarDateTimeStr: Text;
         EndDateTimeStr: Text;
         JArray: JsonArray;
@@ -2636,29 +2637,29 @@ codeunit 50604 "DHX Data Handler"
         Result: Text;
         eventColor: Text;
     begin
-        DayTask.Reset();
+        DayPlanning.Reset();
         if (StartDate <> 0D) and (EndDate <> 0D) then
-            DayTask.SetRange("Task Date", StartDate, EndDate);
+            DayPlanning.SetRange("Task Date", StartDate, EndDate);
         if ResourceFilter <> '' then
-            DayTask.SetFilter("Assigned Resource No.", ResourceFilter)
+            DayPlanning.SetFilter("Assigned Resource No.", ResourceFilter)
         else
-            DayTask.SetFilter("Assigned Resource No.", '<>%1', '');
-        if DayTask.FindSet() then
+            DayPlanning.SetFilter("Assigned Resource No.", '<>%1', '');
+        if DayPlanning.FindSet() then
             repeat
-                GetStartEndTxt(DayTask, StarDateTimeStr, EndDateTimeStr);
+                GetStartEndTxt(DayPlanning, StarDateTimeStr, EndDateTimeStr);
                 if (StarDateTimeStr <> '') and (EndDateTimeStr <> '') then begin
-                    eventColor := ResScheduler_GetResourceColor(DayTask."Assigned Resource No.", 'daytask');
+                    eventColor := ResScheduler_GetResourceColor(DayPlanning."Assigned Resource No.", 'DayPlanning');
                     ResScheduler_AddEvent(
                         JArray,
-                        Format(DayTask.RecordId),
-                        DayTask."Assigned Resource No.",
+                        Format(DayPlanning.RecordId),
+                        DayPlanning."Assigned Resource No.",
                         eventColor,
                         StarDateTimeStr,
                         EndDateTimeStr,
-                        DayTask.Description,
-                        'daytask');
+                        DayPlanning.Description,
+                        'DayPlanning');
                 end;
-            until DayTask.Next() = 0;
+            until DayPlanning.Next() = 0;
         Clear(JRoot);
         JRoot.Add('data', JArray);
         JRoot.WriteTo(Result);
@@ -2786,11 +2787,11 @@ codeunit 50604 "DHX Data Handler"
 
     /// <summary>
     /// Opens DHX Scheduler (Project) filtered to the job task linked to the event.
-    /// Used by the right-click context menu "Open DayTask Visual".
+    /// Used by the right-click context menu "Open DayPlanning Visual".
     /// </summary>
-    procedure OpenDayTaskVisual(eventId: Text)
+    procedure OpenDayPlanningVisual(eventId: Text)
     var
-        DaytaskScheduler: Page "DHX Scheduler (Project)";
+        DayPlanningScheduler: Page "DHX Scheduler (Project)";
         Parts: List of [Text];
         JobNo: Code[20];
         TaskNo: Code[20];
@@ -2800,18 +2801,18 @@ codeunit 50604 "DHX Data Handler"
             exit;
         JobNo := Parts.Get(1);
         TaskNo := Parts.Get(2);
-        DaytaskScheduler.SetJobTaskFilter(JobNo, TaskNo);
-        DaytaskScheduler.RunModal();
+        DayPlanningScheduler.SetJobTaskFilter(JobNo, TaskNo);
+        DayPlanningScheduler.RunModal();
     end;
 
     /// <summary>
-    /// Opens the Resource Day Tasks page filtered to resources assigned to the
+    /// Opens the Resource Day Plannings page filtered to resources assigned to the
     /// job task linked to the given event ID.
     /// Used by the right-click context menu "Show Job Resources".
     /// </summary>
     procedure ShowJobResourcesForEvent(eventId: Text)
     var
-        DayTask: Record "Day Tasks";
+        DayPlanning: Record "Day Planning";
         Parts: List of [Text];
         JobNo: Code[20];
         TaskNo: Code[20];
@@ -2825,9 +2826,9 @@ codeunit 50604 "DHX Data Handler"
         TaskNo := Parts.Get(2);
         Evaluate(TaskDay, Parts.Get(3));
         Evaluate(DayLineNo, Parts.Get(4));
-        DayTask.SetRange("Job No.", JobNo);
-        DayTask.SetRange("Job Task No.", TaskNo);
-        DayTask.SetRange("Task Date", TaskDay);
-        PAGE.Run(PAGE::"Resource Day Tasks", DayTask);
+        DayPlanning.SetRange("Job No.", JobNo);
+        DayPlanning.SetRange("Job Task No.", TaskNo);
+        DayPlanning.SetRange("Task Date", TaskDay);
+        PAGE.Run(PAGE::"Resource Day Plannings", DayPlanning);
     end;
 }

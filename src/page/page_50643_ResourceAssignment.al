@@ -50,10 +50,10 @@
                 Caption = 'Project';
                 UpdatePropagation = Both;
             }
-            part(DayTasksPart; "Res. Asgmt. Day Tasks")
+            part(DayPlanningsPart; "Res. Asgmt. Day Plannings")
             {
                 ApplicationArea = All;
-                Caption = 'Daytasks';
+                Caption = 'DayPlannings';
                 UpdatePropagation = Both;
             }
         }
@@ -68,7 +68,7 @@
                 ApplicationArea = All;
                 Caption = 'Refresh';
                 Image = Refresh;
-                ToolTip = 'Refresh the project list and day tasks.';
+                ToolTip = 'Refresh the project list and day plannings.';
                 Promoted = true;
                 PromotedCategory = Process;
                 PromotedIsBig = true;
@@ -92,7 +92,7 @@
         // Fired by UpdatePropagation = Both when:
         //   a) user moves to a different row in JobMatrixPart (SelectedDate = 0D → full week)
         //   b) OnAssistEdit on a day cell calls CurrPage.Update(false) (SelectedDate = specific day)
-        UpdateDayTasksFilter(CurrPage.JobMatrixPart.PAGE.GetSelectedDate());
+        UpdateDayPlanningsFilter(CurrPage.JobMatrixPart.PAGE.GetSelectedDate());
     end;
 
     var
@@ -102,10 +102,10 @@
     local procedure ApplyFilters(ForceDate: Date)
     begin
         CurrPage.JobMatrixPart.PAGE.SetFilters(DateReference, ProjectFilter);
-        UpdateDayTasksFilter(ForceDate);
+        UpdateDayPlanningsFilter(ForceDate);
     end;
 
-    local procedure UpdateDayTasksFilter(ForceDate: Date)
+    local procedure UpdateDayPlanningsFilter(ForceDate: Date)
     var
         SelectedJobNo: Code[20];
         DateFrom: Date;
@@ -115,7 +115,7 @@
         DateFrom := CurrPage.JobMatrixPart.PAGE.GetWeekDateFrom();
         DateTo := CurrPage.JobMatrixPart.PAGE.GetWeekDateTo();
 
-        CurrPage.DayTasksPart.PAGE.SetFilters(SelectedJobNo, DateFrom, DateTo, ForceDate);
-        CurrPage.DayTasksPart.PAGE.GoToFirst();
+        CurrPage.DayPlanningsPart.PAGE.SetFilters(SelectedJobNo, DateFrom, DateTo, ForceDate);
+        CurrPage.DayPlanningsPart.PAGE.GoToFirst();
     end;
 }

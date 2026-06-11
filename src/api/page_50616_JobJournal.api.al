@@ -35,9 +35,9 @@ page 50616 "JobJournal Opt"
                 {
                     Caption = 'Description';
                 }
-                field(unPostedDayTask; GetUnpostedDayTask())
+                field(unPostedDayPlanning; GetUnpostedDayPlanning())
                 {
-                    Caption = 'Unposted Day Task';
+                    Caption = 'Unposted Day Planning';
                 }
             }
             part(jobJournalLines; "Job Journal Line API Opt.")
@@ -71,7 +71,7 @@ page 50616 "JobJournal Opt"
         LinesArray: JsonArray;
         LineJson: JsonObject;
         ResultText: Text;
-        DayTask: Record "Day Tasks";
+        DayPlanning: Record "Day Planning";
     begin
         JobRegister.Reset();
         if not JobRegister.FindLast() then
@@ -99,16 +99,16 @@ page 50616 "JobJournal Opt"
                 LineJson.Add('quantity', JobLedgEntry.Quantity);
                 LineJson.Add('unitPrice', JobLedgEntry."Unit Price");
                 LineJson.Add('totalPrice', JobLedgEntry."Total Price");
-                LineJson.Add('dayTaskDate', Format(JobLedgEntry."Opt. Daytask Date", 0, '<Year4>-<Month,2>-<Day,2>'));
-                LineJson.Add('dayTaskLineNo', JobLedgEntry."Opt. Daytask Line No.");
-                if DayTask.Get(
+                LineJson.Add('DayPlanningDate', Format(JobLedgEntry."Opt. DayPlanning Date", 0, '<Year4>-<Month,2>-<Day,2>'));
+                LineJson.Add('DayPlanningLineNo', JobLedgEntry."Opt. DayPlanning Line No.");
+                if DayPlanning.Get(
                     JobLedgEntry."Job No.",
                     JobLedgEntry."Job Task No.",
-                    JobLedgEntry."Opt. Daytask Line No.")
+                    JobLedgEntry."Opt. DayPlanning Line No.")
                 then
-                    LineJson.Add('dayTaskSystemId', DayTask.SystemId)
+                    LineJson.Add('DayPlanningSystemId', DayPlanning.SystemId)
                 else
-                    LineJson.Add('dayTaskSystemId', '');
+                    LineJson.Add('DayPlanningSystemId', '');
                 LinesArray.Add(LineJson);
             until JobLedgEntry.Next() = 0;
 
@@ -117,10 +117,10 @@ page 50616 "JobJournal Opt"
         exit(ResultText);
     end;
 
-    procedure GetUnpostedDayTask(): Text
+    procedure GetUnpostedDayPlanning(): Text
     var
         JobJnlLine: Record "Job Journal Line";
-        DayTask: Record "Day Tasks";
+        DayPlanning: Record "Day Planning";
         ResultJson: JsonObject;
         LinesArray: JsonArray;
         LineJson: JsonObject;
@@ -148,16 +148,16 @@ page 50616 "JobJournal Opt"
                 LineJson.Add('description', JobJnlLine.Description);
                 LineJson.Add('quantity', JobJnlLine.Quantity);
                 LineJson.Add('unitOfMeasureCode', JobJnlLine."Unit of Measure Code");
-                LineJson.Add('dayTaskDate', Format(JobJnlLine."Opt. Daytask Date", 0, '<Year4>-<Month,2>-<Day,2>'));
-                LineJson.Add('dayTaskLineNo', JobJnlLine."Opt. Daytask Line No.");
-                if DayTask.Get(
+                LineJson.Add('DayPlanningDate', Format(JobJnlLine."Opt. DayPlanning Date", 0, '<Year4>-<Month,2>-<Day,2>'));
+                LineJson.Add('DayPlanningLineNo', JobJnlLine."Opt. DayPlanning Line No.");
+                if DayPlanning.Get(
                     JobJnlLine."Job No.",
                     JobJnlLine."Job Task No.",
-                    JobJnlLine."Opt. Daytask Line No.")
+                    JobJnlLine."Opt. DayPlanning Line No.")
                 then
-                    LineJson.Add('dayTaskSystemId', Format(DayTask.SystemId, 0, 4))
+                    LineJson.Add('DayPlanningSystemId', Format(DayPlanning.SystemId, 0, 4))
                 else
-                    LineJson.Add('dayTaskSystemId', '');
+                    LineJson.Add('DayPlanningSystemId', '');
                 LinesArray.Add(LineJson);
             until JobJnlLine.Next() = 0;
 

@@ -31,7 +31,7 @@ page 50644 "Res. Asgmt. Job Matrix"
                     ApplicationArea = All;
                     CaptionClass = MonCaption;
                     Editable = false;
-                    ToolTip = 'Total day tasks | Tasks with resource assigned on Monday.';
+                    ToolTip = 'Total day plannings | Tasks with resource assigned on Monday.';
 
                     trigger OnAssistEdit()
                     begin
@@ -44,7 +44,7 @@ page 50644 "Res. Asgmt. Job Matrix"
                     ApplicationArea = All;
                     CaptionClass = TueCaption;
                     Editable = false;
-                    ToolTip = 'Total day tasks | Tasks with resource assigned on Tuesday.';
+                    ToolTip = 'Total day plannings | Tasks with resource assigned on Tuesday.';
 
                     trigger OnAssistEdit()
                     begin
@@ -57,7 +57,7 @@ page 50644 "Res. Asgmt. Job Matrix"
                     ApplicationArea = All;
                     CaptionClass = WedCaption;
                     Editable = false;
-                    ToolTip = 'Total day tasks | Tasks with resource assigned on Wednesday.';
+                    ToolTip = 'Total day plannings | Tasks with resource assigned on Wednesday.';
 
                     trigger OnAssistEdit()
                     begin
@@ -70,7 +70,7 @@ page 50644 "Res. Asgmt. Job Matrix"
                     ApplicationArea = All;
                     CaptionClass = ThuCaption;
                     Editable = false;
-                    ToolTip = 'Total day tasks | Tasks with resource assigned on Thursday.';
+                    ToolTip = 'Total day plannings | Tasks with resource assigned on Thursday.';
 
                     trigger OnAssistEdit()
                     begin
@@ -83,7 +83,7 @@ page 50644 "Res. Asgmt. Job Matrix"
                     ApplicationArea = All;
                     CaptionClass = FriCaption;
                     Editable = false;
-                    ToolTip = 'Total day tasks | Tasks with resource assigned on Friday.';
+                    ToolTip = 'Total day plannings | Tasks with resource assigned on Friday.';
 
                     trigger OnAssistEdit()
                     begin
@@ -96,7 +96,7 @@ page 50644 "Res. Asgmt. Job Matrix"
                     ApplicationArea = All;
                     CaptionClass = SatCaption;
                     Editable = false;
-                    ToolTip = 'Total day tasks | Tasks with resource assigned on Saturday.';
+                    ToolTip = 'Total day plannings | Tasks with resource assigned on Saturday.';
 
                     trigger OnAssistEdit()
                     begin
@@ -109,7 +109,7 @@ page 50644 "Res. Asgmt. Job Matrix"
                     ApplicationArea = All;
                     CaptionClass = SunCaption;
                     Editable = false;
-                    ToolTip = 'Total day tasks | Tasks with resource assigned on Sunday.';
+                    ToolTip = 'Total day plannings | Tasks with resource assigned on Sunday.';
 
                     trigger OnAssistEdit()
                     begin
@@ -243,19 +243,19 @@ page 50644 "Res. Asgmt. Job Matrix"
 
     local procedure CalcDayText(JobNo: Code[20]; DayDate: Date): Text[30]
     var
-        DayTask: Record "Day Tasks";
+        DayPlanning: Record "Day Planning";
         TotalCount: Integer;
         WithResourceCount: Integer;
     begin
         if (DayDate = 0D) or (JobNo = '') then
             exit('');
-        DayTask.SetRange("Job No.", JobNo);
-        DayTask.SetRange("Task Date", DayDate);
-        TotalCount := DayTask.Count();
+        DayPlanning.SetRange("Job No.", JobNo);
+        DayPlanning.SetRange("Task Date", DayDate);
+        TotalCount := DayPlanning.Count();
         if TotalCount = 0 then
             exit('');
-        DayTask.SetFilter("Assigned Resource No.", '<>%1', '');
-        WithResourceCount := DayTask.Count();
+        DayPlanning.SetFilter("Assigned Resource No.", '<>%1', '');
+        WithResourceCount := DayPlanning.Count();
         exit(Format(TotalCount) + ' | ' + Format(WithResourceCount));
     end;
 }

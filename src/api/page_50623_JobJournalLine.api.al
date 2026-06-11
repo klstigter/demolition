@@ -70,17 +70,9 @@ page 50623 "Job Journal Line API Opt."
                 {
                     Caption = 'Job Task No.';
                 }
-                // field(daytaskDate; Rec."Opt. Daytask Date")
-                // {
-                //     Caption = 'Day Task Date';
-                // }
-                // field(daytaskLineNo; Rec."Opt. Daytask Line No.")
-                // {
-                //     Caption = 'Day Task Line No.';
-                // }
-                field(dayTaskSystemId; DayTaskSystemId)
+                field(DayPlanningSystemId; DayPlanningSystemId)
                 {
-                    Caption = 'Daytask System Id';
+                    Caption = 'DayPlanning System Id';
                 }
                 field(type; Rec.Type)
                 {
@@ -188,25 +180,26 @@ page 50623 "Job Journal Line API Opt."
     var
         TempLine: Record "Job Journal Line" temporary;
         ExistingLine: Record "Job Journal Line";
-        Daytask: Record "Day Tasks";
+        DayPlanning: Record "Day Planning";
         NextLineNo: Integer;
         GuidVar: Guid;
         ModifyRec: Boolean;
+        ErrLbl: Label 'The specified Day Planning (System Id = %1) has already been posted and cannot be referenced in a Job Journal Line.';
     begin
         // Step 1: snapshot ALL incoming API data FIRST, before Rec is touched
         TempLine.Copy(Rec);
 
-        Evaluate(GuidVar, DayTaskSystemId);
-        Daytask.GetBySystemId(GuidVar);
-        if Daytask.Posted then
-            Error('The specified Day Task (System Id = %1) has already been posted and cannot be referenced in a Job Journal Line.', DayTaskSystemId);
+        Evaluate(GuidVar, DayPlanningSystemId);
+        DayPlanning.GetBySystemId(GuidVar);
+        if DayPlanning.Posted then
+            Error(ErrLbl, DayPlanningSystemId);
 
-        // Check if a line for the same DayTask already exists in this batch
+        // Check if a line for the same DayPlanning already exists in this batch
         ExistingLine.Reset();
         ExistingLine.SetRange("Journal Template Name", TempLine."Journal Template Name");
         ExistingLine.SetRange("Journal Batch Name", TempLine."Journal Batch Name");
-        ExistingLine.SetRange("Opt. Daytask Date", Daytask."Task Date");
-        ExistingLine.SetRange("Opt. Daytask Line No.", Daytask."Day Line No.");
+        ExistingLine.SetRange("Opt. DayPlanning Date", DayPlanning."Task Date");
+        ExistingLine.SetRange("Opt. DayPlanning Line No.", DayPlanning."Day Line No.");
         if ExistingLine.FindFirst() then begin
             // Modify path: load existing PK into Rec; payload comes from TempLine (incoming)
             ModifyRec := true;
@@ -239,10 +232,10 @@ page 50623 "Job Journal Line API Opt."
         Rec."Document No." := TempLine."Document No.";
         Rec."External Document No." := TempLine."External Document No.";
 
-        Rec."Opt. Daytask Date" := Daytask."Task Date";
-        Rec."Opt. Daytask Line No." := Daytask."Day Line No.";
-        Rec."Job No." := Daytask."Job No.";
-        Rec."Job Task No." := Daytask."Job Task No.";
+        Rec."Opt. DayPlanning Date" := DayPlanning."Task Date";
+        Rec."Opt. DayPlanning Line No." := DayPlanning."Day Line No.";
+        Rec."Job No." := DayPlanning."Job No.";
+        Rec."Job Task No." := DayPlanning."Job Task No.";
 
         Rec.Type := TempLine.Type;
         Rec."No." := TempLine."No.";
@@ -262,8 +255,8 @@ page 50623 "Job Journal Line API Opt."
         // Validation
         Rec.TestField("Posting Date");
         Rec.TestField("Document No.");
-        Rec.TestField("Opt. Daytask Date");
-        Rec.TestField("Opt. Daytask Line No.");
+        Rec.TestField("Opt. DayPlanning Date");
+        Rec.TestField("Opt. DayPlanning Line No.");
         Rec.TestField("Job No.");
         Rec.TestField("Job Task No.");
         Rec.TestField(Quantity);
@@ -283,7 +276,7 @@ page 50623 "Job Journal Line API Opt."
     end;
 
     var
-        DayTaskSystemId: Text[50];
+        DayPlanningSystemId: Text[50];
         TriggerPost: Boolean;
 
     [CommitBehavior(CommitBehavior::Ignore)]

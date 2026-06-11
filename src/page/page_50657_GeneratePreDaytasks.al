@@ -1,7 +1,7 @@
 /// <summary>
-/// Generate Pre Daytasks dialog (Page 50657)
+/// Generate Pre DayPlannings dialog (Page 50657)
 ///
-/// StandardDialog popup opened from the "Generate pre Daytasks" action on
+/// StandardDialog popup opened from the "Generate pre DayPlannings" action on
 /// the Order Intake Card (page 50655).
 ///
 /// Responsibilities (page only):
@@ -12,21 +12,21 @@
 ///
 /// Caller pattern:
 ///   var
-///       GenerateDlg : Page "Generate Pre Daytasks";
-///       RequestBuf  : Record "Pre Daytask Request Buf.";
+///       GenerateDlg : Page "Generate Pre DayPlannings";
+///       RequestBuf  : Record "Pre DayPlanning Request Buf.";
 ///   begin
 ///       GenerateDlg.SetContext(Rec."No.", Rec.Description);
 ///       if GenerateDlg.RunModal() = Action::OK then begin
 ///           GenerateDlg.GetRequestBuffer(RequestBuf);
-///           PreDaytaskGen.GenerateLines(RequestBuf, Rec."No.");
+///           PreDayPlanningGen.GenerateLines(RequestBuf, Rec."No.");
 ///       end;
 ///   end;
 /// </summary>
-page 50657 "Generate Pre Daytasks"
+page 50657 "Generate Pre DayPlannings"
 {
     PageType = StandardDialog;
-    Caption = 'Generate Pre Daytasks';
-    SourceTable = "Pre Daytask Request Buf.";
+    Caption = 'Generate Pre DayPlannings';
+    SourceTable = "Pre DayPlanning Request Buf.";
     SourceTableTemporary = true;
     InsertAllowed = false;
     DeleteAllowed = false;
@@ -44,7 +44,7 @@ page 50657 "Generate Pre Daytasks"
                 {
                     ApplicationArea = All;
                     Caption = 'Description';
-                    ToolTip = 'Specifies the description copied to each generated Daytask planning line.';
+                    ToolTip = 'Specifies the description copied to each generated DayPlanning planning line.';
                 }
                 field(fldNoOfResources; Rec."No. of Resources")
                 {
@@ -152,12 +152,12 @@ page 50657 "Generate Pre Daytasks"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the base calendar used to identify non-working days and public holidays.';
                 }
-                field(fldDaytaskStart; Rec."Daytask Start")
+                field(fldDayPlanningStart; Rec."DayPlanning Start")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the planned start time for each generated line. Pre-populated from the Work-Hour Template.';
                 }
-                field(fldDaytaskEnd; Rec."Daytask End")
+                field(fldDayPlanningEnd; Rec."DayPlanning End")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the planned end time for each generated line. Pre-populated from the Work-Hour Template.';
@@ -198,7 +198,7 @@ page 50657 "Generate Pre Daytasks"
     /// Must be called AFTER RunModal() = Action::OK.
     /// Returns the completed request buffer to the caller for processing.
     /// </summary>
-    procedure GetRequestBuffer(var RequestBuf: Record "Pre Daytask Request Buf.")
+    procedure GetRequestBuffer(var RequestBuf: Record "Pre DayPlanning Request Buf.")
     begin
         RequestBuf := Rec;
     end;

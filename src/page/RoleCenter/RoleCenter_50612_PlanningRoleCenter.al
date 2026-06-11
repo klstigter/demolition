@@ -25,13 +25,13 @@ page 50612 "Planning Role Center"
             group("ProjectPlanningGroup")
             {
                 Caption = 'Project Planning';
-                action("DaytaskOrderIntake")
+                action("DayPlanningOrderIntake")
                 {
                     ApplicationArea = Jobs;
                     Caption = 'Order Intake';
                     RunObject = Page "Order Intake Opt.";
                     Image = Quote;
-                    ToolTip = 'Open the Daytask Order Intake page to manage daytask orders.';
+                    ToolTip = 'Open the DayPlanning Order Intake page to manage DayPlanning orders.';
                 }
                 action("Jobs")
                 {
@@ -46,20 +46,20 @@ page 50612 "Planning Role Center"
                     RunObject = Page "Job Task List - Project";
                     ToolTip = 'Define the various tasks involved in a project. You must create at least one project task per project because all posting refers to a project task. Having at least one project task in your project enables you to set up project planning lines and to post consumption to the project.';
                 }
-                action("Day Tasks")
+                action("Day Plannings")
                 {
                     ApplicationArea = Jobs;
-                    Caption = 'Day Tasks';
-                    RunObject = Page "Day Tasks";
-                    ToolTip = 'Open the list of day tasks for the project.';
+                    Caption = 'Day Plannings';
+                    RunObject = Page "Day Plannings";
+                    ToolTip = 'Open the list of day plannings for the project.';
                 }
-                action("DaytaskPosting")
+                action("DayPlanningPosting")
                 {
                     ApplicationArea = Jobs;
-                    Caption = 'Daytask Posting';
-                    RunObject = Page "Daytask Journal";
+                    Caption = 'DayPlanning Posting';
+                    RunObject = Page "DayPlanning Journal";
                     Image = PostBatch;
-                    ToolTip = 'Open the Daytask posting journal to retrieve unposted day tasks and post them to the project ledger.';
+                    ToolTip = 'Open the DayPlanning posting journal to retrieve unposted day Plannings and post them to the project ledger.';
                 }
 
             }
@@ -99,7 +99,7 @@ page 50612 "Planning Role Center"
                 action("VisualPlanning2")
                 {
                     ApplicationArea = All;
-                    Caption = 'Day Tasks';
+                    Caption = 'Day Plannings';
                     RunObject = page "DHX Scheduler (Project)";
                 }
                 // action("VisualPlanning3")

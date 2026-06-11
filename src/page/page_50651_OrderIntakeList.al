@@ -20,7 +20,7 @@ page 50651 "Order Intake Opt."
                     ApplicationArea = All;
                     Editable = false;
                 }
-                field("Daytask Date"; Rec."Order Date")
+                field("DayPlanning Date"; Rec."Order Date")
                 {
                     ApplicationArea = All;
                 }

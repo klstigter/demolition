@@ -33,7 +33,7 @@ controladdin DHXResourceScheduleAddin
     procedure LoadData(EventTxt: Text);
     procedure LoadCapacity(CapacityTxt: Text);
     procedure ReloadData(EventTxt: Text; CapacityTxt: Text);
-    procedure SetShowDayTask(pShow: Boolean);
+    procedure SetShowDayPlanning(pShow: Boolean);
     procedure SetShowCapacity(pShow: Boolean);
 
 }

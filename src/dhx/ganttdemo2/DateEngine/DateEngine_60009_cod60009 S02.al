@@ -25,7 +25,7 @@ codeunit 60009 "DSTS Scenario S02"
         AssertNodeRange(Nodes, 'TASK1', DMY2Date(5, 1, 2026), DMY2Date(25, 1, 2026), 'TASK expanded due to PL1');
         AssertNodeRange(Nodes, 'JOB1', DMY2Date(5, 1, 2026), DMY2Date(25, 1, 2026), 'JOB expanded due to PL1');
 
-        // PL2 + its daytasks must remain the same
+        // PL2 + its DayPlannings must remain the same
         AssertNodeRange(Nodes, 'PL2', DMY2Date(20, 1, 2026), DMY2Date(21, 1, 2026), 'PL2 unchanged');
 
         Msg := 'OK: middle-level change expands only ancestors; siblings unchanged.';
@@ -41,12 +41,12 @@ codeunit 60009 "DSTS Scenario S02"
         Engine.AddNode(Nodes, 'PL1', 'TASK1', Enum::"Date Span Level"::"Job Planning Line", 0D, 0D, Enum::"Date Span Lock"::None, 'Planning Line 1');
         Engine.AddNode(Nodes, 'PL2', 'TASK1', Enum::"Date Span Level"::"Job Planning Line", 0D, 0D, Enum::"Date Span Lock"::None, 'Planning Line 2');
 
-        // DayTasks under PL1
-        Engine.AddNode(Nodes, 'DT1', 'PL1', Enum::"Date Span Level"::"Day Task",
+        // DayPlannings under PL1
+        Engine.AddNode(Nodes, 'DT1', 'PL1', Enum::"Date Span Level"::"Day Planning",
             DMY2Date(10, 1, 2026), DMY2Date(12, 1, 2026), Enum::"Date Span Lock"::None, 'DT1');
 
-        // DayTasks under PL2
-        Engine.AddNode(Nodes, 'DT2', 'PL2', Enum::"Date Span Level"::"Day Task",
+        // DayPlannings under PL2
+        Engine.AddNode(Nodes, 'DT2', 'PL2', Enum::"Date Span Level"::"Day Planning",
             DMY2Date(20, 1, 2026), DMY2Date(21, 1, 2026), Enum::"Date Span Lock"::None, 'DT2');
     end;
 

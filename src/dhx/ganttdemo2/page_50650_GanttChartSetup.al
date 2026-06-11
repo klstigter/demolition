@@ -75,7 +75,7 @@ page 50650 "Gantt Chart Setup"
                 Caption = 'Data Load Settings';
                 field("Load Job Tasks"; rec."Load Job Tasks") { }
                 field("Load Resources"; rec."Load Resources") { }
-                field("Load Day Tasks"; rec."Load Day Tasks") { }
+                field("Load Day Plannings"; rec."Load Day Plannings") { }
 
             }
             group(Columns)

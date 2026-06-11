@@ -21,9 +21,9 @@ codeunit 60006 "Date Span Engine"
         Nodes.Insert(true);
     end;
 
-    /// User changed a range on some level (Job/Task/PlanningLine/DayTask).
+    /// User changed a range on some level (Job/Task/PlanningLine/DayPlanning).
     /// Rules:
-    /// 1) Day Tasks are truth: you may not change parent to exclude descendant day tasks.
+    /// 1) Day Plannings are truth: you may not change parent to exclude descendant day plannings.
     /// 2) Parents must cover their children; may be wider.
     /// 3) Locks prevent changing start/end; if locked and a child requires expansion -> error.
     procedure ApplyUserChange(var Nodes: Record "Date Span Node" temporary; NodeId: Code[20]; NewStart: Date; NewEnd: Date)
@@ -39,13 +39,13 @@ codeunit 60006 "Date Span Engine"
 
         ValidateRange(Node);
 
-        // If this node has descendant DayTasks, do not allow excluding them
-        if HasAnyDescendantDayTask(Nodes, NodeId) then begin
-            GetDescendantDayTaskFootprint(Nodes, NodeId, MinD, MaxD);
+        // If this node has descendant DayPlannings, do not allow excluding them
+        if HasAnyDescendantDayPlanning(Nodes, NodeId) then begin
+            GetDescendantDayPlanningFootprint(Nodes, NodeId, MinD, MaxD);
             if (MinD <> 0D) and (Node."Start Date" > MinD) then
-                Error('Change not allowed: %1 would start after existing DayTasks (%2).', Node.Caption, MinD);
+                Error('Change not allowed: %1 would start after existing DayPlannings (%2).', Node.Caption, MinD);
             if (MaxD <> 0D) and (Node."End Date" < MaxD) then
-                Error('Change not allowed: %1 would end before existing DayTasks (%2).', Node.Caption, MaxD);
+                Error('Change not allowed: %1 would end before existing DayPlannings (%2).', Node.Caption, MaxD);
         end;
 
         // Persist the node change
@@ -65,7 +65,7 @@ codeunit 60006 "Date Span Engine"
 
     local procedure NormalizeParentsToChildren(var Nodes: Record "Date Span Node" temporary)
     begin
-        // Bottom-up order: DayTask -> Planning -> Task -> Job (i.e., update parents at each step)
+        // Bottom-up order: DayPlanning -> Planning -> Task -> Job (i.e., update parents at each step)
         NormalizeLevelParents(Nodes, Enum::"Date Span Level"::"Job Planning Line");
         NormalizeLevelParents(Nodes, Enum::"Date Span Level"::"Job Task");
         NormalizeLevelParents(Nodes, Enum::"Date Span Level"::Job);
@@ -134,13 +134,13 @@ codeunit 60006 "Date Span Engine"
             until Parent.Next() = 0;
     end;
 
-    local procedure HasAnyDescendantDayTask(var Nodes: Record "Date Span Node" temporary; NodeId: Code[20]): Boolean
+    local procedure HasAnyDescendantDayPlanning(var Nodes: Record "Date Span Node" temporary; NodeId: Code[20]): Boolean
     var
         Q: Record "Date Span Node" temporary;
     begin
-        // Any DayTask with (transitive) parent = NodeId
+        // Any DayPlanning with (transitive) parent = NodeId
         Q.Copy(Nodes, true);
-        Q.SetRange(Level, Enum::"Date Span Level"::"Day Task");
+        Q.SetRange(Level, Enum::"Date Span Level"::"Day Planning");
         if not Q.FindSet() then
             exit(false);
 
@@ -152,7 +152,7 @@ codeunit 60006 "Date Span Engine"
         exit(false);
     end;
 
-    local procedure GetDescendantDayTaskFootprint(var Nodes: Record "Date Span Node" temporary; NodeId: Code[20]; var MinD: Date; var MaxD: Date)
+    local procedure GetDescendantDayPlanningFootprint(var Nodes: Record "Date Span Node" temporary; NodeId: Code[20]; var MinD: Date; var MaxD: Date)
     var
         Q: Record "Date Span Node" temporary;
     begin
@@ -160,7 +160,7 @@ codeunit 60006 "Date Span Engine"
         MaxD := 0D;
 
         Q.Copy(Nodes, true);
-        Q.SetRange(Level, Enum::"Date Span Level"::"Day Task");
+        Q.SetRange(Level, Enum::"Date Span Level"::"Day Planning");
 
         if Q.FindSet() then
             repeat

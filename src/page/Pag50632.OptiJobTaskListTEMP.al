@@ -78,15 +78,15 @@ page 50632 "Opti Job Task List TEMP"
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the progress percentage (0-100) for this job task.';
                 }
-                field("Total Day Taks"; Rec."Total Day Tasks")
+                field("Total Day Taks"; Rec."Total Day Plannings")
                 {
                     ApplicationArea = Jobs;
-                    ToolTip = 'Specifies the total number of related day tasks.';
+                    ToolTip = 'Specifies the total number of related day plannings.';
                 }
                 field("Total Assigned Hours"; Rec."Total Assigned Hours")
                 {
                     ApplicationArea = Jobs;
-                    ToolTip = 'Specifies the total assigned hours from all related day tasks.';
+                    ToolTip = 'Specifies the total assigned hours from all related day plannings.';
                 }
                 field("Ship-to Code"; Rec."Ship-to Code")
                 {

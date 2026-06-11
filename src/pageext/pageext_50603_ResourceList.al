@@ -57,22 +57,22 @@ pageextension 50603 "Opt ResourceList" extends "Resource List"
                     ResScheduler.RunModal();
                 end;
             }
-            action("Daytasks (Visual)")
+            action("DayPlannings (Visual)")
             {
                 ApplicationArea = All;
                 trigger OnAction()
                 var
-                    DaytaskScheduler: page "DHX Scheduler (Project)";
+                    DayPlanningScheduler: page "DHX Scheduler (Project)";
                 begin
-                    DaytaskScheduler.SetResourceFilter(GetSelectionFilter());
-                    DaytaskScheduler.RunModal();
+                    DayPlanningScheduler.SetResourceFilter(GetSelectionFilter());
+                    DayPlanningScheduler.RunModal();
                 end;
             }
         }
         addafter("Units of Measure_Promoted")
         {
             actionref("Schedule (Visual) actionref"; "Schedule (Visual)") { }
-            actionref("Daytasks (Visual) actionref"; "Daytasks (Visual)") { }
+            actionref("DayPlannings (Visual) actionref"; "DayPlannings (Visual)") { }
         }
     }
 

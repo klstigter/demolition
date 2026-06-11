@@ -11,9 +11,9 @@ codeunit 60010 "DSTS Scenario S03"
         EndD: Date;
     begin
         // Scenario idea:
-        // - Day Tasks are truth.
+        // - Day Plannings are truth.
         // - User expands Planning Line -> parents must expand.
-        // - User tries to shrink Task excluding DayTask -> must be blocked (expected error).
+        // - User tries to shrink Task excluding DayPlanning -> must be blocked (expected error).
 
         Nodes.DeleteAll();
 
@@ -27,8 +27,8 @@ codeunit 60010 "DSTS Scenario S03"
         Engine.AddNode(Nodes, 'PLAN1', 'TASK1', Enum::"Date Span Level"::"Job Planning Line",
             DMY2DATE(8, 1, 2026), DMY2DATE(15, 1, 2026), Enum::"Date Span Lock"::None, 'Planning PLAN1');
 
-        Engine.AddNode(Nodes, 'DT1', 'PLAN1', Enum::"Date Span Level"::"Day Task",
-            DMY2DATE(10, 1, 2026), DMY2DATE(12, 1, 2026), Enum::"Date Span Lock"::None, 'DayTask DT1');
+        Engine.AddNode(Nodes, 'DT1', 'PLAN1', Enum::"Date Span Level"::"Day Planning",
+            DMY2DATE(10, 1, 2026), DMY2DATE(12, 1, 2026), Enum::"Date Span Lock"::None, 'DayPlanning DT1');
 
         // 1) Expand planning line beyond current task range -> task must expand (parents normalize bottom-up)
         Engine.ApplyUserChange(Nodes, 'PLAN1', DMY2DATE(3, 1, 2026), DMY2DATE(25, 1, 2026));
@@ -39,14 +39,14 @@ codeunit 60010 "DSTS Scenario S03"
         if Task."End Date" <> DMY2DATE(25, 1, 2026) then
             Error('S03: Expected TASK1 end to expand to %1, got %2', DMY2DATE(25, 1, 2026), Task."End Date");
 
-        // 2) Try to shrink TASK1 so it would exclude existing DayTask (DT1 10..12) -> must ERROR
+        // 2) Try to shrink TASK1 so it would exclude existing DayPlanning (DT1 10..12) -> must ERROR
         StartD := DMY2DATE(13, 1, 2026);
         EndD := DMY2DATE(20, 1, 2026);
 
         if TryApply(Engine, Nodes, 'TASK1', StartD, EndD) then
-            Error('S03: Expected shrinking TASK1 to be blocked (would exclude DayTasks), but it succeeded.');
+            Error('S03: Expected shrinking TASK1 to be blocked (would exclude DayPlannings), but it succeeded.');
 
-        Msg := 'S03 ok: planning expansion cascaded up; shrinking task excluding DayTasks was blocked as expected.';
+        Msg := 'S03 ok: planning expansion cascaded up; shrinking task excluding DayPlannings was blocked as expected.';
     end;
 
     [TryFunction]

@@ -81,27 +81,27 @@ page 50636 "Resource Weekly Hours"
     {
         area(Processing)
         {
-            action(ShowDayTasks)
+            action(ShowDayPlannings)
             {
                 ApplicationArea = All;
-                Caption = 'Show Day Tasks';
+                Caption = 'Show Day Plannings';
                 Image = TaskList;
-                ToolTip = 'View all day tasks for this week.';
+                ToolTip = 'View all day plannings for this week.';
 
                 trigger OnAction()
                 var
-                    DayTask: Record "Day Tasks";
+                    DayPlanning: Record "Day Planning";
                     WeekStart: Date;
                     WeekEnd: Date;
                 begin
                     WeekStart := GetWeekStartFromYearWeek(Rec.Year, Rec."Week No.");
                     WeekEnd := CalcDate('<+6D>', WeekStart);
-                    DayTask.Reset();
-                    DayTask.SetRange("Assigned Resource No.", Rec."Resource No.");
-                    DayTask.SetRange("Job No.", Rec."Job No.");
-                    DayTask.SetRange("Job Task No.", Rec."Job Task No.");
-                    DayTask.SetRange("Task Date", WeekStart, WeekEnd);
-                    Page.Run(Page::"Day Tasks", DayTask);
+                    DayPlanning.Reset();
+                    DayPlanning.SetRange("Assigned Resource No.", Rec."Resource No.");
+                    DayPlanning.SetRange("Job No.", Rec."Job No.");
+                    DayPlanning.SetRange("Job Task No.", Rec."Job Task No.");
+                    DayPlanning.SetRange("Task Date", WeekStart, WeekEnd);
+                    Page.Run(Page::"Day Plannings", DayPlanning);
                 end;
             }
             action(OpenResourceCard)

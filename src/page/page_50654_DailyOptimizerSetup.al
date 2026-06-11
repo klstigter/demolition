@@ -55,7 +55,7 @@ page 50654 "Daily Optimizer Setup"
                 {
                     ApplicationArea = All;
                     Caption = 'Resource Scheduler Color';
-                    ToolTip = 'Set up colors for Resource Scheduler based on resources, day tasks, and capacity.';
+                    ToolTip = 'Set up colors for Resource Scheduler based on resources, day plannings, and capacity.';
                     Image = ResourcePlanning;
 
                     trigger OnAction()
