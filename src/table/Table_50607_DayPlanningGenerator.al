@@ -285,56 +285,56 @@ table 50607 "Day Planning Pattern"
             end;
     end;
 
-    procedure FillBuffer(JobNo: Code[20]; JobTaskNo: Code[20])
-    var
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
-        WorkHourTemplate: Record "Work-Hour Template";
-        DayPlanning: Record "Day Planning";
-        DoInSert: Boolean;
-        Resource: Record Resource;
-    begin
-        DailyOptimizerSetup.Get();
-        reset;
-        DeleteAll();
-        DayPlanning.SetRange("Job No.", JobNo);
-        DayPlanning.SetRange("Job Task No.", JobTaskNo);
-        if DayPlanning.FindSet() then
-            repeat
-                rec.Init();
-                rec."Job No." := JobNo;
-                rec."Job Task No." := JobTaskNo;
-                rec."Resource No." := DayPlanning."Assigned Resource No.";
-                rec.SkillsRequired := DayPlanning.Skill;
-                Rec."Work-Hour Template" := DailyOptimizerSetup."Work hour Template";
-                if Rec."Work-Hour Template" <> '' then begin
-                    WorkHourTemplate.Get(Rec."Work-Hour Template");
-                    Rec."Start Time" := WorkHourTemplate."Default Start Time";
-                    Rec."End Time" := WorkHourTemplate."Default End Time";
-                    Rec."Non Working Minutes" := WorkHourTemplate."Non Working Minutes";
-                end;
-                Rec."Quantity of Lines" := 1;
-                if rec.Find('=') then begin
-                    if DayPlanning."Task Date" < rec."Start Date" then
-                        rec."Start Date" := DayPlanning."Task Date";
-                    if DayPlanning."Task Date" > rec."End Date" then
-                        rec."End Date" := DayPlanning."Task Date";
-                    rec.Modify()
-                end else begin
-                    rec."Start Date" := DayPlanning."Task Date";
-                    rec."End Date" := DayPlanning."Task Date";
-                    if Resource.get(DayPlanning."Assigned Resource No.") then
-                        if Resource."Pool Resource No." <> '' then begin
-                            rec."Is Pool" := Resource."Pool Resource No." <> Resource."No.";
-                            rec."Pool Resource No." := Resource."Pool Resource No.";
-                            rec."Vendor No." := Resource."Vendor No.";
-                        end;
-                    rec.Insert();
-                end;
-                if (rec."Start Date" <> 0D) and (rec."End Date" <> 0D) then begin
-                    Rec.Validate("End Time");
-                    Rec.Modify();
-                end;
-            until DayPlanning.Next() = 0;
-    end;
+    // procedure FillBuffer(JobNo: Code[20]; JobTaskNo: Code[20])
+    // var
+    //     DailyOptimizerSetup: Record "Daily Optimizer Setup";
+    //     WorkHourTemplate: Record "Work-Hour Template";
+    //     DayPlanning: Record "Day Planning";
+    //     DoInSert: Boolean;
+    //     Resource: Record Resource;
+    // begin
+    //     DailyOptimizerSetup.Get();
+    //     reset;
+    //     DeleteAll();
+    //     DayPlanning.SetRange("Job No.", JobNo);
+    //     DayPlanning.SetRange("Job Task No.", JobTaskNo);
+    //     if DayPlanning.FindSet() then
+    //         repeat
+    //             rec.Init();
+    //             rec."Job No." := JobNo;
+    //             rec."Job Task No." := JobTaskNo;
+    //             rec."Resource No." := DayPlanning."Assigned Resource No.";
+    //             rec.SkillsRequired := DayPlanning.Skill;
+    //             Rec."Work-Hour Template" := DailyOptimizerSetup."Work hour Template";
+    //             if Rec."Work-Hour Template" <> '' then begin
+    //                 WorkHourTemplate.Get(Rec."Work-Hour Template");
+    //                 Rec."Start Time" := WorkHourTemplate."Default Start Time";
+    //                 Rec."End Time" := WorkHourTemplate."Default End Time";
+    //                 Rec."Non Working Minutes" := WorkHourTemplate."Non Working Minutes";
+    //             end;
+    //             Rec."Quantity of Lines" := 1;
+    //             if rec.Find('=') then begin
+    //                 if DayPlanning."Task Date" < rec."Start Date" then
+    //                     rec."Start Date" := DayPlanning."Task Date";
+    //                 if DayPlanning."Task Date" > rec."End Date" then
+    //                     rec."End Date" := DayPlanning."Task Date";
+    //                 rec.Modify()
+    //             end else begin
+    //                 rec."Start Date" := DayPlanning."Task Date";
+    //                 rec."End Date" := DayPlanning."Task Date";
+    //                 if Resource.get(DayPlanning."Assigned Resource No.") then
+    //                     if Resource."Pool Resource No." <> '' then begin
+    //                         rec."Is Pool" := Resource."Pool Resource No." <> Resource."No.";
+    //                         rec."Pool Resource No." := Resource."Pool Resource No.";
+    //                         rec."Vendor No." := Resource."Vendor No.";
+    //                     end;
+    //                 rec.Insert();
+    //             end;
+    //             if (rec."Start Date" <> 0D) and (rec."End Date" <> 0D) then begin
+    //                 Rec.Validate("End Time");
+    //                 Rec.Modify();
+    //             end;
+    //         until DayPlanning.Next() = 0;
+    // end;
 
 }
