@@ -116,7 +116,7 @@ page 50662 "Workorder Card"
             //     ApplicationArea = All;
             //     SubPageLink = "Workorder No." = FIELD("Work Order No.");
             // }
-            part("Day Tasks"; "Work Order Day Tasks")
+            part("Day Plannings"; "Work Order Day Plannings")
             {
                 ApplicationArea = All;
                 SubPageLink = "Work Order No." = FIELD("Work Order No.");
@@ -127,29 +127,29 @@ page 50662 "Workorder Card"
     {
         area(Processing)
         {
-            action(DayTasksCreation)
+            action(DayPlanningsCreation)
             {
                 ApplicationArea = All;
                 Promoted = true;
                 PromotedIsBig = true;
                 PromotedCategory = Process;
-                Caption = 'Day tasks creation';
+                Caption = 'Day plannings creation';
                 Image = HumanResources;
                 ShortCutKey = 'Alt+D';
                 ToolTip = 'View or edit dimensions, such as area, project, or department, that you can assign to sales and purchase documents to distribute costs and analyze transaction history.';
                 trigger OnAction()
                 var
-                    Page: Page "Day Task Generator";
+                    Page: Page "Day Planning Pattern";
                 begin
                     page.fillbuffer(Rec."Project No.", Rec."Project Task No.", Rec."Work Order No.");
                     Page.Run();
                     CurrPage.Update();
                 end;
             }
-            action(DayTasks)
+            action(DayPlannings)
             {
                 ApplicationArea = All;
-                Caption = 'Day tasks';
+                Caption = 'Day plannings';
                 Promoted = true;
                 PromotedIsBig = true;
                 PromotedCategory = Process;
@@ -158,12 +158,12 @@ page 50662 "Workorder Card"
                 ToolTip = 'View or edit dimensions, such as area, project, or department, that you can assign to sales and purchase documents to distribute costs and analyze transaction history.';
                 trigger OnAction()
                 var
-                    ResourcePage: Page "Day Tasks";
-                    DayTask: Record "Day Tasks";
+                    ResourcePage: Page "Day Plannings";
+                    DayPlanning: Record "Day Planning";
                 begin
-                    DayTask.SetRange("Job No.", Rec."Project No.");
-                    DayTask.SetRange("Job Task No.", Rec."Project Task No.");
-                    ResourcePage.SetTableView(DayTask);
+                    DayPlanning.SetRange("Job No.", Rec."Project No.");
+                    DayPlanning.SetRange("Job Task No.", Rec."Project Task No.");
+                    ResourcePage.SetTableView(DayPlanning);
                     ResourcePage.Run();
                 end;
             }

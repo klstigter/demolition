@@ -6,7 +6,7 @@ var allResources  = [];      // [ { id, name, group } ]
 var allEvents     = [];      // [ { id, resource_id, classname, start_date, end_date, text, type } ]
 var allCapacity   = [];      // [ { resource_id, start_date, end_date } ]
 var checkedResources = {};   // { resourceId: true|false }
-var showDayTask      = true;    // controlled by BC toggle
+var showDayPlanning      = true;    // controlled by BC toggle
 var showCapacity     = true;    // controlled by BC toggle
 var _initInProgress  = true;    // suppresses onViewChange during Init()
 
@@ -101,7 +101,7 @@ window.BOOT = function() {
             return ev.classname || "";
         };
 
-        // Custom tooltip content: Resource, Date, Capacity times, DayTask times
+        // Custom tooltip content: Resource, Date, Capacity times, DayPlanning times
         scheduler.templates.tooltip_text = function(start, end, ev) {
             var resId   = String(ev.resource_id || "");
             var resName = resId;
@@ -144,7 +144,7 @@ window.BOOT = function() {
 
             var isAvailable = String(ev.id).indexOf("cap_") === 0;
             if (!isAvailable) {
-                html += '<div class="dhx-tt-section">DayTask</div>';
+                html += '<div class="dhx-tt-section">DayPlanning</div>';
                 html += '<div class="dhx-tt-rows">';
                 html += '<div class="dhx-tt-row"><span>Start:</span><span>' + fmt(ev.start_date) + '</span></div>';
                 html += '<div class="dhx-tt-row"><span>End:</span><span>' + fmt(ev.end_date) + '</span></div>';
@@ -311,7 +311,7 @@ function RefreshSchedulerEvents() {
     if (typeof scheduler === "undefined") return;
     scheduler.clearAll();
 
-    var filtered = showDayTask ? allEvents.filter(function(ev) {
+    var filtered = showDayPlanning ? allEvents.filter(function(ev) {
         return !!checkedResources[ev.resource_id];
     }) : [];
 
@@ -361,7 +361,7 @@ function AdjustFirstHour() {
 
     var minHour = null;
 
-    // Scan daytask events for checked resources
+    // Scan DayPlanning events for checked resources
     allEvents.forEach(function(ev) {
         if (!checkedResources[ev.resource_id]) return;
         var d = ToDate(ev.start_date);
@@ -517,10 +517,10 @@ function ReloadData(eventsJson, capacityJson) {
 }
 
 // ============================================================
-// AL-callable: SetShowDayTask / SetShowCapacity
+// AL-callable: SetShowDayPlanning / SetShowCapacity
 // ============================================================
-function SetShowDayTask(pShow) {
-    showDayTask = !!pShow;
+function SetShowDayPlanning(pShow) {
+    showDayPlanning = !!pShow;
     RefreshSchedulerEvents();
 }
 
@@ -545,8 +545,8 @@ function setupContextMenu() {
         '<div class="dhx-ctx-item" data-action="OpenResource">' +
             '<span class="dhx-ctx-icon">&#128196;</span>Resource</div>' +
         '<div class="dhx-ctx-separator"></div>' +
-        '<div class="dhx-ctx-item" data-action="OpenDayTask">' +
-            '<span class="dhx-ctx-icon">&#128172;</span>Daytask</div>' +
+        '<div class="dhx-ctx-item" data-action="OpenDayPlanning">' +
+            '<span class="dhx-ctx-icon">&#128172;</span>DayPlanning</div>' +
         '<div class="dhx-ctx-item" data-action="OpenCapacity">' +
             '<span class="dhx-ctx-icon">&#128172;</span>Capacity</div>' +
         '<div class="dhx-ctx-separator"></div>' +
@@ -642,7 +642,7 @@ function setupContextMenu() {
                 } else if (String(evId).indexOf('cap_') === 0) {
                     evType = 'capacity';
                 } else {
-                    evType = 'daytask';
+                    evType = 'DayPlanning';
                 }
                 var evData = ev ? {
                     id:          ev.id,

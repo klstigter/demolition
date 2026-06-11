@@ -14,13 +14,13 @@ page 50619 "DHX Resource Scheduler"
                 Caption = '';
                 ShowCaption = false;
 
-                field(ShowDayTaskFld; ShowDayTask)
+                field(ShowDayPlanningFld; ShowDayPlanning)
                 {
                     ApplicationArea = All;
-                    Caption = 'Show Day Task';
+                    Caption = 'Show Day Planning';
                     trigger OnValidate()
                     begin
-                        CurrPage.DhxScheduler.SetShowDayTask(ShowDayTask);
+                        CurrPage.DhxScheduler.SetShowDayPlanning(ShowDayPlanning);
                     end;
                 }
                 field(ShowCapacityFld; ShowCapacity)
@@ -85,17 +85,17 @@ page 50619 "DHX Resource Scheduler"
 
                 trigger OnEventDoubleClick(EventId: Text; ResourceId: Text)
                 var
-                    DayTaskRec: record "Day Tasks";
+                    DayPlanningRec: record "Day Planning";
                     RecRef: RecordRef;
                     RecId: RecordId;
                 begin
                     if Evaluate(RecId, EventId) then begin
                         RecRef.Get(RecId);
-                        RecRef.SetTable(DayTaskRec);
-                        Page.Run(Page::"Day Tasks", DayTaskRec);
+                        RecRef.SetTable(DayPlanningRec);
+                        Page.Run(Page::"Day Plannings", DayPlanningRec);
                     end else begin
-                        DayTaskRec.SetFilter("Assigned Resource No.", ResourceId);
-                        Page.Run(Page::"Day Tasks", DayTaskRec);
+                        DayPlanningRec.SetFilter("Assigned Resource No.", ResourceId);
+                        Page.Run(Page::"Day Plannings", DayPlanningRec);
                     end;
                 end;
 
@@ -109,10 +109,10 @@ page 50619 "DHX Resource Scheduler"
 
                 trigger OnEventContextMenu(EventId: Text; action: Text; PeriodStart: Text; PeriodEnd: Text; payloadJson: Text)
                 var
-                    DayTaskRec: record "Day Tasks";
+                    DayPlanningRec: record "Day Planning";
                     ResRec: Record Resource;
                     ResCapacity: Page "Resource Capacity";
-                    DayTaskList: page "Day Tasks";
+                    DayPlanningList: page "Day Plannings";
                     RecRef: RecordRef;
                     RecId: RecordId;
                     Payload: JsonObject;
@@ -155,16 +155,16 @@ page 50619 "DHX Resource Scheduler"
 
                     case action of
                         'OpenResource':
-                            // Only fired for daytask events (hidden for capacity in JS)
+                            // Only fired for DayPlanning events (hidden for capacity in JS)
                             if ResRec.Get(ResourceId) then
                                 Page.Run(Page::"Resource Card", ResRec);
-                        'OpenDayTask':
+                        'OpenDayPlanning':
                             begin
                                 message('ResourceId = %1, DT1 = %2, DT2 = %3', ResourceId, DT1, DT2);
-                                DayTaskRec.SetRange("Assigned Resource No.", ResourceId);
-                                DayTaskRec.SetRange("Task Date", DT1, DT2);
-                                DayTaskList.SetTableView(DayTaskRec);
-                                DayTaskList.Run();
+                                DayPlanningRec.SetRange("Assigned Resource No.", ResourceId);
+                                DayPlanningRec.SetRange("Task Date", DT1, DT2);
+                                DayPlanningList.SetTableView(DayPlanningRec);
+                                DayPlanningList.Run();
                             end;
                         'OpenCapacity':
                             begin
@@ -179,8 +179,8 @@ page 50619 "DHX Resource Scheduler"
                 trigger OnResourceContextMenu(ResourceId: Text; action: Text; PeriodStart: Text; PeriodEnd: Text; payloadJson: Text)
                 var
                     ResRec: Record Resource;
-                    Daytasks: record "Day Tasks";
-                    DayTaskList: page "Day Tasks";
+                    DayPlannings: record "Day Planning";
+                    DayPlanningList: page "Day Plannings";
                     ResCapacity: Page "Resource Capacity";
                     DT1: Date;
                     DT2: Date;
@@ -193,13 +193,13 @@ page 50619 "DHX Resource Scheduler"
                                 if ResRec.Get(ResourceId) then
                                     Page.Run(Page::"Resource Card", ResRec);
                             end;
-                        'OpenDayTask':
+                        'OpenDayPlanning':
                             begin
-                                //message('exec OpenDayTask, parameter ResourceId: %1, PeriodStart: %2, PeriodEnd: %3', ResourceId, PeriodStart, PeriodEnd);
-                                Daytasks.SetRange("Assigned Resource No.", ResourceId);
-                                Daytasks.SetRange("Task Date", DT1, DT2);
-                                DayTaskList.SetTableView(Daytasks);
-                                DayTaskList.Run();
+                                //message('exec OpenDayPlanning, parameter ResourceId: %1, PeriodStart: %2, PeriodEnd: %3', ResourceId, PeriodStart, PeriodEnd);
+                                DayPlannings.SetRange("Assigned Resource No.", ResourceId);
+                                DayPlannings.SetRange("Task Date", DT1, DT2);
+                                DayPlanningList.SetTableView(DayPlannings);
+                                DayPlanningList.Run();
                             end;
                         'OpenCapacity':
                             begin
@@ -259,14 +259,14 @@ page 50619 "DHX Resource Scheduler"
 
     trigger OnOpenPage()
     begin
-        ShowDayTask := true;
+        ShowDayPlanning := true;
         ShowCapacity := true;
     end;
 
     var
         AnchorDate: Date;
         ResourceFilter: Text;
-        ShowDayTask: Boolean;
+        ShowDayPlanning: Boolean;
         ShowCapacity: Boolean;
         CurrentStartDate: Date;
         CurrentEndDate: Date;

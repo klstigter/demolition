@@ -107,7 +107,7 @@ page 50626 "Summary View"
 
                     field("JobNoFilter"; JobNoFilter)
                     {
-                        ToolTip = 'Specifies the job number for the new day task.';
+                        ToolTip = 'Specifies the job number for the new day planning.';
                         trigger OnValidate()
                         begin
                             CalcJobFilter();
@@ -137,7 +137,7 @@ page 50626 "Summary View"
 
                     field("JobTaskNoFilter"; JobTaskNoFilter)
                     {
-                        ToolTip = 'Specifies the job task number for the new day task.';
+                        ToolTip = 'Specifies the job task number for the new day planning.';
                         trigger OnValidate()
                         begin
                             CalcJobTaskFilter();
@@ -170,7 +170,7 @@ page 50626 "Summary View"
                     Visible = ShowResource;
                     field(RescoureNoFilter; ResourceNoFilter)
                     {
-                        ToolTip = 'Specifies the resource number for the new day task.';
+                        ToolTip = 'Specifies the resource number for the new day planning.';
                         trigger OnValidate()
                         begin
                             CalcResourceFilter();
@@ -198,7 +198,7 @@ page 50626 "Summary View"
                     Visible = ShowSkillCode;
                     field(SkillCodeFilter; SkillCodeFilter)
                     {
-                        ToolTip = 'Specifies the skill code for the new day task.';
+                        ToolTip = 'Specifies the skill code for the new day planning.';
                         trigger OnValidate()
                         begin
                             CalcSkillCodeFilter();
@@ -455,7 +455,7 @@ page 50626 "Summary View"
         rec.DeleteAll();
         SetAllShowTrue();
         DateFilter := DateRangeFilter;
-        rec.ScanDayTaskDateFilter(DateFilter);
+        rec.ScanDayPlanningDateFilter(DateFilter);
         rec.LoadSummary();
     end;
 
@@ -464,7 +464,7 @@ page 50626 "Summary View"
         SetAllShowTrue();
         JobNoFilter := CopyStr(pJobNoFilter, 1, MaxStrLen(JobNoFilter));
         JobTaskNoFilter := CopyStr(pJobTaskNoFilter, 1, MaxStrLen(JobTaskNoFilter));
-        rec.ScanDayTaskFilter(pJobNoFilter, pJobTaskNoFilter);
+        rec.ScanDayPlanningFilter(pJobNoFilter, pJobTaskNoFilter);
         rec.LoadSummary();
         if JobNoFilter <> '' then
             rec.SetFilter("Job No.", JobNoFilter);
@@ -567,8 +567,8 @@ page 50626 "Summary View"
 
     local procedure DrillDown2DayTaks(WeekDayNo: Integer)
     var
-        Pg: Page "Day Tasks";
-        Rc: Record "Day Tasks";
+        Pg: Page "Day Plannings";
+        Rc: Record "Day Planning";
         dtFilter: Text;
     begin
         if not showYear then begin

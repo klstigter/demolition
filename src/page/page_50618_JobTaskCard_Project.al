@@ -575,7 +575,7 @@ page 50618 "Opti Job Task Card"
                         ToolTip = 'Specifies the duration of the project task in days.';
                         importance = Promoted;
                     }
-                    field("Daytask Week Pattern"; Rec."Daytask Week Pattern")
+                    field("DayPlanning Week Pattern"; Rec."DayPlanning Week Pattern")
                     {
                         ApplicationArea = All;
                         ToolTip = 'Specifies the week pattern for the project task. ex. 1|2|3|4|5|6|7 for all days, 1|4 for only Monday and Thursday, etc.';
@@ -603,7 +603,7 @@ page 50618 "Opti Job Task Card"
                     field("Total Worked Hours"; Rec."Total Assigned Hours")
                     {
                         ApplicationArea = Jobs;
-                        ToolTip = 'Specifies the total worked hours from all related day tasks.';
+                        ToolTip = 'Specifies the total worked hours from all related day plannings.';
                         importance = Promoted;
                     }
                 }
@@ -718,16 +718,16 @@ page 50618 "Opti Job Task Card"
                 end;
 
             }
-            action(DayTasksCreation)
+            action(DayPlanningsCreation)
             {
                 ApplicationArea = All;
-                Caption = 'Day tasks creation';
+                Caption = 'Day plannings creation';
                 Image = HumanResources;
                 ShortCutKey = 'Alt+D';
                 ToolTip = 'View or edit dimensions, such as area, project, or department, that you can assign to sales and purchase documents to distribute costs and analyze transaction history.';
                 trigger OnAction()
                 var
-                    Page: Page "Day Task Generator";
+                    Page: Page "Day Planning Pattern";
                 begin
                     page.fillbuffer(Rec."Job No.", Rec."Job Task No.", '');
                     Page.Run();
@@ -735,34 +735,34 @@ page 50618 "Opti Job Task Card"
                     CurrPage.ResourceWeekView.Page.Update();
                 end;
             }
-            action(DayTasks)
+            action(DayPlannings)
             {
                 ApplicationArea = All;
-                Caption = 'Day tasks';
+                Caption = 'Day plannings';
                 Image = HumanResources;
                 ShortCutKey = 'Alt+D';
                 ToolTip = 'View or edit dimensions, such as area, project, or department, that you can assign to sales and purchase documents to distribute costs and analyze transaction history.';
                 trigger OnAction()
                 var
-                    ResourcePage: Page "Day Tasks";
-                    DayTask: Record "Day Tasks";
+                    ResourcePage: Page "Day Plannings";
+                    DayPlanning: Record "Day Planning";
                 begin
-                    DayTask.SetRange("Job No.", Rec."Job No.");
-                    DayTask.SetRange("Job Task No.", Rec."Job Task No.");
-                    ResourcePage.SetTableView(DayTask);
+                    DayPlanning.SetRange("Job No.", Rec."Job No.");
+                    DayPlanning.SetRange("Job Task No.", Rec."Job Task No.");
+                    ResourcePage.SetTableView(DayPlanning);
                     ResourcePage.Run();
                 end;
             }
-            action("DaytasksVisual")
+            action("DayPlanningsVisual")
             {
                 ApplicationArea = All;
                 Image = HumanResources;
                 trigger OnAction()
                 var
-                    DaytaskScheduler: page "DHX Scheduler (Project)";
+                    DayPlanningScheduler: page "DHX Scheduler (Project)";
                 begin
-                    DaytaskScheduler.SetJobTaskFilter(Rec."Job No.", Rec."Job Task No.");
-                    DaytaskScheduler.RunModal();
+                    DayPlanningScheduler.SetJobTaskFilter(Rec."Job No.", Rec."Job Task No.");
+                    DayPlanningScheduler.RunModal();
                 end;
             }
             action("FixedUnitRule")
@@ -793,7 +793,7 @@ page 50618 "Opti Job Task Card"
                 ToolTip = 'View or edit dimensions, such as area, project, or department, that you can assign to sales and purchase documents to distribute costs and analyze transaction history.';
                 trigger OnAction()
                 var
-                    ResourcePage: Page "Resource DayTask Summary";
+                    ResourcePage: Page "Resource DayPlanning Summary";
                 begin
                     ResourcePage.LoadData(Rec."Job No.", Rec."Job Task No.");
                     ResourcePage.Run();
@@ -986,13 +986,13 @@ page 50618 "Opti Job Task Card"
                 actionref(GanttChartDHX_Promoted; GanttChartDHX)
                 {
                 }
-                actionref(DayTasksCreation_Promoted; DayTasksCreation)
+                actionref(DayPlanningsCreation_Promoted; DayPlanningsCreation)
                 {
                 }
-                actionref(DayTasks_Promoted; DayTasks)
+                actionref(DayPlannings_Promoted; DayPlannings)
                 {
                 }
-                actionref(DayTaskVisual_Promoted; DayTasksVisual)
+                actionref(DayPlanningVisual_Promoted; DayPlanningsVisual)
                 {
                 }
                 actionref(FixedUnitRule_Promoted; FixedUnitRule)

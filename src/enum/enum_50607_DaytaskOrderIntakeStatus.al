@@ -1,4 +1,4 @@
-enum 50607 "Daytask Order Intake Status"
+enum 50607 "DayPlanning Order Intake Status"
 {
     Extensible = true;
 

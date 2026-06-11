@@ -17,7 +17,7 @@ codeunit 50615 "Gantt Update Data"
         OldEndDate: Date;
         NewStartDate: Date;
         NewEndDate: Date;
-        DayTaskPeriodSyncMgt: Codeunit "DayTask Period Sync Mgt.";
+        DayPlanningPeriodSyncMgt: Codeunit "DayPlanning Period Sync Mgt.";
     begin
         if not JsonObject.ReadFrom(JsonText) then
             exit(false);
@@ -90,15 +90,15 @@ codeunit 50615 "Gantt Update Data"
 
         // Read new dates from the in-memory JobTask BEFORE any Modify call.
         // JobTask.Modify() is deferred: it only happens when the user confirms (or
-        // immediately when no DayTask records are affected).
+        // immediately when no DayPlanning records are affected).
         NewStartDate := JobTask.PlannedStartDate;
         NewEndDate := JobTask.PlannedEndDate;
 
         if ((NewStartDate <> 0D) or (NewEndDate <> 0D)) and
            ((NewStartDate <> OldStartDate) or (NewEndDate <> OldEndDate)) then begin
             // Period changed: open preview page. Returns FALSE if user cancelled
-            // → neither JobTask nor DayTask records are written to the database.
-            if DayTaskPeriodSyncMgt.HandleJobTaskPeriodChange(JobTask, OldStartDate, OldEndDate, false) then begin
+            // → neither JobTask nor DayPlanning records are written to the database.
+            if DayPlanningPeriodSyncMgt.HandleJobTaskPeriodChange(JobTask, OldStartDate, OldEndDate, false) then begin
                 // Re-read to get the latest record timestamp before modifying.
                 // HandleJobTaskPeriodChange (or its event subscribers) may have written
                 // the record, making our in-memory copy stale and causing a concurrency error.

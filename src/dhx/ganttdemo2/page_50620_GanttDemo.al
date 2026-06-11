@@ -47,7 +47,7 @@ page 50620 "Gantt Demo DHX 2"
                     JobNo := EventIDList.Get(1);
                     TaskNo := EventIDList.Get(2);
                     PageHandler.OpenJobTaskCard(JobNo, TaskNo);
-                    // Get the latest data after possible changes in day tasks
+                    // Get the latest data after possible changes in day plannings
                     if PossibleChanges then begin
                         if DHXDataHandler.GetEventDataFromEventId(eventId, newEventData) then
                             CurrPage.DHXGanttControl2.RefreshEventData(newEventData); //update event ID
@@ -142,20 +142,20 @@ page 50620 "Gantt Demo DHX 2"
                     // Pass filter context for the header tooltip
                     CurrPage.DHXGanttControl2.SetResourcePanelFilterInfo(JobNo, JobTaskNo, Format(FromDate, 0, '<Year4>-<Month,2>-<Day,2>'), Format(ToDate, 0, '<Year4>-<Month,2>-<Day,2>'));
 
-                    // Load resources and day tasks filtered to this task (and its children)
-                    LoadFilteredResourcesAndDayTasks(JobTask, FromDate, ToDate);
+                    // Load resources and day plannings filtered to this task (and its children)
+                    LoadFilteredResourcesAndDayPlannings(JobTask, FromDate, ToDate);
 
                     CurrPage.DHXGanttControl2.GetResourceFilter(); // Get the active resource filter and saved it into global page var
                 end;
 
-                trigger onOpenDayTask(taskId: Text; eventData: Text)
+                trigger onOpenDayPlanning(taskId: Text; eventData: Text)
                 var
                     JobTask: Record "Job Task";
                     JsonObj: JsonObject;
                     JsonToken: JsonToken;
                     JobNo: Code[20];
                     JobTaskNo: Code[20];
-                    DayTask: Record "Day Tasks";
+                    DayPlanning: Record "Day Planning";
                     EventIDList: List of [Text];
                 begin
                     // Parse bcJobNo / bcJobTaskNo from eventData JSON
@@ -174,33 +174,33 @@ page 50620 "Gantt Demo DHX 2"
                     end;
 
                     if JobNo <> '' then
-                        DayTask.SetRange("Job No.", JobNo);
+                        DayPlanning.SetRange("Job No.", JobNo);
                     if JobTaskNo <> '' then
-                        DayTask.SetRange("Job Task No.", JobTaskNo);
+                        DayPlanning.SetRange("Job Task No.", JobTaskNo);
                     if (JobNo <> '') and (JobTaskNo <> '') then begin
                         JobTask.Get(JobNo, JobTaskNo);
                         case true of
                             (JobTask.PlannedStartDate <> 0D) and (JobTask.PlannedEndDate <> 0D):
-                                DayTask.SetRange("Task Date", JobTask.PlannedStartDate, JobTask.PlannedEndDate);
+                                DayPlanning.SetRange("Task Date", JobTask.PlannedStartDate, JobTask.PlannedEndDate);
                             (JobTask.PlannedStartDate = 0D) and (JobTask.PlannedEndDate <> 0D):
-                                DayTask.Setfilter("Task Date", '..%1', JobTask.PlannedEndDate);
+                                DayPlanning.Setfilter("Task Date", '..%1', JobTask.PlannedEndDate);
                             (JobTask.PlannedStartDate <> 0D) and (JobTask.PlannedEndDate = 0D):
-                                DayTask.Setfilter("Task Date", '%1..', JobTask.PlannedStartDate);
+                                DayPlanning.Setfilter("Task Date", '%1..', JobTask.PlannedStartDate);
                         end;
 
                     end;
-                    Page.Run(Page::"Day Tasks", DayTask);
+                    Page.Run(Page::"Day Plannings", DayPlanning);
                 end;
 
-                trigger onOpenDayTaskVisual(taskId: Text; eventData: Text)
+                trigger onOpenDayPlanningVisual(taskId: Text; eventData: Text)
                 var
                     JsonObj: JsonObject;
                     JsonToken: JsonToken;
                     JobNo: Code[20];
                     JobTaskNo: Code[20];
-                    DayTask: Record "Day Tasks";
+                    DayPlanning: Record "Day Planning";
                     EventIDList: List of [Text];
-                    DaytaskScheduler: page "DHX Scheduler (Project)";
+                    DayPlanningScheduler: page "DHX Scheduler (Project)";
                 begin
                     // Parse bcJobNo / bcJobTaskNo from eventData JSON
                     if JsonObj.ReadFrom(eventData) then begin
@@ -218,12 +218,12 @@ page 50620 "Gantt Demo DHX 2"
                     end;
 
                     if JobNo <> '' then
-                        DayTask.SetRange("Job No.", JobNo);
+                        DayPlanning.SetRange("Job No.", JobNo);
                     if JobTaskNo <> '' then
-                        DayTask.SetRange("Job Task No.", JobTaskNo);
+                        DayPlanning.SetRange("Job Task No.", JobTaskNo);
 
-                    DaytaskScheduler.SetJobTaskFilter(JobNo, JobTaskNo);
-                    DaytaskScheduler.RunModal();
+                    DayPlanningScheduler.SetJobTaskFilter(JobNo, JobTaskNo);
+                    DayPlanningScheduler.RunModal();
                 end;
 
                 trigger OnJobTaskUpdated(eventData: Text)
@@ -239,7 +239,7 @@ page 50620 "Gantt Demo DHX 2"
                     end;
 
                     // UpdateJobTaskFromJson returns false when the user closed the
-                    // DayTask Period Sync Preview popup without clicking Apply Changes
+                    // DayPlanning Period Sync Preview popup without clicking Apply Changes
                     // (OnClosePage fires on the preview page, Applied stays false).
                     // In that case reload task + link data so the Gantt bar reverts to
                     // the original DB position instead of staying at the dragged spot.
@@ -247,30 +247,30 @@ page 50620 "Gantt Demo DHX 2"
                         PreviewCancelled := true; // absorb the RenderGantt re-entry event
                         LoadTaskData();
                         LoadLinkData();
-                        LoadDayTaskData();
+                        LoadDayPlanningData();
                         CurrPage.DHXGanttControl2.RenderGantt(true); // force full re-render to reset task positions
                         exit;
                     end;
-                    LoadDayTaskData();
+                    LoadDayPlanningData();
                 end;
 
                 trigger OpenResourceLoadDay(ResourceId: Text; pWorkDate: Text)
                 var
-                    DayTask: Record "Day Tasks";
+                    DayPlanning: Record "Day Planning";
                     WorkDt: Date;
                     Tp: array[2] of text;
                 begin
                     Evaluate(WorkDt, pWorkDate); // expects YYYY-MM-DD
                     tp[1] := CopyStr(ResourceId, 1, 4);
                     tp[2] := CopyStr(ResourceId, 5);
-                    DayTask.SetRange("Task Date", WorkDt);
+                    DayPlanning.SetRange("Task Date", WorkDt);
                     if JobFilter <> '' then
-                        DayTask.SetFilter("Job No.", JobFilter);
+                        DayPlanning.SetFilter("Job No.", JobFilter);
                     if tp[1] = 'RES-' then
-                        DayTask.SetRange("Assigned Resource No.", tp[2]);
+                        DayPlanning.SetRange("Assigned Resource No.", tp[2]);
                     if tp[1] = 'VEN-' then
-                        DayTask.SetRange("Vendor No.", tp[2]);
-                    Page.Run(Page::"Day Tasks", DayTask);
+                        DayPlanning.SetRange("Vendor No.", tp[2]);
+                    Page.Run(Page::"Day Plannings", DayPlanning);
                 end;
 
                 trigger OnLinkCreated(linkData: Text)
@@ -291,11 +291,11 @@ page 50620 "Gantt Demo DHX 2"
                     Message('Resource: %1', resourceId);
                 end;
 
-                trigger onAddDayTask(resourceId: Text; workDate: Text)
+                trigger onAddDayPlanning(resourceId: Text; workDate: Text)
                 var
-                    DayTask: Record "Day Tasks";
+                    DayPlanning: Record "Day Planning";
                     WorkHourTemplate: record "Work-Hour Template";
-                    DayTaskCard: Page "Day Task Card - New Record";
+                    DayPlanningCard: Page "Day Planning Card - New Record";
                     WorkDt: Date;
                     Prefix: Text[4];
                     ResourceCode: Code[20];
@@ -310,20 +310,20 @@ page 50620 "Gantt Demo DHX 2"
                     Evaluate(WorkDt, workDate); // expects YYYY-MM-DD
                     Prefix := CopyStr(resourceId, 1, 4);
                     ResourceCode := CopyStr(resourceId, 5, MaxStrLen(ResourceCode));
-                    DayTask.Init();
-                    DayTask."Task Date" := WorkDt;
+                    DayPlanning.Init();
+                    DayPlanning."Task Date" := WorkDt;
                     if Prefix = 'RES-' then
-                        DayTask.Validate("Requested Resource No.", ResourceCode)
+                        DayPlanning.Validate("Requested Resource No.", ResourceCode)
                     else
                         if Prefix = 'VEN-' then
-                            DayTask.Validate("Vendor No.", ResourceCode);
-                    DayTask."Plan Status" := DayTask."Plan Status"::Inprogress;
+                            DayPlanning.Validate("Vendor No.", ResourceCode);
+                    DayPlanning."Plan Status" := DayPlanning."Plan Status"::Inprogress;
                     if OptiSetup."Work hour Template" <> '' then begin
                         WorkHourTemplate.Get(OptiSetup."Work hour Template");
-                        DayTask."Non Working Minutes" := WorkHourTemplate."Non Working Minutes";
-                        DayTask.Validate("Start Time Requested", WorkHourTemplate."Default Start Time");
-                        DayTask.Validate("End Time Requested", WorkHourTemplate."Default End Time");
-                        DayTask."Requested Hours" := WorkHourTemplate."Working Hours";
+                        DayPlanning."Non Working Minutes" := WorkHourTemplate."Non Working Minutes";
+                        DayPlanning.Validate("Start Time Requested", WorkHourTemplate."Default Start Time");
+                        DayPlanning.Validate("End Time Requested", WorkHourTemplate."Default End Time");
+                        DayPlanning."Requested Hours" := WorkHourTemplate."Working Hours";
                     end;
                     if CurrentResourcePanelFilterJsonString <> '' then
                         if FilterJson.ReadFrom(CurrentResourcePanelFilterJsonString) then begin
@@ -337,21 +337,21 @@ page 50620 "Gantt Demo DHX 2"
                             if FilterJson.Get('periodTo', FilterToken) then
                                 Evaluate(FilterToDate, FilterToken.AsValue().AsText());
 
-                            DayTask.Validate("Job No.", FilterJobNo);
-                            DayTask.Validate("Job Task No.", FilterJobTaskNo);
+                            DayPlanning.Validate("Job No.", FilterJobNo);
+                            DayPlanning.Validate("Job Task No.", FilterJobTaskNo);
                         end;
 
-                    Clear(DayTaskCard);
-                    DayTaskCard.LookupMode(true);
-                    DayTaskCard.SetNewRecordToSave(DayTask);
-                    if DayTaskCard.RunModal() = Action::LookupOK then begin
-                        DayTaskCard.GetRecord(DayTask);
-                        DayTask.TestField("Job No.");
-                        DayTask.TestField("Job Task No.");
-                        DayTask.TestField("Task Date");
-                        DayTask.CheckDayTaskDateInProjectTaskRange();
-                        DayTask.GetNextDayLineNo();
-                        DayTask.Insert(true);
+                    Clear(DayPlanningCard);
+                    DayPlanningCard.LookupMode(true);
+                    DayPlanningCard.SetNewRecordToSave(DayPlanning);
+                    if DayPlanningCard.RunModal() = Action::LookupOK then begin
+                        DayPlanningCard.GetRecord(DayPlanning);
+                        DayPlanning.TestField("Job No.");
+                        DayPlanning.TestField("Job Task No.");
+                        DayPlanning.TestField("Task Date");
+                        DayPlanning.CheckDayPlanningDateInProjectTaskRange();
+                        DayPlanning.GetNextDayLineNo();
+                        DayPlanning.Insert(true);
                         RefreshGantt();
                     end;
                 end;
@@ -420,10 +420,10 @@ page 50620 "Gantt Demo DHX 2"
                 trigger OnResetResourceFilter()
                 begin
                     // User clicked the (ℹ) button — clear the task-based resource filter
-                    // and reload all resources + all day tasks driven by the default Gantt context.
+                    // and reload all resources + all day plannings driven by the default Gantt context.
                     ClearResourcePanelFilter();
                     LoadResourceData();
-                    LoadDayTaskData();
+                    LoadDayPlanningData();
                 end;
 
                 trigger OnResourceFilterRetrieved(filterJson: Text)
@@ -483,9 +483,9 @@ page 50620 "Gantt Demo DHX 2"
                     DownloadFromStream(instream, 'JobTasksGanttData.json', '', 'application/json', va);
                 end;
             }
-            action(GetJsonDayTasks)
+            action(GetJsonDayPlannings)
             {
-                Caption = 'Get JSON Day Tasks Data';
+                Caption = 'Get JSON Day Plannings Data';
                 Image = View;
                 ApplicationArea = All;
 
@@ -501,7 +501,7 @@ page 50620 "Gantt Demo DHX 2"
                     JobFilterUsed := setup."Job No. Filter";
                     if JobFilter <> '' then
                         JobFilterUsed := JobFilter; // override with global filter if set
-                    JsonTxt := GanttChartDataHandler.GetDayTasksAsJson(Setup."From Date", JobFilterUsed, '');
+                    JsonTxt := GanttChartDataHandler.GetDayPlanningsAsJson(Setup."From Date", JobFilterUsed, '');
                     tempblob.CreateOutStream(outstream);
                     outstream.WriteText(JsonTxt);
                     tempblob.CreateInStream(instream);
@@ -593,22 +593,22 @@ page 50620 "Gantt Demo DHX 2"
             }
             action(DayTaks)
             {
-                Caption = 'Day Tasks';
+                Caption = 'Day Plannings';
                 ApplicationArea = All;
                 image = AbsenceCalendar;
 
                 trigger OnAction()
                 var
-                    DayTask: Record "Day Tasks";
+                    DayPlanning: Record "Day Planning";
                     Direction: Option Forward,Backward;
                     DT1: Date;
                     DT2: Date;
                 begin
                     GanttChartDataHandler.GetDateRange(Setup, AnchorDate, DT1, DT2);
-                    DayTask.SetRange("Task Date", DT1, DT2);
+                    DayPlanning.SetRange("Task Date", DT1, DT2);
                     if JobFilter <> '' then
-                        DayTask.SetFilter("Job No.", JobFilter);
-                    page.RunModal(Page::"Day Tasks", DayTask);
+                        DayPlanning.SetFilter("Job No.", JobFilter);
+                    page.RunModal(Page::"Day Plannings", DayPlanning);
                 end;
             }
             action(projects)
@@ -627,8 +627,8 @@ page 50620 "Gantt Demo DHX 2"
                 begin
                     //GanttChartDataHandler.GetDateRange(Setup, AnchorDate, DT1, DT2);
                     //jobTask.SetFilter("Planning Date Filter", '%1..%2', DT1, DT2);
-                    //jobTask.SetAutoCalcFields("Total Day Tasks");
-                    //jobTask.SetFilter("Total Day Tasks", '>0');
+                    //jobTask.SetAutoCalcFields("Total Day Plannings");
+                    //jobTask.SetFilter("Total Day Plannings", '>0');
                     //if JobFilter <> '' then
                     job.SetFilter("No.", JobFilter);
                     if job.FindSet() then;
@@ -653,8 +653,8 @@ page 50620 "Gantt Demo DHX 2"
                 begin
                     GanttChartDataHandler.GetDateRange(Setup, AnchorDate, DT1, DT2);
                     jobTask.SetFilter("Planning Date Filter", '%1..%2', DT1, DT2);
-                    jobTask.SetAutoCalcFields("Total Day Tasks");
-                    jobTask.SetFilter("Total Day Tasks", '>0');
+                    jobTask.SetAutoCalcFields("Total Day Plannings");
+                    jobTask.SetFilter("Total Day Plannings", '>0');
                     if JobFilter <> '' then
                         jobTask.SetFilter("Job No.", JobFilter);
                     page.RunModal(Page::"Job Task List - Project", jobTask);
@@ -814,36 +814,36 @@ page 50620 "Gantt Demo DHX 2"
                     DayResourceDetails.RunModal();
                 end;
             }
-            action(DayTasksDetail)
+            action(DayPlanningsDetail)
             {
                 Caption = 'Day Overview';
                 ApplicationArea = All;
                 Image = Report;
                 trigger OnAction()
                 var
-                    DayTaskDetails: Report "Day Task Details";
+                    DayPlanningDetails: Report "Day Planning Details";
                     StartDate: Date;
                     EndDate: Date;
                 begin
                     GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
-                    DayTaskDetails.SetDataViewDateRange(StartDate, EndDate);
-                    DayTaskDetails.RunModal();
+                    DayPlanningDetails.SetDataViewDateRange(StartDate, EndDate);
+                    DayPlanningDetails.RunModal();
                 end;
             }
-            action(DayTasksWeekOverview)
+            action(DayPlanningsWeekOverview)
             {
                 Caption = 'Week Overview';
                 ApplicationArea = All;
                 Image = Report;
                 trigger OnAction()
                 var
-                    DayTask: Report "DayTask";
+                    DayPlanning: Report "DayPlanning";
                     StartDate: Date;
                     EndDate: Date;
                 begin
                     GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
-                    daytask.SetDataViewDateRange(StartDate, EndDate);
-                    DayTask.RunModal();
+                    DayPlanning.SetDataViewDateRange(StartDate, EndDate);
+                    DayPlanning.RunModal();
                 end;
             }// Placeholder for any future reports related to the Gantt data
         }
@@ -870,7 +870,7 @@ page 50620 "Gantt Demo DHX 2"
                 Caption = 'Export';
                 actionref(GetJsonTasks_ref; GetJsonTasks) { }
                 actionref(GetJsonResources_ref; GetJsonResources) { }
-                actionref(GetJsonDayTasks_ref; GetJsonDayTasks) { }
+                actionref(GetJsonDayPlannings_ref; GetJsonDayPlannings) { }
             }
             group(Category_Category5)
             {
@@ -893,8 +893,8 @@ page 50620 "Gantt Demo DHX 2"
             {
                 Caption = 'Reports';
                 actionref(DayResourceDetail_ref; DayResourceDetail) { }
-                actionref(DayTasksDetail_ref; DayTasksDetail) { }
-                actionref(DayTasksOverview_ref; DayTasksWeekOverview) { }
+                actionref(DayPlanningsDetail_ref; DayPlanningsDetail) { }
+                actionref(DayPlanningsOverview_ref; DayPlanningsWeekOverview) { }
             }
         }
     }
@@ -1001,13 +1001,13 @@ page 50620 "Gantt Demo DHX 2"
                     //     Format(FilterFromDate, 0, '<Year4>-<Month,2>-<Day,2>'),
                     //     Format(FilterToDate, 0, '<Year4>-<Month,2>-<Day,2>'));
 
-                    // Mark the single task then load filtered resources + day tasks
+                    // Mark the single task then load filtered resources + day plannings
                     JobTask.Reset();
                     JobTask.SetRange("Job No.", FilterJobNo);
                     JobTask.SetRange("Job Task No.", FilterJobTaskNo);
                     if JobTask.FindFirst() then
                         JobTask.Mark(true);
-                    LoadFilteredResourcesAndDayTasks(JobTask, FilterFromDate, FilterToDate);
+                    LoadFilteredResourcesAndDayPlannings(JobTask, FilterFromDate, FilterToDate);
                 end;
             end;
 
@@ -1015,8 +1015,8 @@ page 50620 "Gantt Demo DHX 2"
             if setup."Load Resources" and ResourcePanelFlag then
                 LoadResourceData();
 
-            if setup."Load Day Tasks" then
-                LoadDayTaskData();
+            if setup."Load Day Plannings" then
+                LoadDayPlanningData();
         end;
 
         // Finalize: render and reset refresh flag
@@ -1024,10 +1024,10 @@ page 50620 "Gantt Demo DHX 2"
     end;
 
     /// <summary>
-    /// Loads resources and day tasks filtered to the marked JobTask records within the given period.
+    /// Loads resources and day plannings filtered to the marked JobTask records within the given period.
     /// Callers are responsible for marking the relevant Job Task records before calling this procedure.
     /// </summary>
-    local procedure LoadFilteredResourcesAndDayTasks(var pJobTask: Record "Job Task"; pFromDate: Date; pToDate: Date)
+    local procedure LoadFilteredResourcesAndDayPlannings(var pJobTask: Record "Job Task"; pFromDate: Date; pToDate: Date)
     var
         GanttDataHandler: Codeunit "GanttChartDataHandler";
         JsonTxtResource: Text;
@@ -1040,8 +1040,8 @@ page 50620 "Gantt Demo DHX 2"
 
         pJobTask.MarkedOnly := true;
         if pJobTask.FindSet() then;
-        CurrPage.DHXGanttControl2.LoadDayTasksData(
-            GanttDataHandler.GetDayTasksByJobTaskAsJson(pJobTask, pFromDate, pToDate));
+        CurrPage.DHXGanttControl2.LoadDayPlanningsData(
+            GanttDataHandler.GetDayPlanningsByJobTaskAsJson(pJobTask, pFromDate, pToDate));
     end;
 
     local procedure LoadTaskData()
@@ -1076,10 +1076,10 @@ page 50620 "Gantt Demo DHX 2"
         end;
     end;
 
-    local procedure LoadDayTaskData()
+    local procedure LoadDayPlanningData()
     var
         GanttChartDataHandler: Codeunit "GanttChartDataHandler";
-        JsonTxtDayTasks: Text;
+        JsonTxtDayPlannings: Text;
         JobFilterUsed: Text;
     begin
         JobFilterUsed := setup."Job No. Filter";
@@ -1088,9 +1088,9 @@ page 50620 "Gantt Demo DHX 2"
         else
             if JobFilterUsed <> '' then
                 JobFilter := JobFilterUsed;
-        JsonTxtDayTasks := GanttChartDataHandler.GetDayTasksAsJson(AnchorDate, JobFilter);
-        if JsonTxtDayTasks <> '' then
-            CurrPage.DHXGanttControl2.LoadDayTasksData(JsonTxtDayTasks);
+        JsonTxtDayPlannings := GanttChartDataHandler.GetDayPlanningsAsJson(AnchorDate, JobFilter);
+        if JsonTxtDayPlannings <> '' then
+            CurrPage.DHXGanttControl2.LoadDayPlanningsData(JsonTxtDayPlannings);
     end;
 
     local procedure LoadLinkData()

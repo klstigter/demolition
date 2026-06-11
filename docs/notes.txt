@@ -15,12 +15,12 @@ Add your App to Marketplace:
 
 (OK) 1. Capacity ->Header Caption -> hide/remove
 (OK) 2. Capacity -> Warna biru satu baris penuh, tapi hanya untuk Vendor/Internal
-(OK) 3. Syncronkan pola warna antara daytask dan capacity
-(OK) 4. di Daytask -> hover -> ganti event = daytask
-(OK) 5. Capacity -> hover -> kasih baris pemisah horizontal, lihat di daytask untuk referensi
+(OK) 3. Syncronkan pola warna antara DayPlanning dan capacity
+(OK) 4. di DayPlanning -> hover -> ganti event = DayPlanning
+(OK) 5. Capacity -> hover -> kasih baris pemisah horizontal, lihat di DayPlanning untuk referensi
 (OK) 6. Capacity -> split per vendor/internal juga
 (OK) 7. Capacity -> tinggi di perkecil
-(OK) 8. Add Resource Pool di daytask -> dan pakai sebagai group (bukan vendor)
+(OK) 8. Add Resource Pool di DayPlanning -> dan pakai sebagai group (bukan vendor)
 (OK) 9. gantt -> show/hide untuk bagian resource
 
 Capacity
@@ -38,28 +38,28 @@ Capacity (Pool)
 ----------------
 (OK) 15. Font Size samakan dengan BC untuk semua tree, non bold
 (OK) 16. Internal removed, Resource non Pool sejajar dengan Pool
-(OK) 17. Warna Daytask hijau (non Pool) diganti grey BC
-(OK) 18. Daytask: Reource True and non pool -> warna BC Selection (Biru background + Font Putih)
+(OK) 17. Warna DayPlanning hijau (non Pool) diganti grey BC
+(OK) 18. DayPlanning: Reource True and non pool -> warna BC Selection (Biru background + Font Putih)
 
-Daytask
+DayPlanning
 --------
 (OK) 19. Resource Pool Drilldown apply limitation for Pool Resource Only
 
 Capacity (Pool)
 ----------------
 (OK) 20. ukuran huruf di event disamakan dengan huruf tree/folder
-(OK) 21. Warna Event daytask_0 dan daytask_1 di switch
-(OK) 22. daytask -> No. -> Lookup -> list resource di tambah yang ada di capacity
+(OK) 21. Warna Event DayPlanning_0 dan DayPlanning_1 di switch
+(OK) 22. DayPlanning -> No. -> Lookup -> list resource di tambah yang ada di capacity
             masukan parameter skill dalam list lookup
             caption : resource with date
-            add factbox: daytask
+            add factbox: DayPlanning
             
 2026.03.09
 =============
-1. Day Task link ke Task
+1. Day Planning link ke Task
 2. Samakan Constrain type dengan gantt dhtmlx
 3. hover info atas link
-4. DayTask per Resource
+4. DayPlanning per Resource
    layout seperti Google calendar
    menu action:	Resources -> Card -> #4
 
@@ -68,21 +68,21 @@ Capacity (Pool)
 ============
 1. Inspect and adjust generate demo data
       - add one another project
-      - resource data panel must exist: capacity + daytask
-2. Gantt Chart -> right clicked -> resource data based on JOb No., Task No, and Period, Search resources based on Daytask on that period parameter.
+      - resource data panel must exist: capacity + DayPlanning
+2. Gantt Chart -> right clicked -> resource data based on JOb No., Task No, and Period, Search resources based on DayPlanning on that period parameter.
 3. caption show/hide resource -> change depend on context panel
    click kanan -> change show job Resources
-4. Daytask -> right klik -> show day Task, dan beberapa opsi
-   double click -> open daytask
+4. DayPlanning -> right klik -> show day Planning, dan beberapa opsi
+   double click -> open DayPlanning
 5. Resource Scheduler -> add right clicked also in section tree and events
-      tree -> right click : daytask, resource,  and set capacity
+      tree -> right click : DayPlanning, resource,  and set capacity
       for resource:
          Create dedicated page -> date filter come from visual
       for set capacity
          there are 2 button
             right click button : open set capacity per resource
             Menu button: open 50627 based on active resource
-      for Daytask:
+      for DayPlanning:
 6. Capacity (pool) - time line
    - if vacant then caption = job no. + task
    - see image TimeLineNew.png for bar modification.
@@ -94,24 +94,24 @@ Capacity (Pool)
 1. Gantt chart:
 =====================
 add background for header of panel tree: task and resource     (OK)
-daytask right clicked on parent -> show all related resource   (OK)
+DayPlanning right clicked on parent -> show all related resource   (OK)
 Resource Panel:
-	jika ada daytask non resource -> harus tampil di resource panel = requested hours   (OK)
+	jika ada DayPlanning non resource -> harus tampil di resource panel = requested hours   (OK)
 	Workload -> rename = total hours    (OK)
 	informasi filter di resource panel  (OK)
 
 2. generate demo data
-      add working template to create daytask + capacity  (OK)
+      add working template to create DayPlanning + capacity  (OK)
       create Link/relation data  (OK)
       variative date data        (OK)
 
-3. Daytask
+3. DayPlanning
    Assigned hours = 0 if resource = blank (OK)
 
 4. Resource Assignment
    see picture ResAssignment.png
 
-DayTask View
+DayPlanning View
 ============
 5. caption of view:
       if resource exist then caption = Andi, else job+task     (OK)
@@ -123,20 +123,20 @@ DayTask View
 1. all link job -> use opti job Card                                    ---(OK)
       Lines -> Documents -> create invoice -> remove                    ---(OK)
 50617 -> new button -> use codeunit with SingleInstance = True;         ---(OK)
-2. worksheet -> daytask posting                                         ---(OK)
-3. update flag on daytask record after posting                          ---(OK)
+2. worksheet -> DayPlanning posting                                         ---(OK)
+3. update flag on DayPlanning record after posting                          ---(OK)
 4. page 50630 -> factbox tidak refresh                                  ---(OK)
-5. Gantt -> Open Daytask -> apply date range of gantt chart             ---(OK)
-6. Daytaskline -> no. (assist) -> existing: capacity filter applied     ---(OK)
+5. Gantt -> Open DayPlanning -> apply date range of gantt chart             ---(OK)
+6. DayPlanningline -> no. (assist) -> existing: capacity filter applied     ---(OK)
 	add button: show all resources -> change to Assist button            ---(OK)
 7. Gantt -> resource panel -> left pane -> right click                  ---(OK)
    - change dummy message on Option 1 with open resource scheduler      ---(OK)
    - Check resource panel, data must same as detail                     ---(OK)
-8. Daytask: add 2 fields: Requested start+end, hours drive by Start/End ---(OK)   
+8. DayPlanning: add 2 fields: Requested start+end, hours drive by Start/End ---(OK)   
 9. Resouce Scheduler -> Add refresh mechanism                           ---(OK)
-10. Resource Scheduler: daytask view: split based on number of daytask  ---(OK)
+10. Resource Scheduler: DayPlanning view: split based on number of DayPlanning  ---(OK)
 
-11. Pre-Daytask -> new table (order intake)                             ---(OK)
+11. Pre-DayPlanning -> new table (order intake)                             ---(OK)
       Status: open                                                      ---(OK)
               ready                                                     ---(OK)
               released                                                  ---(OK)
@@ -147,9 +147,9 @@ DayTask View
 
 12. Gantt -> filtered and reset filter (remove filter) on resource panel         ---(OK)
     Total hours colom -> alignment as center                                     ---(OK)
-13. Hovering on daytask small box still show one record (for multi record case)  ---(OK)
-14. Gantt -> resource panel -> daytask small box -> relayout info                ---(OK)
-    for daytask more than 1 then add number of daytask info at top-left          ---(OK)
+13. Hovering on DayPlanning small box still show one record (for multi record case)  ---(OK)
+14. Gantt -> resource panel -> DayPlanning small box -> relayout info                ---(OK)
+    for DayPlanning more than 1 then add number of DayPlanning info at top-left          ---(OK)
 
 API - 2026.04.29
 =================
@@ -164,9 +164,9 @@ API - 2026.04.29
 16. Resource Scheduler
       in Resource Table:
          new field flag: Internal/External -> from validation of resource pool or not  ---(OK)
-         new field: active/non active (has Daytask?) -> name: Mandatory Schedulling    ---(OK)
+         new field: active/non active (has DayPlanning?) -> name: Mandatory Schedulling    ---(OK)
          new field: Team Leader                                                        ---(OK)
-17. Resource Card (76,Card)-> daytask factbox does not sync-> not relevan as #18 below ---(OK)
+17. Resource Card (76,Card)-> DayPlanning factbox does not sync-> not relevan as #18 below ---(OK)
 18. Resource: new list+card pages                                                      ?**********************OPEN
 19. Project -> Project Type (lookup new support table+page) -> publish in API          ---(OK)
 
@@ -177,18 +177,18 @@ API - 2026.04.29
 
 21. Gantt:
 	- filtering: right clicked -> resources -> filter is not correct  ---(OK)
-	- task geser: day task harus ikut range                           ---(OK)
+	- task geser: day Planning harus ikut range                           ---(OK)
 	
-22. Daytask:
+22. DayPlanning:
 	- Lepas date from primarykey                                      ---(OK)
 
 23. Resouce
    - Vendor No. able to fill in if resource is pool                  ---(OK)
 
-24. Daytask
+24. DayPlanning
       - Add New field: Day No. -> planner able to add day number     ---(OK)
       - Gantt:
-      Daytask Date is blank, but the gantt follow Place Order Date to visualized          ---(OK) -> but need to improve
+      DayPlanning Date is blank, but the gantt follow Place Order Date to visualized          ---(OK) -> but need to improve
       the actual date is after planner place exact date in gantt and plan status changed
 
 25. Calling Summary in Gantt chart depend on context of all gantt and per project task    ---(OK)
@@ -208,19 +208,19 @@ API - 2026.04.29
 
 31. gantt -> project bar > show progress                                                  ---(OK)
 
-32. API -> mechanism Daytask entry/modify from API    ---(OK)
+32. API -> mechanism DayPlanning entry/modify from API    ---(OK)
 33. API -> new api for Skill                          ---(OK)
 34. API -> new api for Capacity                       ---(OK)
  
-35. Daytask Table
+35. DayPlanning Table
       - remove field type                                   ---(OK)
       - Add new Field Requested Resource No.                ---(OK)
       - Rename Field: No. -> Assigned Resource No.          ---(OK)
-36. Daytask List -> open card for entry                     ---(OK)
-37. Gantt Card -> resource panel -> Daytask section -> able to right click on non daytask cells -> ex. add daytask   ---(OK)
+36. DayPlanning List -> open card for entry                     ---(OK)
+37. Gantt Card -> resource panel -> DayPlanning section -> able to right click on non DayPlanning cells -> ex. add DayPlanning   ---(OK)
 38. open summary from project task -> see picture: docs/SummaryFromTask.png   ---(OK)
 
-39. Daytask Plan status: add rename and new status:         ---(OK)          
+39. DayPlanning Plan status: add rename and new status:         ---(OK)          
                            (0) Requested -> Inrequest
                            (1) Planned -> Inprocess
                            (2) Rejected
@@ -234,17 +234,17 @@ API - 2026.04.29
          Team member
          Team Leader
 
-41. API: Daytask multiple insert record                     ---(OK)
-42. Gantt -> resource panel -> free cell daytask:
-      - Add Daytask -> use setup as default value           ---(OK)
-      - new action menu: Daytask Generator
+41. API: DayPlanning multiple insert record                     ---(OK)
+42. Gantt -> resource panel -> free cell DayPlanning:
+      - Add DayPlanning -> use setup as default value           ---(OK)
+      - new action menu: DayPlanning Generator
 
 43. Respect Resource panel Filter during Refresh Gantt      ---(OK)
-44. "DayTask Period Change Preview" page, do not reopen page if cancel/closed    ---(OK)
+44. "DayPlanning Period Change Preview" page, do not reopen page if cancel/closed    ---(OK)
 
 
 
-Daytask Generator: key: job no. + job task no. + Line No.   ---(OK)
+DayPlanning Generator: key: job no. + job task no. + Line No.   ---(OK)
 
 - harus ada constrain field di project task
 - harus ada hubungan dengan start-end
@@ -260,12 +260,45 @@ Automatic progress handler
 		- triggernya from edit progress %
 		- harus ada logging untuk progress
 
-Resource Category, enum: -> daytask creation
+Resource Category, enum: -> DayPlanning creation
    any available
    internal
    External
    pool
    Named
+
+
+- table Day Planning Generator (50607)
+	-> rename to "Day Planning Pattern"
+	-> Change from Temporary to Physic table
+
+- Work Hour Template -> simpan di resource as default
+- Resource Capacity -> open from ???
+- Day Planning -> rename to "Day Planning"
+- Resource Skill -> add Boolean -> Prefered -> ini untuk default skill of planning
+- Day Planning Card -> New -> bring all necessary data from filter and setup
+- Scheduling Type -> change to "Task Execution Model"
+	- Stable Crew
+	- Fixed Crew
+	- Fixed Duration
+
+-----------
+Use Zoho framework to manage issue
+
+-----------
+Planner -> context menciptakan pattern:
+	butuh 100 orang selama 3 bulan
+kita sudah kerja selama 1 bulan, anda on-track apa tidak? please tell me progressnya.
+
+-----------
+
+- Execute patern
+- engine perhitungan proposal untuk pattern terdiri atas 3 params:
+	- start - end date
+	- progress
+- engine Assignment: tidak lihat ke pattern karena day planning line sudah ada
+
+
 
 
 

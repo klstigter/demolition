@@ -141,54 +141,54 @@ table 50612 "Summary Weekly"
 
     procedure FillSummaryWithJobFilter(JobNoFilter: Text)
     var
-        DayTask: Record "Day Tasks";
+        DayPlanning: Record "Day Planning";
     begin
         if JobNoFilter <> '' then
-            DayTask.SetFilter("Job No.", JobNoFilter);
-        FillSummary(DayTask);
+            DayPlanning.SetFilter("Job No.", JobNoFilter);
+        FillSummary(DayPlanning);
     end;
 
     procedure FillSummaryWithJobTaskFilter(JobNoFilter: Text; JobTaskNoFilter: Text)
     var
-        DayTask: Record "Day Tasks";
+        DayPlanning: Record "Day Planning";
     begin
         if JobNoFilter <> '' then
-            DayTask.SetFilter("Job No.", JobNoFilter);
+            DayPlanning.SetFilter("Job No.", JobNoFilter);
         if JobTaskNoFilter <> '' then
-            DayTask.SetFilter("Job Task No.", JobTaskNoFilter);
-        FillSummary(DayTask);
+            DayPlanning.SetFilter("Job Task No.", JobTaskNoFilter);
+        FillSummary(DayPlanning);
     end;
 
     procedure FillSummaryWithResourceFilter(ResourceNoFilter: Text)
     var
-        DayTask: Record "Day Tasks";
+        DayPlanning: Record "Day Planning";
     begin
         if ResourceNoFilter <> '' then
-            DayTask.SetFilter("Assigned Resource No.", ResourceNoFilter);
-        FillSummary(DayTask);
+            DayPlanning.SetFilter("Assigned Resource No.", ResourceNoFilter);
+        FillSummary(DayPlanning);
     end;
 
     procedure FillSummary(JobNo: Code[20]; JobTaskNo: Code[20])
     var
-        DayTask: Record "Day Tasks";
+        DayPlanning: Record "Day Planning";
     begin
-        DayTask.SetRange("Job No.", JobNo);
-        DayTask.SetRange("Job Task No.", JobTaskNo);
-        FillSummary(DayTask);
+        DayPlanning.SetRange("Job No.", JobNo);
+        DayPlanning.SetRange("Job Task No.", JobTaskNo);
+        FillSummary(DayPlanning);
     end;
 
     procedure FillSummary(ResourceNo: Code[20]; JobNo: Code[20]; JobTaskNo: Code[20])
     var
-        DayTask: Record "Day Tasks";
+        DayPlanning: Record "Day Planning";
     begin
         if ResourceNo <> '' then
-            DayTask.SetRange("Assigned Resource No.", ResourceNo);
-        DayTask.SetRange("Job No.", JobNo);
-        DayTask.SetRange("Job Task No.", JobTaskNo);
-        FillSummary(DayTask);
+            DayPlanning.SetRange("Assigned Resource No.", ResourceNo);
+        DayPlanning.SetRange("Job No.", JobNo);
+        DayPlanning.SetRange("Job Task No.", JobTaskNo);
+        FillSummary(DayPlanning);
     end;
 
-    Local procedure FillSummary(var DayTask: Record "Day Tasks")
+    Local procedure FillSummary(var DayPlanning: Record "Day Planning")
     var
         //TempWeekList: Record "Summary Weekly" temporary;
         DayIndex: Integer;
@@ -203,16 +203,16 @@ table 50612 "Summary Weekly"
         Reset();
         DeleteAll();
 
-        // Find all Day Tasks for this Resource/Job/Task
-        DayTask.Reset();
-        if not DayTask.FindSet() then
+        // Find all Day Plannings for this Resource/Job/Task
+        DayPlanning.Reset();
+        if not DayPlanning.FindSet() then
             exit;
 
         // Group by week and distribute hours to weekdays
         repeat
-            TaskDate := DayTask."Task Date";
+            TaskDate := DayPlanning."Task Date";
             if TaskDate = 0D Then Begin
-                if WorkOrder.Get(DayTask."Work Order No.") then
+                if WorkOrder.Get(DayPlanning."Work Order No.") then
                     TaskDate := WorkOrder."Placeholder Date";
             End;
             if TaskDate = 0D then
@@ -221,40 +221,40 @@ table 50612 "Summary Weekly"
             YearValue := Date2DWY(TaskDate, 3);
             WeekNoValue := Date2DWY(TaskDate, 2);
             DayIndex := GetDayOfWeekIndex(TaskDate);
-            //if (DayTask."Requested Hours" > DayTask."Assigned Hours") and (DayTask."Assigned Hours" <> 0) then
+            //if (DayPlanning."Requested Hours" > DayPlanning."Assigned Hours") and (DayPlanning."Assigned Hours" <> 0) then
             //    n := 2
             //else
             n := 1;
 
             for i := 1 to n do begin
                 if i = 2 then
-                    DoInsert := Not rec.Get('', DayTask."Skill", DayTask."Job No.", DayTask."Job Task No.", YearValue, WeekNoValue)
+                    DoInsert := Not rec.Get('', DayPlanning."Skill", DayPlanning."Job No.", DayPlanning."Job Task No.", YearValue, WeekNoValue)
                 else
-                    DoInsert := not rec.Get(DayTask."Assigned Resource No.", DayTask."Skill", DayTask."Job No.", DayTask."Job Task No.", YearValue, WeekNoValue);
+                    DoInsert := not rec.Get(DayPlanning."Assigned Resource No.", DayPlanning."Skill", DayPlanning."Job No.", DayPlanning."Job Task No.", YearValue, WeekNoValue);
                 if DoInsert then begin
                     // Create new week record
                     rec.Init();
                     if i = 1 then
-                        rec."Resource No." := DayTask."Assigned Resource No."
+                        rec."Resource No." := DayPlanning."Assigned Resource No."
                     else
                         rec."Resource No." := '';
-                    rec."Skill Code" := DayTask."Skill";
-                    rec."Job No." := DayTask."Job No.";
-                    rec."Job Task No." := DayTask."Job Task No.";
+                    rec."Skill Code" := DayPlanning."Skill";
+                    rec."Job No." := DayPlanning."Job No.";
+                    rec."Job Task No." := DayPlanning."Job Task No.";
                     rec."Week No." := WeekNoValue;
                     rec.Year := YearValue;
 
-                    rec."Total Week Hours" := GetHours(DayIndex, DayTask, rec);
+                    rec."Total Week Hours" := GetHours(DayIndex, DayPlanning, rec);
                     rec.Insert();
                 end else begin
                     // Update existing week record
-                    rec."Total Week Hours" += GetHours(DayIndex, DayTask, rec);
+                    rec."Total Week Hours" += GetHours(DayIndex, DayPlanning, rec);
                     rec.Modify();
                 end;
             end;
 
-        until DayTask.Next() = 0;
-        n := TempDayTask.Count;
+        until DayPlanning.Next() = 0;
+        n := TempDayPlanning.Count;
         // // Copy from temp to Rec
         // TempWeekList.Reset();
         // if TempWeekList.FindSet() then
@@ -264,50 +264,50 @@ table 50612 "Summary Weekly"
         //     until TempWeekList.Next() = 0;
     end;
 
-    Local Procedure GetHours(DayIndex: Integer; DayTask: Record "Day Tasks"; var TempWeekList: Record "Summary Weekly") Hours: Integer
+    Local Procedure GetHours(DayIndex: Integer; DayPlanning: Record "Day Planning"; var TempWeekList: Record "Summary Weekly") Hours: Integer
     begin
         if (TempWeekList."Resource No." = '') then begin
             case DayIndex of
                 1:
-                    TempWeekList."Monday Hours" += DayTask."Requested Hours";
+                    TempWeekList."Monday Hours" += DayPlanning."Requested Hours";
                 2:
-                    TempWeekList."Tuesday Hours" += DayTask."Requested Hours";
+                    TempWeekList."Tuesday Hours" += DayPlanning."Requested Hours";
                 3:
-                    TempWeekList."Wednesday Hours" += DayTask."Requested Hours";
+                    TempWeekList."Wednesday Hours" += DayPlanning."Requested Hours";
                 4:
-                    TempWeekList."Thursday Hours" += DayTask."Requested Hours";
+                    TempWeekList."Thursday Hours" += DayPlanning."Requested Hours";
                 5:
-                    TempWeekList."Friday Hours" += DayTask."Requested Hours";
+                    TempWeekList."Friday Hours" += DayPlanning."Requested Hours";
                 6:
-                    TempWeekList."Saturday Hours" += DayTask."Requested Hours";
+                    TempWeekList."Saturday Hours" += DayPlanning."Requested Hours";
                 7:
-                    TempWeekList."Sunday Hours" += DayTask."Requested Hours";
+                    TempWeekList."Sunday Hours" += DayPlanning."Requested Hours";
             end;
-            exit(DayTask."Requested Hours");
+            exit(DayPlanning."Requested Hours");
         end else begin
             case DayIndex of
                 1:
-                    TempWeekList."Monday Hours" += DayTask."Assigned Hours";
+                    TempWeekList."Monday Hours" += DayPlanning."Assigned Hours";
                 2:
-                    TempWeekList."Tuesday Hours" += DayTask."Assigned Hours";
+                    TempWeekList."Tuesday Hours" += DayPlanning."Assigned Hours";
                 3:
-                    TempWeekList."Wednesday Hours" += DayTask."Assigned Hours";
+                    TempWeekList."Wednesday Hours" += DayPlanning."Assigned Hours";
                 4:
-                    TempWeekList."Thursday Hours" += DayTask."Assigned Hours";
+                    TempWeekList."Thursday Hours" += DayPlanning."Assigned Hours";
                 5:
-                    TempWeekList."Friday Hours" += DayTask."Assigned Hours";
+                    TempWeekList."Friday Hours" += DayPlanning."Assigned Hours";
                 6:
-                    TempWeekList."Saturday Hours" += DayTask."Assigned Hours";
+                    TempWeekList."Saturday Hours" += DayPlanning."Assigned Hours";
                 7:
-                    TempWeekList."Sunday Hours" += DayTask."Assigned Hours";
+                    TempWeekList."Sunday Hours" += DayPlanning."Assigned Hours";
             end;
-            exit(DayTask."Assigned Hours");
+            exit(DayPlanning."Assigned Hours");
         end;
 
     end;
     #endregion
     var
-        TempDayTask: Record "Day Tasks" temporary;
+        TempDayPlanning: Record "Day Planning" temporary;
         TempTask: Record "Job Task" temporary;
         TempJob: Record Job temporary;
         TEMPResource: Record "Resource" temporary;
@@ -315,47 +315,47 @@ table 50612 "Summary Weekly"
         TempYearWeek: Record Integer temporary;
         TempSummaryWeekly: Record "Summary Weekly" temporary;
 
-    #region "Helper functions to scan Day Tasks and fill temp buffers"
+    #region "Helper functions to scan Day Plannings and fill temp buffers"
 
-    procedure ScanDayTaskDateFilter(DateFilter: text)
+    procedure ScanDayPlanningDateFilter(DateFilter: text)
     var
-        DayTask: Record "Day Tasks";
+        DayPlanning: Record "Day Planning";
     begin
         if DateFilter <> '' then
-            DayTask.SetFilter("Task Date", DateFilter);
-        ScanTEMPDayTask(DayTask)
+            DayPlanning.SetFilter("Task Date", DateFilter);
+        ScanTEMPDayPlanning(DayPlanning)
     end;
 
-    procedure ScanDayTaskFilter(JobNoFilter: text; TaskNoFilter: text)
+    procedure ScanDayPlanningFilter(JobNoFilter: text; TaskNoFilter: text)
     var
-        DayTask: Record "Day Tasks";
+        DayPlanning: Record "Day Planning";
     begin
         if JobNoFilter <> '' then
-            DayTask.SetFilter("Job No.", JobNoFilter);
+            DayPlanning.SetFilter("Job No.", JobNoFilter);
         if TaskNoFilter <> '' then
-            DayTask.SetFilter("Job Task No.", TaskNoFilter);
-        ScanTempDayTask(DayTask)
+            DayPlanning.SetFilter("Job Task No.", TaskNoFilter);
+        ScanTempDayPlanning(DayPlanning)
     end;
 
-    procedure ScanDayTaskResource(ResourceFilter: text)
+    procedure ScanDayPlanningResource(ResourceFilter: text)
     var
-        DayTask: Record "Day Tasks";
+        DayPlanning: Record "Day Planning";
     begin
         if ResourceFilter <> '' then
-            DayTask.SetFilter("Assigned Resource No.", ResourceFilter);
-        ScanTEMPDayTask(DayTask)
+            DayPlanning.SetFilter("Assigned Resource No.", ResourceFilter);
+        ScanTEMPDayPlanning(DayPlanning)
     end;
 
-    procedure ScanDayTaskSkill(SkillFilter: text)
+    procedure ScanDayPlanningSkill(SkillFilter: text)
     var
-        DayTask: Record "Day Tasks";
+        DayPlanning: Record "Day Planning";
     begin
         if SkillFilter <> '' then
-            DayTask.SetFilter("Skill", SkillFilter);
-        ScanTEMPDayTask(DayTask)
+            DayPlanning.SetFilter("Skill", SkillFilter);
+        ScanTEMPDayPlanning(DayPlanning)
     end;
 
-    local procedure ScanTempDayTask(var DayTask: Record "Day Tasks")
+    local procedure ScanTempDayPlanning(var DayPlanning: Record "Day Planning")
     var
         DateOld: Date;
         ywOld: Integer;
@@ -367,43 +367,43 @@ table 50612 "Summary Weekly"
     begin
         TempYearWeek.Reset();
         TempYearWeek.DeleteAll();
-        TempDayTask.reset;
-        TempDayTask.DeleteAll();
+        TempDayPlanning.reset;
+        TempDayPlanning.DeleteAll();
 
-        if DayTask.FindSet() then
+        if DayPlanning.FindSet() then
             repeat
-                TempDayTask := DayTask;
-                TempDayTask.Insert(true);
-                if DateOld <> TempDayTask."Task Date" then begin
-                    DateOld := TempDayTask."Task Date";
-                    ywNew := CreateYW(TempDayTask."Task Date");
+                TempDayPlanning := DayPlanning;
+                TempDayPlanning.Insert(true);
+                if DateOld <> TempDayPlanning."Task Date" then begin
+                    DateOld := TempDayPlanning."Task Date";
+                    ywNew := CreateYW(TempDayPlanning."Task Date");
                     if ywOld <> ywNew then begin
                         ywOld := ywNew;
                         FillTEMPYearWeek(ywNew);
                     end;
                 end;
-                if (JobNoOld <> TempDayTask."Job No.") then begin
-                    JobNoOld := TempDayTask."Job No.";
+                if (JobNoOld <> TempDayPlanning."Job No.") then begin
+                    JobNoOld := TempDayPlanning."Job No.";
                     JobTaskNoOld := '';
-                    TryInsertJob(TempDayTask."Job No.");
+                    TryInsertJob(TempDayPlanning."Job No.");
                 end;
-                if (JobTaskNoOld <> TempDayTask."Job Task No.") then begin
-                    JobTaskNoOld := TempDayTask."Job Task No.";
-                    TryInsertTempTask(TempDayTask."Job No.", TempDayTask."Job Task No.");
+                if (JobTaskNoOld <> TempDayPlanning."Job Task No.") then begin
+                    JobTaskNoOld := TempDayPlanning."Job Task No.";
+                    TryInsertTempTask(TempDayPlanning."Job No.", TempDayPlanning."Job Task No.");
                 end;
-                TryInsertTempResource(TempDayTask."Assigned Resource No.");
-                if (SkillOld <> TempDayTask."Skill") then begin
-                    SkillOld := TempDayTask."Skill";
-                    TryInsertTempSkill(TempDayTask."Skill");
+                TryInsertTempResource(TempDayPlanning."Assigned Resource No.");
+                if (SkillOld <> TempDayPlanning."Skill") then begin
+                    SkillOld := TempDayPlanning."Skill";
+                    TryInsertTempSkill(TempDayPlanning."Skill");
                 end;
-            until DayTask.Next() = 0;
-        n := TempDayTask.Count;
+            until DayPlanning.Next() = 0;
+        n := TempDayPlanning.Count;
     end;
 
 
     local procedure FillTEMPYearWeek(TaskDate: Date)
     begin
-        FillTEMPYearWeek(CreateYW(TempDayTask."Task Date"));
+        FillTEMPYearWeek(CreateYW(TempDayPlanning."Task Date"));
     end;
 
     local procedure FillTEMPYearWeek(yw: Integer)
@@ -493,23 +493,23 @@ table 50612 "Summary Weekly"
     var
         n: Integer;
     begin
-        n := TempDayTask.Count;
-        FillSummary(TempDayTask);
+        n := TempDayPlanning.Count;
+        FillSummary(TempDayPlanning);
     end;
 
-    procedure LoadSummary(var TempDTask: Record "Day Tasks")
+    procedure LoadSummary(var TempDTask: Record "Day Planning")
     begin
         FillSummary(TempDTask);
     end;
 
 
-    procedure HandOverTempDayTask(var DayTask: Record "Day Tasks" temporary)
+    procedure HandOverTempDayPlanning(var DayPlanning: Record "Day Planning" temporary)
     begin
-        if TempDayTask.FindSet() then
+        if TempDayPlanning.FindSet() then
             repeat
-                DayTask := TempDayTask;
-                DayTask.Insert(true);
-            until TempDayTask.Next() = 0;
+                DayPlanning := TempDayPlanning;
+                DayPlanning.Insert(true);
+            until TempDayPlanning.Next() = 0;
     end;
 
     procedure HandOverToPage(Pg: Page "Opti Lookup Job List")

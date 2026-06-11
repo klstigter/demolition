@@ -54,7 +54,7 @@ page 50621 "DHX Scheduler (Project)"
                 var
                     DateRef: Date;
                 begin
-                    DateRef := DHXDataHandler.OpenDayTask(eventId);
+                    DateRef := DHXDataHandler.OpenDayPlanning(eventId);
                     if DateRef <> 0D then begin
                         AnchorDate := DateRef;
                         RefreshSchedule();
@@ -91,16 +91,16 @@ page 50621 "DHX Scheduler (Project)"
                 var
                     DHXDataHandler: Codeunit "DHX Data Handler";
                     UpdateEventID: Boolean;
-                    OldDayTask_forUpdate: record "Day Tasks";
-                    NewDayTask_forUpdate: record "Day Tasks";
+                    OldDayPlanning_forUpdate: record "Day Planning";
+                    NewDayPlanning_forUpdate: record "Day Planning";
                 begin
                     DHXDataHandler.OnEventChanged_Project(eventId,
                                                   eventData,
                                                   UpdateEventID,
-                                                  OldDayTask_forUpdate,
-                                                  NewDayTask_forUpdate);
+                                                  OldDayPlanning_forUpdate,
+                                                  NewDayPlanning_forUpdate);
                     if UpdateEventID then
-                        CurrPage.DhxScheduler.UpdateEventId(DHXDataHandler.UpdateEventID(OldDayTask_forUpdate, NewDayTask_forUpdate)); //update event ID
+                        CurrPage.DhxScheduler.UpdateEventId(DHXDataHandler.UpdateEventID(OldDayPlanning_forUpdate, NewDayPlanning_forUpdate)); //update event ID
                 end;
 
                 trigger OnAfterEventIdUpdated(oldid: Text; newid: Text)
@@ -143,7 +143,7 @@ page 50621 "DHX Scheduler (Project)"
                     StartDate: Date;
                     EndDate: Date;
                 begin
-                    if DHXDataHandler.GetDayTaskAsResourcesAndEventsJSon_Project(NavigateJson, ResourceFilter, ResourceJSONTxt, EventsJsonTxt) then begin
+                    if DHXDataHandler.GetDayPlanningAsResourcesAndEventsJSon_Project(NavigateJson, ResourceFilter, ResourceJSONTxt, EventsJsonTxt) then begin
                         DHXDataHandler.GetStartEndDatesFromTimeLineJSon(NavigateJson, startDate, endDate);
                         CurrPage.DhxScheduler.RefreshTimeline(ResourceJSONTxt, EventsJsonTxt, startDate); //TODO: pass resourcesJson and eventsJson
                         AnchorDate := startDate;
@@ -179,10 +179,10 @@ page 50621 "DHX Scheduler (Project)"
                             DHXDataHandler.ShowJobResourcesForEvent(eventId);
                         'OpenTask':
                             DHXDataHandler.OpenJobTaskCardFromEventId(eventId);
-                        'OpenDayTask':
-                            DHXDataHandler.OpenDayTask(eventId);
-                        'OpenDayTaskVisual':
-                            DHXDataHandler.OpenDayTaskVisual(eventId);
+                        'OpenDayPlanning':
+                            DHXDataHandler.OpenDayPlanning(eventId);
+                        'OpenDayPlanningVisual':
+                            DHXDataHandler.OpenDayPlanningVisual(eventId);
                         'ShowMessage1':
                             Message('message 1 from scheduller');
                         'ShowMessage2':
@@ -345,7 +345,7 @@ page 50621 "DHX Scheduler (Project)"
     begin
         DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
         if jobFilter <> '' then
-            DHXDataHandler.GetDayTaskAsResourcesAndEventsJSon_Project_StartEnd(startDate,
+            DHXDataHandler.GetDayPlanningAsResourcesAndEventsJSon_Project_StartEnd(startDate,
                                                                           endDate,
                                                                           jobFilter,
                                                                           JobTaskFilter,
@@ -353,7 +353,7 @@ page 50621 "DHX Scheduler (Project)"
                                                                           EventsJsonTxt,
                                                                           EarliestPlanningDate)
         else
-            DHXDataHandler.GetDayTaskAsResourcesAndEventsJSon_Project_StartEnd(startDate,
+            DHXDataHandler.GetDayPlanningAsResourcesAndEventsJSon_Project_StartEnd(startDate,
                                                                           endDate,
                                                                           ResourceFilter,
                                                                           ResourceJSONTxt,

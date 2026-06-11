@@ -20,8 +20,8 @@ controladdin "DHX Gantt Control 2"
     event ControlReady();
     event OnAfterInit();
     event onTaskDblClick(eventId: Text; eventData: Text);
-    event onOpenDayTask(taskId: Text; eventData: Text);
-    event onOpenDayTaskVisual(taskId: Text; eventData: Text);
+    event onOpenDayPlanning(taskId: Text; eventData: Text);
+    event onOpenDayPlanningVisual(taskId: Text; eventData: Text);
     event OnJobTaskUpdated(eventData: Text);
     event OpenResourceLoadDay(resourceId: Text; workDate: Text);
     event OnLinkCreated(linkData: Text);
@@ -31,7 +31,7 @@ controladdin "DHX Gantt Control 2"
     event OnResourceDblClick(resourceId: Text);
     event onOpenResourceScheduler(resourceId: Text);
     event OnResetResourceFilter();
-    event onAddDayTask(resourceId: Text; workDate: Text);
+    event onAddDayPlanning(resourceId: Text; workDate: Text);
     event OnResourceFilterRetrieved(filterJson: Text);
 
     procedure LoadProject(projectstartdate: date; projectenddate: date);
@@ -46,7 +46,7 @@ controladdin "DHX Gantt Control 2"
         ShowTaskType: Boolean
     );
     procedure LoadResourcesData(resourcesJsonTxt: Text);
-    procedure LoadDayTasksData(dayTasksJsonTxt: Text);
+    procedure LoadDayPlanningsData(DayPlanningsJsonTxt: Text);
     procedure ClearData();
     procedure RenderGantt(skipTrigger_OnJobTaskUpdated: Boolean);
     procedure GetGanttData();

@@ -79,7 +79,7 @@ section.left_margin   = Cm(2.5)
 section.right_margin  = Cm(2.5)
 
 # Title
-title = doc.add_heading("Request-DayTask Overlay Bar — Technical Documentation", 0)
+title = doc.add_heading("Request-DayPlanning Overlay Bar — Technical Documentation", 0)
 title.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
 meta = doc.add_paragraph()
@@ -90,7 +90,7 @@ doc.add_paragraph()  # spacer
 # ─────────────────────────────────────────────────────────────────────────────
 add_heading(doc, "1. Purpose", level=1)
 add_para(doc,
-    "When a DayTask record in Business Central has plan_status = \"Request\" and carries a "
+    "When a DayPlanning record in Business Central has plan_status = \"Request\" and carries a "
     "placeholder_date, the Gantt chart must visually signal that a requested (not yet confirmed) "
     "work slot exists within the task bar. This is done by injecting a semi-transparent black "
     "overlay div (.bc-req-bar) directly into the Gantt timeline DOM, positioned so it aligns "
@@ -128,17 +128,17 @@ tbl.style = "Table Grid"
 set_table_header(tbl, ["Source", "Loaded by", "Stored in"])
 rows = [
     ("Gantt tasks (JobTask)", "LoadProjectData()", "gantt internal store"),
-    ("DayTask records", "LoadDayTasksData()", "window.dayTasksByTask (index)"),
+    ("DayPlanning records", "LoadDayPlanningData()", "window.dayPlanningsByTask (index)"),
 ]
 for r in rows:
     add_table_row(tbl, r)
 doc.add_paragraph()
 
-add_para(doc, "window.dayTasksByTask index structure:")
+add_para(doc, "window.dayPlanningsByTask index structure:")
 add_code_block(doc, [
     "// Key  = jobNo + \"|\" + jobTaskNo  (matches gantt task.id exactly)",
-    "// Value = array of DayTask objects from BC",
-    "window.dayTasksByTask = {",
+    "// Value = array of DayPlanning objects from BC",
+    "window.dayPlanningsByTask = {",
     "  \"PROJ001|10\": [",
     "    { id: \"DT-1\", resource_id: \"R01\", work_date: \"2026-05-10\",",
     "      plan_status: \"Request\", placeholder_date: \"2026-05-10\",",
@@ -180,13 +180,13 @@ add_code_block(doc, [
     "}",
 ])
 
-add_heading(doc, "4.3  Iterate gantt tasks and find Request DayTasks", level=2)
+add_heading(doc, "4.3  Iterate gantt tasks and find Request DayPlannings", level=2)
 add_para(doc,
-    "gantt.eachTask() walks every loaded task. For each task the corresponding DayTask array "
-    "is looked up from window.dayTasksByTask using the task's id (which equals jobNo|jobTaskNo).")
+    "gantt.eachTask() walks every loaded task. For each task the corresponding DayPlanning array "
+    "is looked up from window.DayPlanningsByTask using the task's id (which equals jobNo|jobTaskNo).")
 add_code_block(doc, [
     "gantt.eachTask(function (task) {",
-    "  var dtList = window.dayTasksByTask[task.id];",
+    "  var dtList = window.DayPlanningsByTask[task.id];",
     "  if (!dtList || !dtList.length) return;  // nothing to render",
     "",
     "  // Only Request-status items with a placeholder_date get a bar",
@@ -302,7 +302,7 @@ add_code_block(doc, [
 add_heading(doc, "6. Black Bottom Strip in the Resource Panel", level=1)
 add_para(doc,
     "The resource panel (lower half of the Gantt) shows per-resource workload cells "
-    "(gantt_resource_marker). When a planned DayTask cell and a Request DayTask share the "
+    "(gantt_resource_marker). When a planned DayPlanning cell and a Request DayPlanning share the "
     "same date for the same resource, a thin black strip is appended inside the planned cell "
     "rather than painting a standalone grey box. This is handled inside renderResourceLine():")
 add_code_block(doc, [
@@ -322,7 +322,7 @@ add_code_block(doc, [
     "}",
 ])
 add_para(doc,
-    "For dates where only a Request DayTask exists (no planned cell), a standalone grey "
+    "For dates where only a Request DayPlanning exists (no planned cell), a standalone grey "
     "marker (gantt_resource_marker_request, CSS #909090) is rendered instead.")
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -355,7 +355,7 @@ decisions = [
      "the overlay would prevent DHTMLX from receiving mousedown/mousemove needed for "
      "task drag, effectively disabling drag on any date that has a Request bar."),
     ("Deduplication by placeholder_date (seenDate map)",
-     "Multiple Request DayTasks for different resources can share the same placeholder_date "
+     "Multiple Request DayPlannings for different resources can share the same placeholder_date "
      "on the same task. Without deduplication, stacked identical bars would darken "
      "the overlay and produce visual artefacts."),
     ("Math.max(pos.width, 6) minimum width",
@@ -385,8 +385,8 @@ notes = [
     "tested after any RecreateGanttLayout() change.",
     "If DHTMLX Gantt is upgraded, confirm that gantt.getTaskPosition() still accepts a "
     "task object (not just a task ID) and that $task_data remains a live DOM element reference.",
-    "The window.dayTasksByTask index is rebuilt entirely on every LoadDayTasksData() call. "
-    "If incremental DayTask updates (UpsertDayTask / DeleteDayTask) are used, verify that "
+    "The window.DayPlanningsByTask index is rebuilt entirely on every LoadDayPlanningsData() call. "
+    "If incremental DayPlanning updates (UpsertDayPlanning / DeleteDayPlanning) are used, verify that "
     "the index is also updated incrementally, otherwise _renderRequestBars() will use stale data.",
     "For large projects, consider throttling the onTaskDrag handler (e.g., requestAnimationFrame "
     "guard) if performance degradation is observed during drag on slow devices.",
@@ -405,7 +405,7 @@ refs = [
     ("_renderRequestBars() function", "wrapper.js — after BOOT() closure, ~line 1068"),
     ("Render triggers (onGanttRender, onTaskDrag, onAfterTaskDrag)", "wrapper.js — inside BOOT(), after gantt.init()"),
     ("renderResourceLine() — resource panel strip", "wrapper.js — calculateResourceLoad() block"),
-    ("DayTask data loading", "wrapper.js — LoadDayTasksData()"),
+    ("DayPlanning data loading", "wrapper.js — LoadDayPlanningsData()"),
 ]
 for r in refs:
     add_table_row(tbl4, r)

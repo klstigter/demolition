@@ -52,7 +52,7 @@ window.BOOT = function () {
         var cardShape = {
             label:       true,
             description: true,
-            // "start_date" shows the Daytask Date chip at the bottom of the card
+            // "start_date" shows the DayPlanning Date chip at the bottom of the card
             start_date:  { show: true, label: "Date" },
             end_date:    false,
             menu:        true,

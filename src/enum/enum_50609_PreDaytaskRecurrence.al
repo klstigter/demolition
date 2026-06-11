@@ -1,8 +1,8 @@
 /// <summary>
 /// Defines the recurrence pattern used when Scheduling Mode = Recurring
-/// in the pre-Daytask generation dialog.
+/// in the pre-DayPlanning generation dialog.
 /// </summary>
-enum 50609 "Pre Daytask Recurrence"
+enum 50609 "Pre DayPlanning Recurrence"
 {
     Extensible = true;
     Caption = 'Recurrence Type';

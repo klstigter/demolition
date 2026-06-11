@@ -11,7 +11,7 @@ var gantt_here = null;
 var _queuedColumnArgs = null;
 var _booted = false;
 var resourcesStore = null;
-var dayTasksStore = null;
+var DayPlanningsStore = null;
 var _isRefreshing = false;
 var _resourceFilterInfo = null; // { job, task, periodFrom, periodTo }
 var _ganttHolidays = {}; // { "YYYY-MM-DD": "Description", ... } loaded from BC Base Calendar
@@ -49,40 +49,40 @@ window.BOOT = function() {
       return;
     }
 
-    // ah: function hide due to daytask-line class is created during hover on daytask
-    // function InstallDayTaskEvents() {
-    //   if (window._dayTaskEventsInstalled) return;
-    //   window._dayTaskEventsInstalled = true;
+    // ah: function hide due to DayPlanning-line class is created during hover on DayPlanning
+    // function InstallDayPlanningEvents() {
+    //   if (window._DayPlanningEventsInstalled) return;
+    //   window._DayPlanningEventsInstalled = true;
 
     //   gantt.$root.addEventListener("dblclick", function (e) {
     //     debugger;
-    //     const el = e.target.closest(".daytask-line");
+    //     const el = e.target.closest(".DayPlanning-line");
     //     if (!el) return;
 
     //     e.preventDefault();
     //     e.stopPropagation();
 
-    //     const dayTaskId = el.getAttribute("data-daytask-id")||el.dataset.daytaskId;
-    //     if (!dayTaskId) return;
+    //     const DayPlanningId = el.getAttribute("data-DayPlanning-id")||el.dataset.DayPlanningId;
+    //     if (!DayPlanningId) return;
 
     //     // 🔁 call BC
-    //     if (window.BC_OnDayTaskDblClick) {
-    //       window.BC_OnDayTaskDblClick(dayTaskId);
+    //     if (window.BC_OnDayPlanningDblClick) {
+    //       window.BC_OnDayPlanningDblClick(DayPlanningId);
     //     }
     //   });
 
     //   gantt.$root.addEventListener("click", function (e) {
-    //     const el = e.target.closest(".daytask-line");
+    //     const el = e.target.closest(".DayPlanning-line");
     //     if (!el) return;
 
     //     e.stopPropagation();
 
-    //     const dayTaskId = el.dataset.daytaskId;
-    //     highlightDayTask(el); // optional visual
+    //     const DayPlanningId = el.dataset.DayPlanningId;
+    //     highlightDayPlanning(el); // optional visual
     //   });
     // }
 
-    function InstallResourceMarkerCustomTooltipsForDayTasks() {
+    function InstallResourceMarkerCustomTooltipsForDayPlannings() {
       if (document._rmCustomTooltipInstalled) return;
       document._rmCustomTooltipInstalled = true;
 
@@ -99,7 +99,7 @@ window.BOOT = function() {
           return;
         }
 
-        const all = window.dayTasksByTask || {};
+        const all = window.DayPlanningsByTask || {};
         const matches = [];
 
         for (const taskId in all) {
@@ -113,7 +113,7 @@ window.BOOT = function() {
         if (!matches.length) {
           _showCustomTooltip(
             e,
-            `<b>${resId}</b><br/>Date: ${workDate}<br/>Marker: ${hoursTxt}h<br/><i>No DayTasks</i>`
+            `<b>${resId}</b><br/>Date: ${workDate}<br/>Marker: ${hoursTxt}h<br/><i>No DayPlannings</i>`
           );
           return;
         }
@@ -136,7 +136,7 @@ window.BOOT = function() {
           `<b>${resId}</b><br/>
           Date: ${workDate}<br/>
           Marker: ${hoursTxt}h<br/>
-          DayTasks total: ${total}h
+          DayPlannings total: ${total}h
           <hr style="border:0;border-top:1px solid rgba(255,255,255,0.15);margin:6px 0"/>
           ${lines}${matches.length > 8 ? "<br/>…" : ""}`
         );
@@ -187,7 +187,7 @@ window.BOOT = function() {
       menu.style.cssText = menuCss;
       var currentResourceId = "";
 
-      // ── Daytask marker menu ──
+      // ── DayPlanning marker menu ──
       var markerMenu = document.createElement("div");
       markerMenu.style.cssText = menuCss;
       var currentMarkerResourceId = "";
@@ -217,7 +217,7 @@ window.BOOT = function() {
         alert("Message 2 — Resource: " + currentResourceId);
       });
 
-      makeItem(markerMenu, "Open Day Tasks", function () {
+      makeItem(markerMenu, "Open Day Plannings", function () {
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OpenResourceLoadDay", [
           currentMarkerResourceId,
           currentMarkerWorkDate
@@ -230,9 +230,9 @@ window.BOOT = function() {
       var RightClickedResourceId = "";
       var RightClickedWorkDate   = "";
 
-      makeItem(emptyMenu, "Add Day Task", function () {
+      makeItem(emptyMenu, "Add Day Planning", function () {
         if (!RightClickedResourceId || !RightClickedWorkDate) return;
-        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("onAddDayTask", [
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("onAddDayPlanning", [
           RightClickedResourceId,
           RightClickedWorkDate
         ]);
@@ -257,7 +257,7 @@ window.BOOT = function() {
       document.body.appendChild(markerMenu);
       document.body.appendChild(emptyMenu);
 
-      // Right-click on a resource name cell, a daytask marker, or an empty timeline cell
+      // Right-click on a resource name cell, a DayPlanning marker, or an empty timeline cell
       document.addEventListener("contextmenu", function (e) {
         var resCell    = e.target.closest(".res-name-cell");
         var markerCell = e.target.closest(".gantt_resource_marker");
@@ -365,7 +365,7 @@ window.BOOT = function() {
       }
     ];
     
-    //mapping resource property and daytasks resource property
+    //mapping resource property and DayPlannings resource property
     gantt.config.resource_property = "resource_id";
 
 
@@ -590,8 +590,8 @@ window.BOOT = function() {
         { label: "Show Job Resources",   icon: "&#x1F465;", cls: "ctx-show-resources" },
         { sep: true },
         { label: "Open Task",            icon: "&#x1F4CB;", cls: "ctx-open-task" },
-        { label: "Open DayTask",         icon: "&#x1F4C5;", cls: "ctx-open-daytask" },
-        { label: "Open DayTask Visual",  icon: "&#x1F4C5;", cls: "ctx-open-daytaskvisual" },
+        { label: "Open DayPlanning",         icon: "&#x1F4C5;", cls: "ctx-open-DayPlanning" },
+        { label: "Open DayPlanning Visual",  icon: "&#x1F4C5;", cls: "ctx-open-DayPlanningvisual" },
         { sep: true },
         { label: "Cancel",               icon: "&#x2715;",  cls: "ctx-cancel" }
       ];
@@ -612,8 +612,8 @@ window.BOOT = function() {
           if (item.cls === "ctx-show-summary") _ctxShowSummary(taskId);
           if (item.cls === "ctx-show-resources") _ctxShowResources(taskId);
           if (item.cls === "ctx-open-task")      _ctxOpenTask(taskId);
-          if (item.cls === "ctx-open-daytask")   _ctxOpenDayTask(taskId);
-          if (item.cls === "ctx-open-daytaskvisual")   _ctxOpenDayTaskVisual(taskId);
+          if (item.cls === "ctx-open-DayPlanning")   _ctxOpenDayPlanning(taskId);
+          if (item.cls === "ctx-open-DayPlanningvisual")   _ctxOpenDayPlanningVisual(taskId);
           // cancel: just close
         });
         menu.appendChild(el);
@@ -699,7 +699,7 @@ window.BOOT = function() {
       }
     }
 
-    // Show Resources — open resource panel filtered to this task's Day Task resources
+    // Show Resources — open resource panel filtered to this task's Day Planning resources
     function _ctxShowResources(id) {
       try {
         var fmt = gantt.date.date_to_str("%Y-%m-%d");
@@ -727,8 +727,8 @@ window.BOOT = function() {
       }
     }
 
-    // Open DayTask — BC event for day-task card
-    function _ctxOpenDayTask(id) {
+    // Open DayPlanning — BC event for day-task card
+    function _ctxOpenDayPlanning(id) {
       try {
         var task = gantt.getTask(id);
         var eventData = {
@@ -739,17 +739,17 @@ window.BOOT = function() {
           bcTableNo: task.bcTableNo || "",
           bcDocumentNo: task.bcDocumentNo || ""
         };
-        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("onOpenDayTask", [
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("onOpenDayPlanning", [
           String(id),
           JSON.stringify(eventData)
         ]);
       } catch (e) {
-        console.error("_ctxOpenDayTask failed:", e);
+        console.error("_ctxOpenDayPlanning failed:", e);
       }
     }
 
-        // Open DayTask — BC event for day-task card
-    function _ctxOpenDayTaskVisual(id) {
+        // Open DayPlanning — BC event for day-task card
+    function _ctxOpenDayPlanningVisual(id) {
       try {
         var task = gantt.getTask(id);
         var eventData = {
@@ -760,12 +760,12 @@ window.BOOT = function() {
           bcTableNo: task.bcTableNo || "",
           bcDocumentNo: task.bcDocumentNo || ""
         };
-        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("onOpenDayTaskVisual", [
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("onOpenDayPlanningVisual", [
           String(id),
           JSON.stringify(eventData)
         ]);
       } catch (e) {
-        console.error("_ctxOpenDayTaskVisual failed:", e);
+        console.error("_ctxOpenDayPlanningVisual failed:", e);
       }
     }
     // Attach right-click event
@@ -1002,9 +1002,9 @@ window.BOOT = function() {
       initItem: function (item) { item.id = item.key || gantt.uid(); return item; }
     });
 
-    // DayTasks datastore (your BC Day Tasks table)
-    dayTasksStore = gantt.createDatastore({
-      name: "daytasks",
+    // DayPlannings datastore (your BC Day Plannings table)
+    DayPlanningsStore = gantt.createDatastore({
+      name: "DayPlannings",
       initItem: function (item) {
         // unique key for upsert: JobNo|JobTaskNo|WorkDate|ResourceNo
         item.id = item.id || item.key || gantt.uid();
@@ -1103,9 +1103,9 @@ window.BOOT = function() {
     
     console.log("tooltip ext:", gantt.ext && (gantt.ext.tooltip || gantt.ext.tooltips));
     
-    //InstallDayTaskLayer();   // ✅ install once
-    //InstallDayTaskEvents(); // ✅ install once //ah: the function is hide, see on top lines
-    InstallResourceMarkerCustomTooltipsForDayTasks(); // ✅ install once
+    //InstallDayPlanningLayer();   // ✅ install once
+    //InstallDayPlanningEvents(); // ✅ install once //ah: the function is hide, see on top lines
+    InstallResourceMarkerCustomTooltipsForDayPlannings(); // ✅ install once
     InstallResourceGridDblClick(); // ✅ install once
     InstallResourceGridContextMenu(); // ✅ install once
 
@@ -1124,11 +1124,11 @@ window.BOOT = function() {
 }
 
 // -------------------------------------------------------
-// Request-daytask bar overlay — rendered directly into $task_data after each gantt render
+// Request-DayPlanning bar overlay — rendered directly into $task_data after each gantt render
 // -------------------------------------------------------
 function _renderRequestBars() {
   try {
-    if (!window.dayTasksByTask) return;
+    if (!window.DayPlanningsByTask) return;
 
     // Resolve $task_data container (handles both simple and multi-view layouts)
     var container = gantt.$task_data
@@ -1142,7 +1142,7 @@ function _renderRequestBars() {
     }
 
     gantt.eachTask(function (task) {
-      var dtList = window.dayTasksByTask[task.id];
+      var dtList = window.DayPlanningsByTask[task.id];
       if (!dtList || !dtList.length) return;
 
       var taskPos = gantt.getTaskPosition(task, task.start_date, task.end_date);
@@ -1197,12 +1197,12 @@ function RecreateGanttLayout(showResourcePanel) {
         },
         {
           name: "workload", label: "Total Hours", align: "center", template: function (r) {
-            // Calculate total hours from dayTasksStore
+            // Calculate total hours from DayPlanningsStore
             var total = 0;
-            if (dayTasksStore) {
-              var allDayTasks = dayTasksStore.getItems();
-              for (var i = 0; i < allDayTasks.length; i++) {
-                var dt = allDayTasks[i];
+            if (DayPlanningsStore) {
+              var allDayPlannings = DayPlanningsStore.getItems();
+              for (var i = 0; i < allDayPlannings.length; i++) {
+                var dt = allDayPlannings[i];
                 if (String(dt.resource_id || "") === String(r.id || "")) {
                   total += Number(dt.hours || 0);
                 }
@@ -1502,14 +1502,14 @@ function ClearData(projectJsonTxt) {
     }
     _isRefreshing = true; // Will be reset by RenderGantt()
     
-    // Clear the daytasks index first
-    if (window.dayTasksByTask) {
-      window.dayTasksByTask = Object.create(null);
+    // Clear the DayPlannings index first
+    if (window.DayPlanningsByTask) {
+      window.DayPlanningsByTask = Object.create(null);
     }
     
-    // Clear daytasks datastore
-    if (dayTasksStore && dayTasksStore.clearAll) {
-      dayTasksStore.clearAll();
+    // Clear DayPlannings datastore
+    if (DayPlanningsStore && DayPlanningsStore.clearAll) {
+      DayPlanningsStore.clearAll();
     }
     
     // Clear resource datastore
@@ -1779,7 +1779,7 @@ function LoadLinksData(linksJsonTxt) {
 function calculateResourceLoad(resource, scale) {
   var step = scale.unit; // day
   var timegrid = {};
-  var all = dayTasksStore ? dayTasksStore.getItems() : [];
+  var all = DayPlanningsStore ? DayPlanningsStore.getItems() : [];
 
   for (var i = 0; i < all.length; i++) {
     var dt = all[i];
@@ -1817,8 +1817,8 @@ var renderResourceLine = function (resource, timeline) {
 
   // ── Build Request day-task map BEFORE the regular loop ───────────────────
   var requestDateMap = Object.create(null); // { dateStr: [dt,...] }
-  if (dayTasksStore) {
-    var allDTReq = dayTasksStore.getItems();
+  if (DayPlanningsStore) {
+    var allDTReq = DayPlanningsStore.getItems();
     for (var ri = 0; ri < allDTReq.length; ri++) {
       var rdt = allDTReq[ri];
       if (!rdt || !rdt.work_date || rdt.plan_status !== "Request") continue;
@@ -1851,11 +1851,11 @@ var renderResourceLine = function (resource, timeline) {
       "position:absolute"
     ].join(";");
 
-    // Count daytasks for this resource on this day
+    // Count DayPlannings for this resource on this day
     var dayStr = gantt.date.date_to_str("%Y-%m-%d")(day.start_date);
     var dtCount = 0;
-    if (dayTasksStore) {
-      var allDT = dayTasksStore.getItems();
+    if (DayPlanningsStore) {
+      var allDT = DayPlanningsStore.getItems();
       for (var j = 0; j < allDT.length; j++) {
         var dt = allDT[j];
         if (String(dt.resource_id || "") !== String(resource.id || "")) continue;
@@ -1871,7 +1871,7 @@ var renderResourceLine = function (resource, timeline) {
     hoursSpan.textContent = day.value;
     cell.appendChild(hoursSpan);
 
-    // Top-left badge: only when more than 1 daytask
+    // Top-left badge: only when more than 1 DayPlanning
     if (dtCount > 1) {
       var badge = document.createElement("span");
       badge.textContent = dtCount;
@@ -2045,26 +2045,26 @@ function LoadResourcesData(resourcesJsonTxt) {
 }
 window.LoadResourcesData = LoadResourcesData;
 
-function LoadDayTasksData(dayTasksJsonTxt) {
+function LoadDayPlanningsData(DayPlanningsJsonTxt) {
   try {
-    if (!dayTasksStore) {
-      console.warn("LoadDayTasksData: dayTasksStore not ready yet");
+    if (!DayPlanningsStore) {
+      console.warn("LoadDayPlanningsData: DayPlanningsStore not ready yet");
       return;
     }
 
 
-    var items = _tryParseJson(dayTasksJsonTxt);
+    var items = _tryParseJson(DayPlanningsJsonTxt);
     if (!items) return;
     if (!Array.isArray(items)) {
-      items = items.daytasks || items.dayTasks || items.DayTasks || [];
+      items = items.DayPlannings || items.DayPlannings || items.DayPlannings || [];
     }
 
     // ✅ rebuild indexes every load
-    window.dayTasksByTask = Object.create(null);
-    window.requestJobTaskSet = Object.create(null); // task IDs that have ≥1 Request daytask
+    window.DayPlanningsByTask = Object.create(null);
+    window.requestJobTaskSet = Object.create(null); // task IDs that have ≥1 Request DayPlanning
 
     // Key = jobNo + "|" + jobTaskNo  →  matches gantt task.id exactly (pipe separator)
-    // (AL daytask.task field uses dash; gantt task.id uses pipe — must use jobNo/jobTaskNo fields)
+    // (AL DayPlanning.task field uses dash; gantt task.id uses pipe — must use jobNo/jobTaskNo fields)
     for (var i = 0; i < items.length; i++) {
       var x = items[i];
       var jNo  = x.jobNo  || "";
@@ -2072,10 +2072,10 @@ function LoadDayTasksData(dayTasksJsonTxt) {
       if (!jNo && !jtNo) continue;
       var taskId = jNo + "|" + jtNo;
 
-      if (!window.dayTasksByTask[taskId]) {
-        window.dayTasksByTask[taskId] = [];
+      if (!window.DayPlanningsByTask[taskId]) {
+        window.DayPlanningsByTask[taskId] = [];
       }
-      window.dayTasksByTask[taskId].push(x);
+      window.DayPlanningsByTask[taskId].push(x);
 
       if (x.plan_status === "Request") {
         window.requestJobTaskSet[taskId] = true;
@@ -2083,10 +2083,10 @@ function LoadDayTasksData(dayTasksJsonTxt) {
     }
 
     // Replace all
-    if (dayTasksStore.clearAll) dayTasksStore.clearAll();
-    dayTasksStore.parse(items);
+    if (DayPlanningsStore.clearAll) DayPlanningsStore.clearAll();
+    DayPlanningsStore.parse(items);
 
-    // addTaskLayer will now find the correct daytasks via task.id and render black bars
+    // addTaskLayer will now find the correct DayPlannings via task.id and render black bars
     if (gantt.$root && !_isRefreshing) {
       if (resourcesStore) {
         gantt.render(); // full render including resource panel
@@ -2095,15 +2095,15 @@ function LoadDayTasksData(dayTasksJsonTxt) {
       }
     }
   } catch (e) {
-    console.error("LoadDayTasksData failed:", e);
+    console.error("LoadDayPlanningsData failed:", e);
   }
 }
-window.LoadDayTasksData = LoadDayTasksData;
+window.LoadDayPlanningsData = LoadDayPlanningsData;
 
 
-function UpsertDayTask(dayTaskJsonTxt, upsertIfMissing = true) {
+function UpsertDayPlanning(DayPlanningJsonTxt, upsertIfMissing = true) {
   try {
-    var patch = _tryParseJson(dayTaskJsonTxt);
+    var patch = _tryParseJson(DayPlanningJsonTxt);
     if (!patch) return;
 
     var id = patch.id || patch.Id || patch.key || null;
@@ -2119,50 +2119,50 @@ function UpsertDayTask(dayTaskJsonTxt, upsertIfMissing = true) {
       patch.id = id;
     }
 
-    var exists = !!dayTasksStore.getItem(id);
+    var exists = !!DayPlanningsStore.getItem(id);
     if (!exists) {
       if (!upsertIfMissing) return;
-      dayTasksStore.addItem(patch);
+      DayPlanningsStore.addItem(patch);
     } else {
-      var current = dayTasksStore.getItem(id);
+      var current = DayPlanningsStore.getItem(id);
       for (var k in patch) {
         if (!Object.prototype.hasOwnProperty.call(patch, k)) continue;
         current[k] = patch[k];
       }
-      dayTasksStore.updateItem(id, current);
+      DayPlanningsStore.updateItem(id, current);
     }
 
     resourcesStore.refresh();
     gantt.render();
   } catch (e) {
-    console.error("UpsertDayTask failed:", e, dayTaskJsonTxt);
+    console.error("UpsertDayPlanning failed:", e, DayPlanningJsonTxt);
   }
 }
-window.UpsertDayTask = UpsertDayTask;
+window.UpsertDayPlanning = UpsertDayPlanning;
 
-function DeleteDayTask(dayTaskId) {
+function DeleteDayPlanning(DayPlanningId) {
   try {
-    if (!dayTaskId) return;
-    var id = String(dayTaskId);
-    if (dayTasksStore.getItem(id)) {
-      dayTasksStore.deleteItem(id);
+    if (!DayPlanningId) return;
+    var id = String(DayPlanningId);
+    if (DayPlanningsStore.getItem(id)) {
+      DayPlanningsStore.deleteItem(id);
       resourcesStore.refresh();
       gantt.render();
     }
   } catch (e) {
-    console.error("DeleteDayTask failed:", e, dayTaskId);
+    console.error("DeleteDayPlanning failed:", e, DayPlanningId);
   }
 }
-window.DeleteDayTask = DeleteDayTask;
+window.DeleteDayPlanning = DeleteDayPlanning;
 
 
-// function InstallDayTaskLayer() {
-//   if (window._dayTaskLayerInstalled) return;
-//   window._dayTaskLayerInstalled = true;
+// function InstallDayPlanningLayer() {
+//   if (window._DayPlanningLayerInstalled) return;
+//   window._DayPlanningLayerInstalled = true;
 
 //   gantt.addTaskLayer(function (task) {
-//     const lines = (window.dayTasksByTask && window.dayTasksByTask[task.id]) || null;
-//     console.log("Layer:", task.id, "daytasks:", lines?.length || 0);
+//     const lines = (window.DayPlanningsByTask && window.DayPlanningsByTask[task.id]) || null;
+//     console.log("Layer:", task.id, "DayPlannings:", lines?.length || 0);
 
 //     if (!lines || !lines.length) return false;
 
@@ -2185,10 +2185,10 @@ window.DeleteDayTask = DeleteDayTask;
 //       stackSlot[key] = slot + 1;
 
 //       const el = document.createElement("div");
-//       el.className = "daytask-line";
+//       el.className = "DayPlanning-line";
 //        // ✅ ADD THESE 2 (and keep task.id as the key)
 //       el.setAttribute("data-task-id", task.id);
-//       el.setAttribute("data-daytask-id", l.id);
+//       el.setAttribute("data-DayPlanning-id", l.id);
       
 //       el.style.left = (pos.left + 1) + "px";
 //       el.style.width = Math.max(4, pos.width - 2) + "px";
@@ -2204,20 +2204,20 @@ window.DeleteDayTask = DeleteDayTask;
 //   });
 // }
 
-function highlightDayTask(el) {
+function highlightDayPlanning(el) {
   document
-    .querySelectorAll(".daytask-line.selected")
+    .querySelectorAll(".DayPlanning-line.selected")
     .forEach(x => x.classList.remove("selected"));
 
   el.classList.add("selected");
 }
 
 function _ensureCustomTooltip() {
-  let el = document.getElementById("bc_daytask_tooltip");
+  let el = document.getElementById("bc_DayPlanning_tooltip");
   if (el) return el;
 
   el = document.createElement("div");
-  el.id = "bc_daytask_tooltip";
+  el.id = "bc_DayPlanning_tooltip";
   el.style.position = "fixed";
   el.style.zIndex = "999999";
   el.style.display = "none";
@@ -2264,7 +2264,7 @@ function _showCustomTooltip(e, html) {
 }
 
 function _hideCustomTooltip() {
-  const tip = document.getElementById("bc_daytask_tooltip");
+  const tip = document.getElementById("bc_DayPlanning_tooltip");
   if (tip) tip.style.display = "none";
 }
 

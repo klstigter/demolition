@@ -1,8 +1,8 @@
-page 50660 "Daytask Journal"
+page 50660 "DayPlanning Journal"
 {
-    Caption = 'Daytask Posting';
+    Caption = 'DayPlanning Posting';
     PageType = Worksheet;
-    SourceTable = "Daytask Journal Line";
+    SourceTable = "DayPlanning Journal Line";
     UsageCategory = Tasks;
     ApplicationArea = Jobs;
     AutoSplitKey = false;
@@ -21,7 +21,7 @@ page 50660 "Daytask Journal"
                     ApplicationArea = Jobs;
                     Caption = 'Template Name';
                     Lookup = true;
-                    ToolTip = 'Specifies the name of the journal template used for the Daytask posting batch.';
+                    ToolTip = 'Specifies the name of the journal template used for the DayPlanning posting batch.';
 
                     trigger OnLookup(var Text: Text): Boolean
                     var
@@ -46,7 +46,7 @@ page 50660 "Daytask Journal"
                     ApplicationArea = Jobs;
                     Caption = 'Batch Name';
                     Lookup = true;
-                    ToolTip = 'Specifies the name of the journal batch used for Daytask posting. The batch defines the no. series for document numbers.';
+                    ToolTip = 'Specifies the name of the journal batch used for DayPlanning posting. The batch defines the no. series for document numbers.';
 
                     trigger OnLookup(var Text: Text): Boolean
                     var
@@ -70,16 +70,16 @@ page 50660 "Daytask Journal"
 
             repeater(Lines)
             {
-                field("Daytask Date"; Rec."Daytask Date")
+                field("DayPlanning Date"; Rec."DayPlanning Date")
                 {
                     ApplicationArea = Jobs;
-                    ToolTip = 'Specifies the date of the Day Task.';
+                    ToolTip = 'Specifies the date of the Day planning.';
                     Editable = false;
                 }
-                field("Daytask Line No."; Rec."Daytask Line No.")
+                field("DayPlanning Line No."; Rec."DayPlanning Line No.")
                 {
                     ApplicationArea = Jobs;
-                    ToolTip = 'Specifies the line number of the Day Task.';
+                    ToolTip = 'Specifies the line number of the Day planning.';
                     Editable = false;
                 }
                 field("Document No."; Rec."Document No.")
@@ -90,22 +90,22 @@ page 50660 "Daytask Journal"
                 field("Job No."; Rec."Job No.")
                 {
                     ApplicationArea = Jobs;
-                    ToolTip = 'Specifies the project number from the Day Task.';
+                    ToolTip = 'Specifies the project number from the Day Planning.';
                 }
                 field("Job Task No."; Rec."Job Task No.")
                 {
                     ApplicationArea = Jobs;
-                    ToolTip = 'Specifies the project task number from the Day Task.';
+                    ToolTip = 'Specifies the project task number from the Day Planning.';
                 }
                 field("Resource No."; Rec."Resource No.")
                 {
                     ApplicationArea = Jobs;
-                    ToolTip = 'Specifies the resource number assigned to this Day Task.';
+                    ToolTip = 'Specifies the resource number assigned to this Day Planning.';
                 }
                 field(Hours; Rec."Hours")
                 {
                     ApplicationArea = Jobs;
-                    ToolTip = 'Specifies the number of assigned hours to post for this Day Task.';
+                    ToolTip = 'Specifies the number of assigned hours to post for this Day Planning.';
                 }
                 field("Global Dimension 1 Code"; Rec."Global Dimension 1 Code")
                 {
@@ -141,23 +141,23 @@ page 50660 "Daytask Journal"
     {
         area(Processing)
         {
-            action(GetDaytask)
+            action(GetDayPlanning)
             {
                 ApplicationArea = Jobs;
-                Caption = 'Get Daytask';
+                Caption = 'Get DayPlanning';
                 Image = SelectEntries;
                 Promoted = true;
                 PromotedCategory = Process;
                 PromotedIsBig = true;
-                ToolTip = 'Retrieve unposted Day Tasks and insert them as journal lines. Filters available for date, project, project task and resource.';
+                ToolTip = 'Retrieve unposted Day Plannings and insert them as journal lines. Filters available for date, project, project task and resource.';
 
                 trigger OnAction()
                 var
-                    DaytaskSelectionRep: Report "Daytask Selection";
+                    DayPlanningSelectionRep: Report "DayPlanning Selection";
                 begin
                     CheckTemplateAndBatch();
-                    DaytaskSelectionRep.SetJournalBatch(CurrentTemplateName, CurrentBatchName);
-                    DaytaskSelectionRep.RunModal();
+                    DayPlanningSelectionRep.SetJournalBatch(CurrentTemplateName, CurrentBatchName);
+                    DayPlanningSelectionRep.RunModal();
                     CurrPage.Update(false);
                 end;
             }
@@ -169,14 +169,14 @@ page 50660 "Daytask Journal"
                 Promoted = true;
                 PromotedCategory = Process;
                 PromotedIsBig = true;
-                ToolTip = 'Review the result of posting the Daytask journal lines before the actual posting is done.';
+                ToolTip = 'Review the result of posting the DayPlanning journal lines before the actual posting is done.';
 
                 trigger OnAction()
                 var
-                    DaytaskJnlPost: Codeunit "Daytask Journal Post";
+                    DayPlanningJnlPost: Codeunit "DayPlanning Journal Post";
                 begin
                     CheckTemplateAndBatch();
-                    DaytaskJnlPost.PreviewPost(CurrentTemplateName, CurrentBatchName);
+                    DayPlanningJnlPost.PreviewPost(CurrentTemplateName, CurrentBatchName);
                 end;
             }
             action(Post)
@@ -188,17 +188,17 @@ page 50660 "Daytask Journal"
                 PromotedCategory = Process;
                 PromotedIsBig = true;
                 ShortCutKey = 'F9';
-                ToolTip = 'Transfer the Daytask journal lines to project journal lines and post them. Day Tasks are marked as Posted after successful completion.';
+                ToolTip = 'Transfer the DayPlanning journal lines to project journal lines and post them. Day Plannings are marked as Posted after successful completion.';
 
                 trigger OnAction()
                 var
-                    DaytaskJnlPost: Codeunit "Daytask Journal Post";
-                    ConfirmMsg: Label 'Do you want to post the Daytask journal lines?';
+                    DayPlanningJnlPost: Codeunit "DayPlanning Journal Post";
+                    ConfirmMsg: Label 'Do you want to post the DayPlanning journal lines?';
                 begin
                     CheckTemplateAndBatch();
                     if not Confirm(ConfirmMsg, false) then
                         exit;
-                    DaytaskJnlPost.Post(CurrentTemplateName, CurrentBatchName);
+                    DayPlanningJnlPost.Post(CurrentTemplateName, CurrentBatchName);
                     CurrPage.Update(false);
                 end;
             }

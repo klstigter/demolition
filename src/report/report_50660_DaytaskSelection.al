@@ -1,21 +1,21 @@
-report 50660 "Daytask Selection"
+report 50660 "DayPlanning Selection"
 {
-    Caption = 'Daytask Selection';
+    Caption = 'DayPlanning Selection';
     ProcessingOnly = true;
     UsageCategory = None;
     ApplicationArea = Jobs;
 
     dataset
     {
-        dataitem(DayTask; "Day Tasks")
+        dataitem(DayPlanning; "Day Planning")
         {
             RequestFilterFields = "Task Date", "Job No.", "Job Task No.", "Assigned Resource No.";
             DataItemTableView = where(Posted = const(false));
 
             trigger OnPreDataItem()
             begin
-                DayTask.SetFilter("Assigned Resource No.", '<>%1', '');
-                DayTask.SetFilter("Assigned Hours", '<>0');
+                DayPlanning.SetFilter("Assigned Resource No.", '<>%1', '');
+                DayPlanning.SetFilter("Assigned Hours", '<>0');
                 if TemplateName = '' then
                     Error(TemplateNameMissingErr);
                 if BatchName = '' then
@@ -24,24 +24,24 @@ report 50660 "Daytask Selection"
 
             trigger OnAfterGetRecord()
             var
-                DaytaskJnlLine: Record "Daytask Journal Line";
+                DayPlanningJnlLine: Record "DayPlanning Journal Line";
             begin
-                // Skip if this Day Task is already in the journal
-                if DaytaskJnlLine.Get(TemplateName, BatchName, DayTask."Task Date", DayTask."Day Line No.") then
+                // Skip if this Day Planning is already in the journal
+                if DayPlanningJnlLine.Get(TemplateName, BatchName, DayPlanning."Task Date", DayPlanning."Day Line No.") then
                     CurrReport.Skip();
 
-                DaytaskJnlLine.Init();
-                DaytaskJnlLine."Template Name" := TemplateName;
-                DaytaskJnlLine."Batch Name" := BatchName;
-                DaytaskJnlLine."Daytask Date" := DayTask."Task Date";
-                DaytaskJnlLine."Daytask Line No." := DayTask."Day Line No.";
-                DaytaskJnlLine."Document No." := GetDocumentNo(DayTask."Task Date");
-                DaytaskJnlLine."Job No." := DayTask."Job No.";
-                DaytaskJnlLine."Job Task No." := DayTask."Job Task No.";
-                DaytaskJnlLine."Resource No." := DayTask."Assigned Resource No.";
-                DaytaskJnlLine."Hours" := DayTask."Assigned Hours";
-                FillDimensions(DaytaskJnlLine, DayTask);
-                DaytaskJnlLine.Insert(true);
+                DayPlanningJnlLine.Init();
+                DayPlanningJnlLine."Template Name" := TemplateName;
+                DayPlanningJnlLine."Batch Name" := BatchName;
+                DayPlanningJnlLine."DayPlanning Date" := DayPlanning."Task Date";
+                DayPlanningJnlLine."DayPlanning Line No." := DayPlanning."Day Line No.";
+                DayPlanningJnlLine."Document No." := GetDocumentNo(DayPlanning."Task Date");
+                DayPlanningJnlLine."Job No." := DayPlanning."Job No.";
+                DayPlanningJnlLine."Job Task No." := DayPlanning."Job Task No.";
+                DayPlanningJnlLine."Resource No." := DayPlanning."Assigned Resource No.";
+                DayPlanningJnlLine."Hours" := DayPlanning."Assigned Hours";
+                FillDimensions(DayPlanningJnlLine, DayPlanning);
+                DayPlanningJnlLine.Insert(true);
                 LinesInserted += 1;
             end;
 
@@ -57,9 +57,9 @@ report 50660 "Daytask Selection"
         BatchName: Code[10];
         DocNo: Code[20];
         LinesInserted: Integer;
-        TemplateNameMissingErr: Label 'Template Name must be specified before running Daytask Selection.';
-        BatchNameMissingErr: Label 'Batch Name must be specified before running Daytask Selection.';
-        LinesInsertedMsg: Label '%1 Daytask line(s) inserted into the journal.', Comment = '%1 = number of lines inserted';
+        TemplateNameMissingErr: Label 'Template Name must be specified before running DayPlanning Selection.';
+        BatchNameMissingErr: Label 'Batch Name must be specified before running DayPlanning Selection.';
+        LinesInsertedMsg: Label '%1 DayPlanning line(s) inserted into the journal.', Comment = '%1 = number of lines inserted';
 
     procedure SetJournalBatch(JnlTemplateName: Code[10]; JnlBatchName: Code[10])
     begin
@@ -86,20 +86,20 @@ report 50660 "Daytask Selection"
         exit(DocNo);
     end;
 
-    local procedure FillDimensions(var DaytaskJnlLine: Record "Daytask Journal Line"; DayTask: Record "Day Tasks")
+    local procedure FillDimensions(var DayPlanningJnlLine: Record "DayPlanning Journal Line"; DayPlanning: Record "Day Planning")
     var
         DimMgt: Codeunit DimensionManagement;
         DefaultDimSource: List of [Dictionary of [Integer, Code[20]]];
         Dim1Code: Code[20];
         Dim2Code: Code[20];
     begin
-        DimMgt.AddDimSource(DefaultDimSource, Database::Job, DayTask."Job No.");
-        DimMgt.AddDimSource(DefaultDimSource, Database::"Job Task", DayTask."Job Task No.");
-        if DayTask."Assigned Resource No." <> '' then
-            DimMgt.AddDimSource(DefaultDimSource, Database::Resource, DayTask."Assigned Resource No.");
-        DaytaskJnlLine."Dimension Set ID" :=
+        DimMgt.AddDimSource(DefaultDimSource, Database::Job, DayPlanning."Job No.");
+        DimMgt.AddDimSource(DefaultDimSource, Database::"Job Task", DayPlanning."Job Task No.");
+        if DayPlanning."Assigned Resource No." <> '' then
+            DimMgt.AddDimSource(DefaultDimSource, Database::Resource, DayPlanning."Assigned Resource No.");
+        DayPlanningJnlLine."Dimension Set ID" :=
             DimMgt.GetDefaultDimID(DefaultDimSource, '', Dim1Code, Dim2Code, 0, 0);
-        DaytaskJnlLine."Global Dimension 1 Code" := Dim1Code;
-        DaytaskJnlLine."Global Dimension 2 Code" := Dim2Code;
+        DayPlanningJnlLine."Global Dimension 1 Code" := Dim1Code;
+        DayPlanningJnlLine."Global Dimension 2 Code" := Dim2Code;
     end;
 }

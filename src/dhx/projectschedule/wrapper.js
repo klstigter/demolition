@@ -71,12 +71,12 @@ window.BOOT = function() {
 
     /* Event styling per type */
 
-    /* Daytask_0 events */
-    .dhx_cal_event.event-daytask_0,
-    .dhx_cal_event_line.event-daytask_0,
-    .dhx_event_line.event-daytask_0,
-    .dhx_cal_event.event-daytask_0 .dhx_title,
-    .dhx_cal_event.event-daytask_0 .dhx_body {
+    /* DayPlanning_0 events */
+    .dhx_cal_event.event-DayPlanning_0,
+    .dhx_cal_event_line.event-DayPlanning_0,
+    .dhx_event_line.event-DayPlanning_0,
+    .dhx_cal_event.event-DayPlanning_0 .dhx_title,
+    .dhx_cal_event.event-DayPlanning_0 .dhx_body {
         color: white !important;
         font-size: 14px !important;
         /*
@@ -85,12 +85,12 @@ window.BOOT = function() {
         */
     }
 
-    /* Daytask_1 events */
-    .dhx_cal_event.event-daytask_1,
-    .dhx_cal_event_line.event-daytask_1,
-    .dhx_event_line.event-daytask_1,
-    .dhx_cal_event.event-daytask_1 .dhx_title,
-    .dhx_cal_event.event-daytask_1 .dhx_body {
+    /* DayPlanning_1 events */
+    .dhx_cal_event.event-DayPlanning_1,
+    .dhx_cal_event_line.event-DayPlanning_1,
+    .dhx_event_line.event-DayPlanning_1,
+    .dhx_cal_event.event-DayPlanning_1 .dhx_title,
+    .dhx_cal_event.event-DayPlanning_1 .dhx_body {
         color: black !important;
         font-size: 14px !important;
         /*
@@ -175,10 +175,10 @@ window.BOOT = function() {
     // Apply CSS class based on event type
     scheduler.templates.event_class = function(start, end, ev) {
         var typeClass = "";
-        if (ev.type === "daytask_0") {
-            typeClass = "event-daytask_0";
-        } else if (ev.type === "daytask_1") {
-            typeClass = "event-daytask_1";
+        if (ev.type === "DayPlanning_0") {
+            typeClass = "event-DayPlanning_0";
+        } else if (ev.type === "DayPlanning_1") {
+            typeClass = "event-DayPlanning_1";
         }
         return typeClass;
     };
@@ -208,11 +208,11 @@ window.BOOT = function() {
             }
         }
         
-        var html = "<b>Daytask:</b> " + (ev.text || "") + "<br/>" +
+        var html = "<b>DayPlanning:</b> " + (ev.text || "") + "<br/>" +
                    "<b>Date:</b> " + formatDateOnly(start) + "<br/>" +
                    "<b>Start Time:</b> " + formatTimeOnly(start) + "<br/>" +
                    "<b>End Time:</b> " + formatTimeOnly(end) + "<br/>" +
-                   "<b>Daytask detail:</b><br/>" +
+                   "<b>DayPlanning detail:</b><br/>" +
                    "-----------------------------------<br/>" +
                    "<b>Day No:</b> " + dayNo + "<br/>" +
                    "<b>Daylineno:</b> " + dayLineNo + "<br/>" +
@@ -914,10 +914,10 @@ function setupContextMenu() {
         '<div class="dhx-ctx-separator"></div>' +
         '<div class="dhx-ctx-item" data-action="OpenTask">' +
             '<span class="dhx-ctx-icon">&#128196;</span>Open Task</div>' +
-        '<div class="dhx-ctx-item" data-action="OpenDayTask">' +
-            '<span class="dhx-ctx-icon">&#128197;</span>Open DayTask</div>' +
-        '<div class="dhx-ctx-item" data-action="OpenDayTaskVisual">' +
-            '<span class="dhx-ctx-icon">&#128248;</span>Open DayTask Visual</div>' +
+        '<div class="dhx-ctx-item" data-action="OpenDayPlanning">' +
+            '<span class="dhx-ctx-icon">&#128197;</span>Open DayPlanning</div>' +
+        '<div class="dhx-ctx-item" data-action="OpenDayPlanningVisual">' +
+            '<span class="dhx-ctx-icon">&#128248;</span>Open DayPlanning Visual</div>' +
         '<div class="dhx-ctx-separator"></div>' +
         '<div class="dhx-ctx-item" data-action="ShowMessage1">' +
             '<span class="dhx-ctx-icon">&#128172;</span>Show message 1</div>' +
@@ -935,10 +935,10 @@ function setupContextMenu() {
         // Show/hide ShowJobResources only when clicking an event
         menu.querySelector('[data-action="ShowJobResources"]').style.display =
             (target.type === 'event') ? '' : 'none';
-        // Show DayTask actions only for events
-        menu.querySelector('[data-action="OpenDayTask"]').style.display =
+        // Show DayPlanning actions only for events
+        menu.querySelector('[data-action="OpenDayPlanning"]').style.display =
             (target.type === 'event') ? '' : 'none';
-        menu.querySelector('[data-action="OpenDayTaskVisual"]').style.display =
+        menu.querySelector('[data-action="OpenDayPlanningVisual"]').style.display =
             (target.type === 'event') ? '' : 'none';
 
         menu.className = '';

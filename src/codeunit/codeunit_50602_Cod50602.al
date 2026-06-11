@@ -9,7 +9,7 @@ codeunit 50602 "Create Demo Data"
         CreateJobTask();
         CreateJobTaskLinks();
         CheckResources();
-        CreateCapacityAndDayTask();
+        CreateCapacityAndDayPlanning();
     end;
 
     var
@@ -388,16 +388,16 @@ codeunit 50602 "Create Demo Data"
         until Resource.Next() = 0;
     end;
 
-    local procedure CreateCapacityAndDayTask()
+    local procedure CreateCapacityAndDayPlanning()
     var
         ReCap: Record "Res. Capacity Entry";
-        DayTask: Record "Day Tasks";
+        DayPlanning: Record "Day Planning";
         ResNo: Code[20];
         JobNo: Code[20];
         StarDate: Date;
         EndDate: Date;
         n: Integer;
-        confirmLbl: Label 'Do you want delete all existing Capacity and Day Task entries in period %1 to %2?';
+        confirmLbl: Label 'Do you want delete all existing Capacity and Day Planning entries in period %1 to %2?';
     begin
         // Load work-hour template once — used to skip non-working days
         gWorkHoursTemplate.Get('BASIS');
@@ -408,9 +408,9 @@ codeunit 50602 "Create Demo Data"
             ReCap.SetRange(Date, StarDate, EndDate);
             if ReCap.FindSet() then
                 ReCap.DeleteAll();
-            DayTask.SetRange("Task Date", StarDate, EndDate);
-            if DayTask.FindSet() then
-                DayTask.DeleteAll();
+            DayPlanning.SetRange("Task Date", StarDate, EndDate);
+            if DayPlanning.FindSet() then
+                DayPlanning.DeleteAll();
         end;
 
         for n := 1 to 2 do begin
@@ -427,11 +427,11 @@ codeunit 50602 "Create Demo Data"
                     end;
             end;
             CreateResourceCapacity(ResNo, StarDate, EndDate);
-            CreateResourceDayTask(JobNo, ResNo, StarDate, EndDate);
+            CreateResourceDayPlanning(JobNo, ResNo, StarDate, EndDate);
         end;
     end;
 
-    local procedure CreateResourceDayTask(JobNo: Code[20]; ResNo: Code[20]; StartDate: Date; EndDate: Date)
+    local procedure CreateResourceDayPlanning(JobNo: Code[20]; ResNo: Code[20]; StartDate: Date; EndDate: Date)
     var
         JobTask: Record "Job Task";
         TaskStart: Date;
@@ -441,7 +441,7 @@ codeunit 50602 "Create Demo Data"
         JobTask.SetRange("Job Task Type", JobTask."Job Task Type"::Posting);
         if JobTask.FindSet() then
             repeat
-                // Use each job task's own planned dates so day tasks don't stack on the same day
+                // Use each job task's own planned dates so day planning don't stack on the same day
                 TaskStart := JobTask."PlannedStartDate";
                 TaskEnd := JobTask."PlannedEndDate";
                 if TaskStart = 0D then TaskStart := StartDate;
@@ -449,14 +449,14 @@ codeunit 50602 "Create Demo Data"
                 if TaskStart < StartDate then TaskStart := StartDate;
                 if TaskEnd > EndDate then TaskEnd := EndDate;
                 if TaskEnd >= TaskStart then
-                    CreateDayTask(JobTask."Job No.", JobTask."Job Task No.", ResNo, TaskStart, TaskEnd);
+                    CreateDayPlanning(JobTask."Job No.", JobTask."Job Task No.", ResNo, TaskStart, TaskEnd);
             until JobTask.Next() = 0;
     end;
 
-    local procedure CreateDayTask(JobNo: Code[20]; TaskNo: Code[20]; ResNo: Code[20]; StartDate: Date; EndDate: Date)
+    local procedure CreateDayPlanning(JobNo: Code[20]; TaskNo: Code[20]; ResNo: Code[20]; StartDate: Date; EndDate: Date)
     var
-        DayTask: Record "Day Tasks";
-        ExistingDayTask: Record "Day Tasks";
+        DayPlanning: Record "Day Planning";
+        ExistingDayPlanning: Record "Day Planning";
         DT: Date;
     begin
         // PK is now (Job No., Job Task No., Day Line No.) — Task Date is NOT in PK.
@@ -465,33 +465,33 @@ codeunit 50602 "Create Demo Data"
             // Skip non-working days according to BASIS work-hour template
             if not IsWorkingDay(DT) then
                 continue;
-            ExistingDayTask.Reset();
-            ExistingDayTask.SetRange("Job No.", JobNo);
-            ExistingDayTask.SetRange("Job Task No.", TaskNo);
-            ExistingDayTask.SetRange("Task Date", DT);
-            if not ExistingDayTask.FindFirst() then begin
-                DayTask.Init();
-                DayTask."Job No." := JobNo;
-                DayTask."Job Task No." := TaskNo;
-                DayTask."Task Date" := DT;
-                DayTask."Day Line No." := DayTask.GetNextDayLineNo(DT, JobNo, TaskNo);
-                DayTask.Validate("Assigned Resource No.", ResNo);
-                DayTask."Start Time Assigned" := 080000T;
-                DayTask.Description := 'Work on ' + JobNo + '-' + TaskNo;
-                DayTask.Validate("End Time Assigned", 140000T);
-                DayTask."Assigned Hours" := (DayTask."End Time Assigned" - DayTask."Start Time Assigned") / 3600000;
-                DayTask.Insert(true);
+            ExistingDayPlanning.Reset();
+            ExistingDayPlanning.SetRange("Job No.", JobNo);
+            ExistingDayPlanning.SetRange("Job Task No.", TaskNo);
+            ExistingDayPlanning.SetRange("Task Date", DT);
+            if not ExistingDayPlanning.FindFirst() then begin
+                DayPlanning.Init();
+                DayPlanning."Job No." := JobNo;
+                DayPlanning."Job Task No." := TaskNo;
+                DayPlanning."Task Date" := DT;
+                DayPlanning."Day Line No." := DayPlanning.GetNextDayLineNo(DT, JobNo, TaskNo);
+                DayPlanning.Validate("Assigned Resource No.", ResNo);
+                DayPlanning."Start Time Assigned" := 080000T;
+                DayPlanning.Description := 'Work on ' + JobNo + '-' + TaskNo;
+                DayPlanning.Validate("End Time Assigned", 140000T);
+                DayPlanning."Assigned Hours" := (DayPlanning."End Time Assigned" - DayPlanning."Start Time Assigned") / 3600000;
+                DayPlanning.Insert(true);
             end else begin
-                if ExistingDayTask."Assigned Resource No." = '' then
-                    ExistingDayTask.Validate("Assigned Resource No.", ResNo);
-                if ExistingDayTask.Description = '' then
-                    ExistingDayTask.Description := 'Work on ' + JobNo + '-' + TaskNo;
-                if (ExistingDayTask."Start Time Assigned" = 0T) or (ExistingDayTask."End Time Assigned" = 0T) then begin
-                    ExistingDayTask."Start Time Assigned" := 080000T;
-                    ExistingDayTask.Validate("End Time Assigned", 140000T);
+                if ExistingDayPlanning."Assigned Resource No." = '' then
+                    ExistingDayPlanning.Validate("Assigned Resource No.", ResNo);
+                if ExistingDayPlanning.Description = '' then
+                    ExistingDayPlanning.Description := 'Work on ' + JobNo + '-' + TaskNo;
+                if (ExistingDayPlanning."Start Time Assigned" = 0T) or (ExistingDayPlanning."End Time Assigned" = 0T) then begin
+                    ExistingDayPlanning."Start Time Assigned" := 080000T;
+                    ExistingDayPlanning.Validate("End Time Assigned", 140000T);
                 end;
-                ExistingDayTask."Assigned Hours" := (ExistingDayTask."End Time Assigned" - ExistingDayTask."Start Time Assigned") / 3600000;
-                ExistingDayTask.Modify();
+                ExistingDayPlanning."Assigned Hours" := (ExistingDayPlanning."End Time Assigned" - ExistingDayPlanning."Start Time Assigned") / 3600000;
+                ExistingDayPlanning.Modify();
             end;
         end;
     end;

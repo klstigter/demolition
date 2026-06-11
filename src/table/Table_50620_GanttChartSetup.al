@@ -68,10 +68,10 @@ table 50620 "Gantt Chart Setup"
             Caption = 'Load Resources';
             ToolTip = 'Specifies whether to load resources assigned to job tasks.';
         }
-        field(33; "Load Day Tasks"; Boolean)
+        field(33; "Load Day Plannings"; Boolean)
         {
-            Caption = 'Load Day Tasks';
-            ToolTip = 'Specifies whether to load day tasks for job tasks.';
+            Caption = 'Load Day Plannings';
+            ToolTip = 'Specifies whether to load day plannings for job tasks.';
         }
         field(50; "Download Data for Inspection"; Boolean)
         {

@@ -86,11 +86,11 @@ report 50601 "Job Task Planned Date Updater"
 
     trigger OnPostReport()
     var
-        DayTaskPeriodSyncMgt: Codeunit "DayTask Period Sync Mgt.";
+        DayPlanningPeriodSyncMgt: Codeunit "DayPlanning Period Sync Mgt.";
     begin
         // popup page editor:
         if (ProjectTask.PlannedStartDate <> PlannedStartDate) or (ProjectTask.PlannedEndDate <> PlannedEndDate) then
-            if DayTaskPeriodSyncMgt.ShowPreview(ProjectTask,
+            if DayPlanningPeriodSyncMgt.ShowPreview(ProjectTask,
                                                 ProjectTask."Job No.",
                                                 ProjectTask."Job Task No.",
                                                 ProjectTask.PlannedStartDate,

@@ -21,10 +21,10 @@ pageextension 50606 "ResourceCapacityMatrix opt" extends "Resource Capacity Matr
                 RunPageLink = "No." = field("No.");
                 ToolTip = 'Change the capacity of the resource, such as a technician.';
             }
-            action("Day Tasks (Visual)")
+            action("Day Plannings (Visual)")
             {
                 ApplicationArea = Jobs;
-                Caption = 'Day Tasks (Visual)';
+                Caption = 'Day Plannings (Visual)';
 
                 trigger OnAction()
                 var

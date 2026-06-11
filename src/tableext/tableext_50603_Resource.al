@@ -29,12 +29,12 @@ tableextension 50603 "Resource Opt" extends Resource
                 end;
             end;
         }
-        field(50601; "Day Tasks"; Decimal)
+        field(50601; "Day Plannings"; Decimal)
         {
 
             Editable = false;
             FieldClass = FlowField;
-            CalcFormula = sum("Day Tasks"."Assigned Hours" where("Assigned Resource No." = field("No."),
+            CalcFormula = sum("Day Planning"."Assigned Hours" where("Assigned Resource No." = field("No."),
               "Task Date" = field("Date Filter")));
         }
         field(50602; "Skills"; integer)
@@ -51,7 +51,7 @@ tableextension 50603 "Resource Opt" extends Resource
         }
         field(50610; "Assigned Hours"; Decimal)
         {
-            CalcFormula = sum("Day Tasks"."Assigned Hours" where("Assigned Resource No." = field("No."),
+            CalcFormula = sum("Day Planning"."Assigned Hours" where("Assigned Resource No." = field("No."),
                                                                     "Task Date" = field("Date Filter")));
             Caption = 'Capacity';
             DecimalPlaces = 0 : 5;

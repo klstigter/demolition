@@ -2,7 +2,7 @@ page 50601 "Opti Resource List"
 {
     AdditionalSearchTerms = 'Workforce List, Mechanism List, Device List';
     ApplicationArea = Jobs;
-    Caption = 'Resources with Day Tasks';
+    Caption = 'Resources with Day Plannings';
     CardPageID = "Resource Card";
     PageType = List;
     QueryCategory = 'Resource List';
@@ -26,7 +26,7 @@ page 50601 "Opti Resource List"
                 {
                     ApplicationArea = Jobs;
                     Caption = 'Date Filter';
-                    ToolTip = 'The date to filter the resources that have day tasks on the specified date.';
+                    ToolTip = 'The date to filter the resources that have day plannings on the specified date.';
                 }
                 field(Filters; RecFilters)
                 {
@@ -126,10 +126,10 @@ page 50601 "Opti Resource List"
 
 
                     }
-                    field("Day Tasks"; Rec."Assigned Hours")
+                    field("Day Plannings"; Rec."Assigned Hours")
                     {
                         ApplicationArea = Jobs;
-                        Caption = 'Day Tasks';
+                        Caption = 'Day Plannings';
 
 
                     }

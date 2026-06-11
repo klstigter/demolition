@@ -5,7 +5,7 @@ codeunit 60008 "DSTS Scenario S01"
     begin
         BuildBaseTree(Engine, Nodes);
 
-        // 1) Parents must normalize to cover DayTasks
+        // 1) Parents must normalize to cover DayPlannings
         Engine.RecalculateAll(Nodes);
         //test record        AssertNodeRange(Nodes, 'JOB1', DMY2Date(10, 1, 2026), DMY2Date(22, 1, 2026), 'After recalculation, JOB should span DT footprint');
 
@@ -18,10 +18,10 @@ codeunit 60008 "DSTS Scenario S01"
     begin
         Char13 := 13;
         Char10 := 10;
-        str := 'Scenario S01: record JOB 1 with one Task, one Planning Line and two DayTasks underneath.' +
-          Char13 + Char10 + 'Top-down unlocked structure with DayTasks as truth. Tests that widening/shrinking works as expected.' +
+        str := 'Scenario S01: record JOB 1 with one Task, one Planning Line and two DayPlannings underneath.' +
+          Char13 + Char10 + 'Top-down unlocked structure with DayPlannings as truth. Tests that widening/shrinking works as expected.' +
         ' 1- Widening top level is allowed. Startdate from 10-1-2026 to 1-1-2026 ' +
-        ' 2- Shrinking top level that would exclude existing DayTasks is blocked.';
+        ' 2- Shrinking top level that would exclude existing DayPlannings is blocked.';
     end;
 
     procedure Execute(var Engine: Codeunit "Date Span Engine"; var Nodes: Record "Date Span Node" temporary; var Msg: Text[2048])
@@ -43,9 +43,9 @@ codeunit 60008 "DSTS Scenario S01"
 
         // 2) Shrink top level excluding DT1 -> must fail
         if TryApply(Engine, Nodes, 'JOB1', DMY2Date(15, 1, 2026), DMY2Date(31, 1, 2026)) then
-            Error('Expected shrink to fail (would exclude existing DayTasks), but it succeeded.');
+            Error('Expected shrink to fail (would exclude existing DayPlannings), but it succeeded.');
 
-        Msg := 'OK: widen allowed; shrink excluding daytasks correctly blocked.';
+        Msg := 'OK: widen allowed; shrink excluding DayPlannings correctly blocked.';
     end;
 
     local procedure BuildBaseTree(var Engine: Codeunit "Date Span Engine"; var Nodes: Record "Date Span Node" temporary)
@@ -61,12 +61,12 @@ codeunit 60008 "DSTS Scenario S01"
         // Planning line
         Engine.AddNode(Nodes, 'PL1', 'TASK1', Enum::"Date Span Level"::"Job Planning Line", 0D, 0D, Enum::"Date Span Lock"::None, 'Planning Line 1');
 
-        // DayTasks (truth)
-        Engine.AddNode(Nodes, 'DT1', 'PL1', Enum::"Date Span Level"::"Day Task",
-            DMY2Date(10, 1, 2026), DMY2Date(12, 1, 2026), Enum::"Date Span Lock"::None, 'DayTask 1');
+        // DayPlannings (truth)
+        Engine.AddNode(Nodes, 'DT1', 'PL1', Enum::"Date Span Level"::"Day Planning",
+            DMY2Date(10, 1, 2026), DMY2Date(12, 1, 2026), Enum::"Date Span Lock"::None, 'DayPlanning 1');
 
-        Engine.AddNode(Nodes, 'DT2', 'PL1', Enum::"Date Span Level"::"Day Task",
-            DMY2Date(20, 1, 2026), DMY2Date(22, 1, 2026), Enum::"Date Span Lock"::None, 'DayTask 2');
+        Engine.AddNode(Nodes, 'DT2', 'PL1', Enum::"Date Span Level"::"Day Planning",
+            DMY2Date(20, 1, 2026), DMY2Date(22, 1, 2026), Enum::"Date Span Lock"::None, 'DayPlanning 2');
     end;
 
     [TryFunction]

@@ -63,7 +63,7 @@ table 50604 "Order Intake Header Opt."
             DataClassification = CustomerContent;
             Caption = 'Description';
         }
-        field(40; Status; Enum "Daytask Order Intake Status")
+        field(40; Status; Enum "DayPlanning Order Intake Status")
         {
             DataClassification = CustomerContent;
             Caption = 'Status';

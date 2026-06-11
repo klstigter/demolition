@@ -5,7 +5,7 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
         // Add changes to page layout here
         addafter("Personal Data")
         {
-            part("Resource Day Tasks"; "Resource Day Tasks")
+            part("Resource Day Plannings"; "Resource Day Plannings")
             {
                 ApplicationArea = All;
                 SubPageView = sorting("Task Date", "Day Line No.");
@@ -63,10 +63,10 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
                 Caption = 'Resource Skills';
                 SubPageLink = Type = const(Resource), "No." = field("No.");
             }
-            part(DayTasksFactbox; "Day Tasks FactBox")
+            part(DayPlanningsFactbox; "Day Plannings FactBox")
             {
                 ApplicationArea = All;
-                Caption = 'Day Tasks';
+                Caption = 'Day Plannings';
                 SubPageLink = "Assigned Resource No." = field("No.");
             }
         }
@@ -96,7 +96,7 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
                                 "No." = field("No.");
                 ToolTip = 'View the assignment of skills to the resource. You can use skill codes to allocate skilled resources to service items or items that need special skills for servicing.';
             }
-            action("Day Tasks (Visual)")
+            action("Day Plannings (Visual)")
             {
                 ApplicationArea = All;
                 trigger OnAction()
@@ -114,7 +114,7 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
             actionref("S&kills_Promoted_custom"; "S&kills_Custom")
             {
             }
-            actionref("Day Tasks (Visual) actionref"; "Day Tasks (Visual)") { }
+            actionref("Day Plannings (Visual) actionref"; "Day Plannings (Visual)") { }
         }
     }
 

@@ -8,7 +8,7 @@ codeunit 50661 "Order Intake Kanban Handler"
     /// Builds the JSON payload consumed by the Kanban board.
     /// Returns a JSON object with two keys:
     ///   "columns" – one entry per Status enum value.
-    ///   "cards"   – one entry per Daytask Order Intake record.
+    ///   "cards"   – one entry per DayPlanning Order Intake record.
     ///
     /// Card JSON shape:
     ///   { "id": "1", "column": "0", "label": "...", "description": "...", "start_date": "YYYY-MM-DD" }
@@ -101,7 +101,7 @@ codeunit 50661 "Order Intake Kanban Handler"
     end;
 
     /// <summary>
-    /// Updates the Status of a single Daytask Order Intake record.
+    /// Updates the Status of a single DayPlanning Order Intake record.
     /// Called when the user drags a card to a different column on the board.
     /// </summary>
     /// <param name="EntryNo">Primary key of the record to update.</param>
@@ -109,12 +109,12 @@ codeunit 50661 "Order Intake Kanban Handler"
     procedure UpdateCardStatus(EntryNo: Integer; NewStatusInt: Integer)
     var
         OrderIntake: Record "Order Intake Header Opt.";
-        NewStatus: Enum "Daytask Order Intake Status";
+        NewStatus: Enum "DayPlanning Order Intake Status";
     begin
         if not OrderIntake.Get(EntryNo) then
             exit;
 
-        NewStatus := Enum::"Daytask Order Intake Status".FromInteger(NewStatusInt);
+        NewStatus := Enum::"DayPlanning Order Intake Status".FromInteger(NewStatusInt);
 
         if OrderIntake.Status = NewStatus then
             exit; // No change – nothing to write
@@ -124,7 +124,7 @@ codeunit 50661 "Order Intake Kanban Handler"
     end;
 
     /// <summary>
-    /// Inserts a new Daytask Order Intake record from the Kanban "Add new card" action.
+    /// Inserts a new DayPlanning Order Intake record from the Kanban "Add new card" action.
     /// </summary>
     /// <param name="ColumnIdInt">Status integer from the target column.</param>
     /// <param name="CardLabel">Card title entered by the user – stored as Description.</param>
@@ -133,13 +133,13 @@ codeunit 50661 "Order Intake Kanban Handler"
         OrderIntake: Record "Order Intake Header Opt.";
     begin
         OrderIntake.Init();
-        OrderIntake.Status := Enum::"Daytask Order Intake Status".FromInteger(ColumnIdInt);
+        OrderIntake.Status := Enum::"DayPlanning Order Intake Status".FromInteger(ColumnIdInt);
         OrderIntake."Order Date" := Today();
         OrderIntake.Insert(true);
     end;
 
     /// <summary>
-    /// Duplicates an existing Daytask Order Intake record.
+    /// Duplicates an existing DayPlanning Order Intake record.
     /// The new record inherits all field values from the source; Entry No. is auto-assigned.
     /// </summary>
     /// <param name="SourceEntryNo">Entry No. of the record to copy.</param>
@@ -157,7 +157,7 @@ codeunit 50661 "Order Intake Kanban Handler"
     end;
 
     /// <summary>
-    /// Deletes a Daytask Order Intake record.
+    /// Deletes a DayPlanning Order Intake record.
     /// </summary>
     /// <param name="EntryNo">Primary key of the record to delete.</param>
     procedure DeleteCard(EntryNo: Integer)

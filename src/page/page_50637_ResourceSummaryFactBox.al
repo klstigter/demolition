@@ -1,7 +1,7 @@
 page 50637 "Resource Summary FactBox"
 {
     PageType = ListPart;
-    SourceTable = "Resource DayTask Summary";
+    SourceTable = "Resource DayPlanning Summary";
     SourceTableTemporary = true;
     Caption = 'Resource Summary';
     Editable = false;
@@ -46,17 +46,17 @@ page 50637 "Resource Summary FactBox"
 
                 trigger OnAction()
                 var
-                    DayTask: Page "Day Tasks";
-                    DayTaskRec: Record "Day Tasks";
+                    DayPlanning: Page "Day Plannings";
+                    DayPlanningRec: Record "Day Planning";
                 begin
                     if rec."Job No." <> '' then
-                        DayTaskRec."Job No." := Rec."Job No.";
+                        DayPlanningRec."Job No." := Rec."Job No.";
                     if rec."Job Task No." <> '' then
-                        DayTaskRec."Job Task No." := Rec."Job Task No.";
+                        DayPlanningRec."Job Task No." := Rec."Job Task No.";
                     if rec."Resource No." <> '' then
-                        DayTaskRec."Assigned Resource No." := Rec."Resource No.";
-                    DayTask.SetRecord(DayTaskRec);
-                    DayTask.RunModal();
+                        DayPlanningRec."Assigned Resource No." := Rec."Resource No.";
+                    DayPlanning.SetRecord(DayPlanningRec);
+                    DayPlanning.RunModal();
 
                 end;
             }
