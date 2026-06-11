@@ -178,7 +178,7 @@ page 50639 "Day Planning Pattern"
 
     procedure fillbuffer(JobNo: Code[20]; JobTaskNo: Code[20]; WorkOrderNo: Code[20])
     begin
-        rec.FillBuffer(JobNo, JobTaskNo);
+        //rec.FillBuffer(JobNo, JobTaskNo);
         JobNoFilter := JobNo;
         JobTaskNoFilter := JobTaskNo;
         WorkOrderNoFilter := WorkOrderNo;
