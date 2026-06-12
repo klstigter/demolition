@@ -244,11 +244,11 @@ API - 2026.04.29
 
 
 
-DayPlanning Generator: key: job no. + job task no. + Line No.   ---(OK)
+DayPlanning Generator: key: job no. + job task no. + Line No.     ---(OK)
 
-- harus ada constrain field di project task
-- harus ada hubungan dengan start-end
-- saat tampil di gantt chart -> bagaimana caranya?
+- harus ada constrain field di project task                       ---(OK)
+- harus ada hubungan dengan start-end ???
+- saat tampil di gantt chart -> bagaimana caranya???
 
 Automatic progress handler
 - start-end date
