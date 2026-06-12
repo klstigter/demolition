@@ -13,6 +13,13 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
                 UpdatePropagation = Both;
             }
         }
+        addafter("Default Deferral Template Code")
+        {
+            field("Work Hour Template"; Rec."Work Hour Template")
+            {
+                ApplicationArea = All;
+            }
+        }
         addafter(Invoicing)
         {
             group(Purchase)
