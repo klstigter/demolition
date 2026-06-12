@@ -31,6 +31,10 @@ page 50639 "Day Planning Pattern"
                     ToolTip = 'Specifies the value of the Line No. field.', Comment = '%';
                     Visible = false;
                 }
+                field("Resource Category"; Rec."Resource Category")
+                {
+                    ToolTip = 'Specifies the category of resource.', Comment = '%';
+                }
                 field("Resource No."; Rec."Resource No.")
                 {
                     ToolTip = 'Specifies the value of the Resource No. field.', Comment = '%';

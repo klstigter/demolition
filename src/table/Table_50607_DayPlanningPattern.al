@@ -35,6 +35,11 @@ table 50607 "Day Planning Pattern"
             Caption = 'Skills Required';
             TableRelation = "Skill Code";
         }
+        field(6; "Resource Category"; enum "Resource Category Opt.")
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Resource Category';
+        }
         field(10; "Work-Hour Template"; Code[20])
         {
             DataClassification = ToBeClassified;
