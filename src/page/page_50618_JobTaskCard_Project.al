@@ -582,29 +582,46 @@ page 50618 "Opti Job Task Card"
                     }
                 }
 
-
-                group(InProgress)
+                group(ProgressAndConstraint)
                 {
-                    Caption = 'In Progress';
+                    group(InProgress)
+                    {
+                        Caption = 'In Progress';
 
-                    field("Estimated Hours"; Rec."Estimated Hours")
-                    {
-                        ApplicationArea = All;
-                        ToolTip = 'Specifies the value of the Estimated Hours field.', Comment = '%';
-                        importance = Promoted;
-                    }
+                        field("Estimated Hours"; Rec."Estimated Hours")
+                        {
+                            ApplicationArea = All;
+                            ToolTip = 'Specifies the value of the Estimated Hours field.', Comment = '%';
+                            importance = Promoted;
+                        }
 
-                    field(Progress; Rec.Progress)
-                    {
-                        ApplicationArea = Jobs;
-                        ToolTip = 'Specifies the progress percentage (0-100) for this job task.';
-                        importance = Promoted;
+                        field(Progress; Rec.Progress)
+                        {
+                            ApplicationArea = Jobs;
+                            ToolTip = 'Specifies the progress percentage (0-100) for this job task.';
+                            importance = Promoted;
+                        }
+                        field("Total Worked Hours"; Rec."Total Assigned Hours")
+                        {
+                            ApplicationArea = Jobs;
+                            ToolTip = 'Specifies the total worked hours from all related day plannings.';
+                            importance = Promoted;
+                        }
                     }
-                    field("Total Worked Hours"; Rec."Total Assigned Hours")
+                    group(Constraint)
                     {
-                        ApplicationArea = Jobs;
-                        ToolTip = 'Specifies the total worked hours from all related day plannings.';
-                        importance = Promoted;
+                        Caption = 'Constraint';
+
+                        field("Constraint Type"; Rec."Constraint Type")
+                        {
+                            ApplicationArea = All;
+                            ToolTip = 'Specifies the constraint of the project task.';
+                        }
+                        field("Constraint Date"; Rec."Constraint Date")
+                        {
+                            ApplicationArea = All;
+                            ToolTip = 'Specifies the constraint date of the project task.';
+                        }
                     }
                 }
             }

@@ -117,6 +117,20 @@ tableextension 50605 "Job Task ext" extends "Job Task"
             ToolTip = 'Specifies the week pattern for the project task. ex. 1|2|3|4|5|6|7 for all days, 1|4 for only Monday and Thursday, etc.';
         }
 
+        field(50620; "Constraint Type"; Enum "Job Task Constraint Type")
+        {
+            DataClassification = CustomerContent;
+            Caption = 'Planning Constraint Type';
+            ToolTip = 'Specifies the scheduling constraint (ASAP, ALAP, SNET, SNLT, etc.) for the planning engine.';
+            InitValue = ASAP;
+        }
+        field(50621; "Constraint Date"; Date)
+        {
+            DataClassification = CustomerContent;
+            Caption = 'Planning Constraint Date';
+            ToolTip = 'Specifies the date associated with the selected planning constraint type.';
+        }
+
         field(50660; Depth; Decimal)
         {
             DataClassification = ToBeClassified;

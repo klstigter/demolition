@@ -110,38 +110,79 @@ table 50607 "Day Planning Pattern"
         {
             DataClassification = ToBeClassified;
             Caption = '1';
+
+            trigger OnValidate()
+            begin
+                BuildWeekPatern();
+            end;
         }
         field(51; "Day 2"; boolean)
         {
             DataClassification = ToBeClassified;
             Caption = '2';
+
+            trigger OnValidate()
+            begin
+                BuildWeekPatern();
+            end;
         }
         field(52; "Day 3"; boolean)
         {
             DataClassification = ToBeClassified;
             Caption = '3';
+
+            trigger OnValidate()
+            begin
+                BuildWeekPatern();
+            end;
         }
         field(53; "Day 4"; boolean)
         {
             DataClassification = ToBeClassified;
             Caption = '4';
+
+            trigger OnValidate()
+            begin
+                BuildWeekPatern();
+            end;
         }
         field(54; "Day 5"; boolean)
         {
             DataClassification = ToBeClassified;
             Caption = '5';
+
+            trigger OnValidate()
+            begin
+                BuildWeekPatern();
+            end;
         }
         field(55; "Day 6"; boolean)
         {
             DataClassification = ToBeClassified;
             Caption = '6';
+
+            trigger OnValidate()
+            begin
+                BuildWeekPatern();
+            end;
         }
         field(56; "Day 7"; boolean)
         {
             DataClassification = ToBeClassified;
             Caption = '7';
-        }
 
+            trigger OnValidate()
+            begin
+                BuildWeekPatern();
+            end;
+        }
+        field(57; "Week Pattern"; Code[13])
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Week Pattern';
+            Description = 'full configuration is 1|2|3|4|5|6|7';
+            Editable = false;
+        }
         field(50615; "Vendor No."; Code[20])
         {
             DataClassification = ToBeClassified;
@@ -203,9 +244,6 @@ table 50607 "Day Planning Pattern"
         // Add changes to field groups here
     }
 
-    var
-        myInt: Integer;
-
     trigger OnInsert()
     begin
 
@@ -224,6 +262,26 @@ table 50607 "Day Planning Pattern"
     trigger OnRename()
     begin
 
+    end;
+
+    var
+        myInt: Integer;
+
+    local procedure BuildWeekPatern()
+    var
+        Pattern: Text;
+    begin
+        Pattern := '';
+        if Rec."Day 1" then Pattern += '1|';
+        if Rec."Day 2" then Pattern += '2|';
+        if Rec."Day 3" then Pattern += '3|';
+        if Rec."Day 4" then Pattern += '4|';
+        if Rec."Day 5" then Pattern += '5|';
+        if Rec."Day 6" then Pattern += '6|';
+        if Rec."Day 7" then Pattern += '7|';
+        if Pattern <> '' then
+            Pattern := CopyStr(Pattern, 1, StrLen(Pattern) - 1);
+        Rec."Week Pattern" := CopyStr(Pattern, 1, MaxStrLen(Rec."Week Pattern"));
     end;
 
     local procedure CalculateNonWorkingHours()

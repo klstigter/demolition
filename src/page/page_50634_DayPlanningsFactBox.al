@@ -39,6 +39,10 @@ page 50634 "Day Plannings FactBox"
                 {
                     ApplicationArea = All;
                 }
+                field("Pattern Line No."; Rec."Pattern Line No.")
+                {
+                    ApplicationArea = All;
+                }
                 field("Start Time"; Rec."Start Time Assigned")
                 {
                     ApplicationArea = All;

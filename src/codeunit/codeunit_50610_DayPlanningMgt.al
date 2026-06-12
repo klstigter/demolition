@@ -23,12 +23,12 @@ codeunit 50610 "Day Plannings Mgt."
         Message('Day planning lines have been successfully created.');
     end;
 
-    procedure CreateDayPlanning(DayPlanningGenerator: Record "Day Planning Pattern")
+    procedure CreateDayPlanning(DayPlanningPattern: Record "Day Planning Pattern")
     begin
-        CreateDayPlanning(DayPlanningGenerator, true)
+        CreateDayPlanning(DayPlanningPattern, true)
     end;
 
-    local procedure CreateDayPlanning(DayPlanningGenerator: Record "Day Planning Pattern"; DoDeleteAll: Boolean)
+    local procedure CreateDayPlanning(DayPlanningPattern: Record "Day Planning Pattern"; DoDeleteAll: Boolean)
     var
         JobTask: Record "Job Task";
         DayPlannings: Record "Day Planning";
@@ -46,33 +46,33 @@ codeunit 50610 "Day Plannings Mgt."
         Counter: Integer;
         HasOverlap: Boolean;
     begin
-        DayPlanningGenerator.TestField("Work-Hour Template");
+        DayPlanningPattern.TestField("Work-Hour Template");
         case true of
-            (DayPlanninggenerator."Resource No." = '') and
-            (DayPlanningGenerator.SkillsRequired = ''):
+            (DayPlanningPattern."Resource No." = '') and
+            (DayPlanningPattern.SkillsRequired = ''):
                 error('Skills Required must be specified');
-            DayPlanningGenerator."Work-Hour Template" = '':
+            DayPlanningPattern."Work-Hour Template" = '':
                 error('Work-Hour Template must be specified');
-            DayPlanningGenerator."Start Date" = 0D:
+            DayPlanningPattern."Start Date" = 0D:
                 Error('Planned Start Date must be specified');
-            DayPlanningGenerator."End Date" = 0D:
+            DayPlanningPattern."End Date" = 0D:
                 Error('Planned End Date must be specified');
-            (DayPlanningGenerator."Start Time" = 0T) or (DayPlanningGenerator."End Time" = 0T):
+            (DayPlanningPattern."Start Time" = 0T) or (DayPlanningPattern."End Time" = 0T):
                 Error('Start Time and End Time must be specified');
-            (DayPlanningGenerator."Vendor No." <> ''):
+            (DayPlanningPattern."Vendor No." <> ''):
                 begin
-                    DayPlanningGenerator."Quantity of Lines" := 1;
-                    DayPlanningGenerator.Modify(false);
+                    DayPlanningPattern."Quantity of Lines" := 1;
+                    DayPlanningPattern.Modify(false);
                 end;
         end;
         //TODO: refactor?
         //if DayPlanningGenerator.StartEndLimitations(true) then
         //    exit;
-        WorkHoursTemplate.get(DayPlanningGenerator."Work-Hour Template");
+        WorkHoursTemplate.get(DayPlanningPattern."Work-Hour Template");
         // Get the start and end dates
-        StartDate := DayPlanningGenerator."Start Date";
-        if DayPlanningGenerator."End Date" <> 0D then
-            EndDate := DayPlanningGenerator."End Date"
+        StartDate := DayPlanningPattern."Start Date";
+        if DayPlanningPattern."End Date" <> 0D then
+            EndDate := DayPlanningPattern."End Date"
         else
             EndDate := StartDate;
 
@@ -82,8 +82,8 @@ codeunit 50610 "Day Plannings Mgt."
 
         // Delete existing day planning lines for this job planning line
         if not DoDeleteAll then begin
-            DayPlannings.SetRange("Job No.", DayPlanningGenerator."Job No.");
-            DayPlannings.SetRange("Job Task No.", DayPlanningGenerator."Job Task No.");
+            DayPlannings.SetRange("Job No.", DayPlanningPattern."Job No.");
+            DayPlannings.SetRange("Job Task No.", DayPlanningPattern."Job Task No.");
             DayPlannings.DeleteAll();
         end;
         // Create day planning lines for each day in the range
@@ -91,27 +91,28 @@ codeunit 50610 "Day Plannings Mgt."
 
         while NewTaskDate <= EndDate do begin
             // Check if this day is a working day in the template   
-            if ExpectedWeekDay(DayPlanningGenerator, NewTaskDate, true) then begin
+            if ExpectedWeekDay(DayPlanningPattern, NewTaskDate, true) then begin
 
                 Clear(DayPlannings);
                 DayNo := GeneralUtil.DateToInteger(NewTaskDate);
                 DayPlannings."Task Date" := NewTaskDate;
-                DayPlannings."Day Line No." := DayPlannings.GetNextDayLineNo(NewTaskDate, DayPlanningGenerator."Job No.", DayPlanningGenerator."Job Task No.");
-                DayPlannings."Job No." := DayPlanningGenerator."Job No.";
-                DayPlannings."Job Task No." := DayPlanningGenerator."Job Task No.";
-                DayPlannings."Work Order No." := DayPlanningGenerator."Work Order No.";
+                DayPlannings."Day Line No." := DayPlannings.GetNextDayLineNo(NewTaskDate, DayPlanningPattern."Job No.", DayPlanningPattern."Job Task No.");
+                DayPlannings."Job No." := DayPlanningPattern."Job No.";
+                DayPlannings."Job Task No." := DayPlanningPattern."Job Task No.";
+                DayPlannings."Pattern Line No." := DayPlanningPattern."Line No.";
+                DayPlannings."Work Order No." := DayPlanningPattern."Work Order No.";
 
                 // Calculate start and end times for this day
-                if DayPlanningGenerator."Start Time" <> 0T then
-                    DayStartTime := DayPlanningGenerator."Start Time"
+                if DayPlanningPattern."Start Time" <> 0T then
+                    DayStartTime := DayPlanningPattern."Start Time"
                 else
                     DayStartTime := WorkHoursTemplate."Default Start Time";
-                if DayPlanningGenerator."End Time" <> 0T then
-                    DayEndTime := DayPlanningGenerator."End Time"
+                if DayPlanningPattern."End Time" <> 0T then
+                    DayEndTime := DayPlanningPattern."End Time"
                 else
                     DayEndTime := WorkHoursTemplate."Default End Time";
-                if DayPlanningGenerator."Non Working Minutes" <> 0 then
-                    NonWorkingHours := DayPlanningGenerator."Non Working Minutes"
+                if DayPlanningPattern."Non Working Minutes" <> 0 then
+                    NonWorkingHours := DayPlanningPattern."Non Working Minutes"
                 else
                     NonWorkingHours := WorkHoursTemplate."Non Working Minutes";
 
@@ -122,15 +123,15 @@ codeunit 50610 "Day Plannings Mgt."
                 DayPlannings.VALIDATE("Non Working Minutes", NonWorkingHours);
 
                 // Copy other fields from job planning line
-                DayPlannings."Assigned Resource No." := DayPlanningGenerator."Resource No.";
+                DayPlannings."Assigned Resource No." := DayPlanningPattern."Resource No.";
                 // Calculate working hours
-                DayPlannings."Requested Hours" := DayPlanningGenerator."Requested Hours";
+                DayPlannings."Requested Hours" := DayPlanningPattern."Requested Hours";
 
                 //DayPlannings.Description := DayPlanningGenerator.Description;
                 //DayPlannings."Unit of Measure Code" := JobTask."Unit of Measure Code";
-                DayPlannings.Skill := DayPlanningGenerator.SkillsRequired;
+                DayPlannings.Skill := DayPlanningPattern.SkillsRequired;
                 //DayPlannings."Work Type Code" := JobTask."Work Type Code";
-                DayPlannings."Vendor No." := DayPlanningGenerator."Vendor No.";
+                DayPlannings."Vendor No." := DayPlanningPattern."Vendor No.";
                 //DayPlannings.Depth := DayPlanningGenerator.Depth;
                 //DayPlannings.IsBoor := DayPlanningGenerator.Isboor;
 
@@ -138,7 +139,7 @@ codeunit 50610 "Day Plannings Mgt."
                 if CheckMayChange(DayPlannings) then
                     if DayPlannings.Insert(true) then
                         Counter += 1;
-                for n := 2 to DayPlanningGenerator."Quantity of Lines" do begin
+                for n := 2 to DayPlanningPattern."Quantity of Lines" do begin
                     DayPlannings."Day Line No." := n * 10000;
                     if CheckMayChange(DayPlannings) then
                         if DayPlannings.Insert(true) then
@@ -149,7 +150,7 @@ codeunit 50610 "Day Plannings Mgt."
         END;
 
         //Update Job Task Start - End Date
-        JobTask.Get(DayPlanningGenerator."Job No.", DayPlanningGenerator."Job Task No.");
+        JobTask.Get(DayPlanningPattern."Job No.", DayPlanningPattern."Job Task No.");
         DayPlannings.Reset();
         DayPlannings.SetCurrentKey("Task Date");
         DayPlannings.SetRange("Job No.", JobTask."Job No.");
@@ -165,7 +166,7 @@ codeunit 50610 "Day Plannings Mgt."
             JobTask.Validate(PlannedEndDate, EndDate);
         JobTask.Modify();
 
-        Message('%1 day planning lines created for Job %2, Task %3.', Counter, DayPlanningGenerator."Job No.", DayPlanningGenerator."Job Task No.");
+        Message('%1 day planning lines created for Job %2, Task %3.', Counter, DayPlanningPattern."Job No.", DayPlanningPattern."Job Task No.");
     END;
 
     local procedure CheckMayChange(NewDayPlanning: Record "Day Planning"): Boolean
