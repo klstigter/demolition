@@ -260,7 +260,7 @@ Automatic progress handler
 		- triggernya from edit progress %
 		- harus ada logging untuk progress
 
-Resource Category, enum: -> DayPlanning creation
+Resource Category, enum: -> add into DayPlanning creation         ---(OK)
    any available
    internal
    External
@@ -272,9 +272,9 @@ Resource Category, enum: -> DayPlanning creation
 	-> rename to "Day Planning Pattern"          ---(OK)
 	-> Change from Temporary to Physic table     ---(OK)
 
-- Work Hour Template -> simpan di resource as default
-- Resource Capacity -> open from ???
-- Day Planning -> rename to "Day Planning"
+- Work Hour Template -> simpan di resource as default                                  ---(OK)
+- Resource Capacity -> open from ??? -> already in Role Center: Resource               ---(OK)
+- Day Task -> rename to "Day Planning"                                                 ---(OK)
 - Resource Skill -> add Boolean -> Prefered -> ini untuk default skill of planning
 - Day Planning Card -> New -> bring all necessary data from filter and setup
 - Scheduling Type -> change to "Task Execution Model"

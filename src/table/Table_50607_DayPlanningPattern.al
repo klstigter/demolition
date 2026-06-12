@@ -28,6 +28,15 @@ table 50607 "Day Planning Pattern"
             Caption = 'Resource No.';
             TableRelation = Resource;
             ValidateTableRelation = false;
+
+            trigger OnValidate()
+            var
+                Res: Record Resource;
+            begin
+                if Res.Get("Resource No.") then
+                    if Res."Work Hour Template" <> '' then
+                        Rec.Validate("Work-Hour Template", Res."Work Hour Template");
+            end;
         }
         field(4; SkillsRequired; Code[10])
         {

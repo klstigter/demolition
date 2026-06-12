@@ -148,7 +148,7 @@ page 50612 "Planning Role Center"
                 action("Resource Capacitys")
                 {
                     ApplicationArea = Basic, Suite;
-                    Caption = 'Resource Capacities';
+                    Caption = 'Resource Capacity';
                     RunObject = page "Resource Capacity";
                 }
                 action("Resource Assignment")
