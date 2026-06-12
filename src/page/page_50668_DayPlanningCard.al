@@ -42,6 +42,10 @@ page 50668 "Day Planning Card Opt"
                     {
                         ApplicationArea = All;
                     }
+                    field("Pattern Line No."; Rec."Pattern Line No.")
+                    {
+                        ApplicationArea = All;
+                    }
                     field(skill; Rec."Skill")
                     {
                         ApplicationArea = All;

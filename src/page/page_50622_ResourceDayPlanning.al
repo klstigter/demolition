@@ -22,6 +22,10 @@ page 50622 "Resource Day Plannings"
                 {
                     ApplicationArea = All;
                 }
+                field("Pattern Line No."; Rec."Pattern Line No.")
+                {
+                    ApplicationArea = All;
+                }
                 field("Resource Group No."; Rec."Resource Group No.")
                 {
                     ApplicationArea = All;

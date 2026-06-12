@@ -28,6 +28,10 @@ page 50676 "Work Order Day Plannings"
                 {
                     ApplicationArea = All;
                 }
+                field("Pattern Line No."; Rec."Pattern Line No.")
+                {
+                    ApplicationArea = All;
+                }
                 field("Day No."; Rec."Day No.")
                 {
                     ApplicationArea = All;

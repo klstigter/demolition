@@ -111,6 +111,10 @@ page 50639 "Day Planning Pattern"
                 {
                     ToolTip = 'Specifies the value of the Day 7 field.', Comment = '%';
                 }
+                field("Week Pattern"; Rec."Week Pattern")
+                {
+                    ToolTip = 'Week pattern build from the value of the "Day 1" upto "Day 7" field.', Comment = '%';
+                }
 
             }
         }

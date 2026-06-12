@@ -40,6 +40,12 @@ table 50610 "Day Planning"
             DataClassification = ToBeClassified;
             Caption = 'Plan Status';
         }
+        field(6; "Pattern Line No."; Integer)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Pattern Line No.';
+            ToolTip = 'The Value related to Day Planning Pattern';
+        }
         field(11; "Start Time Assigned"; Time)
         {
             DataClassification = ToBeClassified;

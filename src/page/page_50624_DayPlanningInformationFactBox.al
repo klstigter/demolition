@@ -42,6 +42,10 @@ page 50624 "Day Planning Info FactBox"
                 {
                     ApplicationArea = All;
                 }
+                field("Pattern Line No."; Rec."Pattern Line No.")
+                {
+                    ApplicationArea = All;
+                }
             }
             group(JobInformation)
             {
