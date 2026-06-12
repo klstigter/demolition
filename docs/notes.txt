@@ -269,8 +269,8 @@ Resource Category, enum: -> DayPlanning creation
 
 
 - table Day Planning Generator (50607)
-	-> rename to "Day Planning Pattern"
-	-> Change from Temporary to Physic table
+	-> rename to "Day Planning Pattern"          ---(OK)
+	-> Change from Temporary to Physic table     ---(OK)
 
 - Work Hour Template -> simpan di resource as default
 - Resource Capacity -> open from ???
