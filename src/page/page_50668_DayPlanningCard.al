@@ -22,6 +22,10 @@ page 50668 "Day Planning Card Opt"
                     {
                         ApplicationArea = All;
                     }
+                    field(DaylineNo; Rec."Day Line No.")
+                    {
+                        ApplicationArea = All;
+                    }
                     field("Plan Status"; Rec."Plan Status")
                     {
                         ApplicationArea = All;
@@ -111,6 +115,10 @@ page 50668 "Day Planning Card Opt"
             }
         }
     }
+    trigger OnNewRecord(BelowRecord: Boolean)
+    begin
+        rec.GetNextDayLineNo();
+    end;
 
     var
         myInt: Integer;

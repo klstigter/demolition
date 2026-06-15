@@ -846,6 +846,22 @@ page 50620 "Gantt Demo DHX 2"
                     DayPlanning.RunModal();
                 end;
             }// Placeholder for any future reports related to the Gantt data
+            action(DailyCapacityBalanceReport)
+            {
+                Caption = 'Daily Capacity Balance Report';
+                ApplicationArea = All;
+                Image = Report;
+                trigger OnAction()
+                var
+                    CapacityBalance: Report "Daily Capacity Balance Report";
+                    StartDate: Date;
+                    EndDate: Date;
+                begin
+                    GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
+                    CapacityBalance.SetDataViewDateRange(StartDate, EndDate);
+                    CapacityBalance.RunModal();
+                end;
+            }
         }
 
 
@@ -895,6 +911,7 @@ page 50620 "Gantt Demo DHX 2"
                 actionref(DayResourceDetail_ref; DayResourceDetail) { }
                 actionref(DayPlanningsDetail_ref; DayPlanningsDetail) { }
                 actionref(DayPlanningsOverview_ref; DayPlanningsWeekOverview) { }
+                actionref(DailyCapacityBalanceReport_ref; DailyCapacityBalanceReport) { }
             }
         }
     }
