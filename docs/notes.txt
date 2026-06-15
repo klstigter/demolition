@@ -275,7 +275,7 @@ Resource Category, enum: -> add into DayPlanning creation         ---(OK)
 - Work Hour Template -> simpan di resource as default                                  ---(OK)
 - Resource Capacity -> open from ??? -> already in Role Center: Resource               ---(OK)
 - Day Task -> rename to "Day Planning"                                                 ---(OK)
-- Resource Skill -> add Boolean -> Prefered -> ini untuk default skill of planning
+- Resource Skill -> add Boolean -> Prefered -> ini untuk default skill of planning     ---(OK)
 - Day Planning Card -> New -> bring all necessary data from filter and setup
 - Scheduling Type -> change to "Task Execution Model"
 	- Stable Crew

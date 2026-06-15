@@ -32,10 +32,18 @@ table 50607 "Day Planning Pattern"
             trigger OnValidate()
             var
                 Res: Record Resource;
+                ResourceSkill: Record "Resource Skill";
             begin
-                if Res.Get("Resource No.") then
+                if Res.Get("Resource No.") then begin
                     if Res."Work Hour Template" <> '' then
                         Rec.Validate("Work-Hour Template", Res."Work Hour Template");
+                    ResourceSkill.SetRange(Type, ResourceSkill.Type::Resource);
+                    ResourceSkill.SetRange("No.", "Resource No.");
+                    ResourceSkill.SetRange(Prefered, true);
+                    ResourceSkill.SetFilter("Skill Code", '<>%1', '');
+                    if ResourceSkill.FindFirst() then
+                        Rec.SkillsRequired := ResourceSkill."Skill Code";
+                end;
             end;
         }
         field(4; SkillsRequired; Code[10])
