@@ -20,7 +20,7 @@ page 50645 "Res. Asgmt. Day Plannings"
                     ApplicationArea = All;
                     Caption = 'Filters';
                     Editable = false;
-                    ToolTip = 'Shows the filters currently applied to the day tasks list.';
+                    ToolTip = 'Shows the filters currently applied to the day plannings list.';
                     Style = StrongAccent;
                     MultiLine = true;
                 }
