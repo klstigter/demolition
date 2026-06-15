@@ -1,7 +1,7 @@
 table 50610 "Day Planning"
 {
     DataClassification = ToBeClassified;
-    Caption = 'Day Tasks';
+    Caption = 'Day Plannings';
     DrillDownPageId = "Day Plannings";
     LookupPageId = "Day Plannings";
 
@@ -534,10 +534,10 @@ table 50610 "Day Planning"
         DayPlanning.SetRange("Job Task No.", "Job Task No.");
         if DayPlanning.FindFirst() then
             if DayPlanning."Task Date" < FirstPlanningDate then
-                error('There are Day Tasks before the planned start date %1.', FirstPlanningDate);
+                error('There are Day Plannings before the planned start date %1.', FirstPlanningDate);
         if DayPlanning.FindLast() then begin
             if DayPlanning."Task Date" > LastPlanningDate then
-                Error('There are Day Tasks after the planned end date %1.', LastPlanningDate);
+                Error('There are Day Plannings after the planned end date %1.', LastPlanningDate);
         end;
     end;
 

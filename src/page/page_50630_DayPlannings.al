@@ -4,7 +4,7 @@ page 50630 "Day Plannings"
     ApplicationArea = All;
     UsageCategory = Lists;
     SourceTable = "Day Planning";
-    Caption = 'Day Tasks';
+    Caption = 'Day Plannings';
     CardPageId = "Day Planning Card Opt";
     //Editable = false;
     DelayedInsert = true;
@@ -144,7 +144,7 @@ page 50630 "Day Plannings"
                 field("Total Assigned Hours"; TotAssignedHours)
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the total number of assigned hours for this day task, calculated automatically based on all related day tasks.';
+                    ToolTip = 'Specifies the total number of assigned hours for this day task, calculated automatically based on all related day plannings.';
                     Editable = false;
                     StyleExpr = StyleStr;
                     trigger OnDrillDown()
