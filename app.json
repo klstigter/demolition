@@ -2,7 +2,7 @@
   "id": "61f2563b-fadf-4029-a675-f6d43090311a",
   "name": "DailyOptimizer",
   "publisher": "Optimizers",
-  "version": "28.0.0.0",
+  "version": "28.0.0.3",
   "brief": "Planning and scheduling extension for Dynamics 365 Business Central",
   "description": "Planning and scheduling extension for Dynamics 365 Business Central using DHTMLX controls.",
   "privacyStatement": "https://bc365optimizers.com/privacy",
