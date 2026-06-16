@@ -102,6 +102,118 @@ table 50612 "Summary Weekly"
             DataClassification = ToBeClassified;
 
         }
+        field(21; "Monday Requested Hours"; Decimal)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Monday Requested';
+            DecimalPlaces = 0 : 2;
+            BlankZero = true;
+        }
+        field(22; "Monday Assigned Hours"; Decimal)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Monday Assigned';
+            DecimalPlaces = 0 : 2;
+            BlankZero = true;
+        }
+        field(23; "Tuesday Requested Hours"; Decimal)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Tuesday Requested';
+            DecimalPlaces = 0 : 2;
+            BlankZero = true;
+        }
+        field(24; "Tuesday Assigned Hours"; Decimal)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Tuesday Assigned';
+            DecimalPlaces = 0 : 2;
+            BlankZero = true;
+        }
+        field(25; "Wednesday Requested Hours"; Decimal)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Wednesday Requested';
+            DecimalPlaces = 0 : 2;
+            BlankZero = true;
+        }
+        field(26; "Wednesday Assigned Hours"; Decimal)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Wednesday Assigned';
+            DecimalPlaces = 0 : 2;
+            BlankZero = true;
+        }
+        field(27; "Thursday Requested Hours"; Decimal)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Thursday Requested';
+            DecimalPlaces = 0 : 2;
+            BlankZero = true;
+        }
+        field(28; "Thursday Assigned Hours"; Decimal)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Thursday Assigned';
+            DecimalPlaces = 0 : 2;
+            BlankZero = true;
+        }
+        field(29; "Friday Requested Hours"; Decimal)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Friday Requested';
+            DecimalPlaces = 0 : 2;
+            BlankZero = true;
+        }
+        field(30; "Friday Assigned Hours"; Decimal)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Friday Assigned';
+            DecimalPlaces = 0 : 2;
+            BlankZero = true;
+        }
+        field(31; "Saturday Requested Hours"; Decimal)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Saturday Requested';
+            DecimalPlaces = 0 : 2;
+            BlankZero = true;
+        }
+        field(32; "Saturday Assigned Hours"; Decimal)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Saturday Assigned';
+            DecimalPlaces = 0 : 2;
+            BlankZero = true;
+        }
+        field(33; "Sunday Requested Hours"; Decimal)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Sunday Requested';
+            DecimalPlaces = 0 : 2;
+            BlankZero = true;
+        }
+        field(34; "Sunday Assigned Hours"; Decimal)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Sunday Assigned';
+            DecimalPlaces = 0 : 2;
+            BlankZero = true;
+        }
+        field(35; "Total Requested Hours"; Decimal)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Total Requested';
+            DecimalPlaces = 0 : 2;
+            BlankZero = true;
+        }
+        field(36; "Total Assigned Hours"; Decimal)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Total Assigned';
+            DecimalPlaces = 0 : 2;
+            BlankZero = true;
+        }
     }
 
     keys
@@ -266,6 +378,46 @@ table 50612 "Summary Weekly"
 
     Local Procedure GetHours(DayIndex: Integer; DayPlanning: Record "Day Planning"; var TempWeekList: Record "Summary Weekly") Hours: Integer
     begin
+        case DayIndex of
+            1:
+                begin
+                    TempWeekList."Monday Requested Hours" += DayPlanning."Requested Hours";
+                    TempWeekList."Monday Assigned Hours" += DayPlanning."Assigned Hours";
+                end;
+            2:
+                begin
+                    TempWeekList."Tuesday Requested Hours" += DayPlanning."Requested Hours";
+                    TempWeekList."Tuesday Assigned Hours" += DayPlanning."Assigned Hours";
+                end;
+            3:
+                begin
+                    TempWeekList."Wednesday Requested Hours" += DayPlanning."Requested Hours";
+                    TempWeekList."Wednesday Assigned Hours" += DayPlanning."Assigned Hours";
+                end;
+            4:
+                begin
+                    TempWeekList."Thursday Requested Hours" += DayPlanning."Requested Hours";
+                    TempWeekList."Thursday Assigned Hours" += DayPlanning."Assigned Hours";
+                end;
+            5:
+                begin
+                    TempWeekList."Friday Requested Hours" += DayPlanning."Requested Hours";
+                    TempWeekList."Friday Assigned Hours" += DayPlanning."Assigned Hours";
+                end;
+            6:
+                begin
+                    TempWeekList."Saturday Requested Hours" += DayPlanning."Requested Hours";
+                    TempWeekList."Saturday Assigned Hours" += DayPlanning."Assigned Hours";
+                end;
+            7:
+                begin
+                    TempWeekList."Sunday Requested Hours" += DayPlanning."Requested Hours";
+                    TempWeekList."Sunday Assigned Hours" += DayPlanning."Assigned Hours";
+                end;
+        end;
+        TempWeekList."Total Requested Hours" += DayPlanning."Requested Hours";
+        TempWeekList."Total Assigned Hours" += DayPlanning."Assigned Hours";
+
         if (TempWeekList."Resource No." = '') then begin
             case DayIndex of
                 1:
