@@ -306,9 +306,9 @@ page 50626 "Summary View"
                     StyleExpr = StyleStr;
 
                 }
-                field("Total Week Hours"; Rec."Total Week Hours")
+                field("Total Requested Hours"; Rec."Total Requested Hours")
                 {
-                    ToolTip = 'Specifies total hours for the entire week.';
+                    ToolTip = 'Specifies total requested hours for the entire week.';
                     StyleExpr = StyleStr;
 
                     trigger OnDrillDown()
@@ -316,9 +316,19 @@ page 50626 "Summary View"
                         DrillDown2DayTaks(0);
                     end;
                 }
-                field("Monday Hours"; Rec."Monday Hours")
+                field("Total Assigned Hours"; Rec."Total Assigned Hours")
                 {
-                    ToolTip = 'Specifies total hours on Monday.';
+                    ToolTip = 'Specifies total assigned hours for the entire week.';
+                    StyleExpr = StyleStr;
+
+                    trigger OnDrillDown()
+                    begin
+                        DrillDown2DayTaks(0);
+                    end;
+                }
+                field("Monday Requested Hours"; Rec."Monday Requested Hours")
+                {
+                    ToolTip = 'Specifies requested hours on Monday.';
                     StyleExpr = StyleStr;
 
                     trigger OnDrillDown()
@@ -326,9 +336,19 @@ page 50626 "Summary View"
                         DrillDown2DayTaks(1);
                     end;
                 }
-                field("Tuesday Hours"; Rec."Tuesday Hours")
+                field("Monday Assigned Hours"; Rec."Monday Assigned Hours")
                 {
-                    ToolTip = 'Specifies total hours on Tuesday.';
+                    ToolTip = 'Specifies assigned hours on Monday.';
+                    StyleExpr = StyleStr;
+
+                    trigger OnDrillDown()
+                    begin
+                        DrillDown2DayTaks(1);
+                    end;
+                }
+                field("Tuesday Requested Hours"; Rec."Tuesday Requested Hours")
+                {
+                    ToolTip = 'Specifies requested hours on Tuesday.';
                     StyleExpr = StyleStr;
 
                     trigger OnDrillDown()
@@ -336,9 +356,19 @@ page 50626 "Summary View"
                         DrillDown2DayTaks(2);
                     end;
                 }
-                field("Wednesday Hours"; Rec."Wednesday Hours")
+                field("Tuesday Assigned Hours"; Rec."Tuesday Assigned Hours")
                 {
-                    ToolTip = 'Specifies total hours on Wednesday.';
+                    ToolTip = 'Specifies assigned hours on Tuesday.';
+                    StyleExpr = StyleStr;
+
+                    trigger OnDrillDown()
+                    begin
+                        DrillDown2DayTaks(2);
+                    end;
+                }
+                field("Wednesday Requested Hours"; Rec."Wednesday Requested Hours")
+                {
+                    ToolTip = 'Specifies requested hours on Wednesday.';
                     StyleExpr = StyleStr;
 
                     trigger OnDrillDown()
@@ -346,9 +376,19 @@ page 50626 "Summary View"
                         DrillDown2DayTaks(3);
                     end;
                 }
-                field("Thursday Hours"; Rec."Thursday Hours")
+                field("Wednesday Assigned Hours"; Rec."Wednesday Assigned Hours")
                 {
-                    ToolTip = 'Specifies total hours on Thursday.';
+                    ToolTip = 'Specifies assigned hours on Wednesday.';
+                    StyleExpr = StyleStr;
+
+                    trigger OnDrillDown()
+                    begin
+                        DrillDown2DayTaks(3);
+                    end;
+                }
+                field("Thursday Requested Hours"; Rec."Thursday Requested Hours")
+                {
+                    ToolTip = 'Specifies requested hours on Thursday.';
                     StyleExpr = StyleStr;
 
                     trigger OnDrillDown()
@@ -356,9 +396,19 @@ page 50626 "Summary View"
                         DrillDown2DayTaks(4);
                     end;
                 }
-                field("Friday Hours"; Rec."Friday Hours")
+                field("Thursday Assigned Hours"; Rec."Thursday Assigned Hours")
                 {
-                    ToolTip = 'Specifies total hours on Friday.';
+                    ToolTip = 'Specifies assigned hours on Thursday.';
+                    StyleExpr = StyleStr;
+
+                    trigger OnDrillDown()
+                    begin
+                        DrillDown2DayTaks(4);
+                    end;
+                }
+                field("Friday Requested Hours"; Rec."Friday Requested Hours")
+                {
+                    ToolTip = 'Specifies requested hours on Friday.';
                     StyleExpr = StyleStr;
 
                     trigger OnDrillDown()
@@ -366,9 +416,19 @@ page 50626 "Summary View"
                         DrillDown2DayTaks(5);
                     end;
                 }
-                field("Saturday Hours"; Rec."Saturday Hours")
+                field("Friday Assigned Hours"; Rec."Friday Assigned Hours")
                 {
-                    ToolTip = 'Specifies total hours on Saturday.';
+                    ToolTip = 'Specifies assigned hours on Friday.';
+                    StyleExpr = StyleStr;
+
+                    trigger OnDrillDown()
+                    begin
+                        DrillDown2DayTaks(5);
+                    end;
+                }
+                field("Saturday Requested Hours"; Rec."Saturday Requested Hours")
+                {
+                    ToolTip = 'Specifies requested hours on Saturday.';
                     StyleExpr = StyleStr;
 
                     trigger OnDrillDown()
@@ -376,9 +436,29 @@ page 50626 "Summary View"
                         DrillDown2DayTaks(6);
                     end;
                 }
-                field("Sunday Hours"; Rec."Sunday Hours")
+                field("Saturday Assigned Hours"; Rec."Saturday Assigned Hours")
                 {
-                    ToolTip = 'Specifies total hours on Sunday.';
+                    ToolTip = 'Specifies assigned hours on Saturday.';
+                    StyleExpr = StyleStr;
+
+                    trigger OnDrillDown()
+                    begin
+                        DrillDown2DayTaks(6);
+                    end;
+                }
+                field("Sunday Requested Hours"; Rec."Sunday Requested Hours")
+                {
+                    ToolTip = 'Specifies requested hours on Sunday.';
+                    StyleExpr = StyleStr;
+
+                    trigger OnDrillDown()
+                    begin
+                        DrillDown2DayTaks(7);
+                    end;
+                }
+                field("Sunday Assigned Hours"; Rec."Sunday Assigned Hours")
+                {
+                    ToolTip = 'Specifies assigned hours on Sunday.';
                     StyleExpr = StyleStr;
 
                     trigger OnDrillDown()
@@ -554,6 +634,22 @@ page 50626 "Summary View"
                     Temp."Friday Hours" += TempCopy."Friday Hours";
                     Temp."Saturday Hours" += TempCopy."Saturday Hours";
                     Temp."Sunday Hours" += TempCopy."Sunday Hours";
+                    Temp."Total Requested Hours" += TempCopy."Total Requested Hours";
+                    Temp."Total Assigned Hours" += TempCopy."Total Assigned Hours";
+                    Temp."Monday Requested Hours" += TempCopy."Monday Requested Hours";
+                    Temp."Monday Assigned Hours" += TempCopy."Monday Assigned Hours";
+                    Temp."Tuesday Requested Hours" += TempCopy."Tuesday Requested Hours";
+                    Temp."Tuesday Assigned Hours" += TempCopy."Tuesday Assigned Hours";
+                    Temp."Wednesday Requested Hours" += TempCopy."Wednesday Requested Hours";
+                    Temp."Wednesday Assigned Hours" += TempCopy."Wednesday Assigned Hours";
+                    Temp."Thursday Requested Hours" += TempCopy."Thursday Requested Hours";
+                    Temp."Thursday Assigned Hours" += TempCopy."Thursday Assigned Hours";
+                    Temp."Friday Requested Hours" += TempCopy."Friday Requested Hours";
+                    Temp."Friday Assigned Hours" += TempCopy."Friday Assigned Hours";
+                    Temp."Saturday Requested Hours" += TempCopy."Saturday Requested Hours";
+                    Temp."Saturday Assigned Hours" += TempCopy."Saturday Assigned Hours";
+                    Temp."Sunday Requested Hours" += TempCopy."Sunday Requested Hours";
+                    Temp."Sunday Assigned Hours" += TempCopy."Sunday Assigned Hours";
                     temp.Modify();
                 end;
             until rec.Next() = 0;
