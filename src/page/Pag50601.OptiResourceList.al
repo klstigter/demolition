@@ -36,11 +36,14 @@ page 50601 "Opti Resource List"
                     Editable = false;
 
                     trigger OnAssistEdit()
+                    var
+                        KeepDateFilter: Text;
                     begin
                         if (RecFilters <> '') or Rec.MarkedOnly() then begin
                             // Save view and marked state before clearing
                             xRecFilters := Rec.GetView();
                             xRecMarkedOnly := Rec.MarkedOnly();
+                            KeepDateFilter := Rec.GetFilter("Date Filter");
                             // Save which records were marked into xRecMarking's own mark table.
                             // Reset() clears all marks in xRecMarking before saving new ones.
                             xRecMarking.Reset();
@@ -52,6 +55,8 @@ page 50601 "Opti Resource List"
                                     until Rec.Next() = 0;
                             Rec.MarkedOnly(false);
                             Rec.Reset();
+                            if KeepDateFilter <> '' then
+                                Rec.SetFilter("Date Filter", KeepDateFilter);
                             RecFilters := '';
                         end else begin
                             if (xRecFilters <> '') or xRecMarkedOnly then begin

@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "al": {
+      "command": "al",
+      "args": [
+        "launchmcpserver",
+        "--projects",
+        "C:\\Users\\Ahmad\\OneDrive\\x\\PROJECT\\STRONG\\demolition"
+      ]
+    }
+  }
+}
