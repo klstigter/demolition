@@ -603,8 +603,37 @@ page 50620 "Gantt Demo DHX 2"
                     Direction: Option Forward,Backward;
                     DT1: Date;
                     DT2: Date;
+                    PanelJson: JsonObject;
+                    PanelToken: JsonToken;
+                    PanelJobNo: Code[20];
+                    PanelTaskNo: Code[20];
+                    PanelFromDate: Date;
+                    PanelToDate: Date;
                 begin
                     GanttChartDataHandler.GetDateRange(Setup, AnchorDate, DT1, DT2);
+
+                    if (CurrentResourcePanelFilterJsonString <> '') and
+                       PanelJson.ReadFrom(CurrentResourcePanelFilterJsonString) then begin
+                        if PanelJson.Get('job', PanelToken) then
+                            PanelJobNo := CopyStr(PanelToken.AsValue().AsText(), 1, MaxStrLen(PanelJobNo));
+                        if PanelJson.Get('task', PanelToken) then
+                            PanelTaskNo := CopyStr(PanelToken.AsValue().AsText(), 1, MaxStrLen(PanelTaskNo));
+                        if PanelJson.Get('periodFrom', PanelToken) then
+                            Evaluate(PanelFromDate, PanelToken.AsValue().AsText());
+                        if PanelJson.Get('periodTo', PanelToken) then
+                            Evaluate(PanelToDate, PanelToken.AsValue().AsText());
+
+                        if (PanelJobNo <> '') and (PanelTaskNo <> '') then begin
+                            if PanelFromDate <> 0D then DT1 := PanelFromDate;
+                            if PanelToDate <> 0D then DT2 := PanelToDate;
+                            DayPlanning.SetRange("Task Date", DT1, DT2);
+                            DayPlanning.SetFilter("Job No.", PanelJobNo);
+                            DayPlanning.SetFilter("Job Task No.", PanelTaskNo);
+                            page.RunModal(Page::"Day Plannings", DayPlanning);
+                            exit;
+                        end;
+                    end;
+
                     DayPlanning.SetRange("Task Date", DT1, DT2);
                     if JobFilter <> '' then
                         DayPlanning.SetFilter("Job No.", JobFilter);
