@@ -87,7 +87,10 @@ page 50630 "Day Plannings"
                     ToolTip = 'Specifies the planning status of this day task.';
                     StyleExpr = StyleStr;
                 }
-
+                field("Data Owner"; Rec."Data Owner")
+                {
+                    Caption = 'Data Owner';
+                }
                 field("Task Date"; Rec."Task Date")
                 {
                     ApplicationArea = All;
@@ -101,10 +104,6 @@ page 50630 "Day Plannings"
                 field("Pattern Line No."; Rec."Pattern Line No.")
                 {
                     ApplicationArea = All;
-                }
-                field("Data Owner"; Rec."Data Owner")
-                {
-                    Caption = 'Data Owner';
                 }
                 field("Assigned Resource No."; Rec."Assigned Resource No.")
                 {
