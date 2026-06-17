@@ -676,14 +676,15 @@ page 50620 "Gantt Demo DHX 2"
                 trigger OnAction()
                 var
                     jobTask: Record "Job Task";
-                    Direction: Option Forward,Backward;
                     DT1: Date;
                     DT2: Date;
                 begin
                     GanttChartDataHandler.GetDateRange(Setup, AnchorDate, DT1, DT2);
-                    jobTask.SetFilter("Planning Date Filter", '%1..%2', DT1, DT2);
-                    jobTask.SetAutoCalcFields("Total Day Plannings");
-                    jobTask.SetFilter("Total Day Plannings", '>0');
+                    jobTask.SetFilter(PlannedStartDate, '<=%1', DT2);
+                    jobTask.SetFilter(PlannedEndDate, '>=%1', DT1);
+                    jobTask.SetFilter("Job Task Type", '<>%1&<>%2',
+                        jobTask."Job Task Type"::"End-Total",
+                        jobTask."Job Task Type"::Total);
                     if JobFilter <> '' then
                         jobTask.SetFilter("Job No.", JobFilter);
                     page.RunModal(Page::"Job Task List - Project", jobTask);
