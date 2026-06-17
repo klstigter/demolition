@@ -233,6 +233,54 @@ page 50638 "Resource Week View Part"
                     LoadData();
                 end;
             }
+            action(PreviousWeek)
+            {
+                ApplicationArea = All;
+                Caption = 'Previous';
+                Image = PreviousRecord;
+                ToolTip = 'Go to the previous week.';
+
+                trigger OnAction()
+                var
+                    WeekStart: Date;
+                begin
+                    WeekStart := CalcDate('<-1W>', DWY2Date(1, CurrentWeekNo, CurrentYear));
+                    CurrentWeekNo := Date2DWY(WeekStart, 2);
+                    CurrentYear := Date2DWY(WeekStart, 3);
+                    ApplyWeekFilter();
+                end;
+            }
+            action(TodayWeek)
+            {
+                ApplicationArea = All;
+                Caption = 'Today';
+                Image = Calendar;
+                ToolTip = 'Go to the current week.';
+
+                trigger OnAction()
+                begin
+                    CurrentWeekNo := Date2DWY(Today(), 2);
+                    CurrentYear := Date2DWY(Today(), 3);
+                    ApplyWeekFilter();
+                end;
+            }
+            action(NextWeek)
+            {
+                ApplicationArea = All;
+                Caption = 'Next';
+                Image = NextRecord;
+                ToolTip = 'Go to the next week.';
+
+                trigger OnAction()
+                var
+                    WeekStart: Date;
+                begin
+                    WeekStart := CalcDate('<+1W>', DWY2Date(1, CurrentWeekNo, CurrentYear));
+                    CurrentWeekNo := Date2DWY(WeekStart, 2);
+                    CurrentYear := Date2DWY(WeekStart, 3);
+                    ApplyWeekFilter();
+                end;
+            }
         }
     }
 
@@ -243,6 +291,8 @@ page 50638 "Resource Week View Part"
         WeekendStyle: Text;
         ResourceName: Text[100];
         TaskId: Integer;
+        CurrentWeekNo: Integer;
+        CurrentYear: Integer;
 
     trigger OnAfterGetRecord()
     var
@@ -262,6 +312,8 @@ page 50638 "Resource Week View Part"
     begin
         JobNo := NewJobNo;
         JobTaskNo := NewJobTaskNo;
+        CurrentWeekNo := Date2DWY(Today(), 2);
+        CurrentYear := Date2DWY(Today(), 3);
         Rec.DeleteAll();
         LoadData();
     end;
@@ -270,8 +322,17 @@ page 50638 "Resource Week View Part"
     begin
         if (JobNo = '') or (JobTaskNo = '') then
             exit;
+        Rec.Reset();
+        Rec.DeleteAll();
         Rec.FillSummary(JobNo, JobTaskNo);
-        Rec.SetRange("Week No.", Date2DWY(Today(), 2));
+        ApplyWeekFilter();
+    end;
+
+    local procedure ApplyWeekFilter()
+    begin
+        Rec.Reset();
+        Rec.SetRange("Week No.", CurrentWeekNo);
+        Rec.SetRange(Year, CurrentYear);
         CurrPage.Update(false);
     end;
 
