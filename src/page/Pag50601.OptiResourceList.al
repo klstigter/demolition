@@ -162,7 +162,7 @@ page 50601 "Opti Resource List"
                         StyleExpr = Stylexp;
 
                     }
-                    field("External Resource"; Rec."External Resource")
+                    field("External Resource"; Rec."Is Pool Member")
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Indicates whether the resource is an external resource.';

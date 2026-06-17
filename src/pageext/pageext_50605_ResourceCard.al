@@ -39,12 +39,17 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
                     ApplicationArea = All;
                     ToolTip = 'Indicates whether the resource is a pool resource.';
                 }
+                field("Is External"; Rec."Is External")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Indicates whether the resource is external';
+                }
                 field("Is Foreman"; Rec."Is Foreman")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Indicates whether the resource is a foreman.';
                 }
-                field("External Resource"; Rec."External Resource")
+                field("External Resource"; Rec."Is Pool Member")
                 {
                     ApplicationArea = All;
                 }

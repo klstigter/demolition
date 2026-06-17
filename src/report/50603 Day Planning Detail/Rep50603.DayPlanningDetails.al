@@ -49,7 +49,7 @@ report 50603 "Day Planning Details"
                                     TempDayPlanning2.Description := resource.Name;
                                     TempDayPlanning2.Insert(true);
                                 end;
-                            resource."external resource":
+                            resource."Is Pool Member":
                                 begin
                                     TempDayPlanning2 := DayPlanning2;
                                     if resource."pool resource no." <> '' then
@@ -259,7 +259,7 @@ report 50603 "Day Planning Details"
         Resource.Validate(Name, ResourceName);
 
         Resource."pool Resource no." := PoolResourceNo;
-        Resource."external resource" := IsExternal;
+        Resource."Is Pool Member" := IsExternal;
         Resource."Is Pool" := IsPool;
         Resource."Is Foreman" := IsForeman;
 

@@ -13,11 +13,15 @@ pageextension 50603 "Opt ResourceList" extends "Resource List"
             {
                 ApplicationArea = All;
             }
-            field("External Resource"; Rec."External Resource")
+            field("Is Pool"; Rec."Is Pool")
             {
                 ApplicationArea = All;
             }
-            field("Is Pool"; Rec."Is Pool")
+            field("Is Pool Member"; Rec."Is Pool Member")
+            {
+                ApplicationArea = All;
+            }
+            field("Is External"; Rec."Is External")
             {
                 ApplicationArea = All;
             }
