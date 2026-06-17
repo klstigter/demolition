@@ -76,7 +76,7 @@ report 50602 DayPlanning
                                 TEMPresource."Is Pool" := resource."Is Pool";
                                 TEMPresource."Pool Resource no." := resource."pool Resource no.";
                                 TEMPresource."Is Foreman" := resource."Is Foreman";
-                                TEMPresource."external resource" := resource."external resource";
+                                TEMPresource."Is Pool Member" := resource."Is Pool Member";
                                 TEMPresource."Direct Unit Cost" := DayPlanning2."Assigned Hours";
                                 DoInsert := true;
                             end else begin
@@ -243,13 +243,13 @@ report 50602 DayPlanning
                     begin
                         tempresource.reset;
                         tempresource.setrange("Is Foreman", false);
-                        tempresource.setrange("external resource", false);
+                        tempresource.setrange("Is Pool Member", false);
                     end;
                 3:
                     begin
                         tempresource.reset;
                         tempresource.setrange("Is Foreman", false);
-                        tempresource.setrange("external resource", true);
+                        tempresource.setrange("Is Pool Member", true);
                         tempresource.setrange("Is Pool", false);
                         tempresource.SetFilter("pool Resource no.", '=%1', '');
                     end;
@@ -267,7 +267,7 @@ report 50602 DayPlanning
                 tempresource.Reset();
                 tempresource.SetRange("pool Resource no.", tempresourcePool."No.");
                 tempresource.setrange("Is Foreman", false);
-                tempresource.setrange("external resource", true);
+                tempresource.setrange("Is Pool Member", true);
                 tempresource.setrange("Is Pool", false);
                 if tempresource.FindSet() then
                     repeat
@@ -299,7 +299,7 @@ report 50602 DayPlanning
         if StyleTxt <> '' then
             Html.Append(' style="' + StyleTxt + '"');
         Html.Append('>');
-        if Rs."external resource" = true then
+        if Rs."Is Pool Member" = true then
             Html.Append('-  ');
         if rs."Name" <> '' then
             txt := rs."Name"
@@ -440,7 +440,7 @@ report 50602 DayPlanning
         Resource.Validate(Name, ResourceName);
 
         Resource."pool Resource no." := PoolResourceNo;
-        Resource."external resource" := IsExternal;
+        Resource."Is Pool Member" := IsExternal;
         Resource."Is Pool" := IsPool;
         Resource."Is Foreman" := IsForeman;
 

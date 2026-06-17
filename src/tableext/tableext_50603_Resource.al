@@ -14,17 +14,31 @@ tableextension 50603 "Resource Opt" extends Resource
             begin
                 if "Pool Resource No." = '' then begin
                     "is Pool" := false;
-                    if (xRec."Pool Resource No." <> '') and (xRec."Pool Resource No." = "No.") then begin
-                        Res.SetRange("Pool Resource No.", "No.");
-                        Res.SetFilter("No.", '<>%1', "No.");
-                        if Res.FindSet() then
-                            Res.ModifyAll("Pool Resource No.", '');
+                    "is Pool Member" := false;
+                    if xRec."Pool Resource No." <> '' then begin
+                        if xRec."Pool Resource No." = "No." then begin
+                            Res.SetRange("Pool Resource No.", "No.");
+                            Res.SetFilter("No.", '<>%1', "No.");
+                            if Res.FindSet() then begin
+                                Res.ModifyAll("Pool Resource No.", '');
+                                Res.SetFilter("Vendor No.", '<>%1', '');
+                                if Res.FindSet() then
+                                    Res.ModifyAll("Is External", true);
+                            end;
+                        end else begin
+                            Res.Get(xRec."Pool Resource No.");
+                            Rec."Vendor No." := Res."Vendor No.";
+                        end;
+                        if Rec."Vendor No." <> '' Then
+                            Rec."Is External" := true;
                     end;
                 end else begin
                     "is Pool" := "Pool Resource No." = "No.";
+                    "Is External" := false;
                     if not "is Pool" then begin
                         Res.Get("Pool Resource No.");
-                        "External Resource" := Res."Vendor No." <> '';
+                        "Is Pool Member" := Res."Vendor No." <> '';
+                        "Vendor No." := '';
                     end;
                 end;
             end;
@@ -44,10 +58,17 @@ tableextension 50603 "Resource Opt" extends Resource
             FieldClass = FlowField;
             CalcFormula = Count("Resource Skill" where("No." = field("No."), type = const(Resource)));
         }
-        field(50603; "External Resource"; Boolean)
+        field(50603; "Is Pool Member"; Boolean)
         {
             DataClassification = ToBeClassified;
+            Caption = 'Is Pool Member';
             Editable = false; // Control by "Pool Resource No.";
+        }
+        field(50604; "Is External"; Boolean)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Is External';
+            Editable = false; // Control by "Vendor No.";
         }
         field(50610; "Assigned Hours"; Decimal)
         {
@@ -72,19 +93,33 @@ tableextension 50603 "Resource Opt" extends Resource
             trigger OnValidate()
             var
                 Res: Record Resource;
+                Res2: Record Resource;
             begin
                 if "Is Pool" then begin
                     testfield("Vendor No.");
                     "Pool Resource No." := "No.";
-                    "External Resource" := true;
+                    "Is Pool Member" := false;
+                    "Is External" := false;
                 end else begin
                     "Pool Resource No." := '';
-                    if (xRec."Pool Resource No." <> '') and (xRec."Pool Resource No." = "No.") then begin
-                        Res.SetRange("Pool Resource No.", "No.");
-                        Res.SetFilter("No.", '<>%1', "No.");
-                        if Res.FindSet() then
-                            Res.ModifyAll("Pool Resource No.", '');
+                    if (xRec."Pool Resource No." <> '') then begin
+                        if xRec."Pool Resource No." = "No." then begin
+                            Rec."Is Pool Member" := false;
+                            Res.SetRange("Pool Resource No.", "No.");
+                            Res.SetFilter("No.", '<>%1', "No.");
+                            if Res.FindSet() then
+                                repeat
+                                    Res2 := Res;
+                                    Res2."Pool Resource No." := '';
+                                    Res2."Is Pool Member" := false;
+                                    if Res2."Vendor No." <> '' then
+                                        Res2."Is External" := true;
+                                    Res2.Modify();
+                                until Res.Next() = 0;
+                        end;
                     end;
+                    if Rec."Vendor No." <> '' then
+                        Rec."Is External" := true;
                 end;
             end;
         }

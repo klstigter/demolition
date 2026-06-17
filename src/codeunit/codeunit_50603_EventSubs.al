@@ -74,17 +74,17 @@ codeunit 50603 "EventSubs"
     local procedure Table_Resource_OnAfterValidateEvent(var Rec: Record Resource; xRec: Record Resource; CurrFieldNo: Integer)
     var
         Res: Record Resource;
-        Extrnl: Boolean;
+        IsExternal: Boolean;
     begin
-        Extrnl := Rec."Vendor No." <> '';
-        Rec."External Resource" := Extrnl;
+        IsExternal := (Rec."Vendor No." <> '') and (Rec."Pool Resource No." = '');
+        Rec."Is External" := IsExternal;
         Rec.Modify();
         // update "External Resource" = true for all member if this resource is a pool
         if Rec."No." = Rec."Pool Resource No." then begin
             Res.SetRange("Pool Resource No.", Rec."No.");
             Res.SetFilter("No.", '<>%1', Rec."No.");
             if Res.FindSet() then
-                Res.ModifyAll("External Resource", Extrnl);
+                Res.ModifyAll("Is Pool Member", true);
         end;
     end;
 }
