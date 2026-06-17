@@ -133,7 +133,7 @@ page 50662 "Workorder Card"
                 Promoted = true;
                 PromotedIsBig = true;
                 PromotedCategory = Process;
-                Caption = 'Day plannings creation';
+                Caption = 'Day plannings pattern';
                 Image = HumanResources;
                 ShortCutKey = 'Alt+D';
                 ToolTip = 'View or edit dimensions, such as area, project, or department, that you can assign to sales and purchase documents to distribute costs and analyze transaction history.';
@@ -184,25 +184,6 @@ page 50662 "Workorder Card"
                     Gantt.RunModal();
                 end;
 
-            }
-            action("Fixed Units Rules")
-            {
-                ApplicationArea = All;
-                Image = Resource;
-                Caption = 'Fixed Units Rules';
-                Promoted = true;
-                PromotedIsBig = true;
-                PromotedCategory = Process;
-                trigger OnAction()
-                var
-                    FixedUnitsRulesPage: Page "Fixed Units Rules";
-                    FixedUnitsRulesRec: Record "Fixed Units Rules";
-                begin
-                    FixedUnitsRulesRec.setrange("Source Type", FixedUnitsRulesRec."Source Type"::WorkOrder);
-                    FixedUnitsRulesRec.SetRange("No.", Rec."Work Order No.");
-                    FixedUnitsRulesPage.SetTableView(FixedUnitsRulesRec);
-                    FixedUnitsRulesPage.RunModal();
-                end;
             }
         }
     }

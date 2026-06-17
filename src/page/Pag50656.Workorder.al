@@ -130,22 +130,6 @@ page 50656 "Work Order Sub"
                     pg.RunModal();
                 end;
             }
-            action("Fixed Units Rules")
-            {
-                ApplicationArea = All;
-                Image = Resource;
-                Caption = 'Fixed Units Rules';
-                trigger OnAction()
-                var
-                    FixedUnitsRulesPage: Page "Fixed Units Rules";
-                    FixedUnitsRulesRec: Record "Fixed Units Rules";
-                begin
-                    FixedUnitsRulesRec.setrange("Source Type", FixedUnitsRulesRec."Source Type"::WorkOrder);
-                    FixedUnitsRulesRec.SetRange("No.", Rec."Work Order No.");
-                    FixedUnitsRulesPage.SetTableView(FixedUnitsRulesRec);
-                    FixedUnitsRulesPage.RunModal();
-                end;
-            }
         }
     }
 
