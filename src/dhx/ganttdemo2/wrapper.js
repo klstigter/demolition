@@ -589,9 +589,9 @@ window.BOOT = function() {
         { label: "Summary",              icon: "&#x1F4C4;", cls: "ctx-show-summary" },
         { label: "Show Job Resources",   icon: "&#x1F465;", cls: "ctx-show-resources" },
         { sep: true },
-        { label: "Open Task",            icon: "&#x1F4CB;", cls: "ctx-open-task" },
-        { label: "Open DayPlanning",         icon: "&#x1F4C5;", cls: "ctx-open-DayPlanning" },
-        { label: "Open DayPlanning Visual",  icon: "&#x1F4C5;", cls: "ctx-open-DayPlanningvisual" },
+        { label: "Show Task",            icon: "&#x1F4CB;", cls: "ctx-open-task" },
+        { label: "Show DayPlanning",         icon: "&#x1F4C5;", cls: "ctx-open-DayPlanning" },
+        { label: "Show DayPlanning Visual",  icon: "&#x1F4C5;", cls: "ctx-open-DayPlanningvisual" },
         { sep: true },
         { label: "Cancel",               icon: "&#x2715;",  cls: "ctx-cancel" }
       ];
@@ -773,6 +773,28 @@ window.BOOT = function() {
       if (!id) return false; // no task clicked — let browser default
       e.preventDefault();
       _showContextMenu(e.clientX, e.clientY, id);
+      return true;
+    });
+
+    // -------- TASK BAR LEFT-CLICK → Show Job Resources --------
+    gantt.attachEvent("onTaskClick", function(id, e) {
+      if (_dragInProgress) return true; // ignore click that settles after a drag
+
+      var el = e.target;
+      // Ignore clicks on the progress drag handle
+      if (el && el.classList && el.classList.contains("gantt_task_progress_drag")) return true;
+
+      // Walk up from the click target to see if it lands on a task bar (.gantt_task_line)
+      var onBar = false;
+      while (el) {
+        if (el.classList && el.classList.contains("gantt_task_line")) { onBar = true; break; }
+        // Stop if we reach the grid side — that's a row click, not a bar click
+        if (el.classList && (el.classList.contains("gantt_grid_data") || el.classList.contains("gantt_grid"))) break;
+        el = el.parentElement;
+      }
+      if (!onBar) return true;
+
+      _ctxShowResources(id);
       return true;
     });
 
