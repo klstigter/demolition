@@ -37,7 +37,11 @@ page 50606 "DayPlanningApi Opt"
                 {
                     Caption = 'Task No.';
                 }
-                field(no_; Rec."Assigned Resource No.")
+                field(requestedResourceNo; Rec."Requested Resource No.")
+                {
+                    Caption = 'No.';
+                }
+                field(assignedResourceNo; Rec."Assigned Resource No.")
                 {
                     Caption = 'No.';
                 }
@@ -49,6 +53,14 @@ page 50606 "DayPlanningApi Opt"
                 {
                     ApplicationArea = All;
                 }
+                field(startTimeRequested; Rec."Start Time Requested")
+                {
+                    Caption = 'Start Time Assigned';
+                }
+                field(endTimeRequested; Rec."End Time Requested")
+                {
+                    Caption = 'End Time Assigned';
+                }
                 field(startTimeAssigned; Rec."Start Time Assigned")
                 {
                     Caption = 'Start Time Assigned';
@@ -57,11 +69,11 @@ page 50606 "DayPlanningApi Opt"
                 {
                     Caption = 'End Time Assigned';
                 }
-                field(assignedHours; Rec."Assigned Hours")
+                field(requestedHours; Rec."Requested Hours")
                 {
                     ApplicationArea = All;
                 }
-                field(requestedHours; Rec."Requested Hours")
+                field(assignedHours; Rec."Assigned Hours")
                 {
                     ApplicationArea = All;
                 }
