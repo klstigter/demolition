@@ -53,11 +53,11 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
                 {
                     ApplicationArea = All;
                 }
-                field("Team Leader"; Rec."Team Leader")
+                field("Default Foreman"; Rec."Default Foreman")
                 {
                     ApplicationArea = All;
                 }
-                field("Team Leader Name"; Rec."Team Leader Name")
+                field("Default Foreman Name"; Rec."Default Foreman Name")
                 {
                     ApplicationArea = All;
                 }

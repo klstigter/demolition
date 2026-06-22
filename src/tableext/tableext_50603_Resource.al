@@ -79,6 +79,15 @@ tableextension 50603 "Resource Opt" extends Resource
             FieldClass = FlowField;
             Editable = false;
         }
+        field(50611; "Requested Hours"; Decimal)
+        {
+            CalcFormula = sum("Day Planning"."Requested Hours" where("Requested Resource No." = field("No."),
+                                                                     "Task Date" = field("Date Filter")));
+            Caption = 'Requested';
+            DecimalPlaces = 0 : 5;
+            FieldClass = FlowField;
+            Editable = false;
+        }
         field(50620; "Mandatory Schedulling"; Boolean)
         {
             DataClassification = ToBeClassified;
@@ -123,16 +132,17 @@ tableextension 50603 "Resource Opt" extends Resource
                 end;
             end;
         }
-        field(50630; "Team Leader"; Code[20])
+        field(50630; "Default Foreman"; Code[20])
         {
+            Caption = 'Default Foreman';
             DataClassification = ToBeClassified;
-            tablerelation = Resource;
+            tablerelation = Resource where("Is Foreman" = const(true));
         }
-        field(50631; "Team Leader Name"; Text[100])
+        field(50631; "Default Foreman Name"; Text[100])
         {
-            Caption = 'Team Leader Name';
+            Caption = 'Default Foreman Name';
             FieldClass = FlowField;
-            CalcFormula = Lookup(Resource.Name Where("No." = field("Team Leader")));
+            CalcFormula = Lookup(Resource.Name Where("No." = field("Default Foreman")));
             Editable = false;
         }
         field(50640; "Work Hour Template"; Code[20])
