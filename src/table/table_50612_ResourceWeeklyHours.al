@@ -302,160 +302,95 @@ table 50612 "Summary Weekly"
 
     Local procedure FillSummary(var DayPlanning: Record "Day Planning")
     var
-        //TempWeekList: Record "Summary Weekly" temporary;
         DayIndex: Integer;
         YearValue: Integer;
         WeekNoValue: Integer;
-        i, n : integer;
-        DoInsert: Boolean;
         TaskDate: Date;
         WorkOrder: Record "Work Order";
     begin
-        // Clear existing records
         Reset();
         DeleteAll();
 
-        // Find all Day Plannings for this Resource/Job/Task
         DayPlanning.Reset();
         if not DayPlanning.FindSet() then
             exit;
 
-        // Group by week and distribute hours to weekdays
+        // Two independent passes per record:
+        //   Pass A – Requested Hours credited to the Requested Resource row.
+        //   Pass B – Assigned Hours credited to the Assigned Resource row.
+        // Rows are the union of all Requested and Assigned resource values.
         repeat
             TaskDate := DayPlanning."Task Date";
-            if TaskDate = 0D Then Begin
+            if TaskDate = 0D then begin
                 if WorkOrder.Get(DayPlanning."Work Order No.") then
                     TaskDate := WorkOrder."Placeholder Date";
-            End;
+            end;
             if TaskDate = 0D then
                 continue;
 
             YearValue := Date2DWY(TaskDate, 3);
             WeekNoValue := Date2DWY(TaskDate, 2);
             DayIndex := GetDayOfWeekIndex(TaskDate);
-            //if (DayPlanning."Requested Hours" > DayPlanning."Assigned Hours") and (DayPlanning."Assigned Hours" <> 0) then
-            //    n := 2
-            //else
-            n := 1;
 
-            for i := 1 to n do begin
-                if i = 2 then
-                    DoInsert := Not rec.Get('', DayPlanning."Skill", DayPlanning."Job No.", DayPlanning."Job Task No.", YearValue, WeekNoValue)
-                else
-                    DoInsert := not rec.Get(DayPlanning."Assigned Resource No.", DayPlanning."Skill", DayPlanning."Job No.", DayPlanning."Job Task No.", YearValue, WeekNoValue);
-                if DoInsert then begin
-                    // Create new week record
-                    rec.Init();
-                    if i = 1 then
-                        rec."Resource No." := DayPlanning."Assigned Resource No."
-                    else
-                        rec."Resource No." := '';
-                    rec."Skill Code" := DayPlanning."Skill";
-                    rec."Job No." := DayPlanning."Job No.";
-                    rec."Job Task No." := DayPlanning."Job Task No.";
-                    rec."Week No." := WeekNoValue;
-                    rec.Year := YearValue;
-
-                    rec."Total Week Hours" := GetHours(DayIndex, DayPlanning, rec);
-                    rec.Insert();
-                end else begin
-                    // Update existing week record
-                    rec."Total Week Hours" += GetHours(DayIndex, DayPlanning, rec);
-                    rec.Modify();
-                end;
+            // Pass A: Requested Hours → Requested Resource row
+            if not rec.Get(DayPlanning."Requested Resource No.", DayPlanning."Skill", DayPlanning."Job No.", DayPlanning."Job Task No.", YearValue, WeekNoValue) then begin
+                rec.Init();
+                rec."Resource No." := DayPlanning."Requested Resource No.";
+                rec."Skill Code" := DayPlanning."Skill";
+                rec."Job No." := DayPlanning."Job No.";
+                rec."Job Task No." := DayPlanning."Job Task No.";
+                rec."Week No." := WeekNoValue;
+                rec.Year := YearValue;
+                rec.Insert();
             end;
+            AddReqHours(DayIndex, DayPlanning."Requested Hours");
+            rec.Modify();
+
+            // Pass B: Assigned Hours → Assigned Resource row
+            if not rec.Get(DayPlanning."Assigned Resource No.", DayPlanning."Skill", DayPlanning."Job No.", DayPlanning."Job Task No.", YearValue, WeekNoValue) then begin
+                rec.Init();
+                rec."Resource No." := DayPlanning."Assigned Resource No.";
+                rec."Skill Code" := DayPlanning."Skill";
+                rec."Job No." := DayPlanning."Job No.";
+                rec."Job Task No." := DayPlanning."Job Task No.";
+                rec."Week No." := WeekNoValue;
+                rec.Year := YearValue;
+                rec.Insert();
+            end;
+            AddAssHours(DayIndex, DayPlanning."Assigned Hours");
+            rec.Modify();
 
         until DayPlanning.Next() = 0;
-        n := TempDayPlanning.Count;
-        // // Copy from temp to Rec
-        // TempWeekList.Reset();
-        // if TempWeekList.FindSet() then
-        //     repeat
-        //         Rec := TempWeekList;
-        //         Insert();
-        //     until TempWeekList.Next() = 0;
     end;
 
-    Local Procedure GetHours(DayIndex: Integer; DayPlanning: Record "Day Planning"; var TempWeekList: Record "Summary Weekly") Hours: Integer
+    local procedure AddReqHours(DayIndex: Integer; Hours: Decimal)
     begin
         case DayIndex of
-            1:
-                begin
-                    TempWeekList."Monday Requested Hours" += DayPlanning."Requested Hours";
-                    TempWeekList."Monday Assigned Hours" += DayPlanning."Assigned Hours";
-                end;
-            2:
-                begin
-                    TempWeekList."Tuesday Requested Hours" += DayPlanning."Requested Hours";
-                    TempWeekList."Tuesday Assigned Hours" += DayPlanning."Assigned Hours";
-                end;
-            3:
-                begin
-                    TempWeekList."Wednesday Requested Hours" += DayPlanning."Requested Hours";
-                    TempWeekList."Wednesday Assigned Hours" += DayPlanning."Assigned Hours";
-                end;
-            4:
-                begin
-                    TempWeekList."Thursday Requested Hours" += DayPlanning."Requested Hours";
-                    TempWeekList."Thursday Assigned Hours" += DayPlanning."Assigned Hours";
-                end;
-            5:
-                begin
-                    TempWeekList."Friday Requested Hours" += DayPlanning."Requested Hours";
-                    TempWeekList."Friday Assigned Hours" += DayPlanning."Assigned Hours";
-                end;
-            6:
-                begin
-                    TempWeekList."Saturday Requested Hours" += DayPlanning."Requested Hours";
-                    TempWeekList."Saturday Assigned Hours" += DayPlanning."Assigned Hours";
-                end;
-            7:
-                begin
-                    TempWeekList."Sunday Requested Hours" += DayPlanning."Requested Hours";
-                    TempWeekList."Sunday Assigned Hours" += DayPlanning."Assigned Hours";
-                end;
+            1: begin rec."Monday Requested Hours" += Hours; rec."Monday Hours" += Hours; end;
+            2: begin rec."Tuesday Requested Hours" += Hours; rec."Tuesday Hours" += Hours; end;
+            3: begin rec."Wednesday Requested Hours" += Hours; rec."Wednesday Hours" += Hours; end;
+            4: begin rec."Thursday Requested Hours" += Hours; rec."Thursday Hours" += Hours; end;
+            5: begin rec."Friday Requested Hours" += Hours; rec."Friday Hours" += Hours; end;
+            6: begin rec."Saturday Requested Hours" += Hours; rec."Saturday Hours" += Hours; end;
+            7: begin rec."Sunday Requested Hours" += Hours; rec."Sunday Hours" += Hours; end;
         end;
-        TempWeekList."Total Requested Hours" += DayPlanning."Requested Hours";
-        TempWeekList."Total Assigned Hours" += DayPlanning."Assigned Hours";
+        rec."Total Requested Hours" += Hours;
+        rec."Total Week Hours" += Hours;
+    end;
 
-        if (TempWeekList."Resource No." = '') then begin
-            case DayIndex of
-                1:
-                    TempWeekList."Monday Hours" += DayPlanning."Requested Hours";
-                2:
-                    TempWeekList."Tuesday Hours" += DayPlanning."Requested Hours";
-                3:
-                    TempWeekList."Wednesday Hours" += DayPlanning."Requested Hours";
-                4:
-                    TempWeekList."Thursday Hours" += DayPlanning."Requested Hours";
-                5:
-                    TempWeekList."Friday Hours" += DayPlanning."Requested Hours";
-                6:
-                    TempWeekList."Saturday Hours" += DayPlanning."Requested Hours";
-                7:
-                    TempWeekList."Sunday Hours" += DayPlanning."Requested Hours";
-            end;
-            exit(DayPlanning."Requested Hours");
-        end else begin
-            case DayIndex of
-                1:
-                    TempWeekList."Monday Hours" += DayPlanning."Assigned Hours";
-                2:
-                    TempWeekList."Tuesday Hours" += DayPlanning."Assigned Hours";
-                3:
-                    TempWeekList."Wednesday Hours" += DayPlanning."Assigned Hours";
-                4:
-                    TempWeekList."Thursday Hours" += DayPlanning."Assigned Hours";
-                5:
-                    TempWeekList."Friday Hours" += DayPlanning."Assigned Hours";
-                6:
-                    TempWeekList."Saturday Hours" += DayPlanning."Assigned Hours";
-                7:
-                    TempWeekList."Sunday Hours" += DayPlanning."Assigned Hours";
-            end;
-            exit(DayPlanning."Assigned Hours");
+    local procedure AddAssHours(DayIndex: Integer; Hours: Decimal)
+    begin
+        case DayIndex of
+            1: rec."Monday Assigned Hours" += Hours;
+            2: rec."Tuesday Assigned Hours" += Hours;
+            3: rec."Wednesday Assigned Hours" += Hours;
+            4: rec."Thursday Assigned Hours" += Hours;
+            5: rec."Friday Assigned Hours" += Hours;
+            6: rec."Saturday Assigned Hours" += Hours;
+            7: rec."Sunday Assigned Hours" += Hours;
         end;
-
+        rec."Total Assigned Hours" += Hours;
+        rec."Total Week Hours" += Hours;
     end;
     #endregion
     var
@@ -544,6 +479,7 @@ table 50612 "Summary Weekly"
                     TryInsertTempTask(TempDayPlanning."Job No.", TempDayPlanning."Job Task No.");
                 end;
                 TryInsertTempResource(TempDayPlanning."Assigned Resource No.");
+                TryInsertTempResource(TempDayPlanning."Requested Resource No.");
                 if (SkillOld <> TempDayPlanning."Skill") then begin
                     SkillOld := TempDayPlanning."Skill";
                     TryInsertTempSkill(TempDayPlanning."Skill");
