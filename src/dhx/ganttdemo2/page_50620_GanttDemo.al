@@ -270,7 +270,8 @@ page 50620 "Gantt Demo DHX 2"
                         DayPlanning.SetRange("Assigned Resource No.", tp[2]);
                     if tp[1] = 'VEN-' then
                         DayPlanning.SetRange("Vendor No.", tp[2]);
-                    Page.Run(Page::"Day Plannings", DayPlanning);
+                    Page.RunModal(Page::"Day Plannings", DayPlanning);
+                    RefreshGantt();
                 end;
 
                 trigger OnLinkCreated(linkData: Text)
@@ -317,7 +318,7 @@ page 50620 "Gantt Demo DHX 2"
                     else
                         if Prefix = 'VEN-' then
                             DayPlanning.Validate("Vendor No.", ResourceCode);
-                    DayPlanning."Plan Status" := DayPlanning."Plan Status"::Inprogress;
+                    DayPlanning."Plan Status" := DayPlanning."Plan Status"::"In Request";
                     if OptiSetup."Work hour Template" <> '' then begin
                         WorkHourTemplate.Get(OptiSetup."Work hour Template");
                         DayPlanning."Non Working Minutes" := WorkHourTemplate."Non Working Minutes";
@@ -349,11 +350,19 @@ page 50620 "Gantt Demo DHX 2"
                         DayPlanning.TestField("Job No.");
                         DayPlanning.TestField("Job Task No.");
                         DayPlanning.TestField("Task Date");
+
+                        if DayPlanning."Plan Status" = DayPlanning."Plan Status"::"In Progress" then begin
+                            DayPlanning.TestField("Assigned Resource No.");
+                            DayPlanning.TestField("Assigned Hours");
+                            DayPlanning.TestField("Start Time Assigned");
+                            DayPlanning.TestField("End Time Assigned");
+                        end;
+
                         DayPlanning.CheckDayPlanningDateInProjectTaskRange();
                         DayPlanning.GetNextDayLineNo();
                         DayPlanning.Insert(true);
-                        RefreshGantt();
                     end;
+                    RefreshGantt();
                 end;
 
                 trigger onOpenResourceScheduler(resourceId: Text)

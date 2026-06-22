@@ -32,7 +32,7 @@ report 50600 "RepairData"
                 DayPlanning.Setfilter("Task Date", '<>%1', 0D);
                 if DayPlanning.FindSet() then
                     repeat
-                        DayPlanning."Plan Status" := DayPlanning."Plan Status"::Inprogress;
+                        DayPlanning."Plan Status" := DayPlanning."Plan Status"::"In Progress";
                         DayPlanning.Modify(true);
                         n += 1;
                     until DayPlanning.Next() = 0;

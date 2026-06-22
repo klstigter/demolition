@@ -236,8 +236,13 @@ codeunit 50613 "GanttChartDataHandler"
                         DayPlanning.SetFilter("Task Date", '<=%1', ToDate);
             if DayPlanning.FindSet() then
                 repeat
-                    if (DayPlanning."Assigned Resource No." <> '') and (not ResourceNos.Contains(DayPlanning."Assigned Resource No.")) then
-                        ResourceNos.Add(DayPlanning."Assigned Resource No.");
+                    if DayPlanning."Plan Status" = DayPlanning."Plan Status"::"In Request" then begin
+                        if (DayPlanning."Requested Resource No." <> '') and (not ResourceNos.Contains(DayPlanning."Requested Resource No.")) then
+                            ResourceNos.Add(DayPlanning."Requested Resource No.");
+                    end else begin
+                        if (DayPlanning."Assigned Resource No." <> '') and (not ResourceNos.Contains(DayPlanning."Assigned Resource No.")) then
+                            ResourceNos.Add(DayPlanning."Assigned Resource No.");
+                    end;
                 until DayPlanning.Next() = 0;
         until JobTask.Next() = 0;
 
@@ -386,7 +391,7 @@ codeunit 50613 "GanttChartDataHandler"
             DayPlanning.SetRange("Job No.", JobNo);
         if JobTaskNo <> '' then
             DayPlanning.SetRange("Job Task No.", JobTaskNo);
-        DayPlanning.SetRange("Plan Status", DayPlanning."Plan Status"::Inrequest);
+        DayPlanning.SetRange("Plan Status", DayPlanning."Plan Status"::"In Request");
         DayPlanning.SetRange("Task Date", 0D);
         DayPlanning.SetFilter("Work Order No.", '<>%1', '');
         if DayPlanning.FindSet() then
@@ -450,9 +455,9 @@ codeunit 50613 "GanttChartDataHandler"
 
         // Plan status
         case DayPlanning."Plan Status" of
-            DayPlanning."Plan Status"::Inrequest:
+            DayPlanning."Plan Status"::"In Request":
                 PlanStatusText := 'Request';
-            DayPlanning."Plan Status"::Inprogress:
+            DayPlanning."Plan Status"::"In Progress":
                 PlanStatusText := 'Planned';
             DayPlanning."Plan Status"::Rejected:
                 PlanStatusText := 'Rejected';
@@ -514,10 +519,17 @@ codeunit 50613 "GanttChartDataHandler"
 
     local procedure GetResourceId(DayPlanning: Record "Day Planning") ResourceId: Text
     begin
-        if DayPlanning."Assigned Resource No." <> '' then begin
-            ResourceId := 'RES-' + DayPlanning."Assigned Resource No.";
-        end else
-            ResourceId := 'RES-'; //UNASSIGNED
+        if DayPlanning."Plan Status" = DayPlanning."Plan Status"::"In Request" then begin
+            if DayPlanning."Requested Resource No." <> '' then
+                ResourceId := 'RES-' + DayPlanning."Requested Resource No."
+            else
+                ResourceId := 'RES-'; //UNASSIGNED
+        end else begin
+            if DayPlanning."Assigned Resource No." <> '' then
+                ResourceId := 'RES-' + DayPlanning."Assigned Resource No."
+            else
+                ResourceId := 'RES-'; //UNASSIGNED
+        end;
     end;
 
     local procedure GetDayPlanningTypeText(DayPlanningType: Enum "Job Planning Line Type") TypeText: Text
