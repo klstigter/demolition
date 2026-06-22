@@ -135,6 +135,54 @@ page 50638 "Resource Week View Part"
     {
         area(Processing)
         {
+            action(PreviousWeek)
+            {
+                ApplicationArea = All;
+                Caption = 'Previous';
+                Image = PreviousRecord;
+                ToolTip = 'Go to the previous week.';
+
+                trigger OnAction()
+                var
+                    WeekStart: Date;
+                begin
+                    WeekStart := CalcDate('<-1W>', DWY2Date(1, CurrentWeekNo, CurrentYear));
+                    CurrentWeekNo := Date2DWY(WeekStart, 2);
+                    CurrentYear := Date2DWY(WeekStart, 3);
+                    ApplyWeekFilter();
+                end;
+            }
+            action(TodayWeek)
+            {
+                ApplicationArea = All;
+                Caption = 'Today';
+                Image = Calendar;
+                ToolTip = 'Go to the current week.';
+
+                trigger OnAction()
+                begin
+                    CurrentWeekNo := Date2DWY(Today(), 2);
+                    CurrentYear := Date2DWY(Today(), 3);
+                    ApplyWeekFilter();
+                end;
+            }
+            action(NextWeek)
+            {
+                ApplicationArea = All;
+                Caption = 'Next';
+                Image = NextRecord;
+                ToolTip = 'Go to the next week.';
+
+                trigger OnAction()
+                var
+                    WeekStart: Date;
+                begin
+                    WeekStart := CalcDate('<+1W>', DWY2Date(1, CurrentWeekNo, CurrentYear));
+                    CurrentWeekNo := Date2DWY(WeekStart, 2);
+                    CurrentYear := Date2DWY(WeekStart, 3);
+                    ApplyWeekFilter();
+                end;
+            }
             action(ShowDayPlannings)
             {
                 ApplicationArea = All;
@@ -231,54 +279,6 @@ page 50638 "Resource Week View Part"
                 trigger OnAction()
                 begin
                     LoadData();
-                end;
-            }
-            action(PreviousWeek)
-            {
-                ApplicationArea = All;
-                Caption = 'Previous';
-                Image = PreviousRecord;
-                ToolTip = 'Go to the previous week.';
-
-                trigger OnAction()
-                var
-                    WeekStart: Date;
-                begin
-                    WeekStart := CalcDate('<-1W>', DWY2Date(1, CurrentWeekNo, CurrentYear));
-                    CurrentWeekNo := Date2DWY(WeekStart, 2);
-                    CurrentYear := Date2DWY(WeekStart, 3);
-                    ApplyWeekFilter();
-                end;
-            }
-            action(TodayWeek)
-            {
-                ApplicationArea = All;
-                Caption = 'Today';
-                Image = Calendar;
-                ToolTip = 'Go to the current week.';
-
-                trigger OnAction()
-                begin
-                    CurrentWeekNo := Date2DWY(Today(), 2);
-                    CurrentYear := Date2DWY(Today(), 3);
-                    ApplyWeekFilter();
-                end;
-            }
-            action(NextWeek)
-            {
-                ApplicationArea = All;
-                Caption = 'Next';
-                Image = NextRecord;
-                ToolTip = 'Go to the next week.';
-
-                trigger OnAction()
-                var
-                    WeekStart: Date;
-                begin
-                    WeekStart := CalcDate('<+1W>', DWY2Date(1, CurrentWeekNo, CurrentYear));
-                    CurrentWeekNo := Date2DWY(WeekStart, 2);
-                    CurrentYear := Date2DWY(WeekStart, 3);
-                    ApplyWeekFilter();
                 end;
             }
         }

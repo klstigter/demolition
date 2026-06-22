@@ -131,19 +131,17 @@ page 50601 "Opti Resource List"
 
 
                     }
+                    field("Requested Hours"; Rec."Requested Hours")
+                    {
+                        ApplicationArea = Jobs;
+                        Caption = 'Requested';
+
+                    }
                     field("Day Plannings"; Rec."Assigned Hours")
                     {
                         ApplicationArea = Jobs;
-                        Caption = 'Day Plannings';
+                        Caption = 'Assigned';
 
-
-                    }
-                    field("Resource Group No."; Rec."Resource Group No.")
-                    {
-                        ApplicationArea = Jobs;
-                        ToolTip = 'Specifies the resource group that this resource is assigned to.';
-                        Visible = true;
-                        StyleExpr = Stylexp;
 
                     }
                     field(Skills; Rec.Skills)
@@ -185,11 +183,19 @@ page 50601 "Opti Resource List"
                         StyleExpr = Stylexp;
 
                     }
-                    field("Team Leader"; Rec."Team Leader")
+                    field("Default Foreman"; Rec."Default Foreman")
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Specifies the team leader responsible for the resource.';
                         Visible = false;
+                        StyleExpr = Stylexp;
+
+                    }
+                    field("Resource Group No."; Rec."Resource Group No.")
+                    {
+                        ApplicationArea = Jobs;
+                        ToolTip = 'Specifies the resource group that this resource is assigned to.';
+                        Visible = true;
                         StyleExpr = Stylexp;
 
                     }
