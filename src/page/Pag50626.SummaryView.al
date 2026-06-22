@@ -63,6 +63,11 @@ page 50626 "Summary View"
                         CalcFilters();
                     end;
                 }
+                field(ShowRequested; ShowRequested)
+                {
+                    Caption = 'Drilldown on Requested';
+                    ToolTip = 'Off (default): drilldown filters by Assigned Resource. On: drilldown filters by Requested Resource. Summary numbers are unaffected.';
+                }
                 field(ShowYear; ShowYear)
                 {
                     ToolTip = 'Set the Year field visible or not. Visible by default.';
@@ -437,6 +442,7 @@ page 50626 "Summary View"
         ShowYear: Boolean;
         ShowWeekNo: Boolean;
         ShowPlanStatus: Boolean;
+        ShowRequested: Boolean;
         StyleStr: Text;
         TotalText: Text;
         MondayText: Text;
@@ -546,7 +552,6 @@ page 50626 "Summary View"
         Temp: Record "Summary Weekly" temporary;
         TempCopy: Record "Summary Weekly" temporary;
     begin
-
         rec.LoadSummary();
 
         if ShowResource and ShowSkillCode and ShowJob and ShowJobTask and ShowYear and ShowWeekNo then
@@ -635,7 +640,10 @@ page 50626 "Summary View"
         if ShowJobTask then
             Rc.SetRange("Job Task No.", Rec."Job Task No.");
         if ShowResource then
-            rc.SetRange("Assigned Resource No.", Rec."Resource No.");
+            if ShowRequested then
+                rc.SetRange("Requested Resource No.", Rec."Resource No.")
+            else
+                rc.SetRange("Assigned Resource No.", Rec."Resource No.");
         if ShowSkillCode then
             rc.SetRange("Skill", Rec."Skill Code");
         //if SHowPlanStatus then
