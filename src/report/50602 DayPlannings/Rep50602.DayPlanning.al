@@ -8,7 +8,7 @@ report 50602 DayPlanning
     {
         dataitem(DayPlanning; "Day Planning")
         {
-            dataitemtableview = sorting("Job No.", "Job Task No.", "Task Date") where("plan status" = const(Inprogress));
+            dataitemtableview = sorting("Job No.", "Job Task No.", "Task Date") where("plan status" = const("In Progress"));
 
             column(JobNo; JobDescription)
             {

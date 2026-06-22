@@ -389,7 +389,7 @@ page 50630 "Day Plannings"
         DayNo: Integer;
     begin
         rec."Day Line No." := rec.GetNextDayLineNo(rec."Task Date", rec."Job No.", rec."Job Task No.");
-        if Rec."Plan Status" <> Rec."Plan Status"::Inrequest then
+        if Rec."Plan Status" <> Rec."Plan Status"::"In Request" then
             Rec.TestField("Assigned Resource No.");
         exit(true);
     end;
