@@ -52,6 +52,21 @@
             "breakOnNext": "WebClient",
             "breakOnError": "ExcludeTry",
             "tenant": "a60762e1-df10-4e4b-8f44-174c51589110"
+        },
+        {
+            "name": "AH - DEMO",
+            "request": "launch",
+            "type": "al",
+            "environmentType": "Sandbox",
+            "environmentName": "NL_Demo",
+            "tenant": "78685ea9-9ad1-4b8c-ab0a-329bef42667a",
+            "startupObjectId": 50617,
+            "startupObjectType": "Page",
+            "breakOnError": "All",
+            "launchBrowser": true,
+            "enableLongRunningSqlStatements": true,
+            "enableSqlInformationDebugger": true,
+            "schemaUpdateMode": "ForceSync"
         }
     ]
 }
