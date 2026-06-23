@@ -187,27 +187,6 @@ page 50612 "Planning Role Center"
                     ApplicationArea = All;
                     RunObject = page "Gantt Chart Setup";
                 }
-                action("Create Demo Data")
-                {
-                    Caption = 'Create Demo Data';
-                    Image = Setup;
-                    ApplicationArea = All;
-                    RunObject = codeunit "Create Demo Data";
-                }
-                action("Delete Demo Data")
-                {
-                    Caption = 'Delete Demo Data';
-                    Image = Delete;
-                    ApplicationArea = All;
-                    RunObject = codeunit "Delete Demo Data";
-                }
-                action("Demo Data Log")
-                {
-                    Caption = 'Demo Data Log';
-                    Image = Log;
-                    ApplicationArea = All;
-                    RunObject = page "Demo Data Log";
-                }
                 action("Resource Color")
                 {
                     Caption = 'Resource Color';
