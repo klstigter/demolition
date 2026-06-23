@@ -89,6 +89,48 @@ page 50654 "Daily Optimizer Setup"
                     end;
                 }
             }
+
+            group(DemoData)
+            {
+                Caption = 'Demo Data';
+
+                action(CreateDemoData)
+                {
+                    ApplicationArea = All;
+                    Caption = 'Create Demo Data';
+                    ToolTip = 'Delete existing demo data and recreate it fresh for all three demo jobs.';
+                    Image = Setup;
+
+                    trigger OnAction()
+                    begin
+                        CODEUNIT.Run(Codeunit::"Create Demo Data");
+                    end;
+                }
+                action(DeleteDemoData)
+                {
+                    ApplicationArea = All;
+                    Caption = 'Delete Demo Data';
+                    ToolTip = 'Delete only the records that were created by the demo data run. User-created data is not affected.';
+                    Image = Delete;
+
+                    trigger OnAction()
+                    begin
+                        CODEUNIT.Run(Codeunit::"Delete Demo Data");
+                    end;
+                }
+                action(DemoDataLog)
+                {
+                    ApplicationArea = All;
+                    Caption = 'Demo Data Log';
+                    ToolTip = 'View the log of all records created by the demo data run.';
+                    Image = Log;
+
+                    trigger OnAction()
+                    begin
+                        PAGE.Run(Page::"Demo Data Log");
+                    end;
+                }
+            }
         }
 
         area(Promoted)
@@ -99,6 +141,13 @@ page 50654 "Daily Optimizer Setup"
                 actionref(ResourceSchedulerColor_ref; ResourceSchedulerColor) { }
                 actionref(TaskColor_ref; TaskColor) { }
                 actionref(ProjectTaskTypeColor_ref; ProjectTaskTypeColor) { }
+            }
+            group(Category_DemoData)
+            {
+                Caption = 'Demo Data';
+                actionref(CreateDemoData_ref; CreateDemoData) { }
+                actionref(DeleteDemoData_ref; DeleteDemoData) { }
+                actionref(DemoDataLog_ref; DemoDataLog) { }
             }
         }
     }
