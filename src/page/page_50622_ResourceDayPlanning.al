@@ -60,14 +60,6 @@ page 50622 "Resource Day Plannings"
                 {
                     ApplicationArea = All;
                 }
-                field("Start Time Assigned"; Rec."Start Time Assigned")
-                {
-                    ApplicationArea = All;
-                }
-                field("End Time Assigned"; Rec."End Time Assigned")
-                {
-                    ApplicationArea = All;
-                }
                 field("Start Time Requested"; Rec."Start Time Requested")
                 {
                     ApplicationArea = All;
@@ -77,6 +69,22 @@ page 50622 "Resource Day Plannings"
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the end time for this day planning.';
+                }
+                field("Start Time Assigned"; Rec."Start Time Assigned")
+                {
+                    ApplicationArea = All;
+                }
+                field("End Time Assigned"; Rec."End Time Assigned")
+                {
+                    ApplicationArea = All;
+                }
+                field("Start Time Realized"; Rec."Start Time Realized")
+                {
+                    ApplicationArea = All;
+                }
+                field("End Time Realized"; Rec."End Time Realized")
+                {
+                    ApplicationArea = All;
                 }
                 field("Description"; Rec."Description")
                 {

@@ -105,17 +105,17 @@ page 50630 "Day Plannings"
                 {
                     ApplicationArea = All;
                 }
-                field("Assigned Resource No."; Rec."Assigned Resource No.")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the number of the assigned resource.';
-                    StyleExpr = StyleStr;
-                    Visible = ShowResource;
-                }
                 field("Requested Resource No."; Rec."Requested Resource No.")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the number of the requested resource.';
+                    StyleExpr = StyleStr;
+                    Visible = ShowResource;
+                }
+                field("Assigned Resource No."; Rec."Assigned Resource No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the number of the assigned resource.';
                     StyleExpr = StyleStr;
                     Visible = ShowResource;
                 }
@@ -126,10 +126,24 @@ page 50630 "Day Plannings"
                     StyleExpr = StyleStr;
                     Visible = ShowSkill;
                 }
+                field("Requested Hours"; Rec."Requested Hours")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the number of requested hours for this day task, calculated automatically based on start and end times.';
+                    Editable = false;
+                    StyleExpr = StyleStr;
+                }
                 field("Assigned Hours"; Rec."Assigned Hours")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the number of requested hours for this day task, calculated automatically based on start and end times.';
+                    Editable = true;
+                    StyleExpr = StyleStr;
+                }
+                field("Realized Hours"; Rec."Realized Hours")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the number of realized hours for this day task, calculated automatically based on start and end times.';
                     Editable = true;
                     StyleExpr = StyleStr;
                 }
@@ -161,13 +175,6 @@ page 50630 "Day Plannings"
                     begin
                         OpenSalesInvoice(Rec."Invoice No.");
                     end;
-                }
-                field("Requested Hours"; Rec."Requested Hours")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the number of requested hours for this day task, calculated automatically based on start and end times.';
-                    Editable = false;
-                    StyleExpr = StyleStr;
                 }
                 field("Total Assigned Hours"; TotAssignedHours)
                 {
@@ -203,6 +210,18 @@ page 50630 "Day Plannings"
                     StyleExpr = StyleStr;
                     Visible = false;
                 }
+                field("Start Time Requested"; Rec."Start Time Requested")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the start time for this day task.';
+                    StyleExpr = StyleStr;
+                }
+                field("End Time Requested"; Rec."End Time Requested")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the end time for this day task.';
+                    StyleExpr = StyleStr;
+                }
                 field("Start Time Assigned"; Rec."Start Time Assigned")
                 {
                     ApplicationArea = All;
@@ -215,16 +234,16 @@ page 50630 "Day Plannings"
                     ToolTip = 'Specifies the end time for this day.';
                     StyleExpr = StyleStr;
                 }
-                field("Start Time Requested"; Rec."Start Time Requested")
+                field("Start Time Realized"; Rec."Start Time Realized")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the start time for this day task.';
+                    ToolTip = 'Specifies the start time for this day.';
                     StyleExpr = StyleStr;
                 }
-                field("End Time Requested"; Rec."End Time Requested")
+                field("End Time Realized"; Rec."End Time Realized")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the end time for this day task.';
+                    ToolTip = 'Specifies the end time for this day.';
                     StyleExpr = StyleStr;
                 }
                 field("Non Working Hours"; Rec."Non Working Minutes")

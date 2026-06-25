@@ -108,6 +108,21 @@ page 50669 "Day Planning Card - New Record"
                         ApplicationArea = All;
                     }
                 }
+                group(Realized)
+                {
+                    field("Realized Hours"; Rec."Realized Hours")
+                    {
+                        ApplicationArea = All;
+                    }
+                    field("Start Time Realized"; Rec."Start Time Realized")
+                    {
+                        ApplicationArea = All;
+                    }
+                    field("End Time Realized"; Rec."End Time Realized")
+                    {
+                        ApplicationArea = All;
+                    }
+                }
             }
         }
     }

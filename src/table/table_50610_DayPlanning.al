@@ -335,6 +335,35 @@ table 50610 "Day Planning"
 
         }
 
+        field(85; "Realized Hours"; Decimal)
+        {
+            DataClassification = CustomerContent;
+            Caption = 'Realized Hours';
+            DecimalPlaces = 0 : 2;
+            Editable = false;
+            BlankZero = true;
+        }
+        field(86; "Start Time Realized"; Time)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Start Time Realized';
+
+            trigger OnValidate()
+            begin
+                CalculateWorkingHours();
+            end;
+        }
+        field(87; "End Time Realized"; Time)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'End Time Realized';
+
+            trigger OnValidate()
+            begin
+                CalculateWorkingHours();
+            end;
+        }
+
         field(90; "Manual Modified"; Boolean)
         {
             DataClassification = ToBeClassified;
@@ -477,6 +506,23 @@ table 50610 "Day Planning"
     begin
         CalculateAssignedWorkingHours();
         CalculateRequestedWorkingHours();
+        CalculateRealizedWorkingHours();
+    end;
+
+    local procedure CalculateRealizedWorkingHours()
+    var
+        PlanningUtil: codeunit "General Planning Utilities";
+        WorkingMinutes: Integer;
+        RealizedHours: Decimal;
+    begin
+        // If either time is not set, clear both hours fields
+        if ("Start Time Realized" = 0T) or ("End Time Realized" = 0T) then begin
+            "Realized Hours" := 0;
+            exit;
+        end;
+
+        "Capacity Fully Utilized" := PlanningUtil.DayPlanningFulFillment(Rec, RealizedHours, Capacity);
+        "Assigned Hours" := RealizedHours;
     end;
 
     local procedure CalculateAssignedWorkingHours()
@@ -484,7 +530,6 @@ table 50610 "Day Planning"
         PlanningUtil: codeunit "General Planning Utilities";
         WorkingMinutes: Integer;
         AssignedHours: Decimal;
-        Capacity: Decimal;
     begin
         // If either time is not set, clear both hours fields
         if ("Start Time Assigned" = 0T) or ("End Time Assigned" = 0T) then begin
@@ -502,7 +547,6 @@ table 50610 "Day Planning"
         PlanningUtil: codeunit "General Planning Utilities";
         WorkingMinutes: Integer;
         RequestedHours: Decimal;
-        Capacity: Decimal;
         BoolVar: Boolean;
     begin
         // If either time is not set, clear both hours fields
