@@ -133,6 +133,35 @@ page 50630 "Day Plannings"
                     Editable = true;
                     StyleExpr = StyleStr;
                 }
+                field("Qty. to Transfer to Invoice"; Rec."Qty. to Transfer to Invoice")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the quantity of hours to transfer to a sales invoice.';
+                    StyleExpr = StyleStr;
+                }
+                field("Qty. Transferred to Invoice"; Rec."Qty. Transferred to Invoice")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the quantity of hours already transferred to a sales invoice. Click to open the related sales invoice.';
+                    Editable = false;
+                    StyleExpr = StyleStr;
+
+                    trigger OnDrillDown()
+                    begin
+                        OpenSalesInvoice(Rec."Invoice No.");
+                    end;
+                }
+                field("Invoice No."; Rec."Invoice No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the sales invoice number created for this day planning line. Click to open the invoice.';
+                    Editable = false;
+
+                    trigger OnDrillDown()
+                    begin
+                        OpenSalesInvoice(Rec."Invoice No.");
+                    end;
+                }
                 field("Requested Hours"; Rec."Requested Hours")
                 {
                     ApplicationArea = All;
@@ -331,6 +360,22 @@ page 50630 "Day Plannings"
                     CurrPage.Update(false);
                 end;
             }
+            action(CreateSalesInvoice)
+            {
+                ApplicationArea = All;
+                Caption = 'Create Sales Invoice';
+                Ellipsis = true;
+                Image = JobSalesInvoice;
+                ToolTip = 'Use a batch job to help you create sales invoices for the selected day planning lines.';
+                trigger OnAction()
+                var
+                    DayPlanning: Record "Day Planning";
+                begin
+                    CurrPage.SetSelectionFilter(DayPlanning);
+                    REPORT.RunModal(REPORT::"Day Planning Create Invoice", true, false, DayPlanning);
+                    CurrPage.Update(false);
+                end;
+            }
         }
     }
     var
@@ -431,6 +476,22 @@ page 50630 "Day Plannings"
         ShowSkill := not pShowSkill;
         ShowPlanStatus := not pShowPlanStatus;
         ShowFIlters := True;
+    end;
+
+    local procedure OpenSalesInvoice(InvoiceNo: Code[20])
+    var
+        SalesHeader: Record "Sales Header";
+        SalesInvoiceHeader: Record "Sales Invoice Header";
+        NoInvoiceErr: Label 'No sales invoice has been created for this day planning line.';
+    begin
+        if InvoiceNo = '' then begin
+            Message(NoInvoiceErr);
+            exit;
+        end;
+        if SalesHeader.Get(SalesHeader."Document Type"::Invoice, InvoiceNo) then
+            Page.Run(Page::"Sales Invoice", SalesHeader)
+        else if SalesInvoiceHeader.Get(InvoiceNo) then
+            Page.Run(Page::"Posted Sales Invoice", SalesInvoiceHeader);
     end;
 
     local procedure GetTableViewFilter(FieldNo: Integer) fieldFilter: text

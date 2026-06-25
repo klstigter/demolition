@@ -391,6 +391,27 @@ table 50610 "Day Planning"
             DataClassification = ToBeClassified;
             Caption = 'Resource Entry No.';
         }
+        field(160; "Qty. to Transfer to Invoice"; Decimal)
+        {
+            DataClassification = CustomerContent;
+            Caption = 'Qty. to Transfer to Invoice';
+            DecimalPlaces = 0 : 2;
+            BlankZero = true;
+        }
+        field(161; "Qty. Transferred to Invoice"; Decimal)
+        {
+            DataClassification = CustomerContent;
+            Caption = 'Qty. Transferred to Invoice';
+            DecimalPlaces = 0 : 2;
+            BlankZero = true;
+            Editable = false;
+        }
+        field(162; "Invoice No."; Code[20])
+        {
+            DataClassification = CustomerContent;
+            Caption = 'Invoice No.';
+            Editable = false;
+        }
     }
     keys
     {
