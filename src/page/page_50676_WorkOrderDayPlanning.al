@@ -69,11 +69,7 @@ page 50676 "Work Order Day Plannings"
                 {
                     ApplicationArea = All;
                 }
-                field("Start Time Assigned"; Rec."Start Time Assigned")
-                {
-                    ApplicationArea = All;
-                }
-                field("End Time Assigned"; Rec."End Time Assigned")
+                field("Requested Hours"; Rec."Requested Hours")
                 {
                     ApplicationArea = All;
                 }
@@ -86,6 +82,30 @@ page 50676 "Work Order Day Plannings"
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the end time for this day task.';
+                }
+                field("Assigned Hours"; Rec."Assigned Hours")
+                {
+                    ApplicationArea = All;
+                }
+                field("Start Time Assigned"; Rec."Start Time Assigned")
+                {
+                    ApplicationArea = All;
+                }
+                field("End Time Assigned"; Rec."End Time Assigned")
+                {
+                    ApplicationArea = All;
+                }
+                field("Realized Hours"; Rec."Realized Hours")
+                {
+                    ApplicationArea = All;
+                }
+                field("Start Time Realized"; Rec."Start Time Realized")
+                {
+                    ApplicationArea = All;
+                }
+                field("End Time Realized"; Rec."End Time Realized")
+                {
+                    ApplicationArea = All;
                 }
                 field("Description"; Rec."Description")
                 {

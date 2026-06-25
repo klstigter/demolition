@@ -97,6 +97,21 @@ page 50668 "Day Planning Card Opt"
                         ApplicationArea = All;
                     }
                 }
+                group(Realized)
+                {
+                    field("Realized Hours"; Rec."Realized Hours")
+                    {
+                        ApplicationArea = All;
+                    }
+                    field("Start Time Realized"; Rec."Start Time Realized")
+                    {
+                        ApplicationArea = All;
+                    }
+                    field("End Time Realized"; Rec."End Time Realized")
+                    {
+                        ApplicationArea = All;
+                    }
+                }
             }
         }
     }
