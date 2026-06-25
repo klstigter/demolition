@@ -69,10 +69,10 @@ page 50662 "Workorder Card"
                         ApplicationArea = All;
                     }
                 }
-                field("Time Span Days"; Rec."Time Span Days")
-                {
-                    ApplicationArea = All;
-                }
+                // field("Time Span Days"; Rec."Time Span Days")
+                // {
+                //     ApplicationArea = All;
+                // }
                 field("Requested Hours"; Rec."Requested Hours")
                 {
                     ApplicationArea = All;

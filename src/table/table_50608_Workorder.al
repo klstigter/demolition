@@ -95,22 +95,23 @@ table 50608 "Work Order"
             DataClassification = CustomerContent;
         }
 
-        field(220; "Time Span Days"; Integer)
-        {
-            Caption = 'Time Span Days';
-            DataClassification = CustomerContent;
-            trigger OnValidate()
-            var
-                WorkloadSpec: Record "Workorder Capacity Request";
-            begin
-                WorkloadSpec.SetRange("Workorder No.", "Work Order No.");
-                if WorkloadSpec.FindFirst() then
-                    repeat
-                        WorkloadSpec.CalcTotalHours("Time Span Days");
-                    until WorkloadSpec.Next() = 0;
+        // field(220; "Time Span Days"; Integer)
+        // {
+        //     Caption = 'Time Span Days';
+        //     DataClassification = CustomerContent;
+        //     trigger OnValidate()
+        //     var
+        //         WorkloadSpec: Record "Workorder Capacity Request";
+        //     begin
+        //         WorkloadSpec.SetRange("Workorder No.", "Work Order No.");
+        //         if WorkloadSpec.FindFirst() then
+        //             repeat
+        //                 WorkloadSpec.CalcTotalHours("Time Span Days");
+        //             until WorkloadSpec.Next() = 0;
 
-            end;
-        }
+        //     end;
+        // }
+
         field(225; "Placeholder Date"; Date)
         {
             Caption = 'Placeholder Date';
@@ -122,9 +123,30 @@ table 50608 "Work Order"
             Caption = 'Requested Hours';
             DecimalPlaces = 0 : 5;
             FieldClass = FlowField;
-            CalcFormula = sum("Workorder Capacity Request"."Total Hours Workorder Spec." where("Workorder No." = FIELD("Work Order No.")));
+            CalcFormula = sum("Day Planning"."Requested Hours" where("Work order No." = FIELD("Work Order No.")));
             Editable = false;
-
+        }
+        field(231; "Assigned Hours"; Decimal)
+        {
+            Caption = 'Assigned Hours';
+            DecimalPlaces = 0 : 5;
+            FieldClass = FlowField;
+            CalcFormula = sum("Day Planning"."Assigned Hours" where("Work order No." = FIELD("Work Order No.")));
+            Editable = false;
+        }
+        field(232; "Realized Hours"; Decimal)
+        {
+            Caption = 'Realized Hours';
+            DecimalPlaces = 0 : 5;
+            FieldClass = FlowField;
+            CalcFormula = sum("Day Planning"."Realized Hours" where("Work order No." = FIELD("Work Order No.")));
+            Editable = false;
+        }
+        field(300; "Items"; Integer)
+        {
+            FieldClass = FlowField;
+            CalcFormula = count("Work Order Line" where("Work Order No." = field("Work Order No.")));
+            Editable = false;
         }
 
         field(920; Closed; Boolean)
@@ -222,6 +244,19 @@ table 50608 "Work Order"
     trigger OnModify()
     begin
         SetLastModified();
+    end;
+
+    trigger OnDelete()
+    var
+        WOLine: Record "Work Order Line";
+        DayPlanning: Record "Day Planning";
+    begin
+        WOLine.SetRange("Work Order No.", "Work Order No.");
+        if WOLine.FindSet() then
+            WOLine.DeleteAll(true);
+        DayPlanning.SetRange("Work Order No.", "Work Order No.");
+        if DayPlanning.FindSet() then
+            DayPlanning.DeleteAll(true);
     end;
 
     var

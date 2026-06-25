@@ -190,6 +190,14 @@ page 50612 "Planning Role Center"
                     ApplicationArea = All;
                     RunObject = page "Daily Optimizer Setup";
                 }
+                action("WorkOrderItemPricing")
+                {
+                    Caption = 'Work Order Item Pricing';
+                    Image = SalesPrices;
+                    ApplicationArea = All;
+                    RunObject = page "Work Order Item Pricing";
+                    ToolTip = 'Manage item prices for work orders. Prices are applied automatically based on customer, date, and quantity.';
+                }
             }
         }
     }

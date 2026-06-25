@@ -47,6 +47,10 @@ page 50656 "Work Order Sub"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the value of the Project Task No. field.', Comment = '%';
                 }
+                field(Items; Rec.Items)
+                {
+                    ApplicationArea = All;
+                }
                 field("Date Window Start"; Rec."Date Window Start")
                 {
                     ApplicationArea = All;
@@ -62,21 +66,31 @@ page 50656 "Work Order Sub"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the value of the Deadline Date field.', Comment = '%';
                 }
-                field("Time Span Days"; Rec."Time Span Days")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the value of the Time Span Days field.', Comment = '%';
-                    trigger OnValidate()
-                    var
+                // field("Time Span Days"; Rec."Time Span Days")
+                // {
+                //     ApplicationArea = All;
+                //     ToolTip = 'Specifies the value of the Time Span Days field.', Comment = '%';
+                //     trigger OnValidate()
+                //     var
 
-                    begin
-                        CurrPage.Update(true);
-                    end;
-                }
-                field("Requested Capacity"; Rec."Requested Hours")
+                //     begin
+                //         CurrPage.Update(true);
+                //     end;
+                // }
+                field("Requested Hours"; Rec."Requested Hours")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the value of the Requested Capacity field.', Comment = '%';
+                    ToolTip = 'Specifies the value of the Requested Hours.', Comment = '%';
+                }
+                field("Assigned Hours"; Rec."Assigned Hours")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the value of the Assigned Hours.', Comment = '%';
+                }
+                field("Realized Hours"; Rec."Realized Hours")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the value of the Realized Hours.', Comment = '%';
                 }
             }
         }
@@ -85,6 +99,23 @@ page 50656 "Work Order Sub"
     {
         area(Processing)
         {
+            action(WorkOrderLines)
+            {
+                ApplicationArea = All;
+                Caption = 'Work Order Lines';
+                Image = Lines;
+                ToolTip = 'Open the material lines for the selected work order.';
+                trigger OnAction()
+                var
+                    WorkOrderLine: Record "Work Order Line";
+                    WorkOrderLinesPage: Page "Work Order Lines";
+                begin
+                    WorkOrderLine.SetRange("Work Order No.", Rec."Work Order No.");
+                    WorkOrderLinesPage.SetTableView(WorkOrderLine);
+                    WorkOrderLinesPage.RunModal();
+                    CurrPage.Update(false);
+                end;
+            }
             action(CreateNewCustomerTask)
             {
                 ApplicationArea = All;

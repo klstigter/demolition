@@ -485,6 +485,12 @@ table 50610 "Day Planning"
         end;
     end;
 
+    trigger OnDelete()
+    begin
+        TestField("Assigned Hours", 0);
+        TestField("Realized Hours", 0);
+    end;
+
     var
         generalutils: Codeunit "General Planning Utilities";
 
