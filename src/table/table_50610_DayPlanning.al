@@ -292,16 +292,6 @@ table 50610 "Day Planning"
             Caption = 'Work Order No.';
             TableRelation = "Work Order";
         }
-        field(60; Depth; Decimal)
-        {
-            DataClassification = ToBeClassified;
-            Caption = 'Depth';
-        }
-        field(61; IsBoor; Boolean)
-        {
-            DataClassification = ToBeClassified;
-            Caption = 'Is Boor';
-        }
         Field(65; "Requested Hours"; Decimal)
         {
             Caption = 'Requested Hours';
