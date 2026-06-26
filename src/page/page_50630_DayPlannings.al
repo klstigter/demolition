@@ -313,18 +313,6 @@ page 50630 "Day Plannings"
                     ToolTip = 'Specifies the work type code.';
                     StyleExpr = StyleStr;
                 }
-                field(Depth; Rec.Depth)
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the depth.';
-                    StyleExpr = StyleStr;
-                }
-                field(IsBoor; Rec.IsBoor)
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies if this is a boor line.';
-                    StyleExpr = StyleStr;
-                }
                 field("Worked Hours"; Rec."Worked Hours")
                 {
                     ApplicationArea = All;
