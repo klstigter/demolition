@@ -22,7 +22,11 @@ page 50668 "Day Planning Card Opt"
                     {
                         ApplicationArea = All;
                     }
-                    field(DaylineNo; Rec."Day Line No.")
+
+                }
+                Group(Planning)
+                {
+                    field("Task Date"; Rec."Task Date")
                     {
                         ApplicationArea = All;
                     }
@@ -34,38 +38,28 @@ page 50668 "Day Planning Card Opt"
                     {
                         ApplicationArea = All;
                     }
-                    field("Task Date"; Rec."Task Date")
-                    {
-                        ApplicationArea = All;
-                    }
-                    field("Day No."; Rec."Day No.")
-                    {
-                        ApplicationArea = All;
-                    }
-                    field("Work Order No."; Rec."Work Order No.")
-                    {
-                        ApplicationArea = All;
-                    }
-                    field("Pattern Line No."; Rec."Pattern Line No.")
-                    {
-                        ApplicationArea = All;
-                    }
-                    field(skill; Rec."Skill")
-                    {
-                        ApplicationArea = All;
-                    }
-                    field(Capacity; Rec."Capacity")
-                    {
-                        ApplicationArea = All;
-                    }
                 }
+                field(DaylineNo; Rec."Day Line No.")
+                {
+                    ApplicationArea = All;
+                }
+                field("Day No."; Rec."Day No.")
+                {
+                    ApplicationArea = All;
+                }
+
+
+            }
+            Group(Resource)
+            {
+                field(skill; Rec."Skill")
+                {
+                    ApplicationArea = All;
+                }
+
                 group(Requested)
                 {
                     field("Requested Resource No."; Rec."Requested Resource No.")
-                    {
-                        ApplicationArea = All;
-                    }
-                    field("Requested Hours"; Rec."Requested Hours")
                     {
                         ApplicationArea = All;
                     }
@@ -77,14 +71,19 @@ page 50668 "Day Planning Card Opt"
                     {
                         ApplicationArea = All;
                     }
+                    field("Non Working Minutes Requested"; Rec."Non Working Minutes Requested")
+                    {
+                        ApplicationArea = All;
+                    }
+                    field("Requested Hours"; Rec."Requested Hours")
+                    {
+                        ApplicationArea = All;
+                    }
+
                 }
                 group(Assignment)
                 {
                     field("Assigned Resource No."; Rec."Assigned Resource No.")
-                    {
-                        ApplicationArea = All;
-                    }
-                    field("Assigned Hours"; Rec."Assigned Hours")
                     {
                         ApplicationArea = All;
                     }
@@ -96,25 +95,54 @@ page 50668 "Day Planning Card Opt"
                     {
                         ApplicationArea = All;
                     }
+                    field("Non Working Minutes"; Rec."Non Working Minutes Assigned")
+                    {
+                        ApplicationArea = All;
+                    }
+                    field("Assigned Hours"; Rec."Assigned Hours")
+                    {
+                        ApplicationArea = All;
+                    }
+
+                    field(Capacity; Rec."Capacity")
+                    {
+                        ApplicationArea = All;
+                    }
                 }
-                group(Realized)
+
+
+            }
+            group(Realized)
+            {
+                field("Realized Hours"; Rec."Realized Hours")
                 {
-                    field("Realized Hours"; Rec."Realized Hours")
-                    {
-                        ApplicationArea = All;
-                    }
-                    field("Start Time Realized"; Rec."Start Time Realized")
-                    {
-                        ApplicationArea = All;
-                    }
-                    field("End Time Realized"; Rec."End Time Realized")
-                    {
-                        ApplicationArea = All;
-                    }
+                    ApplicationArea = All;
                 }
+                field("Start Time Realized"; Rec."Start Time Realized")
+                {
+                    ApplicationArea = All;
+                }
+                field("End Time Realized"; Rec."End Time Realized")
+                {
+                    ApplicationArea = All;
+                }
+            }
+
+            Group(WorkOrder)
+            {
+                field("Work Order No."; Rec."Work Order No.")
+                {
+                    ApplicationArea = All;
+                }
+                field("Pattern Line No."; Rec."Pattern Line No.")
+                {
+                    ApplicationArea = All;
+                }
+
             }
         }
     }
+
 
     actions
     {

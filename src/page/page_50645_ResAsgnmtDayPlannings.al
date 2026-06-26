@@ -133,7 +133,7 @@ page 50645 "Res. Asgmt. Day Plannings"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the end time for this day task.';
                 }
-                field("Non Working Minutes"; Rec."Non Working Minutes")
+                field("Non Working Minutes"; Rec."Non Working Minutes Assigned")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the non-working minutes within the task period.';

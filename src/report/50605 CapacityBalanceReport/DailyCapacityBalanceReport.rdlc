@@ -11,79 +11,6 @@
       <rd:DataSourceID>7482c0fc-6b1d-4a22-b12d-b15f404c5b8e</rd:DataSourceID>
     </DataSource>
   </DataSources>
-  <DataSets>
-    <DataSet Name="DataSet_Result">
-      <Query>
-        <DataSourceName>DataSource</DataSourceName>
-        <CommandText />
-      </Query>
-      <Fields>
-        <Field Name="TodayFormatted">
-          <DataField>TodayFormatted</DataField>
-        </Field>
-        <Field Name="CompanyName">
-          <DataField>CompanyName</DataField>
-        </Field>
-        <Field Name="ReportCaption">
-          <DataField>ReportCaption</DataField>
-        </Field>
-        <Field Name="CurrReportPageNoCaption">
-          <DataField>CurrReportPageNoCaption</DataField>
-        </Field>
-        <Field Name="TaskDate">
-          <DataField>TaskDate</DataField>
-        </Field>
-        <Field Name="JobNo">
-          <DataField>JobNo</DataField>
-        </Field>
-        <Field Name="JobTaskNo">
-          <DataField>JobTaskNo</DataField>
-        </Field>
-        <Field Name="DayLineNo">
-          <DataField>DayLineNo</DataField>
-        </Field>
-        <Field Name="PlanStatus">
-          <DataField>PlanStatus</DataField>
-        </Field>
-        <Field Name="PlanningLineType">
-          <DataField>PlanningLineType</DataField>
-        </Field>
-        <Field Name="PlanningLineTypeLable">
-          <DataField>PlanningLineTypeLable</DataField>
-        </Field>
-        <Field Name="ResNo">
-          <DataField>ResNo</DataField>
-        </Field>
-        <Field Name="Hours">
-          <DataField>Hours</DataField>
-        </Field>
-        <Field Name="HoursFormat">
-          <DataField>HoursFormat</DataField>
-        </Field>
-        <Field Name="ResourceNo">
-          <DataField>ResourceNo</DataField>
-        </Field>
-        <Field Name="StartTm">
-          <DataField>StartTm</DataField>
-        </Field>
-        <Field Name="EndTim">
-          <DataField>EndTim</DataField>
-        </Field>
-        <Field Name="NonWorkingMinutes">
-          <DataField>NonWorkingMinutes</DataField>
-        </Field>
-        <Field Name="SortAmountType">
-          <DataField>SortAmountType</DataField>
-        </Field>
-        <Field Name="SortResourceGroup">
-          <DataField>SortResourceGroup</DataField>
-        </Field>
-        <Field Name="SortResourceGroupSqnc">
-          <DataField>SortResourceGroupSqnc</DataField>
-        </Field>
-      </Fields>
-    </DataSet>
-  </DataSets>
   <ReportSections>
     <ReportSection>
       <Body>
@@ -653,12 +580,6 @@
       </Page>
     </ReportSection>
   </ReportSections>
-  <ReportParametersLayout>
-    <GridLayoutDefinition>
-      <NumberOfColumns>4</NumberOfColumns>
-      <NumberOfRows>2</NumberOfRows>
-    </GridLayoutDefinition>
-  </ReportParametersLayout>
   <Code>Public Function BlankZero(ByVal Value As Decimal)
     if Value = 0 then
     Return ""
@@ -699,4 +620,77 @@
   <ConsumeContainerWhitespace>true</ConsumeContainerWhitespace>
   <rd:ReportUnitType>Cm</rd:ReportUnitType>
   <rd:ReportID>0eeb6585-38ae-40f1-885b-8d50088d51b4</rd:ReportID>
+  <DataSets>
+    <DataSet Name="DataSet_Result">
+      <Fields>
+        <Field Name="TodayFormatted">
+          <DataField>TodayFormatted</DataField>
+        </Field>
+        <Field Name="CompanyName">
+          <DataField>CompanyName</DataField>
+        </Field>
+        <Field Name="ReportCaption">
+          <DataField>ReportCaption</DataField>
+        </Field>
+        <Field Name="CurrReportPageNoCaption">
+          <DataField>CurrReportPageNoCaption</DataField>
+        </Field>
+        <Field Name="TaskDate">
+          <DataField>TaskDate</DataField>
+        </Field>
+        <Field Name="JobNo">
+          <DataField>JobNo</DataField>
+        </Field>
+        <Field Name="JobTaskNo">
+          <DataField>JobTaskNo</DataField>
+        </Field>
+        <Field Name="DayLineNo">
+          <DataField>DayLineNo</DataField>
+        </Field>
+        <Field Name="PlanStatus">
+          <DataField>PlanStatus</DataField>
+        </Field>
+        <Field Name="PlanningLineType">
+          <DataField>PlanningLineType</DataField>
+        </Field>
+        <Field Name="PlanningLineTypeLable">
+          <DataField>PlanningLineTypeLable</DataField>
+        </Field>
+        <Field Name="ResNo">
+          <DataField>ResNo</DataField>
+        </Field>
+        <Field Name="Hours">
+          <DataField>Hours</DataField>
+        </Field>
+        <Field Name="HoursFormat">
+          <DataField>HoursFormat</DataField>
+        </Field>
+        <Field Name="ResourceNo">
+          <DataField>ResourceNo</DataField>
+        </Field>
+        <Field Name="StartTm">
+          <DataField>StartTm</DataField>
+        </Field>
+        <Field Name="EndTim">
+          <DataField>EndTim</DataField>
+        </Field>
+        <Field Name="NonWorkingMinutes">
+          <DataField>NonWorkingMinutes</DataField>
+        </Field>
+        <Field Name="SortAmountType">
+          <DataField>SortAmountType</DataField>
+        </Field>
+        <Field Name="SortResourceGroup">
+          <DataField>SortResourceGroup</DataField>
+        </Field>
+        <Field Name="SortResourceGroupSqnc">
+          <DataField>SortResourceGroupSqnc</DataField>
+        </Field>
+      </Fields>
+      <Query>
+        <DataSourceName>DataSource</DataSourceName>
+        <CommandText />
+      </Query>
+    </DataSet>
+  </DataSets>
 </Report>

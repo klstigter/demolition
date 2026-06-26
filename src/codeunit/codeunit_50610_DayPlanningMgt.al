@@ -120,7 +120,7 @@ codeunit 50610 "Day Plannings Mgt."
                 DayPlannings."End Time Assigned" := DayEndTime;
                 DayPlannings."Start Time Requested" := DayStartTime;
                 DayPlannings."End Time Requested" := DayEndTime;
-                DayPlannings.VALIDATE("Non Working Minutes", NonWorkingHours);
+                DayPlannings.VALIDATE("Non Working Minutes Assigned", NonWorkingHours);
 
                 // Copy other fields from job planning line
                 DayPlannings."Assigned Resource No." := DayPlanningPattern."Resource No.";

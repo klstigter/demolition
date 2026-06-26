@@ -246,7 +246,7 @@ page 50630 "Day Plannings"
                     ToolTip = 'Specifies the end time for this day.';
                     StyleExpr = StyleStr;
                 }
-                field("Non Working Hours"; Rec."Non Working Minutes")
+                field("Non Working Hours"; Rec."Non Working Minutes Assigned")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the number of non-working hours in a 24-hour period for this day task.';

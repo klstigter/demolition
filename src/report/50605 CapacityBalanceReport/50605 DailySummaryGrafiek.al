@@ -56,7 +56,7 @@ report 50605 "Daily Capacity Balance Report"
                                     ResourceNo := DayPlanning."Assigned Resource No.";
                                     StartTm := dayplanning."Start Time Requested";
                                     EndTim := dayplanning."End Time Requested";
-                                    NonWorkingMinutes := DayPlanning."Non Working Minutes";
+                                    NonWorkingMinutes := DayPlanning."Non Working Minutes Assigned";
 
                                     if not Resource.Get(DayPlanning."Assigned Resource No.") then
                                         clear(Resource);
@@ -68,7 +68,7 @@ report 50605 "Daily Capacity Balance Report"
                                     ResourceNo := DayPlanning."Requested Resource No.";
                                     StartTm := dayplanning."Start Time Requested";
                                     EndTim := dayplanning."End Time Requested";
-                                    NonWorkingMinutes := DayPlanning."Non Working Minutes";
+                                    NonWorkingMinutes := DayPlanning."Non Working Minutes Assigned";
 
                                     if not Resource.Get(DayPlanning."Requested Resource No.") then
                                         clear(Resource);

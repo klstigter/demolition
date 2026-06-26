@@ -321,7 +321,7 @@ page 50620 "Gantt Demo DHX 2"
                     DayPlanning."Plan Status" := DayPlanning."Plan Status"::"In Request";
                     if OptiSetup."Work hour Template" <> '' then begin
                         WorkHourTemplate.Get(OptiSetup."Work hour Template");
-                        DayPlanning."Non Working Minutes" := WorkHourTemplate."Non Working Minutes";
+                        DayPlanning."Non Working Minutes Assigned" := WorkHourTemplate."Non Working Minutes";
                         DayPlanning.Validate("Start Time Requested", WorkHourTemplate."Default Start Time");
                         DayPlanning.Validate("End Time Requested", WorkHourTemplate."Default End Time");
                         DayPlanning."Requested Hours" := WorkHourTemplate."Working Hours";

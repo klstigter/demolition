@@ -127,7 +127,7 @@ page 50601 "Opti Resource List"
                     {
                         ApplicationArea = Jobs;
                         Caption = 'Capacity';
-
+                        BlankZero = true;
 
 
                     }
@@ -135,12 +135,14 @@ page 50601 "Opti Resource List"
                     {
                         ApplicationArea = Jobs;
                         Caption = 'Requested';
+                        BlankZero = true;
 
                     }
                     field("Day Plannings"; Rec."Assigned Hours")
                     {
                         ApplicationArea = Jobs;
                         Caption = 'Assigned';
+                        BlankZero = true;
 
 
                     }
@@ -148,7 +150,9 @@ page 50601 "Opti Resource List"
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Specifies the number of skills associated with this resource.';
-
+                        blankZero = true;
+                        Visible = true;
+                        StyleExpr = Stylexp;
 
                     }
 
@@ -164,7 +168,7 @@ page 50601 "Opti Resource List"
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Indicates whether the resource is an external resource.';
-                        Visible = false;
+                        Visible = true;
                         StyleExpr = Stylexp;
                     }
                     field("Is Foreman"; Rec."Is Foreman")
@@ -231,20 +235,19 @@ page 50601 "Opti Resource List"
                         StyleExpr = Stylexp;
 
                     }
-                    field("Default Deferral Template Code"; Rec."Default Deferral Template Code")
+                    field("Work Hour Template"; Rec."Work Hour Template")
                     {
                         ApplicationArea = Jobs;
-                        Caption = 'Default Deferral Template';
-                        ToolTip = 'Specifies the default template that governs how to defer revenues and expenses to the periods when they occurred.';
+                        ToolTip = 'Specifies the work hour template that is assigned to the resource.';
+                        Visible = true;
                         StyleExpr = Stylexp;
 
-                    }
 
+                    }
 
                 }
 
             }
-
         }
         area(factboxes)
         {

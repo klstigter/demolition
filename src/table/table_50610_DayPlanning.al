@@ -313,10 +313,10 @@ table 50610 "Day Planning"
             Editable = false;
             BlankZero = true;
         }
-        field(81; "Non Working Minutes"; Integer)
+        field(81; "Non Working Minutes Assigned"; Integer)
         {
             DataClassification = CustomerContent;
-            Caption = 'Non Working Minutes';
+            Caption = 'Non Working Minutes Assigned';
             BlankZero = true;
             trigger OnValidate()
             begin
@@ -324,6 +324,18 @@ table 50610 "Day Planning"
             end;
 
         }
+        field(82; "Non Working Minutes Requested"; Integer)
+        {
+            DataClassification = CustomerContent;
+            Caption = 'Non Working Minutes Requested';
+            BlankZero = true;
+            trigger OnValidate()
+            begin
+                CalculateWorkingHours();
+            end;
+
+        }
+
 
         field(85; "Realized Hours"; Decimal)
         {
@@ -530,7 +542,7 @@ table 50610 "Day Planning"
         // If either time is not set, clear both hours fields
         if ("Start Time Assigned" = 0T) or ("End Time Assigned" = 0T) then begin
             "Assigned Hours" := 0;
-            "Non Working Minutes" := 0;
+            "Non Working Minutes Assigned" := 0;
             exit;
         end;
 

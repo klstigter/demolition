@@ -138,7 +138,7 @@ codeunit 50612 "General Planning Utilities"
         WorkingMinutes: Decimal;
     begin
         WorkingMinutes := (DayPlanning."End Time Assigned" - DayPlanning."Start Time Assigned") div 60000;
-        WorkingMinutes := WorkingMinutes - DayPlanning."Non Working Minutes";
+        WorkingMinutes := WorkingMinutes - DayPlanning."Non Working Minutes Assigned";
         exit(WorkingMinutes);
     end;
 
