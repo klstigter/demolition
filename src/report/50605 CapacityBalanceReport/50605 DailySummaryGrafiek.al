@@ -22,8 +22,8 @@ report 50605 "Daily Capacity Balance Report"
                 dataitemlinkreference = Dates;
 
                 dataitemtableview = sorting("Task Date");
-                column(JobNo; JobDescription) { }
-                column(JobTaskNo; JobTaskDescription) { }
+                column(JobNo; dayplanning."Job No.") { }
+                column(JobTaskNo; dayplanning."Job Task No.") { }
 
                 Column(DayLineNo; DayPlanning."Day Line No.") { }
                 Column(PlanStatus; DayPlanning."Plan Status") { }

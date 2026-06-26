@@ -11,6 +11,79 @@
       <rd:DataSourceID>7482c0fc-6b1d-4a22-b12d-b15f404c5b8e</rd:DataSourceID>
     </DataSource>
   </DataSources>
+  <DataSets>
+    <DataSet Name="DataSet_Result">
+      <Query>
+        <DataSourceName>DataSource</DataSourceName>
+        <CommandText />
+      </Query>
+      <Fields>
+        <Field Name="TodayFormatted">
+          <DataField>TodayFormatted</DataField>
+        </Field>
+        <Field Name="CompanyName">
+          <DataField>CompanyName</DataField>
+        </Field>
+        <Field Name="ReportCaption">
+          <DataField>ReportCaption</DataField>
+        </Field>
+        <Field Name="CurrReportPageNoCaption">
+          <DataField>CurrReportPageNoCaption</DataField>
+        </Field>
+        <Field Name="TaskDate">
+          <DataField>TaskDate</DataField>
+        </Field>
+        <Field Name="JobNo">
+          <DataField>JobNo</DataField>
+        </Field>
+        <Field Name="JobTaskNo">
+          <DataField>JobTaskNo</DataField>
+        </Field>
+        <Field Name="DayLineNo">
+          <DataField>DayLineNo</DataField>
+        </Field>
+        <Field Name="PlanStatus">
+          <DataField>PlanStatus</DataField>
+        </Field>
+        <Field Name="PlanningLineType">
+          <DataField>PlanningLineType</DataField>
+        </Field>
+        <Field Name="PlanningLineTypeLable">
+          <DataField>PlanningLineTypeLable</DataField>
+        </Field>
+        <Field Name="ResNo">
+          <DataField>ResNo</DataField>
+        </Field>
+        <Field Name="Hours">
+          <DataField>Hours</DataField>
+        </Field>
+        <Field Name="HoursFormat">
+          <DataField>HoursFormat</DataField>
+        </Field>
+        <Field Name="ResourceNo">
+          <DataField>ResourceNo</DataField>
+        </Field>
+        <Field Name="StartTm">
+          <DataField>StartTm</DataField>
+        </Field>
+        <Field Name="EndTim">
+          <DataField>EndTim</DataField>
+        </Field>
+        <Field Name="NonWorkingMinutes">
+          <DataField>NonWorkingMinutes</DataField>
+        </Field>
+        <Field Name="SortAmountType">
+          <DataField>SortAmountType</DataField>
+        </Field>
+        <Field Name="SortResourceGroup">
+          <DataField>SortResourceGroup</DataField>
+        </Field>
+        <Field Name="SortResourceGroupSqnc">
+          <DataField>SortResourceGroupSqnc</DataField>
+        </Field>
+      </Fields>
+    </DataSet>
+  </DataSets>
   <ReportSections>
     <ReportSection>
       <Body>
@@ -19,7 +92,7 @@
             <ChartCategoryHierarchy>
               <ChartMembers>
                 <ChartMember>
-                  <Group Name="Chart1_CategoryGroup1">
+                  <Group Name="Chart1_CategoryGroup">
                     <GroupExpressions>
                       <GroupExpression>=Fields!TaskDate.Value</GroupExpression>
                     </GroupExpressions>
@@ -31,20 +104,20 @@
                   </SortExpressions>
                   <ChartMembers>
                     <ChartMember>
-                      <Group Name="Chart1_CategoryGroup">
+                      <Group Name="Chart1_CategoryGroup1">
                         <GroupExpressions>
-                          <GroupExpression>=Fields!SortResourceGroup.Value</GroupExpression>
+                          <GroupExpression>=Fields!PlanningLineType.Value</GroupExpression>
                         </GroupExpressions>
                       </Group>
                       <SortExpressions>
                         <SortExpression>
-                          <Value>=Fields!SortResourceGroup.Value</Value>
+                          <Value>=Fields!PlanningLineType.Value</Value>
                         </SortExpression>
                       </SortExpressions>
-                      <Label>=Fields!SortResourceGroup.Value</Label>
+                      <Label>=iif(IsNothing(Fields!PlanningLineType.Value),0,Fields!PlanningLineType.Value)</Label>
                     </ChartMember>
                   </ChartMembers>
-                  <Label>=Fields!TaskDate.Value</Label>
+                  <Label>=Format(Fields!TaskDate.Value,"d MMM")</Label>
                 </ChartMember>
               </ChartMembers>
             </ChartCategoryHierarchy>
@@ -53,15 +126,15 @@
                 <ChartMember>
                   <Group Name="Chart1_SeriesGroup">
                     <GroupExpressions>
-                      <GroupExpression>=Fields!PlanningLineType.Value</GroupExpression>
+                      <GroupExpression>=Fields!SortResourceGroup.Value</GroupExpression>
                     </GroupExpressions>
                   </Group>
                   <SortExpressions>
                     <SortExpression>
-                      <Value>=Fields!PlanningLineType.Value</Value>
+                      <Value>=Fields!SortResourceGroup.Value</Value>
                     </SortExpression>
                   </SortExpressions>
-                  <Label>=Fields!PlanningLineType.Value</Label>
+                  <Label>=Fields!SortResourceGroup.Value</Label>
                 </ChartMember>
               </ChartMembers>
             </ChartSeriesHierarchy>
@@ -74,8 +147,11 @@
                         <Y>=Sum(Fields!Hours.Value)</Y>
                       </ChartDataPointValues>
                       <ChartDataLabel>
-                        <Style />
+                        <Style>
+                          <FontSize>9pt</FontSize>
+                        </Style>
                       </ChartDataLabel>
+                      <ToolTip>#VALY</ToolTip>
                       <Style />
                       <ChartMarker>
                         <Style />
@@ -83,7 +159,10 @@
                       <DataElementOutput>Output</DataElementOutput>
                     </ChartDataPoint>
                   </ChartDataPoints>
-                  <Style />
+                  <Style>
+                    <ShadowColor>=IIf(Fields!PlanningLineType.Value=1,"Red","Yellow")</ShadowColor>
+                    <ShadowOffset>3pt</ShadowOffset>
+                  </Style>
                   <ChartEmptyPoints>
                     <Style />
                     <ChartMarker>
@@ -108,7 +187,7 @@
                   <ChartAxis Name="Primary">
                     <Style>
                       <Border>
-                        <Color>Gainsboro</Color>
+                        <Color>#5c5c5c</Color>
                         <Style>None</Style>
                       </Border>
                       <FontSize>8pt</FontSize>
@@ -140,7 +219,7 @@
                     <ChartMajorTickMarks>
                       <Style>
                         <Border>
-                          <Color>Gainsboro</Color>
+                          <Color>LightGrey</Color>
                           <Style>None</Style>
                         </Border>
                       </Style>
@@ -148,7 +227,7 @@
                     <ChartMinorTickMarks>
                       <Style>
                         <Border>
-                          <Color>Gainsboro</Color>
+                          <Color>LightGrey</Color>
                         </Border>
                       </Style>
                       <Length>0.5</Length>
@@ -163,7 +242,7 @@
                   <ChartAxis Name="Secondary">
                     <Style>
                       <Border>
-                        <Color>Gainsboro</Color>
+                        <Color>#5c5c5c</Color>
                         <Style>None</Style>
                       </Border>
                       <FontSize>8pt</FontSize>
@@ -195,7 +274,7 @@
                     <ChartMajorTickMarks>
                       <Style>
                         <Border>
-                          <Color>Gainsboro</Color>
+                          <Color>LightGrey</Color>
                           <Style>None</Style>
                         </Border>
                       </Style>
@@ -203,7 +282,7 @@
                     <ChartMinorTickMarks>
                       <Style>
                         <Border>
-                          <Color>Gainsboro</Color>
+                          <Color>LightGrey</Color>
                         </Border>
                       </Style>
                       <Length>0.5</Length>
@@ -221,7 +300,7 @@
                   <ChartAxis Name="Primary">
                     <Style>
                       <Border>
-                        <Color>Gainsboro</Color>
+                        <Color>#5c5c5c</Color>
                         <Style>None</Style>
                       </Border>
                       <FontSize>8pt</FontSize>
@@ -252,7 +331,7 @@
                     <ChartMajorTickMarks>
                       <Style>
                         <Border>
-                          <Color>Gainsboro</Color>
+                          <Color>LightGrey</Color>
                           <Style>None</Style>
                         </Border>
                       </Style>
@@ -260,7 +339,7 @@
                     <ChartMinorTickMarks>
                       <Style>
                         <Border>
-                          <Color>Gainsboro</Color>
+                          <Color>LightGrey</Color>
                         </Border>
                       </Style>
                       <Length>0.5</Length>
@@ -275,7 +354,7 @@
                   <ChartAxis Name="Secondary">
                     <Style>
                       <Border>
-                        <Color>Gainsboro</Color>
+                        <Color>#5c5c5c</Color>
                         <Style>None</Style>
                       </Border>
                       <FontSize>8pt</FontSize>
@@ -306,7 +385,7 @@
                     <ChartMajorTickMarks>
                       <Style>
                         <Border>
-                          <Color>Gainsboro</Color>
+                          <Color>LightGrey</Color>
                           <Style>None</Style>
                         </Border>
                       </Style>
@@ -314,7 +393,7 @@
                     <ChartMinorTickMarks>
                       <Style>
                         <Border>
-                          <Color>Gainsboro</Color>
+                          <Color>LightGrey</Color>
                         </Border>
                       </Style>
                       <Length>0.5</Length>
@@ -337,7 +416,10 @@
             <ChartLegends>
               <ChartLegend Name="Default">
                 <Style>
-                  <BackgroundGradientType>None</BackgroundGradientType>
+                  <Border>
+                    <Color>#5c5c5c</Color>
+                  </Border>
+                  <BackgroundGradientType>TopBottom</BackgroundGradientType>
                   <FontSize>8pt</FontSize>
                 </Style>
                 <Position>TopLeft</Position>
@@ -387,19 +469,20 @@
             <DataSetName>DataSet_Result</DataSetName>
             <Top>0cm</Top>
             <Left>0cm</Left>
-            <Height>20.9212cm</Height>
-            <Width>78.0286cm</Width>
+            <Height>8.46875in</Height>
+            <Width>28.21875in</Width>
             <Style>
               <Border>
-                <Color>LightGrey</Color>
+                <Color>#5c5c5c</Color>
                 <Style>None</Style>
+                <Width>2pt</Width>
               </Border>
               <BackgroundColor>White</BackgroundColor>
               <BackgroundGradientType>None</BackgroundGradientType>
             </Style>
           </Chart>
         </ReportItems>
-        <Height>20.9212cm</Height>
+        <Height>21.51062cm</Height>
         <Style />
       </Body>
       <Width>78.0286cm</Width>
@@ -570,6 +653,12 @@
       </Page>
     </ReportSection>
   </ReportSections>
+  <ReportParametersLayout>
+    <GridLayoutDefinition>
+      <NumberOfColumns>4</NumberOfColumns>
+      <NumberOfRows>2</NumberOfRows>
+    </GridLayoutDefinition>
+  </ReportParametersLayout>
   <Code>Public Function BlankZero(ByVal Value As Decimal)
     if Value = 0 then
     Return ""
@@ -610,77 +699,4 @@
   <ConsumeContainerWhitespace>true</ConsumeContainerWhitespace>
   <rd:ReportUnitType>Cm</rd:ReportUnitType>
   <rd:ReportID>0eeb6585-38ae-40f1-885b-8d50088d51b4</rd:ReportID>
-  <DataSets>
-    <DataSet Name="DataSet_Result">
-      <Fields>
-        <Field Name="TodayFormatted">
-          <DataField>TodayFormatted</DataField>
-        </Field>
-        <Field Name="CompanyName">
-          <DataField>CompanyName</DataField>
-        </Field>
-        <Field Name="ReportCaption">
-          <DataField>ReportCaption</DataField>
-        </Field>
-        <Field Name="CurrReportPageNoCaption">
-          <DataField>CurrReportPageNoCaption</DataField>
-        </Field>
-        <Field Name="TaskDate">
-          <DataField>TaskDate</DataField>
-        </Field>
-        <Field Name="JobNo">
-          <DataField>JobNo</DataField>
-        </Field>
-        <Field Name="JobTaskNo">
-          <DataField>JobTaskNo</DataField>
-        </Field>
-        <Field Name="DayLineNo">
-          <DataField>DayLineNo</DataField>
-        </Field>
-        <Field Name="PlanStatus">
-          <DataField>PlanStatus</DataField>
-        </Field>
-        <Field Name="PlanningLineType">
-          <DataField>PlanningLineType</DataField>
-        </Field>
-        <Field Name="PlanningLineTypeLable">
-          <DataField>PlanningLineTypeLable</DataField>
-        </Field>
-        <Field Name="ResNo">
-          <DataField>ResNo</DataField>
-        </Field>
-        <Field Name="Hours">
-          <DataField>Hours</DataField>
-        </Field>
-        <Field Name="HoursFormat">
-          <DataField>HoursFormat</DataField>
-        </Field>
-        <Field Name="ResourceNo">
-          <DataField>ResourceNo</DataField>
-        </Field>
-        <Field Name="StartTm">
-          <DataField>StartTm</DataField>
-        </Field>
-        <Field Name="EndTim">
-          <DataField>EndTim</DataField>
-        </Field>
-        <Field Name="NonWorkingMinutes">
-          <DataField>NonWorkingMinutes</DataField>
-        </Field>
-        <Field Name="SortAmountType">
-          <DataField>SortAmountType</DataField>
-        </Field>
-        <Field Name="SortResourceGroup">
-          <DataField>SortResourceGroup</DataField>
-        </Field>
-        <Field Name="SortResourceGroupSqnc">
-          <DataField>SortResourceGroupSqnc</DataField>
-        </Field>
-      </Fields>
-      <Query>
-        <DataSourceName>DataSource</DataSourceName>
-        <CommandText />
-      </Query>
-    </DataSet>
-  </DataSets>
 </Report>
