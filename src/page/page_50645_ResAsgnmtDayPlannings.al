@@ -75,16 +75,21 @@ page 50645 "Res. Asgmt. Day Plannings"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the skill associated with the resource.';
                 }
-                field("Assigned Hours"; Rec."Assigned Hours")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the assigned hours for this day task.';
-                }
                 field("Requested Hours"; Rec."Requested Hours")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the requested hours for this day task.';
                     Editable = false;
+                }
+                field("Assigned Hours"; Rec."Assigned Hours")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the assigned hours for this day task.';
+                }
+                field("Realized Hours"; Rec."Realized Hours")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the assigned hours for this day task.';
                 }
                 field("Total Assigned Hours"; Rec."Total Assigned Hours")
                 {
@@ -98,6 +103,16 @@ page 50645 "Res. Asgmt. Day Plannings"
                     ToolTip = 'Specifies the capacity of the resource on this date.';
                     Editable = false;
                 }
+                field("Start Time Requested"; Rec."Start Time Requested")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the start time for this day task.';
+                }
+                field("End Time Requested"; Rec."End Time Requested")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the end time for this day task.';
+                }
                 field("Start Time Assigned"; Rec."Start Time Assigned")
                 {
                     ApplicationArea = All;
@@ -108,12 +123,12 @@ page 50645 "Res. Asgmt. Day Plannings"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the end time for this day task.';
                 }
-                field("Start Time Requested"; Rec."Start Time Requested")
+                field("Start Time Realized"; Rec."Start Time Realized")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the start time for this day task.';
                 }
-                field("End Time Requested"; Rec."End Time Requested")
+                field("End Time Realized"; Rec."End Time Realized")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the end time for this day task.';

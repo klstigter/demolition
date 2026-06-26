@@ -8,7 +8,7 @@ report 50603 "Day Planning Details"
     {
         dataitem(DayPlanning; "Day Planning")
         {
-            dataitemtableview = sorting("Job No.", "Job Task No.", "Task Date") where("plan status" = const(Inprogress));
+            dataitemtableview = sorting("Job No.", "Job Task No.", "Task Date") where("plan status" = const("In Progress"));
             RequestFilterFields = "Task Date", "Job No.", "Job Task No.";
 
             column(JobNo; JobDescription)

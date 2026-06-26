@@ -66,6 +66,8 @@ codeunit 50603 "EventSubs"
         DayPlanning."Job Entry No." := JobLedgerEntry."Entry No.";
         if JobJournalLine.Type = JobJournalLine.Type::Resource then
             DayPlanning."Resource Entry No." := JobLedgerEntry."Ledger Entry No.";
+        if DayPlanning."Qty. to Transfer to Invoice" = 0 then
+            DayPlanning."Qty. to Transfer to Invoice" := DayPlanning."Assigned Hours";
         DayPlanning.Modify();
     end;
 

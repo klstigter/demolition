@@ -33,11 +33,11 @@ pageextension 50603 "Opt ResourceList" extends "Resource List"
             {
                 ApplicationArea = All;
             }
-            field("Team Leader"; Rec."Team Leader")
+            field("Default Foreman"; Rec."Default Foreman")
             {
                 ApplicationArea = All;
             }
-            field("Team Leader Name"; Rec."Team Leader Name")
+            field("Default Foreman Name"; Rec."Default Foreman Name")
             {
                 ApplicationArea = All;
             }

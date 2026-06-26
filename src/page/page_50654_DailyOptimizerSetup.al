@@ -40,6 +40,19 @@ page 50654 "Daily Optimizer Setup"
                     ApplicationArea = All;
                 }
             }
+            group(TrustedCircle)
+            {
+                Caption = 'TrustedCircle Integration';
+
+                field("TrustedCircle API Base URL"; Rec."TrustedCircle API Base URL")
+                {
+                    ApplicationArea = ALL;
+                }
+                field("TrustedCircle Bearer Token"; Rec."TrustedCircle Bearer Token")
+                {
+                    ApplicationArea = ALL;
+                }
+            }
         }
     }
 
@@ -89,6 +102,104 @@ page 50654 "Daily Optimizer Setup"
                     end;
                 }
             }
+
+            group(TrustedCircleActions)
+            {
+                action(TestUpdateProduct)
+                {
+                    ApplicationArea = All;
+                    Caption = 'Test Update Product';
+                    Image = TestDatabase;
+
+                    trigger OnAction()
+                    var
+                        ti: Codeunit "TrustedCircle Integration";
+                    begin
+                        ti.TestProductUpdate();
+                    end;
+                }
+                action(TrustedCircleAPILog)
+                {
+                    ApplicationArea = All;
+                    Caption = 'API Log';
+                    ToolTip = 'View the log of all TrustedCircle API requests and responses.';
+                    Image = Log;
+
+                    trigger OnAction()
+                    begin
+                        PAGE.Run(Page::"TrustedCircle API Log");
+                    end;
+                }
+            }
+            group(Tests)
+            {
+                Caption = 'Tests';
+
+                action(OpenNodeSet)
+                {
+                    ApplicationArea = All;
+                    Caption = 'Open Node Set';
+                    Image = Documents;
+
+                    trigger OnAction()
+                    begin
+                        PAGE.Run(Page::"Date Span Document");
+                    end;
+                }
+                action(DateEngineTests)
+                {
+                    ApplicationArea = All;
+                    Caption = 'Date Engine Tests';
+                    Image = TestFile;
+
+                    trigger OnAction()
+                    begin
+                        PAGE.Run(Page::"Date Span Test Runner");
+                    end;
+                }
+            }
+
+            group(DemoData)
+            {
+                Caption = 'Demo Data';
+
+                action(CreateDemoData)
+                {
+                    ApplicationArea = All;
+                    Caption = 'Create Demo Data';
+                    ToolTip = 'Delete existing demo data and recreate it fresh for all three demo jobs.';
+                    Image = Setup;
+
+                    trigger OnAction()
+                    begin
+                        CODEUNIT.Run(Codeunit::"Create Demo Data");
+                    end;
+                }
+                action(DeleteDemoData)
+                {
+                    ApplicationArea = All;
+                    Caption = 'Delete Demo Data';
+                    ToolTip = 'Delete only the records that were created by the demo data run. User-created data is not affected.';
+                    Image = Delete;
+
+                    trigger OnAction()
+                    begin
+                        CODEUNIT.Run(Codeunit::"Delete Demo Data");
+                    end;
+                }
+                action(DemoDataLog)
+                {
+                    ApplicationArea = All;
+                    Caption = 'Demo Data Log';
+                    ToolTip = 'View the log of all records created by the demo data run.';
+                    Image = Log;
+
+                    trigger OnAction()
+                    begin
+                        PAGE.Run(Page::"Demo Data Log");
+                    end;
+                }
+            }
         }
 
         area(Promoted)
@@ -99,6 +210,25 @@ page 50654 "Daily Optimizer Setup"
                 actionref(ResourceSchedulerColor_ref; ResourceSchedulerColor) { }
                 actionref(TaskColor_ref; TaskColor) { }
                 actionref(ProjectTaskTypeColor_ref; ProjectTaskTypeColor) { }
+            }
+            group(Category_DemoData)
+            {
+                Caption = 'Demo Data';
+                actionref(CreateDemoData_ref; CreateDemoData) { }
+                actionref(DeleteDemoData_ref; DeleteDemoData) { }
+                actionref(DemoDataLog_ref; DemoDataLog) { }
+            }
+            group(TrustedCirclePromoted)
+            {
+                Caption = 'TrustedCircle';
+                actionref(TestUpdateProduct_ref; TestUpdateProduct) { }
+                actionref(TrustedCircleAPILog_ref; TrustedCircleAPILog) { }
+            }
+            group(Category_Tests)
+            {
+                Caption = 'Tests';
+                actionref(OpenNodeSet_ref; OpenNodeSet) { }
+                actionref(DateEngineTests_ref; DateEngineTests) { }
             }
         }
     }

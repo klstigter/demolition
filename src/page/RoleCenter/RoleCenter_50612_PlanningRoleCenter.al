@@ -158,24 +158,6 @@ page 50612 "Planning Role Center"
                     RunObject = page "Resource Assignment";
                 }
             }
-            group("tests")
-            {
-                Caption = 'Tests';
-                action(OpenNodeSet)
-                {
-                    Caption = 'Open Node Set';
-                    ApplicationArea = All;
-                    Image = Delete;
-                    RunObject = page "Date Span Document"; // Date Span Document
-                }
-                action(DateEngineTests)
-                {
-                    ApplicationArea = All;
-                    Caption = 'Date Engine Tests';
-                    RunObject = page "Date Span Test Runner";
-
-                }
-            }
             group("SettingGroup")
             {
                 Caption = 'Setup';
@@ -186,13 +168,6 @@ page 50612 "Planning Role Center"
                     Image = Setup;
                     ApplicationArea = All;
                     RunObject = page "Gantt Chart Setup";
-                }
-                action("Create Demo Data")
-                {
-                    Caption = 'Create Demo Data';
-                    Image = Setup;
-                    ApplicationArea = All;
-                    RunObject = codeunit "Create Demo Data";
                 }
                 action("Resource Color")
                 {
@@ -214,6 +189,14 @@ page 50612 "Planning Role Center"
                     Image = Setup;
                     ApplicationArea = All;
                     RunObject = page "Daily Optimizer Setup";
+                }
+                action("WorkOrderItemPricing")
+                {
+                    Caption = 'Work Order Item Pricing';
+                    Image = SalesPrices;
+                    ApplicationArea = All;
+                    RunObject = page "Work Order Item Pricing";
+                    ToolTip = 'Manage item prices for work orders. Prices are applied automatically based on customer, date, and quantity.';
                 }
             }
         }

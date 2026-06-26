@@ -105,17 +105,17 @@ page 50630 "Day Plannings"
                 {
                     ApplicationArea = All;
                 }
-                field("Assigned Resource No."; Rec."Assigned Resource No.")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the number of the assigned resource.';
-                    StyleExpr = StyleStr;
-                    Visible = ShowResource;
-                }
                 field("Requested Resource No."; Rec."Requested Resource No.")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the number of the requested resource.';
+                    StyleExpr = StyleStr;
+                    Visible = ShowResource;
+                }
+                field("Assigned Resource No."; Rec."Assigned Resource No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the number of the assigned resource.';
                     StyleExpr = StyleStr;
                     Visible = ShowResource;
                 }
@@ -126,6 +126,13 @@ page 50630 "Day Plannings"
                     StyleExpr = StyleStr;
                     Visible = ShowSkill;
                 }
+                field("Requested Hours"; Rec."Requested Hours")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the number of requested hours for this day task, calculated automatically based on start and end times.';
+                    Editable = false;
+                    StyleExpr = StyleStr;
+                }
                 field("Assigned Hours"; Rec."Assigned Hours")
                 {
                     ApplicationArea = All;
@@ -133,12 +140,41 @@ page 50630 "Day Plannings"
                     Editable = true;
                     StyleExpr = StyleStr;
                 }
-                field("Requested Hours"; Rec."Requested Hours")
+                field("Realized Hours"; Rec."Realized Hours")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the number of requested hours for this day task, calculated automatically based on start and end times.';
+                    ToolTip = 'Specifies the number of realized hours for this day task, calculated automatically based on start and end times.';
+                    Editable = true;
+                    StyleExpr = StyleStr;
+                }
+                field("Qty. to Transfer to Invoice"; Rec."Qty. to Transfer to Invoice")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the quantity of hours to transfer to a sales invoice.';
+                    StyleExpr = StyleStr;
+                }
+                field("Qty. Transferred to Invoice"; Rec."Qty. Transferred to Invoice")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the quantity of hours already transferred to a sales invoice. Click to open the related sales invoice.';
                     Editable = false;
                     StyleExpr = StyleStr;
+
+                    trigger OnDrillDown()
+                    begin
+                        OpenSalesInvoice(Rec."Invoice No.");
+                    end;
+                }
+                field("Invoice No."; Rec."Invoice No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the sales invoice number created for this day planning line. Click to open the invoice.';
+                    Editable = false;
+
+                    trigger OnDrillDown()
+                    begin
+                        OpenSalesInvoice(Rec."Invoice No.");
+                    end;
                 }
                 field("Total Assigned Hours"; TotAssignedHours)
                 {
@@ -174,6 +210,18 @@ page 50630 "Day Plannings"
                     StyleExpr = StyleStr;
                     Visible = false;
                 }
+                field("Start Time Requested"; Rec."Start Time Requested")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the start time for this day task.';
+                    StyleExpr = StyleStr;
+                }
+                field("End Time Requested"; Rec."End Time Requested")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the end time for this day task.';
+                    StyleExpr = StyleStr;
+                }
                 field("Start Time Assigned"; Rec."Start Time Assigned")
                 {
                     ApplicationArea = All;
@@ -186,16 +234,16 @@ page 50630 "Day Plannings"
                     ToolTip = 'Specifies the end time for this day.';
                     StyleExpr = StyleStr;
                 }
-                field("Start Time Requested"; Rec."Start Time Requested")
+                field("Start Time Realized"; Rec."Start Time Realized")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the start time for this day task.';
+                    ToolTip = 'Specifies the start time for this day.';
                     StyleExpr = StyleStr;
                 }
-                field("End Time Requested"; Rec."End Time Requested")
+                field("End Time Realized"; Rec."End Time Realized")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the end time for this day task.';
+                    ToolTip = 'Specifies the end time for this day.';
                     StyleExpr = StyleStr;
                 }
                 field("Non Working Hours"; Rec."Non Working Minutes")
@@ -265,18 +313,6 @@ page 50630 "Day Plannings"
                     ToolTip = 'Specifies the work type code.';
                     StyleExpr = StyleStr;
                 }
-                field(Depth; Rec.Depth)
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the depth.';
-                    StyleExpr = StyleStr;
-                }
-                field(IsBoor; Rec.IsBoor)
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies if this is a boor line.';
-                    StyleExpr = StyleStr;
-                }
                 field("Worked Hours"; Rec."Worked Hours")
                 {
                     ApplicationArea = All;
@@ -328,6 +364,22 @@ page 50630 "Day Plannings"
                 Visible = false;
                 trigger OnAction()
                 begin
+                    CurrPage.Update(false);
+                end;
+            }
+            action(CreateSalesInvoice)
+            {
+                ApplicationArea = All;
+                Caption = 'Create Sales Invoice';
+                Ellipsis = true;
+                Image = JobSalesInvoice;
+                ToolTip = 'Use a batch job to help you create sales invoices for the selected day planning lines.';
+                trigger OnAction()
+                var
+                    DayPlanning: Record "Day Planning";
+                begin
+                    CurrPage.SetSelectionFilter(DayPlanning);
+                    REPORT.RunModal(REPORT::"Day Planning Create Invoice", true, false, DayPlanning);
                     CurrPage.Update(false);
                 end;
             }
@@ -389,7 +441,7 @@ page 50630 "Day Plannings"
         DayNo: Integer;
     begin
         rec."Day Line No." := rec.GetNextDayLineNo(rec."Task Date", rec."Job No.", rec."Job Task No.");
-        if Rec."Plan Status" <> Rec."Plan Status"::Inrequest then
+        if Rec."Plan Status" <> Rec."Plan Status"::"In Request" then
             Rec.TestField("Assigned Resource No.");
         exit(true);
     end;
@@ -431,6 +483,22 @@ page 50630 "Day Plannings"
         ShowSkill := not pShowSkill;
         ShowPlanStatus := not pShowPlanStatus;
         ShowFIlters := True;
+    end;
+
+    local procedure OpenSalesInvoice(InvoiceNo: Code[20])
+    var
+        SalesHeader: Record "Sales Header";
+        SalesInvoiceHeader: Record "Sales Invoice Header";
+        NoInvoiceErr: Label 'No sales invoice has been created for this day planning line.';
+    begin
+        if InvoiceNo = '' then begin
+            Message(NoInvoiceErr);
+            exit;
+        end;
+        if SalesHeader.Get(SalesHeader."Document Type"::Invoice, InvoiceNo) then
+            Page.Run(Page::"Sales Invoice", SalesHeader)
+        else if SalesInvoiceHeader.Get(InvoiceNo) then
+            Page.Run(Page::"Posted Sales Invoice", SalesInvoiceHeader);
     end;
 
     local procedure GetTableViewFilter(FieldNo: Integer) fieldFilter: text

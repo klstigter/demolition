@@ -292,16 +292,6 @@ table 50610 "Day Planning"
             Caption = 'Work Order No.';
             TableRelation = "Work Order";
         }
-        field(60; Depth; Decimal)
-        {
-            DataClassification = ToBeClassified;
-            Caption = 'Depth';
-        }
-        field(61; IsBoor; Boolean)
-        {
-            DataClassification = ToBeClassified;
-            Caption = 'Is Boor';
-        }
         Field(65; "Requested Hours"; Decimal)
         {
             Caption = 'Requested Hours';
@@ -333,6 +323,35 @@ table 50610 "Day Planning"
                 CalculateWorkingHours();
             end;
 
+        }
+
+        field(85; "Realized Hours"; Decimal)
+        {
+            DataClassification = CustomerContent;
+            Caption = 'Realized Hours';
+            DecimalPlaces = 0 : 2;
+            Editable = false;
+            BlankZero = true;
+        }
+        field(86; "Start Time Realized"; Time)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Start Time Realized';
+
+            trigger OnValidate()
+            begin
+                CalculateWorkingHours();
+            end;
+        }
+        field(87; "End Time Realized"; Time)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'End Time Realized';
+
+            trigger OnValidate()
+            begin
+                CalculateWorkingHours();
+            end;
         }
 
         field(90; "Manual Modified"; Boolean)
@@ -391,6 +410,27 @@ table 50610 "Day Planning"
             DataClassification = ToBeClassified;
             Caption = 'Resource Entry No.';
         }
+        field(160; "Qty. to Transfer to Invoice"; Decimal)
+        {
+            DataClassification = CustomerContent;
+            Caption = 'Qty. to Transfer to Invoice';
+            DecimalPlaces = 0 : 2;
+            BlankZero = true;
+        }
+        field(161; "Qty. Transferred to Invoice"; Decimal)
+        {
+            DataClassification = CustomerContent;
+            Caption = 'Qty. Transferred to Invoice';
+            DecimalPlaces = 0 : 2;
+            BlankZero = true;
+            Editable = false;
+        }
+        field(162; "Invoice No."; Code[20])
+        {
+            DataClassification = CustomerContent;
+            Caption = 'Invoice No.';
+            Editable = false;
+        }
     }
     keys
     {
@@ -435,6 +475,12 @@ table 50610 "Day Planning"
         end;
     end;
 
+    trigger OnDelete()
+    begin
+        TestField("Assigned Hours", 0);
+        TestField("Realized Hours", 0);
+    end;
+
     var
         generalutils: Codeunit "General Planning Utilities";
 
@@ -456,6 +502,23 @@ table 50610 "Day Planning"
     begin
         CalculateAssignedWorkingHours();
         CalculateRequestedWorkingHours();
+        CalculateRealizedWorkingHours();
+    end;
+
+    local procedure CalculateRealizedWorkingHours()
+    var
+        PlanningUtil: codeunit "General Planning Utilities";
+        WorkingMinutes: Integer;
+        RealizedHours: Decimal;
+    begin
+        // If either time is not set, clear both hours fields
+        if ("Start Time Realized" = 0T) or ("End Time Realized" = 0T) then begin
+            "Realized Hours" := 0;
+            exit;
+        end;
+
+        "Capacity Fully Utilized" := PlanningUtil.DayPlanningFulFillment(Rec, RealizedHours, Capacity);
+        "Assigned Hours" := RealizedHours;
     end;
 
     local procedure CalculateAssignedWorkingHours()
@@ -463,7 +526,6 @@ table 50610 "Day Planning"
         PlanningUtil: codeunit "General Planning Utilities";
         WorkingMinutes: Integer;
         AssignedHours: Decimal;
-        Capacity: Decimal;
     begin
         // If either time is not set, clear both hours fields
         if ("Start Time Assigned" = 0T) or ("End Time Assigned" = 0T) then begin
@@ -481,7 +543,6 @@ table 50610 "Day Planning"
         PlanningUtil: codeunit "General Planning Utilities";
         WorkingMinutes: Integer;
         RequestedHours: Decimal;
-        Capacity: Decimal;
         BoolVar: Boolean;
     begin
         // If either time is not set, clear both hours fields

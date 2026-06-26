@@ -83,7 +83,7 @@ page 50620 "Gantt Demo DHX 2"
                     end;
                     SummaryPage.LoadDataSet(JobNo, JobTaskNo);
                     SummaryPage.SetJobAndJobTaskVisibility(False);
-                    SummaryPage.Runmodal();
+                    SummaryPage.Run();
                 end;
 
                 trigger OnShowResourcesForTask(taskId: Text; childrenJson: Text; periodFrom: Text; periodTo: Text)
@@ -223,7 +223,7 @@ page 50620 "Gantt Demo DHX 2"
                         DayPlanning.SetRange("Job Task No.", JobTaskNo);
 
                     DayPlanningScheduler.SetJobTaskFilter(JobNo, JobTaskNo);
-                    DayPlanningScheduler.RunModal();
+                    DayPlanningScheduler.Run();
                 end;
 
                 trigger OnJobTaskUpdated(eventData: Text)
@@ -270,7 +270,8 @@ page 50620 "Gantt Demo DHX 2"
                         DayPlanning.SetRange("Assigned Resource No.", tp[2]);
                     if tp[1] = 'VEN-' then
                         DayPlanning.SetRange("Vendor No.", tp[2]);
-                    Page.Run(Page::"Day Plannings", DayPlanning);
+                    Page.RunModal(Page::"Day Plannings", DayPlanning);
+                    RefreshGantt();
                 end;
 
                 trigger OnLinkCreated(linkData: Text)
@@ -317,7 +318,7 @@ page 50620 "Gantt Demo DHX 2"
                     else
                         if Prefix = 'VEN-' then
                             DayPlanning.Validate("Vendor No.", ResourceCode);
-                    DayPlanning."Plan Status" := DayPlanning."Plan Status"::Inprogress;
+                    DayPlanning."Plan Status" := DayPlanning."Plan Status"::"In Request";
                     if OptiSetup."Work hour Template" <> '' then begin
                         WorkHourTemplate.Get(OptiSetup."Work hour Template");
                         DayPlanning."Non Working Minutes" := WorkHourTemplate."Non Working Minutes";
@@ -349,11 +350,19 @@ page 50620 "Gantt Demo DHX 2"
                         DayPlanning.TestField("Job No.");
                         DayPlanning.TestField("Job Task No.");
                         DayPlanning.TestField("Task Date");
+
+                        if DayPlanning."Plan Status" = DayPlanning."Plan Status"::"In Progress" then begin
+                            DayPlanning.TestField("Assigned Resource No.");
+                            DayPlanning.TestField("Assigned Hours");
+                            DayPlanning.TestField("Start Time Assigned");
+                            DayPlanning.TestField("End Time Assigned");
+                        end;
+
                         DayPlanning.CheckDayPlanningDateInProjectTaskRange();
                         DayPlanning.GetNextDayLineNo();
                         DayPlanning.Insert(true);
-                        RefreshGantt();
                     end;
+                    RefreshGantt();
                 end;
 
                 trigger onOpenResourceScheduler(resourceId: Text)
@@ -414,7 +423,7 @@ page 50620 "Gantt Demo DHX 2"
                         exit;
 
                     ResScheduler.SetResourceFilter(ResNo, WeekStartDate.Get(Selection), WeekEndDate.Get(Selection));
-                    ResScheduler.RunModal();
+                    ResScheduler.Run();
                 end;
 
                 trigger OnResetResourceFilter()
@@ -517,7 +526,7 @@ page 50620 "Gantt Demo DHX 2"
 
                 trigger OnAction()
                 begin
-                    Page.RunModal(Page::"Gantt Chart Setup");
+                    Page.Run(Page::"Gantt Chart Setup");
                     setup.get(UserId);
                     CurrPage.DHXGanttControl2.SetColumnVisibility(
                      Setup."Show Start Date",
@@ -629,7 +638,7 @@ page 50620 "Gantt Demo DHX 2"
                             DayPlanning.SetRange("Task Date", DT1, DT2);
                             DayPlanning.SetFilter("Job No.", PanelJobNo);
                             DayPlanning.SetFilter("Job Task No.", PanelTaskNo);
-                            page.RunModal(Page::"Day Plannings", DayPlanning);
+                            page.Run(Page::"Day Plannings", DayPlanning);
                             exit;
                         end;
                     end;
@@ -637,7 +646,7 @@ page 50620 "Gantt Demo DHX 2"
                     DayPlanning.SetRange("Task Date", DT1, DT2);
                     if JobFilter <> '' then
                         DayPlanning.SetFilter("Job No.", JobFilter);
-                    page.RunModal(Page::"Day Plannings", DayPlanning);
+                    page.Run(Page::"Day Plannings", DayPlanning);
                 end;
             }
             action(projects)
@@ -663,7 +672,7 @@ page 50620 "Gantt Demo DHX 2"
                     if job.FindSet() then;
                     Job.setrange("No.");
                     pg.SetRecord(job);
-                    pg.RunModal();
+                    pg.Run();
                 end;
             }
 
@@ -687,7 +696,7 @@ page 50620 "Gantt Demo DHX 2"
                         jobTask."Job Task Type"::Total);
                     if JobFilter <> '' then
                         jobTask.SetFilter("Job No.", JobFilter);
-                    page.RunModal(Page::"Job Task List - Project", jobTask);
+                    page.Run(Page::"Job Task List - Project", jobTask);
                 end;
             }
 
@@ -841,7 +850,7 @@ page 50620 "Gantt Demo DHX 2"
                 begin
                     GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
                     DayResourceDetails.SetDataViewDateRange(StartDate, EndDate);
-                    DayResourceDetails.RunModal();
+                    DayResourceDetails.Run();
                 end;
             }
             action(DayPlanningsDetail)
@@ -857,7 +866,7 @@ page 50620 "Gantt Demo DHX 2"
                 begin
                     GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
                     DayPlanningDetails.SetDataViewDateRange(StartDate, EndDate);
-                    DayPlanningDetails.RunModal();
+                    DayPlanningDetails.Run();
                 end;
             }
             action(DayPlanningsWeekOverview)
@@ -873,7 +882,7 @@ page 50620 "Gantt Demo DHX 2"
                 begin
                     GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
                     DayPlanning.SetDataViewDateRange(StartDate, EndDate);
-                    DayPlanning.RunModal();
+                    DayPlanning.Run();
                 end;
             }// Placeholder for any future reports related to the Gantt data
             action(DailyCapacityBalanceReport)
@@ -889,7 +898,7 @@ page 50620 "Gantt Demo DHX 2"
                 begin
                     GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
                     CapacityBalance.SetDataViewDateRange(StartDate, EndDate);
-                    CapacityBalance.RunModal();
+                    CapacityBalance.Run();
                 end;
             }
         }

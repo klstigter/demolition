@@ -69,11 +69,23 @@ page 50606 "DayPlanningApi Opt"
                 {
                     Caption = 'End Time Assigned';
                 }
+                field(startTimeRealized; Rec."Start Time Realized")
+                {
+                    Caption = 'Start Time Assigned';
+                }
+                field(endTimeRealized; Rec."End Time Realized")
+                {
+                    Caption = 'End Time Assigned';
+                }
                 field(requestedHours; Rec."Requested Hours")
                 {
                     ApplicationArea = All;
                 }
                 field(assignedHours; Rec."Assigned Hours")
+                {
+                    ApplicationArea = All;
+                }
+                field(realizedHours; Rec."Realized Hours")
                 {
                     ApplicationArea = All;
                 }

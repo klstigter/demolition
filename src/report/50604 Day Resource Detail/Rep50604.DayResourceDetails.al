@@ -8,7 +8,7 @@ report 50604 "Day Resource Details"
     {
         dataitem(DayPlanning; "Day Planning")
         {
-            dataitemtableview = sorting("Task Date", "Assigned Resource No.") where("plan status" = const(Inprogress),
+            dataitemtableview = sorting("Task Date", "Assigned Resource No.") where("plan status" = const("In Progress"),
                 "assigned Resource No." = filter(<> ''));
             RequestFilterFields = "Task Date";
 

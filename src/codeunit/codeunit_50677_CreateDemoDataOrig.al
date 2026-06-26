@@ -1,0 +1,569 @@
+codeunit 50677 "Create Demo Data Orig"
+{
+    trigger OnRun()
+    var
+        job: Record Job;
+    begin
+        //if not job.get('JOB001') then
+        CreateJob();
+        CreateJobTask();
+        CreateJobTaskLinks();
+        CheckResources();
+        CreateCapacityAndDayPlanning();
+    end;
+
+    var
+        JobFiltered: Record Job;
+        gResNo1: Code[20];
+        gResNo2: Code[20];
+        gWorkHoursTemplate: Record "Work-Hour Template";
+
+    local procedure CreateJob()
+    var
+        Job: Record Job;
+        customer: Record Customer;
+    begin
+        //JobTaskDimension;
+
+        customer.FindFirst();
+        job."No." := 'JOB001';
+        job.Description := 'Radome repair';
+        job.validate("Sell-to Customer No.", customer."No.");
+        if not job.Insert() then job.Modify();
+        JobFiltered.Get(job."No.");
+        JobFiltered.Mark(true);
+
+        if not job.Get('JOB002') then begin
+            job."No." := 'JOB002';
+            job.Description := 'App Development';
+            job.Insert();
+            job.validate("Sell-to Customer No.", customer."No.");
+            job.Modify();
+        end;
+        JobFiltered.Get(job."No.");
+        JobFiltered.Mark(true);
+    end;
+
+    Local procedure CreateJobTask()
+    var
+        JobTask: Record "Job Task";
+        Job: Record Job;
+        Indent: codeunit "Job Task Indent";
+        Date1: date;
+
+    begin
+        Indent.setHideMessage();
+        JobFiltered.MarkedOnly(true);
+        if JobFiltered.FindSet() then
+            repeat
+
+                date1 := calcdate('<WD1-1W>', Today);
+
+                Job.get(JobFiltered."No.");
+
+                Case JobFiltered."No." of
+                    'JOB001':
+                        begin
+                            JobTask."Job No." := Job."No.";
+                            JobTask."Job Task No." := '0';
+                            JobTask.Description := 'Repair Radome';
+                            jobtask."PlannedStartDate" := date1;
+                            JobTask.Validate("PlannedEndDate", CalcDate('+4W', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::Heading;
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '1';
+                            JobTask.Description := 'Pre Processing Tasks';
+                            jobtask."PlannedStartDate" := CalcDate('1D', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+2D', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::"Begin-Total";
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '1010';
+                            JobTask.Description := 'Inbound Inspection';
+                            jobtask."PlannedStartDate" := CalcDate('2D', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('3D', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '1020';
+                            JobTask.Description := 'Quote & Approval';
+                            jobtask."PlannedStartDate" := CalcDate('3D', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+4D', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '1999';
+                            JobTask.Description := 'Pre Processing Tasks';
+                            jobtask."PlannedStartDate" := CalcDate('1D', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+1W', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::"End-Total";
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '2';
+                            JobTask.Description := 'Repair';
+                            jobtask."PlannedStartDate" := CalcDate('+1W', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+2W+4D', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::"Begin-Total";
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '2010';
+                            JobTask.Description := 'Spare Parts Procurement';
+                            jobtask."PlannedStartDate" := CalcDate('+1W+1D', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+1W+2D', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '2020';
+                            JobTask.Description := 'Remove old and install new parts';
+                            jobtask."PlannedStartDate" := CalcDate('+1W+2D', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+1W+3D', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '2030';
+                            JobTask.Description := 'Cat and bodywork';
+                            jobtask."PlannedStartDate" := CalcDate('+1W+3D', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+2W+2D', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '2999';
+                            JobTask.Description := 'Pre Processing Tasks';
+                            jobtask."PlannedStartDate" := CalcDate('1W', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+2W+3D', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::"End-Total";
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '3';
+                            JobTask.Description := 'Post Processing Tasks';
+                            jobtask."PlannedStartDate" := CalcDate('+2W+3D', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+3W+4D+3D', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::"Begin-Total";
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '3010';
+                            JobTask.Description := 'Testing';
+                            jobtask."PlannedStartDate" := CalcDate('+2W+4D', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+3W', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '3020';
+                            JobTask.Description := 'Certification';
+                            jobtask."PlannedStartDate" := CalcDate('+3W+4D', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+4W', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '3030';
+                            JobTask.Description := 'Outbound Shipping';
+                            jobtask."PlannedStartDate" := CalcDate('+4W+1D', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+4W+2D', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '3999';
+                            JobTask.Description := 'Post Processing Tasks';
+                            jobtask."PlannedStartDate" := CalcDate('+3W+2D', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+3W+2D', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::"End-Total";
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '6999';
+                            JobTask.Description := 'Repair Radome';
+                            jobtask."PlannedStartDate" := date1;
+                            JobTask.Validate("PlannedEndDate", CalcDate('+3W+2D', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::Total;
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            Indent.IndentJobTasks(JobTask);
+                        end;
+                    'JOB002':
+                        begin
+                            // JOB002: Software Development project — completely different scenario
+                            // Start 1 week later than JOB001 so dates are visually distinct on the Gantt
+                            date1 := CalcDate('+1W', date1);
+                            JobTask."Job No." := Job."No.";
+
+                            // ── HEADING ─────────────────────────────────────────────
+                            JobTask."Job Task No." := '0';
+                            JobTask.Description := 'Software Development';
+                            jobtask."PlannedStartDate" := date1;
+                            JobTask.Validate("PlannedEndDate", CalcDate('+5W', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::Heading;
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            // ── PHASE 1 : Analysis & Design (1 week) ─────────────
+                            JobTask."Job Task No." := '1000';
+                            JobTask.Description := 'Analysis & Design';
+                            jobtask."PlannedStartDate" := date1;
+                            JobTask.Validate("PlannedEndDate", CalcDate('+1W', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::"Begin-Total";
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '1010';
+                            JobTask.Description := 'Requirements Gathering';
+                            jobtask."PlannedStartDate" := date1;
+                            JobTask.Validate("PlannedEndDate", CalcDate('+2D', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '1020';
+                            JobTask.Description := 'System Architecture Design';
+                            jobtask."PlannedStartDate" := CalcDate('+2D', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+4D', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '1030';
+                            JobTask.Description := 'Design Review & Sign-off';
+                            jobtask."PlannedStartDate" := CalcDate('+4D', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+1W', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '1999';
+                            JobTask.Description := 'Analysis & Design';
+                            jobtask."PlannedStartDate" := date1;
+                            JobTask.Validate("PlannedEndDate", CalcDate('+1W', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::"End-Total";
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            // ── PHASE 2 : Development (2 weeks) ──────────────────
+                            JobTask."Job Task No." := '2000';
+                            JobTask.Description := 'Development';
+                            jobtask."PlannedStartDate" := CalcDate('+1W', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+3W', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::"Begin-Total";
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '2010';
+                            JobTask.Description := 'Backend API Development';
+                            jobtask."PlannedStartDate" := CalcDate('+1W', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+2W', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '2020';
+                            JobTask.Description := 'Frontend UI Development';
+                            jobtask."PlannedStartDate" := CalcDate('+1W+2D', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+2W+2D', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '2030';
+                            JobTask.Description := 'Database Migration';
+                            jobtask."PlannedStartDate" := CalcDate('+2W', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+2W+3D', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '2040';
+                            JobTask.Description := 'Integration & Unit Tests';
+                            jobtask."PlannedStartDate" := CalcDate('+2W+3D', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+3W', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '2999';
+                            JobTask.Description := 'Development';
+                            jobtask."PlannedStartDate" := CalcDate('+1W', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+3W', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::"End-Total";
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            // ── PHASE 3 : Testing & Acceptance (1.5 weeks) ───────
+                            JobTask."Job Task No." := '3000';
+                            JobTask.Description := 'Testing & Acceptance';
+                            jobtask."PlannedStartDate" := CalcDate('+3W', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+4W+2D', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::"Begin-Total";
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '3010';
+                            JobTask.Description := 'System Integration Testing';
+                            jobtask."PlannedStartDate" := CalcDate('+3W', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+3W+3D', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '3020';
+                            JobTask.Description := 'User Acceptance Testing';
+                            jobtask."PlannedStartDate" := CalcDate('+3W+3D', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+4W+1D', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '3030';
+                            JobTask.Description := 'Bug Fixing & Retest';
+                            jobtask."PlannedStartDate" := CalcDate('+4W+1D', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+4W+2D', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '3999';
+                            JobTask.Description := 'Testing & Acceptance';
+                            jobtask."PlannedStartDate" := CalcDate('+3W', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+4W+2D', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::"End-Total";
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            // ── PHASE 4 : Deployment & Go-Live (0.5 week) ────────
+                            JobTask."Job Task No." := '4000';
+                            JobTask.Description := 'Deployment & Go-Live';
+                            jobtask."PlannedStartDate" := CalcDate('+4W+2D', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+5W', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::"Begin-Total";
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '4010';
+                            JobTask.Description := 'Production Deployment';
+                            jobtask."PlannedStartDate" := CalcDate('+4W+2D', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+4W+3D', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '4020';
+                            JobTask.Description := 'Go-Live Support & Monitoring';
+                            jobtask."PlannedStartDate" := CalcDate('+4W+3D', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+5W', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            JobTask."Job Task No." := '4999';
+                            JobTask.Description := 'Deployment & Go-Live';
+                            jobtask."PlannedStartDate" := CalcDate('+4W+2D', date1);
+                            JobTask.Validate("PlannedEndDate", CalcDate('+5W', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::"End-Total";
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            // ── TOTAL ────────────────────────────────────────────
+                            JobTask."Job Task No." := '9999';
+                            JobTask.Description := 'Software Development Total';
+                            jobtask."PlannedStartDate" := date1;
+                            JobTask.Validate("PlannedEndDate", CalcDate('+5W', date1));
+                            JobTask."Job Task Type" := JobTask."Job Task Type"::Total;
+                            if not JobTask.Insert() then JobTask.Modify();
+
+                            Indent.IndentJobTasks(JobTask);
+                        end;
+                End;
+            until JobFiltered.Next() = 0;
+    end;
+
+    local procedure CheckResources()
+    var
+        Resource: Record Resource;
+        n: Integer;
+    begin
+        Resource.Reset();
+        if not Resource.FindSet() then
+            Message('No resources found. Please create minimal 2 resources to be able to use the planning functionality.');
+        repeat
+            n += 1;
+            case n of
+                1:
+                    gResNo1 := Resource."No.";
+                2:
+                    gResNo2 := Resource."No.";
+            end;
+        until Resource.Next() = 0;
+    end;
+
+    local procedure CreateCapacityAndDayPlanning()
+    var
+        ReCap: Record "Res. Capacity Entry";
+        DayPlanning: Record "Day Planning";
+        ResNo: Code[20];
+        JobNo: Code[20];
+        StarDate: Date;
+        EndDate: Date;
+        n: Integer;
+        confirmLbl: Label 'Do you want delete all existing Capacity and Day Planning entries in period %1 to %2?';
+    begin
+        // Load work-hour template once — used to skip non-working days
+        gWorkHoursTemplate.Get('BASIS');
+        StarDate := calcdate('<WD1-1W>', Today);
+        EndDate := CalcDate('+5W', StarDate);
+
+        if Confirm(confirmLbl, false, StarDate, EndDate) then begin
+            ReCap.SetRange(Date, StarDate, EndDate);
+            if ReCap.FindSet() then
+                ReCap.DeleteAll();
+            DayPlanning.SetRange("Task Date", StarDate, EndDate);
+            if DayPlanning.FindSet() then
+                DayPlanning.DeleteAll();
+        end;
+
+        for n := 1 to 2 do begin
+            case n of
+                1:
+                    begin
+                        ResNo := gResNo1;
+                        JobNo := 'JOB001';
+                    end;
+                2:
+                    begin
+                        ResNo := gResNo2;
+                        JobNo := 'JOB002';
+                    end;
+            end;
+            CreateResourceCapacity(ResNo, StarDate, EndDate);
+            CreateResourceDayPlanning(JobNo, ResNo, StarDate, EndDate);
+        end;
+    end;
+
+    local procedure CreateResourceDayPlanning(JobNo: Code[20]; ResNo: Code[20]; StartDate: Date; EndDate: Date)
+    var
+        JobTask: Record "Job Task";
+        TaskStart: Date;
+        TaskEnd: Date;
+    begin
+        JobTask.SetRange("Job No.", JobNo);
+        JobTask.SetRange("Job Task Type", JobTask."Job Task Type"::Posting);
+        if JobTask.FindSet() then
+            repeat
+                // Use each job task's own planned dates so day planning don't stack on the same day
+                TaskStart := JobTask."PlannedStartDate";
+                TaskEnd := JobTask."PlannedEndDate";
+                if TaskStart = 0D then TaskStart := StartDate;
+                if TaskEnd = 0D then TaskEnd := EndDate;
+                if TaskStart < StartDate then TaskStart := StartDate;
+                if TaskEnd > EndDate then TaskEnd := EndDate;
+                if TaskEnd >= TaskStart then
+                    CreateDayPlanning(JobTask."Job No.", JobTask."Job Task No.", ResNo, TaskStart, TaskEnd);
+            until JobTask.Next() = 0;
+    end;
+
+    local procedure CreateDayPlanning(JobNo: Code[20]; TaskNo: Code[20]; ResNo: Code[20]; StartDate: Date; EndDate: Date)
+    var
+        DayPlanning: Record "Day Planning";
+        ExistingDayPlanning: Record "Day Planning";
+        DT: Date;
+    begin
+        // PK is now (Job No., Job Task No., Day Line No.) — Task Date is NOT in PK.
+        // Use SetRange to check existence per date, then GetNextDayLineNo for a unique line no.
+        For DT := StartDate to EndDate do begin
+            // Skip non-working days according to BASIS work-hour template
+            if not IsWorkingDay(DT) then
+                continue;
+            ExistingDayPlanning.Reset();
+            ExistingDayPlanning.SetRange("Job No.", JobNo);
+            ExistingDayPlanning.SetRange("Job Task No.", TaskNo);
+            ExistingDayPlanning.SetRange("Task Date", DT);
+            if not ExistingDayPlanning.FindFirst() then begin
+                DayPlanning.Init();
+                DayPlanning."Job No." := JobNo;
+                DayPlanning."Job Task No." := TaskNo;
+                DayPlanning."Task Date" := DT;
+                DayPlanning."Day Line No." := DayPlanning.GetNextDayLineNo(DT, JobNo, TaskNo);
+                DayPlanning.Validate("Assigned Resource No.", ResNo);
+                DayPlanning."Start Time Assigned" := 080000T;
+                DayPlanning.Description := 'Work on ' + JobNo + '-' + TaskNo;
+                DayPlanning.Validate("End Time Assigned", 140000T);
+                DayPlanning."Assigned Hours" := (DayPlanning."End Time Assigned" - DayPlanning."Start Time Assigned") / 3600000;
+                DayPlanning.Insert(true);
+            end else begin
+                if ExistingDayPlanning."Assigned Resource No." = '' then
+                    ExistingDayPlanning.Validate("Assigned Resource No.", ResNo);
+                if ExistingDayPlanning.Description = '' then
+                    ExistingDayPlanning.Description := 'Work on ' + JobNo + '-' + TaskNo;
+                if (ExistingDayPlanning."Start Time Assigned" = 0T) or (ExistingDayPlanning."End Time Assigned" = 0T) then begin
+                    ExistingDayPlanning."Start Time Assigned" := 080000T;
+                    ExistingDayPlanning.Validate("End Time Assigned", 140000T);
+                end;
+                ExistingDayPlanning."Assigned Hours" := (ExistingDayPlanning."End Time Assigned" - ExistingDayPlanning."Start Time Assigned") / 3600000;
+                ExistingDayPlanning.Modify();
+            end;
+        end;
+    end;
+
+    local procedure IsWorkingDay(DateToCheck: Date): Boolean
+    begin
+        case Date2DWY(DateToCheck, 1) of
+            1:
+                exit(gWorkHoursTemplate.Monday <> 0);
+            2:
+                exit(gWorkHoursTemplate.Tuesday <> 0);
+            3:
+                exit(gWorkHoursTemplate.Wednesday <> 0);
+            4:
+                exit(gWorkHoursTemplate.Thursday <> 0);
+            5:
+                exit(gWorkHoursTemplate.Friday <> 0);
+            6:
+                exit(gWorkHoursTemplate.Saturday <> 0);
+            7:
+                exit(gWorkHoursTemplate.Sunday <> 0);
+            else
+                exit(false);
+        end;
+    end;
+
+
+    local procedure CreateJobTaskLinks()
+    var
+        Link: Record "BCG Gantt Task Link";
+    begin
+        // JOB002 — Finish-Start dependencies between Posting tasks
+        CreateLink(Link, 'JOB002', '1010', '1020', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // Requirements Gathering → System Architecture Design
+        CreateLink(Link, 'JOB002', '1020', '1030', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // System Architecture Design → Design Review & Sign-off
+        CreateLink(Link, 'JOB002', '1030', '2010', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // Design Review → Backend API Development
+        CreateLink(Link, 'JOB002', '1030', '2020', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // Design Review → Frontend UI Development
+        CreateLink(Link, 'JOB002', '1030', '2030', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // Design Review → Database Migration
+        CreateLink(Link, 'JOB002', '2010', '2040', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // Backend API → Integration & Unit Tests
+        CreateLink(Link, 'JOB002', '2020', '2040', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // Frontend UI → Integration & Unit Tests
+        CreateLink(Link, 'JOB002', '2030', '2040', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // Database Migration → Integration & Unit Tests
+        CreateLink(Link, 'JOB002', '2040', '3010', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // Integration & Unit Tests → System Integration Testing
+        CreateLink(Link, 'JOB002', '3010', '3020', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // System Integration Testing → User Acceptance Testing
+        CreateLink(Link, 'JOB002', '3020', '3030', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // User Acceptance Testing → Bug Fixing & Retest
+        CreateLink(Link, 'JOB002', '3030', '4010', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // Bug Fixing → Production Deployment
+        CreateLink(Link, 'JOB002', '4010', '4020', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // Production Deployment → Go-Live Support & Monitoring
+    end;
+
+    local procedure CreateLink(var Link: Record "BCG Gantt Task Link"; JobNo: Code[20]; SourceTaskNo: Code[20]; TargetTaskNo: Code[20]; LinkType: Enum "BCG Gantt Link Type"; LagDays: Integer)
+    begin
+        Link.Init();
+        Link."Job No." := JobNo;
+        Link."Source Task No." := SourceTaskNo;
+        Link."Target Task No." := TargetTaskNo;
+        Link."Link Type" := LinkType;
+        Link."Lag (Days)" := LagDays;
+        if not Link.Insert() then
+            Link.Modify();
+    end;
+
+    local procedure CreateResourceCapacity(ResNo: Code[20]; StartDate: Date; EndDate: Date)
+    var
+        Res: Record Resource;
+        ResCap: Record "Res. Capacity Entry";
+        Dt: Date;
+        ResCapEntryNo: Integer;
+    begin
+        Res.Get(ResNo);
+        For DT := StartDate to EndDate do begin
+            // Skip non-working days according to BASIS work-hour template
+            if not IsWorkingDay(DT) then
+                continue;
+            Res.SetRange("Date Filter", DT);
+            Res.CalcFields(Capacity);
+            if Res.Capacity = 0 then begin
+                ResCap.Reset();
+                if ResCap.FindLast() then
+                    ResCapEntryNo := ResCap."Entry No." + 1
+                else
+                    ResCapEntryNo := 1;
+                ResCap.Init();
+                ResCap."Entry No." := ResCapEntryNo;
+                ResCap."Resource No." := ResNo;
+                ResCap.Date := DT;
+                ResCap.Capacity := 8;
+                ResCap."Resource Group No." := Res."Resource Group No.";
+                ResCap."Start Time" := 080000T;
+                ResCap."End Time" := 160000T;
+                ResCap.Insert();
+            end;
+        end;
+    end;
+}
