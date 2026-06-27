@@ -76,10 +76,6 @@ page 50669 "Day Planning Card - New Record"
                     {
                         ApplicationArea = All;
                     }
-                    field("Requested Hours"; Rec."Requested Hours")
-                    {
-                        ApplicationArea = All;
-                    }
                     field("Start Time Requested"; Rec."Start Time Requested")
                     {
                         ApplicationArea = All;
@@ -88,14 +84,20 @@ page 50669 "Day Planning Card - New Record"
                     {
                         ApplicationArea = All;
                     }
+                    field("Non Working Minutes Requested"; Rec."Non Working Minutes Requested")
+                    {
+                        ApplicationArea = All;
+                    }
+
+                    field("Requested Hours"; Rec."Requested Hours")
+                    {
+                        ApplicationArea = All;
+                    }
+
                 }
                 group(Assignment)
                 {
                     field("Assigned Resource No."; Rec."Assigned Resource No.")
-                    {
-                        ApplicationArea = All;
-                    }
-                    field("Assigned Hours"; Rec."Assigned Hours")
                     {
                         ApplicationArea = All;
                     }
@@ -107,6 +109,16 @@ page 50669 "Day Planning Card - New Record"
                     {
                         ApplicationArea = All;
                     }
+                    field("Non Working Minutes Assigned"; Rec."Non Working Minutes Assigned")
+                    {
+                        ApplicationArea = All;
+                    }
+
+                    field("Assigned Hours"; Rec."Assigned Hours")
+                    {
+                        ApplicationArea = All;
+                    }
+
                 }
                 group(Realized)
                 {

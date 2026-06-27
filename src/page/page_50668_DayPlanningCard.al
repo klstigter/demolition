@@ -63,6 +63,7 @@ page 50668 "Day Planning Card Opt"
                     {
                         ApplicationArea = All;
                     }
+
                     field("Start Time Requested"; Rec."Start Time Requested")
                     {
                         ApplicationArea = All;
