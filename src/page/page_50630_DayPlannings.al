@@ -56,17 +56,21 @@ page 50630 "Day Plannings"
             }
             repeater(Lines)
             {
-                field("Job No."; Rec."Job No.")
+                field(JobNoDisplay; JobNoDisplay)
                 {
                     ApplicationArea = All;
+                    Caption = 'Job No.';
                     ToolTip = 'Specifies the job number.';
                     Visible = ShowJob;
+                    Editable = false;
                 }
-                field("Job Task No."; Rec."Job Task No.")
+                field(JobTaskNoDisplay; JobTaskNoDisplay)
                 {
                     ApplicationArea = All;
+                    Caption = 'Job Task No.';
                     ToolTip = 'Specifies the job task number.';
                     Visible = ShowJobTask;
+                    Editable = false;
                 }
                 field(DayLineNo; Rec."Day Line No.")
                 {
@@ -390,6 +394,8 @@ page 50630 "Day Plannings"
         StyleStr: text;
         GenUtilties: Codeunit "General Planning Utilities";
         TotAssignedHours: Decimal;
+        JobNoDisplay: Text[20];
+        JobTaskNoDisplay: Text[20];
         SHowJob: Boolean;
         ShowJobTask: Boolean;
         ShowResource: Boolean;
@@ -407,13 +413,15 @@ page 50630 "Day Plannings"
 
     trigger OnOpenPage()
     begin
-
+        Rec.SetCurrentKey("Job No.", "Job Task No.", "Task Date", "Day Line No.");
+        Rec.Ascending(true);
     end;
 
     trigger OnAfterGetRecord()
     begin
         this.CalculateStyle();
         GetTotalAssignedHours();
+        UpdateGroupDisplay();
     end;
 
     trigger OnAfterGetCurrRecord()
@@ -483,6 +491,28 @@ page 50630 "Day Plannings"
         ShowSkill := not pShowSkill;
         ShowPlanStatus := not pShowPlanStatus;
         ShowFIlters := True;
+    end;
+
+    local procedure UpdateGroupDisplay()
+    var
+        PrevRec: Record "Day Planning";
+    begin
+        PrevRec.SetCurrentKey("Job No.", "Job Task No.", "Task Date", "Day Line No.");
+        PrevRec.CopyFilters(Rec);
+        PrevRec."Job No." := Rec."Job No.";
+        PrevRec."Job Task No." := Rec."Job Task No.";
+        PrevRec."Task Date" := Rec."Task Date";
+        PrevRec."Day Line No." := Rec."Day Line No.";
+        if PrevRec.Find('<') and
+           (PrevRec."Job No." = Rec."Job No.") and
+           (PrevRec."Job Task No." = Rec."Job Task No.")
+        then begin
+            JobNoDisplay := '';
+            JobTaskNoDisplay := '';
+        end else begin
+            JobNoDisplay := Rec."Job No.";
+            JobTaskNoDisplay := Rec."Job Task No.";
+        end;
     end;
 
     local procedure OpenSalesInvoice(InvoiceNo: Code[20])
