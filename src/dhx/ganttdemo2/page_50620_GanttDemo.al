@@ -342,6 +342,7 @@ page 50620 "Gantt Demo DHX 2"
                             DayPlanning.Validate("Job Task No.", FilterJobTaskNo);
                         end;
 
+                    DayPlanning.CalculateWorkingHours();
                     Clear(DayPlanningCard);
                     DayPlanningCard.LookupMode(true);
                     DayPlanningCard.SetNewRecordToSave(DayPlanning);

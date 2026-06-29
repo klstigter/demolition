@@ -100,8 +100,9 @@ codeunit 50612 "General Planning Utilities"
         */
 
     procedure DayPlanningFulFillment(pDayPlanning: Record "Day Planning";
-                                 var RequestedHours: Decimal;
-                                 var Capacity: Decimal): Boolean
+                                     PartType: Option "Requested","Assigned","Realized";
+                                     var CalculatedHours: Decimal;
+                                     var Capacity: Decimal): Boolean
     var
         Resource: Record Resource;
         DayPlanning: Record "Day Planning";
@@ -109,36 +110,66 @@ codeunit 50612 "General Planning Utilities"
         WorkingMinutes: Decimal;
         CapacityIsUsed: boolean;
     begin
-        ResourceNo := pDayPlanning."Assigned Resource No.";
-        if pDayPlanning."Assigned Resource No." = '' then
+        case PartType of
+            PartType::Requested:
+                ResourceNo := pDayPlanning."Requested Resource No.";
+            PartType::Assigned,
+            PartType::Realized:
+                ResourceNo := pDayPlanning."Assigned Resource No.";
+        end;
+        if ResourceNo = '' then
             exit;
-        WorkingMinutes := GetWorkingMinutes(pDayPlanning);
+        WorkingMinutes := GetWorkingMinutes(pDayPlanning, PartType);
         // Find Day Planning with complete start and end time and same resource and day no
         DayPlanning.SetRange("Task Date", pDayPlanning."task Date");
-        DayPlanning.SetRange("Assigned Resource No.", ResourceNo);
+        case PartType of
+            PartType::Requested:
+                DayPlanning.SetRange("Requested Resource No.", ResourceNo);
+            PartType::Assigned,
+            PartType::Realized:
+                DayPlanning.SetRange("Assigned Resource No.", ResourceNo);
+        end;
         DayPlanning.SetFilter("Day Line No.", '<>%1', pDayPlanning."Day Line No.");
         DayPlanning.SetFilter("Start Time Assigned", '<>%1', 0T);
         DayPlanning.SetFilter("End Time Assigned", '<>%1', 0T);
         if DayPlanning.FindFirst() then
             repeat
-                WorkingMinutes += GetWorkingMinutes(DayPlanning);
+                WorkingMinutes += GetWorkingMinutes(DayPlanning, PartType);
             until DayPlanning.Next() = 0;
 
-        RequestedHours += WorkingMinutes / 60;
+        CalculatedHours += WorkingMinutes / 60;
         // Find Capacity Entry per DayPlanning Date and Resource No.
         pDayPlanning.CalcFields(Capacity);
         Capacity := pDayPlanning.Capacity;
 
-        CapacityIsUsed := RequestedHours >= Capacity;
+        CapacityIsUsed := CalculatedHours >= Capacity;
         exit(CapacityIsUsed);
     end;
 
-    local procedure GetWorkingMinutes(DayPlanning: Record "Day Planning"): Decimal
+    local procedure GetWorkingMinutes(DayPlanning: Record "Day Planning"; PartType: Option "Requested","Assigned","Realized"): Decimal
     var
         WorkingMinutes: Decimal;
+        EndTime: Time;
+        StarTime: Time;
+        NonWorkingMinutes: Integer;
     begin
-        WorkingMinutes := (DayPlanning."End Time Assigned" - DayPlanning."Start Time Assigned") div 60000;
-        WorkingMinutes := WorkingMinutes - DayPlanning."Non Working Minutes Assigned";
+        case PartType of
+            PartType::Requested:
+                begin
+                    EndTime := DayPlanning."End Time Requested";
+                    StarTime := DayPlanning."Start Time Requested";
+                    NonWorkingMinutes := DayPlanning."Non Working Minutes Requested";
+                end;
+            PartType::Assigned,
+            PartType::Realized:
+                begin
+                    EndTime := DayPlanning."End Time Assigned";
+                    StarTime := DayPlanning."Start Time Assigned";
+                    NonWorkingMinutes := DayPlanning."Non Working Minutes Assigned";
+                end;
+        end;
+        WorkingMinutes := (EndTime - StarTime) div 60000;
+        WorkingMinutes := WorkingMinutes - NonWorkingMinutes;
         exit(WorkingMinutes);
     end;
 
