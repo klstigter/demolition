@@ -522,6 +522,7 @@ table 50610 "Day Planning"
         PlanningUtil: codeunit "General Planning Utilities";
         WorkingMinutes: Integer;
         RealizedHours: Decimal;
+        PartType: Option "Requested","Assigned","Realized";
     begin
         // If either time is not set, clear both hours fields
         if ("Start Time Realized" = 0T) or ("End Time Realized" = 0T) then begin
@@ -529,7 +530,7 @@ table 50610 "Day Planning"
             exit;
         end;
 
-        "Capacity Fully Utilized" := PlanningUtil.DayPlanningFulFillment(Rec, RealizedHours, Capacity);
+        "Capacity Fully Utilized" := PlanningUtil.DayPlanningFulFillment(Rec, PartType::Realized, RealizedHours, Capacity);
         "Assigned Hours" := RealizedHours;
     end;
 
@@ -538,6 +539,7 @@ table 50610 "Day Planning"
         PlanningUtil: codeunit "General Planning Utilities";
         WorkingMinutes: Integer;
         AssignedHours: Decimal;
+        PartType: Option "Requested","Assigned","Realized";
     begin
         // If either time is not set, clear both hours fields
         if ("Start Time Assigned" = 0T) or ("End Time Assigned" = 0T) then begin
@@ -546,7 +548,7 @@ table 50610 "Day Planning"
             exit;
         end;
 
-        "Capacity Fully Utilized" := PlanningUtil.DayPlanningFulFillment(Rec, AssignedHours, Capacity);
+        "Capacity Fully Utilized" := PlanningUtil.DayPlanningFulFillment(Rec, PartType::Assigned, AssignedHours, Capacity);
         "Assigned Hours" := AssignedHours;
     end;
 
@@ -556,6 +558,7 @@ table 50610 "Day Planning"
         WorkingMinutes: Integer;
         RequestedHours: Decimal;
         BoolVar: Boolean;
+        PartType: Option "Requested","Assigned","Realized";
     begin
         // If either time is not set, clear both hours fields
         if ("Start Time Requested" = 0T) or ("End Time Requested" = 0T) then begin
@@ -563,7 +566,7 @@ table 50610 "Day Planning"
             exit;
         end;
 
-        BoolVar := PlanningUtil.DayPlanningFulFillment(Rec, RequestedHours, Capacity);
+        BoolVar := PlanningUtil.DayPlanningFulFillment(Rec, PartType::Requested, RequestedHours, Capacity);
         "Requested Hours" := RequestedHours;
     end;
 
