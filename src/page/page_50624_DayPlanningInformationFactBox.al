@@ -21,7 +21,7 @@ page 50624 "Day Planning Info FactBox"
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the day number in the sequence.';
-                    Caption = 'Day No.';
+                    Caption = 'Task Date';
                 }
                 field("Plan Status"; Rec."Plan Status")
                 {
