@@ -192,6 +192,7 @@ window.BOOT = function() {
       markerMenu.style.cssText = menuCss;
       var currentMarkerResourceId = "";
       var currentMarkerWorkDate = "";
+      var currentMarkerPlanStatus = "";
 
       function makeItem(parentMenu, label, onClick) {
         var item = document.createElement("div");
@@ -220,7 +221,8 @@ window.BOOT = function() {
       makeItem(markerMenu, "Open Day Plannings", function () {
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OpenResourceLoadDay", [
           currentMarkerResourceId,
-          currentMarkerWorkDate
+          currentMarkerWorkDate,
+          currentMarkerPlanStatus
         ]);
       });
 
@@ -279,8 +281,9 @@ window.BOOT = function() {
         hideMenus();
 
         if (markerCell) {
-          currentMarkerResourceId = markerCell.dataset.resourceId || "";
-          currentMarkerWorkDate   = markerCell.dataset.workDate   || "";
+          currentMarkerResourceId  = markerCell.dataset.resourceId  || "";
+          currentMarkerWorkDate    = markerCell.dataset.workDate    || "";
+          currentMarkerPlanStatus  = markerCell.dataset.planStatus  || "";
           positionMenu(markerMenu, e.clientX, e.clientY);
         } else if (emptyCell) {
           try {
@@ -1932,6 +1935,7 @@ var renderResourceLine = function (resource, timeline) {
 
     cell.dataset.resourceId = resource.id;
     cell.dataset.workDate = dayStr;
+    cell.dataset.planStatus = "Planned";
     cell.style.cursor = "pointer";
 
     cell.addEventListener("dblclick", function (e) {
@@ -1940,7 +1944,7 @@ var renderResourceLine = function (resource, timeline) {
       
       Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(
         "OpenResourceLoadDay",
-        [this.dataset.resourceId, this.dataset.workDate]
+        [this.dataset.resourceId, this.dataset.workDate, this.dataset.planStatus]
       );
 
       return false;
@@ -2004,6 +2008,7 @@ var renderResourceLine = function (resource, timeline) {
     reqCell.dataset.resourceId = resource.id;
     reqCell.dataset.workDate = rdateStr;
     reqCell.dataset.isRequest = "1";
+    reqCell.dataset.planStatus = "Request";
     reqCell.style.cursor = "pointer";
 
     reqCell.addEventListener("dblclick", function (e) {
@@ -2011,7 +2016,7 @@ var renderResourceLine = function (resource, timeline) {
       e.stopPropagation();
       Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(
         "OpenResourceLoadDay",
-        [this.dataset.resourceId, this.dataset.workDate]
+        [this.dataset.resourceId, this.dataset.workDate, this.dataset.planStatus]
       );
       return false;
     }, true);

@@ -254,22 +254,29 @@ page 50620 "Gantt Demo DHX 2"
                     LoadDayPlanningData();
                 end;
 
-                trigger OpenResourceLoadDay(ResourceId: Text; pWorkDate: Text)
+                trigger OpenResourceLoadDay(ResourceId: Text; pWorkDate: Text; pPlanStatus: Text)
                 var
                     DayPlanning: Record "Day Planning";
                     WorkDt: Date;
                     Tp: array[2] of text;
                 begin
-                    Evaluate(WorkDt, pWorkDate); // expects YYYY-MM-DD
                     tp[1] := CopyStr(ResourceId, 1, 4);
                     tp[2] := CopyStr(ResourceId, 5);
-                    DayPlanning.SetRange("Task Date", WorkDt);
                     if JobFilter <> '' then
                         DayPlanning.SetFilter("Job No.", JobFilter);
-                    if tp[1] = 'RES-' then
-                        DayPlanning.SetRange("Assigned Resource No.", tp[2]);
-                    if tp[1] = 'VEN-' then
-                        DayPlanning.SetRange("Vendor No.", tp[2]);
+                    Evaluate(WorkDt, pWorkDate);
+                    DayPlanning.SetRange("Task Date", WorkDt);
+                    if pPlanStatus = 'Request' then begin
+                        if tp[1] = 'RES-' then
+                            DayPlanning.SetRange("Requested Resource No.", tp[2]);
+                        if tp[1] = 'VEN-' then
+                            DayPlanning.SetRange("Vendor No.", tp[2]);
+                    end else begin
+                        if tp[1] = 'RES-' then
+                            DayPlanning.SetRange("Assigned Resource No.", tp[2]);
+                        if tp[1] = 'VEN-' then
+                            DayPlanning.SetRange("Vendor No.", tp[2]);
+                    end;
                     Page.RunModal(Page::"Day Plannings", DayPlanning);
                     RefreshGantt();
                 end;
