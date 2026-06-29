@@ -11,6 +11,7 @@ tableextension 50603 "Resource Opt" extends Resource
             trigger OnValidate()
             var
                 Res: Record Resource;
+                Res2: Record Resource;
             begin
                 if "Pool Resource No." = '' then begin
                     "is Pool" := false;
@@ -20,10 +21,17 @@ tableextension 50603 "Resource Opt" extends Resource
                             Res.SetRange("Pool Resource No.", "No.");
                             Res.SetFilter("No.", '<>%1', "No.");
                             if Res.FindSet() then begin
-                                Res.ModifyAll("Pool Resource No.", '');
-                                Res.SetFilter("Vendor No.", '<>%1', '');
-                                if Res.FindSet() then
-                                    Res.ModifyAll("Is External", true);
+                                if not Confirm(ErrorLbl, false, xRec."Pool Resource No.", Res.Count, Rec."Vendor No.") then
+                                    error(Error2Lbl);
+                                repeat
+                                    Res2 := Res;
+                                    Res2."Pool Resource No." := '';
+                                    Res2."Is Pool Member" := false;
+                                    Res2."Vendor No." := Rec."Vendor No.";
+                                    if Res2."Vendor No." <> '' then
+                                        Res2."Is External" := true;
+                                    Res2.Modify();
+                                until Res.Next() = 0;
                             end;
                         end else begin
                             Res.Get(xRec."Pool Resource No.");
@@ -116,15 +124,19 @@ tableextension 50603 "Resource Opt" extends Resource
                             Rec."Is Pool Member" := false;
                             Res.SetRange("Pool Resource No.", "No.");
                             Res.SetFilter("No.", '<>%1', "No.");
-                            if Res.FindSet() then
+                            if Res.FindSet() then begin
+                                if not Confirm(ErrorLbl, false, xRec."Pool Resource No.", Res.Count, Rec."Vendor No.") then
+                                    error(Error2Lbl);
                                 repeat
                                     Res2 := Res;
                                     Res2."Pool Resource No." := '';
                                     Res2."Is Pool Member" := false;
+                                    Res2."Vendor No." := Rec."Vendor No.";
                                     if Res2."Vendor No." <> '' then
                                         Res2."Is External" := true;
                                     Res2.Modify();
                                 until Res.Next() = 0;
+                            end;
                         end;
                     end;
                     if Rec."Vendor No." <> '' then
@@ -168,5 +180,6 @@ tableextension 50603 "Resource Opt" extends Resource
     }
 
     var
-
+        ErrorLbl: Label 'The resource %1 will be change from Pool of vendor no. %3 to not Pool, there are %2 releated resource become set to external under vendor No. %3';
+        Error2Lbl: Label 'Modify aborted';
 }

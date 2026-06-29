@@ -29,29 +29,44 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the vendor number associated with the resource.';
                 }
-                field("Pool Resource No."; Rec."Pool Resource No.")
+                group(PoolResourceNoGroup)
                 {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the pool resource number associated with the resource.';
+                    ShowCaption = false;
+                    Visible = ShowPoolResourceNo;
+                    field("Pool Resource No."; Rec."Pool Resource No.")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Specifies the pool resource number associated with the resource.';
+                    }
                 }
-                field("Is Pool"; Rec."Is Pool")
+                group(NotInternalResource)
                 {
-                    ApplicationArea = All;
-                    ToolTip = 'Indicates whether the resource is a pool resource.';
+                    Caption = 'Not Internal Resource';
+
+                    field("Is Pool"; Rec."Is Pool")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Indicates whether the resource is a pool resource.';
+                        trigger OnValidate()
+                        begin
+                            UpdateVisibility();
+                        end;
+                    }
+                    field("Is Pool Member"; Rec."Is Pool Member")
+                    {
+                        ApplicationArea = All;
+                    }
+                    field("Is External"; Rec."Is External")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Indicates whether the resource is external';
+                    }
                 }
-                field("Is External"; Rec."Is External")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Indicates whether the resource is external';
-                }
+
                 field("Is Foreman"; Rec."Is Foreman")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Indicates whether the resource is a foreman.';
-                }
-                field("External Resource"; Rec."Is Pool Member")
-                {
-                    ApplicationArea = All;
                 }
                 field("Default Foreman"; Rec."Default Foreman")
                 {
@@ -130,6 +145,16 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
         }
     }
 
+    trigger OnAfterGetRecord()
+    begin
+        UpdateVisibility();
+    end;
+
     var
-        myInt: Integer;
+        ShowPoolResourceNo: Boolean;
+
+    local procedure UpdateVisibility()
+    begin
+        ShowPoolResourceNo := not Rec."Is Pool";
+    end;
 }
