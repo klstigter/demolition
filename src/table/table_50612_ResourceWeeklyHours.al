@@ -311,7 +311,6 @@ table 50612 "Summary Weekly"
         Reset();
         DeleteAll();
 
-        DayPlanning.Reset();
         if not DayPlanning.FindSet() then
             exit;
 
