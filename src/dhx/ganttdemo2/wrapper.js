@@ -193,6 +193,7 @@ window.BOOT = function() {
       var currentMarkerResourceId = "";
       var currentMarkerWorkDate = "";
       var currentMarkerPlanStatus = "";
+      var currentMarkerIdList = "";
 
       function makeItem(parentMenu, label, onClick) {
         var item = document.createElement("div");
@@ -222,7 +223,8 @@ window.BOOT = function() {
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OpenResourceLoadDay", [
           currentMarkerResourceId,
           currentMarkerWorkDate,
-          currentMarkerPlanStatus
+          currentMarkerPlanStatus,
+          currentMarkerIdList
         ]);
       });
 
@@ -284,6 +286,7 @@ window.BOOT = function() {
           currentMarkerResourceId  = markerCell.dataset.resourceId  || "";
           currentMarkerWorkDate    = markerCell.dataset.workDate    || "";
           currentMarkerPlanStatus  = markerCell.dataset.planStatus  || "";
+          currentMarkerIdList      = markerCell.dataset.idList      || "";
           positionMenu(markerMenu, e.clientX, e.clientY);
         } else if (emptyCell) {
           try {
@@ -1879,6 +1882,7 @@ var renderResourceLine = function (resource, timeline) {
     // Count DayPlannings for this resource on this day
     var dayStr = gantt.date.date_to_str("%Y-%m-%d")(day.start_date);
     var dtCount = 0;
+    var cellIdList = [];
     if (DayPlanningsStore) {
       var allDT = DayPlanningsStore.getItems();
       for (var j = 0; j < allDT.length; j++) {
@@ -1887,7 +1891,10 @@ var renderResourceLine = function (resource, timeline) {
         var dtDate = gantt.date.date_to_str("%Y-%m-%d")(
           _toGanttDate(dt.work_date) || new Date(dt.work_date)
         );
-        if (dtDate === dayStr) dtCount++;
+        if (dtDate === dayStr) {
+          dtCount++;
+          if (dt.plan_status !== "Request" && dt.id) cellIdList.push(dt.id);
+        }
       }
     }
 
@@ -1936,6 +1943,7 @@ var renderResourceLine = function (resource, timeline) {
     cell.dataset.resourceId = resource.id;
     cell.dataset.workDate = dayStr;
     cell.dataset.planStatus = "Planned";
+    cell.dataset.idList = cellIdList.join("|");
     cell.style.cursor = "pointer";
 
     cell.addEventListener("dblclick", function (e) {
@@ -1944,7 +1952,7 @@ var renderResourceLine = function (resource, timeline) {
       
       Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(
         "OpenResourceLoadDay",
-        [this.dataset.resourceId, this.dataset.workDate, this.dataset.planStatus]
+        [this.dataset.resourceId, this.dataset.workDate, this.dataset.planStatus, this.dataset.idList]
       );
 
       return false;
@@ -2009,6 +2017,7 @@ var renderResourceLine = function (resource, timeline) {
     reqCell.dataset.workDate = rdateStr;
     reqCell.dataset.isRequest = "1";
     reqCell.dataset.planStatus = "Request";
+    reqCell.dataset.idList = reqItems.map(function(x) { return x.id || ""; }).filter(Boolean).join("|");
     reqCell.style.cursor = "pointer";
 
     reqCell.addEventListener("dblclick", function (e) {
@@ -2016,7 +2025,7 @@ var renderResourceLine = function (resource, timeline) {
       e.stopPropagation();
       Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(
         "OpenResourceLoadDay",
-        [this.dataset.resourceId, this.dataset.workDate, this.dataset.planStatus]
+        [this.dataset.resourceId, this.dataset.workDate, this.dataset.planStatus, this.dataset.idList]
       );
       return false;
     }, true);

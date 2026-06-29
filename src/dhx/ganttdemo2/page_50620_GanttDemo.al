@@ -254,16 +254,52 @@ page 50620 "Gantt Demo DHX 2"
                     LoadDayPlanningData();
                 end;
 
-                trigger OpenResourceLoadDay(ResourceId: Text; pWorkDate: Text; pPlanStatus: Text)
+                trigger OpenResourceLoadDay(ResourceId: Text; pWorkDate: Text; pPlanStatus: Text; pIdList: Text)
                 var
                     DayPlanning: Record "Day Planning";
                     WorkDt: Date;
                     Tp: array[2] of text;
+                    IdList: List of [Text];
+                    IdText: Text;
+                    SysId: Guid;
+                    JobNos: List of [Text];
+                    JobTaskNos: List of [Text];
+                    JobNoFilter: Text;
+                    JobTaskNoFilter: Text;
                 begin
+                    // Step 1: build Job No. and Job Task No. filter strings from pIdList
+                    if pIdList <> '' then begin
+                        IdList := pIdList.Split('|');
+                        foreach IdText in IdList do
+                            if Evaluate(SysId, IdText) then begin
+                                DayPlanning.Reset();
+                                if DayPlanning.GetBySystemId(SysId) then begin
+                                    if not JobNos.Contains(DayPlanning."Job No.") then
+                                        JobNos.Add(DayPlanning."Job No.");
+                                    if not JobTaskNos.Contains(DayPlanning."Job Task No.") then
+                                        JobTaskNos.Add(DayPlanning."Job Task No.");
+                                end;
+                            end;
+                        foreach IdText in JobNos do begin
+                            if JobNoFilter <> '' then JobNoFilter += '|';
+                            JobNoFilter += IdText;
+                        end;
+                        foreach IdText in JobTaskNos do begin
+                            if JobTaskNoFilter <> '' then JobTaskNoFilter += '|';
+                            JobTaskNoFilter += IdText;
+                        end;
+                    end;
+
+                    // Step 2: apply all filters (date, resource, plan status, job/task from idList)
                     tp[1] := CopyStr(ResourceId, 1, 4);
                     tp[2] := CopyStr(ResourceId, 5);
-                    if JobFilter <> '' then
+                    DayPlanning.Reset();
+                    if JobNoFilter <> '' then
+                        DayPlanning.SetFilter("Job No.", JobNoFilter)
+                    else if JobFilter <> '' then
                         DayPlanning.SetFilter("Job No.", JobFilter);
+                    if JobTaskNoFilter <> '' then
+                        DayPlanning.SetFilter("Job Task No.", JobTaskNoFilter);
                     Evaluate(WorkDt, pWorkDate);
                     DayPlanning.SetRange("Task Date", WorkDt);
                     if pPlanStatus = 'Request' then begin
