@@ -25,8 +25,14 @@ page 50621 "DHX Scheduler (Project)"
                 begin
                     //DHXDataHandler.GetOneYearPeriodDates(Today(), startDate, endDate);
                     DHXDataHandler.GetWeekPeriodDates(Today(), startDate, endDate);
-                    ResourceJSONTxt := DHXDataHandler.GetYUnitElementsJSON_Project(Today(), startDate, endDate, ResourceFilter, PlanninJsonTxt, EarliestPlanningDate);
-                    DHXDataHandler.ValidateSchedulerSectionMatch(ResourceJSONTxt, PlanninJsonTxt);
+                    if jobFilter <> '' then
+                        DHXDataHandler.GetDayPlanningAsResourcesAndEventsJSon_Project_StartEnd(
+                            startDate, endDate, jobFilter, JobTaskFilter,
+                            ResourceJSONTxt, PlanninJsonTxt, EarliestPlanningDate)
+                    else begin
+                        ResourceJSONTxt := DHXDataHandler.GetYUnitElementsJSON_Project(Today(), startDate, endDate, ResourceFilter, PlanninJsonTxt, EarliestPlanningDate);
+                        DHXDataHandler.ValidateSchedulerSectionMatch(ResourceJSONTxt, PlanninJsonTxt);
+                    end;
                     CurrPage.DhxScheduler.Init(ResourceJSONTxt, EarliestPlanningDate);
                     CurrPage.DhxScheduler.LoadData(PlanninJsonTxt);
                     AnchorDate := startDate;
