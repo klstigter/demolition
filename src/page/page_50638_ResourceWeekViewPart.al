@@ -217,7 +217,7 @@ page 50638 "Resource Week View Part"
             action(OpenSkills)
             {
                 ApplicationArea = All;
-                Caption = 'Show Skills';
+                Caption = 'Resource Skills';
                 Image = Skills;
                 ToolTip = 'Open the skills card for this resource.';
 
