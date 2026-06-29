@@ -145,12 +145,11 @@ window.BOOT = function() {
             var isAvailable = String(ev.id).indexOf("cap_") === 0;
             if (!isAvailable) {
                 html += '<div class="dhx-tt-section">DayPlanning</div>';
-                html += '<div class="dhx-tt-rows">';
-                html += '<div class="dhx-tt-row"><span>Start:</span><span>' + fmt(ev.start_date) + '</span></div>';
-                html += '<div class="dhx-tt-row"><span>End:</span><span>' + fmt(ev.end_date) + '</span></div>';
+                html += '<div class="dhx-tt-col-header"><span></span><span>Requested</span><span>Assigned</span></div>';
+                html += '<div class="dhx-tt-row-2col"><span>Start:</span><span>' + (ev.req_start ? fmt(ev.req_start) : '—') + '</span><span>' + fmt(ev.start_date) + '</span></div>';
+                html += '<div class="dhx-tt-row-2col"><span>End:</span><span>' + (ev.req_end ? fmt(ev.req_end) : '—') + '</span><span>' + fmt(ev.end_date) + '</span></div>';
                 if (ev.text)
-                    html += '<div class="dhx-tt-row"><span>Task:</span><span>' + ev.text + '</span></div>';
-                html += '</div>';
+                    html += '<div class="dhx-tt-row dhx-tt-task"><span>Task:</span><span>' + ev.text + '</span></div>';
             }
 
             html += '</div>';

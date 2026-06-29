@@ -2453,6 +2453,8 @@ codeunit 50604 "DHX Data Handler"
         DayPlanning: Record "Day Planning";
         StarDateTimeStr: Text;
         EndDateTimeStr: Text;
+        ReqStartDateTimeStr: Text;
+        ReqEndDateTimeStr: Text;
         JArray: JsonArray;
         JRoot: JsonObject;
         Result: Text;
@@ -2468,6 +2470,7 @@ codeunit 50604 "DHX Data Handler"
                 GetStartEndTxt(DayPlanning, StarDateTimeStr, EndDateTimeStr);
                 if (StarDateTimeStr <> '') and (EndDateTimeStr <> '') then begin
                     eventColor := ResScheduler_GetResourceColor(DayPlanning."Assigned Resource No.", 'DayPlanning');
+                    GetReqStartEndTxt(DayPlanning, ReqStartDateTimeStr, ReqEndDateTimeStr);
                     ResScheduler_AddEvent(
                         JArray,
                         Format(DayPlanning.RecordId),
@@ -2476,7 +2479,9 @@ codeunit 50604 "DHX Data Handler"
                         StarDateTimeStr,
                         EndDateTimeStr,
                         DayPlanning.Description,
-                        'DayPlanning');
+                        'DayPlanning',
+                        ReqStartDateTimeStr,
+                        ReqEndDateTimeStr);
                 end;
             until DayPlanning.Next() = 0;
         Clear(JRoot);
@@ -2485,7 +2490,7 @@ codeunit 50604 "DHX Data Handler"
         exit(Result);
     end;
 
-    procedure ResScheduler_AddEvent(var JArray: JsonArray; RecordId: Text; ResourceId: Text; Classname: Text; StartDate: Text; EndDate: Text; EventText: Text; pType: Text)
+    procedure ResScheduler_AddEvent(var JArray: JsonArray; RecordId: Text; ResourceId: Text; Classname: Text; StartDate: Text; EndDate: Text; EventText: Text; pType: Text; ReqStartDate: Text; ReqEndDate: Text)
     var
         JObj: JsonObject;
     begin
@@ -2497,7 +2502,23 @@ codeunit 50604 "DHX Data Handler"
         JObj.Add('end_date', EndDate);
         JObj.Add('text', EventText);
         JObj.Add('type', pType);
+        if ReqStartDate <> '' then
+            JObj.Add('req_start', ReqStartDate);
+        if ReqEndDate <> '' then
+            JObj.Add('req_end', ReqEndDate);
         JArray.Add(JObj);
+    end;
+
+    local procedure GetReqStartEndTxt(DayPlanning: Record "Day Planning"; var ReqStartDateTxt: Text; var ReqEndDateTxt: Text)
+    begin
+        ReqStartDateTxt := '';
+        ReqEndDateTxt := '';
+        if DayPlanning."Task Date" = 0D then
+            exit;
+        if DayPlanning."Start Time Requested" <> 0T then
+            ReqStartDateTxt := ToSessionDateTimeTxt(DayPlanning."Task Date", DayPlanning."Start Time Requested");
+        if DayPlanning."End Time Requested" <> 0T then
+            ReqEndDateTxt := ToSessionDateTimeTxt(DayPlanning."Task Date", DayPlanning."End Time Requested");
     end;
 
     procedure ResScheduler_BuildCapacityJson(ResourceFilter: Text): Text
@@ -2632,6 +2653,8 @@ codeunit 50604 "DHX Data Handler"
         DayPlanning: Record "Day Planning";
         StarDateTimeStr: Text;
         EndDateTimeStr: Text;
+        ReqStartDateTimeStr: Text;
+        ReqEndDateTimeStr: Text;
         JArray: JsonArray;
         JRoot: JsonObject;
         Result: Text;
@@ -2649,6 +2672,7 @@ codeunit 50604 "DHX Data Handler"
                 GetStartEndTxt(DayPlanning, StarDateTimeStr, EndDateTimeStr);
                 if (StarDateTimeStr <> '') and (EndDateTimeStr <> '') then begin
                     eventColor := ResScheduler_GetResourceColor(DayPlanning."Assigned Resource No.", 'DayPlanning');
+                    GetReqStartEndTxt(DayPlanning, ReqStartDateTimeStr, ReqEndDateTimeStr);
                     ResScheduler_AddEvent(
                         JArray,
                         Format(DayPlanning.RecordId),
@@ -2657,7 +2681,9 @@ codeunit 50604 "DHX Data Handler"
                         StarDateTimeStr,
                         EndDateTimeStr,
                         DayPlanning.Description,
-                        'DayPlanning');
+                        'DayPlanning',
+                        ReqStartDateTimeStr,
+                        ReqEndDateTimeStr);
                 end;
             until DayPlanning.Next() = 0;
         Clear(JRoot);
