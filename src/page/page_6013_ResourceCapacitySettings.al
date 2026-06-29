@@ -386,8 +386,13 @@ page 50627 "Resource Capacity Settings Opt"
 
     trigger OnAfterGetRecord()
     begin
-        if not WorkTemplateRec.Get(WorkTemplateCode) and (Rec."No." <> xRec."No.") then
-            Clear(WorkTemplateRec);
+        if not DefaultsLoaded then begin
+            LoadDefaults();
+            DefaultsLoaded := true;
+        end else begin
+            if not WorkTemplateRec.Get(WorkTemplateCode) and (Rec."No." <> xRec."No.") then
+                Clear(WorkTemplateRec);
+        end;
         SumWeekTotal();
     end;
 
@@ -399,6 +404,7 @@ page 50627 "Resource Capacity Settings Opt"
         StartTime := 0T;
         EndTime := 0T;
         UseCustomTimes := false;
+        DefaultsLoaded := false;
     end;
 
     var
@@ -420,6 +426,7 @@ page 50627 "Resource Capacity Settings Opt"
         LastEntry: Decimal;
         Holiday: Boolean;
         UseCustomTimes: Boolean;
+        DefaultsLoaded: Boolean;
 
 #pragma warning disable AA0074
         Text000: Label 'The starting date is later than the ending date.';
@@ -432,6 +439,26 @@ page 50627 "Resource Capacity Settings Opt"
 #pragma warning restore AA0470
         Text008: Label 'The capacity change was unsuccessful.';
 #pragma warning restore AA0074
+
+    local procedure LoadDefaults()
+    var
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        DefaultTemplateCode: Code[10];
+    begin
+        if Rec."Work Hour Template" <> '' then
+            DefaultTemplateCode := CopyStr(Rec."Work Hour Template", 1, MaxStrLen(DefaultTemplateCode))
+        else
+            if DailyOptimizerSetup.Get() then
+                DefaultTemplateCode := DailyOptimizerSetup."Work hour Template";
+
+        if DefaultTemplateCode <> '' then begin
+            WorkTemplateCode := DefaultTemplateCode;
+            if WorkTemplateRec.Get(WorkTemplateCode) then begin
+                StartTime := WorkTemplateRec."Default Start Time";
+                EndTime := WorkTemplateRec."Default End Time";
+            end;
+        end;
+    end;
 
     local procedure SelectCapacity(var CustomizedCalendarChange: Record "Customized Calendar Change") Hours: Decimal
     var
