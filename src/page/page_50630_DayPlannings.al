@@ -151,35 +151,6 @@ page 50630 "Day Plannings"
                     Editable = true;
                     StyleExpr = StyleStr;
                 }
-                field("Qty. to Transfer to Invoice"; Rec."Qty. to Transfer to Invoice")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the quantity of hours to transfer to a sales invoice.';
-                    StyleExpr = StyleStr;
-                }
-                field("Qty. Transferred to Invoice"; Rec."Qty. Transferred to Invoice")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the quantity of hours already transferred to a sales invoice. Click to open the related sales invoice.';
-                    Editable = false;
-                    StyleExpr = StyleStr;
-
-                    trigger OnDrillDown()
-                    begin
-                        OpenSalesInvoice(Rec."Invoice No.");
-                    end;
-                }
-                field("Invoice No."; Rec."Invoice No.")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the sales invoice number created for this day planning line. Click to open the invoice.';
-                    Editable = false;
-
-                    trigger OnDrillDown()
-                    begin
-                        OpenSalesInvoice(Rec."Invoice No.");
-                    end;
-                }
                 field("Total Assigned Hours"; TotAssignedHours)
                 {
                     ApplicationArea = All;
@@ -324,7 +295,35 @@ page 50630 "Day Plannings"
                     Editable = true;
                     StyleExpr = StyleStr;
                 }
+                field("Qty. to Transfer to Invoice"; Rec."Qty. to Transfer to Invoice")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the quantity of hours to transfer to a sales invoice.';
+                    StyleExpr = StyleStr;
+                }
+                field("Qty. Transferred to Invoice"; Rec."Qty. Transferred to Invoice")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the quantity of hours already transferred to a sales invoice. Click to open the related sales invoice.';
+                    Editable = false;
+                    StyleExpr = StyleStr;
 
+                    trigger OnDrillDown()
+                    begin
+                        OpenSalesInvoice(Rec."Invoice No.");
+                    end;
+                }
+                field("Invoice No."; Rec."Invoice No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the sales invoice number created for this day planning line. Click to open the invoice.';
+                    Editable = false;
+
+                    trigger OnDrillDown()
+                    begin
+                        OpenSalesInvoice(Rec."Invoice No.");
+                    end;
+                }
 
             }
         }

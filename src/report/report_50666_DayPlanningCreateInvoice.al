@@ -182,6 +182,7 @@ report 50666 "Day Planning Create Invoice"
         SalesLine.Validate(Quantity, DayPlanning."Qty. to Transfer to Invoice");
         SalesLine."Job No." := DayPlanning."Job No.";
         SalesLine."Job Task No." := DayPlanning."Job Task No.";
+        SalesLine."Day Planning Line No." := DayPlanning."Day Line No.";
         SalesLine.Insert(true);
         CurrentLineNo += 10000;
         LinesAppended += 1;

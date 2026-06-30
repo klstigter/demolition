@@ -71,6 +71,13 @@ codeunit 50603 "EventSubs"
         DayPlanning.Modify();
     end;
 
+    // Transfer "Day Planning Line No." from Sales Line to Sales Invoice Line during posting
+    [EventSubscriber(ObjectType::Codeunit, Codeunit::"Sales-Post", 'OnBeforeSalesInvLineInsert', '', false, false)]
+    local procedure CopyDayPlanningLineNoToSalesInvLine(var SalesInvLine: Record "Sales Invoice Line"; SalesLine: Record "Sales Line")
+    begin
+        SalesInvLine."Day Planning Line No." := SalesLine."Day Planning Line No.";
+    end;
+
     // Vendor No. able to fill in if resource is pool
     [EventSubscriber(ObjectType::Table, Database::"Resource", 'OnAfterValidateEvent', 'Vendor No.', false, false)]
     local procedure Table_Resource_OnAfterValidateEvent(var Rec: Record Resource; xRec: Record Resource; CurrFieldNo: Integer)
