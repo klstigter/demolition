@@ -14,7 +14,7 @@ report 50666 "Day Planning Create Invoice"
 
             trigger OnPreDataItem()
             begin
-                DayPlanning.SetFilter("Qty. to Transfer to Invoice", '>0');
+                DayPlanning.SetFilter("Realized Hours", '>0');
                 if DayPlanning.IsEmpty() then
                     Error(NoBillableLineErr);
 
@@ -160,7 +160,8 @@ report 50666 "Day Planning Create Invoice"
         HeadersCreated: Integer;
         LinesAppended: Integer;
         CurrentLineNo: Integer;
-        NoBillableLineErr: Label 'There are no posted day planning lines with a quantity to transfer to invoice.';
+        LastSalesLineNo: Integer;
+        NoBillableLineErr: Label 'There are no posted day planning lines with a "realized hours" to invoice.';
         NoBillToCustomerErr: Label 'Job %1 does not have a Bill-to Customer No.', Comment = '%1 = Job No.';
         AppendInvoiceNoMissingErr: Label 'Append to Sales Invoice No. must be filled when Create New Invoice is disabled.';
         InvoiceNotFoundErr: Label 'Sales Invoice %1 does not exist.', Comment = '%1 = Invoice No.';
@@ -179,20 +180,21 @@ report 50666 "Day Planning Create Invoice"
         SalesLine.Validate("No.", DayPlanning."Assigned Resource No.");
         if DayPlanning."Work Type Code" <> '' then
             SalesLine.Validate("Work Type Code", DayPlanning."Work Type Code");
-        SalesLine.Validate(Quantity, DayPlanning."Qty. to Transfer to Invoice");
+        SalesLine.Validate(Quantity, DayPlanning."Realized Hours");
         SalesLine."Job No." := DayPlanning."Job No.";
         SalesLine."Job Task No." := DayPlanning."Job Task No.";
         SalesLine."Day Planning Line No." := DayPlanning."Day Line No.";
         SalesLine.Insert(true);
+        LastSalesLineNo := SalesLine."Line No.";
         CurrentLineNo += 10000;
         LinesAppended += 1;
     end;
 
     local procedure UpdateDayPlanning()
     begin
-        DayPlanning."Qty. Transferred to Invoice" += DayPlanning."Qty. to Transfer to Invoice";
-        DayPlanning."Qty. to Transfer to Invoice" := 0;
-        DayPlanning."Invoice No." := CurrentSalesHeader."No.";
+        DayPlanning."Qty. Transferred to Invoice" += DayPlanning."Realized Hours";
+        DayPlanning."Sales Invoice No." := CurrentSalesHeader."No.";
+        DayPlanning."Sales Invoice Line No." := LastSalesLineNo;
         DayPlanning.Modify();
     end;
 
