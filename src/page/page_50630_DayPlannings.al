@@ -151,35 +151,6 @@ page 50630 "Day Plannings"
                     Editable = true;
                     StyleExpr = StyleStr;
                 }
-                field("Qty. to Transfer to Invoice"; Rec."Qty. to Transfer to Invoice")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the quantity of hours to transfer to a sales invoice.';
-                    StyleExpr = StyleStr;
-                }
-                field("Qty. Transferred to Invoice"; Rec."Qty. Transferred to Invoice")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the quantity of hours already transferred to a sales invoice. Click to open the related sales invoice.';
-                    Editable = false;
-                    StyleExpr = StyleStr;
-
-                    trigger OnDrillDown()
-                    begin
-                        OpenSalesInvoice(Rec."Invoice No.");
-                    end;
-                }
-                field("Invoice No."; Rec."Invoice No.")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the sales invoice number created for this day planning line. Click to open the invoice.';
-                    Editable = false;
-
-                    trigger OnDrillDown()
-                    begin
-                        OpenSalesInvoice(Rec."Invoice No.");
-                    end;
-                }
                 field("Total Assigned Hours"; TotAssignedHours)
                 {
                     ApplicationArea = All;
@@ -324,7 +295,74 @@ page 50630 "Day Plannings"
                     Editable = true;
                     StyleExpr = StyleStr;
                 }
+                field("Qty. Transferred to Invoice"; Rec."Qty. Transferred to Invoice")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the quantity of hours already transferred to a sales invoice. Click to open the related sales invoice.';
+                    Editable = false;
+                    StyleExpr = StyleStr;
 
+                    trigger OnDrillDown()
+                    begin
+                        OpenSalesInvoice(Rec."Sales Invoice No.");
+                    end;
+                }
+                field("Sales Invoice No."; Rec."Sales Invoice No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the sales invoice number created for this day planning line. Click to open the invoice.';
+                    Editable = false;
+
+                    trigger OnDrillDown()
+                    begin
+                        OpenSalesInvoice(Rec."Sales Invoice No.");
+                    end;
+                }
+                field("Sales Invoice Line No."; Rec."Sales Invoice Line No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the sales invoice line no. created for this day planning line. Click to open the invoice.';
+                    Editable = false;
+
+                    trigger OnDrillDown()
+                    begin
+                        OpenSalesInvoice(Rec."Sales Invoice No.");
+                    end;
+                }
+                field("Qty. Invoiced"; Rec."Qty. Invoiced")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the total quantity that has been invoiced after the sales invoice was posted. Click to open the posted invoice.';
+                    Editable = false;
+                    StyleExpr = StyleStr;
+
+                    trigger OnDrillDown()
+                    begin
+                        OpenPostedSalesInvoice(Rec."Posted Sales Invoice No.");
+                    end;
+                }
+                field("Posted Sales Invoice No."; Rec."Posted Sales Invoice No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the posted sales invoice number. Click to open the posted invoice.';
+                    Editable = false;
+
+                    trigger OnDrillDown()
+                    begin
+                        OpenPostedSalesInvoice(Rec."Posted Sales Invoice No.");
+                    end;
+                }
+                field("Posted Sales Invoice Line No."; Rec."Posted Sales Invoice Line No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the posted sales invoice line no., Click to open the posted invoice.';
+                    Editable = false;
+
+                    trigger OnDrillDown()
+                    begin
+                        OpenPostedSalesInvoice(Rec."Posted Sales Invoice No.");
+                    end;
+                }
 
             }
         }
@@ -513,6 +551,19 @@ page 50630 "Day Plannings"
             JobNoDisplay := Rec."Job No.";
             JobTaskNoDisplay := Rec."Job Task No.";
         end;
+    end;
+
+    local procedure OpenPostedSalesInvoice(PostedInvoiceNo: Code[20])
+    var
+        SalesInvoiceHeader: Record "Sales Invoice Header";
+        NoPostedInvoiceErr: Label 'No posted sales invoice found for this day planning line.';
+    begin
+        if PostedInvoiceNo = '' then begin
+            Message(NoPostedInvoiceErr);
+            exit;
+        end;
+        if SalesInvoiceHeader.Get(PostedInvoiceNo) then
+            Page.Run(Page::"Posted Sales Invoice", SalesInvoiceHeader);
     end;
 
     local procedure OpenSalesInvoice(InvoiceNo: Code[20])

@@ -474,13 +474,13 @@ table 50610 "Day Planning"
             DataClassification = ToBeClassified;
             Caption = 'Resource Entry No.';
         }
-        field(160; "Qty. to Transfer to Invoice"; Decimal)
-        {
-            DataClassification = CustomerContent;
-            Caption = 'Qty. to Transfer to Invoice';
-            DecimalPlaces = 0 : 2;
-            BlankZero = true;
-        }
+        // field(160; "Qty. to Transfer to Invoice"; Decimal)
+        // {
+        //     DataClassification = CustomerContent;
+        //     Caption = 'Qty. to Transfer to Invoice';
+        //     DecimalPlaces = 0 : 2;
+        //     BlankZero = true;
+        // }
         field(161; "Qty. Transferred to Invoice"; Decimal)
         {
             DataClassification = CustomerContent;
@@ -489,10 +489,37 @@ table 50610 "Day Planning"
             BlankZero = true;
             Editable = false;
         }
-        field(162; "Invoice No."; Code[20])
+        field(162; "Sales Invoice No."; Code[20])
         {
             DataClassification = CustomerContent;
             Caption = 'Invoice No.';
+            Editable = false;
+        }
+        field(163; "Qty. Invoiced"; Decimal)
+        {
+            DataClassification = CustomerContent;
+            Caption = 'Qty. Invoiced';
+            DecimalPlaces = 0 : 2;
+            BlankZero = true;
+            Editable = false;
+        }
+        field(164; "Posted Sales Invoice No."; Code[20])
+        {
+            DataClassification = CustomerContent;
+            Caption = 'Posted Sales Invoice No.';
+            Editable = false;
+            TableRelation = "Sales Invoice Header"."No.";
+        }
+        field(165; "Posted Sales Invoice Line No."; Integer)
+        {
+            DataClassification = CustomerContent;
+            Caption = 'Posted Sales Invoice Line No.';
+            Editable = false;
+        }
+        field(166; "Sales Invoice Line No."; Integer)
+        {
+            DataClassification = CustomerContent;
+            Caption = 'Sales Invoice Line No.';
             Editable = false;
         }
     }
