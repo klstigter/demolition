@@ -180,6 +180,6 @@ tableextension 50603 "Resource Opt" extends Resource
     }
 
     var
-        ErrorLbl: Label 'The resource %1 will be change from Pool of vendor no. %3 to not Pool, there are %2 releated resource become set to external under vendor No. %3';
+        ErrorLbl: Label 'Resource %1 will be changed from Pool to Not Pool for Vendor No. %3. As a result, %2 related resource(s) will be set to External under Vendor No. %3.';
         Error2Lbl: Label 'Modify aborted';
 }
