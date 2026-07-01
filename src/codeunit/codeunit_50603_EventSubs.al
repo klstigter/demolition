@@ -76,50 +76,11 @@ codeunit 50603 "EventSubs"
         SalesInvLine."Day Planning Line No." := SalesLine."Day Planning Line No.";
     end;
 
-    // After Sales Invoice is posted: move Qty. Transferred to Invoice → Qty. Invoiced
-    // and record the Posted Sales Invoice No. + Line No. on each Day Planning line.
-    [EventSubscriber(ObjectType::Codeunit, Codeunit::"Sales-Post", 'OnAfterPostSalesDoc', '', false, false)]
-    local procedure UpdateDayPlanningAfterSalesInvoicePost(
-        var SalesHeader: Record "Sales Header";
-        var GenJnlPostLine: Codeunit "Gen. Jnl.-Post Line";
-        SalesShptHdrNo: Code[20];
-        RetRcpHdrNo: Code[20];
-        SalesInvHdrNo: Code[20];
-        SalesCrMemoHdrNo: Code[20])
-    var
-        DayPlanning: Record "Day Planning";
+    // Transfer "Day Planning Line No." from Sales Line to Sales Cr.Memo Line during posting.
+    [EventSubscriber(ObjectType::Codeunit, Codeunit::"Sales-Post", 'OnBeforeSalesCrMemoLineInsert', '', false, false)]
+    local procedure CopyDayPlanningLineNoToSalesCrMemoLine(var SalesCrMemoLine: Record "Sales Cr.Memo Line"; SalesLine: Record "Sales Line")
     begin
-        if SalesHeader."Document Type" <> SalesHeader."Document Type"::Invoice then
-            exit;
-        if SalesInvHdrNo = '' then
-            exit;
-
-        DayPlanning.SetRange("Sales Invoice No.", SalesHeader."No.");
-        DayPlanning.SetFilter("Qty. Transferred to Invoice", '>0');
-        if not DayPlanning.FindSet(true) then
-            exit;
-
-        repeat
-            DayPlanning."Qty. Invoiced" += DayPlanning."Qty. Transferred to Invoice";
-            DayPlanning."Qty. Transferred to Invoice" := 0;
-            DayPlanning."Posted Sales Invoice No." := SalesInvHdrNo;
-            DayPlanning."Posted Sales Invoice Line No." := DayPlanning."Sales Invoice Line No.";
-            DayPlanning.Modify();
-        until DayPlanning.Next() = 0;
-    end;
-
-    [EventSubscriber(ObjectType::Table, Database::"Sales Line", 'OnBeforeVATRoundingAdjustment', '', false, false)]
-    local procedure DayPlanning_OnDeleteSalesLine(var SalesLine: Record "Sales Line"; StatusCheckSuspended: Boolean; var RequiresVATRoundingAdjustment: Boolean)
-    var
-        DayPlanning: Record "Day Planning";
-    begin
-        if (SalesLine."Job No." <> '') and (SalesLine."Job Task No." <> '') and (SalesLine."Day Planning Line No." <> 0) then
-            if DayPlanning.Get(SalesLine."Job No.", SalesLine."Job Task No.", SalesLine."Day Planning Line No.") then begin
-                DayPlanning."Qty. Transferred to Invoice" := 0;
-                DayPlanning."Sales Invoice No." := '';
-                DayPlanning."Sales Invoice Line No." := 0;
-                DayPlanning.Modify();
-            end;
+        SalesCrMemoLine."Day Planning Line No." := SalesLine."Day Planning Line No.";
     end;
 
     // Vendor No. able to fill in if resource is pool

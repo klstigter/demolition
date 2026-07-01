@@ -483,7 +483,8 @@ table 50610 "Day Planning"
         // }
         field(161; "Qty. Transferred to Invoice"; Decimal)
         {
-            DataClassification = CustomerContent;
+            FieldClass = FlowField;
+            CalcFormula = sum("Sales Line".Quantity where("Day Planning Line No." = field("Day Line No."), "Document Type" = const(Invoice)));
             Caption = 'Qty. Transferred to Invoice';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
@@ -491,13 +492,15 @@ table 50610 "Day Planning"
         }
         field(162; "Sales Invoice No."; Code[20])
         {
-            DataClassification = CustomerContent;
-            Caption = 'Invoice No.';
+            FieldClass = FlowField;
+            CalcFormula = max("Sales Line"."Document No." where("Day Planning Line No." = field("Day Line No."), "Document Type" = const(Invoice)));
+            Caption = 'Sales Invoice No.';
             Editable = false;
         }
         field(163; "Qty. Invoiced"; Decimal)
         {
-            DataClassification = CustomerContent;
+            FieldClass = FlowField;
+            CalcFormula = sum("Sales Invoice Line".Quantity where("Day Planning Line No." = field("Day Line No.")));
             Caption = 'Qty. Invoiced';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
@@ -505,21 +508,69 @@ table 50610 "Day Planning"
         }
         field(164; "Posted Sales Invoice No."; Code[20])
         {
-            DataClassification = CustomerContent;
+            FieldClass = FlowField;
+            CalcFormula = max("Sales Invoice Line"."Document No." where("Day Planning Line No." = field("Day Line No.")));
             Caption = 'Posted Sales Invoice No.';
             Editable = false;
-            TableRelation = "Sales Invoice Header"."No.";
         }
         field(165; "Posted Sales Invoice Line No."; Integer)
         {
-            DataClassification = CustomerContent;
+            FieldClass = FlowField;
+            CalcFormula = max("Sales Invoice Line"."Line No." where("Day Planning Line No." = field("Day Line No.")));
             Caption = 'Posted Sales Invoice Line No.';
             Editable = false;
         }
         field(166; "Sales Invoice Line No."; Integer)
         {
-            DataClassification = CustomerContent;
+            FieldClass = FlowField;
+            CalcFormula = max("Sales Line"."Line No." where("Day Planning Line No." = field("Day Line No."), "Document Type" = const(Invoice)));
             Caption = 'Sales Invoice Line No.';
+            Editable = false;
+        }
+        field(169; "Qty. Transferred to Credit"; Decimal)
+        {
+            FieldClass = FlowField;
+            CalcFormula = sum("Sales Line".Quantity where("Day Planning Line No." = field("Day Line No."), "Document Type" = const("Credit Memo")));
+            Caption = 'Qty. Transferred to Credit';
+            DecimalPlaces = 0 : 2;
+            BlankZero = true;
+            Editable = false;
+        }
+        field(170; "Sales Credit No."; Code[20])
+        {
+            FieldClass = FlowField;
+            CalcFormula = max("Sales Line"."Document No." where("Day Planning Line No." = field("Day Line No."), "Document Type" = const("Credit Memo")));
+            Caption = 'Sales Credit No.';
+            Editable = false;
+        }
+        field(171; "Sales Credit Line No."; Integer)
+        {
+            FieldClass = FlowField;
+            CalcFormula = max("Sales Line"."Line No." where("Day Planning Line No." = field("Day Line No."), "Document Type" = const("Credit Memo")));
+            Caption = 'Sales Credit Line No.';
+            Editable = false;
+        }
+        field(172; "Qty. Credited"; Decimal)
+        {
+            FieldClass = FlowField;
+            CalcFormula = sum("Sales Cr.Memo Line".Quantity where("Day Planning Line No." = field("Day Line No.")));
+            Caption = 'Qty. Credited';
+            DecimalPlaces = 0 : 2;
+            BlankZero = true;
+            Editable = false;
+        }
+        field(173; "Posted Sales Credit No."; Code[20])
+        {
+            FieldClass = FlowField;
+            CalcFormula = max("Sales Cr.Memo Line"."Document No." where("Day Planning Line No." = field("Day Line No.")));
+            Caption = 'Posted Sales Credit No.';
+            Editable = false;
+        }
+        field(174; "Posted Sales Credit Line No."; Integer)
+        {
+            FieldClass = FlowField;
+            CalcFormula = max("Sales Cr.Memo Line"."Line No." where("Day Planning Line No." = field("Day Line No.")));
+            Caption = 'Posted Sales Credit Line No.';
             Editable = false;
         }
     }
@@ -574,6 +625,28 @@ table 50610 "Day Planning"
 
     var
         generalutils: Codeunit "General Planning Utilities";
+
+    procedure CanCreateSalesInvoice(): Boolean
+    begin
+        CalcFields("Qty. Transferred to Invoice", "Qty. Invoiced", "Qty. Credited");
+        if "Realized Hours" <= 0 then
+            exit(false);
+        if "Qty. Transferred to Invoice" > 0 then
+            exit(false);
+        if ("Qty. Invoiced" - "Qty. Credited") >= "Realized Hours" then
+            exit(false);
+        exit(true);
+    end;
+
+    procedure CanCreateSalesCreditMemo(): Boolean
+    begin
+        CalcFields("Qty. Invoiced", "Qty. Credited", "Qty. Transferred to Credit");
+        if "Qty. Transferred to Credit" > 0 then
+            exit(false);
+        if "Qty. Invoiced" <= "Qty. Credited" then
+            exit(false);
+        exit(true);
+    end;
 
     procedure GetNextDayLineNo();
     var
