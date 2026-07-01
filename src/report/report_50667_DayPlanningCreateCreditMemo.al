@@ -1,6 +1,6 @@
-report 50666 "Day Planning Create Invoice"
+report 50667 "Day Planning Create Cr. Memo"
 {
-    Caption = 'Day Planning Transfer to Sales Invoice';
+    Caption = 'Day Planning Transfer to Sales Credit Memo';
     ProcessingOnly = true;
     UsageCategory = None;
     ApplicationArea = Jobs;
@@ -16,17 +16,17 @@ report 50666 "Day Planning Create Invoice"
             begin
                 DayPlanning.SetFilter("Realized Hours", '>0');
                 if DayPlanning.IsEmpty() then
-                    Error(NoBillableLineErr);
+                    Error(NoCreditableLineErr);
 
                 LastJobNo := '';
                 HeadersCreated := 0;
                 LinesAppended := 0;
 
-                if not CreateNewInvoice then begin
-                    if AppendToInvoiceNo = '' then
-                        Error(AppendInvoiceNoMissingErr);
-                    if not AppendSalesHeader.Get(AppendSalesHeader."Document Type"::Invoice, AppendToInvoiceNo) then
-                        Error(InvoiceNotFoundErr, AppendToInvoiceNo);
+                if not CreateNewCreditMemo then begin
+                    if AppendToCreditMemoNo = '' then
+                        Error(AppendCrMemoNoMissingErr);
+                    if not AppendSalesHeader.Get(AppendSalesHeader."Document Type"::"Credit Memo", AppendToCreditMemoNo) then
+                        Error(CrMemoNotFoundErr, AppendToCreditMemoNo);
                     CurrentSalesHeader := AppendSalesHeader;
                     CurrentLineNo := GetNextSalesLineNo(CurrentSalesHeader);
                 end;
@@ -36,14 +36,14 @@ report 50666 "Day Planning Create Invoice"
             var
                 Job: Record Job;
             begin
-                if CreateNewInvoice then begin
+                if CreateNewCreditMemo then begin
                     if DayPlanning."Job No." <> LastJobNo then begin
                         Job.Get(DayPlanning."Job No.");
                         if Job."Bill-to Customer No." = '' then
                             Error(NoBillToCustomerErr, Job."No.");
 
                         CurrentSalesHeader.Init();
-                        CurrentSalesHeader."Document Type" := CurrentSalesHeader."Document Type"::Invoice;
+                        CurrentSalesHeader."Document Type" := CurrentSalesHeader."Document Type"::"Credit Memo";
                         CurrentSalesHeader.Validate("Sell-to Customer No.", Job."Bill-to Customer No.");
                         if PostingDate <> 0D then
                             CurrentSalesHeader.Validate("Posting Date", PostingDate);
@@ -57,25 +57,25 @@ report 50666 "Day Planning Create Invoice"
                     end;
                 end;
 
-                if not DayPlanning.CanCreateSalesInvoice() then
+                if not DayPlanning.CanCreateSalesCreditMemo() then
                     CurrReport.Skip();
 
-                CreateSalesLine();
+                CreateCreditMemoLine();
             end;
 
             trigger OnPostDataItem()
             begin
-                if CreateNewInvoice then
-                    Message(InvoicesCreatedMsg, HeadersCreated)
+                if CreateNewCreditMemo then
+                    Message(CrMemosCreatedMsg, HeadersCreated)
                 else
-                    Message(LinesAppendedMsg, LinesAppended, AppendToInvoiceNo);
+                    Message(LinesAppendedMsg, LinesAppended, AppendToCreditMemoNo);
             end;
         }
     }
 
     requestpage
     {
-        Caption = 'Day Planning Transfer to Sales Invoice';
+        Caption = 'Day Planning Transfer to Sales Credit Memo';
 
         layout
         {
@@ -85,57 +85,57 @@ report 50666 "Day Planning Create Invoice"
                 {
                     Caption = 'Options';
 
-                    field(CreateNewInvoiceField; CreateNewInvoice)
+                    field(CreateNewCreditMemoField; CreateNewCreditMemo)
                     {
                         ApplicationArea = All;
-                        Caption = 'Create New Invoice';
-                        ToolTip = 'Enable to create a new sales invoice. Disable to append lines to an existing unposted invoice.';
+                        Caption = 'Create New Credit Memo';
+                        ToolTip = 'Enable to create a new sales credit memo. Disable to append lines to an existing unposted credit memo.';
 
                         trigger OnValidate()
                         begin
-                            AppendToInvoiceNo := '';
-                            InvoicePostingDate := 0D;
+                            AppendToCreditMemoNo := '';
+                            CrMemoPostingDate := 0D;
                         end;
                     }
                     field(PostingDateField; PostingDate)
                     {
                         ApplicationArea = All;
                         Caption = 'Posting Date';
-                        ToolTip = 'Specifies the posting date for the new sales invoice.';
-                        Editable = CreateNewInvoice;
+                        ToolTip = 'Specifies the posting date for the new sales credit memo.';
+                        Editable = CreateNewCreditMemo;
                     }
                     field(DocumentDateField; DocumentDate)
                     {
                         ApplicationArea = All;
                         Caption = 'Document Date';
-                        ToolTip = 'Specifies the document date for the new sales invoice.';
-                        Editable = CreateNewInvoice;
+                        ToolTip = 'Specifies the document date for the new sales credit memo.';
+                        Editable = CreateNewCreditMemo;
                     }
-                    field(AppendToInvoiceNoField; AppendToInvoiceNo)
+                    field(AppendToCreditMemoNoField; AppendToCreditMemoNo)
                     {
                         ApplicationArea = All;
-                        Caption = 'Append to Sales Invoice No.';
-                        ToolTip = 'Specifies an existing unposted sales invoice to append lines to. Only used when Create New Invoice is disabled.';
-                        Editable = not CreateNewInvoice;
-                        TableRelation = "Sales Header"."No." where("Document Type" = const(Invoice));
+                        Caption = 'Append to Credit Memo No.';
+                        ToolTip = 'Specifies an existing unposted sales credit memo to append lines to.';
+                        Editable = not CreateNewCreditMemo;
+                        TableRelation = "Sales Header"."No." where("Document Type" = const("Credit Memo"));
 
                         trigger OnValidate()
                         var
                             SalesHeader: Record "Sales Header";
                         begin
-                            if (AppendToInvoiceNo <> '') and
-                               SalesHeader.Get(SalesHeader."Document Type"::Invoice, AppendToInvoiceNo)
+                            if (AppendToCreditMemoNo <> '') and
+                               SalesHeader.Get(SalesHeader."Document Type"::"Credit Memo", AppendToCreditMemoNo)
                             then
-                                InvoicePostingDate := SalesHeader."Posting Date"
+                                CrMemoPostingDate := SalesHeader."Posting Date"
                             else
-                                InvoicePostingDate := 0D;
+                                CrMemoPostingDate := 0D;
                         end;
                     }
-                    field(InvoicePostingDateField; InvoicePostingDate)
+                    field(CrMemoPostingDateField; CrMemoPostingDate)
                     {
                         ApplicationArea = All;
-                        Caption = 'Invoice Posting Date';
-                        ToolTip = 'Shows the posting date of the selected existing invoice (read-only).';
+                        Caption = 'Credit Memo Posting Date';
+                        ToolTip = 'Shows the posting date of the selected existing credit memo (read-only).';
                         Editable = false;
                     }
                 }
@@ -144,7 +144,7 @@ report 50666 "Day Planning Create Invoice"
 
         trigger OnOpenPage()
         begin
-            CreateNewInvoice := true;
+            CreateNewCreditMemo := true;
             PostingDate := WorkDate();
             DocumentDate := WorkDate();
         end;
@@ -153,23 +153,23 @@ report 50666 "Day Planning Create Invoice"
     var
         AppendSalesHeader: Record "Sales Header";
         CurrentSalesHeader: Record "Sales Header";
-        CreateNewInvoice: Boolean;
+        CreateNewCreditMemo: Boolean;
         PostingDate: Date;
         DocumentDate: Date;
-        AppendToInvoiceNo: Code[20];
-        InvoicePostingDate: Date;
+        AppendToCreditMemoNo: Code[20];
+        CrMemoPostingDate: Date;
         LastJobNo: Code[20];
         HeadersCreated: Integer;
         LinesAppended: Integer;
         CurrentLineNo: Integer;
-        NoBillableLineErr: Label 'There are no posted day planning lines with a "realized hours" to invoice.';
+        NoCreditableLineErr: Label 'There are no posted day planning lines with an invoiced quantity to credit.';
         NoBillToCustomerErr: Label 'Job %1 does not have a Bill-to Customer No.', Comment = '%1 = Job No.';
-        AppendInvoiceNoMissingErr: Label 'Append to Sales Invoice No. must be filled when Create New Invoice is disabled.';
-        InvoiceNotFoundErr: Label 'Sales Invoice %1 does not exist.', Comment = '%1 = Invoice No.';
-        InvoicesCreatedMsg: Label '%1 sales invoice(s) have been created.', Comment = '%1 = count';
-        LinesAppendedMsg: Label '%1 line(s) appended to Sales Invoice %2.', Comment = '%1 = lines, %2 = invoice no.';
+        AppendCrMemoNoMissingErr: Label 'Append to Credit Memo No. must be filled when Create New Credit Memo is disabled.';
+        CrMemoNotFoundErr: Label 'Sales Credit Memo %1 does not exist.', Comment = '%1 = Credit Memo No.';
+        CrMemosCreatedMsg: Label '%1 sales credit memo(s) have been created.', Comment = '%1 = count';
+        LinesAppendedMsg: Label '%1 line(s) appended to Sales Credit Memo %2.', Comment = '%1 = lines, %2 = credit memo no.';
 
-    local procedure CreateSalesLine()
+    local procedure CreateCreditMemoLine()
     var
         SalesLine: Record "Sales Line";
     begin
@@ -181,7 +181,7 @@ report 50666 "Day Planning Create Invoice"
         SalesLine.Validate("No.", DayPlanning."Assigned Resource No.");
         if DayPlanning."Work Type Code" <> '' then
             SalesLine.Validate("Work Type Code", DayPlanning."Work Type Code");
-        SalesLine.Validate(Quantity, DayPlanning."Realized Hours");
+        SalesLine.Validate(Quantity, DayPlanning."Qty. Invoiced" - DayPlanning."Qty. Credited");
         SalesLine."Job No." := DayPlanning."Job No.";
         SalesLine."Job Task No." := DayPlanning."Job Task No.";
         SalesLine."Day Planning Line No." := DayPlanning."Day Line No.";
