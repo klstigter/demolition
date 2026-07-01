@@ -484,7 +484,10 @@ table 50610 "Day Planning"
         field(161; "Qty. Transferred to Invoice"; Decimal)
         {
             FieldClass = FlowField;
-            CalcFormula = sum("Sales Line".Quantity where("Day Planning Line No." = field("Day Line No."), "Document Type" = const(Invoice)));
+            CalcFormula = sum("Sales Line".Quantity where("Document Type" = const(Invoice),
+                                                          "Job No." = field("Job No."),
+                                                          "Job Task No." = field("Job Task No."),
+                                                          "Day Planning Line No." = field("Day Line No.")));
             Caption = 'Qty. Transferred to Invoice';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
@@ -493,14 +496,19 @@ table 50610 "Day Planning"
         field(162; "Sales Invoice No."; Code[20])
         {
             FieldClass = FlowField;
-            CalcFormula = max("Sales Line"."Document No." where("Day Planning Line No." = field("Day Line No."), "Document Type" = const(Invoice)));
+            CalcFormula = max("Sales Line"."Document No." where("Document Type" = const(Invoice),
+                                                          "Job No." = field("Job No."),
+                                                          "Job Task No." = field("Job Task No."),
+                                                          "Day Planning Line No." = field("Day Line No.")));
             Caption = 'Sales Invoice No.';
             Editable = false;
         }
         field(163; "Qty. Invoiced"; Decimal)
         {
             FieldClass = FlowField;
-            CalcFormula = sum("Sales Invoice Line".Quantity where("Day Planning Line No." = field("Day Line No.")));
+            CalcFormula = sum("Sales Invoice Line".Quantity where("Job No." = field("Job No."),
+                                                          "Job Task No." = field("Job Task No."),
+                                                          "Day Planning Line No." = field("Day Line No.")));
             Caption = 'Qty. Invoiced';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
@@ -509,28 +517,38 @@ table 50610 "Day Planning"
         field(164; "Posted Sales Invoice No."; Code[20])
         {
             FieldClass = FlowField;
-            CalcFormula = max("Sales Invoice Line"."Document No." where("Day Planning Line No." = field("Day Line No.")));
+            CalcFormula = max("Sales Invoice Line"."Document No." where("Job No." = field("Job No."),
+                                                          "Job Task No." = field("Job Task No."),
+                                                          "Day Planning Line No." = field("Day Line No.")));
             Caption = 'Posted Sales Invoice No.';
             Editable = false;
         }
         field(165; "Posted Sales Invoice Line No."; Integer)
         {
             FieldClass = FlowField;
-            CalcFormula = max("Sales Invoice Line"."Line No." where("Day Planning Line No." = field("Day Line No.")));
+            CalcFormula = max("Sales Invoice Line"."Line No." where("Job No." = field("Job No."),
+                                                          "Job Task No." = field("Job Task No."),
+                                                          "Day Planning Line No." = field("Day Line No.")));
             Caption = 'Posted Sales Invoice Line No.';
             Editable = false;
         }
         field(166; "Sales Invoice Line No."; Integer)
         {
             FieldClass = FlowField;
-            CalcFormula = max("Sales Line"."Line No." where("Day Planning Line No." = field("Day Line No."), "Document Type" = const(Invoice)));
+            CalcFormula = max("Sales Line"."Line No." where("Document Type" = const(Invoice),
+                                                          "Job No." = field("Job No."),
+                                                          "Job Task No." = field("Job Task No."),
+                                                          "Day Planning Line No." = field("Day Line No.")));
             Caption = 'Sales Invoice Line No.';
             Editable = false;
         }
         field(169; "Qty. Transferred to Credit"; Decimal)
         {
             FieldClass = FlowField;
-            CalcFormula = sum("Sales Line".Quantity where("Day Planning Line No." = field("Day Line No."), "Document Type" = const("Credit Memo")));
+            CalcFormula = sum("Sales Line".Quantity where("Document Type" = const("Credit Memo"),
+                                                          "Job No." = field("Job No."),
+                                                          "Job Task No." = field("Job Task No."),
+                                                          "Day Planning Line No." = field("Day Line No.")));
             Caption = 'Qty. Transferred to Credit';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
@@ -539,21 +557,29 @@ table 50610 "Day Planning"
         field(170; "Sales Credit No."; Code[20])
         {
             FieldClass = FlowField;
-            CalcFormula = max("Sales Line"."Document No." where("Day Planning Line No." = field("Day Line No."), "Document Type" = const("Credit Memo")));
+            CalcFormula = max("Sales Line"."Document No." where("Document Type" = const("Credit Memo"),
+                                                          "Job No." = field("Job No."),
+                                                          "Job Task No." = field("Job Task No."),
+                                                          "Day Planning Line No." = field("Day Line No.")));
             Caption = 'Sales Credit No.';
             Editable = false;
         }
         field(171; "Sales Credit Line No."; Integer)
         {
             FieldClass = FlowField;
-            CalcFormula = max("Sales Line"."Line No." where("Day Planning Line No." = field("Day Line No."), "Document Type" = const("Credit Memo")));
+            CalcFormula = max("Sales Line"."Line No." where("Document Type" = const("Credit Memo"),
+                                                          "Job No." = field("Job No."),
+                                                          "Job Task No." = field("Job Task No."),
+                                                          "Day Planning Line No." = field("Day Line No.")));
             Caption = 'Sales Credit Line No.';
             Editable = false;
         }
         field(172; "Qty. Credited"; Decimal)
         {
             FieldClass = FlowField;
-            CalcFormula = sum("Sales Cr.Memo Line".Quantity where("Day Planning Line No." = field("Day Line No.")));
+            CalcFormula = sum("Sales Cr.Memo Line".Quantity where("Job No." = field("Job No."),
+                                                          "Job Task No." = field("Job Task No."),
+                                                          "Day Planning Line No." = field("Day Line No.")));
             Caption = 'Qty. Credited';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
@@ -562,14 +588,18 @@ table 50610 "Day Planning"
         field(173; "Posted Sales Credit No."; Code[20])
         {
             FieldClass = FlowField;
-            CalcFormula = max("Sales Cr.Memo Line"."Document No." where("Day Planning Line No." = field("Day Line No.")));
+            CalcFormula = max("Sales Cr.Memo Line"."Document No." where("Job No." = field("Job No."),
+                                                          "Job Task No." = field("Job Task No."),
+                                                          "Day Planning Line No." = field("Day Line No.")));
             Caption = 'Posted Sales Credit No.';
             Editable = false;
         }
         field(174; "Posted Sales Credit Line No."; Integer)
         {
             FieldClass = FlowField;
-            CalcFormula = max("Sales Cr.Memo Line"."Line No." where("Day Planning Line No." = field("Day Line No.")));
+            CalcFormula = max("Sales Cr.Memo Line"."Line No." where("Job No." = field("Job No."),
+                                                          "Job Task No." = field("Job Task No."),
+                                                          "Day Planning Line No." = field("Day Line No.")));
             Caption = 'Posted Sales Credit Line No.';
             Editable = false;
         }
