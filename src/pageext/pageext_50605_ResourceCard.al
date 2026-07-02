@@ -24,15 +24,22 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
         {
             group(Purchase)
             {
-                field("Vendor No."; Rec."Vendor No.")
+                group(VendorNoGroup)
                 {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the vendor number associated with the resource.';
+                    ShowCaption = false;
+                    Visible = ShowVendorNo;
+
+                    field("Vendor No."; Rec."Vendor No.")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Specifies the vendor number associated with the resource.';
+                    }
                 }
                 group(PoolResourceNoGroup)
                 {
                     ShowCaption = false;
                     Visible = ShowPoolResourceNo;
+
                     field("Pool Resource No."; Rec."Pool Resource No.")
                     {
                         ApplicationArea = All;
@@ -55,11 +62,19 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
                     field("Is Pool Member"; Rec."Is Pool Member")
                     {
                         ApplicationArea = All;
+                        trigger OnValidate()
+                        begin
+                            UpdateVisibility();
+                        end;
                     }
                     field("Is External"; Rec."Is External")
                     {
                         ApplicationArea = All;
                         ToolTip = 'Indicates whether the resource is external';
+                        trigger OnValidate()
+                        begin
+                            UpdateVisibility();
+                        end;
                     }
                 }
 
@@ -152,9 +167,13 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
 
     var
         ShowPoolResourceNo: Boolean;
+        ShowVendorNo: Boolean;
 
     local procedure UpdateVisibility()
     begin
-        ShowPoolResourceNo := not Rec."Is Pool";
+        ShowPoolResourceNo := (not Rec."Is Pool") and Rec."Is Pool Member";
+        // if not Rec."Is Pool" then
+        //     ShowPoolResourceNo := Rec."Is Pool Member";
+        ShowVendorNo := Rec."Is External" or Rec."Is Pool";
     end;
 }
