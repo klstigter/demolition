@@ -7,53 +7,58 @@ codeunit 50605 "TrustedCircle Integration"
     var
         DailyOptimizerSetup: Record "Daily Optimizer Setup";
 
-    procedure TestProductUpdate()
+
+    /*
+    Each outcome now writes a distinct description to the log:
+
+    Scenario	    Description in log
+    Network error	Test Connection: Network error. Could not reach the endpoint URL.
+    401 / 403	    Test Connection: Authentication failed. HTTP 401 - Bearer Token is invalid or expired.
+    404	            Test Connection: Successful. HTTP 404 - Server is reachable, but the base URL has no root route. This is expected.
+    2xx / other	    Test Connection: Successful. HTTP 200.
+
+    */
+    procedure TestConnection()
     var
         Client: HttpClient;
-        Request: HttpRequestMessage;
         Response: HttpResponseMessage;
-        Content: HttpContent;
-        ContentHeaders: HttpHeaders;
-        RequestBody: Text;
         ResponseBody: Text;
         EndpointURL: Text;
-        JsonBody: JsonObject;
     begin
         DailyOptimizerSetup.Get();
         DailyOptimizerSetup.TestField("TrustedCircle Bearer Token");
         DailyOptimizerSetup.TestField("TrustedCircle API Base URL");
 
-        EndpointURL := DailyOptimizerSetup."TrustedCircle API Base URL" + '/products/7b71865e-a8ab-4c90-914a-217def6fbb7b';
-
-        JsonBody.Add('price', 145000000);
-        JsonBody.Add('stock', 10);
-        JsonBody.Add('name', 'Laptop OK - BC');
-        JsonBody.Add('description', 'Laptop paling OK Banget - BC');
-        JsonBody.WriteTo(RequestBody);
-
-        Content.WriteFrom(RequestBody);
-        Content.GetHeaders(ContentHeaders);
-        if ContentHeaders.Contains('Content-Type') then
-            ContentHeaders.Remove('Content-Type');
-        ContentHeaders.Add('Content-Type', 'application/json');
+        EndpointURL := DailyOptimizerSetup."TrustedCircle API Base URL";
 
         Client.DefaultRequestHeaders().Add('Authorization', 'Bearer ' + DailyOptimizerSetup."TrustedCircle Bearer Token");
-        Request.SetRequestUri(EndpointURL);
-        Request.Method := 'PATCH';
-        Request.Content := Content;
 
-        if not Client.Send(Request, Response) then begin
-            LogActivity('PATCH', EndpointURL, RequestBody, '', 0, 'Test Product Update');
-            Error('HTTP request failed. Check network connectivity or the endpoint URL.');
+        if not Client.Get(EndpointURL, Response) then begin
+            LogActivity('GET', EndpointURL, '', '', 0, 'Test Connection: Network error. Could not reach the endpoint URL.');
+            Error('Connection failed. Check network connectivity or the endpoint URL.');
         end;
 
         Response.Content.ReadAs(ResponseBody);
-        LogActivity('PATCH', EndpointURL, RequestBody, ResponseBody, Response.HttpStatusCode(), 'Test Product Update');
 
-        if Response.IsSuccessStatusCode() then
-            Message('Product updated. HTTP %1', Response.HttpStatusCode())
-        else
-            Error('Update failed. HTTP %1\n%2', Response.HttpStatusCode(), ResponseBody);
+        case Response.HttpStatusCode() of
+            401, 403:
+                begin
+                    LogActivity('GET', EndpointURL, '', ResponseBody, Response.HttpStatusCode(),
+                        StrSubstNo('Test Connection: Authentication failed. HTTP %1 - Bearer Token is invalid or expired.', Response.HttpStatusCode()));
+                    Error('Authentication failed. Check the Bearer Token. HTTP %1', Response.HttpStatusCode());
+                end;
+            404:
+                begin
+                    LogActivity('GET', EndpointURL, '', ResponseBody, Response.HttpStatusCode(),
+                        'Test Connection: Successful. HTTP 404 - Server is reachable, but the base URL has no root route. This is expected.');
+                    Message('Connection successful. HTTP %1', Response.HttpStatusCode());
+                end;
+            else begin
+                LogActivity('GET', EndpointURL, '', ResponseBody, Response.HttpStatusCode(),
+                    StrSubstNo('Test Connection: Successful. HTTP %1.', Response.HttpStatusCode()));
+                Message('Connection successful. HTTP %1', Response.HttpStatusCode());
+            end;
+        end;
     end;
 
     local procedure LogActivity(Method: Text; EndpointURL: Text; RequestBody: Text; ResponseBody: Text; StatusCode: Integer; Desc: Text)

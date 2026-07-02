@@ -108,14 +108,14 @@ page 50654 "Daily Optimizer Setup"
                 action(TestUpdateProduct)
                 {
                     ApplicationArea = All;
-                    Caption = 'Test Update Product';
+                    Caption = 'Test API Connection';
                     Image = TestDatabase;
 
                     trigger OnAction()
                     var
                         ti: Codeunit "TrustedCircle Integration";
                     begin
-                        ti.TestProductUpdate();
+                        ti.TestConnection();
                     end;
                 }
                 action(TrustedCircleAPILog)
