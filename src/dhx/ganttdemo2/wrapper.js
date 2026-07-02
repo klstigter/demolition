@@ -215,8 +215,8 @@ window.BOOT = function() {
           currentResourceId
         ]);
       });
-      makeItem(menu, "Show Message 2", function () {
-        alert("Message 2 — Resource: " + currentResourceId);
+      makeItem(menu, "Show Resource Card", function () {
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnResourceDblClick", [currentResourceId]);
       });
 
       makeItem(markerMenu, "Open Day Plannings", function () {

@@ -331,8 +331,14 @@ page 50620 "Gantt Demo DHX 2"
                 end;
 
                 trigger OnResourceDblClick(resourceId: Text)
+                var
+                    Resource: Record Resource;
+                    ResourceCode: Code[20];
                 begin
-                    Message('Resource: %1', resourceId);
+                    if not resourceId.StartsWith('RES-') then exit;
+                    ResourceCode := CopyStr(resourceId, 5, MaxStrLen(ResourceCode));
+                    if Resource.Get(ResourceCode) then
+                        Page.Run(Page::"Resource Card", Resource);
                 end;
 
                 trigger onAddDayPlanning(resourceId: Text; workDate: Text)
