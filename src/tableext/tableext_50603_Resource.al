@@ -70,13 +70,77 @@ tableextension 50603 "Resource Opt" extends Resource
         {
             DataClassification = ToBeClassified;
             Caption = 'Is Pool Member';
-            Editable = false; // Control by "Pool Resource No.";
+
+            trigger OnValidate()
+            var
+                Res: Record Resource;
+                ResList: Page "Resource List";
+            begin
+                if "Is Pool Member" then begin
+                    if "Pool Resource No." = '' then begin
+                        Clear(ResList);
+                        Res.Setrange("Is Pool", true);
+                        ResList.SetTableView(Res);
+                        ResList.LookupMode := true;
+                        if ResList.RunModal() = Action::LookupOK then begin
+                            ResList.GetRecord(Res);
+                            "Pool Resource No." := Res."No.";
+                            "Vendor No." := '';
+                            "Is Pool" := false;
+                            "Is External" := false;
+                        end else begin
+                            "Is Pool Member" := false;
+                            "Pool Resource No." := '';
+                        end;
+                    end else begin
+                        "Vendor No." := '';
+                        "Is Pool" := false;
+                        "Is External" := false;
+                    end;
+                end else begin
+                    "Pool Resource No." := '';
+                    "Vendor No." := '';
+                    "Is Pool" := false;
+                    "Is External" := false;
+                end;
+            end;
         }
         field(50604; "Is External"; Boolean)
         {
             DataClassification = ToBeClassified;
             Caption = 'Is External';
-            Editable = false; // Control by "Vendor No.";
+
+            trigger OnValidate()
+            var
+                Ven: Record Vendor;
+                VenList: Page "Vendor List";
+            begin
+                if "Is External" then begin
+                    if "Vendor No." = '' then begin
+                        Clear(VenList);
+                        VenList.SetTableView(Ven);
+                        VenList.LookupMode := true;
+                        if VenList.RunModal() = Action::LookupOK then begin
+                            VenList.GetRecord(Ven);
+                            "Vendor No." := Ven."No.";
+                            "Pool Resource No." := '';
+                            "Is Pool" := false;
+                            "Is Pool Member" := false;
+                        end else begin
+                            "Is External" := false;
+                        end;
+                    end else begin
+                        "Pool Resource No." := '';
+                        "Is Pool" := false;
+                        "Is Pool Member" := false;
+                    end;
+                end else begin
+                    "Vendor No." := '';
+                    "Pool Resource No." := '';
+                    "Is Pool" := false;
+                    "Is Pool Member" := false;
+                end;
+            end;
         }
         field(50610; "Assigned Hours"; Decimal)
         {
@@ -111,12 +175,30 @@ tableextension 50603 "Resource Opt" extends Resource
             var
                 Res: Record Resource;
                 Res2: Record Resource;
+                Ven: Record Vendor;
+                VenList: Page "Vendor List";
             begin
                 if "Is Pool" then begin
-                    testfield("Vendor No.");
-                    "Pool Resource No." := "No.";
-                    "Is Pool Member" := false;
-                    "Is External" := false;
+                    if "Vendor No." = '' then begin
+                        Clear(VenList);
+                        VenList.SetTableView(Ven);
+                        VenList.LookupMode := true;
+                        if VenList.RunModal() = Action::LookupOK then begin
+                            VenList.GetRecord(Ven);
+                            "Vendor No." := Ven."No.";
+                            "Pool Resource No." := "No.";
+                            "Is Pool Member" := false;
+                            "Is External" := false;
+                        end else begin
+                            "Pool Resource No." := '';
+                            "Is Pool Member" := false;
+                            "Is External" := false;
+                        end;
+                    end else begin
+                        "Pool Resource No." := "No.";
+                        "Is Pool Member" := false;
+                        "Is External" := false;
+                    end;
                 end else begin
                     "Pool Resource No." := '';
                     if (xRec."Pool Resource No." <> '') then begin
