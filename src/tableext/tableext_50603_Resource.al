@@ -77,9 +77,11 @@ tableextension 50603 "Resource Opt" extends Resource
                 ResList: Page "Resource List";
             begin
                 if "Is Pool Member" then begin
+                    "Pool Resource No." := ''; // so always popup pool resource
                     if "Pool Resource No." = '' then begin
                         Clear(ResList);
                         Res.Setrange("Is Pool", true);
+                        Res.Setfilter("No.", '<>%1', Rec."No.");
                         ResList.SetTableView(Res);
                         ResList.LookupMode := true;
                         if ResList.RunModal() = Action::LookupOK then begin
@@ -190,6 +192,7 @@ tableextension 50603 "Resource Opt" extends Resource
                             "Is Pool Member" := false;
                             "Is External" := false;
                         end else begin
+                            "Is Pool" := false;
                             "Pool Resource No." := '';
                             "Is Pool Member" := false;
                             "Is External" := false;
