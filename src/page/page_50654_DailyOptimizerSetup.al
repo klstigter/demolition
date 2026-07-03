@@ -199,6 +199,18 @@ page 50654 "Daily Optimizer Setup"
                         PAGE.Run(Page::"Demo Data Log");
                     end;
                 }
+                action(DeleteIncorrectDayPlanning)
+                {
+                    ApplicationArea = All;
+                    Caption = 'Delete incorrect Dayplanning';
+                    ToolTip = 'Delete unposted Day Planning lines that are missing a Skill or fall outside their Job Task''s planned date range.';
+                    Image = RemoveLine;
+
+                    trigger OnAction()
+                    begin
+                        CODEUNIT.Run(Codeunit::"Delete Incorrect Day Planning");
+                    end;
+                }
             }
         }
 
@@ -217,6 +229,7 @@ page 50654 "Daily Optimizer Setup"
                 actionref(CreateDemoData_ref; CreateDemoData) { }
                 actionref(DeleteDemoData_ref; DeleteDemoData) { }
                 actionref(DemoDataLog_ref; DemoDataLog) { }
+                actionref(DeleteIncorrectDayPlanning_ref; DeleteIncorrectDayPlanning) { }
             }
             group(TrustedCirclePromoted)
             {

@@ -18,6 +18,75 @@ var _ganttHolidays = {}; // { "YYYY-MM-DD": "Description", ... } loaded from BC 
 var skipTrigger_OnJobTaskUpdated = false;
 
 // -------------------------------------------------------
+// Loading overlay - shown while a full data (re)load is in progress.
+// Demo data volume (170+ jobs, tens of thousands of tasks/day plannings) can make a full
+// load/render take a noticeable amount of time, so give the user visible feedback instead
+// of an unresponsive-looking blank grid.
+// -------------------------------------------------------
+var _loadingOverlay = null;
+var _loadingSafetyTimer = null;
+
+function _createLoadingOverlay(host) {
+  if (_loadingOverlay) return;
+
+  var style = document.createElement("style");
+  style.textContent = [
+    "#gantt-loading-overlay {",
+    "  position:absolute; inset:0; z-index:100000;",
+    "  display:none; align-items:center; justify-content:center;",
+    "  background:rgba(255,255,255,0.35);",
+    "}",
+    "#gantt-loading-overlay .glo-box {",
+    "  background:#fff; border:1px solid #d8d8d8; border-radius:6px;",
+    "  box-shadow:0 6px 24px rgba(0,0,0,0.25);",
+    "  padding:18px 26px; width:170px; text-align:center;",
+    "  font:13px/1.4 'Segoe UI', Tahoma, sans-serif;",
+    "}",
+    "#gantt-loading-overlay .glo-bar {",
+    "  height:16px; border:1px solid #2f6fdb; border-radius:2px; overflow:hidden;",
+    "  margin-bottom:10px; background:#fff;",
+    "}",
+    "#gantt-loading-overlay .glo-bar-fill {",
+    "  height:100%; width:200%;",
+    "  background-image: repeating-linear-gradient(-55deg, #2f6fdb 0 8px, #eaf1fd 8px 16px);",
+    "  animation: glo-slide 0.9s linear infinite;",
+    "}",
+    "@keyframes glo-slide { from { transform: translateX(-50%); } to { transform: translateX(0%); } }",
+    "#gantt-loading-overlay .glo-title { color:#2f6fdb; font-weight:700; font-size:16px; letter-spacing:1px; }",
+    "#gantt-loading-overlay .glo-sub { color:#8a8a8a; margin-top:2px; }"
+  ].join("\n");
+  document.head.appendChild(style);
+
+  var overlay = document.createElement("div");
+  overlay.id = "gantt-loading-overlay";
+  overlay.innerHTML =
+    '<div class="glo-box">' +
+      '<div class="glo-bar"><div class="glo-bar-fill"></div></div>' +
+      '<div class="glo-title">LOADING</div>' +
+      '<div class="glo-sub">Please wait...</div>' +
+    '</div>';
+
+  if (!host.style.position) host.style.position = "relative";
+  host.appendChild(overlay);
+  _loadingOverlay = overlay;
+}
+
+function _showGanttLoading() {
+  if (!_loadingOverlay) return;
+  _loadingOverlay.style.display = "flex";
+  // Safety fallback: never let the overlay get stuck forever if RenderGantt is never reached
+  // (e.g. an error earlier in the AL load sequence). Generous window since it now starts as
+  // early as BOOT() and a full load of this data volume can legitimately take a while.
+  if (_loadingSafetyTimer) clearTimeout(_loadingSafetyTimer);
+  _loadingSafetyTimer = setTimeout(_hideGanttLoading, 180000);
+}
+
+function _hideGanttLoading() {
+  if (_loadingOverlay) _loadingOverlay.style.display = "none";
+  if (_loadingSafetyTimer) { clearTimeout(_loadingSafetyTimer); _loadingSafetyTimer = null; }
+}
+
+// -------------------------------------------------------
 // 1) BOOT (run once)
 // -------------------------------------------------------
 window.BOOT = function() {
@@ -43,6 +112,10 @@ window.BOOT = function() {
       host.appendChild(el);
     }
     gantt_here = el;
+    _createLoadingOverlay(host);
+    // Show immediately — this is the earliest point we run (right as the add-in frame's own
+    // JS starts executing), well before ControlReady/LoadAllData/LoadProject ever fire.
+    _showGanttLoading();
 
     if (typeof gantt === "undefined") {
       console.error("DHX Gantt library not found. Ensure dhtmlxgantt.js is loaded in the ControlAddIn.");
@@ -1304,7 +1377,10 @@ function RecreateGanttLayout(showResourcePanel) {
 //    NOTE: Do NOT call gantt.init() here.
 // -------------------------------------------------------
 function LoadProject(projectstartdate, projectenddate) {
-  
+  // First JS call in every full (re)load cycle (ControlReady and RefreshGantt both hit this
+  // before RenderGantt) — show the loading overlay here so it covers the whole sequence.
+  _showGanttLoading();
+
 	// If you pass BC dates as strings, adapt parsing here.
   // For now, keep demo range if input missing.
   if (projectstartdate) {
@@ -1337,7 +1413,7 @@ function LoadProject(projectstartdate, projectenddate) {
 // Finalize Refresh - Call this after all data is loaded
 // -------------------------------------------------------
 function RenderGantt(pskipTrigger_OnJobTaskUpdated) {
-  try {  
+  try {
     skipTrigger_OnJobTaskUpdated = pskipTrigger_OnJobTaskUpdated;
     if (!gantt_here || typeof gantt === "undefined" || !gantt.$root) {
       console.warn("RenderGantt: Gantt not initialized");
@@ -1346,14 +1422,17 @@ function RenderGantt(pskipTrigger_OnJobTaskUpdated) {
 
     // Final render after all data loaded
     gantt.render();
-    
+
     // Reset refresh flag
     _isRefreshing = false;
-    
+
     console.log("Gantt render completed, refresh flag reset");
   } catch (e) {
     console.error("RenderGantt failed:", e);
     _isRefreshing = false;
+  } finally {
+    // Always hide, even if render threw, so the overlay never gets stuck.
+    _hideGanttLoading();
   }
 }
 

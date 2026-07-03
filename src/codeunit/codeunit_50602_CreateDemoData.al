@@ -11,6 +11,8 @@ codeunit 50602 "Create Demo Data"
         CreateJobs();
         CreateJobTasks();
         CreateJobTaskLinks();
+        CreateBulkJobs();
+        CreateDemoResources();
         LoadResources();
         CreateCapacityAndDayPlanning();
         Message('Demo data created successfully. %1 records logged.', gLogEntryNo);
@@ -23,6 +25,26 @@ codeunit 50602 "Create Demo Data"
         gStartDate: Date;
         gEndDate: Date;
         gLogEntryNo: Integer;
+        gVendorNos: List of [Code[20]];
+        gSkillCodes: List of [Code[10]];
+        gUOMCodes: List of [Code[10]];
+        gGenProdPostingGroups: List of [Code[20]];
+        gVATProdPostingGroups: List of [Code[20]];
+        gResourceGroupNos: List of [Code[20]];
+        gForemanNos: List of [Code[20]];
+        gBulkJobNos: List of [Code[20]];
+        gResDaySlotUsed: Dictionary of [Text, Integer];
+        gVendorIdx: Integer;
+        gSkillIdx: Integer;
+        gUOMIdx: Integer;
+        gGenProdIdx: Integer;
+        gVATProdIdx: Integer;
+        gResGroupIdx: Integer;
+        gPoolSeq: Integer;
+        gMemberSeq: Integer;
+        gExternalSeq: Integer;
+        gFirstNames: array[20] of Text[30];
+        gLastNames: array[20] of Text[30];
 
     // ──────────────────────────────────────────────────────────────────────────
     // Initialization & Cleanup
@@ -33,7 +55,8 @@ codeunit 50602 "Create Demo Data"
         LogEntry: Record "Demo Data Log Entry";
     begin
         gStartDate := CalcDate('<WD1-1W>', Today());
-        gEndDate := CalcDate('+54W', gStartDate);  // covers JOB002 (start+1W+52W) + 1W buffer
+        // Covers JOB002 (start+1W+52W) and the 170 bulk jobs (max start offset +9W, 98W span) + buffer
+        gEndDate := CalcDate('+110W', gStartDate);
         gWorkHoursTemplate.Get('BASIS');
         LogEntry.Reset();
         if LogEntry.FindLast() then
@@ -46,6 +69,7 @@ codeunit 50602 "Create Demo Data"
     var
         LogEntry: Record "Demo Data Log Entry";
         RecRef: RecordRef;
+        DeletedCount: Integer;
     begin
         // Only delete records that were logged by a previous demo data run.
         // User-created records are never touched.
@@ -56,6 +80,11 @@ codeunit 50602 "Create Demo Data"
                 if RecRef.Get(LogEntry."Record ID") then
                     RecRef.Delete(false);
                 RecRef.Close();
+                DeletedCount += 1;
+                // Commit periodically so a large demo data set (tens of thousands of logged
+                // records) doesn't hold one long-running transaction/lock for the whole delete.
+                if DeletedCount mod 1000 = 0 then
+                    Commit();
             until LogEntry.Next(-1) = 0;
         LogEntry.DeleteAll();
         gLogEntryNo := 0;
@@ -84,6 +113,14 @@ codeunit 50602 "Create Demo Data"
         // "Project Task does not exist". Remove any orphan rows first.
         DeleteOrphanJobTaskDimensions(No);
         Job.Init();
+        // Suppress all base-app validation dialogs on this Job record. The Sell-to Customer
+        // validation below fires Job.UpdateJobTaskDimension -> Confirm("You have changed a
+        // dimension.\\Do you want to update the lines?"), plus a Sell-to/Bill-to customer-change
+        // and empty-email confirm on re-runs. GetHideValidationDialog() gates every one of these
+        // (Job.Table.al), so this single call replaces the fragile SingleInstance + global +
+        // OnBeforeUpdateJobTaskDimension event-subscriber approach and reliably runs unattended.
+        // Safe because CreateJobTasks() rebuilds every Job Task fresh immediately afterward.
+        Job.SetHideValidationDialog(true);
         Job."No." := No;
         Job.Description := Desc;
         Job.Validate("Sell-to Customer No.", CustNo);
@@ -163,7 +200,7 @@ codeunit 50602 "Create Demo Data"
 
         AddTask(JT, '9999', 'Radome Repair Project Total',        D,                      CalcDate('+40W', D),    JT."Job Task Type"::Total);
 
-        Indent.IndentJobTasks(JT);
+        Indent.IndentJobTasks(JT, true);
     end;
 
     local procedure BuildTasksJOB002(var Indent: Codeunit "Job Task Indent")
@@ -213,7 +250,7 @@ codeunit 50602 "Create Demo Data"
 
         AddTask(JT, '9999', 'ERP Implementation Total',            D,                      CalcDate('+52W', D),    JT."Job Task Type"::Total);
 
-        Indent.IndentJobTasks(JT);
+        Indent.IndentJobTasks(JT, true);
     end;
 
     local procedure BuildTasksJOB003(var Indent: Codeunit "Job Task Indent")
@@ -255,7 +292,7 @@ codeunit 50602 "Create Demo Data"
 
         AddTask(JT, '9999', 'Infrastructure Upgrade Total',           D,                      CalcDate('+42W', D),    JT."Job Task Type"::Total);
 
-        Indent.IndentJobTasks(JT);
+        Indent.IndentJobTasks(JT, true);
     end;
 
     local procedure AddTask(var JT: Record "Job Task"; TaskNo: Code[20]; Desc: Text[100]; StartDate: Date; EndDate: Date; TaskType: Enum "Job Task Type")
@@ -355,6 +392,479 @@ codeunit 50602 "Create Demo Data"
     end;
 
     // ──────────────────────────────────────────────────────────────────────────
+    // Bulk Jobs — 170 generated jobs x 250 phased job tasks each (volume demo data).
+    // Each job: 1 Heading + 31 phases (Begin-Total + 6 Posting + End-Total = 8 tasks) + 1
+    // Total = 1 + 31*8 + 1 = 250 tasks. Job Task Nos. are zero-padded to a uniform 5 digits
+    // (e.g. '01000', '01010', '31999') so Code-field text sorting stays numeric order across
+    // the full range — mixing 4- and 5-digit codes would sort '10000' before '9999'.
+    // ──────────────────────────────────────────────────────────────────────────
+
+    local procedure CreateBulkJobs()
+    var
+        Customer: Record Customer;
+        Window: Dialog;
+        Idx: Integer;
+        JobNo: Code[20];
+        JobStart: Date;
+        ProgressLbl: Label 'Creating bulk demo jobs...\n#1########## of #2##########';
+    begin
+        Clear(gBulkJobNos);
+        Customer.FindFirst();
+
+        if GuiAllowed() then
+            Window.Open(ProgressLbl);
+        for Idx := 1 to 170 do begin
+            JobNo := 'DJB' + Format(Idx, 0, '<Integer,4><Filler Character,0>');
+            JobStart := CalcDate(StrSubstNo('+%1W', Idx mod 10), gStartDate);
+            CreateBulkJob(JobNo, Idx, Customer."No.");
+            CreateBulkJobTasks(JobNo, JobStart);
+            gBulkJobNos.Add(JobNo);
+            if GuiAllowed() then begin
+                Window.Update(1, Idx);
+                Window.Update(2, 170);
+            end;
+            if Idx mod 10 = 0 then
+                Commit();
+        end;
+        if GuiAllowed() then
+            Window.Close();
+    end;
+
+    local procedure CreateBulkJob(JobNo: Code[20]; Idx: Integer; CustNo: Code[20])
+    var
+        Job: Record Job;
+        Desc: Text[100];
+    begin
+        DeleteOrphanJobTaskDimensions(JobNo);
+        Job.Init();
+        Job.SetHideValidationDialog(true);
+        Job."No." := JobNo;
+        Desc := 'Demo Bulk Project ' + Format(Idx, 0, '<Integer,4><Filler Character,0>');
+        Job.Description := CopyStr(Desc, 1, MaxStrLen(Job.Description));
+        Job.Validate("Sell-to Customer No.", CustNo);
+        if not Job.Insert() then
+            Job.Modify();
+        LogRecord(Database::Job, Job.RecordId(), JobNo + ' - ' + Job.Description);
+    end;
+
+    local procedure CreateBulkJobTasks(JobNo: Code[20]; JobStart: Date)
+    var
+        JT: Record "Job Task";
+        Indent: Codeunit "Job Task Indent";
+        Phase: Integer;
+        Task: Integer;
+        PhaseStart: Date;
+        PhaseEnd: Date;
+        PostStart: Date;
+        PostEnd: Date;
+        JobEnd: Date;
+        DurationWeeks: Integer;
+    begin
+        // Phases start 3 weeks apart; the 8-week phase window is a safe upper bound covering
+        // the widest posting stagger (up to 10 days) plus the longest posting duration (6W).
+        JobEnd := CalcDate(StrSubstNo('+%1W', (31 - 1) * 3 + 8), JobStart);
+        JT."Job No." := JobNo;
+
+        AddTask(JT, '00000', 'Bulk Project', JobStart, JobEnd, JT."Job Task Type"::Heading);
+
+        for Phase := 1 to 31 do begin
+            PhaseStart := CalcDate(StrSubstNo('+%1W', (Phase - 1) * 3), JobStart);
+            PhaseEnd := CalcDate('+8W', PhaseStart);
+            AddTask(JT, PadPhaseNo(Phase * 1000), StrSubstNo('Phase %1', Phase), PhaseStart, PhaseEnd, JT."Job Task Type"::"Begin-Total");
+
+            for Task := 1 to 6 do begin
+                PostStart := CalcDate(StrSubstNo('+%1D', (Task - 1) * 2), PhaseStart);
+                // Minimum 3-week duration, varied 3-6 weeks so bars aren't all identical.
+                DurationWeeks := 3 + ((Phase + Task) mod 4);
+                PostEnd := CalcDate(StrSubstNo('+%1W', DurationWeeks), PostStart);
+                AddTask(JT, PadPhaseNo(Phase * 1000 + Task * 10), StrSubstNo('Phase %1 Task %2', Phase, Task), PostStart, PostEnd, JT."Job Task Type"::Posting);
+            end;
+
+            AddTask(JT, PadPhaseNo(Phase * 1000 + 999), StrSubstNo('Phase %1 Total', Phase), PhaseStart, PhaseEnd, JT."Job Task Type"::"End-Total");
+        end;
+
+        AddTask(JT, PadPhaseNo(32000), 'Bulk Project Total', JobStart, JobEnd, JT."Job Task Type"::Total);
+
+        Indent.IndentJobTasks(JT, true);
+    end;
+
+    local procedure PadPhaseNo(Value: Integer): Code[20]
+    begin
+        exit(Format(Value, 0, '<Integer,5><Filler Character,0>'));
+    end;
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Demo Resources — Pool / Pool Member / External, x3 varied iterations
+    // ──────────────────────────────────────────────────────────────────────────
+
+    local procedure CreateDemoResources()
+    var
+        Window: Dialog;
+        Iteration: Integer;
+        ResourcesCreated: Integer;
+        ResourcesTotal: Integer;
+        NoVendorsLbl: Label 'No vendors found. Skipping demo resource generation — create at least one vendor first.';
+        NoSkillsLbl: Label 'No skill codes found. Skipping demo resource generation — create at least one skill code first.';
+        NoUOMLbl: Label 'No units of measure found. Skipping demo resource generation — create at least one unit of measure first.';
+        NoGenProdLbl: Label 'No Gen. Product Posting Groups found. Skipping demo resource generation — create at least one first.';
+        NoVATProdLbl: Label 'No VAT Product Posting Groups found. Skipping demo resource generation — create at least one first.';
+        NoResGroupLbl: Label 'No Resource Groups found. Skipping demo resource generation — create at least one resource group first.';
+        ProgressLbl: Label 'Creating demo resources...\n#1########## of #2##########';
+    begin
+        LoadReferenceData();
+        if gVendorNos.Count() = 0 then begin
+            Message(NoVendorsLbl);
+            exit;
+        end;
+        if gSkillCodes.Count() = 0 then begin
+            Message(NoSkillsLbl);
+            exit;
+        end;
+        if gUOMCodes.Count() = 0 then begin
+            Message(NoUOMLbl);
+            exit;
+        end;
+        if gGenProdPostingGroups.Count() = 0 then begin
+            Message(NoGenProdLbl);
+            exit;
+        end;
+        if gVATProdPostingGroups.Count() = 0 then begin
+            Message(NoVATProdLbl);
+            exit;
+        end;
+        if gResourceGroupNos.Count() = 0 then begin
+            Message(NoResGroupLbl);
+            exit;
+        end;
+
+        EnsureResourceNoSeriesAllowsManualNos();
+        InitNameArrays();
+        Clear(gForemanNos);
+        gPoolSeq := 0;
+        gMemberSeq := 0;
+        gExternalSeq := 0;
+        // Reset round-robin cursors so repeated runs in the same session (SingleInstance
+        // codeunit) start from the same rotation instead of drifting further each time.
+        gVendorIdx := 0;
+        gSkillIdx := 0;
+        gUOMIdx := 0;
+        gGenProdIdx := 0;
+        gVATProdIdx := 0;
+        gResGroupIdx := 0;
+        ResourcesTotal := 3 * (75 + 75 * 150 + 250);
+
+        if GuiAllowed() then
+            Window.Open(ProgressLbl);
+        for Iteration := 1 to 3 do
+            CreateResourceIterationBatch(Window, ResourcesCreated, ResourcesTotal);
+        if GuiAllowed() then
+            Window.Close();
+
+        AssignForemanTree();
+    end;
+
+    local procedure LoadReferenceData()
+    var
+        Vendor: Record Vendor;
+        SkillCode: Record "Skill Code";
+        UOM: Record "Unit of Measure";
+        GenProdPostingGroup: Record "Gen. Product Posting Group";
+        VATProdPostingGroup: Record "VAT Product Posting Group";
+        ResourceGroup: Record "Resource Group";
+    begin
+        Clear(gVendorNos);
+        Vendor.SetLoadFields("No.");
+        if Vendor.FindSet() then
+            repeat
+                gVendorNos.Add(Vendor."No.");
+            until Vendor.Next() = 0;
+
+        Clear(gSkillCodes);
+        SkillCode.SetLoadFields(Code);
+        if SkillCode.FindSet() then
+            repeat
+                gSkillCodes.Add(SkillCode.Code);
+            until SkillCode.Next() = 0;
+
+        Clear(gUOMCodes);
+        UOM.SetLoadFields(Code);
+        if UOM.FindSet() then
+            repeat
+                gUOMCodes.Add(UOM.Code);
+            until UOM.Next() = 0;
+
+        Clear(gGenProdPostingGroups);
+        GenProdPostingGroup.SetLoadFields(Code);
+        if GenProdPostingGroup.FindSet() then
+            repeat
+                gGenProdPostingGroups.Add(GenProdPostingGroup.Code);
+            until GenProdPostingGroup.Next() = 0;
+
+        Clear(gVATProdPostingGroups);
+        VATProdPostingGroup.SetLoadFields(Code);
+        if VATProdPostingGroup.FindSet() then
+            repeat
+                gVATProdPostingGroups.Add(VATProdPostingGroup.Code);
+            until VATProdPostingGroup.Next() = 0;
+
+        Clear(gResourceGroupNos);
+        ResourceGroup.SetLoadFields("No.");
+        if ResourceGroup.FindSet() then
+            repeat
+                gResourceGroupNos.Add(ResourceGroup."No.");
+            until ResourceGroup.Next() = 0;
+    end;
+
+    local procedure EnsureResourceNoSeriesAllowsManualNos()
+    var
+        ResourcesSetup: Record "Resources Setup";
+        NoSeries: Record "No. Series";
+    begin
+        // Demo resources use fixed DRP/DRM/DRE codes instead of the next series number,
+        // so the Resource No. Series (if any) must allow manual entry or Validate("No.", ...) fails.
+        if not ResourcesSetup.Get() then
+            exit;
+        if ResourcesSetup."Resource Nos." = '' then
+            exit;
+        if not NoSeries.Get(ResourcesSetup."Resource Nos.") then
+            exit;
+        if not NoSeries."Manual Nos." then begin
+            NoSeries."Manual Nos." := true;
+            NoSeries.Modify();
+        end;
+    end;
+
+    local procedure InitNameArrays()
+    begin
+        gFirstNames[1] := 'James'; gFirstNames[2] := 'Mary'; gFirstNames[3] := 'John'; gFirstNames[4] := 'Patricia';
+        gFirstNames[5] := 'Robert'; gFirstNames[6] := 'Jennifer'; gFirstNames[7] := 'Michael'; gFirstNames[8] := 'Linda';
+        gFirstNames[9] := 'William'; gFirstNames[10] := 'Elizabeth'; gFirstNames[11] := 'David'; gFirstNames[12] := 'Barbara';
+        gFirstNames[13] := 'Richard'; gFirstNames[14] := 'Susan'; gFirstNames[15] := 'Joseph'; gFirstNames[16] := 'Jessica';
+        gFirstNames[17] := 'Thomas'; gFirstNames[18] := 'Sarah'; gFirstNames[19] := 'Charles'; gFirstNames[20] := 'Karen';
+
+        gLastNames[1] := 'Smith'; gLastNames[2] := 'Johnson'; gLastNames[3] := 'Williams'; gLastNames[4] := 'Brown';
+        gLastNames[5] := 'Jones'; gLastNames[6] := 'Garcia'; gLastNames[7] := 'Miller'; gLastNames[8] := 'Davis';
+        gLastNames[9] := 'Rodriguez'; gLastNames[10] := 'Martinez'; gLastNames[11] := 'Hernandez'; gLastNames[12] := 'Lopez';
+        gLastNames[13] := 'Gonzalez'; gLastNames[14] := 'Wilson'; gLastNames[15] := 'Anderson'; gLastNames[16] := 'Thomas';
+        gLastNames[17] := 'Taylor'; gLastNames[18] := 'Moore'; gLastNames[19] := 'Jackson'; gLastNames[20] := 'Martin';
+    end;
+
+    local procedure CreateResourceIterationBatch(var Window: Dialog; var ResourcesCreated: Integer; ResourcesTotal: Integer)
+    var
+        p: Integer;
+        m: Integer;
+        e: Integer;
+        PoolNo: Code[20];
+    begin
+        for p := 1 to 75 do begin
+            PoolNo := CreatePoolResource();
+            gForemanNos.Add(PoolNo);
+            for m := 1 to 150 do
+                CreateMemberResource(PoolNo);
+            ResourcesCreated += 151;
+            if GuiAllowed() then begin
+                Window.Update(1, ResourcesCreated);
+                Window.Update(2, ResourcesTotal);
+            end;
+            // Commit after each pool group (~151 records) so this ~35,000-record run doesn't
+            // hold one long transaction/lock for its whole duration.
+            Commit();
+        end;
+        for e := 1 to 250 do begin
+            CreateExternalResource();
+            ResourcesCreated += 1;
+            if e mod 50 = 0 then
+                Commit();
+        end;
+        if GuiAllowed() then begin
+            Window.Update(1, ResourcesCreated);
+            Window.Update(2, ResourcesTotal);
+        end;
+    end;
+
+    local procedure CreatePoolResource() ResNo: Code[20]
+    var
+        Res: Record Resource;
+    begin
+        gPoolSeq += 1;
+        ResNo := 'DRP' + Format(gPoolSeq, 0, '<Integer,3><Filler Character,0>');
+        Res.Init();
+        Res.Validate("No.", ResNo);
+        Res.Type := Res.Type::Person;
+        Res.Validate(Name, GetRandomName());
+        Res."Vendor No." := GetNextVendor();
+        Res."Pool Resource No." := ResNo;
+        Res."Is Pool" := true;
+        Res."Is Pool Member" := false;
+        Res."Is External" := false;
+        SetMandatoryResourceFields(Res);
+        Res.Insert(true);
+        LogRecord(Database::Resource, Res.RecordId(), ResNo + ' ' + Res.Name);
+        AssignResourceSkill(ResNo);
+    end;
+
+    local procedure CreateMemberResource(PoolNo: Code[20])
+    var
+        Res: Record Resource;
+        ResNo: Code[20];
+    begin
+        gMemberSeq += 1;
+        ResNo := 'DRM' + Format(gMemberSeq, 0, '<Integer,5><Filler Character,0>');
+        Res.Init();
+        Res.Validate("No.", ResNo);
+        Res.Type := Res.Type::Person;
+        Res.Validate(Name, GetRandomName());
+        Res."Pool Resource No." := PoolNo;
+        Res."Is Pool Member" := true;
+        Res."Is Pool" := false;
+        Res."Is External" := false;
+        SetMandatoryResourceFields(Res);
+        Res.Insert(true);
+        LogRecord(Database::Resource, Res.RecordId(), ResNo + ' ' + Res.Name);
+        AssignResourceSkill(ResNo);
+    end;
+
+    local procedure CreateExternalResource()
+    var
+        Res: Record Resource;
+        ResNo: Code[20];
+    begin
+        gExternalSeq += 1;
+        ResNo := 'DRE' + Format(gExternalSeq, 0, '<Integer,3><Filler Character,0>');
+        Res.Init();
+        Res.Validate("No.", ResNo);
+        Res.Type := Res.Type::Person;
+        Res.Validate(Name, GetRandomName());
+        Res."Vendor No." := GetNextVendor();
+        Res."Pool Resource No." := '';
+        Res."Is Pool" := false;
+        Res."Is Pool Member" := false;
+        Res."Is External" := true;
+        SetMandatoryResourceFields(Res);
+        Res.Insert(true);
+        LogRecord(Database::Resource, Res.RecordId(), ResNo + ' ' + Res.Name);
+        AssignResourceSkill(ResNo);
+    end;
+
+    local procedure SetMandatoryResourceFields(var Res: Record Resource)
+    begin
+        Res."Base Unit of Measure" := GetNextUOM();
+        Res."Gen. Prod. Posting Group" := GetNextGenProdPostingGroup();
+        Res."VAT Prod. Posting Group" := GetNextVATProdPostingGroup();
+        Res."Resource Group No." := GetNextResourceGroup();
+        Res."Work Hour Template" := gWorkHoursTemplate.Code;
+    end;
+
+    local procedure AssignResourceSkill(ResNo: Code[20])
+    var
+        ResSkill: Record "Resource Skill";
+    begin
+        ResSkill.Init();
+        ResSkill.Type := ResSkill.Type::Resource;
+        ResSkill."No." := ResNo;
+        ResSkill."Skill Code" := GetNextSkill();
+        ResSkill.Insert(true);
+        LogRecord(Database::"Resource Skill", ResSkill.RecordId(), ResNo + ' skill ' + ResSkill."Skill Code");
+    end;
+
+    local procedure AssignForemanTree()
+    var
+        Res: Record Resource;
+        Idx: Integer;
+    begin
+        // Foremen tier: the pool resources double as team leaders for their own members.
+        Res.SetFilter("No.", 'DRP*');
+        if Res.FindSet(true) then
+            repeat
+                Res."Is Foreman" := true;
+                Res.Modify();
+                Idx += 1;
+                if Idx mod 1000 = 0 then
+                    Commit();
+            until Res.Next() = 0;
+
+        // Pool members report to the foreman of their own pool.
+        Idx := 0;
+        Res.Reset();
+        Res.SetFilter("No.", 'DRM*');
+        if Res.FindSet(true) then
+            repeat
+                Res."Default Foreman" := Res."Pool Resource No.";
+                Res.Modify();
+                Idx += 1;
+                if Idx mod 1000 = 0 then
+                    Commit();
+            until Res.Next() = 0;
+
+        // External resources have no pool, so distribute them round-robin across all foremen.
+        Idx := 0;
+        Res.Reset();
+        Res.SetFilter("No.", 'DRE*');
+        if Res.FindSet(true) then
+            repeat
+                Idx += 1;
+                if gForemanNos.Count() > 0 then
+                    Res."Default Foreman" := gForemanNos.Get(((Idx - 1) mod gForemanNos.Count()) + 1);
+                Res.Modify();
+                if Idx mod 1000 = 0 then
+                    Commit();
+            until Res.Next() = 0;
+    end;
+
+    local procedure GetNextVendor(): Code[20]
+    begin
+        if gVendorNos.Count() = 0 then
+            exit('');
+        gVendorIdx += 1;
+        exit(gVendorNos.Get(((gVendorIdx - 1) mod gVendorNos.Count()) + 1));
+    end;
+
+    local procedure GetNextSkill(): Code[10]
+    begin
+        if gSkillCodes.Count() = 0 then
+            exit('');
+        gSkillIdx += 1;
+        exit(gSkillCodes.Get(((gSkillIdx - 1) mod gSkillCodes.Count()) + 1));
+    end;
+
+    local procedure GetNextUOM(): Code[10]
+    begin
+        if gUOMCodes.Count() = 0 then
+            exit('');
+        gUOMIdx += 1;
+        exit(gUOMCodes.Get(((gUOMIdx - 1) mod gUOMCodes.Count()) + 1));
+    end;
+
+    local procedure GetNextGenProdPostingGroup(): Code[20]
+    begin
+        if gGenProdPostingGroups.Count() = 0 then
+            exit('');
+        gGenProdIdx += 1;
+        exit(gGenProdPostingGroups.Get(((gGenProdIdx - 1) mod gGenProdPostingGroups.Count()) + 1));
+    end;
+
+    local procedure GetNextVATProdPostingGroup(): Code[20]
+    begin
+        if gVATProdPostingGroups.Count() = 0 then
+            exit('');
+        gVATProdIdx += 1;
+        exit(gVATProdPostingGroups.Get(((gVATProdIdx - 1) mod gVATProdPostingGroups.Count()) + 1));
+    end;
+
+    local procedure GetNextResourceGroup(): Code[20]
+    begin
+        if gResourceGroupNos.Count() = 0 then
+            exit('');
+        gResGroupIdx += 1;
+        exit(gResourceGroupNos.Get(((gResGroupIdx - 1) mod gResourceGroupNos.Count()) + 1));
+    end;
+
+    local procedure GetRandomName(): Text[100]
+    begin
+        exit(gFirstNames[Random(ArrayLen(gFirstNames))] + ' ' + gLastNames[Random(ArrayLen(gLastNames))]);
+    end;
+
+    // ──────────────────────────────────────────────────────────────────────────
     // Resources
     // ──────────────────────────────────────────────────────────────────────────
 
@@ -392,6 +902,9 @@ codeunit 50602 "Create Demo Data"
     local procedure CreateCapacityAndDayPlanning()
     var
         i: Integer;
+        BulkIdx: Integer;
+        LeaderRes: Code[20];
+        MemberRes: Code[20];
     begin
         if gResCount = 0 then exit;
 
@@ -404,6 +917,77 @@ codeunit 50602 "Create Demo Data"
         BuildDayPlanningsForJob('JOB001', GetRes(1), GetRes(2));
         BuildDayPlanningsForJob('JOB002', GetRes(3), GetRes(4));
         BuildDayPlanningsForJob('JOB003', GetRes(5), GetRes(6));
+
+        // Bulk jobs draw leader/member from the pool of ~225 demo Foreman resources instead of
+        // the tiny 6-slot gRes array: 170 jobs sharing only 6 resources would blow straight
+        // through the per-resource-per-day cap below and end up with almost no Day Planning
+        // at all once those 6 resources' daily slots are exhausted.
+        for BulkIdx := 1 to gBulkJobNos.Count() do begin
+            GetBulkJobResources(BulkIdx, LeaderRes, MemberRes);
+            BuildDayPlanningsForJob(gBulkJobNos.Get(BulkIdx), LeaderRes, MemberRes);
+            // Commit periodically: 170 bulk jobs x ~186 posting tasks each can generate a very
+            // large number of Day Planning rows, so this must not run as one giant transaction.
+            if BulkIdx mod 10 = 0 then
+                Commit();
+        end;
+    end;
+
+    local procedure GetBulkJobResources(BulkIdx: Integer; var LeaderRes: Code[20]; var MemberRes: Code[20])
+    var
+        Member: Record Resource;
+    begin
+        if gForemanNos.Count() = 0 then begin
+            // Fallback if resource generation was skipped (e.g. missing master data)
+            LeaderRes := GetRes(2 * BulkIdx + 5);
+            MemberRes := GetRes(2 * BulkIdx + 6);
+            exit;
+        end;
+        LeaderRes := gForemanNos.Get(((BulkIdx - 1) mod gForemanNos.Count()) + 1);
+        Member.SetRange("Pool Resource No.", LeaderRes);
+        Member.SetFilter("No.", '<>%1', LeaderRes);
+        if Member.FindFirst() then
+            MemberRes := Member."No."
+        else
+            MemberRes := '';
+    end;
+
+    local procedure TryReserveResourceDaySlot(ResNo: Code[20]; TaskDate: Date): Boolean
+    var
+        SlotKey: Text;
+        UsedCount: Integer;
+    begin
+        // Hard cap: a resource can have at most 3 Day Planning lines on a single date
+        // (3 x 8h = 24h/day). Tracked in-memory across the whole run since every Day
+        // Planning row for this run's resources is created by this codeunit.
+        if ResNo = '' then
+            exit(false);
+        SlotKey := ResNo + '|' + Format(TaskDate, 0, 9);
+        if gResDaySlotUsed.ContainsKey(SlotKey) then
+            UsedCount := gResDaySlotUsed.Get(SlotKey)
+        else
+            UsedCount := 0;
+        if UsedCount >= 3 then
+            exit(false);
+        gResDaySlotUsed.Set(SlotKey, UsedCount + 1);
+        exit(true);
+    end;
+
+    local procedure ForceReserveResourceDaySlot(ResNo: Code[20]; TaskDate: Date)
+    var
+        SlotKey: Text;
+        UsedCount: Integer;
+    begin
+        // Used only for the "at least one Day Planning per week" guarantee: still records the
+        // usage (for bookkeeping/consistency) but never refuses, since the weekly guarantee
+        // takes priority over the per-day cap in the rare case a resource is fully saturated.
+        if ResNo = '' then
+            exit;
+        SlotKey := ResNo + '|' + Format(TaskDate, 0, 9);
+        if gResDaySlotUsed.ContainsKey(SlotKey) then
+            UsedCount := gResDaySlotUsed.Get(SlotKey)
+        else
+            UsedCount := 0;
+        gResDaySlotUsed.Set(SlotKey, UsedCount + 1);
     end;
 
     local procedure CreateResourceCapacity(ResNo: Code[20])
@@ -454,20 +1038,15 @@ codeunit 50602 "Create Demo Data"
 
     local procedure BuildDayPlanningsForTask(JT: Record "Job Task"; LeaderRes: Code[20]; MemberRes: Code[20])
     var
-        DP: Record "Day Planning";
         DT: Date;
+        WeekStart: Date;
+        WeekEnd: Date;
         TaskStart: Date;
         TaskEnd: Date;
-        PlanSt: Enum "Plan Status";
-        DataOwner: Enum "Data Owner Opt.";
-        ReqStart: Time;
-        ReqEnd: Time;
-        AsgnStart: Time;
-        AsgnEnd: Time;
-        ReqHours: Decimal;
-        AsgnHours: Decimal;
         ResGrpLeader: Code[20];
         ResGrpMember: Code[20];
+        WeekHasDP: Boolean;
+        FirstWorkingDayOfWeek: Date;
     begin
         TaskStart := JT."PlannedStartDate";
         TaskEnd := JT."PlannedEndDate";
@@ -480,68 +1059,130 @@ codeunit 50602 "Create Demo Data"
         ResGrpLeader := GetResGrp(LeaderRes);
         ResGrpMember := GetResGrp(MemberRes);
 
-        for DT := TaskStart to TaskEnd do begin
-            if not IsWorkingDay(DT) then continue;
+        WeekStart := TaskStart;
+        while WeekStart <= TaskEnd do begin
+            WeekEnd := CalcDate('+6D', WeekStart);
+            if WeekEnd > TaskEnd then
+                WeekEnd := TaskEnd;
 
-            PlanSt := CalcPlanStatus(DT);
-            GetTimeSlot(DT, ReqStart, ReqEnd, AsgnStart, AsgnEnd);
-            ReqHours := (ReqEnd - ReqStart) / 3600000;
-            AsgnHours := (AsgnEnd - AsgnStart) / 3600000;
+            WeekHasDP := false;
+            FirstWorkingDayOfWeek := 0D;
 
-            // ── Leader line (every working day) ──────────────────────────────
-            if LeaderRes <> '' then begin
-                DP.Init();
-                DP."Job No." := JT."Job No.";
-                DP."Job Task No." := JT."Job Task No.";
-                DP."Task Date" := DT;
-                DP."Day Line No." := NextDayLineNo(JT."Job No.", JT."Job Task No.");
-                DP."Plan Status" := PlanSt;
-                DP."Requested Resource No." := LeaderRes;
-                DP."Start Time Requested" := ReqStart;
-                DP."End Time Requested" := ReqEnd;
-                DP."Requested Hours" := ReqHours;
-                DP.Leader := true;
-                DP."Team Leader" := LeaderRes;
-                DP."Data Owner" := "Data Owner Opt."::"TeamLeader";
-                DP.Description := 'Leader: ' + JT."Job No." + '-' + JT."Job Task No.";
-                if PlanSt <> "Plan Status"::"In Request" then begin
-                    DP."Assigned Resource No." := LeaderRes;
-                    DP."Resource Group No." := ResGrpLeader;
-                    DP."Start Time Assigned" := AsgnStart;
-                    DP."End Time Assigned" := AsgnEnd;
-                    DP."Assigned Hours" := AsgnHours;
-                end;
-                DP.Insert(false);
-                LogRecord(Database::"Day Planning", DP.RecordId(), JT."Job No." + '.' + JT."Job Task No." + ' ' + Format(DT) + ' L');
+            for DT := WeekStart to WeekEnd do begin
+                if not IsWorkingDay(DT) then continue;
+                if FirstWorkingDayOfWeek = 0D then
+                    FirstWorkingDayOfWeek := DT;
+
+                // ── Leader line (every working day, max 3 Day Planning lines/resource/day) ──
+                if LeaderRes <> '' then
+                    if TryReserveResourceDaySlot(LeaderRes, DT) then begin
+                        InsertLeaderDayPlanning(JT, LeaderRes, DT, ResGrpLeader, '');
+                        WeekHasDP := true;
+                    end;
+
+                // ── Member line (every other working day, only if member differs from leader,
+                // max 3 Day Planning lines/resource/day) ────────────────────────────────────
+                if (MemberRes <> '') and (MemberRes <> LeaderRes) and IsEvenDayOfMonth(DT) then
+                    if TryReserveResourceDaySlot(MemberRes, DT) then begin
+                        InsertMemberDayPlanning(JT, LeaderRes, MemberRes, DT, ResGrpMember, '');
+                        WeekHasDP := true;
+                    end;
             end;
 
-            // ── Member line (every other working day, only if member differs from leader) ─
-            if (MemberRes <> '') and (MemberRes <> LeaderRes) and IsEvenDayOfMonth(DT) then begin
-                DP.Init();
-                DP."Job No." := JT."Job No.";
-                DP."Job Task No." := JT."Job Task No.";
-                DP."Task Date" := DT;
-                DP."Day Line No." := NextDayLineNo(JT."Job No.", JT."Job Task No.");
-                DP."Plan Status" := PlanSt;
-                DP."Requested Resource No." := MemberRes;
-                DP."Start Time Requested" := ReqStart;
-                DP."End Time Requested" := ReqEnd;
-                DP."Requested Hours" := ReqHours;
-                DP.Leader := false;
-                DP."Team Leader" := LeaderRes;
-                DP."Data Owner" := "Data Owner Opt."::"TeamMember";
-                DP.Description := 'Member: ' + JT."Job No." + '-' + JT."Job Task No.";
-                if PlanSt <> "Plan Status"::"In Request" then begin
-                    DP."Assigned Resource No." := MemberRes;
-                    DP."Resource Group No." := ResGrpMember;
-                    DP."Start Time Assigned" := AsgnStart;
-                    DP."End Time Assigned" := AsgnEnd;
-                    DP."Assigned Hours" := AsgnHours;
-                end;
-                DP.Insert(false);
-                LogRecord(Database::"Day Planning", DP.RecordId(), JT."Job No." + '.' + JT."Job Task No." + ' ' + Format(DT) + ' M');
+            // Guarantee: every posting task gets at least one Day Planning line per week —
+            // even "In Request"/"In Progress" ones — regardless of the per-resource-per-day cap.
+            // Without this, heavily overlapping tasks (many phases sharing the same leader
+            // resource) could saturate that resource's daily slots and leave whole weeks (or
+            // whole tasks) with zero Day Planning lines at all.
+            if (not WeekHasDP) and (LeaderRes <> '') and (FirstWorkingDayOfWeek <> 0D) then begin
+                ForceReserveResourceDaySlot(LeaderRes, FirstWorkingDayOfWeek);
+                InsertLeaderDayPlanning(JT, LeaderRes, FirstWorkingDayOfWeek, ResGrpLeader, ' (guaranteed)');
             end;
+
+            WeekStart := CalcDate('+7D', WeekStart);
         end;
+    end;
+
+    local procedure InsertLeaderDayPlanning(JT: Record "Job Task"; LeaderRes: Code[20]; DT: Date; ResGrpLeader: Code[20]; DescSuffix: Text)
+    var
+        DP: Record "Day Planning";
+        PlanSt: Enum "Plan Status";
+        ReqStart: Time;
+        ReqEnd: Time;
+        AsgnStart: Time;
+        AsgnEnd: Time;
+        ReqHours: Decimal;
+        AsgnHours: Decimal;
+    begin
+        PlanSt := CalcPlanStatus(DT);
+        GetTimeSlot(DT, ReqStart, ReqEnd, AsgnStart, AsgnEnd);
+        ReqHours := (ReqEnd - ReqStart) / 3600000;
+        AsgnHours := (AsgnEnd - AsgnStart) / 3600000;
+
+        DP.Init();
+        DP."Job No." := JT."Job No.";
+        DP."Job Task No." := JT."Job Task No.";
+        DP."Task Date" := DT;
+        DP."Day Line No." := NextDayLineNo(JT."Job No.", JT."Job Task No.");
+        DP."Plan Status" := PlanSt;
+        DP."Requested Resource No." := LeaderRes;
+        DP."Start Time Requested" := ReqStart;
+        DP."End Time Requested" := ReqEnd;
+        DP."Requested Hours" := ReqHours;
+        DP.Leader := true;
+        DP."Team Leader" := LeaderRes;
+        DP."Data Owner" := "Data Owner Opt."::"TeamLeader";
+        DP.Description := 'Leader: ' + JT."Job No." + '-' + JT."Job Task No." + DescSuffix;
+        if PlanSt <> "Plan Status"::"In Request" then begin
+            DP."Assigned Resource No." := LeaderRes;
+            DP."Resource Group No." := ResGrpLeader;
+            DP."Start Time Assigned" := AsgnStart;
+            DP."End Time Assigned" := AsgnEnd;
+            DP."Assigned Hours" := AsgnHours;
+        end;
+        DP.Insert(false);
+        LogRecord(Database::"Day Planning", DP.RecordId(), JT."Job No." + '.' + JT."Job Task No." + ' ' + Format(DT) + ' L' + DescSuffix);
+    end;
+
+    local procedure InsertMemberDayPlanning(JT: Record "Job Task"; LeaderRes: Code[20]; MemberRes: Code[20]; DT: Date; ResGrpMember: Code[20]; DescSuffix: Text)
+    var
+        DP: Record "Day Planning";
+        PlanSt: Enum "Plan Status";
+        ReqStart: Time;
+        ReqEnd: Time;
+        AsgnStart: Time;
+        AsgnEnd: Time;
+        ReqHours: Decimal;
+        AsgnHours: Decimal;
+    begin
+        PlanSt := CalcPlanStatus(DT);
+        GetTimeSlot(DT, ReqStart, ReqEnd, AsgnStart, AsgnEnd);
+        ReqHours := (ReqEnd - ReqStart) / 3600000;
+        AsgnHours := (AsgnEnd - AsgnStart) / 3600000;
+
+        DP.Init();
+        DP."Job No." := JT."Job No.";
+        DP."Job Task No." := JT."Job Task No.";
+        DP."Task Date" := DT;
+        DP."Day Line No." := NextDayLineNo(JT."Job No.", JT."Job Task No.");
+        DP."Plan Status" := PlanSt;
+        DP."Requested Resource No." := MemberRes;
+        DP."Start Time Requested" := ReqStart;
+        DP."End Time Requested" := ReqEnd;
+        DP."Requested Hours" := ReqHours;
+        DP.Leader := false;
+        DP."Team Leader" := LeaderRes;
+        DP."Data Owner" := "Data Owner Opt."::"TeamMember";
+        DP.Description := 'Member: ' + JT."Job No." + '-' + JT."Job Task No." + DescSuffix;
+        if PlanSt <> "Plan Status"::"In Request" then begin
+            DP."Assigned Resource No." := MemberRes;
+            DP."Resource Group No." := ResGrpMember;
+            DP."Start Time Assigned" := AsgnStart;
+            DP."End Time Assigned" := AsgnEnd;
+            DP."Assigned Hours" := AsgnHours;
+        end;
+        DP.Insert(false);
+        LogRecord(Database::"Day Planning", DP.RecordId(), JT."Job No." + '.' + JT."Job Task No." + ' ' + Format(DT) + ' M' + DescSuffix);
     end;
 
     // ──────────────────────────────────────────────────────────────────────────

@@ -9,14 +9,23 @@ codeunit 50611 "Job Task Indent"
     end;
 
     procedure IndentJobTasks(var JobTask: Record "Job Task")
+    begin
+        IndentJobTasks(JobTask, HideMessage);
+    end;
+
+    procedure IndentJobTasks(var JobTask: Record "Job Task"; HideConfirm: Boolean)
     var
         JobTaskToIndent: Record "Job Task";
         IndentLevel: Integer;
         JobNo: Code[20];
         TasksUpdated: Integer;
     begin
-        if (not HideMessage) and (not Confirm('This will update the indentation for all job tasks in job %1. Do you want to continue?', false, JobTask."Job No.")) then
-            exit;
+        // Nested if (not a combined "and" expression) so Confirm() is never even called when
+        // HideConfirm is true — this codebase's AL runtime does not reliably short-circuit
+        // "(not Flag) and (not Confirm(...))" for side-effecting calls like Confirm().
+        if not HideConfirm then
+            if not Confirm('This will update the indentation for all job tasks in job %1. Do you want to continue?', false, JobTask."Job No.") then
+                exit;
 
         JobNo := JobTask."Job No.";
         IndentLevel := 0;
@@ -53,7 +62,7 @@ codeunit 50611 "Job Task Indent"
                 end;
             until JobTaskToIndent.Next() = 0;
 
-        if not HideMessage then
+        if not HideConfirm then
             Message('%1 job tasks have been indented.', TasksUpdated);
     end;
 
@@ -62,8 +71,9 @@ codeunit 50611 "Job Task Indent"
         Job: Record Job;
         JobTask: Record "Job Task";
     begin
-        if (not HideMessage) and (not Confirm('This will update the indentation for all job tasks in all jobs. Do you want to continue?', false)) then
-            exit;
+        if not HideMessage then
+            if not Confirm('This will update the indentation for all job tasks in all jobs. Do you want to continue?', false) then
+                exit;
 
         if Job.FindSet() then
             repeat
