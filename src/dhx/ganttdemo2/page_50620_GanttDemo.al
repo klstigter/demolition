@@ -1060,13 +1060,24 @@ page 50620 "Gantt Demo DHX 2"
         FilterFromDate: Date;
         FilterToDate: Date;
         JobTask: Record "Job Task";
+        Window: Dialog;
+        LoadingLbl: Label 'Loading Gantt data...\n#1######################';
     begin
+        // Control add-in JS calls (LoadProject/RenderGantt/etc.) only actually execute in the
+        // browser once this whole AL trigger returns to the client — so a JS-side overlay can't
+        // paint while the AL calls below are still building large JSON payloads. This native
+        // Dialog is what can actually show progress while that server-side work is happening.
+        if GuiAllowed() then
+            Window.Open(LoadingLbl);
+
         GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
 
         // Set project range first
         CurrPage.DHXGanttControl2.LoadProject(StartDate, EndDate);
 
         // Load holiday/non-working days from Base Calendar
+        if GuiAllowed() then
+            Window.Update(1, 'Holidays...');
         LoadHolidaysData(StartDate, EndDate);
 
         // Apply column settings
@@ -1077,10 +1088,15 @@ page 50620 "Gantt Demo DHX 2"
         );
 
         // Load data in optimal sequence
-        if setup."Load Job Tasks" then
+        if setup."Load Job Tasks" then begin
+            if GuiAllowed() then
+                Window.Update(1, 'Job Tasks...');
             LoadTaskData();
+        end;
 
         // Load dependency links after tasks
+        if GuiAllowed() then
+            Window.Update(1, 'Links...');
         LoadLinkData();
 
         CurrPage.DHXGanttControl2.GetResourceFilter(); // triggers OnResourceFilterRetrieved where we decide whether to apply the stored filter or load all resources
@@ -1113,20 +1129,33 @@ page 50620 "Gantt Demo DHX 2"
                     JobTask.SetRange("Job Task No.", FilterJobTaskNo);
                     if JobTask.FindFirst() then
                         JobTask.Mark(true);
+                    if GuiAllowed() then
+                        Window.Update(1, 'Resources && Day Plannings...');
                     LoadFilteredResourcesAndDayPlannings(JobTask, FilterFromDate, FilterToDate);
                 end;
             end;
 
         if LoadWithOutResourcePanelFilter then begin
-            if setup."Load Resources" and ResourcePanelFlag then
+            if setup."Load Resources" and ResourcePanelFlag then begin
+                if GuiAllowed() then
+                    Window.Update(1, 'Resources...');
                 LoadResourceData();
+            end;
 
-            if setup."Load Day Plannings" then
+            if setup."Load Day Plannings" then begin
+                if GuiAllowed() then
+                    Window.Update(1, 'Day Plannings...');
                 LoadDayPlanningData();
+            end;
         end;
 
         // Finalize: render and reset refresh flag
+        if GuiAllowed() then
+            Window.Update(1, 'Rendering...');
         CurrPage.DHXGanttControl2.RenderGantt(false);
+
+        if GuiAllowed() then
+            Window.Close();
     end;
 
     /// <summary>
