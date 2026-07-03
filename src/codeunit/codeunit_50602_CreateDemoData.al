@@ -34,6 +34,7 @@ codeunit 50602 "Create Demo Data"
         gForemanNos: List of [Code[20]];
         gBulkJobNos: List of [Code[20]];
         gResDaySlotUsed: Dictionary of [Text, Integer];
+        gResourceSkillCache: Dictionary of [Code[20], Code[10]];
         gVendorIdx: Integer;
         gSkillIdx: Integer;
         gUOMIdx: Integer;
@@ -1133,6 +1134,7 @@ codeunit 50602 "Create Demo Data"
         DP."Team Leader" := LeaderRes;
         DP."Data Owner" := "Data Owner Opt."::"TeamLeader";
         DP.Description := 'Leader: ' + JT."Job No." + '-' + JT."Job Task No." + DescSuffix;
+        DP.Skill := GetResourceSkill(LeaderRes);
         if PlanSt <> "Plan Status"::"In Request" then begin
             DP."Assigned Resource No." := LeaderRes;
             DP."Resource Group No." := ResGrpLeader;
@@ -1174,6 +1176,7 @@ codeunit 50602 "Create Demo Data"
         DP."Team Leader" := LeaderRes;
         DP."Data Owner" := "Data Owner Opt."::"TeamMember";
         DP.Description := 'Member: ' + JT."Job No." + '-' + JT."Job Task No." + DescSuffix;
+        DP.Skill := GetResourceSkill(MemberRes);
         if PlanSt <> "Plan Status"::"In Request" then begin
             DP."Assigned Resource No." := MemberRes;
             DP."Resource Group No." := ResGrpMember;
@@ -1183,6 +1186,29 @@ codeunit 50602 "Create Demo Data"
         end;
         DP.Insert(false);
         LogRecord(Database::"Day Planning", DP.RecordId(), JT."Job No." + '.' + JT."Job Task No." + ' ' + Format(DT) + ' M' + DescSuffix);
+    end;
+
+    local procedure GetResourceSkill(ResNo: Code[20]): Code[10]
+    var
+        ResSkill: Record "Resource Skill";
+        SkillCode: Code[10];
+    begin
+        // Memoized: Day Planning generation calls this once per line (potentially hundreds of
+        // thousands of times), so cache each resource's skill after the first DB lookup.
+        if ResNo = '' then
+            exit('');
+        if gResourceSkillCache.ContainsKey(ResNo) then
+            exit(gResourceSkillCache.Get(ResNo));
+
+        ResSkill.SetRange(Type, ResSkill.Type::Resource);
+        ResSkill.SetRange("No.", ResNo);
+        if ResSkill.FindFirst() then
+            SkillCode := ResSkill."Skill Code"
+        else
+            SkillCode := '';
+
+        gResourceSkillCache.Set(ResNo, SkillCode);
+        exit(SkillCode);
     end;
 
     // ──────────────────────────────────────────────────────────────────────────
