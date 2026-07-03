@@ -19,6 +19,10 @@ codeunit 50680 "Delete Incorrect Day Planning"
                 if IsIncorrect(DayPlanning, JobTask) then begin
                     DayPlanning.Delete(false);
                     DeletedCount += 1;
+                    // Commit periodically: at large demo-data volume this can match/delete a very
+                    // large number of rows, so it must not run as one giant transaction/lock.
+                    if DeletedCount mod 1000 = 0 then
+                        Commit();
                 end;
             until DayPlanning.Next() = 0;
 
