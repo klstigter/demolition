@@ -75,8 +75,10 @@ tableextension 50603 "Resource Opt" extends Resource
             var
                 Res: Record Resource;
                 ResList: Page "Resource List";
+                OldPoolResNo: Code[20];
             begin
                 if "Is Pool Member" then begin
+                    OldPoolResNo := "Pool Resource No.";
                     "Pool Resource No." := ''; // so always popup pool resource
                     if "Pool Resource No." = '' then begin
                         Clear(ResList);
@@ -92,7 +94,7 @@ tableextension 50603 "Resource Opt" extends Resource
                             "Is External" := false;
                         end else begin
                             "Is Pool Member" := false;
-                            "Pool Resource No." := '';
+                            "Pool Resource No." := OldPoolResNo;
                         end;
                     end else begin
                         "Vendor No." := '';
@@ -193,9 +195,9 @@ tableextension 50603 "Resource Opt" extends Resource
                             "Is External" := false;
                         end else begin
                             "Is Pool" := false;
-                            "Pool Resource No." := '';
-                            "Is Pool Member" := false;
-                            "Is External" := false;
+                            // "Pool Resource No." := '';
+                            // "Is Pool Member" := false;
+                            // "Is External" := false;
                         end;
                     end else begin
                         "Pool Resource No." := "No.";
