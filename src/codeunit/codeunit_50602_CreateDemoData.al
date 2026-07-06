@@ -772,30 +772,38 @@ codeunit 50602 "Create Demo Data"
     local procedure AssignForemanTree()
     var
         Res: Record Resource;
+        Member: Record Resource;
+        MemberForemanNos: List of [Code[20]];
+        ForemanNo: Code[20];
         Idx: Integer;
     begin
-        // Foremen tier: the pool resources double as team leaders for their own members.
+        // Foreman tier: a Pool resource ("Is Pool" = true) is a vendor/grouping placeholder,
+        // not a real worker, so it must never be the foreman. The first member of each pool
+        // becomes that pool's foreman instead, and the remaining members report to that member.
         Res.SetFilter("No.", 'DRP*');
-        if Res.FindSet(true) then
+        if Res.FindSet() then
             repeat
-                Res."Is Foreman" := true;
-                Res.Modify();
-                Idx += 1;
-                if Idx mod 1000 = 0 then
-                    Commit();
-            until Res.Next() = 0;
+                Member.Reset();
+                Member.SetRange("Pool Resource No.", Res."No.");
+                Member.SetFilter("No.", '<>%1', Res."No.");
+                if Member.FindFirst() then begin
+                    ForemanNo := Member."No.";
+                    Member."Is Foreman" := true;
+                    Member.Modify();
+                    MemberForemanNos.Add(ForemanNo);
 
-        // Pool members report to the foreman of their own pool.
-        Idx := 0;
-        Res.Reset();
-        Res.SetFilter("No.", 'DRM*');
-        if Res.FindSet(true) then
-            repeat
-                Res."Default Foreman" := Res."Pool Resource No.";
-                Res.Modify();
-                Idx += 1;
-                if Idx mod 1000 = 0 then
-                    Commit();
+                    Member.Reset();
+                    Member.SetRange("Pool Resource No.", Res."No.");
+                    Member.SetFilter("No.", '<>%1&<>%2', Res."No.", ForemanNo);
+                    if Member.FindSet(true) then
+                        repeat
+                            Member."Default Foreman" := ForemanNo;
+                            Member.Modify();
+                            Idx += 1;
+                            if Idx mod 1000 = 0 then
+                                Commit();
+                        until Member.Next() = 0;
+                end;
             until Res.Next() = 0;
 
         // External resources have no pool, so distribute them round-robin across all foremen.
@@ -805,8 +813,8 @@ codeunit 50602 "Create Demo Data"
         if Res.FindSet(true) then
             repeat
                 Idx += 1;
-                if gForemanNos.Count() > 0 then
-                    Res."Default Foreman" := gForemanNos.Get(((Idx - 1) mod gForemanNos.Count()) + 1);
+                if MemberForemanNos.Count() > 0 then
+                    Res."Default Foreman" := MemberForemanNos.Get(((Idx - 1) mod MemberForemanNos.Count()) + 1);
                 Res.Modify();
                 if Idx mod 1000 = 0 then
                     Commit();
