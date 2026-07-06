@@ -35,6 +35,7 @@ codeunit 50602 "Create Demo Data"
         gBulkJobNos: List of [Code[20]];
         gResDaySlotUsed: Dictionary of [Text, Integer];
         gResourceSkillCache: Dictionary of [Code[20], Code[10]];
+        gResourcePoolCache: Dictionary of [Code[20], Code[20]];
         gVendorIdx: Integer;
         gSkillIdx: Integer;
         gUOMIdx: Integer;
@@ -1142,6 +1143,7 @@ codeunit 50602 "Create Demo Data"
             DP."End Time Assigned" := AsgnEnd;
             DP."Assigned Hours" := AsgnHours;
         end;
+        DP."Pool Resource No." := GetResourcePoolNo(DP);
         DP.Insert(false);
         LogRecord(Database::"Day Planning", DP.RecordId(), JT."Job No." + '.' + JT."Job Task No." + ' ' + Format(DT) + ' L' + DescSuffix);
     end;
@@ -1184,6 +1186,7 @@ codeunit 50602 "Create Demo Data"
             DP."End Time Assigned" := AsgnEnd;
             DP."Assigned Hours" := AsgnHours;
         end;
+        DP."Pool Resource No." := GetResourcePoolNo(DP);
         DP.Insert(false);
         LogRecord(Database::"Day Planning", DP.RecordId(), JT."Job No." + '.' + JT."Job Task No." + ' ' + Format(DT) + ' M' + DescSuffix);
     end;
@@ -1209,6 +1212,34 @@ codeunit 50602 "Create Demo Data"
 
         gResourceSkillCache.Set(ResNo, SkillCode);
         exit(SkillCode);
+    end;
+
+    local procedure GetResourcePoolNo(DP: Record "Day Planning"): Code[20]
+    var
+        Res: Record Resource;
+        ResNo: Code[20];
+        PoolResNo: Code[20];
+    begin
+        // Assigned Resource No. is more dominant than Requested Resource No.
+        if DP."Assigned Resource No." <> '' then
+            ResNo := DP."Assigned Resource No."
+        else
+            ResNo := DP."Requested Resource No.";
+        if ResNo = '' then
+            exit('');
+
+        // Memoized: Day Planning generation calls this once per line (potentially hundreds of
+        // thousands of times), so cache each resource's pool after the first DB lookup.
+        if gResourcePoolCache.ContainsKey(ResNo) then
+            exit(gResourcePoolCache.Get(ResNo));
+
+        if Res.Get(ResNo) then
+            PoolResNo := Res."Pool Resource No."
+        else
+            PoolResNo := '';
+
+        gResourcePoolCache.Set(ResNo, PoolResNo);
+        exit(PoolResNo);
     end;
 
     // ──────────────────────────────────────────────────────────────────────────
