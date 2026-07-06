@@ -195,9 +195,6 @@ tableextension 50603 "Resource Opt" extends Resource
                             "Is External" := false;
                         end else begin
                             "Is Pool" := false;
-                            // "Pool Resource No." := '';
-                            // "Is Pool Member" := false;
-                            // "Is External" := false;
                         end;
                     end else begin
                         "Pool Resource No." := "No.";

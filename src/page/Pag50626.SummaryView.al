@@ -530,10 +530,10 @@ page 50626 "Summary View"
             exit('');
         y := Date2DWY(d, 3);
         w := Date2DWY(d, 2);
-        // if w < 10 then
-        //     exit(Format(y) + '-0' + Format(w))
-        // else
-        exit(Format(y) + '-' + Format(w));
+        if w < 10 then
+            exit(Format(y) + '-0' + Format(w))
+        else
+            exit(Format(y) + '-' + Format(w));
     end;
 
     Local procedure SetAllShowTrue()
