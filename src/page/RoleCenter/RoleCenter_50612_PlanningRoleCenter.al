@@ -111,7 +111,7 @@ page 50612 "Planning Role Center"
                 action("VisualPlanning4")
                 {
                     ApplicationArea = All;
-                    Caption = 'Capacity (Pool)';
+                    Caption = 'Capacity';
                     RunObject = page "DHX Scheduler (Pool Resource)";
                 }
 
