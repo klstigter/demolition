@@ -31,6 +31,53 @@ html,
 			z-index: 1;
 		}
 
+		/* Collapse/Expand-all toggle icon in the "Task name" grid header */
+		.gantt-collapseall-icon {
+			display: inline-block;
+			width: 13px;
+			height: 13px;
+			margin-right: 6px;
+			vertical-align: middle;
+			cursor: pointer;
+			position: relative;
+			border: 1.4px solid #666;
+			border-radius: 2px;
+			box-sizing: border-box;
+		}
+		.gantt-collapseall-icon::before,
+		.gantt-collapseall-icon::after {
+			content: "";
+			position: absolute;
+			width: 5px;
+			height: 5px;
+			border-top: 1.4px solid #666;
+			border-right: 1.4px solid #666;
+		}
+		.gantt-collapseall-icon::before {
+			top: 1px;
+			left: 1px;
+			transform: rotate(-135deg);
+		}
+		.gantt-collapseall-icon::after {
+			bottom: 1px;
+			right: 1px;
+			transform: rotate(45deg);
+		}
+		.gantt-collapseall-icon:hover,
+		.gantt-collapseall-icon:hover::before,
+		.gantt-collapseall-icon:hover::after {
+			border-color: #2f6fdb;
+		}
+		.gantt-collapseall-icon.is-collapsed::before {
+			transform: rotate(45deg);
+		}
+		.gantt-collapseall-icon.is-collapsed::after {
+			transform: rotate(-135deg);
+		}
+		.gantt-collapseall-label {
+			vertical-align: middle;
+		}
+
 		/* Task type classes (fixed_duration / fixed_units / fixed_work) are applied via
 		   gantt.templates.task_class. Bar color and progress fill are driven by
 		   --bc-bar / --bc-prog custom properties set in wrapper.js.
