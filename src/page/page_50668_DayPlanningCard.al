@@ -149,12 +149,15 @@ page 50668 "Day Planning Card Opt"
     {
         area(Processing)
         {
-            action(ActionName)
+            action(CopyRequestedToAssigned)
             {
+                Caption = 'Copy Requested to Assigned';
+                ApplicationArea = All;
+                Image = Copy;
 
                 trigger OnAction()
                 begin
-
+                    Rec.CopyRequestedToAssigned();
                 end;
             }
         }

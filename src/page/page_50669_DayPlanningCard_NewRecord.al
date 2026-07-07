@@ -151,11 +151,7 @@ page 50669 "Day Planning Card - New Record"
 
                 trigger OnAction()
                 begin
-                    Rec."Assigned Resource No." := Rec."Requested Resource No.";
-                    Rec."Assigned Hours" := Rec."Requested Hours";
-                    Rec."Start Time Assigned" := Rec."Start Time Requested";
-                    Rec.Validate("End Time Assigned", Rec."End Time Requested");
-                    Rec.Modify();
+                    Rec.CopyRequestedToAssigned();
                 end;
             }
         }

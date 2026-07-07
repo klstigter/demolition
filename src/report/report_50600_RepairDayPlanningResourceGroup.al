@@ -53,8 +53,8 @@ report 50600 "RepairData"
                     else
                         NewPoolResNo := '';
 
-                if DayPlanning."Pool Resource No." <> NewPoolResNo then begin
-                    DayPlanning."Pool Resource No." := NewPoolResNo;
+                if DayPlanning."Assigned Pool Resource No." <> NewPoolResNo then begin
+                    DayPlanning."Assigned Pool Resource No." := NewPoolResNo;
                     DayPlanning.Modify();
                     n += 1;
                 end;

@@ -1,3 +1,31 @@
+/*
+    Requested
+    ===============================
+    "Requested Resource No."
+    "Requested Pool Resource No."
+    "Start Time Requested"
+    "End Time Requested"
+    "Non Working Minutes Requested"
+    "Requested Hours"
+    "Total Requested Hours"
+
+    Assigned
+    ===============================
+    "Assigned Resource No."
+    "Assigned Pool Resource No."
+    "Start Time Assigned"
+    "End Time Assigned"
+    "Non Working Minutes Assigned"
+    "Assigned Hours"
+    "Total Assigned Hours"
+
+    Realized
+    ===============================
+    "Realized Hours"
+    "Start Time Realized"
+    "End Time Realized"
+
+*/
 table 50610 "Day Planning"
 {
     DataClassification = ToBeClassified;
@@ -88,7 +116,7 @@ table 50610 "Day Planning"
         }
 
         // **** control Resource No.
-        field(39; "Pool Resource No."; Code[20])
+        field(38; "Requested Pool Resource No."; Code[20])
         {
             DataClassification = ToBeClassified;
             tablerelation = Resource;
@@ -97,10 +125,10 @@ table 50610 "Day Planning"
             var
                 Resource: Record Resource;
             begin
-                if ("Pool Resource No." <> '') and ("Assigned Resource No." <> '') then begin
-                    Resource.Get("Assigned Resource No.");
-                    if Resource."Pool Resource No." <> "Pool Resource No." then
-                        Error('Resource %1 does not belong to Pool Resource %2.', "Assigned Resource No.", "Pool Resource No.");
+                if ("Requested Pool Resource No." <> '') and ("Requested Resource No." <> '') then begin
+                    Resource.Get("Requested Resource No.");
+                    if Resource."Pool Resource No." <> "Requested Pool Resource No." then
+                        Error('Resource %1 does not belong to Pool Resource %2.', "Requested Resource No.", "Requested Pool Resource No.");
                 end
             end;
 
@@ -118,7 +146,43 @@ table 50610 "Day Planning"
                 Resource.MarkedOnly(true);
                 if Resource.FindSet() then begin
                     if page.RunModal(0, Resource) = ACTION::LookupOK then
-                        Validate("Pool Resource No.", Resource."No.");
+                        Validate("Requested Pool Resource No.", Resource."No.");
+                end else
+                    Message('No Pool Resources found.');
+            end;
+        }
+
+        field(39; "Assigned Pool Resource No."; Code[20])
+        {
+            DataClassification = ToBeClassified;
+            tablerelation = Resource;
+
+            trigger OnValidate()
+            var
+                Resource: Record Resource;
+            begin
+                if ("Assigned Pool Resource No." <> '') and ("Assigned Resource No." <> '') then begin
+                    Resource.Get("Assigned Resource No.");
+                    if Resource."Pool Resource No." <> "Assigned Pool Resource No." then
+                        Error('Resource %1 does not belong to Pool Resource %2.', "Assigned Resource No.", "Assigned Pool Resource No.");
+                end
+            end;
+
+            trigger OnLookup()
+            var
+                Resource: Record Resource;
+            begin
+                Resource.Reset();
+                Resource.SetFilter("pool Resource No.", '<>%1', '');
+                if Resource.FindSet() then
+                    repeat
+                        if Resource."Pool Resource No." = Resource."No." then
+                            Resource.Mark(True);
+                    until Resource.Next() = 0;
+                Resource.MarkedOnly(true);
+                if Resource.FindSet() then begin
+                    if page.RunModal(0, Resource) = ACTION::LookupOK then
+                        Validate("Assigned Pool Resource No.", Resource."No.");
                 end else
                     Message('No Pool Resources found.');
             end;
@@ -190,7 +254,9 @@ table 50610 "Day Planning"
                     if Resource."Vendor No." <> '' then
                         "Vendor No." := Resource."Vendor No.";
                     if Resource."Pool Resource No." <> '' then
-                        "Pool Resource No." := Resource."Pool Resource No.";
+                        "Assigned Pool Resource No." := Resource."Pool Resource No.";
+                    Leader := Resource."Is Foreman";
+                    "Team Leader" := Resource."Default Foreman";
                     CalculateWorkingHours();
                 end else begin
                     validate("Assigned Hours", 0);
@@ -268,10 +334,14 @@ table 50610 "Day Planning"
                 if "Requested Resource No." <> '' then begin
                     Resource.Get("Requested Resource No.");
                     "Resource Group No." := Resource."Resource Group No.";
-                    if Resource."Vendor No." <> '' then
-                        "Vendor No." := Resource."Vendor No.";
+                    if "Assigned Resource No." = '' then begin
+                        if (Resource."Vendor No." <> '') then
+                            "Vendor No." := Resource."Vendor No.";
+                        Leader := Resource."Is Foreman";
+                        "Team Leader" := Resource."Default Foreman";
+                    end;
                     if Resource."Pool Resource No." <> '' then
-                        "Pool Resource No." := Resource."Pool Resource No.";
+                        "Requested Pool Resource No." := Resource."Pool Resource No.";
                     CalculateWorkingHours();
                 end else
                     Validate("Requested Hours", 0);
@@ -328,7 +398,7 @@ table 50610 "Day Planning"
         field(42; "Pool Resource Name"; Text[100])
         {
             FieldClass = FlowField;
-            CalcFormula = lookup(Resource.Name where("No." = field("Pool Resource No.")));
+            CalcFormula = lookup(Resource.Name where("No." = field("Assigned Pool Resource No.")));
             Editable = false;
             Caption = 'Pool Resource Name';
         }
@@ -448,6 +518,16 @@ table 50610 "Day Planning"
         {
             Caption = 'Total Assigned Hours';
             CalcFormula = sum("Day Planning"."Assigned Hours" where("Assigned Resource No." = field("Assigned Resource No."),
+              "Task Date" = field("Task Date")));
+            DecimalPlaces = 0 : 2;
+            FieldClass = FlowField;
+            Editable = false;
+            BlankZero = true;
+        }
+        Field(133; "Total Requested Hours"; Decimal)
+        {
+            Caption = 'Total Requested Hours';
+            CalcFormula = sum("Day Planning"."Requested Hours" where("Requested Resource No." = field("Requested Resource No."),
               "Task Date" = field("Task Date")));
             DecimalPlaces = 0 : 2;
             FieldClass = FlowField;
@@ -810,6 +890,17 @@ table 50610 "Day Planning"
         JobTask.get("Job No.", "Job Task No.");
         if ("Task Date" < JobTask.PlannedStartDate) or ("Task Date" > JobTask.PlannedEndDate) then
             Error(ErrLbl, "Task Date", JobTask.PlannedStartDate, JobTask.PlannedEndDate);
+    end;
+
+    procedure CopyRequestedToAssigned()
+    begin
+        Rec."Assigned Resource No." := Rec."Requested Resource No.";
+        Rec."Assigned Hours" := Rec."Requested Hours";
+        Rec."Start Time Assigned" := Rec."Start Time Requested";
+        Rec.Validate("End Time Assigned", Rec."End Time Requested");
+        Rec."Assigned Pool Resource No." := Rec."Requested Pool Resource No.";
+        Rec."Non Working Minutes Assigned" := Rec."Non Working Minutes Requested";
+        Rec.Modify();
     end;
 
 }

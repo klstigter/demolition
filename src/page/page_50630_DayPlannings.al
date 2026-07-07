@@ -240,7 +240,7 @@ page 50630 "Day Plannings"
                     ToolTip = 'Specifies the resource group number.';
                     StyleExpr = StyleStr;
                 }
-                field("Pool Resource No."; Rec."Pool Resource No.")
+                field("Assigned Pool Resource No."; Rec."Assigned Pool Resource No.")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the pool resource number.';
