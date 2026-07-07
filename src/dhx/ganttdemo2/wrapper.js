@@ -16,6 +16,7 @@ var _isRefreshing = false;
 var _resourceFilterInfo = null; // { job, task, periodFrom, periodTo }
 var _ganttHolidays = {}; // { "YYYY-MM-DD": "Description", ... } loaded from BC Base Calendar
 var skipTrigger_OnJobTaskUpdated = false;
+var _allTasksCollapsed = false; // toggled by the collapse/expand-all icon in the grid header
 
 // -------------------------------------------------------
 // Loading overlay - shown while a full data (re)load is in progress.
@@ -541,7 +542,11 @@ window.BOOT = function() {
 
     // -------- COLUMNS --------
     gantt.config.columns = [
-      { name: "text", tree: true, resize: false, width: 250, editor: textEditor },
+      {
+        name: "text", tree: true, resize: false, width: 250, editor: textEditor,
+        label: '<span class="gantt-collapseall-icon" title="Collapse All"></span><span class="gantt-collapseall-label">' +
+          (gantt.locale.labels.column_text || "Task name") + '</span>'
+      },
       { name: "progress", label: "%", align: "center", resize: false, width: 60,
         editor: progressEditor,
           template: function (task) { var p = task.progress || 0; return Math.round(p * 100) + "%"; }
@@ -567,7 +572,17 @@ window.BOOT = function() {
       { name: "schedulingType", label: "Task Type", resize: false, width: 90 },
       { name: "add", resize: false, width: 44 }
     ];
-    
+
+    // -------- COLLAPSE / EXPAND ALL (icon in the "Task name" grid header) --------
+    gantt.attachEvent("onGridHeaderClick", function (columnName, e) {
+      var target = e.target || e.srcElement;
+      if (target && target.closest && target.closest(".gantt-collapseall-icon")) {
+        ToggleCollapseExpandAll();
+        return false;
+      }
+      return true;
+    });
+
     gantt.attachEvent("onAfterTaskUpdate", function (id, task) {
       if (typeof task.progress === "number" && task.progress > 1) {
         task.progress = Math.max(0, Math.min(task.progress, 100)) / 100;
@@ -1476,6 +1491,20 @@ function _setColumnHidden(name, hidden) {
 // -------------------------------------------------------
 function Undo() { gantt.undo() }
 function Redo() { gantt.redo() }
+
+// -------- COLLAPSE / EXPAND ALL (Task List panel) --------
+function ToggleCollapseExpandAll() {
+  _allTasksCollapsed = !_allTasksCollapsed;
+  var open = !_allTasksCollapsed;
+  gantt.eachTask(function (task) { task.$open = open; });
+  gantt.render();
+
+  var icon = document.querySelector(".gantt-collapseall-icon");
+  if (icon) {
+    icon.classList.toggle("is-collapsed", _allTasksCollapsed);
+    icon.title = _allTasksCollapsed ? "Expand All" : "Collapse All";
+  }
+}
 
 function AddMarker(datestr, text) {
   if (!datestr) return;
