@@ -337,40 +337,40 @@ codeunit 50602 "Create Demo Data"
         JT."Job No." := 'JOB001';
 
         // ── 40-week Radome Repair project — each posting task ≥ 3 weeks ───────
-        AddTask(JT, '0',    'Radome Repair Project',              D,                      CalcDate('+40W', D),    JT."Job Task Type"::Heading);
+        AddTask(JT, '0', 'Radome Repair Project', D, CalcDate('+40W', D), JT."Job Task Type"::Heading);
 
-        AddTask(JT, '1000', 'Phase 1: Pre-Processing',            D,                      CalcDate('+9W', D),     JT."Job Task Type"::"Begin-Total");
-        AddTask(JT, '1010', 'Inbound Receiving & Logging',        D,                      CalcDate('+3W', D),     JT."Job Task Type"::Posting);   // 3W
-        AddTask(JT, '1020', 'Condition Assessment',               CalcDate('+2W', D),     CalcDate('+5W', D),     JT."Job Task Type"::Posting);   // 3W
-        AddTask(JT, '1030', 'Quote Preparation',                  CalcDate('+4W', D),     CalcDate('+7W', D),     JT."Job Task Type"::Posting);   // 3W
-        AddTask(JT, '1040', 'Customer Approval',                  CalcDate('+6W', D),     CalcDate('+9W', D),     JT."Job Task Type"::Posting);   // 3W
-        AddTask(JT, '1999', 'Phase 1 Total',                      D,                      CalcDate('+9W', D),     JT."Job Task Type"::"End-Total");
+        AddTask(JT, '1000', 'Phase 1: Pre-Processing', D, CalcDate('+9W', D), JT."Job Task Type"::"Begin-Total");
+        AddTask(JT, '1010', 'Inbound Receiving & Logging', D, CalcDate('+3W', D), JT."Job Task Type"::Posting);   // 3W
+        AddTask(JT, '1020', 'Condition Assessment', CalcDate('+2W', D), CalcDate('+5W', D), JT."Job Task Type"::Posting);   // 3W
+        AddTask(JT, '1030', 'Quote Preparation', CalcDate('+4W', D), CalcDate('+7W', D), JT."Job Task Type"::Posting);   // 3W
+        AddTask(JT, '1040', 'Customer Approval', CalcDate('+6W', D), CalcDate('+9W', D), JT."Job Task Type"::Posting);   // 3W
+        AddTask(JT, '1999', 'Phase 1 Total', D, CalcDate('+9W', D), JT."Job Task Type"::"End-Total");
 
-        AddTask(JT, '2000', 'Phase 2: Disassembly & Procurement', CalcDate('+9W', D),     CalcDate('+21W', D),    JT."Job Task Type"::"Begin-Total");
-        AddTask(JT, '2010', 'Component Disassembly',              CalcDate('+9W', D),     CalcDate('+12W', D),    JT."Job Task Type"::Posting);   // 3W
-        AddTask(JT, '2020', 'Damage Mapping & Analysis',          CalcDate('+10W', D),    CalcDate('+14W', D),    JT."Job Task Type"::Posting);   // 4W
-        AddTask(JT, '2030', 'Spare Parts Identification',         CalcDate('+12W', D),    CalcDate('+15W', D),    JT."Job Task Type"::Posting);   // 3W
-        AddTask(JT, '2040', 'Parts Procurement',                  CalcDate('+14W', D),    CalcDate('+18W', D),    JT."Job Task Type"::Posting);   // 4W
-        AddTask(JT, '2050', 'Procurement Follow-up',              CalcDate('+16W', D),    CalcDate('+21W', D),    JT."Job Task Type"::Posting);   // 5W
-        AddTask(JT, '2999', 'Phase 2 Total',                      CalcDate('+9W', D),     CalcDate('+21W', D),    JT."Job Task Type"::"End-Total");
+        AddTask(JT, '2000', 'Phase 2: Disassembly & Procurement', CalcDate('+9W', D), CalcDate('+21W', D), JT."Job Task Type"::"Begin-Total");
+        AddTask(JT, '2010', 'Component Disassembly', CalcDate('+9W', D), CalcDate('+12W', D), JT."Job Task Type"::Posting);   // 3W
+        AddTask(JT, '2020', 'Damage Mapping & Analysis', CalcDate('+10W', D), CalcDate('+14W', D), JT."Job Task Type"::Posting);   // 4W
+        AddTask(JT, '2030', 'Spare Parts Identification', CalcDate('+12W', D), CalcDate('+15W', D), JT."Job Task Type"::Posting);   // 3W
+        AddTask(JT, '2040', 'Parts Procurement', CalcDate('+14W', D), CalcDate('+18W', D), JT."Job Task Type"::Posting);   // 4W
+        AddTask(JT, '2050', 'Procurement Follow-up', CalcDate('+16W', D), CalcDate('+21W', D), JT."Job Task Type"::Posting);   // 5W
+        AddTask(JT, '2999', 'Phase 2 Total', CalcDate('+9W', D), CalcDate('+21W', D), JT."Job Task Type"::"End-Total");
 
-        AddTask(JT, '3000', 'Phase 3: Repair & Assembly',         CalcDate('+21W', D),    CalcDate('+33W', D),    JT."Job Task Type"::"Begin-Total");
-        AddTask(JT, '3010', 'Surface Preparation',                CalcDate('+21W', D),    CalcDate('+24W', D),    JT."Job Task Type"::Posting);   // 3W
-        AddTask(JT, '3020', 'Structural Repair',                  CalcDate('+23W', D),    CalcDate('+27W', D),    JT."Job Task Type"::Posting);   // 4W
-        AddTask(JT, '3030', 'Paint & Coating Application',        CalcDate('+26W', D),    CalcDate('+29W', D),    JT."Job Task Type"::Posting);   // 3W
-        AddTask(JT, '3040', 'Component Assembly',                 CalcDate('+28W', D),    CalcDate('+31W', D),    JT."Job Task Type"::Posting);   // 3W
-        AddTask(JT, '3050', 'Electrical Fit-out',                 CalcDate('+30W', D),    CalcDate('+33W', D),    JT."Job Task Type"::Posting);   // 3W
-        AddTask(JT, '3999', 'Phase 3 Total',                      CalcDate('+21W', D),    CalcDate('+33W', D),    JT."Job Task Type"::"End-Total");
+        AddTask(JT, '3000', 'Phase 3: Repair & Assembly', CalcDate('+21W', D), CalcDate('+33W', D), JT."Job Task Type"::"Begin-Total");
+        AddTask(JT, '3010', 'Surface Preparation', CalcDate('+21W', D), CalcDate('+24W', D), JT."Job Task Type"::Posting);   // 3W
+        AddTask(JT, '3020', 'Structural Repair', CalcDate('+23W', D), CalcDate('+27W', D), JT."Job Task Type"::Posting);   // 4W
+        AddTask(JT, '3030', 'Paint & Coating Application', CalcDate('+26W', D), CalcDate('+29W', D), JT."Job Task Type"::Posting);   // 3W
+        AddTask(JT, '3040', 'Component Assembly', CalcDate('+28W', D), CalcDate('+31W', D), JT."Job Task Type"::Posting);   // 3W
+        AddTask(JT, '3050', 'Electrical Fit-out', CalcDate('+30W', D), CalcDate('+33W', D), JT."Job Task Type"::Posting);   // 3W
+        AddTask(JT, '3999', 'Phase 3 Total', CalcDate('+21W', D), CalcDate('+33W', D), JT."Job Task Type"::"End-Total");
 
-        AddTask(JT, '4000', 'Phase 4: Testing & Delivery',        CalcDate('+33W', D),    CalcDate('+40W', D),    JT."Job Task Type"::"Begin-Total");
-        AddTask(JT, '4010', 'Functional Testing',                 CalcDate('+33W', D),    CalcDate('+36W', D),    JT."Job Task Type"::Posting);   // 3W
-        AddTask(JT, '4020', 'RF Performance Test',                CalcDate('+35W', D),    CalcDate('+38W', D),    JT."Job Task Type"::Posting);   // 3W
-        AddTask(JT, '4030', 'Certification & Documentation',      CalcDate('+36W', D),    CalcDate('+39W', D),    JT."Job Task Type"::Posting);   // 3W
-        AddTask(JT, '4040', 'Outbound Packing',                   CalcDate('+37W', D),    CalcDate('+40W', D),    JT."Job Task Type"::Posting);   // 3W
-        AddTask(JT, '4050', 'Customer Delivery',                  CalcDate('+38W', D),    CalcDate('+40W', D),    JT."Job Task Type"::Posting);   // 2W (final hand-off, overlap with packing)
-        AddTask(JT, '4999', 'Phase 4 Total',                      CalcDate('+33W', D),    CalcDate('+40W', D),    JT."Job Task Type"::"End-Total");
+        AddTask(JT, '4000', 'Phase 4: Testing & Delivery', CalcDate('+33W', D), CalcDate('+40W', D), JT."Job Task Type"::"Begin-Total");
+        AddTask(JT, '4010', 'Functional Testing', CalcDate('+33W', D), CalcDate('+36W', D), JT."Job Task Type"::Posting);   // 3W
+        AddTask(JT, '4020', 'RF Performance Test', CalcDate('+35W', D), CalcDate('+38W', D), JT."Job Task Type"::Posting);   // 3W
+        AddTask(JT, '4030', 'Certification & Documentation', CalcDate('+36W', D), CalcDate('+39W', D), JT."Job Task Type"::Posting);   // 3W
+        AddTask(JT, '4040', 'Outbound Packing', CalcDate('+37W', D), CalcDate('+40W', D), JT."Job Task Type"::Posting);   // 3W
+        AddTask(JT, '4050', 'Customer Delivery', CalcDate('+38W', D), CalcDate('+40W', D), JT."Job Task Type"::Posting);   // 2W (final hand-off, overlap with packing)
+        AddTask(JT, '4999', 'Phase 4 Total', CalcDate('+33W', D), CalcDate('+40W', D), JT."Job Task Type"::"End-Total");
 
-        AddTask(JT, '9999', 'Radome Repair Project Total',        D,                      CalcDate('+40W', D),    JT."Job Task Type"::Total);
+        AddTask(JT, '9999', 'Radome Repair Project Total', D, CalcDate('+40W', D), JT."Job Task Type"::Total);
 
         Indent.IndentJobTasks(JT, true);
     end;
@@ -384,43 +384,43 @@ codeunit 50602 "Create Demo Data"
         JT."Job No." := 'JOB002';
 
         // ── 52-week ERP Implementation project — each posting task ≥ 3 weeks ──
-        AddTask(JT, '0',    'ERP System Implementation',           D,                      CalcDate('+52W', D),    JT."Job Task Type"::Heading);
+        AddTask(JT, '0', 'ERP System Implementation', D, CalcDate('+52W', D), JT."Job Task Type"::Heading);
 
-        AddTask(JT, '1000', 'Phase 1: Project Initiation',         D,                      CalcDate('+9W', D),     JT."Job Task Type"::"Begin-Total");
-        AddTask(JT, '1010', 'Stakeholder Kickoff Meeting',         D,                      CalcDate('+3W', D),     JT."Job Task Type"::Posting);   // 3W
-        AddTask(JT, '1020', 'Requirements Workshop',               CalcDate('+2W', D),     CalcDate('+6W', D),     JT."Job Task Type"::Posting);   // 4W
-        AddTask(JT, '1030', 'As-Is Process Mapping',               CalcDate('+5W', D),     CalcDate('+8W', D),     JT."Job Task Type"::Posting);   // 3W
-        AddTask(JT, '1040', 'Gap Analysis & Sign-off',             CalcDate('+6W', D),     CalcDate('+9W', D),     JT."Job Task Type"::Posting);   // 3W
-        AddTask(JT, '1999', 'Phase 1 Total',                       D,                      CalcDate('+9W', D),     JT."Job Task Type"::"End-Total");
+        AddTask(JT, '1000', 'Phase 1: Project Initiation', D, CalcDate('+9W', D), JT."Job Task Type"::"Begin-Total");
+        AddTask(JT, '1010', 'Stakeholder Kickoff Meeting', D, CalcDate('+3W', D), JT."Job Task Type"::Posting);   // 3W
+        AddTask(JT, '1020', 'Requirements Workshop', CalcDate('+2W', D), CalcDate('+6W', D), JT."Job Task Type"::Posting);   // 4W
+        AddTask(JT, '1030', 'As-Is Process Mapping', CalcDate('+5W', D), CalcDate('+8W', D), JT."Job Task Type"::Posting);   // 3W
+        AddTask(JT, '1040', 'Gap Analysis & Sign-off', CalcDate('+6W', D), CalcDate('+9W', D), JT."Job Task Type"::Posting);   // 3W
+        AddTask(JT, '1999', 'Phase 1 Total', D, CalcDate('+9W', D), JT."Job Task Type"::"End-Total");
 
-        AddTask(JT, '2000', 'Phase 2: Solution Design',            CalcDate('+9W', D),     CalcDate('+22W', D),    JT."Job Task Type"::"Begin-Total");
-        AddTask(JT, '2010', 'System Architecture Design',          CalcDate('+9W', D),     CalcDate('+13W', D),    JT."Job Task Type"::Posting);   // 4W
-        AddTask(JT, '2020', 'Data Migration Design',               CalcDate('+11W', D),    CalcDate('+15W', D),    JT."Job Task Type"::Posting);   // 4W
-        AddTask(JT, '2030', 'Integration Architecture Design',     CalcDate('+13W', D),    CalcDate('+17W', D),    JT."Job Task Type"::Posting);   // 4W
-        AddTask(JT, '2040', 'Customization Specification',         CalcDate('+16W', D),    CalcDate('+22W', D),    JT."Job Task Type"::Posting);   // 6W
-        AddTask(JT, '2999', 'Phase 2 Total',                       CalcDate('+9W', D),     CalcDate('+22W', D),    JT."Job Task Type"::"End-Total");
+        AddTask(JT, '2000', 'Phase 2: Solution Design', CalcDate('+9W', D), CalcDate('+22W', D), JT."Job Task Type"::"Begin-Total");
+        AddTask(JT, '2010', 'System Architecture Design', CalcDate('+9W', D), CalcDate('+13W', D), JT."Job Task Type"::Posting);   // 4W
+        AddTask(JT, '2020', 'Data Migration Design', CalcDate('+11W', D), CalcDate('+15W', D), JT."Job Task Type"::Posting);   // 4W
+        AddTask(JT, '2030', 'Integration Architecture Design', CalcDate('+13W', D), CalcDate('+17W', D), JT."Job Task Type"::Posting);   // 4W
+        AddTask(JT, '2040', 'Customization Specification', CalcDate('+16W', D), CalcDate('+22W', D), JT."Job Task Type"::Posting);   // 6W
+        AddTask(JT, '2999', 'Phase 2 Total', CalcDate('+9W', D), CalcDate('+22W', D), JT."Job Task Type"::"End-Total");
 
-        AddTask(JT, '3000', 'Phase 3: Build & Configuration',      CalcDate('+22W', D),    CalcDate('+38W', D),    JT."Job Task Type"::"Begin-Total");
-        AddTask(JT, '3010', 'Base System Configuration',           CalcDate('+22W', D),    CalcDate('+25W', D),    JT."Job Task Type"::Posting);   // 3W
-        AddTask(JT, '3020', 'Custom Development',                  CalcDate('+23W', D),    CalcDate('+31W', D),    JT."Job Task Type"::Posting);   // 8W
-        AddTask(JT, '3030', 'Integration Development',             CalcDate('+26W', D),    CalcDate('+33W', D),    JT."Job Task Type"::Posting);   // 7W
-        AddTask(JT, '3040', 'Data Migration Scripts',              CalcDate('+30W', D),    CalcDate('+35W', D),    JT."Job Task Type"::Posting);   // 5W
-        AddTask(JT, '3050', 'Unit & Integration Testing',          CalcDate('+34W', D),    CalcDate('+38W', D),    JT."Job Task Type"::Posting);   // 4W
-        AddTask(JT, '3999', 'Phase 3 Total',                       CalcDate('+22W', D),    CalcDate('+38W', D),    JT."Job Task Type"::"End-Total");
+        AddTask(JT, '3000', 'Phase 3: Build & Configuration', CalcDate('+22W', D), CalcDate('+38W', D), JT."Job Task Type"::"Begin-Total");
+        AddTask(JT, '3010', 'Base System Configuration', CalcDate('+22W', D), CalcDate('+25W', D), JT."Job Task Type"::Posting);   // 3W
+        AddTask(JT, '3020', 'Custom Development', CalcDate('+23W', D), CalcDate('+31W', D), JT."Job Task Type"::Posting);   // 8W
+        AddTask(JT, '3030', 'Integration Development', CalcDate('+26W', D), CalcDate('+33W', D), JT."Job Task Type"::Posting);   // 7W
+        AddTask(JT, '3040', 'Data Migration Scripts', CalcDate('+30W', D), CalcDate('+35W', D), JT."Job Task Type"::Posting);   // 5W
+        AddTask(JT, '3050', 'Unit & Integration Testing', CalcDate('+34W', D), CalcDate('+38W', D), JT."Job Task Type"::Posting);   // 4W
+        AddTask(JT, '3999', 'Phase 3 Total', CalcDate('+22W', D), CalcDate('+38W', D), JT."Job Task Type"::"End-Total");
 
-        AddTask(JT, '4000', 'Phase 4: UAT & Training',             CalcDate('+38W', D),    CalcDate('+47W', D),    JT."Job Task Type"::"Begin-Total");
-        AddTask(JT, '4010', 'User Acceptance Testing',             CalcDate('+38W', D),    CalcDate('+42W', D),    JT."Job Task Type"::Posting);   // 4W
-        AddTask(JT, '4020', 'Bug Fixing & Retest',                 CalcDate('+41W', D),    CalcDate('+45W', D),    JT."Job Task Type"::Posting);   // 4W
-        AddTask(JT, '4030', 'End-User Training',                   CalcDate('+40W', D),    CalcDate('+47W', D),    JT."Job Task Type"::Posting);   // 7W
-        AddTask(JT, '4999', 'Phase 4 Total',                       CalcDate('+38W', D),    CalcDate('+47W', D),    JT."Job Task Type"::"End-Total");
+        AddTask(JT, '4000', 'Phase 4: UAT & Training', CalcDate('+38W', D), CalcDate('+47W', D), JT."Job Task Type"::"Begin-Total");
+        AddTask(JT, '4010', 'User Acceptance Testing', CalcDate('+38W', D), CalcDate('+42W', D), JT."Job Task Type"::Posting);   // 4W
+        AddTask(JT, '4020', 'Bug Fixing & Retest', CalcDate('+41W', D), CalcDate('+45W', D), JT."Job Task Type"::Posting);   // 4W
+        AddTask(JT, '4030', 'End-User Training', CalcDate('+40W', D), CalcDate('+47W', D), JT."Job Task Type"::Posting);   // 7W
+        AddTask(JT, '4999', 'Phase 4 Total', CalcDate('+38W', D), CalcDate('+47W', D), JT."Job Task Type"::"End-Total");
 
-        AddTask(JT, '5000', 'Phase 5: Go-Live',                    CalcDate('+47W', D),    CalcDate('+52W', D),    JT."Job Task Type"::"Begin-Total");
-        AddTask(JT, '5010', 'Data Migration Execution',            CalcDate('+47W', D),    CalcDate('+50W', D),    JT."Job Task Type"::Posting);   // 3W
-        AddTask(JT, '5020', 'Go-Live Cutover',                     CalcDate('+49W', D),    CalcDate('+52W', D),    JT."Job Task Type"::Posting);   // 3W
-        AddTask(JT, '5030', 'Hypercare Support',                   CalcDate('+50W', D),    CalcDate('+52W', D),    JT."Job Task Type"::Posting);   // 2W (final sprint, runs parallel to cutover)
-        AddTask(JT, '5999', 'Phase 5 Total',                       CalcDate('+47W', D),    CalcDate('+52W', D),    JT."Job Task Type"::"End-Total");
+        AddTask(JT, '5000', 'Phase 5: Go-Live', CalcDate('+47W', D), CalcDate('+52W', D), JT."Job Task Type"::"Begin-Total");
+        AddTask(JT, '5010', 'Data Migration Execution', CalcDate('+47W', D), CalcDate('+50W', D), JT."Job Task Type"::Posting);   // 3W
+        AddTask(JT, '5020', 'Go-Live Cutover', CalcDate('+49W', D), CalcDate('+52W', D), JT."Job Task Type"::Posting);   // 3W
+        AddTask(JT, '5030', 'Hypercare Support', CalcDate('+50W', D), CalcDate('+52W', D), JT."Job Task Type"::Posting);   // 2W (final sprint, runs parallel to cutover)
+        AddTask(JT, '5999', 'Phase 5 Total', CalcDate('+47W', D), CalcDate('+52W', D), JT."Job Task Type"::"End-Total");
 
-        AddTask(JT, '9999', 'ERP Implementation Total',            D,                      CalcDate('+52W', D),    JT."Job Task Type"::Total);
+        AddTask(JT, '9999', 'ERP Implementation Total', D, CalcDate('+52W', D), JT."Job Task Type"::Total);
 
         Indent.IndentJobTasks(JT, true);
     end;
@@ -434,35 +434,35 @@ codeunit 50602 "Create Demo Data"
         JT."Job No." := 'JOB003';
 
         // ── 42-week Facility Infrastructure Upgrade — each posting task ≥ 3 weeks
-        AddTask(JT, '0',    'Facility Infrastructure Upgrade',      D,                      CalcDate('+42W', D),    JT."Job Task Type"::Heading);
+        AddTask(JT, '0', 'Facility Infrastructure Upgrade', D, CalcDate('+42W', D), JT."Job Task Type"::Heading);
 
-        AddTask(JT, '1000', 'Phase 1: Planning & Survey',           D,                      CalcDate('+9W', D),     JT."Job Task Type"::"Begin-Total");
-        AddTask(JT, '1010', 'Site Survey & Condition Assessment',   D,                      CalcDate('+3W', D),     JT."Job Task Type"::Posting);   // 3W
-        AddTask(JT, '1020', 'Technical Feasibility Study',          CalcDate('+2W', D),     CalcDate('+5W', D),     JT."Job Task Type"::Posting);   // 3W
-        AddTask(JT, '1030', 'Project Schedule & Budget Planning',   CalcDate('+4W', D),     CalcDate('+9W', D),     JT."Job Task Type"::Posting);   // 5W
-        AddTask(JT, '1999', 'Phase 1 Total',                        D,                      CalcDate('+9W', D),     JT."Job Task Type"::"End-Total");
+        AddTask(JT, '1000', 'Phase 1: Planning & Survey', D, CalcDate('+9W', D), JT."Job Task Type"::"Begin-Total");
+        AddTask(JT, '1010', 'Site Survey & Condition Assessment', D, CalcDate('+3W', D), JT."Job Task Type"::Posting);   // 3W
+        AddTask(JT, '1020', 'Technical Feasibility Study', CalcDate('+2W', D), CalcDate('+5W', D), JT."Job Task Type"::Posting);   // 3W
+        AddTask(JT, '1030', 'Project Schedule & Budget Planning', CalcDate('+4W', D), CalcDate('+9W', D), JT."Job Task Type"::Posting);   // 5W
+        AddTask(JT, '1999', 'Phase 1 Total', D, CalcDate('+9W', D), JT."Job Task Type"::"End-Total");
 
-        AddTask(JT, '2000', 'Phase 2: Procurement & Preparation',   CalcDate('+9W', D),     CalcDate('+18W', D),    JT."Job Task Type"::"Begin-Total");
-        AddTask(JT, '2010', 'Vendor Selection & Contracting',       CalcDate('+9W', D),     CalcDate('+12W', D),    JT."Job Task Type"::Posting);   // 3W
-        AddTask(JT, '2020', 'Material & Equipment Procurement',     CalcDate('+11W', D),    CalcDate('+15W', D),    JT."Job Task Type"::Posting);   // 4W
-        AddTask(JT, '2030', 'Site Preparation & Logistics',         CalcDate('+14W', D),    CalcDate('+18W', D),    JT."Job Task Type"::Posting);   // 4W
-        AddTask(JT, '2999', 'Phase 2 Total',                        CalcDate('+9W', D),     CalcDate('+18W', D),    JT."Job Task Type"::"End-Total");
+        AddTask(JT, '2000', 'Phase 2: Procurement & Preparation', CalcDate('+9W', D), CalcDate('+18W', D), JT."Job Task Type"::"Begin-Total");
+        AddTask(JT, '2010', 'Vendor Selection & Contracting', CalcDate('+9W', D), CalcDate('+12W', D), JT."Job Task Type"::Posting);   // 3W
+        AddTask(JT, '2020', 'Material & Equipment Procurement', CalcDate('+11W', D), CalcDate('+15W', D), JT."Job Task Type"::Posting);   // 4W
+        AddTask(JT, '2030', 'Site Preparation & Logistics', CalcDate('+14W', D), CalcDate('+18W', D), JT."Job Task Type"::Posting);   // 4W
+        AddTask(JT, '2999', 'Phase 2 Total', CalcDate('+9W', D), CalcDate('+18W', D), JT."Job Task Type"::"End-Total");
 
-        AddTask(JT, '3000', 'Phase 3: Installation & Construction',  CalcDate('+18W', D),    CalcDate('+31W', D),    JT."Job Task Type"::"Begin-Total");
-        AddTask(JT, '3010', 'Electrical System Installation',        CalcDate('+18W', D),    CalcDate('+22W', D),    JT."Job Task Type"::Posting);   // 4W
-        AddTask(JT, '3020', 'HVAC System Installation',              CalcDate('+19W', D),    CalcDate('+23W', D),    JT."Job Task Type"::Posting);   // 4W
-        AddTask(JT, '3030', 'Network & IT Infrastructure',           CalcDate('+21W', D),    CalcDate('+26W', D),    JT."Job Task Type"::Posting);   // 5W
-        AddTask(JT, '3040', 'Security & Access Control Systems',     CalcDate('+24W', D),    CalcDate('+31W', D),    JT."Job Task Type"::Posting);   // 7W
-        AddTask(JT, '3999', 'Phase 3 Total',                         CalcDate('+18W', D),    CalcDate('+31W', D),    JT."Job Task Type"::"End-Total");
+        AddTask(JT, '3000', 'Phase 3: Installation & Construction', CalcDate('+18W', D), CalcDate('+31W', D), JT."Job Task Type"::"Begin-Total");
+        AddTask(JT, '3010', 'Electrical System Installation', CalcDate('+18W', D), CalcDate('+22W', D), JT."Job Task Type"::Posting);   // 4W
+        AddTask(JT, '3020', 'HVAC System Installation', CalcDate('+19W', D), CalcDate('+23W', D), JT."Job Task Type"::Posting);   // 4W
+        AddTask(JT, '3030', 'Network & IT Infrastructure', CalcDate('+21W', D), CalcDate('+26W', D), JT."Job Task Type"::Posting);   // 5W
+        AddTask(JT, '3040', 'Security & Access Control Systems', CalcDate('+24W', D), CalcDate('+31W', D), JT."Job Task Type"::Posting);   // 7W
+        AddTask(JT, '3999', 'Phase 3 Total', CalcDate('+18W', D), CalcDate('+31W', D), JT."Job Task Type"::"End-Total");
 
-        AddTask(JT, '4000', 'Phase 4: Commissioning & Handover',     CalcDate('+31W', D),    CalcDate('+42W', D),    JT."Job Task Type"::"Begin-Total");
-        AddTask(JT, '4010', 'System Commissioning & Testing',        CalcDate('+31W', D),    CalcDate('+34W', D),    JT."Job Task Type"::Posting);   // 3W
-        AddTask(JT, '4020', 'Integration & Performance Testing',     CalcDate('+33W', D),    CalcDate('+37W', D),    JT."Job Task Type"::Posting);   // 4W
-        AddTask(JT, '4030', 'Punch List & Snagging Resolution',      CalcDate('+36W', D),    CalcDate('+39W', D),    JT."Job Task Type"::Posting);   // 3W
-        AddTask(JT, '4040', 'Final Inspection & Handover',           CalcDate('+38W', D),    CalcDate('+42W', D),    JT."Job Task Type"::Posting);   // 4W
-        AddTask(JT, '4999', 'Phase 4 Total',                         CalcDate('+31W', D),    CalcDate('+42W', D),    JT."Job Task Type"::"End-Total");
+        AddTask(JT, '4000', 'Phase 4: Commissioning & Handover', CalcDate('+31W', D), CalcDate('+42W', D), JT."Job Task Type"::"Begin-Total");
+        AddTask(JT, '4010', 'System Commissioning & Testing', CalcDate('+31W', D), CalcDate('+34W', D), JT."Job Task Type"::Posting);   // 3W
+        AddTask(JT, '4020', 'Integration & Performance Testing', CalcDate('+33W', D), CalcDate('+37W', D), JT."Job Task Type"::Posting);   // 4W
+        AddTask(JT, '4030', 'Punch List & Snagging Resolution', CalcDate('+36W', D), CalcDate('+39W', D), JT."Job Task Type"::Posting);   // 3W
+        AddTask(JT, '4040', 'Final Inspection & Handover', CalcDate('+38W', D), CalcDate('+42W', D), JT."Job Task Type"::Posting);   // 4W
+        AddTask(JT, '4999', 'Phase 4 Total', CalcDate('+31W', D), CalcDate('+42W', D), JT."Job Task Type"::"End-Total");
 
-        AddTask(JT, '9999', 'Infrastructure Upgrade Total',           D,                      CalcDate('+42W', D),    JT."Job Task Type"::Total);
+        AddTask(JT, '9999', 'Infrastructure Upgrade Total', D, CalcDate('+42W', D), JT."Job Task Type"::Total);
 
         Indent.IndentJobTasks(JT, true);
     end;
@@ -487,65 +487,65 @@ codeunit 50602 "Create Demo Data"
     local procedure CreateJobTaskLinks()
     begin
         // ── JOB001: Radome Repair — sequential + parallel with Finish-Start, Start-Start, Finish-Finish
-        CreateLink('JOB001', '1010', '1020', Enum::"BCG Gantt Link Type"::"Finish-Start",  0);
-        CreateLink('JOB001', '1020', '1030', Enum::"BCG Gantt Link Type"::"Finish-Start",  1);  // 1-day review buffer
-        CreateLink('JOB001', '1030', '1040', Enum::"BCG Gantt Link Type"::"Finish-Start",  0);
-        CreateLink('JOB001', '1040', '2010', Enum::"BCG Gantt Link Type"::"Finish-Start",  1);  // approval before disassembly
-        CreateLink('JOB001', '2010', '2020', Enum::"BCG Gantt Link Type"::"Finish-Start",  0);
-        CreateLink('JOB001', '2010', '2030', Enum::"BCG Gantt Link Type"::"Start-Start",   2);  // parts ID starts 2 days after disassembly begins
-        CreateLink('JOB001', '2020', '2040', Enum::"BCG Gantt Link Type"::"Finish-Start",  0);
-        CreateLink('JOB001', '2030', '2040', Enum::"BCG Gantt Link Type"::"Finish-Start",  1);
-        CreateLink('JOB001', '2040', '2050', Enum::"BCG Gantt Link Type"::"Start-Start",   3);  // follow-up starts 3 days after procurement
-        CreateLink('JOB001', '2040', '3010', Enum::"BCG Gantt Link Type"::"Finish-Start",  0);  // parts needed before surface prep
-        CreateLink('JOB001', '3010', '3020', Enum::"BCG Gantt Link Type"::"Finish-Start",  0);
-        CreateLink('JOB001', '3020', '3030', Enum::"BCG Gantt Link Type"::"Finish-Start",  2);  // paint starts 2 days after repair (cure time)
-        CreateLink('JOB001', '3030', '3040', Enum::"BCG Gantt Link Type"::"Finish-Start",  1);
-        CreateLink('JOB001', '3040', '3050', Enum::"BCG Gantt Link Type"::"Start-Start",   1);  // electrical overlaps assembly
-        CreateLink('JOB001', '3050', '4010', Enum::"BCG Gantt Link Type"::"Finish-Start",  0);
+        CreateLink('JOB001', '1010', '1020', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);
+        CreateLink('JOB001', '1020', '1030', Enum::"BCG Gantt Link Type"::"Finish-Start", 1);  // 1-day review buffer
+        CreateLink('JOB001', '1030', '1040', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);
+        CreateLink('JOB001', '1040', '2010', Enum::"BCG Gantt Link Type"::"Finish-Start", 1);  // approval before disassembly
+        CreateLink('JOB001', '2010', '2020', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);
+        CreateLink('JOB001', '2010', '2030', Enum::"BCG Gantt Link Type"::"Start-Start", 2);  // parts ID starts 2 days after disassembly begins
+        CreateLink('JOB001', '2020', '2040', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);
+        CreateLink('JOB001', '2030', '2040', Enum::"BCG Gantt Link Type"::"Finish-Start", 1);
+        CreateLink('JOB001', '2040', '2050', Enum::"BCG Gantt Link Type"::"Start-Start", 3);  // follow-up starts 3 days after procurement
+        CreateLink('JOB001', '2040', '3010', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // parts needed before surface prep
+        CreateLink('JOB001', '3010', '3020', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);
+        CreateLink('JOB001', '3020', '3030', Enum::"BCG Gantt Link Type"::"Finish-Start", 2);  // paint starts 2 days after repair (cure time)
+        CreateLink('JOB001', '3030', '3040', Enum::"BCG Gantt Link Type"::"Finish-Start", 1);
+        CreateLink('JOB001', '3040', '3050', Enum::"BCG Gantt Link Type"::"Start-Start", 1);  // electrical overlaps assembly
+        CreateLink('JOB001', '3050', '4010', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);
         CreateLink('JOB001', '3040', '4010', Enum::"BCG Gantt Link Type"::"Finish-Finish", 2);  // testing finishes 2 days after assembly complete
-        CreateLink('JOB001', '4010', '4020', Enum::"BCG Gantt Link Type"::"Finish-Start",  0);
-        CreateLink('JOB001', '4020', '4030', Enum::"BCG Gantt Link Type"::"Finish-Start",  0);
-        CreateLink('JOB001', '4030', '4040', Enum::"BCG Gantt Link Type"::"Finish-Start",  1);
-        CreateLink('JOB001', '4040', '4050', Enum::"BCG Gantt Link Type"::"Finish-Start",  0);
+        CreateLink('JOB001', '4010', '4020', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);
+        CreateLink('JOB001', '4020', '4030', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);
+        CreateLink('JOB001', '4030', '4040', Enum::"BCG Gantt Link Type"::"Finish-Start", 1);
+        CreateLink('JOB001', '4040', '4050', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);
 
         // ── JOB002: ERP Implementation — complex dependency fan-out with all four link types
-        CreateLink('JOB002', '1010', '1020', Enum::"BCG Gantt Link Type"::"Finish-Start",  0);
-        CreateLink('JOB002', '1020', '1030', Enum::"BCG Gantt Link Type"::"Start-Start",   1);  // mapping can start while workshop is in progress
-        CreateLink('JOB002', '1030', '1040', Enum::"BCG Gantt Link Type"::"Finish-Start",  0);
-        CreateLink('JOB002', '1040', '2010', Enum::"BCG Gantt Link Type"::"Finish-Start",  2);  // 2-day buffer after sign-off
-        CreateLink('JOB002', '2010', '2020', Enum::"BCG Gantt Link Type"::"Start-Start",   0);  // data design starts with architecture
-        CreateLink('JOB002', '2010', '2030', Enum::"BCG Gantt Link Type"::"Start-Start",   2);
-        CreateLink('JOB002', '2010', '2040', Enum::"BCG Gantt Link Type"::"Start-Start",   3);
-        CreateLink('JOB002', '2020', '3040', Enum::"BCG Gantt Link Type"::"Finish-Start",  0);  // data design feeds migration scripts
-        CreateLink('JOB002', '2030', '3030', Enum::"BCG Gantt Link Type"::"Finish-Start",  0);  // integration design feeds dev
-        CreateLink('JOB002', '2040', '3020', Enum::"BCG Gantt Link Type"::"Finish-Start",  1);  // spec feeds custom dev
-        CreateLink('JOB002', '3010', '3050', Enum::"BCG Gantt Link Type"::"Finish-Start",  0);
+        CreateLink('JOB002', '1010', '1020', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);
+        CreateLink('JOB002', '1020', '1030', Enum::"BCG Gantt Link Type"::"Start-Start", 1);  // mapping can start while workshop is in progress
+        CreateLink('JOB002', '1030', '1040', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);
+        CreateLink('JOB002', '1040', '2010', Enum::"BCG Gantt Link Type"::"Finish-Start", 2);  // 2-day buffer after sign-off
+        CreateLink('JOB002', '2010', '2020', Enum::"BCG Gantt Link Type"::"Start-Start", 0);  // data design starts with architecture
+        CreateLink('JOB002', '2010', '2030', Enum::"BCG Gantt Link Type"::"Start-Start", 2);
+        CreateLink('JOB002', '2010', '2040', Enum::"BCG Gantt Link Type"::"Start-Start", 3);
+        CreateLink('JOB002', '2020', '3040', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // data design feeds migration scripts
+        CreateLink('JOB002', '2030', '3030', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);  // integration design feeds dev
+        CreateLink('JOB002', '2040', '3020', Enum::"BCG Gantt Link Type"::"Finish-Start", 1);  // spec feeds custom dev
+        CreateLink('JOB002', '3010', '3050', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);
         CreateLink('JOB002', '3020', '3050', Enum::"BCG Gantt Link Type"::"Finish-Finish", 2);  // dev must finish before testing ends
         CreateLink('JOB002', '3030', '3050', Enum::"BCG Gantt Link Type"::"Finish-Finish", 1);
-        CreateLink('JOB002', '3050', '4010', Enum::"BCG Gantt Link Type"::"Finish-Start",  1);
-        CreateLink('JOB002', '4010', '4020', Enum::"BCG Gantt Link Type"::"Finish-Start",  0);
-        CreateLink('JOB002', '4010', '4030', Enum::"BCG Gantt Link Type"::"Start-Start",   2);  // training can begin while UAT runs
-        CreateLink('JOB002', '4020', '5010', Enum::"BCG Gantt Link Type"::"Finish-Start",  2);
-        CreateLink('JOB002', '5010', '5020', Enum::"BCG Gantt Link Type"::"Finish-Start",  1);
-        CreateLink('JOB002', '5020', '5030', Enum::"BCG Gantt Link Type"::"Finish-Start",  0);
+        CreateLink('JOB002', '3050', '4010', Enum::"BCG Gantt Link Type"::"Finish-Start", 1);
+        CreateLink('JOB002', '4010', '4020', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);
+        CreateLink('JOB002', '4010', '4030', Enum::"BCG Gantt Link Type"::"Start-Start", 2);  // training can begin while UAT runs
+        CreateLink('JOB002', '4020', '5010', Enum::"BCG Gantt Link Type"::"Finish-Start", 2);
+        CreateLink('JOB002', '5010', '5020', Enum::"BCG Gantt Link Type"::"Finish-Start", 1);
+        CreateLink('JOB002', '5020', '5030', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);
 
         // ── JOB003: Infrastructure Upgrade — parallel installs with Finish-Finish convergence
-        CreateLink('JOB003', '1010', '1020', Enum::"BCG Gantt Link Type"::"Finish-Start",  0);
-        CreateLink('JOB003', '1010', '1030', Enum::"BCG Gantt Link Type"::"Start-Start",   1);  // planning starts 1 day after survey
-        CreateLink('JOB003', '1020', '2010', Enum::"BCG Gantt Link Type"::"Finish-Start",  1);
-        CreateLink('JOB003', '2010', '2020', Enum::"BCG Gantt Link Type"::"Finish-Start",  2);
-        CreateLink('JOB003', '2020', '2030', Enum::"BCG Gantt Link Type"::"Start-Start",   3);  // site prep overlaps procurement
-        CreateLink('JOB003', '2030', '3010', Enum::"BCG Gantt Link Type"::"Finish-Start",  0);
-        CreateLink('JOB003', '3010', '3020', Enum::"BCG Gantt Link Type"::"Start-Start",   0);  // HVAC starts with electrical
-        CreateLink('JOB003', '3020', '3030', Enum::"BCG Gantt Link Type"::"Start-Start",   2);
-        CreateLink('JOB003', '3030', '3040', Enum::"BCG Gantt Link Type"::"Start-Start",   1);
+        CreateLink('JOB003', '1010', '1020', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);
+        CreateLink('JOB003', '1010', '1030', Enum::"BCG Gantt Link Type"::"Start-Start", 1);  // planning starts 1 day after survey
+        CreateLink('JOB003', '1020', '2010', Enum::"BCG Gantt Link Type"::"Finish-Start", 1);
+        CreateLink('JOB003', '2010', '2020', Enum::"BCG Gantt Link Type"::"Finish-Start", 2);
+        CreateLink('JOB003', '2020', '2030', Enum::"BCG Gantt Link Type"::"Start-Start", 3);  // site prep overlaps procurement
+        CreateLink('JOB003', '2030', '3010', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);
+        CreateLink('JOB003', '3010', '3020', Enum::"BCG Gantt Link Type"::"Start-Start", 0);  // HVAC starts with electrical
+        CreateLink('JOB003', '3020', '3030', Enum::"BCG Gantt Link Type"::"Start-Start", 2);
+        CreateLink('JOB003', '3030', '3040', Enum::"BCG Gantt Link Type"::"Start-Start", 1);
         CreateLink('JOB003', '3010', '4010', Enum::"BCG Gantt Link Type"::"Finish-Finish", 3);  // commissioning can end 3 days after electrical
         CreateLink('JOB003', '3020', '4010', Enum::"BCG Gantt Link Type"::"Finish-Finish", 3);
         CreateLink('JOB003', '3030', '4010', Enum::"BCG Gantt Link Type"::"Finish-Finish", 2);
-        CreateLink('JOB003', '3040', '4020', Enum::"BCG Gantt Link Type"::"Finish-Start",  0);
-        CreateLink('JOB003', '4010', '4020', Enum::"BCG Gantt Link Type"::"Finish-Start",  0);
-        CreateLink('JOB003', '4020', '4030', Enum::"BCG Gantt Link Type"::"Finish-Start",  1);
-        CreateLink('JOB003', '4030', '4040', Enum::"BCG Gantt Link Type"::"Finish-Start",  0);
+        CreateLink('JOB003', '3040', '4020', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);
+        CreateLink('JOB003', '4010', '4020', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);
+        CreateLink('JOB003', '4020', '4030', Enum::"BCG Gantt Link Type"::"Finish-Start", 1);
+        CreateLink('JOB003', '4030', '4040', Enum::"BCG Gantt Link Type"::"Finish-Start", 0);
     end;
 
     local procedure CreateLink(JobNo: Code[20]; SrcTask: Code[20]; TgtTask: Code[20]; LinkType: Enum "BCG Gantt Link Type"; LagDays: Integer)
@@ -809,17 +809,47 @@ codeunit 50602 "Create Demo Data"
 
     local procedure InitNameArrays()
     begin
-        gFirstNames[1] := 'James'; gFirstNames[2] := 'Mary'; gFirstNames[3] := 'John'; gFirstNames[4] := 'Patricia';
-        gFirstNames[5] := 'Robert'; gFirstNames[6] := 'Jennifer'; gFirstNames[7] := 'Michael'; gFirstNames[8] := 'Linda';
-        gFirstNames[9] := 'William'; gFirstNames[10] := 'Elizabeth'; gFirstNames[11] := 'David'; gFirstNames[12] := 'Barbara';
-        gFirstNames[13] := 'Richard'; gFirstNames[14] := 'Susan'; gFirstNames[15] := 'Joseph'; gFirstNames[16] := 'Jessica';
-        gFirstNames[17] := 'Thomas'; gFirstNames[18] := 'Sarah'; gFirstNames[19] := 'Charles'; gFirstNames[20] := 'Karen';
+        gFirstNames[1] := 'James';
+        gFirstNames[2] := 'Mary';
+        gFirstNames[3] := 'John';
+        gFirstNames[4] := 'Patricia';
+        gFirstNames[5] := 'Robert';
+        gFirstNames[6] := 'Jennifer';
+        gFirstNames[7] := 'Michael';
+        gFirstNames[8] := 'Linda';
+        gFirstNames[9] := 'William';
+        gFirstNames[10] := 'Elizabeth';
+        gFirstNames[11] := 'David';
+        gFirstNames[12] := 'Barbara';
+        gFirstNames[13] := 'Richard';
+        gFirstNames[14] := 'Susan';
+        gFirstNames[15] := 'Joseph';
+        gFirstNames[16] := 'Jessica';
+        gFirstNames[17] := 'Thomas';
+        gFirstNames[18] := 'Sarah';
+        gFirstNames[19] := 'Charles';
+        gFirstNames[20] := 'Karen';
 
-        gLastNames[1] := 'Smith'; gLastNames[2] := 'Johnson'; gLastNames[3] := 'Williams'; gLastNames[4] := 'Brown';
-        gLastNames[5] := 'Jones'; gLastNames[6] := 'Garcia'; gLastNames[7] := 'Miller'; gLastNames[8] := 'Davis';
-        gLastNames[9] := 'Rodriguez'; gLastNames[10] := 'Martinez'; gLastNames[11] := 'Hernandez'; gLastNames[12] := 'Lopez';
-        gLastNames[13] := 'Gonzalez'; gLastNames[14] := 'Wilson'; gLastNames[15] := 'Anderson'; gLastNames[16] := 'Thomas';
-        gLastNames[17] := 'Taylor'; gLastNames[18] := 'Moore'; gLastNames[19] := 'Jackson'; gLastNames[20] := 'Martin';
+        gLastNames[1] := 'Smith';
+        gLastNames[2] := 'Johnson';
+        gLastNames[3] := 'Williams';
+        gLastNames[4] := 'Brown';
+        gLastNames[5] := 'Jones';
+        gLastNames[6] := 'Garcia';
+        gLastNames[7] := 'Miller';
+        gLastNames[8] := 'Davis';
+        gLastNames[9] := 'Rodriguez';
+        gLastNames[10] := 'Martinez';
+        gLastNames[11] := 'Hernandez';
+        gLastNames[12] := 'Lopez';
+        gLastNames[13] := 'Gonzalez';
+        gLastNames[14] := 'Wilson';
+        gLastNames[15] := 'Anderson';
+        gLastNames[16] := 'Thomas';
+        gLastNames[17] := 'Taylor';
+        gLastNames[18] := 'Moore';
+        gLastNames[19] := 'Jackson';
+        gLastNames[20] := 'Martin';
     end;
 
     local procedure CreateResourceIterationBatch(var Window: Dialog; var ResourcesCreated: Integer; ResourcesTotal: Integer)
@@ -1389,7 +1419,7 @@ codeunit 50602 "Create Demo Data"
             DP."End Time Assigned" := AsgnEnd;
             DP."Assigned Hours" := AsgnHours;
         end;
-        DP."Pool Resource No." := GetResourcePoolNo(DP);
+        DP."Assigned Pool Resource No." := GetResourcePoolNo(DP);
         DP.Insert(false);
         LogRecord(Database::"Day Planning", DP.RecordId(), JT."Job No." + '.' + JT."Job Task No." + ' ' + Format(DT) + ' L' + DescSuffix);
     end;
@@ -1432,7 +1462,7 @@ codeunit 50602 "Create Demo Data"
             DP."End Time Assigned" := AsgnEnd;
             DP."Assigned Hours" := AsgnHours;
         end;
-        DP."Pool Resource No." := GetResourcePoolNo(DP);
+        DP."Assigned Pool Resource No." := GetResourcePoolNo(DP);
         DP.Insert(false);
         LogRecord(Database::"Day Planning", DP.RecordId(), JT."Job No." + '.' + JT."Job Task No." + ' ' + Format(DT) + ' M' + DescSuffix);
     end;
@@ -1510,33 +1540,45 @@ codeunit 50602 "Create Demo Data"
         case Date2DWY(DT, 1) of
             1:  // Monday: full day, fully assigned
                 begin
-                    ReqStart := 080000T; ReqEnd := 160000T;   // 8 h requested
-                    AsgnStart := 080000T; AsgnEnd := 160000T;  // 8 h assigned
+                    ReqStart := 080000T;
+                    ReqEnd := 160000T;   // 8 h requested
+                    AsgnStart := 080000T;
+                    AsgnEnd := 160000T;  // 8 h assigned
                 end;
             2:  // Tuesday: morning block, fully assigned
                 begin
-                    ReqStart := 080000T; ReqEnd := 120000T;   // 4 h
-                    AsgnStart := 080000T; AsgnEnd := 120000T;
+                    ReqStart := 080000T;
+                    ReqEnd := 120000T;   // 4 h
+                    AsgnStart := 080000T;
+                    AsgnEnd := 120000T;
                 end;
             3:  // Wednesday: late start, assigned shorter than requested (partial availability)
                 begin
-                    ReqStart := 090000T; ReqEnd := 170000T;   // 8 h requested
-                    AsgnStart := 090000T; AsgnEnd := 130000T;  // 4 h assigned
+                    ReqStart := 090000T;
+                    ReqEnd := 170000T;   // 8 h requested
+                    AsgnStart := 090000T;
+                    AsgnEnd := 130000T;  // 4 h assigned
                 end;
             4:  // Thursday: full day requested, slightly under-assigned
                 begin
-                    ReqStart := 080000T; ReqEnd := 170000T;   // 9 h requested
-                    AsgnStart := 080000T; AsgnEnd := 160000T;  // 8 h assigned
+                    ReqStart := 080000T;
+                    ReqEnd := 170000T;   // 9 h requested
+                    AsgnStart := 080000T;
+                    AsgnEnd := 160000T;  // 8 h assigned
                 end;
             5:  // Friday: short day
                 begin
-                    ReqStart := 080000T; ReqEnd := 130000T;   // 5 h
-                    AsgnStart := 080000T; AsgnEnd := 130000T;
+                    ReqStart := 080000T;
+                    ReqEnd := 130000T;   // 5 h
+                    AsgnStart := 080000T;
+                    AsgnEnd := 130000T;
                 end;
             else begin
-                    ReqStart := 080000T; ReqEnd := 160000T;
-                    AsgnStart := 080000T; AsgnEnd := 160000T;
-                end;
+                ReqStart := 080000T;
+                ReqEnd := 160000T;
+                AsgnStart := 080000T;
+                AsgnEnd := 160000T;
+            end;
         end;
     end;
 
@@ -1569,14 +1611,22 @@ codeunit 50602 "Create Demo Data"
     local procedure IsWorkingDay(DT: Date): Boolean
     begin
         case Date2DWY(DT, 1) of
-            1: exit(gWorkHoursTemplate.Monday <> 0);
-            2: exit(gWorkHoursTemplate.Tuesday <> 0);
-            3: exit(gWorkHoursTemplate.Wednesday <> 0);
-            4: exit(gWorkHoursTemplate.Thursday <> 0);
-            5: exit(gWorkHoursTemplate.Friday <> 0);
-            6: exit(gWorkHoursTemplate.Saturday <> 0);
-            7: exit(gWorkHoursTemplate.Sunday <> 0);
-            else exit(false);
+            1:
+                exit(gWorkHoursTemplate.Monday <> 0);
+            2:
+                exit(gWorkHoursTemplate.Tuesday <> 0);
+            3:
+                exit(gWorkHoursTemplate.Wednesday <> 0);
+            4:
+                exit(gWorkHoursTemplate.Thursday <> 0);
+            5:
+                exit(gWorkHoursTemplate.Friday <> 0);
+            6:
+                exit(gWorkHoursTemplate.Saturday <> 0);
+            7:
+                exit(gWorkHoursTemplate.Sunday <> 0);
+            else
+                exit(false);
         end;
     end;
 

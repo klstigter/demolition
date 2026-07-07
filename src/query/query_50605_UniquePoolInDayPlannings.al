@@ -13,7 +13,7 @@ query 50605 "Unique Pool in Day Plannings"
             filter(Resource_Group_No_Filter; "Resource Group No.")
             {
             }
-            column(PoolResNo; "Pool Resource No.")
+            column(PoolResNo; "Assigned Pool Resource No.")
             {
             }
             column(Count_)
