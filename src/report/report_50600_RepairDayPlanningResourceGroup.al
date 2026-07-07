@@ -2,7 +2,8 @@ report 50600 "RepairData"
 {
     Permissions = tabledata "Day Planning" = rimd,
                   tabledata Resource = rimd,
-                  tabledata "Res. Capacity Entry" = rimd;
+                  tabledata "Res. Capacity Entry" = rimd,
+                  tabledata "Work-Hour Template" = r;
     UsageCategory = Administration;
     ApplicationArea = All;
     Caption = 'Repair Data';
@@ -20,6 +21,9 @@ report 50600 "RepairData"
         //<< create code here
         n := RepairDayPlanningPoolResourceNo();
         n += RepairForemanTree();
+        n += RepairResourceMandatorySchedulling();
+        n += RepairDayPlanningVendorNo();
+        n += RepairDemoResourceCapacity();
         //>>
         Message('Finished. %1 record(s) repaired.', n);
     end;
@@ -120,6 +124,136 @@ report 50600 "RepairData"
                 n += 1;
             until DayPlanning.Next() = 0;
         exit(n);
+    end;
+
+    local procedure RepairResourceMandatorySchedulling(): Integer
+    var
+        Resource: Record Resource;
+        NewValue: Boolean;
+        n: Integer;
+    begin
+        // Adapt existing resource data (created before this randomization existed) to the same
+        // ~60% true / 40% false split demo data creation now uses, for resources that qualify
+        // (not Pool, not External).
+        Resource.SetRange("Is Pool", false);
+        Resource.SetRange("Is External", false);
+        if Resource.FindSet(true) then
+            repeat
+                NewValue := (Random(100) <= 60);
+                if Resource."Mandatory Schedulling" <> NewValue then begin
+                    Resource."Mandatory Schedulling" := NewValue;
+                    Resource.Modify();
+                    n += 1;
+                end;
+            until Resource.Next() = 0;
+        exit(n);
+    end;
+
+    local procedure RepairDayPlanningVendorNo(): Integer
+    var
+        DayPlanning: Record "Day Planning";
+        Resource: Record Resource;
+        ResourceNo: Code[20];
+        NewVendorNo: Code[20];
+        n: Integer;
+    begin
+        // Assigned Resource No. is more dominant than Requested Resource No.
+        if DayPlanning.FindSet(true) then
+            repeat
+                if DayPlanning."Assigned Resource No." <> '' then
+                    ResourceNo := DayPlanning."Assigned Resource No."
+                else
+                    ResourceNo := DayPlanning."Requested Resource No.";
+
+                if ResourceNo = '' then
+                    NewVendorNo := ''
+                else
+                    if Resource.Get(ResourceNo) then
+                        NewVendorNo := Resource."Vendor No."
+                    else
+                        NewVendorNo := '';
+
+                if DayPlanning."Vendor No." <> NewVendorNo then begin
+                    DayPlanning."Vendor No." := NewVendorNo;
+                    DayPlanning.Modify();
+                    n += 1;
+                end;
+            until DayPlanning.Next() = 0;
+        exit(n);
+    end;
+
+    local procedure RepairDemoResourceCapacity(): Integer
+    var
+        Res: Record Resource;
+        ResCap: Record "Res. Capacity Entry";
+        WorkHourTemplate: Record "Work-Hour Template";
+        StartDate: Date;
+        EndDate: Date;
+        DT: Date;
+        EntryNo: Integer;
+        n: Integer;
+    begin
+        // Pool leaders (DRP*) and members (DRM*) are the resources actually used for Day
+        // Planning assignment; backfill capacity for any of them still missing it, using the
+        // same date window demo data creation uses (start of last week through +110 weeks).
+        StartDate := CalcDate('<WD1-1W>', Today());
+        EndDate := CalcDate('+110W', StartDate);
+
+        Res.SetFilter("No.", 'DRP*|DRM*');
+        if Res.FindSet() then
+            repeat
+                if not WorkHourTemplate.Get(Res."Work Hour Template") then
+                    Clear(WorkHourTemplate);
+
+                ResCap.Reset();
+                if ResCap.FindLast() then
+                    EntryNo := ResCap."Entry No." + 1
+                else
+                    EntryNo := 1;
+
+                for DT := StartDate to EndDate do
+                    if IsWorkingDay(DT, WorkHourTemplate) then begin
+                        Res.SetRange("Date Filter", DT);
+                        Res.CalcFields(Capacity);
+                        if Res.Capacity = 0 then begin
+                            ResCap.Init();
+                            ResCap."Entry No." := EntryNo;
+                            ResCap."Resource No." := Res."No.";
+                            ResCap.Date := DT;
+                            ResCap.Capacity := 8;
+                            ResCap."Resource Group No." := Res."Resource Group No.";
+                            ResCap."Start Time" := 080000T;
+                            ResCap."End Time" := 160000T;
+                            ResCap.Insert();
+                            EntryNo += 1;
+                            n += 1;
+                        end;
+                    end;
+                Commit();
+            until Res.Next() = 0;
+        exit(n);
+    end;
+
+    local procedure IsWorkingDay(DT: Date; var WorkHourTemplate: Record "Work-Hour Template"): Boolean
+    begin
+        case Date2DWY(DT, 1) of
+            1:
+                exit(WorkHourTemplate.Monday <> 0);
+            2:
+                exit(WorkHourTemplate.Tuesday <> 0);
+            3:
+                exit(WorkHourTemplate.Wednesday <> 0);
+            4:
+                exit(WorkHourTemplate.Thursday <> 0);
+            5:
+                exit(WorkHourTemplate.Friday <> 0);
+            6:
+                exit(WorkHourTemplate.Saturday <> 0);
+            7:
+                exit(WorkHourTemplate.Sunday <> 0);
+            else
+                exit(false);
+        end;
     end;
 
     var
