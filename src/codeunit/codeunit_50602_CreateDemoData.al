@@ -15,6 +15,8 @@ codeunit 50602 "Create Demo Data"
         CreateDemoResources();
         LoadResources();
         CreateCapacityAndDayPlanning();
+        CreateGanttChartSetupDefaults();
+        CreateDailyOptimizerSetupDefault();
         Message('Demo data created successfully. %1 records logged.', gLogEntryNo);
     end;
 
@@ -59,6 +61,7 @@ codeunit 50602 "Create Demo Data"
         gStartDate := CalcDate('<WD1-1W>', Today());
         // Covers JOB002 (start+1W+52W) and the 170 bulk jobs (max start offset +9W, 98W span) + buffer
         gEndDate := CalcDate('+110W', gStartDate);
+        EnsureWorkHourTemplate('BASIS');
         gWorkHoursTemplate.Get('BASIS');
         LogEntry.Reset();
         if LogEntry.FindLast() then
@@ -70,9 +73,16 @@ codeunit 50602 "Create Demo Data"
     local procedure DeleteDemoData()
     var
         LogEntry: Record "Demo Data Log Entry";
+        ResCap: Record "Res. Capacity Entry";
         RecRef: RecordRef;
         DeletedCount: Integer;
     begin
+        // Demo resource capacity (DRP*/DRM*) is not individually logged — see
+        // CreateDemoResourceCapacity — so it's bulk-deleted here by No. prefix instead of via
+        // the per-record log loop below, which would otherwise have to process millions of rows.
+        ResCap.SetFilter("Resource No.", 'DRP*|DRM*');
+        ResCap.DeleteAll(false);
+
         // Only delete records that were logged by a previous demo data run.
         // User-created records are never touched.
         LogEntry.Reset();
@@ -92,6 +102,142 @@ codeunit 50602 "Create Demo Data"
         gLogEntryNo := 0;
     end;
 
+    local procedure CreateGanttChartSetupDefaults()
+    var
+        UserRec: Record User;
+        GanttSetup: Record "Gantt Chart Setup";
+    begin
+        // Backfill the standard Gantt Settings defaults for every user that doesn't have their
+        // own record yet. This is a one-time per-user seed, not disposable demo data, so it is
+        // intentionally not logged via LogRecord/DeleteDemoData — re-running demo data creation
+        // must never wipe out a user's own customized Gantt Settings.
+        if UserRec.FindSet() then
+            repeat
+                if not GanttSetup.Get(UserRec."User Name") then begin
+                    GanttSetup.Init();
+                    GanttSetup."User ID" := UserRec."User Name";
+                    GanttSetup."Date Range Type" := GanttSetup."Date Range Type"::Calculated;
+                    Evaluate(GanttSetup."From Data Formula", 'WD1-1W');
+                    Evaluate(GanttSetup."To Data Formula", 'WD7+4W');
+                    GanttSetup."Load Job Tasks" := true;
+                    GanttSetup."Load Resources" := true;
+                    GanttSetup."Load Day Plannings" := true;
+                    GanttSetup."Show Start Date" := false;
+                    GanttSetup."Show Duration" := false;
+                    GanttSetup."Show Task Type" := false;
+                    GanttSetup.Insert();
+                end;
+            until UserRec.Next() = 0;
+    end;
+
+    local procedure CreateDailyOptimizerSetupDefault()
+    var
+        Setup: Record "Daily Optimizer Setup";
+    begin
+        // Global app setting, not disposable demo data: only seed the singleton record if it
+        // doesn't exist yet, and never touch it again afterwards (not logged via LogRecord/
+        // DeleteDemoData, same reasoning as CreateGanttChartSetupDefaults).
+        if Setup.Get() then
+            exit;
+
+        EnsureBaseCalendar('BASIS');
+        EnsureWorkHourTemplate('BASIS');
+        EnsureSkillCode('ELEKTR', 'Electrician');
+        EnsureNoSeries('OI', 'Order Intake');
+        EnsureNoSeries('WO', 'Work Order');
+
+        Setup.Init();
+        Setup."Base Calendar" := 'BASIS';
+        Setup."Work hour Template" := 'BASIS';
+        Setup."Default Skill" := 'ELEKTR';
+        Setup."Order Intake Nos" := 'OI';
+        Setup."Work Order Nos" := 'WO';
+        Setup.Insert();
+    end;
+
+    local procedure EnsureBaseCalendar(CalendarCode: Code[10])
+    var
+        BaseCalendar: Record "Base Calendar";
+    begin
+        if BaseCalendar.Get(CalendarCode) then
+            exit;
+        BaseCalendar.Init();
+        BaseCalendar.Code := CalendarCode;
+        BaseCalendar.Name := CalendarCode;
+        BaseCalendar.Insert();
+    end;
+
+    local procedure EnsureWorkHourTemplate(TemplateCode: Code[10])
+    var
+        WorkHourTemplate: Record "Work-Hour Template";
+    begin
+        if WorkHourTemplate.Get(TemplateCode) then
+            exit;
+        WorkHourTemplate.Init();
+        WorkHourTemplate.Code := TemplateCode;
+        WorkHourTemplate.Description := 'Standard 5-day work week';
+        WorkHourTemplate.Monday := 8;
+        WorkHourTemplate.Tuesday := 8;
+        WorkHourTemplate.Wednesday := 8;
+        WorkHourTemplate.Thursday := 8;
+        WorkHourTemplate.Friday := 8;
+        WorkHourTemplate.Saturday := 0;
+        WorkHourTemplate.Sunday := 0;
+        WorkHourTemplate.Insert();
+    end;
+
+    local procedure EnsureSkillCode(SkillCodeNo: Code[10]; Desc: Text[100])
+    var
+        SkillCode: Record "Skill Code";
+    begin
+        if SkillCode.Get(SkillCodeNo) then
+            exit;
+        SkillCode.Init();
+        SkillCode.Code := SkillCodeNo;
+        SkillCode.Description := Desc;
+        SkillCode.Insert();
+    end;
+
+    local procedure EnsureNoSeries(SeriesCode: Code[20]; Desc: Text[100])
+    var
+        NoSeries: Record "No. Series";
+    begin
+        if NoSeries.Get(SeriesCode) then
+            exit;
+        NoSeries.Init();
+        NoSeries.Code := SeriesCode;
+        NoSeries.Description := Desc;
+        NoSeries."Manual Nos." := true;
+        NoSeries.Insert();
+    end;
+
+    local procedure EnsureResourceGroups()
+    var
+        ResourceGroup: Record "Resource Group";
+    begin
+        // A fresh sandbox with zero resource groups blocks all demo resource generation (every
+        // resource needs a Resource Group No.), so seed a small default set if none exist at all.
+        if not ResourceGroup.IsEmpty() then
+            exit;
+        EnsureResourceGroup('MECH', 'Mechanical');
+        EnsureResourceGroup('ELEKTR', 'Electrical');
+        EnsureResourceGroup('CIVIL', 'Civil & Construction');
+        EnsureResourceGroup('LOGISTIC', 'Logistics');
+        EnsureResourceGroup('GENERAL', 'General Labor');
+    end;
+
+    local procedure EnsureResourceGroup(GroupNo: Code[20]; Desc: Text[50])
+    var
+        ResourceGroup: Record "Resource Group";
+    begin
+        if ResourceGroup.Get(GroupNo) then
+            exit;
+        ResourceGroup.Init();
+        ResourceGroup."No." := GroupNo;
+        ResourceGroup.Name := Desc;
+        ResourceGroup.Insert();
+    end;
+
     // ──────────────────────────────────────────────────────────────────────────
     // Jobs
     // ──────────────────────────────────────────────────────────────────────────
@@ -101,10 +247,34 @@ codeunit 50602 "Create Demo Data"
         Job: Record Job;
         Customer: Record Customer;
     begin
-        Customer.FindFirst();
+        if not Customer.FindFirst() then
+            EnsureCustomer(Customer);
         UpsertJob(Job, 'JOB001', 'Radome Repair Project', Customer."No.");
         UpsertJob(Job, 'JOB002', 'ERP System Implementation', Customer."No.");
         UpsertJob(Job, 'JOB003', 'Facility Infrastructure Upgrade', Customer."No.");
+    end;
+
+    local procedure EnsureCustomer(var Customer: Record Customer)
+    var
+        GenBusPostingGroup: Record "Gen. Business Posting Group";
+        VATBusPostingGroup: Record "VAT Business Posting Group";
+        CustPostingGroup: Record "Customer Posting Group";
+    begin
+        // No customers exist yet: create one minimal demo customer. Posting group fields are
+        // only filled from whatever setup already exists in the system (first record found) —
+        // we don't fabricate Gen. Bus./VAT Bus./Customer Posting Group or G/L Accounts from
+        // scratch, since those cascade into full financial setup that's out of scope here.
+        Customer.Init();
+        Customer.Validate("No.", 'DEMOCUST');
+        Customer.Validate(Name, 'Demo Customer');
+        if GenBusPostingGroup.FindFirst() then
+            Customer.Validate("Gen. Bus. Posting Group", GenBusPostingGroup.Code);
+        if VATBusPostingGroup.FindFirst() then
+            Customer.Validate("VAT Bus. Posting Group", VATBusPostingGroup.Code);
+        if CustPostingGroup.FindFirst() then
+            Customer.Validate("Customer Posting Group", CustPostingGroup.Code);
+        Customer.Insert(true);
+        LogRecord(Database::Customer, Customer.RecordId(), Customer."No." + ' ' + Customer.Name);
     end;
 
     local procedure UpsertJob(var Job: Record Job; No: Code[20]; Desc: Text[100]; CustNo: Code[20])
@@ -513,6 +683,7 @@ codeunit 50602 "Create Demo Data"
         NoResGroupLbl: Label 'No Resource Groups found. Skipping demo resource generation — create at least one resource group first.';
         ProgressLbl: Label 'Creating demo resources...\n#1########## of #2##########';
     begin
+        EnsureResourceGroups();
         LoadReferenceData();
         if gVendorNos.Count() = 0 then begin
             Message(NoVendorsLbl);
@@ -755,6 +926,9 @@ codeunit 50602 "Create Demo Data"
         Res."VAT Prod. Posting Group" := GetNextVATProdPostingGroup();
         Res."Resource Group No." := GetNextResourceGroup();
         Res."Work Hour Template" := gWorkHoursTemplate.Code;
+        if (not Res."Is Pool") and (not Res."Is External") then
+            // ~60% Mandatory Schedulling = true, ~40% = false
+            Res."Mandatory Schedulling" := (Random(100) <= 60);
     end;
 
     local procedure AssignResourceSkill(ResNo: Code[20])
@@ -922,6 +1096,8 @@ codeunit 50602 "Create Demo Data"
         for i := 1 to gResCount do
             CreateResourceCapacity(gRes[i]);
 
+        CreateDemoResourceCapacity();
+
         // Each job gets a dedicated leader (odd slot) and member (even slot);
         // wrap-around ensures this works with as few as 1 resource.
         BuildDayPlanningsForJob('JOB001', GetRes(1), GetRes(2));
@@ -1014,11 +1190,13 @@ codeunit 50602 "Create Demo Data"
             EntryNo := ResCap."Entry No." + 1
         else
             EntryNo := 1;
-        for DT := gStartDate to gEndDate do begin
-            if not IsWorkingDay(DT) then continue;
-            Res.SetRange("Date Filter", DT);
-            Res.CalcFields(Capacity);
-            if Res.Capacity = 0 then begin
+        // Direct insert, no CalcFields(Capacity) check: this is only called for the small
+        // gRes[1..6] set, so the cost of that check was never the bottleneck. Still logged via
+        // LogRecord so DeleteDemoData can clean these rows up on the next run — unlike the
+        // ~34,000-resource bulk path (CreateDemoResourceCapacity), these resources aren't
+        // matched by a No. prefix, so there's no other way to safely remove them on a rerun.
+        for DT := gStartDate to gEndDate do
+            if IsWorkingDay(DT) then begin
                 ResCap.Init();
                 ResCap."Entry No." := EntryNo;
                 ResCap."Resource No." := ResNo;
@@ -1031,7 +1209,67 @@ codeunit 50602 "Create Demo Data"
                 LogRecord(Database::"Res. Capacity Entry", ResCap.RecordId(), ResNo + ' ' + Format(DT));
                 EntryNo += 1;
             end;
-        end;
+    end;
+
+    local procedure CreateDemoResourceCapacity()
+    var
+        Res: Record Resource;
+        ResCap: Record "Res. Capacity Entry";
+        Window: Dialog;
+        ProgressLbl: Label 'Creating demo resource capacity...\n#1########## of #2##########';
+        DT: Date;
+        EntryNo: Integer;
+        Idx: Integer;
+        Total: Integer;
+    begin
+        // Pool leaders (DRP*) and members (DRM*) are the resources actually used for Day
+        // Planning assignment, so they need capacity like any other planned resource. External
+        // resources (DRE*) are vendor-linked and are not capacity-planned the same way.
+        Res.SetFilter("No.", 'DRP*|DRM*');
+        Total := Res.Count();
+        if Total = 0 then exit;
+
+        // Unlike CreateResourceCapacity (shared with the small pre-existing gRes[1..6] set),
+        // these resources were all just created earlier in this same run, so they are
+        // guaranteed to have zero existing capacity. Skip the per-day CalcFields(Capacity)
+        // check and per-row LogRecord call — at ~34,000 resources x ~550 working days, both
+        // turn into tens of millions of extra queries/inserts and make this step extremely
+        // slow. Cleanup is handled in bulk by DeleteDemoData via the DRP/DRM No. prefix instead.
+        ResCap.Reset();
+        if ResCap.FindLast() then
+            EntryNo := ResCap."Entry No." + 1
+        else
+            EntryNo := 1;
+
+        if GuiAllowed() then
+            Window.Open(ProgressLbl);
+        if Res.FindSet() then
+            repeat
+                Idx += 1;
+                for DT := gStartDate to gEndDate do
+                    if IsWorkingDay(DT) then begin
+                        ResCap.Init();
+                        ResCap."Entry No." := EntryNo;
+                        ResCap."Resource No." := Res."No.";
+                        ResCap.Date := DT;
+                        ResCap.Capacity := 8;
+                        ResCap."Resource Group No." := Res."Resource Group No.";
+                        ResCap."Start Time" := 080000T;
+                        ResCap."End Time" := 160000T;
+                        ResCap.Insert();
+                        EntryNo += 1;
+                    end;
+                if GuiAllowed() then begin
+                    Window.Update(1, Idx);
+                    Window.Update(2, Total);
+                end;
+                // Each resource can add up to ~550 capacity rows (one per working day across the
+                // ~110-week demo window), so commit after every resource to avoid one huge
+                // multi-million-row transaction across ~34,000 resources.
+                Commit();
+            until Res.Next() = 0;
+        if GuiAllowed() then
+            Window.Close();
     end;
 
     local procedure BuildDayPlanningsForJob(JobNo: Code[20]; LeaderRes: Code[20]; MemberRes: Code[20])
