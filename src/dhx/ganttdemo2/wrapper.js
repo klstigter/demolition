@@ -544,7 +544,10 @@ window.BOOT = function() {
     gantt.config.columns = [
       {
         name: "text", tree: true, resize: false, width: 250, editor: textEditor,
-        label: '<span class="gantt-collapseall-icon" title="Collapse All"></span><span class="gantt-collapseall-label">' +
+        label: '<span class="gantt-collapseall-icon" title="Collapse All">' +
+          '<svg class="gca-svg gca-collapse" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M10 14l-7 7"/></svg>' +
+          '<svg class="gca-svg gca-expand" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>' +
+          '</span><span class="gantt-collapseall-label">' +
           (gantt.locale.labels.column_text || "Task name") + '</span>'
       },
       { name: "progress", label: "%", align: "center", resize: false, width: 60,
