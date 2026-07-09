@@ -25,6 +25,7 @@
     "allowDownloadingSource": false,
     "includeSourceInSymbolFile": true
   },
+  "resourceFolders": ["src/data"],
   "runtime": "15.0",
   "features": [
     "NoImplicitWith"

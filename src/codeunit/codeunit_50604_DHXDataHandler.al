@@ -722,7 +722,6 @@ codeunit 50604 "DHX Data Handler"
         TempPoolRes: record "Aging Band Buffer" temporary;
         ResourceTemp: Record Resource temporary;
         TempPool: record Resource temporary;
-        DateRec: Record Date;
         DayPlanning: record "Day Planning";
         Resource: Record Resource;
         Job: Record Job;
@@ -750,111 +749,113 @@ codeunit 50604 "DHX Data Handler"
         WeekTemp.Reset();
         WeekTemp.DeleteAll();
 
-        DateRec.SetRange("Period Type", DateRec."Period Type"::Date);
-        DateRec.SetRange("Period Start", StartDate, EndDate);
-        if DateRec.findset then
-            Repeat
-                //Add Event of Capacity                
-                ResCapQry.SetRange(Date_filter, DateRec."Period Start"); // -> change with query to sum total capacity per day per resource
-                if ResCapQry.Open() then begin
-                    while ResCapQry.Read() do begin
-                        ResCap.Get(ResCapQry.Entry_No);
-                        GetStartEndTxt(ResCap, ResCapQry.Capacity, StartDateTxt, EndDateTxt);
-                        Clear(PlanningObject);
-                        section_id := ResCap."Resource Group No." + '|' + ResCap."Resource No.";
-                        PlanningObject.Add('id', Format(ResCap."Entry No."));
-                        PlanningObject.Add('start_date', StartDateTxt);
-                        PlanningObject.Add('end_date', EndDateTxt);
-                        PlanningObject.Add('text', 'capacity');
-                        if WithDayPlanning then begin
-                            if not Resource.Get(ResCap."Resource No.") then
-                                Clear(Resource);
-                            New_section_id := GetPoolNoFromDayPlanning(StartDate, EndDate, ResCap."Resource No."); //move into seciton id with DayPlanning source no. and posibility has a vendor
-                            if New_section_id = '' then begin
-                                if Resource."Pool Resource No." = '' then
-                                    section_id := section_id + '|' + Resource."Pool Resource No." + '|Pool'
-                                else
-                                    section_id := section_id + '|' + Resource."Pool Resource No." + '|Resource';
-                            end else begin
-                                if Resource."Pool Resource No." = '' then
-                                    section_id := New_section_id + '|Pool'
-                                else
-                                    section_id := New_section_id + '|Resource';
-                            end;
-                        end else begin
-                            if not Resource.Get(ResCap."Resource No.") then
-                                Clear(Resource);
-                            section_id := section_id + '|' + Resource."Pool Resource No.";
-                        end;
-                        PlanningObject.Add('section_id', section_id);
-                        PlanningObject.Add('type', 'capacity');
-                        PlanningObject.Add('color', '#D9F0F2');
-
-                        PlanningArray.Add(PlanningObject);
-
-                        if AnchorDate = 0D then
-                            CountToWeekNumber(ResCap."Date", WeekTemp);
-                    end;
-                    ResCapQry.Close();
-                end;
-
-                //Add Event of DayPlanning
+        //Add Events of Capacity for the whole period in a single query pass (was: one query open/close per calendar day).
+        ResCapQry.SetRange(Date_filter, StartDate, EndDate);
+        if ResCapQry.Open() then begin
+            while ResCapQry.Read() do begin
+                ResCap.Get(ResCapQry.Entry_No);
+                GetStartEndTxt(ResCap, ResCapQry.Capacity, StartDateTxt, EndDateTxt);
+                Clear(PlanningObject);
+                section_id := ResCap."Resource Group No." + '|' + ResCap."Resource No.";
+                PlanningObject.Add('id', Format(ResCap."Entry No."));
+                PlanningObject.Add('start_date', StartDateTxt);
+                PlanningObject.Add('end_date', EndDateTxt);
+                PlanningObject.Add('text', 'capacity');
+                // Day Planning path disabled for now — Capacity-only page 50600 always passes WithDayPlanning = false. Restore by uncommenting + re-enabling the page's Show/Hide Day Planning actions.
+                /*
                 if WithDayPlanning then begin
-                    DayPlanning.setrange("Task Date", DateRec."Period Start");
-                    if DayPlanning.findset then
-                        repeat
-                            if not Job.Get(DayPlanning."Job No.") then
-                                Clear(Job);
-                            if not Task.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
-                                Clear(Task);
-                            ResNo := DayPlanning."Assigned Resource No.";
-                            if not Resource.Get(ResNo) then
-                                Clear(Resource);
-                            Clear(PlanningObject);
-                            PlanningObject.Add('id', DayPlanning."Job No." + '|' +
-                                                    DayPlanning."Job Task No." + '|' +
-                                                    Format(DayPlanning."Task Date") + '|' +
-                                                    Format(DayPlanning."Day Line No."));
-                            GetStartEndTxt(DayPlanning, StartDateTxt, EndDateTxt);
-                            PlanningObject.Add('start_date', StartDateTxt);
-                            PlanningObject.Add('end_date', EndDateTxt);
-                            if DayPlanning.Description <> '' then
-                                PlanningObject.Add('text', DayPlanning.Description)
-                            else
-                                if DayPlanning."Assigned Resource No." <> '' then
-                                    PlanningObject.Add('text', Resource.Name)
-                                else
-                                    PlanningObject.Add('text', 'vacant');
-
-                            section_id := DayPlanning."Resource Group No." + '|' + ResNo + '|' + DayPlanning."Assigned Pool Resource No.";
-                            if Resource."Pool Resource No." = '' then begin
-                                if DayPlanning."Assigned Pool Resource No." = '' then
-                                    section_id := section_id + '|Pool'
-                                else
-                                    section_id := section_id + '|Resource'
-                            end else
-                                section_id := section_id + '|Resource';
-                            PlanningObject.Add('section_id', section_id);
-
-                            if not PoolRes.Get(DayPlanning."Assigned Pool Resource No.") then
-                                Clear(PoolRes);
-                            PlanningObject.Add('details', StrSubstNo(DetailsLabel, PoolRes."No.", PoolRes.Name
-                                                                                     , DayPlanning."Job No.", Job.Description
-                                                                                     , DayPlanning."Job Task No.", Task.Description));
-                            if DayPlanning."Assigned Resource No." = '' then begin
-                                PlanningObject.Add('color', '#3367D1'); //Blue BC Selection
-                                PlanningObject.Add('type', 'DayPlanning_0');
-                            end else begin
-                                PlanningObject.Add('color', '#E9E9E9'); //grey BC
-                                PlanningObject.Add('type', 'DayPlanning_1');
-                            end;
-
-
-                            PlanningArray.Add(PlanningObject);
-                        until DayPlanning.next = 0;
+                    if not Resource.Get(ResCap."Resource No.") then
+                        Clear(Resource);
+                    New_section_id := GetPoolNoFromDayPlanning(StartDate, EndDate, ResCap."Resource No."); //move into seciton id with DayPlanning source no. and posibility has a vendor
+                    if New_section_id = '' then begin
+                        if Resource."Pool Resource No." = '' then
+                            section_id := section_id + '|' + Resource."Pool Resource No." + '|Pool'
+                        else
+                            section_id := section_id + '|' + Resource."Pool Resource No." + '|Resource';
+                    end else begin
+                        if Resource."Pool Resource No." = '' then
+                            section_id := New_section_id + '|Pool'
+                        else
+                            section_id := New_section_id + '|Resource';
+                    end;
+                end else begin
+                */
+                if not Resource.Get(ResCap."Resource No.") then
+                    Clear(Resource);
+                section_id := section_id + '|' + Resource."Pool Resource No.";
+                /*
                 end;
+                */
+                PlanningObject.Add('section_id', section_id);
+                PlanningObject.Add('type', 'capacity');
+                PlanningObject.Add('color', '#D9F0F2');
 
-            until DateRec.Next() = 0;
+                PlanningArray.Add(PlanningObject);
+
+                if AnchorDate = 0D then
+                    CountToWeekNumber(ResCap."Date", WeekTemp);
+            end;
+            ResCapQry.Close();
+        end;
+
+        // Day Planning path disabled for now — Capacity-only page 50600 always passes WithDayPlanning = false. Restore by uncommenting + re-enabling the page's Show/Hide Day Planning actions.
+        /*
+        //Add Events of DayPlanning for the whole period in a single pass
+        if WithDayPlanning then begin
+            DayPlanning.SetRange("Task Date", StartDate, EndDate);
+            if DayPlanning.findset then
+                repeat
+                    if not Job.Get(DayPlanning."Job No.") then
+                        Clear(Job);
+                    if not Task.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
+                        Clear(Task);
+                    ResNo := DayPlanning."Assigned Resource No.";
+                    if not Resource.Get(ResNo) then
+                        Clear(Resource);
+                    Clear(PlanningObject);
+                    PlanningObject.Add('id', DayPlanning."Job No." + '|' +
+                                            DayPlanning."Job Task No." + '|' +
+                                            Format(DayPlanning."Task Date") + '|' +
+                                            Format(DayPlanning."Day Line No."));
+                    GetStartEndTxt(DayPlanning, StartDateTxt, EndDateTxt);
+                    PlanningObject.Add('start_date', StartDateTxt);
+                    PlanningObject.Add('end_date', EndDateTxt);
+                    if DayPlanning.Description <> '' then
+                        PlanningObject.Add('text', DayPlanning.Description)
+                    else
+                        if DayPlanning."Assigned Resource No." <> '' then
+                            PlanningObject.Add('text', Resource.Name)
+                        else
+                            PlanningObject.Add('text', 'vacant');
+
+                    section_id := DayPlanning."Resource Group No." + '|' + ResNo + '|' + DayPlanning."Assigned Pool Resource No.";
+                    if Resource."Pool Resource No." = '' then begin
+                        if DayPlanning."Assigned Pool Resource No." = '' then
+                            section_id := section_id + '|Pool'
+                        else
+                            section_id := section_id + '|Resource'
+                    end else
+                        section_id := section_id + '|Resource';
+                    PlanningObject.Add('section_id', section_id);
+
+                    if not PoolRes.Get(DayPlanning."Assigned Pool Resource No.") then
+                        Clear(PoolRes);
+                    PlanningObject.Add('details', StrSubstNo(DetailsLabel, PoolRes."No.", PoolRes.Name
+                                                                             , DayPlanning."Job No.", Job.Description
+                                                                             , DayPlanning."Job Task No.", Task.Description));
+                    if DayPlanning."Assigned Resource No." = '' then begin
+                        PlanningObject.Add('color', '#3367D1'); //Blue BC Selection
+                        PlanningObject.Add('type', 'DayPlanning_0');
+                    end else begin
+                        PlanningObject.Add('color', '#E9E9E9'); //grey BC
+                        PlanningObject.Add('type', 'DayPlanning_1');
+                    end;
+
+
+                    PlanningArray.Add(PlanningObject);
+                until DayPlanning.next = 0;
+        end;
+        */
 
         if AnchorDate = 0D then begin
             WeekTemp.Reset();
@@ -883,6 +884,8 @@ codeunit 50604 "DHX Data Handler"
                 GroupResObject.Add('open', true);
                 Clear(GroupChildrenArray);
 
+                // Day Planning path disabled for now — Capacity-only page 50600 always passes WithDayPlanning = false. Restore by uncommenting + re-enabling the page's Show/Hide Day Planning actions.
+                /*
                 if WithDayPlanning then begin
                     // 2. Internal / Pool Resource
                     GetUniquePoolFromDayPlannings(ResourceTemp, TempPool, TempResGroup."No.", StartDate, EndDate);
@@ -922,12 +925,29 @@ codeunit 50604 "DHX Data Handler"
                     GroupResObject.Add('children', GroupChildrenArray);
                     DataArray.Add(GroupResObject);
                 end else begin
-                    // Vendor and Resource
-                    GetUniqueResFromCapacity_Pool(ResourceTemp, TempPool, TempResGroup."No.", StartDate, EndDate);
-                    TempPool.Setcurrentkey("Pool Resource No.", "No.");
-                    if TempPool.FindSet() then
-                        repeat
-                            // 2. Vendor
+                */
+                // Vendor and Resource
+                GetUniqueResFromCapacity_Pool(ResourceTemp, TempPool, TempResGroup."No.", StartDate, EndDate);
+                TempPool.Setcurrentkey("Pool Resource No.", "No.");
+                if TempPool.FindSet() then
+                    repeat
+                        // 3. Resource — build the leaf list first so we know whether this Pool/Vendor
+                        // node has anything to show before adding it (empty nodes are skipped entirely).
+                        Clear(InternalExternalChildrenArray);
+                        ResourceTemp.SetRange("Pool Resource No.", TempPool."No.");
+                        if ResourceTemp.FindSet() then
+                            repeat
+                                if not Resource.Get(ResourceTemp."No.") then
+                                    Clear(Resource);
+                                Clear(ResourceObject);
+                                ResourceObject.Add('key', TempResGroup."No." + '|' + ResourceTemp."No." + '|' + Resource."Pool Resource No.");
+                                ResourceObject.Add('label', ResourceTemp.Name);
+                                ResourceObject.Add('category', 'Resource');
+                                InternalExternalChildrenArray.Add(ResourceObject);
+                            until ResourceTemp.Next() = 0;
+
+                        if InternalExternalChildrenArray.Count > 0 then begin
+                            // 2. Vendor/Pool node
                             Clear(InternalExternalObject);
                             //InternalExternalObject.Add('key', TempResGroup."No." + '||' + TempPool."No." + '|Pool');
                             if TempPool."Pool Resource No." = '' then begin
@@ -939,28 +959,19 @@ codeunit 50604 "DHX Data Handler"
                             end;
                             InternalExternalObject.Add('label', TempPool.Name);
                             InternalExternalObject.Add('open', true);
+                            InternalExternalObject.Add('children', InternalExternalChildrenArray);
                             GroupChildrenArray.Add(InternalExternalObject);
-                            Clear(InternalExternalChildrenArray);
+                        end;
 
-                            // 3. Resource
-                            ResourceTemp.SetRange("Pool Resource No.", TempPool."No.");
-                            if ResourceTemp.FindSet() then begin
-                                repeat
-                                    if not Resource.Get(ResourceTemp."No.") then
-                                        Clear(Resource);
-                                    Clear(ResourceObject);
-                                    ResourceObject.Add('key', TempResGroup."No." + '|' + ResourceTemp."No." + '|' + Resource."Pool Resource No.");
-                                    ResourceObject.Add('label', ResourceTemp.Name);
-                                    ResourceObject.Add('category', 'Resource');
-                                    InternalExternalChildrenArray.Add(ResourceObject);
-                                until ResourceTemp.Next() = 0;
-                                InternalExternalObject.Add('children', InternalExternalChildrenArray);
-                            end;
+                    until TempPool.Next() = 0;
 
-                        until TempPool.Next() = 0;
+                if GroupChildrenArray.Count > 0 then begin
                     GroupResObject.Add('children', GroupChildrenArray);
                     DataArray.Add(GroupResObject);
                 end;
+            /*
+            end;
+            */
             until TempResGroup.Next() = 0;
         end;
 
@@ -1061,6 +1072,7 @@ codeunit 50604 "DHX Data Handler"
                                    var EndDateTxt: Text)
     var
         tm: Time;
+        endTm: Time;
         StartDateTime: DateTime;
         EndDateTime: DateTime;
         CapacityDuration: Duration;
@@ -1070,20 +1082,37 @@ codeunit 50604 "DHX Data Handler"
         if ResCap."Date" = 0D then
             exit;
 
+        // Trust the stored Start Time as-is: the demo generator anchors capacity entries at
+        // midnight (000000T) by design (see GetRandomDailyCapacity in codeunit_50602), so 0T is
+        // now a legitimate real value here, not a "blank/unset" sentinel — forcing it to 070000T
+        // silently shifted every midnight-anchored entry's displayed start 7 hours later than what
+        // was actually stored (e.g. a 15h entry stored as 00:00-15:00 rendered as 07:00-15:00).
         tm := ResCap."Start Time";
-        if tm = 0T then
-            tm := 070000T;
 
         // Convert start date and time to DateTime
         StartDateTime := CreateDateTime(ResCap."Date", tm);
         StartDateTxt := ToSessionDateTimeTxt(ResCap."Date", tm);
 
-        // Calculate capacity as duration in milliseconds
-        // Capacity is in hours, so: hours * 60 minutes * 60 seconds * 1000 milliseconds
-        CapacityDuration := Capacity * 60 * 60 * 1000;
-
-        // Add capacity duration to start datetime
-        EndDateTime := StartDateTime + CapacityDuration;
+        // Prefer the End Time already stored on the record instead of recomputing it from the
+        // Capacity value passed in - that recomputation is what produced wrong tooltips (e.g.
+        // "08:00 -> 08:05") whenever the passed-in Capacity didn't match what the record's own
+        // Start/End actually represented (e.g. a per-day-per-resource query value).
+        //
+        // Not every caller can supply a real End Time though: a few callers (the resource
+        // scheduler week/capacity views) build a synthetic, temporary Res. Capacity Entry that
+        // aggregates several real entries into one block (summed Capacity, earliest Start Time)
+        // and deliberately leave End Time blank because there is no single stored End Time for an
+        // aggregate. For those, fall back to the original Capacity-duration math - same as the
+        // "if tm = 0T" fallback pattern used for Start Time above, just applied to End Time.
+        endTm := ResCap."End Time";
+        if endTm <> 0T then
+            EndDateTime := CreateDateTime(ResCap."Date", endTm)
+        else begin
+            // Calculate capacity as duration in milliseconds
+            // Capacity is in hours, so: hours * 60 minutes * 60 seconds * 1000 milliseconds
+            CapacityDuration := Capacity * 60 * 60 * 1000;
+            EndDateTime := StartDateTime + CapacityDuration;
+        end;
 
         // Extract date and time from end datetime and convert to session timezone text
         EndDateTxt := ToSessionDateTimeTxt(DT2Date(EndDateTime), DT2Time(EndDateTime));
@@ -1106,7 +1135,13 @@ codeunit 50604 "DHX Data Handler"
         LocalDate := DT2Date(UtcDT); // converted to current user's time zone
         LocalTime := DT2Time(UtcDT);
 
-        exit(Format(LocalDate, 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(LocalTime));
+        // Explicit 24-hour format, matching the pattern used above for FormattedTime: a bare
+        // Format(LocalTime) uses the session's regional format, which can render 12-hour with an
+        // AM/PM suffix (e.g. "3:00:00 PM") depending on locale. DHTMLX's scheduler.parse() expects
+        // a strict 24-hour "yyyy-MM-dd HH:mm:ss" string and can silently misparse an AM/PM string
+        // instead of erroring, which was producing wrong/truncated-looking event bars regardless of
+        // how correct the underlying Start/End Time values were.
+        exit(Format(LocalDate, 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(LocalTime, 0, '<Hours24,2>:<Minutes,2>:<Seconds,2>'));
     end;
 
     procedure GetWeekPeriodDates(CurrentDate: Date; var StartDay: Date; var EndDay: Date)
