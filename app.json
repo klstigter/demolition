@@ -1,0 +1,41 @@
+{
+  "id": "76381a86-bb2e-42e1-be0a-6cc8c55f0dd4",
+  "name": "DailyOptimizer_AVD",
+  "publisher": "Optimizers",
+  "version": "28.0.0.0",
+  "brief": "Planning and scheduling extension for Dynamics 365 Business Central",
+  "description": "Planning and scheduling extension for Dynamics 365 Business Central using DHTMLX controls.",
+  "privacyStatement": "https://bc365optimizers.com/privacy",
+  "EULA": "https://bc365optimizers.com/eula",
+  "help": "",
+  "url": "https://bc365optimizers.com",
+  "logo": "./images/logo.png",
+  "dependencies": [
+    {
+      "id": "61f2563b-fadf-4029-a675-f6d43090311a",
+      "name": "DailyOptimizer",
+      "publisher": "Optimizers",
+      "version": "28.0.0.0"
+    }
+  ],
+  "screenshots": [],
+  "platform": "1.0.0.0",
+  "application": "26.0.0.0",
+  "idRanges": [
+    {
+      "from": 50701,
+      "to": 60750
+    }
+  ],
+  "resourceExposurePolicy": {
+    "allowDebugging": true,
+    "allowDownloadingSource": false,
+    "includeSourceInSymbolFile": true
+  },
+  "resourceFolders": ["src/data"],
+  "runtime": "15.0",
+  "features": [
+    "NoImplicitWith"
+  ],
+  "preprocessorSymbols": ["BC28"]
+}
