@@ -34,25 +34,10 @@ page 50664 "Work Order Lines"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the quantity for this line.';
                 }
-                field(Depth; Rec.Depth)
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the depth for this line.';
-                }
-                field(Diameter; Rec.Diameter)
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the diameter for this line.';
-                }
                 field("Item Price"; Rec."Item Price")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the unit price for this line.';
-                }
-                field(Price; Rec."Price")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the depth price for this line.';
                 }
                 field(Amount; Rec.Amount)
                 {
@@ -64,7 +49,7 @@ page 50664 "Work Order Lines"
         }
         area(FactBoxes)
         {
-            part(ItemDetails; "Item Card")
+            part(ItemDetails; "Component - Item FactBox") //"Item Card"
             {
                 ApplicationArea = All;
                 SubPageLink = "No." = field("Item No.");

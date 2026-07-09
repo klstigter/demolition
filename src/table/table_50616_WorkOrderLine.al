@@ -63,18 +63,18 @@ table 50616 "Work Order Line"
                 CalcAmount();
             end;
         }
-        field(50; Depth; Decimal)
-        {
-            Caption = 'Depth';
-            DataClassification = CustomerContent;
-            DecimalPlaces = 0 : 5;
-        }
-        field(60; Diameter; Decimal)
-        {
-            Caption = 'Diameter';
-            DataClassification = CustomerContent;
-            DecimalPlaces = 0 : 5;
-        }
+        // field(50; Depth; Decimal)
+        // {
+        //     Caption = 'Depth';
+        //     DataClassification = CustomerContent;
+        //     DecimalPlaces = 0 : 5;
+        // }
+        // field(60; Diameter; Decimal)
+        // {
+        //     Caption = 'Diameter';
+        //     DataClassification = CustomerContent;
+        //     DecimalPlaces = 0 : 5;
+        // }
         field(70; "Item Price"; Decimal)
         {
             Caption = 'Item Price';
@@ -83,20 +83,20 @@ table 50616 "Work Order Line"
 
             trigger OnValidate()
             begin
-                price := Depth * "Item Price";
-            end;
-        }
-        field(71; "Price"; Decimal)
-        {
-            Caption = 'Price';
-            DataClassification = CustomerContent;
-            DecimalPlaces = 0 : 5;
-
-            trigger OnValidate()
-            begin
                 CalcAmount();
             end;
         }
+        // field(71; "Price"; Decimal)
+        // {
+        //     Caption = 'Price';
+        //     DataClassification = CustomerContent;
+        //     DecimalPlaces = 0 : 5;
+
+        //     trigger OnValidate()
+        //     begin
+        //         CalcAmount();
+        //     end;
+        // }
         field(80; Amount; Decimal)
         {
             Caption = 'Amount';
@@ -132,6 +132,6 @@ table 50616 "Work Order Line"
 
     local procedure CalcAmount()
     begin
-        Amount := Quantity * "Price";
+        Amount := Quantity * "Item Price";
     end;
 }
