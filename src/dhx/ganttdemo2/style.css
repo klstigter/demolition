@@ -31,51 +31,52 @@ html,
 			z-index: 1;
 		}
 
-		/* Collapse/Expand-all toggle icon in the "Task name" grid header */
+		/* Collapse/Expand-all toggle icon in the "Task name" grid header
+		   (that header row is forced to a black background elsewhere — see
+		   ".gantt_grid_scale { background:#000 !important; }" below — so this
+		   icon is styled light-on-dark with a bright accent hover.) */
 		.gantt-collapseall-icon {
-			display: inline-block;
-			width: 13px;
-			height: 13px;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 28px;
+			height: 28px;
 			margin-right: 6px;
 			vertical-align: middle;
 			cursor: pointer;
-			position: relative;
-			border: 1.4px solid #666;
-			border-radius: 2px;
+			border-radius: 6px;
 			box-sizing: border-box;
+			color: #FFD600;
+			background: rgba(255, 255, 255, 0.12);
+			border: 1px solid rgba(255, 214, 0, 0.55);
+			transition: background-color .12s ease, border-color .12s ease, color .12s ease, transform .08s ease;
 		}
-		.gantt-collapseall-icon::before,
-		.gantt-collapseall-icon::after {
-			content: "";
-			position: absolute;
-			width: 5px;
-			height: 5px;
-			border-top: 1.4px solid #666;
-			border-right: 1.4px solid #666;
+		.gantt-collapseall-icon:hover {
+			background: #2f8bfb;
+			border-color: #2f8bfb;
+			color: #fff;
 		}
-		.gantt-collapseall-icon::before {
-			top: 1px;
-			left: 1px;
-			transform: rotate(-135deg);
+		.gantt-collapseall-icon:active {
+			transform: scale(0.9);
+			background: #1f6fe0;
+			border-color: #1f6fe0;
 		}
-		.gantt-collapseall-icon::after {
-			bottom: 1px;
-			right: 1px;
-			transform: rotate(45deg);
+		.gantt-collapseall-icon .gca-svg {
+			display: none;
+			pointer-events: none;
 		}
-		.gantt-collapseall-icon:hover,
-		.gantt-collapseall-icon:hover::before,
-		.gantt-collapseall-icon:hover::after {
-			border-color: #2f6fdb;
+		.gantt-collapseall-icon .gca-collapse {
+			display: block;
 		}
-		.gantt-collapseall-icon.is-collapsed::before {
-			transform: rotate(45deg);
+		.gantt-collapseall-icon.is-collapsed .gca-collapse {
+			display: none;
 		}
-		.gantt-collapseall-icon.is-collapsed::after {
-			transform: rotate(-135deg);
+		.gantt-collapseall-icon.is-collapsed .gca-expand {
+			display: block;
 		}
 		.gantt-collapseall-label {
 			vertical-align: middle;
+			font-weight: 600;
 		}
 
 		/* Task type classes (fixed_duration / fixed_units / fixed_work) are applied via
