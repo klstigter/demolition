@@ -21,62 +21,86 @@ page 50601 "Opti Resource List"
             group(GroupFilter)
             {
                 Caption = 'Filters';
-
-                field("Date Filter"; Rec.getfilter("Date Filter"))
+                grid(FilterRow)
                 {
-                    ApplicationArea = Jobs;
-                    Caption = 'Date Filter';
-                    ToolTip = 'The date to filter the resources that have day plannings on the specified date.';
-                }
-                field(Filters; RecFilters)
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Filters (toggle clear and reapply)';
-                    ToolTip = 'Filters applied to the list. Use this field to identify the filters that are applied to the list, including filters applied through the user interface and programmatically.';
-                    Editable = false;
+                    ShowCaption = false;
+                    GridLayout = Columns;
+                    group(Col1)
+                    {
+                        ShowCaption = false;
+                        field("Date Filter"; Rec.getfilter("Date Filter"))
+                        {
+                            ApplicationArea = Jobs;
+                            Caption = 'Date Filter';
+                            ToolTip = 'The date to filter the resources that have day plannings on the specified date.';
+                        }
+                    }
+                    group(Col2)
+                    {
+                        ShowCaption = false;
+                        field("Skill Filter"; SkillToFind)
+                        {
+                            ApplicationArea = Jobs;
+                            Caption = 'Skill Filter';
+                            editable = false;
+                            ToolTip = 'The skill to filter the resources that have day plannings with the specified skill.';
+                        }
+                    }
+                    group(Col3)
+                    {
+                        ShowCaption = false;
+                        field(Filters; RecFilters)
+                        {
+                            ApplicationArea = Jobs;
+                            Caption = 'Filters (toggle clear and reapply)';
+                            ToolTip = 'Filters applied to the list. Use this field to identify the filters that are applied to the list, including filters applied through the user interface and programmatically.';
+                            Editable = false;
 
-                    trigger OnAssistEdit()
-                    var
-                        KeepDateFilter: Text;
-                    begin
-                        if (RecFilters <> '') or Rec.MarkedOnly() then begin
-                            // Save view and marked state before clearing
-                            xRecFilters := Rec.GetView();
-                            xRecMarkedOnly := Rec.MarkedOnly();
-                            KeepDateFilter := Rec.GetFilter("Date Filter");
-                            // Save which records were marked into xRecMarking's own mark table.
-                            // Reset() clears all marks in xRecMarking before saving new ones.
-                            xRecMarking.Reset();
-                            if xRecMarkedOnly then
-                                if Rec.FindSet() then  // FindSet with MarkedOnly=true returns only marked records
-                                    repeat
-                                        if xRecMarking.Get(Rec."No.") then
-                                            xRecMarking.Mark(true);
-                                    until Rec.Next() = 0;
-                            Rec.MarkedOnly(false);
-                            Rec.Reset();
-                            if KeepDateFilter <> '' then
-                                Rec.SetFilter("Date Filter", KeepDateFilter);
-                            RecFilters := '';
-                        end else begin
-                            if (xRecFilters <> '') or xRecMarkedOnly then begin
-                                Rec.SetView(xRecFilters);
-                                if xRecMarkedOnly then begin
-                                    // Restore marks from xRecMarking back into Rec
-                                    xRecMarking.MarkedOnly(true);
-                                    if xRecMarking.FindSet() then
-                                        repeat
-                                            if Rec.Get(xRecMarking."No.") then
-                                                Rec.Mark(true);
-                                        until xRecMarking.Next() = 0;
-                                    xRecMarking.MarkedOnly(false);
-                                    Rec.MarkedOnly(true);
+                            trigger OnAssistEdit()
+                            var
+                                KeepDateFilter: Text;
+                            begin
+                                if (RecFilters <> '') or Rec.MarkedOnly() then begin
+                                    // Save view and marked state before clearing
+                                    xRecFilters := Rec.GetView();
+                                    xRecMarkedOnly := Rec.MarkedOnly();
+                                    KeepDateFilter := Rec.GetFilter("Date Filter");
+                                    // Save which records were marked into xRecMarking's own mark table.
+                                    // Reset() clears all marks in xRecMarking before saving new ones.
+                                    xRecMarking.Reset();
+                                    if xRecMarkedOnly then
+                                        if Rec.FindSet() then  // FindSet with MarkedOnly=true returns only marked records
+                                            repeat
+                                                if xRecMarking.Get(Rec."No.") then
+                                                    xRecMarking.Mark(true);
+                                            until Rec.Next() = 0;
+                                    Rec.MarkedOnly(false);
+                                    Rec.Reset();
+                                    if KeepDateFilter <> '' then
+                                        Rec.SetFilter("Date Filter", KeepDateFilter);
+                                    RecFilters := '';
+                                end else begin
+                                    if (xRecFilters <> '') or xRecMarkedOnly then begin
+                                        Rec.SetView(xRecFilters);
+                                        if xRecMarkedOnly then begin
+                                            // Restore marks from xRecMarking back into Rec
+                                            xRecMarking.MarkedOnly(true);
+                                            if xRecMarking.FindSet() then
+                                                repeat
+                                                    if Rec.Get(xRecMarking."No.") then
+                                                        Rec.Mark(true);
+                                                until xRecMarking.Next() = 0;
+                                            xRecMarking.MarkedOnly(false);
+                                            Rec.MarkedOnly(true);
+                                        end;
+                                        RecFilters := Rec.GetFilters();
+                                    end;
                                 end;
-                                RecFilters := Rec.GetFilters();
+                                CurrPage.Update(false);
                             end;
-                        end;
-                        CurrPage.Update(false);
-                    end;
+                        }
+                    }
+
                 }
             }
             group(ResourcesList)
@@ -241,11 +265,9 @@ page 50601 "Opti Resource List"
                         ToolTip = 'Specifies the work hour template that is assigned to the resource.';
                         Visible = true;
                         StyleExpr = Stylexp;
-
-
                     }
-
                 }
+
 
             }
         }
@@ -476,27 +498,7 @@ page 50601 "Opti Resource List"
                 ToolTip = 'View a list of all the resource registers. Every time a resource entry is posted, a register is created. Every register shows the first and last entry numbers of its entries. You can use the information in a resource register to document when entries were posted.';
             }
         }
-        area(processing)
-        {
-            group("F&unctions")
-            {
-                Caption = 'F&unctions';
-                Image = "Action";
-                action("Create Time Sheets")
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Create Time Sheets';
-                    Ellipsis = true;
-                    Image = NewTimesheet;
-                    ToolTip = 'Create new time sheets for the selected resource.';
 
-                    trigger OnAction()
-                    begin
-                        Rec.CreateTimeSheets();
-                    end;
-                }
-            }
-        }
         area(Promoted)
         {
             group(Category_New)
@@ -507,14 +509,7 @@ page 50601 "Opti Resource List"
                 {
                 }
             }
-            group(Category_Process)
-            {
-                Caption = 'Process', Comment = 'Generated from the PromotedActionCategories property index 1.';
 
-                actionref("Create Time Sheets_Promoted"; "Create Time Sheets")
-                {
-                }
-            }
             group(Category_Category4)
             {
                 Caption = 'Resource', Comment = 'Generated from the PromotedActionCategories property index 3.';
@@ -612,6 +607,7 @@ page 50601 "Opti Resource List"
         Stylexp: Text;
         xRecMarkedOnly: Boolean;
         xRecMarking: Record Resource;
+        SkillToFind: Code[10];
 
     procedure GetSelectionFilter(): Text
     var
@@ -625,5 +621,10 @@ page 50601 "Opti Resource List"
     procedure SetSelection(var Resource: Record Resource)
     begin
         CurrPage.SetSelectionFilter(Resource);
+    end;
+
+    procedure SetSkillToFind(Skill: code[10])
+    begin
+        SkillToFind := Skill;
     end;
 }

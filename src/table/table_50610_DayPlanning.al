@@ -295,6 +295,7 @@ table 50610 "Day Planning"
                 end;
                 Resource.MarkedOnly(true);  // Get marked resources with the skill
                 Resource.SetFilter("Date Filter", '%1', "Task Date");
+                ReslookupPage.SetSkillToFind(Skill);
                 ResLookupPage.SetTableView(Resource);
                 ResLookupPage.LookupMode(true);
                 if ResLookupPage.RunModal() = ACTION::LookupOK then begin
