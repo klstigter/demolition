@@ -12,6 +12,10 @@ codeunit 50602 "Create Demo Data"
         CreateJobTasks();
         CreateJobTaskLinks();
         CreateBulkJobs();
+        // Must exist BEFORE resources start consuming skill codes: CreateDemoResources() ->
+        // LoadReferenceData() populates gSkillCodes from this set, and the 200 demo resources'
+        // own round-robin GetNextSkill() assignment draws from it too.
+        EnsureSkillCodes();
         LoadResources();
         CreateDemoResources();
         // Fallback: if the company started with zero pre-existing resources, the first
@@ -20,6 +24,12 @@ codeunit 50602 "Create Demo Data"
         // to draw from instead of returning '' everywhere (JOB001-003, CreateWorkOrderDemoData).
         if gResCount = 0 then
             LoadResources();
+        // Must run AFTER gRes[]/gResCount reach their FINAL state (both LoadResources() calls
+        // above) and AFTER gSkillCodes is loaded (via CreateDemoResources()'s internal
+        // LoadReferenceData() call, which stays populated after it returns) - and BEFORE
+        // CreateCapacityAndDayPlanning()/CreateWorkOrderDemoData(), both of which call
+        // GetResourceSkill() while generating Day Planning rows.
+        EnsureLoadedResourceSkills();
         CreateDailyOptimizerSetupDefault();
         CreateCapacityAndDayPlanning();
         CreateGanttChartSetupDefaults();
@@ -428,6 +438,32 @@ codeunit 50602 "Create Demo Data"
         SkillCode.Code := SkillCodeNo;
         SkillCode.Description := Desc;
         SkillCode.Insert();
+    end;
+
+    local procedure EnsureSkillCodes()
+    var
+        SkillCode: Record "Skill Code";
+    begin
+        // Same "only seed if the table is completely empty" policy as EnsureResourceGroups() -
+        // never fabricate on top of real company skill data, only fill a genuinely empty table.
+        // Runs BEFORE CreateDemoResources() so LoadReferenceData() (called inside it) picks up
+        // this full set instead of whatever was there before (commonly nothing, or just 'ELEKTR'
+        // from a prior run of CreateDailyOptimizerSetupDefault's own EnsureSkillCode call, which
+        // still runs later and is now a harmless no-op against this same code). Construction-
+        // themed skill set, matches the Resource Group codes' flavor (MECH/ELEKTR/CIVIL/
+        // LOGISTIC/GENERAL). Permanent/unlogged, same lifecycle as EnsureResourceGroups().
+        if not SkillCode.IsEmpty() then
+            exit;
+        EnsureSkillCode('ELEKTR', 'Electrician');
+        EnsureSkillCode('MECH', 'Mechanic');
+        EnsureSkillCode('CIVIL', 'Civil Engineer');
+        EnsureSkillCode('WELD', 'Welder');
+        EnsureSkillCode('PLUMB', 'Plumber');
+        EnsureSkillCode('CARP', 'Carpenter');
+        EnsureSkillCode('CRANE', 'Crane Operator');
+        EnsureSkillCode('SURVEY', 'Surveyor');
+        EnsureSkillCode('SAFETY', 'Safety Officer');
+        EnsureSkillCode('GENERAL', 'General Laborer');
     end;
 
     local procedure EnsureNoSeries(SeriesCode: Code[20]; Desc: Text[100])
@@ -1617,6 +1653,52 @@ codeunit 50602 "Create Demo Data"
             exit(gRes[Preference]);
         // wrap around when fewer resources than preference slots
         exit(gRes[((Preference - 1) mod gResCount) + 1]);
+    end;
+
+    local procedure EnsureLoadedResourceSkills()
+    var
+        Idx: Integer;
+    begin
+        // Backfills a skill onto every resource GetRes() can ever return (JOB001-003's leader/
+        // member, and CreateWorkOrderDemoData's GetRes(7)/(8)/(9)) - these are drawn from gRes[],
+        // which LoadResources() populates from PRE-EXISTING real company resources, not the 200
+        // demo resources (DRP*/DRM*/DRE*) that already get a skill via AssignResourceSkill() at
+        // creation time. Must run AFTER gRes[]/gResCount are in their FINAL state (i.e. after both
+        // LoadResources() calls, including the zero-resource fallback) - a single pass over
+        // gRes[1..gResCount] covers every GetRes() caller since GetRes() only ever wraps around
+        // that same array.
+        if gResCount = 0 then
+            exit;
+        if gSkillCodes.Count() = 0 then
+            exit; // defensive only - EnsureSkillCodes() + LoadReferenceData() should already guarantee this
+        for Idx := 1 to gResCount do
+            EnsureResourceHasSkill(gRes[Idx]);
+    end;
+
+    local procedure EnsureResourceHasSkill(ResNo: Code[20])
+    var
+        ResSkill: Record "Resource Skill";
+        SkillCodeNo: Code[10];
+    begin
+        // Only backfills resources that don't already have ANY skill - never touches/duplicates
+        // an existing assignment.
+        if ResNo = '' then
+            exit;
+        ResSkill.SetRange(Type, ResSkill.Type::Resource);
+        ResSkill.SetRange("No.", ResNo);
+        if not ResSkill.IsEmpty() then
+            exit;
+
+        // True Random() (not round-robin) - user explicitly asked for random assignment here, and
+        // this codebase already uses Random() elsewhere for this kind of variety (see
+        // SetMandatoryResourceFields's "Mandatory Schedulling" ~60/40 split).
+        SkillCodeNo := gSkillCodes.Get(Random(gSkillCodes.Count()));
+        ResSkill.Init();
+        ResSkill.Type := ResSkill.Type::Resource;
+        ResSkill."No." := ResNo;
+        ResSkill."Skill Code" := SkillCodeNo;
+        ResSkill.Insert(true);
+        LogRecord(Database::"Resource Skill", ResSkill.RecordId(), ResNo + ' skill ' + SkillCodeNo + ' (backfilled)');
     end;
 
     // ──────────────────────────────────────────────────────────────────────────
