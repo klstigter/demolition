@@ -1,3 +1,4 @@
 - [User Role](user_role.md) — Ahmad is the primary AL dev on DailyOptimizer; co-dev klstigter on GitHub
 - [Project: DailyOptimizer](project_dailyoptimizer.md) — ID ranges (test codeunits 60020/60021), core tables/codeunits (corrected names), app.json version drift
 - [Test Framework Setup](dailyoptimizer-test-framework-setup.md) — correct Library Assert/Variable Storage/Any GUIDs, live tenant is BC 28.1 not 26
+- [al_compile stale cache quirk](al_compile_stale_cache_quirk.md) — al_compile can false-positive "object missing" after rapid edits; trust al_build if it succeeds cleanly

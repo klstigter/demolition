@@ -47,8 +47,11 @@ codeunit 50602 "Create Demo Data"
         gPoolSeq: Integer;
         gMemberSeq: Integer;
         gExternalSeq: Integer;
-        gFirstNames: array[20] of Text[30];
-        gLastNames: array[20] of Text[30];
+        gFirstNamesList: List of [Text[50]];
+        gLastNamesList: List of [Text[50]];
+        gNamesLoaded: Boolean;
+        gNameCounter: Integer;
+        gWorkHourTemplateLoaded: Boolean;
 
     // ──────────────────────────────────────────────────────────────────────────
     // Initialization & Cleanup
@@ -58,16 +61,26 @@ codeunit 50602 "Create Demo Data"
     var
         LogEntry: Record "Demo Data Log Entry";
     begin
-        gStartDate := CalcDate('<WD1-1W>', Today());
-        // Covers JOB002 (start+1W+52W) and the 170 bulk jobs (max start offset +9W, 98W span) + buffer
-        gEndDate := CalcDate('+110W', gStartDate);
+        GetDemoDateWindow(gStartDate, gEndDate);
         EnsureWorkHourTemplate('BASIS');
         gWorkHoursTemplate.Get('BASIS');
+        gWorkHourTemplateLoaded := true;
         LogEntry.Reset();
         if LogEntry.FindLast() then
             gLogEntryNo := LogEntry."Entry No."
         else
             gLogEntryNo := 0;
+    end;
+
+    procedure GetDemoDateWindow(var StartDate: Date; var EndDate: Date)
+    begin
+        // Single source of truth for the demo data date window - reused by the
+        // capacity-regeneration repair (RepairDemoResourceCapacityRegenerate in
+        // report_50600_RepairDayPlanningResourceGroup.al) so it operates over exactly the same
+        // range the generator itself uses, instead of duplicating this formula.
+        StartDate := CalcDate('<WD1-1W>', Today());
+        // Covers JOB002 (start+1W+52W) and the 170 bulk jobs (max start offset +9W, 98W span) + buffer
+        EndDate := CalcDate('+110W', StartDate);
     end;
 
     local procedure DeleteDemoData()
@@ -564,11 +577,12 @@ codeunit 50602 "Create Demo Data"
     end;
 
     // ──────────────────────────────────────────────────────────────────────────
-    // Bulk Jobs — 170 generated jobs x 250 phased job tasks each (volume demo data).
-    // Each job: 1 Heading + 31 phases (Begin-Total + 6 Posting + End-Total = 8 tasks) + 1
-    // Total = 1 + 31*8 + 1 = 250 tasks. Job Task Nos. are zero-padded to a uniform 5 digits
-    // (e.g. '01000', '01010', '31999') so Code-field text sorting stays numeric order across
-    // the full range — mixing 4- and 5-digit codes would sort '10000' before '9999'.
+    // Bulk Jobs — 170 generated jobs x 30 phased job tasks each (small demo data).
+    // Each job: 1 Heading + 4 phases (Begin-Total + 5 Posting + End-Total = 7 tasks) + 1
+    // Total = 1 + 4*7 + 1 = 30 tasks, of which 4*5 = 20 are Posting (Project Task) leaves.
+    // Job Task Nos. are zero-padded to a uniform 5 digits (e.g. '01000', '01010', '04999') so
+    // Code-field text sorting stays numeric order across the full range — mixing 4- and 5-digit
+    // codes would sort '10000' before '9999'.
     // ──────────────────────────────────────────────────────────────────────────
 
     local procedure CreateBulkJobs()
@@ -631,20 +645,28 @@ codeunit 50602 "Create Demo Data"
         PostEnd: Date;
         JobEnd: Date;
         DurationWeeks: Integer;
+        PhaseCount: Integer;
+        TasksPerPhase: Integer;
     begin
-        // Phases start 3 weeks apart; the 8-week phase window is a safe upper bound covering
-        // the widest posting stagger (up to 10 days) plus the longest posting duration (6W).
-        JobEnd := CalcDate(StrSubstNo('+%1W', (31 - 1) * 3 + 8), JobStart);
+        // Shrunk from 31 phases x 6 posting tasks (186 posting tasks/job) down to 4 phases x 5
+        // posting tasks = 20 posting tasks/job, for the small demo dataset. Phase spacing (3 weeks
+        // apart) and the 8-week phase window are unchanged - they were already sized to safely
+        // contain the widest posting stagger plus the longest posting duration, and that margin
+        // still holds here: max stagger (5-1)*2 = 8 days + max duration 6W ≈ 7.1W, still under 8W.
+        PhaseCount := 4;
+        TasksPerPhase := 5;
+
+        JobEnd := CalcDate(StrSubstNo('+%1W', (PhaseCount - 1) * 3 + 8), JobStart);
         JT."Job No." := JobNo;
 
         AddTask(JT, '00000', 'Bulk Project', JobStart, JobEnd, JT."Job Task Type"::Heading);
 
-        for Phase := 1 to 31 do begin
+        for Phase := 1 to PhaseCount do begin
             PhaseStart := CalcDate(StrSubstNo('+%1W', (Phase - 1) * 3), JobStart);
             PhaseEnd := CalcDate('+8W', PhaseStart);
             AddTask(JT, PadPhaseNo(Phase * 1000), StrSubstNo('Phase %1', Phase), PhaseStart, PhaseEnd, JT."Job Task Type"::"Begin-Total");
 
-            for Task := 1 to 6 do begin
+            for Task := 1 to TasksPerPhase do begin
                 PostStart := CalcDate(StrSubstNo('+%1D', (Task - 1) * 2), PhaseStart);
                 // Minimum 3-week duration, varied 3-6 weeks so bars aren't all identical.
                 DurationWeeks := 3 + ((Phase + Task) mod 4);
@@ -655,7 +677,7 @@ codeunit 50602 "Create Demo Data"
             AddTask(JT, PadPhaseNo(Phase * 1000 + 999), StrSubstNo('Phase %1 Total', Phase), PhaseStart, PhaseEnd, JT."Job Task Type"::"End-Total");
         end;
 
-        AddTask(JT, PadPhaseNo(32000), 'Bulk Project Total', JobStart, JobEnd, JT."Job Task Type"::Total);
+        AddTask(JT, PadPhaseNo((PhaseCount + 1) * 1000), 'Bulk Project Total', JobStart, JobEnd, JT."Job Task Type"::Total);
 
         Indent.IndentJobTasks(JT, true);
     end;
@@ -666,15 +688,21 @@ codeunit 50602 "Create Demo Data"
     end;
 
     // ──────────────────────────────────────────────────────────────────────────
-    // Demo Resources — Pool / Pool Member / External, x3 varied iterations
+    // Demo Resources — Pool / Pool Member / External, single generation pass.
+    // 40 pools x 2 members (120) + 80 external = 200 total. Single pass (no repeated
+    // iterations) so this total isn't a multiplier away from drifting out of sync - see
+    // CreateDemoResources for the exact breakdown and why pool COUNT (not members/pool) was
+    // chosen as the lever to keep at 40.
     // ──────────────────────────────────────────────────────────────────────────
 
     local procedure CreateDemoResources()
     var
         Window: Dialog;
-        Iteration: Integer;
         ResourcesCreated: Integer;
         ResourcesTotal: Integer;
+        PoolCount: Integer;
+        MembersPerPool: Integer;
+        ExternalCount: Integer;
         NoVendorsLbl: Label 'No vendors found. Skipping demo resource generation — create at least one vendor first.';
         NoSkillsLbl: Label 'No skill codes found. Skipping demo resource generation — create at least one skill code first.';
         NoUOMLbl: Label 'No units of measure found. Skipping demo resource generation — create at least one unit of measure first.';
@@ -711,11 +739,14 @@ codeunit 50602 "Create Demo Data"
         end;
 
         EnsureResourceNoSeriesAllowsManualNos();
-        InitNameArrays();
+        EnsureNamesLoaded();
         Clear(gForemanNos);
         gPoolSeq := 0;
         gMemberSeq := 0;
         gExternalSeq := 0;
+        // Sequential counter feeding GetNextName()'s collision-free permutation - must not reset
+        // between iterations/resource types, only once per full CreateDemoResources run.
+        gNameCounter := 0;
         // Reset round-robin cursors so repeated runs in the same session (SingleInstance
         // codeunit) start from the same rotation instead of drifting further each time.
         gVendorIdx := 0;
@@ -724,12 +755,24 @@ codeunit 50602 "Create Demo Data"
         gGenProdIdx := 0;
         gVATProdIdx := 0;
         gResGroupIdx := 0;
-        ResourcesTotal := 3 * (75 + 75 * 150 + 250);
+        // Small demo dataset: 40 pools x 2 members = 120 pool-side resources (40 leaders + 80
+        // members) + 80 external = 200 total. Pool COUNT (not members/pool) is what actually
+        // controls bulk-job/resource contention later (see GetBulkJobResources - it always maps
+        // a bulk job to its pool's first non-leader member via a deterministic FindFirst, so
+        // members/pool doesn't spread load, only the number of distinct pools does), so 40 pools
+        // was chosen deliberately high within the 200-resource budget rather than defaulting to
+        // a "nicer-looking" even split - see the sanity-check note on CreateCapacityAndDayPlanning.
+        PoolCount := 40;
+        MembersPerPool := 2;
+        ExternalCount := 80;
+        ResourcesTotal := PoolCount * (1 + MembersPerPool) + ExternalCount; // 40*3 + 80 = 200
 
         if GuiAllowed() then
             Window.Open(ProgressLbl);
-        for Iteration := 1 to 3 do
-            CreateResourceIterationBatch(Window, ResourcesCreated, ResourcesTotal);
+        // Single generation pass - the old 3x-iteration loop was a multiplier that had to stay in
+        // sync with ResourcesTotal by hand; at this much smaller scale a single pass is simpler
+        // and removes that drift risk entirely.
+        CreateResourceIterationBatch(Window, ResourcesCreated, ResourcesTotal, PoolCount, MembersPerPool, ExternalCount);
         if GuiAllowed() then
             Window.Close();
 
@@ -807,73 +850,61 @@ codeunit 50602 "Create Demo Data"
         end;
     end;
 
-    local procedure InitNameArrays()
+    local procedure EnsureNamesLoaded()
     begin
-        gFirstNames[1] := 'James';
-        gFirstNames[2] := 'Mary';
-        gFirstNames[3] := 'John';
-        gFirstNames[4] := 'Patricia';
-        gFirstNames[5] := 'Robert';
-        gFirstNames[6] := 'Jennifer';
-        gFirstNames[7] := 'Michael';
-        gFirstNames[8] := 'Linda';
-        gFirstNames[9] := 'William';
-        gFirstNames[10] := 'Elizabeth';
-        gFirstNames[11] := 'David';
-        gFirstNames[12] := 'Barbara';
-        gFirstNames[13] := 'Richard';
-        gFirstNames[14] := 'Susan';
-        gFirstNames[15] := 'Joseph';
-        gFirstNames[16] := 'Jessica';
-        gFirstNames[17] := 'Thomas';
-        gFirstNames[18] := 'Sarah';
-        gFirstNames[19] := 'Charles';
-        gFirstNames[20] := 'Karen';
-
-        gLastNames[1] := 'Smith';
-        gLastNames[2] := 'Johnson';
-        gLastNames[3] := 'Williams';
-        gLastNames[4] := 'Brown';
-        gLastNames[5] := 'Jones';
-        gLastNames[6] := 'Garcia';
-        gLastNames[7] := 'Miller';
-        gLastNames[8] := 'Davis';
-        gLastNames[9] := 'Rodriguez';
-        gLastNames[10] := 'Martinez';
-        gLastNames[11] := 'Hernandez';
-        gLastNames[12] := 'Lopez';
-        gLastNames[13] := 'Gonzalez';
-        gLastNames[14] := 'Wilson';
-        gLastNames[15] := 'Anderson';
-        gLastNames[16] := 'Thomas';
-        gLastNames[17] := 'Taylor';
-        gLastNames[18] := 'Moore';
-        gLastNames[19] := 'Jackson';
-        gLastNames[20] := 'Martin';
+        // Lazily load once per session (SingleInstance-style reuse across repeated runs); the
+        // 635 first names x 1000 last names give 635,000 combinations, comfortably covering the
+        // ~34,725 resources CreateDemoResources() creates (see GetNextName()).
+        if gNamesLoaded then
+            exit;
+        // ResourceName is relative to the "src/data" folder declared in app.json's
+        // resourceFolders - NOT the project-relative path (that folder prefix is stripped).
+        LoadNameList('FirstNames.csv', gFirstNamesList);
+        LoadNameList('LastNames.csv', gLastNamesList);
+        gNamesLoaded := true;
     end;
 
-    local procedure CreateResourceIterationBatch(var Window: Dialog; var ResourcesCreated: Integer; ResourcesTotal: Integer)
+    local procedure LoadNameList(ResourceName: Text; var NameList: List of [Text[50]])
+    var
+        TypeHelper: Codeunit "Type Helper";
+        Content: Text;
+        Lines: List of [Text];
+        Line: Text;
+        LineNo: Integer;
+    begin
+        Clear(NameList);
+        Content := NavApp.GetResourceAsText(ResourceName, TextEncoding::UTF8);
+        Lines := Content.Split(TypeHelper.LFSeparator());
+        foreach Line in Lines do begin
+            LineNo += 1;
+            Line := Line.TrimEnd(); // strips any trailing CR left over from CRLF-saved CSVs
+            if (LineNo > 1) and (Line <> '') then // line 1 is the "Name" header row
+                NameList.Add(CopyStr(Line, 1, 50));
+        end;
+    end;
+
+    local procedure CreateResourceIterationBatch(var Window: Dialog; var ResourcesCreated: Integer; ResourcesTotal: Integer; PoolCount: Integer; MembersPerPool: Integer; ExternalCount: Integer)
     var
         p: Integer;
         m: Integer;
         e: Integer;
         PoolNo: Code[20];
     begin
-        for p := 1 to 75 do begin
+        for p := 1 to PoolCount do begin
             PoolNo := CreatePoolResource();
             gForemanNos.Add(PoolNo);
-            for m := 1 to 150 do
+            for m := 1 to MembersPerPool do
                 CreateMemberResource(PoolNo);
-            ResourcesCreated += 151;
+            ResourcesCreated += 1 + MembersPerPool;
             if GuiAllowed() then begin
                 Window.Update(1, ResourcesCreated);
                 Window.Update(2, ResourcesTotal);
             end;
-            // Commit after each pool group (~151 records) so this ~35,000-record run doesn't
-            // hold one long transaction/lock for its whole duration.
+            // Commit after each pool group so this run doesn't hold one long transaction/lock -
+            // cheap at this dataset size, kept mainly for consistency with the larger-scale pattern.
             Commit();
         end;
-        for e := 1 to 250 do begin
+        for e := 1 to ExternalCount do begin
             CreateExternalResource();
             ResourcesCreated += 1;
             if e mod 50 = 0 then
@@ -894,7 +925,7 @@ codeunit 50602 "Create Demo Data"
         Res.Init();
         Res.Validate("No.", ResNo);
         Res.Type := Res.Type::Person;
-        Res.Validate(Name, GetRandomName());
+        Res.Validate(Name, GetNextName());
         Res."Vendor No." := GetNextVendor();
         Res."Pool Resource No." := ResNo;
         Res."Is Pool" := true;
@@ -916,7 +947,7 @@ codeunit 50602 "Create Demo Data"
         Res.Init();
         Res.Validate("No.", ResNo);
         Res.Type := Res.Type::Person;
-        Res.Validate(Name, GetRandomName());
+        Res.Validate(Name, GetNextName());
         Res."Pool Resource No." := PoolNo;
         Res."Is Pool Member" := true;
         Res."Is Pool" := false;
@@ -937,7 +968,7 @@ codeunit 50602 "Create Demo Data"
         Res.Init();
         Res.Validate("No.", ResNo);
         Res.Type := Res.Type::Person;
-        Res.Validate(Name, GetRandomName());
+        Res.Validate(Name, GetNextName());
         Res."Vendor No." := GetNextVendor();
         Res."Pool Resource No." := '';
         Res."Is Pool" := false;
@@ -1073,9 +1104,59 @@ codeunit 50602 "Create Demo Data"
         exit(gResourceGroupNos.Get(((gResGroupIdx - 1) mod gResourceGroupNos.Count()) + 1));
     end;
 
-    local procedure GetRandomName(): Text[100]
+    local procedure GetNextName(): Text[100]
+    var
+        Name: Text[100];
     begin
-        exit(gFirstNames[Random(ArrayLen(gFirstNames))] + ' ' + gLastNames[Random(ArrayLen(gLastNames))]);
+        // GetNextName() is just GetUniqueDemoResourceName() fed by the internal auto-incrementing
+        // counter - all the permutation math lives in that single reusable procedure so external
+        // callers (e.g. the resource-name repair report) can reuse the exact same collision-free
+        // mapping without duplicating it here.
+        Name := GetUniqueDemoResourceName(gNameCounter);
+        gNameCounter += 1;
+        exit(Name);
+    end;
+
+    procedure GetUniqueDemoResourceName(SequenceNo: Integer): Text[100]
+    var
+        Counter: BigInteger;
+        Multiplier: BigInteger;
+        TotalCombos: BigInteger;
+        PermutedIndex: BigInteger;
+        FirstCount: Integer;
+        LastCount: Integer;
+        FirstNameIndex: Integer;
+        LastNameIndex: Integer;
+    begin
+        // Deterministic/bijective name assignment - NOT Random(). A pure random draw from even a
+        // 635,000-combination pool would still collide well before ~34,725 draws (birthday
+        // paradox), so instead every SequenceNo maps to a unique (first name, last name) pair via
+        // a permutation, guaranteeing no duplicates for as many resources as CreateDemoResources()
+        // actually creates - and, since it's a pure function of SequenceNo, safely callable from
+        // outside this codeunit (e.g. a repair routine) with caller-supplied sequence numbers.
+        //
+        // 392453 is coprime with 635000 (= 635 first names x 1000 last names; 635000 factors as
+        // 2^3 * 5^4 * 127, and 392453 is odd and divisible by neither 5 nor 127). Multiplying the
+        // sequence number by a value coprime with the modulus and reducing mod TotalCombos is a
+        // bijection over [0, TotalCombos) - i.e. as SequenceNo runs 0..TotalCombos-1 every value
+        // in that range is hit exactly once - which is what makes the mapping collision-free while
+        // still "looking" shuffled instead of sequential (James Aaronson, James Abbott, ... in order).
+        EnsureNamesLoaded();
+
+        FirstCount := gFirstNamesList.Count();
+        LastCount := gLastNamesList.Count();
+        TotalCombos := FirstCount;
+        TotalCombos := TotalCombos * LastCount;
+
+        Multiplier := 392453;
+        Counter := SequenceNo;
+
+        PermutedIndex := Counter * Multiplier;
+        PermutedIndex := PermutedIndex mod TotalCombos;
+        FirstNameIndex := PermutedIndex mod FirstCount + 1; // 1-based List<T> indexing
+        LastNameIndex := PermutedIndex div FirstCount + 1;
+
+        exit(CopyStr(gFirstNamesList.Get(FirstNameIndex) + ' ' + gLastNamesList.Get(LastNameIndex), 1, 100));
     end;
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -1134,15 +1215,28 @@ codeunit 50602 "Create Demo Data"
         BuildDayPlanningsForJob('JOB002', GetRes(3), GetRes(4));
         BuildDayPlanningsForJob('JOB003', GetRes(5), GetRes(6));
 
-        // Bulk jobs draw leader/member from the pool of ~225 demo Foreman resources instead of
-        // the tiny 6-slot gRes array: 170 jobs sharing only 6 resources would blow straight
-        // through the per-resource-per-day cap below and end up with almost no Day Planning
-        // at all once those 6 resources' daily slots are exhausted.
+        // Bulk jobs draw leader/member from the pool of 40 demo Foreman resources (one per demo
+        // pool - see PoolCount in CreateDemoResources) instead of the tiny 6-slot gRes array: 170
+        // jobs sharing only 6 resources would blow straight through the per-resource-per-day cap
+        // below and end up with almost no Day Planning at all once those 6 resources' daily slots
+        // are exhausted.
+        //
+        // NOTE - known residual contention at the smaller 200-resource scale: with only 40 pools,
+        // 170 bulk jobs average ~4.25 jobs per foreman (GetBulkJobResources cycles BulkIdx mod
+        // gForemanNos.Count()), and for a given foreman GetBulkJobResources always resolves to the
+        // exact same (LeaderRes, MemberRes) pair every time (Member.FindFirst() on that pool is
+        // deterministic - MembersPerPool doesn't help spread this, since only the first member is
+        // ever picked). Pool count was deliberately maximized within the 200-resource budget to
+        // keep this ratio as low as practical (see CreateDemoResources), but it isn't eliminated:
+        // several bulk jobs per foreman still compete for the same two resources' per-day slots
+        // (TryReserveResourceDaySlot's cap), which can leave some bulk jobs with sparse or missing
+        // Day Planning rows. If that turns out to matter for this dataset's purpose, the fix would
+        // be to rotate GetBulkJobResources' member pick across all of a pool's members (not just
+        // the first) using an index derived from the job's position within its foreman's rotation.
         for BulkIdx := 1 to gBulkJobNos.Count() do begin
             GetBulkJobResources(BulkIdx, LeaderRes, MemberRes);
             BuildDayPlanningsForJob(gBulkJobNos.Get(BulkIdx), LeaderRes, MemberRes);
-            // Commit periodically: 170 bulk jobs x ~186 posting tasks each can generate a very
-            // large number of Day Planning rows, so this must not run as one giant transaction.
+            // Commit periodically so this doesn't run as one giant transaction.
             if BulkIdx mod 10 = 0 then
                 Commit();
         end;
@@ -1231,14 +1325,35 @@ codeunit 50602 "Create Demo Data"
                 ResCap."Entry No." := EntryNo;
                 ResCap."Resource No." := ResNo;
                 ResCap.Date := DT;
-                ResCap.Capacity := 8;
+                ResCap.Capacity := GetRandomDailyCapacity(ResCap."Start Time", ResCap."End Time");
                 ResCap."Resource Group No." := Res."Resource Group No.";
-                ResCap."Start Time" := 080000T;
-                ResCap."End Time" := 160000T;
                 ResCap.Insert();
                 LogRecord(Database::"Res. Capacity Entry", ResCap.RecordId(), ResNo + ' ' + Format(DT));
                 EntryNo += 1;
             end;
+    end;
+
+    procedure GetRandomDailyCapacity(var StartTime: Time; var EndTime: Time): Decimal
+    var
+        CapacityHours: Integer;
+        StartMs: Integer;
+    begin
+        // Randomized daily capacity 8..24h inclusive. Start Time is a realistic 07:00 workday
+        // start; the Capacity *value* still ranges the full 8..24h, but AL's Time type cannot
+        // represent 24:00:00+ (max is 23:59:59.999), so whenever 07:00 + CapacityHours would
+        // cross midnight (CapacityHours >= 17), End Time is clamped to 23:59:59 instead of
+        // wrapping — Time + Duration silently wraps modulo 24h rather than erroring, which would
+        // otherwise produce a bogus short-looking span (e.g. 07:00 + 20h wrapping to 03:00, with
+        // End < Start). The displayed span is then shorter than the stored Capacity number for
+        // those high values; that mismatch is accepted for demo data rather than crossing days.
+        CapacityHours := 8 + Random(17) - 1; // Random(17) = 1..17, so this yields 8..24 inclusive
+        StartTime := 070000T;
+        StartMs := 25200000; // 07:00:00 in milliseconds since midnight
+        if StartMs + (CapacityHours * 3600000) >= 86400000 then
+            EndTime := 235959T
+        else
+            EndTime := StartTime + (CapacityHours * 3600000);
+        exit(CapacityHours);
     end;
 
     local procedure CreateDemoResourceCapacity()
@@ -1259,12 +1374,14 @@ codeunit 50602 "Create Demo Data"
         Total := Res.Count();
         if Total = 0 then exit;
 
-        // Unlike CreateResourceCapacity (shared with the small pre-existing gRes[1..6] set),
-        // these resources were all just created earlier in this same run, so they are
-        // guaranteed to have zero existing capacity. Skip the per-day CalcFields(Capacity)
-        // check and per-row LogRecord call — at ~34,000 resources x ~550 working days, both
-        // turn into tens of millions of extra queries/inserts and make this step extremely
-        // slow. Cleanup is handled in bulk by DeleteDemoData via the DRP/DRM No. prefix instead.
+        // These resources were all just created earlier in this same run, so they are guaranteed
+        // to have zero existing capacity - no CalcFields(Capacity) check needed before inserting.
+        // LogRecord IS called per row below: "Delete Demo Data" (codeunit 50679) only removes
+        // records tracked in the Demo Data Log — it has no prefix-based fallback for untracked
+        // rows — so any capacity entry created here without a matching log entry would survive
+        // a "Delete Demo Data" run and become a stale duplicate the next time this codeunit runs
+        // for the same resource/date. At the current ~120-resource scale (down from ~34,000) the
+        // per-row LogRecord cost is no longer the bottleneck it once was.
         ResCap.Reset();
         if ResCap.FindLast() then
             EntryNo := ResCap."Entry No." + 1
@@ -1282,11 +1399,10 @@ codeunit 50602 "Create Demo Data"
                         ResCap."Entry No." := EntryNo;
                         ResCap."Resource No." := Res."No.";
                         ResCap.Date := DT;
-                        ResCap.Capacity := 8;
+                        ResCap.Capacity := GetRandomDailyCapacity(ResCap."Start Time", ResCap."End Time");
                         ResCap."Resource Group No." := Res."Resource Group No.";
-                        ResCap."Start Time" := 080000T;
-                        ResCap."End Time" := 160000T;
                         ResCap.Insert();
+                        LogRecord(Database::"Res. Capacity Entry", ResCap.RecordId(), Res."No." + ' ' + Format(DT));
                         EntryNo += 1;
                     end;
                 if GuiAllowed() then begin
@@ -1294,8 +1410,7 @@ codeunit 50602 "Create Demo Data"
                     Window.Update(2, Total);
                 end;
                 // Each resource can add up to ~550 capacity rows (one per working day across the
-                // ~110-week demo window), so commit after every resource to avoid one huge
-                // multi-million-row transaction across ~34,000 resources.
+                // ~110-week demo window), so commit periodically rather than one giant transaction.
                 Commit();
             until Res.Next() = 0;
         if GuiAllowed() then
@@ -1606,6 +1721,20 @@ codeunit 50602 "Create Demo Data"
             exit(DP."Day Line No." + 10000)
         else
             exit(10000);
+    end;
+
+    procedure IsDemoWorkingDay(DT: Date): Boolean
+    begin
+        // Public wrapper so external callers (e.g. the capacity-regeneration repair) can reuse the
+        // exact same working-day check the generator uses, without having to run Initialize() /
+        // duplicate the BASIS Work-Hour Template lookup first. Lazily loads gWorkHoursTemplate once
+        // per codeunit instance, same pattern as gNamesLoaded/EnsureNamesLoaded.
+        if not gWorkHourTemplateLoaded then begin
+            EnsureWorkHourTemplate('BASIS');
+            gWorkHoursTemplate.Get('BASIS');
+            gWorkHourTemplateLoaded := true;
+        end;
+        exit(IsWorkingDay(DT));
     end;
 
     local procedure IsWorkingDay(DT: Date): Boolean

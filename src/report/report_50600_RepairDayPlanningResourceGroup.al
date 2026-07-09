@@ -19,11 +19,17 @@ report 50600 "RepairData"
         n: Integer;
     begin
         //<< create code here
-        n := RepairDayPlanningPoolResourceNo();
-        n += RepairForemanTree();
-        n += RepairResourceMandatorySchedulling();
-        n += RepairDayPlanningVendorNo();
-        n += RepairDemoResourceCapacity();
+        // n := RepairDayPlanningPoolResourceNo();
+        // n += RepairForemanTree();
+        // n += RepairResourceMandatorySchedulling();
+        // n += RepairDayPlanningVendorNo();
+        // n += RepairDemoResourceCapacity();
+        //>>
+
+        //<< new repair function here:
+        // n += RepairDemoResourceUniqueNames();
+        // n += RepairDayPlanningResourceName();
+        // n += RepairDemoResourceCapacityRegenerate();
         //>>
         Message('Finished. %1 record(s) repaired.', n);
     end;
@@ -254,6 +260,140 @@ report 50600 "RepairData"
             else
                 exit(false);
         end;
+    end;
+
+    local procedure RepairDemoResourceUniqueNames(): Integer
+    var
+        Resource: Record Resource;
+        CreateDemoData: Codeunit "Create Demo Data";
+        NewName: Text[100];
+        SequenceNo: Integer;
+        n: Integer;
+    begin
+        // Old (pre-fix) demo data generator only had a 20 first names x 20 last names = 400
+        // combination pool, so the ~34,725 existing DRP*/DRM*/DRE* resources are full of
+        // duplicate names (e.g. many different "No." values all named "Jennifer Martinez").
+        // Reassign every demo resource a unique name from the same collision-free permutation
+        // the generator now uses, via the reusable GetUniqueDemoResourceName() on codeunit 50602 -
+        // only the Name field is touched, nothing else about the resource is changed.
+        Resource.SetFilter("No.", 'DRP*|DRM*|DRE*');
+        if Resource.FindSet(true) then
+            repeat
+                NewName := CreateDemoData.GetUniqueDemoResourceName(SequenceNo);
+                SequenceNo += 1;
+                if Resource.Name <> NewName then begin
+                    Resource.Validate(Name, NewName);
+                    Resource.Modify();
+                    n += 1;
+                end;
+                // Commit periodically so this ~34,725-record run doesn't hold one long
+                // transaction/lock for its whole duration (same pattern as RepairDemoResourceCapacity).
+                if SequenceNo mod 1000 = 0 then
+                    Commit();
+            until Resource.Next() = 0;
+        exit(n);
+    end;
+
+    local procedure RepairDayPlanningResourceName(): Integer
+    var
+        DayPlanning: Record "Day Planning";
+        Resource: Record Resource;
+        ResourceNo: Code[20];
+        n: Integer;
+        RecCount: Integer;
+    begin
+        // Description is a plain stored field (not a FlowField, unlike "Vendor Name" and "Pool
+        // Resource Name" on this table), set from Resource.Name inside the OnValidate triggers for
+        // "Assigned Resource No."/"Requested Resource No.". It goes stale on existing Day Planning
+        // records once Resource.Name is repaired (see RepairDemoResourceUniqueNames), so re-copy it
+        // here. Assigned Resource No. is more dominant than Requested Resource No. - same dominance
+        // rule as RepairDayPlanningPoolResourceNo/RepairDayPlanningVendorNo above.
+        if DayPlanning.FindSet(true) then
+            repeat
+                if DayPlanning."Assigned Resource No." <> '' then
+                    ResourceNo := DayPlanning."Assigned Resource No."
+                else
+                    ResourceNo := DayPlanning."Requested Resource No.";
+
+                if (ResourceNo <> '') and Resource.Get(ResourceNo) then
+                    if DayPlanning.Description <> Resource.Name then begin
+                        DayPlanning.Description := Resource.Name;
+                        DayPlanning.Modify();
+                        n += 1;
+                    end;
+
+                // Commit periodically so this run doesn't hold one long transaction/lock for its
+                // whole duration (same pattern as RepairDemoResourceCapacity).
+                RecCount += 1;
+                if RecCount mod 1000 = 0 then
+                    Commit();
+            until DayPlanning.Next() = 0;
+        exit(n);
+    end;
+
+    local procedure RepairDemoResourceCapacityRegenerate(): Integer
+    var
+        Res: Record Resource;
+        ResCap: Record "Res. Capacity Entry";
+        CreateDemoData: Codeunit "Create Demo Data";
+        StartDate: Date;
+        EndDate: Date;
+        DT: Date;
+        EntryNo: Integer;
+        n: Integer;
+    begin
+        // Fix 1 (randomized 8-24h daily capacity, see GetRandomDailyCapacity on codeunit 50602)
+        // only affects newly-created capacity going forward. Existing NL_Test data was generated
+        // by older/buggier runs and can have multiple Res. Capacity Entry rows per resource+date
+        // with inconsistent values (e.g. Resource Capacity Matrix shows a correct-looking summed
+        // total for a date, while the scheduler renders a separate ~5-minute event for that same
+        // resource/date from a leftover bad row) - no display-side fix can repair genuinely bad
+        // stored data, so this wipes and regenerates capacity for every demo pool resource using
+        // the exact same date window and working-day/randomization logic the generator uses.
+        //
+        // Scope matches CreateDemoResourceCapacity: pool leaders (DRP*) and members (DRM*) only -
+        // external resources (DRE*) are vendor-linked and are not capacity-planned.
+        //
+        // NOTE (operational): at ~34,000 DRP/DRM resources x up to ~550 working days each across
+        // the 110-week window, this is on the order of ~15-19 million individual delete+insert
+        // operations. Running this as a single interactive report execution is very likely NOT
+        // practical - see the accompanying report to the user/coordinator on chunking this before
+        // running it for real (e.g. via a scheduled Job Queue entry instead of an interactive
+        // report, or by narrowing this procedure's resource/date scope across multiple runs).
+        CreateDemoData.GetDemoDateWindow(StartDate, EndDate);
+
+        ResCap.Reset();
+        if ResCap.FindLast() then
+            EntryNo := ResCap."Entry No." + 1
+        else
+            EntryNo := 1;
+
+        Res.SetFilter("No.", 'DRP*|DRM*');
+        if Res.FindSet() then
+            repeat
+                ResCap.Reset();
+                ResCap.SetRange("Resource No.", Res."No.");
+                ResCap.DeleteAll(false);
+
+                for DT := StartDate to EndDate do
+                    if CreateDemoData.IsDemoWorkingDay(DT) then begin
+                        ResCap.Init();
+                        ResCap."Entry No." := EntryNo;
+                        ResCap."Resource No." := Res."No.";
+                        ResCap.Date := DT;
+                        ResCap.Capacity := CreateDemoData.GetRandomDailyCapacity(ResCap."Start Time", ResCap."End Time");
+                        ResCap."Resource Group No." := Res."Resource Group No.";
+                        ResCap.Insert();
+                        EntryNo += 1;
+                        n += 1;
+                    end;
+
+                // Commit after each resource (~up to 550 rows) so this doesn't hold one enormous
+                // transaction/lock across ~34,000 resources - same per-resource pattern as
+                // RepairDemoResourceCapacity above.
+                Commit();
+            until Res.Next() = 0;
+        exit(n);
     end;
 
     var
