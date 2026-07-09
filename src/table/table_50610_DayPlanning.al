@@ -897,9 +897,9 @@ table 50610 "Day Planning"
         Rec."Assigned Resource No." := Rec."Requested Resource No.";
         Rec."Assigned Hours" := Rec."Requested Hours";
         Rec."Start Time Assigned" := Rec."Start Time Requested";
-        Rec.Validate("End Time Assigned", Rec."End Time Requested");
         Rec."Assigned Pool Resource No." := Rec."Requested Pool Resource No.";
         Rec."Non Working Minutes Assigned" := Rec."Non Working Minutes Requested";
+        Rec.Validate("End Time Assigned", Rec."End Time Requested");
         Rec.Modify();
     end;
 
