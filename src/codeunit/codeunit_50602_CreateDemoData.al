@@ -74,10 +74,17 @@ codeunit 50602 "Create Demo Data"
     // Initialization & Cleanup
     // ──────────────────────────────────────────────────────────────────────────
 
-    local procedure Initialize()
+    procedure Initialize()
     var
         LogEntry: Record "Demo Data Log Entry";
     begin
+        // Public so external repair reports (e.g. report_50600_RepairDayPlanningResourceGroup.al)
+        // can call this before reusing other public generator procedures (e.g.
+        // CreateDemoCalendar()) against a fresh codeunit instance without running the full
+        // OnRun() - those procedures depend on gStartDate/gEndDate/gLogEntryNo being populated,
+        // which only happens here. Resumes gLogEntryNo from the last existing "Demo Data Log
+        // Entry" row rather than restarting at 0, so it never collides with a prior full run's
+        // already-logged entries.
         GetDemoDateWindow(gStartDate, gEndDate);
         EnsureWorkHourTemplate('BASIS');
         gWorkHoursTemplate.Get('BASIS');
@@ -190,7 +197,7 @@ codeunit 50602 "Create Demo Data"
         Setup.Modify();
     end;
 
-    local procedure CreateDemoCalendar(): Code[10]
+    procedure CreateDemoCalendar(): Code[10]
     var
         BaseCalendar: Record "Base Calendar";
         CalendarCode: Code[10];
@@ -201,6 +208,13 @@ codeunit 50602 "Create Demo Data"
         // intentionally permanent/unlogged) so DeleteDemoData() removes the previous run's copy
         // and this recreates fresh every run - idempotent insert-or-modify, same shape as
         // CreateDemoVendors/UpsertJob elsewhere in this file.
+        //
+        // Public so external repair reports (e.g. report_50600_RepairDayPlanningResourceGroup.al)
+        // can backfill/refresh just DEMOCAL + its Base Calendar Change rows (Dutch holidays +
+        // custom monthly days-off via CreateDemoCalendarChanges()) against already-existing demo
+        // data, without re-running the full "Create Demo Data" OnRun() (which would wipe and
+        // regenerate every job/resource/day planning too). Caller must call Initialize() first
+        // (see its own comment) so gStartDate/gEndDate/gLogEntryNo are populated.
         CalendarCode := 'DEMOCAL';
         BaseCalendar.Init();
         BaseCalendar.Code := CalendarCode;
@@ -213,24 +227,56 @@ codeunit 50602 "Create Demo Data"
     end;
 
     local procedure CreateDemoCalendarChanges(CalendarCode: Code[10])
+    var
+        MonthAnchor: Date;
+        MonthIndex: Integer;
     begin
         LoadDutchPublicHolidays(CalendarCode);
-        // Custom demo exceptions, relative to the demo date window's start (gStartDate is always
-        // a Monday - see GetDemoDateWindow). Repeated at +1 year (Year 2) as explicit dated rows,
-        // NOT via "Recurring System" - these are offset from THIS RUN's rolling window start, not
-        // a fixed calendar month/day or weekday, so neither Annual nor Weekly Recurring can
-        // express "week 2 Tuesday of whatever window this run happens to compute". Nested
-        // CalcDate calls (year offset first, then week/day offset) rather than a single combined
-        // '+1Y+1W+1D' formula, to keep each individual CalcDate call exactly as simple/proven as
-        // the ones already used elsewhere in this file.
-        InsertBaseCalendarChange(CalendarCode, CalcDate('+1W+1D', gStartDate), 'Custom Day Off (Wk2 Tue)', CalRecNonRecurring());
-        InsertBaseCalendarChange(CalendarCode, CalcDate('+2W+2D', gStartDate), 'Custom Day Off (Wk3 Wed)', CalRecNonRecurring());
-        InsertBaseCalendarChange(CalendarCode, CalcDate('+2W+3D', gStartDate), 'Custom Day Off (Wk3 Thu)', CalRecNonRecurring());
-        InsertBaseCalendarChange(CalendarCode, CalcDate('+4W', gStartDate), 'Custom Day Off (Wk5 Mon)', CalRecNonRecurring());
-        InsertBaseCalendarChange(CalendarCode, CalcDate('+1W+1D', CalcDate('+1Y', gStartDate)), 'Custom Day Off (Wk2 Tue, Yr2)', CalRecNonRecurring());
-        InsertBaseCalendarChange(CalendarCode, CalcDate('+2W+2D', CalcDate('+1Y', gStartDate)), 'Custom Day Off (Wk3 Wed, Yr2)', CalRecNonRecurring());
-        InsertBaseCalendarChange(CalendarCode, CalcDate('+2W+3D', CalcDate('+1Y', gStartDate)), 'Custom Day Off (Wk3 Thu, Yr2)', CalRecNonRecurring());
-        InsertBaseCalendarChange(CalendarCode, CalcDate('+4W', CalcDate('+1Y', gStartDate)), 'Custom Day Off (Wk5 Mon, Yr2)', CalRecNonRecurring());
+        // Custom demo days off: repeat the original 4-pattern week-offset formula (Wk2 Tue, Wk3
+        // Wed, Wk3 Thu, Wk5 Mon) every 4 weeks, looped 36 times (~3 years) instead of applying it
+        // only once relative to gStartDate - 144 rows total (4 patterns x 36 iterations). NOT via
+        // "Recurring System" - these are offsets from THIS RUN's rolling gStartDate, not a fixed
+        // calendar date/weekday, so neither Annual nor Weekly Recurring can express them.
+        // Duplicate description text across the 36 occurrences of each pattern is fine -
+        // "Base Calendar Change"'s primary key is Base Calendar Code + Recurring System + Date +
+        // Day, not Description, so there's no conflict.
+        for MonthIndex := 0 to 35 do begin
+            MonthAnchor := CalcDate(StrSubstNo('+%1W', MonthIndex * 4), gStartDate);
+            InsertBaseCalendarChange(CalendarCode, CalcDate('+1W+1D', MonthAnchor), 'Custom Day Off (Wk2 Tue)', CalRecNonRecurring());
+            InsertBaseCalendarChange(CalendarCode, CalcDate('+2W+2D', MonthAnchor), 'Custom Day Off (Wk3 Wed)', CalRecNonRecurring());
+            InsertBaseCalendarChange(CalendarCode, CalcDate('+2W+3D', MonthAnchor), 'Custom Day Off (Wk3 Thu)', CalRecNonRecurring());
+            InsertBaseCalendarChange(CalendarCode, CalcDate('+4W', MonthAnchor), 'Custom Day Off (Wk5 Mon)', CalRecNonRecurring());
+        end;
+
+        // Weekly-recurring weekend markers, so DEMOCAL is correct/self-sufficient as a standalone
+        // calendar object - this codeunit's own IsWorkingDay() already treats Sat/Sun as
+        // non-working via the separate Work-Hour Template check (which runs BEFORE it ever
+        // consults DEMOCAL), so this doesn't change anything THIS codeunit generates. But any
+        // other code that queries DEMOCAL's calendar directly (Calendar Management.
+        // IsNonworkingDay()/SetSource() against DEMOCAL alone, without a Work-Hour Template check)
+        // would otherwise incorrectly treat Saturdays/Sundays as working days, since DEMOCAL had
+        // no exception marking them non-working.
+        InsertWeeklyRecurringDayOff(CalendarCode, CalDaySaturday());
+        InsertWeeklyRecurringDayOff(CalendarCode, CalDaySunday());
+    end;
+
+    local procedure InsertWeeklyRecurringDayOff(CalendarCode: Code[10]; DayOfWeek: Integer)
+    var
+        BaseCalendarChange: Record "Base Calendar Change";
+    begin
+        // Separate insert helper (not an InsertBaseCalendarChange overload) because the primary
+        // key shape differs: weekly-recurring rows use Date = 0D + a real Day value, while every
+        // other row in this codeunit uses a real Date + Day = 0. Description stays blank, matching
+        // the base-app convention for these rows (no per-occurrence date/description to show).
+        if BaseCalendarChange.Get(CalendarCode, CalRecWeeklyRecurring(), 0D, DayOfWeek) then
+            exit;
+        BaseCalendarChange.Init();
+        BaseCalendarChange."Base Calendar Code" := CalendarCode;
+        BaseCalendarChange."Recurring System" := CalRecWeeklyRecurring();
+        BaseCalendarChange.Day := DayOfWeek;
+        BaseCalendarChange.Nonworking := true;
+        BaseCalendarChange.Insert();
+        LogRecord(Database::"Base Calendar Change", BaseCalendarChange.RecordId(), CalendarCode + ' Weekly Day ' + Format(DayOfWeek));
     end;
 
     local procedure CalRecNonRecurring(): Integer
@@ -238,15 +284,37 @@ codeunit 50602 "Create Demo Data"
         // "Base Calendar Change"."Recurring System" (Option) values, confirmed by decompiling the
         // actual base-app table source (table 7601, src/Foundation/Calendar/BaseCalendarChange.Table.al):
         // OptionMembers = " ","Annual Recurring","Weekly Recurring" -> 0 = blank/non-recurring,
-        // 1 = Annual Recurring, 2 = Weekly Recurring (unused in this codeunit). Exposed as a named
-        // helper (rather than a bare 0 literal) so call sites read as intent, matching
-        // CalRecAnnualRecurring() below.
+        // 1 = Annual Recurring, 2 = Weekly Recurring. Exposed as a named helper (rather than a bare
+        // 0 literal) so call sites read as intent, matching CalRecAnnualRecurring()/
+        // CalRecWeeklyRecurring() below.
         exit(0);
     end;
 
     local procedure CalRecAnnualRecurring(): Integer
     begin
         exit(1);
+    end;
+
+    local procedure CalRecWeeklyRecurring(): Integer
+    begin
+        exit(2);
+    end;
+
+    local procedure CalDaySaturday(): Integer
+    begin
+        // "Base Calendar Change".Day (Option) values, confirmed by decompiling the actual
+        // base-app table source (table 7601, same file as the Recurring System values above):
+        // OptionMembers = " ",Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday ->
+        // 0 = blank, 1 = Monday .. 7 = Sunday. This happens to numerically match Date2DWY(D,1)'s
+        // 1=Monday..7=Sunday convention used elsewhere in this codeunit (e.g. IsWorkingDay), but
+        // that's a confirmed coincidence, not an assumption - this Option field is unrelated to
+        // Date2DWY and was verified independently.
+        exit(6);
+    end;
+
+    local procedure CalDaySunday(): Integer
+    begin
+        exit(7);
     end;
 
     local procedure LoadDutchPublicHolidays(CalendarCode: Code[10])
