@@ -59,6 +59,12 @@ page 50668 "Day Planning Card Opt"
 
                 group(Requested)
                 {
+                    field("Requested Pool Resource No."; Rec."Requested Pool Resource No.")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Specifies the pool resource number.';
+
+                    }
                     field("Requested Resource No."; Rec."Requested Resource No.")
                     {
                         ApplicationArea = All;
@@ -84,6 +90,12 @@ page 50668 "Day Planning Card Opt"
                 }
                 group(Assignment)
                 {
+                    field("Assigned Pool Resource No."; Rec."Assigned Pool Resource No.")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Specifies the pool resource number.';
+                    }
+
                     field("Assigned Resource No."; Rec."Assigned Resource No.")
                     {
                         ApplicationArea = All;
@@ -151,9 +163,14 @@ page 50668 "Day Planning Card Opt"
         {
             action(CopyRequestedToAssigned)
             {
-                Caption = 'Copy Requested to Assigned';
+                Caption = 'Copy Request';
+                ToolTip = 'Copies the requested resource and hours to the assigned resource and hours for the selected day planning line.';
                 ApplicationArea = All;
+                shortcutkey = 'Alt+C';
                 Image = Copy;
+                Promoted = true;
+                promotedCategory = Process;
+                promotedOnly = true;
 
                 trigger OnAction()
                 begin

@@ -109,20 +109,6 @@ page 50630 "Day Plannings"
                 {
                     ApplicationArea = All;
                 }
-                field("Requested Resource No."; Rec."Requested Resource No.")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the number of the requested resource.';
-                    StyleExpr = StyleStr;
-                    Visible = ShowResource;
-                }
-                field("Assigned Resource No."; Rec."Assigned Resource No.")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the number of the assigned resource.';
-                    StyleExpr = StyleStr;
-                    Visible = ShowResource;
-                }
                 field(skill; Rec.skill)
                 {
                     ApplicationArea = All;
@@ -130,13 +116,23 @@ page 50630 "Day Plannings"
                     StyleExpr = StyleStr;
                     Visible = ShowSkill;
                 }
-                field("Requested Hours"; Rec."Requested Hours")
+
+
+                field("Assigned Pool Resource No."; Rec."Assigned Pool Resource No.")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the number of requested hours for this day task, calculated automatically based on start and end times.';
-                    Editable = false;
+                    ToolTip = 'Specifies the pool resource number.';
                     StyleExpr = StyleStr;
                 }
+
+                field("Assigned Resource No."; Rec."Assigned Resource No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the number of the assigned resource.';
+                    StyleExpr = StyleStr;
+                    Visible = ShowResource;
+                }
+
                 field("Assigned Hours"; Rec."Assigned Hours")
                 {
                     ApplicationArea = All;
@@ -144,13 +140,25 @@ page 50630 "Day Plannings"
                     Editable = true;
                     StyleExpr = StyleStr;
                 }
-                field("Realized Hours"; Rec."Realized Hours")
+                field("Start Time Assigned"; Rec."Start Time Assigned")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the number of realized hours for this day task, calculated automatically based on start and end times.';
-                    Editable = true;
+                    ToolTip = 'Specifies the start time for this day.';
                     StyleExpr = StyleStr;
                 }
+                field("End Time Assigned"; Rec."End Time Assigned")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the end time for this day.';
+                    StyleExpr = StyleStr;
+                }
+                field("Non Working Hours"; Rec."Non Working Minutes Assigned")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the number of non-working hours in a 24-hour period for this day task.';
+                    StyleExpr = StyleStr;
+                }
+
                 field("Total Assigned Hours"; TotAssignedHours)
                 {
                     ApplicationArea = All;
@@ -171,6 +179,46 @@ page 50630 "Day Plannings"
                         DayPlanning.RunModal();
                     end;
                 }
+                field("Worked Hours"; Rec."Worked Hours")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the actual worked hours for this day task.';
+                    Editable = true;
+                    StyleExpr = StyleStr;
+                }
+                field("Requested Pool Resource No."; Rec."Requested Pool Resource No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the pool resource number.';
+                    StyleExpr = StyleStr;
+                }
+                field("Requested Resource No."; Rec."Requested Resource No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the number of the requested resource.';
+                    StyleExpr = StyleStr;
+                    Visible = ShowResource;
+                }
+                field("Start Time Requested"; Rec."Start Time Requested")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the start time for this day task.';
+                    StyleExpr = StyleStr;
+                }
+                field("End Time Requested"; Rec."End Time Requested")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the end time for this day task.';
+                    StyleExpr = StyleStr;
+                }
+                field("Requested Hours"; Rec."Requested Hours")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the number of requested hours for this day task, calculated automatically based on start and end times.';
+                    Editable = false;
+                    StyleExpr = StyleStr;
+                }
+
                 field(Capacity; Rec.Capacity)
                 {
                     ApplicationArea = All;
@@ -185,30 +233,7 @@ page 50630 "Day Plannings"
                     StyleExpr = StyleStr;
                     Visible = false;
                 }
-                field("Start Time Requested"; Rec."Start Time Requested")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the start time for this day task.';
-                    StyleExpr = StyleStr;
-                }
-                field("End Time Requested"; Rec."End Time Requested")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the end time for this day task.';
-                    StyleExpr = StyleStr;
-                }
-                field("Start Time Assigned"; Rec."Start Time Assigned")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the start time for this day.';
-                    StyleExpr = StyleStr;
-                }
-                field("End Time Assigned"; Rec."End Time Assigned")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the end time for this day.';
-                    StyleExpr = StyleStr;
-                }
+
                 field("Start Time Realized"; Rec."Start Time Realized")
                 {
                     ApplicationArea = All;
@@ -221,12 +246,14 @@ page 50630 "Day Plannings"
                     ToolTip = 'Specifies the end time for this day.';
                     StyleExpr = StyleStr;
                 }
-                field("Non Working Hours"; Rec."Non Working Minutes Assigned")
+                field("Realized Hours"; Rec."Realized Hours")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the number of non-working hours in a 24-hour period for this day task.';
+                    ToolTip = 'Specifies the number of realized hours for this day task, calculated automatically based on start and end times.';
+                    Editable = true;
                     StyleExpr = StyleStr;
                 }
+
 
                 field(Fulfilled; StyleStr)
                 {
@@ -238,12 +265,6 @@ page 50630 "Day Plannings"
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the resource group number.';
-                    StyleExpr = StyleStr;
-                }
-                field("Assigned Pool Resource No."; Rec."Assigned Pool Resource No.")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the pool resource number.';
                     StyleExpr = StyleStr;
                 }
                 field("Pool Resource Name"; Rec."Pool Resource Name")
@@ -288,13 +309,7 @@ page 50630 "Day Plannings"
                     ToolTip = 'Specifies the work type code.';
                     StyleExpr = StyleStr;
                 }
-                field("Worked Hours"; Rec."Worked Hours")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the actual worked hours for this day task.';
-                    Editable = true;
-                    StyleExpr = StyleStr;
-                }
+
                 field("Qty. Transferred to Invoice"; Rec."Qty. Transferred to Invoice")
                 {
                     ApplicationArea = All;
@@ -392,6 +407,8 @@ page 50630 "Day Plannings"
     {
         area(Promoted)
         {
+            actionref(CopyRequestedToAssigned_Promoted; CopyRequestedToAssigned) { }
+
             group(PromotedInvoicing)
             {
                 Caption = 'Invoicing';
@@ -413,6 +430,44 @@ page 50630 "Day Plannings"
                 trigger OnAction()
                 begin
                     CurrPage.Update(false);
+                end;
+            }
+            action(CopyRequestedToAssigned)
+            {
+                Caption = 'Copy Request';
+                ApplicationArea = All;
+                tooltip = 'Copies the requested resource and hours to the assigned resource and hours for the selected day planning line.';
+                shortcutkey = 'Alt+C';
+                Image = Copy;
+
+                trigger OnAction()
+                var
+                    DayPlanning: Record "Day Planning";
+                    n: Integer;
+                    Lbl: Label '%1 day planning lines have been copied from requested to assigned.';
+                begin
+                    CurrPage.SetSelectionFilter(DayPlanning);
+                    if DayPlanning.FindSet() then
+                        repeat
+                            Rec.CopyRequestedToAssigned();
+                            n += 1;
+                        until DayPlanning.Next() = 0;
+                    message(Lbl, n);
+                end;
+            }
+            action(ShowStyleReason)
+            {
+                Caption = 'Show Style Reason';
+                ApplicationArea = All;
+                ToolTip = 'Shows the reason for the style applied to this day planning line.';
+                Image = Info;
+                shortcutkey = 'Alt+I';
+                trigger OnAction()
+                var
+                    Descr: Text;
+                begin
+                    Descr := this.CalculateStyle(true);
+                    Message(Descr);
                 end;
             }
             group(Invoicing)
@@ -521,18 +576,39 @@ page 50630 "Day Plannings"
 
     local procedure CalculateStyle()
     begin
+        CalculateStyle(false);
+    end;
+
+    local procedure CalculateStyle(GiveDescription: Boolean) Descr: Text
+    begin
+
         rec.CalcFields(Capacity, "Total Assigned Hours");
         case true of
             rec."Assigned Resource No." = '':
-                StyleOpt := StyleOpt::StrongAccent;
+                begin
+                    StyleOpt := StyleOpt::StrongAccent;
+                    Descr := 'No resource assigned';
+                end;
             rec.Capacity = 0:
-                StyleOpt := StyleOpt::Unfavorable;
+                begin
+                    StyleOpt := StyleOpt::Unfavorable;
+                    descr := 'No capacity available';
+                end;
             (this.TotAssignedHours < rec.Capacity) and (rec."Assigned Hours" > 0):
-                StyleOpt := StyleOpt::StandardAccent;
+                begin
+                    StyleOpt := StyleOpt::StandardAccent;
+                    descr := StrSubstNo('Capacity (%1 hours) not fully utilized (%2 hours assigned)', rec.Capacity, this.TotAssignedHours);
+                end;
             (this.TotAssignedHours > rec.Capacity):
-                StyleOpt := StyleOpt::Attention;
+                begin
+                    StyleOpt := StyleOpt::Attention;
+                    descr := StrSubstNo('Capacity (%1 hours) over utilized (%2 hours assigned)', rec.Capacity, this.TotAssignedHours);
+                end;
             rec."Capacity Fully Utilized":
-                StyleOpt := StyleOpt::Subordinate;
+                begin
+                    StyleOpt := StyleOpt::Subordinate;
+                    descr := 'Capacity fully utilized';
+                end;
         end;
         StyleStr := Format(StyleOpt);
     end;

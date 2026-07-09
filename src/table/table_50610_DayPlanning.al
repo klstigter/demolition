@@ -894,12 +894,21 @@ table 50610 "Day Planning"
 
     procedure CopyRequestedToAssigned()
     begin
-        Rec."Assigned Resource No." := Rec."Requested Resource No.";
-        Rec."Assigned Hours" := Rec."Requested Hours";
-        Rec."Start Time Assigned" := Rec."Start Time Requested";
-        Rec.Validate("End Time Assigned", Rec."End Time Requested");
-        Rec."Assigned Pool Resource No." := Rec."Requested Pool Resource No.";
-        Rec."Non Working Minutes Assigned" := Rec."Non Working Minutes Requested";
+        if Rec."Assigned Resource No." = '' then
+            Rec."Assigned Resource No." := Rec."Requested Resource No.";
+        if Rec."Assigned Pool Resource No." = '' then
+            Rec."Assigned Pool Resource No." := Rec."Requested Pool Resource No.";
+
+        if rec."Requested Hours" <> 0 then
+            Rec."Assigned Hours" := Rec."Requested Hours";
+        if rec."Non Working Minutes Requested" <> 0 then
+            Rec."Non Working Minutes Assigned" := Rec."Non Working Minutes Requested";
+        if rec."Start Time Requested" <> 0T then
+            Rec."Start Time Assigned" := Rec."Start Time Requested";
+        if rec."End Time Requested" <> 0T then
+            Rec.validate("End Time Assigned", Rec."End Time Requested")
+        else
+            Rec.Validate("End Time Assigned");
         Rec.Modify();
     end;
 
