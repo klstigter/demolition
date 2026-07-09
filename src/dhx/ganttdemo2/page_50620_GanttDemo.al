@@ -362,9 +362,20 @@ page 50620 "Gantt Demo DHX 2"
                     ResourceCode := CopyStr(resourceId, 5, MaxStrLen(ResourceCode));
                     DayPlanning.Init();
                     DayPlanning."Task Date" := WorkDt;
-                    if Prefix = 'RES-' then
-                        DayPlanning.Validate("Requested Resource No.", ResourceCode)
-                    else
+                    if Prefix = 'RES-' then begin
+                        // Validate("Requested Resource No.", ...) can Error() (e.g. the resource
+                        // has no Skill assigned - see table_50610's mandatory-skill check). Wrapped
+                        // in a TryFunction + friendly Message() rather than letting that raw error
+                        // propagate through the Gantt JS bridge, same "if not X then Message(...)"
+                        // surfacing convention already used by OnLinkCreated (UpsertLinkFromJson)
+                        // above in this same page. Underlying validation/blocking behavior is
+                        // unchanged - the drop is still refused, just with a clean message instead
+                        // of an unhandled error.
+                        if not TryValidateRequestedResourceNo(DayPlanning, ResourceCode) then begin
+                            Message('Cannot add this Day Planning: %1', GetLastErrorText());
+                            exit;
+                        end;
+                    end else
                         if Prefix = 'VEN-' then
                             DayPlanning.Validate("Vendor No.", ResourceCode);
                     DayPlanning."Plan Status" := DayPlanning."Plan Status"::"In Request";
@@ -1033,6 +1044,12 @@ page 50620 "Gantt Demo DHX 2"
     begin
         CurrentResourcePanelFilterJsonString := '';
         CurrPage.DHXGanttControl2.ClearResourceFilter();
+    end;
+
+    [TryFunction]
+    local procedure TryValidateRequestedResourceNo(var DayPlanning: Record "Day Planning"; ResourceCode: Code[20])
+    begin
+        DayPlanning.Validate("Requested Resource No.", ResourceCode);
     end;
 
     procedure RefreshGantt()

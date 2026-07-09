@@ -250,6 +250,7 @@ table 50610 "Day Planning"
             begin
                 if ("Assigned Resource No." <> '') then begin
                     Resource.Get("Assigned Resource No.");
+                    CheckResourceHasSkill("Assigned Resource No.");
                     "Resource Group No." := Resource."Resource Group No.";
                     if Resource."Vendor No." <> '' then
                         "Vendor No." := Resource."Vendor No.";
@@ -257,6 +258,7 @@ table 50610 "Day Planning"
                         "Assigned Pool Resource No." := Resource."Pool Resource No.";
                     Leader := Resource."Is Foreman";
                     "Team Leader" := Resource."Default Foreman";
+                    Skill := GetFirstSkill("Assigned Resource No.");
                     CalculateWorkingHours();
                 end else begin
                     validate("Assigned Hours", 0);
@@ -334,12 +336,14 @@ table 50610 "Day Planning"
             begin
                 if "Requested Resource No." <> '' then begin
                     Resource.Get("Requested Resource No.");
+                    CheckResourceHasSkill("Requested Resource No.");
                     "Resource Group No." := Resource."Resource Group No.";
                     if "Assigned Resource No." = '' then begin
                         if (Resource."Vendor No." <> '') then
                             "Vendor No." := Resource."Vendor No.";
                         Leader := Resource."Is Foreman";
                         "Team Leader" := Resource."Default Foreman";
+                        Skill := GetFirstSkill("Requested Resource No.");
                     end;
                     if Resource."Pool Resource No." <> '' then
                         "Requested Pool Resource No." := Resource."Pool Resource No.";
@@ -771,6 +775,27 @@ table 50610 "Day Planning"
         else
             DayLineNo := 10000;
         Rec."Day Line No." := DayLineNo;
+    end;
+
+    local procedure CheckResourceHasSkill(ResNo: Code[20])
+    var
+        ResSkill: Record "Resource Skill";
+    begin
+        ResSkill.SetRange(Type, ResSkill.Type::Resource);
+        ResSkill.SetRange("No.", ResNo);
+        if ResSkill.IsEmpty() then
+            Error('Resource %1 does not have a Skill assigned.', ResNo);
+    end;
+
+    local procedure GetFirstSkill(ResNo: Code[20]): Code[20]
+    var
+        ResSkill: Record "Resource Skill";
+    begin
+        // Caller must call CheckResourceHasSkill(ResNo) first to guarantee this FindFirst succeeds.
+        ResSkill.SetRange(Type, ResSkill.Type::Resource);
+        ResSkill.SetRange("No.", ResNo);
+        ResSkill.FindFirst();
+        exit(ResSkill."Skill Code");
     end;
 
     procedure CalculateWorkingHours()
