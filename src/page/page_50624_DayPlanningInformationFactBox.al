@@ -73,10 +73,6 @@ page 50624 "Day Planning Info FactBox"
                     Caption = 'Job Description';
                     Editable = false;
                 }
-            }
-            group(JobTaskInformation)
-            {
-                Caption = 'Job Task Information';
                 field("Job Task No."; Rec."Job Task No.")
                 {
                     ApplicationArea = All;
@@ -99,6 +95,48 @@ page 50624 "Day Planning Info FactBox"
                     ToolTip = 'Specifies the job task description.';
                     Caption = 'Job Task Description';
                     Editable = false;
+                }
+            }
+            group(Requested)
+            {
+                Caption = 'Request';
+                field("Pool Resource No."; Rec."Requested Pool Resource No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the pool resource number.';
+                }
+
+                field("Resource No."; Rec."Requested Resource No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the request number.';
+                    Caption = 'Request No.';
+                }
+                field("Start Time"; Rec."Start Time Requested")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the start time for this day task.';
+                }
+                field("End Time"; Rec."End Time Requested")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the end time for this day task.';
+                }
+                field("Non Working Minutes"; Rec."Non Working Minutes Requested")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the value of the Non Working Minutes Requested field.', Comment = '%';
+                }
+
+                field("Hours"; Rec."Requested Hours")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the requested hours for this day task.';
+                }
+                field("Total Hours"; Rec."Total Requested Hours")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the value of the Total Requested Hours field.', Comment = '%';
                 }
             }
 
