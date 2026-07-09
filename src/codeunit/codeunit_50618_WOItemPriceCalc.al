@@ -66,7 +66,7 @@ codeunit 50618 "WO Item Price Calc."
         var BestPrice: Decimal;
         var PriceFound: Boolean)
     var
-        WOItemPricing: Record "Work Order Item Pricing";
+        WOItemPricing: Record "Sales Price";
     begin
         WOItemPricing.SetRange("Item No.", ItemNo);
         WOItemPricing.SetRange("Sales Type", SalesType);
