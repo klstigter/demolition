@@ -12,11 +12,18 @@ codeunit 50602 "Create Demo Data"
         CreateJobTasks();
         CreateJobTaskLinks();
         CreateBulkJobs();
-        CreateDemoResources();
         LoadResources();
+        CreateDemoResources();
+        // Fallback: if the company started with zero pre-existing resources, the first
+        // LoadResources() call above found nothing (gResCount stayed 0). Re-scan now that
+        // CreateDemoResources() has populated 200 demo resources, so GetRes() still has a pool
+        // to draw from instead of returning '' everywhere (JOB001-003, CreateWorkOrderDemoData).
+        if gResCount = 0 then
+            LoadResources();
+        CreateDailyOptimizerSetupDefault();
         CreateCapacityAndDayPlanning();
         CreateGanttChartSetupDefaults();
-        CreateDailyOptimizerSetupDefault();
+        CreateWorkOrderDemoData();
         Message('Demo data created successfully. %1 records logged.', gLogEntryNo);
     end;
 
@@ -28,6 +35,7 @@ codeunit 50602 "Create Demo Data"
         gEndDate: Date;
         gLogEntryNo: Integer;
         gVendorNos: List of [Code[20]];
+        gDemoVendorNos: List of [Code[20]];
         gSkillCodes: List of [Code[10]];
         gUOMCodes: List of [Code[10]];
         gGenProdPostingGroups: List of [Code[20]];
@@ -39,6 +47,7 @@ codeunit 50602 "Create Demo Data"
         gResourceSkillCache: Dictionary of [Code[20], Code[10]];
         gResourcePoolCache: Dictionary of [Code[20], Code[20]];
         gVendorIdx: Integer;
+        gDemoVendorIdx: Integer;
         gSkillIdx: Integer;
         gUOMIdx: Integer;
         gGenProdIdx: Integer;
@@ -52,6 +61,14 @@ codeunit 50602 "Create Demo Data"
         gNamesLoaded: Boolean;
         gNameCounter: Integer;
         gWorkHourTemplateLoaded: Boolean;
+        gBaseCalendar: Record "Base Calendar";
+        gCustomizedCalendarChange: Record "Customized Calendar Change";
+        gBaseCalendarLoaded: Boolean;
+        gJobSiteNames: List of [Text[50]];
+        gProjectTypeNames: List of [Text[50]];
+        gJobPhaseNames: List of [Text[50]];
+        gJobTaskNames: List of [Text[50]];
+        gJobNamesLoaded: Boolean;
 
     // ──────────────────────────────────────────────────────────────────────────
     // Initialization & Cleanup
@@ -146,38 +163,164 @@ codeunit 50602 "Create Demo Data"
     local procedure CreateDailyOptimizerSetupDefault()
     var
         Setup: Record "Daily Optimizer Setup";
+        CalendarCode: Code[10];
     begin
-        // Global app setting, not disposable demo data: only seed the singleton record if it
-        // doesn't exist yet, and never touch it again afterwards (not logged via LogRecord/
-        // DeleteDemoData, same reasoning as CreateGanttChartSetupDefaults).
-        if Setup.Get() then
-            exit;
-
-        EnsureBaseCalendar('BASIS');
+        // "Create Demo Data" fully owns and controls this singleton's values every run - always
+        // force them to the demo configuration rather than only filling in blanks, so the setup
+        // page reliably reflects DEMOCAL/BASIS/ELEKTR/OI/WO immediately after each run regardless
+        // of whatever value was left over from a prior run or the page's auto-inserted blank
+        // record (page_50654's OnOpenPage silently auto-inserts a blank singleton the first time
+        // anyone opens the Daily Optimizer Setup page, before this procedure ever runs).
+        CalendarCode := CreateDemoCalendar();
         EnsureWorkHourTemplate('BASIS');
         EnsureSkillCode('ELEKTR', 'Electrician');
         EnsureNoSeries('OI', 'Order Intake');
         EnsureNoSeries('WO', 'Work Order');
 
-        Setup.Init();
-        Setup."Base Calendar" := 'BASIS';
+        if not Setup.Get() then begin
+            Setup.Init();
+            Setup.Insert();
+        end;
+
+        Setup."Base Calendar" := CalendarCode;
         Setup."Work hour Template" := 'BASIS';
         Setup."Default Skill" := 'ELEKTR';
         Setup."Order Intake Nos" := 'OI';
         Setup."Work Order Nos" := 'WO';
-        Setup.Insert();
+        Setup.Modify();
     end;
 
-    local procedure EnsureBaseCalendar(CalendarCode: Code[10])
+    local procedure CreateDemoCalendar(): Code[10]
     var
         BaseCalendar: Record "Base Calendar";
+        CalendarCode: Code[10];
     begin
-        if BaseCalendar.Get(CalendarCode) then
-            exit;
+        // Dedicated, clearly-branded demo calendar instead of reusing/creating a generic 'BASIS'
+        // code, which risks colliding with whatever calendar setup already exists in the target
+        // BC sandbox/company. Logged (unlike the other Ensure* helpers in this file, which are
+        // intentionally permanent/unlogged) so DeleteDemoData() removes the previous run's copy
+        // and this recreates fresh every run - idempotent insert-or-modify, same shape as
+        // CreateDemoVendors/UpsertJob elsewhere in this file.
+        CalendarCode := 'DEMOCAL';
         BaseCalendar.Init();
         BaseCalendar.Code := CalendarCode;
-        BaseCalendar.Name := CalendarCode;
-        BaseCalendar.Insert();
+        BaseCalendar.Name := 'DEMOPLANNING';
+        if not BaseCalendar.Insert() then
+            BaseCalendar.Modify();
+        LogRecord(Database::"Base Calendar", BaseCalendar.RecordId(), CalendarCode + ' ' + BaseCalendar.Name);
+        CreateDemoCalendarChanges(CalendarCode);
+        exit(CalendarCode);
+    end;
+
+    local procedure CreateDemoCalendarChanges(CalendarCode: Code[10])
+    begin
+        LoadDutchPublicHolidays(CalendarCode);
+        // Custom demo exceptions, relative to the demo date window's start (gStartDate is always
+        // a Monday - see GetDemoDateWindow). Repeated at +1 year (Year 2) as explicit dated rows,
+        // NOT via "Recurring System" - these are offset from THIS RUN's rolling window start, not
+        // a fixed calendar month/day or weekday, so neither Annual nor Weekly Recurring can
+        // express "week 2 Tuesday of whatever window this run happens to compute". Nested
+        // CalcDate calls (year offset first, then week/day offset) rather than a single combined
+        // '+1Y+1W+1D' formula, to keep each individual CalcDate call exactly as simple/proven as
+        // the ones already used elsewhere in this file.
+        InsertBaseCalendarChange(CalendarCode, CalcDate('+1W+1D', gStartDate), 'Custom Day Off (Wk2 Tue)', CalRecNonRecurring());
+        InsertBaseCalendarChange(CalendarCode, CalcDate('+2W+2D', gStartDate), 'Custom Day Off (Wk3 Wed)', CalRecNonRecurring());
+        InsertBaseCalendarChange(CalendarCode, CalcDate('+2W+3D', gStartDate), 'Custom Day Off (Wk3 Thu)', CalRecNonRecurring());
+        InsertBaseCalendarChange(CalendarCode, CalcDate('+4W', gStartDate), 'Custom Day Off (Wk5 Mon)', CalRecNonRecurring());
+        InsertBaseCalendarChange(CalendarCode, CalcDate('+1W+1D', CalcDate('+1Y', gStartDate)), 'Custom Day Off (Wk2 Tue, Yr2)', CalRecNonRecurring());
+        InsertBaseCalendarChange(CalendarCode, CalcDate('+2W+2D', CalcDate('+1Y', gStartDate)), 'Custom Day Off (Wk3 Wed, Yr2)', CalRecNonRecurring());
+        InsertBaseCalendarChange(CalendarCode, CalcDate('+2W+3D', CalcDate('+1Y', gStartDate)), 'Custom Day Off (Wk3 Thu, Yr2)', CalRecNonRecurring());
+        InsertBaseCalendarChange(CalendarCode, CalcDate('+4W', CalcDate('+1Y', gStartDate)), 'Custom Day Off (Wk5 Mon, Yr2)', CalRecNonRecurring());
+    end;
+
+    local procedure CalRecNonRecurring(): Integer
+    begin
+        // "Base Calendar Change"."Recurring System" (Option) values, confirmed by decompiling the
+        // actual base-app table source (table 7601, src/Foundation/Calendar/BaseCalendarChange.Table.al):
+        // OptionMembers = " ","Annual Recurring","Weekly Recurring" -> 0 = blank/non-recurring,
+        // 1 = Annual Recurring, 2 = Weekly Recurring (unused in this codeunit). Exposed as a named
+        // helper (rather than a bare 0 literal) so call sites read as intent, matching
+        // CalRecAnnualRecurring() below.
+        exit(0);
+    end;
+
+    local procedure CalRecAnnualRecurring(): Integer
+    begin
+        exit(1);
+    end;
+
+    local procedure LoadDutchPublicHolidays(CalendarCode: Code[10])
+    var
+        TypeHelper: Codeunit "Type Helper";
+        Content: Text;
+        Lines: List of [Text];
+        Parts: List of [Text];
+        Line: Text;
+        LineNo: Integer;
+        HolidayDate: Date;
+        YearInt: Integer;
+        MonthInt: Integer;
+        DayInt: Integer;
+        Desc: Text[30];
+        IsRecurring: Boolean;
+    begin
+        // The CSV covers 2025-2030 for headroom across many future runs, since GetDemoDateWindow
+        // is a rolling window relative to Today(). 3rd column ("Recurring", Y/N): N rows (the 6
+        // movable-date holidays incl. Koningsdag, which shifts in rare years) only insert if the
+        // row's specific date falls inside THIS run's demo window - same as before. Y rows (the 4
+        // truly fixed-date holidays: Nieuwjaarsdag/Bevrijdingsdag/Eerste+Tweede Kerstdag) appear
+        // just ONCE in the CSV as a single anchor date and insert UNCONDITIONALLY as Annual
+        // Recurring, no window filter - they recur every year going forward regardless of which
+        // window this particular run computes.
+        Content := NavApp.GetResourceAsText('DutchPublicHolidays.csv', TextEncoding::UTF8);
+        Lines := Content.Split(TypeHelper.LFSeparator());
+        foreach Line in Lines do begin
+            LineNo += 1;
+            Line := Line.TrimEnd(); // strips any trailing CR left over from CRLF-saved CSVs
+            if (LineNo > 1) and (Line <> '') then begin // line 1 is the "Date,Description,Recurring" header row
+                Parts := Line.Split(',');
+                if Parts.Count() >= 3 then begin
+                    // Parse YYYY-MM-DD manually via DMY2Date rather than Evaluate(Date, ...),
+                    // which depends on the session's regional date format and could misparse -
+                    // this CSV's format is fixed, so parsing it explicitly is unambiguous
+                    // regardless of locale.
+                    Evaluate(YearInt, CopyStr(Parts.Get(1), 1, 4));
+                    Evaluate(MonthInt, CopyStr(Parts.Get(1), 6, 2));
+                    Evaluate(DayInt, CopyStr(Parts.Get(1), 9, 2));
+                    HolidayDate := DMY2Date(DayInt, MonthInt, YearInt);
+                    Desc := CopyStr(Parts.Get(2), 1, 30);
+                    IsRecurring := UpperCase(Parts.Get(3)) = 'Y';
+                    if IsRecurring then
+                        InsertBaseCalendarChange(CalendarCode, HolidayDate, Desc, CalRecAnnualRecurring())
+                    else
+                        if (HolidayDate >= gStartDate) and (HolidayDate <= gEndDate) then
+                            InsertBaseCalendarChange(CalendarCode, HolidayDate, Desc, CalRecNonRecurring());
+                end;
+            end;
+        end;
+    end;
+
+    local procedure InsertBaseCalendarChange(CalendarCode: Code[10]; ChangeDate: Date; Desc: Text[30]; RecurringSystem: Integer)
+    var
+        BaseCalendarChange: Record "Base Calendar Change";
+    begin
+        // Idempotent Get-then-Insert, logged like everything else so DeleteDemoData() cleans
+        // these up and they're recreated fresh every run - consistent with how CreateDemoCalendar()
+        // itself is already logged. RecurringSystem is passed as Integer (not the table's own
+        // Option type - AL doesn't let an anonymous/foreign Option type cross a procedure
+        // boundary the way Enums do) and assigned directly into the Option field, which AL
+        // permits without an explicit cast. Day is left at its default (0/blank) - only relevant
+        // for Weekly Recurring, not used by this codeunit (see CalRecNonRecurring/CalRecAnnualRecurring).
+        if BaseCalendarChange.Get(CalendarCode, RecurringSystem, ChangeDate, 0) then
+            exit;
+        BaseCalendarChange.Init();
+        BaseCalendarChange."Base Calendar Code" := CalendarCode;
+        BaseCalendarChange."Recurring System" := RecurringSystem;
+        BaseCalendarChange.Date := ChangeDate;
+        BaseCalendarChange.Nonworking := true;
+        BaseCalendarChange.Description := Desc;
+        BaseCalendarChange.Insert();
+        LogRecord(Database::"Base Calendar Change", BaseCalendarChange.RecordId(), CalendarCode + ' ' + Format(ChangeDate) + ' ' + Desc);
     end;
 
     local procedure EnsureWorkHourTemplate(TemplateCode: Code[10])
@@ -196,6 +339,14 @@ codeunit 50602 "Create Demo Data"
         WorkHourTemplate.Friday := 8;
         WorkHourTemplate.Saturday := 0;
         WorkHourTemplate.Sunday := 0;
+        // 07:00-16:00 with a 1-hour break = 8 working hours/day, matching the Monday..Friday
+        // hour counts above. Set directly rather than via Validate() to avoid the
+        // "Non Working Minutes" OnValidate (tableextension 50620) zeroing itself back out when
+        // "Default End Time" isn't set yet at the point it fires.
+        WorkHourTemplate."Default Start Time" := 070000T;
+        WorkHourTemplate."Default End Time" := 160000T;
+        WorkHourTemplate."Non Working Minutes" := 60;
+        WorkHourTemplate."Working Hours" := 8;
         WorkHourTemplate.Insert();
     end;
 
@@ -591,6 +742,7 @@ codeunit 50602 "Create Demo Data"
         Window: Dialog;
         Idx: Integer;
         JobNo: Code[20];
+        JobName: Text[100];
         JobStart: Date;
         ProgressLbl: Label 'Creating bulk demo jobs...\n#1########## of #2##########';
     begin
@@ -602,8 +754,12 @@ codeunit 50602 "Create Demo Data"
         for Idx := 1 to 170 do begin
             JobNo := 'DJB' + Format(Idx, 0, '<Integer,4><Filler Character,0>');
             JobStart := CalcDate(StrSubstNo('+%1W', Idx mod 10), gStartDate);
-            CreateBulkJob(JobNo, Idx, Customer."No.");
-            CreateBulkJobTasks(JobNo, JobStart);
+            // Idx - 1 used directly as the sequence number (no new counter needed) keeps this
+            // idempotent/stable across reruns - DJB0001 always maps to the same generated name
+            // every run, consistent with how UpsertJob treats job numbers as stable identities.
+            JobName := GetUniqueDemoJobName(Idx - 1);
+            CreateBulkJob(JobNo, JobName, Customer."No.");
+            CreateBulkJobTasks(JobNo, JobName, JobStart);
             gBulkJobNos.Add(JobNo);
             if GuiAllowed() then begin
                 Window.Update(1, Idx);
@@ -616,24 +772,22 @@ codeunit 50602 "Create Demo Data"
             Window.Close();
     end;
 
-    local procedure CreateBulkJob(JobNo: Code[20]; Idx: Integer; CustNo: Code[20])
+    local procedure CreateBulkJob(JobNo: Code[20]; JobName: Text[100]; CustNo: Code[20])
     var
         Job: Record Job;
-        Desc: Text[100];
     begin
         DeleteOrphanJobTaskDimensions(JobNo);
         Job.Init();
         Job.SetHideValidationDialog(true);
         Job."No." := JobNo;
-        Desc := 'Demo Bulk Project ' + Format(Idx, 0, '<Integer,4><Filler Character,0>');
-        Job.Description := CopyStr(Desc, 1, MaxStrLen(Job.Description));
+        Job.Description := CopyStr(JobName, 1, MaxStrLen(Job.Description));
         Job.Validate("Sell-to Customer No.", CustNo);
         if not Job.Insert() then
             Job.Modify();
         LogRecord(Database::Job, Job.RecordId(), JobNo + ' - ' + Job.Description);
     end;
 
-    local procedure CreateBulkJobTasks(JobNo: Code[20]; JobStart: Date)
+    local procedure CreateBulkJobTasks(JobNo: Code[20]; JobName: Text[100]; JobStart: Date)
     var
         JT: Record "Job Task";
         Indent: Codeunit "Job Task Indent";
@@ -647,6 +801,7 @@ codeunit 50602 "Create Demo Data"
         DurationWeeks: Integer;
         PhaseCount: Integer;
         TasksPerPhase: Integer;
+        PhaseName: Text[100];
     begin
         // Shrunk from 31 phases x 6 posting tasks (186 posting tasks/job) down to 4 phases x 5
         // posting tasks = 20 posting tasks/job, for the small demo dataset. Phase spacing (3 weeks
@@ -659,25 +814,26 @@ codeunit 50602 "Create Demo Data"
         JobEnd := CalcDate(StrSubstNo('+%1W', (PhaseCount - 1) * 3 + 8), JobStart);
         JT."Job No." := JobNo;
 
-        AddTask(JT, '00000', 'Bulk Project', JobStart, JobEnd, JT."Job Task Type"::Heading);
+        AddTask(JT, '00000', JobName, JobStart, JobEnd, JT."Job Task Type"::Heading);
 
         for Phase := 1 to PhaseCount do begin
             PhaseStart := CalcDate(StrSubstNo('+%1W', (Phase - 1) * 3), JobStart);
             PhaseEnd := CalcDate('+8W', PhaseStart);
-            AddTask(JT, PadPhaseNo(Phase * 1000), StrSubstNo('Phase %1', Phase), PhaseStart, PhaseEnd, JT."Job Task Type"::"Begin-Total");
+            PhaseName := GetJobPhaseName(Phase);
+            AddTask(JT, PadPhaseNo(Phase * 1000), PhaseName, PhaseStart, PhaseEnd, JT."Job Task Type"::"Begin-Total");
 
             for Task := 1 to TasksPerPhase do begin
                 PostStart := CalcDate(StrSubstNo('+%1D', (Task - 1) * 2), PhaseStart);
                 // Minimum 3-week duration, varied 3-6 weeks so bars aren't all identical.
                 DurationWeeks := 3 + ((Phase + Task) mod 4);
                 PostEnd := CalcDate(StrSubstNo('+%1W', DurationWeeks), PostStart);
-                AddTask(JT, PadPhaseNo(Phase * 1000 + Task * 10), StrSubstNo('Phase %1 Task %2', Phase, Task), PostStart, PostEnd, JT."Job Task Type"::Posting);
+                AddTask(JT, PadPhaseNo(Phase * 1000 + Task * 10), GetJobTaskName(Phase, Task, TasksPerPhase), PostStart, PostEnd, JT."Job Task Type"::Posting);
             end;
 
-            AddTask(JT, PadPhaseNo(Phase * 1000 + 999), StrSubstNo('Phase %1 Total', Phase), PhaseStart, PhaseEnd, JT."Job Task Type"::"End-Total");
+            AddTask(JT, PadPhaseNo(Phase * 1000 + 999), CopyStr(PhaseName + ' Total', 1, 100), PhaseStart, PhaseEnd, JT."Job Task Type"::"End-Total");
         end;
 
-        AddTask(JT, PadPhaseNo((PhaseCount + 1) * 1000), 'Bulk Project Total', JobStart, JobEnd, JT."Job Task Type"::Total);
+        AddTask(JT, PadPhaseNo((PhaseCount + 1) * 1000), CopyStr(JobName + ' Total', 1, 100), JobStart, JobEnd, JT."Job Task Type"::Total);
 
         Indent.IndentJobTasks(JT, true);
     end;
@@ -712,6 +868,7 @@ codeunit 50602 "Create Demo Data"
         ProgressLbl: Label 'Creating demo resources...\n#1########## of #2##########';
     begin
         EnsureResourceGroups();
+        CreateDemoVendors();
         LoadReferenceData();
         if gVendorNos.Count() = 0 then begin
             Message(NoVendorsLbl);
@@ -750,6 +907,7 @@ codeunit 50602 "Create Demo Data"
         // Reset round-robin cursors so repeated runs in the same session (SingleInstance
         // codeunit) start from the same rotation instead of drifting further each time.
         gVendorIdx := 0;
+        gDemoVendorIdx := 0;
         gSkillIdx := 0;
         gUOMIdx := 0;
         gGenProdIdx := 0;
@@ -777,6 +935,111 @@ codeunit 50602 "Create Demo Data"
             Window.Close();
 
         AssignForemanTree();
+    end;
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Demo Vendors — 50 fixed real construction/building-industry company names
+    // (DRV001..DRV050), created before LoadReferenceData() so CreateDemoResources()
+    // always has vendors to round-robin through regardless of what Vendor records
+    // already exist in the company. Idempotent insert-or-modify, same shape as UpsertJob -
+    // every logged record is wiped by DeleteDemoData() at the start of the next run anyway.
+    // ──────────────────────────────────────────────────────────────────────────
+
+    local procedure CreateDemoVendors()
+    var
+        Vendor: Record Vendor;
+        GenBusPostingGroup: Record "Gen. Business Posting Group";
+        VATBusPostingGroup: Record "VAT Business Posting Group";
+        VendorPostingGroup: Record "Vendor Posting Group";
+        VendorNames: List of [Text[100]];
+        VendorName: Text[100];
+        VendorNo: Code[20];
+        Idx: Integer;
+        HasGenBusPostingGroup: Boolean;
+        HasVATBusPostingGroup: Boolean;
+        HasVendorPostingGroup: Boolean;
+    begin
+        VendorNames.Add('China State Construction Engineering Corporation');
+        VendorNames.Add('China Railway Group');
+        VendorNames.Add('China Railway Construction Corporation');
+        VendorNames.Add('China Communications Construction Company');
+        VendorNames.Add('VINCI Construction');
+        VendorNames.Add('Bouygues Construction');
+        VendorNames.Add('Hochtief AG');
+        VendorNames.Add('Strabag SE');
+        VendorNames.Add('Grupo ACS');
+        VendorNames.Add('Ferrovial Construction');
+        VendorNames.Add('Skanska AB');
+        VendorNames.Add('Royal BAM Group');
+        VendorNames.Add('Balfour Beatty');
+        VendorNames.Add('Laing O''Rourke');
+        VendorNames.Add('Multiplex Construction');
+        VendorNames.Add('Lendlease Corporation');
+        VendorNames.Add('Kier Group');
+        VendorNames.Add('Turner Construction Company');
+        VendorNames.Add('Bechtel Corporation');
+        VendorNames.Add('Kiewit Corporation');
+        VendorNames.Add('Fluor Corporation');
+        VendorNames.Add('AECOM');
+        VendorNames.Add('Jacobs Engineering Group');
+        VendorNames.Add('KBR Inc.');
+        VendorNames.Add('Whiting-Turner Contracting Company');
+        VendorNames.Add('DPR Construction');
+        VendorNames.Add('Suffolk Construction');
+        VendorNames.Add('Clark Construction Group');
+        VendorNames.Add('McCarthy Building Companies');
+        VendorNames.Add('Hensel Phelps');
+        VendorNames.Add('JE Dunn Construction');
+        VendorNames.Add('Gilbane Building Company');
+        VendorNames.Add('Mortenson Construction');
+        VendorNames.Add('Barton Malow Company');
+        VendorNames.Add('Walsh Group');
+        VendorNames.Add('Brasfield & Gorrie');
+        VendorNames.Add('Austin Industries');
+        VendorNames.Add('Swinerton Builders');
+        VendorNames.Add('Sundt Construction');
+        VendorNames.Add('PCL Constructors');
+        VendorNames.Add('EllisDon Corporation');
+        VendorNames.Add('Pomerleau Inc.');
+        VendorNames.Add('Graham Construction');
+        VendorNames.Add('Bird Construction');
+        VendorNames.Add('Larsen & Toubro Construction');
+        VendorNames.Add('Samsung C&T Corporation');
+        VendorNames.Add('Hyundai Engineering & Construction');
+        VendorNames.Add('GS Engineering & Construction');
+        VendorNames.Add('Obayashi Corporation');
+        VendorNames.Add('Kajima Corporation');
+
+        // Borrow the first existing posting groups, same pattern as EnsureCustomer - we don't
+        // fabricate Gen. Bus./VAT Bus./Vendor Posting Group setup from scratch, since that
+        // cascades into full financial setup that's out of scope here.
+        HasGenBusPostingGroup := GenBusPostingGroup.FindFirst();
+        HasVATBusPostingGroup := VATBusPostingGroup.FindFirst();
+        HasVendorPostingGroup := VendorPostingGroup.FindFirst();
+
+        Clear(gDemoVendorNos);
+        Idx := 0;
+        foreach VendorName in VendorNames do begin
+            Idx += 1;
+            VendorNo := 'DRV' + Format(Idx, 0, '<Integer,3><Filler Character,0>');
+            Vendor.Init();
+            Vendor.Validate("No.", VendorNo);
+            Vendor.Validate(Name, VendorName);
+            if HasGenBusPostingGroup then
+                Vendor.Validate("Gen. Bus. Posting Group", GenBusPostingGroup.Code);
+            if HasVATBusPostingGroup then
+                Vendor.Validate("VAT Bus. Posting Group", VATBusPostingGroup.Code);
+            if HasVendorPostingGroup then
+                Vendor.Validate("Vendor Posting Group", VendorPostingGroup.Code);
+            if not Vendor.Insert(true) then
+                Vendor.Modify(true);
+            LogRecord(Database::Vendor, Vendor.RecordId(), VendorNo + ' ' + Vendor.Name);
+            // Track the demo vendor codes directly (no need to re-query the Vendor table) so
+            // CreatePoolResource() can draw specifically from these 50 construction-company
+            // vendors via GetNextDemoVendor(), instead of the general gVendorNos pool which may
+            // also contain unrelated pre-existing vendors.
+            gDemoVendorNos.Add(VendorNo);
+        end;
     end;
 
     local procedure LoadReferenceData()
@@ -864,6 +1127,20 @@ codeunit 50602 "Create Demo Data"
         gNamesLoaded := true;
     end;
 
+    local procedure EnsureJobNamesLoaded()
+    begin
+        // Lazily load once per session (SingleInstance-style reuse across repeated runs), same
+        // pattern as EnsureNamesLoaded() above - job/site/type names for bulk-job generation,
+        // plus the fixed phase/task name lists reused identically across all bulk jobs.
+        if gJobNamesLoaded then
+            exit;
+        LoadNameList('JobSiteNames.csv', gJobSiteNames);
+        LoadNameList('ProjectTypeNames.csv', gProjectTypeNames);
+        LoadNameList('JobPhaseNames.csv', gJobPhaseNames);
+        LoadNameList('JobTaskNames.csv', gJobTaskNames);
+        gJobNamesLoaded := true;
+    end;
+
     local procedure LoadNameList(ResourceName: Text; var NameList: List of [Text[50]])
     var
         TypeHelper: Codeunit "Type Helper";
@@ -919,14 +1196,33 @@ codeunit 50602 "Create Demo Data"
     local procedure CreatePoolResource() ResNo: Code[20]
     var
         Res: Record Resource;
+        Vendor: Record Vendor;
+        VendorNo: Code[20];
+        ResName: Text[100];
     begin
         gPoolSeq += 1;
         ResNo := 'DRP' + Format(gPoolSeq, 0, '<Integer,3><Filler Character,0>');
+        // Pool resources draw specifically from the DRV* construction-company demo vendors
+        // (GetNextDemoVendor()/gDemoVendorNos), NOT the general vendor pool (GetNextVendor()/
+        // gVendorNos) - the general pool may also contain unrelated pre-existing vendors already
+        // on file in the company, which would otherwise leak into a Pool resource's Name below.
+        VendorNo := GetNextDemoVendor();
+        // A Pool resource represents the vendor/company itself, not an individual worker, so its
+        // Name should read as the Vendor's company name rather than a random person name.
+        // CreateDemoVendors() guarantees 50 demo vendors exist and PoolCount (40) < 50, so this
+        // lookup succeeds for every pool with no duplicate names given the round-robin cursor
+        // starts fresh each run. GetNextName() is kept only as a defensive fallback (e.g. vendor
+        // lookup failing), matching this codeunit's existing style of guarding against missing
+        // master data.
+        if (VendorNo <> '') and Vendor.Get(VendorNo) then
+            ResName := Vendor.Name
+        else
+            ResName := GetNextName();
         Res.Init();
         Res.Validate("No.", ResNo);
         Res.Type := Res.Type::Person;
-        Res.Validate(Name, GetNextName());
-        Res."Vendor No." := GetNextVendor();
+        Res.Validate(Name, ResName);
+        Res."Vendor No." := VendorNo;
         Res."Pool Resource No." := ResNo;
         Res."Is Pool" := true;
         Res."Is Pool Member" := false;
@@ -1064,6 +1360,17 @@ codeunit 50602 "Create Demo Data"
         exit(gVendorNos.Get(((gVendorIdx - 1) mod gVendorNos.Count()) + 1));
     end;
 
+    local procedure GetNextDemoVendor(): Code[20]
+    begin
+        // Round-robins specifically over the 50 DRV* construction-company demo vendors created
+        // by CreateDemoVendors(), NOT the general gVendorNos pool (which may also contain
+        // unrelated pre-existing vendors) - used by CreatePoolResource() only.
+        if gDemoVendorNos.Count() = 0 then
+            exit('');
+        gDemoVendorIdx += 1;
+        exit(gDemoVendorNos.Get(((gDemoVendorIdx - 1) mod gDemoVendorNos.Count()) + 1));
+    end;
+
     local procedure GetNextSkill(): Code[10]
     begin
         if gSkillCodes.Count() = 0 then
@@ -1157,6 +1464,60 @@ codeunit 50602 "Create Demo Data"
         LastNameIndex := PermutedIndex div FirstCount + 1;
 
         exit(CopyStr(gFirstNamesList.Get(FirstNameIndex) + ' ' + gLastNamesList.Get(LastNameIndex), 1, 100));
+    end;
+
+    procedure GetUniqueDemoJobName(SequenceNo: Integer): Text[100]
+    var
+        Counter: BigInteger;
+        Multiplier: BigInteger;
+        TotalCombos: BigInteger;
+        PermutedIndex: BigInteger;
+        SiteCount: Integer;
+        TypeCount: Integer;
+        SiteIndex: Integer;
+        TypeIndex: Integer;
+    begin
+        // Same deterministic/bijective technique as GetUniqueDemoResourceName above, applied to
+        // bulk-job names instead of resource names - a pure function of SequenceNo, so DJB0001
+        // always maps to the same generated name every run (CreateBulkJobs() passes Idx - 1).
+        EnsureJobNamesLoaded();
+
+        SiteCount := gJobSiteNames.Count();
+        TypeCount := gProjectTypeNames.Count();
+        TotalCombos := SiteCount;
+        TotalCombos := TotalCombos * TypeCount;
+
+        // 104729 is prime and larger than the current word-list combo count (84*37=3,108), so it
+        // is guaranteed coprime with TotalCombos (a prime cannot divide a smaller integer) - this
+        // preserves the bijection even if the CSV word lists are expanded later, same reasoning as
+        // the 392453 multiplier used by GetUniqueDemoResourceName for the first/last name lists.
+        Multiplier := 104729;
+        Counter := SequenceNo;
+        PermutedIndex := Counter * Multiplier;
+        PermutedIndex := PermutedIndex mod TotalCombos;
+        SiteIndex := PermutedIndex mod SiteCount + 1;
+        TypeIndex := PermutedIndex div SiteCount + 1;
+
+        exit(CopyStr(gJobSiteNames.Get(SiteIndex) + ' ' + gProjectTypeNames.Get(TypeIndex), 1, 100));
+    end;
+
+    local procedure GetJobPhaseName(Phase: Integer): Text[50]
+    begin
+        EnsureJobNamesLoaded();
+        exit(gJobPhaseNames.Get(((Phase - 1) mod gJobPhaseNames.Count()) + 1));
+    end;
+
+    local procedure GetJobTaskName(Phase: Integer; Task: Integer; TasksPerPhase: Integer): Text[50]
+    var
+        FlatIndex: Integer;
+    begin
+        // Defensive mod wraparound only - with the CSV exactly sized at 4 phases x 5 tasks = 20
+        // rows matching PhaseCount/TasksPerPhase in CreateBulkJobTasks, this always lands in
+        // range, but avoids a crash if PhaseCount/TasksPerPhase changes later without resizing
+        // the CSV.
+        EnsureJobNamesLoaded();
+        FlatIndex := (Phase - 1) * TasksPerPhase + (Task - 1);
+        exit(gJobTaskNames.Get((FlatIndex mod gJobTaskNames.Count()) + 1));
     end;
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -1634,6 +1995,346 @@ codeunit 50602 "Create Demo Data"
     end;
 
     // ──────────────────────────────────────────────────────────────────────────
+    // Work Order Demo Data — one dedicated Job (No. = the shared demo Customer's No., matching
+    // this app's real Work-Order-to-Job convention) with 18 Posting tasks in two groups: 10
+    // Work-Order-linked tasks (custom exact-hours/span Day Planning, tagged with "Work Order No.")
+    // and 8 plain tasks (reuse the existing BuildDayPlanningsForTask weekday-pattern generator).
+    // Plus 3 Order Intakes (DOI0001..DOI0003) and 10 Work Orders (DWO0001..DWO0010, round-robin
+    // linked to the Order Intakes) tying back to the 10 Work-Order-linked Job Tasks.
+    // ──────────────────────────────────────────────────────────────────────────
+
+    local procedure CreateWorkOrderDemoData()
+    var
+        Customer: Record Customer;
+        Job: Record Job;
+        JobNo: Code[20];
+    begin
+        if not Customer.FindFirst() then
+            EnsureCustomer(Customer);
+        JobNo := Customer."No.";
+        UpsertJob(Job, JobNo, 'Work Order Demo Data', Customer."No.");
+        BuildWorkOrderDemoTasks(JobNo);
+        CreateWorkOrderDemoOrderIntakes(Customer."No.", Customer.Name);
+        CreateWorkOrderDemoWorkOrders(JobNo, Customer."No.");
+        CreateWorkOrderLinkedDayPlannings(JobNo);
+        CreateWorkOrderNonLinkedDayPlannings(JobNo);
+    end;
+
+    local procedure BuildWorkOrderDemoTasks(JobNo: Code[20])
+    var
+        JT: Record "Job Task";
+        Indent: Codeunit "Job Task Indent";
+        D1010: Date;
+        D1020: Date;
+        D1030: Date;
+        D1040: Date;
+        D1050: Date;
+        D1060Start: Date;
+        D1060End: Date;
+        D1070Start: Date;
+        D1070End: Date;
+        D1080Start: Date;
+        D1080End: Date;
+        D1090Start: Date;
+        D1090End: Date;
+        D1100Start: Date;
+        D1100End: Date;
+        JobEnd: Date;
+    begin
+        // Single-day/exact-hours candidates and 2-3 day span candidates are all snapped forward
+        // to the next actual working day (Work-Hour Template AND DEMOCAL calendar exceptions,
+        // via IsWorkingDay()) so no point-in-time task ever lands on a day off. Span End dates
+        // are NOT snapped independently - they're simply Start + (span-1) days; the Day Planning
+        // generation loop below skips any non-working days that happen to fall inside the span.
+        D1010 := NextWorkingDayOnOrAfter(CalcDate('+3D', gStartDate));
+        D1020 := NextWorkingDayOnOrAfter(CalcDate('+1W+1D', gStartDate));
+        D1030 := NextWorkingDayOnOrAfter(CalcDate('+1W+3D', gStartDate));
+        D1040 := NextWorkingDayOnOrAfter(CalcDate('+2W', gStartDate));
+        D1050 := NextWorkingDayOnOrAfter(CalcDate('+2W+2D', gStartDate));
+
+        D1060Start := NextWorkingDayOnOrAfter(CalcDate('+3W', gStartDate));
+        D1060End := CalcDate('+1D', D1060Start);
+        D1070Start := NextWorkingDayOnOrAfter(CalcDate('+3W+3D', gStartDate));
+        D1070End := CalcDate('+1D', D1070Start);
+        D1080Start := NextWorkingDayOnOrAfter(CalcDate('+4W', gStartDate));
+        D1080End := CalcDate('+2D', D1080Start);
+        D1090Start := NextWorkingDayOnOrAfter(CalcDate('+4W+4D', gStartDate));
+        D1090End := CalcDate('+2D', D1090Start);
+        D1100Start := NextWorkingDayOnOrAfter(CalcDate('+5W', gStartDate));
+        D1100End := CalcDate('+1D', D1100Start);
+
+        JobEnd := CalcDate('+78W', gStartDate); // covers 2080's end (+62W start + 16W span)
+        JT."Job No." := JobNo;
+
+        AddTask(JT, '0', 'Work Order Demo Data', gStartDate, JobEnd, JT."Job Task Type"::Heading);
+
+        AddTask(JT, '1000', 'Work Order Linked Tasks', D1010, D1100End, JT."Job Task Type"::"Begin-Total");
+        AddTask(JT, '1010', 'Site Safety Walkthrough', D1010, D1010, JT."Job Task Type"::Posting);
+        AddTask(JT, '1020', 'Equipment Inspection', D1020, D1020, JT."Job Task Type"::Posting);
+        AddTask(JT, '1030', 'Material Delivery Check', D1030, D1030, JT."Job Task Type"::Posting);
+        AddTask(JT, '1040', 'Client Progress Review', D1040, D1040, JT."Job Task Type"::Posting);
+        AddTask(JT, '1050', 'Minor Repair Callout', D1050, D1050, JT."Job Task Type"::Posting);
+        AddTask(JT, '1060', 'Punch List Walkthrough', D1060Start, D1060End, JT."Job Task Type"::Posting);
+        AddTask(JT, '1070', 'Utility Locate & Mark', D1070Start, D1070End, JT."Job Task Type"::Posting);
+        AddTask(JT, '1080', 'Snag List Resolution', D1080Start, D1080End, JT."Job Task Type"::Posting);
+        AddTask(JT, '1090', 'Subcontractor Coordination', D1090Start, D1090End, JT."Job Task Type"::Posting);
+        AddTask(JT, '1100', 'Weather Delay Assessment', D1100Start, D1100End, JT."Job Task Type"::Posting);
+        AddTask(JT, '1999', 'Work Order Linked Tasks Total', D1010, D1100End, JT."Job Task Type"::"End-Total");
+
+        AddTask(JT, '2000', 'Extended & Long-Term Tasks', gStartDate, JobEnd, JT."Job Task Type"::"Begin-Total");
+        AddTask(JT, '2010', 'Extended Site Monitoring A', gStartDate, CalcDate('+8D', gStartDate), JT."Job Task Type"::Posting);
+        AddTask(JT, '2020', 'Extended Site Monitoring B', CalcDate('+2W', gStartDate), CalcDate('+2W+6D', gStartDate), JT."Job Task Type"::Posting);
+        AddTask(JT, '2030', 'Phase Handover Documentation A', CalcDate('+4W', gStartDate), CalcDate('+13W', gStartDate), JT."Job Task Type"::Posting);
+        AddTask(JT, '2040', 'Phase Handover Documentation B', CalcDate('+8W', gStartDate), CalcDate('+16W', gStartDate), JT."Job Task Type"::Posting);
+        AddTask(JT, '2050', 'Extended Warranty Support A', CalcDate('+17W', gStartDate), CalcDate('+30W', gStartDate), JT."Job Task Type"::Posting);
+        AddTask(JT, '2060', 'Extended Warranty Support B', CalcDate('+31W', gStartDate), CalcDate('+43W', gStartDate), JT."Job Task Type"::Posting);
+        AddTask(JT, '2070', 'Long-Term Maintenance Contract A', CalcDate('+44W', gStartDate), CalcDate('+61W', gStartDate), JT."Job Task Type"::Posting);
+        AddTask(JT, '2080', 'Long-Term Maintenance Contract B', CalcDate('+62W', gStartDate), JobEnd, JT."Job Task Type"::Posting);
+        AddTask(JT, '2999', 'Extended & Long-Term Tasks Total', gStartDate, JobEnd, JT."Job Task Type"::"End-Total");
+
+        AddTask(JT, '9999', 'Work Order Demo Data Total', gStartDate, JobEnd, JT."Job Task Type"::Total);
+
+        Indent.IndentJobTasks(JT, true);
+    end;
+
+    local procedure NextWorkingDayOnOrAfter(CandidateDate: Date): Date
+    begin
+        // IsWorkingDay() already checks both the Work-Hour Template AND DEMOCAL's calendar
+        // exceptions (holidays + custom demo days-off) - see the OnRun() sequencing fix earlier
+        // this session - so routing every point-in-time date through this guarantees nothing
+        // lands on a day off.
+        while not IsWorkingDay(CandidateDate) do
+            CandidateDate := CalcDate('+1D', CandidateDate);
+        exit(CandidateDate);
+    end;
+
+    local procedure CreateWorkOrderDemoOrderIntakes(CustNo: Code[20]; CustName: Text[100])
+    begin
+        UpsertOrderIntake('DOI0001', CustNo, CustName, gStartDate);
+        UpsertOrderIntake('DOI0002', CustNo, CustName, CalcDate('+1D', gStartDate));
+        UpsertOrderIntake('DOI0003', CustNo, CustName, CalcDate('+2D', gStartDate));
+    end;
+
+    local procedure UpsertOrderIntake(OrderIntakeNo: Code[20]; CustNo: Code[20]; CustName: Text[100]; OrderDate: Date)
+    var
+        OrderIntake: Record "Order Intake Header Opt.";
+    begin
+        // Fixed demo code (not NoSeries.GetNextNo()), idempotent insert-or-modify, same shape as
+        // CreateDemoVendors/UpsertJob elsewhere in this file. NOTE: table_50604's OnInsert trigger
+        // unconditionally sets "Order Date" := Today() whenever it fires (its auto-numbering
+        // branch is skipped here since "No." is already non-blank before Insert) - so "Order Date"
+        // is deliberately set/overridden AFTER Insert via Modify(), not before.
+        if not OrderIntake.Get(OrderIntakeNo) then begin
+            OrderIntake.Init();
+            OrderIntake."No." := OrderIntakeNo;
+            OrderIntake.Insert(true);
+        end;
+        OrderIntake."Customer No." := CustNo;
+        OrderIntake."Customer Name" := CustName;
+        OrderIntake."Order Date" := OrderDate;
+        OrderIntake.Status := OrderIntake.Status::Open;
+        OrderIntake.Modify();
+        LogRecord(Database::"Order Intake Header Opt.", OrderIntake.RecordId(), OrderIntakeNo + ' ' + CustName);
+    end;
+
+    local procedure CreateWorkOrderDemoWorkOrders(JobNo: Code[20]; CustNo: Code[20])
+    var
+        JT: Record "Job Task";
+        TaskNos: array[10] of Code[20];
+        WorkOrderNo: Code[20];
+        OrderIntakeNo: Code[20];
+        Idx: Integer;
+    begin
+        TaskNos[1] := '1010';
+        TaskNos[2] := '1020';
+        TaskNos[3] := '1030';
+        TaskNos[4] := '1040';
+        TaskNos[5] := '1050';
+        TaskNos[6] := '1060';
+        TaskNos[7] := '1070';
+        TaskNos[8] := '1080';
+        TaskNos[9] := '1090';
+        TaskNos[10] := '1100';
+
+        for Idx := 1 to 10 do begin
+            WorkOrderNo := 'DWO' + Format(Idx, 0, '<Integer,4><Filler Character,0>');
+            // Round-robin: WO1-4 -> DOI0001, WO5-7 -> DOI0002, WO8-10 -> DOI0003.
+            case true of
+                Idx <= 4:
+                    OrderIntakeNo := 'DOI0001';
+                Idx <= 7:
+                    OrderIntakeNo := 'DOI0002';
+                else
+                    OrderIntakeNo := 'DOI0003';
+            end;
+            if JT.Get(JobNo, TaskNos[Idx]) then
+                UpsertWorkOrder(WorkOrderNo, OrderIntakeNo, CustNo, JT.Description, JobNo, TaskNos[Idx]);
+        end;
+    end;
+
+    local procedure UpsertWorkOrder(WorkOrderNo: Code[20]; OrderIntakeNo: Code[20]; CustNo: Code[20]; Desc: Text[100]; ProjectNo: Code[20]; ProjectTaskNo: Code[20])
+    var
+        WorkOrder: Record "Work Order";
+    begin
+        // Fixed demo code (not NoSeries.GetNextNo()) - idempotent across reruns, same reasoning as
+        // every other demo entity in this codeunit. "Work Order NOS" (which No. Series was used)
+        // is deliberately left blank since no series was consumed. table_50608's OnInsert trigger
+        // only sets audit fields (Created DateTime/By) and testfields "Work Order No." - no
+        // destructive field overrides to work around here (unlike Order Intake's OnInsert).
+        if not WorkOrder.Get(WorkOrderNo) then begin
+            WorkOrder.Init();
+            WorkOrder."Work Order No." := WorkOrderNo;
+            WorkOrder.Insert(true);
+        end;
+        WorkOrder."Order Intake No." := OrderIntakeNo;
+        WorkOrder.Description := Desc;
+        WorkOrder."Customer No." := CustNo;
+        WorkOrder."Source Type" := WorkOrder."Source Type"::"Order Intake";
+        WorkOrder."Project No." := ProjectNo;
+        WorkOrder."Project Task No." := ProjectTaskNo;
+        WorkOrder.Modify();
+        LogRecord(Database::"Work Order", WorkOrder.RecordId(), WorkOrderNo + ' ' + Desc);
+    end;
+
+    local procedure CreateWorkOrderLinkedDayPlannings(JobNo: Code[20])
+    var
+        JT: Record "Job Task";
+        ResNo: Code[20];
+        WorkOrderNo: Code[20];
+        DT: Date;
+        Hours: Decimal;
+        Idx: Integer;
+        TaskNos: array[10] of Code[20];
+    begin
+        // Single resource (leader-only, no member) throughout this group, per spec - keeps this
+        // custom Work-Order Day Planning generation simple rather than mirroring the full
+        // leader/member pattern used by BuildDayPlanningsForTask below.
+        ResNo := GetRes(7);
+        if ResNo = '' then
+            // No resources at all (e.g. gResCount still 0 for some other reason than the
+            // zero-pre-existing-resources case OnRun() already falls back for) - skip rather than
+            // insert meaningless orphaned-looking rows with a blank Requested/Assigned Resource No.
+            exit;
+        TaskNos[1] := '1010';
+        TaskNos[2] := '1020';
+        TaskNos[3] := '1030';
+        TaskNos[4] := '1040';
+        TaskNos[5] := '1050';
+        TaskNos[6] := '1060';
+        TaskNos[7] := '1070';
+        TaskNos[8] := '1080';
+        TaskNos[9] := '1090';
+        TaskNos[10] := '1100';
+
+        for Idx := 1 to 10 do begin
+            WorkOrderNo := 'DWO' + Format(Idx, 0, '<Integer,4><Filler Character,0>');
+            if not JT.Get(JobNo, TaskNos[Idx]) then
+                continue;
+            case TaskNos[Idx] of
+                '1010':
+                    Hours := 2;
+                '1020':
+                    Hours := 3;
+                '1030':
+                    Hours := 5;
+                '1040':
+                    Hours := 2;
+                '1050':
+                    Hours := 3;
+                else
+                    Hours := 0; // span tasks (1060-1100) use a fixed 8h/working-day below instead
+            end;
+            if Hours > 0 then begin
+                // Single-day/exact-hours group: PlannedStartDate was already snapped to a working
+                // day in BuildWorkOrderDemoTasks (NextWorkingDayOnOrAfter), so no further
+                // IsWorkingDay check is needed here. TryReserveResourceDaySlot enforces the same
+                // "max 3 Day Planning lines/resource/day" cap every other generator in this
+                // codeunit respects (matters if GetRes(7) wraps around and collides with a
+                // JOB001-003 leader on an overlapping early date) - on the rare cap collision this
+                // slot is just silently skipped, same behavior as BuildDayPlanningsForTask's own
+                // per-line cap check, no "weekly guarantee" fallback needed here.
+                if TryReserveResourceDaySlot(ResNo, JT."PlannedStartDate") then
+                    InsertWorkOrderDayPlanning(JT, ResNo, JT."PlannedStartDate", Hours, WorkOrderNo);
+            end else
+                // 2-3 day span group: PlannedStartDate is snapped, but the span may still cross a
+                // non-working day in between (e.g. a DEMOCAL holiday) - skip those explicitly.
+                for DT := JT."PlannedStartDate" to JT."PlannedEndDate" do
+                    if IsWorkingDay(DT) and TryReserveResourceDaySlot(ResNo, DT) then
+                        InsertWorkOrderDayPlanning(JT, ResNo, DT, 8, WorkOrderNo);
+        end;
+    end;
+
+    local procedure InsertWorkOrderDayPlanning(JT: Record "Job Task"; ResNo: Code[20]; DT: Date; Hours: Decimal; WorkOrderNo: Code[20])
+    var
+        DP: Record "Day Planning";
+        PlanSt: Enum "Plan Status";
+        ResGrp: Code[20];
+        StartT: Time;
+        EndT: Time;
+    begin
+        PlanSt := CalcPlanStatus(DT);
+        ResGrp := GetResGrp(ResNo);
+        StartT := 080000T;
+        EndT := StartT + (Hours * 3600000);
+
+        DP.Init();
+        DP."Job No." := JT."Job No.";
+        DP."Job Task No." := JT."Job Task No.";
+        DP."Task Date" := DT;
+        DP."Day Line No." := NextDayLineNo(JT."Job No.", JT."Job Task No.");
+        DP."Plan Status" := PlanSt;
+        DP."Requested Resource No." := ResNo;
+        DP."Start Time Requested" := StartT;
+        DP."End Time Requested" := EndT;
+        DP."Requested Hours" := Hours;
+        DP.Leader := true;
+        DP."Team Leader" := ResNo;
+        DP."Data Owner" := "Data Owner Opt."::"TeamLeader";
+        DP.Description := 'Work Order ' + WorkOrderNo + ': ' + JT.Description;
+        DP.Skill := GetResourceSkill(ResNo);
+        DP."Work Order No." := WorkOrderNo;
+        if PlanSt <> "Plan Status"::"In Request" then begin
+            DP."Assigned Resource No." := ResNo;
+            DP."Resource Group No." := ResGrp;
+            DP."Start Time Assigned" := StartT;
+            DP."End Time Assigned" := EndT;
+            DP."Assigned Hours" := Hours;
+        end;
+        DP."Assigned Pool Resource No." := GetResourcePoolNo(DP);
+        DP.Insert(false);
+        LogRecord(Database::"Day Planning", DP.RecordId(), JT."Job No." + '.' + JT."Job Task No." + ' ' + Format(DT) + ' WO ' + WorkOrderNo);
+    end;
+
+    local procedure CreateWorkOrderNonLinkedDayPlannings(JobNo: Code[20])
+    var
+        JT: Record "Job Task";
+        LeaderRes: Code[20];
+        MemberRes: Code[20];
+        TaskNos: array[8] of Code[20];
+        Idx: Integer;
+    begin
+        // Reuses the existing weekday-pattern/leader-member/3-per-day-cap/weekly-guarantee
+        // generator unmodified (it already routes every date through IsWorkingDay()). Looping
+        // over these 8 Job Task Nos individually - rather than calling BuildDayPlanningsForJob for
+        // this whole Job - deliberately excludes the 10 Work-Order-linked tasks (1010-1100), which
+        // already got their own custom Day Planning rows above and would otherwise be
+        // double-generated/conflicted by BuildDayPlanningsForJob's "Job Task Type::Posting" filter.
+        LeaderRes := GetRes(8);
+        MemberRes := GetRes(9);
+        TaskNos[1] := '2010';
+        TaskNos[2] := '2020';
+        TaskNos[3] := '2030';
+        TaskNos[4] := '2040';
+        TaskNos[5] := '2050';
+        TaskNos[6] := '2060';
+        TaskNos[7] := '2070';
+        TaskNos[8] := '2080';
+        for Idx := 1 to 8 do
+            if JT.Get(JobNo, TaskNos[Idx]) then
+                BuildDayPlanningsForTask(JT, LeaderRes, MemberRes);
+    end;
+
+    // ──────────────────────────────────────────────────────────────────────────
     // Helpers
     // ──────────────────────────────────────────────────────────────────────────
 
@@ -1738,25 +2439,68 @@ codeunit 50602 "Create Demo Data"
     end;
 
     local procedure IsWorkingDay(DT: Date): Boolean
+    var
+        CalendarMgt: Codeunit "Calendar Management";
+        IsTemplateWorkingDay: Boolean;
     begin
+        // Fast path (unchanged behavior): Work-Hour Template weekday flags decide first. Only if
+        // the template says this weekday is normally working do we ALSO check DEMOCAL's
+        // "Base Calendar Change" exceptions (holidays + custom demo days-off) below - a template
+        // non-working day never gets "resurrected" by the calendar.
         case Date2DWY(DT, 1) of
             1:
-                exit(gWorkHoursTemplate.Monday <> 0);
+                IsTemplateWorkingDay := gWorkHoursTemplate.Monday <> 0;
             2:
-                exit(gWorkHoursTemplate.Tuesday <> 0);
+                IsTemplateWorkingDay := gWorkHoursTemplate.Tuesday <> 0;
             3:
-                exit(gWorkHoursTemplate.Wednesday <> 0);
+                IsTemplateWorkingDay := gWorkHoursTemplate.Wednesday <> 0;
             4:
-                exit(gWorkHoursTemplate.Thursday <> 0);
+                IsTemplateWorkingDay := gWorkHoursTemplate.Thursday <> 0;
             5:
-                exit(gWorkHoursTemplate.Friday <> 0);
+                IsTemplateWorkingDay := gWorkHoursTemplate.Friday <> 0;
             6:
-                exit(gWorkHoursTemplate.Saturday <> 0);
+                IsTemplateWorkingDay := gWorkHoursTemplate.Saturday <> 0;
             7:
-                exit(gWorkHoursTemplate.Sunday <> 0);
+                IsTemplateWorkingDay := gWorkHoursTemplate.Sunday <> 0;
             else
-                exit(false);
+                IsTemplateWorkingDay := false;
         end;
+        if not IsTemplateWorkingDay then
+            exit(false);
+
+        EnsureBaseCalendarLoaded();
+        exit(not CalendarMgt.IsNonworkingDay(DT, gCustomizedCalendarChange));
+    end;
+
+    local procedure EnsureBaseCalendarLoaded()
+    var
+        OptimizerSetup: Record "Daily Optimizer Setup";
+        CalendarMgt: Codeunit "Calendar Management";
+    begin
+        // Load DEMOCAL's Base Calendar + combined Customized Calendar Change ONCE and reuse it
+        // across every IsWorkingDay() call (tens of thousands of calls across the ~2-year demo
+        // window x every resource), rather than re-running SetSource per call like
+        // codeunit_50610's ExpectedWeekDay does (that procedure is called far less often, so its
+        // per-call SetSource cost is negligible - not true here). Verified via al_symbolsearch
+        // that Calendar Management.IsNonworkingDay(TargetDate; var CustomizedCalendarChange) only
+        // reads/filters the already-combined CustomizedCalendarChange record by date on each call
+        // - it is not a cursor/stateful API that advances or gets consumed, so calling SetSource
+        // once and reusing the same var record across many IsNonworkingDay calls is the standard,
+        // intended BC pattern (same shape used elsewhere in base app, e.g. delivery date/shipping
+        // agent calendar lookups that call SetSource once then loop CalcDateBOC/IsNonworkingDay).
+        //
+        // Same pattern as gWorkHourTemplateLoaded/EnsureWorkHourTemplate caching, gResourceSkillCache,
+        // gResourcePoolCache, gNamesLoaded elsewhere in this codeunit.
+        if gBaseCalendarLoaded then
+            exit;
+        gBaseCalendarLoaded := true;
+        if not OptimizerSetup.Get() then
+            exit;
+        if OptimizerSetup."Base Calendar" = '' then
+            exit;
+        if not gBaseCalendar.Get(OptimizerSetup."Base Calendar") then
+            exit;
+        CalendarMgt.SetSource(gBaseCalendar, gCustomizedCalendarChange);
     end;
 
     local procedure LogRecord(TableID: Integer; RecID: RecordId; Desc: Text[250])
