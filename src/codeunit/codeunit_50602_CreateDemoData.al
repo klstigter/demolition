@@ -469,14 +469,27 @@ codeunit 50602 "Create Demo Data"
     local procedure EnsureNoSeries(SeriesCode: Code[20]; Desc: Text[100])
     var
         NoSeries: Record "No. Series";
+        NoSeriesLine: Record "No. Series Line";
     begin
-        if NoSeries.Get(SeriesCode) then
-            exit;
-        NoSeries.Init();
-        NoSeries.Code := SeriesCode;
-        NoSeries.Description := Desc;
-        NoSeries."Manual Nos." := true;
-        NoSeries.Insert();
+        if not NoSeries.Get(SeriesCode) then begin
+            NoSeries.Init();
+            NoSeries.Code := SeriesCode;
+            NoSeries.Description := Desc;
+            NoSeries."Manual Nos." := true;
+            NoSeries."Default Nos." := true;
+            NoSeries.Insert();
+        end;
+
+        NoSeriesLine.SetRange("Series Code", SeriesCode);
+        if NoSeriesLine.IsEmpty() then begin
+            NoSeriesLine.Init();
+            NoSeriesLine."Series Code" := SeriesCode;
+            NoSeriesLine."Line No." := 10000;
+            NoSeriesLine."Starting Date" := Today();
+            NoSeriesLine."Starting No." := SeriesCode + '-000001';
+            NoSeriesLine.Open := true;
+            NoSeriesLine.Insert();
+        end;
     end;
 
     local procedure EnsureResourceGroups()
