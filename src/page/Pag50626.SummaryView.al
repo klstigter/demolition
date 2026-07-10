@@ -459,14 +459,14 @@ page 50626 "Summary View"
             StyleStr := 'Attention'
         else
             StyleStr := '';
-        TotalText     := FmtPair(Rec."Total Requested Hours",     Rec."Total Assigned Hours");
-        MondayText    := FmtPair(Rec."Monday Requested Hours",    Rec."Monday Assigned Hours");
-        TuesdayText   := FmtPair(Rec."Tuesday Requested Hours",   Rec."Tuesday Assigned Hours");
+        TotalText := FmtPair(Rec."Total Requested Hours", Rec."Total Assigned Hours");
+        MondayText := FmtPair(Rec."Monday Requested Hours", Rec."Monday Assigned Hours");
+        TuesdayText := FmtPair(Rec."Tuesday Requested Hours", Rec."Tuesday Assigned Hours");
         WednesdayText := FmtPair(Rec."Wednesday Requested Hours", Rec."Wednesday Assigned Hours");
-        ThursdayText  := FmtPair(Rec."Thursday Requested Hours",  Rec."Thursday Assigned Hours");
-        FridayText    := FmtPair(Rec."Friday Requested Hours",    Rec."Friday Assigned Hours");
-        SaturdayText  := FmtPair(Rec."Saturday Requested Hours",  Rec."Saturday Assigned Hours");
-        SundayText    := FmtPair(Rec."Sunday Requested Hours",    Rec."Sunday Assigned Hours");
+        ThursdayText := FmtPair(Rec."Thursday Requested Hours", Rec."Thursday Assigned Hours");
+        FridayText := FmtPair(Rec."Friday Requested Hours", Rec."Friday Assigned Hours");
+        SaturdayText := FmtPair(Rec."Saturday Requested Hours", Rec."Saturday Assigned Hours");
+        SundayText := FmtPair(Rec."Sunday Requested Hours", Rec."Sunday Assigned Hours");
     end;
 
     #region  Procedures
@@ -616,6 +616,8 @@ page 50626 "Summary View"
         Rc: Record "Day Planning";
         dtFilter: Text;
     begin
+        rc.FilterGroup(2);
+
         if not showYear then begin
         end else
             if not ShowWeekNo then begin
@@ -634,16 +636,16 @@ page 50626 "Summary View"
                 end else
                     rc.SetRange("Task Date", DWY2Date(WeekDayNo, rec."Week No.", rec.Year));
 
-        rc.FilterGroup(2);
         if ShowJob then
             rc.SetRange("Job No.", Rec."Job No.");
         if ShowJobTask then
             Rc.SetRange("Job Task No.", Rec."Job Task No.");
         if ShowResource then
-            if ShowRequested then
+            if ShowRequested then begin
                 rc.SetRange("Requested Resource No.", Rec."Resource No.")
-            else
+            end else begin
                 rc.SetRange("Assigned Resource No.", Rec."Resource No.");
+            end;
         if ShowSkillCode then
             rc.SetRange("Skill", Rec."Skill Code");
         //if SHowPlanStatus then

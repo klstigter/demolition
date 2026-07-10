@@ -764,17 +764,10 @@ table 50610 "Day Planning"
     end;
 
     procedure GetNextDayLineNo();
-    var
-        DayPlannings: Record "Day Planning";
-        DayLineNo: Integer;
     begin
-        DayPlannings.SetRange("Job No.", "Job No.");
-        DayPlannings.SetRange("Job Task No.", "Job Task No.");
-        if DayPlannings.FindLast() then
-            DayLineNo := DayPlannings."Day Line No." + 10000
-        else
-            DayLineNo := 10000;
-        Rec."Day Line No." := DayLineNo;
+        Rec.TestField("Job No.");
+        Rec.TestField("Job Task No.");
+        Rec."Day Line No." := GetNextDayLineNo(Rec."Task Date", Rec."Job No.", Rec."Job Task No.");
     end;
 
     local procedure CheckResourceHasSkill(ResNo: Code[20])
@@ -861,15 +854,22 @@ table 50610 "Day Planning"
     procedure GetNextDayLineNo(TaskDay: date; "Job No.": Code[20]; "Job Task No.": Code[20]): Integer
     var
         DayPlanning: Record "Day Planning";
+        CandidateLineNo: Integer;
     begin
         // TaskDay is intentionally unused: DayLineNo must now be unique across
         // all dates for a given (Job No., Job Task No.) per the new PK.
         DayPlanning.SetRange("Job No.", "Job No.");
         DayPlanning.SetRange("Job Task No.", "Job Task No.");
         if DayPlanning.FindLast() then
-            exit(DayPlanning."Day Line No." + 10000)
+            CandidateLineNo := DayPlanning."Day Line No." + 10000
         else
-            exit(10000);
+            CandidateLineNo := 10000;
+
+        // Legacy rows from before the PK change can already occupy this number on another date; skip past them.
+        while DayPlanning.Get("Job No.", "Job Task No.", CandidateLineNo) do
+            CandidateLineNo += 10000;
+
+        exit(CandidateLineNo);
     end;
 
 

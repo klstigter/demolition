@@ -181,7 +181,27 @@ page 50668 "Day Planning Card Opt"
     }
     trigger OnNewRecord(BelowRecord: Boolean)
     begin
+        Rec.FilterGroup(2);
+        if (Rec."Task Date" = 0D) and (Rec.GetFilter("Task Date") <> '') then
+            Rec."Task Date" := Rec.GetRangeMin("Task Date");
+        if (Rec."Job No." = '') and (Rec.GetFilter("Job No.") <> '') then
+            Rec."Job No." := Rec.GetRangeMin("Job No.");
+        if (Rec."Job Task No." = '') and (Rec.GetFilter("Job Task No.") <> '') then
+            Rec."Job Task No." := Rec.GetRangeMin("Job Task No.");
+        if (Rec."Assigned Resource No." = '') and (Rec.GetFilter("Assigned Resource No.") <> '') then begin
+            if Rec.GetRangeMin("Assigned Resource No.") <> '' then
+                Rec.Validate("Assigned Resource No.", Rec.GetRangeMin("Assigned Resource No."));
+        end;
+        if (Rec.Skill = '') and (Rec.GetFilter(Skill) <> '') then
+            Rec.Skill := Rec.GetRangeMin(Skill);
+
+        Rec.FilterGroup(0); // restore the page's filter group pointer
+    end;
+
+    trigger OnInsertRecord(BelowxRec: Boolean): Boolean
+    begin
         rec.GetNextDayLineNo();
+        exit(true);
     end;
 
     var
