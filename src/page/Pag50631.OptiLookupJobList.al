@@ -10,7 +10,6 @@ page 50631 "Opti Lookup Job List"
     AboutText = 'Manage and track projects by organizing tasks, assigning responsibilities, setting billing methods for one or multiple customers, and monitoring project status and invoicing details.';
     QueryCategory = 'Job List';
     SourceTable = Job;
-    UsageCategory = Lists;
     SourceTableTemporary = true;
 
     layout
