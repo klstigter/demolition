@@ -14,8 +14,9 @@ report 50660 "DayPlanning Selection"
 
             trigger OnPreDataItem()
             begin
+                DayPlanning.SetRange(Posted, false);
                 DayPlanning.SetFilter("Assigned Resource No.", '<>%1', '');
-                DayPlanning.SetFilter("Assigned Hours", '<>0');
+                DayPlanning.SetFilter("Realized Hours", '<>0');
                 if TemplateName = '' then
                     Error(TemplateNameMissingErr);
                 if BatchName = '' then
