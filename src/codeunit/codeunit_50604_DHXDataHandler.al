@@ -2121,7 +2121,7 @@ codeunit 50604 "DHX Data Handler"
                                        EndDate: Date)
     var
         Res: record Resource;
-        UniqueResQry: Query "Unique Resource in Capacity";
+        ResListQry: Query "Resource List Sections";
         ResNo: Code[20];
         PoolNo: Code[20];
     begin
@@ -2132,20 +2132,26 @@ codeunit 50604 "DHX Data Handler"
         TempPoolRes.Reset();
         TempPoolRes.DeleteAll();
 
-        // Open the query - it automatically groups by VendorNo giving unique values
-        UniqueResQry.SetRange(EntryDateFilter, StartDate, EndDate);
-        UniqueResQry.SetRange(Resource_Group_No_, ResGroupNo);
-        if UniqueResQry.Open() then begin
-            while UniqueResQry.Read() do begin
+        // Two sequential passes over the same query variable - the include decision is now
+        // pushed down into the query filters instead of an in-loop OR check.
+        // Pass 1: Mandatory Schedulling resources - always shown, unconditional, no date/capacity filter.
+        // Pass 2: non-mandatory resources - only shown if they have at least one capacity entry in range.
+        // Mandatory Schedulling is mutually exclusive between the two passes, so there's no
+        // duplicate-row risk and no need to check TempRes.Get() before deciding to include a row
+        // (the defensive TempRes.Insert() guard below still protects against unexpected dupes).
+
+        // Pass 1 - mandatory resources (unconditional)
+        ResListQry.SetRange(Resource_Group_No_Filter, ResGroupNo);
+        ResListQry.SetRange(MandatoryFilter, true);
+        if ResListQry.Open() then begin
+            while ResListQry.Read() do begin
                 PoolNo := '';
-                ResNo := UniqueResQry.Resource_No_;
+                ResNo := ResListQry.No_;
                 TempRes.Init();
                 TempRes."No." := ResNo;
-                if Res.Get(ResNo) then begin
-                    TempRes.Name := Res.Name;
-                    if res."Pool Resource No." <> '' then
-                        PoolNo := res."Pool Resource No.";
-                end;
+                TempRes.Name := ResListQry.Name;
+                if ResListQry.Pool_Resource_No_ <> '' then
+                    PoolNo := ResListQry.Pool_Resource_No_;
                 TempRes."Pool Resource No." := PoolNo;
                 if TempRes.Insert() then;
 
@@ -2161,7 +2167,39 @@ codeunit 50604 "DHX Data Handler"
                     TempPoolRes.Insert();
                 end;
             end;
-            UniqueResQry.Close();
+            ResListQry.Close();
+        end;
+
+        // Pass 2 - non-mandatory resources, gated on having at least one capacity entry in range
+        ResListQry.SetRange(Resource_Group_No_Filter, ResGroupNo);
+        ResListQry.SetRange(MandatoryFilter, false);
+        ResListQry.SetRange(EntryDateFilter, StartDate, EndDate);
+        ResListQry.SetFilter(CapacityEntryCount, '>0');
+        if ResListQry.Open() then begin
+            while ResListQry.Read() do begin
+                PoolNo := '';
+                ResNo := ResListQry.No_;
+                TempRes.Init();
+                TempRes."No." := ResNo;
+                TempRes.Name := ResListQry.Name;
+                if ResListQry.Pool_Resource_No_ <> '' then
+                    PoolNo := ResListQry.Pool_Resource_No_;
+                TempRes."Pool Resource No." := PoolNo;
+                if TempRes.Insert() then;
+
+                if PoolNo = '' then
+                    PoolNo := TempRes."No.";
+                if Not TempPoolRes.Get(PoolNo) then begin
+                    TempPoolRes.Init();
+                    TempPoolRes."No." := PoolNo;
+                    if Res.Get(PoolNo) then begin
+                        TempPoolRes.Name := Res.Name;
+                        TempPoolRes."Pool Resource No." := Res."Pool Resource No.";
+                    end;
+                    TempPoolRes.Insert();
+                end;
+            end;
+            ResListQry.Close();
         end;
     end;
 
@@ -2170,6 +2208,7 @@ codeunit 50604 "DHX Data Handler"
         ResGroup: record "Resource Group";
         UniqueGroupQry: Query "Unique Group in Capacity";
         UniqueDayPlanningResGroupQry: Query "Unique ResGrp in DayPlannings";
+        MandatoryRes: Record Resource;
         ResGroupNo: Code[20];
 
     begin
@@ -2194,6 +2233,25 @@ codeunit 50604 "DHX Data Handler"
             end;
             UniqueGroupQry.Close();
         end;
+
+        // "Mandatory Schedulling" resources must always render, even with zero capacity entries
+        // in the visible range, so make sure their Resource Group node is included as well - a
+        // group made up entirely of otherwise-empty mandatory resources would never appear here
+        // (query "Unique Group in Capacity" above only returns groups that have capacity entries).
+        MandatoryRes.SetRange("Mandatory Schedulling", true);
+        if MandatoryRes.FindSet() then
+            repeat
+                ResGroupNo := MandatoryRes."Resource Group No.";
+                if not TempResGroup.Get(ResGroupNo) then begin
+                    TempResGroup.Init();
+                    TempResGroup."No." := ResGroupNo;
+                    if ResGroup.Get(ResGroupNo) then
+                        TempResGroup.Name := ResGroup.Name
+                    else
+                        TempResGroup.Name := 'No Group';
+                    TempResGroup.Insert();
+                end;
+            until MandatoryRes.Next() = 0;
 
         if WithDayPlanning then begin
             UniqueDayPlanningResGroupQry.SetRange(TaskDateFilter, StartDate, EndDate);
