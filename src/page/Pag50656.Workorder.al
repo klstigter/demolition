@@ -102,16 +102,17 @@ page 50656 "Work Order Sub"
             action(WorkOrderLines)
             {
                 ApplicationArea = All;
-                Caption = 'Work Order Lines';
-                Image = Lines;
+                Caption = 'Project Planning Lines';
+                Image = PlanningWorksheet;
                 ToolTip = 'Open the material lines for the selected work order.';
                 trigger OnAction()
                 var
-                    WorkOrderLine: Record "Work Order Line";
-                    WorkOrderLinesPage: Page "Work Order Lines";
+                    JobPlanningLines: Record "Job Planning Line";
+                    WorkOrderLinesPage: Page "Job Planning Lines";
                 begin
-                    WorkOrderLine.SetRange("Work Order No.", Rec."Work Order No.");
-                    WorkOrderLinesPage.SetTableView(WorkOrderLine);
+                    JobPlanningLines.SetRange("Job No.", Rec."Project No.");
+                    JobPlanningLines.SetRange("Job Task No.", Rec."Project Task No.");
+                    WorkOrderLinesPage.SetTableView(JobPlanningLines);
                     WorkOrderLinesPage.RunModal();
                     CurrPage.Update(false);
                 end;
