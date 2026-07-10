@@ -145,7 +145,7 @@ table 50608 "Work Order"
         field(300; "Items"; Integer)
         {
             FieldClass = FlowField;
-            CalcFormula = count("Work Order Line" where("Work Order No." = field("Work Order No.")));
+            CalcFormula = count("Job Planning Line" where("Job No." = field("Project No."), "Job Task No." = field("Project Task No.")));
             Editable = false;
         }
 
@@ -248,12 +248,16 @@ table 50608 "Work Order"
 
     trigger OnDelete()
     var
-        WOLine: Record "Work Order Line";
+        OI: Record "Order Intake Header Opt.";
+        JobPlanningLines: Record "Job Planning Line";
         DayPlanning: Record "Day Planning";
     begin
-        WOLine.SetRange("Work Order No.", "Work Order No.");
-        if WOLine.FindSet() then
-            WOLine.DeleteAll(true);
+        if OI.Get("Order Intake No.") then begin
+            JobPlanningLines.SetRange("Job No.", "Project No.");
+            JobPlanningLines.SetRange("Job Task No.", "Project Task No.");
+            if JobPlanningLines.FindSet() then
+                JobPlanningLines.DeleteAll(true);
+        end;
         DayPlanning.SetRange("Work Order No.", "Work Order No.");
         if DayPlanning.FindSet() then
             DayPlanning.DeleteAll(true);
