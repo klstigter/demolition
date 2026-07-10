@@ -121,6 +121,12 @@ page 50662 "Workorder Card"
                 ApplicationArea = All;
                 SubPageLink = "Work Order No." = FIELD("Work Order No.");
             }
+            part(ProjectPlanningLines; "Job Planning Lines Part")
+            {
+                ApplicationArea = All;
+                SubPageLink = "Job No." = FIELD("Project No."), "Job Task No." = FIELD("Project Task No.");
+                Caption = 'Project Planning Lines';
+            }
         }
     }
     actions
