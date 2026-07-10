@@ -195,7 +195,7 @@ page 50612 "Planning Role Center"
                     Caption = 'Work Order Item Pricing';
                     Image = SalesPrices;
                     ApplicationArea = All;
-                    RunObject = page "Work Order Item Pricing";
+                    RunObject = page "Sales Prices";
                     ToolTip = 'Manage item prices for work orders. Prices are applied automatically based on customer, date, and quantity.';
                 }
             }
