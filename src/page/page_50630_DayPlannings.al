@@ -331,6 +331,13 @@ page 50630 "Day Plannings"
                     Editable = false;
                     StyleExpr = StyleStr;
                 }
+                field("Job Ledger Invoice Link"; Rec."Job Ledger Invoice Link")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Indicates whether this day planning line has been linked to a job ledger invoice.';
+                    Editable = false;
+                    StyleExpr = StyleStr;
+                }
             }
         }
         area(FactBoxes)
@@ -434,7 +441,7 @@ page 50630 "Day Plannings"
                 action(PrepareInvoiceLines)
                 {
                     ApplicationArea = All;
-                    Caption = 'Prepare Project Planning Lines for Invoicing';
+                    Caption = 'Transfer to planning line';
                     Image = JobSalesInvoice;
                     ToolTip = 'Creates billable Project Planning Lines, grouped by Skill, from posted Day Planning usage that has not yet been invoiced, for the Job(s)/Job Task(s) of the selected lines.';
                     trigger OnAction()
@@ -466,7 +473,7 @@ page 50630 "Day Plannings"
                 action(PrepareProjPlanningLinesBatch)
                 {
                     ApplicationArea = All;
-                    Caption = 'Prepare Project Planning Lines for Invoicing...';
+                    Caption = 'Transfer to planning line...';
                     Image = JobSalesInvoice;
                     RunObject = report "Prepare Proj. Planning Lines";
                     ToolTip = 'Runs a batch report to prepare Project Planning Lines for invoicing from posted Day Planning usage, with request-page filtering.';
@@ -474,7 +481,7 @@ page 50630 "Day Plannings"
                 action(OpenProjectPlanningLines)
                 {
                     ApplicationArea = All;
-                    Caption = 'Project Planning Lines';
+                    Caption = 'Show linked Project Planning Lines';
                     Image = JobLines;
                     ToolTip = 'Opens the Project Planning Lines that the selected Day Planning lines'' posted usage was rolled into (via Job Ledger Invoice Link).';
                     trigger OnAction()

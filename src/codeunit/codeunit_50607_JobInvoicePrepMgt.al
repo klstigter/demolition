@@ -49,8 +49,10 @@ codeunit 50607 "Job Invoice Prep. Mgt."
     Permissions = tabledata "Job Ledger Entry" = r,
                   tabledata "Day Planning" = r,
                   tabledata "Skill Code" = r,
+                  tabledata "Job" = r,
                   tabledata "Job Planning Line" = rim,
-                  tabledata "Job Ledger Invoice Link" = ri;
+                  tabledata "Job Ledger Invoice Link" = ri,
+                  tabledata "Job Usage Link" = rim;
 
     trigger OnRun()
     begin
@@ -262,12 +264,27 @@ codeunit 50607 "Job Invoice Prep. Mgt."
         exit(ResultText);
     end;
 
+    /// <summary>
+    /// Creates one Job Planning Line for the group, plus a "Job Ledger Invoice Link" row per
+    /// included entry for this feature's own traceability. Also dual-writes a standard BC
+    /// "Job Usage Link" row per entry (Job No./Job Task No./Line No. = the new planning
+    /// line, Entry No. = the usage entry), gated by the Job's own "Apply Usage Link" flag,
+    /// exactly like native BC gates its automatic Job Usage Link creation. This keeps the
+    /// base-app Job Ledger Entries page's "Show Linked Project Planning Lines" action
+    /// working for usage entries this feature invoiced, not just our own custom link table.
+    /// The Job record is fetched once per group (same Job for the whole call), not once per
+    /// entry inside the loop.
+    /// </summary>
     local procedure CreateInvoicePlanningLine(JobNo: Code[20]; JobTaskNo: Code[20]; InvoiceResNo: Code[20]; UOMCode: Code[10]; Hours: Decimal; EntryNos: List of [Integer]; var EntrySkillCode: Dictionary of [Integer, Code[20]])
     var
+        Job: Record Job;
         JobPlanningLine: Record "Job Planning Line";
         JobLedgerInvoiceLink: Record "Job Ledger Invoice Link";
+        JobUsageLink: Record "Job Usage Link";
         EntryNo: Integer;
     begin
+        Job.Get(JobNo);
+
         // Field-validation order deliberately mirrors what a user would do typing a new
         // line manually on the Job Planning Lines page, so BC's own price-resolution logic
         // (resource price list / job price group / work type, etc.) runs exactly as it
@@ -284,6 +301,7 @@ codeunit 50607 "Job Invoice Prep. Mgt."
         if JobPlanningLine."Unit of Measure Code" <> UOMCode then
             JobPlanningLine.Validate("Unit of Measure Code", UOMCode);
         JobPlanningLine.Validate(Quantity, Hours);
+        JobPlanningLine."Usage Link" := true;
         JobPlanningLine.Modify(true);
 
         foreach EntryNo in EntryNos do begin
@@ -294,6 +312,16 @@ codeunit 50607 "Job Invoice Prep. Mgt."
             JobLedgerInvoiceLink."Invoice Job Planning Line No." := JobPlanningLine."Line No.";
             JobLedgerInvoiceLink."Skill Code" := EntrySkillCode.Get(EntryNo);
             JobLedgerInvoiceLink.Insert(true);
+
+            if JobPlanningLine."Usage Link" then
+                if not JobUsageLink.Get(JobPlanningLine."Job No.", JobPlanningLine."Job Task No.", JobPlanningLine."Line No.", EntryNo) then begin
+                    JobUsageLink.Init();
+                    JobUsageLink."Job No." := JobPlanningLine."Job No.";
+                    JobUsageLink."Job Task No." := JobPlanningLine."Job Task No.";
+                    JobUsageLink."Line No." := JobPlanningLine."Line No.";
+                    JobUsageLink."Entry No." := EntryNo;
+                    JobUsageLink.Insert(true);
+                end;
         end;
     end;
 
