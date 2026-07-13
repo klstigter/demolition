@@ -2,7 +2,8 @@ codeunit 50603 "EventSubs"
 {
     Permissions = tabledata "Res. Ledger Entry" = rm,
                   tabledata "Job Ledger Entry" = rm,
-                  tabledata "Day Planning" = m;
+                  tabledata "Day Planning" = m,
+                  tabledata "Job Ledger Invoice Link" = rd;
 
     trigger OnRun()
     begin
@@ -81,6 +82,25 @@ codeunit 50603 "EventSubs"
     local procedure CopyDayPlanningLineNoToSalesCrMemoLine(var SalesCrMemoLine: Record "Sales Cr.Memo Line"; SalesLine: Record "Sales Line")
     begin
         SalesCrMemoLine."Day Planning Line No." := SalesLine."Day Planning Line No.";
+    end;
+
+    // Day-Planning-to-Invoice (Release 1): when a generated invoice planning line is
+    // deleted (BC's own delete logic already allowed it - we react after the fact and
+    // never fight standard BC delete logic here), drop the matching Job Ledger Invoice
+    // Link rows so the underlying usage entries become invoiceable again on the next
+    // "Prepare Invoice Lines" run.
+    [EventSubscriber(ObjectType::Table, Database::"Job Planning Line", 'OnAfterDeleteEvent', '', false, false)]
+    local procedure JobPlanningLine_OnAfterDeleteEvent(var Rec: Record "Job Planning Line"; RunTrigger: Boolean)
+    var
+        JobLedgerInvoiceLink: Record "Job Ledger Invoice Link";
+    begin
+        if Rec.IsTemporary() then
+            exit;
+
+        JobLedgerInvoiceLink.SetRange("Job No.", Rec."Job No.");
+        JobLedgerInvoiceLink.SetRange("Job Task No.", Rec."Job Task No.");
+        JobLedgerInvoiceLink.SetRange("Invoice Job Planning Line No.", Rec."Line No.");
+        JobLedgerInvoiceLink.DeleteAll(false);
     end;
 
     // Vendor No. able to fill in if resource is pool
