@@ -309,72 +309,6 @@ page 50630 "Day Plannings"
                     ToolTip = 'Specifies the work type code.';
                     StyleExpr = StyleStr;
                 }
-
-                field("Qty. Transferred to Invoice"; Rec."Qty. Transferred to Invoice")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the quantity of hours on an unposted sales invoice for this day planning line.';
-                    StyleExpr = StyleStr;
-                }
-                field("Sales Invoice No."; Rec."Sales Invoice No.")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the unposted sales invoice number for this day planning line.';
-                }
-                field("Sales Invoice Line No."; Rec."Sales Invoice Line No.")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the sales invoice line no. for this day planning line.';
-                }
-                field("Qty. Invoiced"; Rec."Qty. Invoiced")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the total quantity invoiced across all posted sales invoices for this day planning line.';
-                    StyleExpr = StyleStr;
-                }
-                field("Posted Sales Invoice No."; Rec."Posted Sales Invoice No.")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the last posted sales invoice number for this day planning line.';
-                }
-                field("Posted Sales Invoice Line No."; Rec."Posted Sales Invoice Line No.")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the last posted sales invoice line no. for this day planning line.';
-                }
-                field("Qty. Transferred to Credit"; Rec."Qty. Transferred to Credit")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the quantity of hours on an unposted sales credit memo for this day planning line.';
-                    StyleExpr = StyleStr;
-                }
-                field("Sales Credit No."; Rec."Sales Credit No.")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the unposted sales credit memo number for this day planning line.';
-                }
-                field("Sales Credit Line No."; Rec."Sales Credit Line No.")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the sales credit memo line no. for this day planning line.';
-                }
-                field("Qty. Credited"; Rec."Qty. Credited")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the total quantity credited across all posted sales credit memos for this day planning line.';
-                    StyleExpr = StyleStr;
-                }
-                field("Posted Sales Credit No."; Rec."Posted Sales Credit No.")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the last posted sales credit memo number for this day planning line.';
-                }
-                field("Posted Sales Credit Line No."; Rec."Posted Sales Credit Line No.")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the last posted sales credit memo line no. for this day planning line.';
-                }
-
             }
         }
         area(FactBoxes)
@@ -482,12 +416,8 @@ page 50630 "Day Plannings"
                     Image = JobSalesInvoice;
                     ToolTip = 'Use a batch job to help you create sales invoices for the selected day planning lines.';
                     trigger OnAction()
-                    var
-                        DayPlanning: Record "Day Planning";
                     begin
-                        CurrPage.SetSelectionFilter(DayPlanning);
-                        REPORT.RunModal(REPORT::"Day Planning Create Invoice", true, false, DayPlanning);
-                        CurrPage.Update(false);
+                        message('This action is not yet implemented.');
                     end;
                 }
                 action(CreateSalesCreditMemo)
@@ -498,12 +428,8 @@ page 50630 "Day Plannings"
                     Image = CreateCreditMemo;
                     ToolTip = 'Use a batch job to create sales credit memos to reverse posted sales invoices for the selected day planning lines.';
                     trigger OnAction()
-                    var
-                        DayPlanning: Record "Day Planning";
                     begin
-                        CurrPage.SetSelectionFilter(DayPlanning);
-                        REPORT.RunModal(REPORT::"Day Planning Create Cr. Memo", true, false, DayPlanning);
-                        CurrPage.Update(false);
+                        message('This action is not yet implemented.');
                     end;
                 }
             }
