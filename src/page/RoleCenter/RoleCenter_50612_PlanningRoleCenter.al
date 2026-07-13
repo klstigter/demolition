@@ -68,6 +68,13 @@ page 50612 "Planning Role Center"
                     RunObject = Page "Job Ledger Invoice Link";
                     ToolTip = 'View the posted usage entries linked to generated invoice planning lines, for traceability.';
                 }
+                action("Job Ledger Entries")
+                {
+                    ApplicationArea = Jobs;
+                    Caption = 'Project Ledger Entries';
+                    RunObject = Page "Job Ledger Entries";
+                    ToolTip = 'View the posted project ledger entries.';
+                }
 
             }
 

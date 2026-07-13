@@ -176,7 +176,7 @@ page 50662 "Workorder Card"
             action(PrepareInvoiceLines)
             {
                 ApplicationArea = All;
-                Caption = 'Prepare Project Planning Lines for Invoicing';
+                Caption = 'Transfer to planning line';
                 Promoted = true;
                 PromotedIsBig = true;
                 PromotedCategory = Process;
