@@ -17,35 +17,35 @@ page 50630 "Day Plannings"
             {
                 Caption = 'Filters';
                 Visible = ShowFIlters;
-                field("Job No. Filter"; GetTableViewFilter(rec.FieldNo("Job No.")))
+                field("Job No. Filter"; GetJobNoFilterText())
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the job number to filter on.';
                     Visible = Not ShowJob;
                     Editable = false;
                 }
-                field("Job Task No. Filter"; GetTableViewFilter(rec.FieldNo("Job Task No.")))
+                field("Job Task No. Filter"; GetJobTaskNoFilterText())
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the job task number to filter on.';
                     Visible = Not ShowJobTask;
                     Editable = false;
                 }
-                field("No. Filter"; GetTableViewFilter(rec.FieldNo("Assigned Resource No.")))
+                field("No. Filter"; GetResourceNoFilterText())
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the task date to filter on.';
+                    ToolTip = 'Specifies the resource number to filter on.';
                     Visible = Not ShowResource;
                     Editable = false;
                 }
-                field("Skill Filter"; GetTableViewFilter(rec.FieldNo("Skill")))
+                field("Skill Filter"; GetSkillFilterText())
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the skill to filter on.';
                     Visible = Not ShowSkill;
                     Editable = false;
                 }
-                field("Plan Status Filter"; GetTableViewFilter(rec.FieldNo("Plan Status")))
+                field("Plan Status Filter"; GetPlanStatusFilterText())
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the planning status to filter on.';
@@ -98,7 +98,7 @@ page 50630 "Day Plannings"
                 field("Task Date"; Rec."Task Date")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the day number in the sequence.';
+                    ToolTip = 'Specifies the date of this day task.';
                     StyleExpr = StyleStr;
                 }
                 field("Work Order No."; Rec."Work Order No.")
@@ -136,7 +136,7 @@ page 50630 "Day Plannings"
                 field("Assigned Hours"; Rec."Assigned Hours")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the number of requested hours for this day task, calculated automatically based on start and end times.';
+                    ToolTip = 'Specifies the number of assigned hours for this day task, calculated automatically based on start and end times.';
                     Editable = true;
                     StyleExpr = StyleStr;
                 }
@@ -152,10 +152,10 @@ page 50630 "Day Plannings"
                     ToolTip = 'Specifies the end time for this day.';
                     StyleExpr = StyleStr;
                 }
-                field("Non Working Hours"; Rec."Non Working Minutes Assigned")
+                field("Non Working Minutes"; Rec."Non Working Minutes Assigned")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the number of non-working hours in a 24-hour period for this day task.';
+                    ToolTip = 'Specifies the non-working minutes within the task period.';
                     StyleExpr = StyleStr;
                 }
 
@@ -309,6 +309,28 @@ page 50630 "Day Plannings"
                     ToolTip = 'Specifies the work type code.';
                     StyleExpr = StyleStr;
                 }
+
+                field(Posted; Rec.Posted)
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Indicates whether the day task has been posted.';
+                    Editable = false;
+                    StyleExpr = StyleStr;
+                }
+                field("Job Ledger Entry No."; Rec."Job Entry No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Link to the job ledger entry number.';
+                    Editable = false;
+                    StyleExpr = StyleStr;
+                }
+                field("Job Resource No."; Rec."Resource Entry No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Link to the resource ledger entry number.';
+                    Editable = false;
+                    StyleExpr = StyleStr;
+                }
             }
         }
         area(FactBoxes)
@@ -347,8 +369,9 @@ page 50630 "Day Plannings"
             {
                 Caption = 'Invoicing';
                 Image = Invoice;
-                actionref(CreateSalesInvoice_Promoted; CreateSalesInvoice) { }
-                actionref(CreateSalesCreditMemo_Promoted; CreateSalesCreditMemo) { }
+                actionref(PrepareInvoiceLines_Promoted; PrepareInvoiceLines) { }
+                actionref(PrepareProjPlanningLinesBatch_Promoted; PrepareProjPlanningLinesBatch) { }
+                actionref(OpenProjectPlanningLines_Promoted; OpenProjectPlanningLines) { }
             }
         }
         area(Processing)
@@ -383,7 +406,7 @@ page 50630 "Day Plannings"
                     CurrPage.SetSelectionFilter(DayPlanning);
                     if DayPlanning.FindSet() then
                         repeat
-                            Rec.CopyRequestedToAssigned();
+                            DayPlanning.CopyRequestedToAssigned();
                             n += 1;
                         until DayPlanning.Next() = 0;
                     message(Lbl, n);
@@ -408,28 +431,92 @@ page 50630 "Day Plannings"
             {
                 Caption = 'Invoicing';
                 Image = Invoice;
-                action(CreateSalesInvoice)
+                action(PrepareInvoiceLines)
                 {
                     ApplicationArea = All;
-                    Caption = 'Create Sales Invoice';
-                    Ellipsis = true;
+                    Caption = 'Prepare Project Planning Lines for Invoicing';
                     Image = JobSalesInvoice;
-                    ToolTip = 'Use a batch job to help you create sales invoices for the selected day planning lines.';
+                    ToolTip = 'Creates billable Project Planning Lines, grouped by Skill, from posted Day Planning usage that has not yet been invoiced, for the Job(s)/Job Task(s) of the selected lines.';
                     trigger OnAction()
+                    var
+                        JobInvoicePrepMgt: Codeunit "Job Invoice Prep. Mgt.";
+                        SelectedDayPlanning: Record "Day Planning";
+                        LinesCreated: Integer;
+                        ProcessedCount: Integer;
+                        AlreadyLinkedCount: Integer;
+                        NotPostedCount: Integer;
+                        SkippedOtherCount: Integer;
+                        NothingSelectedMsg: Label 'Select one or more Day Planning lines first.';
+                        FailedLbl: Label 'Could not prepare invoice lines: %1', Comment = '%1 = error text';
                     begin
-                        message('This action is not yet implemented.');
+                        CurrPage.SetSelectionFilter(SelectedDayPlanning);
+                        if not SelectedDayPlanning.FindSet() then begin
+                            Message(NothingSelectedMsg);
+                            exit;
+                        end;
+
+                        if JobInvoicePrepMgt.TryPrepareInvoiceLinesForSelection(SelectedDayPlanning, LinesCreated, ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount) then
+                            Message(JobInvoicePrepMgt.FormatResultMessage(LinesCreated, ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount))
+                        else
+                            Message('%1\%2',
+                                JobInvoicePrepMgt.FormatResultMessage(LinesCreated, ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount),
+                                StrSubstNo(FailedLbl, GetLastErrorText()));
                     end;
                 }
-                action(CreateSalesCreditMemo)
+                action(PrepareProjPlanningLinesBatch)
                 {
                     ApplicationArea = All;
-                    Caption = 'Create Sales Credit Memo';
-                    Ellipsis = true;
-                    Image = CreateCreditMemo;
-                    ToolTip = 'Use a batch job to create sales credit memos to reverse posted sales invoices for the selected day planning lines.';
+                    Caption = 'Prepare Project Planning Lines for Invoicing...';
+                    Image = JobSalesInvoice;
+                    RunObject = report "Prepare Proj. Planning Lines";
+                    ToolTip = 'Runs a batch report to prepare Project Planning Lines for invoicing from posted Day Planning usage, with request-page filtering.';
+                }
+                action(OpenProjectPlanningLines)
+                {
+                    ApplicationArea = All;
+                    Caption = 'Project Planning Lines';
+                    Image = JobLines;
+                    ToolTip = 'Opens the Project Planning Lines that the selected Day Planning lines'' posted usage was rolled into (via Job Ledger Invoice Link).';
                     trigger OnAction()
+                    var
+                        SelectedDayPlanning: Record "Day Planning";
+                        JobLedgerInvoiceLink: Record "Job Ledger Invoice Link";
+                        JobPlanningLine: Record "Job Planning Line";
+                        JobPlanningLinesPage: Page "Job Planning Lines";
+                        JobNos: List of [Code[20]];
+                        JobTaskNos: List of [Code[20]];
+                        LineNos: List of [Integer];
+                        NothingSelectedMsg: Label 'Select one or more Day Planning lines first.';
+                        NoLinksFoundMsg: Label 'None of the selected Day Planning lines have been rolled into a Project Planning Line yet.';
                     begin
-                        message('This action is not yet implemented.');
+                        CurrPage.SetSelectionFilter(SelectedDayPlanning);
+                        if not SelectedDayPlanning.FindSet() then begin
+                            Message(NothingSelectedMsg);
+                            exit;
+                        end;
+
+                        repeat
+                            if SelectedDayPlanning."Job Entry No." <> 0 then
+                                if JobLedgerInvoiceLink.Get(SelectedDayPlanning."Job Entry No.") then begin
+                                    if not JobNos.Contains(JobLedgerInvoiceLink."Job No.") then
+                                        JobNos.Add(JobLedgerInvoiceLink."Job No.");
+                                    if not JobTaskNos.Contains(JobLedgerInvoiceLink."Job Task No.") then
+                                        JobTaskNos.Add(JobLedgerInvoiceLink."Job Task No.");
+                                    if not LineNos.Contains(JobLedgerInvoiceLink."Invoice Job Planning Line No.") then
+                                        LineNos.Add(JobLedgerInvoiceLink."Invoice Job Planning Line No.");
+                                end;
+                        until SelectedDayPlanning.Next() = 0;
+
+                        if JobNos.Count() = 0 then begin
+                            Message(NoLinksFoundMsg);
+                            exit;
+                        end;
+
+                        JobPlanningLine.SetFilter("Job No.", BuildCodeOrFilter(JobNos));
+                        JobPlanningLine.SetFilter("Job Task No.", BuildCodeOrFilter(JobTaskNos));
+                        JobPlanningLine.SetFilter("Line No.", BuildIntegerOrFilter(LineNos));
+                        JobPlanningLinesPage.SetTableView(JobPlanningLine);
+                        JobPlanningLinesPage.Run();
                     end;
                 }
             }
@@ -438,7 +525,6 @@ page 50630 "Day Plannings"
     var
         StyleOpt: option None,Standard,StandardAccent,Strong,StrongAccent,Attention,AttentionAccent,Favorable,Unfavorable,Ambiguous,Subordinate;
         StyleStr: text;
-        GenUtilties: Codeunit "General Planning Utilities";
         TotAssignedHours: Decimal;
         JobNoDisplay: Text[20];
         JobTaskNoDisplay: Text[20];
@@ -479,20 +565,17 @@ page 50630 "Day Plannings"
     trigger OnNewRecord(BelowxRec: Boolean)
     begin
         if not ShowJob then
-            Rec."Job No." := GetTableViewFilter(rec.FieldNo("Job No."));
+            Rec."Job No." := GetJobNoFilterText();
         if not ShowJobTask then
-            Rec."Job Task No." := GetTableViewFilter(rec.FieldNo("Job Task No."));
+            Rec."Job Task No." := GetJobTaskNoFilterText();
         if not ShowResource then
-            Rec."Assigned Resource No." := GetTableViewFilter(rec.FieldNo("Assigned Resource No."));
+            Rec."Assigned Resource No." := GetResourceNoFilterText();
         if not ShowSkill then
-            Rec.Skill := GetTableViewFilter(rec.FieldNo("Skill"));
+            Rec.Skill := GetSkillFilterText();
 
     end;
 
     trigger OnInsertRecord(BelowxRec: Boolean): Boolean
-
-    var
-        DayNo: Integer;
     begin
         rec."Day Line No." := rec.GetNextDayLineNo(rec."Task Date", rec."Job No.", rec."Job Task No.");
         if Rec."Plan Status" <> Rec."Plan Status"::"In Request" then
@@ -582,21 +665,86 @@ page 50630 "Day Plannings"
         end;
     end;
 
-    local procedure GetTableViewFilter(FieldNo: Integer) fieldFilter: text
+    local procedure BuildCodeOrFilter(var Values: List of [Code[20]]): Text
+    var
+        Value: Code[20];
+        FilterText: Text;
+    begin
+        foreach Value in Values do
+            if FilterText = '' then
+                FilterText := Value
+            else
+                FilterText += '|' + Value;
+        exit(FilterText);
+    end;
+
+    local procedure BuildIntegerOrFilter(var Values: List of [Integer]): Text
+    var
+        Value: Integer;
+        FilterText: Text;
+    begin
+        foreach Value in Values do
+            if FilterText = '' then
+                FilterText := Format(Value)
+            else
+                FilterText += '|' + Format(Value);
+        exit(FilterText);
+    end;
+
+    local procedure StripEmptyFilterMarker(FilterText: Text): Text
+    begin
+        if FilterText = '''''' then
+            exit('');
+        exit(FilterText);
+    end;
+
+    local procedure GetJobNoFilterText(): Text
+    var
+        FilterText: Text;
     begin
         rec.FilterGroup(2);
-        case FieldNo of
-            rec.FieldNo("Job No."):
-                fieldFilter := Rec.GetFilter("Job No.");
-            rec.FieldNo("Job Task No."):
-                fieldFilter := Rec.GetFilter("Job Task No.");
-            rec.FieldNo("Assigned Resource No."):
-                fieldFilter := Rec.GetFilter("Assigned Resource No.");
-            rec.FieldNo("Skill"):
-                fieldFilter := Rec.GetFilter("Skill");
-        end;
+        FilterText := Rec.GetFilter("Job No.");
         rec.FilterGroup(0);
-        if fieldFilter = '''''' then
-            fieldFilter := '';
+        exit(StripEmptyFilterMarker(FilterText));
+    end;
+
+    local procedure GetJobTaskNoFilterText(): Text
+    var
+        FilterText: Text;
+    begin
+        rec.FilterGroup(2);
+        FilterText := Rec.GetFilter("Job Task No.");
+        rec.FilterGroup(0);
+        exit(StripEmptyFilterMarker(FilterText));
+    end;
+
+    local procedure GetResourceNoFilterText(): Text
+    var
+        FilterText: Text;
+    begin
+        rec.FilterGroup(2);
+        FilterText := Rec.GetFilter("Assigned Resource No.");
+        rec.FilterGroup(0);
+        exit(StripEmptyFilterMarker(FilterText));
+    end;
+
+    local procedure GetSkillFilterText(): Text
+    var
+        FilterText: Text;
+    begin
+        rec.FilterGroup(2);
+        FilterText := Rec.GetFilter("Skill");
+        rec.FilterGroup(0);
+        exit(StripEmptyFilterMarker(FilterText));
+    end;
+
+    local procedure GetPlanStatusFilterText(): Text
+    var
+        FilterText: Text;
+    begin
+        rec.FilterGroup(2);
+        FilterText := Rec.GetFilter("Plan Status");
+        rec.FilterGroup(0);
+        exit(StripEmptyFilterMarker(FilterText));
     end;
 }
