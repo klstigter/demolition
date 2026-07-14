@@ -377,7 +377,7 @@ page 50630 "Day Plannings"
                 Caption = 'Invoicing';
                 Image = Invoice;
                 actionref(PrepareInvoiceLines_Promoted; PrepareInvoiceLines) { }
-                actionref(PrepareProjPlanningLinesBatch_Promoted; PrepareProjPlanningLinesBatch) { }
+                // actionref(PrepareProjPlanningLinesBatch_Promoted; PrepareProjPlanningLinesBatch) { }
                 actionref(OpenProjectPlanningLines_Promoted; OpenProjectPlanningLines) { }
             }
         }
@@ -454,6 +454,7 @@ page 50630 "Day Plannings"
                         NotPostedCount: Integer;
                         SkippedOtherCount: Integer;
                         NothingSelectedMsg: Label 'Select one or more Day Planning lines first.';
+                        ConfirmMsg: Label 'Are you sure you want to prepare project planning lines for the %1 selected Day Planning lines?';
                         FailedLbl: Label 'Could not prepare invoice lines: %1', Comment = '%1 = error text';
                     begin
                         CurrPage.SetSelectionFilter(SelectedDayPlanning);
@@ -461,6 +462,9 @@ page 50630 "Day Plannings"
                             Message(NothingSelectedMsg);
                             exit;
                         end;
+
+                        if not Confirm(ConfirmMsg, false, SelectedDayPlanning.Count) then
+                            exit;
 
                         if JobInvoicePrepMgt.TryPrepareInvoiceLinesForSelection(SelectedDayPlanning, LinesCreated, ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount) then
                             Message(JobInvoicePrepMgt.FormatResultMessage(LinesCreated, ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount))
@@ -470,14 +474,14 @@ page 50630 "Day Plannings"
                                 StrSubstNo(FailedLbl, GetLastErrorText()));
                     end;
                 }
-                action(PrepareProjPlanningLinesBatch)
-                {
-                    ApplicationArea = All;
-                    Caption = 'Transfer to planning line...';
-                    Image = JobSalesInvoice;
-                    RunObject = report "Prepare Proj. Planning Lines";
-                    ToolTip = 'Runs a batch report to prepare Project Planning Lines for invoicing from posted Day Planning usage, with request-page filtering.';
-                }
+                // action(PrepareProjPlanningLinesBatch)
+                // {
+                //     ApplicationArea = All;
+                //     Caption = 'Transfer to planning line...';
+                //     Image = JobSalesInvoice;
+                //     RunObject = report "Prepare Proj. Planning Lines";
+                //     ToolTip = 'Runs a batch report to prepare Project Planning Lines for invoicing from posted Day Planning usage, with request-page filtering.';
+                // }
                 action(OpenProjectPlanningLines)
                 {
                     ApplicationArea = All;

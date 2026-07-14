@@ -1,6 +1,6 @@
-page 50660 "DayPlanning Journal"
+page 50660 "Day Planning Journal"
 {
-    Caption = 'DayPlanning Posting';
+    Caption = 'Day Planning Journal';
     PageType = Worksheet;
     SourceTable = "DayPlanning Journal Line";
     UsageCategory = Tasks;
@@ -149,7 +149,7 @@ page 50660 "DayPlanning Journal"
             action(GetDayPlanning)
             {
                 ApplicationArea = Jobs;
-                Caption = 'Get DayPlanning';
+                Caption = 'Get Day Realized';
                 Image = SelectEntries;
                 Promoted = true;
                 PromotedCategory = Process;

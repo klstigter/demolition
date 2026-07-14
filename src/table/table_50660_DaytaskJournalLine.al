@@ -2,8 +2,8 @@ table 50660 "DayPlanning Journal Line"
 {
     Caption = 'DayPlanning Journal Line';
     DataClassification = CustomerContent;
-    LookupPageId = "DayPlanning Journal";
-    DrillDownPageId = "DayPlanning Journal";
+    LookupPageId = "Day Planning Journal";
+    DrillDownPageId = "Day Planning Journal";
 
     fields
     {

@@ -53,11 +53,18 @@ page 50612 "Planning Role Center"
                     RunObject = Page "Day Plannings";
                     ToolTip = 'Open the list of day plannings for the project.';
                 }
+                action("Project Planning Lines")
+                {
+                    ApplicationArea = Jobs;
+                    Caption = 'Project Planning Lines';
+                    RunObject = Page "Job Planning Lines";
+                    ToolTip = 'Open the list of project planning lines for the project.';
+                }
                 action("DayPlanningPosting")
                 {
                     ApplicationArea = Jobs;
-                    Caption = 'DayPlanning Posting';
-                    RunObject = Page "DayPlanning Journal";
+                    Caption = 'Day Planning Journal';
+                    RunObject = Page "Day Planning Journal";
                     Image = PostBatch;
                     ToolTip = 'Open the DayPlanning posting journal to retrieve unposted day Plannings and post them to the project ledger.';
                 }
