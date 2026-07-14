@@ -35,5 +35,10 @@ tableextension 50617 "Opt. Job Journal Line" extends "Job Journal Line"
                 end;
             end;
         }
+        field(50620; Skill; Code[10])
+        {
+            DataClassification = ToBeClassified;
+            tableRelation = "Skill Code";
+        }
     }
 }

@@ -59,6 +59,11 @@ table 50660 "DayPlanning Journal Line"
             DecimalPlaces = 0 : 2;
             BlankZero = true;
         }
+        field(22; Skill; Code[10])
+        {
+            DataClassification = ToBeClassified;
+            tableRelation = "Skill Code";
+        }
         field(30; "Global Dimension 1 Code"; Code[20])
         {
             CaptionClass = '1,1,1';

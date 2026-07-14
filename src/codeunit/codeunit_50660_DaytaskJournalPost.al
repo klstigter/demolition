@@ -95,6 +95,7 @@ codeunit 50660 "DayPlanning Journal Post"
             // DayPlanning traceability — picked up by EventSubs (codeunit 50603) on posting
             JobJnlLine."Opt. DayPlanning Date" := DayPlanningJnlLine."DayPlanning Date";
             JobJnlLine."Opt. DayPlanning Line No." := DayPlanningJnlLine."DayPlanning Line No.";
+            JobJnlLine.Skill := DayPlanningJnlLine.Skill;
             JobJnlLine.Insert(true);
             NextLineNo += 10000;
         until DayPlanningJnlLine.Next() = 0;

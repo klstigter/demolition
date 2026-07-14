@@ -41,6 +41,7 @@ report 50660 "DayPlanning Selection"
                 DayPlanningJnlLine."Job Task No." := DayPlanning."Job Task No.";
                 DayPlanningJnlLine."Resource No." := DayPlanning."Assigned Resource No.";
                 DayPlanningJnlLine."Hours" := DayPlanning."Assigned Hours";
+                DayPlanningJnlLine.Skill := DayPlanning."Skill";
                 FillDimensions(DayPlanningJnlLine, DayPlanning);
                 DayPlanningJnlLine.Insert(true);
                 LinesInserted += 1;
