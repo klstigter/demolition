@@ -107,6 +107,11 @@ page 50660 "DayPlanning Journal"
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the number of assigned hours to post for this Day Planning.';
                 }
+                field("Skill"; Rec.Skill)
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the skill required for this Day Planning.';
+                }
                 field("Global Dimension 1 Code"; Rec."Global Dimension 1 Code")
                 {
                     ApplicationArea = Dimensions;

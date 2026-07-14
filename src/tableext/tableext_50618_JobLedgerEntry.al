@@ -17,5 +17,10 @@ tableextension 50618 "Opt. Job Ledger Entry" extends "Job Ledger Entry"
             DataClassification = CustomerContent;
             Editable = false;
         }
+        field(50620; Skill; Code[10])
+        {
+            DataClassification = ToBeClassified;
+            tableRelation = "Skill Code";
+        }
     }
 }

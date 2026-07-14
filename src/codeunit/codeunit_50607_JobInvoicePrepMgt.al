@@ -301,7 +301,11 @@ codeunit 50607 "Job Invoice Prep. Mgt."
         if JobPlanningLine."Unit of Measure Code" <> UOMCode then
             JobPlanningLine.Validate("Unit of Measure Code", UOMCode);
         JobPlanningLine.Validate(Quantity, Hours);
-        JobPlanningLine."Usage Link" := true;
+        JobPlanningLine."Usage Link" := true; // check Job Card, the setting must be true
+        if not Job."Apply Usage Link" then begin
+            Job."Apply Usage Link" := true; // check Job Card, the setting must be true
+            Job.Modify();
+        end;
         JobPlanningLine.Modify(true);
 
         foreach EntryNo in EntryNos do begin
