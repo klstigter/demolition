@@ -15,14 +15,14 @@ report 50607 "Prepare Proj. Planning Lines"
 
             trigger OnPreDataItem()
             var
-                JobInvoicePrepMgt: Codeunit "Job Invoice Prep. Mgt.";
+                JobInvoicePrepMgt: Codeunit "Job Planning Lines Prep. Mgt.";
                 LinesCreated: Integer;
                 ProcessedCount: Integer;
                 AlreadyLinkedCount: Integer;
                 NotPostedCount: Integer;
                 SkippedOtherCount: Integer;
             begin
-                LinesCreated := JobInvoicePrepMgt.PrepareInvoiceLinesForSelection(DayPlanning, ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount);
+                LinesCreated := JobInvoicePrepMgt.PrepareJobPlanningLinesForSelection(DayPlanning, ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount);
                 Message(JobInvoicePrepMgt.FormatResultMessage(LinesCreated, ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount));
                 CurrReport.Break();
             end;

@@ -184,14 +184,14 @@ page 50662 "Workorder Card"
                 ToolTip = 'Creates billable Project Planning Lines, grouped by Skill, from posted Day Planning usage that has not yet been invoiced.';
                 trigger OnAction()
                 var
-                    JobInvoicePrepMgt: Codeunit "Job Invoice Prep. Mgt.";
+                    JobInvoicePrepMgt: Codeunit "Job Planning Lines Prep. Mgt.";
                     LinesCreated: Integer;
                     ProcessedCount: Integer;
                     AlreadyLinkedCount: Integer;
                     NotPostedCount: Integer;
                     SkippedOtherCount: Integer;
                 begin
-                    LinesCreated := JobInvoicePrepMgt.PrepareInvoiceLines(Rec."Project No.", Rec."Project Task No.", ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount);
+                    LinesCreated := JobInvoicePrepMgt.PrepareJobPlanningLines(Rec."Project No.", Rec."Project Task No.", ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount);
                     CurrPage.Update();
                     Message(JobInvoicePrepMgt.FormatResultMessage(LinesCreated, ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount));
                 end;

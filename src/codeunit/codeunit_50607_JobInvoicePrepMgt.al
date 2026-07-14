@@ -1,6 +1,6 @@
-codeunit 50607 "Job Invoice Prep. Mgt."
+codeunit 50607 "Job Planning Lines Prep. Mgt."
 {
-    // Day-Planning-to-Invoice (Release 1).
+    // Day-Planning-to-JobPlanning (Release 1).
     //
     // Turns posted, not-yet-linked resource usage into billable Job Planning Lines,
     // summarized per Skill's "Invoice Resource No.", and records one "Job Ledger Invoice
@@ -58,8 +58,11 @@ codeunit 50607 "Job Invoice Prep. Mgt."
     begin
     end;
 
+    var
+        DailyOptimizerSetup: record "Daily Optimizer Setup";
+
     /// <summary>
-    /// Prepares billable Job Planning Lines from posted, not-yet-invoiced Day Planning
+    /// Prepares billable Job Planning Lines from posted, not-yet-linked Day Planning
     /// resource usage for the given Job (optionally scoped to one Job Task).
     /// </summary>
     /// <param name="ProcessedCount">Out: number of Day Planning rows successfully grouped into a Project Planning Line.</param>
@@ -67,7 +70,7 @@ codeunit 50607 "Job Invoice Prep. Mgt."
     /// <param name="NotPostedCount">Out: number of rows skipped because they are not (yet) posted to a Job Ledger Entry.</param>
     /// <param name="SkippedOtherCount">Out: number of rows skipped for other reasons (Job Ledger Entry not found, or not Usage/Resource).</param>
     /// <returns>The number of Job Planning Lines created.</returns>
-    procedure PrepareInvoiceLines(JobNo: Code[20]; JobTaskNo: Code[20]; var ProcessedCount: Integer; var AlreadyLinkedCount: Integer; var NotPostedCount: Integer; var SkippedOtherCount: Integer) LinesCreated: Integer
+    procedure PrepareJobPlanningLines(JobNo: Code[20]; JobTaskNo: Code[20]; var ProcessedCount: Integer; var AlreadyLinkedCount: Integer; var NotPostedCount: Integer; var SkippedOtherCount: Integer) LinesCreated: Integer
     var
         DayPlanning: Record "Day Planning";
     begin
@@ -75,13 +78,13 @@ codeunit 50607 "Job Invoice Prep. Mgt."
         if JobTaskNo <> '' then
             DayPlanning.SetRange("Job Task No.", JobTaskNo);
         DayPlanning.SetRange(Posted, true);
-        exit(PrepareInvoiceLinesFromDayPlanning(DayPlanning, ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount));
+        exit(PrepareJobPlanningLinesFromDayPlanning(DayPlanning, ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount));
     end;
 
     /// <summary>
     /// Prepares billable Job Planning Lines from a caller-supplied, already-filtered Day
     /// Planning recordset - e.g. a multi-selection on the Day Plannings list page. Unlike
-    /// PrepareInvoiceLines(JobNo, JobTaskNo), which sweeps every posted Day Planning row
+    /// PrepareJobPlanningLines(JobNo, JobTaskNo), which sweeps every posted Day Planning row
     /// for the Job/Job Task, this only considers the rows present in SelectedDayPlanning.
     /// </summary>
     /// <param name="ProcessedCount">Out: number of Day Planning rows successfully grouped into a Project Planning Line.</param>
@@ -89,24 +92,124 @@ codeunit 50607 "Job Invoice Prep. Mgt."
     /// <param name="NotPostedCount">Out: number of rows skipped because they are not (yet) posted to a Job Ledger Entry.</param>
     /// <param name="SkippedOtherCount">Out: number of rows skipped for other reasons (Job Ledger Entry not found, or not Usage/Resource).</param>
     /// <returns>The number of Job Planning Lines created.</returns>
-    procedure PrepareInvoiceLinesForSelection(var SelectedDayPlanning: Record "Day Planning"; var ProcessedCount: Integer; var AlreadyLinkedCount: Integer; var NotPostedCount: Integer; var SkippedOtherCount: Integer) LinesCreated: Integer
+    procedure PrepareJobPlanningLinesForSelection(var SelectedDayPlanning: Record "Day Planning"; var ProcessedCount: Integer; var AlreadyLinkedCount: Integer; var NotPostedCount: Integer; var SkippedOtherCount: Integer) LinesCreated: Integer
     begin
-        exit(PrepareInvoiceLinesFromDayPlanning(SelectedDayPlanning, ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount));
+        exit(PrepareJobPlanningLinesFromDayPlanning(SelectedDayPlanning, ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount));
     end;
 
     /// <summary>
-    /// Core Pass 1/Pass 2 logic shared by PrepareInvoiceLines and
-    /// PrepareInvoiceLinesForSelection. Operates on whatever recordset the caller has
+    /// Single-batch counterpart to PrepareJobPlanningLines/PrepareJobPlanningLinesForSelection,
+    /// called from codeunit 50608's subscriber on native codeunit "Job Post-Line"'s
+    /// OnBeforeInsertPlLineFromLedgEntry event - i.e. when a user runs the STANDARD
+    /// "Transfer To Planning Lines" action on Job Ledger Entries that trace back to Day
+    /// Planning. Reads Skill directly off the Job Ledger Entry (field "Skill", populated at
+    /// posting time) rather than looking it up via Day Planning, and reuses the same
+    /// grouping/CreateJobPlanningLine Pass 2 as the Day-Planning-driven path.
+    /// </summary>
+    /// <param name="AlreadyLinkedCount">Out: number of entries skipped because a Job Ledger Invoice Link already exists for them.</param>
+    /// <param name="ProcessedCount">Out: number of entries successfully grouped into a Job Planning Line.</param>
+    /// <returns>The number of Job Planning Lines created.</returns>
+    procedure PrepareJobPlanningLinesFromJobLedgerEntry(var JobLedgerEntry: Record "Job Ledger Entry";
+                                                    var JobPlanningLine: Record "Job Planning Line";
+                                                    var AlreadyLinkedCount: Integer;
+                                                    var ProcessedCount: Integer) LinesCreated: Integer
+    var
+        JobLedgerInvoiceLink: Record "Job Ledger Invoice Link";
+        SkillCodeRec: Record "Skill Code";
+        SkillCode: Code[20];
+        InvoiceResNo: Code[20];
+        GroupKey: Text;
+        GroupHours: Dictionary of [Text, Decimal];
+        GroupJobNo: Dictionary of [Text, Code[20]];
+        GroupJobTaskNo: Dictionary of [Text, Code[20]];
+        GroupInvoiceResNo: Dictionary of [Text, Code[20]];
+        GroupUOM: Dictionary of [Text, Code[10]];
+        GroupEntryNos: Dictionary of [Text, List of [Integer]];
+        EntrySkillCode: Dictionary of [Integer, Code[20]];
+        GroupKeys: List of [Text];
+        TempEmptyIntList: List of [Integer];
+        TempIntList: List of [Integer];
+        NoSkillOnDayPlanningErr: Label 'Day Planning %1/%2/%3 has no Skill assigned. Cannot prepare project planning lines.', Comment = '%1 = Job No., %2 = Job Task No., %3 = Day Line No.';
+        SkillCodeNotFoundErr: Label 'Skill Code %1 no longer exists. Cannot prepare project planning lines.', Comment = '%1 = Skill Code';
+        NoInvoiceResourceErr: Label 'Skill %1 has no Invoice Resource No. defined on the Skill Code setup. Set one before preparing project planning lines.', Comment = '%1 = Skill Code';
+    begin
+        if JobLedgerEntry.FindSet() then
+            repeat
+                if JobLedgerInvoiceLink.Get(JobLedgerEntry."Entry No.") then
+                    AlreadyLinkedCount += 1
+                else begin
+                    if (JobLedgerEntry."Entry Type" = JobLedgerEntry."Entry Type"::Usage) and
+                        (JobLedgerEntry.Type = JobLedgerEntry.Type::Resource)
+                    then begin
+                        SkillCode := JobLedgerEntry.Skill;
+                        if SkillCode = '' then begin
+                            DailyOptimizerSetup.Get();
+                            if DailyOptimizerSetup."Default Skill" = '' then
+                                Error(NoSkillOnDayPlanningErr, JobLedgerEntry."Job No.", JobLedgerEntry."Job Task No.", JobLedgerEntry."Opt. DayPlanning Line No.");
+                            SkillCode := DailyOptimizerSetup."Default Skill";
+                        end;
+
+                        if not SkillCodeRec.Get(SkillCode) then
+                            Error(SkillCodeNotFoundErr, SkillCode);
+
+                        InvoiceResNo := SkillCodeRec."Invoice Resource No.";
+                        if InvoiceResNo = '' then
+                            Error(NoInvoiceResourceErr, SkillCode);
+
+                        GroupKey := StrSubstNo('%1|%2|%3|%4',
+                            JobLedgerEntry."Job No.", JobLedgerEntry."Job Task No.",
+                            InvoiceResNo, JobLedgerEntry."Unit of Measure Code");
+
+                        if not GroupHours.ContainsKey(GroupKey) then begin
+                            GroupHours.Add(GroupKey, 0);
+                            GroupJobNo.Add(GroupKey, JobLedgerEntry."Job No.");
+                            GroupJobTaskNo.Add(GroupKey, JobLedgerEntry."Job Task No.");
+                            GroupInvoiceResNo.Add(GroupKey, InvoiceResNo);
+                            GroupUOM.Add(GroupKey, JobLedgerEntry."Unit of Measure Code");
+                            Clear(TempEmptyIntList);
+                            GroupEntryNos.Add(GroupKey, TempEmptyIntList);
+                            GroupKeys.Add(GroupKey);
+                        end;
+
+                        GroupHours.Set(GroupKey, GroupHours.Get(GroupKey) + JobLedgerEntry.Quantity);
+                        TempIntList := GroupEntryNos.Get(GroupKey);
+                        TempIntList.Add(JobLedgerEntry."Entry No.");
+                        GroupEntryNos.Set(GroupKey, TempIntList);
+
+                        if not EntrySkillCode.ContainsKey(JobLedgerEntry."Entry No.") then
+                            EntrySkillCode.Add(JobLedgerEntry."Entry No.", SkillCode);
+
+                        ProcessedCount += 1;
+                    end;
+                end;
+            until JobLedgerEntry.Next() = 0;
+
+        // ── Pass 2: create one Job Planning Line + Link rows per group. ────────────────
+        foreach GroupKey in GroupKeys do begin
+            CreateJobPlanningLine(
+                GroupJobNo.Get(GroupKey), GroupJobTaskNo.Get(GroupKey),
+                GroupInvoiceResNo.Get(GroupKey), GroupUOM.Get(GroupKey), GroupHours.Get(GroupKey),
+                GroupEntryNos.Get(GroupKey), EntrySkillCode, JobPlanningLine);
+            LinesCreated += 1;
+        end;
+
+        exit(LinesCreated);
+    end;
+
+    /// <summary>
+    /// Core Pass 1/Pass 2 logic shared by PrepareJobPlanningLines and
+    /// PrepareJobPlanningLinesForSelection. Operates on whatever recordset the caller has
     /// already filtered into DayPlanning - it only calls FindSet()/Next() on it, it does
     /// not apply any SetRange of its own. ProcessedCount/AlreadyLinkedCount/NotPostedCount/
     /// SkippedOtherCount are out-counters explaining why each candidate row was or was not
     /// included, for a caller-facing breakdown message (see FormatResultMessage).
     /// </summary>
-    local procedure PrepareInvoiceLinesFromDayPlanning(var DayPlanning: Record "Day Planning"; var ProcessedCount: Integer; var AlreadyLinkedCount: Integer; var NotPostedCount: Integer; var SkippedOtherCount: Integer) LinesCreated: Integer
+    local procedure PrepareJobPlanningLinesFromDayPlanning(var DayPlanning: Record "Day Planning"; var ProcessedCount: Integer; var AlreadyLinkedCount: Integer; var NotPostedCount: Integer; var SkippedOtherCount: Integer) LinesCreated: Integer
     var
         JobLedgerEntry: Record "Job Ledger Entry";
         JobLedgerInvoiceLink: Record "Job Ledger Invoice Link";
         SkillCodeRec: Record "Skill Code";
+        CreatedJobPlanningLine: Record "Job Planning Line";
         GroupHours: Dictionary of [Text, Decimal];
         GroupJobNo: Dictionary of [Text, Code[20]];
         GroupJobTaskNo: Dictionary of [Text, Code[20]];
@@ -120,9 +223,9 @@ codeunit 50607 "Job Invoice Prep. Mgt."
         GroupKey: Text;
         SkillCode: Code[20];
         InvoiceResNo: Code[20];
-        NoSkillOnDayPlanningErr: Label 'Day Planning %1/%2/%3 has no Skill assigned. Cannot prepare invoice lines.', Comment = '%1 = Job No., %2 = Job Task No., %3 = Day Line No.';
-        SkillCodeNotFoundErr: Label 'Skill Code %1 no longer exists. Cannot prepare invoice lines.', Comment = '%1 = Skill Code';
-        NoInvoiceResourceErr: Label 'Skill %1 has no Invoice Resource No. defined on the Skill Code setup. Set one before preparing invoice lines.', Comment = '%1 = Skill Code';
+        NoSkillOnDayPlanningErr: Label 'Day Planning %1/%2/%3 has no Skill assigned. Cannot prepare project planning lines.', Comment = '%1 = Job No., %2 = Job Task No., %3 = Day Line No.';
+        SkillCodeNotFoundErr: Label 'Skill Code %1 no longer exists. Cannot prepare project planning lines.', Comment = '%1 = Skill Code';
+        NoInvoiceResourceErr: Label 'Skill %1 has no Invoice Resource No. defined on the Skill Code setup. Set one before preparing project planning lines.', Comment = '%1 = Skill Code';
     begin
         // ── Pass 1: gather candidates, resolve Skill -> Invoice Resource No., group. ────
         // No database writes happen in this pass, so a missing Invoice Resource No.
@@ -132,8 +235,8 @@ codeunit 50607 "Job Invoice Prep. Mgt."
         // "Day Planning"."Job Entry No." (field 151) rather than JobLedgerEntry."Entry No.".
         //
         // DayPlanning is caller-supplied and already filtered (either by JobNo/JobTaskNo/
-        // Posted via PrepareInvoiceLines, or by the caller's own selection via
-        // PrepareInvoiceLinesForSelection). The explicit Posted/"Job Entry No." check below
+        // Posted via PrepareJobPlanningLines, or by the caller's own selection via
+        // PrepareJobPlanningLinesForSelection). The explicit Posted/"Job Entry No." check below
         // is defense-in-depth for the selection path, where a user could have selected rows
         // that aren't actually posted yet - those are silently skipped, same "not a
         // qualifying candidate" semantics used elsewhere in this procedure.
@@ -192,10 +295,10 @@ codeunit 50607 "Job Invoice Prep. Mgt."
 
         // ── Pass 2: create one Job Planning Line + Link rows per group. ────────────────
         foreach GroupKey in GroupKeys do begin
-            CreateInvoicePlanningLine(
+            CreateJobPlanningLine(
                 GroupJobNo.Get(GroupKey), GroupJobTaskNo.Get(GroupKey),
                 GroupInvoiceResNo.Get(GroupKey), GroupUOM.Get(GroupKey), GroupHours.Get(GroupKey),
-                GroupEntryNos.Get(GroupKey), EntrySkillCode);
+                GroupEntryNos.Get(GroupKey), EntrySkillCode, CreatedJobPlanningLine);
             LinesCreated += 1;
         end;
 
@@ -203,7 +306,7 @@ codeunit 50607 "Job Invoice Prep. Mgt."
     end;
 
     /// <summary>
-    /// TryFunction wrapper around PrepareInvoiceLines, for callers that process several
+    /// TryFunction wrapper around PrepareJobPlanningLines, for callers that process several
     /// (Job No., Job Task No.) pairs in one batch (e.g. a multi-selection on the Day
     /// Plannings list) and want one failing pair (typically "Skill has no Invoice Resource
     /// No.") to be caught and reported per-pair instead of aborting the whole batch.
@@ -215,28 +318,28 @@ codeunit 50607 "Job Invoice Prep. Mgt."
     /// still report those on failure (they describe what happened before the error).
     /// </summary>
     [TryFunction]
-    procedure TryPrepareInvoiceLines(JobNo: Code[20]; JobTaskNo: Code[20]; var LinesCreated: Integer; var ProcessedCount: Integer; var AlreadyLinkedCount: Integer; var NotPostedCount: Integer; var SkippedOtherCount: Integer)
+    procedure TryPrepareJobPlanningLines(JobNo: Code[20]; JobTaskNo: Code[20]; var LinesCreated: Integer; var ProcessedCount: Integer; var AlreadyLinkedCount: Integer; var NotPostedCount: Integer; var SkippedOtherCount: Integer)
     begin
-        LinesCreated := PrepareInvoiceLines(JobNo, JobTaskNo, ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount);
+        LinesCreated := PrepareJobPlanningLines(JobNo, JobTaskNo, ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount);
     end;
 
     /// <summary>
-    /// TryFunction wrapper around PrepareInvoiceLinesForSelection, for callers that process
-    /// several (Job No., Job Task No.) pairs from one multi-selection in a single batch and
-    /// want one failing pair (typically "Skill has no Invoice Resource No.") to be caught
-    /// and reported per-pair instead of aborting the whole batch. See
-    /// TryPrepareInvoiceLines's remarks for the Try/rollback semantics (including how the
+    /// TryFunction wrapper around PrepareJobPlanningLinesForSelection, for callers that
+    /// process several (Job No., Job Task No.) pairs from one multi-selection in a single
+    /// batch and want one failing pair (typically "Skill has no Invoice Resource No.") to be
+    /// caught and reported per-pair instead of aborting the whole batch. See
+    /// TryPrepareJobPlanningLines's remarks for the Try/rollback semantics (including how the
     /// counters survive a failed Try), which apply here identically.
     /// </summary>
     [TryFunction]
-    procedure TryPrepareInvoiceLinesForSelection(var SelectedDayPlanning: Record "Day Planning"; var LinesCreated: Integer; var ProcessedCount: Integer; var AlreadyLinkedCount: Integer; var NotPostedCount: Integer; var SkippedOtherCount: Integer)
+    procedure TryPrepareJobPlanningLinesForSelection(var SelectedDayPlanning: Record "Day Planning"; var LinesCreated: Integer; var ProcessedCount: Integer; var AlreadyLinkedCount: Integer; var NotPostedCount: Integer; var SkippedOtherCount: Integer)
     begin
-        LinesCreated := PrepareInvoiceLinesForSelection(SelectedDayPlanning, ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount);
+        LinesCreated := PrepareJobPlanningLinesForSelection(SelectedDayPlanning, ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount);
     end;
 
     /// <summary>
-    /// Builds the shared, human-readable breakdown message for a PrepareInvoiceLines(...)/
-    /// PrepareInvoiceLinesForSelection(...) run: how many Job Planning Lines were created,
+    /// Builds the shared, human-readable breakdown message for a PrepareJobPlanningLines(...)/
+    /// PrepareJobPlanningLinesForSelection(...) run: how many Job Planning Lines were created,
     /// and - unlike a bare line count - why any candidate Day Planning rows were excluded
     /// (already linked / not yet posted / not eligible resource usage). Both page callers
     /// use this so the message text is defined once. Lines are separated with "\", which
@@ -271,14 +374,20 @@ codeunit 50607 "Job Invoice Prep. Mgt."
     /// line, Entry No. = the usage entry), gated by the Job's own "Apply Usage Link" flag,
     /// exactly like native BC gates its automatic Job Usage Link creation. This keeps the
     /// base-app Job Ledger Entries page's "Show Linked Project Planning Lines" action
-    /// working for usage entries this feature invoiced, not just our own custom link table.
+    /// working for usage entries this feature processed, not just our own custom link table.
     /// The Job record is fetched once per group (same Job for the whole call), not once per
     /// entry inside the loop.
+    ///
+    /// JobPlanningLine is an out-parameter: it returns the created, fully-inserted line so
+    /// callers that need it (e.g. PrepareJobPlanningLinesFromJobLedgerEntry, for the native
+    /// "Transfer To Planning Lines" integration) can propagate it back to their own caller.
+    /// If Pass 2 creates more than one line (more than one group), the LAST one created wins
+    /// - by that point every line is already fully inserted regardless, so this is purely
+    /// informational for the caller, not a hand-off of further work.
     /// </summary>
-    local procedure CreateInvoicePlanningLine(JobNo: Code[20]; JobTaskNo: Code[20]; InvoiceResNo: Code[20]; UOMCode: Code[10]; Hours: Decimal; EntryNos: List of [Integer]; var EntrySkillCode: Dictionary of [Integer, Code[20]])
+    local procedure CreateJobPlanningLine(JobNo: Code[20]; JobTaskNo: Code[20]; InvoiceResNo: Code[20]; UOMCode: Code[10]; Hours: Decimal; EntryNos: List of [Integer]; var EntrySkillCode: Dictionary of [Integer, Code[20]]; var JobPlanningLine: Record "Job Planning Line")
     var
         Job: Record Job;
-        JobPlanningLine: Record "Job Planning Line";
         JobLedgerInvoiceLink: Record "Job Ledger Invoice Link";
         JobUsageLink: Record "Job Usage Link";
         EntryNo: Integer;

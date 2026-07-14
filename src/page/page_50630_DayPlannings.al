@@ -446,7 +446,7 @@ page 50630 "Day Plannings"
                     ToolTip = 'Creates billable Project Planning Lines, grouped by Skill, from posted Day Planning usage that has not yet been invoiced, for the Job(s)/Job Task(s) of the selected lines.';
                     trigger OnAction()
                     var
-                        JobInvoicePrepMgt: Codeunit "Job Invoice Prep. Mgt.";
+                        JobInvoicePrepMgt: Codeunit "Job Planning Lines Prep. Mgt.";
                         SelectedDayPlanning: Record "Day Planning";
                         LinesCreated: Integer;
                         ProcessedCount: Integer;
@@ -466,7 +466,7 @@ page 50630 "Day Plannings"
                         if not Confirm(ConfirmMsg, false, SelectedDayPlanning.Count) then
                             exit;
 
-                        if JobInvoicePrepMgt.TryPrepareInvoiceLinesForSelection(SelectedDayPlanning, LinesCreated, ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount) then
+                        if JobInvoicePrepMgt.TryPrepareJobPlanningLinesForSelection(SelectedDayPlanning, LinesCreated, ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount) then
                             Message(JobInvoicePrepMgt.FormatResultMessage(LinesCreated, ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount))
                         else
                             Message('%1\%2',
