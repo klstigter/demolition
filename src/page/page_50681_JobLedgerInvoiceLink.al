@@ -57,6 +57,26 @@ page 50681 "Job Ledger Invoice Link"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the skill that this usage entry originated from, for reporting purposes.';
                 }
+                field("Invoice Job Ledger Entry No."; Rec."Invoice Job Ledger Entry No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the posted Job Ledger Entry that was created for the invoice line that this usage entry was rolled into.';
+
+                    trigger OnDrillDown()
+                    var
+                        JobLedgerEntry: Record "Job Ledger Entry";
+                        JobLedgerEntriesPage: Page "Job Ledger Entries";
+                    begin
+                        if Rec."Invoice Job Ledger Entry No." = 0 then
+                            exit;
+                        if JobLedgerEntry.Get(Rec."Invoice Job Ledger Entry No.") then begin
+                            JobLedgerEntriesPage.SetRecord(JobLedgerEntry);
+                            JobLedgerEntriesPage.SetTableView(JobLedgerEntry);
+                            JobLedgerEntriesPage.Run();
+                        end else
+                            Message('The Job Ledger Entry for the posted invoice could not be found.');
+                    end;
+                }
             }
         }
     }

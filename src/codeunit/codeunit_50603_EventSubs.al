@@ -4,7 +4,10 @@ codeunit 50603 "EventSubs"
                   tabledata "Job Ledger Entry" = rm,
                   tabledata "Day Planning" = rm,
                   tabledata "Job Ledger Invoice Link" = rimd,
-                  tabledata "Job Usage Link" = rd;
+                  tabledata "Job Usage Link" = rd,
+                  tabledata "Sales Invoice Header" = r,
+                  tabledata "Sales Invoice Line" = r,
+                  tabledata "Job Planning Line" = r;
 
     trigger OnRun()
     begin
@@ -70,20 +73,6 @@ codeunit 50603 "EventSubs"
         if JobJournalLine.Type = JobJournalLine.Type::Resource then
             DayPlanning."Resource Entry No." := JobLedgerEntry."Ledger Entry No.";
         DayPlanning.Modify();
-    end;
-
-    // Transfer "Day Planning Line No." from Sales Line to Sales Invoice Line during posting
-    [EventSubscriber(ObjectType::Codeunit, Codeunit::"Sales-Post", 'OnBeforeSalesInvLineInsert', '', false, false)]
-    local procedure CopyDayPlanningLineNoToSalesInvLine(var SalesInvLine: Record "Sales Invoice Line"; SalesLine: Record "Sales Line")
-    begin
-        SalesInvLine."Day Planning Line No." := SalesLine."Day Planning Line No.";
-    end;
-
-    // Transfer "Day Planning Line No." from Sales Line to Sales Cr.Memo Line during posting.
-    [EventSubscriber(ObjectType::Codeunit, Codeunit::"Sales-Post", 'OnBeforeSalesCrMemoLineInsert', '', false, false)]
-    local procedure CopyDayPlanningLineNoToSalesCrMemoLine(var SalesCrMemoLine: Record "Sales Cr.Memo Line"; SalesLine: Record "Sales Line")
-    begin
-        SalesCrMemoLine."Day Planning Line No." := SalesLine."Day Planning Line No.";
     end;
 
     // Day-Planning-to-Invoice (Release 1): when a generated invoice planning line is
@@ -171,6 +160,65 @@ codeunit 50603 "EventSubs"
                 JobLedgerInvoiceLink."Skill Code" := DayPlanning.Skill;
             JobLedgerInvoiceLink.Insert();
         end;
+    end;
+
+    // Day-Planning-to-Invoice (Release 1): when a Job Planning Line is transferred to a
+    // Sales Invoice and that invoice is posted, standard BC creates a new Job Ledger Entry
+    // (Entry Type = Sale) for it. codeunit "Sales-Post"'s OnAfterPostSalesDoc fires once
+    // everything from this posting run exists - the Posted Sales Invoice AND that Sale
+    // entry - so this is the reliable point to correlate them (unlike table 1022 "Job
+    // Planning Line Invoice", whose own "Job Ledger Entry No." field was found to go stale:
+    // its owning row can be deleted and re-inserted by a different part of native posting
+    // logic after the value is written).
+    //
+    // Chain (confirmed by decompiling base app source): "Sales Invoice Line"."Job Contract
+    // Entry No." (field 1002, copied from Sales Line during posting) matches "Job Planning
+    // Line"."Job Contract Entry No." (field 1030) - this is the SAME cross-reference native
+    // code itself uses (see SalesLine.Table.al's own OnValidate logic:
+    // JobPlanningLine.SetCurrentKey("Job Contract Entry No.");
+    // JobPlanningLine.SetRange("Job Contract Entry No.", ...)). Once the originating Job
+    // Planning Line is known, the resulting Job Ledger Entry is found by Entry Type = Sale,
+    // Document No. = the posted invoice's own No., Posting Date = its Posting Date.
+    [EventSubscriber(ObjectType::Codeunit, Codeunit::"Sales-Post", 'OnAfterPostSalesDoc', '', false, false)]
+    local procedure UpdateJobLedgerInvoiceLinkOnAfterPostSalesDoc(var SalesHeader: Record "Sales Header"; var GenJnlPostLine: Codeunit "Gen. Jnl.-Post Line"; SalesShptHdrNo: Code[20]; RetRcpHdrNo: Code[20]; SalesInvHdrNo: Code[20]; SalesCrMemoHdrNo: Code[20]; CommitIsSuppressed: Boolean; InvtPickPutaway: Boolean; var CustLedgerEntry: Record "Cust. Ledger Entry"; WhseShip: Boolean; WhseReceiv: Boolean; PreviewMode: Boolean)
+    var
+        SalesInvoiceHeader: Record "Sales Invoice Header";
+        SalesInvoiceLine: Record "Sales Invoice Line";
+        JobPlanningLine: Record "Job Planning Line";
+        JobLedgerEntry: Record "Job Ledger Entry";
+        JobLedgerInvoiceLink: Record "Job Ledger Invoice Link";
+    begin
+        if SalesInvHdrNo = '' then
+            exit;
+        if not SalesInvoiceHeader.Get(SalesInvHdrNo) then
+            exit;
+
+        SalesInvoiceLine.SetRange("Document No.", SalesInvHdrNo);
+        SalesInvoiceLine.SetFilter("Job Contract Entry No.", '<>%1', 0);
+        if not SalesInvoiceLine.FindSet() then
+            exit;
+
+        repeat
+            JobPlanningLine.SetCurrentKey("Job Contract Entry No.");
+            JobPlanningLine.SetRange("Job Contract Entry No.", SalesInvoiceLine."Job Contract Entry No.");
+            if JobPlanningLine.FindFirst() then begin
+                JobLedgerEntry.SetRange("Job No.", JobPlanningLine."Job No.");
+                JobLedgerEntry.SetRange("Job Task No.", JobPlanningLine."Job Task No.");
+                JobLedgerEntry.SetRange("Entry Type", JobLedgerEntry."Entry Type"::Sale);
+                JobLedgerEntry.SetRange("Document No.", SalesInvHdrNo);
+                JobLedgerEntry.SetRange("Posting Date", SalesInvoiceHeader."Posting Date");
+                if JobLedgerEntry.FindFirst() then begin
+                    JobLedgerInvoiceLink.SetRange("Job No.", JobPlanningLine."Job No.");
+                    JobLedgerInvoiceLink.SetRange("Job Task No.", JobPlanningLine."Job Task No.");
+                    JobLedgerInvoiceLink.SetRange("Invoice Job Planning Line No.", JobPlanningLine."Line No.");
+                    if JobLedgerInvoiceLink.FindSet(true) then
+                        repeat
+                            JobLedgerInvoiceLink."Invoice Job Ledger Entry No." := JobLedgerEntry."Entry No.";
+                            JobLedgerInvoiceLink.Modify();
+                        until JobLedgerInvoiceLink.Next() = 0;
+                end;
+            end;
+        until SalesInvoiceLine.Next() = 0;
     end;
 
     // Vendor No. able to fill in if resource is pool
