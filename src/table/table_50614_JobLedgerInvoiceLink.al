@@ -21,27 +21,23 @@ table 50614 "Job Ledger Invoice Link"
             Caption = 'Job Ledger Entry No.';
             DataClassification = CustomerContent;
             TableRelation = "Job Ledger Entry";
-            Editable = false;
         }
         field(2; "Job No."; Code[20])
         {
             Caption = 'Job No.';
             DataClassification = CustomerContent;
             TableRelation = Job;
-            Editable = false;
         }
         field(3; "Job Task No."; Code[20])
         {
             Caption = 'Job Task No.';
             DataClassification = CustomerContent;
             TableRelation = "Job Task"."Job Task No." where("Job No." = field("Job No."));
-            Editable = false;
         }
         field(4; "Invoice Job Planning Line No."; Integer)
         {
             Caption = 'Invoice Job Planning Line No.';
             DataClassification = CustomerContent;
-            Editable = false;
         }
         field(5; "Skill Code"; Code[20])
         {
@@ -51,8 +47,26 @@ table 50614 "Job Ledger Invoice Link"
             Caption = 'Skill Code';
             DataClassification = CustomerContent;
             TableRelation = "Skill Code";
-            Editable = false;
         }
+        field(20; "Invoice Job Ledger Entry No."; Integer)
+        {
+            // Closes the traceability loop: when the Job Planning Line named by "Invoice
+            // Job Planning Line No." is transferred to a Sales Invoice and that invoice is
+            // posted, standard BC creates a new Job Ledger Entry (Entry Type = Sale). Set
+            // by UpdateJobLedgerInvoiceLinkOnAfterPostSalesDoc in codeunit 50603, which
+            // subscribes to codeunit "Sales-Post"'s OnAfterPostSalesDoc (fires once
+            // everything from that posting run - the Posted Sales Invoice AND the
+            // Job-related Sale entry - exists). Resolved via: Posted Sales Invoice Line's
+            // "Job Contract Entry No." -> matching Job Planning Line (same field) -> Job
+            // Ledger Entry filtered by Entry Type = Sale, Document No., Posting Date. NOT
+            // sourced from table 1022 "Job Planning Line Invoice" - that table's own "Job
+            // Ledger Entry No." was found unreliable (its owning row can be deleted and
+            // re-inserted by native posting logic after the value is written, losing it).
+            Caption = 'Invoice Job Ledger Entry No.';
+            DataClassification = CustomerContent;
+            TableRelation = "Job Ledger Entry";
+        }
+
     }
 
     keys
