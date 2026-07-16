@@ -18,6 +18,16 @@ var _ganttHolidays = {}; // { "YYYY-MM-DD": "Description", ... } loaded from BC 
 var skipTrigger_OnJobTaskUpdated = false;
 var _allTasksCollapsed = false; // toggled by the collapse/expand-all icon in the grid header
 
+// Last task-bar the user clicked on. Used to re-anchor the view on the same task after a
+// full reload cycle (ClearData -> ... -> RenderGantt) instead of trying to restore raw
+// scroll coordinates - two earlier attempts at capturing/restoring gantt.getScrollState()
+// and the resource-panel scrollTop directly (both call-order-correct: capture in
+// ClearData() before gantt.clearAll(), restore in RenderGantt() after its own
+// gantt.render()) were confirmed NOT to work in live user testing. See
+// .claude/agent-memory/al-bc-developer/project_dailyoptimizer.md for that history -
+// don't reattempt raw scroll-coordinate restoration without reading it first.
+var _lastClickedTaskId = null;
+
 // -------------------------------------------------------
 // Loading overlay - shown while a full data (re)load is in progress.
 // Demo data volume (170+ jobs, tens of thousands of tasks/day plannings) can make a full
@@ -899,11 +909,23 @@ window.BOOT = function() {
       }
       if (!onBar) return true;
 
+      // Remember this as the "last clicked task bar" so a subsequent full reload can
+      // re-anchor the view on it (see RenderGantt()/_restoreTaskFocusAfterReload()).
+      // Only recorded for real bar clicks (onBar === true), never grid-row clicks.
+      _lastClickedTaskId = id;
+      console.log("[TaskFocus] Recorded last clicked task:", id);
+
       _ctxShowResources(id);
       return true;
     });
 
     // -------- LINK HOVER TOOLTIP --------
+    // NOTE: onGanttReady fires once, when gantt.init() finishes (this whole block lives
+    // inside BOOT(), which the file's own header comment documents as "runs once"). It is
+    // NOT a per-reload "view has settled" signal, so it is NOT used as the trigger for
+    // restoring task focus after a data refresh - RenderGantt() (which AL calls explicitly
+    // as the last step of every refresh cycle) is the reliable per-reload settle point and
+    // is used instead. See _restoreTaskFocusAfterReload() below.
     gantt.attachEvent("onGanttReady", function() {
       var _currentLinkId = null;
       var _currentLinkHtml = "";
@@ -1412,6 +1434,20 @@ function RecreateGanttLayout(showResourcePanel) {
     // If gantt is already initialized, apply the new layout
     if (gantt.$root) {
       gantt.resetLayout();
+
+      // resetLayout() rebuilds the grid/timeline/resource-panel structure, which drops
+      // scroll position/selection the same way a full data reload does - but this is a
+      // SEPARATE reset path from the ClearData -> ... -> RenderGantt() reload cycle, so
+      // RenderGantt()'s own _restoreTaskFocusAfterReload() call never runs for it. Every
+      // task-bar click triggers the resource panel to show via this exact path (onTaskClick
+      // -> _ctxShowResources -> AL OnShowResourcesForTask -> SetResourcePanelVisibility ->
+      // RecreateGanttLayout), and _lastClickedTaskId is already set to that task's id by
+      // the time we get here (set in onTaskClick before _ctxShowResources is even called),
+      // so re-firing the same restore here re-anchors the view on it instead of leaving the
+      // scroll position wherever resetLayout() left it (typically the top). Safe no-op if
+      // no task was ever clicked (_lastClickedTaskId === null) - see the guard at the top of
+      // _restoreTaskFocusAfterReload() itself.
+      _restoreTaskFocusAfterReload();
     }
 
     console.log("Gantt layout recreated, resource panel:", showResourcePanel ? "visible" : "hidden");
@@ -1471,6 +1507,16 @@ function RenderGantt(pskipTrigger_OnJobTaskUpdated) {
     // Final render after all data loaded
     gantt.render();
 
+    // 📌 Re-anchor the view on the last clicked task bar (identity-based re-focus,
+    // replacing two earlier raw-scroll-coordinate attempts that were confirmed NOT to
+    // work in live testing - see the note on _lastClickedTaskId near the top of this
+    // file). RenderGantt() is the true last step of every refresh cycle (RefreshGantt ->
+    // ClearData -> LoadAllData -> ...LoadProjectData/LoadResourcesData/
+    // LoadDayPlanningsData/LoadLinksData... -> RenderGantt), so firing here - after this
+    // function's own gantt.render() - is the latest point at which the reloaded task
+    // data is guaranteed to be in place.
+    _restoreTaskFocusAfterReload();
+
     // Reset refresh flag
     _isRefreshing = false;
 
@@ -1481,6 +1527,44 @@ function RenderGantt(pskipTrigger_OnJobTaskUpdated) {
   } finally {
     // Always hide, even if render threw, so the overlay never gets stuck.
     _hideGanttLoading();
+  }
+}
+
+// -------------------------------------------------------
+// Re-anchor the view on the last clicked task bar after a full reload, using DHTMLX's own
+// task-identity APIs (gantt.showTask/gantt.selectTask) instead of recomputing scroll
+// coordinates ourselves - two earlier attempts at raw coordinate capture/restore
+// (gantt.getScrollState()/resource-panel scrollTop) were confirmed NOT to work in live
+// user testing despite correct call-order reasoning. See the note on _lastClickedTaskId
+// near the top of this file, and the project memory file, for that history.
+// -------------------------------------------------------
+function _restoreTaskFocusAfterReload() {
+  if (_lastClickedTaskId === null || _lastClickedTaskId === undefined) {
+    console.log("[TaskFocus] No last-clicked task recorded, skipping.");
+    return;
+  }
+
+  console.log("[TaskFocus] Attempting restore for task:", _lastClickedTaskId);
+
+  try {
+    if (!gantt.isTaskExists(_lastClickedTaskId)) {
+      // Task no longer exists in the reloaded dataset (e.g. deleted) - skip silently,
+      // same tolerant style as this file's other reload-guard code.
+      console.log("[TaskFocus] Task no longer exists in reloaded data, skipping.");
+      return;
+    }
+
+    console.log(
+      "[TaskFocus] showTask available:", typeof gantt.showTask === "function",
+      "selectTask available:", typeof gantt.selectTask === "function"
+    );
+
+    if (gantt.showTask) gantt.showTask(_lastClickedTaskId);
+    if (gantt.selectTask) gantt.selectTask(_lastClickedTaskId);
+
+    console.log("[TaskFocus] Called showTask/selectTask for:", _lastClickedTaskId);
+  } catch (e) {
+    console.warn("Restore task focus after reload failed:", e);
   }
 }
 
@@ -1702,7 +1786,7 @@ function ClearData(projectJsonTxt) {
       return;
     }
     _isRefreshing = true; // Will be reset by RenderGantt()
-    
+
     // Clear the DayPlannings index first
     if (window.DayPlanningsByTask) {
       window.DayPlanningsByTask = Object.create(null);
@@ -1763,6 +1847,9 @@ function LoadProjectData(projectJsonTxt) {
 
     var payload = _tryParseJson(projectJsonTxt);
     if (!payload) {
+      // An empty payload means zero task bars to focus on - RenderGantt() (called after
+      // this, regardless of this branch) will still run _restoreTaskFocusAfterReload(),
+      // which is a harmless no-op if the last-clicked task isn't in this (empty) dataset.
       console.warn("LoadProjectData: empty payload");
       gantt.silent(function () {
         gantt.clearAll();
@@ -1803,6 +1890,7 @@ function LoadProjectData(projectJsonTxt) {
       if (gantt.setSizes) gantt.setSizes();
       if (gantt.resetLayout) gantt.resetLayout();
     });
+
     // Deferred events from gantt.silent() fire synchronously at this point.
     // Use a 500 ms window (instead of 0) so that async auto-scheduling cascades
     // triggered by the subsequent LoadLinksData / RenderGantt calls are also
