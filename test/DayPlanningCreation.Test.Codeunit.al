@@ -47,7 +47,11 @@ codeunit 60020 "Day Planning Creation Tests"
         OptimizerSetup."Base Calendar" := TestBaseCalendarCode;
         OptimizerSetup.Modify();
 
-        // [GIVEN] A Work-Hour Template with default start/end time and non working minutes
+        // [GIVEN] A Work-Hour Template with default start/end time, non working minutes, and
+        // Monday..Friday active (hours > 0)/Saturday-Sunday inactive (0) - the "normal business
+        // hours" default most tests can reuse as-is. IsActiveWorkDay (codeunit 50610) reads these
+        // per-weekday hours fields directly - this replaced the old Day 1..Day 7 boolean pattern
+        // fields on Day Planning Pattern, which are now gone.
         if not WorkHourTemplate.Get(TestWorkHourTemplateCode) then begin
             WorkHourTemplate.Init();
             WorkHourTemplate.Code := TestWorkHourTemplateCode;
@@ -57,6 +61,13 @@ codeunit 60020 "Day Planning Creation Tests"
         WorkHourTemplate."Default Start Time" := 080000T;
         WorkHourTemplate."Default End Time" := 170000T;
         WorkHourTemplate."Non Working Minutes" := 30;
+        WorkHourTemplate.Monday := 8;
+        WorkHourTemplate.Tuesday := 8;
+        WorkHourTemplate.Wednesday := 8;
+        WorkHourTemplate.Thursday := 8;
+        WorkHourTemplate.Friday := 8;
+        WorkHourTemplate.Saturday := 0;
+        WorkHourTemplate.Sunday := 0;
         WorkHourTemplate.Modify();
 
         // [GIVEN] A Job + Job Task to attach Day Planning Pattern / Day Planning records to
@@ -116,6 +127,69 @@ codeunit 60020 "Day Planning Creation Tests"
             SkillCode.Insert();
         end;
         exit(Code10);
+    end;
+
+    /// <summary>
+    /// A Work-Hour Template with ONLY Monday active (hours > 0), every other weekday 0/blank.
+    /// Used by tests that need to prove weekday-exclusivity (only Monday qualifies), which the
+    /// shared default TestWorkHourTemplateCode (Mon-Fri all active) can no longer isolate on its own.
+    /// </summary>
+    local procedure CreateMondayOnlyWorkHourTemplate(): Code[20]
+    var
+        WorkHourTemplate: Record "Work-Hour Template";
+        TemplateCode: Code[20];
+    begin
+        TemplateCode := 'DPCTWHTMO';
+        if not WorkHourTemplate.Get(TemplateCode) then begin
+            WorkHourTemplate.Init();
+            WorkHourTemplate.Code := TemplateCode;
+            WorkHourTemplate.Description := 'Day Planning Creation Test WHT - Monday Only';
+            WorkHourTemplate.Insert();
+        end;
+        WorkHourTemplate."Default Start Time" := 080000T;
+        WorkHourTemplate."Default End Time" := 170000T;
+        WorkHourTemplate."Non Working Minutes" := 30;
+        WorkHourTemplate.Monday := 8;
+        WorkHourTemplate.Tuesday := 0;
+        WorkHourTemplate.Wednesday := 0;
+        WorkHourTemplate.Thursday := 0;
+        WorkHourTemplate.Friday := 0;
+        WorkHourTemplate.Saturday := 0;
+        WorkHourTemplate.Sunday := 0;
+        WorkHourTemplate.Modify();
+        exit(TemplateCode);
+    end;
+
+    /// <summary>
+    /// A Work-Hour Template with ONLY Tuesday active (hours > 0), every other weekday - including
+    /// Monday - 0/blank. Used by the "day not checked as weekday" test: mirrors the original
+    /// "Day 1 (Monday) unchecked / Day 2 (Tuesday) checked but out of range" scenario now that
+    /// weekday-activity comes from the template instead of the removed Day 1..Day 7 booleans.
+    /// </summary>
+    local procedure CreateTuesdayOnlyWorkHourTemplate(): Code[20]
+    var
+        WorkHourTemplate: Record "Work-Hour Template";
+        TemplateCode: Code[20];
+    begin
+        TemplateCode := 'DPCTWHTTU';
+        if not WorkHourTemplate.Get(TemplateCode) then begin
+            WorkHourTemplate.Init();
+            WorkHourTemplate.Code := TemplateCode;
+            WorkHourTemplate.Description := 'Day Planning Creation Test WHT - Tuesday Only';
+            WorkHourTemplate.Insert();
+        end;
+        WorkHourTemplate."Default Start Time" := 080000T;
+        WorkHourTemplate."Default End Time" := 170000T;
+        WorkHourTemplate."Non Working Minutes" := 30;
+        WorkHourTemplate.Monday := 0;
+        WorkHourTemplate.Tuesday := 8;
+        WorkHourTemplate.Wednesday := 0;
+        WorkHourTemplate.Thursday := 0;
+        WorkHourTemplate.Friday := 0;
+        WorkHourTemplate.Saturday := 0;
+        WorkHourTemplate.Sunday := 0;
+        WorkHourTemplate.Modify();
+        exit(TemplateCode);
     end;
 
     /// <summary>
@@ -198,7 +272,8 @@ codeunit 60020 "Day Planning Creation Tests"
         EndDate: Date;
         DayCount: Integer;
     begin
-        // [GIVEN] Clean state and a pattern covering a known Monday..Friday range with Day 1-5 checked
+        // [GIVEN] Clean state and a pattern covering a known Monday..Friday range, using the shared
+        // default Work-Hour Template (TestWorkHourTemplateCode) which has Monday..Friday active.
         Initialize();
         ClearDayPlanningsFor(TestJobNo, TestJobTaskNo);
 
@@ -208,11 +283,6 @@ codeunit 60020 "Day Planning Creation Tests"
         CreateBaseDayPlanningPattern(DayPlanningPattern, 10000);
         DayPlanningPattern."Start Date" := StartDate;
         DayPlanningPattern."End Date" := EndDate;
-        DayPlanningPattern."Day 1" := true;
-        DayPlanningPattern."Day 2" := true;
-        DayPlanningPattern."Day 3" := true;
-        DayPlanningPattern."Day 4" := true;
-        DayPlanningPattern."Day 5" := true;
         DayPlanningPattern.Insert();
 
         // [WHEN] CreateDayPlanning is called
@@ -222,7 +292,7 @@ codeunit 60020 "Day Planning Creation Tests"
         DayPlanning.SetRange("Job No.", TestJobNo);
         DayPlanning.SetRange("Job Task No.", TestJobTaskNo);
         DayCount := DayPlanning.Count();
-        AssertAreEqual(5, DayCount, 'Expected exactly 5 Day Planning records for a Mon-Fri pattern with Day 1-5 checked.');
+        AssertAreEqual(5, DayCount, 'Expected exactly 5 Day Planning records for a Mon-Fri pattern with Mon-Fri active in the Work-Hour Template.');
 
         DayPlanning.SetRange("Task Date", StartDate);
         AssertIsTrue(DayPlanning.FindFirst(), 'Expected a Day Planning record on the pattern start date.');
@@ -243,16 +313,18 @@ codeunit 60020 "Day Planning Creation Tests"
         SingleDay: Date;
         DayCount: Integer;
     begin
-        // [GIVEN] A pattern for a single qualifying day with Quantity of Lines = 2
+        // [GIVEN] A pattern for a single qualifying day with Quantity of Lines = 2. Uses a dedicated
+        // Monday-only Work-Hour Template so the "single qualifying day" scenario stays isolated
+        // (the shared default template now has all of Mon-Fri active).
         Initialize();
         ClearDayPlanningsFor(TestJobNo, TestJobTaskNo);
 
         SingleDay := GetKnownMonday();
 
         CreateBaseDayPlanningPattern(DayPlanningPattern, 10000);
+        DayPlanningPattern."Work-Hour Template" := CreateMondayOnlyWorkHourTemplate();
         DayPlanningPattern."Start Date" := SingleDay;
         DayPlanningPattern."End Date" := SingleDay;
-        DayPlanningPattern."Day 1" := true; // Monday only
         DayPlanningPattern."Quantity of Lines" := 2;
         DayPlanningPattern.Insert();
 
@@ -297,7 +369,6 @@ codeunit 60020 "Day Planning Creation Tests"
         CreateBaseDayPlanningPattern(DayPlanningPattern, 10000);
         DayPlanningPattern."Start Date" := SingleDay;
         DayPlanningPattern."End Date" := SingleDay;
-        DayPlanningPattern."Day 1" := true;
         DayPlanningPattern."Quantity of Lines" := 3;
         DayPlanningPattern."Vendor No." := Vendor."No.";
         DayPlanningPattern.Insert();
@@ -335,7 +406,6 @@ codeunit 60020 "Day Planning Creation Tests"
         DayPlanningPattern.SkillsRequired := '';
         DayPlanningPattern."Start Date" := GetKnownMonday();
         DayPlanningPattern."End Date" := GetKnownMonday();
-        DayPlanningPattern."Day 1" := true;
         DayPlanningPattern.Insert();
 
         // [WHEN] CreateDayPlanning is called [THEN] it raises the custom 'Skills Required' error
@@ -356,7 +426,6 @@ codeunit 60020 "Day Planning Creation Tests"
         CreateBaseDayPlanningPattern(DayPlanningPattern, 10000);
         DayPlanningPattern."Start Date" := 0D;
         DayPlanningPattern."End Date" := GetKnownMonday();
-        DayPlanningPattern."Day 1" := true;
         DayPlanningPattern.Insert();
 
         // [WHEN] CreateDayPlanning is called [THEN] it raises the custom 'Planned Start Date' error
@@ -380,7 +449,6 @@ codeunit 60020 "Day Planning Creation Tests"
         CreateBaseDayPlanningPattern(DayPlanningPattern, 10000);
         DayPlanningPattern."Start Date" := SingleDay;
         DayPlanningPattern."End Date" := SingleDay;
-        DayPlanningPattern."Day 1" := true;
         DayPlanningPattern."Start Time" := 0T;
         DayPlanningPattern.Insert();
 
@@ -398,19 +466,19 @@ codeunit 60020 "Day Planning Creation Tests"
         DayPlanningsMgt: Codeunit "Day Plannings Mgt.";
         SingleDay: Date;
     begin
-        // [GIVEN] A single-day range whose weekday is NOT checked, while other weekdays ARE checked
-        // (Day 1 = Monday). The range covers only the Monday, but Day 1 is left unchecked and Day 2 is
-        // checked instead, so no day in the range qualifies.
+        // [GIVEN] A single-day range whose weekday (Monday) is NOT active in the Work-Hour Template,
+        // while Tuesday IS active in that same template. The range covers only the Monday, so even
+        // though the template has a qualifying weekday configured (Tuesday), it's out of range, so
+        // no day in the range qualifies.
         Initialize();
         ClearDayPlanningsFor(TestJobNo, TestJobTaskNo);
 
         SingleDay := GetKnownMonday();
 
         CreateBaseDayPlanningPattern(DayPlanningPattern, 10000);
+        DayPlanningPattern."Work-Hour Template" := CreateTuesdayOnlyWorkHourTemplate();
         DayPlanningPattern."Start Date" := SingleDay;
         DayPlanningPattern."End Date" := SingleDay;
-        DayPlanningPattern."Day 1" := false; // Monday not checked
-        DayPlanningPattern."Day 2" := true;  // Tuesday checked, but out of range
         DayPlanningPattern.Insert();
 
         // [WHEN] CreateDayPlanning is called

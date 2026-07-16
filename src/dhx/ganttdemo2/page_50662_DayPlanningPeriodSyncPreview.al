@@ -71,6 +71,14 @@ page 50663 "DayPlanning PeriodSyncPreview"
                     StyleExpr = NewDateStyleExpr;
                     ToolTip = 'The calculated new DayPlanning date after the period change is applied.';
                 }
+                field("Day Name"; Rec."Day Name")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Day Name';
+                    Editable = false;
+                    StyleExpr = RowStyleExpr;
+                    ToolTip = 'Shows the weekday name of the new DayPlanning date.';
+                }
                 field("Day Type"; Rec."Day Type")
                 {
                     ApplicationArea = All;

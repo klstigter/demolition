@@ -87,37 +87,9 @@ page 50639 "Day Planning Pattern"
                 {
                     ToolTip = 'Specifies the value of the Vendor Name field.', Comment = '%';
                 }
-                field("Day 1"; Rec."Day 1")
-                {
-                    ToolTip = 'Specifies the value of the Day 1 field.', Comment = '%';
-                }
-                field("Day 2"; Rec."Day 2")
-                {
-                    ToolTip = 'Specifies the value of the Day 2 field.', Comment = '%';
-                }
-                field("Day 3"; Rec."Day 3")
-                {
-                    ToolTip = 'Specifies the value of the Day 3 field.', Comment = '%';
-                }
-                field("Day 4"; Rec."Day 4")
-                {
-                    ToolTip = 'Specifies the value of the Day 4 field.', Comment = '%';
-                }
-                field("Day 5"; Rec."Day 5")
-                {
-                    ToolTip = 'Specifies the value of the Day 5 field.', Comment = '%';
-                }
-                field("Day 6"; Rec."Day 6")
-                {
-                    ToolTip = 'Specifies the value of the Day 6 field.', Comment = '%';
-                }
-                field("Day 7"; Rec."Day 7")
-                {
-                    ToolTip = 'Specifies the value of the Day 7 field.', Comment = '%';
-                }
                 field("Week Pattern"; Rec."Week Pattern")
                 {
-                    ToolTip = 'Week pattern build from the value of the "Day 1" upto "Day 7" field.', Comment = '%';
+                    ToolTip = 'Specifies which weekdays are active, derived automatically from the "Work-Hour Template" field''s weekday hours.', Comment = '%';
                 }
 
             }
@@ -154,19 +126,12 @@ page 50639 "Day Planning Pattern"
     trigger OnNewRecord(BelowxRec: Boolean)
     var
         DailyOptimizerSetup: Record "Daily Optimizer Setup";
-        WorkHourTemplate: Record "Work-Hour Template";
         WorkOrder: Record "Work Order";
     begin
         DailyOptimizerSetup.Get();
-        Rec."Work-Hour Template" := DailyOptimizerSetup."Work hour Template";
+        Rec.Validate("Work-Hour Template", DailyOptimizerSetup."Work hour Template");
         Rec.SkillsRequired := DailyOptimizerSetup."Default Skill";
         Rec."Quantity of Lines" := 1;
-        if Rec."Work-Hour Template" <> '' then begin
-            WorkHourTemplate.Get(Rec."Work-Hour Template");
-            Rec."Start Time" := WorkHourTemplate."Default Start Time";
-            Rec."End Time" := WorkHourTemplate."Default End Time";
-            Rec."Non Working Minutes" := WorkHourTemplate."Non Working Minutes";
-        end;
         if WorkOrderNoFilter <> '' then begin
             WorkOrder.SetFilter("Work Order No.", WorkOrderNoFilter);
             if WorkOrder.FindFirst() then begin

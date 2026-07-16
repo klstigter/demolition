@@ -32,97 +32,107 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
     /// Scenario 1.1 – Shift Left/Right:    OldStart <> NewStart AND OldEnd <> NewEnd
     /// Scenario 1.2 – Right Bar change:    OldStart = NewStart  AND OldEnd <> NewEnd
     /// Scenario 1.3 – Left Bar change:     OldStart <> NewStart AND OldEnd = NewEnd
+    ///
+    /// Active-day resolution: the Work-Hour Template used to decide which weekdays are
+    /// active is the Job Task's own "Work Hour Template" if set, else Daily Optimizer
+    /// Setup's "Work hour Template". "Base Calendar" on Daily Optimizer Setup is mandatory —
+    /// this errors (via "Day Plannings Mgt.".IsActiveWorkDay's TestField) rather than
+    /// silently skipping calendar checks when it's blank.
+    ///
+    /// Cascading: every existing DayPlanning date is first mapped to a "naive" target date
+    /// using the same flat offset/clamp arithmetic as before (CalculateNaiveNewDate). Those
+    /// naive dates are then walked in chronological order and pushed forward, one distinct
+    /// original date at a time, onto the next active day whenever the naive target lands on
+    /// an inactive day (per the resolved Work-Hour Template / Base Calendar) OR would
+    /// otherwise land on/before the previous entry's already-adjusted date — so a push
+    /// caused by one off-day collision carries forward through the rest of the sequence
+    /// instead of only correcting the single colliding date. Naive dates that were already
+    /// identical to each other (e.g. several DayPlanning rows clamped onto the same new end
+    /// date when a task is shortened) are deliberately kept collapsed onto the same final
+    /// date rather than being spread out — only genuinely distinct target dates get pushed
+    /// apart from one another.
     /// </summary>
     procedure CalculateChanges(JobNo: Code[20]; JobTaskNo: Code[20]; OldStart: Date; OldEnd: Date; NewStart: Date; NewEnd: Date; var TempPreviewBuffer: Record "DayPlanning Sync PreviewBuff" temporary): Boolean
     var
         DayPlanning: Record "Day Planning";
         JobTask: Record "Job Task";
         DailyOptimizerSetup: Record "Daily Optimizer Setup";
-        BaseCalendar: Record "Base Calendar";
-        CalendarMgt: Codeunit "Calendar Management";
-        CustomizedCalendarChange: Record "Customized Calendar Change";
+        DayPlanningMgt: Codeunit "Day Plannings Mgt.";
+        EffectiveWorkHourTemplate: Code[20];
         EntryNo: Integer;
         NewDate: Date;
-        ChangeDays: Integer;
-        WeekPattern: Code[20];
-        WeekPatternText: Text;
-        CalendarLoaded: Boolean;
         CandidateDate: Date;
-        DayOfWeek: Integer;
-        PatternParts: List of [Text];
-        PatternPart: Text;
-        PatternDay: Integer;
-        IsInPattern: Boolean;
-        DateTypeVal: Enum "DayPlanning Date Type";
+        NaiveDate: Date;
+        PrevNaiveDate: Date;
+        PrevAdjustedDate: Date;
+        OldDates: List of [Date];
+        OldDateItem: Date;
+        NaiveDateMap: Dictionary of [Date, Date];
+        AdjustedDateMap: Dictionary of [Date, Date];
     begin
         TempPreviewBuffer.Reset();
         TempPreviewBuffer.DeleteAll();
 
-        // ── Load Job Task Week Pattern ───────────────────────────────────────────
-        // 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat, 7=Sun. Blank = all days.
-        WeekPattern := '1|2|3|4|5|6|7';
+        // ── Resolve the effective Work-Hour Template and mandatory Base Calendar ──────
+        DailyOptimizerSetup.Get();
+        DailyOptimizerSetup.TestField("Base Calendar");
+
+        EffectiveWorkHourTemplate := '';
         if JobTask.Get(JobNo, JobTaskNo) then
-            if JobTask."DayPlanning Week Pattern" <> '' then
-                WeekPattern := JobTask."DayPlanning Week Pattern";
+            EffectiveWorkHourTemplate := JobTask."Work Hour Template";
+        if EffectiveWorkHourTemplate = '' then
+            EffectiveWorkHourTemplate := DailyOptimizerSetup."Work hour Template";
 
-        // ── Load Base Calendar for holiday classification ─────────────────────
-        CalendarLoaded := false;
-        if DailyOptimizerSetup.FindFirst() then
-            if DailyOptimizerSetup."Base Calendar" <> '' then
-                if BaseCalendar.Get(DailyOptimizerSetup."Base Calendar") then begin
-                    CalendarMgt.SetSource(BaseCalendar, CustomizedCalendarChange);
-                    CalendarLoaded := true;
-                end;
-
-        // ── Process existing DayPlanning records (shift / clamp) ─────────────────
+        // ── Pass 1 — compute the naive (flat offset/clamp) target date for every
+        // distinct original Task Date in range, exactly as the old scenario logic did. ──
+        DayPlanning.SetCurrentKey("Task Date");
         DayPlanning.SetRange("Job No.", JobNo);
         DayPlanning.SetRange("Job Task No.", JobTaskNo);
         DayPlanning.SetRange("Task Date", OldStart, OldEnd);
         if DayPlanning.FindSet() then
             repeat
-                NewDate := DayPlanning."Task Date";
-                ChangeDays := 0;
-
-                // ── 1.1  Shift Left / Right ──────────────────────────────────────────
-                // Both boundary dates moved → shift every DayPlanning by the same offset.
-                if (OldStart <> NewStart) and (OldEnd <> NewEnd) then begin
-                    ChangeDays := NewStart - OldStart; // negative = left, positive = right
-                    NewDate := DayPlanning."Task Date" + ChangeDays;
-                end
-
-                // ── 1.2  Enlarge / Reduce Right Bar ──────────────────────────────────
-                // Only end date changed → tasks that now fall beyond the new end must move.
-                else if (OldStart = NewStart) and (OldEnd <> NewEnd) then begin
-                    // Scenario A – Right bar enlarged: existing records unchanged.
-                    //              New DayPlanning entries are generated below.
-                    // Scenario B – Right bar reduced: clamp tasks that exceed the new end.
-                    if (NewEnd < OldEnd) and (DayPlanning."Task Date" > NewEnd) then
-                        NewDate := NewEnd;
-                end
-
-                // ── 1.3  Enlarge / Reduce Left Bar ───────────────────────────────────
-                // Only start date changed → tasks before the new start must move.
-                else if (OldStart <> NewStart) and (OldEnd = NewEnd) then begin
-                    // Scenario A – Left bar reduced (shifted right):
-                    if (NewStart > OldStart) and (DayPlanning."Task Date" < NewStart) then begin
-                        ChangeDays := NewStart - OldStart;
-                        NewDate := DayPlanning."Task Date" + ChangeDays;
-                        if NewDate > NewEnd then
-                            NewDate := NewEnd;
+                if not NaiveDateMap.ContainsKey(DayPlanning."Task Date") then begin
+                    NaiveDate := CalculateNaiveNewDate(DayPlanning."Task Date", OldStart, OldEnd, NewStart, NewEnd);
+                    if NaiveDate <> DayPlanning."Task Date" then begin
+                        NaiveDateMap.Add(DayPlanning."Task Date", NaiveDate);
+                        OldDates.Add(DayPlanning."Task Date");
                     end;
-                    // Scenario B – Left bar enlarged: no action needed.
                 end;
+            until DayPlanning.Next() = 0;
 
-                // Add to preview buffer only when the date actually changes.
-                if NewDate <> DayPlanning."Task Date" then begin
-                    // Classify the new date (Work-day / Weekend / Public-Holiday)
-                    DayOfWeek := Date2DWY(NewDate, 1);
-                    if DayOfWeek in [6, 7] then
-                        DateTypeVal := "DayPlanning Date Type"::Weekend
-                    else if CalendarLoaded and CalendarMgt.IsNonworkingDay(NewDate, CustomizedCalendarChange) then
-                        DateTypeVal := "DayPlanning Date Type"::"Public-Holiday"
-                    else
-                        DateTypeVal := "DayPlanning Date Type"::"Work-day";
+        // ── Pass 2 — walk the distinct original dates in chronological order and
+        // cascade-adjust each naive target onto the next active day. ──────────────────
+        PrevNaiveDate := 0D;
+        PrevAdjustedDate := 0D;
+        foreach OldDateItem in OldDates do begin
+            NaiveDate := NaiveDateMap.Get(OldDateItem);
+
+            if (PrevNaiveDate <> 0D) and (NaiveDate = PrevNaiveDate) then
+                // Same naive target as the previous distinct date (e.g. both clamped onto
+                // the same new end date) — deliberately collapse onto the same final date,
+                // already validated as active by the previous iteration.
+                CandidateDate := PrevAdjustedDate
+            else begin
+                if (PrevAdjustedDate <> 0D) and (NaiveDate <= PrevAdjustedDate) then
+                    CandidateDate := PrevAdjustedDate + 1
+                else
+                    CandidateDate := NaiveDate;
+                while not DayPlanningMgt.IsActiveWorkDay(EffectiveWorkHourTemplate, CandidateDate) do
+                    CandidateDate += 1;
+            end;
+
+            AdjustedDateMap.Add(OldDateItem, CandidateDate);
+            PrevNaiveDate := NaiveDate;
+            PrevAdjustedDate := CandidateDate;
+        end;
+
+        // ── Pass 3 — build the preview buffer for every affected DayPlanning row,
+        // using each row's Task Date to look up its cascaded final date. ─────────────
+        DayPlanning.SetRange("Task Date", OldStart, OldEnd);
+        if DayPlanning.FindSet() then
+            repeat
+                if AdjustedDateMap.ContainsKey(DayPlanning."Task Date") then begin
+                    NewDate := AdjustedDateMap.Get(DayPlanning."Task Date");
 
                     EntryNo += 1;
                     TempPreviewBuffer.Init();
@@ -132,9 +142,14 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
                     TempPreviewBuffer."Day Line No." := DayPlanning."Day Line No.";
                     TempPreviewBuffer."Old Task Date" := DayPlanning."Task Date";
                     TempPreviewBuffer."New Task Date" := NewDate;
+                    TempPreviewBuffer."Day Name" := Format(NewDate, 0, '<Weekday Text>');
                     TempPreviewBuffer."Resource No." := DayPlanning."Assigned Resource No.";
                     TempPreviewBuffer.Description := DayPlanning.Description;
-                    TempPreviewBuffer."Day Type" := DateTypeVal;
+                    // By construction every cascaded date is an active day (Pass 2 only
+                    // ever advances onto one), so this is always Work-day now — off-day
+                    // collisions are resolved automatically rather than left for the user
+                    // to classify/opt out of.
+                    TempPreviewBuffer."Day Type" := "DayPlanning Date Type"::"Work-day";
                     TempPreviewBuffer."Convert to DayPlanning" := true;
                     TempPreviewBuffer."Is New Record" := false;
                     TempPreviewBuffer.Insert();
@@ -142,32 +157,14 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
             until DayPlanning.Next() = 0;
 
         // ── Scenario A – Right bar enlarged: generate new DayPlanning entries ──────
-        // Walk every calendar day in the newly added range (OldEnd+1 .. NewEnd).
-        // Only dates whose day-of-week matches the Job Task's "DayPlanning Week Pattern"
-        // are included. All matched dates (including weekends / public holidays)
-        // appear in the preview so the user can decide which ones to keep.
+        // Walk every calendar day in the newly added range (OldEnd+1 .. NewEnd) and add
+        // an entry for each active day (per the resolved Work-Hour Template + mandatory
+        // Base Calendar) — inactive days are simply skipped, not shown for opt-out,
+        // consistent with Pass 3 now only ever surfacing active days.
         if (OldStart = NewStart) and (NewEnd > OldEnd) then begin
-            WeekPatternText := WeekPattern;
             CandidateDate := OldEnd + 1;
             while CandidateDate <= NewEnd do begin
-                // Check whether this weekday is listed in the pattern
-                DayOfWeek := Date2DWY(CandidateDate, 1);
-                PatternParts := WeekPatternText.Split('|');
-                IsInPattern := false;
-                foreach PatternPart in PatternParts do
-                    if Evaluate(PatternDay, PatternPart.Trim()) then
-                        if PatternDay = DayOfWeek then
-                            IsInPattern := true;
-
-                if IsInPattern then begin
-                    // Classify the candidate date
-                    if DayOfWeek in [6, 7] then
-                        DateTypeVal := "DayPlanning Date Type"::Weekend
-                    else if CalendarLoaded and CalendarMgt.IsNonworkingDay(CandidateDate, CustomizedCalendarChange) then
-                        DateTypeVal := "DayPlanning Date Type"::"Public-Holiday"
-                    else
-                        DateTypeVal := "DayPlanning Date Type"::"Work-day";
-
+                if DayPlanningMgt.IsActiveWorkDay(EffectiveWorkHourTemplate, CandidateDate) then begin
                     EntryNo += 1;
                     TempPreviewBuffer.Init();
                     TempPreviewBuffer."Entry No." := EntryNo;
@@ -176,9 +173,10 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
                     TempPreviewBuffer."Day Line No." := 0;      // 0 = new DayPlanning (no existing record)
                     TempPreviewBuffer."Old Task Date" := 0D;    // no previous date
                     TempPreviewBuffer."New Task Date" := CandidateDate;
+                    TempPreviewBuffer."Day Name" := Format(CandidateDate, 0, '<Weekday Text>');
                     TempPreviewBuffer."Resource No." := '';
                     TempPreviewBuffer.Description := '';
-                    TempPreviewBuffer."Day Type" := DateTypeVal;
+                    TempPreviewBuffer."Day Type" := "DayPlanning Date Type"::"Work-day";
                     TempPreviewBuffer."Convert to DayPlanning" := true;
                     TempPreviewBuffer."Is New Record" := true;
                     TempPreviewBuffer.Insert();
@@ -189,6 +187,48 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
         end;
 
         exit(not TempPreviewBuffer.IsEmpty());
+    end;
+
+    /// <summary>
+    /// Computes the flat-offset/clamp target date for a single original Task Date, per the
+    /// same scenario rules the old (pre-cascade) implementation used. This is deliberately
+    /// pure/stateless — it has no knowledge of active days or other DayPlanning rows; that's
+    /// layered on top by CalculateChanges' Pass 2 cascade walk.
+    /// </summary>
+    local procedure CalculateNaiveNewDate(TaskDate: Date; OldStart: Date; OldEnd: Date; NewStart: Date; NewEnd: Date) NewDate: Date
+    var
+        ChangeDays: Integer;
+    begin
+        NewDate := TaskDate;
+
+        // ── 1.1  Shift Left / Right ──────────────────────────────────────────────
+        // Both boundary dates moved → shift every DayPlanning by the same offset.
+        if (OldStart <> NewStart) and (OldEnd <> NewEnd) then begin
+            ChangeDays := NewStart - OldStart; // negative = left, positive = right
+            NewDate := TaskDate + ChangeDays;
+        end
+
+        // ── 1.2  Enlarge / Reduce Right Bar ──────────────────────────────────────
+        // Only end date changed → tasks that now fall beyond the new end must move.
+        else if (OldStart = NewStart) and (OldEnd <> NewEnd) then begin
+            // Scenario A – Right bar enlarged: existing records unchanged (new
+            //              DayPlanning entries are generated separately).
+            // Scenario B – Right bar reduced: clamp tasks that exceed the new end.
+            if (NewEnd < OldEnd) and (TaskDate > NewEnd) then
+                NewDate := NewEnd;
+        end
+
+        // ── 1.3  Enlarge / Reduce Left Bar ───────────────────────────────────────
+        // Only start date changed → tasks before the new start must move.
+        else if (OldStart <> NewStart) and (OldEnd = NewEnd) then
+            // Scenario A – Left bar reduced (shifted right):
+            if (NewStart > OldStart) and (TaskDate < NewStart) then begin
+                ChangeDays := NewStart - OldStart;
+                NewDate := TaskDate + ChangeDays;
+                if NewDate > NewEnd then
+                    NewDate := NewEnd;
+            end;
+        // Scenario B – Left bar enlarged: no action needed (falls through, NewDate = TaskDate).
     end;
 
     /// <summary>

@@ -3,6 +3,17 @@ codeunit 50610 "Day Plannings Mgt."
     var
         GeneralUtil: Codeunit "General Planning Utilities";
         WorkHoursTemplate: Record "Work-Hour Template";
+        // ── Memoized state for IsActiveWorkDay(), shared across many calls on the same
+        // codeunit instance (e.g. one per candidate date while cascading a period-change
+        // reschedule) — mirrors the EnsureBaseCalendarLoaded() memoization convention used
+        // in codeunit_50602_CreateDemoData.al, so the Base Calendar/exceptions are only
+        // loaded once per instance instead of once per candidate date.
+        gCalendarLoaded: Boolean;
+        gCalCustomizedCalendarChange: Record "Customized Calendar Change";
+        gCalendarMgt: Codeunit "Calendar Management";
+        gCachedWorkHourTemplateCode: Code[20];
+        gCachedWorkHourTemplate: Record "Work-Hour Template";
+        gCachedWorkHourTemplateFound: Boolean;
 
     procedure CreateDayPlanning()
     var
@@ -90,8 +101,8 @@ codeunit 50610 "Day Plannings Mgt."
         NewTaskDate := StartDate;
 
         while NewTaskDate <= EndDate do begin
-            // Check if this day is a working day in the template   
-            if ExpectedWeekDay(DayPlanningPattern, NewTaskDate, true) then begin
+            // Check if this day is a working day in the template
+            if ExpectedWeekDay(DayPlanningPattern, NewTaskDate) then begin
 
                 Clear(DayPlannings);
                 DayNo := GeneralUtil.DateToInteger(NewTaskDate);
@@ -187,96 +198,119 @@ codeunit 50610 "Day Plannings Mgt."
         JobDayPlanningLine.DeleteAll();
     end;
 
-    local procedure ExpectedWeekDay(DayPlanningGenerator: Record "Day Planning Pattern";
-                                    NewTaskDate: Date;
-                                    OffOnWeekEndAndPublicHoliday: Boolean): Boolean
+    /// <summary>
+    /// Replaces the old Day 1..Day 7 boolean-driven weekday check — active-days are now resolved
+    /// entirely from DayPlanningGenerator."Work-Hour Template" via IsActiveWorkDay, which already
+    /// folds the mandatory Daily Optimizer Setup "Base Calendar" exception check in unconditionally.
+    /// The old OffOnWeekEndAndPublicHoliday parameter is dropped: the sole call site (CreateDayPlanning,
+    /// above) always passed true ("honour the calendar"), and IsActiveWorkDay has no way to express a
+    /// "false"/ignore-calendar mode once the calendar check is folded into it, so preserving the
+    /// parameter would only be a dead no-op. Behavior for the one real caller is unchanged.
+    /// </summary>
+    local procedure ExpectedWeekDay(DayPlanningGenerator: Record "Day Planning Pattern"; NewTaskDate: Date): Boolean
+    begin
+        exit(IsActiveWorkDay(DayPlanningGenerator."Work-Hour Template", NewTaskDate));
+    end;
+
+    /// <summary>
+    /// Work-Hour-Template-aware active/working day check, shared by any caller that needs
+    /// to know whether a given date is a valid day to schedule work on — used by ExpectedWeekDay
+    /// above (Day Planning Pattern expansion) and by "DayPlanning Period Sync Mgt." (codeunit 50617)
+    /// when rescheduling Day Planning lines around a Job Task period change.
+    /// A day is active when BOTH:
+    ///  - the resolved Work-Hour Template has hours > 0 for that weekday (blank template code
+    ///    = every weekday is treated as active, matching this codeunit's existing default when no
+    ///    weekday pattern is supplied), AND
+    ///  - the mandatory Daily Optimizer Setup "Base Calendar" does not mark the date as a
+    ///    non-working day/exception (public holiday, custom day off, weekly recurring
+    ///    weekend marker, etc.).
+    /// "Base Calendar" is mandatory (TestField) — this errors rather than silently skipping the
+    /// calendar check when it's blank.
+    /// </summary>
+    procedure IsActiveWorkDay(WorkHourTemplateCode: Code[20]; TheDate: Date): Boolean
+    begin
+        EnsureCalendarLoadedForActiveWorkDayCheck();
+
+        if not IsWeekdayActiveInTemplate(WorkHourTemplateCode, Date2DWY(TheDate, 1)) then
+            exit(false);
+
+        exit(not gCalendarMgt.IsNonworkingDay(TheDate, gCalCustomizedCalendarChange));
+    end;
+
+    /// <summary>
+    /// Resolves whether a given ISO weekday number (1=Monday..7=Sunday, matching Date2DWY(D,1))
+    /// is an active/working weekday according to WorkHourTemplateCode's Monday..Sunday hours fields
+    /// (hours > 0 = active). Blank template code = every weekday treated as active. Used by
+    /// IsActiveWorkDay (date-based check).
+    /// </summary>
+    local procedure IsWeekdayActiveInTemplate(WorkHourTemplateCode: Code[20]; DayOfWeek: Integer): Boolean
+    var
+        ActiveWeekDay: Boolean;
+    begin
+        ActiveWeekDay := true;
+        if WorkHourTemplateCode <> '' then begin
+            EnsureWorkHourTemplateLoadedForActiveWorkDayCheck(WorkHourTemplateCode);
+            if gCachedWorkHourTemplateFound then
+                case DayOfWeek of
+                    1:
+                        ActiveWeekDay := gCachedWorkHourTemplate.Monday > 0;
+                    2:
+                        ActiveWeekDay := gCachedWorkHourTemplate.Tuesday > 0;
+                    3:
+                        ActiveWeekDay := gCachedWorkHourTemplate.Wednesday > 0;
+                    4:
+                        ActiveWeekDay := gCachedWorkHourTemplate.Thursday > 0;
+                    5:
+                        ActiveWeekDay := gCachedWorkHourTemplate.Friday > 0;
+                    6:
+                        ActiveWeekDay := gCachedWorkHourTemplate.Saturday > 0;
+                    7:
+                        ActiveWeekDay := gCachedWorkHourTemplate.Sunday > 0;
+                end;
+        end;
+        exit(ActiveWeekDay);
+    end;
+
+    /// <summary>
+    /// Builds the "1|2|4|"-style text for Day Planning Pattern's "Week Pattern" field, derived from
+    /// WorkHourTemplateCode's weekday hours via IsWeekdayActiveInTemplate (same helper IsActiveWorkDay
+    /// uses) rather than re-deriving weekday-hours access separately. A blank/unresolvable template
+    /// code yields the full "1|2|3|4|5|6|7" (blank = every day active, matching IsWeekdayActiveInTemplate's
+    /// own default). Called from Day Planning Pattern's "Work-Hour Template" OnValidate.
+    /// </summary>
+    procedure GetActiveWeekdaysText(WorkHourTemplateCode: Code[20]): Code[13]
+    var
+        Pattern: Text;
+        DayOfWeek: Integer;
+    begin
+        for DayOfWeek := 1 to 7 do
+            if IsWeekdayActiveInTemplate(WorkHourTemplateCode, DayOfWeek) then
+                Pattern += Format(DayOfWeek) + '|';
+        if Pattern <> '' then
+            Pattern := CopyStr(Pattern, 1, StrLen(Pattern) - 1);
+        exit(CopyStr(Pattern, 1, 13));
+    end;
+
+    local procedure EnsureCalendarLoadedForActiveWorkDayCheck()
     var
         OptimizerSetup: Record "Daily Optimizer Setup";
         BaseCalendar: Record "Base Calendar";
-        CustomizedCalendarChange: Record "Customized Calendar Change";
-        WeekDaysTemp: Record Integer Temporary;
-        CalendarMgt: Codeunit "Calendar Management";
-        DayOfWeek: Integer;
-        ActiveWeekDay: Boolean;
-        IsNonworkingDay: Boolean;
-        Rtv: Boolean;
     begin
+        if gCalendarLoaded then
+            exit;
         OptimizerSetup.Get();
         OptimizerSetup.TestField("Base Calendar");
-
-        GetWeekDaysFromDayPlanningGenerator(DayPlanningGenerator, WeekDaysTemp);
-
         BaseCalendar.Get(OptimizerSetup."Base Calendar");
-        CalendarMgt.SetSource(BaseCalendar, CustomizedCalendarChange);
-
-        DayOfWeek := Date2DWY(NewTaskDate, 1);
-        ActiveWeekDay := true;
-        if not WeekDaysTemp.IsEmpty() then
-            ActiveWeekDay := WeekDaysTemp.Get(DayOfWeek);
-
-        IsNonworkingDay := CalendarMgt.IsNonworkingDay(NewTaskDate, CustomizedCalendarChange);
-
-        /*
-        The truth table is now:
-        ActiveWeekDay	OffOnWeekEndAndPublicHoliday	IsNonworkingDay	    Rtv
-        false	        any	                            any	                false
-        true	        false	                        any	                true
-        true	        true	                        false	            true
-        true	        true	                        true	            false
-        - If the day-of-week isn't checked in the generator → skip it.
-        - If the day is active but it's a calendar non-working day and we're honouring that flag → skip it.
-        - Otherwise → create the task.
-        */
-
-        if not ActiveWeekDay then
-            Rtv := false
-        else if OffOnWeekEndAndPublicHoliday and IsNonworkingDay then
-            Rtv := false
-        else
-            Rtv := true;
-
-        exit(Rtv);
+        gCalendarMgt.SetSource(BaseCalendar, gCalCustomizedCalendarChange);
+        gCalendarLoaded := true;
     end;
 
-    local procedure GetWeekDaysFromDayPlanningGenerator(DayPlanningGenerator: Record "Day Planning Pattern"; var WeekDays: Record Integer Temporary)
+    local procedure EnsureWorkHourTemplateLoadedForActiveWorkDayCheck(WorkHourTemplateCode: Code[20])
     begin
-        WeekDays.Reset();
-        WeekDays.DeleteAll();
-        if DayPlanningGenerator."Day 1" then begin
-            WeekDays.Init();
-            WeekDays.Number := 1;
-            WeekDays.Insert();
-        end;
-        if DayPlanningGenerator."Day 2" then begin
-            WeekDays.Init();
-            WeekDays.Number := 2;
-            WeekDays.Insert();
-        end;
-        if DayPlanningGenerator."Day 3" then begin
-            WeekDays.Init();
-            WeekDays.Number := 3;
-            WeekDays.Insert();
-        end;
-        if DayPlanningGenerator."Day 4" then begin
-            WeekDays.Init();
-            WeekDays.Number := 4;
-            WeekDays.Insert();
-        end;
-        if DayPlanningGenerator."Day 5" then begin
-            WeekDays.Init();
-            WeekDays.Number := 5;
-            WeekDays.Insert();
-        end;
-        if DayPlanningGenerator."Day 6" then begin
-            WeekDays.Init();
-            WeekDays.Number := 6;
-            WeekDays.Insert();
-        end;
-        if DayPlanningGenerator."Day 7" then begin
-            WeekDays.Init();
-            WeekDays.Number := 7;
-            WeekDays.Insert();
-        end;
+        if gCachedWorkHourTemplateCode = WorkHourTemplateCode then
+            exit;
+        gCachedWorkHourTemplateCode := WorkHourTemplateCode;
+        gCachedWorkHourTemplateFound := gCachedWorkHourTemplate.Get(WorkHourTemplateCode);
     end;
 
     procedure GetDateRange(JobNo: Code[20]; var StartDate: Date; var EndDate: Date)

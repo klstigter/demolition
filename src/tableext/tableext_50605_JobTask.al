@@ -9,6 +9,12 @@ tableextension 50605 "Job Task ext" extends "Job Task"
             ToolTip = 'Specifies the project manager for the project task. The project manager is based on the project manager on the related project planning line.';
             tableRelation = Resource;
         }
+        field(50505; "Work Hour Template"; Code[20])
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Work Hour Template';
+            TableRelation = "Work-Hour Template";
+        }
         field(50521; PlannedStartDate; Date)
         {
             DataClassification = ToBeClassified;
@@ -17,7 +23,20 @@ tableextension 50605 "Job Task ext" extends "Job Task"
             trigger OnValidate()
             begin
                 CalculateDuration();
-                // Change to popup page editor:
+                // Deliberately NOT wired to DayPlanningPeriodSyncMgt.HandleJobTaskPeriodChange here.
+                // "Planned Start Date"/"Planned End Date" are Editable = false on page 50618 "Opti
+                // Job Task Card" — the only user-facing way to change them from the Card is the
+                // AssistEdit action, which runs report 50601 "Job Task Planned Date Updater". That
+                // report already calls DayPlanningPeriodSyncMgt.ShowPreview() itself on OnPostReport
+                // and assigns the new dates via direct field assignment (not Validate()), so the
+                // Job Task Card period-change path is already fully wired without this trigger.
+                // Re-enabling this call would ALSO fire for the two other call sites that DO call
+                // .Validate(PlannedEndDate/PlannedStartDate, ...) directly: codeunit_50602_CreateDemoData
+                // (bulk/unattended demo data generation) and codeunit_50610_DayPlanningMgt's own
+                // CreateDayPlanning (pattern-driven Job Task end-date sync, called right after the
+                // Day Planning lines it derives dates from were just generated) — both would then
+                // unexpectedly pop up the blocking preview dialog for what are internal housekeeping
+                // updates, not a user-initiated period change. Leave commented out.
                 // if not DayPlanningPeriodSyncMgt.HandleJobTaskPeriodChange(Rec, xRec.PlannedStartDate, xRec.PlannedEndDate, true) then begin
                 //     Rec.PlannedStartDate := xRec.PlannedStartDate;
                 //     Rec.Duration := xRec.Duration;
@@ -32,7 +51,7 @@ tableextension 50605 "Job Task ext" extends "Job Task"
             trigger OnValidate()
             begin
                 CalculateDuration();
-                // Change to popup page editor:
+                // See the matching comment on PlannedStartDate's OnValidate above — same reasoning.
                 // if not DayPlanningPeriodSyncMgt.HandleJobTaskPeriodChange(Rec, xRec.PlannedStartDate, xRec.PlannedEndDate, true) then begin
                 //     Rec.PlannedEndDate := xRec.PlannedEndDate;
                 //     Rec.Duration := xRec.Duration;
@@ -108,13 +127,6 @@ tableextension 50605 "Job Task ext" extends "Job Task"
         field(50603; "Non Active"; Boolean)
         {
             DataClassification = ToBeClassified;
-        }
-
-        field(50610; "DayPlanning Week Pattern"; Code[20])
-        {
-            DataClassification = ToBeClassified;
-            Caption = 'DayPlanning Week Pattern';
-            ToolTip = 'Specifies the week pattern for the project task. ex. 1|2|3|4|5|6|7 for all days, 1|4 for only Monday and Thursday, etc.';
         }
 
         field(50620; "Constraint Type"; Enum "Job Task Constraint Type")
