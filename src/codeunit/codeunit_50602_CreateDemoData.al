@@ -756,6 +756,12 @@ codeunit 50602 "Create Demo Data"
         JT.Validate("PlannedEndDate", EndDate);
         JT.Duration := EndDate - StartDate;  // Gantt bar width reads Duration, not PlannedEndDate
         JT."Job Task Type" := TaskType;
+        // Progress (%) only applies to actual Posting rows, not Total/Begin-Total/End-Total
+        // header rows. Guarded on = 0 (the field's own default/"not filled" state, per its
+        // MinValue=0/MaxValue=100 definition) so this never clobbers a value already set
+        // by some other caller.
+        if (TaskType = TaskType::Posting) and (JT.Progress = 0) then
+            JT.Progress := Random(101) - 1; // Random(101) yields 1..101, so -1 gives 0..100 inclusive
         if not JT.Insert() then
             JT.Modify();
         LogRecord(Database::"Job Task", JT.RecordId(), JT."Job No." + '.' + TaskNo + ' ' + Desc);
