@@ -501,6 +501,14 @@ window.BOOT = function() {
         task.color = "#3b8ef0";
       }
       task.progressColor = _darkenHex(task.color, 0.60);
+
+      // Full-calendar-day bar rendering - see _normalizeTaskBarDates() for why.
+      // Applies to every task loaded from BC (leaf/Posting tasks and
+      // Begin-Total/parent tasks alike - both come through this same event;
+      // "Total"/"End-Total" task types are filtered out server-side and never
+      // reach the Gantt at all, see GanttChartDataHandler.GetJobTasksAsJson).
+      _normalizeTaskBarDates(task);
+
       return true;
     });
 
@@ -1009,6 +1017,19 @@ window.BOOT = function() {
       // Block ALL onAfterTaskUpdate calls while drag + auto-scheduling settle.
       _dragInProgress = true;
       setTimeout(function () { _dragInProgress = false; }, 300);
+
+      // Re-apply the same full-calendar-day normalization used at initial load
+      // (onTaskLoading, above). DHTMLX's own drag-snapping
+      // (gantt.config.round_dnd_dates, on by default) resnaps start_date/
+      // end_date to the target day's midnight after every drag/resize, which
+      // would otherwise re-introduce the "stops at the start of the day" look
+      // for whichever edge the user just dragged. gantt.refreshTask (NOT
+      // updateTask) repaints using the corrected in-memory dates without
+      // re-firing onAfterTaskUpdate/the DataProcessor - it must not trigger a
+      // second BC round-trip for what is purely a visual correction.
+      _normalizeTaskBarDates(task);
+      gantt.refreshTask(id);
+
       // Redraw overlay bars to their final position after the drag snaps
       _renderRequestBars();
       try {
@@ -1043,6 +1064,15 @@ window.BOOT = function() {
     gantt.attachEvent("onAfterTaskUpdate", function (id, task) {
       // Suppress updates from a drag cascade OR from a BC-triggered reload.
       if (_dragInProgress || _reloadInProgress) return;
+
+      // Same full-calendar-day re-normalization as onAfterTaskDrag above -
+      // the lightbox/inline-edit save path (duration editor, date editor,
+      // etc.) can also leave start_date/end_date time-of-day reset to
+      // midnight. gantt.refreshTask repaints without re-firing this same
+      // event (avoids recursing into another BC round-trip).
+      _normalizeTaskBarDates(task);
+      gantt.refreshTask(id);
+
       try {
         var fmt = gantt.date.date_to_str(gantt.config.date_format);
 
@@ -1541,6 +1571,38 @@ function _tryParseJson(txt) {
 
 function _normalizeId(obj) {
   return obj?.id ?? obj?.Id ?? obj?.task_id ?? obj?.TaskId ?? obj?.link_id ?? obj?.LinkId ?? null;
+}
+
+// Forces a task's start_date to 00:00:00.000 and end_date to 23:59:59.999,
+// WITHOUT shifting the calendar date portion of either. DHTMLX's own
+// calculateEndDate (used whenever a task is loaded/dragged/resized with only
+// start_date+duration, since gantt.config.work_time = false here) treats
+// end_date as EXCLUSIVE - the calendar day boundary AFTER the last day a task
+// occupies - and both start_date/end_date always carry a 00:00:00 time
+// component once parsed via gantt.config.date_format = "%Y-%m-%d". Left as-is,
+// a task bar visually stops at the START of its exclusive end_date's day
+// column instead of running through the END of its actual last occupied day.
+// There is no DHTMLX config flag for this (confirmed against DHTMLX's own
+// docs/forum - "Task End Date Display & Inclusive End Dates" and a DHTMLX
+// staff forum reply both point to exactly this onTaskLoading-time adjustment
+// as the recommended fix, not a config setting) - this is the sanctioned
+// workaround, not a workaround-of-last-resort.
+// IMPORTANT: this only affects the in-memory Date OBJECTS used for rendering/
+// position math (gantt.getTaskPosition, drag-handle placement, etc.). The
+// outbound payloads built in onAfterTaskDrag/onAfterTaskUpdate below format
+// dates via gantt.date.date_to_str("%Y-%m-%d"), which reads only the
+// year/month/day - the time-of-day change made here is invisible to BC.
+function _normalizeTaskBarDates(task) {
+  if (task.start_date) {
+    var sd = new Date(task.start_date);
+    sd.setHours(0, 0, 0, 0);
+    task.start_date = sd;
+  }
+  if (task.end_date) {
+    var ed = new Date(task.end_date);
+    ed.setHours(23, 59, 59, 999);
+    task.end_date = ed;
+  }
 }
 
 // Darkens a hex/rgb color string by the given factor (0=black, 1=original)
