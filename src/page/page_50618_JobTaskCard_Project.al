@@ -549,6 +549,11 @@ page 50618 "Opti Job Task Card"
                         Caption = 'Project Manager';
                         ToolTip = 'Specifies the project manager for the project task. The project manager is based on the project manager on the related project planning line.';
                     }
+                    field("Work Hour Template"; Rec."Work Hour Template")
+                    {
+                        ApplicationArea = Jobs;
+                        ToolTip = 'Specifies the work hour template for the project task. The work hour template is based on the work hour template on the related project planning line.';
+                    }
                     field("Planned Start Date"; Rec.PlannedStartDate)
                     {
                         ApplicationArea = All;
@@ -574,11 +579,6 @@ page 50618 "Opti Job Task Card"
                         ApplicationArea = All;
                         ToolTip = 'Specifies the duration of the project task in days.';
                         importance = Promoted;
-                    }
-                    field("DayPlanning Week Pattern"; Rec."DayPlanning Week Pattern")
-                    {
-                        ApplicationArea = All;
-                        ToolTip = 'Specifies the week pattern for the project task. ex. 1|2|3|4|5|6|7 for all days, 1|4 for only Monday and Thursday, etc.';
                     }
                 }
 
