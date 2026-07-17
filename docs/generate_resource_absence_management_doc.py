@@ -139,8 +139,11 @@ m.add_run(
 
 doc.add_paragraph()
 info_box(doc,
-    'This document is a REVIEW DRAFT. No AL code has been written yet. Section 9 lists '
-    'the open questions that should be confirmed before implementation starts.',
+    'This document is a REVISED REVIEW DRAFT. AL code exists for the PRIOR (Card-based) '
+    'design iteration, which this revision supersedes with a journal-style worksheet + '
+    'Post model (Section 2). Section 4''s Migration Note lists exactly what needs '
+    'reworking, and Section 9 lists the open questions specific to this revision that '
+    'should be confirmed before that rework starts.',
     label='Status', color='FFF2CC')
 
 doc.add_page_break()
@@ -165,23 +168,36 @@ p(doc,
 
 h(doc, '2. Design Summary')
 p(doc,
-  'Table 160 "Res. Capacity Entry" is extended, rather than introducing a parallel '
-  'absence table, so that every existing SUM/FlowField/query that already reads '
-  '"Res. Capacity Entry".Capacity keeps working with zero code changes - it will simply '
-  'net Capacity against Absence automatically, because Absence is stored as a NEGATIVE '
-  'value in that same Capacity field.')
+  'Two-stage design: absence entries are never written directly into table 160 "Res. '
+  'Capacity Entry" by the user. Instead, a new UNPOSTED staging table, "Register '
+  'Absence" (Section 3.5), holds a journal-style worksheet where a user can key in '
+  'several absence lines - potentially for different resources and dates - before '
+  'committing anything. A "Post" action then validates each line and, only at that '
+  'point, creates the real ledger row in table 160. This mirrors the standard BC '
+  'journal pattern (enter many lines, review, then Post) rather than a direct-entry '
+  'Card, so a half-finished or miskeyed batch never touches the actual capacity ledger.')
+p(doc,
+  'The POSTED side of the design is unchanged from the previous iteration: table 160 '
+  'is still extended (not replaced) so every existing SUM/FlowField/query that already '
+  'reads "Res. Capacity Entry".Capacity keeps working with zero code changes - it nets '
+  'Capacity against Absence automatically, because Absence is stored as a NEGATIVE value '
+  'in that same Capacity field. Only the ENTRY MECHANISM changes; the ledger shape and '
+  'all of Section 5''s validation rules carry over unchanged, just moved from "runs on '
+  'Card insert" to "runs on Post".')
 
 tbl = add_table(doc, [4, 13], 'Rule', 'Detail')
 rules = [
-    ('New "Type" field', 'Enum "Res. Capacity Entry Type": 0 = Capacity, 1 = Absence. All existing rows default to 0 (Capacity) - fully backward compatible.'),
-    ('Absence = negative Capacity', 'An Absence entry reuses the standard "Start Time"/"End Time" fields and writes its Hours into the same "Capacity" field, but negated.'),
-    ('Existing-capacity guard', 'An Absence row cannot be entered for a Resource/Date that has no Capacity row already - see Section 5.'),
+    ('Unposted staging, then Post', 'New table "Register Absence" (Section 3.5) + worksheet page (Section 6.4) hold not-yet-committed lines. Nothing is written to table 160 until the user clicks Post.'),
+    ('New "Type" field (posted ledger)', 'Enum "Res. Capacity Entry Type": 0 = Capacity, 1 = Absence. All existing table 160 rows default to 0 (Capacity) - fully backward compatible.'),
+    ('Absence = negative Capacity (posted ledger)', 'A posted Absence entry reuses the standard "Start Time"/"End Time" fields and writes its Hours into the same "Capacity" field, but negated.'),
+    ('Existing-capacity guard', 'A line cannot be posted for a Resource/Date that has no Capacity row already - checked both as a visible field on the worksheet and inside the posting codeunit - see Section 5.'),
 ]
 for i, r in enumerate(rules):
     data_row(tbl, *r, shade=(i % 2 == 0))
 doc.add_paragraph()
 
-h(doc, '2.1  Worked Example', 2)
+h(doc, '2.1  Worked Example (Posted State)', 2)
+p(doc, 'After the worksheet line below has been posted, table 160 contains:')
 tbl = add_table(doc, [1.5, 5, 3, 3], '#', 'Date', 'Type', 'Hours')
 example = [
     ('1', '1 Aug 2026', 'Capacity', '5'),
@@ -276,24 +292,116 @@ base_keys = [
 ]
 for i, r in enumerate(base_keys):
     data_row(tbl, *r, shade=(i % 2 == 0))
+doc.add_paragraph()
+
+h(doc, '3.5  New Table 50687 "Register Absence" [NEW] - Unposted Worksheet', 2)
+p(doc,
+  'The staging table behind the new worksheet page (Section 6.4). One row per not-yet-'
+  'posted absence line. A row is DELETED once it posts successfully (standard journal '
+  'behavior - a posted line does not linger in the worksheet) - table 160 is the only '
+  'permanent record of a posted absence.')
+tbl = add_table(doc, [1.3, 4.8, 4.0, 8.9],
+                'Field No.', 'Field Name', 'Type', 'Purpose')
+register_fields = [
+    ('1', 'Line No.', 'Integer', 'Primary key. Plain incrementing line number, same convention as a journal line.'),
+    ('2', 'Resource No.', 'Code[20]', 'TableRelation to Resource. Mandatory at Post (Section 5.8).'),
+    ('3', 'Date', 'Date', 'The absence date. Mandatory at Post. (Captioned "Date" on the table; the worksheet page may caption the column "Absence Date" for clarity, matching the posted side''s field naming.)'),
+    ('4', 'Absence Reason Code', 'Code[10]', 'TableRelation to table 5206 "Cause of Absence" - same reason table the posted ledger field uses. Mandatory at Post.'),
+    ('5', 'Hours', 'Decimal', 'Positive hours the user is entering as absent. Mandatory (> 0) at Post.'),
+    ('6', 'Existing Capacity', 'Decimal (FlowField)',
+     'CalcFormula: sum("Res. Capacity Entry".Capacity where("Resource No." = field("Resource No."), '
+     'Date = field(Date))) - deliberately NO Type filter, so this sums Capacity AND Absence rows '
+     'together, giving the NET REMAINING capacity for the date (Capacity minus anything already '
+     'posted as Absence), not just whether a Capacity row exists at all. Read-only, shown on the '
+     'worksheet so the user can see BEFORE posting how much capacity is actually left. Mandatory '
+     '(> 0) at Post - this is the worksheet-side surface of the existing-capacity guard (Section '
+     '5.1), and also what correctly blocks posting once a resource''s capacity for that date has '
+     'already been fully consumed by other posted absences, not only when it never existed.'),
+]
+for i, r in enumerate(register_fields):
+    data_row(tbl, *r, shade=(i % 2 == 0))
+doc.add_paragraph()
+
+add_code(doc,
+r"""table 50687 "Register Absence"
+{
+    Caption = 'Register Absence';
+    DataClassification = CustomerContent;
+
+    fields
+    {
+        field(1; "Line No."; Integer)
+        {
+            Caption = 'Line No.';
+            DataClassification = SystemMetadata;
+        }
+        field(2; "Resource No."; Code[20])
+        {
+            Caption = 'Resource No.';
+            DataClassification = CustomerContent;
+            TableRelation = Resource;
+        }
+        field(3; Date; Date)
+        {
+            Caption = 'Date';
+            DataClassification = CustomerContent;
+        }
+        field(4; "Absence Reason Code"; Code[10])
+        {
+            Caption = 'Absence Reason Code';
+            DataClassification = CustomerContent;
+            TableRelation = "Cause of Absence";
+        }
+        field(5; Hours; Decimal)
+        {
+            Caption = 'Hours';
+            DataClassification = CustomerContent;
+            DecimalPlaces = 0 : 2;
+            BlankZero = true;
+        }
+        field(6; "Existing Capacity"; Decimal)
+        {
+            Caption = 'Existing Capacity';
+            Editable = false;
+            FieldClass = FlowField;
+            // No Type filter: sums Capacity AND Absence together, so this reflects NET
+            // remaining capacity, not just whether a Capacity row exists at all.
+            CalcFormula = sum("Res. Capacity Entry".Capacity
+                where("Resource No." = field("Resource No."),
+                      Date = field(Date)));
+            DecimalPlaces = 0 : 5;
+            BlankZero = true;
+        }
+    }
+
+    keys
+    {
+        key(PK; "Line No.")
+        {
+            Clustered = true;
+        }
+    }
+}""")
 
 # ── 4. OBJECT ID PLAN ─────────────────────────────────────────────────────────
 
 h(doc, '4. New / Changed Object ID Plan')
 p(doc,
   'The app''s id range is 50600-60700 (app.json). Highest IDs currently in use top out '
-  'around 50681 in the low sub-range, so new objects below take the next free IDs '
-  'starting at 50682.')
+  'around 50686 in the low sub-range (the codeunit from the prior design iteration), so '
+  'new objects below take the next free IDs starting at 50687.')
 
-tbl = add_table(doc, [2.6, 1.6, 5.6, 2.0, 5.3],
+tbl = add_table(doc, [2.6, 1.6, 5.6, 2.2, 5.1],
                 'Object Type', 'Object ID', 'Object Name', 'Status', 'Purpose')
 rows = [
-    ('Enum',            '50682', 'Res. Capacity Entry Type',   'NEW',      'Capacity / Absence classification (Section 3.3)'),
+    ('Enum',            '50682', 'Res. Capacity Entry Type',   'NEW',      'Capacity / Absence classification on the posted ledger (Section 3.3)'),
     ('Table Extension', '50606', 'ResCapacityEntry Opt',       'Modified', '+ 2 fields: Type, Absence Reason Code (Section 3.1)'),
-    ('Page (List)',     '50684', 'Resource Absence List',      'NEW',      'Add/Edit/Delete entry point, opened from the Resource Card (Section 6.2)'),
-    ('Page (Card)',     '50685', 'Resource Absence Card',      'NEW',      'Data entry form for one absence entry (Section 6.3)'),
-    ('Codeunit',        '50686', 'Resource Absence Mgt.',      'NEW',      'Validation + insert/delete logic (Section 5)'),
-    ('Page Extension',  '50605', 'ResourceCard Opti',          'Modified', '+ "Absence" action (Section 6.1)'),
+    ('Table',           '50687', 'Register Absence',           'NEW',      'Unposted worksheet staging table (Section 3.5)'),
+    ('Page (Worksheet)', '50688', 'Register Absence',           'NEW',      'Journal-style entry page with the Post action (Section 6.4)'),
+    ('Codeunit',        '50686', 'Resource Absence Mgt.',      'Modified', 'Validation logic unchanged; entry point changes from Card triggers to Post (Section 5)'),
+    ('Page (List)',     '50684', 'Resource Absence List',      'Repurposed', 'Now READ-ONLY posted-history view only - no more New/Edit (Section 6.2)'),
+    ('Page (Card)',     '50685', 'Resource Absence Card',      'REMOVED',  'Superseded by the worksheet - direct Card entry into table 160 is no longer part of the design (Section 6.3)'),
+    ('Page Extension',  '50605', 'ResourceCard Opti',          'Modified', '"Absence" action retained, re-purposed to open the read-only history list (Section 6.1)'),
     ('Page',            '50629', 'Res. Capacity FactBox Part', 'Modified', '+ "Type" column so Capacity/Absence rows are distinguishable (Section 8.2)'),
     ('Page',            '50627', 'Resource Capacity Settings Opt', 'Modified', '"Update Capacity" wizard - CalcSums(Capacity) must add a Type = Capacity filter (Section 5.7)'),
 ]
@@ -301,16 +409,34 @@ for i, r in enumerate(rows):
     dr = data_row(tbl, *r, shade=(i % 2 == 0))
     if r[3] == 'NEW':
         set_cell_bg(dr.cells[3], 'C6EFCE')
+    elif r[3] == 'REMOVED':
+        set_cell_bg(dr.cells[3], 'F8D7DA')
+    elif r[3] == 'Repurposed':
+        set_cell_bg(dr.cells[3], 'FFF2CC')
 doc.add_paragraph()
+
+info_box(doc,
+    'Pages 50684 and 50685 were already implemented in AL as part of the previous '
+    '(Card-based) design iteration. Reworking to this design means: delete page 50685 '
+    'entirely, strip the New/Edit/CardPageId wiring from page 50684 (leaving it as a '
+    'plain read-only list), and move the validation logic currently invoked from page '
+    '50685''s OnInsertRecord/OnModifyRecord into the new Post routine on codeunit 50686 '
+    'instead (Section 5.9). This is a rework, not a from-scratch build - the codeunit''s '
+    'core rules (Sections 5.1-5.5) do not change.',
+    label='Migration Note', color='FFF2CC')
 
 # ── 5. VALIDATION & BUSINESS LOGIC ────────────────────────────────────────────
 
 h(doc, '5. Validation & Business Logic - Codeunit 50686 "Resource Absence Mgt."')
 p(doc,
-  'A single new codeunit owns every Absence business rule below, mirroring the existing '
+  'A single codeunit owns every Absence business rule below, mirroring the existing '
   '"Resource Handler" (codeunit 50600) pattern already used in this extension for '
-  'testable, centralized resource logic. The Absence Card page and the underlying table '
-  'triggers both call into this codeunit rather than re-implementing rules locally.')
+  'testable, centralized resource logic. Sections 5.1-5.6 are UNCHANGED from the prior '
+  'design - they describe how a Res. Capacity Entry Absence row gets built and '
+  'validated, regardless of what calls into the codeunit. What changes with this '
+  'revision is WHO calls it: previously the Absence Card''s OnInsertRecord/'
+  'OnModifyRecord triggers called straight into these rules; now the new worksheet''s '
+  'Post action does (Section 5.9), running the same rules once per unposted line.')
 
 h(doc, '5.1  Rule: Existing-Capacity Guard', 2)
 p(doc,
@@ -394,15 +520,103 @@ info_box(doc,
     'additive UI change - and is called out separately in Section 8.2.',
     label='Risk Found During Design Review', color='F8D7DA')
 
+h(doc, '5.8  Post-Time Mandatory Field Validation (Worksheet Side)', 2)
+p(doc,
+  'Before the codeunit even attempts to build a table 160 row, the new Post routine '
+  '(Section 5.9) checks each "Register Absence" line has all five of the fields the '
+  'reviewer asked to be mandatory at posting - failing fast with a specific field name '
+  'rather than falling through to a more generic downstream error:')
+tbl = add_table(doc, [4, 13], 'Field', 'Check')
+mandatory_rows = [
+    ('Resource No.', 'TestField - must not be blank.'),
+    ('Date', 'TestField - must not be 0D.'),
+    ('Existing Capacity', 'CalcFields, then must be > 0 - the worksheet-visible surface of the existing-capacity guard (Section 5.1). Since this field nets Capacity against any already-posted Absence (Section 3.5), the check also correctly fires when a resource''s capacity for that date has already been fully used up by other posted absences, not only when it never existed.'),
+    ('Hours', 'TestField - must not be 0 (and, per Section 5.2, must be positive).'),
+    ('Absence Reason Code', 'TestField - must not be blank.'),
+]
+for i, r in enumerate(mandatory_rows):
+    data_row(tbl, *r, shade=(i % 2 == 0))
+doc.add_paragraph()
+info_box(doc,
+    'This duplicates part of what ValidateAndPrepareAbsence (Section 5.1/5.2) already '
+    'checks internally - that is intentional, not redundant cleanup material. The '
+    'worksheet-side TestFields give a fast, specific "which field on which line" error '
+    'before any database write is attempted; ValidateAndPrepareAbsence remains the single '
+    'authoritative implementation of the actual business rules (existing-capacity match, '
+    'overshoot guard, Duplicate Id inheritance) and is called unchanged from the Post loop.',
+    label='Why the overlap is intentional', color='D6E4F7')
+
+h(doc, '5.9  Posting Behavior (New)', 2)
+p(doc, 'Procedure on codeunit 50686, called from the worksheet''s Post action:')
+add_code(doc,
+r"""procedure PostRegisterAbsence(var RegisterAbsence: Record "Register Absence")
+var
+    ResCapacityEntry: Record "Res. Capacity Entry";
+    LastResCapacityEntry: Record "Res. Capacity Entry";
+    PostedCount: Integer;
+begin
+    // Deliberately NOT Reset() - Post only processes whatever filter is CURRENTLY active
+    // on the page (e.g. the calling Resource Card's resource). Table 160 has no
+    // AutoIncrement/Number Series, so every writer assigns "Entry No." manually via
+    // FindLast()+1 (matching page 50627's own convention) - this is a shared table, and
+    // Reset()-ing here would let Post reach past the user's own filtered view into
+    // unrelated rows sitting in the same table (a real bug found during implementation).
+    if RegisterAbsence.FindSet() then
+        repeat
+            // 5.8 - fast, field-specific mandatory checks
+            RegisterAbsence.TestField("Resource No.");
+            RegisterAbsence.TestField(Date);
+            RegisterAbsence.TestField("Absence Reason Code");
+            RegisterAbsence.TestField(Hours);
+            RegisterAbsence.CalcFields("Existing Capacity");
+            if RegisterAbsence."Existing Capacity" <= 0 then
+                Error(NoExistingCapacityErr, RegisterAbsence."Resource No.", RegisterAbsence.Date);
+
+            // Build the posted ledger row and reuse the UNCHANGED validation engine
+            ResCapacityEntry.Init();
+            ResCapacityEntry."Resource No." := RegisterAbsence."Resource No.";
+            ResCapacityEntry.Date := RegisterAbsence.Date;
+            ResCapacityEntry."Absence Reason Code" := RegisterAbsence."Absence Reason Code";
+            ValidateAndPrepareAbsence(ResCapacityEntry, RegisterAbsence.Hours);   // Section 5.1-5.4
+
+            LastResCapacityEntry.Reset();
+            if LastResCapacityEntry.FindLast() then
+                ResCapacityEntry."Entry No." := LastResCapacityEntry."Entry No." + 1
+            else
+                ResCapacityEntry."Entry No." := 1;
+
+            ResCapacityEntry.Insert(true);
+            RegisterAbsence.Delete();   // posted lines do not linger in the worksheet
+            PostedCount += 1;
+        until RegisterAbsence.Next() = 0;
+
+    if PostedCount = 1 then
+        Message(PostedOneMsg)
+    else
+        if PostedCount > 1 then
+            Message(PostedManyMsg, PostedCount);
+end;""")
+info_box(doc,
+    'No Commit() is issued anywhere in this loop, so a runtime Error() on any line - a '
+    'missing field, no matching capacity, an overshoot - rolls back the ENTIRE Post run '
+    'via BC''s ambient transaction. Either every line in the worksheet posts and is '
+    'removed, or none of them do and the worksheet is left exactly as the user had it. '
+    'This all-or-nothing behavior is a natural consequence of not adding a Commit() '
+    'defensively, not extra code written to enforce it - flagged in Section 9 for '
+    'confirmation in case partial/best-effort posting is actually wanted instead.',
+    label='All-or-Nothing Posting', color='D6E4F7')
+
 # ── 6. PAGE & ACTION DESIGN ───────────────────────────────────────────────────
 
 h(doc, '6. Page & Action Design')
 
-h(doc, '6.1  Resource Card - New "Absence" Action', 2)
+h(doc, '6.1  Resource Card - "Absence" Action (Repurposed)', 2)
 p(doc,
-  'Added to page extension 50605 "ResourceCard Opti" (existing), grouped near the '
-  'current "Day Plannings (Visual)" action. Opens Resource Absence List (Section 6.2) '
-  'pre-filtered to the current resource.')
+  'Stays on page extension 50605 "ResourceCard Opti" (existing), grouped near the '
+  'current "Day Plannings (Visual)" action - only its ToolTip changes, since it now '
+  'opens a read-only history view rather than an entry point. Registering a NEW '
+  'absence no longer happens from the Resource Card at all; that is now exclusively '
+  'the worksheet''s job (Section 6.4).')
 add_code(doc,
 r"""action("Absence")
 {
@@ -411,60 +625,119 @@ r"""action("Absence")
     Image = Absence;
     RunObject = page "Resource Absence List";
     RunPageLink = "Resource No." = field("No."), Type = const(Absence);
-    ToolTip = 'View and register absence entries for this resource.';
+    ToolTip = 'View this resource''s posted absence history.';
 }""")
 
-h(doc, '6.2  Page 50684 "Resource Absence List" [NEW]', 2)
+h(doc, '6.2  Page 50684 "Resource Absence List" (Repurposed - Read-Only History)', 2)
 p(doc,
   'Standard list page, SourceTable "Res. Capacity Entry", SourceTableView filtered to '
-  'Type = Absence. Standard New/Edit/Delete actions route to the Card page (Section 6.3). '
-  'Read-only columns: Date, Hours (shown positive via a display method or the negated '
-  'Capacity value), Absence Reason Code.')
+  'Type = Absence. Unlike the prior design iteration, this page now has NO CardPageId, '
+  'NO New action, and InsertAllowed/DeleteAllowed = false - it is purely a posted-'
+  'history view. Columns: Date, Hours (shown positive via a display method or the '
+  'negated Capacity value), Absence Reason Code. There is nothing left to edit here; '
+  'correcting a posted absence means posting an offsetting entry via the worksheet, not '
+  'modifying this list in place (consistent with how a posted journal entry is never '
+  'edited directly).')
+p(doc,
+  'Resolves open question 9.3 (Reachability): the worksheet is reached from THIS list, '
+  'not from the Resource Card directly, via a plain "Register Absence" action that '
+  'opens page 50688 with no RunPageLink/pre-filter - the user picks the Resource No. '
+  'for each line on the worksheet itself.')
+add_code(doc,
+r"""action("RegisterAbsence")
+{
+    ApplicationArea = All;
+    Caption = 'Register Absence';
+    Image = Register;
+    RunObject = page "Register Absence";
+}""")
 
-h(doc, '6.3  Page 50685 "Resource Absence Card" [NEW]', 2)
-p(doc, 'Fields, in the order given in the original design request:')
-tbl = add_table(doc, [4.5, 4.5, 8], 'Field', 'Editable?', 'Notes')
-card_fields = [
-    ('Resource No.', 'Only on a new record', 'Defaulted from the calling Resource Card and locked once the record exists.'),
-    ('Resource Name', 'No', 'Plain page-level lookup (Resource.Get() in OnAfterGetRecord / a page variable) - not a stored table field, since it is display-only.'),
-    ('Absence Date', 'Yes', 'Maps to the underlying "Date" field.'),
-    ('Absence Reason', 'Yes', 'Maps to "Absence Reason Code"; lookup to table 5206 "Cause of Absence" / page "Causes of Absence".'),
-    ('Hours', 'Yes', 'Positive entry; codeunit 50686 negates it into "Capacity" on insert (Section 5.2).'),
+h(doc, '6.3  Page 50685 "Resource Absence Card" - REMOVED', 2)
+info_box(doc,
+    'This page existed in the prior design iteration as the direct entry point into '
+    'table 160. It is dropped entirely by this revision: all new-entry data capture '
+    'moves to the "Register Absence" worksheet (Section 6.4), which posts into table 160 '
+    'instead of a Card writing to it directly. If already implemented, delete this page '
+    'object as part of reworking to this design (Section 4 Migration Note).',
+    label='Removed from Design', color='F8D7DA')
+
+h(doc, '6.4  Page 50688 "Register Absence" [NEW] - Worksheet', 2)
+p(doc,
+  'Journal-style worksheet, PageType = Worksheet (or a fully editable List, if a plain '
+  'list better matches this extension''s existing UI conventions), SourceTable '
+  '"Register Absence" (Section 3.5), Editable/InsertAllowed/ModifyAllowed/DeleteAllowed '
+  '= true. Lets the user key in several absence lines - across different resources and '
+  'dates - before posting any of them.')
+tbl = add_table(doc, [4.5, 4.5, 8], 'Column', 'Editable?', 'Notes')
+worksheet_fields = [
+    ('Resource No.', 'Yes', 'TableRelation to Resource.'),
+    ('Resource Name', 'No', 'Plain page-level lookup (Resource.Get() in OnAfterGetRecord / a page variable) - not a stored table field, matching the same non-FlowField convention used throughout this design.'),
+    ('Date', 'Yes', 'The absence date for this line.'),
+    ('Absence Reason Code', 'Yes', 'Lookup to table 5206 "Cause of Absence" / page "Causes of Absence".'),
+    ('Hours', 'Yes', 'Positive entry. No pre-fill default - user always types it (per the earlier-confirmed design decision, carried over unchanged from the Card iteration).'),
+    ('Existing Capacity', 'No (FlowField)', 'Read-only, visible before posting - the worksheet-side surface of the existing-capacity guard (Section 5.8).'),
 ]
-for i, r in enumerate(card_fields):
+for i, r in enumerate(worksheet_fields):
     data_row(tbl, *r, shade=(i % 2 == 0))
+doc.add_paragraph()
+p(doc, 'Actions:')
+add_code(doc,
+r"""action(Post)
+{
+    ApplicationArea = All;
+    Caption = 'Post';
+    Image = Post;
+    InFooterBar = true;
+    ToolTip = 'Validate and post all absence lines on this worksheet into Res. Capacity Entry.';
+
+    trigger OnAction()
+    var
+        ResourceAbsenceMgt: Codeunit "Resource Absence Mgt.";
+    begin
+        ResourceAbsenceMgt.PostRegisterAbsence(Rec);   // Section 5.9
+    end;
+}""")
 
 # ── 7. DATA FLOW ──────────────────────────────────────────────────────────────
 
 h(doc, '7. Data Flow')
+p(doc, '7.1  Entry + Posting (new, replaces the old Card flow):')
+add_code(doc,
+r""""Register Absence" worksheet  (Page 50688, table 50687 - unposted)
+      |
+      |  user keys in N lines: Resource No., Date, Absence Reason Code, Hours
+      |  "Existing Capacity" FlowField shows live, before posting, the NET
+      |  remaining capacity for each line (Capacity minus already-posted Absence)
+      v
+Post action  ->  Codeunit 50686 "Resource Absence Mgt.".PostRegisterAbsence  (Section 5.9)
+      |
+      |  for each line CURRENTLY VISIBLE on the page (no Reset - a shared table,
+      |  Post never reaches past the page's own filter), in order:
+      |-- 5.8  TestField Resource No. / Date / Absence Reason Code / Hours;
+      |          CalcFields+check Existing Capacity > 0 (net remaining, not just "exists")
+      |-- 5.1  find matching Capacity row (Resource No. + Date + Type=Capacity)
+      |          not found -> Error, ENTIRE POST ROLLS BACK (no Commit in the loop)
+      |          found     -> capture its Duplicate Id
+      |-- 5.4  Hours <= matched row's Capacity ?  (overshoot guard)
+      |-- 5.2  negate Hours -> Capacity field
+      |-- INSERT into Table 160 "Res. Capacity Entry"
+      |       (Type = Absence, Capacity = -Hours, Duplicate Id = copied)
+      |-- DELETE the now-posted "Register Absence" line
+      v
+Existing, UNCHANGED aggregation automatically nets the result:
+   - Query 50604 "Capacity Per Day Per Resource"   (SUM Capacity by Date/Resource No./Duplicate Id)
+   - Any other existing SUM/FlowField reader of "Res. Capacity Entry".Capacity""")
+p(doc, '7.2  History Viewing + Worksheet Entry Point:')
 add_code(doc,
 r"""Resource Card
       |
       |  action "Absence"  (RunPageLink: Resource No. + Type = Absence)
       v
-Resource Absence List  (Page 50684, filtered to Type = Absence)
+Resource Absence List  (Page 50684, read-only, filtered to Type = Absence)
       |
-      |  New / Edit
+      |  action "Register Absence"  (no RunPageLink - opens unfiltered)
       v
-Resource Absence Card  (Page 50685)
-      |
-      |  user enters: Absence Date, Absence Reason, Hours (positive)
-      v
-Codeunit 50686 "Resource Absence Mgt."
-      |
-      |-- 5.1  find matching Capacity row (Resource No. + Date + Type=Capacity)
-      |          not found -> Error, stop
-      |          found     -> capture its Duplicate Id
-      |-- 5.4  Hours <= matched row's Capacity ?  (overshoot guard)
-      |-- 5.2  negate Hours -> Capacity field
-      v
-INSERT into Table 160 "Res. Capacity Entry"
-   (Type = Absence, Capacity = -Hours, Duplicate Id = copied from the matched Capacity row)
-      |
-      v
-Existing, UNCHANGED aggregation automatically nets the result:
-   - Query 50604 "Capacity Per Day Per Resource"   (SUM Capacity by Date/Resource No./Duplicate Id)
-   - Any other existing SUM/FlowField reader of "Res. Capacity Entry".Capacity""")
+"Register Absence" worksheet  (Page 50688 - see 7.1 for the posting flow)""")
 
 # ── 8. IMPACTED OBJECTS SUMMARY ───────────────────────────────────────────────
 
@@ -481,30 +754,59 @@ for i, r in enumerate(untouched):
     data_row(tbl, *r, shade=(i % 2 == 0))
 doc.add_paragraph()
 
-h(doc, '8.2  Modified', 2)
+h(doc, '8.2  New', 2)
+tbl = add_table(doc, [5, 12], 'Object', 'Purpose')
+new_objs = [
+    ('Table 50687 "Register Absence"', 'Unposted worksheet staging table (Section 3.5).'),
+    ('Page 50688 "Register Absence"', 'Worksheet page with the Post action (Section 6.4).'),
+]
+for i, r in enumerate(new_objs):
+    data_row(tbl, *r, shade=(i % 2 == 0))
+doc.add_paragraph()
+
+h(doc, '8.3  Modified', 2)
 tbl = add_table(doc, [5, 12], 'Object', 'Change')
 modified = [
-    ('Table Extension 50606 "ResCapacityEntry Opt"', '+ 2 fields (Section 3.1).'),
-    ('Page Extension 50605 "ResourceCard Opti"', '+ "Absence" action (Section 6.1).'),
+    ('Table Extension 50606 "ResCapacityEntry Opt"', '+ 2 fields (Section 3.1) - unchanged from prior iteration.'),
+    ('Codeunit 50686 "Resource Absence Mgt."', 'Core rules (Sections 5.1-5.6) unchanged; + new PostRegisterAbsence entry point (Section 5.9) called from the worksheet instead of a Card''s triggers.'),
+    ('Page 50684 "Resource Absence List"', 'Repurposed to a plain read-only history list - New/Edit/CardPageId wiring removed (Section 6.2).'),
+    ('Page Extension 50605 "ResourceCard Opti"', '"Absence" action retained, ToolTip updated to reflect its now-read-only purpose (Section 6.1).'),
     ('Page 50629 "Res. Capacity FactBox Part"', '+ "Type" column, so the factbox on the Resource Card no longer shows an unexplained second row per date once Absence entries exist.'),
     ('Page 50627 "Resource Capacity Settings Opt"', 'BEHAVIORAL fix, not additive: both CalcSums(Capacity) call sites in the "Update Capacity" action need a Type = Capacity filter added, or re-running that wizard silently cancels out recorded absences (Section 5.7).'),
 ]
 for i, r in enumerate(modified):
     data_row(tbl, *r, shade=(i % 2 == 0))
+doc.add_paragraph()
+
+h(doc, '8.4  Removed', 2)
+tbl = add_table(doc, [5, 12], 'Object', 'Reason')
+removed_objs = [
+    ('Page 50685 "Resource Absence Card"', 'Superseded by the worksheet - direct Card entry into table 160 is no longer part of the design (Section 6.3).'),
+]
+for i, r in enumerate(removed_objs):
+    data_row(tbl, *r, shade=(i % 2 == 0))
 
 # ── 9. OPEN QUESTIONS ──────────────────────────────────────────────────────────
 
 h(doc, '9. Open Questions / Assumptions for Reviewer')
+p(doc,
+  'The three business-rule questions raised in the prior (Card-based) design iteration '
+  'were already confirmed with the reviewer and carry over unchanged to this revision: '
+  'overshoot is blocked (Section 5.4), multiple absence lines per Resource/Date are '
+  'allowed (Section 5.3), and Hours never pre-fills a default (Section 6.4). '
+  'Reachability (formerly 9.3) is now also confirmed: a plain "Register Absence" '
+  'action on the read-only history list (Page 50684, Section 6.2) opens the worksheet '
+  'unfiltered - not an action on the Resource Card. The two questions below remain '
+  'open, specific to the posting mechanism itself.')
 info_box(doc,
-    '9.1  Overshoot guard (Section 5.4) - should the system block an absence that '
-    'exceeds that day''s Capacity row, or allow it (net capacity for the day goes '
-    'negative)?\n\n'
-    '9.2  Multiple absence entries per Resource/Date - should partial-day absences '
-    '(e.g. two half-days against the same Capacity row) be allowed, or restricted to '
-    'one Absence row per Resource/Date?\n\n'
-    '9.3  Should "Hours" on the Absence Card default to the full remaining Capacity for '
-    'that date (convenience for the common "absent all day" case), or always start '
-    'blank?',
+    '9.1  All-or-nothing posting (Section 5.9) - if one line among several on the '
+    'worksheet fails validation, should the ENTIRE Post action roll back (current '
+    'design, the natural default with no mid-loop Commit), or should valid lines post '
+    'while invalid ones are skipped/left behind with an error summary?\n\n'
+    '9.2  Batch/template concept - should "Register Absence" support multiple named '
+    'batches like General Journal Batches (so different users/teams keep separate '
+    'worksheets), or is a single shared worksheet list sufficient (current design, '
+    'simpler)?',
     label='Confirm before implementation', color='FFF2CC')
 
 # ── 10. OBJECT ID QUICK REFERENCE ─────────────────────────────────────────────
@@ -514,9 +816,11 @@ tbl = add_table(doc, [3, 3, 11], 'Type', 'ID', 'Name')
 quick_ref = [
     ('Enum', '50682', 'Res. Capacity Entry Type'),
     ('Table Extension', '50606', 'ResCapacityEntry Opt (extended)'),
-    ('Page (List)', '50684', 'Resource Absence List'),
-    ('Page (Card)', '50685', 'Resource Absence Card'),
-    ('Codeunit', '50686', 'Resource Absence Mgt.'),
+    ('Table', '50687', 'Register Absence (NEW - unposted worksheet staging)'),
+    ('Page (Worksheet)', '50688', 'Register Absence (NEW - Post action)'),
+    ('Codeunit', '50686', 'Resource Absence Mgt. (+ PostRegisterAbsence)'),
+    ('Page (List)', '50684', 'Resource Absence List (repurposed - read-only history)'),
+    ('Page (Card)', '50685', 'Resource Absence Card (REMOVED)'),
     ('Page Extension', '50605', 'ResourceCard Opti (extended)'),
     ('Page', '50629', 'Res. Capacity FactBox Part (extended)'),
     ('Page', '50627', 'Resource Capacity Settings Opt (behavioral fix - Section 5.7)'),
@@ -527,6 +831,10 @@ for i, r in enumerate(quick_ref):
     dr = data_row(tbl, *r, shade=(i % 2 == 0))
     if r[1] == '50627':
         set_cell_bg(dr.cells[1], 'F8D7DA')
+    elif r[1] == '50685':
+        set_cell_bg(dr.cells[1], 'F8D7DA')
+    elif r[1] in ('50687', '50688'):
+        set_cell_bg(dr.cells[1], 'C6EFCE')
 
 # ── SAVE ───────────────────────────────────────────────────────────────────────
 

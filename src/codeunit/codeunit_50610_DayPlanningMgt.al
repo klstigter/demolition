@@ -171,14 +171,29 @@ codeunit 50610 "Day Plannings Mgt."
         if DayPlannings.FindLast() then
             EndDate := DayPlannings."Task Date";
 
-        if (JobTask.PlannedStartDate = 0D) or (StartDate < JobTask.PlannedStartDate) then
-            JobTask.PlannedStartDate := StartDate;
-        if (JobTask.PlannedEndDate = 0D) or (EndDate > JobTask.PlannedEndDate) then
-            JobTask.Validate(PlannedEndDate, EndDate);
-        JobTask.Modify();
+        EnsureJobTaskCoversDate(JobTask, StartDate);
+        EnsureJobTaskCoversDate(JobTask, EndDate);
 
         Message('%1 day planning lines created for Job %2, Task %3.', Counter, DayPlanningPattern."Job No.", DayPlanningPattern."Job Task No.");
     END;
+
+    /// <summary>
+    /// Ensures the Job Task's Planned Starting/Ending Date range fully covers TaskDate - extends
+    /// PlannedStartDate backward and/or PlannedEndDate forward as needed, then persists. This is
+    /// the same extend-to-cover pattern CreateDayPlanning already applied inline for its own
+    /// generated date range; extracted here so other single-date callers (e.g. "Day Planning"
+    /// table's own "Task Date" OnValidate) don't have to re-derive it.
+    /// </summary>
+    procedure EnsureJobTaskCoversDate(var JobTask: Record "Job Task"; TaskDate: Date)
+    begin
+        if TaskDate = 0D then
+            exit;
+        if (JobTask.PlannedStartDate = 0D) or (TaskDate < JobTask.PlannedStartDate) then
+            JobTask.PlannedStartDate := TaskDate;
+        if (JobTask.PlannedEndDate = 0D) or (TaskDate > JobTask.PlannedEndDate) then
+            JobTask.Validate(PlannedEndDate, TaskDate);
+        JobTask.Modify();
+    end;
 
     local procedure CheckMayChange(NewDayPlanning: Record "Day Planning"): Boolean
     var

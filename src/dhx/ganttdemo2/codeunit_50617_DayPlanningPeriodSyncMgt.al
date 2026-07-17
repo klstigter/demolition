@@ -232,6 +232,44 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
     end;
 
     /// <summary>
+    /// Returns the latest "New Task Date" among preview buffer rows still flagged for
+    /// conversion (i.e. rows the user has not unchecked). Rows with "Convert to DayPlanning"
+    /// = false are excluded because they are never applied to DayPlanning by ApplyChanges/
+    /// ApplyChangesOnly, so they must not influence the Job Task's end-date extension either.
+    /// </summary>
+    local procedure GetMaxNewTaskDate(var TempPreviewBuffer: Record "DayPlanning Sync PreviewBuff" temporary): Date
+    var
+        MaxDate: Date;
+    begin
+        TempPreviewBuffer.Reset();
+        TempPreviewBuffer.SetRange("Convert to DayPlanning", true);
+        if TempPreviewBuffer.FindSet() then
+            repeat
+                if TempPreviewBuffer."New Task Date" > MaxDate then
+                    MaxDate := TempPreviewBuffer."New Task Date";
+            until TempPreviewBuffer.Next() = 0;
+        TempPreviewBuffer.SetRange("Convert to DayPlanning");
+        exit(MaxDate);
+    end;
+
+    /// <summary>
+    /// Guards against the Pass 2 cascade walk in CalculateChanges pushing a DayPlanning's
+    /// final date past the originally-requested NewEnd (no clamp-back exists there when an
+    /// off-day collision forces a date forward). Extends the Job Task's Planned Ending Date
+    /// to match the latest applied "New Task Date" so the task's own planned range always
+    /// fully covers the DayPlanning dates it owns. Deliberately end-date only — no symmetric
+    /// Start Date extension.
+    /// </summary>
+    local procedure ExtendJobTaskEndDateIfNeeded(var JobTask: Record "Job Task"; var TempPreviewBuffer: Record "DayPlanning Sync PreviewBuff" temporary)
+    var
+        MaxNewDate: Date;
+    begin
+        MaxNewDate := GetMaxNewTaskDate(TempPreviewBuffer);
+        if (MaxNewDate <> 0D) and (MaxNewDate > JobTask.PlannedEndDate) then
+            JobTask.PlannedEndDate := MaxNewDate;
+    end;
+
+    /// <summary>
     /// Applies the confirmed date changes from the preview buffer to the actual DayPlanning records.
     /// Called from the "Apply Changes" action on the preview page.
     /// Issues a Commit() at the end so the Gantt chart data is immediately consistent.
@@ -240,6 +278,8 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
     var
         DayPlanning: Record "Day Planning";
     begin
+        ExtendJobTaskEndDateIfNeeded(JobTask, TempPreviewBuffer);
+
         // Save the Job Task period change first, then update DayPlanning records.
         JobTask.Modify(true);
 

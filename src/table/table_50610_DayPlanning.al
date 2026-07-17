@@ -62,6 +62,16 @@ table 50610 "Day Planning"
             DataClassification = ToBeClassified;
             Caption = 'Task Date';
 
+            trigger OnValidate()
+            var
+                JobTask: Record "Job Task";
+                DayPlanningMgt: Codeunit "Day Plannings Mgt.";
+            begin
+                if ("Job No." = '') or ("Job Task No." = '') then
+                    exit;
+                if JobTask.Get("Job No.", "Job Task No.") then
+                    DayPlanningMgt.EnsureJobTaskCoversDate(JobTask, "Task Date");
+            end;
         }
         field(5; "Plan Status"; Enum "Plan Status")
         {

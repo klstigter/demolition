@@ -167,6 +167,7 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
             }
             actionref("Day Plannings (Visual) actionref"; "Day Plannings (Visual)") { }
             actionref("Absence actionref"; "Absence") { }
+            actionref("Resource Capacity actionref"; "Resource &Capacity") { }
         }
     }
 
