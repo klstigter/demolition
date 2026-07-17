@@ -149,6 +149,15 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
                     ResScheduler.RunModal();
                 end;
             }
+            action("Absence")
+            {
+                ApplicationArea = All;
+                Caption = 'Absence';
+                Image = Absence;
+                RunObject = page "Resource Absence List";
+                RunPageLink = "Resource No." = field("No."), Type = const(Absence);
+                ToolTip = 'View and register absence entries for this resource.';
+            }
         }
 
         addafter(CreateTimeSheets_Promoted)
@@ -157,6 +166,7 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
             {
             }
             actionref("Day Plannings (Visual) actionref"; "Day Plannings (Visual)") { }
+            actionref("Absence actionref"; "Absence") { }
         }
     }
 

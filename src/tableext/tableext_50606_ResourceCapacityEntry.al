@@ -23,6 +23,15 @@ tableextension 50606 "ResCapacityEntry Opt" extends "Res. Capacity Entry"
             calcformula = sum("Day Planning"."Assigned Hours" where("Assigned Resource No." = field("Resource No."),
               "Task Date" = field("Date")));
         }
+        field(50605; Type; Enum "Res. Capacity Entry Type")
+        {
+            DataClassification = SystemMetadata;
+        }
+        field(50606; "Absence Reason Code"; Code[10])
+        {
+            DataClassification = ToBeClassified;
+            TableRelation = "Cause of Absence";
+        }
     }
 
 
