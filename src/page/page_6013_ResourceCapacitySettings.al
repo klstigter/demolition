@@ -264,6 +264,7 @@ page 50627 "Resource Capacity Settings Opt"
                                     ResCapacityEntry.SetRange("Resource No.", Rec."No.");
                                     ResCapacityEntry.SetRange(Date, TempDate);
                                     ResCapacityEntry.SetRange("Duplicate Id", LoopCounter);
+                                    ResCapacityEntry.SetRange(Type, ResCapacityEntry.Type::Capacity);
                                     ResCapacityEntry.CalcSums(Capacity);
                                     TempCapacity := ResCapacityEntry.Capacity;
 
@@ -315,6 +316,7 @@ page 50627 "Resource Capacity Settings Opt"
                                 ResCapacityEntry.SetRange("Resource No.", Rec."No.");
                                 ResCapacityEntry.SetRange(Date, TempDate);
                                 ResCapacityEntry.SetRange("Duplicate Id", 1);
+                                ResCapacityEntry.SetRange(Type, ResCapacityEntry.Type::Capacity);
                                 ResCapacityEntry.CalcSums(Capacity);
                                 TempCapacity := ResCapacityEntry.Capacity;
 

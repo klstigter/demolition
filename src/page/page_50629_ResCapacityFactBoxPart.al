@@ -16,6 +16,11 @@ page 50629 "Res. Capacity FactBox Part"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the date.';
                 }
+                field(Type; Rec.Type)
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies whether this is a Capacity or Absence entry.';
+                }
                 field(Capacity; Rec.Capacity)
                 {
                     ApplicationArea = All;
