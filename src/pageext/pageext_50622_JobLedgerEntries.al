@@ -20,6 +20,21 @@ pageextension 50622 "Opt. Job Ledger Entries" extends "Job Ledger Entries"
                 ToolTip = 'Specifies the Day Planning line number that was linked to the originating Project Journal line.';
                 Editable = false;
             }
+            field("Opt. Skill"; Rec."Skill")
+            {
+                ApplicationArea = All;
+                Caption = 'Skill';
+                ToolTip = 'Specifies the Skill that was linked to the originating Project Journal line.';
+                Editable = false;
+            }
+            field(WorkTypeCode; Rec."Work Type Code")
+            {
+                ApplicationArea = All;
+                Caption = 'Work Type Code';
+                ToolTip = 'Specifies the Work Type Code that was linked to the originating Project Journal line.';
+                Editable = false;
+            }
+
         }
     }
 
