@@ -51,7 +51,6 @@ codeunit 50607 "Job Planning Lines Prep. Mgt."
                   tabledata "Skill Code" = r,
                   tabledata "Job" = r,
                   tabledata "Job Planning Line" = rim,
-                  tabledata "Job Ledger Invoice Link" = ri,
                   tabledata "Job Usage Link" = rim;
 
     trigger OnRun()
@@ -114,7 +113,7 @@ codeunit 50607 "Job Planning Lines Prep. Mgt."
                                                     var AlreadyLinkedCount: Integer;
                                                     var ProcessedCount: Integer) LinesCreated: Integer
     var
-        JobLedgerInvoiceLink: Record "Job Ledger Invoice Link";
+        JobUsageLink: Record "Job Usage Link";
         SkillCodeRec: Record "Skill Code";
         SkillCode: Code[20];
         InvoiceResNo: Code[20];
@@ -135,7 +134,8 @@ codeunit 50607 "Job Planning Lines Prep. Mgt."
     begin
         if JobLedgerEntry.FindSet() then
             repeat
-                if JobLedgerInvoiceLink.Get(JobLedgerEntry."Entry No.") then
+                JobUsageLink.setrange("Entry No.", JobLedgerEntry."Entry No.");
+                if not JobUsageLink.IsEmpty() then
                     AlreadyLinkedCount += 1
                 else begin
                     if (JobLedgerEntry."Entry Type" = JobLedgerEntry."Entry Type"::Usage) and
@@ -207,7 +207,7 @@ codeunit 50607 "Job Planning Lines Prep. Mgt."
     local procedure PrepareJobPlanningLinesFromDayPlanning(var DayPlanning: Record "Day Planning"; var ProcessedCount: Integer; var AlreadyLinkedCount: Integer; var NotPostedCount: Integer; var SkippedOtherCount: Integer) LinesCreated: Integer
     var
         JobLedgerEntry: Record "Job Ledger Entry";
-        JobLedgerInvoiceLink: Record "Job Ledger Invoice Link";
+        JobUsageLink: Record "Job Usage Link";
         SkillCodeRec: Record "Skill Code";
         CreatedJobPlanningLine: Record "Job Planning Line";
         GroupHours: Dictionary of [Text, Decimal];
@@ -243,7 +243,8 @@ codeunit 50607 "Job Planning Lines Prep. Mgt."
         if DayPlanning.FindSet() then
             repeat
                 if DayPlanning.Posted and (DayPlanning."Job Entry No." <> 0) then begin
-                    if JobLedgerInvoiceLink.Get(DayPlanning."Job Entry No.") then
+                    jobusageLink.setrange("Entry No.", DayPlanning."Job Entry No.");
+                    if not jobusageLink.IsEmpty() then
                         AlreadyLinkedCount += 1
                     else
                         if JobLedgerEntry.Get(DayPlanning."Job Entry No.") then begin
@@ -388,7 +389,6 @@ codeunit 50607 "Job Planning Lines Prep. Mgt."
     local procedure CreateJobPlanningLine(JobNo: Code[20]; JobTaskNo: Code[20]; InvoiceResNo: Code[20]; UOMCode: Code[10]; Hours: Decimal; EntryNos: List of [Integer]; var EntrySkillCode: Dictionary of [Integer, Code[20]]; var JobPlanningLine: Record "Job Planning Line")
     var
         Job: Record Job;
-        JobLedgerInvoiceLink: Record "Job Ledger Invoice Link";
         JobUsageLink: Record "Job Usage Link";
         EntryNo: Integer;
     begin
@@ -414,14 +414,6 @@ codeunit 50607 "Job Planning Lines Prep. Mgt."
         JobPlanningLine.Modify(true);
 
         foreach EntryNo in EntryNos do begin
-            JobLedgerInvoiceLink.Init();
-            JobLedgerInvoiceLink."Job Ledger Entry No." := EntryNo;
-            JobLedgerInvoiceLink."Job No." := JobPlanningLine."Job No.";
-            JobLedgerInvoiceLink."Job Task No." := JobPlanningLine."Job Task No.";
-            JobLedgerInvoiceLink."Invoice Job Planning Line No." := JobPlanningLine."Line No.";
-            JobLedgerInvoiceLink."Skill Code" := EntrySkillCode.Get(EntryNo);
-            JobLedgerInvoiceLink.Insert(true);
-
             if JobPlanningLine."Usage Link" then
                 if not JobUsageLink.Get(JobPlanningLine."Job No.", JobPlanningLine."Job Task No.", JobPlanningLine."Line No.", EntryNo) then begin
                     JobUsageLink.Init();

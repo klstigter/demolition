@@ -8,7 +8,6 @@ report 50600 "RepairData"
                   tabledata "Base Calendar Change" = rimd,
                   tabledata "Demo Data Log Entry" = rimd,
                   tabledata "Job Planning Line" = rimd,
-                  tabledata "Job Ledger Invoice Link" = rimd,
                   tabledata "Job Usage Link" = rim,
                   tabledata "Sales Invoice Line" = r,
                   tabledata "Sales Invoice Header" = r,

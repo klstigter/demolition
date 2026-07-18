@@ -68,13 +68,6 @@ page 50612 "Planning Role Center"
                     Image = PostBatch;
                     ToolTip = 'Open the DayPlanning posting journal to retrieve unposted day Plannings and post them to the project ledger.';
                 }
-                action("Job Ledger Invoice Link")
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Job Ledger Invoice Link';
-                    RunObject = Page "Job Ledger Invoice Link";
-                    ToolTip = 'View the posted usage entries linked to generated invoice planning lines, for traceability.';
-                }
                 action("Job Ledger Entries")
                 {
                     ApplicationArea = Jobs;

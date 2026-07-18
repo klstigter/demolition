@@ -331,13 +331,7 @@ page 50630 "Day Plannings"
                     Editable = false;
                     StyleExpr = StyleStr;
                 }
-                field("Job Ledger Invoice Link"; Rec."Job Ledger Invoice Link")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Indicates whether this day planning line has been linked to a job ledger invoice.';
-                    Editable = false;
-                    StyleExpr = StyleStr;
-                }
+
             }
         }
         area(FactBoxes)
@@ -491,9 +485,9 @@ page 50630 "Day Plannings"
                     trigger OnAction()
                     var
                         SelectedDayPlanning: Record "Day Planning";
-                        JobLedgerInvoiceLink: Record "Job Ledger Invoice Link";
                         JobPlanningLine: Record "Job Planning Line";
                         JobPlanningLinesPage: Page "Job Planning Lines";
+                        JobUsageLink: Record "Job Usage Link";
                         JobNos: List of [Code[20]];
                         JobTaskNos: List of [Code[20]];
                         LineNos: List of [Integer];
@@ -508,14 +502,14 @@ page 50630 "Day Plannings"
 
                         repeat
                             if SelectedDayPlanning."Job Entry No." <> 0 then
-                                if JobLedgerInvoiceLink.Get(SelectedDayPlanning."Job Entry No.") then begin
-                                    if not JobNos.Contains(JobLedgerInvoiceLink."Job No.") then
-                                        JobNos.Add(JobLedgerInvoiceLink."Job No.");
-                                    if not JobTaskNos.Contains(JobLedgerInvoiceLink."Job Task No.") then
-                                        JobTaskNos.Add(JobLedgerInvoiceLink."Job Task No.");
-                                    if not LineNos.Contains(JobLedgerInvoiceLink."Invoice Job Planning Line No.") then
-                                        LineNos.Add(JobLedgerInvoiceLink."Invoice Job Planning Line No.");
-                                end;
+                                jobUsageLink.setrange("Entry No.", SelectedDayPlanning."Job Entry No.");
+                            if not JobUsageLink.findfirst() then
+                                if not JobNos.Contains(JobUsageLink."Job No.") then
+                                    JobNos.Add(JobUsageLink."Job No.");
+                            if not JobTaskNos.Contains(JobUsageLink."Job Task No.") then
+                                JobTaskNos.Add(JobUsageLink."Job Task No.");
+                            if not LineNos.Contains(JobUsageLink."Line No.") then
+                                LineNos.Add(JobUsageLink."Line No.");
                         until SelectedDayPlanning.Next() = 0;
 
                         if JobNos.Count() = 0 then begin

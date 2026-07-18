@@ -38,15 +38,15 @@ report 50606 "Job Planning Line Usage Detail"
             {
             }
 
-            dataitem(JobLedgerInvoiceLink; "Job Ledger Invoice Link")
+            dataitem(JobLedgerInvoiceLink; "Job Usage Link")
             {
-                DataItemLink = "Job No." = field("Job No."), "Job Task No." = field("Job Task No."), "Invoice Job Planning Line No." = field("Line No.");
-                DataItemTableView = sorting("Job No.", "Job Task No.", "Invoice Job Planning Line No.");
+                DataItemLink = "Job No." = field("Job No."), "Job Task No." = field("Job Task No."), "Line No." = field("Line No.");
+                DataItemTableView = sorting("Job No.", "Job Task No.", "Line No.");
 
-                column(JobLedgerEntryNo; "Job Ledger Entry No.")
+                column(JobLedgerEntryNo; "Entry No.")
                 {
                 }
-                column(SkillCode_Link; "Skill Code")
+                column(SkillCode_Link; JobLedgerEntry."Skill")
                 {
                 }
                 column(PostingDate_Entry; JobLedgerEntry."Posting Date")
@@ -70,7 +70,7 @@ report 50606 "Job Planning Line Usage Detail"
 
                 trigger OnAfterGetRecord()
                 begin
-                    if not JobLedgerEntry.Get("Job Ledger Entry No.") then
+                    if not JobLedgerEntry.Get("Entry No.") then
                         CurrReport.Skip();
 
                     ResourceName := '';

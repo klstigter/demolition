@@ -569,13 +569,6 @@ table 50610 "Day Planning"
             DataClassification = ToBeClassified;
             Caption = 'Resource Entry No.';
         }
-        field(153; "Job Ledger Invoice Link"; Boolean)
-        {
-            fieldclass = FlowField;
-            CalcFormula = exist("Job Ledger Invoice Link" where("Job Ledger Entry No." = field("Job Entry No.")));
-            Caption = 'Job Ledger Invoice Link';
-            editable = false;
-        }
 
     }
     keys
