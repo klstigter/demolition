@@ -58,6 +58,12 @@ table 50604 "Order Intake Header Opt."
             TableRelation = "Contact" where(Type = const(Person), "Company No." = field("Customer No."));
         }
 
+        field(12; "Short Description"; Text[100])
+        {
+            DataClassification = CustomerContent;
+            Caption = 'Short Description';
+            ToolTip = 'Specifies the short description for the order intake. for Kanban card view.';
+        }
         field(13; Description; Blob)
         {
             DataClassification = CustomerContent;
