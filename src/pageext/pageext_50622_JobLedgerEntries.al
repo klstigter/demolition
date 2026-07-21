@@ -53,6 +53,12 @@ pageextension 50622 "Opt. Job Ledger Entries" extends "Job Ledger Entries"
     // path runs - avoiding the cursor-sharing problems of trying to intercept native's own
     // per-entry posting event (codeunit "Job Post-Line"'s OnBeforeInsertPlLineFromLedgEntry;
     // see the now-removed codeunit 50608 for why that approach was abandoned).
+    // Release 2: the two replacement actions ("Transfer To Planning Lines Opti" and
+    // "Transfer To Planning Lines Opt.") are now hidden and merged behind a single
+    // "Create Planning Lines for Invoice" moderator action that prompts the user to choose
+    // Standard vs. Optimizer via StrMenu. Both the hidden actions and the moderator action
+    // call the same shared RunStandardTransfer()/RunOptimizerTransfer() procedures, so the
+    // underlying behavior is defined exactly once and cannot diverge between entry points.
     actions
     {
         modify("Transfer To Planning Lines")
@@ -67,6 +73,9 @@ pageextension 50622 "Opt. Job Ledger Entries" extends "Job Ledger Entries"
             actionref("Transfer To Planning Lines Opt._Promoted"; "Transfer To Planning Lines Opt.")
             {
             }
+            actionref("Create Planning Lines for Invoice_Promoted"; "Create Planning Lines for Invoice")
+            {
+            }
         }
         addafter("Transfer To Planning Lines")
         {
@@ -77,37 +86,11 @@ pageextension 50622 "Opt. Job Ledger Entries" extends "Job Ledger Entries"
                 Ellipsis = true;
                 Image = TransferToLines;
                 ToolTip = 'Create planning lines from posted project ledger entries. This is useful if you forgot to specify the planning lines that should be created when you posted the project journal lines.';
+                Visible = false;
 
                 trigger OnAction()
-                var
-                    JobLedgEntry: Record "Job Ledger Entry";
-                    JobTransferToPlanningLine: Report "Job Transfer To Planning Lines";
-                    JobLedgEntrySelection: Record "Job Ledger Entry";
-                    SkippedLines: Integer;
-                    ProcessedCount: Integer;
-                    Lblmsg: Label '%1 usage entries were processed and %2 usage entries were skipped because they originated from Day Planning and should be processed using the "Create Planning Lines" action instead.';
                 begin
-                    JobLedgEntrySelection.Copy(Rec);
-                    CurrPage.SetSelectionFilter(JobLedgEntrySelection);
-                    if JobLedgEntrySelection.FindSet() then
-                        repeat
-                            JobLedgEntrySelection.TestField("Job No.");
-                            JobLedgEntrySelection.TestField("Job Task No.");
-                            JobLedgEntrySelection.Testfield("Entry Type", JobLedgEntrySelection."Entry Type"::Usage);
-                            if JobLedgEntrySelection."Opt. DayPlanning Line No." = 0 then begin
-                                JobLedgEntry := JobLedgEntrySelection;
-                                JobLedgEntry.Mark(true);
-                                ProcessedCount += 1;
-                            end else
-                                SkippedLines += 1;
-                        until JobLedgEntrySelection.Next() = 0;
-                    JobLedgEntry.MarkedOnly(true);
-
-                    Clear(JobTransferToPlanningLine);
-                    JobTransferToPlanningLine.GetJobLedgEntry(JobLedgEntry);
-                    JobTransferToPlanningLine.RunModal();
-                    Clear(JobTransferToPlanningLine);
-                    message(Lblmsg, ProcessedCount, SkippedLines);
+                    RunStandardTransfer();
                 end;
             }
             action("Transfer To Planning Lines Opt.")
@@ -117,49 +100,109 @@ pageextension 50622 "Opt. Job Ledger Entries" extends "Job Ledger Entries"
                 Ellipsis = true;
                 Image = TransferToLines;
                 ToolTip = 'Create planning lines from grouped posted project ledger entries. This is a replacement for the native "Transfer To Planning Lines" action, which is hidden when this extension is installed. The replacement action handles posted usage entries that originated from Day Planning differently, grouping them by Skill and creating one planning line per Skill instead of one planning line per usage entry.';
+                Visible = false;
+
+                trigger OnAction()
+                begin
+                    RunOptimizerTransfer();
+                end;
+            }
+            action("Create Planning Lines for Invoice")
+            {
+                ApplicationArea = Jobs;
+                Caption = 'Create Planning Lines for Invoice';
+                Ellipsis = true;
+                Image = TransferToLines;
+                ToolTip = 'Create planning lines from posted project ledger entries, choosing between the Standard (native-style, one line per entry) and Optimizer (grouped by Skill/Invoice Resource No., always recording a Job Usage Link) methods.';
 
                 trigger OnAction()
                 var
-                    JobLedgEntrySelection: Record "Job Ledger Entry";
-                    JobLedgEntryDefault: Record "Job Ledger Entry";
-                    JobLedgEntryCustom: Record "Job Ledger Entry";
-                    JobTransferToPlanningLine: Report "Job Transfer To Planning Lines";
-                    JobPlanningLinesPrepMgt: Codeunit "Job Planning Lines Prep. Mgt.";
-                    JobPlanningLine: Record "Job Planning Line";
-                    AlreadyLinkedCount: Integer;
-                    ProcessedCount: Integer;
-                    SkippedLines: Integer;
-                    LinesCreated: Integer;
-                    msg: Text;
-                    Lblmsg: Label 'There are %1 usage entries  skipped because they do not originated from Day Planning and should be processed using the "Transfer to Planning Lines" action instead.\\';
+                    Selection: Integer;
+                    ChooseModeInstrLbl: Label 'Select the method to create planning lines for invoice:';
+                    ChooseModeOptLbl: Label 'Standard,Optimizer';
                 begin
-                    // Default: posted usage NOT originating from Day Planning - unchanged
-                    // native flow, scoped to just this subset of the user's selection.
-                    JobLedgEntrySelection.Copy(Rec);
-                    CurrPage.SetSelectionFilter(JobLedgEntrySelection);
-                    if JobLedgEntrySelection.FindSet() then
-                        repeat
-                            JobLedgEntrySelection.TestField("Job No.");
-                            JobLedgEntrySelection.TestField("Job Task No.");
-                            JobLedgEntrySelection.Testfield("Entry Type", JobLedgEntrySelection."Entry Type"::Usage);
-                            if (JobLedgEntrySelection."Opt. DayPlanning Line No." <> 0) then begin
-                                JobLedgEntryCustom := JobLedgEntrySelection;
-                                JobLedgEntryCustom.Mark(true);
-                                processedCount += 1;
-                            end else
-                                SkippedLines += 1;
-                        until JobLedgEntrySelection.Next() = 0;
-                    JobLedgEntryCustom.MarkedOnly(true);
-
-                    if JobLedgEntryCustom.Findset() then begin
-                        LinesCreated := JobPlanningLinesPrepMgt.PrepareJobPlanningLinesFromJobLedgerEntry(JobLedgEntryCustom, JobPlanningLine, AlreadyLinkedCount, ProcessedCount);
-                        msg := JobPlanningLinesPrepMgt.FormatResultMessage(LinesCreated, ProcessedCount, AlreadyLinkedCount, 0, 0);
-                        if SkippedLines > 0 then
-                            msg := STRSUBSTNO(Lblmsg, SkippedLines) + msg;
-                        Message(msg);
+                    Selection := StrMenu(ChooseModeOptLbl, 1, ChooseModeInstrLbl);
+                    case Selection of
+                        1:
+                            RunStandardTransfer();
+                        2:
+                            RunOptimizerTransfer();
                     end;
                 end;
             }
         }
     }
+
+    local procedure RunStandardTransfer()
+    var
+        JobLedgEntry: Record "Job Ledger Entry";
+        JobTransferToPlanningLine: Report "Job Transfer To Planning Lines";
+        JobLedgEntrySelection: Record "Job Ledger Entry";
+        SkippedLines: Integer;
+        ProcessedCount: Integer;
+        Lblmsg: Label '%1 usage entries were processed and %2 usage entries were skipped because they originated from Day Planning and should be processed using the "Create Planning Lines" action instead.';
+    begin
+        JobLedgEntrySelection.Copy(Rec);
+        CurrPage.SetSelectionFilter(JobLedgEntrySelection);
+        if JobLedgEntrySelection.FindSet() then
+            repeat
+                JobLedgEntrySelection.TestField("Job No.");
+                JobLedgEntrySelection.TestField("Job Task No.");
+                JobLedgEntrySelection.Testfield("Entry Type", JobLedgEntrySelection."Entry Type"::Usage);
+                if JobLedgEntrySelection."Opt. DayPlanning Line No." = 0 then begin
+                    JobLedgEntry := JobLedgEntrySelection;
+                    JobLedgEntry.Mark(true);
+                    ProcessedCount += 1;
+                end else
+                    SkippedLines += 1;
+            until JobLedgEntrySelection.Next() = 0;
+        JobLedgEntry.MarkedOnly(true);
+
+        Clear(JobTransferToPlanningLine);
+        JobTransferToPlanningLine.GetJobLedgEntry(JobLedgEntry);
+        JobTransferToPlanningLine.RunModal();
+        Clear(JobTransferToPlanningLine);
+        message(Lblmsg, ProcessedCount, SkippedLines);
+    end;
+
+    local procedure RunOptimizerTransfer()
+    var
+        JobLedgEntrySelection: Record "Job Ledger Entry";
+        JobLedgEntryDefault: Record "Job Ledger Entry";
+        JobLedgEntryCustom: Record "Job Ledger Entry";
+        JobTransferToPlanningLine: Report "Job Transfer To Planning Lines";
+        JobPlanningLinesPrepMgt: Codeunit "Job Planning Lines Prep. Mgt.";
+        JobPlanningLine: Record "Job Planning Line";
+        AlreadyLinkedCount: Integer;
+        ProcessedCount: Integer;
+        SkippedLines: Integer;
+        LinesCreated: Integer;
+        msg: Text;
+        Lblmsg: Label 'There are %1 usage entries  skipped because they do not originated from Day Planning and should be processed using the "Transfer to Planning Lines" action instead.\\';
+    begin
+        // Default: posted usage NOT originating from Day Planning - unchanged
+        // native flow, scoped to just this subset of the user's selection.
+        JobLedgEntrySelection.Copy(Rec);
+        CurrPage.SetSelectionFilter(JobLedgEntrySelection);
+        if JobLedgEntrySelection.FindSet() then
+            repeat
+                JobLedgEntrySelection.TestField("Job No.");
+                JobLedgEntrySelection.TestField("Job Task No.");
+                JobLedgEntrySelection.Testfield("Entry Type", JobLedgEntrySelection."Entry Type"::Usage);
+                if (JobLedgEntrySelection."Opt. DayPlanning Line No." <> 0) then begin
+                    JobLedgEntryCustom := JobLedgEntrySelection;
+                    JobLedgEntryCustom.Mark(true);
+                end else
+                    SkippedLines += 1;
+            until JobLedgEntrySelection.Next() = 0;
+        JobLedgEntryCustom.MarkedOnly(true);
+
+        if JobLedgEntryCustom.Findset() then begin
+            LinesCreated := JobPlanningLinesPrepMgt.PrepareJobPlanningLinesFromJobLedgerEntry(JobLedgEntryCustom, JobPlanningLine, AlreadyLinkedCount, ProcessedCount);
+            msg := JobPlanningLinesPrepMgt.FormatResultMessage(LinesCreated, ProcessedCount, AlreadyLinkedCount, 0, 0);
+            if SkippedLines > 0 then
+                msg := STRSUBSTNO(Lblmsg, SkippedLines) + msg;
+            Message(msg);
+        end;
+    end;
 }
