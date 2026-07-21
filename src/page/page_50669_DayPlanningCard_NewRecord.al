@@ -145,7 +145,7 @@ page 50669 "Day Planning Card - New Record"
         {
             action(CopyRequestedToAssigned)
             {
-                Caption = 'Copy Requested to Assigned';
+                Caption = 'Accept Requested';
                 ApplicationArea = All;
                 Image = Copy;
 

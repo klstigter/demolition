@@ -392,7 +392,7 @@ page 50630 "Day Plannings"
             }
             action(CopyRequestedToAssigned)
             {
-                Caption = 'Copy Request';
+                Caption = 'Accept Requested';
                 ApplicationArea = All;
                 tooltip = 'Copies the requested resource and hours to the assigned resource and hours for the selected day planning line.';
                 shortcutkey = 'Alt+C';

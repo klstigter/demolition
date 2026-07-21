@@ -163,7 +163,7 @@ page 50668 "Day Planning Card Opt"
         {
             action(CopyRequestedToAssigned)
             {
-                Caption = 'Copy Request';
+                Caption = 'Accept Requested';
                 ToolTip = 'Copies the requested resource and hours to the assigned resource and hours for the selected day planning line.';
                 ApplicationArea = All;
                 shortcutkey = 'Alt+C';
