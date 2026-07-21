@@ -20,10 +20,24 @@ codeunit 50607 "Job Planning Lines Prep. Mgt."
     // reintroduce a Job-Ledger-Entry-driven candidate loop.
     //
     // Design decisions (Release 1, left open by the design doc):
-    //   - Grouping key = Job No. + Job Task No. + Skill's Invoice Resource No. + Unit of
-    //     Measure Code. NOT grouped by Unit Price - Unit Price is resolved once per group
-    //     via standard resource price logic (Job Planning Line's own field-validation
+    //   - Grouping key = Job No. + Job Task No. + Invoice Resource No. + Unit of Measure
+    //     Code (4 segments). Skill Code itself is NOT part of the key - two different Skills
+    //     that resolve to the same Invoice Resource No. are intentionally merged into one
+    //     Job Planning Line. NOT grouped by Unit Price - Unit Price is resolved once per
+    //     group via standard resource price logic (Job Planning Line's own field-validation
     //     order), exactly as a manual planning-line entry would resolve it.
+    //   - Invoice Resource No. is read from the Job Ledger Entry's OWN posted "Invoice
+    //     Resource No." field (field 50621, see tableext_50618_JobLedgerEntry.al), NOT
+    //     re-resolved live from the Skill Code's current setup. This is intentional: once an
+    //     entry is posted, its Invoice Resource No. is fixed to what was in effect at posting
+    //     time. If a Skill Code's Invoice Resource No. is changed afterwards, that must not
+    //     retroactively change how already-posted usage gets grouped here. Codeunit 50603
+    //     "Event Subs." populates the field at posting time; if a Skill Code's setup is
+    //     changed later, the repair tool in report 50600 "Repair Day Planning Resource Group"
+    //     is the mechanism that catches up already-posted entries to the new value - this
+    //     procedure is not responsible for detecting or backfilling that drift. The
+    //     SkillCodeRec.Get(SkillCode) call is kept purely to validate the Skill Code itself
+    //     still exists, not to source Invoice Resource No.
     //   - Only Day Planning rows that have actually been posted to a Job Ledger Entry
     //     (Posted = true, "Job Entry No." <> 0) are candidates; if the Job Ledger Entry
     //     they point to can no longer be found (data-integrity edge case, shouldn't happen)
@@ -152,9 +166,12 @@ codeunit 50607 "Job Planning Lines Prep. Mgt."
                         if not SkillCodeRec.Get(SkillCode) then
                             Error(SkillCodeNotFoundErr, SkillCode);
 
-                        InvoiceResNo := SkillCodeRec."Invoice Resource No.";
-                        if InvoiceResNo = '' then
-                            Error(NoInvoiceResourceErr, SkillCode);
+                        InvoiceResNo := JobLedgerEntry."Invoice Resource No.";
+                        if InvoiceResNo = '' then begin
+                            InvoiceResNo := SkillCodeRec."Invoice Resource No.";
+                            if InvoiceResNo = '' then
+                                Error(NoInvoiceResourceErr, SkillCode);
+                        end;
 
                         GroupKey := StrSubstNo('%1|%2|%3|%4',
                             JobLedgerEntry."Job No.", JobLedgerEntry."Job Task No.",
@@ -258,9 +275,12 @@ codeunit 50607 "Job Planning Lines Prep. Mgt."
                                 if not SkillCodeRec.Get(SkillCode) then
                                     Error(SkillCodeNotFoundErr, SkillCode);
 
-                                InvoiceResNo := SkillCodeRec."Invoice Resource No.";
-                                if InvoiceResNo = '' then
-                                    Error(NoInvoiceResourceErr, SkillCode);
+                                InvoiceResNo := JobLedgerEntry."Invoice Resource No.";
+                                if InvoiceResNo = '' then begin
+                                    InvoiceResNo := SkillCodeRec."Invoice Resource No.";
+                                    if InvoiceResNo = '' then
+                                        Error(NoInvoiceResourceErr, SkillCode);
+                                end;
 
                                 GroupKey := StrSubstNo('%1|%2|%3|%4',
                                     DayPlanning."Job No.", DayPlanning."Job Task No.",

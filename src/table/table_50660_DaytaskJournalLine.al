@@ -64,6 +64,11 @@ table 50660 "DayPlanning Journal Line"
             DataClassification = ToBeClassified;
             tableRelation = "Skill Code";
         }
+        field(23; "Invoice Resource No."; Code[20])
+        {
+            Caption = 'Invoice Resource No.';
+            DataClassification = ToBeClassified;
+        }
         field(30; "Global Dimension 1 Code"; Code[20])
         {
             CaptionClass = '1,1,1';

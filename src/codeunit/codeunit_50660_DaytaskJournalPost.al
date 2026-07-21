@@ -73,6 +73,7 @@ codeunit 50660 "DayPlanning Journal Post"
     local procedure CreateJobJournalLines(var DayPlanningJnlLine: Record "DayPlanning Journal Line"; var JobJnlLine: Record "Job Journal Line")
     var
         NextLineNo: Integer;
+        Skill: Record "Skill Code";
     begin
         NextLineNo := GetNextLineNo(DayPlanningJnlLine."Template Name", DayPlanningJnlLine."Batch Name");
         repeat
@@ -96,6 +97,10 @@ codeunit 50660 "DayPlanning Journal Post"
             JobJnlLine."Opt. DayPlanning Date" := DayPlanningJnlLine."DayPlanning Date";
             JobJnlLine."Opt. DayPlanning Line No." := DayPlanningJnlLine."DayPlanning Line No.";
             JobJnlLine.Skill := DayPlanningJnlLine.Skill;
+            JobJnlLine."Invoice Resource No." := DayPlanningJnlLine."Invoice Resource No.";
+            Skill.Get(JobJnlLine.Skill);
+            Skill.TestField("Invoice Resource No.");
+            JobJnlLine."Invoice Resource No." := Skill."Invoice Resource No.";
             JobJnlLine.Insert(true);
             NextLineNo += 10000;
         until DayPlanningJnlLine.Next() = 0;

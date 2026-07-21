@@ -27,6 +27,13 @@ pageextension 50622 "Opt. Job Ledger Entries" extends "Job Ledger Entries"
                 ToolTip = 'Specifies the Skill that was linked to the originating Project Journal line.';
                 Editable = false;
             }
+            field("Opt. Invoice Resource No."; Rec."Invoice Resource No.")
+            {
+                ApplicationArea = All;
+                Caption = 'Invoice Resource No.';
+                ToolTip = 'Specifies the Invoice Resource No. that was linked to the originating Project Journal line.';
+                Editable = false;
+            }
             field(WorkTypeCode; Rec."Work Type Code")
             {
                 ApplicationArea = All;
