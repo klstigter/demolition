@@ -40,5 +40,10 @@ tableextension 50617 "Opt. Job Journal Line" extends "Job Journal Line"
             DataClassification = ToBeClassified;
             tableRelation = "Skill Code";
         }
+        field(50621; "Invoice Resource No."; Code[20])
+        {
+            Caption = 'Invoice Resource No.';
+            DataClassification = ToBeClassified;
+        }
     }
 }

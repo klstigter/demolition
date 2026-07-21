@@ -26,6 +26,7 @@ report 50660 "DayPlanning Selection"
             trigger OnAfterGetRecord()
             var
                 DayPlanningJnlLine: Record "DayPlanning Journal Line";
+                Skill: Record "Skill Code";
             begin
                 // Skip if this Day Planning is already in the journal
                 if DayPlanningJnlLine.Get(TemplateName, BatchName, DayPlanning."Task Date", DayPlanning."Day Line No.") then
@@ -42,6 +43,9 @@ report 50660 "DayPlanning Selection"
                 DayPlanningJnlLine."Resource No." := DayPlanning."Assigned Resource No.";
                 DayPlanningJnlLine."Hours" := DayPlanning."Assigned Hours";
                 DayPlanningJnlLine.Skill := DayPlanning."Skill";
+                Skill.Get(DayPlanningJnlLine.Skill);
+                Skill.TestField("Invoice Resource No.");
+                DayPlanningJnlLine."Invoice Resource No." := Skill."Invoice Resource No.";
                 FillDimensions(DayPlanningJnlLine, DayPlanning);
                 DayPlanningJnlLine.Insert(true);
                 LinesInserted += 1;

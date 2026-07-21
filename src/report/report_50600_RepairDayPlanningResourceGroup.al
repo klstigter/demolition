@@ -11,7 +11,8 @@ report 50600 "RepairData"
                   tabledata "Job Usage Link" = rim,
                   tabledata "Sales Invoice Line" = r,
                   tabledata "Sales Invoice Header" = r,
-                  tabledata "Job Ledger Entry" = r,
+                  tabledata "Job Ledger Entry" = rm,
+                  tabledata "Skill Code" = r,
                   tabledata "Job Task" = rm;
     UsageCategory = Administration;
     ApplicationArea = All;
@@ -32,29 +33,33 @@ report 50600 "RepairData"
         CountAfter: Integer;
         n: Integer;
     begin
-        n := BackfillJobTaskProgress();
-        Message('Finished. %1 Job Task(s) had their Progress %% filled with a random value.', n);
+        n := RepairInvoiceResourceNo();
+        Message('Finished. %1 Job Ledger Entry(s) had their Invoice Resource No. repaired.', n);
     end;
 
-    // Backfill: "Job Task".Progress (%) (field 50601) is only meaningful on actual Posting
-    // rows, not Total/Begin-Total/End-Total header rows, and defaults to 0 ("not filled") per
-    // its own MinValue=0/MaxValue=100 definition. This sweeps every Posting Job Task still at
-    // Progress = 0 and fills it with a random 0-100 value, so pre-existing demo data (created
-    // before Progress was ever populated by the demo generator) gets caught up without a full
-    // "Create Demo Data" regeneration.
-    local procedure BackfillJobTaskProgress(): Integer
+    // Repair: "Job Ledger Entry"."Invoice Resource No." (field 50621) is copied from
+    // "Skill Code"."Invoice Resource No." (field 50609) at posting time by EventSubs
+    // (codeunit 50603), the same lookup "Daytask Journal-Post" (codeunit 50660) does when
+    // building the Job Journal Line. For day-planning-sourced entries where it was either
+    // never populated or has drifted out of sync with the Skill Code's current value, this
+    // re-applies the Skill Code lookup so posted history matches current setup.
+    local procedure RepairInvoiceResourceNo(): Integer
     var
-        JobTask: Record "Job Task";
+        JobLedgerEntry: Record "Job Ledger Entry";
+        SkillCode: Record "Skill Code";
         n: Integer;
     begin
-        JobTask.SetRange("Job Task Type", JobTask."Job Task Type"::Posting);
-        JobTask.SetRange(Progress, 0);
-        if JobTask.FindSet(true) then
+        JobLedgerEntry.SetFilter("Opt. DayPlanning Line No.", '<>0');
+        JobLedgerEntry.SetFilter(Skill, '<>%1', '');
+        if JobLedgerEntry.FindSet(true) then
             repeat
-                JobTask.Progress := Random(101) - 1; // Random(101) yields 1..101, so -1 gives 0..100 inclusive
-                JobTask.Modify();
-                n += 1;
-            until JobTask.Next() = 0;
+                if SkillCode.Get(JobLedgerEntry.Skill) then
+                    if JobLedgerEntry."Invoice Resource No." <> SkillCode."Invoice Resource No." then begin
+                        JobLedgerEntry."Invoice Resource No." := SkillCode."Invoice Resource No.";
+                        JobLedgerEntry.Modify();
+                        n += 1;
+                    end;
+            until JobLedgerEntry.Next() = 0;
         exit(n);
     end;
 }

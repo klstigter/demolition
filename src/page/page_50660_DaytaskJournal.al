@@ -112,6 +112,11 @@ page 50660 "Day Planning Journal"
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the skill required for this Day Planning.';
                 }
+                field("Invoice Resource No."; Rec."Invoice Resource No.")
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the invoice resource number assigned to this Day Planning.';
+                }
                 field("Global Dimension 1 Code"; Rec."Global Dimension 1 Code")
                 {
                     ApplicationArea = Dimensions;

@@ -35,6 +35,7 @@ codeunit 50603 "EventSubs"
         JobLedgerEntry."Opt. DayPlanning Date" := JobJournalLine."Opt. DayPlanning Date";
         JobLedgerEntry."Opt. DayPlanning Line No." := JobJournalLine."Opt. DayPlanning Line No.";
         JobLedgerEntry.Skill := JobJournalLine.Skill;
+        JobLedgerEntry."Invoice Resource No." := JobJournalLine."Invoice Resource No.";
 
         // ── Res. Ledger Entry (Resource lines only) ───────────────────────────
         // "Ledger Entry No." on the job entry = Entry No. of the already-inserted

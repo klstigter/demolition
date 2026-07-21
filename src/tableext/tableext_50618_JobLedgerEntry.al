@@ -22,5 +22,10 @@ tableextension 50618 "Opt. Job Ledger Entry" extends "Job Ledger Entry"
             DataClassification = ToBeClassified;
             tableRelation = "Skill Code";
         }
+        field(50621; "Invoice Resource No."; Code[20])
+        {
+            Caption = 'Invoice Resource No.';
+            DataClassification = ToBeClassified;
+        }
     }
 }
