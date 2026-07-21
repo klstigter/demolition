@@ -25,7 +25,6 @@ codeunit 50661 "Order Intake Kanban Handler"
         TimeLine: Text;
         Result: Text;
         StatusInt: Integer;
-        Desc: Text;
     begin
         // ---- Columns – one per Status enum value ----
         Clear(Col);
@@ -57,12 +56,9 @@ codeunit 50661 "Order Intake Kanban Handler"
                 // Map Status enum integer → column id
                 Card.Add('column', Format(StatusInt));
 
-                // Card title – use Description; fall back to "Entry <N>"
-                Desc := OrderIntake.GetDescription();
-                if Desc <> '' then
-                    Card.Add('label', Desc)
-                else
-                    Card.Add('label', StrSubstNo('Entry %1', OrderIntake."No."));
+                // Card shows two lines: No. as title, Short Description as secondary line (blank if empty, no placeholder text)
+                Card.Add('label', Format(OrderIntake."No."));
+                Card.Add('description', OrderIntake."Short Description");
 
                 // Coloured top bar: status colour
                 Card.Add('color', GetStatusColor(StatusInt));

@@ -36,6 +36,10 @@ page 50655 "Order Intake Card"
                         {
                             ApplicationArea = All;
                         }
+                        field("Short Description"; Rec."Short Description")
+                        {
+                            ApplicationArea = All;
+                        }
                     }
 
                     group(Col2)
