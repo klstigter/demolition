@@ -142,13 +142,6 @@ table 50608 "Work Order"
             CalcFormula = sum("Day Planning"."Realized Hours" where("Work order No." = FIELD("Work Order No.")));
             Editable = false;
         }
-        field(300; "Items"; Integer)
-        {
-            FieldClass = FlowField;
-            CalcFormula = count("Job Planning Line" where("Job No." = field("Project No."), "Job Task No." = field("Project Task No.")));
-            Editable = false;
-        }
-
         field(920; Closed; Boolean)
         {
             Caption = 'Closed';
