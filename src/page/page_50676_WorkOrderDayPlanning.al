@@ -4,7 +4,7 @@ page 50676 "Work Order Day Plannings"
     ApplicationArea = All;
     UsageCategory = Lists;
     SourceTable = "Day Planning";
-    Caption = 'Work Order Day Plannings';
+    Caption = 'Day Plannings';
 
     layout
     {
