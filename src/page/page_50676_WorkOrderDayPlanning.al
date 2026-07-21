@@ -15,18 +15,22 @@ page 50676 "Work Order Day Plannings"
                 field("Job No."; Rec."Job No.")
                 {
                     ApplicationArea = All;
+                    Visible = false;
                 }
                 field("Job Task No."; Rec."Job Task No.")
                 {
                     ApplicationArea = All;
+                    Visible = false;
                 }
                 field(DayLineNo; Rec."Day Line No.")
                 {
                     ApplicationArea = All;
+                    Visible = false;
                 }
                 field("Work Order No."; Rec."Work Order No.")
                 {
                     ApplicationArea = All;
+                    Visible = false;
                 }
                 field("Pattern Line No."; Rec."Pattern Line No.")
                 {
@@ -43,29 +47,39 @@ page 50676 "Work Order Day Plannings"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the skill required for this day task.';
                 }
-                field("No."; Rec."Assigned Resource No.")
-                {
-                    ApplicationArea = All;
-                }
-                field("Resource Group No."; Rec."Resource Group No.")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the resource group number.';
-                }
+                // field("No."; Rec."Assigned Resource No.")
+                // {
+                //     ApplicationArea = All;
+                // }
+                // field("Resource Group No."; Rec."Resource Group No.")
+                // {
+                //     ApplicationArea = All;
+                //     ToolTip = 'Specifies the resource group number.';
+                // }
                 field("Plan Status"; Rec."Plan Status")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the plan status of the day task.';
                 }
-                field("Data Owner"; Rec."Data Owner")
-                {
-                    Caption = 'Data Owner';
-                }
-                field("Vendor No."; Rec."Vendor No.")
+                // field("Data Owner"; Rec."Data Owner")
+                // {
+                //     Caption = 'Data Owner';
+                // }
+                // field("Vendor No."; Rec."Vendor No.")
+                // {
+                //     ApplicationArea = All;
+                // }
+                field("Requested Resource No."; Rec."Requested Resource No.")
                 {
                     ApplicationArea = All;
+                    ToolTip = 'Specifies the resource requested for this day task.';
                 }
-                field("Task Date"; Rec."Task Date")
+                field("Work Date Fixation"; Rec."Work Date Fixation")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the work date fixation for this day task.';
+                }
+                field("Work Date"; Rec."Work Date")
                 {
                     ApplicationArea = All;
                 }
@@ -83,44 +97,44 @@ page 50676 "Work Order Day Plannings"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the end time for this day task.';
                 }
-                field("Assigned Hours"; Rec."Assigned Hours")
-                {
-                    ApplicationArea = All;
-                }
-                field("Start Time Assigned"; Rec."Start Time Assigned")
-                {
-                    ApplicationArea = All;
-                }
-                field("End Time Assigned"; Rec."End Time Assigned")
-                {
-                    ApplicationArea = All;
-                }
-                field("Realized Hours"; Rec."Realized Hours")
-                {
-                    ApplicationArea = All;
-                }
-                field("Start Time Realized"; Rec."Start Time Realized")
-                {
-                    ApplicationArea = All;
-                }
-                field("End Time Realized"; Rec."End Time Realized")
-                {
-                    ApplicationArea = All;
-                }
+                // field("Assigned Hours"; Rec."Assigned Hours")
+                // {
+                //     ApplicationArea = All;
+                // }
+                // field("Start Time Assigned"; Rec."Start Time Assigned")
+                // {
+                //     ApplicationArea = All;
+                // }
+                // field("End Time Assigned"; Rec."End Time Assigned")
+                // {
+                //     ApplicationArea = All;
+                // }
+                // field("Realized Hours"; Rec."Realized Hours")
+                // {
+                //     ApplicationArea = All;
+                // }
+                // field("Start Time Realized"; Rec."Start Time Realized")
+                // {
+                //     ApplicationArea = All;
+                // }
+                // field("End Time Realized"; Rec."End Time Realized")
+                // {
+                //     ApplicationArea = All;
+                // }
                 field("Description"; Rec."Description")
                 {
                     ApplicationArea = All;
                 }
-                field("Team Leader"; Rec."Team Leader")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the team leader for this day task.';
-                }
-                field(Leader; Rec.Leader)
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the leader for this day task.';
-                }
+                // field("Team Leader"; Rec."Team Leader")
+                // {
+                //     ApplicationArea = All;
+                //     ToolTip = 'Specifies the team leader for this day task.';
+                // }
+                // field(Leader; Rec.Leader)
+                // {
+                //     ApplicationArea = All;
+                //     ToolTip = 'Specifies the leader for this day task.';
+                // }
             }
         }
     }

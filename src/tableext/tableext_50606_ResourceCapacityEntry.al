@@ -21,7 +21,7 @@ tableextension 50606 "ResCapacityEntry Opt" extends "Res. Capacity Entry"
             Editable = false;
             fieldclass = FlowField;
             calcformula = sum("Day Planning"."Assigned Hours" where("Assigned Resource No." = field("Resource No."),
-              "Task Date" = field("Date")));
+              "Work Date" = field("Date")));
         }
         field(50605; Type; Enum "Res. Capacity Entry Type")
         {

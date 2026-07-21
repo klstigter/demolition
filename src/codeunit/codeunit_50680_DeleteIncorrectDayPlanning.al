@@ -44,9 +44,9 @@ codeunit 50680 "Delete Incorrect Day Planning"
         if not JobTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
             exit(false); // orphan Job Task link is out of scope for this cleanup
 
-        if (JobTask.PlannedStartDate <> 0D) and (DayPlanning."Task Date" < JobTask.PlannedStartDate) then
+        if (JobTask.PlannedStartDate <> 0D) and (DayPlanning."Work Date" < JobTask.PlannedStartDate) then
             exit(true);
-        if (JobTask.PlannedEndDate <> 0D) and (DayPlanning."Task Date" > JobTask.PlannedEndDate) then
+        if (JobTask.PlannedEndDate <> 0D) and (DayPlanning."Work Date" > JobTask.PlannedEndDate) then
             exit(true);
 
         exit(false);

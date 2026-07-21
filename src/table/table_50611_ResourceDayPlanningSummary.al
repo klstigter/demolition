@@ -89,17 +89,17 @@ table 50611 "Resource DayPlanning Summary"
 
             if Rec.Find() then begin
                 // Update existing summary record
-                if DayPlanning."Task Date" < Rec."First Task Date" then
-                    Rec."First Task Date" := DayPlanning."Task Date";
-                if DayPlanning."Task Date" > Rec."Last Task Date" then
-                    Rec."Last Task Date" := DayPlanning."Task Date";
+                if DayPlanning."Work Date" < Rec."First Task Date" then
+                    Rec."First Task Date" := DayPlanning."Work Date";
+                if DayPlanning."Work Date" > Rec."Last Task Date" then
+                    Rec."Last Task Date" := DayPlanning."Work Date";
                 Rec."Total Hours" += DayPlanning."Assigned Hours";
                 Rec."Total Days" += 1;
                 Rec.Modify();
             end else begin
                 // Insert new summary record
-                Rec."First Task Date" := DayPlanning."Task Date";
-                Rec."Last Task Date" := DayPlanning."Task Date";
+                Rec."First Task Date" := DayPlanning."Work Date";
+                Rec."Last Task Date" := DayPlanning."Work Date";
                 Rec."Total Hours" := DayPlanning."Assigned Hours";
                 Rec."Total Days" := 1;
                 Rec.Insert();
