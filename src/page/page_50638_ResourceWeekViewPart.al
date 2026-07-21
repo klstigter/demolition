@@ -215,7 +215,7 @@ page 50638 "Resource Week View Part"
                         DayPlanning.SetRange("Skill", Rec."Skill Code");
                     DayPlanning.SetRange("Job No.", Rec."Job No.");
                     DayPlanning.SetRange("Job Task No.", Rec."Job Task No.");
-                    DayPlanning.SetRange("Task Date", WeekStart, WeekEnd);
+                    DayPlanning.SetRange("Work Date", WeekStart, WeekEnd);
                     Page.Run(Page::"Day Plannings", DayPlanning);
                 end;
             }
@@ -370,14 +370,46 @@ page 50638 "Resource Week View Part"
         FilterType: Integer;
     begin
         case WeekDayNo of
-            0: begin ReqHours := Rec."Total Requested Hours"; AssHours := Rec."Total Assigned Hours"; end;
-            1: begin ReqHours := Rec."Monday Requested Hours"; AssHours := Rec."Monday Assigned Hours"; end;
-            2: begin ReqHours := Rec."Tuesday Requested Hours"; AssHours := Rec."Tuesday Assigned Hours"; end;
-            3: begin ReqHours := Rec."Wednesday Requested Hours"; AssHours := Rec."Wednesday Assigned Hours"; end;
-            4: begin ReqHours := Rec."Thursday Requested Hours"; AssHours := Rec."Thursday Assigned Hours"; end;
-            5: begin ReqHours := Rec."Friday Requested Hours"; AssHours := Rec."Friday Assigned Hours"; end;
-            6: begin ReqHours := Rec."Saturday Requested Hours"; AssHours := Rec."Saturday Assigned Hours"; end;
-            7: begin ReqHours := Rec."Sunday Requested Hours"; AssHours := Rec."Sunday Assigned Hours"; end;
+            0:
+                begin
+                    ReqHours := Rec."Total Requested Hours";
+                    AssHours := Rec."Total Assigned Hours";
+                end;
+            1:
+                begin
+                    ReqHours := Rec."Monday Requested Hours";
+                    AssHours := Rec."Monday Assigned Hours";
+                end;
+            2:
+                begin
+                    ReqHours := Rec."Tuesday Requested Hours";
+                    AssHours := Rec."Tuesday Assigned Hours";
+                end;
+            3:
+                begin
+                    ReqHours := Rec."Wednesday Requested Hours";
+                    AssHours := Rec."Wednesday Assigned Hours";
+                end;
+            4:
+                begin
+                    ReqHours := Rec."Thursday Requested Hours";
+                    AssHours := Rec."Thursday Assigned Hours";
+                end;
+            5:
+                begin
+                    ReqHours := Rec."Friday Requested Hours";
+                    AssHours := Rec."Friday Assigned Hours";
+                end;
+            6:
+                begin
+                    ReqHours := Rec."Saturday Requested Hours";
+                    AssHours := Rec."Saturday Assigned Hours";
+                end;
+            7:
+                begin
+                    ReqHours := Rec."Sunday Requested Hours";
+                    AssHours := Rec."Sunday Assigned Hours";
+                end;
         end;
 
         if (ReqHours = 0) and (AssHours = 0) then
@@ -395,9 +427,9 @@ page 50638 "Resource Week View Part"
 
         if WeekDayNo = 0 then begin
             WeekFilter := StrSubstNo('%1..%2', Format(DWY2Date(1, Rec."Week No.", Rec.Year)), Format(DWY2Date(7, Rec."Week No.", Rec.Year)));
-            Rc.SetFilter("Task Date", WeekFilter);
+            Rc.SetFilter("Work Date", WeekFilter);
         end else
-            Rc.SetRange("Task Date", DWY2Date(WeekDayNo, Rec."Week No.", Rec.Year));
+            Rc.SetRange("Work Date", DWY2Date(WeekDayNo, Rec."Week No.", Rec.Year));
 
         Rc.SetRange("Job No.", Rec."Job No.");
         Rc.SetRange("Job Task No.", Rec."Job Task No.");

@@ -95,7 +95,7 @@ page 50630 "Day Plannings"
                 {
                     Caption = 'Data Owner';
                 }
-                field("Task Date"; Rec."Task Date")
+                field("Task Date"; Rec."Work Date")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the date of this day task.';
@@ -174,7 +174,7 @@ page 50630 "Day Plannings"
                         if rec."Assigned Resource No." = '' then
                             exit;
                         DayPlanningRec.setrange("Assigned Resource No.", Rec."Assigned Resource No.");
-                        DayPlanningRec.SetRange("Task Date", Rec."Task Date");
+                        DayPlanningRec.SetRange("Work Date", Rec."Work Date");
                         DayPlanning.SetTableView(DayPlanningRec);
                         DayPlanning.RunModal();
                     end;
@@ -339,7 +339,7 @@ page 50630 "Day Plannings"
             part(DayPlanningInfo; "Day Planning Info FactBox")
             {
                 ApplicationArea = All;
-                SubPageLink = "Task Date" = field("Task Date"),
+                SubPageLink = "Work Date" = field("Work Date"),
                               "Day Line No." = field("Day Line No."),
                               "Job No." = field("Job No."),
                               "Job Task No." = field("Job Task No.");
@@ -355,7 +355,7 @@ page 50630 "Day Plannings"
                 ApplicationArea = All;
                 Caption = 'Resource Capacity';
                 SubPageLink = "Resource No." = field("Assigned Resource No."),
-                              Date = field("Task Date");
+                              Date = field("Work Date");
             }
         }
     }
@@ -550,7 +550,7 @@ page 50630 "Day Plannings"
 
     trigger OnOpenPage()
     begin
-        Rec.SetCurrentKey("Job No.", "Job Task No.", "Task Date", "Day Line No.");
+        Rec.SetCurrentKey("Job No.", "Job Task No.", "Work Date", "Day Line No.");
         Rec.Ascending(true);
     end;
 
@@ -582,7 +582,7 @@ page 50630 "Day Plannings"
 
     trigger OnInsertRecord(BelowxRec: Boolean): Boolean
     begin
-        rec."Day Line No." := rec.GetNextDayLineNo(rec."Task Date", rec."Job No.", rec."Job Task No.");
+        rec."Day Line No." := rec.GetNextDayLineNo(rec."Work Date", rec."Job No.", rec."Job Task No.");
         if Rec."Plan Status" <> Rec."Plan Status"::"In Request" then
             Rec.TestField("Assigned Resource No.");
         exit(true);
@@ -652,11 +652,11 @@ page 50630 "Day Plannings"
     var
         PrevRec: Record "Day Planning";
     begin
-        PrevRec.SetCurrentKey("Job No.", "Job Task No.", "Task Date", "Day Line No.");
+        PrevRec.SetCurrentKey("Job No.", "Job Task No.", "Work Date", "Day Line No.");
         PrevRec.CopyFilters(Rec);
         PrevRec."Job No." := Rec."Job No.";
         PrevRec."Job Task No." := Rec."Job Task No.";
-        PrevRec."Task Date" := Rec."Task Date";
+        PrevRec."Work Date" := Rec."Work Date";
         PrevRec."Day Line No." := Rec."Day Line No.";
         if PrevRec.Find('<') and
            (PrevRec."Job No." = Rec."Job No.") and

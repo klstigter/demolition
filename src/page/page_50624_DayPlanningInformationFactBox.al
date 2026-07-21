@@ -17,7 +17,7 @@ page 50624 "Day Planning Info FactBox"
                     ToolTip = 'Specifies the day number in the sequence.';
                     Caption = 'Day No.';
                 }
-                field("Task Date"; Rec."Task Date")
+                field("Task Date"; Rec."Work Date")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the day number in the sequence.';

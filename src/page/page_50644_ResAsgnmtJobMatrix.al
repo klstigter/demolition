@@ -250,7 +250,7 @@ page 50644 "Res. Asgmt. Job Matrix"
         if (DayDate = 0D) or (JobNo = '') then
             exit('');
         DayPlanning.SetRange("Job No.", JobNo);
-        DayPlanning.SetRange("Task Date", DayDate);
+        DayPlanning.SetRange("Work Date", DayDate);
         TotalCount := DayPlanning.Count();
         if TotalCount = 0 then
             exit('');

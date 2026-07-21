@@ -319,7 +319,7 @@ table 50612 "Summary Weekly"
         //   Pass B – Assigned Hours credited to the Assigned Resource row.
         // Rows are the union of all Requested and Assigned resource values.
         repeat
-            TaskDate := DayPlanning."Task Date";
+            TaskDate := DayPlanning."Work Date";
             if TaskDate = 0D then begin
                 if WorkOrder.Get(DayPlanning."Work Order No.") then
                     TaskDate := WorkOrder."Placeholder Date";
@@ -365,13 +365,41 @@ table 50612 "Summary Weekly"
     local procedure AddReqHours(DayIndex: Integer; Hours: Decimal)
     begin
         case DayIndex of
-            1: begin rec."Monday Requested Hours" += Hours; rec."Monday Hours" += Hours; end;
-            2: begin rec."Tuesday Requested Hours" += Hours; rec."Tuesday Hours" += Hours; end;
-            3: begin rec."Wednesday Requested Hours" += Hours; rec."Wednesday Hours" += Hours; end;
-            4: begin rec."Thursday Requested Hours" += Hours; rec."Thursday Hours" += Hours; end;
-            5: begin rec."Friday Requested Hours" += Hours; rec."Friday Hours" += Hours; end;
-            6: begin rec."Saturday Requested Hours" += Hours; rec."Saturday Hours" += Hours; end;
-            7: begin rec."Sunday Requested Hours" += Hours; rec."Sunday Hours" += Hours; end;
+            1:
+                begin
+                    rec."Monday Requested Hours" += Hours;
+                    rec."Monday Hours" += Hours;
+                end;
+            2:
+                begin
+                    rec."Tuesday Requested Hours" += Hours;
+                    rec."Tuesday Hours" += Hours;
+                end;
+            3:
+                begin
+                    rec."Wednesday Requested Hours" += Hours;
+                    rec."Wednesday Hours" += Hours;
+                end;
+            4:
+                begin
+                    rec."Thursday Requested Hours" += Hours;
+                    rec."Thursday Hours" += Hours;
+                end;
+            5:
+                begin
+                    rec."Friday Requested Hours" += Hours;
+                    rec."Friday Hours" += Hours;
+                end;
+            6:
+                begin
+                    rec."Saturday Requested Hours" += Hours;
+                    rec."Saturday Hours" += Hours;
+                end;
+            7:
+                begin
+                    rec."Sunday Requested Hours" += Hours;
+                    rec."Sunday Hours" += Hours;
+                end;
         end;
         rec."Total Requested Hours" += Hours;
         rec."Total Week Hours" += Hours;
@@ -380,13 +408,20 @@ table 50612 "Summary Weekly"
     local procedure AddAssHours(DayIndex: Integer; Hours: Decimal)
     begin
         case DayIndex of
-            1: rec."Monday Assigned Hours" += Hours;
-            2: rec."Tuesday Assigned Hours" += Hours;
-            3: rec."Wednesday Assigned Hours" += Hours;
-            4: rec."Thursday Assigned Hours" += Hours;
-            5: rec."Friday Assigned Hours" += Hours;
-            6: rec."Saturday Assigned Hours" += Hours;
-            7: rec."Sunday Assigned Hours" += Hours;
+            1:
+                rec."Monday Assigned Hours" += Hours;
+            2:
+                rec."Tuesday Assigned Hours" += Hours;
+            3:
+                rec."Wednesday Assigned Hours" += Hours;
+            4:
+                rec."Thursday Assigned Hours" += Hours;
+            5:
+                rec."Friday Assigned Hours" += Hours;
+            6:
+                rec."Saturday Assigned Hours" += Hours;
+            7:
+                rec."Sunday Assigned Hours" += Hours;
         end;
         rec."Total Assigned Hours" += Hours;
         rec."Total Week Hours" += Hours;
@@ -408,7 +443,7 @@ table 50612 "Summary Weekly"
         DayPlanning: Record "Day Planning";
     begin
         if DateFilter <> '' then
-            DayPlanning.SetFilter("Task Date", DateFilter);
+            DayPlanning.SetFilter("Work Date", DateFilter);
         ScanTEMPDayPlanning(DayPlanning)
     end;
 
@@ -460,9 +495,9 @@ table 50612 "Summary Weekly"
             repeat
                 TempDayPlanning := DayPlanning;
                 TempDayPlanning.Insert(true);
-                if DateOld <> TempDayPlanning."Task Date" then begin
-                    DateOld := TempDayPlanning."Task Date";
-                    ywNew := CreateYW(TempDayPlanning."Task Date");
+                if DateOld <> TempDayPlanning."Work Date" then begin
+                    DateOld := TempDayPlanning."Work Date";
+                    ywNew := CreateYW(TempDayPlanning."Work Date");
                     if ywOld <> ywNew then begin
                         ywOld := ywNew;
                         FillTEMPYearWeek(ywNew);
@@ -490,7 +525,7 @@ table 50612 "Summary Weekly"
 
     local procedure FillTEMPYearWeek(TaskDate: Date)
     begin
-        FillTEMPYearWeek(CreateYW(TempDayPlanning."Task Date"));
+        FillTEMPYearWeek(CreateYW(TempDayPlanning."Work Date"));
     end;
 
     local procedure FillTEMPYearWeek(yw: Integer)

@@ -7,13 +7,13 @@ query 50606 "Unique Days in Day Plannings"
     {
         dataitem(Day_Tasks; "Day Planning")
         {
-            filter(TaskDateFilter; "Task Date") { }
+            filter(TaskDateFilter; "Work Date") { }
             filter(Resource_Group_No_Filter; "Resource Group No.") { }
             filter(job_Filter; "Job No.") { }
             filter(job_task_Filter; "Job Task No.") { }
             column(Job; "Job No.") { }
             column(JobTask; "Job Task No.") { }
-            column(TaskDate; "Task Date") { }
+            column(TaskDate; "Work Date") { }
             column(Count_)
             {
                 Method = Count;
