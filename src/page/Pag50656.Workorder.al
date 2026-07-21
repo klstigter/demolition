@@ -47,10 +47,6 @@ page 50656 "Work Order Sub"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the value of the Project Task No. field.', Comment = '%';
                 }
-                field(Items; Rec.Items)
-                {
-                    ApplicationArea = All;
-                }
                 field("Date Window Start"; Rec."Date Window Start")
                 {
                     ApplicationArea = All;
