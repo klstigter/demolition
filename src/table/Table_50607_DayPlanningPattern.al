@@ -204,20 +204,32 @@ table 50607 "Day Planning Pattern"
             var
                 TimeSlot: Record "Time Slot";
                 TimeSlotsPage: Page "Time Slots";
-                NewTimeSlotNo: Integer;
+                WorkingTimeSlotNo: Integer;
+                PreviousTimeSlotNo: Integer;
+                ActionResult: Action;
             begin
-                if Rec."Time Slot No." = 0 then begin
-                    Rec."Time Slot No." := TimeSlot.CreateTimeSlots(Rec."Work-Hour Template");
-                    commit;
-                end else
-                    TimeSlot.SetRange("Integer", Rec."Time Slot No.");
+                PreviousTimeSlotNo := Rec."Time Slot No.";
+
+                if PreviousTimeSlotNo = 0 then
+                    WorkingTimeSlotNo := TimeSlot.CreateTimeSlots(Rec."Work-Hour Template")
+                else
+                    WorkingTimeSlotNo := TimeSlot.CloneTimeSlotSet(PreviousTimeSlotNo);
+
+                if WorkingTimeSlotNo = 0 then
+                    exit;
+
+                commit; //added by Klaas
+                TimeSlot.SetRange("Integer", WorkingTimeSlotNo);
 
                 TimeSlotsPage.SetTableView(TimeSlot);
                 TimeSlotsPage.LookupMode(true);
-                if TimeSlotsPage.RunModal() = Action::LookupOK then begin
-                    TimeSlotsPage.GetRecord(TimeSlot);
-                    Rec.Validate("Time Slot No.", TimeSlot."Integer");
-                end;
+                ActionResult := TimeSlotsPage.RunModal();
+
+                if ActionResult = Action::LookupOK then
+                    Rec.Validate("Time Slot No.", TimeSlot.ResolveTimeSlotSet(WorkingTimeSlotNo))
+                else
+                    if (PreviousTimeSlotNo <> 0) and (WorkingTimeSlotNo <> PreviousTimeSlotNo) then
+                        TimeSlot.DeleteTimeSlotSet(WorkingTimeSlotNo);
             end;
         }
 
