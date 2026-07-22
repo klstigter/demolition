@@ -43,6 +43,7 @@ codeunit 50610 "Day Plannings Mgt."
     var
         JobTask: Record "Job Task";
         DayPlannings: Record "Day Planning";
+        Resource: Record Resource;
         StartDate: Date;
         EndDate: Date;
         NewTaskDate: Date;
@@ -70,7 +71,7 @@ codeunit 50610 "Day Plannings Mgt."
                 Error('Planned End Date must be specified');
             (DayPlanningPattern."Start Time" = 0T) or (DayPlanningPattern."End Time" = 0T):
                 Error('Start Time and End Time must be specified');
-            (DayPlanningPattern."Vendor No." <> ''):
+            Resource.Get(DayPlanningPattern."Resource No.") and resource."Is Pool":
                 begin
                     DayPlanningPattern."Quantity of Lines" := 1;
                     DayPlanningPattern.Modify(false);
@@ -142,7 +143,6 @@ codeunit 50610 "Day Plannings Mgt."
                 //DayPlannings."Unit of Measure Code" := JobTask."Unit of Measure Code";
                 DayPlannings.Skill := DayPlanningPattern.SkillsRequired;
                 //DayPlannings."Work Type Code" := JobTask."Work Type Code";
-                DayPlannings."Vendor No." := DayPlanningPattern."Vendor No.";
                 //DayPlannings.Depth := DayPlanningGenerator.Depth;
                 //DayPlannings.IsBoor := DayPlanningGenerator.Isboor;
 

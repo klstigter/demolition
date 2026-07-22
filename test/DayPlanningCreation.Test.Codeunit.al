@@ -370,7 +370,6 @@ codeunit 60020 "Day Planning Creation Tests"
         DayPlanningPattern."Start Date" := SingleDay;
         DayPlanningPattern."End Date" := SingleDay;
         DayPlanningPattern."Quantity of Lines" := 3;
-        DayPlanningPattern."Vendor No." := Vendor."No.";
         DayPlanningPattern.Insert();
 
         // [WHEN] CreateDayPlanning is called

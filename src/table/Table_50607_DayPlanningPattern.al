@@ -43,6 +43,8 @@ table 50607 "Day Planning Pattern"
                     ResourceSkill.SetFilter("Skill Code", '<>%1', '');
                     if ResourceSkill.FindFirst() then
                         Rec.SkillsRequired := ResourceSkill."Skill Code";
+                    Rec."Is Pool" := Res."Pool Resource No." <> Res."No.";
+                    Rec."Pool Resource No." := Res."Pool Resource No.";
                 end;
             end;
         }
@@ -52,11 +54,7 @@ table 50607 "Day Planning Pattern"
             Caption = 'Skills Required';
             TableRelation = "Skill Code";
         }
-        field(6; "Resource Category"; enum "Resource Category Opt.")
-        {
-            DataClassification = ToBeClassified;
-            Caption = 'Resource Category';
-        }
+
         field(10; "Work-Hour Template"; Code[20])
         {
             DataClassification = ToBeClassified;
@@ -128,34 +126,37 @@ table 50607 "Day Planning Pattern"
             DataClassification = ToBeClassified;
             Caption = 'Quantity of Lines';
             MinValue = 0;
+            trigger OnValidate()
+            var
+                Res: Record Resource;
+                LblMsg: label 'Pool Resource %1 can only have 1 line.';
+            begin
+                if Res.Get("Resource No.") then begin
+                    if Res."Is Pool" then begin
+                        Rec."Is Pool" := True;
+                        if rec."Quantity of Lines" > 1 then begin
+                            rec."Quantity of Lines" := 1;
+                            message(LblMsg, "Resource No.");
+                        end;
+
+                    end;
+                end;
+            end;
         }
 
-        field(57; "Week Pattern"; Code[13])
+        field(57; "Week Pattern"; Text[250])
         {
             DataClassification = ToBeClassified;
             Caption = 'Week Pattern';
-            Description = 'full configuration is 1|2|3|4|5|6|7. Derived from "Work-Hour Template"''s weekday hours - see that field''s OnValidate.';
+            Description = 'Displays 7 day values in the format day1|day2|day3|day4|day5|day6|day7, sourced from Time Slots when a Time Slot No. is selected.';
             Editable = false;
         }
-        field(50615; "Vendor No."; Code[20])
-        {
-            DataClassification = ToBeClassified;
-            TableRelation = Vendor;
-            Caption = 'Vendor No.';
-        }
-        field(50616; "Vendor Name"; Text[100])
-        {
-            FieldClass = FlowField;
-            CalcFormula = lookup(Vendor.Name where("No." = field("Vendor No.")));
-            Editable = false;
-            Caption = 'Vendor Name';
-        }
+
 
         field(50630; "Non Working Minutes"; Integer)
         {
             Caption = 'Non Working Minutes';
             DataClassification = CustomerContent;
-            Editable = true;
 
             trigger OnValidate()
             begin
@@ -180,6 +181,44 @@ table 50607 "Day Planning Pattern"
         {
             DataClassification = ToBeClassified;
             Caption = 'Is Pooled Resource';
+        }
+        field(50680; "Time Slot No."; Integer)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Time Slot No.';
+            MinValue = 1;
+
+            trigger OnValidate()
+            var
+                TimeSlot: Record "Time Slot";
+            begin
+                if "Time Slot No." = 0 then begin
+                    "Week Pattern" := '';
+                    exit;
+                end;
+
+                "Week Pattern" := CopyStr(TimeSlot.GetWorkingHours("Time Slot No."), 1, MaxStrLen("Week Pattern"));
+            end;
+
+            trigger OnLookup()
+            var
+                TimeSlot: Record "Time Slot";
+                TimeSlotsPage: Page "Time Slots";
+                NewTimeSlotNo: Integer;
+            begin
+                if Rec."Time Slot No." = 0 then begin
+                    Rec."Time Slot No." := TimeSlot.CreateTimeSlots(Rec."Work-Hour Template");
+                    commit;
+                end else
+                    TimeSlot.SetRange("Integer", Rec."Time Slot No.");
+
+                TimeSlotsPage.SetTableView(TimeSlot);
+                TimeSlotsPage.LookupMode(true);
+                if TimeSlotsPage.RunModal() = Action::LookupOK then begin
+                    TimeSlotsPage.GetRecord(TimeSlot);
+                    Rec.Validate("Time Slot No.", TimeSlot."Integer");
+                end;
+            end;
         }
 
 

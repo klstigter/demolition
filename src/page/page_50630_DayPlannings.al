@@ -366,14 +366,8 @@ page 50630 "Day Plannings"
         {
             actionref(CopyRequestedToAssigned_Promoted; CopyRequestedToAssigned) { }
 
-            group(PromotedInvoicing)
-            {
-                Caption = 'Invoicing';
-                Image = Invoice;
-                actionref(PrepareInvoiceLines_Promoted; PrepareInvoiceLines) { }
-                // actionref(PrepareProjPlanningLinesBatch_Promoted; PrepareProjPlanningLinesBatch) { }
-                actionref(OpenProjectPlanningLines_Promoted; OpenProjectPlanningLines) { }
-            }
+            actionref(DayPlanningsCreation_Promoted; DayPlanningsCreation) { }
+            actionref(ShowStyleReason_Promoted; ShowStyleReason) { }
         }
         area(Processing)
         {
@@ -388,6 +382,22 @@ page 50630 "Day Plannings"
                 trigger OnAction()
                 begin
                     CurrPage.Update(false);
+                end;
+            }
+            action(DayPlanningsCreation)
+            {
+                ApplicationArea = All;
+                Caption = 'Day plannings pattern';
+                Image = HumanResources;
+                ShortCutKey = 'Alt+D';
+                ToolTip = 'View or edit dimensions, such as area, project, or department, that you can assign to sales and purchase documents to distribute costs and analyze transaction history.';
+                trigger OnAction()
+                var
+                    Page: Page "Day Planning Pattern";
+                begin
+                    page.fillbuffer(Rec."Job No.", Rec."Job Task No.", '');
+                    Page.Run();
+                    CurrPage.Update();
                 end;
             }
             action(CopyRequestedToAssigned)
@@ -428,103 +438,7 @@ page 50630 "Day Plannings"
                     Message(Descr);
                 end;
             }
-            group(Invoicing)
-            {
-                Caption = 'Invoicing';
-                Image = Invoice;
-                action(PrepareInvoiceLines)
-                {
-                    ApplicationArea = All;
-                    Caption = 'Transfer to planning line';
-                    Image = JobSalesInvoice;
-                    ToolTip = 'Creates billable Project Planning Lines, grouped by Skill, from posted Day Planning usage that has not yet been invoiced, for the Job(s)/Job Task(s) of the selected lines.';
-                    trigger OnAction()
-                    var
-                        JobInvoicePrepMgt: Codeunit "Job Planning Lines Prep. Mgt.";
-                        SelectedDayPlanning: Record "Day Planning";
-                        LinesCreated: Integer;
-                        ProcessedCount: Integer;
-                        AlreadyLinkedCount: Integer;
-                        NotPostedCount: Integer;
-                        SkippedOtherCount: Integer;
-                        NothingSelectedMsg: Label 'Select one or more Day Planning lines first.';
-                        ConfirmMsg: Label 'Are you sure you want to prepare project planning lines for the %1 selected Day Planning lines?';
-                        FailedLbl: Label 'Could not prepare invoice lines: %1', Comment = '%1 = error text';
-                    begin
-                        CurrPage.SetSelectionFilter(SelectedDayPlanning);
-                        if not SelectedDayPlanning.FindSet() then begin
-                            Message(NothingSelectedMsg);
-                            exit;
-                        end;
 
-                        if not Confirm(ConfirmMsg, false, SelectedDayPlanning.Count) then
-                            exit;
-
-                        if JobInvoicePrepMgt.TryPrepareJobPlanningLinesForSelection(SelectedDayPlanning, LinesCreated, ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount) then
-                            Message(JobInvoicePrepMgt.FormatResultMessage(LinesCreated, ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount))
-                        else
-                            Message('%1\%2',
-                                JobInvoicePrepMgt.FormatResultMessage(LinesCreated, ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount),
-                                StrSubstNo(FailedLbl, GetLastErrorText()));
-                    end;
-                }
-                // action(PrepareProjPlanningLinesBatch)
-                // {
-                //     ApplicationArea = All;
-                //     Caption = 'Transfer to planning line...';
-                //     Image = JobSalesInvoice;
-                //     RunObject = report "Prepare Proj. Planning Lines";
-                //     ToolTip = 'Runs a batch report to prepare Project Planning Lines for invoicing from posted Day Planning usage, with request-page filtering.';
-                // }
-                action(OpenProjectPlanningLines)
-                {
-                    ApplicationArea = All;
-                    Caption = 'Show linked Project Planning Lines';
-                    Image = JobLines;
-                    ToolTip = 'Opens the Project Planning Lines that the selected Day Planning lines'' posted usage was rolled into (via Job Ledger Invoice Link).';
-                    trigger OnAction()
-                    var
-                        SelectedDayPlanning: Record "Day Planning";
-                        JobPlanningLine: Record "Job Planning Line";
-                        JobPlanningLinesPage: Page "Job Planning Lines";
-                        JobUsageLink: Record "Job Usage Link";
-                        JobNos: List of [Code[20]];
-                        JobTaskNos: List of [Code[20]];
-                        LineNos: List of [Integer];
-                        NothingSelectedMsg: Label 'Select one or more Day Planning lines first.';
-                        NoLinksFoundMsg: Label 'None of the selected Day Planning lines have been rolled into a Project Planning Line yet.';
-                    begin
-                        CurrPage.SetSelectionFilter(SelectedDayPlanning);
-                        if not SelectedDayPlanning.FindSet() then begin
-                            Message(NothingSelectedMsg);
-                            exit;
-                        end;
-
-                        repeat
-                            if SelectedDayPlanning."Job Entry No." <> 0 then
-                                jobUsageLink.setrange("Entry No.", SelectedDayPlanning."Job Entry No.");
-                            if not JobUsageLink.findfirst() then
-                                if not JobNos.Contains(JobUsageLink."Job No.") then
-                                    JobNos.Add(JobUsageLink."Job No.");
-                            if not JobTaskNos.Contains(JobUsageLink."Job Task No.") then
-                                JobTaskNos.Add(JobUsageLink."Job Task No.");
-                            if not LineNos.Contains(JobUsageLink."Line No.") then
-                                LineNos.Add(JobUsageLink."Line No.");
-                        until SelectedDayPlanning.Next() = 0;
-
-                        if JobNos.Count() = 0 then begin
-                            Message(NoLinksFoundMsg);
-                            exit;
-                        end;
-
-                        JobPlanningLine.SetFilter("Job No.", BuildCodeOrFilter(JobNos));
-                        JobPlanningLine.SetFilter("Job Task No.", BuildCodeOrFilter(JobTaskNos));
-                        JobPlanningLine.SetFilter("Line No.", BuildIntegerOrFilter(LineNos));
-                        JobPlanningLinesPage.SetTableView(JobPlanningLine);
-                        JobPlanningLinesPage.Run();
-                    end;
-                }
-            }
         }
     }
     var
