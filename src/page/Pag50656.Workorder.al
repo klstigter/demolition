@@ -41,11 +41,61 @@ page 50656 "Work Order Sub"
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the value of the Project No. field.', Comment = '%';
+
+                    trigger OnLookup(var Text: Text): Boolean
+                    var
+                        Job: Record Job;
+                        JobList: Page "Opti Job List";
+                    begin
+                        if Rec."Project No." = '' then
+                            exit(false);
+
+                        Job.Get(Rec."Project No.");
+                        Clear(JobList);
+                        JobList.SetTableView(Job);
+                        JobList.LookupMode(true);
+                        if JobList.RunModal() = ACTION::LookupOK then begin
+                            JobList.GetRecord(Job);
+                            if Job."No." <> Rec."Project No." then begin
+                                Rec.Validate("Project No.", Job."No.");
+                                currPage.Update(true);
+                                Text := Job."No.";
+                            end;
+                            exit(true);
+                        end;
+                        exit(false);
+                    end;
                 }
                 field("Project Task No."; Rec."Project Task No.")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the value of the Project Task No. field.', Comment = '%';
+
+                    trigger OnLookup(var Text: Text): Boolean
+                    var
+                        Task: Record "Job Task";
+                        TaskList: Page "Job Task List - Project";
+                    begin
+                        if Rec."Project No." = '' then
+                            exit(false);
+
+                        Task.SetRange("Job No.", Rec."Project No.");
+                        if Rec."Project Task No." <> '' then
+                            Task.Get(Rec."Project No.", Rec."Project Task No.");
+                        Clear(TaskList);
+                        TaskList.SetTableView(Task);
+                        TaskList.LookupMode(true);
+                        if TaskList.RunModal() = ACTION::LookupOK then begin
+                            TaskList.GetRecord(Task);
+                            if Task."Job Task No." <> Rec."Project Task No." then begin
+                                Rec.Validate("Project Task No.", Task."Job Task No.");
+                                currPage.Update(true);
+                                Text := Task."Job Task No.";
+                            end;
+                            exit(true);
+                        end;
+                        exit(false);
+                    end;
                 }
                 field("Date Window Start"; Rec."Date Window Start")
                 {
