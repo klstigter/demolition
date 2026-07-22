@@ -519,17 +519,13 @@ codeunit 50613 "GanttChartDataHandler"
 
     local procedure GetResourceId(DayPlanning: Record "Day Planning") ResourceId: Text
     begin
-        if DayPlanning."Plan Status" = DayPlanning."Plan Status"::"In Request" then begin
+        if DayPlanning."Assigned Resource No." <> '' then
+            ResourceId := 'RES-' + DayPlanning."Assigned Resource No."
+        else
             if DayPlanning."Requested Resource No." <> '' then
                 ResourceId := 'RES-' + DayPlanning."Requested Resource No."
             else
                 ResourceId := 'RES-'; //UNASSIGNED
-        end else begin
-            if DayPlanning."Assigned Resource No." <> '' then
-                ResourceId := 'RES-' + DayPlanning."Assigned Resource No."
-            else
-                ResourceId := 'RES-'; //UNASSIGNED
-        end;
     end;
 
     local procedure GetDayPlanningTypeText(DayPlanningType: Enum "Job Planning Line Type") TypeText: Text
