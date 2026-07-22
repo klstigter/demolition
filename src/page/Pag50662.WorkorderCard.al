@@ -34,10 +34,60 @@ page 50662 "Workorder Card"
                 field("Project No."; Rec."Project No.")
                 {
                     ApplicationArea = All;
+
+                    trigger OnLookup(var Text: Text): Boolean
+                    var
+                        Job: Record Job;
+                        JobList: Page "Opti Job List";
+                    begin
+                        if Rec."Project No." = '' then
+                            exit(false);
+
+                        Job.Get(Rec."Project No.");
+                        Clear(JobList);
+                        JobList.SetTableView(Job);
+                        JobList.LookupMode(true);
+                        if JobList.RunModal() = ACTION::LookupOK then begin
+                            JobList.GetRecord(Job);
+                            if Job."No." <> Rec."Project No." then begin
+                                Rec.Validate("Project No.", Job."No.");
+                                currPage.Update(true);
+                                Text := Job."No.";
+                            end;
+                            exit(true);
+                        end;
+                        exit(false);
+                    end;
                 }
                 field("Project Task No."; Rec."Project Task No.")
                 {
                     ApplicationArea = All;
+
+                    trigger OnLookup(var Text: Text): Boolean
+                    var
+                        Task: Record "Job Task";
+                        TaskList: Page "Job Task List - Project";
+                    begin
+                        if Rec."Project No." = '' then
+                            exit(false);
+
+                        Task.SetRange("Job No.", Rec."Project No.");
+                        if Rec."Project Task No." <> '' then
+                            Task.Get(Rec."Project No.", Rec."Project Task No.");
+                        Clear(TaskList);
+                        TaskList.SetTableView(Task);
+                        TaskList.LookupMode(true);
+                        if TaskList.RunModal() = ACTION::LookupOK then begin
+                            TaskList.GetRecord(Task);
+                            if Task."Job Task No." <> Rec."Project Task No." then begin
+                                Rec.Validate("Project Task No.", Task."Job Task No.");
+                                currPage.Update(true);
+                                Text := Task."Job Task No.";
+                            end;
+                            exit(true);
+                        end;
+                        exit(false);
+                    end;
                 }
                 field(Description; Rec.Description)
                 {
@@ -136,9 +186,6 @@ page 50662 "Workorder Card"
             action(DayPlanningsCreation)
             {
                 ApplicationArea = All;
-                Promoted = true;
-                PromotedIsBig = true;
-                PromotedCategory = Process;
                 Caption = 'Day plannings pattern';
                 Image = HumanResources;
                 ShortCutKey = 'Alt+D';
@@ -156,9 +203,6 @@ page 50662 "Workorder Card"
             {
                 ApplicationArea = All;
                 Caption = 'Day plannings';
-                Promoted = true;
-                PromotedIsBig = true;
-                PromotedCategory = Process;
                 Image = HumanResources;
                 ShortCutKey = 'Alt+D';
                 ToolTip = 'View or edit dimensions, such as area, project, or department, that you can assign to sales and purchase documents to distribute costs and analyze transaction history.';
@@ -177,9 +221,6 @@ page 50662 "Workorder Card"
             {
                 ApplicationArea = All;
                 Caption = 'Transfer to planning line';
-                Promoted = true;
-                PromotedIsBig = true;
-                PromotedCategory = Process;
                 Image = Invoice;
                 ToolTip = 'Creates billable Project Planning Lines, grouped by Skill, from posted Day Planning usage that has not yet been invoiced.';
                 trigger OnAction()
@@ -201,9 +242,6 @@ page 50662 "Workorder Card"
                 ApplicationArea = All;
                 Image = GanttChart;
                 Caption = 'Gantt Chart';
-                Promoted = true;
-                PromotedIsBig = true;
-                PromotedCategory = Process;
                 //RunObject = page "Gantt Demo DHX 2";
                 trigger OnAction()
                 var
@@ -213,6 +251,58 @@ page 50662 "Workorder Card"
                     Gantt.RunModal();
                 end;
 
+            }
+            action(ShowJobLedgerEntries)
+            {
+                ApplicationArea = All;
+                Caption = 'Show Job Ledger Entries';
+                Image = JobLedger;
+                RunObject = Page "Job Ledger Entries";
+                RunPageLink = "Job No." = field("Project No."),
+                              "Job Task No." = field("Project Task No.");
+                RunPageView = sorting("Job No.", "Job Task No.", "Entry Type", "Posting Date")
+                              order(descending);
+                ToolTip = 'View the posted project ledger entries for this project and project task.';
+            }
+            action(ShowSummary)
+            {
+                ApplicationArea = All;
+                Caption = 'Show Summary';
+                Image = ViewDetails;
+                ToolTip = 'View the day planning summary for this project task.';
+                trigger OnAction()
+                var
+                    SummaryPage: Page "Summary View";
+                begin
+                    SummaryPage.LoadDataSet(Rec."Project No.", Rec."Project Task No.");
+                    SummaryPage.SetJobAndJobTaskVisibility(false);
+                    SummaryPage.Run();
+                end;
+            }
+        }
+        area(Promoted)
+        {
+            group(Category_Process)
+            {
+                Caption = 'Process';
+                actionref(DayPlanningsCreation_Promoted; DayPlanningsCreation)
+                {
+                }
+                actionref(DayPlannings_Promoted; DayPlannings)
+                {
+                }
+                actionref(PrepareInvoiceLines_Promoted; PrepareInvoiceLines)
+                {
+                }
+                actionref(GanttChartDHX_Promoted; GanttChartDHX)
+                {
+                }
+                actionref(ShowJobLedgerEntries_Promoted; ShowJobLedgerEntries)
+                {
+                }
+                actionref(ShowSummary_Promoted; ShowSummary)
+                {
+                }
             }
         }
     }

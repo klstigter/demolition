@@ -55,6 +55,12 @@ table 50608 "Work Order"
             Caption = 'Project No.';
             TableRelation = Job."No.";
             DataClassification = CustomerContent;
+
+            trigger OnValidate()
+            begin
+                if Rec."Project No." <> xRec."Project No." then
+                    Rec.Validate("Project Task No.", '');
+            end;
         }
         field(61; "Project Task No."; Code[20])
         {
