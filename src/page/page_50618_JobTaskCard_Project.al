@@ -730,6 +730,21 @@ page 50618 "Opti Job Task Card"
                 var
                     Gantt: page "Gantt Demo DHX 2";
                 begin
+                    Gantt.SetJobTaskFilter(Rec."Job No.", Rec."Job Task No.");
+                    Gantt.RunModal();
+                end;
+
+            }
+            action(GanttChartDHX_PerProject)
+            {
+                ApplicationArea = All;
+                Image = GanttChart;
+                Caption = 'Gantt Chart (Per Project)';
+                //RunObject = page "Gantt Demo DHX 2";
+                trigger OnAction()
+                var
+                    Gantt: page "Gantt Demo DHX 2";
+                begin
                     Gantt.SetJobFilter(Rec."Job No.");
                     Gantt.RunModal();
                 end;
@@ -981,8 +996,17 @@ page 50618 "Opti Job Task Card"
             {
                 Caption = 'Process', Comment = 'Generated from the PromotedActionCategories property index 1.';
 
-                actionref(GanttChartDHX_Promoted; GanttChartDHX)
+                group(Category_Category6)
                 {
+                    Caption = 'Gantt Chart', Comment = 'Generated from the PromotedActionCategories property index 5.';
+                    ShowAs = SplitButton;
+
+                    actionref(GanttChartDHX_Promoted; GanttChartDHX)
+                    {
+                    }
+                    actionref(GanttChartDHX_PerProject_Promoted; GanttChartDHX_PerProject)
+                    {
+                    }
                 }
                 actionref(DayPlanningsCreation_Promoted; DayPlanningsCreation)
                 {

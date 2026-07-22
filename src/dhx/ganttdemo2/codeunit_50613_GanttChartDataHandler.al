@@ -38,6 +38,11 @@ codeunit 50613 "GanttChartDataHandler"
     end;
 
     procedure GetJobTasksAsJson(AchorDate: Date; pJobFilter: Text) JsonText: Text //StartDate: Date; JobNo: Code[20]
+    begin
+        exit(GetJobTasksAsJson(AchorDate, pJobFilter, ''));
+    end;
+
+    procedure GetJobTasksAsJson(AchorDate: Date; pJobFilter: Text; pJobTaskFilter: Text) JsonText: Text
     var
         GanttSetup: Record "Gantt Chart Setup";
         JobTask: Record "Job Task";
@@ -57,6 +62,8 @@ codeunit 50613 "GanttChartDataHandler"
             JobNoFilter := pJobFilter;
         if JobNoFilter <> '' then
             JobTask.SetFilter("Job No.", JobNoFilter);
+        if pJobTaskFilter <> '' then
+            JobTask.SetFilter("Job Task No.", pJobTaskFilter);
         GetDateRange(GanttSetup, AchorDate, StartDate, EndDate);
         JobTask.SetFilter("PlannedStartDate", '<=%1', EndDate);
         JobTask.SetFilter("PlannedEndDate", '>=%1', StartDate); // to exclude blank references
