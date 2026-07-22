@@ -1037,6 +1037,7 @@ page 50620 "Gantt Demo DHX 2"
         ShowPreviousNext: Boolean;
         ResourcePanelFlag: Boolean;
         JobFilter: Text;
+        JobTaskFilter: Text;
         CurrentResourcePanelFilterJsonString: Text;
         PreviewCancelled: Boolean;
 
@@ -1062,6 +1063,12 @@ page 50620 "Gantt Demo DHX 2"
     procedure SetJobFilter(pJobFilter: Text)
     begin
         JobFilter := pJobFilter;
+    end;
+
+    procedure SetJobTaskFilter(pJobFilter: Text; pJobTaskFilter: Text)
+    begin
+        JobFilter := pJobFilter;
+        JobTaskFilter := pJobTaskFilter;
     end;
 
     local procedure LoadAllData()
@@ -1201,7 +1208,7 @@ page 50620 "Gantt Demo DHX 2"
         GanttChartDataHandler: Codeunit "GanttChartDataHandler";
         JsonTxtTasks: Text;
     begin
-        JsonTxtTasks := GanttChartDataHandler.GetJobTasksAsJson(AnchorDate, JobFilter);
+        JsonTxtTasks := GanttChartDataHandler.GetJobTasksAsJson(AnchorDate, JobFilter, JobTaskFilter);
         if JsonTxtTasks <> '' then begin
             CurrPage.DHXGanttControl2.LoadProjectData(JsonTxtTasks);
             if setup."Download Data for Inspection" and GuiAllowed then
@@ -1240,7 +1247,7 @@ page 50620 "Gantt Demo DHX 2"
         else
             if JobFilterUsed <> '' then
                 JobFilter := JobFilterUsed;
-        JsonTxtDayPlannings := GanttChartDataHandler.GetDayPlanningsAsJson(AnchorDate, JobFilter);
+        JsonTxtDayPlannings := GanttChartDataHandler.GetDayPlanningsAsJson(AnchorDate, JobFilter, JobTaskFilter);
         if JsonTxtDayPlannings <> '' then
             CurrPage.DHXGanttControl2.LoadDayPlanningsData(JsonTxtDayPlannings);
     end;
