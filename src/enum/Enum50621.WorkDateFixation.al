@@ -1,4 +1,4 @@
-enum 50621 "Work Date Fixation"
+enum 50621 "Task Date Fixation"
 {
     Extensible = true;
 

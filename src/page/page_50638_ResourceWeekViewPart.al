@@ -215,7 +215,7 @@ page 50638 "Resource Week View Part"
                         DayPlanning.SetRange("Skill", Rec."Skill Code");
                     DayPlanning.SetRange("Job No.", Rec."Job No.");
                     DayPlanning.SetRange("Job Task No.", Rec."Job Task No.");
-                    DayPlanning.SetRange("Work Date", WeekStart, WeekEnd);
+                    DayPlanning.SetRange("Task Date", WeekStart, WeekEnd);
                     Page.Run(Page::"Day Plannings", DayPlanning);
                 end;
             }
@@ -427,9 +427,9 @@ page 50638 "Resource Week View Part"
 
         if WeekDayNo = 0 then begin
             WeekFilter := StrSubstNo('%1..%2', Format(DWY2Date(1, Rec."Week No.", Rec.Year)), Format(DWY2Date(7, Rec."Week No.", Rec.Year)));
-            Rc.SetFilter("Work Date", WeekFilter);
+            Rc.SetFilter("Task Date", WeekFilter);
         end else
-            Rc.SetRange("Work Date", DWY2Date(WeekDayNo, Rec."Week No.", Rec.Year));
+            Rc.SetRange("Task Date", DWY2Date(WeekDayNo, Rec."Week No.", Rec.Year));
 
         Rc.SetRange("Job No.", Rec."Job No.");
         Rc.SetRange("Job Task No.", Rec."Job Task No.");

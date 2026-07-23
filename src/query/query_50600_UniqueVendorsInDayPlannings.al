@@ -7,7 +7,7 @@ query 50600 "Unique Vend in Day Plannings"
     {
         dataitem(Day_Tasks; "Day Planning")
         {
-            filter(TaskDateFilter; "Work Date")
+            filter(TaskDateFilter; "Task Date")
             {
             }
             filter(Resource_Group_No_Filter; "Resource Group No.")

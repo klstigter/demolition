@@ -8,7 +8,7 @@ report 50602 DayPlanning
     {
         dataitem(DayPlanning; "Day Planning")
         {
-            dataitemtableview = sorting("Job No.", "Job Task No.", "Work Date") where("plan status" = const("In Progress"));
+            dataitemtableview = sorting("Job No.", "Job Task No.", "Task Date") where("plan status" = const("In Progress"));
 
             column(JobNo; JobDescription)
             {
@@ -18,7 +18,7 @@ report 50602 DayPlanning
             {
                 Caption = 'Job Task No.';
             }
-            column(TaskDate; DayPlanning."Work Date")
+            column(TaskDate; DayPlanning."Task Date")
             {
                 Caption = 'Task Date';
             }
@@ -31,7 +31,7 @@ report 50602 DayPlanning
                     DataItemLinkReference = DayPlanning;
                     DataItemLink = "Job No." = field("Job No.")
                     , "Job Task No." = field("Job Task No.")
-                    , "Work Date" = field("Work Date");
+                    , "Task Date" = field("Task Date");
 
                     column(ResourceNo;
                     DayPlanning2."Assigned Resource No.")
@@ -125,12 +125,12 @@ report 50602 DayPlanning
 
                 DayPlanning.SetRange("Job No.", DayPlanning."Job No.");
                 DayPlanning.SetRange("Job Task No.", DayPlanning."Job Task No.");
-                dateFilter := DayPlanning.GetFilter("Work Date");
-                DayPlanning.SetRange("Work Date", DayPlanning."Work Date");
+                dateFilter := DayPlanning.GetFilter("Task Date");
+                DayPlanning.SetRange("Task Date", DayPlanning."Task Date");
                 DayPlanning.FindLast();
                 DayPlanning.SetRange("Job No.");
                 DayPlanning.SetRange("Job Task No.");
-                DayPlanning.Setfilter("Work Date", dateFilter);
+                DayPlanning.Setfilter("Task Date", dateFilter);
             end;
         }
     }
@@ -398,7 +398,7 @@ report 50602 DayPlanning
             evaluate(wk, CopyStr(WeekFilter, 6, 2));
             FirstDateOfWeek := DWY2Date(1, wk, yr);
             LastDateOfWeek := DWY2Date(7, wk, yr);
-            DayPlanning.SetRange("Work Date", FirstDateOfWeek, LastDateOfWeek);
+            DayPlanning.SetRange("Task Date", FirstDateOfWeek, LastDateOfWeek);
         end;
     end;
 

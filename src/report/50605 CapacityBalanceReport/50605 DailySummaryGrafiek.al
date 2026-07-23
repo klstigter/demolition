@@ -18,10 +18,10 @@ report 50605 "Daily Capacity Balance Report"
 
             dataitem(DayPlanning; "Day Planning")
             {
-                dataitemlink = "Work Date" = field("Period Start");
+                dataitemlink = "Task Date" = field("Period Start");
                 dataitemlinkreference = Dates;
 
-                dataitemtableview = sorting("Work Date");
+                dataitemtableview = sorting("Task Date");
                 column(JobNo; dayplanning."Job No.") { }
                 column(JobTaskNo; dayplanning."Job Task No.") { }
 

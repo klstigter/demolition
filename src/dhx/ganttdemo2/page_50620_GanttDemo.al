@@ -181,11 +181,11 @@ page 50620 "Gantt Demo DHX 2"
                         JobTask.Get(JobNo, JobTaskNo);
                         case true of
                             (JobTask.PlannedStartDate <> 0D) and (JobTask.PlannedEndDate <> 0D):
-                                DayPlanning.SetRange("Work Date", JobTask.PlannedStartDate, JobTask.PlannedEndDate);
+                                DayPlanning.SetRange("Task Date", JobTask.PlannedStartDate, JobTask.PlannedEndDate);
                             (JobTask.PlannedStartDate = 0D) and (JobTask.PlannedEndDate <> 0D):
-                                DayPlanning.Setfilter("Work Date", '..%1', JobTask.PlannedEndDate);
+                                DayPlanning.Setfilter("Task Date", '..%1', JobTask.PlannedEndDate);
                             (JobTask.PlannedStartDate <> 0D) and (JobTask.PlannedEndDate = 0D):
-                                DayPlanning.Setfilter("Work Date", '%1..', JobTask.PlannedStartDate);
+                                DayPlanning.Setfilter("Task Date", '%1..', JobTask.PlannedStartDate);
                         end;
 
                     end;
@@ -254,7 +254,7 @@ page 50620 "Gantt Demo DHX 2"
                     LoadDayPlanningData();
                 end;
 
-                trigger OpenResourceLoadDay(ResourceId: Text; pWorkDate: Text; pPlanStatus: Text; pIdList: Text)
+                trigger OpenResourceLoadDay(ResourceId: Text; pTaskDate: Text; pPlanStatus: Text; pIdList: Text)
                 var
                     DayPlanning: Record "Day Planning";
                     WorkDt: Date;
@@ -300,8 +300,8 @@ page 50620 "Gantt Demo DHX 2"
                         DayPlanning.SetFilter("Job No.", JobFilter);
                     if JobTaskNoFilter <> '' then
                         DayPlanning.SetFilter("Job Task No.", JobTaskNoFilter);
-                    Evaluate(WorkDt, pWorkDate);
-                    DayPlanning.SetRange("Work Date", WorkDt);
+                    Evaluate(WorkDt, pTaskDate);
+                    DayPlanning.SetRange("Task Date", WorkDt);
                     if pPlanStatus = 'Request' then begin
                         if tp[1] = 'RES-' then
                             DayPlanning.SetRange("Requested Resource No.", tp[2]);
@@ -341,7 +341,7 @@ page 50620 "Gantt Demo DHX 2"
                         Page.Run(Page::"Resource Card", Resource);
                 end;
 
-                trigger onAddDayPlanning(resourceId: Text; workDate: Text)
+                trigger onAddDayPlanning(resourceId: Text; TaskDate: Text)
                 var
                     DayPlanning: Record "Day Planning";
                     WorkHourTemplate: record "Work-Hour Template";
@@ -357,11 +357,11 @@ page 50620 "Gantt Demo DHX 2"
                     FilterFromDate: Date;
                     FilterToDate: Date;
                 begin
-                    Evaluate(WorkDt, workDate); // expects YYYY-MM-DD
+                    Evaluate(WorkDt, TaskDate); // expects YYYY-MM-DD
                     Prefix := CopyStr(resourceId, 1, 4);
                     ResourceCode := CopyStr(resourceId, 5, MaxStrLen(ResourceCode));
                     DayPlanning.Init();
-                    DayPlanning."Work Date" := WorkDt;
+                    DayPlanning."Task Date" := WorkDt;
                     if Prefix = 'RES-' then begin
                         // Validate("Requested Resource No.", ...) can Error() (e.g. the resource
                         // has no Skill assigned - see table_50610's mandatory-skill check). Wrapped
@@ -410,7 +410,7 @@ page 50620 "Gantt Demo DHX 2"
                         DayPlanningCard.GetRecord(DayPlanning);
                         DayPlanning.TestField("Job No.");
                         DayPlanning.TestField("Job Task No.");
-                        DayPlanning.TestField("Work Date");
+                        DayPlanning.TestField("Task Date");
 
                         if DayPlanning."Plan Status" = DayPlanning."Plan Status"::"In Progress" then begin
                             DayPlanning.TestField("Assigned Resource No.");
@@ -696,7 +696,7 @@ page 50620 "Gantt Demo DHX 2"
                         if (PanelJobNo <> '') and (PanelTaskNo <> '') then begin
                             if PanelFromDate <> 0D then DT1 := PanelFromDate;
                             if PanelToDate <> 0D then DT2 := PanelToDate;
-                            DayPlanning.SetRange("Work Date", DT1, DT2);
+                            DayPlanning.SetRange("Task Date", DT1, DT2);
                             DayPlanning.SetFilter("Job No.", PanelJobNo);
                             DayPlanning.SetFilter("Job Task No.", PanelTaskNo);
                             page.Run(Page::"Day Plannings", DayPlanning);
@@ -704,7 +704,7 @@ page 50620 "Gantt Demo DHX 2"
                         end;
                     end;
 
-                    DayPlanning.SetRange("Work Date", DT1, DT2);
+                    DayPlanning.SetRange("Task Date", DT1, DT2);
                     if JobFilter <> '' then
                         DayPlanning.SetFilter("Job No.", JobFilter);
                     page.Run(Page::"Day Plannings", DayPlanning);

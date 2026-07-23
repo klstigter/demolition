@@ -8,7 +8,7 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
             part("Resource Day Plannings"; "Resource Day Plannings")
             {
                 ApplicationArea = All;
-                SubPageView = sorting("Work Date", "Day Line No.");
+                SubPageView = sorting("Task Date", "Day Line No.");
                 SubPageLink = "Assigned Resource No." = field("No.");
                 UpdatePropagation = Both;
             }

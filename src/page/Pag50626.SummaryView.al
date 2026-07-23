@@ -628,13 +628,13 @@ page 50626 "Summary View"
                     Rec.Year
                     ))
             );
-                rc.SetFilter("Work Date", dtFilter);
+                rc.SetFilter("Task Date", dtFilter);
             end else
                 if WeekDayNo = 0 then begin
                     dtFilter := StrSubstNo('%1..%2', Format(DWY2Date(1, rec."Week No.", rec.Year)), Format(DWY2Date(7, rec."Week No.", rec.Year)));
-                    rc.SetFilter("Work Date", dtFilter);
+                    rc.SetFilter("Task Date", dtFilter);
                 end else
-                    rc.SetRange("Work Date", DWY2Date(WeekDayNo, rec."Week No.", rec.Year));
+                    rc.SetRange("Task Date", DWY2Date(WeekDayNo, rec."Week No.", rec.Year));
 
         if ShowJob then
             rc.SetRange("Job No.", Rec."Job No.");

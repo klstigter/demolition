@@ -319,7 +319,7 @@ table 50612 "Summary Weekly"
         //   Pass B – Assigned Hours credited to the Assigned Resource row.
         // Rows are the union of all Requested and Assigned resource values.
         repeat
-            TaskDate := DayPlanning."Work Date";
+            TaskDate := DayPlanning."Task Date";
             if TaskDate = 0D then begin
                 if WorkOrder.Get(DayPlanning."Work Order No.") then
                     TaskDate := WorkOrder."Placeholder Date";
@@ -443,7 +443,7 @@ table 50612 "Summary Weekly"
         DayPlanning: Record "Day Planning";
     begin
         if DateFilter <> '' then
-            DayPlanning.SetFilter("Work Date", DateFilter);
+            DayPlanning.SetFilter("Task Date", DateFilter);
         ScanTEMPDayPlanning(DayPlanning)
     end;
 
@@ -495,9 +495,9 @@ table 50612 "Summary Weekly"
             repeat
                 TempDayPlanning := DayPlanning;
                 TempDayPlanning.Insert(true);
-                if DateOld <> TempDayPlanning."Work Date" then begin
-                    DateOld := TempDayPlanning."Work Date";
-                    ywNew := CreateYW(TempDayPlanning."Work Date");
+                if DateOld <> TempDayPlanning."Task Date" then begin
+                    DateOld := TempDayPlanning."Task Date";
+                    ywNew := CreateYW(TempDayPlanning."Task Date");
                     if ywOld <> ywNew then begin
                         ywOld := ywNew;
                         FillTEMPYearWeek(ywNew);
@@ -525,7 +525,7 @@ table 50612 "Summary Weekly"
 
     local procedure FillTEMPYearWeek(TaskDate: Date)
     begin
-        FillTEMPYearWeek(CreateYW(TempDayPlanning."Work Date"));
+        FillTEMPYearWeek(CreateYW(TempDayPlanning."Task Date"));
     end;
 
     local procedure FillTEMPYearWeek(yw: Integer)

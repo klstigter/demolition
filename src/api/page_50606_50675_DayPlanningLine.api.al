@@ -35,7 +35,7 @@ page 50675 "DayPlanning Line Opt"
                 {
                     Caption = 'Day Line No.';
                 }
-                field(taskDate; Rec."Work Date")
+                field(taskDate; Rec."Task Date")
                 {
                     Caption = 'Task Date';
                 }
@@ -142,7 +142,7 @@ page 50675 "DayPlanning Line Opt"
         end;
 
         // Apply incoming payload — TempLine always holds the API-submitted values
-        Rec."Work Date" := TempLine."Work Date";
+        Rec."Task Date" := TempLine."Task Date";
         Rec."Assigned Resource No." := TempLine."Assigned Resource No.";
         Rec.Description := TempLine.Description;
         Rec."Plan Status" := TempLine."Plan Status";

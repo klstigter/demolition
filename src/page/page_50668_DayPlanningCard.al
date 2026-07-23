@@ -26,7 +26,7 @@ page 50668 "Day Planning Card Opt"
                 }
                 Group(Planning)
                 {
-                    field("Task Date"; Rec."Work Date")
+                    field("Task Date"; Rec."Task Date")
                     {
                         ApplicationArea = All;
                     }
@@ -182,8 +182,8 @@ page 50668 "Day Planning Card Opt"
     trigger OnNewRecord(BelowRecord: Boolean)
     begin
         Rec.FilterGroup(2);
-        if (Rec."Work Date" = 0D) and (Rec.GetFilter("Work Date") <> '') then
-            Rec."Work Date" := Rec.GetRangeMin("Work Date");
+        if (Rec."Task Date" = 0D) and (Rec.GetFilter("Task Date") <> '') then
+            Rec."Task Date" := Rec.GetRangeMin("Task Date");
         if (Rec."Job No." = '') and (Rec.GetFilter("Job No.") <> '') then
             Rec."Job No." := Rec.GetRangeMin("Job No.");
         if (Rec."Job Task No." = '') and (Rec.GetFilter("Job Task No.") <> '') then

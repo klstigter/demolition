@@ -294,7 +294,7 @@ codeunit 60020 "Day Planning Creation Tests"
         DayCount := DayPlanning.Count();
         AssertAreEqual(5, DayCount, 'Expected exactly 5 Day Planning records for a Mon-Fri pattern with Mon-Fri active in the Work-Hour Template.');
 
-        DayPlanning.SetRange("Work Date", StartDate);
+        DayPlanning.SetRange("Task Date", StartDate);
         AssertIsTrue(DayPlanning.FindFirst(), 'Expected a Day Planning record on the pattern start date.');
         AssertAreEqual(TestResourceNo, DayPlanning."Assigned Resource No.", 'Assigned Resource No. should be copied from the pattern.');
         AssertAreEqual(TestSkillCode, DayPlanning.Skill, 'Skill should be copied from the pattern.');
@@ -334,7 +334,7 @@ codeunit 60020 "Day Planning Creation Tests"
         // [THEN] 2 Day Planning lines are created for that date: Day Line No. 10000 and 20000
         DayPlanning.SetRange("Job No.", TestJobNo);
         DayPlanning.SetRange("Job Task No.", TestJobTaskNo);
-        DayPlanning.SetRange("Work Date", SingleDay);
+        DayPlanning.SetRange("Task Date", SingleDay);
         DayCount := DayPlanning.Count();
         AssertAreEqual(2, DayCount, 'Expected exactly 2 Day Planning lines for the single qualifying day with Quantity of Lines = 2.');
 
@@ -382,7 +382,7 @@ codeunit 60020 "Day Planning Creation Tests"
         // [THEN] Only 1 Day Planning line is created for the qualifying day
         DayPlanning.SetRange("Job No.", TestJobNo);
         DayPlanning.SetRange("Job Task No.", TestJobTaskNo);
-        DayPlanning.SetRange("Work Date", SingleDay);
+        DayPlanning.SetRange("Task Date", SingleDay);
         DayCount := DayPlanning.Count();
         AssertAreEqual(1, DayCount, 'Expected exactly 1 Day Planning line when Vendor No. is set, regardless of original Quantity of Lines.');
         AssertIsTrue(DayPlanning.FindFirst(), 'Expected a Day Planning record to exist for the qualifying day.');

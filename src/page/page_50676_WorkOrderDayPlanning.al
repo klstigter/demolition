@@ -74,12 +74,12 @@ page 50676 "Work Order Day Plannings"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the resource requested for this day task.';
                 }
-                field("Work Date Fixation"; Rec."Work Date Fixation")
+                field("Task Date Fixation"; Rec."Task Date Fixation")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the work date fixation for this day task.';
+                    ToolTip = 'Specifies the task date fixation for this day task.';
                 }
-                field("Work Date"; Rec."Work Date")
+                field("Task Date"; Rec."Task Date")
                 {
                     ApplicationArea = All;
                 }

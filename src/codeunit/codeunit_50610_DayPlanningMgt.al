@@ -107,7 +107,7 @@ codeunit 50610 "Day Plannings Mgt."
 
                 Clear(DayPlannings);
                 DayNo := GeneralUtil.DateToInteger(NewTaskDate);
-                DayPlannings."Work Date" := NewTaskDate;
+                DayPlannings."Task Date" := NewTaskDate;
                 DayPlannings."Day Line No." := DayPlannings.GetNextDayLineNo(NewTaskDate, DayPlanningPattern."Job No.", DayPlanningPattern."Job Task No.");
                 DayPlannings."Job No." := DayPlanningPattern."Job No.";
                 DayPlannings."Job Task No." := DayPlanningPattern."Job Task No.";
@@ -163,13 +163,13 @@ codeunit 50610 "Day Plannings Mgt."
         //Update Job Task Start - End Date
         JobTask.Get(DayPlanningPattern."Job No.", DayPlanningPattern."Job Task No.");
         DayPlannings.Reset();
-        DayPlannings.SetCurrentKey("Work Date");
+        DayPlannings.SetCurrentKey("Task Date");
         DayPlannings.SetRange("Job No.", JobTask."Job No.");
         DayPlannings.SetRange("Job Task No.", JobTask."Job Task No.");
         if DayPlannings.FindFirst() then
-            StartDate := DayPlannings."Work Date";
+            StartDate := DayPlannings."Task Date";
         if DayPlannings.FindLast() then
-            EndDate := DayPlannings."Work Date";
+            EndDate := DayPlannings."Task Date";
 
         EnsureJobTaskCoversDate(JobTask, StartDate);
         EnsureJobTaskCoversDate(JobTask, EndDate);
@@ -343,9 +343,9 @@ codeunit 50610 "Day Plannings Mgt."
         if JobTaskNo <> '' then
             DayPlannings.SetRange("Job Task No.", JobTaskNo);
         if DayPlannings.FindFirst() then
-            StartDate := DayPlannings."Work Date";
+            StartDate := DayPlannings."Task Date";
         if DayPlannings.FindLast() then
-            EndDate := DayPlannings."Work Date";
+            EndDate := DayPlannings."Task Date";
     end;
 
 }

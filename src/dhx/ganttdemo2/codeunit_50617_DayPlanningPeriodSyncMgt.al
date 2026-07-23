@@ -85,17 +85,17 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
 
         // ── Pass 1 — compute the naive (flat offset/clamp) target date for every
         // distinct original Task Date in range, exactly as the old scenario logic did. ──
-        DayPlanning.SetCurrentKey("Work Date");
+        DayPlanning.SetCurrentKey("Task Date");
         DayPlanning.SetRange("Job No.", JobNo);
         DayPlanning.SetRange("Job Task No.", JobTaskNo);
-        DayPlanning.SetRange("Work Date", OldStart, OldEnd);
+        DayPlanning.SetRange("Task Date", OldStart, OldEnd);
         if DayPlanning.FindSet() then
             repeat
-                if not NaiveDateMap.ContainsKey(DayPlanning."Work Date") then begin
-                    NaiveDate := CalculateNaiveNewDate(DayPlanning."Work Date", OldStart, OldEnd, NewStart, NewEnd);
-                    if NaiveDate <> DayPlanning."Work Date" then begin
-                        NaiveDateMap.Add(DayPlanning."Work Date", NaiveDate);
-                        OldDates.Add(DayPlanning."Work Date");
+                if not NaiveDateMap.ContainsKey(DayPlanning."Task Date") then begin
+                    NaiveDate := CalculateNaiveNewDate(DayPlanning."Task Date", OldStart, OldEnd, NewStart, NewEnd);
+                    if NaiveDate <> DayPlanning."Task Date" then begin
+                        NaiveDateMap.Add(DayPlanning."Task Date", NaiveDate);
+                        OldDates.Add(DayPlanning."Task Date");
                     end;
                 end;
             until DayPlanning.Next() = 0;
@@ -128,11 +128,11 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
 
         // ── Pass 3 — build the preview buffer for every affected DayPlanning row,
         // using each row's Task Date to look up its cascaded final date. ─────────────
-        DayPlanning.SetRange("Work Date", OldStart, OldEnd);
+        DayPlanning.SetRange("Task Date", OldStart, OldEnd);
         if DayPlanning.FindSet() then
             repeat
-                if AdjustedDateMap.ContainsKey(DayPlanning."Work Date") then begin
-                    NewDate := AdjustedDateMap.Get(DayPlanning."Work Date");
+                if AdjustedDateMap.ContainsKey(DayPlanning."Task Date") then begin
+                    NewDate := AdjustedDateMap.Get(DayPlanning."Task Date");
 
                     EntryNo += 1;
                     TempPreviewBuffer.Init();
@@ -140,7 +140,7 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
                     TempPreviewBuffer."Job No." := DayPlanning."Job No.";
                     TempPreviewBuffer."Job Task No." := DayPlanning."Job Task No.";
                     TempPreviewBuffer."Day Line No." := DayPlanning."Day Line No.";
-                    TempPreviewBuffer."Old Task Date" := DayPlanning."Work Date";
+                    TempPreviewBuffer."Old Task Date" := DayPlanning."Task Date";
                     TempPreviewBuffer."New Task Date" := NewDate;
                     TempPreviewBuffer."Day Name" := Format(NewDate, 0, '<Weekday Text>');
                     TempPreviewBuffer."Resource No." := DayPlanning."Assigned Resource No.";
@@ -292,7 +292,7 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
                     DayPlanning.Init();
                     DayPlanning."Job No." := TempPreviewBuffer."Job No.";
                     DayPlanning."Job Task No." := TempPreviewBuffer."Job Task No.";
-                    DayPlanning."Work Date" := TempPreviewBuffer."New Task Date";
+                    DayPlanning."Task Date" := TempPreviewBuffer."New Task Date";
                     DayPlanning."Day Line No." := DayPlanning.GetNextDayLineNo(
                         TempPreviewBuffer."New Task Date",
                         TempPreviewBuffer."Job No.",
@@ -300,7 +300,7 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
                     DayPlanning.Insert();
                 end else
                     if DayPlanning.Get(TempPreviewBuffer."Job No.", TempPreviewBuffer."Job Task No.", TempPreviewBuffer."Day Line No.") then begin
-                        DayPlanning."Work Date" := TempPreviewBuffer."New Task Date";
+                        DayPlanning."Task Date" := TempPreviewBuffer."New Task Date";
                         DayPlanning.Modify();
                     end;
             until TempPreviewBuffer.Next() = 0;
@@ -350,7 +350,7 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
                     DayPlanning.Init();
                     DayPlanning."Job No." := TempPreviewBuffer."Job No.";
                     DayPlanning."Job Task No." := TempPreviewBuffer."Job Task No.";
-                    DayPlanning."Work Date" := TempPreviewBuffer."New Task Date";
+                    DayPlanning."Task Date" := TempPreviewBuffer."New Task Date";
                     DayPlanning."Day Line No." := DayPlanning.GetNextDayLineNo(
                         TempPreviewBuffer."New Task Date",
                         TempPreviewBuffer."Job No.",
@@ -358,7 +358,7 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
                     DayPlanning.Insert();
                 end else
                     if DayPlanning.Get(TempPreviewBuffer."Job No.", TempPreviewBuffer."Job Task No.", TempPreviewBuffer."Day Line No.") then begin
-                        DayPlanning."Work Date" := TempPreviewBuffer."New Task Date";
+                        DayPlanning."Task Date" := TempPreviewBuffer."New Task Date";
                         DayPlanning.Modify();
                     end;
             until TempPreviewBuffer.Next() = 0;
