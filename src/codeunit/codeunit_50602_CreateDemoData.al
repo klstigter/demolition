@@ -2045,7 +2045,7 @@ codeunit 50602 "Create Demo Data"
         DP.Init();
         DP."Job No." := JT."Job No.";
         DP."Job Task No." := JT."Job Task No.";
-        DP."Work Date" := DT;
+        DP."Task Date" := DT;
         DP."Day Line No." := NextDayLineNo(JT."Job No.", JT."Job Task No.");
         DP."Plan Status" := PlanSt;
         DP."Requested Resource No." := LeaderRes;
@@ -2088,7 +2088,7 @@ codeunit 50602 "Create Demo Data"
         DP.Init();
         DP."Job No." := JT."Job No.";
         DP."Job Task No." := JT."Job Task No.";
-        DP."Work Date" := DT;
+        DP."Task Date" := DT;
         DP."Day Line No." := NextDayLineNo(JT."Job No.", JT."Job Task No.");
         DP."Plan Status" := PlanSt;
         DP."Requested Resource No." := MemberRes;
@@ -2449,7 +2449,7 @@ codeunit 50602 "Create Demo Data"
         DP.Init();
         DP."Job No." := JT."Job No.";
         DP."Job Task No." := JT."Job Task No.";
-        DP."Work Date" := DT;
+        DP."Task Date" := DT;
         DP."Day Line No." := NextDayLineNo(JT."Job No.", JT."Job Task No.");
         DP."Plan Status" := PlanSt;
         DP."Requested Resource No." := ResNo;

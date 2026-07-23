@@ -33,7 +33,7 @@ page 50645 "Res. Asgmt. Day Plannings"
                     ToolTip = 'Specifies the day number in the sequence.';
                     Caption = 'Day No.';
                 }
-                field("Task Date"; Rec."Work Date")
+                field("Task Date"; Rec."Task Date")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the date of the day task.';
@@ -211,12 +211,12 @@ page 50645 "Res. Asgmt. Day Plannings"
     begin
         // Inherit date from current filter if set
         Rec.FilterGroup(2);
-        if Rec.GetFilter("Work Date") <> '' then
-            NewDate := Rec.GetRangeMin("Work Date")
+        if Rec.GetFilter("Task Date") <> '' then
+            NewDate := Rec.GetRangeMin("Task Date")
         else
             NewDate := Today;
         Rec.FilterGroup(0);
-        Rec."Work Date" := NewDate;
+        Rec."Task Date" := NewDate;
 
         // Inherit Job No. from filter if set
         Rec.FilterGroup(2);
@@ -225,7 +225,7 @@ page 50645 "Res. Asgmt. Day Plannings"
         Rec.FilterGroup(0);
 
         NextLineNo := 10000;
-        DayPlanningRec.SetRange("Work Date", NewDate);
+        DayPlanningRec.SetRange("Task Date", NewDate);
         if DayPlanningRec.FindLast() then
             NextLineNo := DayPlanningRec."Day Line No." + 10000;
         Rec."Day Line No." := NextLineNo;
@@ -242,15 +242,15 @@ page 50645 "Res. Asgmt. Day Plannings"
         else
             Rec.SetRange("Job No.");
 
-        Rec.SetRange("Work Date");
+        Rec.SetRange("Task Date");
         if ForceToSpecificDate <> 0D then
-            Rec.SetRange("Work Date", ForceToSpecificDate)
+            Rec.SetRange("Task Date", ForceToSpecificDate)
         else if (DateFrom <> 0D) and (DateTo <> 0D) then
-            Rec.SetRange("Work Date", DateFrom, DateTo)
+            Rec.SetRange("Task Date", DateFrom, DateTo)
         else if DateFrom <> 0D then
-            Rec.SetFilter("Work Date", '%1..', DateFrom)
+            Rec.SetFilter("Task Date", '%1..', DateFrom)
         else if DateTo <> 0D then
-            Rec.SetRange("Work Date", 0D, DateTo);
+            Rec.SetRange("Task Date", 0D, DateTo);
 
         Rec.FilterGroup(0);
 

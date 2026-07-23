@@ -8,8 +8,8 @@ report 50603 "Day Planning Details"
     {
         dataitem(DayPlanning; "Day Planning")
         {
-            dataitemtableview = sorting("Job No.", "Job Task No.", "Work Date") where("plan status" = const("In Progress"));
-            RequestFilterFields = "Work Date", "Job No.", "Job Task No.";
+            dataitemtableview = sorting("Job No.", "Job Task No.", "Task Date") where("plan status" = const("In Progress"));
+            RequestFilterFields = "Task Date", "Job No.", "Job Task No.";
 
             column(JobNo; JobDescription)
             {
@@ -19,7 +19,7 @@ report 50603 "Day Planning Details"
             {
                 Caption = 'Job Task No.';
             }
-            column(TaskDate; DayPlanning."Work Date")
+            column(TaskDate; DayPlanning."Task Date")
             {
                 Caption = 'Task Date';
             }
@@ -31,7 +31,7 @@ report 50603 "Day Planning Details"
                     DataItemLinkReference = DayPlanning;
                     DataItemLink = "Job No." = field("Job No.")
                     , "Job Task No." = field("Job Task No.")
-                    , "Work Date" = field("Work Date");
+                    , "Task Date" = field("Task Date");
 
                     trigger OnAfterGetRecord()
                     var
@@ -153,12 +153,12 @@ report 50603 "Day Planning Details"
 
                 DayPlanning.SetRange("Job No.", DayPlanning."Job No.");
                 DayPlanning.SetRange("Job Task No.", DayPlanning."Job Task No.");
-                DateSelectionFilter := DayPlanning.GetFilter("Work Date");
-                DayPlanning.SetRange("Work Date", DayPlanning."Work Date");
+                DateSelectionFilter := DayPlanning.GetFilter("Task Date");
+                DayPlanning.SetRange("Task Date", DayPlanning."Task Date");
                 DayPlanning.FindLast();
                 DayPlanning.SetRange("Job No.");
                 DayPlanning.SetRange("Job Task No.");
-                DayPlanning.Setfilter("Work Date", DateSelectionFilter);
+                DayPlanning.Setfilter("Task Date", DateSelectionFilter);
 
                 TempDayPlanning1.DeleteAll();
                 TempDayPlanning2.DeleteAll();

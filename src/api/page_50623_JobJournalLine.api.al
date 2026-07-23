@@ -198,7 +198,7 @@ page 50623 "Job Journal Line API Opt."
         ExistingLine.Reset();
         ExistingLine.SetRange("Journal Template Name", TempLine."Journal Template Name");
         ExistingLine.SetRange("Journal Batch Name", TempLine."Journal Batch Name");
-        ExistingLine.SetRange("Opt. DayPlanning Date", DayPlanning."Work Date");
+        ExistingLine.SetRange("Opt. DayPlanning Date", DayPlanning."Task Date");
         ExistingLine.SetRange("Opt. DayPlanning Line No.", DayPlanning."Day Line No.");
         if ExistingLine.FindFirst() then begin
             // Modify path: load existing PK into Rec; payload comes from TempLine (incoming)
@@ -232,7 +232,7 @@ page 50623 "Job Journal Line API Opt."
         Rec."Document No." := TempLine."Document No.";
         Rec."External Document No." := TempLine."External Document No.";
 
-        Rec."Opt. DayPlanning Date" := DayPlanning."Work Date";
+        Rec."Opt. DayPlanning Date" := DayPlanning."Task Date";
         Rec."Opt. DayPlanning Line No." := DayPlanning."Day Line No.";
         Rec."Job No." := DayPlanning."Job No.";
         Rec."Job Task No." := DayPlanning."Job Task No.";

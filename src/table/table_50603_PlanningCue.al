@@ -41,14 +41,14 @@ table 50603 "PLanning Cue"
         field(50; "DayPlanning (Today)"; Integer)
         {
             FieldClass = FlowField;
-            CalcFormula = Count("Day Planning" where("Work Date" = field("Date Filter")));
+            CalcFormula = Count("Day Planning" where("Task Date" = field("Date Filter")));
             Caption = 'DayPlanning (Today)';
             Editable = false;
         }
         field(60; "DayPlanning (Tomorrow)"; Integer)
         {
             FieldClass = FlowField;
-            CalcFormula = Count("Day Planning" where("Work Date" = field("Date Filter2")));
+            CalcFormula = Count("Day Planning" where("Task Date" = field("Date Filter2")));
             Caption = 'DayPlanning (Tomorrow)';
             Editable = false;
         }

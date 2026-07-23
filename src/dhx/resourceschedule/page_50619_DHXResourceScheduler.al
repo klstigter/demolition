@@ -162,7 +162,7 @@ page 50619 "DHX Resource Scheduler"
                             begin
                                 message('ResourceId = %1, DT1 = %2, DT2 = %3', ResourceId, DT1, DT2);
                                 DayPlanningRec.SetRange("Assigned Resource No.", ResourceId);
-                                DayPlanningRec.SetRange("Work Date", DT1, DT2);
+                                DayPlanningRec.SetRange("Task Date", DT1, DT2);
                                 DayPlanningList.SetTableView(DayPlanningRec);
                                 DayPlanningList.Run();
                             end;
@@ -197,7 +197,7 @@ page 50619 "DHX Resource Scheduler"
                             begin
                                 //message('exec OpenDayPlanning, parameter ResourceId: %1, PeriodStart: %2, PeriodEnd: %3', ResourceId, PeriodStart, PeriodEnd);
                                 DayPlannings.SetRange("Assigned Resource No.", ResourceId);
-                                DayPlannings.SetRange("Work Date", DT1, DT2);
+                                DayPlannings.SetRange("Task Date", DT1, DT2);
                                 DayPlanningList.SetTableView(DayPlannings);
                                 DayPlanningList.Run();
                             end;

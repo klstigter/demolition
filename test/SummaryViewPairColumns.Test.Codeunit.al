@@ -99,7 +99,7 @@ codeunit 60022 "Summary View Pair Cols Tests"
         DayPlanning."Job No." := TestJobNo;
         DayPlanning."Job Task No." := TestJobTaskNo;
         DayPlanning."Day Line No." := DayLineNo;
-        DayPlanning."Work Date" := TaskDate;
+        DayPlanning."Task Date" := TaskDate;
         DayPlanning."Assigned Resource No." := AssignedResourceNo;
         DayPlanning.Skill := TestSkillCode;
         DayPlanning."Requested Hours" := RequestedHours;

@@ -8,16 +8,16 @@ report 50604 "Day Resource Details"
     {
         dataitem(DayPlanning; "Day Planning")
         {
-            dataitemtableview = sorting("Work Date", "Assigned Resource No.") where("plan status" = const("In Progress"),
+            dataitemtableview = sorting("Task Date", "Assigned Resource No.") where("plan status" = const("In Progress"),
                 "assigned Resource No." = filter(<> ''));
-            RequestFilterFields = "Work Date";
+            RequestFilterFields = "Task Date";
 
             Column(TodayFormatted; Format(Today, 0, 4)) { }
             Column(CompanyName; COMPANYPROPERTY.DisplayName()) { }
             Column(ReportCaption; ReportCaption) { }
             Column(CurrReportPageNoCaption; CurrReportPageNoCaption) { }
 
-            column(TaskDate; DayPlanning."Work Date") { }
+            column(TaskDate; DayPlanning."Task Date") { }
             column(JobNo; JobDescription) { }
             column(JobTaskNo; JobTaskDescription) { }
 
@@ -62,7 +62,7 @@ report 50604 "Day Resource Details"
                     clear(jobTask);
                 jobTaskDescription := jobTask."Job Task No." + ' ' + jobTask.Description;
 
-                resource.setrange("date filter", DayPlanning."Work Date");
+                resource.setrange("date filter", DayPlanning."Task Date");
                 resource.CalcFields(Capacity, "Assigned Hours");
 
             end;
@@ -74,7 +74,7 @@ report 50604 "Day Resource Details"
             Column(ResourceNo; TEMPresource."No.") { }
             Column(ResourceName; TEMPresource.Name) { }
             Column(NeedSchedulling; true) { }
-            column(TaskDate2; DayPlanning."Work Date") { }
+            column(TaskDate2; DayPlanning."Task Date") { }
             Column(Capacity2; TEMPresource.Capacity) { }
 
             trigger OnPreDataItem()
@@ -88,7 +88,7 @@ report 50604 "Day Resource Details"
                     TEMPresource.FindSet()
                 else
                     TEMPresource.Next();
-                TEMPresource.setrange("date filter", DayPlanning."Work Date");
+                TEMPresource.setrange("date filter", DayPlanning."Task Date");
                 TEMPresource.CalcFields(Capacity);
             end;
         }

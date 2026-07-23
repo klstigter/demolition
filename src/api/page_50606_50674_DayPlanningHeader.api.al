@@ -78,7 +78,7 @@ page 50674 "DayPlanning Header Opt"
             repeat
                 Clear(LineJson);
                 LineJson.Add('systemId', DayPlanningTemp.SystemId);
-                LineJson.Add('taskDate', Format(DayPlanningTemp."Work Date", 0, '<Year4>-<Month,2>-<Day,2>'));
+                LineJson.Add('taskDate', Format(DayPlanningTemp."Task Date", 0, '<Year4>-<Month,2>-<Day,2>'));
                 LineJson.Add('dayLineNo', DayPlanningTemp."Day Line No.");
                 LineJson.Add('jobNo', DayPlanningTemp."Job No.");
                 LineJson.Add('jobTaskNo', DayPlanningTemp."Job Task No.");
