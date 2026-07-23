@@ -3,16 +3,6 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
     layout
     {
         // Add changes to page layout here
-        addafter("Personal Data")
-        {
-            part("Resource Day Plannings"; "Resource Day Plannings")
-            {
-                ApplicationArea = All;
-                SubPageView = sorting("Task Date", "Day Line No.");
-                SubPageLink = "Assigned Resource No." = field("No.");
-                UpdatePropagation = Both;
-            }
-        }
         addafter("Default Deferral Template Code")
         {
             field("Work Hour Template"; Rec."Work Hour Template")
