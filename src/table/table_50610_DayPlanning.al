@@ -76,7 +76,7 @@ table 50610 "Day Planning"
         field(7; "Task Date Fixation"; Enum "Task Date Fixation")
         {
             DataClassification = ToBeClassified;
-            Caption = 'Task Date Fixation';
+            Caption = 'Task Date Fixation'; //DA1-T62
         }
         field(5; "Plan Status"; Enum "Plan Status")
         {
