@@ -405,6 +405,65 @@ table 50612 "Summary Weekly"
         rec."Total Week Hours" += Hours;
     end;
 
+    Local procedure FillSummarySingleContext(var DayPlanning: Record "Day Planning"; RequestedContext: Boolean)
+    var
+        DayIndex: Integer;
+        YearValue: Integer;
+        WeekNoValue: Integer;
+        TaskDate: Date;
+        WorkOrder: Record "Work Order";
+        ContextResourceNo: Code[20];
+        ContextHours: Decimal;
+    begin
+        Reset();
+        DeleteAll();
+
+        if not DayPlanning.FindSet() then
+            exit;
+
+        // Single pass keyed by the resource role selected by RequestedContext, so rows never
+        // mix hours contributed under the Requested role with hours contributed under the
+        // Assigned role for unrelated Day Plannings.
+        repeat
+            TaskDate := DayPlanning."Plan Date";
+            if TaskDate = 0D then begin
+                if WorkOrder.Get(DayPlanning."Work Order No.") then
+                    TaskDate := WorkOrder."Placeholder Date";
+            end;
+            if TaskDate = 0D then
+                continue;
+
+            YearValue := Date2DWY(TaskDate, 3);
+            WeekNoValue := Date2DWY(TaskDate, 2);
+            DayIndex := GetDayOfWeekIndex(TaskDate);
+
+            if RequestedContext then begin
+                ContextResourceNo := DayPlanning."Requested Resource No.";
+                ContextHours := DayPlanning."Requested Hours";
+            end else begin
+                ContextResourceNo := DayPlanning."Assigned Resource No.";
+                ContextHours := DayPlanning."Assigned Hours";
+            end;
+
+            if not rec.Get(ContextResourceNo, DayPlanning."Skill", DayPlanning."Job No.", DayPlanning."Job Task No.", YearValue, WeekNoValue) then begin
+                rec.Init();
+                rec."Resource No." := ContextResourceNo;
+                rec."Skill Code" := DayPlanning."Skill";
+                rec."Job No." := DayPlanning."Job No.";
+                rec."Job Task No." := DayPlanning."Job Task No.";
+                rec."Week No." := WeekNoValue;
+                rec.Year := YearValue;
+                rec.Insert();
+            end;
+            if RequestedContext then
+                AddReqHours(DayIndex, ContextHours)
+            else
+                AddAssHours(DayIndex, ContextHours);
+            rec.Modify();
+
+        until DayPlanning.Next() = 0;
+    end;
+
     local procedure AddAssHours(DayIndex: Integer; Hours: Decimal)
     begin
         case DayIndex of
@@ -617,6 +676,11 @@ table 50612 "Summary Weekly"
     begin
         n := TempDayPlanning.Count;
         FillSummary(TempDayPlanning);
+    end;
+
+    procedure LoadSummary(RequestedContext: Boolean)
+    begin
+        FillSummarySingleContext(TempDayPlanning, RequestedContext);
     end;
 
     procedure LoadSummary(var TempDTask: Record "Day Planning")

@@ -65,8 +65,14 @@ page 50626 "Summary View"
                 }
                 field(ShowRequested; ShowRequested)
                 {
-                    Caption = 'Drilldown on Requested';
-                    ToolTip = 'Off (default): drilldown filters by Assigned Resource. On: drilldown filters by Requested Resource. Summary numbers are unaffected.';
+                    Caption = 'Requested';
+                    ToolTip = 'Off (default): the resource list, hour calculations, and drilldown all reflect the Assigned Resource. On: they all reflect the Requested Resource instead.';
+                    trigger OnValidate()
+                    begin
+                        ResourceNoFilter := '';
+                        GroupByDataSet();
+                        CalcFilters();
+                    end;
                 }
                 field(ShowYear; ShowYear)
                 {
@@ -314,7 +320,7 @@ page 50626 "Summary View"
                 field(TotalHours; TotalText)
                 {
                     Caption = 'Total';
-                    ToolTip = 'Specifies total hours (Requested | Assigned) for the week.';
+                    ToolTip = 'Specifies total hours for the week, for the Requested or Assigned Resource depending on the Requested toggle.';
                     StyleExpr = StyleStr;
                     Editable = false;
                     trigger OnDrillDown()
@@ -325,7 +331,7 @@ page 50626 "Summary View"
                 field(MondayHours; MondayText)
                 {
                     Caption = 'Monday';
-                    ToolTip = 'Specifies hours (Requested | Assigned) on Monday.';
+                    ToolTip = 'Specifies hours on Monday, for the Requested or Assigned Resource depending on the Requested toggle.';
                     StyleExpr = StyleStr;
                     Editable = false;
                     trigger OnDrillDown()
@@ -336,7 +342,7 @@ page 50626 "Summary View"
                 field(TuesdayHours; TuesdayText)
                 {
                     Caption = 'Tuesday';
-                    ToolTip = 'Specifies hours (Requested | Assigned) on Tuesday.';
+                    ToolTip = 'Specifies hours on Tuesday, for the Requested or Assigned Resource depending on the Requested toggle.';
                     StyleExpr = StyleStr;
                     Editable = false;
                     trigger OnDrillDown()
@@ -347,7 +353,7 @@ page 50626 "Summary View"
                 field(WednesdayHours; WednesdayText)
                 {
                     Caption = 'Wednesday';
-                    ToolTip = 'Specifies hours (Requested | Assigned) on Wednesday.';
+                    ToolTip = 'Specifies hours on Wednesday, for the Requested or Assigned Resource depending on the Requested toggle.';
                     StyleExpr = StyleStr;
                     Editable = false;
                     trigger OnDrillDown()
@@ -358,7 +364,7 @@ page 50626 "Summary View"
                 field(ThursdayHours; ThursdayText)
                 {
                     Caption = 'Thursday';
-                    ToolTip = 'Specifies hours (Requested | Assigned) on Thursday.';
+                    ToolTip = 'Specifies hours on Thursday, for the Requested or Assigned Resource depending on the Requested toggle.';
                     StyleExpr = StyleStr;
                     Editable = false;
                     trigger OnDrillDown()
@@ -369,7 +375,7 @@ page 50626 "Summary View"
                 field(FridayHours; FridayText)
                 {
                     Caption = 'Friday';
-                    ToolTip = 'Specifies hours (Requested | Assigned) on Friday.';
+                    ToolTip = 'Specifies hours on Friday, for the Requested or Assigned Resource depending on the Requested toggle.';
                     StyleExpr = StyleStr;
                     Editable = false;
                     trigger OnDrillDown()
@@ -380,7 +386,7 @@ page 50626 "Summary View"
                 field(SaturdayHours; SaturdayText)
                 {
                     Caption = 'Saturday';
-                    ToolTip = 'Specifies hours (Requested | Assigned) on Saturday.';
+                    ToolTip = 'Specifies hours on Saturday, for the Requested or Assigned Resource depending on the Requested toggle.';
                     StyleExpr = StyleStr;
                     Editable = false;
                     trigger OnDrillDown()
@@ -391,7 +397,7 @@ page 50626 "Summary View"
                 field(SundayHours; SundayText)
                 {
                     Caption = 'Sunday';
-                    ToolTip = 'Specifies hours (Requested | Assigned) on Sunday.';
+                    ToolTip = 'Specifies hours on Sunday, for the Requested or Assigned Resource depending on the Requested toggle.';
                     StyleExpr = StyleStr;
                     Editable = false;
                     trigger OnDrillDown()
@@ -459,14 +465,25 @@ page 50626 "Summary View"
             StyleStr := 'Attention'
         else
             StyleStr := '';
-        TotalText := FmtPair(Rec."Total Requested Hours", Rec."Total Assigned Hours");
-        MondayText := FmtPair(Rec."Monday Requested Hours", Rec."Monday Assigned Hours");
-        TuesdayText := FmtPair(Rec."Tuesday Requested Hours", Rec."Tuesday Assigned Hours");
-        WednesdayText := FmtPair(Rec."Wednesday Requested Hours", Rec."Wednesday Assigned Hours");
-        ThursdayText := FmtPair(Rec."Thursday Requested Hours", Rec."Thursday Assigned Hours");
-        FridayText := FmtPair(Rec."Friday Requested Hours", Rec."Friday Assigned Hours");
-        SaturdayText := FmtPair(Rec."Saturday Requested Hours", Rec."Saturday Assigned Hours");
-        SundayText := FmtPair(Rec."Sunday Requested Hours", Rec."Sunday Assigned Hours");
+        if ShowRequested then begin
+            TotalText := FmtSingle(Rec."Total Requested Hours");
+            MondayText := FmtSingle(Rec."Monday Requested Hours");
+            TuesdayText := FmtSingle(Rec."Tuesday Requested Hours");
+            WednesdayText := FmtSingle(Rec."Wednesday Requested Hours");
+            ThursdayText := FmtSingle(Rec."Thursday Requested Hours");
+            FridayText := FmtSingle(Rec."Friday Requested Hours");
+            SaturdayText := FmtSingle(Rec."Saturday Requested Hours");
+            SundayText := FmtSingle(Rec."Sunday Requested Hours");
+        end else begin
+            TotalText := FmtSingle(Rec."Total Assigned Hours");
+            MondayText := FmtSingle(Rec."Monday Assigned Hours");
+            TuesdayText := FmtSingle(Rec."Tuesday Assigned Hours");
+            WednesdayText := FmtSingle(Rec."Wednesday Assigned Hours");
+            ThursdayText := FmtSingle(Rec."Thursday Assigned Hours");
+            FridayText := FmtSingle(Rec."Friday Assigned Hours");
+            SaturdayText := FmtSingle(Rec."Saturday Assigned Hours");
+            SundayText := FmtSingle(Rec."Sunday Assigned Hours");
+        end;
     end;
 
     #region  Procedures
@@ -486,7 +503,7 @@ page 50626 "Summary View"
         SetAllShowTrue();
         DateFilter := DateRangeFilter;
         rec.ScanDayPlanningDateFilter(DateFilter);
-        rec.LoadSummary();
+        rec.LoadSummary(ShowRequested);
     end;
 
     procedure LoadDataSet(pJobNoFilter: Text; pJobTaskNoFilter: Text)
@@ -495,7 +512,7 @@ page 50626 "Summary View"
         JobNoFilter := CopyStr(pJobNoFilter, 1, MaxStrLen(JobNoFilter));
         JobTaskNoFilter := CopyStr(pJobTaskNoFilter, 1, MaxStrLen(JobTaskNoFilter));
         rec.ScanDayPlanningFilter(pJobNoFilter, pJobTaskNoFilter);
-        rec.LoadSummary();
+        rec.LoadSummary(ShowRequested);
         if JobNoFilter <> '' then
             rec.SetFilter("Job No.", JobNoFilter);
         if JobTaskNoFilter <> '' then
@@ -552,7 +569,7 @@ page 50626 "Summary View"
         Temp: Record "Summary Weekly" temporary;
         TempCopy: Record "Summary Weekly" temporary;
     begin
-        rec.LoadSummary();
+        rec.LoadSummary(ShowRequested);
 
         if ShowResource and ShowSkillCode and ShowJob and ShowJobTask and ShowYear and ShowWeekNo then
             exit;
@@ -730,11 +747,11 @@ page 50626 "Summary View"
             rec.SetRange("Job Task No.");
     end;
 
-    local procedure FmtPair(Req: Decimal; Assigned: Decimal): Text
+    local procedure FmtSingle(Value: Decimal): Text
     begin
-        if (Req = 0) and (Assigned = 0) then
+        if Value = 0 then
             exit('');
-        exit(Format(Req) + ' | ' + Format(Assigned));
+        exit(Format(Value));
     end;
 
     local procedure CalcWeekFilter()
