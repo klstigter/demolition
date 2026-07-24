@@ -33,10 +33,11 @@ page 50645 "Res. Asgmt. Day Plannings"
                     ToolTip = 'Specifies the day number in the sequence.';
                     Caption = 'Day No.';
                 }
-                field("Task Date"; Rec."Task Date")
+                field("Task Date"; Rec."Plan Date")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the date of the day task.';
+                    Caption = 'Work Date';
                 }
                 field("Day Line No."; Rec."Day Line No.")
                 {
@@ -211,12 +212,12 @@ page 50645 "Res. Asgmt. Day Plannings"
     begin
         // Inherit date from current filter if set
         Rec.FilterGroup(2);
-        if Rec.GetFilter("Task Date") <> '' then
-            NewDate := Rec.GetRangeMin("Task Date")
+        if Rec.GetFilter("Plan Date") <> '' then
+            NewDate := Rec.GetRangeMin("Plan Date")
         else
             NewDate := Today;
         Rec.FilterGroup(0);
-        Rec."Task Date" := NewDate;
+        Rec."Plan Date" := NewDate;
 
         // Inherit Job No. from filter if set
         Rec.FilterGroup(2);
@@ -225,7 +226,7 @@ page 50645 "Res. Asgmt. Day Plannings"
         Rec.FilterGroup(0);
 
         NextLineNo := 10000;
-        DayPlanningRec.SetRange("Task Date", NewDate);
+        DayPlanningRec.SetRange("Plan Date", NewDate);
         if DayPlanningRec.FindLast() then
             NextLineNo := DayPlanningRec."Day Line No." + 10000;
         Rec."Day Line No." := NextLineNo;
@@ -242,15 +243,15 @@ page 50645 "Res. Asgmt. Day Plannings"
         else
             Rec.SetRange("Job No.");
 
-        Rec.SetRange("Task Date");
+        Rec.SetRange("Plan Date");
         if ForceToSpecificDate <> 0D then
-            Rec.SetRange("Task Date", ForceToSpecificDate)
+            Rec.SetRange("Plan Date", ForceToSpecificDate)
         else if (DateFrom <> 0D) and (DateTo <> 0D) then
-            Rec.SetRange("Task Date", DateFrom, DateTo)
+            Rec.SetRange("Plan Date", DateFrom, DateTo)
         else if DateFrom <> 0D then
-            Rec.SetFilter("Task Date", '%1..', DateFrom)
+            Rec.SetFilter("Plan Date", '%1..', DateFrom)
         else if DateTo <> 0D then
-            Rec.SetRange("Task Date", 0D, DateTo);
+            Rec.SetRange("Plan Date", 0D, DateTo);
 
         Rec.FilterGroup(0);
 

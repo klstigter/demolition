@@ -202,13 +202,13 @@ codeunit 50613 "GanttChartDataHandler"
             DayPlanning.SetRange("Job No.", JobTask."Job No.");
             DayPlanning.SetRange("Job Task No.", JobTask."Job Task No.");
             if (FromDate <> 0D) and (ToDate <> 0D) then
-                DayPlanning.SetRange("Task Date", FromDate, ToDate)
+                DayPlanning.SetRange("Plan Date", FromDate, ToDate)
             else
                 if FromDate <> 0D then
-                    DayPlanning.SetFilter("Task Date", '>=%1', FromDate)
+                    DayPlanning.SetFilter("Plan Date", '>=%1', FromDate)
                 else
                     if ToDate <> 0D then
-                        DayPlanning.SetFilter("Task Date", '<=%1', ToDate);
+                        DayPlanning.SetFilter("Plan Date", '<=%1', ToDate);
             if DayPlanning.FindSet() then
                 repeat
                     JsonObject := CreateDayPlanningJsonObject(DayPlanning);
@@ -234,13 +234,13 @@ codeunit 50613 "GanttChartDataHandler"
             DayPlanning.SetRange("Job No.", JobTask."Job No.");
             DayPlanning.SetRange("Job Task No.", JobTask."Job Task No.");
             if (FromDate <> 0D) and (ToDate <> 0D) then
-                DayPlanning.SetRange("Task Date", FromDate, ToDate)
+                DayPlanning.SetRange("Plan Date", FromDate, ToDate)
             else
                 if FromDate <> 0D then
-                    DayPlanning.SetFilter("Task Date", '>=%1', FromDate)
+                    DayPlanning.SetFilter("Plan Date", '>=%1', FromDate)
                 else
                     if ToDate <> 0D then
-                        DayPlanning.SetFilter("Task Date", '<=%1', ToDate);
+                        DayPlanning.SetFilter("Plan Date", '<=%1', ToDate);
             if DayPlanning.FindSet() then
                 repeat
                     if DayPlanning."Plan Status" = DayPlanning."Plan Status"::"In Request" then begin
@@ -384,7 +384,7 @@ codeunit 50613 "GanttChartDataHandler"
         if JobTaskNo <> '' then
             DayPlanning.SetRange("Job Task No.", JobTaskNo);
         if AnchorDate <> 0D then
-            DayPlanning.Setrange("Task Date", StartDate, EndDate);
+            DayPlanning.Setrange("Plan Date", StartDate, EndDate);
 
         if DayPlanning.FindSet() then
             repeat
@@ -399,7 +399,7 @@ codeunit 50613 "GanttChartDataHandler"
         if JobTaskNo <> '' then
             DayPlanning.SetRange("Job Task No.", JobTaskNo);
         DayPlanning.SetRange("Plan Status", DayPlanning."Plan Status"::"In Request");
-        DayPlanning.SetRange("Task Date", 0D);
+        DayPlanning.SetRange("Plan Date", 0D);
         DayPlanning.SetFilter("Work Order No.", '<>%1', '');
         if DayPlanning.FindSet() then
             repeat
@@ -425,14 +425,14 @@ codeunit 50613 "GanttChartDataHandler"
         JsonObject.Add('id', Format(DayPlanning.SystemId));
         JsonObject.Add('task', Format(DayPlanning."Job No.") + '-' + Format(DayPlanning."Job Task No."));
         // Day Planning identifiers
-        JsonObject.Add('dayNo', DayPlanning."Task Date");
+        JsonObject.Add('dayNo', DayPlanning."Plan Date");
         JsonObject.Add('dayLineNo', DayPlanning."Day Line No.");
         JsonObject.Add('jobNo', DayPlanning."Job No.");
         JsonObject.Add('jobTaskNo', DayPlanning."Job Task No.");
 
         // Date and time information
-        if DayPlanning."Task Date" <> 0D then
-            WorkDateText := FormatDate(DayPlanning."Task Date")
+        if DayPlanning."Plan Date" <> 0D then
+            WorkDateText := FormatDate(DayPlanning."Plan Date")
         else
             WorkDateText := '';
         JsonObject.Add('work_date', WorkDateText);
@@ -486,7 +486,7 @@ codeunit 50613 "GanttChartDataHandler"
         // Use SystemId as ID (no Task Date so no collision with normal records)
         JsonObject.Add('id', Format(DayPlanning.SystemId));
         JsonObject.Add('task', Format(DayPlanning."Job No.") + '-' + Format(DayPlanning."Job Task No."));
-        JsonObject.Add('dayNo', DayPlanning."Task Date");
+        JsonObject.Add('dayNo', DayPlanning."Plan Date");
         JsonObject.Add('dayLineNo', DayPlanning."Day Line No.");
         JsonObject.Add('jobNo', DayPlanning."Job No.");
         JsonObject.Add('jobTaskNo', DayPlanning."Job Task No.");
