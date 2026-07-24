@@ -44,9 +44,10 @@ page 50622 "Resource Day Plannings"
                 {
                     ApplicationArea = All;
                 }
-                field("Task Date"; Rec."Task Date")
+                field("Task Date"; Rec."Plan Date")
                 {
                     ApplicationArea = All;
+                    Caption = 'Work Date';
                 }
                 field(DayLineNo; Rec."Day Line No.")
                 {
@@ -142,11 +143,11 @@ page 50622 "Resource Day Plannings"
 
         NewDate := Today();
         DayLineNo := 10000;
-        DayPlanningRec.SetRange("Task Date", NewDate);
+        DayPlanningRec.SetRange("Plan Date", NewDate);
         if DayPlanningRec.FindLast() then
             DayLineNo := DayPlanningRec."Day Line No." + 10000;
 
-        Rec."Task Date" := NewDate;
+        Rec."Plan Date" := NewDate;
         Rec."Day Line No." := DayLineNo;
     end;
 

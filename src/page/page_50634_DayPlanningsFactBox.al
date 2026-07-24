@@ -12,9 +12,10 @@ page 50634 "Day Plannings FactBox"
         {
             repeater(Group)
             {
-                field("Task Date"; Rec."Task Date")
+                field("Task Date"; Rec."Plan Date")
                 {
                     ApplicationArea = All;
+                    Caption = 'Work Date';
                 }
                 field("DayLine No."; Rec."Day Line No.")
                 {

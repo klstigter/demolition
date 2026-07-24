@@ -9,7 +9,7 @@ report 50660 "DayPlanning Selection"
     {
         dataitem(DayPlanning; "Day Planning")
         {
-            RequestFilterFields = "Task Date", "Job No.", "Job Task No.", "Assigned Resource No.";
+            RequestFilterFields = "Plan Date", "Job No.", "Job Task No.", "Assigned Resource No.";
             DataItemTableView = where(Posted = const(false));
 
             trigger OnPreDataItem()
@@ -29,15 +29,15 @@ report 50660 "DayPlanning Selection"
                 Skill: Record "Skill Code";
             begin
                 // Skip if this Day Planning is already in the journal
-                if DayPlanningJnlLine.Get(TemplateName, BatchName, DayPlanning."Task Date", DayPlanning."Day Line No.") then
+                if DayPlanningJnlLine.Get(TemplateName, BatchName, DayPlanning."Plan Date", DayPlanning."Day Line No.") then
                     CurrReport.Skip();
 
                 DayPlanningJnlLine.Init();
                 DayPlanningJnlLine."Template Name" := TemplateName;
                 DayPlanningJnlLine."Batch Name" := BatchName;
-                DayPlanningJnlLine."DayPlanning Date" := DayPlanning."Task Date";
+                DayPlanningJnlLine."DayPlanning Date" := DayPlanning."Plan Date";
                 DayPlanningJnlLine."DayPlanning Line No." := DayPlanning."Day Line No.";
-                DayPlanningJnlLine."Document No." := GetDocumentNo(DayPlanning."Task Date");
+                DayPlanningJnlLine."Document No." := GetDocumentNo(DayPlanning."Plan Date");
                 DayPlanningJnlLine."Job No." := DayPlanning."Job No.";
                 DayPlanningJnlLine."Job Task No." := DayPlanning."Job Task No.";
                 DayPlanningJnlLine."Resource No." := DayPlanning."Assigned Resource No.";

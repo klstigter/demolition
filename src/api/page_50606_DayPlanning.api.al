@@ -21,9 +21,9 @@ page 50606 "DayPlanningApi Opt"
                 {
                     Caption = 'System Id';
                 }
-                field(taskDate; Rec."Task Date")
+                field(taskDate; Rec."Plan Date")
                 {
-                    Caption = 'Task Date';
+                    Caption = 'Work Date';
                 }
                 field(dayLineNo_; Rec."Day Line No.")
                 {
