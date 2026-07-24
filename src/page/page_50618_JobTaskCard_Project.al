@@ -174,11 +174,6 @@ page 50618 "Opti Job Task Card"
                         ToolTip = 'Specifies the name of the person to contact at the customer.';
                     }
                 }
-                // field(Totaling; Rec.Totaling)
-                // {
-                //     ApplicationArea = Jobs;
-                //     ToolTip = 'Specifies an interval or a list of project task numbers.';
-                // }
                 field("External Document No."; Rec."External Document No.")
                 {
                     ApplicationArea = Jobs;
@@ -191,17 +186,6 @@ page 50618 "Opti Job Task Card"
                     Visible = PerTaskBillingFieldsVisible;
                     Tooltip = 'Specifies the customer''s reference. The content will be printed on sales documents.';
                 }
-                // field("New Page"; Rec."New Page")
-                // {
-                //     ApplicationArea = Jobs;
-                //     ToolTip = 'Specifies whether you want a new page to start immediately after this project task when you print the project tasks. To start a new page after this project task, select the New Page check box.';
-                // }
-                // field("No. of Blank Lines"; Rec."No. of Blank Lines")
-                // {
-                //     ApplicationArea = Jobs;
-                //     ToolTip = 'Specifies the number of blank lines that you want inserted before this project task in reports that shows project tasks.';
-                // }
-
                 group("Bill-to")
                 {
                     Caption = 'Bill-to';
@@ -812,40 +796,6 @@ page 50618 "Opti Job Task Card"
                     ResourcePage.Run();
 
                 end;
-            }
-            group("&Job Task")
-            {
-                Caption = '&Project Task';
-                Image = Task;
-
-                action(Dimensions)
-                {
-                    ApplicationArea = Dimensions;
-                    Caption = 'Dimensions';
-                    Image = Dimensions;
-                    RunObject = Page "Job Task Dimensions";
-                    RunPageLink = "Job No." = field("Job No."),
-                                  "Job Task No." = field("Job Task No.");
-                    ShortCutKey = 'Alt+D';
-                    ToolTip = 'View or edit dimensions, such as area, project, or department, that you can assign to sales and purchase documents to distribute costs and analyze transaction history.';
-                }
-                action(AssemblyOrders)
-                {
-                    AccessByPermission = TableData "BOM Component" = R;
-                    ApplicationArea = Assembly;
-                    Caption = 'Assembly Orders';
-                    Image = AssemblyOrder;
-                    ToolTip = 'View ongoing assembly orders related to the project task. ';
-
-                    trigger OnAction()
-                    var
-                        Job: Record Job;
-                        AssembleToOrderLink: Record "Assemble-to-Order Link";
-                    begin
-                        Job.Get(Rec."Job No.");
-                        AssembleToOrderLink.ShowAsmOrders(Job, Rec."Job Task No.");
-                    end;
-                }
             }
             group(ActionGroupFS)
             {
