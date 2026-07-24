@@ -3,7 +3,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
     PageType = Card; //userControlHost;
     ApplicationArea = All;
     UsageCategory = Tasks;
-    Caption = 'Pool Resource Planning Lines';
+    Caption = 'Resource Capacity Scheduler';
 
     layout
     {
