@@ -315,12 +315,72 @@ page 50601 "Opti Resource List"
 
     actions
     {
+        area(Processing)
+        {
+            group(Visuals)
+            {
+                caption = 'Visuals';
+                image = Planning;
+                action("Schedule (Visual)")
+                {
+                    ApplicationArea = All;
+                    trigger OnAction()
+                    var
+                        ResScheduler: page "DHX Resource Scheduler";
+                    begin
+                        ResScheduler.SetResourceFilter(GetSelectionFilter());
+                        ResScheduler.RunModal();
+                    end;
+                }
+                action("DayPlannings (Visual)")
+                {
+                    ApplicationArea = All;
+                    trigger OnAction()
+                    var
+                        DayPlanningScheduler: page "DHX Scheduler (Project)";
+                    begin
+                        DayPlanningScheduler.SetResourceFilter(GetSelectionFilter());
+                        DayPlanningScheduler.RunModal();
+                    end;
+                }
+                action("Capacity (Visual)")
+                {
+                    ApplicationArea = All;
+                    trigger OnAction()
+                    var
+                        ResScheduler: page "DHX Scheduler (Pool Resource)";
+                    begin
+                        //ResScheduler.SetResourceFilter(Rec."No.");
+                        ResScheduler.RunModal();
+                    end;
+                }
+            }
+
+        }
         area(navigation)
         {
             group("&Resource")
             {
                 Caption = '&Resource';
                 Image = Resource;
+                action("Set Capacity Opt")
+                {
+                    ApplicationArea = Jobs;
+                    Caption = '&Set Capacity';
+                    RunObject = Page "Resource Capacity Settings Opt";
+                    RunPageLink = "No." = field("No.");
+                    ToolTip = 'Change the capacity of the resource, such as a technician.';
+                }
+                action("Absence")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Absence';
+                    Image = Absence;
+                    RunObject = page "Resource Absence List";
+                    RunPageLink = "Resource No." = field("No."), Type = const(Absence);
+                    ToolTip = 'View and register absence entries for this resource.';
+                }
+
                 action(Statistics)
                 {
                     ApplicationArea = Jobs;
@@ -510,10 +570,22 @@ page 50601 "Opti Resource List"
                 }
             }
 
+            Group(Visuals_Ref)
+            {
+                Caption = 'Planning';
+                ShowAs = SplitButton;
+                Image = Planning;
+                actionref("Schedule (Visual) actionref"; "Schedule (Visual)") { }
+                actionref("DayPlannings (Visual) actionref"; "DayPlannings (Visual)") { }
+                actionref("Capacity actionref"; "Capacity (Visual)") { }
+            }
+
             group(Category_Category4)
             {
                 Caption = 'Resource', Comment = 'Generated from the PromotedActionCategories property index 3.';
 
+                actionref("Set Capacity Opt actionref"; "Set Capacity Opt") { }
+                actionref("Absence_actionref"; "Absence") { }
                 actionref(Statistics_Promoted; Statistics)
                 {
                 }

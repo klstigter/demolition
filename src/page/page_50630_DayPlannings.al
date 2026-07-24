@@ -368,7 +368,17 @@ page 50630 "Day Plannings"
 
             actionref(DayPlanningsCreation_Promoted; DayPlanningsCreation) { }
             actionref(ShowStyleReason_Promoted; ShowStyleReason) { }
+            Group(Visuals_Ref)
+            {
+                Caption = 'Planning';
+                ShowAs = SplitButton;
+                Image = Planning;
+                actionref("Schedule (Visual) actionref"; "Schedule (Visual)") { }
+                actionref("DayPlannings (Visual) actionref"; "DayPlannings (Visual)") { }
+                actionref("Capacity actionref"; "Capacity (Visual)") { }
+            }
         }
+
         area(Processing)
         {
 
@@ -436,6 +446,49 @@ page 50630 "Day Plannings"
                 begin
                     Descr := this.CalculateStyle(true);
                     Message(Descr);
+                end;
+            }
+            action("Schedule (Visual)")
+            {
+                ApplicationArea = All;
+                trigger OnAction()
+                var
+                    ResScheduler: page "DHX Resource Scheduler";
+                    ResourceNo: code[20];
+                begin
+                    if rec."Assigned Resource No." <> '' then
+                        ResourceNo := rec."Assigned Resource No."
+                    else
+                        ResourceNo := rec."Requested Resource No.";
+                    ResScheduler.SetResourceFilter(ResourceNo);
+                    ResScheduler.RunModal();
+                end;
+            }
+            action("DayPlannings (Visual)")
+            {
+                ApplicationArea = All;
+                trigger OnAction()
+                var
+                    DayPlanningScheduler: page "DHX Scheduler (Project)";
+                    ResourceNo: code[20];
+                begin
+                    if rec."Assigned Resource No." <> '' then
+                        ResourceNo := rec."Assigned Resource No."
+                    else
+                        ResourceNo := rec."Requested Resource No.";
+                    DayPlanningScheduler.SetResourceFilter(ResourceNo);
+                    DayPlanningScheduler.RunModal();
+                end;
+            }
+            action("Capacity (Visual)")
+            {
+                ApplicationArea = All;
+                trigger OnAction()
+                var
+                    ResScheduler: page "DHX Scheduler (Pool Resource)";
+                begin
+                    //ResScheduler.SetResourceFilter(Rec."No.");
+                    ResScheduler.RunModal();
                 end;
             }
 

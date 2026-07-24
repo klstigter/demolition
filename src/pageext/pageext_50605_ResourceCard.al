@@ -138,7 +138,7 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
                                 "No." = field("No.");
                 ToolTip = 'View the assignment of skills to the resource. You can use skill codes to allocate skilled resources to service items or items that need special skills for servicing.';
             }
-            action("Day Plannings (Visual)")
+            action("Resource Scheduler")
             {
                 ApplicationArea = All;
                 trigger OnAction()
@@ -148,6 +148,25 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
                     ResScheduler.SetResourceFilter(Rec."No.");
                     ResScheduler.RunModal();
                 end;
+            }
+            action("Capacity")
+            {
+                ApplicationArea = All;
+                trigger OnAction()
+                var
+                    ResScheduler: page "DHX Scheduler (Pool Resource)";
+                begin
+                    //ResScheduler.SetResourceFilter(Rec."No.");
+                    ResScheduler.RunModal();
+                end;
+            }
+            action("Set Capacity Opt")
+            {
+                ApplicationArea = Jobs;
+                Caption = '&Set Capacity';
+                RunObject = Page "Resource Capacity Settings Opt";
+                RunPageLink = "No." = field("No.");
+                ToolTip = 'Change the capacity of the resource, such as a technician.';
             }
             action("Absence")
             {
@@ -162,10 +181,9 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
 
         addafter(CreateTimeSheets_Promoted)
         {
-            actionref("S&kills_Promoted_custom"; "S&kills_Custom")
-            {
-            }
-            actionref("Day Plannings (Visual) actionref"; "Day Plannings (Visual)") { }
+            actionref("S&kills_Promoted_custom"; "S&kills_Custom") { }
+            actionref("Day Plannings (Visual) actionref"; "Resource Scheduler") { }
+            actionref("Set Capacity Opt actionref"; "Set Capacity Opt") { }
             actionref("Absence actionref"; "Absence") { }
             actionref("Resource Capacity actionref"; "Resource &Capacity") { }
         }

@@ -246,11 +246,20 @@ page 50619 "DHX Resource Scheduler"
                         BuildCapacityJson(CurrentStartDate, CurrentEndDate));
                 end;
             }
+            action("Set Capacity Opt")
+            {
+                ApplicationArea = Jobs;
+                Caption = '&Set Capacity';
+                RunObject = Page "Resource Capacity Settings Opt";
+                //RunPageLink = "No." = field("No.");
+                ToolTip = 'Change the capacity of the resource, such as a technician.';
+            }
         }
         area(Promoted)
         {
             group(Category_Process)
             {
+                actionref("Set Capacity Opt actionref"; "Set Capacity Opt") { }
                 actionref(Category_Process_01; "Resource Capacities") { }
                 actionref(Category_Process_02; "Scheduler Resfresh") { }
             }

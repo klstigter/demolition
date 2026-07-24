@@ -48,7 +48,7 @@ pageextension 50603 "Opt ResourceList" extends "Resource List"
     actions
     {
         // Add changes to page actions here
-        addafter("&Prices")
+        addafter("&Resource")
         {
             action("Schedule (Visual)")
             {
@@ -72,11 +72,57 @@ pageextension 50603 "Opt ResourceList" extends "Resource List"
                     DayPlanningScheduler.RunModal();
                 end;
             }
+            action("Capacity (Visual)")
+            {
+                ApplicationArea = All;
+                trigger OnAction()
+                var
+                    ResScheduler: page "DHX Scheduler (Pool Resource)";
+                begin
+                    //ResScheduler.SetResourceFilter(Rec."No.");
+                    ResScheduler.RunModal();
+                end;
+            }
+            action("Set Capacity Opt")
+            {
+                ApplicationArea = Jobs;
+                Caption = '&Set Capacity';
+                RunObject = Page "Resource Capacity Settings Opt";
+                RunPageLink = "No." = field("No.");
+                ToolTip = 'Change the capacity of the resource, such as a technician.';
+            }
+            action("Absence")
+            {
+                ApplicationArea = All;
+                Caption = 'Absence';
+                Image = Absence;
+                RunObject = page "Resource Absence List";
+                RunPageLink = "Resource No." = field("No."), Type = const(Absence);
+                ToolTip = 'View and register absence entries for this resource.';
+            }
+
+
         }
-        addafter("Units of Measure_Promoted")
+        addafter("Ledger E&ntries_Promoted")
         {
-            actionref("Schedule (Visual) actionref"; "Schedule (Visual)") { }
-            actionref("DayPlannings (Visual) actionref"; "DayPlannings (Visual)") { }
+            Group(Capacity)
+            {
+                Caption = 'Capacity';
+                ShowAs = SplitButton;
+                Image = Planning;
+                actionref("Set Capacity Opt actionref"; "Set Capacity Opt") { }
+                actionref("Absence_actionref"; "Absence") { }
+                actionref("Resource &Capacity_actionref"; "Resource &Capacity") { }
+            }
+            Group(Visuals)
+            {
+                Caption = 'Planning';
+                ShowAs = SplitButton;
+                Image = Planning;
+                actionref("Schedule (Visual) actionref"; "Schedule (Visual)") { }
+                actionref("DayPlannings (Visual) actionref"; "DayPlannings (Visual)") { }
+                actionref("Capacity actionref"; "Capacity (Visual)") { }
+            }
         }
     }
 
