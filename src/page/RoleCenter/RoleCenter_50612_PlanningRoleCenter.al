@@ -171,6 +171,13 @@ page 50612 "Planning Role Center"
                     Caption = 'Skill Codes';
                     RunObject = page "Skill Codes";
                 }
+
+                Action(WeeklyPatterns)
+                {
+                    ApplicationArea = Basic, Suite;
+                    Caption = 'Weekly Patterns';
+                    RunObject = page "Opti Week Pattern List";
+                }
             }
             group("SettingGroup")
             {
