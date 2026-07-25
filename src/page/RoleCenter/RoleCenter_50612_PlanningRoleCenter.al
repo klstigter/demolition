@@ -178,6 +178,12 @@ page 50612 "Planning Role Center"
                     Caption = 'Weekly Patterns';
                     RunObject = page "Opti Week Pattern List";
                 }
+                Action(OptiResourceCapacity)
+                {
+                    ApplicationArea = Basic, Suite;
+                    Caption = 'Opti Resource Capacity';
+                    RunObject = page "Opti Capacity Dates";
+                }
             }
             group("SettingGroup")
             {
