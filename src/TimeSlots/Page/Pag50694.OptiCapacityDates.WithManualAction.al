@@ -78,6 +78,9 @@ page 50694 "Opti Capacity Dates"
             actionref(AddCapacityEntryPromoted; AddCapacityEntry)
             {
             }
+            actionref(CreateResourceCapacityPromoted; CreateResourceCapacity)
+            {
+            }
         }
     }
 
