@@ -121,7 +121,7 @@ codeunit 50612 "General Planning Utilities"
             exit;
         WorkingMinutes := GetWorkingMinutes(pDayPlanning, PartType);
         // Find Day Planning with complete start and end time and same resource and day no
-        DayPlanning.SetRange("Task Date", pDayPlanning."Task Date");
+        DayPlanning.SetRange("Plan Date", pDayPlanning."Plan Date");
         case PartType of
             PartType::Requested:
                 DayPlanning.SetRange("Requested Resource No.", ResourceNo);

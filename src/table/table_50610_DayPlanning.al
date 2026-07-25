@@ -57,10 +57,10 @@ table 50610 "Day Planning"
         {
             DataClassification = ToBeClassified;
         }
-        field(1; "Task Date"; Date)
+        field(1; "Plan Date"; Date)
         {
             DataClassification = ToBeClassified;
-            Caption = 'Task Date';
+            Caption = 'Work Date';
 
             trigger OnValidate()
             var
@@ -70,7 +70,7 @@ table 50610 "Day Planning"
                 if ("Job No." = '') or ("Job Task No." = '') then
                     exit;
                 if JobTask.Get("Job No.", "Job Task No.") then
-                    DayPlanningMgt.EnsureJobTaskCoversDate(JobTask, "Task Date");
+                    DayPlanningMgt.EnsureJobTaskCoversDate(JobTask, "Plan Date");
             end;
         }
         field(7; "Task Date Fixation"; Enum "Task Date Fixation")
@@ -295,7 +295,7 @@ table 50610 "Day Planning"
                 Resource.Reset();
                 // Check Existing capacity entries for the resource
                 clear(CapacityUniqueResource);
-                CapacityUniqueResource.SetRange(EntryDateFilter, "Task Date");
+                CapacityUniqueResource.SetRange(EntryDateFilter, "Plan Date");
                 CapacityUniqueResource.Open();
                 while CapacityUniqueResource.Read() do begin
                     if Resource.Get(CapacityUniqueResource.Resource_No_) then
@@ -311,7 +311,7 @@ table 50610 "Day Planning"
                         until Resource.Next() = 0;
                 end;
                 Resource.MarkedOnly(true);  // Get marked resources with the skill
-                Resource.SetFilter("Date Filter", '%1', "Task Date");
+                Resource.SetFilter("Date Filter", '%1', "Plan Date");
                 ReslookupPage.SetSkillToFind(Skill);
                 ResLookupPage.SetTableView(Resource);
                 ResLookupPage.LookupMode(true);
@@ -377,7 +377,7 @@ table 50610 "Day Planning"
                 Resource.Reset();
                 // Check Existing capacity entries for the resource
                 clear(CapacityUniqueResource);
-                CapacityUniqueResource.SetRange(EntryDateFilter, "Task Date");
+                CapacityUniqueResource.SetRange(EntryDateFilter, "Plan Date");
                 CapacityUniqueResource.Open();
                 while CapacityUniqueResource.Read() do begin
                     if Resource.Get(CapacityUniqueResource.Resource_No_) then
@@ -393,7 +393,7 @@ table 50610 "Day Planning"
                         until Resource.Next() = 0;
                 end;
                 Resource.MarkedOnly(true);  // Get marked resources with the skill
-                Resource.SetFilter("Date Filter", '%1', "Task Date");
+                Resource.SetFilter("Date Filter", '%1', "Plan Date");
                 ResLookupPage.SetTableView(Resource);
                 ResLookupPage.LookupMode(true);
                 if ResLookupPage.RunModal() = ACTION::LookupOK then begin
@@ -524,7 +524,7 @@ table 50610 "Day Planning"
         field(110; Capacity; Decimal)
         {
             CalcFormula = sum("Res. Capacity Entry".Capacity where("Resource No." = field("Assigned Resource No."),
-                                                                    Date = field("Task Date")));
+                                                                    Date = field("Plan Date")));
             Caption = 'Capacity';
             DecimalPlaces = 0 : 5;
             FieldClass = FlowField;
@@ -538,7 +538,7 @@ table 50610 "Day Planning"
         {
             Caption = 'Total Assigned Hours';
             CalcFormula = sum("Day Planning"."Assigned Hours" where("Assigned Resource No." = field("Assigned Resource No."),
-              "Task Date" = field("Task Date")));
+              "Plan Date" = field("Plan Date")));
             DecimalPlaces = 0 : 2;
             FieldClass = FlowField;
             Editable = false;
@@ -548,7 +548,7 @@ table 50610 "Day Planning"
         {
             Caption = 'Total Requested Hours';
             CalcFormula = sum("Day Planning"."Requested Hours" where("Requested Resource No." = field("Requested Resource No."),
-              "Task Date" = field("Task Date")));
+              "Plan Date" = field("Plan Date")));
             DecimalPlaces = 0 : 2;
             FieldClass = FlowField;
             Editable = false;
@@ -589,20 +589,20 @@ table 50610 "Day Planning"
             Clustered = true;
         }
         //>>
-        key(Rec1; "Job No.", "Job Task No.", "Task Date", "Day Line No.")
+        key(Rec1; "Job No.", "Job Task No.", "Plan Date", "Day Line No.")
         {
         }
-        key(DateKey; "Task Date", "Start Time Assigned")
+        key(DateKey; "Plan Date", "Start Time Assigned")
         {
         }
-        Key(Key2; "Task Date", "Assigned Resource No.", "Start Time Assigned")
+        Key(Key2; "Plan Date", "Assigned Resource No.", "Start Time Assigned")
         {
         }
     }
 
     fieldgroups
     {
-        fieldgroup(DropDown; "Job No.", "Job Task No.", "Task Date", Description)
+        fieldgroup(DropDown; "Job No.", "Job Task No.", "Plan Date", Description)
         {
         }
 
@@ -633,7 +633,7 @@ table 50610 "Day Planning"
     begin
         Rec.TestField("Job No.");
         Rec.TestField("Job Task No.");
-        Rec."Day Line No." := GetNextDayLineNo(Rec."Task Date", Rec."Job No.", Rec."Job Task No.");
+        Rec."Day Line No." := GetNextDayLineNo(Rec."Plan Date", Rec."Job No.", Rec."Job Task No.");
     end;
 
     local procedure CheckResourceHasSkill(ResNo: Code[20])
@@ -763,10 +763,10 @@ table 50610 "Day Planning"
         DayPlanning.SetRange("Job No.", "Job No.");
         DayPlanning.SetRange("Job Task No.", "Job Task No.");
         if DayPlanning.FindFirst() then
-            if DayPlanning."Task Date" < FirstPlanningDate then
+            if DayPlanning."Plan Date" < FirstPlanningDate then
                 error('There are Day Plannings before the planned start date %1.', FirstPlanningDate);
         if DayPlanning.FindLast() then begin
-            if DayPlanning."Task Date" > LastPlanningDate then
+            if DayPlanning."Plan Date" > LastPlanningDate then
                 Error('There are Day Plannings after the planned end date %1.', LastPlanningDate);
         end;
     end;
@@ -780,8 +780,8 @@ table 50610 "Day Planning"
             exit; // skip check if Job Task is not specified
 
         JobTask.get("Job No.", "Job Task No.");
-        if ("Task Date" < JobTask.PlannedStartDate) or ("Task Date" > JobTask.PlannedEndDate) then
-            Error(ErrLbl, "Task Date", JobTask.PlannedStartDate, JobTask.PlannedEndDate);
+        if ("Plan Date" < JobTask.PlannedStartDate) or ("Plan Date" > JobTask.PlannedEndDate) then
+            Error(ErrLbl, "Plan Date", JobTask.PlannedStartDate, JobTask.PlannedEndDate);
     end;
 
     procedure CopyRequestedToAssigned()

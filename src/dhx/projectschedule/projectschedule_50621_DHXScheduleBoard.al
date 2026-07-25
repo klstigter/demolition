@@ -3,7 +3,7 @@ page 50621 "DHX Scheduler (Project)"
     PageType = Card; //userControlHost;
     ApplicationArea = All;
     UsageCategory = Tasks;
-    Caption = 'Project Planning Lines';
+    Caption = 'Task Scheduler';
 
     layout
     {

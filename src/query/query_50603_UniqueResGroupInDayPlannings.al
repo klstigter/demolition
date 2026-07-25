@@ -7,7 +7,7 @@ query 50603 "Unique ResGrp in DayPlannings"
     {
         dataitem(Day_Tasks; "Day Planning")
         {
-            filter(TaskDateFilter; "Task Date")
+            filter(TaskDateFilter; "Plan Date")
             {
             }
             column(Resource_Group_No_; "Resource Group No.")

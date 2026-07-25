@@ -18,11 +18,11 @@ page 50624 "Day Planning Info FactBox"
                     Caption = 'Day No.';
                     visible = false;
                 }
-                field("Task Date"; Rec."Task Date")
+                field("Task Date"; Rec."Plan Date")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the task date.';
-                    Caption = 'Task Date';
+                    Caption = 'Work Date';
                 }
                 field("Plan Status"; Rec."Plan Status")
                 {

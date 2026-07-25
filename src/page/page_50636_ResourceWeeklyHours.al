@@ -100,7 +100,7 @@ page 50636 "Resource Weekly Hours"
                     DayPlanning.SetRange("Assigned Resource No.", Rec."Resource No.");
                     DayPlanning.SetRange("Job No.", Rec."Job No.");
                     DayPlanning.SetRange("Job Task No.", Rec."Job Task No.");
-                    DayPlanning.SetRange("Task Date", WeekStart, WeekEnd);
+                    DayPlanning.SetRange("Plan Date", WeekStart, WeekEnd);
                     Page.Run(Page::"Day Plannings", DayPlanning);
                 end;
             }

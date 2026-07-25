@@ -7,7 +7,7 @@ query 50605 "Unique Pool in Day Plannings"
     {
         dataitem(Day_Tasks; "Day Planning")
         {
-            filter(TaskDateFilter; "Task Date")
+            filter(TaskDateFilter; "Plan Date")
             {
             }
             filter(Resource_Group_No_Filter; "Resource Group No.")
