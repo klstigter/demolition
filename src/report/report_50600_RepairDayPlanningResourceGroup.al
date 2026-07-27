@@ -33,33 +33,45 @@ report 50600 "RepairData"
         CountAfter: Integer;
         n: Integer;
     begin
-        n := RepairInvoiceResourceNo();
-        Message('Finished. %1 Job Ledger Entry(s) had their Invoice Resource No. repaired.', n);
+        n := RepairDayPlanningFulfillment();
+        Message('Finished. %1 Day Planning record(s) had their Hours/Capacity Fully Utilized fields repaired.', n);
     end;
 
-    // Repair: "Job Ledger Entry"."Invoice Resource No." (field 50621) is copied from
-    // "Skill Code"."Invoice Resource No." (field 50609) at posting time by EventSubs
-    // (codeunit 50603), the same lookup "Daytask Journal-Post" (codeunit 50660) does when
-    // building the Job Journal Line. For day-planning-sourced entries where it was either
-    // never populated or has drifted out of sync with the Skill Code's current value, this
-    // re-applies the Skill Code lookup so posted history matches current setup.
-    local procedure RepairInvoiceResourceNo(): Integer
+    // Repair: "Day Planning"."Assigned Hours" (field 80), "Requested Hours" (field 65),
+    // "Realized Hours" (field 85) and "Capacity Fully Utilized" (field 120) used to be
+    // calculated by codeunit 50612 "General Planning Utilities".DayPlanningFulFillment by
+    // summing working minutes across ALL other Day Planning records sharing the same
+    // resource and plan date, inflating these fields with other overlapping records' hours.
+    // That cross-record aggregation was removed so each Day Planning record now reflects
+    // only its own working minutes. Existing records were saved with the old, inflated
+    // values, so this recalculates and persists the corrected values via CalculateWorkingHours().
+    local procedure RepairDayPlanningFulfillment(): Integer
     var
-        JobLedgerEntry: Record "Job Ledger Entry";
-        SkillCode: Record "Skill Code";
+        DayPlanning: Record "Day Planning";
+        OldRequestedHours: Decimal;
+        OldAssignedHours: Decimal;
+        OldRealizedHours: Decimal;
+        OldCapacityFullyUtilized: Boolean;
         n: Integer;
     begin
-        JobLedgerEntry.SetFilter("Opt. DayPlanning Line No.", '<>0');
-        JobLedgerEntry.SetFilter(Skill, '<>%1', '');
-        if JobLedgerEntry.FindSet(true) then
+        if DayPlanning.FindSet(true) then
             repeat
-                if SkillCode.Get(JobLedgerEntry.Skill) then
-                    if JobLedgerEntry."Invoice Resource No." <> SkillCode."Invoice Resource No." then begin
-                        JobLedgerEntry."Invoice Resource No." := SkillCode."Invoice Resource No.";
-                        JobLedgerEntry.Modify();
-                        n += 1;
-                    end;
-            until JobLedgerEntry.Next() = 0;
+                OldRequestedHours := DayPlanning."Requested Hours";
+                OldAssignedHours := DayPlanning."Assigned Hours";
+                OldRealizedHours := DayPlanning."Realized Hours";
+                OldCapacityFullyUtilized := DayPlanning."Capacity Fully Utilized";
+
+                DayPlanning.CalculateWorkingHours();
+
+                if (DayPlanning."Requested Hours" <> OldRequestedHours) or
+                   (DayPlanning."Assigned Hours" <> OldAssignedHours) or
+                   (DayPlanning."Realized Hours" <> OldRealizedHours) or
+                   (DayPlanning."Capacity Fully Utilized" <> OldCapacityFullyUtilized)
+                then begin
+                    DayPlanning.Modify();
+                    n += 1;
+                end;
+            until DayPlanning.Next() = 0;
         exit(n);
     end;
 }
