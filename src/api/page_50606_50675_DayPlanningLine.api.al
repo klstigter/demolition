@@ -79,7 +79,11 @@ page 50675 "DayPlanning Line Opt"
                 {
                     ApplicationArea = All;
                 }
-                field(leader; Rec.Leader)
+                field(requestedLeader; Rec."Requested Leader")
+                {
+                    ApplicationArea = All;
+                }
+                field(assignedLeader; Rec."Assigned Leader")
                 {
                     ApplicationArea = All;
                 }
@@ -152,7 +156,8 @@ page 50675 "DayPlanning Line Opt"
         Rec."Worked Hours" := TempLine."Worked Hours";
         Rec."Data Owner" := TempLine."Data Owner";
         Rec."Team Leader" := TempLine."Team Leader";
-        Rec.Leader := TempLine.Leader;
+        Rec."Requested Leader" := TempLine."Requested Leader";
+        Rec."Assigned Leader" := TempLine."Assigned Leader";
         Rec."Work Order No." := TempLine."Work Order No.";
         Rec."Skill" := TempLine."Skill";
 

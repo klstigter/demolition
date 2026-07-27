@@ -271,7 +271,7 @@ table 50610 "Day Planning"
                         "Vendor No." := Resource."Vendor No.";
                     if Resource."Pool Resource No." <> '' then
                         "Assigned Pool Resource No." := Resource."Pool Resource No.";
-                    Leader := Resource."Is Foreman";
+                    "Assigned Leader" := Resource."Is Foreman";
                     "Team Leader" := Resource."Default Foreman";
                     Skill := GetFirstSkill("Assigned Resource No.");
                     CalculateWorkingHours();
@@ -334,10 +334,15 @@ table 50610 "Day Planning"
             TableRelation = Resource;
             Caption = 'Team Leader';
         }
-        field(26; "Leader"; Boolean)
+        field(20; "Requested Leader"; Boolean)
         {
             DataClassification = ToBeClassified;
-            Caption = 'Leader';
+            Caption = 'Requested Leader';
+        }
+        field(26; "Assigned Leader"; Boolean)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Assigned Leader';
         }
         field(27; "Requested Resource No."; Code[20])
         {
@@ -356,7 +361,7 @@ table 50610 "Day Planning"
                     if "Assigned Resource No." = '' then begin
                         if (Resource."Vendor No." <> '') then
                             "Vendor No." := Resource."Vendor No.";
-                        Leader := Resource."Is Foreman";
+                        "Requested Leader" := Resource."Is Foreman";
                         "Team Leader" := Resource."Default Foreman";
                         Skill := GetFirstSkill("Requested Resource No.");
                     end;

@@ -299,7 +299,12 @@ page 50630 "Day Plannings"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the team leader for this day task.';
                 }
-                field(Leader; Rec.Leader)
+                field("Requested Leader"; Rec."Requested Leader")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the leader for this day task.';
+                }
+                field("Assigned Leader"; Rec."Assigned Leader")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the leader for this day task.';
