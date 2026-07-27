@@ -936,10 +936,12 @@ function setupContextMenu() {
         '<div class="dhx-ctx-item" data-action="OpenDayPlanningVisual">' +
             '<span class="dhx-ctx-icon">&#128248;</span>Open DayPlanning Visual</div>' +
         '<div class="dhx-ctx-separator"></div>' +
-        '<div class="dhx-ctx-item" data-action="ShowMessage1">' +
-            '<span class="dhx-ctx-icon">&#128172;</span>Show message 1</div>' +
-        '<div class="dhx-ctx-item" data-action="ShowMessage2">' +
-            '<span class="dhx-ctx-icon">&#128172;</span>Show message 2</div>' +
+        '<div class="dhx-ctx-item" data-action="OpenResourceScheduler">' +
+            '<span class="dhx-ctx-icon">&#128101;</span>Open Resource Scheduler</div>' +
+        '<div class="dhx-ctx-item" data-action="OpenRequestedResourceCard">' +
+            '<span class="dhx-ctx-icon">&#128100;</span>Open Requested Resource Card</div>' +
+        '<div class="dhx-ctx-item" data-action="OpenAssignedResourceCard">' +
+            '<span class="dhx-ctx-icon">&#128100;</span>Open Assigned Resource Card</div>' +
         '<div class="dhx-ctx-separator"></div>' +
         '<div class="dhx-ctx-item ctx-cancel" data-action="Cancel">' +
             '<span class="dhx-ctx-icon">&#10005;</span>Cancel</div>';
@@ -956,6 +958,12 @@ function setupContextMenu() {
         menu.querySelector('[data-action="OpenDayPlanning"]').style.display =
             (target.type === 'event') ? '' : 'none';
         menu.querySelector('[data-action="OpenDayPlanningVisual"]').style.display =
+            (target.type === 'event') ? '' : 'none';
+        menu.querySelector('[data-action="OpenResourceScheduler"]').style.display =
+            (target.type === 'event') ? '' : 'none';
+        menu.querySelector('[data-action="OpenRequestedResourceCard"]').style.display =
+            (target.type === 'event') ? '' : 'none';
+        menu.querySelector('[data-action="OpenAssignedResourceCard"]').style.display =
             (target.type === 'event') ? '' : 'none';
 
         menu.className = '';
