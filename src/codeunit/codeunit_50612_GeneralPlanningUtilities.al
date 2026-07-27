@@ -105,7 +105,7 @@ codeunit 50612 "General Planning Utilities"
                                      var Capacity: Decimal): Boolean
     var
         Resource: Record Resource;
-        DayPlanning: Record "Day Planning";
+        //DayPlanning: Record "Day Planning";
         ResourceNo: Code[20];
         WorkingMinutes: Decimal;
         CapacityIsUsed: boolean;
@@ -120,22 +120,6 @@ codeunit 50612 "General Planning Utilities"
         if ResourceNo = '' then
             exit;
         WorkingMinutes := GetWorkingMinutes(pDayPlanning, PartType);
-        // Find Day Planning with complete start and end time and same resource and day no
-        DayPlanning.SetRange("Plan Date", pDayPlanning."Plan Date");
-        case PartType of
-            PartType::Requested:
-                DayPlanning.SetRange("Requested Resource No.", ResourceNo);
-            PartType::Assigned,
-            PartType::Realized:
-                DayPlanning.SetRange("Assigned Resource No.", ResourceNo);
-        end;
-        DayPlanning.SetFilter("Day Line No.", '<>%1', pDayPlanning."Day Line No.");
-        DayPlanning.SetFilter("Start Time Assigned", '<>%1', 0T);
-        DayPlanning.SetFilter("End Time Assigned", '<>%1', 0T);
-        if DayPlanning.FindFirst() then
-            repeat
-                WorkingMinutes += GetWorkingMinutes(DayPlanning, PartType);
-            until DayPlanning.Next() = 0;
 
         CalculatedHours += WorkingMinutes / 60;
         // Find Capacity Entry per DayPlanning Date and Resource No.
