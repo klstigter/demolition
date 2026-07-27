@@ -19,6 +19,8 @@ codeunit 50608 "Opti Hash Times Cleanup"
         TimeSlot: Record "Opti Time Slot";
         TimeSlotBuffer: Record "Opti Time Slot Buffer";
         WeekPatternBuffer: Record "Opti Week Pattern Buffer";
+        CapacityEntry: Record "Opti Capacity Entry";
+        ResourceCapacity: Record "Opti Resource Capacity";
     begin
         WeekPatternLine.DeleteAll(true);
         DayPatternLine.DeleteAll(true);
@@ -32,5 +34,8 @@ codeunit 50608 "Opti Hash Times Cleanup"
         // but this also removes accidentally persisted records.
         TimeSlotBuffer.DeleteAll(true);
         WeekPatternBuffer.DeleteAll(true);
+
+        capacityEntry.DeleteAll(true);
+        ResourceCapacity.DeleteAll(true);
     end;
 }

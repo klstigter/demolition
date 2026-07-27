@@ -2,6 +2,7 @@ table 50623 "Opti Week Pattern Buffer"
 {
     Caption = 'Week Pattern Buffer';
     DataClassification = CustomerContent;
+    tabletype = Temporary;
 
     fields
     {

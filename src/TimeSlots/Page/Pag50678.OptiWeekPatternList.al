@@ -38,27 +38,19 @@ page 50678 "Opti Week Pattern List"
         area(Processing)
         {
 
-            action(DeleteAllPatternData)
+            action(CreateResourceCapacity)
             {
                 ApplicationArea = All;
-                Caption = 'Delete All Pattern Data';
-                ToolTip = 'Deletes all week patterns, day patterns, time slots, and their related lines.';
-                Image = DeleteAll;
+                Caption = 'Create Resource Capacity';
+                Image = CalculateCalendar;
+                ToolTip = 'Create capacity dates and normal capacity entries for the selected resources and date range.';
 
                 trigger OnAction()
-                var
-                    PatternCleanup: Codeunit "Opti Hash Times Cleanup";
-                    DeleteAllPatternDataQst: Label 'Do you want to delete all Opti week patterns, day patterns, and time slots? This action cannot be undone.';
-                    PatternDataDeletedMsg: Label 'All Opti pattern data has been deleted.';
                 begin
-                    if not Confirm(DeleteAllPatternDataQst, false) then
-                        exit;
-
-                    PatternCleanup.DeleteAllPatternData();
-
-                    CurrPage.Update(false);
-
-                    Message(PatternDataDeletedMsg);
+                    Report.RunModal(
+                        Report::"Opti Create Resource Capacity",
+                        true,
+                        false);
                 end;
             }
         }
@@ -142,13 +134,38 @@ page 50678 "Opti Week Pattern List"
                         Page.Run(Page::"Opti Week Pattern Buffer Data");
                     end;
                 }
+                action(DeleteAllPatternData)
+                {
+                    ApplicationArea = All;
+                    Caption = 'Delete All Pattern Data';
+                    ToolTip = 'Deletes all week patterns, day patterns, time slots, and their related lines.';
+                    Image = DeleteAll;
+
+                    trigger OnAction()
+                    var
+                        PatternCleanup: Codeunit "Opti Hash Times Cleanup";
+                        DeleteAllPatternDataQst: Label 'Do you want to delete all Opti week patterns, day patterns, and time slots? This action cannot be undone.';
+                        PatternDataDeletedMsg: Label 'All Opti pattern data has been deleted.';
+                    begin
+                        if not Confirm(DeleteAllPatternDataQst, false) then
+                            exit;
+
+                        PatternCleanup.DeleteAllPatternData();
+
+                        CurrPage.Update(false);
+
+                        Message(PatternDataDeletedMsg);
+                    end;
+                }
 
             }
         }
 
         area(Promoted)
         {
-
+            actionref(CreateResourceCapacityPromoted; CreateResourceCapacity)
+            {
+            }
         }
     }
 }

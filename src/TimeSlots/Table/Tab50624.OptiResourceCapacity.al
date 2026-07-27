@@ -74,6 +74,9 @@ table 50624 "Opti Resource Capacity"
         key(ResourceDate; "Resource No.", "Capacity Date")
         {
         }
+        key(CapacityDate; "Capacity Date", "Resource No.")
+        {
+        }
     }
 
     trigger OnInsert()

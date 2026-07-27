@@ -2,6 +2,7 @@ table 50625 "Opti Time Slot Buffer"
 {
     Caption = 'Time Slot Buffer';
     DataClassification = CustomerContent;
+    tabletype = Temporary;
 
     fields
     {

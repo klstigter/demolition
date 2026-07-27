@@ -73,6 +73,18 @@ table 50627 "Opti Capacity Entry"
             Caption = 'Manual';
             Editable = false;
         }
+        field(70; "Capacity Minutes"; Integer)
+        {
+            Caption = 'Capacity Minutes';
+            Editable = false;
+        }
+
+        field(80; "Capacity Hours"; Decimal)
+        {
+            Caption = 'Capacity Hours';
+            DecimalPlaces = 0 : 5;
+            Editable = false;
+        }
     }
 
     keys
@@ -94,6 +106,8 @@ table 50627 "Opti Capacity Entry"
 
         if "Line No." = 0 then
             "Line No." := GetNextLineNo("Resource No.", "Capacity Date");
+        UpdateCapacityAmounts()
+
     end;
 
     procedure InsertManualEntry(
@@ -175,5 +189,25 @@ table 50627 "Opti Capacity Entry"
         DayTimeSlotHeader.RecalculatePattern();
 
         exit(DayTimeSlotHeader."Day Time Slot Header ID");
+    end;
+
+    procedure UpdateCapacityAmounts()
+    begin
+        CalcFields("Working Minutes", "Working Hours");
+
+        case "Entry Type" of
+            "Entry Type"::Normal,
+            "Entry Type"::Additional:
+                begin
+                    "Capacity Minutes" := "Working Minutes";
+                    "Capacity Hours" := "Working Hours";
+                end;
+
+            "Entry Type"::Absence:
+                begin
+                    "Capacity Minutes" := -"Working Minutes";
+                    "Capacity Hours" := -"Working Hours";
+                end;
+        end;
     end;
 }
