@@ -208,19 +208,36 @@ window.BOOT = function() {
             }
         }
         
+        var assignedNonWorkingMin = (ev.non_working_minutes_assigned !== undefined && ev.non_working_minutes_assigned !== null) ? ev.non_working_minutes_assigned : "";
+        var assignedHours = (ev.assigned_hours !== undefined && ev.assigned_hours !== null) ? ev.assigned_hours : "";
+        var reqResNo = ev.requested_resource_no || "";
+        var reqResName = ev.requested_resource_name || "";
+        var reqStartTime = ev.start_time_requested || "";
+        var reqEndTime = ev.end_time_requested || "";
+        var reqNonWorkingMin = (ev.non_working_minutes_requested !== undefined && ev.non_working_minutes_requested !== null) ? ev.non_working_minutes_requested : "";
+        var reqHours = (ev.requested_hours !== undefined && ev.requested_hours !== null) ? ev.requested_hours : "";
+
         var html = "<b>DayPlanning:</b> " + (ev.text || "") + "<br/>" +
-                   "<b>Date:</b> " + formatDateOnly(start) + "<br/>" +
-                   "<b>Start Time:</b> " + formatTimeOnly(start) + "<br/>" +
-                   "<b>End Time:</b> " + formatTimeOnly(end) + "<br/>" +
-                   "<b>DayPlanning detail:</b><br/>" +
+                   "<b>Daylineno:</b> " + dayLineNo + "<br/>" +         // Day Line No.
+                   "<b>Date:</b> " + formatDateOnly(start) + "<br/>" +  // Work Date
+
+                   "<br/>" +
+                   "<b>Assigned:</b><br/>" +
                    "-----------------------------------<br/>" +
-                   "<b>Day No:</b> " + dayNo + "<br/>" +
-                   "<b>Daylineno:</b> " + dayLineNo + "<br/>" +
-                //    "<b>Project No.:</b> " + jobNo + "<br/>" +
-                //    "<b>Task No.:</b> " + jobTaskNo + "<br/>" +
-                   "<b>Resource No.:</b> " + resno + "<br/>" +
-                   "<b>Resource Name:</b> " + resname + "<br/>" + 
-                   "<b>Vendor:</b> " + vendorname;
+                   "<b>Resource No.:</b> " + resno + " - " + resname + "<br/>" +    // Assigned Resource No.
+                   "<b>Start Time:</b> " + formatTimeOnly(start) + "<br/>" +        // Start Time Assigned
+                   "<b>End Time:</b> " + formatTimeOnly(end) + "<br/>" +            // End Time Assigned
+                   "<b>Non Working (Minutes)</b> " + assignedNonWorkingMin + "<br/>" +  // Non Working Minutes Assigned
+                   "<b>Hours</b> " + assignedHours + "<br/>" +                          // Assigned Hours
+
+                   "<br/>" +
+                   "<b>Requested:</b><br/>" +
+                   "-----------------------------------<br/>" +
+                   "<b>Resource No.:</b> " + reqResNo + " - " + reqResName + "<br/>" +   // Requested Resource No.
+                   "<b>Start Time:</b> " + reqStartTime + "<br/>" +                      // Start Time Requested
+                   "<b>End Time:</b> " + reqEndTime + "<br/>" +                          // End Time Requested
+                   "<b>Non Working (Minutes)</b> " + reqNonWorkingMin + "<br/>" +        // Non Working Minutes Requested
+                   "<b>Hours</b> " + reqHours + "<br/>";                                 // Requested Hours
         return html;
     };
 

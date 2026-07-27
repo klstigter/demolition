@@ -93,6 +93,7 @@ codeunit 50604 "DHX Data Handler"
 
         ResNo: Code[20];
         ResName: Text;
+        ReqResName: Text;
         CurrentJobNo: Code[20];
 
         JobObject, TaskObject, PlanningLineObject : JsonObject;
@@ -144,6 +145,13 @@ codeunit 50604 "DHX Data Handler"
                     ResNo := Resource."No.";
                     ResName := Resource.Name;
                 end;
+
+                // requested resource data
+                Clear(Resource);
+                ReqResName := '';
+                if DayPlanning."Requested Resource No." <> '' then
+                    if Resource.Get(DayPlanning."Requested Resource No.") then
+                        ReqResName := Resource.Name;
                 // create event data
                 if AnchorDate = 0D then
                     CountToWeekNumber(DayPlanning."Plan Date", WeekTemp);
@@ -195,6 +203,21 @@ codeunit 50604 "DHX Data Handler"
                 // StrSubstNo(DetailsLabel, Ven."No.", Ven.Name
                 // , DayPlanning."Job No.", Jobs.Description
                 // , DayPlanning."Job Task No.", JobTasks.Description));
+
+                PlanningObject.Add('non_working_minutes_assigned', DayPlanning."Non Working Minutes Assigned");
+                PlanningObject.Add('assigned_hours', DayPlanning."Assigned Hours");
+                PlanningObject.Add('requested_resource_no', DayPlanning."Requested Resource No.");
+                PlanningObject.Add('requested_resource_name', ReqResName);
+                if DayPlanning."Start Time Requested" <> 0T then
+                    PlanningObject.Add('start_time_requested', Format(DayPlanning."Start Time Requested", 0, '<Hours24,2>:<Minutes,2>'))
+                else
+                    PlanningObject.Add('start_time_requested', '');
+                if DayPlanning."End Time Requested" <> 0T then
+                    PlanningObject.Add('end_time_requested', Format(DayPlanning."End Time Requested", 0, '<Hours24,2>:<Minutes,2>'))
+                else
+                    PlanningObject.Add('end_time_requested', '');
+                PlanningObject.Add('non_working_minutes_requested', DayPlanning."Non Working Minutes Requested");
+                PlanningObject.Add('requested_hours', DayPlanning."Requested Hours");
 
                 PlanningArray.Add(PlanningObject);
                 PlanningArray.WriteTo(PlanninJsonTxt);
