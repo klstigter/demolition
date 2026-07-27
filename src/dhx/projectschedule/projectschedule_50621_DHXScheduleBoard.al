@@ -189,10 +189,12 @@ page 50621 "DHX Scheduler (Project)"
                             DHXDataHandler.OpenDayPlanning(eventId);
                         'OpenDayPlanningVisual':
                             DHXDataHandler.OpenDayPlanningVisual(eventId);
-                        'ShowMessage1':
-                            Message('message 1 from scheduller');
-                        'ShowMessage2':
-                            Message('message 2 from scheduller');
+                        'OpenResourceScheduler':
+                            DHXDataHandler.OpenResourceScheduler(eventId);
+                        'OpenRequestedResourceCard':
+                            DHXDataHandler.OpenRequestedResourceCard(eventId);
+                        'OpenAssignedResourceCard':
+                            DHXDataHandler.OpenAssignedResourceCard(eventId);
                     end;
                 end;
 

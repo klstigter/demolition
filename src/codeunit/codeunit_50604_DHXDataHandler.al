@@ -1711,6 +1711,93 @@ codeunit 50604 "DHX Data Handler"
         exit(DateOfDayPlanning);
     end;
 
+    /// <summary>
+    /// Opens the DHX Resource Scheduler filtered to the resource assigned to the day
+    /// planning line linked to the given event ID (format: JobNo|JobTaskNo|DayNo|DayLineNo|ResNo|ResName).
+    /// Used by the right-click context menu "Open Resource Scheduler" on an event.
+    /// </summary>
+    procedure OpenResourceScheduler(eventId: Text)
+    var
+        DayPlanning: Record "Day Planning";
+        ResScheduler: Page "DHX Resource Scheduler";
+        EventIDList: List of [Text];
+        JobNo: Code[20];
+        TaskNo: Code[20];
+        DayLineNo: Integer;
+        ResourceNo: Code[20];
+        MsgLbl: Label 'Day planning not found for Event ID: %1';
+    begin
+        EventIDList := eventId.Split('|');
+        JobNo := EventIDList.Get(1);
+        TaskNo := EventIDList.Get(2);
+        Evaluate(DayLineNo, EventIDList.Get(4));
+        if DayPlanning.Get(JobNo, TaskNo, DayLineNo) then begin
+            if DayPlanning."Assigned Resource No." <> '' then
+                ResourceNo := DayPlanning."Assigned Resource No."
+            else
+                ResourceNo := DayPlanning."Requested Resource No.";
+            ResScheduler.SetResourceFilter(ResourceNo);
+            ResScheduler.RunModal();
+        end else
+            Message(MsgLbl, eventId);
+    end;
+
+    /// <summary>
+    /// Opens the standard Resource Card filtered to the Requested Resource No. of the day
+    /// planning line linked to the given event ID (format: JobNo|JobTaskNo|DayNo|DayLineNo|ResNo|ResName).
+    /// Used by the right-click context menu "Open Requested Resource Card" on an event.
+    /// </summary>
+    procedure OpenRequestedResourceCard(eventId: Text)
+    var
+        DayPlanning: Record "Day Planning";
+        Resource: Record Resource;
+        EventIDList: List of [Text];
+        JobNo: Code[20];
+        TaskNo: Code[20];
+        DayLineNo: Integer;
+        MsgLbl: Label 'Day planning not found for Event ID: %1';
+    begin
+        EventIDList := eventId.Split('|');
+        JobNo := EventIDList.Get(1);
+        TaskNo := EventIDList.Get(2);
+        Evaluate(DayLineNo, EventIDList.Get(4));
+        if DayPlanning.Get(JobNo, TaskNo, DayLineNo) then begin
+            if DayPlanning."Requested Resource No." <> '' then begin
+                Resource.SetFilter("No.", DayPlanning."Requested Resource No.");
+                Page.RunModal(Page::"Resource Card", Resource);
+            end;
+        end else
+            Message(MsgLbl, eventId);
+    end;
+
+    /// <summary>
+    /// Opens the standard Resource Card filtered to the Assigned Resource No. of the day
+    /// planning line linked to the given event ID (format: JobNo|JobTaskNo|DayNo|DayLineNo|ResNo|ResName).
+    /// Used by the right-click context menu "Open Assigned Resource Card" on an event.
+    /// </summary>
+    procedure OpenAssignedResourceCard(eventId: Text)
+    var
+        DayPlanning: Record "Day Planning";
+        Resource: Record Resource;
+        EventIDList: List of [Text];
+        JobNo: Code[20];
+        TaskNo: Code[20];
+        DayLineNo: Integer;
+        MsgLbl: Label 'Day planning not found for Event ID: %1';
+    begin
+        EventIDList := eventId.Split('|');
+        JobNo := EventIDList.Get(1);
+        TaskNo := EventIDList.Get(2);
+        Evaluate(DayLineNo, EventIDList.Get(4));
+        if DayPlanning.Get(JobNo, TaskNo, DayLineNo) then begin
+            if DayPlanning."Assigned Resource No." <> '' then begin
+                Resource.SetFilter("No.", DayPlanning."Assigned Resource No.");
+                Page.RunModal(Page::"Resource Card", Resource);
+            end;
+        end else
+            Message(MsgLbl, eventId);
+    end;
+
     procedure OpenResourceCard(SectionId: Text)
     var
         Resource: Record Resource;
