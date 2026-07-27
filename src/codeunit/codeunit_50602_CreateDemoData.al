@@ -2458,6 +2458,7 @@ codeunit 50602 "Create Demo Data"
         DP."Start Time Requested" := StartT;
         DP."End Time Requested" := EndT;
         DP."Requested Hours" := Hours;
+        DP."Requested Leader" := true;
         DP."Assigned Leader" := true;
         DP."Team Leader" := ResNo;
         DP."Data Owner" := "Data Owner Opt."::"TeamLeader";

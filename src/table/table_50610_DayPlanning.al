@@ -797,15 +797,22 @@ table 50610 "Day Planning"
             Rec."Assigned Pool Resource No." := Rec."Requested Pool Resource No.";
 
         if rec."Requested Hours" <> 0 then
-            Rec."Assigned Hours" := Rec."Requested Hours";
+            if Rec."Assigned Hours" = 0 then
+                Rec."Assigned Hours" := Rec."Requested Hours";
         if rec."Non Working Minutes Requested" <> 0 then
-            Rec."Non Working Minutes Assigned" := Rec."Non Working Minutes Requested";
+            if Rec."Non Working Minutes Assigned" = 0 then
+                Rec."Non Working Minutes Assigned" := Rec."Non Working Minutes Requested";
         if rec."Start Time Requested" <> 0T then
-            Rec."Start Time Assigned" := Rec."Start Time Requested";
-        if rec."End Time Requested" <> 0T then
-            Rec.validate("End Time Assigned", Rec."End Time Requested")
-        else
+            if Rec."Start Time Assigned" = 0T then
+                Rec."Start Time Assigned" := Rec."Start Time Requested";
+        if rec."End Time Requested" <> 0T then begin
+            if Rec."End Time Assigned" = 0T then
+                Rec.validate("End Time Assigned", Rec."End Time Requested")
+        end else
             Rec.Validate("End Time Assigned");
+        if rec."Requested Leader" then
+            if not Rec."Assigned Leader" then
+                Rec."Assigned Leader" := Rec."Requested Leader";
         Rec.Modify();
     end;
 
