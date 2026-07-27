@@ -2052,7 +2052,8 @@ codeunit 50602 "Create Demo Data"
         DP."Start Time Requested" := ReqStart;
         DP."End Time Requested" := ReqEnd;
         DP."Requested Hours" := ReqHours;
-        DP.Leader := true;
+        DP."Requested Leader" := true;
+        DP."Assigned Leader" := true;
         DP."Team Leader" := LeaderRes;
         DP."Data Owner" := "Data Owner Opt."::"TeamLeader";
         DP.Description := 'Leader: ' + JT."Job No." + '-' + JT."Job Task No." + DescSuffix;
@@ -2095,7 +2096,8 @@ codeunit 50602 "Create Demo Data"
         DP."Start Time Requested" := ReqStart;
         DP."End Time Requested" := ReqEnd;
         DP."Requested Hours" := ReqHours;
-        DP.Leader := false;
+        DP."Requested Leader" := false;
+        DP."Assigned Leader" := false;
         DP."Team Leader" := LeaderRes;
         DP."Data Owner" := "Data Owner Opt."::"TeamMember";
         DP.Description := 'Member: ' + JT."Job No." + '-' + JT."Job Task No." + DescSuffix;
@@ -2456,7 +2458,7 @@ codeunit 50602 "Create Demo Data"
         DP."Start Time Requested" := StartT;
         DP."End Time Requested" := EndT;
         DP."Requested Hours" := Hours;
-        DP.Leader := true;
+        DP."Assigned Leader" := true;
         DP."Team Leader" := ResNo;
         DP."Data Owner" := "Data Owner Opt."::"TeamLeader";
         DP.Description := 'Work Order ' + WorkOrderNo + ': ' + JT.Description;

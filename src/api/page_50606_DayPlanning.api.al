@@ -103,7 +103,11 @@ page 50606 "DayPlanningApi Opt"
                 {
                     ApplicationArea = All;
                 }
-                field(leader; Rec.Leader)
+                field(requestedLeader; Rec."Requested Leader")
+                {
+                    ApplicationArea = All;
+                }
+                field(assignedLeader; Rec."Assigned Leader")
                 {
                     ApplicationArea = All;
                 }
