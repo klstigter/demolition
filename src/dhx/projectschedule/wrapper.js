@@ -69,34 +69,57 @@ window.BOOT = function() {
         text-align: left !important;
     }
 
-    /* Event styling per type */
+    /* Event styling: Day Planning bar, 3-part Requested/Assigned split */
 
-    /* DayPlanning_0 events */
-    .dhx_cal_event.event-DayPlanning_0,
-    .dhx_cal_event_line.event-DayPlanning_0,
-    .dhx_event_line.event-DayPlanning_0,
-    .dhx_cal_event.event-DayPlanning_0 .dhx_title,
-    .dhx_cal_event.event-DayPlanning_0 .dhx_body {
-        color: white !important;
+    /* Outer bar = envelope (earliest..latest of Requested/Assigned) — solid dark blue base */
+    .dhx_cal_event.event-DayPlanning,
+    .dhx_cal_event_line.event-DayPlanning,
+    .dhx_event_line.event-DayPlanning {
+        background: #1B3A6B !important;
+        border-color: #14294D !important;
         font-size: 14px !important;
-        /*
-        background-color: #D1ECF1 !important;
-        border-color: #17A2B8 !important;
-        */
+        padding: 0 !important;
     }
 
-    /* DayPlanning_1 events */
-    .dhx_cal_event.event-DayPlanning_1,
-    .dhx_cal_event_line.event-DayPlanning_1,
-    .dhx_event_line.event-DayPlanning_1,
-    .dhx_cal_event.event-DayPlanning_1 .dhx_title,
-    .dhx_cal_event.event-DayPlanning_1 .dhx_body {
-        color: black !important;
-        font-size: 14px !important;
-        /*
-        background-color: #F8D7DA !important;
-        border-color: #DC3545 !important;
-        */
+    /* Wrapper filling the whole bar; positions the two inner strips + label */
+    .dp-bar-wrap {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    /* Top half: Assigned start/end sub-range */
+    .dp-bar-assigned {
+        position: absolute;
+        top: 0;
+        height: 50%;
+        background: #7FB3FA !important;
+    }
+
+    /* Bottom half: Requested start/end sub-range */
+    .dp-bar-requested {
+        position: absolute;
+        bottom: 0;
+        height: 50%;
+        background: #6FCF97 !important;
+    }
+
+    /* Centered label on top of both strips */
+    .dp-bar-label {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        pointer-events: none;
+        text-shadow: 0 0 2px rgba(0,0,0,0.7);
+        z-index: 2;
     }
 
     /* ── Right-click context menu ─────────────────────────────── */
@@ -172,15 +195,60 @@ window.BOOT = function() {
         tooltip: true,
     });
 
-    // Apply CSS class based on event type
+    // All Day Planning bars share one class; the 3-part Requested/Assigned
+    // split is drawn by event_text below, not by vacant/assigned color.
     scheduler.templates.event_class = function(start, end, ev) {
-        var typeClass = "";
-        if (ev.type === "DayPlanning_0") {
-            typeClass = "event-DayPlanning_0";
-        } else if (ev.type === "DayPlanning_1") {
-            typeClass = "event-DayPlanning_1";
+        return "event-DayPlanning";
+    };
+
+    function escapeHtml(text) {
+        return String(text || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+    }
+
+    function parseHHmmToMinutes(str) {
+        if (!str) return null;
+        var parts = String(str).split(':');
+        if (parts.length < 2) return null;
+        var h = parseInt(parts[0], 10), m = parseInt(parts[1], 10);
+        if (isNaN(h) || isNaN(m)) return null;
+        return h * 60 + m;
+    }
+
+    // Renders the bar as: full-width dark-blue envelope (start..end = earliest..latest
+    // of Requested/Assigned), with a light-blue top-half strip for the Assigned
+    // sub-range and a green bottom-half strip for the Requested sub-range. Where
+    // both strips reach 0%-100%, they fully cover the envelope so no dark-blue shows.
+    scheduler.templates.event_bar_text = function(start, end, ev) {
+        var totalMin = (end - start) / 60000;
+        var label = escapeHtml(ev.text);
+        if (!(totalMin > 0)) {
+            return '<div class="dp-bar-wrap"><div class="dp-bar-label">' + label + '</div></div>';
         }
-        return typeClass;
+
+        var envStartMin = start.getHours() * 60 + start.getMinutes();
+        var segmentsHtml = "";
+
+        var assignedStartMin = parseHHmmToMinutes(ev.start_time_assigned);
+        var assignedEndMin = parseHHmmToMinutes(ev.end_time_assigned);
+        if (assignedStartMin !== null && assignedEndMin !== null && assignedEndMin > assignedStartMin) {
+            var aLeft = Math.max(0, Math.min(100, ((assignedStartMin - envStartMin) / totalMin) * 100));
+            var aWidth = Math.max(0, Math.min(100 - aLeft, ((assignedEndMin - assignedStartMin) / totalMin) * 100));
+            segmentsHtml += '<div class="dp-bar-assigned" style="left:' + aLeft + '%; width:' + aWidth + '%;"></div>';
+        }
+
+        var requestedStartMin = parseHHmmToMinutes(ev.start_time_requested);
+        var requestedEndMin = parseHHmmToMinutes(ev.end_time_requested);
+        if (requestedStartMin !== null && requestedEndMin !== null && requestedEndMin > requestedStartMin) {
+            var rLeft = Math.max(0, Math.min(100, ((requestedStartMin - envStartMin) / totalMin) * 100));
+            var rWidth = Math.max(0, Math.min(100 - rLeft, ((requestedEndMin - requestedStartMin) / totalMin) * 100));
+            segmentsHtml += '<div class="dp-bar-requested" style="left:' + rLeft + '%; width:' + rWidth + '%;"></div>';
+        }
+
+        return '<div class="dp-bar-wrap">' + segmentsHtml +
+               '<div class="dp-bar-label">' + label + '</div></div>';
     };
 
     // Custom tooltip template
@@ -208,6 +276,8 @@ window.BOOT = function() {
             }
         }
         
+        var assignedStartTime = ev.start_time_assigned || "";
+        var assignedEndTime = ev.end_time_assigned || "";
         var assignedNonWorkingMin = (ev.non_working_minutes_assigned !== undefined && ev.non_working_minutes_assigned !== null) ? ev.non_working_minutes_assigned : "";
         var assignedHours = (ev.assigned_hours !== undefined && ev.assigned_hours !== null) ? ev.assigned_hours : "";
         var reqResNo = ev.requested_resource_no || "";
@@ -225,8 +295,8 @@ window.BOOT = function() {
                    "<b>Assigned:</b><br/>" +
                    "-----------------------------------<br/>" +
                    "<b>Resource No.:</b> " + resno + " - " + resname + "<br/>" +    // Assigned Resource No.
-                   "<b>Start Time:</b> " + formatTimeOnly(start) + "<br/>" +        // Start Time Assigned
-                   "<b>End Time:</b> " + formatTimeOnly(end) + "<br/>" +            // End Time Assigned
+                   "<b>Start Time:</b> " + assignedStartTime + "<br/>" +            // Start Time Assigned
+                   "<b>End Time:</b> " + assignedEndTime + "<br/>" +                // End Time Assigned
                    "<b>Non Working (Minutes)</b> " + assignedNonWorkingMin + "<br/>" +  // Non Working Minutes Assigned
                    "<b>Hours</b> " + assignedHours + "<br/>" +                          // Assigned Hours
 
