@@ -62,10 +62,6 @@ page 50664 "Task Scheduler Setup"
 
     trigger OnOpenPage()
     begin
-        Rec.Reset();
-        if not Rec.Get('') then begin
-            Rec.Init();
-            Rec.Insert();
-        end;
+        rec.EnsureUserRecord();
     end;
 }

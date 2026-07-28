@@ -176,12 +176,45 @@ page 50612 "Planning Role Center"
             {
                 Caption = 'Setup';
 
-                action("GanttSettings")
+                group("VisualSetup")
                 {
-                    Caption = 'Gantt Settings';
-                    Image = Setup;
-                    ApplicationArea = All;
-                    RunObject = page "Gantt Chart Setup";
+                    Caption = 'Visual Setup';
+
+                    action("GanttSettings")
+                    {
+                        Caption = 'Gantt Settings';
+                        Image = Setup;
+                        ApplicationArea = All;
+                        RunObject = page "Gantt Chart Setup";
+                    }
+                    action("Task Scheduler Setup")
+                    {
+                        Caption = 'Task Scheduler Setup';
+                        Image = Setup;
+                        ApplicationArea = All;
+                        RunObject = page "Task Scheduler Setup";
+                    }
+                    action("Res. Capacity Scheduler Setup")
+                    {
+                        Caption = 'Resource Capacity Scheduler Setup';
+                        Image = Setup;
+                        ApplicationArea = All;
+                        RunObject = page "Res. Capacity Scheduler Setup";
+                    }
+                    action("Resource Scheduler Setup")
+                    {
+                        Caption = 'Resource Scheduler Setup';
+                        Image = Setup;
+                        ApplicationArea = All;
+                        RunObject = page "Resource Scheduler Setup";
+                    }
+                    action("Order Intake Kanban Setup")
+                    {
+                        Caption = 'Order Intake Kanban Setup';
+                        Image = Setup;
+                        ApplicationArea = All;
+                        RunObject = page "Order Intake Kanban Setup";
+                    }
                 }
                 action("Resource Color")
                 {
@@ -203,13 +236,6 @@ page 50612 "Planning Role Center"
                     Image = Setup;
                     ApplicationArea = All;
                     RunObject = page "Daily Optimizer Setup";
-                }
-                action("Task Scheduler Setup")
-                {
-                    Caption = 'Task Scheduler Setup';
-                    Image = Setup;
-                    ApplicationArea = All;
-                    RunObject = page "Task Scheduler Setup";
                 }
                 action("WorkOrderItemPricing")
                 {
