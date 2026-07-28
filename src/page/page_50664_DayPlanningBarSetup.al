@@ -1,10 +1,10 @@
-page 50664 "Day Planning Bar Setup"
+page 50664 "task Scheduler Setup"
 {
     PageType = Card;
     ApplicationArea = All;
     UsageCategory = Administration;
-    Caption = 'Day Planning Bar Setup';
-    SourceTable = "Day Planning Bar Setup";
+    Caption = 'Task Scheduler Setup';
+    SourceTable = "Task Scheduler Setup";
     DeleteAllowed = false;
     InsertAllowed = false;
 

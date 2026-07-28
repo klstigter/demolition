@@ -1,7 +1,7 @@
-table 50617 "Day Planning Bar Setup"
+table 50617 "Task Scheduler Setup"
 {
     DataClassification = CustomerContent;
-    Caption = 'Day Planning Bar Setup';
+    Caption = 'Task Scheduler Setup';
 
     fields
     {

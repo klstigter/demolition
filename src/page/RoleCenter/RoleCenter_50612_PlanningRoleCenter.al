@@ -204,12 +204,12 @@ page 50612 "Planning Role Center"
                     ApplicationArea = All;
                     RunObject = page "Daily Optimizer Setup";
                 }
-                action("Day Planning Bar Setup")
+                action("Task Scheduler Setup")
                 {
-                    Caption = 'Day Planning Bar Setup';
+                    Caption = 'Task Scheduler Setup';
                     Image = Setup;
                     ApplicationArea = All;
-                    RunObject = page "Day Planning Bar Setup";
+                    RunObject = page "Task Scheduler Setup";
                 }
                 action("WorkOrderItemPricing")
                 {
