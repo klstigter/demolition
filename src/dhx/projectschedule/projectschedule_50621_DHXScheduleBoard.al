@@ -36,7 +36,7 @@ page 50621 "DHX Scheduler (Project)"
                         ResourceJSONTxt := DHXDataHandler.GetYUnitElementsJSON_Project(Today(), startDate, endDate, ResourceFilter, PlanninJsonTxt, EarliestPlanningDate);
                         DHXDataHandler.ValidateSchedulerSectionMatch(ResourceJSONTxt, PlanninJsonTxt);
                     end;
-                    HasSetup := DayPlanningBarSetup.Get('');
+                    HasSetup := DayPlanningBarSetup.Get(UserId);
                     if HasSetup and (DayPlanningBarSetup."Timeline Hour Step" > 0) then
                         CurrPage.DhxScheduler.SetTimelineHourStep(DayPlanningBarSetup."Timeline Hour Step");
                     if HasSetup and (DayPlanningBarSetup."Timeline End Hour" > 0) then
