@@ -17,7 +17,7 @@ page 50621 "DHX Scheduler (Project)"
 
                 trigger ControlReady()
                 var
-                    DayPlanningBarSetup: Record "Day Planning Bar Setup";
+                    DayPlanningBarSetup: Record "Task Scheduler Setup";
                     startDate: Date;
                     endDate: Date;
                     EarliestPlanningDate: Date;
