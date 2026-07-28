@@ -17,11 +17,13 @@ page 50621 "DHX Scheduler (Project)"
 
                 trigger ControlReady()
                 var
+                    DayPlanningBarSetup: Record "Day Planning Bar Setup";
                     startDate: Date;
                     endDate: Date;
                     EarliestPlanningDate: Date;
                     PlanninJsonTxt: Text;
                     ResourceJSONTxt: Text;
+                    ColorsJsonTxt: Text;
                 begin
                     //DHXDataHandler.GetOneYearPeriodDates(Today(), startDate, endDate);
                     DHXDataHandler.GetWeekPeriodDates(Today(), startDate, endDate);
@@ -34,6 +36,19 @@ page 50621 "DHX Scheduler (Project)"
                         DHXDataHandler.ValidateSchedulerSectionMatch(ResourceJSONTxt, PlanninJsonTxt);
                     end;
                     CurrPage.DhxScheduler.Init(ResourceJSONTxt, EarliestPlanningDate);
+                    if DayPlanningBarSetup.Get('') then
+                        if (DayPlanningBarSetup."Envelope Color" <> '') or
+                           (DayPlanningBarSetup."Envelope Border Color" <> '') or
+                           (DayPlanningBarSetup."Assigned Color" <> '') or
+                           (DayPlanningBarSetup."Requested Color" <> '')
+                        then begin
+                            ColorsJsonTxt := StrSubstNo('{"envelope":"%1","envelopeBorder":"%2","assigned":"%3","requested":"%4"}',
+                                DayPlanningBarSetup."Envelope Color",
+                                DayPlanningBarSetup."Envelope Border Color",
+                                DayPlanningBarSetup."Assigned Color",
+                                DayPlanningBarSetup."Requested Color");
+                            CurrPage.DhxScheduler.SetBarColors(ColorsJsonTxt);
+                        end;
                     CurrPage.DhxScheduler.LoadData(PlanninJsonTxt);
                     AnchorDate := startDate;
                 end;
@@ -189,8 +204,10 @@ page 50621 "DHX Scheduler (Project)"
                             DHXDataHandler.OpenDayPlanning(eventId);
                         'OpenDayPlanningVisual':
                             DHXDataHandler.OpenDayPlanningVisual(eventId);
-                        'OpenResourceScheduler':
-                            DHXDataHandler.OpenResourceScheduler(eventId);
+                        'OpenResourceSchedulerAssigned':
+                            DHXDataHandler.OpenResourceSchedulerAssigned(eventId);
+                        'OpenResourceSchedulerRequested':
+                            DHXDataHandler.OpenResourceSchedulerRequested(eventId);
                         'OpenRequestedResourceCard':
                             DHXDataHandler.OpenRequestedResourceCard(eventId);
                         'OpenAssignedResourceCard':

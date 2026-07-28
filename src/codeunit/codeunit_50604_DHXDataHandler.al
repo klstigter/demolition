@@ -1773,11 +1773,11 @@ codeunit 50604 "DHX Data Handler"
     end;
 
     /// <summary>
-    /// Opens the DHX Resource Scheduler filtered to the resource assigned to the day
+    /// Opens the DHX Resource Scheduler filtered to the Assigned Resource No. of the day
     /// planning line linked to the given event ID (format: JobNo|JobTaskNo|DayNo|DayLineNo|ResNo|ResName).
-    /// Used by the right-click context menu "Open Resource Scheduler" on an event.
+    /// Used by the right-click context menu "Open Resource Scheduler (assigned)" on an event.
     /// </summary>
-    procedure OpenResourceScheduler(eventId: Text)
+    procedure OpenResourceSchedulerAssigned(eventId: Text)
     var
         DayPlanning: Record "Day Planning";
         ResScheduler: Page "DHX Resource Scheduler";
@@ -1785,7 +1785,6 @@ codeunit 50604 "DHX Data Handler"
         JobNo: Code[20];
         TaskNo: Code[20];
         DayLineNo: Integer;
-        ResourceNo: Code[20];
         MsgLbl: Label 'Day planning not found for Event ID: %1';
     begin
         EventIDList := eventId.Split('|');
@@ -1793,12 +1792,38 @@ codeunit 50604 "DHX Data Handler"
         TaskNo := EventIDList.Get(2);
         Evaluate(DayLineNo, EventIDList.Get(4));
         if DayPlanning.Get(JobNo, TaskNo, DayLineNo) then begin
-            if DayPlanning."Assigned Resource No." <> '' then
-                ResourceNo := DayPlanning."Assigned Resource No."
-            else
-                ResourceNo := DayPlanning."Requested Resource No.";
-            ResScheduler.SetResourceFilter(ResourceNo);
-            ResScheduler.RunModal();
+            if DayPlanning."Assigned Resource No." <> '' then begin
+                ResScheduler.SetResourceFilter(DayPlanning."Assigned Resource No.");
+                ResScheduler.RunModal();
+            end;
+        end else
+            Message(MsgLbl, eventId);
+    end;
+
+    /// <summary>
+    /// Opens the DHX Resource Scheduler filtered to the Requested Resource No. of the day
+    /// planning line linked to the given event ID (format: JobNo|JobTaskNo|DayNo|DayLineNo|ResNo|ResName).
+    /// Used by the right-click context menu "Open Resource Scheduler (Requested)" on an event.
+    /// </summary>
+    procedure OpenResourceSchedulerRequested(eventId: Text)
+    var
+        DayPlanning: Record "Day Planning";
+        ResScheduler: Page "DHX Resource Scheduler";
+        EventIDList: List of [Text];
+        JobNo: Code[20];
+        TaskNo: Code[20];
+        DayLineNo: Integer;
+        MsgLbl: Label 'Day planning not found for Event ID: %1';
+    begin
+        EventIDList := eventId.Split('|');
+        JobNo := EventIDList.Get(1);
+        TaskNo := EventIDList.Get(2);
+        Evaluate(DayLineNo, EventIDList.Get(4));
+        if DayPlanning.Get(JobNo, TaskNo, DayLineNo) then begin
+            if DayPlanning."Requested Resource No." <> '' then begin
+                ResScheduler.SetResourceFilter(DayPlanning."Requested Resource No.");
+                ResScheduler.RunModal();
+            end;
         end else
             Message(MsgLbl, eventId);
     end;
@@ -3077,7 +3102,7 @@ codeunit 50604 "DHX Data Handler"
 
     /// <summary>
     /// Opens DHX Scheduler (Project) filtered to the job task linked to the event.
-    /// Used by the right-click context menu "Open DayPlanning Visual".
+    /// Used by the right-click context menu "Open Day Planning Visual".
     /// </summary>
     procedure OpenDayPlanningVisual(eventId: Text)
     var
