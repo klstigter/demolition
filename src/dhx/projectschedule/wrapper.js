@@ -1,6 +1,9 @@
 var scheduler_here; // global variable for dhx Scheduler
 var resourceBlockVisible = false; // true only for a new event
 var bcPlanningVisible = false;    // show only for existing events
+var timelineHourStep = 3;         // hours between marks on the timeline scale; overridable via SetTimelineHourStep (AL setup)
+var timelineStartHour = 0;        // start of the visible daily window (0 = midnight); overridable via SetTimelineHourRange
+var timelineEndHour = 24;         // end of the visible daily window (24 = midnight); overridable via SetTimelineHourRange
 
 //<< Inject CSS to hide default tabs : Day, Week, Month **** 2025.12.24
 // Toggle helpers
@@ -204,10 +207,29 @@ window.BOOT = function() {
         tooltip: true,
     });
 
+    // GLOBAL (not per-view) scheduler config, read internally as e.config.preserve_scale_length
+    // by the timeline column-search loop. Without it, that loop stops once it exhausts its
+    // initial (un-adjusted-for-ignores) date range, landing short of x_size DISPLAYED columns
+    // whenever ignore_timeline is skipping a large share of hours (e.g. a narrow start/end
+    // window) — it needs to keep extending the search range until it actually finds x_size
+    // non-ignored columns, not just x_size raw ticks.
+    scheduler.config.preserve_scale_length = true;
+
     // All Day Planning bars share one class; the 3-part Requested/Assigned
     // split is drawn by event_text below, not by vacant/assigned color.
     scheduler.templates.event_class = function(start, end, ev) {
         return "event-DayPlanning";
+    };
+
+    // Compacts (not just hides) hour columns outside [timelineStartHour, timelineEndHour)
+    // on the "timeline" view — a documented dhtmlx extension point: defining
+    // scheduler.ignore_<viewname> makes that view's column-generation give ignored
+    // columns zero width, unlike a CSS-based hide which would leave empty gaps.
+    // Reads the live module-level vars, so it stays correct across RecreateTimelineView
+    // calls without needing to be redefined.
+    scheduler.ignore_timeline = function(date) {
+        var h = date.getHours();
+        return (h < timelineStartHour) || (h >= timelineEndHour);
     };
 
     function escapeHtml(text) {
@@ -752,10 +774,11 @@ function Init(dataelements, EarliestPlanningDate) {
     // Defensive: set header to avoid DOM warnings if hiding tabs
     scheduler.config.header = ["date"];
 
-    // Create timeline view (always with a valid y_unit array)    
+    // Create timeline view (always with a valid y_unit array)
     RecreateTimelineView(elements);
 
-    scheduler.init('scheduler_here', EarliestPlanningDate, "timeline");
+    var anchorDate = applyTimelineStartHour(EarliestPlanningDate);
+    scheduler.init('scheduler_here', anchorDate, "timeline");
 
     // Wire right-click context menu now that scheduler DOM exists
     setupContextMenu();
@@ -987,12 +1010,46 @@ function RefreshTimeline(resourcesJson, eventsJson, dateAnchor) {
             }
         }
         let viewDate = anchor ? scheduler.date.week_start(anchor) : scheduler.getState().date;
+        viewDate = applyTimelineStartHour(viewDate);
         scheduler.setCurrentView(viewDate, "timeline");
         //scheduler.updateView("timeline"); // <-- force full refresh
 
     } catch (e) {
         console.error("RefreshTimeline failed:", e);
     }
+}
+
+// Called from AL (setup-driven) to override the hour interval shown on the timeline
+// scale (default 3h, i.e. "00 03 06 09 12 15 18 21..."). Always keeps ~7 days visible,
+// regardless of step, by recomputing the column count from total hours / step. Must be
+// called (if at all) BEFORE Init(), since RecreateTimelineView() reads this at build time.
+function SetTimelineHourStep(hourStep) {
+    var step = parseInt(hourStep, 10);
+    timelineHourStep = (step > 0) ? step : 3;
+}
+
+// Called from AL (setup-driven) to restrict the timeline to a daily window, e.g.
+// 07:00-19:00, instead of the full 24h day. Works together with scheduler.ignore_timeline
+// (above) which does the actual compacting. Must be called (if at all) BEFORE Init(),
+// same ordering requirement as SetTimelineHourStep. Invalid/out-of-range input is
+// ignored and the full-day default (0-24) is kept.
+function SetTimelineHourRange(startHour, endHour) {
+    var s = parseInt(startHour, 10);
+    var e = parseInt(endHour, 10);
+    if (isNaN(s) || isNaN(e) || s < 0 || e > 24 || s >= e) return;
+    timelineStartHour = s;
+    timelineEndHour = e;
+}
+
+// Returns a copy of dateObj with the time set to timelineStartHour:00:00. Keeping the
+// scale's anchor aligned to timelineStartHour (rather than midnight) is what makes the
+// visible window start exactly there every day, provided timelineHourStep evenly divides
+// 24 (e.g. 1,2,3,4,6,8,12) — with a non-divisor step the daily start still drifts, since
+// that's an inherent property of fixed-interval hour stepping, not something this can fix.
+function applyTimelineStartHour(dateObj) {
+    var d = new Date(dateObj);
+    d.setHours(timelineStartHour, 0, 0, 0);
+    return d;
 }
 
 function RecreateTimelineView(sections) {
@@ -1004,14 +1061,19 @@ function RecreateTimelineView(sections) {
         delete scheduler.matrix.timeline;
     }
 
+    // 7 days visible at once, within the configured daily window (full day by default).
+    var windowHours = Math.max(1, timelineEndHour - timelineStartHour);
+    var columnsPerDay = Math.ceil(windowHours / timelineHourStep);
+    var visibleColumns = Math.max(1, columnsPerDay * 7);
+
     // Recreate timeline view with new sections
     scheduler.createTimelineView({
         name: "timeline",
         x_unit: "hour",
         x_date: "%H",
-        x_step: 3,
-        x_size: (8 * 7),
-        x_length: (8 * 7),
+        x_step: timelineHourStep,
+        x_size: visibleColumns,
+        x_length: visibleColumns,
         dy: 20,
         event_dy: 20,
         folder_dy: 20,  // Height for parent/folder rows

@@ -1,4 +1,4 @@
-page 50664 "task Scheduler Setup"
+page 50664 "Task Scheduler Setup"
 {
     PageType = Card;
     ApplicationArea = All;
@@ -35,6 +35,26 @@ page 50664 "task Scheduler Setup"
                 {
                     ApplicationArea = All;
                     ToolTip = 'Color of the Requested time-range strip on the Day Planning bar. Enter a hex color, e.g. #6FCF97.';
+                }
+            }
+            group(Timeline)
+            {
+                Caption = 'Timeline';
+
+                field("Timeline Hour Step"; Rec."Timeline Hour Step")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Number of hours between marks on the Task Scheduler''s timeline header (e.g. 3 shows 00, 03, 06...). Leave blank to use the default (3).';
+                }
+                field("Timeline Start Hour"; Rec."Timeline Start Hour")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Hour of day the timeline starts at (e.g. 7 for 07:00). Leave blank/0 for midnight (full day).';
+                }
+                field("Timeline End Hour"; Rec."Timeline End Hour")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Hour of day the timeline ends at (e.g. 19 for 19:00). Leave blank/0 for midnight (full day, i.e. 24).';
                 }
             }
         }

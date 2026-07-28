@@ -39,6 +39,8 @@ controladdin DHXProjectScheduleAddin
     procedure Init(elements: Text; EarliestPlanningDate: Date);
     procedure LoadData(EventTxt: Text);
     procedure SetBarColors(colorsJson: Text);
+    procedure SetTimelineHourStep(hourStep: Integer);
+    procedure SetTimelineHourRange(startHour: Integer; endHour: Integer);
     procedure UpdateEventId(EventIdsJsonTxt: Text);
     procedure SetLightboxEventValues(lightboxId: Text; ResourceId: Text; ResourceName: Text);
     procedure RefreshTimeline(resourcesJson: Text; eventsJson: Text; DateAnchor: Date);

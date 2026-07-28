@@ -30,6 +30,21 @@ table 50617 "Task Scheduler Setup"
             Caption = 'Requested Color';
             DataClassification = CustomerContent;
         }
+        field(50; "Timeline Hour Step"; Integer)
+        {
+            Caption = 'Timeline Hour Step';
+            DataClassification = CustomerContent;
+        }
+        field(60; "Timeline Start Hour"; Integer)
+        {
+            Caption = 'Timeline Start Hour';
+            DataClassification = CustomerContent;
+        }
+        field(70; "Timeline End Hour"; Integer)
+        {
+            Caption = 'Timeline End Hour';
+            DataClassification = CustomerContent;
+        }
     }
 
     keys
