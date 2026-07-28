@@ -69,34 +69,66 @@ window.BOOT = function() {
         text-align: left !important;
     }
 
-    /* Event styling per type */
-
-    /* DayPlanning_0 events */
-    .dhx_cal_event.event-DayPlanning_0,
-    .dhx_cal_event_line.event-DayPlanning_0,
-    .dhx_event_line.event-DayPlanning_0,
-    .dhx_cal_event.event-DayPlanning_0 .dhx_title,
-    .dhx_cal_event.event-DayPlanning_0 .dhx_body {
-        color: white !important;
-        font-size: 14px !important;
-        /*
-        background-color: #D1ECF1 !important;
-        border-color: #17A2B8 !important;
-        */
+    /* Event styling: Day Planning bar, 3-part Requested/Assigned split.
+       Colors are CSS custom properties so AL can override them at runtime
+       (see SetBarColors below) — the values here are just defaults used
+       until/unless AL sends different ones from setup. */
+    #scheduler_here {
+        --dp-color-envelope: #1B3A6B;
+        --dp-color-envelope-border: #14294D;
+        --dp-color-assigned: #7FB3FA;
+        --dp-color-requested: #6FCF97;
     }
 
-    /* DayPlanning_1 events */
-    .dhx_cal_event.event-DayPlanning_1,
-    .dhx_cal_event_line.event-DayPlanning_1,
-    .dhx_event_line.event-DayPlanning_1,
-    .dhx_cal_event.event-DayPlanning_1 .dhx_title,
-    .dhx_cal_event.event-DayPlanning_1 .dhx_body {
-        color: black !important;
+    /* Outer bar = envelope (earliest..latest of Requested/Assigned) — solid dark blue base */
+    .dhx_cal_event.event-DayPlanning,
+    .dhx_cal_event_line.event-DayPlanning,
+    .dhx_event_line.event-DayPlanning {
+        background: var(--dp-color-envelope) !important;
+        border-color: var(--dp-color-envelope-border) !important;
         font-size: 14px !important;
-        /*
-        background-color: #F8D7DA !important;
-        border-color: #DC3545 !important;
-        */
+        padding: 0 !important;
+    }
+
+    /* Wrapper filling the whole bar; positions the two inner strips + label */
+    .dp-bar-wrap {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    /* Top half: Assigned start/end sub-range */
+    .dp-bar-assigned {
+        position: absolute;
+        top: 0;
+        height: 50%;
+        background: var(--dp-color-assigned) !important;
+    }
+
+    /* Bottom half: Requested start/end sub-range */
+    .dp-bar-requested {
+        position: absolute;
+        bottom: 0;
+        height: 50%;
+        background: var(--dp-color-requested) !important;
+    }
+
+    /* Centered label on top of both strips */
+    .dp-bar-label {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        pointer-events: none;
+        text-shadow: 0 0 2px rgba(0,0,0,0.7);
+        z-index: 2;
     }
 
     /* ── Right-click context menu ─────────────────────────────── */
@@ -172,15 +204,79 @@ window.BOOT = function() {
         tooltip: true,
     });
 
-    // Apply CSS class based on event type
+    // All Day Planning bars share one class; the 3-part Requested/Assigned
+    // split is drawn by event_text below, not by vacant/assigned color.
     scheduler.templates.event_class = function(start, end, ev) {
-        var typeClass = "";
-        if (ev.type === "DayPlanning_0") {
-            typeClass = "event-DayPlanning_0";
-        } else if (ev.type === "DayPlanning_1") {
-            typeClass = "event-DayPlanning_1";
+        return "event-DayPlanning";
+    };
+
+    function escapeHtml(text) {
+        return String(text || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+    }
+
+    function parseHHmmToMinutes(str) {
+        if (!str) return null;
+        var parts = String(str).split(':');
+        if (parts.length < 2) return null;
+        var h = parseInt(parts[0], 10), m = parseInt(parts[1], 10);
+        if (isNaN(h) || isNaN(m)) return null;
+        return h * 60 + m;
+    }
+
+    // A time value is "valid" only when both its Start and End are set (<> 0T on the AL
+    // side, which serializes to a non-empty "HH:mm" string; missing/zero comes through blank).
+    //
+    // Renders the bar as:
+    //  - Requested and Assigned both valid and DIFFERENT  -> 3 parts: full-width dark-blue
+    //    envelope (start..end = earliest..latest of the two) + light-blue top-half strip for
+    //    the Assigned sub-range + green bottom-half strip for the Requested sub-range.
+    //  - Requested and Assigned both valid and EQUAL       -> 1 part: Assigned only, full height
+    //    (same period, nothing to compare).
+    //  - Only Assigned valid                                -> 1 part: Assigned only, full height.
+    //  - Only Requested valid                                -> 1 part: Requested only, full height.
+    //  - Neither valid                                       -> no strip, plain envelope + label.
+    scheduler.templates.event_bar_text = function(start, end, ev) {
+        var totalMin = (end - start) / 60000;
+        var label = escapeHtml(ev.text);
+        if (!(totalMin > 0)) {
+            return '<div class="dp-bar-wrap"><div class="dp-bar-label">' + label + '</div></div>';
         }
-        return typeClass;
+
+        var envStartMin = start.getHours() * 60 + start.getMinutes();
+
+        var assignedStartMin = parseHHmmToMinutes(ev.start_time_assigned);
+        var assignedEndMin = parseHHmmToMinutes(ev.end_time_assigned);
+        var assignedValid = (assignedStartMin !== null) && (assignedEndMin !== null);
+
+        var requestedStartMin = parseHHmmToMinutes(ev.start_time_requested);
+        var requestedEndMin = parseHHmmToMinutes(ev.end_time_requested);
+        var requestedValid = (requestedStartMin !== null) && (requestedEndMin !== null);
+
+        var sameRange = assignedValid && requestedValid &&
+            (assignedStartMin === requestedStartMin) && (assignedEndMin === requestedEndMin);
+
+        function segmentHtml(cls, segStartMin, segEndMin, fullHeight) {
+            var left = Math.max(0, Math.min(100, ((segStartMin - envStartMin) / totalMin) * 100));
+            var width = Math.max(0, Math.min(100 - left, ((segEndMin - segStartMin) / totalMin) * 100));
+            var extra = fullHeight ? ' top:0; bottom:auto; height:100%;' : '';
+            return '<div class="' + cls + '" style="left:' + left + '%; width:' + width + '%;' + extra + '"></div>';
+        }
+
+        var segmentsHtml = "";
+        if (assignedValid && requestedValid && !sameRange) {
+            segmentsHtml += segmentHtml('dp-bar-assigned', assignedStartMin, assignedEndMin, false);
+            segmentsHtml += segmentHtml('dp-bar-requested', requestedStartMin, requestedEndMin, false);
+        } else if (sameRange || assignedValid) {
+            segmentsHtml += segmentHtml('dp-bar-assigned', assignedStartMin, assignedEndMin, true);
+        } else if (requestedValid) {
+            segmentsHtml += segmentHtml('dp-bar-requested', requestedStartMin, requestedEndMin, true);
+        }
+
+        return '<div class="dp-bar-wrap">' + segmentsHtml +
+               '<div class="dp-bar-label">' + label + '</div></div>';
     };
 
     // Custom tooltip template
@@ -208,6 +304,8 @@ window.BOOT = function() {
             }
         }
         
+        var assignedStartTime = ev.start_time_assigned || "";
+        var assignedEndTime = ev.end_time_assigned || "";
         var assignedNonWorkingMin = (ev.non_working_minutes_assigned !== undefined && ev.non_working_minutes_assigned !== null) ? ev.non_working_minutes_assigned : "";
         var assignedHours = (ev.assigned_hours !== undefined && ev.assigned_hours !== null) ? ev.assigned_hours : "";
         var reqResNo = ev.requested_resource_no || "";
@@ -225,8 +323,8 @@ window.BOOT = function() {
                    "<b>Assigned:</b><br/>" +
                    "-----------------------------------<br/>" +
                    "<b>Resource No.:</b> " + resno + " - " + resname + "<br/>" +    // Assigned Resource No.
-                   "<b>Start Time:</b> " + formatTimeOnly(start) + "<br/>" +        // Start Time Assigned
-                   "<b>End Time:</b> " + formatTimeOnly(end) + "<br/>" +            // End Time Assigned
+                   "<b>Start Time:</b> " + assignedStartTime + "<br/>" +            // Start Time Assigned
+                   "<b>End Time:</b> " + assignedEndTime + "<br/>" +                // End Time Assigned
                    "<b>Non Working (Minutes)</b> " + assignedNonWorkingMin + "<br/>" +  // Non Working Minutes Assigned
                    "<b>Hours</b> " + assignedHours + "<br/>" +                          // Assigned Hours
 
@@ -613,6 +711,23 @@ window.BOOT = function() {
   }
 }
 
+// Called from AL (setup-driven) to override the Day Planning bar colors defined
+// as CSS custom properties above. colorsJson keys: envelope, envelopeBorder,
+// assigned, requested — any key can be omitted to keep that color's default.
+function SetBarColors(colorsJson) {
+    try {
+        var colors = ParseJSonTxt(colorsJson) || {};
+        var root = document.getElementById("scheduler_here");
+        if (!root) return;
+        if (colors.envelope) root.style.setProperty("--dp-color-envelope", colors.envelope);
+        if (colors.envelopeBorder) root.style.setProperty("--dp-color-envelope-border", colors.envelopeBorder);
+        if (colors.assigned) root.style.setProperty("--dp-color-assigned", colors.assigned);
+        if (colors.requested) root.style.setProperty("--dp-color-requested", colors.requested);
+    } catch (e) {
+        console.warn("SetBarColors: invalid colorsJson", colorsJson, e);
+    }
+}
+
 function Init(dataelements, EarliestPlanningDate) {
     // Parse input safely (supports JSON string or object)
     let parsed = ParseJSonTxt(dataelements);
@@ -926,22 +1041,24 @@ function setupContextMenu() {
     menu.id = 'dhx-ctx-menu';
     menu.className = 'hidden';
     menu.innerHTML =
-        '<div class="dhx-ctx-item" data-action="ShowJobResources">' +
-            '<span class="dhx-ctx-icon">&#128100;</span>Show Job Resources</div>' +
+        '<div class="dhx-ctx-item" data-action="OpenDayPlanning">' +
+            '<span class="dhx-ctx-icon">&#128197;</span>Open Day Planning</div>' +
         '<div class="dhx-ctx-separator"></div>' +
         '<div class="dhx-ctx-item" data-action="OpenTask">' +
-            '<span class="dhx-ctx-icon">&#128196;</span>Open Task</div>' +
-        '<div class="dhx-ctx-item" data-action="OpenDayPlanning">' +
-            '<span class="dhx-ctx-icon">&#128197;</span>Open DayPlanning</div>' +
+            '<span class="dhx-ctx-icon">&#128196;</span>Open Job Task Card</div>' +
+        '<div class="dhx-ctx-item" data-action="ShowJobResources">' +
+            '<span class="dhx-ctx-icon">&#128100;</span>Open Job Task Resources</div>' +
         '<div class="dhx-ctx-item" data-action="OpenDayPlanningVisual">' +
-            '<span class="dhx-ctx-icon">&#128248;</span>Open DayPlanning Visual</div>' +
+            '<span class="dhx-ctx-icon">&#128248;</span>Open Job Task Scheduler</div>' +
         '<div class="dhx-ctx-separator"></div>' +
-        '<div class="dhx-ctx-item" data-action="OpenResourceScheduler">' +
-            '<span class="dhx-ctx-icon">&#128101;</span>Open Resource Scheduler</div>' +
-        '<div class="dhx-ctx-item" data-action="OpenRequestedResourceCard">' +
-            '<span class="dhx-ctx-icon">&#128100;</span>Open Requested Resource Card</div>' +
+        '<div class="dhx-ctx-item" data-action="OpenResourceSchedulerAssigned">' +
+            '<span class="dhx-ctx-icon">&#128101;</span>Open Resource Scheduler (assigned)</div>' +
+        '<div class="dhx-ctx-item" data-action="OpenResourceSchedulerRequested">' +
+            '<span class="dhx-ctx-icon">&#128101;</span>Open Resource Scheduler (Requested)</div>' +
         '<div class="dhx-ctx-item" data-action="OpenAssignedResourceCard">' +
-            '<span class="dhx-ctx-icon">&#128100;</span>Open Assigned Resource Card</div>' +
+            '<span class="dhx-ctx-icon">&#128100;</span>Open Resource Card (assigned)</div>' +
+        '<div class="dhx-ctx-item" data-action="OpenRequestedResourceCard">' +
+            '<span class="dhx-ctx-icon">&#128100;</span>Open Resource Card (Requested)</div>' +
         '<div class="dhx-ctx-separator"></div>' +
         '<div class="dhx-ctx-item ctx-cancel" data-action="Cancel">' +
             '<span class="dhx-ctx-icon">&#10005;</span>Cancel</div>';
@@ -959,7 +1076,9 @@ function setupContextMenu() {
             (target.type === 'event') ? '' : 'none';
         menu.querySelector('[data-action="OpenDayPlanningVisual"]').style.display =
             (target.type === 'event') ? '' : 'none';
-        menu.querySelector('[data-action="OpenResourceScheduler"]').style.display =
+        menu.querySelector('[data-action="OpenResourceSchedulerAssigned"]').style.display =
+            (target.type === 'event') ? '' : 'none';
+        menu.querySelector('[data-action="OpenResourceSchedulerRequested"]').style.display =
             (target.type === 'event') ? '' : 'none';
         menu.querySelector('[data-action="OpenRequestedResourceCard"]').style.display =
             (target.type === 'event') ? '' : 'none';

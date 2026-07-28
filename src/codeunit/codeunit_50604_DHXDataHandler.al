@@ -113,6 +113,15 @@ codeunit 50604 "DHX Data Handler"
         EndDateTxt: Text;
         _DummyEndDate: Date;
         DetailsLabel: Label '%1 - %2|%3 - %4|%5 - %6';
+
+        HasAssigned: Boolean;
+        HasRequested: Boolean;
+        AssignedStartTime: Time;
+        AssignedEndTime: Time;
+        RequestedStartTime: Time;
+        RequestedEndTime: Time;
+        EnvelopeStartTime: Time;
+        EnvelopeEndTime: Time;
     begin
         PlanninJsonTxt := '';
         //Marking Job based on Day Plannings within the given date range
@@ -156,7 +165,59 @@ codeunit 50604 "DHX Data Handler"
                 if AnchorDate = 0D then
                     CountToWeekNumber(DayPlanning."Plan Date", WeekTemp);
 
-                GetStartEndTxt(DayPlanning, StartDateTxt, EndDateTxt);
+                // Envelope = earliest start / latest end across the Assigned and Requested
+                // time sub-ranges for this Plan Date, so the bar spans both strips drawn by
+                // wrapper.js. Missing bounds on a side that has data fall back to the
+                // start/end of day, same convention as GetStartEndTxt(DayPlanning...) below.
+                HasAssigned := (DayPlanning."Start Time Assigned" <> 0T) or (DayPlanning."End Time Assigned" <> 0T);
+                HasRequested := (DayPlanning."Start Time Requested" <> 0T) or (DayPlanning."End Time Requested" <> 0T);
+
+                if HasAssigned then begin
+                    if DayPlanning."Start Time Assigned" <> 0T then
+                        AssignedStartTime := DayPlanning."Start Time Assigned"
+                    else
+                        AssignedStartTime := 000000T;
+                    if DayPlanning."End Time Assigned" <> 0T then
+                        AssignedEndTime := DayPlanning."End Time Assigned"
+                    else
+                        AssignedEndTime := 235959T;
+                end;
+
+                if HasRequested then begin
+                    if DayPlanning."Start Time Requested" <> 0T then
+                        RequestedStartTime := DayPlanning."Start Time Requested"
+                    else
+                        RequestedStartTime := 000000T;
+                    if DayPlanning."End Time Requested" <> 0T then
+                        RequestedEndTime := DayPlanning."End Time Requested"
+                    else
+                        RequestedEndTime := 235959T;
+                end;
+
+                if HasAssigned and HasRequested then begin
+                    if AssignedStartTime < RequestedStartTime then
+                        EnvelopeStartTime := AssignedStartTime
+                    else
+                        EnvelopeStartTime := RequestedStartTime;
+                    if AssignedEndTime > RequestedEndTime then
+                        EnvelopeEndTime := AssignedEndTime
+                    else
+                        EnvelopeEndTime := RequestedEndTime;
+                end else if HasAssigned then begin
+                    EnvelopeStartTime := AssignedStartTime;
+                    EnvelopeEndTime := AssignedEndTime;
+                end else if HasRequested then begin
+                    EnvelopeStartTime := RequestedStartTime;
+                    EnvelopeEndTime := RequestedEndTime;
+                end else begin
+                    // Neither side has data: fall back to the whole day so a Day Planning
+                    // with no times at all still renders as an all-day bar.
+                    EnvelopeStartTime := 000000T;
+                    EnvelopeEndTime := 235959T;
+                end;
+
+                StartDateTxt := ToSessionDateTimeTxt(DayPlanning."Plan Date", EnvelopeStartTime);
+                EndDateTxt := ToSessionDateTimeTxt(DayPlanning."Plan Date", EnvelopeEndTime);
                 Clear(PlanningObject);
                 PlanningObject.Add('id', DayPlanning."Job No." + '|' +
                                          DayPlanning."Job Task No." + '|' +
@@ -189,14 +250,6 @@ codeunit 50604 "DHX Data Handler"
                 //     else
                 //         PlanningObject.Add('color', 'green');
                 // end;
-                if ResNo = '' then begin
-                    PlanningObject.Add('color', '#3367D1'); //Blue BC Selection
-                    PlanningObject.Add('type', 'DayPlanning_0');
-                end else begin
-                    PlanningObject.Add('color', '#21B36C'); //Green
-                    PlanningObject.Add('type', 'DayPlanning_1');
-                end;
-
                 if not Ven.Get(DayPlanning."Vendor No.") then
                     Clear(Ven);
                 PlanningObject.Add('details', Ven.Name);
@@ -208,6 +261,14 @@ codeunit 50604 "DHX Data Handler"
                 PlanningObject.Add('assigned_hours', DayPlanning."Assigned Hours");
                 PlanningObject.Add('requested_resource_no', DayPlanning."Requested Resource No.");
                 PlanningObject.Add('requested_resource_name', ReqResName);
+                if DayPlanning."Start Time Assigned" <> 0T then
+                    PlanningObject.Add('start_time_assigned', Format(DayPlanning."Start Time Assigned", 0, '<Hours24,2>:<Minutes,2>'))
+                else
+                    PlanningObject.Add('start_time_assigned', '');
+                if DayPlanning."End Time Assigned" <> 0T then
+                    PlanningObject.Add('end_time_assigned', Format(DayPlanning."End Time Assigned", 0, '<Hours24,2>:<Minutes,2>'))
+                else
+                    PlanningObject.Add('end_time_assigned', '');
                 if DayPlanning."Start Time Requested" <> 0T then
                     PlanningObject.Add('start_time_requested', Format(DayPlanning."Start Time Requested", 0, '<Hours24,2>:<Minutes,2>'))
                 else
@@ -1712,11 +1773,11 @@ codeunit 50604 "DHX Data Handler"
     end;
 
     /// <summary>
-    /// Opens the DHX Resource Scheduler filtered to the resource assigned to the day
+    /// Opens the DHX Resource Scheduler filtered to the Assigned Resource No. of the day
     /// planning line linked to the given event ID (format: JobNo|JobTaskNo|DayNo|DayLineNo|ResNo|ResName).
-    /// Used by the right-click context menu "Open Resource Scheduler" on an event.
+    /// Used by the right-click context menu "Open Resource Scheduler (assigned)" on an event.
     /// </summary>
-    procedure OpenResourceScheduler(eventId: Text)
+    procedure OpenResourceSchedulerAssigned(eventId: Text)
     var
         DayPlanning: Record "Day Planning";
         ResScheduler: Page "DHX Resource Scheduler";
@@ -1724,7 +1785,6 @@ codeunit 50604 "DHX Data Handler"
         JobNo: Code[20];
         TaskNo: Code[20];
         DayLineNo: Integer;
-        ResourceNo: Code[20];
         MsgLbl: Label 'Day planning not found for Event ID: %1';
     begin
         EventIDList := eventId.Split('|');
@@ -1732,12 +1792,38 @@ codeunit 50604 "DHX Data Handler"
         TaskNo := EventIDList.Get(2);
         Evaluate(DayLineNo, EventIDList.Get(4));
         if DayPlanning.Get(JobNo, TaskNo, DayLineNo) then begin
-            if DayPlanning."Assigned Resource No." <> '' then
-                ResourceNo := DayPlanning."Assigned Resource No."
-            else
-                ResourceNo := DayPlanning."Requested Resource No.";
-            ResScheduler.SetResourceFilter(ResourceNo);
-            ResScheduler.RunModal();
+            if DayPlanning."Assigned Resource No." <> '' then begin
+                ResScheduler.SetResourceFilter(DayPlanning."Assigned Resource No.");
+                ResScheduler.RunModal();
+            end;
+        end else
+            Message(MsgLbl, eventId);
+    end;
+
+    /// <summary>
+    /// Opens the DHX Resource Scheduler filtered to the Requested Resource No. of the day
+    /// planning line linked to the given event ID (format: JobNo|JobTaskNo|DayNo|DayLineNo|ResNo|ResName).
+    /// Used by the right-click context menu "Open Resource Scheduler (Requested)" on an event.
+    /// </summary>
+    procedure OpenResourceSchedulerRequested(eventId: Text)
+    var
+        DayPlanning: Record "Day Planning";
+        ResScheduler: Page "DHX Resource Scheduler";
+        EventIDList: List of [Text];
+        JobNo: Code[20];
+        TaskNo: Code[20];
+        DayLineNo: Integer;
+        MsgLbl: Label 'Day planning not found for Event ID: %1';
+    begin
+        EventIDList := eventId.Split('|');
+        JobNo := EventIDList.Get(1);
+        TaskNo := EventIDList.Get(2);
+        Evaluate(DayLineNo, EventIDList.Get(4));
+        if DayPlanning.Get(JobNo, TaskNo, DayLineNo) then begin
+            if DayPlanning."Requested Resource No." <> '' then begin
+                ResScheduler.SetResourceFilter(DayPlanning."Requested Resource No.");
+                ResScheduler.RunModal();
+            end;
         end else
             Message(MsgLbl, eventId);
     end;
@@ -3016,7 +3102,7 @@ codeunit 50604 "DHX Data Handler"
 
     /// <summary>
     /// Opens DHX Scheduler (Project) filtered to the job task linked to the event.
-    /// Used by the right-click context menu "Open DayPlanning Visual".
+    /// Used by the right-click context menu "Open Day Planning Visual".
     /// </summary>
     procedure OpenDayPlanningVisual(eventId: Text)
     var
