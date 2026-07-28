@@ -24,6 +24,7 @@ page 50621 "DHX Scheduler (Project)"
                     PlanninJsonTxt: Text;
                     ResourceJSONTxt: Text;
                     ColorsJsonTxt: Text;
+                    HasSetup: Boolean;
                 begin
                     //DHXDataHandler.GetOneYearPeriodDates(Today(), startDate, endDate);
                     DHXDataHandler.GetWeekPeriodDates(Today(), startDate, endDate);
@@ -35,8 +36,11 @@ page 50621 "DHX Scheduler (Project)"
                         ResourceJSONTxt := DHXDataHandler.GetYUnitElementsJSON_Project(Today(), startDate, endDate, ResourceFilter, PlanninJsonTxt, EarliestPlanningDate);
                         DHXDataHandler.ValidateSchedulerSectionMatch(ResourceJSONTxt, PlanninJsonTxt);
                     end;
+                    HasSetup := DayPlanningBarSetup.Get('');
+                    if HasSetup and (DayPlanningBarSetup."Timeline Hour Step" > 0) then
+                        CurrPage.DhxScheduler.SetTimelineHourStep(DayPlanningBarSetup."Timeline Hour Step");
                     CurrPage.DhxScheduler.Init(ResourceJSONTxt, EarliestPlanningDate);
-                    if DayPlanningBarSetup.Get('') then
+                    if HasSetup then
                         if (DayPlanningBarSetup."Envelope Color" <> '') or
                            (DayPlanningBarSetup."Envelope Border Color" <> '') or
                            (DayPlanningBarSetup."Assigned Color" <> '') or

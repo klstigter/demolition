@@ -1,6 +1,7 @@
 var scheduler_here; // global variable for dhx Scheduler
 var resourceBlockVisible = false; // true only for a new event
 var bcPlanningVisible = false;    // show only for existing events
+var timelineHourStep = 3;         // hours between marks on the timeline scale; overridable via SetTimelineHourStep (AL setup)
 
 //<< Inject CSS to hide default tabs : Day, Week, Month **** 2025.12.24
 // Toggle helpers
@@ -995,6 +996,15 @@ function RefreshTimeline(resourcesJson, eventsJson, dateAnchor) {
     }
 }
 
+// Called from AL (setup-driven) to override the hour interval shown on the timeline
+// scale (default 3h, i.e. "00 03 06 09 12 15 18 21..."). Always keeps ~7 days visible,
+// regardless of step, by recomputing the column count from total hours / step. Must be
+// called (if at all) BEFORE Init(), since RecreateTimelineView() reads this at build time.
+function SetTimelineHourStep(hourStep) {
+    var step = parseInt(hourStep, 10);
+    timelineHourStep = (step > 0) ? step : 3;
+}
+
 function RecreateTimelineView(sections) {
     // Remove existing timeline view if it exists
     if (scheduler.matrix && scheduler.matrix.timeline) {
@@ -1004,14 +1014,17 @@ function RecreateTimelineView(sections) {
         delete scheduler.matrix.timeline;
     }
 
+    // 7 days visible at once, regardless of hour step.
+    var visibleColumns = Math.max(1, Math.round((24 * 7) / timelineHourStep));
+
     // Recreate timeline view with new sections
     scheduler.createTimelineView({
         name: "timeline",
         x_unit: "hour",
         x_date: "%H",
-        x_step: 3,
-        x_size: (8 * 7),
-        x_length: (8 * 7),
+        x_step: timelineHourStep,
+        x_size: visibleColumns,
+        x_length: visibleColumns,
         dy: 20,
         event_dy: 20,
         folder_dy: 20,  // Height for parent/folder rows
