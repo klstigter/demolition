@@ -39,6 +39,8 @@ page 50621 "DHX Scheduler (Project)"
                     HasSetup := DayPlanningBarSetup.Get('');
                     if HasSetup and (DayPlanningBarSetup."Timeline Hour Step" > 0) then
                         CurrPage.DhxScheduler.SetTimelineHourStep(DayPlanningBarSetup."Timeline Hour Step");
+                    if HasSetup and (DayPlanningBarSetup."Timeline End Hour" > 0) then
+                        CurrPage.DhxScheduler.SetTimelineHourRange(DayPlanningBarSetup."Timeline Start Hour", DayPlanningBarSetup."Timeline End Hour");
                     CurrPage.DhxScheduler.Init(ResourceJSONTxt, EarliestPlanningDate);
                     if HasSetup then
                         if (DayPlanningBarSetup."Envelope Color" <> '') or
