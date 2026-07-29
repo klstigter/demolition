@@ -33,6 +33,8 @@ controladdin DHXPoolResourceScheduleAddin
     event OnEventsNotMatch(EventIdsJsonTxt: Text);
     event OnGetAllEvents(EventIdsJsonTxt: Text);
     event OnGetAllSections(EventIdsJsonTxt: Text);
+    event OnResourceFilterIconClick();
+    event OnClearResourceFilter();
 
     procedure Init(elements: Text; EarliestPlanningDate: Date);
     procedure LoadData(EventTxt: Text);
@@ -44,4 +46,5 @@ controladdin DHXPoolResourceScheduleAddin
     procedure get_events_not_match_with_section();
     procedure getAllEvents();
     procedure getAllSections();
+    procedure SetResourceFilterInfo(resNo: Text; resName: Text; periodFrom: Text; periodTo: Text; skillFilter: Text);
 }

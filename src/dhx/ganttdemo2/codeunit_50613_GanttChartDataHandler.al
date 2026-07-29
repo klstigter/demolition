@@ -380,9 +380,9 @@ codeunit 50613 "GanttChartDataHandler"
         GanttSetup.Get(UserId);
         GetDateRange(GanttSetup, AnchorDate, StartDate, EndDate);
         if JobNo <> '' then
-            DayPlanning.SetRange("Job No.", JobNo);
+            DayPlanning.SetFilter("Job No.", JobNo);
         if JobTaskNo <> '' then
-            DayPlanning.SetRange("Job Task No.", JobTaskNo);
+            DayPlanning.SetFilter("Job Task No.", JobTaskNo);
         if AnchorDate <> 0D then
             DayPlanning.Setrange("Plan Date", StartDate, EndDate);
 
@@ -395,9 +395,9 @@ codeunit 50613 "GanttChartDataHandler"
         // --- Second pass: Request day plannings with blank Task Date but Work Order Placeholder Date in range ---
         DayPlanning.Reset();
         if JobNo <> '' then
-            DayPlanning.SetRange("Job No.", JobNo);
+            DayPlanning.SetFilter("Job No.", JobNo);
         if JobTaskNo <> '' then
-            DayPlanning.SetRange("Job Task No.", JobTaskNo);
+            DayPlanning.SetFilter("Job Task No.", JobTaskNo);
         DayPlanning.SetRange("Plan Status", DayPlanning."Plan Status"::"In Request");
         DayPlanning.SetRange("Plan Date", 0D);
         DayPlanning.SetFilter("Work Order No.", '<>%1', '');

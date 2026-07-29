@@ -240,12 +240,13 @@ page 50621 "DHX Scheduler (Project)"
 
                 trigger OnFilterIconClick()
                 var
-                    FilterDlg: Page "Task Scheduler Filter";
-                    NewJobNo: Code[20];
-                    NewJobTaskNo: Code[20];
+                    FilterDlg: Report "Task Scheduler Filter";
+                    NewJobNo: Text;
+                    NewJobTaskNo: Text;
                 begin
-                    FilterDlg.SetFilter(CopyStr(jobFilter, 1, MaxStrLen(NewJobNo)), CopyStr(JobTaskFilter, 1, MaxStrLen(NewJobTaskNo)));
-                    if FilterDlg.RunModal() = Action::OK then begin
+                    FilterDlg.SetFilter(jobFilter, JobTaskFilter);
+                    FilterDlg.RunModal();
+                    if FilterDlg.IsConfirmed() then begin
                         FilterDlg.GetFilter(NewJobNo, NewJobTaskNo);
                         jobFilter := NewJobNo;
                         JobTaskFilter := NewJobTaskNo;

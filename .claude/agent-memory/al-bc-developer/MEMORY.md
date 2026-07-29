@@ -4,3 +4,4 @@
 - [al_compile stale cache quirk](al_compile_stale_cache_quirk.md) — al_compile can false-positive "object missing" after rapid edits; trust al_build if it succeeds cleanly
 - [AL query join property](feedback_al_query_sqljointype.md) — nested query dataitem join-type property is `SqlJoinType`, not `DataItemJoinType` (AL0124 if wrong)
 - [al_symbolsearch duplicate containers](feedback_al_symbolsearch_duplicate_containers.md) — can show 2 field-set variants for one table; verify against actual .alpackages files, trust compile as final arbiter
+- [Report requestpage filter-dialog gotchas](requestpage_filter_dialog_gotchas.md) — Report.RunModal() void not Action; TableRelation field() can't ref siblings; PAGE.RunModal(0,Rec)+Codeunit46 alone is BROKEN (confirmed live) — need Page var + SetSelectionFilter() + Codeunit46

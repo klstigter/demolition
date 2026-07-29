@@ -797,7 +797,10 @@ codeunit 50604 "DHX Data Handler"
                                    EndDate: Date;
                                    WithDayPlanning: Boolean;
                                    var PlanninJsonTxt: Text;
-                                   var EarliestPlanningDate: Date): Text
+                                   var EarliestPlanningDate: Date;
+                                   ResourceFilter: Text;
+                                   ResourceNameFilter: Text;
+                                   SkillFilter: Text): Text
     var
         ResCap: Record "Res. Capacity Entry";
         PoolRes: Record Resource;
@@ -835,6 +838,8 @@ codeunit 50604 "DHX Data Handler"
 
         //Add Events of Capacity for the whole period in a single query pass (was: one query open/close per calendar day).
         ResCapQry.SetRange(Date_filter, StartDate, EndDate);
+        if ResourceFilter <> '' then
+            ResCapQry.SetRange(Resource_No__Filter, ResourceFilter);
         if ResCapQry.Open() then begin
             while ResCapQry.Read() do begin
                 ResCap.Get(ResCapQry.Entry_No);
@@ -1011,7 +1016,7 @@ codeunit 50604 "DHX Data Handler"
                 end else begin
                 */
                 // Vendor and Resource
-                GetUniqueResFromCapacity_Pool(ResourceTemp, TempPool, TempResGroup."No.", StartDate, EndDate);
+                GetUniqueResFromCapacity_Pool(ResourceTemp, TempPool, TempResGroup."No.", StartDate, EndDate, ResourceFilter, ResourceNameFilter, SkillFilter);
                 TempPool.Setcurrentkey("Pool Resource No.", "No.");
                 if TempPool.FindSet() then
                     repeat
@@ -2064,7 +2069,10 @@ codeunit 50604 "DHX Data Handler"
                                                                    WithDayPlanning: Boolean;
                                                                    var ResouecesJSon: Text;
                                                                    var EventsJSon: Text;
-                                                                   var EarliestPlanningDate: date): Boolean
+                                                                   var EarliestPlanningDate: date;
+                                                                   ResourceFilter: Text;
+                                                                   ResourceNameFilter: Text;
+                                                                   SkillFilter: Text): Boolean
     var
         TimeLineJSonObj: JsonObject;
         JToken: JsonToken;
@@ -2076,7 +2084,10 @@ codeunit 50604 "DHX Data Handler"
                                             EndDate,
                                             WithDayPlanning,
                                             EventsJSon,
-                                            EarliestPlanningDate);
+                                            EarliestPlanningDate,
+                                            ResourceFilter,
+                                            ResourceNameFilter,
+                                            SkillFilter);
         exit((EventsJSon <> '') and (ResouecesJSon <> ''));
     end;
 
@@ -2314,7 +2325,10 @@ codeunit 50604 "DHX Data Handler"
                                        var TempPoolRes: record Resource temporary;
                                        ResGroupNo: Code[20];
                                        StartDate: Date;
-                                       EndDate: Date)
+                                       EndDate: Date;
+                                       ResourceFilter: Text;
+                                       ResourceNameFilter: Text;
+                                       SkillFilter: Text)
     var
         Res: record Resource;
         ResListQry: Query "Resource List Sections";
@@ -2341,26 +2355,31 @@ codeunit 50604 "DHX Data Handler"
         ResListQry.SetRange(MandatoryFilter, true);
         if ResListQry.Open() then begin
             while ResListQry.Read() do begin
-                PoolNo := '';
                 ResNo := ResListQry.No_;
-                TempRes.Init();
-                TempRes."No." := ResNo;
-                TempRes.Name := ResListQry.Name;
-                if ResListQry.Pool_Resource_No_ <> '' then
-                    PoolNo := ResListQry.Pool_Resource_No_;
-                TempRes."Pool Resource No." := PoolNo;
-                if TempRes.Insert() then;
+                if ResourceMatchesNoFilter(ResNo, ResourceFilter) and
+                   ResourceMatchesNameFilter(ResNo, ResourceNameFilter) and
+                   ResourceMatchesSkillFilter(ResNo, SkillFilter)
+                then begin
+                    PoolNo := '';
+                    TempRes.Init();
+                    TempRes."No." := ResNo;
+                    TempRes.Name := ResListQry.Name;
+                    if ResListQry.Pool_Resource_No_ <> '' then
+                        PoolNo := ResListQry.Pool_Resource_No_;
+                    TempRes."Pool Resource No." := PoolNo;
+                    if TempRes.Insert() then;
 
-                if PoolNo = '' then
-                    PoolNo := TempRes."No.";
-                if Not TempPoolRes.Get(PoolNo) then begin
-                    TempPoolRes.Init();
-                    TempPoolRes."No." := PoolNo;
-                    if Res.Get(PoolNo) then begin
-                        TempPoolRes.Name := Res.Name;
-                        TempPoolRes."Pool Resource No." := Res."Pool Resource No.";
+                    if PoolNo = '' then
+                        PoolNo := TempRes."No.";
+                    if Not TempPoolRes.Get(PoolNo) then begin
+                        TempPoolRes.Init();
+                        TempPoolRes."No." := PoolNo;
+                        if Res.Get(PoolNo) then begin
+                            TempPoolRes.Name := Res.Name;
+                            TempPoolRes."Pool Resource No." := Res."Pool Resource No.";
+                        end;
+                        TempPoolRes.Insert();
                     end;
-                    TempPoolRes.Insert();
                 end;
             end;
             ResListQry.Close();
@@ -2373,26 +2392,31 @@ codeunit 50604 "DHX Data Handler"
         ResListQry.SetFilter(CapacityEntryCount, '>0');
         if ResListQry.Open() then begin
             while ResListQry.Read() do begin
-                PoolNo := '';
                 ResNo := ResListQry.No_;
-                TempRes.Init();
-                TempRes."No." := ResNo;
-                TempRes.Name := ResListQry.Name;
-                if ResListQry.Pool_Resource_No_ <> '' then
-                    PoolNo := ResListQry.Pool_Resource_No_;
-                TempRes."Pool Resource No." := PoolNo;
-                if TempRes.Insert() then;
+                if ResourceMatchesNoFilter(ResNo, ResourceFilter) and
+                   ResourceMatchesNameFilter(ResNo, ResourceNameFilter) and
+                   ResourceMatchesSkillFilter(ResNo, SkillFilter)
+                then begin
+                    PoolNo := '';
+                    TempRes.Init();
+                    TempRes."No." := ResNo;
+                    TempRes.Name := ResListQry.Name;
+                    if ResListQry.Pool_Resource_No_ <> '' then
+                        PoolNo := ResListQry.Pool_Resource_No_;
+                    TempRes."Pool Resource No." := PoolNo;
+                    if TempRes.Insert() then;
 
-                if PoolNo = '' then
-                    PoolNo := TempRes."No.";
-                if Not TempPoolRes.Get(PoolNo) then begin
-                    TempPoolRes.Init();
-                    TempPoolRes."No." := PoolNo;
-                    if Res.Get(PoolNo) then begin
-                        TempPoolRes.Name := Res.Name;
-                        TempPoolRes."Pool Resource No." := Res."Pool Resource No.";
+                    if PoolNo = '' then
+                        PoolNo := TempRes."No.";
+                    if Not TempPoolRes.Get(PoolNo) then begin
+                        TempPoolRes.Init();
+                        TempPoolRes."No." := PoolNo;
+                        if Res.Get(PoolNo) then begin
+                            TempPoolRes.Name := Res.Name;
+                            TempPoolRes."Pool Resource No." := Res."Pool Resource No.";
+                        end;
+                        TempPoolRes.Insert();
                     end;
-                    TempPoolRes.Insert();
                 end;
             end;
             ResListQry.Close();
@@ -2663,11 +2687,17 @@ codeunit 50604 "DHX Data Handler"
         // end;
 
         // find Unique Pool From Resource Capacity
+        // Note: this whole GetUniquePoolFromDayPlannings procedure is currently dead code -
+        // its only caller (the WithDayPlanning branch in GetYUnitElementsJSON_Pool) is
+        // commented out - so '' (no resource filter) is passed through unconditionally here.
         GetUniqueResFromCapacity_Pool(TempRes,
                                 TempPool,
                                 ResGroupNo,
                                 StartDate,
-                                EndDate);
+                                EndDate,
+                                '',
+                                '',
+                                '');
         if TempPool.FindSet() then
             repeat
                 if Not TempPoolRes.Get(TempPool."No.") then begin
@@ -2710,7 +2740,7 @@ codeunit 50604 "DHX Data Handler"
     // Moved from DHX Resource Scheduler page for generic reuse.
     // =========================================================
 
-    procedure ResScheduler_BuildResourcesJson(ResourceFilter: Text): Text
+    procedure ResScheduler_BuildResourcesJson(ResourceFilter: Text; ResourceNameFilter: Text; SkillFilter: Text): Text
     var
         Res: Record Resource;
         JArray: JsonArray;
@@ -2723,13 +2753,17 @@ codeunit 50604 "DHX Data Handler"
             Res.SetFilter("No.", ResourceFilter)
         else
             Res.SetFilter("No.", '<>%1', '');
+        if ResourceNameFilter <> '' then
+            Res.SetFilter(Name, ResourceNameFilter);
         if Res.FindSet() then
             repeat
-                Clear(JObj);
-                JObj.Add('id', Res."No.");
-                JObj.Add('name', Res.Name);
-                JObj.Add('group', Res."Resource Group No.");
-                JArray.Add(JObj);
+                if ResourceMatchesSkillFilter(Res."No.", SkillFilter) then begin
+                    Clear(JObj);
+                    JObj.Add('id', Res."No.");
+                    JObj.Add('name', Res.Name);
+                    JObj.Add('group', Res."Resource Group No.");
+                    JArray.Add(JObj);
+                end;
             until Res.Next() = 0;
         Clear(JRoot);
         JRoot.Add('data', JArray);
@@ -2903,6 +2937,52 @@ codeunit 50604 "DHX Data Handler"
         exit(Result);
     end;
 
+    // Tests whether the resource identified by pResourceNo matches an (optional) Name
+    // filter. Used wherever a resource-name filter needs to be applied against a table
+    // that only holds the resource's No. (e.g. Day Planning, Res. Capacity Entry) rather
+    // than a Record Resource being enumerated directly. Blank filter always matches.
+    local procedure ResourceMatchesNameFilter(pResourceNo: Code[20]; ResourceNameFilter: Text): Boolean
+    var
+        Res: Record Resource;
+    begin
+        if ResourceNameFilter = '' then
+            exit(true);
+        Res.SetRange("No.", pResourceNo);
+        Res.SetFilter(Name, ResourceNameFilter);
+        exit(not Res.IsEmpty());
+    end;
+
+    // Standard-filter match on Resource No. (wildcards/ranges/OR-lists/exclusions), not an
+    // exact-equality check — a user-entered filter like "DRM*" or "A..M" must work the same
+    // way here as it does on the Name side (ResourceMatchesNameFilter above).
+    local procedure ResourceMatchesNoFilter(pResourceNo: Code[20]; ResourceFilter: Text): Boolean
+    var
+        Res: Record Resource;
+    begin
+        if ResourceFilter = '' then
+            exit(true);
+        Res.SetRange("No.", pResourceNo);
+        Res.SetFilter("No.", ResourceFilter);
+        exit(not Res.IsEmpty());
+    end;
+
+    // Standard-filter match on the resource's assigned Skill Code(s), via table "Resource
+    // Skill" (Type = Resource, "No." = the resource, "Skill Code" = the skill). A resource
+    // can have multiple skill assignments, so this checks for existence of at least one
+    // matching row rather than equality on a single field. Blank filter always matches,
+    // same not-blank convention as ResourceMatchesNoFilter/ResourceMatchesNameFilter above.
+    local procedure ResourceMatchesSkillFilter(pResourceNo: Code[20]; SkillFilter: Text): Boolean
+    var
+        ResourceSkill: Record "Resource Skill";
+    begin
+        if SkillFilter = '' then
+            exit(true);
+        ResourceSkill.SetRange(Type, ResourceSkill.Type::Resource);
+        ResourceSkill.SetRange("No.", pResourceNo);
+        ResourceSkill.SetFilter("Skill Code", SkillFilter);
+        exit(not ResourceSkill.IsEmpty());
+    end;
+
     procedure ResScheduler_GetResourceColor(pResourceNo: Code[20]; pColorType: Text): Text
     var
         ResColor: Record "Planning Color Opt.";
@@ -2937,7 +3017,7 @@ codeunit 50604 "DHX Data Handler"
     // Day/Week/Month buttons).
     // =========================================================
 
-    procedure ResScheduler_BuildEventsJson(ResourceFilter: Text; StartDate: Date; EndDate: Date): Text
+    procedure ResScheduler_BuildEventsJson(ResourceFilter: Text; StartDate: Date; EndDate: Date; ResourceNameFilter: Text; SkillFilter: Text): Text
     var
         DayPlanning: Record "Day Planning";
         StarDateTimeStr: Text;
@@ -2958,21 +3038,25 @@ codeunit 50604 "DHX Data Handler"
             DayPlanning.SetFilter("Assigned Resource No.", '<>%1', '');
         if DayPlanning.FindSet() then
             repeat
-                GetStartEndTxt(DayPlanning, StarDateTimeStr, EndDateTimeStr);
-                if (StarDateTimeStr <> '') and (EndDateTimeStr <> '') then begin
-                    eventColor := ResScheduler_GetResourceColor(DayPlanning."Assigned Resource No.", 'DayPlanning');
-                    GetReqStartEndTxt(DayPlanning, ReqStartDateTimeStr, ReqEndDateTimeStr);
-                    ResScheduler_AddEvent(
-                        JArray,
-                        Format(DayPlanning.RecordId),
-                        DayPlanning."Assigned Resource No.",
-                        eventColor,
-                        StarDateTimeStr,
-                        EndDateTimeStr,
-                        DayPlanning.Description,
-                        'DayPlanning',
-                        ReqStartDateTimeStr,
-                        ReqEndDateTimeStr);
+                if ResourceMatchesNameFilter(DayPlanning."Assigned Resource No.", ResourceNameFilter) and
+                   ResourceMatchesSkillFilter(DayPlanning."Assigned Resource No.", SkillFilter)
+                then begin
+                    GetStartEndTxt(DayPlanning, StarDateTimeStr, EndDateTimeStr);
+                    if (StarDateTimeStr <> '') and (EndDateTimeStr <> '') then begin
+                        eventColor := ResScheduler_GetResourceColor(DayPlanning."Assigned Resource No.", 'DayPlanning');
+                        GetReqStartEndTxt(DayPlanning, ReqStartDateTimeStr, ReqEndDateTimeStr);
+                        ResScheduler_AddEvent(
+                            JArray,
+                            Format(DayPlanning.RecordId),
+                            DayPlanning."Assigned Resource No.",
+                            eventColor,
+                            StarDateTimeStr,
+                            EndDateTimeStr,
+                            DayPlanning.Description,
+                            'DayPlanning',
+                            ReqStartDateTimeStr,
+                            ReqEndDateTimeStr);
+                    end;
                 end;
             until DayPlanning.Next() = 0;
         Clear(JRoot);
@@ -2981,7 +3065,7 @@ codeunit 50604 "DHX Data Handler"
         exit(Result);
     end;
 
-    procedure ResScheduler_BuildCapacityJson(ResourceFilter: Text; StartDate: Date; EndDate: Date): Text
+    procedure ResScheduler_BuildCapacityJson(ResourceFilter: Text; StartDate: Date; EndDate: Date; ResourceNameFilter: Text; SkillFilter: Text): Text
     var
         ResCap: Record "Res. Capacity Entry";
         TempResCap: Record "Res. Capacity Entry" temporary;
@@ -3012,33 +3096,39 @@ codeunit 50604 "DHX Data Handler"
 
         if ResCap.FindSet() then
             repeat
-                if (ResCap."Resource No." <> LastResNo) or (ResCap."Date" <> LastDate) then begin
-                    if (LastResNo <> '') and (AggCapacity > 0) then begin
-                        TempResCap.Init();
-                        TempResCap."Resource No." := LastResNo;
-                        TempResCap."Date" := LastDate;
-                        TempResCap."Start Time" := AggStartTime;
-                        GetStartEndTxt(TempResCap, AggCapacity, StartDateTimeStr, EndDateTimeStr);
-                        if (StartDateTimeStr <> '') and (EndDateTimeStr <> '') then begin
-                            Clear(JObj);
-                            JObj.Add('resource_id', LastResNo);
-                            JObj.Add('start_date', StartDateTimeStr);
-                            JObj.Add('end_date', EndDateTimeStr);
-                            JObj.Add('classname', ResScheduler_GetResourceColor(LastResNo, 'capacity'));
-                            JObj.Add('type', 'capacity');
-                            JArray.Add(JObj);
+                // Rows for a resource that fails the Name/Skill filter are skipped entirely, as
+                // if they were never returned by the recordset — this keeps the group-by-Resource
+                // No./Date accumulation below correct without needing those fields on the table.
+                if ResourceMatchesNameFilter(ResCap."Resource No.", ResourceNameFilter) and
+                   ResourceMatchesSkillFilter(ResCap."Resource No.", SkillFilter)
+                then
+                    if (ResCap."Resource No." <> LastResNo) or (ResCap."Date" <> LastDate) then begin
+                        if (LastResNo <> '') and (AggCapacity > 0) then begin
+                            TempResCap.Init();
+                            TempResCap."Resource No." := LastResNo;
+                            TempResCap."Date" := LastDate;
+                            TempResCap."Start Time" := AggStartTime;
+                            GetStartEndTxt(TempResCap, AggCapacity, StartDateTimeStr, EndDateTimeStr);
+                            if (StartDateTimeStr <> '') and (EndDateTimeStr <> '') then begin
+                                Clear(JObj);
+                                JObj.Add('resource_id', LastResNo);
+                                JObj.Add('start_date', StartDateTimeStr);
+                                JObj.Add('end_date', EndDateTimeStr);
+                                JObj.Add('classname', ResScheduler_GetResourceColor(LastResNo, 'capacity'));
+                                JObj.Add('type', 'capacity');
+                                JArray.Add(JObj);
+                            end;
                         end;
+                        LastResNo := ResCap."Resource No.";
+                        LastDate := ResCap."Date";
+                        AggStartTime := ResCap."Start Time";
+                        AggCapacity := ResCap.Capacity;
+                    end else begin
+                        AggCapacity += ResCap.Capacity;
+                        if (ResCap."Start Time" <> 0T) then
+                            if (AggStartTime = 0T) or (ResCap."Start Time" < AggStartTime) then
+                                AggStartTime := ResCap."Start Time";
                     end;
-                    LastResNo := ResCap."Resource No.";
-                    LastDate := ResCap."Date";
-                    AggStartTime := ResCap."Start Time";
-                    AggCapacity := ResCap.Capacity;
-                end else begin
-                    AggCapacity += ResCap.Capacity;
-                    if (ResCap."Start Time" <> 0T) then
-                        if (AggStartTime = 0T) or (ResCap."Start Time" < AggStartTime) then
-                            AggStartTime := ResCap."Start Time";
-                end;
             until ResCap.Next() = 0;
 
         if (LastResNo <> '') and (AggCapacity > 0) then begin
