@@ -14,6 +14,7 @@ var resourcesStore = null;
 var DayPlanningsStore = null;
 var _isRefreshing = false;
 var _resourceFilterInfo = null; // { job, task, periodFrom, periodTo }
+var _ganttTaskFilterInfo = null; // { job, task, periodFrom, periodTo } - main grid Job/Job Task filter (distinct from _resourceFilterInfo above, which drives the resource panel tooltip only)
 var _ganttHolidays = {}; // { "YYYY-MM-DD": "Description", ... } loaded from BC Base Calendar
 var skipTrigger_OnJobTaskUpdated = false;
 var _allTasksCollapsed = false; // toggled by the collapse/expand-all icon in the grid header
@@ -1205,7 +1206,10 @@ window.BOOT = function() {
         + ".res-filter-icon { display:inline-block; margin-left:5px; cursor:pointer; font-size:13px; color:#adf; opacity:0.85; vertical-align:middle; }"
         + ".res-filter-icon:hover { opacity:1; }"
         /* ── Fixed body-level tooltip (never clipped by overflow:hidden) ── */
-        + "#res-filter-tooltip-popup { display:none; position:fixed; background:#1a1a2e; color:#e0e0e0; border:1px solid #4a6fa5; border-radius:5px; padding:8px 12px; font-size:12px; font-weight:normal; white-space:nowrap; z-index:999999; box-shadow:0 3px 10px rgba(0,0,0,0.5); min-width:180px; pointer-events:none; }";
+        + "#res-filter-tooltip-popup { display:none; position:fixed; background:#1a1a2e; color:#e0e0e0; border:1px solid #4a6fa5; border-radius:5px; padding:8px 12px; font-size:12px; font-weight:normal; white-space:nowrap; z-index:999999; box-shadow:0 3px 10px rgba(0,0,0,0.5); min-width:180px; pointer-events:none; }"
+        /* ── Main grid Job/Job Task filter icon (blank top-left corner cell of the grid header) ── */
+        + ".gnt-filter-toolbar-host { display:flex !important; align-items:center; padding-left:6px; }"
+        + "#gnt-filter-tooltip-popup { display:none; position:fixed; background:#1a1a2e; color:#e0e0e0; border:1px solid #4a6fa5; border-radius:5px; padding:8px 12px; font-size:12px; font-weight:normal; white-space:nowrap; z-index:999999; box-shadow:0 3px 10px rgba(0,0,0,0.5); min-width:180px; pointer-events:none; }";
       var s = document.createElement("style");
       s.textContent = css;
       document.head.appendChild(s);
@@ -1283,6 +1287,7 @@ window.BOOT = function() {
     // ✅ Update resource panel header tooltip + Request bar overlays after every render
     gantt.attachEvent("onGanttRender", function() {
       _updateResourceHeaderTooltip();
+      _updateGanttFilterToolbar();
       _renderRequestBars();
     });
 
@@ -2685,6 +2690,151 @@ function _updateResourceHeaderTooltip() {
 
 function _positionResFilterTooltip(e) {
   var popup = document.getElementById("res-filter-tooltip-popup");
+  if (!popup) return;
+  var pad = 14;
+  var vw = window.innerWidth;
+  var vh = window.innerHeight;
+  var w = popup.offsetWidth;
+  var h = popup.offsetHeight;
+  var x = e.clientX + pad;
+  var y = e.clientY + pad;
+  if (x + w > vw - 8) x = e.clientX - w - pad;
+  if (y + h > vh - 8) y = e.clientY - h - pad;
+  popup.style.left = x + "px";
+  popup.style.top  = y + "px";
+}
+
+// -------------------------------------------------------
+// Main grid Job/Job Task filter (AL <-> JS)
+// Distinct from the resource-panel filter info above (_resourceFilterInfo /
+// SetResourcePanelFilterInfo / OnResetResourceFilter), which only displays context for
+// a filter applied elsewhere. This one drives the actual task list: the (funnel) button
+// is always shown in the grid's blank top-left header corner cell (".gantt_grid_scale",
+// the auto-generated spacer row dhtmlx adds above grid columns when the timeline has a
+// second scale) and opens a BC filter dialog; once applied, a (✕) reset button appears
+// next to it. Mirrors the wiring added for the Task Scheduler page
+// (src/dhx/projectschedule/wrapper.js: setupFilterToolbar/SetTaskFilterInfo).
+// -------------------------------------------------------
+function SetGanttTaskFilterInfo(jobNo, taskNo, periodFrom, periodTo) {
+  if (!jobNo && !taskNo) {
+    _ganttTaskFilterInfo = null;
+  } else {
+    _ganttTaskFilterInfo = {
+      job: jobNo || "",
+      task: taskNo || "",
+      periodFrom: periodFrom || "",
+      periodTo: periodTo || ""
+    };
+  }
+  _updateGanttFilterToolbar();
+}
+window.SetGanttTaskFilterInfo = SetGanttTaskFilterInfo;
+
+function _updateGanttFilterToolbar() {
+  try {
+    // Pick the main grid's blank corner cell, not the resource panel's (that one is
+    // wrapped in .gantt_resource_grid and already used by _updateResourceHeaderTooltip).
+    var candidates = document.querySelectorAll(".gantt_grid_scale");
+    var cell = null;
+    for (var i = 0; i < candidates.length; i++) {
+      if (!candidates[i].closest(".gantt_resource_grid")) { cell = candidates[i]; break; }
+    }
+    if (!cell) {
+      // DOM not ready yet (resetLayout() still in progress) — retry once after paint
+      setTimeout(_updateGanttFilterToolbar, 150);
+      return;
+    }
+    cell.classList.add("gnt-filter-toolbar-host");
+
+    // Remove any previously injected filter buttons
+    cell.querySelectorAll(".gnt-filter-icon, .gnt-filter-reset").forEach(function(el) {
+      el.parentNode.removeChild(el);
+    });
+
+    // Ensure fixed tooltip popup exists in body (never clipped by overflow:hidden)
+    var popup = document.getElementById("gnt-filter-tooltip-popup");
+    if (!popup) {
+      popup = document.createElement("div");
+      popup.id = "gnt-filter-tooltip-popup";
+      document.body.appendChild(popup);
+    }
+
+    // Build tooltip content without innerHTML string-building (user-controlled values)
+    var fi = _ganttTaskFilterInfo;
+    popup.innerHTML = "";
+    var titleEl = document.createElement("b");
+    titleEl.textContent = fi ? "Filter applied:" : "Click to filter by Job / Job Task";
+    popup.appendChild(titleEl);
+    if (fi) {
+      if (fi.job) {
+        popup.appendChild(document.createElement("br"));
+        popup.appendChild(document.createTextNode("Job = " + fi.job));
+      }
+      if (fi.task) {
+        popup.appendChild(document.createElement("br"));
+        popup.appendChild(document.createTextNode("Task = " + fi.task));
+      }
+      if (fi.periodFrom || fi.periodTo) {
+        popup.appendChild(document.createElement("br"));
+        popup.appendChild(document.createTextNode("Period: " + (fi.periodFrom || "") + " to " + (fi.periodTo || "")));
+      }
+    }
+
+    // (funnel) Filter button — always visible; opens the BC filter popup. Inline SVG
+    // (self-contained, no network fetch) instead of an external icon asset.
+    var filterBtn = document.createElement("button");
+    filterBtn.className = "gnt-filter-icon";
+    filterBtn.innerHTML =
+      '<svg viewBox="0 0 24 24" width="12" height="12" style="vertical-align:middle;">' +
+        '<path d="M3 4h18l-7.2 8.6v6.4l-3.6 1.8v-8.2z" fill="#fff"/>' +
+      '</svg>';
+    filterBtn.style.cssText = "background:" + (fi ? "#1a73e8" : "#5f6368") +
+      ";border:none;border-radius:50%;width:20px;height:20px;line-height:20px;" +
+      "text-align:center;padding:0;cursor:pointer;vertical-align:middle;display:inline-block;";
+
+    filterBtn.addEventListener("mouseenter", function(e) {
+      popup.style.display = "block";
+      _positionGanttFilterTooltip(e);
+    });
+    filterBtn.addEventListener("mousemove", function(e) {
+      _positionGanttFilterTooltip(e);
+    });
+    filterBtn.addEventListener("mouseleave", function() {
+      popup.style.display = "none";
+    });
+    filterBtn.addEventListener("click", function(e) {
+      e.stopPropagation();
+      popup.style.display = "none";
+      Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnGanttFilterIconClick", []);
+    });
+
+    cell.appendChild(filterBtn);
+
+    // (✕) Reset button — only shown once a filter is applied
+    if (fi) {
+      var resetBtn = document.createElement("button");
+      resetBtn.className = "gnt-filter-reset";
+      resetBtn.title = "Click to Reset Filter";
+      resetBtn.textContent = "✕"; // ✕
+      resetBtn.style.cssText = "background:#c0392b;border:none;border-radius:50%;width:20px;height:20px;" +
+        "line-height:20px;text-align:center;padding:0;margin-left:4px;cursor:pointer;font-size:12px;font-weight:700;" +
+        "color:#fff;vertical-align:middle;display:inline-block;";
+
+      resetBtn.addEventListener("click", function(e) {
+        e.stopPropagation();
+        popup.style.display = "none";
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnGanttClearTaskFilter", []);
+      });
+
+      cell.appendChild(resetBtn);
+    }
+  } catch (e) {
+    console.error("_updateGanttFilterToolbar failed:", e);
+  }
+}
+
+function _positionGanttFilterTooltip(e) {
+  var popup = document.getElementById("gnt-filter-tooltip-popup");
   if (!popup) return;
   var pad = 14;
   var vw = window.innerWidth;

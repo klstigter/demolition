@@ -56,6 +56,7 @@ page 50621 "DHX Scheduler (Project)"
                             CurrPage.DhxScheduler.SetBarColors(ColorsJsonTxt);
                         end;
                     CurrPage.DhxScheduler.LoadData(PlanninJsonTxt);
+                    CurrPage.DhxScheduler.SetTaskFilterInfo(jobFilter, JobTaskFilter, Format(startDate, 0, '<Year4>-<Month,2>-<Day,2>'), Format(endDate, 0, '<Year4>-<Month,2>-<Day,2>'));
                     AnchorDate := startDate;
                 end;
 
@@ -234,6 +235,32 @@ page 50621 "DHX Scheduler (Project)"
                 end;
 
                 #endregion Context Menu
+
+                #region Task Filter Toolbar
+
+                trigger OnFilterIconClick()
+                var
+                    FilterDlg: Page "Task Scheduler Filter";
+                    NewJobNo: Code[20];
+                    NewJobTaskNo: Code[20];
+                begin
+                    FilterDlg.SetFilter(CopyStr(jobFilter, 1, MaxStrLen(NewJobNo)), CopyStr(JobTaskFilter, 1, MaxStrLen(NewJobTaskNo)));
+                    if FilterDlg.RunModal() = Action::OK then begin
+                        FilterDlg.GetFilter(NewJobNo, NewJobTaskNo);
+                        jobFilter := NewJobNo;
+                        JobTaskFilter := NewJobTaskNo;
+                        RefreshSchedule();
+                    end;
+                end;
+
+                trigger OnClearTaskFilter()
+                begin
+                    jobFilter := '';
+                    JobTaskFilter := '';
+                    RefreshSchedule();
+                end;
+
+                #endregion Task Filter Toolbar
             }
         }
     }
@@ -391,6 +418,7 @@ page 50621 "DHX Scheduler (Project)"
                                                                           EventsJsonTxt,
                                                                           EarliestPlanningDate);
         CurrPage.DhxScheduler.RefreshTimeline(ResourceJSONTxt, EventsJsonTxt, startDate);
+        CurrPage.DhxScheduler.SetTaskFilterInfo(jobFilter, JobTaskFilter, Format(startDate, 0, '<Year4>-<Month,2>-<Day,2>'), Format(endDate, 0, '<Year4>-<Month,2>-<Day,2>'));
     end;
 
     procedure SetResourceFilter(pResourceFilter: Text)
