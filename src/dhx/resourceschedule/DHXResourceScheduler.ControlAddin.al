@@ -28,6 +28,8 @@ controladdin DHXResourceScheduleAddin
     event OnDateRangeChanged(StartDate: Text; EndDate: Text);
     event OnEventContextMenu(EventId: Text; action: Text; PeriodStart: Text; PeriodEnd: Text; payloadJson: Text);
     event OnResourceContextMenu(ResourceId: Text; action: Text; PeriodStart: Text; PeriodEnd: Text; payloadJson: Text);
+    event OnResourceFilterIconClick();
+    event OnClearResourceFilter();
 
     procedure Init(elements: Text; EarliestPlanningDate: Date);
     procedure LoadData(EventTxt: Text);
@@ -35,5 +37,6 @@ controladdin DHXResourceScheduleAddin
     procedure ReloadData(EventTxt: Text; CapacityTxt: Text);
     procedure SetShowDayPlanning(pShow: Boolean);
     procedure SetShowCapacity(pShow: Boolean);
+    procedure SetResourceFilterInfo(resNo: Text; resName: Text; periodFrom: Text; periodTo: Text; skillFilter: Text);
 
 }

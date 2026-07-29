@@ -2,6 +2,13 @@ var scheduler_here; // global variable for dhx Scheduler
 var resourceBlockVisible = false; // true only for a new event
 var bcPlanningVisible = false;    // show only for existing events
 
+// Resource filter toolbar state (top-left of the timeline grid). null -> unfiltered;
+// the filter button is still shown so the user can open the filter dialog, it just has
+// no reset (✕) button and no filter details to show on hover. Mirrors the pattern used
+// in src/dhx/projectschedule/wrapper.js (Job/Job Task filter), adapted to a single
+// Resource No. since this scheduler's context is resource capacity, not job/task.
+var _resFilterInfo = null; // { resNo, resName, periodFrom, periodTo, skillFilter }
+
 //<< Inject CSS to hide default tabs : Day, Week, Month **** 2025.12.24
 // Toggle helpers
 function SetDefaultTabsVisible(visible) {
@@ -190,6 +197,37 @@ window.BOOT = function() {
         */
     }
 
+
+    /* ── Resource filter toolbar (top-left of the timeline grid) ─── */
+    #scheduler_here {
+        position: relative;
+    }
+    #res-filter-toolbar {
+        position: absolute;
+        top: 6px;
+        left: 6px;
+        z-index: 70;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    /* Fixed body-level tooltip popup (never clipped by the grid's overflow:hidden) */
+    #res-filter-tooltip-popup {
+        display: none;
+        position: fixed;
+        background: #1a1a2e;
+        color: #e0e0e0;
+        border: 1px solid #4a6fa5;
+        border-radius: 5px;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: normal;
+        white-space: nowrap;
+        z-index: 999999;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.5);
+        min-width: 180px;
+        pointer-events: none;
+    }
     `;
     document.head.appendChild(style);
     //>>
@@ -669,8 +707,145 @@ function Init(dataelements, EarliestPlanningDate) {
 
     scheduler.init('scheduler_here', EarliestPlanningDate, "timeline");
 
+    // Wire the Resource filter toolbar now that scheduler DOM exists
+    setupFilterToolbar();
+
     // Notify BC
     Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnAfterInit", []);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Resource filter toolbar (top-left of the timeline grid)
+// ═══════════════════════════════════════════════════════════════
+// Default: only the (funnel) filter button is shown -> click opens the BC filter popup
+// (Resource No.). Once AL applies a filter (dialog closed with OK, not Cancel), a (✕)
+// reset button appears next to it and hovering the filter button shows what's applied.
+// Clicking (✕) clears the filter back to the default state.
+function setupFilterToolbar() {
+    var root = document.getElementById('scheduler_here');
+    if (!root || root._filterToolbarWired) return;
+    root._filterToolbarWired = true;
+
+    var toolbar = document.createElement('div');
+    toolbar.id = 'res-filter-toolbar';
+    root.appendChild(toolbar);
+
+    _updateResFilterToolbar();
+}
+
+function _positionResFilterTooltip(e) {
+    var popup = document.getElementById('res-filter-tooltip-popup');
+    if (!popup) return;
+    var left = e.clientX + 12;
+    var top = e.clientY + 12;
+    var popupW = popup.offsetWidth || 200;
+    var popupH = popup.offsetHeight || 60;
+    if (left + popupW > window.innerWidth) left = e.clientX - popupW - 12;
+    if (top + popupH > window.innerHeight) top = e.clientY - popupH - 12;
+    popup.style.left = left + 'px';
+    popup.style.top = top + 'px';
+}
+
+function _updateResFilterToolbar() {
+    var toolbar = document.getElementById('res-filter-toolbar');
+    if (!toolbar) return;
+    toolbar.innerHTML = '';
+
+    var popup = document.getElementById('res-filter-tooltip-popup');
+    if (!popup) {
+        popup = document.createElement('div');
+        popup.id = 'res-filter-tooltip-popup';
+        document.body.appendChild(popup);
+    }
+
+    var fi = _resFilterInfo;
+
+    popup.innerHTML = '';
+    var titleEl = document.createElement('b');
+    titleEl.textContent = fi ? 'Filter applied:' : 'Click to filter by Resource';
+    popup.appendChild(titleEl);
+    if (fi) {
+        if (fi.resNo || fi.resName) {
+            popup.appendChild(document.createElement('br'));
+            popup.appendChild(document.createTextNode('Resource = ' + (fi.resNo || '(any)') + (fi.resName ? (' - ' + fi.resName) : '')));
+        }
+        if (fi.skillFilter) {
+            popup.appendChild(document.createElement('br'));
+            popup.appendChild(document.createTextNode('Skill = ' + fi.skillFilter));
+        }
+        if (fi.periodFrom || fi.periodTo) {
+            popup.appendChild(document.createElement('br'));
+            popup.appendChild(document.createTextNode('Period: ' + (fi.periodFrom || '') + ' to ' + (fi.periodTo || '')));
+        }
+    }
+
+    // (funnel) Filter button — always visible; opens the BC filter popup
+    var filterBtn = document.createElement('button');
+    filterBtn.className = 'res-filter-icon';
+    filterBtn.innerHTML =
+        '<svg viewBox="0 0 24 24" width="13" height="13" style="vertical-align:middle;">' +
+            '<path d="M3 4h18l-7.2 8.6v6.4l-3.6 1.8v-8.2z" fill="#fff"/>' +
+        '</svg>';
+    filterBtn.style.cssText = 'background:' + (fi ? '#1a73e8' : '#5f6368') +
+        ';border:none;border-radius:50%;width:22px;height:22px;line-height:22px;' +
+        'text-align:center;padding:0;cursor:pointer;vertical-align:middle;display:inline-block;';
+
+    filterBtn.addEventListener('mouseenter', function (e) {
+        popup.style.display = 'block';
+        _positionResFilterTooltip(e);
+    });
+    filterBtn.addEventListener('mousemove', function (e) {
+        _positionResFilterTooltip(e);
+    });
+    filterBtn.addEventListener('mouseleave', function () {
+        popup.style.display = 'none';
+    });
+    filterBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        popup.style.display = 'none';
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnResourceFilterIconClick', []);
+    });
+
+    toolbar.appendChild(filterBtn);
+
+    // (✕) Reset button — only shown once a filter is applied
+    if (fi) {
+        var resetBtn = document.createElement('button');
+        resetBtn.className = 'res-filter-reset';
+        resetBtn.title = 'Click to Reset Filter';
+        resetBtn.textContent = '✕';
+        resetBtn.style.cssText = 'background:#c0392b;border:none;border-radius:50%;width:22px;height:22px;' +
+            'line-height:22px;text-align:center;padding:0;cursor:pointer;font-size:13px;font-weight:700;' +
+            'color:#fff;vertical-align:middle;display:inline-block;';
+
+        resetBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            popup.style.display = 'none';
+            Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnClearResourceFilter', []);
+        });
+
+        toolbar.appendChild(resetBtn);
+    }
+}
+
+// Called by AL after a filter is applied (dialog closed with OK) or after any schedule
+// refresh, to keep the toolbar/tooltip in sync. All three filter args blank means "not
+// filtered" — a Skill-only (or Name-only) filter with a blank Resource No. must still
+// count as "applied" (bug: previously only resNo was checked, so filtering by Skill
+// alone left the toolbar showing its default/unfiltered state).
+function SetResourceFilterInfo(resNo, resName, periodFrom, periodTo, skillFilter) {
+    if (!resNo && !resName && !skillFilter) {
+        _resFilterInfo = null;
+    } else {
+        _resFilterInfo = {
+            resNo: resNo || '',
+            resName: resName || '',
+            periodFrom: periodFrom || '',
+            periodTo: periodTo || '',
+            skillFilter: skillFilter || ''
+        };
+    }
+    _updateResFilterToolbar();
 }
 
 function LoadData(eventsJson) {

@@ -54,6 +54,7 @@ page 50619 "DHX Resource Scheduler"
                     DHXHandler.GetWeekPeriodDates(AnchorDate, CurrentStartDate, CurrentEndDate);
                     CurrPage.DhxScheduler.LoadData(BuildEventsJson(CurrentStartDate, CurrentEndDate));
                     CurrPage.DhxScheduler.LoadCapacity(BuildCapacityJson(CurrentStartDate, CurrentEndDate));
+                    PushResourceFilterInfo();
                 end;
 
                 trigger OnDateRangeChanged(StartDate: Text; EndDate: Text)
@@ -79,6 +80,7 @@ page 50619 "DHX Resource Scheduler"
                             CurrPage.DhxScheduler.ReloadData(
                                 BuildEventsJson(CurrentStartDate, CurrentEndDate),
                                 BuildCapacityJson(CurrentStartDate, CurrentEndDate));
+                            PushResourceFilterInfo();
                         end;
                     end;
                 end;
@@ -214,6 +216,35 @@ page 50619 "DHX Resource Scheduler"
 
                 #endregion Init and Load Data on Control Ready
 
+                #region Resource Filter
+
+                trigger OnResourceFilterIconClick()
+                var
+                    FilterDlg: Report "Resource Scheduler Filter";
+                    NewResNoFilter: Text;
+                    NewResNameFilter: Text;
+                    NewSkillFilter: Text;
+                begin
+                    FilterDlg.SetFilter(ResourceFilter, ResourceNameFilter, SkillFilter);
+                    FilterDlg.RunModal();
+                    if FilterDlg.IsConfirmed() then begin
+                        FilterDlg.GetFilter(NewResNoFilter, NewResNameFilter, NewSkillFilter);
+                        ResourceFilter := NewResNoFilter;
+                        ResourceNameFilter := NewResNameFilter;
+                        SkillFilter := NewSkillFilter;
+                        RefreshWithResourceFilterChange();
+                    end;
+                end;
+
+                trigger OnClearResourceFilter()
+                begin
+                    ResourceFilter := '';
+                    ResourceNameFilter := '';
+                    SkillFilter := '';
+                    RefreshWithResourceFilterChange();
+                end;
+
+                #endregion Resource Filter
 
             }
         }
@@ -244,6 +275,7 @@ page 50619 "DHX Resource Scheduler"
                     CurrPage.DhxScheduler.ReloadData(
                         BuildEventsJson(CurrentStartDate, CurrentEndDate),
                         BuildCapacityJson(CurrentStartDate, CurrentEndDate));
+                    PushResourceFilterInfo();
                 end;
             }
             action("Set Capacity Opt")
@@ -275,6 +307,8 @@ page 50619 "DHX Resource Scheduler"
     var
         AnchorDate: Date;
         ResourceFilter: Text;
+        ResourceNameFilter: Text;
+        SkillFilter: Text;
         ShowDayPlanning: Boolean;
         ShowCapacity: Boolean;
         CurrentStartDate: Date;
@@ -284,21 +318,21 @@ page 50619 "DHX Resource Scheduler"
     var
         DHXHandler: Codeunit "DHX Data Handler";
     begin
-        exit(DHXHandler.ResScheduler_BuildResourcesJson(ResourceFilter));
+        exit(DHXHandler.ResScheduler_BuildResourcesJson(ResourceFilter, ResourceNameFilter, SkillFilter));
     end;
 
     local procedure BuildEventsJson(StartDate: Date; EndDate: Date): Text
     var
         DHXHandler: Codeunit "DHX Data Handler";
     begin
-        exit(DHXHandler.ResScheduler_BuildEventsJson(ResourceFilter, StartDate, EndDate));
+        exit(DHXHandler.ResScheduler_BuildEventsJson(ResourceFilter, StartDate, EndDate, ResourceNameFilter, SkillFilter));
     end;
 
     local procedure BuildCapacityJson(StartDate: Date; EndDate: Date): Text
     var
         DHXHandler: Codeunit "DHX Data Handler";
     begin
-        exit(DHXHandler.ResScheduler_BuildCapacityJson(ResourceFilter, StartDate, EndDate));
+        exit(DHXHandler.ResScheduler_BuildCapacityJson(ResourceFilter, StartDate, EndDate, ResourceNameFilter, SkillFilter));
     end;
 
     local procedure GetResourceColor(pResourceNo: Code[20]; pColorType: Text): Text
@@ -318,5 +352,51 @@ page 50619 "DHX Resource Scheduler"
         ResourceFilter := pResourceFilter;
         CurrentStartDate := pStartDateOfWeek;
         CurrentEndDate := pEndDateOfWeek;
+    end;
+
+    // Re-runs the control add-in's Init (not just ReloadData) so the left-hand resource
+    // checkbox panel (built from BuildResourcesJson/allResources in wrapper.js) is rebuilt
+    // to reflect the narrower/cleared ResourceFilter as well. ReloadData alone only
+    // refreshes allEvents/allCapacity - it never rebuilds the resource panel (see
+    // BuildResourcePanel, only called from Init/BOOT in wrapper.js). Init() itself fires
+    // OnAfterInit on the JS side once done, which drives the AL OnAfterInit trigger to
+    // recompute CurrentStartDate/CurrentEndDate and reload events/capacity through
+    // BuildEventsJson/BuildCapacityJson (now scoped by the updated ResourceFilter), and
+    // that trigger also calls PushResourceFilterInfo to sync the toolbar/tooltip.
+    local procedure RefreshWithResourceFilterChange()
+    begin
+        if CurrentStartDate <> 0D then
+            AnchorDate := CurrentStartDate;
+        CurrPage.DhxScheduler.Init(BuildResourcesJson(), AnchorDate);
+    end;
+
+    local procedure PushResourceFilterInfo()
+    var
+        ResNameLbl: Text;
+    begin
+        ResNameLbl := GetResourceName(ResourceFilter);
+        if ResourceNameFilter <> '' then
+            ResNameLbl += StrSubstNo(' (name filter: %1)', ResourceNameFilter);
+        if SkillFilter <> '' then
+            ResNameLbl += StrSubstNo(' (skill filter: %1)', SkillFilter);
+        CurrPage.DhxScheduler.SetResourceFilterInfo(
+            ResourceFilter,
+            ResNameLbl,
+            Format(CurrentStartDate, 0, '<Year4>-<Month,2>-<Day,2>'),
+            Format(CurrentEndDate, 0, '<Year4>-<Month,2>-<Day,2>'),
+            SkillFilter);
+    end;
+
+    local procedure GetResourceName(pResourceNo: Text): Text
+    var
+        ResRec: Record Resource;
+    begin
+        if pResourceNo = '' then
+            exit('');
+        if StrLen(pResourceNo) > MaxStrLen(ResRec."No.") then
+            exit('');
+        if ResRec.Get(CopyStr(pResourceNo, 1, MaxStrLen(ResRec."No."))) then
+            exit(ResRec.Name);
+        exit('');
     end;
 }

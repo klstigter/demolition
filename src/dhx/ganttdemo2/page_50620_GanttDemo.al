@@ -505,12 +505,13 @@ page 50620 "Gantt Demo DHX 2"
 
                 trigger OnGanttFilterIconClick()
                 var
-                    FilterDlg: Page "Task Scheduler Filter";
-                    NewJobNo: Code[20];
-                    NewJobTaskNo: Code[20];
+                    FilterDlg: Report "Task Scheduler Filter";
+                    NewJobNo: Text;
+                    NewJobTaskNo: Text;
                 begin
-                    FilterDlg.SetFilter(CopyStr(JobFilter, 1, MaxStrLen(NewJobNo)), CopyStr(JobTaskFilter, 1, MaxStrLen(NewJobTaskNo)));
-                    if FilterDlg.RunModal() = Action::OK then begin
+                    FilterDlg.SetFilter(JobFilter, JobTaskFilter);
+                    FilterDlg.RunModal();
+                    if FilterDlg.IsConfirmed() then begin
                         FilterDlg.GetFilter(NewJobNo, NewJobTaskNo);
                         JobFilter := NewJobNo;
                         JobTaskFilter := NewJobTaskNo;

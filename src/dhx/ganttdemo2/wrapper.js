@@ -2654,7 +2654,12 @@ function _updateResourceHeaderTooltip() {
     // (ℹ) Info button — hover shows filter details, no click action
     var infoBtn = document.createElement("button");
     infoBtn.className = "res-filter-icon";
-    infoBtn.textContent = "\u24d8"; // ℹ circled i
+    // Same inline SVG funnel glyph as the main grid's (funnel) filter button
+    // (_updateGanttFilterToolbar), for visual consistency between the two icon pairs.
+    infoBtn.innerHTML =
+      '<svg viewBox="0 0 24 24" width="12" height="12" style="vertical-align:middle;">' +
+        '<path d="M3 4h18l-7.2 8.6v6.4l-3.6 1.8v-8.2z" fill="#fff"/>' +
+      '</svg>';
     infoBtn.style.cssText = "background:#1a73e8;border:none;border-radius:50%;width:20px;height:20px;line-height:20px;text-align:center;padding:0;margin-left:6px;cursor:default;font-size:13px;font-weight:700;color:#fff;vertical-align:middle;display:inline-block;"; 
 
     infoBtn.addEventListener("mouseenter", function(e) {

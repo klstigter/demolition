@@ -30,13 +30,14 @@ page 50600 "DHX Scheduler (Pool Resource)"
 
                     //DHXDataHandler.GetOneYearPeriodDates(Today(), startDate, endDate);
                     DHXDataHandler.GetWeekPeriodDates(Today(), startDate, endDate);
-                    ResourceJSONTxt := DHXDataHandler.GetYUnitElementsJSON_Pool(Today(), startDate, endDate, false, PlanninJsonTxt, EarliestPlanningDate);
+                    ResourceJSONTxt := DHXDataHandler.GetYUnitElementsJSON_Pool(Today(), startDate, endDate, false, PlanninJsonTxt, EarliestPlanningDate, ResourceFilter, ResourceNameFilter, SkillFilter);
 
                     if GuiAllowed() then
                         Window.Update(1, 'Rendering...');
                     CurrPage.DhxScheduler.Init(ResourceJSONTxt, EarliestPlanningDate);
                     CurrPage.DhxScheduler.LoadData(PlanninJsonTxt);
                     AnchorDate := startDate;
+                    PushResourceFilterInfo(startDate, endDate);
                     CurrPage.Update(false);
 
                     if GuiAllowed() then
@@ -125,6 +126,36 @@ page 50600 "DHX Scheduler (Pool Resource)"
                 end;
 
                 #endregion new event added
+
+                #region Resource Filter
+
+                trigger OnResourceFilterIconClick()
+                var
+                    FilterDlg: Report "Resource Scheduler Filter";
+                    NewResNoFilter: Text;
+                    NewResNameFilter: Text;
+                    NewSkillFilter: Text;
+                begin
+                    FilterDlg.SetFilter(ResourceFilter, ResourceNameFilter, SkillFilter);
+                    FilterDlg.RunModal();
+                    if FilterDlg.IsConfirmed() then begin
+                        FilterDlg.GetFilter(NewResNoFilter, NewResNameFilter, NewSkillFilter);
+                        ResourceFilter := NewResNoFilter;
+                        ResourceNameFilter := NewResNameFilter;
+                        SkillFilter := NewSkillFilter;
+                        RefreshSchedule();
+                    end;
+                end;
+
+                trigger OnClearResourceFilter()
+                begin
+                    ResourceFilter := '';
+                    ResourceNameFilter := '';
+                    SkillFilter := '';
+                    RefreshSchedule();
+                end;
+
+                #endregion Resource Filter
 
                 #region Event Changes
                 trigger OnEventChanged(eventId: Text; eventData: Text)
@@ -376,6 +407,9 @@ page 50600 "DHX Scheduler (Pool Resource)"
         DHXDataHandler: Codeunit "DHX Data Handler";
         ShowDefaultTabs: Boolean;
         AnchorDate: Date;
+        ResourceFilter: Text;
+        ResourceNameFilter: Text;
+        SkillFilter: Text;
 
     local procedure RefreshSchedule()
     var
@@ -397,15 +431,49 @@ page 50600 "DHX Scheduler (Pool Resource)"
                                                                       false,
                                                                       ResourceJSONTxt,
                                                                       EventsJsonTxt,
-                                                                      EarliestPlanningDate);
+                                                                      EarliestPlanningDate,
+                                                                      ResourceFilter,
+                                                                      ResourceNameFilter,
+                                                                      SkillFilter);
 
         if GuiAllowed() then
             Window.Update(1, 'Rendering...');
         CurrPage.DhxScheduler.RefreshTimeline(ResourceJSONTxt, EventsJsonTxt, startDate);
+        PushResourceFilterInfo(startDate, endDate);
         CurrPage.Update(false);
 
         if GuiAllowed() then
             Window.Close();
+    end;
+
+    local procedure PushResourceFilterInfo(pStartDate: Date; pEndDate: Date)
+    var
+        ResNameLbl: Text;
+    begin
+        ResNameLbl := GetResourceName(ResourceFilter);
+        if ResourceNameFilter <> '' then
+            ResNameLbl += StrSubstNo(' (name filter: %1)', ResourceNameFilter);
+        if SkillFilter <> '' then
+            ResNameLbl += StrSubstNo(' (skill filter: %1)', SkillFilter);
+        CurrPage.DhxScheduler.SetResourceFilterInfo(
+            ResourceFilter,
+            ResNameLbl,
+            Format(pStartDate, 0, '<Year4>-<Month,2>-<Day,2>'),
+            Format(pEndDate, 0, '<Year4>-<Month,2>-<Day,2>'),
+            SkillFilter);
+    end;
+
+    local procedure GetResourceName(pResourceNo: Text): Text
+    var
+        ResRec: Record Resource;
+    begin
+        if pResourceNo = '' then
+            exit('');
+        if StrLen(pResourceNo) > MaxStrLen(ResRec."No.") then
+            exit('');
+        if ResRec.Get(CopyStr(pResourceNo, 1, MaxStrLen(ResRec."No."))) then
+            exit(ResRec.Name);
+        exit('');
     end;
 
 }
