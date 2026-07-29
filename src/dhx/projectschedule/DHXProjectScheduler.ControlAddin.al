@@ -35,6 +35,8 @@ controladdin DHXProjectScheduleAddin
     event OnGetAllSections(EventIdsJsonTxt: Text);
     event OnEventContextMenu(eventId: Text; action: Text; payloadJson: Text);
     event OnSectionContextMenu(sectionId: Text; action: Text; payloadJson: Text);
+    event OnFilterIconClick();
+    event OnClearTaskFilter();
 
     procedure Init(elements: Text; EarliestPlanningDate: Date);
     procedure LoadData(EventTxt: Text);
@@ -49,4 +51,5 @@ controladdin DHXProjectScheduleAddin
     procedure get_events_not_match_with_section();
     procedure getAllEvents();
     procedure getAllSections();
+    procedure SetTaskFilterInfo(jobNo: Text; taskNo: Text; periodFrom: Text; periodTo: Text);
 }

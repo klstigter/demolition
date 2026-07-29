@@ -500,6 +500,32 @@ page 50620 "Gantt Demo DHX 2"
                 begin
                     CurrentResourcePanelFilterJsonString := filterJson;
                 end;
+
+                #region Task Filter Toolbar
+
+                trigger OnGanttFilterIconClick()
+                var
+                    FilterDlg: Page "Task Scheduler Filter";
+                    NewJobNo: Code[20];
+                    NewJobTaskNo: Code[20];
+                begin
+                    FilterDlg.SetFilter(CopyStr(JobFilter, 1, MaxStrLen(NewJobNo)), CopyStr(JobTaskFilter, 1, MaxStrLen(NewJobTaskNo)));
+                    if FilterDlg.RunModal() = Action::OK then begin
+                        FilterDlg.GetFilter(NewJobNo, NewJobTaskNo);
+                        JobFilter := NewJobNo;
+                        JobTaskFilter := NewJobTaskNo;
+                        RefreshGantt();
+                    end;
+                end;
+
+                trigger OnGanttClearTaskFilter()
+                begin
+                    JobFilter := '';
+                    JobTaskFilter := '';
+                    RefreshGantt();
+                end;
+
+                #endregion
             }
         }
 
@@ -1095,6 +1121,14 @@ page 50620 "Gantt Demo DHX 2"
             Window.Open(LoadingLbl);
 
         GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
+
+        // Keep the filter-toolbar icon/tooltip (funnel + reset) in sync with the current
+        // Job No./Job Task No. filter and visible period. Both ControlReady() and RefreshGantt()
+        // funnel through this procedure, so this single call site covers user-driven filter
+        // changes (OnGanttFilterIconClick/OnGanttClearTaskFilter) as well as the external
+        // SetJobFilter/SetJobTaskFilter entry points (their callers invoke Gantt.RunModal()/Run()
+        // right after, which lands on OnOpenPage -> ControlReady -> LoadAllData).
+        CurrPage.DHXGanttControl2.SetGanttTaskFilterInfo(JobFilter, JobTaskFilter, Format(StartDate, 0, '<Year4>-<Month,2>-<Day,2>'), Format(EndDate, 0, '<Year4>-<Month,2>-<Day,2>'));
 
         // Set project range first
         CurrPage.DHXGanttControl2.LoadProject(StartDate, EndDate);
