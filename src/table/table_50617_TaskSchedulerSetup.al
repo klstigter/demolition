@@ -26,9 +26,19 @@ table 50617 "Task Scheduler Setup"
             Caption = 'Assigned Color';
             DataClassification = CustomerContent;
         }
+        field(31; "Assigned High (%)"; Integer)
+        {
+            Caption = 'Assigned High (%)';
+            DataClassification = CustomerContent;
+        }
         field(40; "Requested Color"; Text[20])
         {
             Caption = 'Requested Color';
+            DataClassification = CustomerContent;
+        }
+        field(41; "Requested High (%)"; Integer)
+        {
+            Caption = 'Requested High (%)';
             DataClassification = CustomerContent;
         }
         field(50; "Timeline Hour Step"; Integer)

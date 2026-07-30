@@ -16,25 +16,55 @@ page 50664 "Task Scheduler Setup"
             {
                 Caption = 'Day Planning Bar Colors';
 
-                field("Envelope Color"; Rec."Envelope Color")
+                group(Envelope)
                 {
-                    ApplicationArea = All;
-                    ToolTip = 'Background color of the full Day Planning bar (visible where neither the Assigned nor Requested strip covers it). Enter a hex color, e.g. #1B3A6B.';
+                    Caption = 'Envelope';
+
+                    field("Envelope Color"; Rec."Envelope Color")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Background color of the full Day Planning bar (visible where neither the Assigned nor Requested strip covers it). Enter a hex color, e.g. #1B3A6B.';
+                    }
+                    field("Envelope Border Color"; Rec."Envelope Border Color")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Border color of the full Day Planning bar. Enter a hex color, e.g. #14294D.';
+                    }
                 }
-                field("Envelope Border Color"; Rec."Envelope Border Color")
+                group(AssignedRequested)
                 {
-                    ApplicationArea = All;
-                    ToolTip = 'Border color of the full Day Planning bar. Enter a hex color, e.g. #14294D.';
-                }
-                field("Assigned Color"; Rec."Assigned Color")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Color of the Assigned time-range strip on the Day Planning bar. Enter a hex color, e.g. #7FB3FA.';
-                }
-                field("Requested Color"; Rec."Requested Color")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Color of the Requested time-range strip on the Day Planning bar. Enter a hex color, e.g. #6FCF97.';
+                    ShowCaption = false;
+
+                    group(Assigned)
+                    {
+                        Caption = 'Assigned';
+
+                        field("Assigned Color"; Rec."Assigned Color")
+                        {
+                            ApplicationArea = All;
+                            ToolTip = 'Color of the Assigned time-range strip on the Day Planning bar. Enter a hex color, e.g. #7FB3FA.';
+                        }
+                        field("Assigned High (%)"; Rec."Assigned High (%)")
+                        {
+                            ApplicationArea = All;
+                            ToolTip = 'Percentage of the Assigned height relative to envelope.';
+                        }
+                    }
+                    group(Requested)
+                    {
+                        Caption = 'Requested';
+
+                        field("Requested Color"; Rec."Requested Color")
+                        {
+                            ApplicationArea = All;
+                            ToolTip = 'Color of the Requested time-range strip on the Day Planning bar. Enter a hex color, e.g. #6FCF97.';
+                        }
+                        field("Requested High (%)"; Rec."Requested High (%)")
+                        {
+                            ApplicationArea = All;
+                            ToolTip = 'Percentage of the Requested height relative to envelope.';
+                        }
+                    }
                 }
             }
             group(Timeline)
