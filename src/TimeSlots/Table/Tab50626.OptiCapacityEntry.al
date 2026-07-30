@@ -100,14 +100,36 @@ table 50627 "Opti Capacity Entry"
     }
 
     trigger OnInsert()
+    var
+        CapacityWeek: Record "Opti Resource Capacity Week";
     begin
         TestField("Resource No.");
         TestField("Capacity Date");
 
         if "Line No." = 0 then
             "Line No." := GetNextLineNo("Resource No.", "Capacity Date");
-        UpdateCapacityAmounts()
+        UpdateCapacityAmounts();
+        CapacityWeek.EnsureCapacityWeek("Resource No.", "Capacity Date");
+    end;
 
+    trigger OnModify()
+    var
+        CapacityWeek: Record "Opti Resource Capacity Week";
+    begin
+        if ("Resource No." <> xRec."Resource No.") or
+           ("Capacity Date" <> xRec."Capacity Date")
+        then begin
+            CapacityWeek.EnsureCapacityWeek("Resource No.", "Capacity Date");
+
+            CapacityWeek.DeleteIfEmpty(xRec."Resource No.", xRec."Capacity Date", xRec.SystemId);
+        end;
+    end;
+
+    trigger OnDelete()
+    var
+        CapacityWeek: Record "Opti Resource Capacity Week";
+    begin
+        CapacityWeek.DeleteIfEmpty("Resource No.", "Capacity Date", SystemId);
     end;
 
     procedure InsertManualEntry(

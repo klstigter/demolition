@@ -8,7 +8,8 @@ codeunit 50608 "Opti Hash Times Cleanup"
         tabledata "Opti Day Time Slots Header" = d,
         tabledata "Opti Time Slot" = d,
         tabledata "Opti Time Slot Buffer" = d,
-        tabledata "Opti Week Pattern Buffer" = d;
+        tabledata "Opti Week Pattern Buffer" = d,
+        tabledata "Opti Resource Capacity Week" = d;
 
     procedure DeleteAllPatternData()
     var
@@ -21,6 +22,7 @@ codeunit 50608 "Opti Hash Times Cleanup"
         WeekPatternBuffer: Record "Opti Week Pattern Buffer";
         CapacityEntry: Record "Opti Capacity Entry";
         ResourceCapacity: Record "Opti Resource Capacity";
+        ResourceCapacityWeek: Record "Opti Resource Capacity Week";
     begin
         WeekPatternLine.DeleteAll(true);
         DayPatternLine.DeleteAll(true);
@@ -37,5 +39,6 @@ codeunit 50608 "Opti Hash Times Cleanup"
 
         capacityEntry.DeleteAll(true);
         ResourceCapacity.DeleteAll(true);
+        ResourceCapacityWeek.DeleteAll(true);
     end;
 }

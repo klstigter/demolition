@@ -137,7 +137,6 @@ page 50697 "Opti Week Capacity Slots"
         Rec.Init();
         Rec."Day No." := DayNo;
         Rec."Slot Line No." := 0;
-        Rec."Row Type" := Rec."Row Type"::Day;
         Rec."Resource No." := ResourceNo;
         Rec."Capacity Date" := CapacityDate;
         Rec."Weekday Name" :=
@@ -179,7 +178,6 @@ page 50697 "Opti Week Capacity Slots"
                         Rec.Init();
                         Rec."Day No." := DayNo;
                         Rec."Slot Line No." := SlotLineNo;
-                        Rec."Row Type" := Rec."Row Type"::"Time Slot";
                         Rec."Resource No." := ResourceNo;
                         Rec."Capacity Date" := CapacityDate;
                         Rec."Weekday Name" :=

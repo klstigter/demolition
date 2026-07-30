@@ -3,7 +3,6 @@ page 50696 "Opti Resource Capacity Weeks"
     Caption = 'Resource Capacity by Week';
     PageType = List;
     SourceTable = "Opti Resource Capacity Week";
-    SourceTableTemporary = true;
     ApplicationArea = All;
     UsageCategory = Documents;
 
@@ -124,6 +123,35 @@ page 50696 "Opti Resource Capacity Weeks"
                         false);
                 end;
             }
+            action(EditWeek)
+            {
+                //action(EditWeek)
+
+                ApplicationArea = All;
+                Caption = 'Edit Week';
+                Image = EditLines;
+                ToolTip = 'Edit the capacity time slots for the selected resource and week.';
+
+                trigger OnAction()
+                var
+                    ResourceWeekEdit: Page "Opti Resource Week Edit";
+                begin
+                    Rec.TestField("Resource No.");
+                    Rec.TestField("Week Start Date");
+
+                    ResourceWeekEdit.SetWeek(
+                        Rec."Resource No.",
+                        Rec."Week Start Date");
+
+                    ResourceWeekEdit.RunModal();
+
+                    CurrPage.Update(false);
+
+                    CurrPage.CapacitySlots.Page.SetWeek(
+                        Rec."Resource No.",
+                        Rec."Week Start Date");
+                end;
+            }
         }
 
         area(Promoted)
@@ -131,8 +159,10 @@ page 50696 "Opti Resource Capacity Weeks"
             actionref(OpenWeekPatternPromoted; OpenWeekPattern)
             {
             }
-
             actionref(CreateResourceCapacityPromoted; CreateResourceCapacity)
+            {
+            }
+            actionref(EditWeekPromoted; EditWeek)
             {
             }
         }

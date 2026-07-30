@@ -6,18 +6,13 @@ table 50628 "Opti Week Capacity Slot"
 
     fields
     {
-        field(1; "Entry No."; Integer)
-        {
-            Caption = 'Entry No.';
-        }
-        field(2; "Row Type"; Enum "Opti Week Slot Row Type")
-        {
-            Caption = 'Row Type';
-        }
-
-        field(3; "Day No."; Integer)
+        field(1; "Day No."; Integer)
         {
             Caption = 'Day No.';
+        }
+        field(2; "Entry No."; Integer)
+        {
+            Caption = 'Entry No.';
         }
 
         field(4; "Slot Line No."; Integer)
@@ -90,11 +85,16 @@ table 50628 "Opti Week Capacity Slot"
         {
             Caption = 'Description';
         }
+        field(100; "Manual"; Boolean)
+        {
+            Caption = 'Manual';
+        }
+
     }
 
     keys
     {
-        key(PK; "Day No.", "Slot Line No.")
+        key(PK; "Day No.", "Entry No.")
         {
             Clustered = true;
         }
