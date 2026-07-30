@@ -210,8 +210,8 @@ window.BOOT = function() {
     #tsk-filter-tooltip-popup {
         display: none;
         position: fixed;
-        background: #1a1a2e;
-        color: #e0e0e0;
+        background: #ffffff;
+        color: #23272A;
         border: 1px solid #4a6fa5;
         border-radius: 5px;
         padding: 8px 12px;
@@ -219,7 +219,7 @@ window.BOOT = function() {
         font-weight: normal;
         white-space: nowrap;
         z-index: 999999;
-        box-shadow: 0 3px 10px rgba(0,0,0,0.5);
+        box-shadow: 0 3px 10px rgba(0,0,0,0.25);
         min-width: 180px;
         pointer-events: none;
     }
@@ -386,27 +386,20 @@ window.BOOT = function() {
         var reqNonWorkingMin = (ev.non_working_minutes_requested !== undefined && ev.non_working_minutes_requested !== null) ? ev.non_working_minutes_requested : "";
         var reqHours = (ev.requested_hours !== undefined && ev.requested_hours !== null) ? ev.requested_hours : "";
 
-        var html = "<b>DayPlanning:</b> " + (ev.text || "") + "<br/>" +
-                   "<b>Daylineno:</b> " + dayLineNo + "<br/>" +         // Day Line No.
-                   "<b>Date:</b> " + formatDateOnly(start) + "<br/>" +  // Work Date
+        var html = '<div class="dhx-tt">';
+        html += '<div class="dhx-tt-res">DayPlanning: ' + (ev.text || "") + '</div>';
+        html += '<div class="dhx-tt-date">Daylineno: ' + dayLineNo + ' &nbsp;|&nbsp; Date: ' + formatDateOnly(start) + '</div>';
 
-                   "<br/>" +
-                   "<b>Assigned:</b><br/>" +
-                   "-----------------------------------<br/>" +
-                   "<b>Resource No.:</b> " + resno + " - " + resname + "<br/>" +    // Assigned Resource No.
-                   "<b>Start Time:</b> " + assignedStartTime + "<br/>" +            // Start Time Assigned
-                   "<b>End Time:</b> " + assignedEndTime + "<br/>" +                // End Time Assigned
-                   "<b>Non Working (Minutes)</b> " + assignedNonWorkingMin + "<br/>" +  // Non Working Minutes Assigned
-                   "<b>Hours</b> " + assignedHours + "<br/>" +                          // Assigned Hours
+        html += '<div class="dhx-tt-table">';
+        html += '<div class="dhx-tt-th"></div><div class="dhx-tt-th">Assigned</div><div class="dhx-tt-th">Requested</div>';
+        html += '<div class="dhx-tt-label">Resource No.</div><div class="dhx-tt-val">' + resno + " - " + resname + '</div><div class="dhx-tt-val">' + reqResNo + " - " + reqResName + '</div>';
+        html += '<div class="dhx-tt-label">Start Time</div><div class="dhx-tt-val">' + assignedStartTime + '</div><div class="dhx-tt-val">' + reqStartTime + '</div>';
+        html += '<div class="dhx-tt-label">End Time</div><div class="dhx-tt-val">' + assignedEndTime + '</div><div class="dhx-tt-val">' + reqEndTime + '</div>';
+        html += '<div class="dhx-tt-label">Non Working (Minutes)</div><div class="dhx-tt-val">' + assignedNonWorkingMin + '</div><div class="dhx-tt-val">' + reqNonWorkingMin + '</div>';
+        html += '<div class="dhx-tt-label">Hours</div><div class="dhx-tt-val">' + assignedHours + '</div><div class="dhx-tt-val">' + reqHours + '</div>';
+        html += '</div>';
 
-                   "<br/>" +
-                   "<b>Requested:</b><br/>" +
-                   "-----------------------------------<br/>" +
-                   "<b>Resource No.:</b> " + reqResNo + " - " + reqResName + "<br/>" +   // Requested Resource No.
-                   "<b>Start Time:</b> " + reqStartTime + "<br/>" +                      // Start Time Requested
-                   "<b>End Time:</b> " + reqEndTime + "<br/>" +                          // End Time Requested
-                   "<b>Non Working (Minutes)</b> " + reqNonWorkingMin + "<br/>" +        // Non Working Minutes Requested
-                   "<b>Hours</b> " + reqHours + "<br/>";                                 // Requested Hours
+        html += '</div>';
         return html;
     };
 
