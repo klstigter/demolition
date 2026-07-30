@@ -32,9 +32,20 @@ table 50626 "Opti Resource Capacity Week"
             Caption = 'Week Year';
             Editable = false;
         }
-        Field(6; "Effective Pattern Hash"; Text[64])
+        field(6; "Effective Pattern Hash"; Text[64])
         {
             Caption = 'Effective Pattern Hash';
+            Editable = false;
+        }
+        field(7; "Source Week Pattern ID"; Integer)
+        {
+            Caption = 'Source Week Pattern ID';
+            TableRelation = "Opti Week Pattern Header"."Week Pattern ID";
+            Editable = false;
+        }
+        field(8; "Source Week Pattern Hash"; Text[64])
+        {
+            Caption = 'Source Week Pattern Hash';
             Editable = false;
         }
 
@@ -172,16 +183,22 @@ table 50626 "Opti Resource Capacity Week"
         key(EffectivePatternHash; "Effective Pattern Hash")
         {
         }
+
+        key(SourcePatternHash; "Source Week Pattern Hash")
+        {
+        }
     }
 
     trigger OnInsert()
     begin
         SetWeekDates();
+        Clear("Effective Pattern Hash");
     end;
 
     trigger OnModify()
     begin
-        SetWeekDates();
+        if "Week Start Date" <> xRec."Week Start Date" then
+            SetWeekDates();
     end;
 
     procedure SetWeekDates()
@@ -199,6 +216,18 @@ table 50626 "Opti Resource Capacity Week"
 
         "Week No." := Date2DWY("Week Start Date", 2);
         "Week Year" := Date2DWY("Week Start Date", 3);
+    end;
+
+    procedure SetSourceWeekPattern(WeekPatternId: Integer; WeekPatternHash: Text[64])
+    begin
+        if ("Source Week Pattern ID" = WeekPatternId) and
+           ("Source Week Pattern Hash" = WeekPatternHash)
+        then
+            exit;
+
+        "Source Week Pattern ID" := WeekPatternId;
+        "Source Week Pattern Hash" := WeekPatternHash;
+        Modify(false);
     end;
 
     procedure EnsureCapacityWeek(
@@ -260,6 +289,43 @@ table 50626 "Opti Resource Capacity Week"
     end;
 
     procedure RecalculateWeekHash()
+    begin
+        RecalculateWeekHashExcludingSystemId(EmptyGuid());
+    end;
+
+    procedure RecalculateWeekHashForDate(ResourceNo: Code[20]; CapacityDate: Date)
+    begin
+        RecalculateWeekHashForDateExcluding(ResourceNo, CapacityDate, EmptyGuid());
+    end;
+
+    procedure RecalculateWeekHashForDateExcluding(ResourceNo: Code[20]; CapacityDate: Date; ExcludedSystemId: Guid)
+    var
+        WeekStartDate: Date;
+    begin
+        if (ResourceNo = '') or (CapacityDate = 0D) then
+            exit;
+
+        WeekStartDate := GetFirstDateOfWeek(CapacityDate);
+
+        if Get(ResourceNo, WeekStartDate) then
+            RecalculateWeekHashExcludingSystemId(ExcludedSystemId);
+    end;
+
+    procedure RecalculateWeekHashForWeek(ResourceNo: Code[20]; WeekStartDate: Date)
+    begin
+        RecalculateWeekHashForWeekExcluding(ResourceNo, WeekStartDate, EmptyGuid());
+    end;
+
+    procedure RecalculateWeekHashForWeekExcluding(ResourceNo: Code[20]; WeekStartDate: Date; ExcludedSystemId: Guid)
+    begin
+        if (ResourceNo = '') or (WeekStartDate = 0D) then
+            exit;
+
+        if Get(ResourceNo, WeekStartDate) then
+            RecalculateWeekHashExcludingSystemId(ExcludedSystemId);
+    end;
+
+    local procedure RecalculateWeekHashExcludingSystemId(ExcludedSystemId: Guid)
     var
         CapacityEntry: Record "Opti Capacity Entry";
         DayPattern: Record "Opti Day Time Slots Header";
@@ -270,14 +336,23 @@ table 50626 "Opti Resource Capacity Week"
         NewHash: Text[64];
         DayPatternHash: Text[64];
         EntryTypeNo: Integer;
+        EmptySystemId: Guid;
+        SourcePatternInitialized: Boolean;
+        SourcePatternMixed: Boolean;
+        CandidateSourceWeekPatternId: Integer;
+        CandidateSourceWeekPatternHash: Text[64];
+        NewSourceWeekPatternId: Integer;
+        NewSourceWeekPatternHash: Text[64];
     begin
         TestField("Resource No.");
         TestField("Week Start Date");
 
         CapacityEntry.Reset();
-        CapacityEntry.SetCurrentKey("Resource No.", "Capacity Date");
+        CapacityEntry.SetCurrentKey("Resource No.", "Capacity Date", "Line No.");
         CapacityEntry.SetRange("Resource No.", "Resource No.");
         CapacityEntry.SetRange("Capacity Date", "Week Start Date", "Week End Date");
+        if ExcludedSystemId <> EmptySystemId then
+            CapacityEntry.SetFilter(SystemId, '<>%1', ExcludedSystemId);
 
         if CapacityEntry.FindSet() then
             repeat
@@ -286,6 +361,18 @@ table 50626 "Opti Resource Capacity Week"
                 if CapacityEntry."Day Time Slot Header ID" <> 0 then
                     if DayPattern.Get(CapacityEntry."Day Time Slot Header ID") then
                         DayPatternHash := DayPattern."Pattern Hash";
+
+                if CapacityEntry."Source Week Pattern Hash" <> '' then begin
+                    if not SourcePatternInitialized then begin
+                        SourcePatternInitialized := true;
+                        CandidateSourceWeekPatternId := CapacityEntry."Source Week Pattern ID";
+                        CandidateSourceWeekPatternHash := CapacityEntry."Source Week Pattern Hash";
+                    end else
+                        if (CandidateSourceWeekPatternId <> CapacityEntry."Source Week Pattern ID") or
+                           (CandidateSourceWeekPatternHash <> CapacityEntry."Source Week Pattern Hash")
+                        then
+                            SourcePatternMixed := true;
+                end;
 
                 EntryTypeNo := CapacityEntry."Entry Type".AsInteger();
 
@@ -314,31 +401,29 @@ table 50626 "Opti Resource Capacity Week"
             NewHash := CopyStr(GeneratedHash, 1, MaxStrLen(NewHash));
         end;
 
-        if "Effective Pattern Hash" <> NewHash then begin
+        if SourcePatternInitialized and (not SourcePatternMixed) then begin
+            NewSourceWeekPatternId := CandidateSourceWeekPatternId;
+            NewSourceWeekPatternHash := CandidateSourceWeekPatternHash;
+        end else begin
+            NewSourceWeekPatternId := 0;
+            Clear(NewSourceWeekPatternHash);
+        end;
+
+        if ("Effective Pattern Hash" <> NewHash) or
+           ("Source Week Pattern ID" <> NewSourceWeekPatternId) or
+           ("Source Week Pattern Hash" <> NewSourceWeekPatternHash)
+        then begin
             "Effective Pattern Hash" := NewHash;
+            "Source Week Pattern ID" := NewSourceWeekPatternId;
+            "Source Week Pattern Hash" := NewSourceWeekPatternHash;
             Modify(false);
         end;
     end;
 
-    procedure RecalculateWeekHashForDate(ResourceNo: Code[20]; CapacityDate: Date)
+    local procedure EmptyGuid(): Guid
     var
-        WeekStartDate: Date;
+        BlankGuid: Guid;
     begin
-        if (ResourceNo = '') or (CapacityDate = 0D) then
-            exit;
-
-        WeekStartDate := GetFirstDateOfWeek(CapacityDate);
-
-        if Get(ResourceNo, WeekStartDate) then
-            RecalculateWeekHash();
-    end;
-
-    procedure RecalculateWeekHashForWeek(ResourceNo: Code[20]; WeekStartDate: Date)
-    begin
-        if (ResourceNo = '') or (WeekStartDate = 0D) then
-            exit;
-
-        if Get(ResourceNo, WeekStartDate) then
-            RecalculateWeekHash();
+        exit(BlankGuid);
     end;
 }

@@ -65,7 +65,7 @@ page 50678 "Opti Week Pattern List"
                 action(OpenTimeSlots)
                 {
                     ApplicationArea = All;
-                    Caption = 'Time Slots';
+                    Caption = '50622 Time Slots';
                     Image = List;
 
                     trigger OnAction()
@@ -77,19 +77,29 @@ page 50678 "Opti Week Pattern List"
                 action(OpenDayPatternLines)
                 {
                     ApplicationArea = All;
-                    Caption = 'Day Pattern Lines';
+                    Caption = '50621 Day TimeSlot Lines';
                     Image = List;
 
                     trigger OnAction()
                     begin
-                        Page.Run(Page::"Opti Day Pattern Line Data");
+                        Page.Run(Page::"Opti Day TimeSlot Line Data");
                     end;
                 }
+                action(WeekPatternHeader)
+                {
+                    ApplicationArea = All;
+                    Caption = '50619 Day Time SLots Header';
+                    Image = List;
 
+                    trigger OnAction()
+                    begin
+                        Page.Run(Page::"Opti Day Time Slots Hdr Data");
+                    end;
+                }
                 action(OpenDayPatterns)
                 {
                     ApplicationArea = All;
-                    Caption = 'Week Pattern Lines';
+                    Caption = '50618 week Pattern Line';
                     Image = List;
 
                     trigger OnAction()
@@ -101,7 +111,7 @@ page 50678 "Opti Week Pattern List"
                 action(OpenWeekPattern)
                 {
                     ApplicationArea = All;
-                    Caption = 'Week Pattern';
+                    Caption = '50617 Week Pattern Header';
                     Image = List;
 
                     trigger OnAction()
@@ -134,12 +144,37 @@ page 50678 "Opti Week Pattern List"
                         Page.Run(Page::"Opti Week Pattern Buffer Data");
                     end;
                 }
+                action(capacityEntry)
+                {
+                    ApplicationArea = All;
+                    Caption = '50627 Capacity Entry';
+                    Image = List;
+
+                    trigger OnAction()
+                    begin
+                        Page.Run(Page::"Opti Capacity Entry");
+                    end;
+                }
+                action(ResourceCapacityWeek)
+                {
+                    ApplicationArea = All;
+                    Caption = '50626 Resource Capacity Week';
+                    Image = List;
+
+                    trigger OnAction()
+                    var
+                        cc: page "Opti Resource Capacity Week";
+                    begin
+                        cc.Run();
+                    end;
+                }
+
                 action(DeleteAllPatternData)
                 {
                     ApplicationArea = All;
                     Caption = 'Delete All Pattern Data';
                     ToolTip = 'Deletes all week patterns, day patterns, time slots, and their related lines.';
-                    Image = DeleteAll;
+                    Image = Delete;
 
                     trigger OnAction()
                     var

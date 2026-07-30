@@ -1,8 +1,8 @@
-page 50690 "Opti Week Pattern Line Data"
+page 50690 "Opti Day Time Slots Hdr Data"
 {
     PageType = List;
     SourceTable = "Opti Day Time Slots Header";
-    Caption = 'Opti Week Pattern Line Data';
+    Caption = 'Opti Day Time Slots Header Data';
     ApplicationArea = All;
     UsageCategory = Administration;
     Editable = false;

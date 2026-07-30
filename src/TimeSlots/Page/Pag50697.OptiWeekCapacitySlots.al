@@ -71,7 +71,7 @@ page 50697 "Opti Week Capacity Slots"
             {
                 ApplicationArea = All;
                 Caption = 'Add Capacity Entry';
-                Image = NewLine;
+                Image = New;
                 ToolTip =
                     'Add additional capacity or an absence for the selected resource and date.';
 
@@ -123,7 +123,7 @@ page 50697 "Opti Week Capacity Slots"
         end;
 
         Rec.Reset();
-        Rec.SetCurrentKey("Day No.", "Slot Line No.");
+        Rec.SetCurrentKey("Day No.", "Entry No.");
 
         if not Rec.IsEmpty() then
             Rec.FindFirst();
@@ -136,6 +136,7 @@ page 50697 "Opti Week Capacity Slots"
     begin
         Rec.Init();
         Rec."Day No." := DayNo;
+        Rec."Entry No." := 0;
         Rec."Slot Line No." := 0;
         Rec."Resource No." := ResourceNo;
         Rec."Capacity Date" := CapacityDate;
@@ -177,6 +178,7 @@ page 50697 "Opti Week Capacity Slots"
 
                         Rec.Init();
                         Rec."Day No." := DayNo;
+                        Rec."Entry No." := SlotLineNo div 10000;
                         Rec."Slot Line No." := SlotLineNo;
                         Rec."Resource No." := ResourceNo;
                         Rec."Capacity Date" := CapacityDate;

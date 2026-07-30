@@ -294,7 +294,7 @@ page 50698 "Opti Resource Week Edit"
         then
             exit;
 
-        NextEntryNo := GetNextBufferEntryNo();
+        NextEntryNo := GetNextBufferEntryNo(CapacityDate);
 
         Rec.Init();
         Rec."Entry No." := NextEntryNo;
@@ -310,13 +310,17 @@ page 50698 "Opti Resource Week Edit"
         CurrPage.Update(false);
     end;
 
-    local procedure GetNextBufferEntryNo(): Integer
+    local procedure GetNextBufferEntryNo(CapacityDate: Date): Integer
     var
         WeekCapacitySlot: Record "Opti Week Capacity Slot" temporary;
+        DayNo: Integer;
     begin
         WeekCapacitySlot.Copy(Rec, true);
         WeekCapacitySlot.Reset();
-        WeekCapacitySlot.SetRange("Day No.", rec."Day No.");
+
+        DayNo := Date2DWY(CapacityDate, 1);
+        WeekCapacitySlot.SetRange("Day No.", DayNo);
+
         WeekCapacitySlot.SetCurrentKey("Entry No.");
 
         if WeekCapacitySlot.FindLast() then
@@ -405,6 +409,8 @@ page 50698 "Opti Resource Week Edit"
             CapacityEntry.Description := Rec.Description;
             CapacityEntry."Capacity Hours" := Rec."Capacity Hours";
             CapacityEntry.Manual := true;
+            CapacityEntry."Source Week Pattern ID" := 0;
+            Clear(CapacityEntry."Source Week Pattern Hash");
             CapacityEntry.Modify(true);
 
             DayTimeSlotLine.Reset();
@@ -415,8 +421,6 @@ page 50698 "Opti Resource Week Edit"
             if DayTimeSlotLine.FindFirst() then begin
                 DayTimeSlotLine."Time Slot ID" := TimeSlotId;
                 DayTimeSlotLine.Modify(true);
-
-                Rec."Slot Line No." := DayTimeSlotLine."Day Time Slot Line No.";
             end;
 
             Rec."Time Slot ID" := TimeSlotId;
@@ -437,7 +441,7 @@ page 50698 "Opti Resource Week Edit"
         DayTimeSlotLine.Init();
         DayTimeSlotLine."Day Time Slot Header ID" :=
             DayTimeSlotHeaderId;
-        DayTimeSlotLine."Day Time Slot Line No." := 10000;
+        DayTimeSlotLine."Day Time Slot Line No." := 0;
         DayTimeSlotLine."Time Slot ID" := TimeSlotId;
         DayTimeSlotLine.Insert(true);
 
@@ -456,10 +460,11 @@ page 50698 "Opti Resource Week Edit"
         CapacityEntry.Description := Rec.Description;
         CapacityEntry."Capacity Hours" := Rec."Capacity Hours";
         CapacityEntry.Manual := true;
+        CapacityEntry."Source Week Pattern ID" := 0;
+        Clear(CapacityEntry."Source Week Pattern Hash");
         CapacityEntry.Insert(true);
 
         Rec."Capacity Entry Line No." := CapacityEntryLineNo;
-        Rec."Slot Line No." := DayTimeSlotLine."Day Time Slot Line No.";
         Rec."Time Slot ID" := TimeSlotId;
     end;
 

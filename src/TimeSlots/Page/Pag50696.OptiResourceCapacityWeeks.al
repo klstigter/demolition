@@ -41,6 +41,24 @@ page 50696 "Opti Resource Capacity Weeks"
                     ApplicationArea = All;
                 }
 
+                field("Effective Pattern Hash"; Rec."Effective Pattern Hash")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the effective SHA-256 hash of the current resource week capacity composition.';
+                }
+
+                field("Source Week Pattern ID"; Rec."Source Week Pattern ID")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the originating week pattern ID when the week is still aligned with one source pattern.';
+                }
+
+                field("Source Week Pattern Hash"; Rec."Source Week Pattern Hash")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the originating week pattern hash when the week is still aligned with one source pattern.';
+                }
+
                 field("Monday Capacity"; Rec."Monday Capacity")
                 {
                     ApplicationArea = All;
@@ -152,6 +170,20 @@ page 50696 "Opti Resource Capacity Weeks"
                         Rec."Week Start Date");
                 end;
             }
+
+            action(OpenSourceWeekPattern)
+            {
+                ApplicationArea = All;
+                Caption = 'Open Source Week Pattern';
+                Image = Calendar;
+                Enabled = CanOpenSourceWeekPattern;
+                ToolTip = 'Open the source week pattern that was used to create this resource week.';
+
+                trigger OnAction()
+                begin
+                    OpenSourcePattern();
+                end;
+            }
         }
 
         area(Promoted)
@@ -163,6 +195,9 @@ page 50696 "Opti Resource Capacity Weeks"
             {
             }
             actionref(EditWeekPromoted; EditWeek)
+            {
+            }
+            actionref(OpenSourceWeekPatternPromoted; OpenSourceWeekPattern)
             {
             }
         }
@@ -225,8 +260,11 @@ page 50696 "Opti Resource Capacity Weeks"
     begin
         if IsEmptyCurrentPosition() then begin
             Clear(WeekCapacity);
+            CanOpenSourceWeekPattern := false;
             exit;
         end;
+
+        CanOpenSourceWeekPattern := Rec."Source Week Pattern ID" <> 0;
 
         Rec.CalcFields(
             "Monday Capacity",
@@ -256,11 +294,26 @@ page 50696 "Opti Resource Capacity Weeks"
         FirstRelevantDate: Date;
         UserStartDate: Date;
         UserEndDate: Date;
+        CanOpenSourceWeekPattern: Boolean;
+
+        SourcePatternMissingErr: Label 'The source week pattern %1 no longer exists.';
 
     procedure SetDateRange(StartDt: Date; EndDt: Date)
     begin
         UserStartDate := StartDt;
         UserEndDate := EndDt;
+    end;
+
+    local procedure OpenSourcePattern()
+    var
+        WeekPatternHeader: Record "Opti Week Pattern Header";
+    begin
+        Rec.TestField("Source Week Pattern ID");
+
+        if not WeekPatternHeader.Get(Rec."Source Week Pattern ID") then
+            Error(SourcePatternMissingErr, Rec."Source Week Pattern ID");
+
+        Page.Run(Page::"Opti Week Pattern Card", WeekPatternHeader);
     end;
 
     local procedure FindWeekRecord(Which: Text[1]): Boolean

@@ -85,6 +85,17 @@ table 50627 "Opti Capacity Entry"
             DecimalPlaces = 0 : 5;
             Editable = false;
         }
+        field(90; "Source Week Pattern ID"; Integer)
+        {
+            Caption = 'Source Week Pattern ID';
+            TableRelation = "Opti Week Pattern Header"."Week Pattern ID";
+            Editable = false;
+        }
+        field(100; "Source Week Pattern Hash"; Text[64])
+        {
+            Caption = 'Source Week Pattern Hash';
+            Editable = false;
+        }
     }
 
     keys
@@ -108,27 +119,50 @@ table 50627 "Opti Capacity Entry"
 
         if "Line No." = 0 then
             "Line No." := GetNextLineNo("Resource No.", "Capacity Date");
+
         UpdateCapacityAmounts();
+
         CapacityWeek.EnsureCapacityWeek("Resource No.", "Capacity Date");
+        CapacityWeek.RecalculateWeekHashForDate("Resource No.", "Capacity Date");
     end;
 
     trigger OnModify()
     var
         CapacityWeek: Record "Opti Resource Capacity Week";
     begin
+        TestField("Resource No.");
+        TestField("Capacity Date");
+
+        UpdateCapacityAmounts();
+        CapacityWeek.EnsureCapacityWeek("Resource No.", "Capacity Date");
+
         if ("Resource No." <> xRec."Resource No.") or
            ("Capacity Date" <> xRec."Capacity Date")
         then begin
-            CapacityWeek.EnsureCapacityWeek("Resource No.", "Capacity Date");
+            // Recalculate the old week before the move is finalized.
+            CapacityWeek.RecalculateWeekHashForDateExcluding(
+                xRec."Resource No.",
+                xRec."Capacity Date",
+                xRec.SystemId);
+
+            // Recalculate the new/current week with the updated values.
+            CapacityWeek.RecalculateWeekHashForDate("Resource No.", "Capacity Date");
 
             CapacityWeek.DeleteIfEmpty(xRec."Resource No.", xRec."Capacity Date", xRec.SystemId);
-        end;
+        end else
+            CapacityWeek.RecalculateWeekHashForDate("Resource No.", "Capacity Date");
     end;
 
     trigger OnDelete()
     var
         CapacityWeek: Record "Opti Resource Capacity Week";
     begin
+        // Exclude the row being deleted from the old week's hash calculation.
+        CapacityWeek.RecalculateWeekHashForDateExcluding(
+            "Resource No.",
+            "Capacity Date",
+            SystemId);
+
         CapacityWeek.DeleteIfEmpty("Resource No.", "Capacity Date", SystemId);
     end;
 

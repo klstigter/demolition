@@ -1,4 +1,4 @@
-page 50691 "Opti Day Pattern Line Data"
+page 50691 "Opti Day TimeSlot Line Data"
 {
     PageType = List;
     SourceTable = "Opti Day TimeSlot Line";

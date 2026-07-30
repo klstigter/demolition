@@ -60,6 +60,7 @@ report 50608 "Opti Create Resource Capacity"
     trigger OnPreReport()
     begin
         ValidateRequest();
+        LoadWeekPatternHeader();
         LoadWeekPatternLines();
     end;
 
@@ -104,6 +105,14 @@ report 50608 "Opti Create Resource Capacity"
 
         if TempWeekPatternLine.IsEmpty() then
             Error(WeekPatternNotFoundErr, WeekPatternID);
+    end;
+
+    local procedure LoadWeekPatternHeader()
+    begin
+        if not WeekPatternHeader.Get(WeekPatternID) then
+            Error(WeekPatternNotFoundErr, WeekPatternID);
+
+        WeekPatternHeader.RecalculateWeekPattern();
     end;
 
     local procedure CreateCapacityForDate(
@@ -158,6 +167,8 @@ report 50608 "Opti Create Resource Capacity"
         CapacityEntry.Description :=
             DayTimeSlotHeader.Description;
         CapacityEntry.Manual := false;
+        CapacityEntry."Source Week Pattern ID" := WeekPatternHeader."Week Pattern ID";
+        CapacityEntry."Source Week Pattern Hash" := WeekPatternHeader."Pattern Hash";
         CapacityEntry.Insert(true);
 
         CreatedCapacityEntries += 1;
@@ -188,6 +199,7 @@ report 50608 "Opti Create Resource Capacity"
 
     var
         TempWeekPatternLine: Record "Opti Week Pattern Line" temporary;
+        WeekPatternHeader: Record "Opti Week Pattern Header";
         StartDate: Date;
         EndDate: Date;
         WeekPatternID: Integer;
