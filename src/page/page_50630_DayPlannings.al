@@ -294,20 +294,25 @@ page 50630 "Day Plannings"
                     ToolTip = 'Specifies the description.';
                     StyleExpr = StyleStr;
                 }
-                field("Team Leader"; Rec."Team Leader")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the team leader for this day task.';
-                }
                 field("Requested Leader"; Rec."Requested Leader")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the leader for this day task.';
                 }
+                field("Requested Team Leader"; Rec."Requested Team Leader")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the team leader for this day task.';
+                }
                 field("Assigned Leader"; Rec."Assigned Leader")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the leader for this day task.';
+                }
+                field("Assigned Team Leader"; Rec."Assigned Team Leader")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the team leader for this day task.';
                 }
                 field("Work Type Code"; Rec."Work Type Code")
                 {

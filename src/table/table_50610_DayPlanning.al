@@ -272,7 +272,7 @@ table 50610 "Day Planning"
                     if Resource."Pool Resource No." <> '' then
                         "Assigned Pool Resource No." := Resource."Pool Resource No.";
                     "Assigned Leader" := Resource."Is Foreman";
-                    "Team Leader" := Resource."Default Foreman";
+                    "Requested Team Leader" := Resource."Default Foreman";
                     Skill := GetFirstSkill("Assigned Resource No.");
                     CalculateWorkingHours();
                 end else begin
@@ -328,11 +328,17 @@ table 50610 "Day Planning"
             DataClassification = ToBeClassified;
             Caption = 'Description';
         }
-        field(25; "Team Leader"; Code[20])
+        field(25; "Requested Team Leader"; Code[20])
         {
             DataClassification = ToBeClassified;
             TableRelation = Resource;
-            Caption = 'Team Leader';
+            Caption = 'Requested Team Leader';
+        }
+        field(28; "Assigned Team Leader"; Code[20])
+        {
+            DataClassification = ToBeClassified;
+            TableRelation = Resource;
+            Caption = 'Assigned Team Leader';
         }
         field(20; "Requested Leader"; Boolean)
         {
@@ -362,7 +368,7 @@ table 50610 "Day Planning"
                         if (Resource."Vendor No." <> '') then
                             "Vendor No." := Resource."Vendor No.";
                         "Requested Leader" := Resource."Is Foreman";
-                        "Team Leader" := Resource."Default Foreman";
+                        "Requested Team Leader" := Resource."Default Foreman";
                         Skill := GetFirstSkill("Requested Resource No.");
                     end;
                     if Resource."Pool Resource No." <> '' then
@@ -813,6 +819,11 @@ table 50610 "Day Planning"
         if rec."Requested Leader" then
             if not Rec."Assigned Leader" then
                 Rec."Assigned Leader" := Rec."Requested Leader";
+
+        if rec."Requested Team Leader" <> '' then
+            if Rec."Assigned Team Leader" = '' then
+                Rec."Assigned Team Leader" := Rec."Requested Team Leader";
+
         Rec.Modify();
     end;
 
