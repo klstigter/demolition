@@ -46,13 +46,17 @@ page 50621 "DHX Scheduler (Project)"
                         if (DayPlanningBarSetup."Envelope Color" <> '') or
                            (DayPlanningBarSetup."Envelope Border Color" <> '') or
                            (DayPlanningBarSetup."Assigned Color" <> '') or
-                           (DayPlanningBarSetup."Requested Color" <> '')
+                           (DayPlanningBarSetup."Requested Color" <> '') or
+                           (DayPlanningBarSetup."Assigned High (%)" > 0) or
+                           (DayPlanningBarSetup."Requested High (%)" > 0)
                         then begin
-                            ColorsJsonTxt := StrSubstNo('{"envelope":"%1","envelopeBorder":"%2","assigned":"%3","requested":"%4"}',
+                            ColorsJsonTxt := StrSubstNo('{"envelope":"%1","envelopeBorder":"%2","assigned":"%3","requested":"%4","assignedHeight":%5,"requestedHeight":%6}',
                                 DayPlanningBarSetup."Envelope Color",
                                 DayPlanningBarSetup."Envelope Border Color",
                                 DayPlanningBarSetup."Assigned Color",
-                                DayPlanningBarSetup."Requested Color");
+                                DayPlanningBarSetup."Requested Color",
+                                DayPlanningBarSetup."Assigned High (%)",
+                                DayPlanningBarSetup."Requested High (%)");
                             CurrPage.DhxScheduler.SetBarColors(ColorsJsonTxt);
                         end;
                     CurrPage.DhxScheduler.LoadData(PlanninJsonTxt);

@@ -88,6 +88,11 @@ window.BOOT = function() {
         --dp-color-envelope-border: #14294D;
         --dp-color-assigned: #7FB3FA;
         --dp-color-requested: #6FCF97;
+        /* Default 3-part split (Assigned/Requested both valid and different) — overridable
+           at runtime from Task Scheduler Setup's "Assigned High (%)"/"Requested High (%)"
+           via SetBarColors below. Defaults stay 80/20 even when setup has no override. */
+        --dp-height-assigned: 80%;
+        --dp-height-requested: 20%;
     }
 
     /* Outer bar = envelope (earliest..latest of Requested/Assigned) — solid dark blue base */
@@ -108,19 +113,24 @@ window.BOOT = function() {
         overflow: hidden;
     }
 
-    /* Top half: Assigned start/end sub-range */
+    /* Top strip: Assigned start/end sub-range. Height is --dp-height-assigned (default
+       80%) of the envelope when both Assigned and Requested are valid and different
+       (the 3-part case in event_bar_text below) — Requested gets the rest. Only
+       applies to that 3-part split; the single full-height case overrides via inline
+       style. */
     .dp-bar-assigned {
         position: absolute;
         top: 0;
-        height: 50%;
+        height: var(--dp-height-assigned);
         background: var(--dp-color-assigned) !important;
     }
 
-    /* Bottom half: Requested start/end sub-range */
+    /* Bottom strip: Requested start/end sub-range (--dp-height-requested, default 20% —
+       see .dp-bar-assigned above) */
     .dp-bar-requested {
         position: absolute;
         bottom: 0;
-        height: 50%;
+        height: var(--dp-height-requested);
         background: var(--dp-color-requested) !important;
     }
 
@@ -784,6 +794,11 @@ function SetBarColors(colorsJson) {
         if (colors.envelopeBorder) root.style.setProperty("--dp-color-envelope-border", colors.envelopeBorder);
         if (colors.assigned) root.style.setProperty("--dp-color-assigned", colors.assigned);
         if (colors.requested) root.style.setProperty("--dp-color-requested", colors.requested);
+        // 3-part bar split (Assigned/Requested both valid and different) — from Task
+        // Scheduler Setup's "Assigned High (%)"/"Requested High (%)". Left at their CSS
+        // defaults (80%/20%) whenever setup doesn't override them (0/blank).
+        if (colors.assignedHeight) root.style.setProperty("--dp-height-assigned", colors.assignedHeight + "%");
+        if (colors.requestedHeight) root.style.setProperty("--dp-height-requested", colors.requestedHeight + "%");
     } catch (e) {
         console.warn("SetBarColors: invalid colorsJson", colorsJson, e);
     }
