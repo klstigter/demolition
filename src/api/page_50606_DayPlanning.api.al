@@ -99,15 +99,19 @@ page 50606 "DayPlanningApi Opt"
                 {
                     Caption = 'Data Owner';
                 }
-                field(teamLeader; Rec."Team Leader")
-                {
-                    ApplicationArea = All;
-                }
                 field(requestedLeader; Rec."Requested Leader")
                 {
                     ApplicationArea = All;
                 }
+                field(requestedTeamLeader; Rec."Requested Team Leader")
+                {
+                    ApplicationArea = All;
+                }
                 field(assignedLeader; Rec."Assigned Leader")
+                {
+                    ApplicationArea = All;
+                }
+                field(assignedTeamLeader; Rec."Assigned Team Leader")
                 {
                     ApplicationArea = All;
                 }

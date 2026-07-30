@@ -2054,7 +2054,7 @@ codeunit 50602 "Create Demo Data"
         DP."Requested Hours" := ReqHours;
         DP."Requested Leader" := true;
         DP."Assigned Leader" := true;
-        DP."Team Leader" := LeaderRes;
+        DP."Requested Team Leader" := LeaderRes;
         DP."Data Owner" := "Data Owner Opt."::"TeamLeader";
         DP.Description := 'Leader: ' + JT."Job No." + '-' + JT."Job Task No." + DescSuffix;
         DP.Skill := GetResourceSkill(LeaderRes);
@@ -2098,7 +2098,7 @@ codeunit 50602 "Create Demo Data"
         DP."Requested Hours" := ReqHours;
         DP."Requested Leader" := false;
         DP."Assigned Leader" := false;
-        DP."Team Leader" := LeaderRes;
+        DP."Requested Team Leader" := LeaderRes;
         DP."Data Owner" := "Data Owner Opt."::"TeamMember";
         DP.Description := 'Member: ' + JT."Job No." + '-' + JT."Job Task No." + DescSuffix;
         DP.Skill := GetResourceSkill(MemberRes);
@@ -2460,7 +2460,7 @@ codeunit 50602 "Create Demo Data"
         DP."Requested Hours" := Hours;
         DP."Requested Leader" := true;
         DP."Assigned Leader" := true;
-        DP."Team Leader" := ResNo;
+        DP."Requested Team Leader" := ResNo;
         DP."Data Owner" := "Data Owner Opt."::"TeamLeader";
         DP.Description := 'Work Order ' + WorkOrderNo + ': ' + JT.Description;
         DP.Skill := GetResourceSkill(ResNo);

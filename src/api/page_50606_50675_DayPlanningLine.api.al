@@ -75,15 +75,19 @@ page 50675 "DayPlanning Line Opt"
                 {
                     Caption = 'Data Owner';
                 }
-                field(teamLeader; Rec."Team Leader")
-                {
-                    ApplicationArea = All;
-                }
                 field(requestedLeader; Rec."Requested Leader")
                 {
                     ApplicationArea = All;
                 }
+                field(requestedTeamLeader; Rec."Requested Team Leader")
+                {
+                    ApplicationArea = All;
+                }
                 field(assignedLeader; Rec."Assigned Leader")
+                {
+                    ApplicationArea = All;
+                }
+                field(assignedTeamLeader; Rec."Assigned Team Leader")
                 {
                     ApplicationArea = All;
                 }
@@ -155,7 +159,8 @@ page 50675 "DayPlanning Line Opt"
         Rec."Requested Hours" := TempLine."Requested Hours";
         Rec."Worked Hours" := TempLine."Worked Hours";
         Rec."Data Owner" := TempLine."Data Owner";
-        Rec."Team Leader" := TempLine."Team Leader";
+        Rec."Requested Team Leader" := TempLine."Requested Team Leader";
+        Rec."Assigned Team Leader" := TempLine."Assigned Team Leader";
         Rec."Requested Leader" := TempLine."Requested Leader";
         Rec."Assigned Leader" := TempLine."Assigned Leader";
         Rec."Work Order No." := TempLine."Work Order No.";

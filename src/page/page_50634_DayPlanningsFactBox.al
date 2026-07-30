@@ -56,21 +56,27 @@ page 50634 "Day Plannings FactBox"
                 {
                     ApplicationArea = All;
                 }
-                field("Team Leader"; Rec."Team Leader")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the team leader for this day task.';
-                }
                 field("Requested Leader"; Rec."Requested Leader")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the leader for this day task.';
+                }
+                field("Requested Team Leader"; Rec."Requested Team Leader")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the team leader for this day task.';
                 }
                 field("Assigned Leader"; Rec."Assigned Leader")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the assigned leader for this day task.';
                 }
+                field("Assigned Team Leader"; Rec."Assigned Team Leader")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the assigned team leader for this day task.';
+                }
+
             }
         }
     }

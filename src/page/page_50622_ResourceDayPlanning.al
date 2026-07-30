@@ -91,20 +91,25 @@ page 50622 "Resource Day Plannings"
                 {
                     ApplicationArea = All;
                 }
-                field("Team Leader"; Rec."Team Leader")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the team leader for this day planning.';
-                }
                 field("Requested Leader"; Rec."Requested Leader")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the leader for this day planning.';
                 }
+                field("Requested Team Leader"; Rec."Requested Team Leader")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the team leader for this day planning.';
+                }
                 field("Assigned Leader"; Rec."Assigned Leader")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the leader for this day planning.';
+                }
+                field("Assigned Team Leader"; Rec."Assigned Team Leader")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the team leader for this day planning.';
                 }
                 field("Work Order No."; Rec."Work Order No.")
                 {
