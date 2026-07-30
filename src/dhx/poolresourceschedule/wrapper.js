@@ -215,8 +215,8 @@ window.BOOT = function() {
     #res-filter-tooltip-popup {
         display: none;
         position: fixed;
-        background: #1a1a2e;
-        color: #e0e0e0;
+        background: #ffffff;
+        color: #23272A;
         border: 1px solid #4a6fa5;
         border-radius: 5px;
         padding: 8px 12px;
@@ -224,7 +224,7 @@ window.BOOT = function() {
         font-weight: normal;
         white-space: nowrap;
         z-index: 999999;
-        box-shadow: 0 3px 10px rgba(0,0,0,0.5);
+        box-shadow: 0 3px 10px rgba(0,0,0,0.25);
         min-width: 180px;
         pointer-events: none;
     }
@@ -297,27 +297,26 @@ window.BOOT = function() {
 
         var html = "";
         if (ev.type === "capacity") {
-            html = "<b>Capacity:</b> " + (ev.text || "") + "<br/>" +
-                   "<b>Date:</b> " + formatDateOnly(start) + "<br/>" +
-                   "<b>Start Time:</b> " + formatTimeOnly(start) + "<br/>" +
-                   "<b>End Time:</b> " + formatTimeOnly(end) + "<br/>" +         
-                   "-----------------------------------<br/>" +                             
-                   "<b>Capacity entry no.:</b> " + (ev.id || "") + "<br/>";
+            html = '<div class="dhx-tt">';
+            html += '<div class="dhx-tt-res">Capacity: ' + (ev.text || "") + '</div>';
+            html += '<div class="dhx-tt-date">' + formatDateOnly(start) + '</div>';
+            html += '<div class="dhx-tt-table">';
+            html += '<div class="dhx-tt-label">Start Time:</div><div class="dhx-tt-val">' + formatTimeOnly(start) + '</div>';
+            html += '<div class="dhx-tt-label">End Time:</div><div class="dhx-tt-val">' + formatTimeOnly(end) + '</div>';
+            html += '<div class="dhx-tt-label">Capacity entry no.:</div><div class="dhx-tt-val">' + (ev.id || "") + '</div>';
+            html += '</div></div>';
         } else if (ev.type === "DayPlanning_0" || ev.type === "DayPlanning_1" || ev.type === "vacancy") {
-            // var parts = String(ev.section_id).split('|');
-            // var vendor_no = "";
-            // if (parts.length >= 3) {
-            //     vendor_no = parts[2] || "";
-            // }
-            html = "<b>DayPlanning:</b> " + (ev.text || "") + "<br/>" +
-                   "<b>Date:</b> " + formatDateOnly(start) + "<br/>" +
-                   "<b>Start Time:</b> " + formatTimeOnly(start) + "<br/>" +
-                   "<b>End Time:</b> " + formatTimeOnly(end) + "<br/>" +
-                   "------------------------------------------------------------<br/>" +
-                   "<b>Project:</b> " + jobNo + "<br/>" +
-                   "<b>Task:</b> " + jobTaskNo + "<br/>" +
-                   "<b>Pool no.:</b> " + vendor + "<br/>" +
-                   "<b>Dayno|DayLineNo:</b> " + (ev.id || "") + "<br/>";
+            html = '<div class="dhx-tt">';
+            html += '<div class="dhx-tt-res">DayPlanning: ' + (ev.text || "") + '</div>';
+            html += '<div class="dhx-tt-date">' + formatDateOnly(start) + '</div>';
+            html += '<div class="dhx-tt-table">';
+            html += '<div class="dhx-tt-label">Start Time:</div><div class="dhx-tt-val">' + formatTimeOnly(start) + '</div>';
+            html += '<div class="dhx-tt-label">End Time:</div><div class="dhx-tt-val">' + formatTimeOnly(end) + '</div>';
+            html += '<div class="dhx-tt-label">Project:</div><div class="dhx-tt-val">' + jobNo + '</div>';
+            html += '<div class="dhx-tt-label">Task:</div><div class="dhx-tt-val">' + jobTaskNo + '</div>';
+            html += '<div class="dhx-tt-label">Pool no.:</div><div class="dhx-tt-val">' + vendor + '</div>';
+            html += '<div class="dhx-tt-label">Dayno|DayLineNo:</div><div class="dhx-tt-val">' + (ev.id || "") + '</div>';
+            html += '</div></div>';
         }
         return html;
     };

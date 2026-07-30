@@ -15,3 +15,44 @@ html, body{
     background-color: #f0f0f0 !important;
     opacity: 0.5;
 }
+
+/* ---- Custom tooltip (black background / white text, tabular 2-column, no header) ---- */
+.dhtmlXTooltip.tooltip {
+    background: #000000 !important;
+    color: #ffffff !important;
+    border: none !important;
+}
+.dhx-tt {
+    min-width: 240px;
+    font-family: inherit;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #f0f0f0;
+}
+.dhx-tt-res {
+    font-weight: 700;
+    font-size: 13px;
+    margin-bottom: 1px;
+    color: #ffffff;
+}
+.dhx-tt-date {
+    color: #aaaaaa;
+    font-size: 11px;
+    margin-bottom: 6px;
+}
+.dhx-tt-table {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 2px 10px;
+    margin-top: 4px;
+}
+.dhx-tt-label {
+    color: #cfcfcf;
+    font-weight: 700;
+    padding: 1px 0;
+}
+.dhx-tt-val {
+    font-weight: 400;
+    color: #ffffff;
+    padding: 1px 0;
+}

@@ -43,9 +43,9 @@ window.BOOT = function() {
                    own — prev/next/today/tabs — occupying the top-left corner there). */
                 '.rp-header{display:flex;align-items:center;justify-content:space-between;gap:6px;}' +
                 '#res-filter-toolbar{display:flex;align-items:center;gap:4px;}' +
-                '#res-filter-tooltip-popup{display:none;position:fixed;background:#1a1a2e;color:#e0e0e0;border:1px solid #4a6fa5;' +
+                '#res-filter-tooltip-popup{display:none;position:fixed;background:#ffffff;color:#23272A;border:1px solid #4a6fa5;' +
                 'border-radius:5px;padding:8px 12px;font-size:12px;font-weight:normal;white-space:nowrap;z-index:999999;' +
-                'box-shadow:0 3px 10px rgba(0,0,0,.5);min-width:180px;pointer-events:none;}';
+                'box-shadow:0 3px 10px rgba(0,0,0,.25);min-width:180px;pointer-events:none;}';
             document.head.appendChild(s);
         })();
 
@@ -147,27 +147,26 @@ window.BOOT = function() {
                 return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
             }
 
+            var isAvailable = String(ev.id).indexOf("cap_") === 0;
+
             var html = '<div class="dhx-tt">';
             html += '<div class="dhx-tt-res">' + resName + '</div>';
             html += '<div class="dhx-tt-date">' + dateStr + '</div>';
 
-            if (cap) {
-                html += '<div class="dhx-tt-section">Capacity</div>';
-                html += '<div class="dhx-tt-rows">';
-                html += '<div class="dhx-tt-row"><span>Start:</span><span>' + fmt(cap.start_date) + '</span></div>';
-                html += '<div class="dhx-tt-row"><span>End:</span><span>' + fmt(cap.end_date) + '</span></div>';
-                html += '</div>';
-            }
+            if (!isAvailable && ev.text)
+                html += '<div class="dhx-tt-task-line"><b>Task:</b> ' + ev.text + '</div>';
 
-            var isAvailable = String(ev.id).indexOf("cap_") === 0;
-            if (!isAvailable) {
-                html += '<div class="dhx-tt-section">DayPlanning</div>';
-                html += '<div class="dhx-tt-col-header"><span></span><span>Requested</span><span>Assigned</span></div>';
-                html += '<div class="dhx-tt-row-2col"><span>Start:</span><span>' + (ev.req_start ? fmt(ev.req_start) : '—') + '</span><span>' + fmt(ev.start_date) + '</span></div>';
-                html += '<div class="dhx-tt-row-2col"><span>End:</span><span>' + (ev.req_end ? fmt(ev.req_end) : '—') + '</span><span>' + fmt(ev.end_date) + '</span></div>';
-                if (ev.text)
-                    html += '<div class="dhx-tt-row dhx-tt-task"><span>Task:</span><span>' + ev.text + '</span></div>';
-            }
+            html += '<div class="dhx-tt-table">';
+            html += '<div class="dhx-tt-th"></div><div class="dhx-tt-th">Capacity</div><div class="dhx-tt-th">Assigned</div><div class="dhx-tt-th">Requested</div>';
+            html += '<div class="dhx-tt-label">Start</div>' +
+                    '<div class="dhx-tt-val">' + (cap ? fmt(cap.start_date) : '—') + '</div>' +
+                    '<div class="dhx-tt-val">' + (isAvailable ? '—' : fmt(ev.start_date)) + '</div>' +
+                    '<div class="dhx-tt-val">' + (isAvailable ? '—' : (ev.req_start ? fmt(ev.req_start) : '—')) + '</div>';
+            html += '<div class="dhx-tt-label">End</div>' +
+                    '<div class="dhx-tt-val">' + (cap ? fmt(cap.end_date) : '—') + '</div>' +
+                    '<div class="dhx-tt-val">' + (isAvailable ? '—' : fmt(ev.end_date)) + '</div>' +
+                    '<div class="dhx-tt-val">' + (isAvailable ? '—' : (ev.req_end ? fmt(ev.req_end) : '—')) + '</div>';
+            html += '</div>';
 
             html += '</div>';
             return html;
