@@ -328,27 +328,227 @@ table 50610 "Day Planning"
             DataClassification = ToBeClassified;
             Caption = 'Description';
         }
+        field(20; "Requested Leader"; Boolean)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Requested Leader';
+
+            trigger OnValidate()
+            var
+                DayPlanning: Record "Day Planning";
+                DayPlanning2: Record "Day Planning";
+            begin
+                if Rec."Requested Leader" then begin
+                    Rec.TestField("Requested Resource No.");
+
+                    // on the same record set "Requested Team Leader" = "Requested Resource No."
+                    "Requested Team Leader" := Rec."Requested Resource No.";
+
+                    // Check other leader in the same of Task and Work Date
+                    // if does not exsit then update all member with same "Requested Team Leader"
+                    DayPlanning.Reset();
+                    DayPlanning.SetRange("Job No.", Rec."Job No.");
+                    DayPlanning.SetRange("Job Task No.", Rec."Job Task No.");
+                    DayPlanning.SetRange("Plan Date", Rec."Plan Date");
+                    DayPlanning.SetRange("Requested Leader", true);
+                    DayPlanning.SetFilter("Day Line No.", '<>%1', Rec."Day Line No.");
+                    if DayPlanning.IsEmpty() then begin
+                        DayPlanning.SetRange("Requested Leader", false); // get members
+                        if DayPlanning.FindSet() then
+                            DayPlanning.ModifyAll("Requested Team Leader", Rec."Requested Resource No.");
+                    end;
+                end else begin
+                    // at record-self
+                    "Requested Team Leader" := '';
+
+                    // members
+                    DayPlanning.Reset();
+                    DayPlanning.SetRange("Job No.", Rec."Job No.");
+                    DayPlanning.SetRange("Job Task No.", Rec."Job Task No.");
+                    DayPlanning.SetRange("Plan Date", Rec."Plan Date");
+                    DayPlanning.SetRange("Requested Leader", false);
+                    DayPlanning.SetRange("Requested Team Leader", xRec."Requested Team Leader");
+                    DayPlanning.SetFilter("Day Line No.", '<>%1', Rec."Day Line No.");
+                    if DayPlanning.FindSet() then
+                        repeat
+                            DayPlanning2 := DayPlanning;
+                            DayPlanning2."Requested Team Leader" := '';
+                            DayPlanning2.Modify();
+                        until DayPlanning.Next() = 0;
+                end;
+            end;
+        }
         field(25; "Requested Team Leader"; Code[20])
         {
             DataClassification = ToBeClassified;
             TableRelation = Resource;
             Caption = 'Requested Team Leader';
+
+            trigger OnValidate()
+            var
+                DayPlanning: Record "Day Planning";
+                LeaderErr: Label 'As a %1, the %2 must be set as %3';
+                LeaderNotFoundErr: label '%1 as %2 does not exist in %3 %4 %5, %6 %7, %8 %9';
+            begin
+                if "Requested Leader" then begin
+                    TestField("Requested Resource No.");
+                    if "Requested Team Leader" <> "Requested Resource No." then
+                        Error(LeaderErr, Rec.FieldCaption("Requested Leader"), FieldCaption("Requested Team Leader"), "Requested Resource No.");
+                end else
+                    if "Requested Team Leader" <> '' then begin
+                        DayPlanning.Reset();
+                        DayPlanning.SetRange("Job No.", Rec."Job No.");
+                        DayPlanning.SetRange("Job Task No.", Rec."Job Task No.");
+                        DayPlanning.SetRange("Plan Date", Rec."Plan Date");
+                        DayPlanning.SetRange("Requested Leader", true);
+                        DayPlanning.SetRange("Requested Team Leader", Rec."Requested Team Leader");
+                        DayPlanning.SetFilter("Day Line No.", '<>%1', Rec."Day Line No.");
+                        if DayPlanning.IsEmpty() then
+                            Error(LeaderNotFoundErr, Rec.FieldCaption("Requested Leader"),
+                                                    "Requested Team Leader",
+                                                    Rec.TableCaption,
+                                                    Rec.FieldCaption("Job No."), Rec."Job No.",
+                                                    Rec.FieldCaption("Job Task No."), Rec."Job Task No.",
+                                                    Rec.FieldCaption("Plan Date"), Rec."Plan Date");
+                    end;
+            end;
+
+            trigger OnLookup()
+            var
+                DayPlanning: Record "Day Planning";
+                Res: Record Resource;
+                NoLeaderLbl: Label 'No leader specified';
+            begin
+                Res.Reset();
+                DayPlanning.Reset();
+                DayPlanning.SetRange("Job No.", Rec."Job No.");
+                DayPlanning.SetRange("Job Task No.", Rec."Job Task No.");
+                DayPlanning.SetRange("Plan Date", Rec."Plan Date");
+                DayPlanning.SetRange("Requested Leader", true);
+                DayPlanning.Setfilter("Requested Team Leader", '<>%1', '');
+                if DayPlanning.FindSet() then begin
+                    repeat
+                        Res.Get(DayPlanning."Requested Team Leader");
+                        Res.Mark(true);
+                    until DayPlanning.Next() = 0;
+                    Res.MarkedOnly := true;
+                    if page.RunModal(0, Res) = Action::LookupOK then begin
+                        Validate("Requested Team Leader", Res."No.");
+                    end;
+                end else
+                    Message(NoLeaderLbl);
+            end;
+
+        }
+        field(26; "Assigned Leader"; Boolean)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Assigned Leader';
+
+            trigger OnValidate()
+            var
+                DayPlanning: Record "Day Planning";
+                DayPlanning2: Record "Day Planning";
+            begin
+                if Rec."Assigned Leader" then begin
+                    Rec.TestField("Assigned Resource No.");
+
+                    // on the same record set "Assigned Team Leader" = "Assigned Resource No."
+                    "Assigned Team Leader" := Rec."Assigned Resource No.";
+
+                    // Check other leader in the same of Task and Work Date
+                    // if does not exsit then update all member with same "Assigned Team Leader"
+                    DayPlanning.SetRange("Job No.", Rec."Job No.");
+                    DayPlanning.SetRange("Job Task No.", Rec."Job Task No.");
+                    DayPlanning.SetRange("Plan Date", Rec."Plan Date");
+                    DayPlanning.SetRange("Assigned Leader", true);
+                    DayPlanning.SetFilter("Day Line No.", '<>%1', Rec."Day Line No.");
+                    if DayPlanning.IsEmpty() then begin
+                        DayPlanning.SetRange("Assigned Leader", false); // get members
+                        if DayPlanning.FindSet() then
+                            DayPlanning.ModifyAll("Assigned Team Leader", Rec."Assigned Resource No.");
+                    end;
+                end else begin
+                    // at record-self
+                    "Assigned Team Leader" := '';
+
+                    // members
+                    DayPlanning.Reset();
+                    DayPlanning.SetRange("Job No.", Rec."Job No.");
+                    DayPlanning.SetRange("Job Task No.", Rec."Job Task No.");
+                    DayPlanning.SetRange("Plan Date", Rec."Plan Date");
+                    DayPlanning.SetRange("Assigned Leader", false);
+                    DayPlanning.SetRange("Assigned Team Leader", xRec."Assigned Team Leader");
+                    DayPlanning.SetFilter("Day Line No.", '<>%1', Rec."Day Line No.");
+                    if DayPlanning.FindSet() then
+                        repeat
+                            DayPlanning2 := DayPlanning;
+                            DayPlanning2."Assigned Team Leader" := '';
+                            DayPlanning2.Modify();
+                        until DayPlanning.Next() = 0;
+                end;
+            end;
         }
         field(28; "Assigned Team Leader"; Code[20])
         {
             DataClassification = ToBeClassified;
             TableRelation = Resource;
             Caption = 'Assigned Team Leader';
-        }
-        field(20; "Requested Leader"; Boolean)
-        {
-            DataClassification = ToBeClassified;
-            Caption = 'Requested Leader';
-        }
-        field(26; "Assigned Leader"; Boolean)
-        {
-            DataClassification = ToBeClassified;
-            Caption = 'Assigned Leader';
+
+            trigger OnValidate()
+            var
+                DayPlanning: Record "Day Planning";
+                LeaderErr: Label 'As a %1, the %2 must be set as %3';
+                LeaderNotFoundErr: label '%1 as %2 does not exist in %3 %4 %5, %6 %7, %8 %9';
+            begin
+                if "Assigned Leader" then begin
+                    TestField("Assigned Resource No.");
+                    if "Assigned Team Leader" <> "Assigned Resource No." then
+                        Error(LeaderErr, Rec.FieldCaption("Assigned Leader"), FieldCaption("Assigned Team Leader"), "Assigned Resource No.");
+                end else
+                    if "Assigned Team Leader" <> '' then begin
+                        DayPlanning.Reset();
+                        DayPlanning.SetRange("Job No.", Rec."Job No.");
+                        DayPlanning.SetRange("Job Task No.", Rec."Job Task No.");
+                        DayPlanning.SetRange("Plan Date", Rec."Plan Date");
+                        DayPlanning.SetRange("Assigned Leader", true);
+                        DayPlanning.SetRange("Assigned Team Leader", Rec."Assigned Team Leader");
+                        DayPlanning.SetFilter("Day Line No.", '<>%1', Rec."Day Line No.");
+                        if DayPlanning.IsEmpty() then
+                            Error(LeaderNotFoundErr, Rec.FieldCaption("Assigned Leader"),
+                                                    "Assigned Team Leader",
+                                                    Rec.TableCaption,
+                                                    Rec.FieldCaption("Job No."), Rec."Job No.",
+                                                    Rec.FieldCaption("Job Task No."), Rec."Job Task No.",
+                                                    Rec.FieldCaption("Plan Date"), Rec."Plan Date");
+                    end;
+            end;
+
+            trigger OnLookup()
+            var
+                DayPlanning: Record "Day Planning";
+                Res: Record Resource;
+                NoLeaderLbl: Label 'No leader specified';
+            begin
+                Res.Reset();
+                DayPlanning.Reset();
+                DayPlanning.SetRange("Job No.", Rec."Job No.");
+                DayPlanning.SetRange("Job Task No.", Rec."Job Task No.");
+                DayPlanning.SetRange("Plan Date", Rec."Plan Date");
+                DayPlanning.SetRange("Assigned Leader", true);
+                DayPlanning.Setfilter("Assigned Team Leader", '<>%1', '');
+                if DayPlanning.FindSet() then begin
+                    repeat
+                        Res.Get(DayPlanning."Assigned Team Leader");
+                        Res.Mark(true);
+                    until DayPlanning.Next() = 0;
+                    Res.MarkedOnly := true;
+                    if page.RunModal(0, Res) = Action::LookupOK then begin
+                        Validate("Assigned Team Leader", Res."No.");
+                    end;
+                end else
+                    Message(NoLeaderLbl);
+            end;
         }
         field(27; "Requested Resource No."; Code[20])
         {
