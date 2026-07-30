@@ -24,6 +24,8 @@ codeunit 50608 "Opti Hash Times Cleanup"
         ResourceCapacity: Record "Opti Resource Capacity";
         ResourceCapacityWeek: Record "Opti Resource Capacity Week";
         WeekCapacitySlot: Record "Opti Week Capacity Slot";
+        EffectiveWeekPatternLine: Record "Opti Eff Week Pattern Line";
+        EffectiveWeekPattern: Record "Opti Effective Week Pattern";
     begin
         WeekPatternLine.DeleteAll(true);
         DayPatternLine.DeleteAll(true);
@@ -42,5 +44,7 @@ codeunit 50608 "Opti Hash Times Cleanup"
         ResourceCapacity.DeleteAll(true);
         ResourceCapacityWeek.DeleteAll(true);
         WeekCapacitySlot.DeleteAll(true);
+        EffectiveWeekPatternLine.DeleteAll(true);
+        EffectiveWeekPattern.DeleteAll(true);
     end;
 }

@@ -48,6 +48,12 @@ page 50699 "Opti Resource Capacity Week"
 
                 }
 
+                field("Effective Week Pattern ID"; Rec."Effective Week Pattern ID")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the persistent effective week pattern linked to this resource week.';
+                }
+
                 field("Source Week Pattern ID"; Rec."Source Week Pattern ID")
                 {
                     ApplicationArea = All;

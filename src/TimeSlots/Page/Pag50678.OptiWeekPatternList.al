@@ -168,6 +168,28 @@ page 50678 "Opti Week Pattern List"
                         cc.Run();
                     end;
                 }
+                action(EffectiveWeekPatternLine)
+                {
+                    ApplicationArea = All;
+                    Caption = '50630 Effective Week Pattern Line';
+                    Image = List;
+
+                    trigger OnAction()
+                    begin
+                        Page.Run(Page::"Opti Eff WeekPattern Line Data");
+                    end;
+                }
+                action(EffectiveWeekPattern)
+                {
+                    ApplicationArea = All;
+                    Caption = '50629 Effective Week Pattern';
+                    Image = List;
+
+                    trigger OnAction()
+                    begin
+                        Page.Run(Page::"Opti Effctv WeekPattern Data");
+                    end;
+                }
 
                 action(DeleteAllPatternData)
                 {

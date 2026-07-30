@@ -47,6 +47,12 @@ page 50696 "Opti Resource Capacity Weeks"
                     ToolTip = 'Specifies the effective SHA-256 hash of the current resource week capacity composition.';
                 }
 
+                field("Effective Week Pattern ID"; Rec."Effective Week Pattern ID")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the persistent effective week pattern linked to this resource week.';
+                }
+
                 field("Source Week Pattern ID"; Rec."Source Week Pattern ID")
                 {
                     ApplicationArea = All;

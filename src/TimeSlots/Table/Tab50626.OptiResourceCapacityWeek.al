@@ -48,6 +48,12 @@ table 50626 "Opti Resource Capacity Week"
             Caption = 'Source Week Pattern Hash';
             Editable = false;
         }
+        field(9; "Effective Week Pattern ID"; Integer)
+        {
+            Caption = 'Effective Week Pattern ID';
+            TableRelation = "Opti Effective Week Pattern"."Effective Week Pattern ID";
+            Editable = false;
+        }
 
         field(10; "Monday Date"; Date)
         {
@@ -193,12 +199,20 @@ table 50626 "Opti Resource Capacity Week"
     begin
         SetWeekDates();
         Clear("Effective Pattern Hash");
+        "Effective Week Pattern ID" := 0;
     end;
 
     trigger OnModify()
     begin
         if "Week Start Date" <> xRec."Week Start Date" then
             SetWeekDates();
+    end;
+
+    trigger OnDelete()
+    var
+        EffectiveWeekPattern: Record "Opti Effective Week Pattern";
+    begin
+        EffectiveWeekPattern.DeleteForWeek("Resource No.", "Week Start Date");
     end;
 
     procedure SetWeekDates()
@@ -328,14 +342,10 @@ table 50626 "Opti Resource Capacity Week"
     local procedure RecalculateWeekHashExcludingSystemId(ExcludedSystemId: Guid)
     var
         CapacityEntry: Record "Opti Capacity Entry";
+        EffectiveWeekPattern: Record "Opti Effective Week Pattern";
+        TempEffectiveWeekLine: Record "Opti Eff Week Pattern Line" temporary;
         DayPattern: Record "Opti Day Time Slots Header";
-        CryptographyManagement: Codeunit "Cryptography Management";
-        HashAlgorithm: Option MD5,SHA1,SHA256,SHA384,SHA512;
-        HashInput: Text;
-        GeneratedHash: Text;
-        NewHash: Text[64];
         DayPatternHash: Text[64];
-        EntryTypeNo: Integer;
         EmptySystemId: Guid;
         SourcePatternInitialized: Boolean;
         SourcePatternMixed: Boolean;
@@ -343,63 +353,21 @@ table 50626 "Opti Resource Capacity Week"
         CandidateSourceWeekPatternHash: Text[64];
         NewSourceWeekPatternId: Integer;
         NewSourceWeekPatternHash: Text[64];
+        NewEffectiveWeekPatternId: Integer;
+        NewHash: Text[64];
     begin
         TestField("Resource No.");
         TestField("Week Start Date");
 
-        CapacityEntry.Reset();
-        CapacityEntry.SetCurrentKey("Resource No.", "Capacity Date", "Line No.");
-        CapacityEntry.SetRange("Resource No.", "Resource No.");
-        CapacityEntry.SetRange("Capacity Date", "Week Start Date", "Week End Date");
-        if ExcludedSystemId <> EmptySystemId then
-            CapacityEntry.SetFilter(SystemId, '<>%1', ExcludedSystemId);
+        TempEffectiveWeekLine.DeleteAll();
 
-        if CapacityEntry.FindSet() then
-            repeat
-                DayPatternHash := '';
-
-                if CapacityEntry."Day Time Slot Header ID" <> 0 then
-                    if DayPattern.Get(CapacityEntry."Day Time Slot Header ID") then
-                        DayPatternHash := DayPattern."Pattern Hash";
-
-                if CapacityEntry."Source Week Pattern Hash" <> '' then begin
-                    if not SourcePatternInitialized then begin
-                        SourcePatternInitialized := true;
-                        CandidateSourceWeekPatternId := CapacityEntry."Source Week Pattern ID";
-                        CandidateSourceWeekPatternHash := CapacityEntry."Source Week Pattern Hash";
-                    end else
-                        if (CandidateSourceWeekPatternId <> CapacityEntry."Source Week Pattern ID") or
-                           (CandidateSourceWeekPatternHash <> CapacityEntry."Source Week Pattern Hash")
-                        then
-                            SourcePatternMixed := true;
-                end;
-
-                EntryTypeNo := CapacityEntry."Entry Type".AsInteger();
-
-                if HashInput <> '' then
-                    HashInput += '|';
-
-                HashInput +=
-                    StrSubstNo(
-                        '%1;%2;%3;%4;%5;%6',
-                        Format(CapacityEntry."Capacity Date", 0, 9),
-                        Format(CapacityEntry."Line No.", 0, 9),
-                        Format(EntryTypeNo, 0, 9),
-                        DayPatternHash,
-                        CapacityEntry.Description,
-                        Format(CapacityEntry."Capacity Hours", 0, 9));
-            until CapacityEntry.Next() = 0;
-
-        if HashInput = '' then
-            Clear(NewHash)
-        else begin
-            GeneratedHash :=
-                CryptographyManagement.GenerateHash(
-                    HashInput,
-                    HashAlgorithm::SHA256);
-
-            NewHash := CopyStr(GeneratedHash, 1, MaxStrLen(NewHash));
-        end;
+        BuildEffectiveWeekLines(
+            TempEffectiveWeekLine,
+            ExcludedSystemId,
+            SourcePatternInitialized,
+            SourcePatternMixed,
+            CandidateSourceWeekPatternId,
+            CandidateSourceWeekPatternHash);
 
         if SourcePatternInitialized and (not SourcePatternMixed) then begin
             NewSourceWeekPatternId := CandidateSourceWeekPatternId;
@@ -409,15 +377,138 @@ table 50626 "Opti Resource Capacity Week"
             Clear(NewSourceWeekPatternHash);
         end;
 
+        NewEffectiveWeekPatternId :=
+            EffectiveWeekPattern.UpsertForWeek(
+                "Resource No.",
+                "Week Start Date",
+                TempEffectiveWeekLine,
+                NewSourceWeekPatternId,
+                NewSourceWeekPatternHash);
+
+        if NewEffectiveWeekPatternId <> 0 then begin
+            EffectiveWeekPattern.Get(NewEffectiveWeekPatternId);
+            NewHash := EffectiveWeekPattern."Pattern Hash";
+        end else
+            Clear(NewHash);
+
         if ("Effective Pattern Hash" <> NewHash) or
+           ("Effective Week Pattern ID" <> NewEffectiveWeekPatternId) or
            ("Source Week Pattern ID" <> NewSourceWeekPatternId) or
            ("Source Week Pattern Hash" <> NewSourceWeekPatternHash)
         then begin
             "Effective Pattern Hash" := NewHash;
+            "Effective Week Pattern ID" := NewEffectiveWeekPatternId;
             "Source Week Pattern ID" := NewSourceWeekPatternId;
             "Source Week Pattern Hash" := NewSourceWeekPatternHash;
             Modify(false);
         end;
+    end;
+
+    local procedure BuildEffectiveWeekLines(
+        var TempEffectiveWeekLine: Record "Opti Eff Week Pattern Line" temporary;
+        ExcludedSystemId: Guid;
+        var SourcePatternInitialized: Boolean;
+        var SourcePatternMixed: Boolean;
+        var CandidateSourceWeekPatternId: Integer;
+        var CandidateSourceWeekPatternHash: Text[64])
+    var
+        CapacityEntry: Record "Opti Capacity Entry";
+        DayPattern: Record "Opti Day Time Slots Header";
+        EmptySystemId: Guid;
+        WeekdayNo: Integer;
+        EntryCount: Integer;
+        CapacityHours: Decimal;
+        DayPatternId: Integer;
+        DayPatternHash: Text[64];
+        DayHashInput: Text;
+        DayEffectiveHash: Text[64];
+    begin
+        for WeekdayNo := 1 to 7 do begin
+            Clear(EntryCount);
+            Clear(CapacityHours);
+            Clear(DayPatternId);
+            Clear(DayHashInput);
+
+            CapacityEntry.Reset();
+            CapacityEntry.SetCurrentKey("Resource No.", "Capacity Date", "Line No.");
+            CapacityEntry.SetRange("Resource No.", "Resource No.");
+            CapacityEntry.SetRange("Capacity Date", "Week Start Date" + (WeekdayNo - 1));
+            if ExcludedSystemId <> EmptySystemId then
+                CapacityEntry.SetFilter(SystemId, '<>%1', ExcludedSystemId);
+
+            if CapacityEntry.FindSet() then
+                repeat
+                    DayPatternHash := '';
+                    if CapacityEntry."Day Time Slot Header ID" <> 0 then
+                        if DayPattern.Get(CapacityEntry."Day Time Slot Header ID") then
+                            DayPatternHash := DayPattern."Pattern Hash";
+
+                    if CapacityEntry."Source Week Pattern Hash" <> '' then begin
+                        if not SourcePatternInitialized then begin
+                            SourcePatternInitialized := true;
+                            CandidateSourceWeekPatternId := CapacityEntry."Source Week Pattern ID";
+                            CandidateSourceWeekPatternHash := CapacityEntry."Source Week Pattern Hash";
+                        end else
+                            if (CandidateSourceWeekPatternId <> CapacityEntry."Source Week Pattern ID") or
+                               (CandidateSourceWeekPatternHash <> CapacityEntry."Source Week Pattern Hash")
+                            then
+                                SourcePatternMixed := true;
+                    end;
+
+                    EntryCount += 1;
+                    CapacityHours += CapacityEntry."Capacity Hours";
+
+                    if EntryCount = 1 then
+                        DayPatternId := CapacityEntry."Day Time Slot Header ID"
+                    else
+                        if DayPatternId <> CapacityEntry."Day Time Slot Header ID" then
+                            DayPatternId := 0;
+
+                    if DayHashInput <> '' then
+                        DayHashInput += '|';
+
+                    DayHashInput +=
+                        StrSubstNo(
+                            '%1;%2;%3;%4;%5;%6',
+                            Format(CapacityEntry."Line No.", 0, 9),
+                            Format(CapacityEntry."Entry Type".AsInteger(), 0, 9),
+                            Format(CapacityEntry."Day Time Slot Header ID", 0, 9),
+                            DayPatternHash,
+                            CapacityEntry.Description,
+                            Format(CapacityEntry."Capacity Hours", 0, 9));
+                until CapacityEntry.Next() = 0;
+
+            DayEffectiveHash := CalculateDayEffectiveHash(DayHashInput, WeekdayNo);
+
+            if EntryCount = 0 then
+                continue;
+
+            TempEffectiveWeekLine.Init();
+            TempEffectiveWeekLine."Effective Week Pattern ID" := 0;
+            TempEffectiveWeekLine."Weekday No." := WeekdayNo;
+            TempEffectiveWeekLine."Day Pattern ID" := DayPatternId;
+            TempEffectiveWeekLine."Day Effective Hash" := DayEffectiveHash;
+            TempEffectiveWeekLine."Entry Count" := EntryCount;
+            TempEffectiveWeekLine."Capacity Hours" := CapacityHours;
+            TempEffectiveWeekLine.Insert();
+        end;
+    end;
+
+    local procedure CalculateDayEffectiveHash(DayHashInput: Text; WeekdayNo: Integer): Text[64]
+    var
+        CryptographyManagement: Codeunit "Cryptography Management";
+        HashAlgorithm: Option MD5,SHA1,SHA256,SHA384,SHA512;
+        GeneratedHash: Text;
+    begin
+        if DayHashInput = '' then
+            exit(CopyStr(StrSubstNo('DAY%1-EMPTY', Format(WeekdayNo, 0, 9)), 1, 64));
+
+        GeneratedHash :=
+            CryptographyManagement.GenerateHash(
+                DayHashInput,
+                HashAlgorithm::SHA256);
+
+        exit(CopyStr(GeneratedHash, 1, 64));
     end;
 
     local procedure EmptyGuid(): Guid
