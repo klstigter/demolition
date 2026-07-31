@@ -172,6 +172,7 @@ page 50619 "DHX Resource Scheduler"
                             begin
                                 ResRec.SetRange("No.", ResourceId);
                                 ResCapacity.ResourceFilter(ResRec.GetFilter("No."));
+                                ResCapacity.SetPeriod(DT1, DT2);
                                 ResCapacity.SetTableView(ResRec);
                                 ResCapacity.Run();
                             end;
@@ -208,6 +209,7 @@ page 50619 "DHX Resource Scheduler"
                                 //message('exec OpenCapacity, parameter ResourceId: %1, PeriodStart: %2, PeriodEnd: %3', ResourceId, PeriodStart, PeriodEnd);
                                 ResRec.Setrange("No.", ResourceId);
                                 ResCapacity.ResourceFilter(ResRec.GetFilter("No."));
+                                ResCapacity.SetPeriod(DT1, DT2);
                                 ResCapacity.SetTableView(ResRec);
                                 ResCapacity.Run();
                             end;
