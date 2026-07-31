@@ -150,6 +150,34 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
                     ResScheduler.RunModal();
                 end;
             }
+            action(DayPlanning)
+            {
+                ApplicationArea = All;
+                Caption = 'Day Planning';
+
+                trigger OnAction()
+                var
+                    DayPlanning: Record "Day Planning";
+                begin
+                    DayPlanning.Reset();
+                    DayPlanning.FilterGroup(2);
+                    DayPlanning.SetRange("Requested Resource No.", Rec."No.");
+                    if DayPlanning.FindSet() then
+                        repeat
+                            DayPlanning.Mark(true);
+                        until DayPlanning.Next() = 0;
+                    DayPlanning.SetRange("Requested Resource No.");
+                    DayPlanning.SetRange("Assigned Resource No.", Rec."No.");
+                    if DayPlanning.FindSet() then
+                        repeat
+                            DayPlanning.Mark(true);
+                        until DayPlanning.Next() = 0;
+                    DayPlanning.SetRange("Assigned Resource No.");
+                    DayPlanning.MarkedOnly := true;
+                    DayPlanning.FilterGroup(0);
+                    Page.Run(Page::"Day Plannings", DayPlanning);
+                end;
+            }
             action("Set Capacity Opt")
             {
                 ApplicationArea = Jobs;
@@ -173,6 +201,7 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
         {
             actionref("S&kills_Promoted_custom"; "S&kills_Custom") { }
             actionref("Day Plannings (Visual) actionref"; "Resource Scheduler") { }
+            actionref("DayPlanningRef"; DayPlanning) { }
             actionref("Set Capacity Opt actionref"; "Set Capacity Opt") { }
             actionref("Absence actionref"; "Absence") { }
             actionref("Resource Capacity actionref"; "Resource &Capacity") { }

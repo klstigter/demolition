@@ -81,6 +81,10 @@
 
 /* ---- Resource panel elements ---- */
 .rp-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
     padding: 10px 12px 8px;
     font-weight: 600;
     font-size: 13px;
@@ -90,6 +94,56 @@
     position: sticky;
     top: 0;
     z-index: 1;
+}
+
+.rp-header-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Collapse/Expand-all toggle icon in the "Resources" panel header
+   (mirrors the equivalent icon in the Gantt "Task name" grid header). */
+.rp-collapseall-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    border-radius: 6px;
+    box-sizing: border-box;
+    color: #495057;
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    transition: background-color .12s ease, border-color .12s ease, color .12s ease, transform .08s ease;
+}
+.rp-collapseall-icon:hover {
+    background: #2f8bfb;
+    border-color: #2f8bfb;
+    color: #fff;
+}
+.rp-collapseall-icon:active {
+    transform: scale(0.9);
+    background: #1f6fe0;
+    border-color: #1f6fe0;
+}
+.rp-collapseall-icon .rca-svg {
+    display: none;
+    pointer-events: none;
+}
+.rp-collapseall-icon .rca-collapse {
+    display: block;
+}
+.rp-collapseall-icon.is-collapsed .rca-collapse {
+    display: none;
+}
+.rp-collapseall-icon.is-collapsed .rca-expand {
+    display: block;
+}
+
+.rp-resource.rp-resource-hidden {
+    display: none;
 }
 
 .rp-group {
