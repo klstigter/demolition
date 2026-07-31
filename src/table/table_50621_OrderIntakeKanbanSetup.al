@@ -1,4 +1,4 @@
-table 50621 "Order Intake Kanban Setup"
+table 50634 "Order Intake Kanban Setup"
 {
     DataClassification = CustomerContent;
     Caption = 'Order Intake Kanban Setup';
