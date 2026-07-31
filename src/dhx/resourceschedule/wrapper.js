@@ -9,6 +9,7 @@ var checkedResources = {};   // { resourceId: true|false }
 var showDayPlanning      = true;    // controlled by BC toggle
 var showCapacity     = true;    // controlled by BC toggle
 var _initInProgress  = true;    // suppresses onViewChange during Init()
+var _allGroupsCollapsed = false; // toggled by the collapse/expand-all icon in the resource panel header
 
 // Resource filter toolbar state (top-left of the scheduler grid). null -> unfiltered;
 // the filter button is still shown so the user can open the filter dialog, it just has
@@ -236,9 +237,26 @@ function BuildResourcePanel(container) {
     // Header
     var hdr = document.createElement("div");
     hdr.className = "rp-header";
+
+    var hdrLeft = document.createElement("span");
+    hdrLeft.className = "rp-header-left";
+
+    var collapseIcon = document.createElement("span");
+    collapseIcon.className = "rp-collapseall-icon" + (_allGroupsCollapsed ? " is-collapsed" : "");
+    collapseIcon.title = _allGroupsCollapsed ? "Expand All" : "Collapse All";
+    collapseIcon.innerHTML =
+        '<svg class="rca-svg rca-collapse" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M10 14l-7 7"/></svg>' +
+        '<svg class="rca-svg rca-expand" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>';
+    collapseIcon.addEventListener("click", function() {
+        ToggleCollapseExpandAllResources();
+    });
+    hdrLeft.appendChild(collapseIcon);
+
     var hdrLabel = document.createElement("span");
     hdrLabel.textContent = "Resources";
-    hdr.appendChild(hdrLabel);
+    hdrLeft.appendChild(hdrLabel);
+
+    hdr.appendChild(hdrLeft);
     var filterToolbar = document.createElement("div");
     filterToolbar.id = "res-filter-toolbar";
     hdr.appendChild(filterToolbar);
@@ -288,7 +306,7 @@ function BuildResourcePanel(container) {
         // Resource rows
         members.forEach(function(res) {
             var rRow = document.createElement("div");
-            rRow.className = "rp-resource";
+            rRow.className = "rp-resource" + (_allGroupsCollapsed ? " rp-resource-hidden" : "");
 
             var rCb = document.createElement("input");
             rCb.type = "checkbox";
@@ -322,6 +340,15 @@ function BuildResourcePanel(container) {
             container.appendChild(rRow);
         });
     });
+}
+
+// ============================================================
+// Collapse / expand all resource groups in the left panel
+// ============================================================
+function ToggleCollapseExpandAllResources() {
+    _allGroupsCollapsed = !_allGroupsCollapsed;
+    var panel = document.getElementById("resource-panel");
+    if (panel) BuildResourcePanel(panel);
 }
 
 // ============================================================
