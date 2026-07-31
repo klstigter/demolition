@@ -1,0 +1,519 @@
+page 50696 "Opti Resource Capacity Weeks"
+{
+    Caption = 'Resource Capacity by Week';
+    PageType = List;
+    SourceTable = "Opti Resource Capacity Week";
+    ApplicationArea = All;
+    UsageCategory = Documents;
+    SourceTableTemporary = true;
+    insertAllowed = false;
+    modifyAllowed = false;
+    deleteAllowed = false;
+
+    layout
+    {
+        area(Content)
+        {
+            repeater(Weeks)
+            {
+                field("Resource No."; Rec."Resource No.")
+                {
+                    ApplicationArea = All;
+                }
+                field("Week No."; Rec."Week No.")
+                {
+                    ApplicationArea = All;
+                }
+
+                field("Week Year"; Rec."Week Year")
+                {
+                    ApplicationArea = All;
+                }
+                field("Week Start Date"; Rec."Week Start Date")
+                {
+                    ApplicationArea = All;
+                }
+
+                field("Week End Date"; Rec."Week End Date")
+                {
+                    ApplicationArea = All;
+                }
+
+                field("Monday Capacity"; Rec."Monday Capacity")
+                {
+                    ApplicationArea = All;
+                }
+
+                field("Tuesday Capacity"; Rec."Tuesday Capacity")
+                {
+                    ApplicationArea = All;
+                }
+
+                field("Wednesday Capacity"; Rec."Wednesday Capacity")
+                {
+                    ApplicationArea = All;
+                }
+
+                field("Thursday Capacity"; Rec."Thursday Capacity")
+                {
+                    ApplicationArea = All;
+                }
+
+                field("Friday Capacity"; Rec."Friday Capacity")
+                {
+                    ApplicationArea = All;
+                }
+
+                field("Saturday Capacity"; Rec."Saturday Capacity")
+                {
+                    ApplicationArea = All;
+                }
+
+                field("Sunday Capacity"; Rec."Sunday Capacity")
+                {
+                    ApplicationArea = All;
+                }
+
+                field("Week Capacity"; WeekCapacity)
+                {
+                    ApplicationArea = All;
+                }
+            }
+
+            part(CapacitySlots; "Opti Week Capacity Slots")
+            {
+                ApplicationArea = All;
+            }
+        }
+    }
+    actions
+    {
+        area(Processing)
+        {
+            action(OpenWeekPattern)
+            {
+                ApplicationArea = All;
+                Caption = 'Open Week Pattern';
+                Image = Calendar;
+                ToolTip = 'Open the week pattern card.';
+
+                trigger OnAction()
+
+                begin
+                    Page.Run(
+                        Page::"Opti Week Pattern List");
+                end;
+            }
+            action(CreateResourceCapacity)
+            {
+                ApplicationArea = All;
+                Caption = 'Create Resource Capacity';
+                Image = CalculateCalendar;
+                ToolTip = 'Create capacity dates and normal capacity entries for the selected resources and date range.';
+
+                trigger OnAction()
+                begin
+                    Report.RunModal(
+                        Report::"Opti Create Resource Capacity",
+                        true,
+                        false);
+                end;
+            }
+
+        }
+
+        area(Promoted)
+        {
+            actionref(OpenWeekPatternPromoted; OpenWeekPattern)
+            {
+            }
+            actionref(CreateResourceCapacityPromoted; CreateResourceCapacity)
+            {
+            }
+
+        }
+    }
+    trigger OnFindRecord(Which: Text): Boolean
+    var
+        Position: Integer;
+        SearchTask: Text[1];
+    begin
+        for Position := 1 to StrLen(Which) do begin
+            SearchTask := CopyStr(Which, Position, 1);
+
+            if FindWeekRecord(SearchTask) then
+                exit(true);
+        end;
+
+        exit(false);
+    end;
+
+    trigger OnNextRecord(Steps: Integer): Integer
+    var
+        ActualSteps: Integer;
+        Direction: Integer;
+    begin
+        if Steps = 0 then
+            exit(0);
+
+        if Steps > 0 then
+            Direction := 1
+        else
+            Direction := -1;
+
+        while ActualSteps <> Steps do begin
+            if not FindAdjacentWeek(Direction) then
+                break;
+
+            ActualSteps += Direction;
+        end;
+
+        exit(ActualSteps);
+    end;
+
+    trigger OnAfterGetCurrRecord()
+    begin
+
+        Rec.CalcFields(
+            "Monday Capacity",
+            "Tuesday Capacity",
+            "Wednesday Capacity",
+            "Thursday Capacity",
+            "Friday Capacity",
+            "Saturday Capacity",
+            "Sunday Capacity");
+        WeekCapacity :=
+            Rec."Monday Capacity" +
+            Rec."Tuesday Capacity" +
+            Rec."Wednesday Capacity" +
+            Rec."Thursday Capacity" +
+            Rec."Friday Capacity" +
+            Rec."Saturday Capacity" +
+            Rec."Sunday Capacity";
+
+        CurrPage.CapacitySlots.Page.SetWeek(
+    Rec."Resource No.",
+    Rec."Week Start Date");
+    end;
+
+    trigger OnOpenPage()
+    begin
+        FirstRelevantDate := GetFirstRelevantDate();
+        ;
+    end;
+
+    Var
+        WeekCapacity: Decimal;
+        FirstRelevantDate: Date;
+        UserStartDate: Date;
+        UserEndDate: Date;
+
+    local procedure SetCurrentWeek(
+        ResourceNo: Code[20];
+        CapacityDate: Date)
+    var
+        WeekStartDate: Date;
+    begin
+        if CapacityDate = 0D then
+            exit;
+        WeekStartDate :=
+            CapacityDate -
+            Date2DWY(CapacityDate, 1) + 1;
+
+        Rec.Reset();
+
+        if Rec.Get(ResourceNo, WeekStartDate) then
+            exit;
+
+        Rec.Init();
+        Rec."Resource No." := ResourceNo;
+        Rec."Week Start Date" := WeekStartDate;
+        Rec.SetWeekDates();
+        Rec.Insert(false);
+    end;
+
+    local procedure FindWeekRecord(Which: Text): Boolean
+    var
+        ResourceCapacity: Record "Opti Resource Capacity";
+    begin
+
+
+        case Which of
+            '-':
+                begin
+                    ResourceCapacity.Reset();
+                    ResourceCapacity.SetCurrentKey(
+                        "Resource No.",
+                        "Capacity Date");
+                    applyEffectiveDateRange(ResourceCapacity);
+                    if not ResourceCapacity.FindFirst() then
+                        exit(false);
+
+                    SetCurrentWeek(
+                        ResourceCapacity."Resource No.",
+                        ResourceCapacity."Capacity Date");
+
+                    exit(true);
+                end;
+
+            '+':
+                begin
+                    ResourceCapacity.Reset();
+                    ResourceCapacity.SetCurrentKey(
+                        "Resource No.",
+                        "Capacity Date");
+                    ApplyEffectiveDateRange(ResourceCapacity);
+                    if not ResourceCapacity.FindLast() then
+                        exit(false);
+
+                    SetCurrentWeek(
+                        ResourceCapacity."Resource No.",
+                        ResourceCapacity."Capacity Date");
+
+                    exit(true);
+                end;
+
+            '=':
+                begin
+                    if (Rec."Resource No." = '') or
+                       (Rec."Week Start Date" = 0D)
+                    then
+                        exit(FindWeekRecord('-'));
+
+                    exit(FindCurrentWeek());
+                end;
+
+            '>':
+                begin
+                    if (Rec."Resource No." = '') or
+                       (Rec."Week Start Date" = 0D)
+                    then
+                        exit(FindWeekRecord('-'));
+
+                    exit(FindAdjacentWeek(1));
+                end;
+
+            '<':
+                begin
+                    if (Rec."Resource No." = '') or
+                       (Rec."Week Start Date" = 0D)
+                    then
+                        exit(FindWeekRecord('+'));
+
+                    exit(FindAdjacentWeek(-1));
+                end;
+        end;
+
+        exit(false);
+    end;
+
+    local procedure FindCurrentWeek(): Boolean
+    var
+        ResourceCapacity: Record "Opti Resource Capacity";
+    begin
+        ResourceCapacity.Reset();
+        ResourceCapacity.SetCurrentKey(
+            "Resource No.",
+            "Capacity Date");
+
+        ResourceCapacity.SetRange(
+            "Resource No.",
+            Rec."Resource No.");
+
+        ResourceCapacity.SetRange(
+            "Capacity Date",
+            Rec."Week Start Date",
+            CalcDate('<6D>', Rec."Week Start Date"));
+
+        if not ResourceCapacity.FindFirst() then
+            exit(false);
+
+        SetCurrentWeek(
+            ResourceCapacity."Resource No.",
+            ResourceCapacity."Capacity Date");
+
+        exit(true);
+    end;
+
+    local procedure FindAdjacentWeek(Direction: Integer): Boolean
+    begin
+        case Direction of
+            1:
+                exit(FindNextWeek());
+
+            -1:
+                exit(FindPreviousWeek());
+        end;
+
+        exit(false);
+    end;
+
+    local procedure FindNextWeek(): Boolean
+    var
+        ResourceCapacity: Record "Opti Resource Capacity";
+        CurrentWeekEndDate: Date;
+    begin
+        if Rec."Resource No." = '' then
+            exit(FindWeekRecord('-'));
+
+        CurrentWeekEndDate :=
+            CalcDate('<6D>', Rec."Week Start Date");
+
+        ResourceCapacity.Reset();
+        ResourceCapacity.SetCurrentKey(
+            "Resource No.",
+            "Capacity Date");
+        ResourceCapacity.SetRange(
+            "Resource No.",
+            Rec."Resource No.");
+        ResourceCapacity.SetFilter(
+            "Capacity Date",
+            '>%1',
+            CurrentWeekEndDate);
+
+        if ResourceCapacity.FindFirst() then begin
+            SetCurrentWeek(
+                ResourceCapacity."Resource No.",
+                ResourceCapacity."Capacity Date");
+
+            exit(true);
+        end;
+
+        ResourceCapacity.Reset();
+        ResourceCapacity.SetCurrentKey(
+            "Resource No.",
+            "Capacity Date");
+        ResourceCapacity.SetFilter(
+            "Resource No.",
+            '>%1',
+            Rec."Resource No.");
+
+        if not ResourceCapacity.FindFirst() then
+            exit(false);
+
+        SetCurrentWeek(
+            ResourceCapacity."Resource No.",
+            ResourceCapacity."Capacity Date");
+
+        exit(true);
+    end;
+
+    local procedure FindPreviousWeek(): Boolean
+    var
+        ResourceCapacity: Record "Opti Resource Capacity";
+    begin
+        if Rec."Resource No." = '' then
+            exit(FindWeekRecord('+'));
+
+        ResourceCapacity.Reset();
+        ResourceCapacity.SetCurrentKey(
+            "Resource No.",
+            "Capacity Date");
+        ResourceCapacity.SetRange(
+            "Resource No.",
+            Rec."Resource No.");
+        ResourceCapacity.SetFilter(
+            "Capacity Date",
+            '<%1',
+            Rec."Week Start Date");
+
+        if ResourceCapacity.FindLast() then begin
+            SetCurrentWeek(
+                ResourceCapacity."Resource No.",
+                ResourceCapacity."Capacity Date");
+
+            exit(true);
+        end;
+
+        ResourceCapacity.Reset();
+        ResourceCapacity.SetCurrentKey(
+            "Resource No.",
+            "Capacity Date");
+        ResourceCapacity.SetFilter(
+            "Resource No.",
+            '<%1',
+            Rec."Resource No.");
+
+        if not ResourceCapacity.FindLast() then
+            exit(false);
+
+        SetCurrentWeek(
+            ResourceCapacity."Resource No.",
+            ResourceCapacity."Capacity Date");
+
+        exit(true);
+    end;
+
+    local procedure GetFirstRelevantDate(): Date
+    var
+        ResourceCapacity: Record "Opti Resource Capacity";
+        CurrentWeekStartDate: Date;
+        LastCapacityDate: Date;
+    begin
+        CurrentWeekStartDate :=
+            GetFirstDateOfWeek(Today());
+
+        ResourceCapacity.Reset();
+        ResourceCapacity.SetCurrentKey("Capacity Date", "Resource No.");
+        ResourceCapacity.SetFilter(
+                    "Capacity Date",
+                    '>=%1',
+                    CurrentWeekStartDate);
+
+        if not ResourceCapacity.IsEmpty() then
+            exit(CurrentWeekStartDate);
+
+        ResourceCapacity.Reset();
+        ResourceCapacity.SetCurrentKey("Capacity Date", "Resource No.");
+
+        if not ResourceCapacity.FindLast() then
+            exit(CurrentWeekStartDate);
+
+        LastCapacityDate :=
+            ResourceCapacity."Capacity Date";
+
+        exit(GetFirstDateOfWeek(LastCapacityDate));
+    end;
+
+    local procedure GetFirstDateOfWeek(InputDate: Date): Date
+    begin
+        if InputDate = 0D then
+            exit(0D);
+
+        exit(
+            InputDate -
+            Date2DWY(InputDate, 1) + 1);
+    end;
+
+    procedure SetDateRange(StartDt: Date; EndDt: Date)
+    begin
+        UserStartDate := StartDt;
+        UserEndDate := EndDt;
+    end;
+
+    local procedure ApplyEffectiveDateRange(var ResourceCapacity: Record "Opti Resource Capacity")
+    var
+        EffectiveStartDate: Date;
+        EffectiveEndDate: Date;
+    begin
+        if UserStartDate <> 0D then
+            EffectiveStartDate := UserStartDate
+        else
+            EffectiveStartDate := FirstRelevantDate;
+        if UserEndDate <> 0D then begin
+            EffectiveEndDate := UserEndDate;
+
+            ResourceCapacity.SetFilter(
+              "Capacity Date",
+              '>=%1&<=%2',
+              EffectiveStartDate,
+              EffectiveEndDate);
+        end else begin
+            ResourceCapacity.SetFilter(
+              "Capacity Date",
+              '>=%1',
+              EffectiveStartDate);
+        end;
+    end;
+
+}

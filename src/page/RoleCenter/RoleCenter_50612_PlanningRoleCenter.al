@@ -171,6 +171,13 @@ page 50612 "Planning Role Center"
                     Caption = 'Skill Codes';
                     RunObject = page "Skill Codes";
                 }
+
+                Action(OptiResourceCapacity)
+                {
+                    ApplicationArea = Basic, Suite;
+                    Caption = 'Opti Resource Capacity';
+                    RunObject = page "Opti Resource Capacity Weeks";
+                }
             }
             group("SettingGroup")
             {
