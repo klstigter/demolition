@@ -190,6 +190,19 @@ page 50696 "Opti Resource Capacity Weeks"
                     OpenSourcePattern();
                 end;
             }
+            action(ExportToExcel)
+            {
+                ApplicationArea = All;
+                Caption = 'Export to Excel';
+                Image = Export;
+                ToolTip = 'Export the resource capacity data to an Excel file.';
+
+                trigger OnAction()
+                begin
+                    Report.RunModal(
+                        Report::"Opti Res Capacity To Excel", true, false);
+                end;
+            }
         }
 
         area(Promoted)
@@ -204,6 +217,9 @@ page 50696 "Opti Resource Capacity Weeks"
             {
             }
             actionref(OpenSourceWeekPatternPromoted; OpenSourceWeekPattern)
+            {
+            }
+            actionref(ExportToExcelPromoted; ExportToExcel)
             {
             }
         }
