@@ -43,6 +43,30 @@ table 50604 "Order Intake Header Opt."
             Caption = 'Customer No.';
             ToolTip = 'Specifies the customer number for the order intake. The customer number is used to link the order intake to a specific customer in the system.';
             TableRelation = Customer;
+
+            trigger OnValidate()
+            var
+                WorkOrder: Record "Work Order";
+                DayPlanning: Record "Day Planning";
+                JobPlanningLine: Record "Job Planning Line";
+                CannotChangeCustomerErr: Label 'Cannot change the customer because Day Planning lines and/or Project Planning lines already exist for this order intake. Remove those lines before changing the customer.';
+            begin
+                if (xRec."Customer No." = '') or (xRec."Customer No." = "Customer No.") then
+                    exit;
+
+                WorkOrder.SetRange("Order Intake No.", "No.");
+                if WorkOrder.FindSet() then
+                    repeat
+                        DayPlanning.SetRange("Work Order No.", WorkOrder."Work Order No.");
+                        if not DayPlanning.IsEmpty() then
+                            Error(CannotChangeCustomerErr);
+
+                        JobPlanningLine.SetRange("Job No.", WorkOrder."Project No.");
+                        JobPlanningLine.SetRange("Job Task No.", WorkOrder."Project Task No.");
+                        if not JobPlanningLine.IsEmpty() then
+                            Error(CannotChangeCustomerErr);
+                    until WorkOrder.Next() = 0;
+            end;
         }
         field(25; "Customer Name"; Text[100])
         {
