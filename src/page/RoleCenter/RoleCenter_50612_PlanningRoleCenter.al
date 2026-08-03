@@ -135,6 +135,12 @@ page 50612 "Planning Role Center"
                     Caption = 'Order Intake Kanban';
                     RunObject = page "DHX Order Intake Kanban";
                 }
+                action("VisualPlanning7")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Requested vs Capacity (Skills)';
+                    RunObject = page "Requested vs Capacity (Skills)";
+                }
             }
 
             group("Resource")
