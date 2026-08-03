@@ -88,7 +88,7 @@ window.BOOT = function () {
             // isolation we need.
             { key: "longDescription", type: "textarea", label: "Long Description" },
             { key: "color",           type: "color",    label: "Color", config: { clear: true } },
-            { key: "start_date",      type: "date",     label: "Start date" }
+            { key: "start_date",      type: "date",     label: "Order Date" }
         ];
 
         // ---- Initialise Kanban board ----
