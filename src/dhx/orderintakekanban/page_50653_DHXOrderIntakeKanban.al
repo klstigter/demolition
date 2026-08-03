@@ -30,11 +30,25 @@ page 50653 "DHX Order Intake Kanban"
                 trigger OnCardMoved(EntryNo: Text; NewStatus: Text)
                 var
                     KanbanHandler: Codeunit "Order Intake Kanban Handler";
-                    EntryNoInt: Integer;
                     NewStatusInt: Integer;
                 begin
-                    if Evaluate(EntryNoInt, EntryNo) and Evaluate(NewStatusInt, NewStatus) then
-                        KanbanHandler.UpdateCardStatus(EntryNoInt, NewStatusInt);
+                    if Evaluate(NewStatusInt, NewStatus) then
+                        KanbanHandler.UpdateCardStatus(CopyStr(EntryNo, 1, 20), NewStatusInt);
+                end;
+
+                // ----------------------------------------------------------------
+                // OnCardUpdated – user edited a card's fields (Short Description
+                // and/or Long Description) in the detail panel. Save the new
+                // values back to BC. The board already applied the edit locally,
+                // so no refresh is needed here.
+                // ShortDescription comes from the built-in "description" field,
+                // LongDescription from the custom "longDescription" field.
+                // ----------------------------------------------------------------
+                trigger OnCardUpdated(EntryNo: Text; LongDescription: Text; ShortDescription: Text)
+                var
+                    KanbanHandler: Codeunit "Order Intake Kanban Handler";
+                begin
+                    KanbanHandler.UpdateCardDescriptions(CopyStr(EntryNo, 1, 20), LongDescription, ShortDescription);
                 end;
 
                 // ----------------------------------------------------------------
@@ -43,11 +57,9 @@ page 50653 "DHX Order Intake Kanban"
                 trigger OnCardSelected(EntryNo: Text)
                 var
                     OrderIntake: Record "Order Intake Header Opt.";
-                    EntryNoInt: Integer;
                 begin
-                    if Evaluate(EntryNoInt, EntryNo) then
-                        if OrderIntake.Get(EntryNoInt) then
-                            Page.Run(Page::"Order Intake Opt.", OrderIntake);
+                    if OrderIntake.Get(CopyStr(EntryNo, 1, 20)) then
+                        Page.Run(Page::"Order Intake Opt.", OrderIntake);
                 end;
 
                 // ----------------------------------------------------------------
@@ -72,12 +84,9 @@ page 50653 "DHX Order Intake Kanban"
                 trigger OnCardDuplicated(EntryNo: Text; ColumnId: Text)
                 var
                     KanbanHandler: Codeunit "Order Intake Kanban Handler";
-                    EntryNoInt: Integer;
                 begin
-                    if Evaluate(EntryNoInt, EntryNo) then begin
-                        KanbanHandler.DuplicateCard(EntryNoInt);
-                        CurrPage.DhxKanban.RefreshKanbanData(KanbanHandler.BuildKanbanJson());
-                    end;
+                    KanbanHandler.DuplicateCard(CopyStr(EntryNo, 1, 20));
+                    CurrPage.DhxKanban.RefreshKanbanData(KanbanHandler.BuildKanbanJson());
                 end;
 
                 // ----------------------------------------------------------------
@@ -87,12 +96,9 @@ page 50653 "DHX Order Intake Kanban"
                 trigger OnCardDeleted(EntryNo: Text)
                 var
                     KanbanHandler: Codeunit "Order Intake Kanban Handler";
-                    EntryNoInt: Integer;
                 begin
-                    if Evaluate(EntryNoInt, EntryNo) then begin
-                        KanbanHandler.DeleteCard(EntryNoInt);
-                        CurrPage.DhxKanban.RefreshKanbanData(KanbanHandler.BuildKanbanJson());
-                    end;
+                    KanbanHandler.DeleteCard(CopyStr(EntryNo, 1, 20));
+                    CurrPage.DhxKanban.RefreshKanbanData(KanbanHandler.BuildKanbanJson());
                 end;
             }
         }
