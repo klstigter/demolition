@@ -51,11 +51,6 @@ page 50639 "Day Planning Pattern"
                 {
                     ToolTip = 'Specifies the value of the Work-Hour Template field.', Comment = '%';
                 }
-                field("Time Slot No."; Rec."Time Slot No.")
-                {
-                    ToolTip = 'Specifies the time slot set used for this pattern line.';
-                }
-
                 field("Start Date"; Rec."Start Date")
                 {
                     ToolTip = 'Specifies the value of the Planned Start Date field.', Comment = '%';
@@ -118,11 +113,8 @@ page 50639 "Day Planning Pattern"
     }
 
     trigger OnAfterGetRecord()
-    var
-        TimeSlot: Record "Time Slot";
     begin
-        if rec."Time Slot No." <> 0 then
-            rec."Week Pattern" := TimeSlot.GetWorkingHours(rec."Time Slot No.");
+
     end;
 
     trigger OnNewRecord(BelowxRec: Boolean)
@@ -160,7 +152,6 @@ page 50639 "Day Planning Pattern"
             rec."End Time" := xRec."End Time";
             rec."Requested Hours" := xRec."Requested Hours";
             rec."Non Working Minutes" := xRec."Non Working Minutes";
-            rec."Time Slot No." := xRec."Time Slot No.";
         end;
     end;
 
