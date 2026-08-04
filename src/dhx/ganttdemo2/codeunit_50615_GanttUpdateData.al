@@ -94,19 +94,41 @@ codeunit 50615 "Gantt Update Data"
         NewStartDate := JobTask.PlannedStartDate;
         NewEndDate := JobTask.PlannedEndDate;
 
+        // The requested new end date must never land on a non-working day (holiday/weekend):
+        // snap it forward to the next active workday before it's used anywhere downstream
+        // (HandleJobTaskPeriodChange/CalculateChanges, the Scenario A new-entry walk, and the
+        // no-DayPlanning-affected fallback below). Only when the end date is actually being
+        // changed by this operation - an unrelated left-only drag must not touch an
+        // already-existing boundary that wasn't part of this operation.
+        if (NewEndDate <> 0D) and (NewEndDate <> OldEndDate) then begin
+            NewEndDate := DayPlanningPeriodSyncMgt.SnapForwardToWorkDay(JobTask, NewEndDate);
+            JobTask.PlannedEndDate := NewEndDate;
+            JobTask.CalculateDuration();
+        end;
+
         if ((NewStartDate <> 0D) or (NewEndDate <> 0D)) and
            ((NewStartDate <> OldStartDate) or (NewEndDate <> OldEndDate)) then begin
             // Period changed: open preview page. Returns FALSE if user cancelled
             // → neither JobTask nor DayPlanning records are written to the database.
             if DayPlanningPeriodSyncMgt.HandleJobTaskPeriodChange(JobTask, OldStartDate, OldEndDate, false) then begin
-                // Re-read to get the latest record timestamp before modifying.
-                // HandleJobTaskPeriodChange (or its event subscribers) may have written
-                // the record, making our in-memory copy stale and causing a concurrency error.
+                // Re-read to get the latest record timestamp/values. When DayPlanning rows were
+                // affected, HandleJobTaskPeriodChange already ran ApplyChanges (Modify + Commit)
+                // - including ExtendJobTaskEndDateIfNeeded, which can raise PlannedEndDate beyond
+                // NewEndDate to cover a cascade overshoot. Only fall back to writing NewStartDate/
+                // NewEndDate ourselves when that path did NOT already persist them (i.e. no
+                // DayPlanning rows were affected, so HandleJobTaskPeriodChange returned early
+                // without ever calling ApplyChanges) - and never shrink PlannedEndDate back down,
+                // which would silently re-introduce the very out-of-scope DayPlanning rows the
+                // extension was there to prevent.
                 JobTask.Get(JobTask."Job No.", JobTask."Job Task No.");
-                JobTask.PlannedStartDate := NewStartDate;
-                JobTask.PlannedEndDate := NewEndDate;
-                JobTask.Duration := NewEndDate - NewStartDate + 1;
-                JobTask.Modify();
+                if (JobTask.PlannedStartDate <> NewStartDate) or (JobTask.PlannedEndDate < NewEndDate) then begin
+                    if JobTask.PlannedStartDate <> NewStartDate then
+                        JobTask.PlannedStartDate := NewStartDate;
+                    if JobTask.PlannedEndDate < NewEndDate then
+                        JobTask.PlannedEndDate := NewEndDate;
+                    JobTask.Duration := JobTask.PlannedEndDate - JobTask.PlannedStartDate + 1;
+                    JobTask.Modify();
+                end;
             end else
                 exit(false);
         end else begin

@@ -8,3 +8,4 @@
 - [Native Business Chart usage](native_businesschart_usage.md) — page 50690 chart API facts + why 2-measure charts always render as two M365 greys (no colour API; palette is assigned by series ordinal)
 - [DHTMLX Kanban editorShape](dhtmlx_kanban_editorshape.md) — custom edit-panel fields go in top-level `editorShape`, NOT `cardShape.fields` (silently ignored); it replaces the default list, not extends it
 - [DHTMLX Suite Chart API](dhtmlx_suite_chart_api.md) — `dhx.Chart` real API grepped from suite.js: series[].color/label, legend.series array, "text" scale, serieClick event; page 50692 barchart POC
+- [DHTMLX auto_scheduling event API](dhtmlx_autoscheduling_event_api.md) — `onAfterAutoSchedule(sourceIds, updatedTaskIds)` grepped from dhtmlxgantt.js; engine sets raw exclusive end_date before firing, must re-normalize in handler
