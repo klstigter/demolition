@@ -35,11 +35,23 @@ only whitespace/comments are stripped; do NOT guess this API from memory, grep i
   starts `#2A9D8F` teal / `#78586F` mauve / `#E76F51` orange...) when `color` is left
   unset; an explicit `color` always wins. This is the entire reason DHTMLX was chosen
   over BusinessChart for this proof-of-concept.
-- `config.scales = { bottom: { type: "text", value: "categoryFieldName" }, left: {
-  type: "numeric" } }` — the `"text"` scale type reads `value` as the field name on each
-  data row to use as the category label (`TextScale.point()`/`scaleReady()` build an
-  ordinal axis from `this._data.map(this.locator)`, where `locator(config.value)` is
-  `obj => obj[value]`, ~line 1830-1840 and ~line 35967-36030).
+- `config.scales = { bottom: { type: "text", text: "categoryFieldName" }, left: {
+  type: "numeric" } }` — **the `"text"` scale type reads the category field name from
+  `config.text`, NOT `config.value`.** This was gotten wrong in the first pass of this
+  page (used `value` by analogy with series' `value` field) and caused a real, shipped
+  bug: `TextScale.prototype._setDefaults` (suite.js ~line 36023-36032) does
+  `this.locator = locator(config.text);` — with `value` set instead of `text`,
+  `config.text` is `undefined`, and `locator(undefined)` returns the library's built-in
+  fallback `() => ""` (see `locator()`, ~line 1830-1840: `if (!value) return () => ""`).
+  Every data row then resolves to the SAME blank category (`""`), so
+  `TextScale.point()`'s `this._axis.steps.indexOf(value)` matches every row at the same
+  index — all categories collapse onto (effectively) one x-slot, producing exactly the
+  symptom reported live: one real cluster plus garbled/ghost bars with heights that don't
+  match any real row, most of the plot area empty. **Confirmed by actually executing
+  the real `suite.js` in a jsdom harness** (not just reading the source) — see the
+  root-cause verification note below. `left`/`right`/numeric scales are unaffected by
+  this — they don't take a `text`/`value` field at all, they aggregate y-values from
+  every series attached to them via `chart.getPoints()`.
 - **Legend text comes from `series[].label`, NOT `series[].name`** — confirmed by
   reading `Legend.prototype._getData()`'s plain (non-treeMap) branch (~line 13508-13524):
   `text = label && typeof label === "function" ? label(...) : label || value`. Also
@@ -71,6 +83,31 @@ only whitespace/comments are stripped; do NOT guess this API from memory, grep i
   instance's data in place — safer, and matches this project's established "wipe and
   rebuild" DOM convention (e.g. `BuildResourcePanel` in
   `src/dhx/resourceschedule/wrapper.js`).
+
+**Root-cause verification technique (established 2026-08-04, use again for any future
+DHTMLX/suite.js rendering bug before trusting a source-read alone):** grep-reading
+minified-but-unobfuscated suite.js is good enough to find candidate config shapes, but
+is NOT sufficient to trust blind — this exact page shipped with a wrong scale-config key
+(`value` instead of `text`) despite a careful grep-based first pass, because nothing
+about reading the source alone surfaces which config key silently no-ops vs. throws. The
+reliable way to actually prove a `dhx.Chart` config renders correctly: set up a throwaway
+Node + `jsdom` harness (`npm install jsdom` in a scratch folder, NOT inside this repo),
+stub `global.window`/`global.document` from a `JSDOM` instance before `require()`-ing
+`suite.js` (the file's UMD wrapper reads a bare `window` global at module-load time, line
+12: `if (window.dhx){...}`, so `window` must exist before requiring it), stub
+`HTMLCanvasElement.prototype.getContext` (suite.js calls a real 2D context to resolve
+point-marker colours via `getRgbaFromColor`, which jsdom doesn't implement without the
+native `canvas` package — a tiny fake with `fillStyle`/`fillRect`/`getImageData` is
+enough), then actually `new dhx.Chart(container, config)` with the EXACT config JSON the
+AL/JS pipeline produces and inspect `chart._series[id].dataReady()` (raw per-row
+`[x,y,id,...]` tuples) and `chart._scales.bottom._axis.steps` (after calling
+`scaleReady(sizes)`) directly — these are plain-object outputs, no real SVG/layout needed,
+so jsdom's lack of layout engine doesn't get in the way. Getting full `<path>` SVG output
+to actually appear in the DOM requires driving the library's async
+mount/resize/paint scheduling (didn't fully chase this — not needed once the raw
+scale/series data was proven correct), but `ScaleSeria._calckFinalPoints(width, height)`
+can be called directly for pixel-level (x_px, y_px) confirmation without any DOM commit
+at all, which is what actually proved this fix.
 
 **How to apply:** If DHTMLX Suite Chart is used for another chart type (line, area, pie,
 scatter, treeMap...) on a future page, re-grep `suite.js` for that specific chart type's

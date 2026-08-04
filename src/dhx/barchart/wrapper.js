@@ -86,8 +86,13 @@ function RenderChart(chartData) {
         type: "bar",
         data: data,
         series: series,
+        // NOTE: the "text" scale's category field name comes from `text`, NOT `value`
+        // (confirmed by reading suite.js's TextScale._setDefaults: `this.locator =
+        // locator(config.text)`). `value` on a scale config is a no-op for the "text"
+        // type — using it here previously made every row resolve to the same blank (""),
+        // collapsing all categories onto the same x-slot and producing garbled/ghost bars.
         scales: {
-            bottom: { type: "text", value: "category" },
+            bottom: { type: "text", text: "category" },
             left:   { type: "numeric" }
         },
         legend: { series: series.map(function(s) { return s.id; }) }

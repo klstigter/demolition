@@ -3,7 +3,7 @@ page 50692 "Requested vs Capacity Skl Dhx"
     PageType = Card;
     ApplicationArea = All;
     UsageCategory = ReportsAndAnalysis;
-    Caption = 'Requested vs Capacity (Skills)';
+    Caption = 'Skill Requested/Capacity';
 
     layout
     {
@@ -131,7 +131,6 @@ page 50692 "Requested vs Capacity Skl Dhx"
         DateToFilter: Date;
         ChartReady: Boolean;
         RequestedHoursMeasureTxt: Label 'Requested Hours';
-        CapacityMeasureTxt: Label 'Capacity';
 
     trigger OnOpenPage()
     begin
@@ -145,21 +144,28 @@ page 50692 "Requested vs Capacity Skl Dhx"
         RefreshChart();
     end;
 
-    // SERIES COLOURS - unlike the native BusinessChart version of this page (see the long
-    // comment in src/page/page_50690_RequestedVsCapacitySkills.al around line 169-183), the
-    // DHTMLX Suite Chart add-in lets every series carry its own explicit colour (wrapper.js'
-    // RenderChart assigns SERIES_COLOR_PALETTE[seriesIndex]), so there is no fixed-palette
-    // grey-collision problem here and no need for a phantom "Variance" measure to push
-    // Capacity off an adjacent grey slot.
+    // SERIES COLOURS - the native BusinessChart version of this page (formerly
+    // src/page/page_50690_RequestedVsCapacitySkills.al) was superseded by this DHTMLX page and
+    // removed; its long comment used to explain a "phantom Variance measure" workaround needed
+    // because BusinessChart's fixed palette put Requested Hours and Capacity on adjacent grey
+    // slots. That workaround does not apply here: the DHTMLX Suite Chart add-in lets every
+    // series carry its own explicit colour (wrapper.js' RenderChart assigns
+    // SERIES_COLOR_PALETTE[seriesIndex]), so there is no fixed-palette grey-collision problem.
+    //
+    // Table 50622 no longer has a separate Capacity field/column - codeunit 50662 now returns
+    // the aggregate capacity total directly in "Requested Hours" on the synthetic "CAPACITY"
+    // buffer row, alongside each real skill's own Requested Hours total on its own row. So a
+    // single series built from Buffer."Requested Hours" already covers both: one bar per skill
+    // category plus one capacity reference bar, never a paired Requested/Capacity bar per
+    // category. wrapper.js' RenderChart renders however many series it is given (s0, s1, ...),
+    // so dropping down to one series here needs no JS changes.
     local procedure RefreshChart()
     var
         ChartData: JsonObject;
         CategoriesArray: JsonArray;
         SeriesArray: JsonArray;
         RequestedSeries: JsonObject;
-        CapacitySeries: JsonObject;
         RequestedValues: JsonArray;
-        CapacityValues: JsonArray;
         ChartDataJson: Text;
     begin
         if not ChartReady then
@@ -167,24 +173,18 @@ page 50692 "Requested vs Capacity Skl Dhx"
 
         Clear(CategoriesArray);
         Clear(RequestedValues);
-        Clear(CapacityValues);
 
         Buffer.Reset();
         if Buffer.FindSet() then
             repeat
                 CategoriesArray.Add(Buffer."Skill Code");
                 RequestedValues.Add(Buffer."Requested Hours");
-                CapacityValues.Add(Buffer.Capacity);
             until Buffer.Next() = 0;
 
         RequestedSeries.Add('name', RequestedHoursMeasureTxt);
         RequestedSeries.Add('values', RequestedValues);
 
-        CapacitySeries.Add('name', CapacityMeasureTxt);
-        CapacitySeries.Add('values', CapacityValues);
-
         SeriesArray.Add(RequestedSeries);
-        SeriesArray.Add(CapacitySeries);
 
         ChartData.Add('categories', CategoriesArray);
         ChartData.Add('series', SeriesArray);
