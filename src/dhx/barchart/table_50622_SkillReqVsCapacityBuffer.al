@@ -23,12 +23,6 @@ table 50622 "Skill Req. vs Capacity Buffer"
             Caption = 'Requested Hours';
             DecimalPlaces = 0 : 2;
         }
-        field(11; Capacity; Decimal)
-        {
-            DataClassification = ToBeClassified;
-            Caption = 'Capacity';
-            DecimalPlaces = 0 : 2;
-        }
     }
 
     keys

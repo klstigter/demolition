@@ -25,6 +25,11 @@ pageextension 50613 "Res. Capacity Entries Opt" extends "Res. Capacity Entries"
                 ApplicationArea = Jobs;
                 Caption = 'Requested Hours';
             }
+            field("Assigned Hours"; Rec."Assigned Hours")
+            {
+                ApplicationArea = Jobs;
+                Caption = 'Assigned Hours';
+            }
         }
     }
 

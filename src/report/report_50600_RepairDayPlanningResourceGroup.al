@@ -1,19 +1,7 @@
 report 50600 "RepairData"
 {
-    Permissions = tabledata "Day Planning" = rimd,
-                  tabledata Resource = rimd,
-                  tabledata "Res. Capacity Entry" = rimd,
-                  tabledata "Work-Hour Template" = r,
-                  tabledata "Base Calendar" = rimd,
-                  tabledata "Base Calendar Change" = rimd,
-                  tabledata "Demo Data Log Entry" = rimd,
-                  tabledata "Job Planning Line" = rimd,
-                  tabledata "Job Usage Link" = rim,
-                  tabledata "Sales Invoice Line" = r,
-                  tabledata "Sales Invoice Header" = r,
-                  tabledata "Job Ledger Entry" = rm,
-                  tabledata "Skill Code" = r,
-                  tabledata "Job Task" = rm;
+    Permissions = tabledata "Day Planning" = r,
+                  tabledata "Res. Capacity Entry" = rimd;
     UsageCategory = Administration;
     ApplicationArea = All;
     Caption = 'Repair Data';
@@ -31,47 +19,56 @@ report 50600 "RepairData"
         CalendarCode: Code[10];
         CountBefore: Integer;
         CountAfter: Integer;
-        n: Integer;
+        CapacityDeleted: Integer;
     begin
-        n := RepairDayPlanningFulfillment();
-        Message('Finished. %1 Day Planning record(s) had their Hours/Capacity Fully Utilized fields repaired.', n);
+        CapacityDeleted := DeleteUnmatchedResourceCapacity();
+        Message('Finished. %1 Res. Capacity Entry record(s) with no matching Day Planning demand for the same resource/date were deleted.', CapacityDeleted);
     end;
 
-    // Repair: "Day Planning"."Assigned Hours" (field 80), "Requested Hours" (field 65),
-    // "Realized Hours" (field 85) and "Capacity Fully Utilized" (field 120) used to be
-    // calculated by codeunit 50612 "General Planning Utilities".DayPlanningFulFillment by
-    // summing working minutes across ALL other Day Planning records sharing the same
-    // resource and plan date, inflating these fields with other overlapping records' hours.
-    // That cross-record aggregation was removed so each Day Planning record now reflects
-    // only its own working minutes. Existing records were saved with the old, inflated
-    // values, so this recalculates and persists the corrected values via CalculateWorkingHours().
-    local procedure RepairDayPlanningFulfillment(): Integer
+    // Deletes every "Res. Capacity Entry" row that has no matching Day Planning demand for the
+    // same resource on the same date. A capacity entry survives only if "Day Planning" has at
+    // least one row with "Assigned Resource No." = the capacity entry's "Resource No." AND
+    // "Plan Date" = the capacity entry's Date - otherwise it is deleted. No date range: applies
+    // across all dates.
+    //
+    // The aggregate Capacity total (1,183,823) was still far above Requested Hours (low
+    // hundred-thousands) after the earlier blanket Jan-May date-range deletion, because that
+    // approach deleted/kept whole date ranges regardless of whether any given resource actually
+    // had demand on any given day. This replaces that with a precise per-(resource, date) match
+    // against actual Day Planning demand instead.
+    //
+    // Implementation: build the full set of distinct "Assigned Resource No."|"Plan Date" keys
+    // from Day Planning in one pass (same key-building pattern as gResDaySlotUsed in codeunit
+    // 50602 "Create Demo Data" / the old per-skill resource-date key in codeunit 50662 "Skill
+    // Capacity Analysis Mgt."), then make a single pass over Res. Capacity Entry deleting any
+    // row whose "Resource No."|Date key isn't in that set. Two linear passes plus dictionary
+    // lookups is far cheaper than a nested Day Planning lookup per capacity row.
+    local procedure DeleteUnmatchedResourceCapacity(): Integer
     var
         DayPlanning: Record "Day Planning";
-        OldRequestedHours: Decimal;
-        OldAssignedHours: Decimal;
-        OldRealizedHours: Decimal;
-        OldCapacityFullyUtilized: Boolean;
+        ResCap: Record "Res. Capacity Entry";
+        DemandKeys: Dictionary of [Text, Boolean];
+        ResourceDateKey: Text;
         n: Integer;
     begin
-        if DayPlanning.FindSet(true) then
+        DayPlanning.SetCurrentKey("Assigned Resource No.", "Plan Date");
+        DayPlanning.SetFilter("Assigned Resource No.", '<>%1', '');
+        if DayPlanning.FindSet() then
             repeat
-                OldRequestedHours := DayPlanning."Requested Hours";
-                OldAssignedHours := DayPlanning."Assigned Hours";
-                OldRealizedHours := DayPlanning."Realized Hours";
-                OldCapacityFullyUtilized := DayPlanning."Capacity Fully Utilized";
+                ResourceDateKey := StrSubstNo('%1|%2', DayPlanning."Assigned Resource No.", Format(DayPlanning."Plan Date", 0, 9));
+                if not DemandKeys.ContainsKey(ResourceDateKey) then
+                    DemandKeys.Add(ResourceDateKey, true);
+            until DayPlanning.Next() = 0;
 
-                DayPlanning.CalculateWorkingHours();
-
-                if (DayPlanning."Requested Hours" <> OldRequestedHours) or
-                   (DayPlanning."Assigned Hours" <> OldAssignedHours) or
-                   (DayPlanning."Realized Hours" <> OldRealizedHours) or
-                   (DayPlanning."Capacity Fully Utilized" <> OldCapacityFullyUtilized)
-                then begin
-                    DayPlanning.Modify();
+        if ResCap.FindSet(true) then
+            repeat
+                ResourceDateKey := StrSubstNo('%1|%2', ResCap."Resource No.", Format(ResCap.Date, 0, 9));
+                if not DemandKeys.ContainsKey(ResourceDateKey) then begin
+                    ResCap.Delete();
                     n += 1;
                 end;
-            until DayPlanning.Next() = 0;
+            until ResCap.Next() = 0;
+
         exit(n);
     end;
 }

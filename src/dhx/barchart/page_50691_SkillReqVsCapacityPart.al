@@ -29,66 +29,47 @@ page 50691 "Skill Req. vs Capacity Part"
                 field("Requested Hours"; Rec."Requested Hours")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the total requested hours of the day planning lines that carry this skill.';
+                    ToolTip = 'Specifies the total requested hours of the day planning lines that carry this skill. On the synthetic Capacity row, this instead shows the total resource capacity (a single aggregate figure for the Resource No. / date filters, not split per skill).';
 
                     trigger OnDrillDown()
                     var
                         DayPlanning: Record "Day Planning";
-                    begin
-                        DayPlanning.Reset();
-                        DayPlanning.SetRange(Skill, Rec."Skill Code");
-                        if CurrResourceNoFilter <> '' then
-                            DayPlanning.SetRange("Assigned Resource No.", CurrResourceNoFilter);
-                        case true of
-                            (CurrDateFromFilter <> 0D) and (CurrDateToFilter <> 0D):
-                                DayPlanning.SetRange("Plan Date", CurrDateFromFilter, CurrDateToFilter);
-                            CurrDateFromFilter <> 0D:
-                                DayPlanning.SetFilter("Plan Date", '>=%1', CurrDateFromFilter);
-                            CurrDateToFilter <> 0D:
-                                DayPlanning.SetFilter("Plan Date", '<=%1', CurrDateToFilter);
-                        end;
-                        Page.Run(Page::"Day Plannings", DayPlanning);
-                    end;
-                }
-                field(Capacity; Rec.Capacity)
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the total resource capacity available for this skill. Each resource day capacity counts in full for every skill that the resource holds.';
-
-                    trigger OnDrillDown()
-                    var
-                        ResourceSkill: Record "Resource Skill";
                         ResCapacityEntry: Record "Res. Capacity Entry";
-                        ResourceFilterList: Text;
                     begin
-                        ResourceSkill.Reset();
-                        ResourceSkill.SetRange(Type, ResourceSkill.Type::Resource);
-                        ResourceSkill.SetRange("Skill Code", Rec."Skill Code");
-                        if ResourceSkill.FindSet() then
-                            repeat
-                                if (CurrResourceNoFilter = '') or (ResourceSkill."No." = CurrResourceNoFilter) then begin
-                                    if ResourceFilterList <> '' then
-                                        ResourceFilterList += '|';
-                                    ResourceFilterList += ResourceSkill."No.";
-                                end;
-                            until ResourceSkill.Next() = 0;
+                        if Rec."Skill Code" = CapacitySkillCodeTok then begin
+                            // Synthetic aggregate row: capacity is resource/date only, no skill
+                            // lookup involved (see codeunit 50662's doc comment). This is the
+                            // same drilldown logic that used to live on the separate Capacity
+                            // field before that field/column was removed.
+                            ResCapacityEntry.Reset();
+                            if CurrResourceNoFilter <> '' then
+                                ResCapacityEntry.SetRange("Resource No.", CurrResourceNoFilter);
 
-                        ResCapacityEntry.Reset();
-                        if ResourceFilterList <> '' then
-                            ResCapacityEntry.SetFilter("Resource No.", ResourceFilterList)
-                        else
-                            ResCapacityEntry.SetRange("Resource No.", ''); // no matching resource -> show nothing rather than error
+                            case true of
+                                (CurrDateFromFilter <> 0D) and (CurrDateToFilter <> 0D):
+                                    ResCapacityEntry.SetRange(Date, CurrDateFromFilter, CurrDateToFilter);
+                                CurrDateFromFilter <> 0D:
+                                    ResCapacityEntry.SetFilter(Date, '>=%1', CurrDateFromFilter);
+                                CurrDateToFilter <> 0D:
+                                    ResCapacityEntry.SetFilter(Date, '<=%1', CurrDateToFilter);
+                            end;
 
-                        case true of
-                            (CurrDateFromFilter <> 0D) and (CurrDateToFilter <> 0D):
-                                ResCapacityEntry.SetRange(Date, CurrDateFromFilter, CurrDateToFilter);
-                            CurrDateFromFilter <> 0D:
-                                ResCapacityEntry.SetFilter(Date, '>=%1', CurrDateFromFilter);
-                            CurrDateToFilter <> 0D:
-                                ResCapacityEntry.SetFilter(Date, '<=%1', CurrDateToFilter);
+                            Page.Run(Page::"Res. Capacity Entries", ResCapacityEntry);
+                        end else begin
+                            DayPlanning.Reset();
+                            DayPlanning.SetRange(Skill, Rec."Skill Code");
+                            if CurrResourceNoFilter <> '' then
+                                DayPlanning.SetRange("Assigned Resource No.", CurrResourceNoFilter);
+                            case true of
+                                (CurrDateFromFilter <> 0D) and (CurrDateToFilter <> 0D):
+                                    DayPlanning.SetRange("Plan Date", CurrDateFromFilter, CurrDateToFilter);
+                                CurrDateFromFilter <> 0D:
+                                    DayPlanning.SetFilter("Plan Date", '>=%1', CurrDateFromFilter);
+                                CurrDateToFilter <> 0D:
+                                    DayPlanning.SetFilter("Plan Date", '<=%1', CurrDateToFilter);
+                            end;
+                            Page.Run(Page::"Day Plannings", DayPlanning);
                         end;
-
-                        Page.Run(Page::"Res. Capacity Entries", ResCapacityEntry);
                     end;
                 }
             }
@@ -124,4 +105,5 @@ page 50691 "Skill Req. vs Capacity Part"
         CurrResourceNoFilter: Code[20];
         CurrDateFromFilter: Date;
         CurrDateToFilter: Date;
+        CapacitySkillCodeTok: Label 'CAPACITY', Locked = true;
 }

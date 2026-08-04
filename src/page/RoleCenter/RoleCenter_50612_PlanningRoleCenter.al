@@ -138,7 +138,7 @@ page 50612 "Planning Role Center"
                 action("VisualPlanning7")
                 {
                     ApplicationArea = All;
-                    Caption = 'Requested vs Capacity (Skills)';
+                    Caption = 'Skill Requested/Capacity';
                     RunObject = page "Requested vs Capacity Skl Dhx";
                 }
             }
