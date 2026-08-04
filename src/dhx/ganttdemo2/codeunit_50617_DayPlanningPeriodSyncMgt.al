@@ -265,8 +265,10 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
         MaxNewDate: Date;
     begin
         MaxNewDate := GetMaxNewTaskDate(TempPreviewBuffer);
-        if (MaxNewDate <> 0D) and (MaxNewDate > JobTask.PlannedEndDate) then
+        if (MaxNewDate <> 0D) and (MaxNewDate > JobTask.PlannedEndDate) then begin
             JobTask.PlannedEndDate := MaxNewDate;
+            JobTask.CalculateDuration();
+        end;
     end;
 
     /// <summary>
