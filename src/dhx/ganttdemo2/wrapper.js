@@ -1131,6 +1131,45 @@ window.BOOT = function() {
       }
     });
 
+    // ── Auto-scheduling: re-apply start_date pinning to recalculated tasks ──
+    // The auto_scheduling plugin (enabled above via gantt.plugins({auto_scheduling:true})
+    // and configured in LoadProject() with apply_constraints/project_constraint)
+    // recomputes start_date/end_date for any task driven by a constraint
+    // (SNET/SNLT/FNET/FNLT/...) or a dependency link - independently of, and
+    // AFTER, the onTaskLoading/onAfterTaskDrag/onAfterTaskUpdate normalization
+    // passes above. Confirmed by reading the bundled engine source
+    // (src/dhx/dhtmlxgantt.js): both of its internal scheduling code paths
+    // (applyProjectPlan() and iterateTasks()) do
+    //   a.start_date = c; a.end_date = e.calculateEndDate(a);
+    // directly on the task object BEFORE firing their events.
+    // NOTE (post-fix): _normalizeTaskBarDates() no longer touches end_date at
+    // all (see its doc comment - the engine's raw exclusive end_date already
+    // renders correctly; the old 23:59:59.999 stamp was the actual source of
+    // a one-day rendering overshoot). So this handler's only remaining job is
+    // to re-pin start_date to 00:00:00.000 for any task the auto-scheduler
+    // touched, guarding against constraint/lag math leaving a sub-day time
+    // component on start_date after a recalculation pass. Still worth
+    // keeping for that reason.
+    //
+    // onAfterAutoSchedule fires once per full recalculation pass with the
+    // signature (sourceTaskIds, updatedTaskIds) - updatedTaskIds is the array
+    // of task ids the algorithm actually changed the dates of. Confirmed
+    // directly in src/dhx/dhtmlxgantt.js: applyProjectPlan()/iterateTasks()
+    // build and return exactly this id array (pushing a.id/task.id whenever
+    // they change a task's start_date), and that same array is what gets
+    // passed as callEvent("onAfterAutoSchedule", [n, <thatArray>])'s 2nd
+    // argument in every code path that fires the event.
+    gantt.attachEvent("onAfterAutoSchedule", function (sourceTaskIds, updatedTaskIds) {
+      if (!updatedTaskIds || !updatedTaskIds.length) return true;
+      updatedTaskIds.forEach(function (id) {
+        if (!gantt.isTaskExists(id)) return;
+        var task = gantt.getTask(id);
+        _normalizeTaskBarDates(task);
+        gantt.refreshTask(id);
+      });
+      return true;
+    });
+
     // -------- LINK EVENTS (BC callback) --------
     gantt.attachEvent("onAfterLinkAdd", function (id, link) {
       try {
@@ -1662,35 +1701,65 @@ function _normalizeId(obj) {
   return obj?.id ?? obj?.Id ?? obj?.task_id ?? obj?.TaskId ?? obj?.link_id ?? obj?.LinkId ?? null;
 }
 
-// Forces a task's start_date to 00:00:00.000 and end_date to 23:59:59.999,
-// WITHOUT shifting the calendar date portion of either. DHTMLX's own
-// calculateEndDate (used whenever a task is loaded/dragged/resized with only
-// start_date+duration, since gantt.config.work_time = false here) treats
-// end_date as EXCLUSIVE - the calendar day boundary AFTER the last day a task
-// occupies - and both start_date/end_date always carry a 00:00:00 time
-// component once parsed via gantt.config.date_format = "%Y-%m-%d". Left as-is,
-// a task bar visually stops at the START of its exclusive end_date's day
-// column instead of running through the END of its actual last occupied day.
-// There is no DHTMLX config flag for this (confirmed against DHTMLX's own
-// docs/forum - "Task End Date Display & Inclusive End Dates" and a DHTMLX
-// staff forum reply both point to exactly this onTaskLoading-time adjustment
-// as the recommended fix, not a config setting) - this is the sanctioned
-// workaround, not a workaround-of-last-resort.
-// IMPORTANT: this only affects the in-memory Date OBJECTS used for rendering/
-// position math (gantt.getTaskPosition, drag-handle placement, etc.). The
-// outbound payloads built in onAfterTaskDrag/onAfterTaskUpdate below format
-// dates via gantt.date.date_to_str("%Y-%m-%d"), which reads only the
-// year/month/day - the time-of-day change made here is invisible to BC.
+// Forces a task's start_date to 00:00:00.000, WITHOUT shifting its calendar
+// date. end_date is intentionally left untouched (see history below) - do
+// NOT reintroduce a time-of-day stamp on end_date without re-reading this
+// comment and re-verifying against the engine.
+//
+// DHTMLX's own calculateEndDate (used whenever a task is loaded/dragged/
+// resized with only start_date+duration, since gantt.config.work_time =
+// false here) treats end_date as EXCLUSIVE - the calendar day boundary
+// AFTER the last day a task occupies - and both start_date/end_date always
+// carry a 00:00:00 time component once parsed via
+// gantt.config.date_format = "%Y-%m-%d".
+//
+// Positioning in the bundled engine (src/dhx/dhtmlxgantt.js -
+// TimelineView.posFromDate -> columnIndexByDate) is CONTINUOUS, not
+// discrete/day-overlap: it computes a fractional column index
+// c = (t - columnStart) / columnDuration for whatever Date object it is
+// given. A task bar's right edge is placed at posFromDate(task.end_date)
+// directly. For an untouched exclusive end_date (e.g. Aug 26 00:00:00.000
+// for a task occupying only Aug 25), that fraction is exactly 0, which
+// places the right edge precisely on the Aug25/Aug26 grid line - i.e. the
+// bar already renders as running through the full end of Aug 25, with zero
+// overlap into Aug 26. No adjustment is needed or correct.
+// This is independently confirmed by _renderRequestBars() elsewhere in this
+// file, which builds day-placeholder overlay bars via
+// `pdEnd = gantt.date.add(pd, 1, "day")` (an untouched, exclusive end date)
+// and feeds it straight into gantt.getTaskPosition - the same convention.
+//
+// HISTORY / WHY THIS USED TO STAMP end_date TO 23:59:59.999 (removed):
+// A previous version of this function additionally did
+// `ed.setHours(23, 59, 59, 999)` on end_date, based on the (incorrect,
+// for this continuous-positioning engine) assumption that the bar would
+// otherwise "stop at the START of its end_date's day column" and needed to
+// be pushed to the end of that day to visually cover it. That mutation
+// stamped the time onto end_date's EXISTING date WITHOUT shifting the date
+// back by one day first - so an exclusive end_date of Aug 26 00:00:00.000
+// became Aug 26 23:59:59.999 instead of Aug 25 23:59:59.999. Fed into the
+// same continuous posFromDate math, that placed the bar's right edge
+// almost all the way through Aug 26's column (fraction ~0.9999988), i.e.
+// one full day past where the user dropped the drag handle. This was
+// masked on constrained/auto-scheduled tasks because the auto_scheduling
+// engine overwrote end_date with its own raw (correct) exclusive value
+// AFTER this function ran, until an onAfterAutoSchedule handler was added
+// to re-run this normalization on those tasks too, which is what exposed
+// the bug on every task. Fix: stop touching end_date at all - the engine's
+// own raw exclusive value is already correct for rendering.
+//
+// IMPORTANT: this only affects the in-memory Date OBJECT used for
+// rendering/position math (gantt.getTaskPosition, drag-handle placement,
+// etc.). The outbound payloads built in onAfterTaskDrag/onAfterTaskUpdate
+// below format dates via gantt.date.date_to_str("%Y-%m-%d"), which reads
+// only the year/month/day - not touching end_date here has no effect on
+// what gets sent to BC either way, and BC's CalcDate('<-1D>', ...)
+// conversion continues to receive DHTMLX's raw exclusive end_date exactly
+// as before.
 function _normalizeTaskBarDates(task) {
   if (task.start_date) {
     var sd = new Date(task.start_date);
     sd.setHours(0, 0, 0, 0);
     task.start_date = sd;
-  }
-  if (task.end_date) {
-    var ed = new Date(task.end_date);
-    ed.setHours(23, 59, 59, 999);
-    task.end_date = ed;
   }
 }
 
