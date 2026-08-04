@@ -5,3 +5,5 @@
 - [AL query join property](feedback_al_query_sqljointype.md) — nested query dataitem join-type property is `SqlJoinType`, not `DataItemJoinType` (AL0124 if wrong)
 - [al_symbolsearch duplicate containers](feedback_al_symbolsearch_duplicate_containers.md) — can show 2 field-set variants for one table; verify against actual .alpackages files, trust compile as final arbiter
 - [Report requestpage filter-dialog gotchas](requestpage_filter_dialog_gotchas.md) — Report.RunModal() void not Action; TableRelation field() can't ref siblings; PAGE.RunModal(0,Rec)+Codeunit46 alone is BROKEN (confirmed live) — need Page var + SetSelectionFilter() + Codeunit46
+- [Native Business Chart usage](native_businesschart_usage.md) — page 50690 chart API facts + why 2-measure charts always render as two M365 greys (no colour API; palette is assigned by series ordinal)
+- [DHTMLX Kanban editorShape](dhtmlx_kanban_editorshape.md) — custom edit-panel fields go in top-level `editorShape`, NOT `cardShape.fields` (silently ignored); it replaces the default list, not extends it

@@ -148,7 +148,7 @@ table 50607 "Day Planning Pattern"
         {
             DataClassification = ToBeClassified;
             Caption = 'Week Pattern';
-            Description = 'Displays 7 day values in the format day1|day2|day3|day4|day5|day6|day7, sourced from Time Slots when a Time Slot No. is selected.';
+            Description = 'Displays 7 day values in the format day1|day2|day3|day4|day5|day6|day7.';
             Editable = false;
         }
 
@@ -182,57 +182,6 @@ table 50607 "Day Planning Pattern"
             DataClassification = ToBeClassified;
             Caption = 'Is Pooled Resource';
         }
-        field(50680; "Time Slot No."; Integer)
-        {
-            DataClassification = ToBeClassified;
-            Caption = 'Time Slot No.';
-            MinValue = 1;
-
-            trigger OnValidate()
-            var
-                TimeSlot: Record "Time Slot";
-            begin
-                if "Time Slot No." = 0 then begin
-                    "Week Pattern" := '';
-                    exit;
-                end;
-
-                "Week Pattern" := CopyStr(TimeSlot.GetWorkingHours("Time Slot No."), 1, MaxStrLen("Week Pattern"));
-            end;
-
-            trigger OnLookup()
-            var
-                TimeSlot: Record "Time Slot";
-                TimeSlotsPage: Page "Time Slots";
-                WorkingTimeSlotNo: Integer;
-                PreviousTimeSlotNo: Integer;
-                ActionResult: Action;
-            begin
-                PreviousTimeSlotNo := Rec."Time Slot No.";
-
-                if PreviousTimeSlotNo = 0 then
-                    WorkingTimeSlotNo := TimeSlot.CreateTimeSlots(Rec."Work-Hour Template")
-                else
-                    WorkingTimeSlotNo := TimeSlot.CloneTimeSlotSet(PreviousTimeSlotNo);
-
-                if WorkingTimeSlotNo = 0 then
-                    exit;
-
-                commit; //added by Klaas
-                TimeSlot.SetRange("Integer", WorkingTimeSlotNo);
-
-                TimeSlotsPage.SetTableView(TimeSlot);
-                TimeSlotsPage.LookupMode(true);
-                ActionResult := TimeSlotsPage.RunModal();
-
-                if ActionResult = Action::LookupOK then
-                    Rec.Validate("Time Slot No.", TimeSlot.ResolveTimeSlotSet(WorkingTimeSlotNo))
-                else
-                    if (PreviousTimeSlotNo <> 0) and (WorkingTimeSlotNo <> PreviousTimeSlotNo) then
-                        TimeSlot.DeleteTimeSlotSet(WorkingTimeSlotNo);
-            end;
-        }
-
 
     }
 

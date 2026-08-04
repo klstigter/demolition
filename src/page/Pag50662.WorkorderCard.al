@@ -96,43 +96,11 @@ page 50662 "Workorder Card"
 
             }
 
-            group(Scheduling)
+            part(JobTaskPlanning; "Job Task Planning Part")
             {
-
-                group(Dates)
-                {
-                    ShowCaption = false;
-                    field("Date Window Start"; Rec."Date Window Start")
-                    {
-                        ApplicationArea = All;
-                    }
-                    field("Date Window End"; Rec."Date Window End")
-                    {
-                        ApplicationArea = All;
-                    }
-                    field("Deadline Date"; Rec."Deadline Date")
-                    {
-                        ApplicationArea = All;
-                    }
-                    field("Placeholder Date"; Rec."Placeholder Date")
-                    {
-                        ApplicationArea = All;
-                    }
-                }
-                // field("Time Span Days"; Rec."Time Span Days")
-                // {
-                //     ApplicationArea = All;
-                // }
-                field("Requested Hours"; Rec."Requested Hours")
-                {
-                    ApplicationArea = All;
-                    Editable = false;
-                    Lookup = false;
-                }
-                field(Closed; Rec.Closed)
-                {
-                    ApplicationArea = All;
-                }
+                ApplicationArea = All;
+                SubPageLink = "Job No." = FIELD("Project No."), "Job Task No." = FIELD("Project Task No.");
+                Caption = 'Planning';
             }
             Group(LongDescription)
             {

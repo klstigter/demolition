@@ -48,7 +48,10 @@ window.BOOT = function () {
             { id: "3", label: "Done"     }
         ];
 
-        // ---- Card shape – what fields are visible on each card ----
+        // ---- Card shape – what is visible on the MINI CARD in the column list ----
+        // NOTE: the built-in "description" property is a SINGLE value that drives
+        // the mini-card subtitle. The card JSON built in AL therefore puts the
+        // *Short Description* in the "description" key (see BuildKanbanJson).
         var cardShape = {
             label:       true,
             description: true,
@@ -62,11 +65,38 @@ window.BOOT = function () {
             priority:    false
         };
 
+        // ---- Editor shape – what is visible in the DETAIL/EDIT side panel ----
+        // IMPORTANT: this is a TOP-LEVEL Kanban option, a sibling of cardShape.
+        // A "fields" array nested inside cardShape is silently ignored by the
+        // library (kanban.js reads config.editorShape in _normalizeShapes, and
+        // never reads cardShape.fields).
+        //
+        // Supplying editorShape REPLACES the library default
+        // (defaultEditorShape.filter(f => cardShape[f.key].show)), so every field
+        // we want in the panel must be listed here explicitly.
+        //
+        // Each entry's "label" is run through the kanban i18n dictionary, which
+        // falls back to the literal string when there is no translation – so
+        // custom captions like "Long Description" render verbatim. The caption
+        // element is only emitted when the label is a non-empty string.
+        var editorShape = [
+            { key: "label",           type: "text",     label: "Label" },
+            // Built-in description key → Short Description (Text[100])
+            { key: "description",     type: "textarea", label: "Short Description" },
+            // Custom field → Long Description blob. Custom entries only ever
+            // render in this panel, never on the mini card – exactly the
+            // isolation we need.
+            { key: "longDescription", type: "textarea", label: "Long Description" },
+            { key: "color",           type: "color",    label: "Color", config: { clear: true } },
+            { key: "start_date",      type: "date",     label: "Order Date" }
+        ];
+
         // ---- Initialise Kanban board ----
         kanbanBoard = new KanbanCtor("#kanban-board", {
-            columns:   defaultColumns,
-            cards:     [],
-            cardShape: cardShape
+            columns:     defaultColumns,
+            cards:       [],
+            cardShape:   cardShape,
+            editorShape: editorShape
         });
 
         // ---- Initialise Toolbar ----
@@ -84,13 +114,47 @@ window.BOOT = function () {
             }
         });
 
-        // ---- Card selected ----
-        // Fires when the user clicks a card.
-        // obj = { id }
-        kanbanBoard.api.on("select-card", function (obj) {
-            if (obj && obj.id !== undefined) {
+        // ---- Card double-clicked → navigate to the BC record ----
+        // Single click only opens the library's own built-in edit side-panel
+        // (automatic library behaviour, driven internally by its "select-card"
+        // store action — nothing we need to wire up). Double click is not a
+        // first-class Kanban API event, so we listen for the native DOM
+        // "dblclick" on the board container and walk up from the click target
+        // to find the card element.
+        //
+        // Verified in kanban.js: the card root <div class="wx-card ..."> is the
+        // SAME element that receives the "data-id" attribute (Q(w,"data-id",
+        // e.cardFields.id) is called on the same `w` that was created as the
+        // wx-card div) - so a single closest(".wx-card") lookup already carries
+        // the id; no separate ancestor/descendant walk is needed. Other
+        // data-id-bearing elements in the library (column headers, the card
+        // context menu, calendar cells, virtual-scroll wrappers) never carry
+        // the wx-card class, so gating on ".wx-card" excludes them.
+        boardDiv.addEventListener("dblclick", function (e) {
+            var cardEl = e.target.closest ? e.target.closest(".wx-card") : null;
+            if (!cardEl) return;
+            var id = cardEl.getAttribute("data-id");
+            if (id) {
                 Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnCardSelected",
-                    [String(obj.id)]);
+                    [String(id)]);
+            }
+        });
+
+        // ---- Card updated (detail panel edit) ----
+        // Fires when the user edits a card's fields in the detail panel and the
+        // change is applied. Use .on() (not .intercept()) so the library's own
+        // local update still applies immediately (responsive UI); we just push
+        // the change to BC afterward. No board refresh needed.
+        // obj = { id, card: {...fullCardObject} }
+        //
+        // Mapping (must stay in sync with BuildKanbanJson in AL):
+        //   card.description     → Short Description  (built-in field)
+        //   card.longDescription → Long Description   (custom field)
+        kanbanBoard.api.on("update-card", function (obj) {
+            if (obj && obj.id !== undefined) {
+                var shortDesc = (obj.card && obj.card.description !== undefined) ? String(obj.card.description) : "";
+                var longDesc  = (obj.card && obj.card.longDescription !== undefined) ? String(obj.card.longDescription) : "";
+                Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnCardUpdated", [String(obj.id), longDesc, shortDesc]);
             }
         });
 
@@ -143,10 +207,15 @@ window.BOOT = function () {
 // Expected JSON structure:
 //   {
 //     "columns": [{ "id": "0", "label": "Open" }, ...],
-//     "cards":   [{ "id": "1", "label": "Description",
+//     "cards":   [{ "id": "1", "label": "OI0001",
 //                   "column": "0", "start_date": "2026-05-01",
-//                   "description": "Resource: R001 | Skill: SK1" }, ...]
+//                   "description": "<Short Description>",
+//                   "longDescription": "<Long Description blob text>" }, ...]
 //   }
+//
+// "description" is the built-in key – it drives the mini-card subtitle AND the
+// "Short Description" box in the edit panel. "longDescription" is our custom
+// editorShape field and appears in the edit panel only.
 // ============================================================
 window.LoadKanbanData = function (jsonText) {
     if (!_kanbanReady || !kanbanBoard) return;

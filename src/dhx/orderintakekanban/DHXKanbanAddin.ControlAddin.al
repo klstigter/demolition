@@ -37,6 +37,15 @@ controladdin DHXKanbanAddin
     event OnCardSelected(EntryNo: Text);
 
     /// <summary>
+    /// Fired when the user edits a card's fields (Short Description and/or Long Description)
+    /// in the detail panel and saves.
+    /// EntryNo          – the No. of the edited record (as text).
+    /// LongDescription  – value of the custom "longDescription" editorShape field (edit panel only).
+    /// ShortDescription – value of the built-in "description" field (also the mini-card subtitle).
+    /// </summary>
+    event OnCardUpdated(EntryNo: Text; LongDescription: Text; ShortDescription: Text);
+
+    /// <summary>
     /// Fired when the user submits the "Add new card" form.
     /// ColumnId – the target Status column integer (as text).
     /// Label    – the card title entered by the user.
