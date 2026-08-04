@@ -247,11 +247,13 @@ page 50620 "Gantt Demo DHX 2"
                         PreviewCancelled := true; // absorb the RenderGantt re-entry event
                         LoadTaskData();
                         LoadLinkData();
-                        LoadDayPlanningData();
+                        if not ReloadResourcePanelFromStoredFilter() then
+                            LoadDayPlanningData();
                         CurrPage.DHXGanttControl2.RenderGantt(true); // force full re-render to reset task positions
                         exit;
                     end;
-                    LoadDayPlanningData();
+                    if not ReloadResourcePanelFromStoredFilter() then
+                        LoadDayPlanningData();
                 end;
 
                 trigger OpenResourceLoadDay(ResourceId: Text; pTaskDate: Text; pPlanStatus: Text; pIdList: Text)
@@ -1236,6 +1238,45 @@ page 50620 "Gantt Demo DHX 2"
         if pJobTask.FindSet() then;
         CurrPage.DHXGanttControl2.LoadDayPlanningsData(
             GanttDataHandler.GetDayPlanningsByJobTaskAsJson(pJobTask, pFromDate, pToDate));
+    end;
+
+    local procedure ReloadResourcePanelFromStoredFilter(): Boolean
+    var
+        FilterJson: JsonObject;
+        FilterToken: JsonToken;
+        FilterJobNo: Code[20];
+        FilterJobTaskNo: Code[20];
+        JobTask: Record "Job Task";
+    begin
+        if CurrentResourcePanelFilterJsonString = '' then
+            exit(false);
+        if not FilterJson.ReadFrom(CurrentResourcePanelFilterJsonString) then
+            exit(false);
+
+        if FilterJson.Get('job', FilterToken) then
+            FilterJobNo := CopyStr(FilterToken.AsValue().AsText(), 1, MaxStrLen(FilterJobNo));
+        if FilterJson.Get('task', FilterToken) then
+            FilterJobTaskNo := CopyStr(FilterToken.AsValue().AsText(), 1, MaxStrLen(FilterJobTaskNo));
+
+        if (FilterJobNo = '') or (FilterJobTaskNo = '') then
+            exit(false);
+
+        JobTask.Reset();
+        if not JobTask.Get(FilterJobNo, FilterJobTaskNo) then
+            exit(false);
+        JobTask.Mark(true);
+
+        // The stored filter's periodFrom/periodTo were captured when the resource panel was
+        // last opened for this task and go stale the moment the task (and its Day Plannings)
+        // are moved by a drag/apply - re-derive the range from the Job Task's current Planned
+        // Start/End Date instead, and refresh the stored filter so it stays in sync too.
+        CurrPage.DHXGanttControl2.SetResourcePanelFilterInfo(FilterJobNo, FilterJobTaskNo,
+            Format(JobTask.PlannedStartDate, 0, '<Year4>-<Month,2>-<Day,2>'),
+            Format(JobTask.PlannedEndDate, 0, '<Year4>-<Month,2>-<Day,2>'));
+        CurrPage.DHXGanttControl2.GetResourceFilter();
+
+        LoadFilteredResourcesAndDayPlannings(JobTask, JobTask.PlannedStartDate, JobTask.PlannedEndDate);
+        exit(true);
     end;
 
     local procedure LoadTaskData()

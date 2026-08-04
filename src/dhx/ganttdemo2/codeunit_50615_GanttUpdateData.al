@@ -67,7 +67,7 @@ codeunit 50615 "Gantt Update Data"
                         end;
                     'end_date':
                         begin
-                            d := JsonValue.AsDate();
+                            d := CalcDate('<-1D>', JsonValue.AsDate());
                             if d <> JobTask."PlannedEndDate" then
                                 JobTask."PlannedEndDate" := d;
                         end;
