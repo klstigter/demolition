@@ -139,7 +139,7 @@ page 50612 "Planning Role Center"
                 {
                     ApplicationArea = All;
                     Caption = 'Requested vs Capacity (Skills)';
-                    RunObject = page "Requested vs Capacity (Skills)";
+                    RunObject = page "Requested vs Capacity Skl Dhx";
                 }
             }
 
