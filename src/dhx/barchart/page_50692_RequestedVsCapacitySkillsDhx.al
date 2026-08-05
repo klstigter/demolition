@@ -12,7 +12,7 @@ page 50708 "Requested vs Capacity Skl Dhx"
     /// only ever narrowed the chart/factbox down to one already-visible category, which the user
     /// can do just as well by reading the chart, so it was redundant chrome. Resource No. is the
     /// only remaining filter.
-    /// </summary>
+    /// </summary>.
 
     layout
     {
