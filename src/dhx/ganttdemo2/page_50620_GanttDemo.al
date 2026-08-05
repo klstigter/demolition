@@ -252,8 +252,23 @@ page 50620 "Gantt Demo DHX 2"
                         CurrPage.DHXGanttControl2.RenderGantt(true); // force full re-render to reset task positions
                         exit;
                     end;
+
+                    // Success path. UpdateJobTaskFromJson can silently correct the dropped
+                    // date server-side - e.g. SnapForwardToWorkDay pushes a dragged end date
+                    // that landed on a weekend/holiday forward to the next active workday - and
+                    // that corrected PlannedEndDate is what actually got persisted, not the raw
+                    // dropped position DHTMLX is still showing client-side. Without reloading
+                    // task data here, the bar stays visually stuck on the day-off until the
+                    // user manually clicks Refresh Data. Mirror the cancellation branch above:
+                    // reload task + link data and force a re-render (RenderGantt(true) suppresses
+                    // the resulting onAfterTaskUpdate re-entry, same as that branch) so the bar
+                    // snaps to its true, server-confirmed position immediately.
+                    PreviewCancelled := true; // absorb the RenderGantt re-entry event below
+                    LoadTaskData();
+                    LoadLinkData();
                     if not ReloadResourcePanelFromStoredFilter() then
                         LoadDayPlanningData();
+                    CurrPage.DHXGanttControl2.RenderGantt(true);
                 end;
 
                 trigger OpenResourceLoadDay(ResourceId: Text; pTaskDate: Text; pPlanStatus: Text; pIdList: Text)
