@@ -1,4 +1,4 @@
-page 50679 "Order Intake Kanban Setup"
+page 50707 "Order Intake Kanban Setup"
 {
     PageType = Card;
     ApplicationArea = All;

@@ -1,4 +1,4 @@
-page 50689 "Job Task Planning Part"
+page 50709 "Job Task Planning Part"
 {
     PageType = CardPart;
     SourceTable = "Job Task";
