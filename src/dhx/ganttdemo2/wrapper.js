@@ -171,6 +171,22 @@ window.BOOT = function() {
       if (document._rmCustomTooltipInstalled) return;
       document._rmCustomTooltipInstalled = true;
 
+      // One-time CSS for the Requested/Assigned detail table rendered inside the dark
+      // #bc_DayPlanning_tooltip container (see _ensureCustomTooltip) — thin light-on-dark grid
+      // lines, small font, numeric columns centered, group headers (Requested/Assigned) spanning
+      // their four sub-columns via colspan.
+      (function injectDayPlanningTooltipTableCSS() {
+        var s = document.createElement("style");
+        s.textContent = [
+          ".dp-tooltip-table{ border-collapse:collapse; margin-top:6px; font-size:11px; white-space:nowrap; }",
+          ".dp-tooltip-table th,.dp-tooltip-table td{ border:1px solid rgba(255,255,255,0.25); padding:2px 6px; text-align:center; }",
+          ".dp-tooltip-table thead th{ font-weight:600; color:#cfe3ff; background:rgba(255,255,255,0.06); }",
+          ".dp-tooltip-table td:nth-child(1),.dp-tooltip-table td:nth-child(2),.dp-tooltip-table td:nth-child(4){ text-align:left; }",
+          ".dp-tooltip-table .dp-status-tag{ background:#909090; color:#fff; border-radius:3px; padding:0 4px; font-size:10px; }"
+        ].join("\n");
+        document.head.appendChild(s);
+      })();
+
       document.addEventListener("mousemove", function (e) {
         const marker = e.target.closest?.(".gantt_resource_marker");
         if (!marker) return;
@@ -203,27 +219,52 @@ window.BOOT = function() {
           return;
         }
 
-        const total = matches.reduce((s, x) => s + (Number(x.hours) || 0), 0);
-        const lines = matches.slice(0, 8).map(x => {
-          const st = String(x.start_time || "").trim();
-          const et = String(x.end_time || "").trim();
-          const label = x.task || (x.jobNo + "-" + x.jobTaskNo) || "-";
-          const statusTag = x.plan_status === "Request"
-            ? ` <span style="background:#909090;color:#fff;border-radius:3px;padding:0 4px;font-size:10px">Request</span>`
-            : "";
-          const woTag = x.work_order_no ? ` WO:${x.work_order_no}` : "";
-          const phTag = x.placeholder_date ? ` (placeholder: ${x.placeholder_date})` : "";
-          return `${label}${statusTag}${woTag} • ${x.hours || 0}h • ${st}-${et}${phTag}`;
-        }).join("<br/>");
+        const rows = matches.slice(0, 8).map(x => {
+          const projectNo = x.jobNo || "";
+          const taskNo = x.jobTaskNo || "";
+          const status = x.plan_status || "";
+          const wo = x.work_order_no ? `WO:${x.work_order_no}` : "";
+          const reqStart = x.requested_start_time || "-";
+          const reqEnd = x.requested_end_time || "-";
+          const reqIdle = x.requested_idle_minutes || 0;
+          const reqHours = x.requested_hours || 0;
+          const asgStart = x.assigned_start_time || "-";
+          const asgEnd = x.assigned_end_time || "-";
+          const asgIdle = x.assigned_idle_minutes || 0;
+          const asgHours = x.assigned_hours || 0;
+          return `<tr>
+            <td>${projectNo}</td>
+            <td>${taskNo}</td>
+            <td>${status}</td>
+            <td>${wo}</td>
+            <td>${reqStart}</td><td>${reqEnd}</td><td>${reqIdle}</td><td>${reqHours}</td>
+            <td>${asgStart}</td><td>${asgEnd}</td><td>${asgIdle}</td><td>${asgHours}</td>
+          </tr>`;
+        }).join("");
+
+        const table =
+          `<table class="dp-tooltip-table">
+            <thead>
+              <tr>
+                <th rowspan="2">Project No.</th>
+                <th rowspan="2">Task No.</th>
+                <th rowspan="2">Status</th>
+                <th rowspan="2">Work Order</th>
+                <th colspan="4">Requested</th>
+                <th colspan="4">Assigned</th>
+              </tr>
+              <tr>
+                <th>Start</th><th>End</th><th>Idle (minutes)</th><th>Hours</th>
+                <th>Start</th><th>End</th><th>Idle (minutes)</th><th>Hours</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>`;
 
         _showCustomTooltip(
           e,
-          `<b>${resId}</b><br/>
-          Date: ${workDate}<br/>
-          Marker: ${hoursTxt}h<br/>
-          DayPlannings total: ${total}h
-          <hr style="border:0;border-top:1px solid rgba(255,255,255,0.15);margin:6px 0"/>
-          ${lines}${matches.length > 8 ? "<br/>…" : ""}`
+          `<b>${resId}</b><br/>Date: ${workDate}
+          ${table}${matches.length > 8 ? `<div style="margin-top:4px">…</div>` : ""}`
         );
       }, true);
 
@@ -627,10 +668,18 @@ window.BOOT = function() {
         }
       }
 
+      // task.end_date is DHTMLX's internal EXCLUSIVE end (start_date + duration days) - one
+      // day past the task's actual last working day, needed for correct bar-width/duration math.
+      // BC's "Planned End Date" is inclusive (e.g. a task spanning Aug 3 - Sep 7 has
+      // PlannedEndDate = Sep 7, but DHTMLX's own task.end_date for that same task is Sep 8).
+      // Subtract a day here so the tooltip's displayed Period matches BC, not DHTMLX's internal
+      // model - display-only; never apply this adjustment to task.end_date itself.
+      const displayEndDate = task.end_date ? gantt.date.add(task.end_date, -1, "day") : null;
+
       return `
         <b>Job: ${task.bcJobNo || "-"}<br/>
         Task: ${task.bcJobTaskNo || "-"}<br/>
-        Period: ${task.start_date ? gantt.templates.date_grid(task.start_date) : "-"} - ${task.end_date ? gantt.templates.date_grid(task.end_date) : "-"}<br/>
+        Period: ${task.start_date ? gantt.templates.date_grid(task.start_date) : "-"} - ${displayEndDate ? gantt.templates.date_grid(displayEndDate) : "-"}<br/>
         <hr/>
         Constraint: ${constraintText}
       `;
@@ -2608,7 +2657,9 @@ function _ensureCustomTooltip() {
   el.style.zIndex = "999999";
   el.style.display = "none";
   el.style.pointerEvents = "none";
-  el.style.maxWidth = "420px";
+  el.style.maxWidth = "760px";
+  el.style.boxSizing = "border-box";
+  el.style.overflowX = "auto";
   el.style.padding = "8px 10px";
   el.style.borderRadius = "6px";
   el.style.background = "#111";
