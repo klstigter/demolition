@@ -449,6 +449,19 @@ codeunit 50613 "GanttChartDataHandler"
         else
             JsonObject.Add('hours', DayPlanning."Requested Hours");
 
+        // Requested vs Assigned detail, both sides, for the resource-marker hover tooltip's
+        // "Requested"/"Assigned" column groups (see InstallResourceMarkerCustomTooltipsForDayPlannings
+        // in wrapper.js) - unlike 'start_time'/'end_time'/'hours' above (Assigned-only, kept for
+        // other existing JS callers), these always carry both sides regardless of Plan Status.
+        JsonObject.Add('requested_start_time', FormatTime(DayPlanning."Start Time Requested"));
+        JsonObject.Add('requested_end_time', FormatTime(DayPlanning."End Time Requested"));
+        JsonObject.Add('requested_idle_minutes', DayPlanning."Non Working Minutes Requested");
+        JsonObject.Add('requested_hours', DayPlanning."Requested Hours");
+        JsonObject.Add('assigned_start_time', FormatTime(DayPlanning."Start Time Assigned"));
+        JsonObject.Add('assigned_end_time', FormatTime(DayPlanning."End Time Assigned"));
+        JsonObject.Add('assigned_idle_minutes', DayPlanning."Non Working Minutes Assigned");
+        JsonObject.Add('assigned_hours', DayPlanning."Assigned Hours");
+
         // Resource/Vendor information
         ResourceId := GetResourceId(DayPlanning);
         JsonObject.Add('resource_id', ResourceId);
@@ -465,7 +478,7 @@ codeunit 50613 "GanttChartDataHandler"
             DayPlanning."Plan Status"::"In Request":
                 PlanStatusText := 'Request';
             DayPlanning."Plan Status"::"In Progress":
-                PlanStatusText := 'Planned';
+                PlanStatusText := 'Assigned';
             DayPlanning."Plan Status"::Rejected:
                 PlanStatusText := 'Rejected';
             DayPlanning."Plan Status"::Accepted:
@@ -502,6 +515,15 @@ codeunit 50613 "GanttChartDataHandler"
         JsonObject.Add('end_time', EndTimeText);
 
         JsonObject.Add('hours', DayPlanning."Requested Hours");
+
+        JsonObject.Add('requested_start_time', FormatTime(DayPlanning."Start Time Requested"));
+        JsonObject.Add('requested_end_time', FormatTime(DayPlanning."End Time Requested"));
+        JsonObject.Add('requested_idle_minutes', DayPlanning."Non Working Minutes Requested");
+        JsonObject.Add('requested_hours', DayPlanning."Requested Hours");
+        JsonObject.Add('assigned_start_time', FormatTime(DayPlanning."Start Time Assigned"));
+        JsonObject.Add('assigned_end_time', FormatTime(DayPlanning."End Time Assigned"));
+        JsonObject.Add('assigned_idle_minutes', DayPlanning."Non Working Minutes Assigned");
+        JsonObject.Add('assigned_hours', DayPlanning."Assigned Hours");
 
         ResourceId := GetResourceId(DayPlanning);
         JsonObject.Add('resource_id', ResourceId);

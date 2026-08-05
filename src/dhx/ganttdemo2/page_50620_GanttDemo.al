@@ -1490,7 +1490,12 @@ page 50620 "Gantt Demo DHX 2"
             Direction::Backward:
                 Case Setup."Date Range Type" of
                     Setup."Date Range Type"::Weekly:
-                        NewAnchorDate := CalcDate('<-6W>', AnchorDate);
+                        // Step must match GetDateRange's Weekly-branch window width (anchor's own
+                        // week + <5W> more, in codeunit 50613) - not one week wider. Was <-6W>,
+                        // which overshot the window by a full week: e.g. a window anchored in wk 32
+                        // (spanning wk 32..37) would jump Previous to wk 25 instead of wk 26,
+                        // silently skipping wk 26 - the mirror image of the Forward bug below.
+                        NewAnchorDate := CalcDate('<-5W>', AnchorDate);
                     Setup."Date Range Type"::Calculated:
                         begin
                             forDt := StrSubstNo('<-%1D>', setup.GetPeriodLength(AnchorDate));
@@ -1500,7 +1505,16 @@ page 50620 "Gantt Demo DHX 2"
             Direction::Forward:
                 Case Setup."Date Range Type" of
                     Setup."Date Range Type"::Weekly:
-                        NewAnchorDate := CalcDate('<6W>', AnchorDate);
+                        // Step must match GetDateRange's Weekly-branch window width (anchor's own
+                        // week + <5W> more, in codeunit 50613) - not one week wider. Was <6W>: a
+                        // window anchored in wk 32 spans wk 32..37, so the next window must be
+                        // reachable by a <5W> step to land back on wk 37 (deliberately re-showing
+                        // the boundary week so a task whose Planned End Date falls in it - e.g. one
+                        // ending exactly on the new window's first day - is never silently dropped
+                        // from the task list). <6W> jumped straight to wk 38, skipping wk 37 in the
+                        // task-filter query (GetJobTasksAsJson's PlannedEndDate >= StartDate) even
+                        // though the header still looked plausible.
+                        NewAnchorDate := CalcDate('<5W>', AnchorDate);
                     Setup."Date Range Type"::Calculated:
                         begin
                             forDt := StrSubstNo('<%1D>', setup.GetPeriodLength(AnchorDate));
