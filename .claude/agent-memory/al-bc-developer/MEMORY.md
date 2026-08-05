@@ -9,3 +9,4 @@
 - [DHTMLX Kanban editorShape](dhtmlx_kanban_editorshape.md) — custom edit-panel fields go in top-level `editorShape`, NOT `cardShape.fields` (silently ignored); it replaces the default list, not extends it
 - [DHTMLX Suite Chart API](dhtmlx_suite_chart_api.md) — `dhx.Chart` real API grepped from suite.js: series[].color/label, legend.series array, "text" scale, serieClick event; page 50692 barchart POC
 - [DHTMLX auto_scheduling event API](dhtmlx_autoscheduling_event_api.md) — `onAfterAutoSchedule(sourceIds, updatedTaskIds)` grepped from dhtmlxgantt.js; engine sets raw exclusive end_date before firing, must re-normalize in handler
+- [AL matrix page dynamic column technique](al_matrix_page_dynamic_column_technique.md) — CaptionClass '3,'+var / Visible=var for repeater columns; CurrPage.Field.Caption and Visible=Array[i] both fail to compile (AL0118/AL0322)
