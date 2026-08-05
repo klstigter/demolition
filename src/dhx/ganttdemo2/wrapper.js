@@ -1587,12 +1587,23 @@ function LoadProject(projectstartdate, projectenddate) {
   gantt.config.end_date = gantt.config.project_end;
   gantt.config.fit_tasks = false; // Don't auto-expand timeline to fit tasks
   
+  // project_constraint MUST stay false here. gantt.config.project_start/project_end are set,
+  // just above, to the CURRENT PAGED VIEWPORT (page 50620's AnchorDate-derived window - it
+  // changes on every Previous/Next click), not a real fixed project boundary. Confirmed by
+  // reading src/dhx/dhtmlxgantt.js directly: with project_constraint:true, AutoScheduling's
+  // _getTaskConstraint() forces any task without its own non-default constraint (and even
+  // overrides an ASAP task's own constraint_date, falling back to the parent's) to be
+  // scheduled no earlier than project_start. Combined with schedule_on_parse defaulting to
+  // true (auto-scheduling reruns on every gantt.parse(), i.e. every data reload), this
+  // silently rewrote any ASAP-constrained task's start_date to the viewport's own start date
+  // on every Next/Previous click - corrupting its bar position/duration and the task-bar
+  // tooltip's Period, regardless of that task's real Planned Start/End Date in BC.
   gantt.config.auto_scheduling = {
     enabled: true,
     show_constraints: true,
     schedule_from_end: false,
     apply_constraints: true,
-    project_constraint: true
+    project_constraint: false
   };
 
   // Markers for project bounds
