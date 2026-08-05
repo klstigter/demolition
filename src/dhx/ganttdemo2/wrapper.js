@@ -709,6 +709,8 @@ window.BOOT = function() {
         { label: "Show DayPlanning",         icon: "&#x1F4C5;", cls: "ctx-open-DayPlanning" },
         { label: "Show DayPlanning Visual",  icon: "&#x1F4C5;", cls: "ctx-open-DayPlanningvisual" },
         { sep: true },
+        { label: "Add Filter",           icon: "&#x1F50D;", cls: "ctx-add-filter" },
+        { sep: true },
         { label: "Cancel",               icon: "&#x2715;",  cls: "ctx-cancel" }
       ];
 
@@ -730,6 +732,7 @@ window.BOOT = function() {
           if (item.cls === "ctx-open-task")      _ctxOpenTask(taskId);
           if (item.cls === "ctx-open-DayPlanning")   _ctxOpenDayPlanning(taskId);
           if (item.cls === "ctx-open-DayPlanningvisual")   _ctxOpenDayPlanningVisual(taskId);
+          if (item.cls === "ctx-add-filter")     _ctxAddFilter();
           // cancel: just close
         });
         menu.appendChild(el);
@@ -884,6 +887,18 @@ window.BOOT = function() {
         console.error("_ctxOpenDayPlanningVisual failed:", e);
       }
     }
+    // Add Filter — opens the same BC filter dialog as the grid header's (funnel) filter
+    // button (see _updateGanttFilterToolbar's filterBtn click handler below): both fire
+    // OnGanttFilterIconClick, so there is exactly one filter popup implementation to keep in
+    // sync, not two.
+    function _ctxAddFilter() {
+      try {
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnGanttFilterIconClick", []);
+      } catch (e) {
+        console.error("_ctxAddFilter failed:", e);
+      }
+    }
+
     // Attach right-click event
     gantt.attachEvent("onContextMenu", function(id, linkId, e) {
       if (!id) return false; // no task clicked — let browser default
