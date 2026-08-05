@@ -138,7 +138,7 @@ page 50612 "Planning Role Center"
                 action("VisualPlanning7")
                 {
                     ApplicationArea = All;
-                    Caption = 'Requested vs Capacity (Skills)';
+                    Caption = 'Skill Requested/Capacity';
                     RunObject = page "Requested vs Capacity Skl Dhx";
                 }
             }
@@ -177,12 +177,12 @@ page 50612 "Planning Role Center"
                     Caption = 'Skill Codes';
                     RunObject = page "Skill Codes";
                 }
-
-                Action(OptiResourceCapacity)
+                action("Capacity Overview")
                 {
                     ApplicationArea = Basic, Suite;
-                    Caption = 'Opti Resource Capacity';
-                    RunObject = page "Opti Resource Capacity Weeks";
+                    Caption = 'Capacity Overview';
+                    RunObject = page "Capacity Overview";
+                    ToolTip = 'Open the Capacity Overview matrix of requested, assigned, and free capacity per skill.';
                 }
             }
             group("SettingGroup")

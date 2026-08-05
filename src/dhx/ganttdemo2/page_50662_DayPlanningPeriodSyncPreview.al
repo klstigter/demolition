@@ -54,6 +54,14 @@ page 50663 "DayPlanning PeriodSyncPreview"
                     StyleExpr = RowStyleExpr;
                     ToolTip = 'Resource assigned to this DayPlanning.';
                 }
+                field("Old Day Name"; Rec."Old Day Name")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Current Day Name';
+                    Editable = false;
+                    StyleExpr = OldDateStyleExpr;
+                    ToolTip = 'Shows the weekday name of the current DayPlanning date. Blank for new DayPlanning entries.';
+                }
                 field("Old Task Date"; Rec."Old Task Date")
                 {
                     ApplicationArea = All;
@@ -62,14 +70,19 @@ page 50663 "DayPlanning PeriodSyncPreview"
                     StyleExpr = OldDateStyleExpr;
                     ToolTip = 'The current DayPlanning date before the period change is applied. Blank for new DayPlanning entries.';
                 }
+
                 // ── Right Pane: calculated / new values ───────────────────────────
                 field("New Task Date"; Rec."New Task Date")
                 {
                     ApplicationArea = All;
                     Caption = 'New Date';
-                    Editable = false;
                     StyleExpr = NewDateStyleExpr;
-                    ToolTip = 'The calculated new DayPlanning date after the period change is applied.';
+                    ToolTip = 'The calculated new DayPlanning date after the period change is applied. Editable - change it to override the calculated date; Day Name and Day Type below recalculate automatically.';
+
+                    trigger OnValidate()
+                    begin
+                        UpdateNewDateInfo();
+                    end;
                 }
                 field("Day Name"; Rec."Day Name")
                 {
@@ -149,20 +162,7 @@ page 50663 "DayPlanning PeriodSyncPreview"
 
     trigger OnAfterGetRecord()
     begin
-        case Rec."Day Type" of
-            Rec."Day Type"::Weekend,
-            Rec."Day Type"::"Public-Holiday":
-                begin
-                    RowStyleExpr := 'Unfavorable';
-                    OldDateStyleExpr := 'Unfavorable';
-                    NewDateStyleExpr := 'Unfavorable';
-                end;
-            else begin
-                RowStyleExpr := '';
-                OldDateStyleExpr := 'Unfavorable';
-                NewDateStyleExpr := 'Favorable';
-            end;
-        end;
+        UpdateStyleExpressions();
     end;
 
     trigger OnClosePage()
@@ -203,6 +203,47 @@ page 50663 "DayPlanning PeriodSyncPreview"
     procedure WasApplied(): Boolean
     begin
         exit(Applied);
+    end;
+
+    /// <summary>
+    /// Recalculates "Day Name" and "Day Type" for the row's "New Task Date" after the user
+    /// manually overrides it in the grid (the column is now editable, see the "New Task Date"
+    /// field's OnValidate), then re-derives this row's style expressions the same way
+    /// OnAfterGetRecord does, so a manually-typed weekend/holiday date immediately turns the row
+    /// red instead of only updating on the next scroll/refresh.
+    /// </summary>
+    local procedure UpdateNewDateInfo()
+    var
+        DayPlanningMgt: Codeunit "Day Plannings Mgt.";
+        DayPlanningPeriodSyncMgt: Codeunit "DayPlanning Period Sync Mgt.";
+        EffectiveWorkHourTemplate: Code[20];
+    begin
+        Rec."Day Name" := Format(Rec."New Task Date", 0, '<Weekday Text>');
+
+        EffectiveWorkHourTemplate := DayPlanningPeriodSyncMgt.ResolveEffectiveWorkHourTemplate(SavedJobTask);
+        Rec."Day Type" := DayPlanningMgt.ClassifyDate(EffectiveWorkHourTemplate, Rec."New Task Date");
+
+        Rec.Modify();
+        UpdateStyleExpressions();
+        CurrPage.Update(false);
+    end;
+
+    local procedure UpdateStyleExpressions()
+    begin
+        case Rec."Day Type" of
+            Rec."Day Type"::Weekend,
+            Rec."Day Type"::"Public-Holiday":
+                begin
+                    RowStyleExpr := 'Unfavorable';
+                    OldDateStyleExpr := 'Unfavorable';
+                    NewDateStyleExpr := 'Unfavorable';
+                end;
+            else begin
+                RowStyleExpr := '';
+                OldDateStyleExpr := 'Unfavorable';
+                NewDateStyleExpr := 'Favorable';
+            end;
+        end;
     end;
 
     var
