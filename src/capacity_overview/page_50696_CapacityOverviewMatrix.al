@@ -1,4 +1,4 @@
-page 50696 "Capacity Overview Matrix"
+page 50711 "Capacity Overview Matrix"
 {
     PageType = ListPart;
     SourceTable = "Capacity Overview Buffer";
