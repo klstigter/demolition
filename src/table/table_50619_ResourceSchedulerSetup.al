@@ -1,4 +1,4 @@
-table 50633 "Resource Scheduler Setup"
+table 50619 "Resource Scheduler Setup"
 {
     DataClassification = CustomerContent;
     Caption = 'Resource Scheduler Setup';

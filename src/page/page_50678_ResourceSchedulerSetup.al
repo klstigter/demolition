@@ -1,4 +1,4 @@
-page 50706 "Resource Scheduler Setup"
+page 50678 "Resource Scheduler Setup"
 {
     PageType = Card;
     ApplicationArea = All;

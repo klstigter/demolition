@@ -781,7 +781,7 @@ window.BOOT = function() {
           if (item.cls === "ctx-open-task")      _ctxOpenTask(taskId);
           if (item.cls === "ctx-open-DayPlanning")   _ctxOpenDayPlanning(taskId);
           if (item.cls === "ctx-open-DayPlanningvisual")   _ctxOpenDayPlanningVisual(taskId);
-          if (item.cls === "ctx-add-filter")     _ctxAddFilter();
+          if (item.cls === "ctx-add-filter")     _ctxAddFilter(taskId);
           // cancel: just close
         });
         menu.appendChild(el);
@@ -936,13 +936,17 @@ window.BOOT = function() {
         console.error("_ctxOpenDayPlanningVisual failed:", e);
       }
     }
-    // Add Filter — opens the same BC filter dialog as the grid header's (funnel) filter
-    // button (see _updateGanttFilterToolbar's filterBtn click handler below): both fire
-    // OnGanttFilterIconClick, so there is exactly one filter popup implementation to keep in
-    // sync, not two.
-    function _ctxAddFilter() {
+    // Add Filter — unlike the grid header's (funnel) filter button (which opens a dialog for
+    // the user to type a Job No./Job Task No. - OnGanttFilterIconClick), the right-clicked row
+    // already IS a specific Job/Job Task, so this applies that row's own bcJobNo/bcJobTaskNo
+    // directly, with no dialog in between.
+    function _ctxAddFilter(id) {
       try {
-        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnGanttFilterIconClick", []);
+        var task = gantt.getTask(id);
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnGanttContextAddFilter", [
+          String((task && task.bcJobNo) || ""),
+          String((task && task.bcJobTaskNo) || "")
+        ]);
       } catch (e) {
         console.error("_ctxAddFilter failed:", e);
       }
@@ -1587,12 +1591,33 @@ function LoadProject(projectstartdate, projectenddate) {
   gantt.config.end_date = gantt.config.project_end;
   gantt.config.fit_tasks = false; // Don't auto-expand timeline to fit tasks
   
+  // schedule_on_parse:false is the load-bearing setting here - NOT just project_constraint
+  // (a first attempt at this fix only turned that off and did not hold up under retest).
+  // Confirmed by reading src/dhx/dhtmlxgantt.js directly: the engine wires
+  //   t.attachEvent("onParse", function(){ const x = t._getAutoSchedulingConfig();
+  //     x.enabled && x.schedule_on_parse && t.autoSchedule() })
+  // unconditionally - this fires on EVERY gantt.parse() call, i.e. every single data reload
+  // (Next/Previous/Today/initial load), and schedule_on_parse defaults to true. That full,
+  // unconditional autoSchedule() pass is what actually recomputes every ASAP-constrained
+  // task's start_date "as early as possible" relative to the project timeline - which for a
+  // task with no predecessor link anchors to project_start regardless of project_constraint,
+  // since project_constraint only governs a narrower override inside _getTaskConstraint (does
+  // a task's OWN constraint get replaced by its parent's), not whether autoSchedule() runs at
+  // all. gantt.config.project_start/project_end are set just above to the CURRENT PAGED
+  // VIEWPORT (page 50620's AnchorDate-derived window - it changes on every Previous/Next
+  // click), never a real fixed project boundary, so this app must never let ANY on-load
+  // auto-scheduling pass run against it - hence schedule_on_parse:false, not merely
+  // project_constraint:false. auto_scheduling stays enabled (and project_constraint is left
+  // off too, belt-and-suspenders) for whatever interactive drag/link rescheduling relies on
+  // it elsewhere - those paths trigger via onBeforeTaskDrag/onAfterLinkAdd/etc., not onParse,
+  // so they are unaffected by this flag.
   gantt.config.auto_scheduling = {
     enabled: true,
     show_constraints: true,
     schedule_from_end: false,
     apply_constraints: true,
-    project_constraint: true
+    project_constraint: false,
+    schedule_on_parse: false
   };
 
   // Markers for project bounds

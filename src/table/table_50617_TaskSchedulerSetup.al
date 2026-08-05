@@ -1,4 +1,4 @@
-table 50631 "Task Scheduler Setup"
+table 50617 "Task Scheduler Setup"
 {
     DataClassification = CustomerContent;
     Caption = 'Task Scheduler Setup';
