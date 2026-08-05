@@ -1,4 +1,4 @@
-page 50704 "Task Scheduler Setup"
+page 50664 "Task Scheduler Setup"
 {
     PageType = Card;
     ApplicationArea = All;
