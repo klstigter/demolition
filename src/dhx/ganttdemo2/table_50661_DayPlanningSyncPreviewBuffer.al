@@ -67,6 +67,11 @@ table 50661 "DayPlanning Sync PreviewBuff"
             DataClassification = SystemMetadata;
             Caption = 'Day Name';
         }
+        field(13; "Old Day Name"; Text[10])
+        {
+            DataClassification = SystemMetadata;
+            Caption = 'Current Day Name';
+        }
     }
 
     keys

@@ -253,6 +253,25 @@ codeunit 50610 "Day Plannings Mgt."
     end;
 
     /// <summary>
+    /// Classifies TheDate into "Work-day" / "Weekend" / "Public-Holiday", splitting back out the
+    /// two checks IsActiveWorkDay combines into a single boolean - for callers that need to know
+    /// WHICH kind of non-working day it is, not just active/inactive. Used by page 50662's manual
+    /// "New Date" edit, to re-derive "Day Type" after the user types a date in directly.
+    /// </summary>
+    procedure ClassifyDate(WorkHourTemplateCode: Code[20]; TheDate: Date): Enum "DayPlanning Date Type"
+    begin
+        EnsureCalendarLoadedForActiveWorkDayCheck();
+
+        if not IsWeekdayActiveInTemplate(WorkHourTemplateCode, Date2DWY(TheDate, 1)) then
+            exit("DayPlanning Date Type"::Weekend);
+
+        if gCalendarMgt.IsNonworkingDay(TheDate, gCalCustomizedCalendarChange) then
+            exit("DayPlanning Date Type"::"Public-Holiday");
+
+        exit("DayPlanning Date Type"::"Work-day");
+    end;
+
+    /// <summary>
     /// Resolves whether a given ISO weekday number (1=Monday..7=Sunday, matching Date2DWY(D,1))
     /// is an active/working weekday according to WorkHourTemplateCode's Monday..Sunday hours fields
     /// (hours > 0 = active). Blank template code = every weekday treated as active. Used by
