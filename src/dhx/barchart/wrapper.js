@@ -95,7 +95,11 @@ function RenderChart(chartData) {
             bottom: { type: "text", text: "category" },
             left:   { type: "numeric" }
         },
-        legend: { series: series.map(function(s) { return s.id; }) }
+        legend: {
+            series: series.map(function(s) { return s.id; }),
+            halign: "right",
+            valign: "top"
+        }
     };
 
     if (chartInstance) {
@@ -106,6 +110,19 @@ function RenderChart(chartData) {
 
     chartInstance = new dhx.Chart(chartContainer, config);
 
+    // dhx.Chart's Legend has no built-in rotation/orientation option (see suite.js's Legend
+    // class - halign/valign/direction only, no angle). Rotating the "Requested Hours" label to
+    // read vertically, bottom-to-top, tucked into the top-right corner is done here as a
+    // post-render CSS transform on the legend's own SVG <text> node instead. transform-box:
+    // fill-box + transform-origin: 0% 100% pins the rotation pivot to the text's own bottom-left
+    // corner, so it stays anchored roughly where the library placed it and the rotated text
+    // extends upward from there - "left-bottom to right-top" reading direction. This does NOT
+    // reserve extra layout space for the now-taller-than-wide rotated label (the library's own
+    // margin math in getDefaultMargin/scaleReady only ever knew about the pre-rotation
+    // horizontal size), so at extreme container sizes it may sit closer to the plot area than a
+    // native vertical-legend option would.
+    RotateLegendLabel();
+
     // Bar click -> BC (mirrors OnEventDoubleClick's InvokeExtensibilityMethod pattern
     // used throughout src/dhx/resourceschedule/wrapper.js). id is the Skill Code we
     // set as each data row's "id"/"category" above.
@@ -113,6 +130,22 @@ function RenderChart(chartData) {
         try {
             Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnDataPointClicked", [String(id)]);
         } catch (e) { /* ignore */ }
+    });
+}
+
+// Rotates every legend item's <text class="legend-text"> 90deg counter-clockwise so it reads
+// bottom-to-top instead of left-to-right. Deferred one frame past chart construction: dhx.Chart
+// paints its SVG synchronously in practice, but querying immediately after `new dhx.Chart(...)`
+// is fragile if that ever changes, so this waits a frame rather than assuming paint order.
+function RotateLegendLabel() {
+    requestAnimationFrame(function() {
+        if (!chartContainer) return;
+        var legendTexts = chartContainer.querySelectorAll(".legend-text");
+        legendTexts.forEach(function(textEl) {
+            textEl.style.transformBox = "fill-box";
+            textEl.style.transformOrigin = "0% 100%";
+            textEl.style.transform = "rotate(-90deg)";
+        });
     });
 }
 

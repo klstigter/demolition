@@ -5,6 +5,15 @@ page 50692 "Requested vs Capacity Skl Dhx"
     UsageCategory = ReportsAndAnalysis;
     Caption = 'Skill Requested/Capacity';
 
+    /// <summary>
+    /// The date range is now a "current period" (always a Monday..Sunday week) stepped via the
+    /// Previous/Today/Next actions - matching page 50695 "Capacity Overview"'s pattern - rather
+    /// than free-text Date From/Date To fields. The Skill Code filter field was removed too: it
+    /// only ever narrowed the chart/factbox down to one already-visible category, which the user
+    /// can do just as well by reading the chart, so it was redundant chrome. Resource No. is the
+    /// only remaining filter.
+    /// </summary>
+
     layout
     {
         area(Content)
@@ -13,46 +22,19 @@ page 50692 "Requested vs Capacity Skl Dhx"
             {
                 Caption = 'Filters';
 
+                field(PeriodLabelCtrl; PeriodLabelText + ' (' + Day1Text + ' - ' + Day7Text + ')')
+                {
+                    ApplicationArea = All;
+                    Caption = 'Period';
+                    Editable = false;
+                    ToolTip = 'Specifies the month, year, and ISO week number of the displayed period.';
+                }
                 field(ResourceNoFilterCtrl; ResourceNoFilter)
                 {
                     ApplicationArea = All;
                     Caption = 'Resource No.';
                     TableRelation = Resource;
                     ToolTip = 'Specifies the resource to analyze. Leave blank to include all resources.';
-
-                    trigger OnValidate()
-                    begin
-                        RefreshData();
-                    end;
-                }
-                field(DateFromFilterCtrl; DateFromFilter)
-                {
-                    ApplicationArea = All;
-                    Caption = 'Date From';
-                    ToolTip = 'Specifies the first plan date to include. Leave blank for no lower boundary.';
-
-                    trigger OnValidate()
-                    begin
-                        RefreshData();
-                    end;
-                }
-                field(DateToFilterCtrl; DateToFilter)
-                {
-                    ApplicationArea = All;
-                    Caption = 'Date To';
-                    ToolTip = 'Specifies the last plan date to include. Leave blank for no upper boundary.';
-
-                    trigger OnValidate()
-                    begin
-                        RefreshData();
-                    end;
-                }
-                field(SkillCodeFilterCtrl; SkillCodeFilter)
-                {
-                    ApplicationArea = All;
-                    Caption = 'Skill Code';
-                    TableRelation = "Skill Code";
-                    ToolTip = 'Specifies the skill to analyze. Leave blank to include all skills.';
 
                     trigger OnValidate()
                     begin
@@ -108,6 +90,50 @@ page 50692 "Requested vs Capacity Skl Dhx"
                     RefreshData();
                 end;
             }
+            group(PeriodNavigation)
+            {
+                Caption = 'Period';
+
+                action(PreviousAction)
+                {
+                    ApplicationArea = All;
+                    Caption = 'Previous';
+                    Image = PreviousRecord;
+                    ToolTip = 'Move the displayed period back by one week.';
+
+                    trigger OnAction()
+                    begin
+                        PeriodStartDate := PeriodStartDate - 7;
+                        RefreshPeriod();
+                    end;
+                }
+                action(TodayAction)
+                {
+                    ApplicationArea = All;
+                    Caption = 'Today';
+                    Image = Calculate;
+                    ToolTip = 'Jump to the week that contains today''s date.';
+
+                    trigger OnAction()
+                    begin
+                        SetPeriodToToday();
+                        RefreshPeriod();
+                    end;
+                }
+                action(NextAction)
+                {
+                    ApplicationArea = All;
+                    Caption = 'Next';
+                    Image = NextRecord;
+                    ToolTip = 'Move the displayed period forward by one week.';
+
+                    trigger OnAction()
+                    begin
+                        PeriodStartDate := PeriodStartDate + 7;
+                        RefreshPeriod();
+                    end;
+                }
+            }
         }
         area(Promoted)
         {
@@ -118,29 +144,71 @@ page 50692 "Requested vs Capacity Skl Dhx"
                 actionref(RefreshAction_Promoted; RefreshAction)
                 {
                 }
+                actionref(PreviousAction_Promoted; PreviousAction)
+                {
+                }
+                actionref(TodayAction_Promoted; TodayAction)
+                {
+                }
+                actionref(NextAction_Promoted; NextAction)
+                {
+                }
             }
         }
     }
 
-    var
-        Buffer: Record "Skill Req. vs Capacity Buffer" temporary;
-        SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
-        ResourceNoFilter: Code[20];
-        SkillCodeFilter: Code[10];
-        DateFromFilter: Date;
-        DateToFilter: Date;
-        ChartReady: Boolean;
-        RequestedHoursMeasureTxt: Label 'Requested Hours';
-
     trigger OnOpenPage()
     begin
+        SetPeriodToToday();
+        RefreshPeriod();
+    end;
+
+    local procedure SetPeriodToToday()
+    begin
+        PeriodStartDate := CalcMonday(Today());
+    end;
+
+    /// <summary>
+    /// Returns the Monday of the ISO week containing ADate. Deliberately computed via
+    /// Date2DWY's weekday component (1 = Monday .. 7 = Sunday) rather than a "CW" date formula,
+    /// so the result does not depend on company/regional week-start settings.
+    /// </summary>
+    local procedure CalcMonday(ADate: Date): Date
+    var
+        WeekDayNo: Integer;
+    begin
+        WeekDayNo := Date2DWY(ADate, 1);
+        exit(ADate - (WeekDayNo - 1));
+    end;
+
+    local procedure RefreshPeriod()
+    var
+        WeekNo: Integer;
+        YearNo: Integer;
+    begin
+        WeekNo := Date2DWY(PeriodStartDate, 2);
+        YearNo := Date2DWY(PeriodStartDate, 3);
+
+        PeriodLabelText := StrSubstNo(PeriodLabelLbl, Format(PeriodStartDate, 0, '<Month Text,3>'), YearNo, WeekNo);
+
+        Day1Text := FormatDayText(PeriodStartDate);
+        Day7Text := FormatDayText(PeriodStartDate + 6);
+
         RefreshData();
     end;
 
-    local procedure RefreshData()
+    local procedure FormatDayText(DayDate: Date): Text[20]
     begin
-        SkillCapacityAnalysisMgt.BuildSkillBuffer(Buffer, ResourceNoFilter, DateFromFilter, DateToFilter, SkillCodeFilter);
-        CurrPage.DataPart.Page.LoadData(Buffer, ResourceNoFilter, DateFromFilter, DateToFilter);
+        exit(StrSubstNo(DayLabelLbl, Format(DayDate, 0, '<Weekday Text,3>'), Format(DayDate, 0, '<Day,2>')));
+    end;
+
+    local procedure RefreshData()
+    var
+        PeriodEndDate: Date;
+    begin
+        PeriodEndDate := PeriodStartDate + 6;
+        SkillCapacityAnalysisMgt.BuildSkillBuffer(Buffer, ResourceNoFilter, PeriodStartDate, PeriodEndDate, '');
+        CurrPage.DataPart.Page.LoadData(Buffer, ResourceNoFilter, PeriodStartDate, PeriodEndDate);
         RefreshChart();
     end;
 
@@ -192,4 +260,17 @@ page 50692 "Requested vs Capacity Skl Dhx"
         ChartData.WriteTo(ChartDataJson);
         CurrPage.DhxBarChart.LoadData(ChartDataJson);
     end;
+
+    var
+        Buffer: Record "Skill Req. vs Capacity Buffer" temporary;
+        SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
+        ResourceNoFilter: Code[20];
+        PeriodStartDate: Date;
+        ChartReady: Boolean;
+        PeriodLabelText: Text[50];
+        Day1Text: Text[20];
+        Day7Text: Text[20];
+        RequestedHoursMeasureTxt: Label 'Requested Hours';
+        PeriodLabelLbl: Label '%1 %2 - wk %3', Comment = '%1 = abbreviated month, %2 = year, %3 = ISO week number';
+        DayLabelLbl: Label '%1 %2', Comment = '%1 = abbreviated weekday, %2 = day of month';
 }

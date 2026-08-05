@@ -3,8 +3,11 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// <summary>
     /// Aggregates Day Planning requested hours per Skill Code and total resource capacity.
     ///
-    /// Requested Hours are grouped by the Day Planning line's own "Skill" field, one buffer
-    /// row per distinct skill code found in the filtered Day Planning lines.
+    /// Requested Hours are grouped by the Day Planning line's own "Skill" field. One buffer row
+    /// is produced per "Skill Code" MASTER record (optionally narrowed by SkillCodeFilter to a
+    /// single one), not merely per skill code that happens to appear on a filtered Day Planning
+    /// line - so a skill with zero matching lines still shows up, at 0, instead of silently
+    /// disappearing from the chart/factbox.
     ///
     /// Capacity is NOT derived from Day Planning at all. The previous design summed the Day
     /// Planning "Capacity" FlowField once per distinct (Assigned Resource No., Plan Date) pair
@@ -33,8 +36,8 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     procedure BuildSkillBuffer(var Buffer: Record "Skill Req. vs Capacity Buffer" temporary; ResourceNoFilter: Code[20]; DateFromFilter: Date; DateToFilter: Date; SkillCodeFilter: Code[10])
     var
         DayPlanning: Record "Day Planning";
+        SkillCodeRec: Record "Skill Code";
         RequestedHoursPerSkill: Dictionary of [Code[10], Decimal];
-        SkillCodes: List of [Code[10]];
         SkillCode: Code[10];
     begin
         Buffer.Reset();
@@ -48,9 +51,19 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
                 AddToTotals(RequestedHoursPerSkill, CopyStr(DayPlanning.Skill, 1, MaxStrLen(SkillCode)), DayPlanning."Requested Hours");
             until DayPlanning.Next() = 0;
 
-        SkillCodes := RequestedHoursPerSkill.Keys();
-        foreach SkillCode in SkillCodes do
-            InsertBufferLine(Buffer, SkillCode, GetTotal(RequestedHoursPerSkill, SkillCode));
+        // One row per "Skill Code" MASTER record - not per skill actually found on a Day
+        // Planning line - so every configured skill shows (at 0 if it has no matching lines)
+        // instead of silently disappearing. Matches codeunit 50694's BuildSkillCodeList on the
+        // Capacity Overview page. SkillCodeFilter (when set) narrows this to a single master
+        // record, same as it always narrowed ApplyDayPlanningFilters above.
+        SkillCodeRec.Reset();
+        if SkillCodeFilter <> '' then
+            SkillCodeRec.SetRange(Code, SkillCodeFilter);
+        if SkillCodeRec.FindSet() then
+            repeat
+                SkillCode := CopyStr(SkillCodeRec.Code, 1, MaxStrLen(SkillCode));
+                InsertBufferLine(Buffer, SkillCode, GetTotal(RequestedHoursPerSkill, SkillCode));
+            until SkillCodeRec.Next() = 0;
 
         // Single aggregate Capacity row, always appended (even when 0) so the chart/factbox
         // consistently show the reference bar/row. Deliberately ignores SkillCodeFilter.

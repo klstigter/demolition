@@ -121,6 +121,7 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
                         TempPreviewBuffer."Old Task Date" := DayPlanning."Plan Date";
                         TempPreviewBuffer."New Task Date" := NewDate;
                         TempPreviewBuffer."Day Name" := Format(NewDate, 0, '<Weekday Text>');
+                        TempPreviewBuffer."Old Day Name" := Format(DayPlanning."Plan Date", 0, '<Weekday Text>');
                         TempPreviewBuffer."Resource No." := DayPlanning."Assigned Resource No.";
                         TempPreviewBuffer.Description := DayPlanning.Description;
                         // By construction every redistributed/cascaded date is an active day,
@@ -189,6 +190,28 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
         while not DayPlanningMgt.IsActiveWorkDay(EffectiveWorkHourTemplate, DateToSnap) do
             DateToSnap += 1;
         exit(DateToSnap);
+    end;
+
+    /// <summary>
+    /// Resolves the effective Work-Hour Template for a Job Task: its own "Work Hour Template" if
+    /// set, else Daily Optimizer Setup's "Work hour Template". Mirrors the inline resolution
+    /// already duplicated in CalculateChanges and SnapForwardToWorkDay - added here as a separate
+    /// procedure rather than refactoring those two (both are part of the tested reschedule-cascade
+    /// logic) so page 50662's manual "New Date" edit has a Job-Task-record-shaped entry point to
+    /// call without touching that logic.
+    /// </summary>
+    procedure ResolveEffectiveWorkHourTemplate(JobTask: Record "Job Task"): Code[20]
+    var
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        EffectiveWorkHourTemplate: Code[20];
+    begin
+        DailyOptimizerSetup.Get();
+        DailyOptimizerSetup.TestField("Base Calendar");
+
+        EffectiveWorkHourTemplate := JobTask."Work Hour Template";
+        if EffectiveWorkHourTemplate = '' then
+            EffectiveWorkHourTemplate := DailyOptimizerSetup."Work hour Template";
+        exit(EffectiveWorkHourTemplate);
     end;
 
     /// <summary>
