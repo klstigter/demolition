@@ -1,4 +1,4 @@
-page 50712 "Skill Req. vs Capacity Part"
+page 50691 "Skill Req. vs Capacity Part"
 {
     PageType = ListPart;
     SourceTable = "Skill Req. vs Capacity Buffer";

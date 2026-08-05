@@ -1,4 +1,4 @@
-page 50708 "Requested vs Capacity Skl Dhx"
+page 50692 "Requested vs Capacity Skl Dhx"
 {
     PageType = Card;
     ApplicationArea = All;

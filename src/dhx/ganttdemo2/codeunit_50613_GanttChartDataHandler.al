@@ -93,6 +93,7 @@ codeunit 50613 "GanttChartDataHandler"
         ConstraintDateText: Text;
         SchedulingTypeText: Text;
         Codevar: Code[20];
+        GanttDuration: Integer;
     begin
 
         JsonObject.Add('id', Format(JobTask."Job No.") + '|' + Format(JobTask."Job Task No."));
@@ -103,7 +104,20 @@ codeunit 50613 "GanttChartDataHandler"
         else
             StartDateText := '';
         JsonObject.Add('start_date', StartDateText);
-        JsonObject.Add('duration', JobTask.Duration);
+
+        // Deliberately NOT JobTask.Duration - that stored field can go stale relative to
+        // PlannedStartDate/PlannedEndDate (e.g. a task whose dates were reshuffled by a path
+        // that doesn't call CalculateDuration() afterward), and DHTMLX's own "duration" is an
+        // INCLUSIVE day count (end_date = start_date + duration, exclusive) - the same "+1"
+        // formula CalculateDuration() itself uses (tableext 50605: PlannedEndDate -
+        // PlannedStartDate + 1). Recomputing it fresh here from the two dates guarantees the
+        // rendered bar can never desync from what the task's own card shows, regardless of
+        // whether the stored Duration field happens to be in sync.
+        if (JobTask.PlannedStartDate <> 0D) and (JobTask.PlannedEndDate <> 0D) then
+            GanttDuration := JobTask.PlannedEndDate - JobTask.PlannedStartDate + 1
+        else
+            GanttDuration := JobTask.Duration;
+        JsonObject.Add('duration', GanttDuration);
         JsonObject.Add('bcJobNo', JobTask."Job No.");
         JsonObject.Add('bcJobTaskNo', JobTask."Job Task No.");
         SchedulingTypeText := GetSchedulingTypeText(JobTask."Scheduling Type");

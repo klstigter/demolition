@@ -35,6 +35,7 @@ controladdin "DHX Gantt Control 2"
     event OnResourceFilterRetrieved(filterJson: Text);
     event OnGanttFilterIconClick();
     event OnGanttClearTaskFilter();
+    event OnGanttContextAddFilter(jobNo: Text; jobTaskNo: Text);
 
     procedure LoadProject(projectstartdate: date; projectenddate: date);
     procedure Undo();

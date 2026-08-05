@@ -528,6 +528,21 @@ page 50620 "Gantt Demo DHX 2"
                     RefreshGantt();
                 end;
 
+                /// <summary>
+                /// Fired by the task list's right-click "Add Filter" menu item - unlike
+                /// OnGanttFilterIconClick above, this applies the right-clicked row's own Job
+                /// No./Job Task No. directly, with no "Task Scheduler Filter" dialog: the user
+                /// already picked the task by right-clicking it, so there is nothing left to ask.
+                /// </summary>
+                trigger OnGanttContextAddFilter(jobNo: Text; jobTaskNo: Text)
+                begin
+                    if jobNo = '' then
+                        exit;
+                    JobFilter := jobNo;
+                    JobTaskFilter := jobTaskNo;
+                    RefreshGantt();
+                end;
+
                 #endregion
             }
         }

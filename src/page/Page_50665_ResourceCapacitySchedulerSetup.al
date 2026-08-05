@@ -1,4 +1,4 @@
-page 50705 "Res. Capacity Scheduler Setup"
+page 50665 "Res. Capacity Scheduler Setup"
 {
     PageType = Card;
     ApplicationArea = All;
