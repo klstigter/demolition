@@ -1,4 +1,4 @@
-table 50614 "Skill Req. vs Capacity Buffer"
+table 50635 "Skill Req. vs Capacity Buffer"
 {
     TableType = Temporary;
     Caption = 'Skill Requested vs Capacity Buffer';

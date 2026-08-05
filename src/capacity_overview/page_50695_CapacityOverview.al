@@ -1,4 +1,4 @@
-page 50695 "Capacity Overview"
+page 50710 "Capacity Overview"
 {
     PageType = Card;
     ApplicationArea = All;
