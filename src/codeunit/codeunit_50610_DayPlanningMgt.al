@@ -128,16 +128,16 @@ codeunit 50610 "Day Plannings Mgt."
                 else
                     NonWorkingHours := WorkHoursTemplate."Non Working Minutes";
 
-                DayPlannings."Start Time Assigned" := DayStartTime;
-                DayPlannings."End Time Assigned" := DayEndTime;
                 DayPlannings."Start Time Requested" := DayStartTime;
                 DayPlannings."End Time Requested" := DayEndTime;
-                DayPlannings.VALIDATE("Non Working Minutes Assigned", NonWorkingHours);
+                DayPlannings.VALIDATE("Non Working Minutes Requested", NonWorkingHours);
 
                 // Copy other fields from job planning line
-                DayPlannings."Assigned Resource No." := DayPlanningPattern."Resource No.";
+                DayPlannings."Requested Resource No." := DayPlanningPattern."Resource No.";
                 // Calculate working hours
-                DayPlannings."Requested Hours" := DayPlanningPattern."Requested Hours";
+                if DayPlanningPattern."Requested Hours" <> 0 then begin
+                    DayPlannings."Requested Hours" := DayPlanningPattern."Requested Hours";
+                end;
 
                 //DayPlannings.Description := DayPlanningGenerator.Description;
                 //DayPlannings."Unit of Measure Code" := JobTask."Unit of Measure Code";
