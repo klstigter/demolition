@@ -503,6 +503,7 @@ page 50626 "Summary View"
         SetAllShowTrue();
         DateFilter := DateRangeFilter;
         rec.ScanDayPlanningDateFilter(DateFilter);
+        ShowRequested := rec.RequestedExceedsAssigned();
         rec.LoadSummary(ShowRequested);
     end;
 
@@ -512,6 +513,7 @@ page 50626 "Summary View"
         JobNoFilter := CopyStr(pJobNoFilter, 1, MaxStrLen(JobNoFilter));
         JobTaskNoFilter := CopyStr(pJobTaskNoFilter, 1, MaxStrLen(JobTaskNoFilter));
         rec.ScanDayPlanningFilter(pJobNoFilter, pJobTaskNoFilter);
+        ShowRequested := rec.RequestedExceedsAssigned();
         rec.LoadSummary(ShowRequested);
         if JobNoFilter <> '' then
             rec.SetFilter("Job No.", JobNoFilter);
@@ -580,9 +582,9 @@ page 50626 "Summary View"
                     TempCopy."Resource No." := '';
                 if not ShowSkillCode then
                     TempCopy."Skill Code" := '';
-                if not ShowJob then
+                if Job_Visible and not ShowJob then
                     TempCopy."Job No." := '';
-                if not ShowJobTask then
+                if Job_Visible and not ShowJobTask then
                     TempCopy."Job Task No." := '';
                 if not ShowYear then
                     TempCopy.Year := 0;

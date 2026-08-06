@@ -395,7 +395,7 @@ window.BOOT = function() {
         html += '<div class="dhx-tt-label">Resource No.</div><div class="dhx-tt-val">' + resno + " - " + resname + '</div><div class="dhx-tt-val">' + reqResNo + " - " + reqResName + '</div>';
         html += '<div class="dhx-tt-label">Start Time</div><div class="dhx-tt-val">' + assignedStartTime + '</div><div class="dhx-tt-val">' + reqStartTime + '</div>';
         html += '<div class="dhx-tt-label">End Time</div><div class="dhx-tt-val">' + assignedEndTime + '</div><div class="dhx-tt-val">' + reqEndTime + '</div>';
-        html += '<div class="dhx-tt-label">Non Working (Minutes)</div><div class="dhx-tt-val">' + assignedNonWorkingMin + '</div><div class="dhx-tt-val">' + reqNonWorkingMin + '</div>';
+        html += '<div class="dhx-tt-label">Idle (Minutes)</div><div class="dhx-tt-val">' + assignedNonWorkingMin + '</div><div class="dhx-tt-val">' + reqNonWorkingMin + '</div>';
         html += '<div class="dhx-tt-label">Hours</div><div class="dhx-tt-val">' + assignedHours + '</div><div class="dhx-tt-val">' + reqHours + '</div>';
         html += '</div>';
 
