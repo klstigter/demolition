@@ -171,7 +171,402 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         exit(0);
     end;
 
+    /// <summary>
+    /// Builds the JSON payload for the stacked "Capacity vs Requested" chart on page 50692,
+    /// ready to hand straight to CurrPage.DhxBarChart.LoadData. Covers Monday..Friday only
+    /// (PeriodStartDate is expected to already be a Monday, same convention as the page's own
+    /// PeriodStartDate) - two categories per weekday ("<Wkd> Capacity" / "<Wkd> Requested"),
+    /// each a stack of series segments:
+    ///   - "Assigned" : Assigned Hours for the day (optionally narrowed to ResourceNoFilter).
+    ///                  Identical value on BOTH the Capacity and Requested bar for that day.
+    ///   - "Internal"/"External": split of (Capacity - Assigned) for the day's Res. Capacity Entry
+    ///                  / Day Planning rows by the resource's "Is External" flag. Only ever
+    ///                  nonzero on the Capacity bar (0 on the Requested bar). Not clamped to
+    ///                  zero - a legitimately over-assigned day shows a negative segment.
+    ///   - one series per Skill Code that has at least one unassigned ("Assigned Resource No." =
+    ///                  '') Day Planning row with nonzero Requested Hours somewhere in the period.
+    ///                  Only ever nonzero on the Requested bar (0 on the Capacity bar).
+    ///
+    /// ScenarioNo (0..5) "collapses" the first ScenarioNo weekdays (Monday = weekday 1) to an
+    /// Assigned-only bar on both sides: their Internal/External/skill segments are forced to 0
+    /// while Assigned itself is left untouched - simulating days that are already
+    /// closed/committed and no longer open for planning. Range validation is the caller's
+    /// responsibility (page 50692 validates 0..5 on its Scenario field before calling here).
+    /// </summary>
+    procedure BuildDayCapacityChartData(PeriodStartDate: Date; ResourceNoFilter: Code[20]; ScenarioNo: Integer) ChartDataJson: Text
+    var
+        ChartData: JsonObject;
+        CategoriesArray: JsonArray;
+        SeriesArray: JsonArray;
+        AssValues: List of [Decimal];
+        InternalValues: List of [Decimal];
+        ExternalValues: List of [Decimal];
+        SkillValues: List of [Decimal];
+        ActiveSkillList: List of [Code[20]];
+        OneDaySkillValues: Dictionary of [Code[20], Decimal];
+        AllDaySkillValues: Dictionary of [Text, Decimal];
+        SkillCode: Code[20];
+        WeekdayIndex: Integer;
+        CurrDate: Date;
+        IsClosedDay: Boolean;
+        AssD: Decimal;
+        InternalFreeD: Decimal;
+        ExternalFreeD: Decimal;
+        SkillPaletteIdx: Integer;
+    begin
+        Clear(CategoriesArray);
+        for WeekdayIndex := 1 to 5 do begin
+            CurrDate := PeriodStartDate + (WeekdayIndex - 1);
+            CategoriesArray.Add(FormatWeekdayShort(CurrDate) + FreeCapacityCategorySuffixLbl);
+            CategoriesArray.Add(FormatWeekdayShort(CurrDate) + RequestedCategorySuffixLbl);
+        end;
+
+        BuildActiveSkillList(ActiveSkillList, PeriodStartDate, PeriodStartDate + 4);
+
+        Clear(AssValues);
+        Clear(InternalValues);
+        Clear(ExternalValues);
+        for WeekdayIndex := 1 to 5 do begin
+            CurrDate := PeriodStartDate + (WeekdayIndex - 1);
+            IsClosedDay := WeekdayIndex <= ScenarioNo;
+
+            CalcDaySegments(CurrDate, ResourceNoFilter, IsClosedDay, ActiveSkillList, AssD, InternalFreeD, ExternalFreeD, OneDaySkillValues);
+
+            // Capacity bar value, then Requested bar value - Assigned is identical on both.
+            AssValues.Add(AssD);
+            AssValues.Add(AssD);
+            InternalValues.Add(InternalFreeD);
+            InternalValues.Add(0);
+            ExternalValues.Add(ExternalFreeD);
+            ExternalValues.Add(0);
+
+            // Stash this day's per-skill values (keyed by weekday+skill) so the per-skill series
+            // loop below can reuse them instead of recomputing via CalcDaySegments again - AL has
+            // no array-of-Dictionary type, so a single Dictionary keyed by a composite Text key
+            // stands in for a per-weekday array of dictionaries.
+            foreach SkillCode in ActiveSkillList do
+                AllDaySkillValues.Set(Format(WeekdayIndex) + '|' + SkillCode, OneDaySkillValues.Get(SkillCode));
+        end;
+
+        AddChartSeries(SeriesArray, AssSeriesNameLbl, AssValues, AssColorTok, '');
+        AddChartSeries(SeriesArray, InternalSeriesNameLbl, InternalValues, InternalColorTok, '');
+        AddChartSeries(SeriesArray, ExternalSeriesNameLbl, ExternalValues, ExternalColorTok, ExternalBorderColorTok);
+
+        SkillPaletteIdx := 0;
+        foreach SkillCode in ActiveSkillList do begin
+            Clear(SkillValues);
+            for WeekdayIndex := 1 to 5 do begin
+                SkillValues.Add(0); // Capacity bar - skills never appear there.
+                SkillValues.Add(AllDaySkillValues.Get(Format(WeekdayIndex) + '|' + SkillCode));
+            end;
+            AddChartSeries(SeriesArray, SkillCode, SkillValues, GetSkillSeriesColor(SkillPaletteIdx), '');
+            SkillPaletteIdx += 1;
+        end;
+
+        ChartData.Add('categories', CategoriesArray);
+        ChartData.Add('series', SeriesArray);
+        ChartData.WriteTo(ChartDataJson);
+    end;
+
+    /// <summary>
+    /// Builds a flat audit trail of the "Day Capacity Chart Audit Buffer" - one row per number
+    /// that appears anywhere in the stacked chart built by BuildDayCapacityChartData, including
+    /// 0-valued rows for segments collapsed by ScenarioNo and 0-valued rows for the "other" bar
+    /// type's segments (Internal/External are always 0 on the Requested bar, skills are always 0
+    /// on the Capacity bar - they still get a row). Skills outside BuildActiveSkillList's result
+    /// get no rows at all, matching the chart's own behavior. Rows are inserted in the same
+    /// left-to-right order as the chart's bars: for each weekday Monday..Friday, first the
+    /// Capacity bar's rows (Assigned, Internal, External, then each active skill), then the
+    /// Requested bar's rows in the same segment order. Shares CalcDaySegments with
+    /// BuildDayCapacityChartData so the two views can never drift apart.
+    /// </summary>
+    procedure BuildDayCapacityAuditBuffer(var Buffer: Record "Day Capacity Chart Audit Buf" temporary; PeriodStartDate: Date; ResourceNoFilter: Code[20]; ScenarioNo: Integer)
+    var
+        ActiveSkillList: List of [Code[20]];
+        SkillValues: Dictionary of [Code[20], Decimal];
+        SkillCode: Code[20];
+        WeekdayIndex: Integer;
+        CurrDate: Date;
+        IsClosedDay: Boolean;
+        AssignedValue: Decimal;
+        InternalFree: Decimal;
+        ExternalFree: Decimal;
+        LineNo: Integer;
+    begin
+        Buffer.Reset();
+        Buffer.DeleteAll();
+
+        BuildActiveSkillList(ActiveSkillList, PeriodStartDate, PeriodStartDate + 4);
+
+        LineNo := 0;
+        for WeekdayIndex := 1 to 5 do begin
+            CurrDate := PeriodStartDate + (WeekdayIndex - 1);
+            IsClosedDay := WeekdayIndex <= ScenarioNo;
+
+            CalcDaySegments(CurrDate, ResourceNoFilter, IsClosedDay, ActiveSkillList, AssignedValue, InternalFree, ExternalFree, SkillValues);
+
+            // Capacity bar: Assigned/Internal/External carry the free-capacity values, skills are
+            // always 0 (skills never appear on the Capacity bar).
+            LineNo += 1;
+            InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Capacity, AssignedSegmentTok, AssignedValue);
+            LineNo += 1;
+            InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Capacity, InternalSegmentTok, InternalFree);
+            LineNo += 1;
+            InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Capacity, ExternalSegmentTok, ExternalFree);
+            foreach SkillCode in ActiveSkillList do begin
+                LineNo += 1;
+                InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Capacity, SkillCode, 0);
+            end;
+
+            // Requested bar: Assigned carries the same value as the Capacity bar, Internal/External
+            // are always 0, skills carry their unassigned-Requested-Hours values.
+            LineNo += 1;
+            InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Requested, AssignedSegmentTok, AssignedValue);
+            LineNo += 1;
+            InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Requested, InternalSegmentTok, 0);
+            LineNo += 1;
+            InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Requested, ExternalSegmentTok, 0);
+            foreach SkillCode in ActiveSkillList do begin
+                LineNo += 1;
+                InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Requested, SkillCode, SkillValues.Get(SkillCode));
+            end;
+        end;
+    end;
+
+    local procedure InsertAuditLine(var Buffer: Record "Day Capacity Chart Audit Buf" temporary; LineNo: Integer; PlanDate: Date; BarType: Enum "Day Capacity Chart Bar Type"; Segment: Code[20]; Value: Decimal)
+    begin
+        Buffer.Init();
+        Buffer."Line No." := LineNo;
+        Buffer.Day := PlanDate;
+        Buffer."Day Name" := CopyStr(FormatWeekdayShort(PlanDate), 1, MaxStrLen(Buffer."Day Name"));
+        Buffer."Bar Type" := BarType;
+        Buffer.Segment := Segment;
+        Buffer.Value := Value;
+        Buffer.Insert();
+    end;
+
+    /// <summary>
+    /// Shared per-day computation used by both BuildDayCapacityChartData and
+    /// BuildDayCapacityAuditBuffer so the chart and its audit trail can never drift apart. Returns
+    /// the Assigned/Internal/External/per-skill values for ONE weekday, with the IsClosedDay
+    /// (Scenario) collapse already applied internally: when IsClosedDay is true, InternalFree,
+    /// ExternalFree, and every entry in SkillValues are forced to 0 while AssignedValue is left
+    /// untouched - matching the collapse behavior every caller needs identically.
+    /// </summary>
+    local procedure CalcDaySegments(PlanDate: Date; ResourceNoFilter: Code[20]; IsClosedDay: Boolean; var ActiveSkillList: List of [Code[20]]; var AssignedValue: Decimal; var InternalFree: Decimal; var ExternalFree: Decimal; var SkillValues: Dictionary of [Code[20], Decimal])
+    var
+        InternalCapacityD: Decimal;
+        ExternalCapacityD: Decimal;
+        InternalAssignedD: Decimal;
+        ExternalAssignedD: Decimal;
+        SkillCode: Code[20];
+    begin
+        Clear(SkillValues);
+
+        AssignedValue := CalcAssignedHoursForDate(PlanDate, ResourceNoFilter);
+        CalcCapacitySplit(PlanDate, ResourceNoFilter, InternalCapacityD, ExternalCapacityD);
+        CalcAssignedSplit(PlanDate, ResourceNoFilter, InternalAssignedD, ExternalAssignedD);
+
+        InternalFree := InternalCapacityD - InternalAssignedD;
+        ExternalFree := ExternalCapacityD - ExternalAssignedD;
+
+        if IsClosedDay then begin
+            InternalFree := 0;
+            ExternalFree := 0;
+            foreach SkillCode in ActiveSkillList do
+                SkillValues.Set(SkillCode, 0);
+        end else
+            foreach SkillCode in ActiveSkillList do
+                SkillValues.Set(SkillCode, CalcUnassignedSkillRequestedHours(PlanDate, SkillCode));
+    end;
+
+    /// <summary>
+    /// Determines which Skill Codes get their own chart series: any skill with at least one
+    /// unassigned ("Assigned Resource No." = '') Day Planning row whose "Requested Hours" sum
+    /// across the whole period is nonzero. Deliberately not the full Skill Code master list
+    /// (unlike BuildSkillBuffer) - a skill with nothing requested in this period simply gets no
+    /// series/bar segment at all.
+    /// </summary>
+    local procedure BuildActiveSkillList(var ActiveSkillList: List of [Code[20]]; DateFrom: Date; DateTo: Date)
+    var
+        DayPlanning: Record "Day Planning";
+        SkillTotals: Dictionary of [Code[20], Decimal];
+        SkillCode: Code[20];
+        CurrentValue: Decimal;
+    begin
+        Clear(ActiveSkillList);
+
+        DayPlanning.Reset();
+        DayPlanning.SetLoadFields(Skill, "Requested Hours");
+        DayPlanning.SetRange("Plan Date", DateFrom, DateTo);
+        DayPlanning.SetRange("Assigned Resource No.", '');
+        if DayPlanning.FindSet() then
+            repeat
+                if DayPlanning.Skill <> '' then begin
+                    CurrentValue := 0;
+                    if SkillTotals.ContainsKey(DayPlanning.Skill) then
+                        CurrentValue := SkillTotals.Get(DayPlanning.Skill);
+                    SkillTotals.Set(DayPlanning.Skill, CurrentValue + DayPlanning."Requested Hours");
+                end;
+            until DayPlanning.Next() = 0;
+
+        foreach SkillCode in SkillTotals.Keys() do
+            if SkillTotals.Get(SkillCode) <> 0 then
+                ActiveSkillList.Add(SkillCode);
+    end;
+
+    local procedure CalcAssignedHoursForDate(PlanDate: Date; ResourceNoFilter: Code[20]): Decimal
+    var
+        DayPlanning: Record "Day Planning";
+    begin
+        DayPlanning.Reset();
+        DayPlanning.SetRange("Plan Date", PlanDate);
+        if ResourceNoFilter <> '' then
+            DayPlanning.SetRange("Assigned Resource No.", ResourceNoFilter);
+        DayPlanning.CalcSums("Assigned Hours");
+        exit(DayPlanning."Assigned Hours");
+    end;
+
+    /// <summary>
+    /// Splits the day's Assigned Hours (same rows CalcAssignedHoursForDate sums) into Internal /
+    /// External buckets by the assigned resource's "Is External" flag. Rows with a blank
+    /// "Assigned Resource No." cannot be classified and are skipped (in practice Assigned Hours
+    /// is only ever populated once a resource is assigned).
+    /// </summary>
+    local procedure CalcAssignedSplit(PlanDate: Date; ResourceNoFilter: Code[20]; var InternalAssigned: Decimal; var ExternalAssigned: Decimal)
+    var
+        DayPlanning: Record "Day Planning";
+        Resource: Record Resource;
+    begin
+        InternalAssigned := 0;
+        ExternalAssigned := 0;
+
+        Resource.SetLoadFields("Is External");
+
+        DayPlanning.Reset();
+        DayPlanning.SetLoadFields("Assigned Resource No.", "Assigned Hours");
+        DayPlanning.SetRange("Plan Date", PlanDate);
+        if ResourceNoFilter <> '' then
+            DayPlanning.SetRange("Assigned Resource No.", ResourceNoFilter);
+        if DayPlanning.FindSet() then
+            repeat
+                if DayPlanning."Assigned Resource No." <> '' then
+                    if Resource.Get(DayPlanning."Assigned Resource No.") then begin
+                        if Resource."Is External" then
+                            ExternalAssigned += DayPlanning."Assigned Hours"
+                        else
+                            InternalAssigned += DayPlanning."Assigned Hours";
+                    end;
+            until DayPlanning.Next() = 0;
+    end;
+
+    /// <summary>
+    /// Splits the day's "Res. Capacity Entry".Capacity into Internal / External buckets by each
+    /// entry's resource "Is External" flag.
+    /// </summary>
+    local procedure CalcCapacitySplit(PlanDate: Date; ResourceNoFilter: Code[20]; var InternalCapacity: Decimal; var ExternalCapacity: Decimal)
+    var
+        ResCapacityEntry: Record "Res. Capacity Entry";
+        Resource: Record Resource;
+    begin
+        InternalCapacity := 0;
+        ExternalCapacity := 0;
+
+        Resource.SetLoadFields("Is External");
+
+        ResCapacityEntry.Reset();
+        ResCapacityEntry.SetLoadFields("Resource No.", Capacity);
+        ResCapacityEntry.SetRange(Date, PlanDate);
+        if ResourceNoFilter <> '' then
+            ResCapacityEntry.SetRange("Resource No.", ResourceNoFilter);
+        if ResCapacityEntry.FindSet() then
+            repeat
+                if Resource.Get(ResCapacityEntry."Resource No.") then begin
+                    if Resource."Is External" then
+                        ExternalCapacity += ResCapacityEntry.Capacity
+                    else
+                        InternalCapacity += ResCapacityEntry.Capacity;
+                end;
+            until ResCapacityEntry.Next() = 0;
+    end;
+
+    /// <summary>
+    /// Sum of "Requested Hours" for unassigned ("Assigned Resource No." = '') Day Planning rows
+    /// on PlanDate for the given Skill. Deliberately ignores any Resource No. filter - unassigned
+    /// lines have no assigned resource to filter on (see the procedure doc comment on
+    /// BuildDayCapacityChartData / the caller's spec).
+    /// </summary>
+    local procedure CalcUnassignedSkillRequestedHours(PlanDate: Date; SkillCode: Code[20]): Decimal
+    var
+        DayPlanning: Record "Day Planning";
+    begin
+        DayPlanning.Reset();
+        DayPlanning.SetRange("Plan Date", PlanDate);
+        DayPlanning.SetRange("Assigned Resource No.", '');
+        DayPlanning.SetRange(Skill, SkillCode);
+        DayPlanning.CalcSums("Requested Hours");
+        exit(DayPlanning."Requested Hours");
+    end;
+
+    local procedure FormatWeekdayShort(ADate: Date): Text
+    begin
+        exit(Format(ADate, 0, '<Weekday Text,3>'));
+    end;
+
+    /// <summary>
+    /// Cycles through a fixed 5-colour palette for skill series beyond the fixed Assigned/Internal/
+    /// External ones, so any number of active skills always gets a colour.
+    /// </summary>
+    local procedure GetSkillSeriesColor(PaletteIndex: Integer): Text
+    var
+        Palette: array[5] of Text[10];
+    begin
+        Palette[1] := '#C55A11';
+        Palette[2] := '#ED7D31';
+        Palette[3] := '#F4B183';
+        Palette[4] := '#F8CBAD';
+        Palette[5] := '#FBE5D6';
+        exit(Palette[(PaletteIndex mod 5) + 1]);
+    end;
+
+    /// <summary>
+    /// Appends one series object (name/values/color/[border]/stacked) to SeriesArray, matching
+    /// the exact JSON contract src/dhx/barchart/wrapper.js's RenderChart expects. BorderHex may
+    /// be blank to omit the optional "border" key.
+    /// </summary>
+    local procedure AddChartSeries(var SeriesArray: JsonArray; SeriesName: Text; Values: List of [Decimal]; ColorHex: Text; BorderHex: Text)
+    var
+        SeriesObj: JsonObject;
+        ValuesArray: JsonArray;
+        Val: Decimal;
+    begin
+        Clear(ValuesArray);
+        foreach Val in Values do
+            ValuesArray.Add(Val);
+
+        SeriesObj.Add('name', SeriesName);
+        SeriesObj.Add('values', ValuesArray);
+        SeriesObj.Add('color', ColorHex);
+        if BorderHex <> '' then
+            SeriesObj.Add('border', BorderHex);
+        SeriesObj.Add('stacked', true);
+
+        SeriesArray.Add(SeriesObj);
+    end;
+
     var
         CapacitySkillCodeTok: Label 'CAPACITY', Locked = true;
         CapacityDescriptionTxt: Label 'Capacity';
+        AssSeriesNameLbl: Label 'Assigned';
+        InternalSeriesNameLbl: Label 'Internal';
+        ExternalSeriesNameLbl: Label 'External';
+        FreeCapacityCategorySuffixLbl: Label ' Capacity';
+        RequestedCategorySuffixLbl: Label ' Requested';
+        AssColorTok: Label '#548235', Locked = true;
+        InternalColorTok: Label '#8EA9DB', Locked = true;
+        ExternalColorTok: Label '#B4C6E7', Locked = true;
+        ExternalBorderColorTok: Label '#FF0000', Locked = true;
+        AssignedSegmentTok: Label 'Assigned', Locked = true;
+        InternalSegmentTok: Label 'Internal', Locked = true;
+        ExternalSegmentTok: Label 'External', Locked = true;
 }

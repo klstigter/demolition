@@ -12,7 +12,7 @@ page 50696 "Capacity Overview Matrix"
 
     /// <summary>
     /// Rows are the 6 fixed lines built by codeunit 50694 (Total Capacity, Total Request,
-    /// Assigned Hours, Free Capacity, Request Plan (not assigned), Surplus), rendered contiguous
+    /// Assigned Hours, Capacity, Request Plan (not assigned), Surplus), rendered contiguous
     /// - no blank spacer rows. Columns D:.. ("Column 1".."Column 20") are dynamic: only as many
     /// are shown as there are Skill Code records (up to 20). Each column's Visible is bound to a
     /// dedicated ColumnNVisible variable and its header text to CaptionClass = '3,' + ColumnNCaption
@@ -26,7 +26,7 @@ page 50696 "Capacity Overview Matrix"
     ///
     /// Every value cell (Total + each per-skill column) drills down into the underlying detail
     /// list for its row - see DrillDownColumn. Rows without a per-skill breakdown (Total Capacity,
-    /// Free Capacity, Surplus) drill into "Res. Capacity Entries" filtered by the period only
+    /// Capacity, Surplus) drill into "Res. Capacity Entries" filtered by the period only
     /// (Skill Code does not apply to capacity entries), even when clicked from a per-skill column.
     ///
     /// Column windowing: FullSkillCodeList (set via LoadPeriod) holds EVERY skill code, unbounded.
@@ -615,13 +615,13 @@ page 50696 "Capacity Overview Matrix"
     ///                              (Total column leaves Skill unfiltered).
     ///  30000 Assigned Hours     -> same as Total Request, plus "Assigned Hours" not equal to 0,
     ///                              since this row is specifically the assigned subset.
-    ///  40000 Free Capacity      -> "Res. Capacity Entries", Date = period (Free Capacity is a
+    ///  40000 Capacity           -> "Res. Capacity Entries", Date = period (Capacity is a
     ///                              capacity-remaining figure; like row 10000, it does not have a
     ///                              per-skill breakdown to filter by).
     ///  50000 Request Plan       -> same as Total Request, plus "Assigned Hours" = 0, since this
     ///       (not assigned)         row is specifically the still-unassigned subset.
     ///  60000 Surplus            -> "Res. Capacity Entries", Date = period, same reasoning as
-    ///                              Total Capacity / Free Capacity.
+    ///                              Total Capacity / Capacity.
     /// </summary>
     local procedure DrillDownColumn(ColumnNo: Integer)
     var

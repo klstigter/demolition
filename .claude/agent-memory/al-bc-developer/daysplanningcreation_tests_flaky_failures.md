@@ -1,0 +1,15 @@
+---
+name: dayplanningcreation-tests-flaky-failures
+description: Codeunit 60020 "Day Planning Creation Tests" showed 3 real assertion failures (not tool flakiness) unrelated to unrelated work in the same session - likely cross-test state pollution, not a regression to chase blindly.
+metadata:
+  type: project
+---
+
+Observed 2026-08-06: after implementing an unrelated feature (the stacked capacity chart, see the chart entry in [[project-dailyoptimizer]]) that touched only `src/dhx/barchart/*.al` and `test/DayPlanningTestRunner.Codeunit.al` (confirmed via `git diff --stat` - `table_50610_DayPlanning.al` and `codeunit_50610 "Day Plannings Mgt."` were NOT touched), running `al_run_tests` against codeunit 60020 "Day Planning Creation Tests" directly returned real per-method results (not the "0ms skip" tool-flakiness pattern documented in [[dailyoptimizer-test-framework-setup]]) but with 3 genuine assertion failures:
+- `GivenMondayToFridayPattern_...`: "Assigned Resource No. should be copied from the pattern. Expected: DPCTRES, Actual: (blank)"
+- `GivenVendorNoSetWithQtyGreaterThanOne_...`: "Quantity of Lines should be forced to 1 when Vendor No. is set. Expected: 1, Actual: 3"
+- An unnamed `FAIL` entry with "Start Time and End Time must be specified" raised from `Day Plannings Mgt.`(Codeunit 50610).CreateDayPlanning, attributed to `GivenBlankStartOrEndTime_...` (a test that itself expects exactly that error - this looks like error bleed from the wrong test, another sign of cross-run state pollution rather than a logic bug).
+
+**Why:** Not caused by the session's own changes (verified via git diff scope). Codeunit 60020's own tests share fixed Job/Resource/Skill codes (`DPCTRES`, `DPCTSKL`, etc.) across all `[Test]` methods and only clear `Day Planning`/`Day Planning Pattern` rows between methods (`ClearDayPlanningsFor`) - not the Resource/Work-Hour Template/Daily Optimizer Setup records those patterns depend on. Combined with the documented fact that `al_run_tests` does not roll back state between test methods, a failure or reordering in one method can leave state (e.g. a `Day Planning Pattern`'s "Quantity of Lines" already forced to 1 from a prior run, or a resource's skill assignment altered) that skews a LATER method's assertion, especially across repeated same-day test runs against the same live NL_Test/CRONUS NL sandbox.
+
+**How to apply:** Don't treat a lone `al_run_tests` failure on codeunit 60020 as proof of a new regression unless the diff actually touched `table_50610_DayPlanning.al` or `codeunit_50610 "Day Plannings Mgt."` (or their direct dependents) - check `git diff --stat` first. If genuinely investigating this codeunit's flakiness, the fix is almost certainly hardening `Initialize()`/`ClearDayPlanningsFor()` to fully reset Resource/Work-Hour Template state too, not touching `Day Plannings Mgt.` business logic. Not yet fixed as of this writing - out of scope for whatever task surfaced it unless the user explicitly asks to debug codeunit 60020 itself.
