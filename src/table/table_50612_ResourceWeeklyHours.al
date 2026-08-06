@@ -494,6 +494,8 @@ table 50612 "Summary Weekly"
         TempSkill: Record "Skill Code" temporary;
         TempYearWeek: Record Integer temporary;
         TempSummaryWeekly: Record "Summary Weekly" temporary;
+        TotalRequestedHours: Decimal;
+        TotalAssignedHours: Decimal;
 
     #region "Helper functions to scan Day Plannings and fill temp buffers"
 
@@ -503,6 +505,7 @@ table 50612 "Summary Weekly"
     begin
         if DateFilter <> '' then
             DayPlanning.SetFilter("Plan Date", DateFilter);
+        DayPlanning.SetCurrentKey("Plan Date");
         ScanTEMPDayPlanning(DayPlanning)
     end;
 
@@ -545,15 +548,22 @@ table 50612 "Summary Weekly"
         SkillOld: Code[20];
         n: Integer;
     begin
+        DayPlanning.SetLoadFields("Plan Date", "Job No.", "Job Task No.", "Work Order No.",
+            "Assigned Resource No.", "Requested Resource No.", Skill, "Requested Hours", "Assigned Hours");
+
         TempYearWeek.Reset();
         TempYearWeek.DeleteAll();
         TempDayPlanning.reset;
         TempDayPlanning.DeleteAll();
+        TotalRequestedHours := 0;
+        TotalAssignedHours := 0;
 
         if DayPlanning.FindSet() then
             repeat
                 TempDayPlanning := DayPlanning;
-                TempDayPlanning.Insert(true);
+                TempDayPlanning.Insert();
+                TotalRequestedHours += TempDayPlanning."Requested Hours";
+                TotalAssignedHours += TempDayPlanning."Assigned Hours";
                 if DateOld <> TempDayPlanning."Plan Date" then begin
                     DateOld := TempDayPlanning."Plan Date";
                     ywNew := CreateYW(TempDayPlanning."Plan Date");
@@ -676,17 +686,8 @@ table 50612 "Summary Weekly"
     /// </summary>
     /// <returns>True if total Requested Hours exceeds total Assigned Hours; false otherwise (ties go to Assigned).</returns>
     procedure RequestedExceedsAssigned(): Boolean
-    var
-        TotalRequested: Decimal;
-        TotalAssigned: Decimal;
     begin
-        TempDayPlanning.Reset();
-        if TempDayPlanning.FindSet() then
-            repeat
-                TotalRequested += TempDayPlanning."Requested Hours";
-                TotalAssigned += TempDayPlanning."Assigned Hours";
-            until TempDayPlanning.Next() = 0;
-        exit(TotalRequested > TotalAssigned);
+        exit(TotalRequestedHours > TotalAssignedHours);
     end;
 
     procedure LoadSummary()
@@ -707,15 +708,6 @@ table 50612 "Summary Weekly"
         FillSummary(TempDTask);
     end;
 
-
-    procedure HandOverTempDayPlanning(var DayPlanning: Record "Day Planning" temporary)
-    begin
-        if TempDayPlanning.FindSet() then
-            repeat
-                DayPlanning := TempDayPlanning;
-                DayPlanning.Insert(true);
-            until TempDayPlanning.Next() = 0;
-    end;
 
     procedure HandOverToPage(Pg: Page "Opti Lookup Job List")
     begin
