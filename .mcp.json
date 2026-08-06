@@ -7,6 +7,20 @@
         "--projects",
         "C:\\Users\\Ahmad\\OneDrive\\x\\PROJECT\\STRONG\\demolition"
       ]
+    },
+    "businesscentral": {
+      "type": "http",
+      "url": "https://mcp.businesscentral.dynamics.com",
+      "headers": {
+        "TenantId": "a60762e1-df10-4e4b-8f44-174c51589110",
+        "EnvironmentName": "NL_Test",
+        "Company": "CRONUS NL",
+        "ConfigurationName": "ClaudeRead"
+      },
+      "oauth": {
+          "clientId": "faa3f716-0f1d-4692-b073-dad6bd147191",
+          "callbackPort": 33418
+      }
     }
   }
 }
