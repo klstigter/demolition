@@ -110,8 +110,26 @@ function RenderChart(chartData) {
         // locator(config.text)`). `value` on a scale config is a no-op for the "text"
         // type — using it here previously made every row resolve to the same blank (""),
         // collapsing all categories onto the same x-slot and producing garbled/ghost bars.
+        //
+        // scaleRotate: -45 — with many categories (e.g. 10 "<Wkd> Capacity"/"<Wkd> Requested"
+        // labels on the stacked chart) the default horizontal text overlaps into unreadable
+        // run-together labels. suite.js's bottom-axis renderer (see `bottom()` in suite.js)
+        // natively supports rotating scale text via this config key — reusing the library's
+        // own rotation support here, unlike RotateLegendLabel below which is a post-render CSS
+        // hack for something the library has no config option for at all. Negative = same
+        // counter-clockwise direction as RotateLegendLabel's `rotate(-90deg)` below, just a
+        // shallower 45° angle: each label pivots at its tick (bottom-right of the text) and
+        // reads diagonally up-and-to-the-right (north-east), not straight up.
+        //
+        // size: 80 — Scale's own default reserved space for a bottom/top axis is a flat 20px
+        // (see `this.config.size = this.config.size || 20 + ...` in suite.js's base Scale
+        // class), sized for a single line of HORIZONTAL text. Rotating does not grow that
+        // reservation automatically (scaleRotate only changes the SVG transform, not the layout
+        // math), so without an explicit larger `size` the rotated labels would be clipped by the
+        // plot area. 80 fits the longest label ("Mon Requested" etc, ~13 chars) at 45°
+        // (vertical extent = sin(45°) * text length, well under a full 90° rotation's need).
         scales: {
-            bottom: { type: "text", text: "category" },
+            bottom: { type: "text", text: "category", scaleRotate: -45, textPadding: 12, size: 80 },
             left:   { type: "numeric" }
         },
         legend: {
