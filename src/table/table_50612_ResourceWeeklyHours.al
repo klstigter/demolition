@@ -670,6 +670,25 @@ table 50612 "Summary Weekly"
     end;
     #endregion
 
+    /// <summary>
+    /// Sums Requested Hours vs Assigned Hours across the currently scanned Day Planning
+    /// records (TempDayPlanning) to decide which context the Summary View should default to.
+    /// </summary>
+    /// <returns>True if total Requested Hours exceeds total Assigned Hours; false otherwise (ties go to Assigned).</returns>
+    procedure RequestedExceedsAssigned(): Boolean
+    var
+        TotalRequested: Decimal;
+        TotalAssigned: Decimal;
+    begin
+        TempDayPlanning.Reset();
+        if TempDayPlanning.FindSet() then
+            repeat
+                TotalRequested += TempDayPlanning."Requested Hours";
+                TotalAssigned += TempDayPlanning."Assigned Hours";
+            until TempDayPlanning.Next() = 0;
+        exit(TotalRequested > TotalAssigned);
+    end;
+
     procedure LoadSummary()
     var
         n: Integer;
