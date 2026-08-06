@@ -1,4 +1,4 @@
-page 50692 "Requested vs Capacity Skl Dhx"
+page 50681 "Req. vs Capacity Skl Dhx v1"
 {
     PageType = Card;
     ApplicationArea = All;
@@ -12,7 +12,7 @@ page 50692 "Requested vs Capacity Skl Dhx"
     /// only ever narrowed the chart/factbox down to one already-visible category, which the user
     /// can do just as well by reading the chart, so it was redundant chrome. Resource No. is the
     /// only remaining filter.
-    /// </summary>.
+    /// </summary>
 
     layout
     {
@@ -39,20 +39,6 @@ page 50692 "Requested vs Capacity Skl Dhx"
                     trigger OnValidate()
                     begin
                         RefreshData();
-                    end;
-                }
-                field(ScenarioNoCtrl; ScenarioNo)
-                {
-                    ApplicationArea = All;
-                    Caption = 'Scenario';
-                    ToolTip = 'Specifies how many weekdays of the displayed period, starting from Monday, are collapsed to a single Assigned Hours bar - simulating days that are already closed/committed and no longer open for planning. 0 = none collapsed, 5 = all collapsed.';
-
-                    trigger OnValidate()
-                    begin
-                        if (ScenarioNo < 0) or (ScenarioNo > 5) then
-                            Error(ScenarioRangeErr);
-                        RefreshChart();
-                        RefreshAuditBuffer();
                     end;
                 }
             }
@@ -84,11 +70,6 @@ page 50692 "Requested vs Capacity Skl Dhx"
             {
                 ApplicationArea = All;
                 Caption = 'Requested vs Capacity per Skill';
-            }
-            part(AuditDataPart; "Day Capacity Chart Audit")
-            {
-                ApplicationArea = All;
-                Caption = 'Chart Audit Trail';
             }
         }
     }
@@ -213,27 +194,7 @@ page 50692 "Requested vs Capacity Skl Dhx"
         Day1Text := FormatDayText(PeriodStartDate);
         Day7Text := FormatDayText(PeriodStartDate + 6);
 
-        ScenarioNo := CalcDefaultScenarioNo();
-
         RefreshData();
-    end;
-
-    /// <summary>
-    /// Default Scenario is the count of weekdays (Monday..Friday) in the current period that are
-    /// already in the past relative to Today() - i.e. days that would already be closed/committed
-    /// - clamped to 0..5 simply by construction (the loop only ever counts 5 weekdays). The user
-    /// can still override this via the Scenario field after the period is shown.
-    /// </summary>
-    local procedure CalcDefaultScenarioNo(): Integer
-    var
-        WeekdayIndex: Integer;
-        ClosedCount: Integer;
-    begin
-        ClosedCount := 0;
-        for WeekdayIndex := 1 to 5 do
-            if (PeriodStartDate + (WeekdayIndex - 1)) < Today() then
-                ClosedCount += 1;
-        exit(ClosedCount);
     end;
 
     local procedure FormatDayText(DayDate: Date): Text[20]
@@ -249,42 +210,55 @@ page 50692 "Requested vs Capacity Skl Dhx"
         SkillCapacityAnalysisMgt.BuildSkillBuffer(Buffer, ResourceNoFilter, PeriodStartDate, PeriodEndDate, '');
         CurrPage.DataPart.Page.LoadData(Buffer, ResourceNoFilter, PeriodStartDate, PeriodEndDate);
         RefreshChart();
-        RefreshAuditBuffer();
     end;
 
-    // The chart is now a genuinely multi-series stacked chart (two bars per weekday - "Capacity"
-    // and "Requested" - each a stack of Assigned/Internal/External/per-skill segments) built
-    // entirely by codeunit 50662's BuildDayCapacityChartData, which already returns the exact
-    // JSON shape (categories/series with name/values/color/[border]/stacked keys) that
-    // src/dhx/barchart/wrapper.js' RenderChart expects. This page only supplies the current
-    // filters (period, Resource No., Scenario) and forwards the resulting JSON string straight to
-    // CurrPage.DhxBarChart.LoadData - it builds no JSON of its own. Buffer (populated by
-    // RefreshData from the unrelated BuildSkillBuffer) still drives the factbox part only.
+    // SERIES COLOURS - the native BusinessChart version of this page (formerly
+    // src/page/page_50690_RequestedVsCapacitySkills.al) was superseded by this DHTMLX page and
+    // removed; its long comment used to explain a "phantom Variance measure" workaround needed
+    // because BusinessChart's fixed palette put Requested Hours and Capacity on adjacent grey
+    // slots. That workaround does not apply here: the DHTMLX Suite Chart add-in lets every
+    // series carry its own explicit colour (wrapper.js' RenderChart assigns
+    // SERIES_COLOR_PALETTE[seriesIndex]), so there is no fixed-palette grey-collision problem.
+    //
+    // Table 50622 no longer has a separate Capacity field/column - codeunit 50662 now returns
+    // the aggregate capacity total directly in "Requested Hours" on the synthetic "CAPACITY"
+    // buffer row, alongside each real skill's own Requested Hours total on its own row. So a
+    // single series built from Buffer."Requested Hours" already covers both: one bar per skill
+    // category plus one capacity reference bar, never a paired Requested/Capacity bar per
+    // category. wrapper.js' RenderChart renders however many series it is given (s0, s1, ...),
+    // so dropping down to one series here needs no JS changes.
     local procedure RefreshChart()
     var
+        ChartData: JsonObject;
+        CategoriesArray: JsonArray;
+        SeriesArray: JsonArray;
+        RequestedSeries: JsonObject;
+        RequestedValues: JsonArray;
         ChartDataJson: Text;
     begin
         if not ChartReady then
             exit;
 
-        ChartDataJson := SkillCapacityAnalysisMgt.BuildDayCapacityChartData(PeriodStartDate, ResourceNoFilter, ScenarioNo);
-        CurrPage.DhxBarChart.LoadData(ChartDataJson);
-    end;
+        Clear(CategoriesArray);
+        Clear(RequestedValues);
 
-    /// <summary>
-    /// Keeps the "Chart Audit Trail" factbox in sync with the chart data - same
-    /// PeriodStartDate/ResourceNoFilter/ScenarioNo inputs, same codeunit 50662 shared per-day
-    /// computation, so the factbox always shows exactly the numbers behind the chart. Called
-    /// unconditionally (not gated by ChartReady like RefreshChart) since it is pure AL/factbox
-    /// logic with no dependency on the DhxBarChart usercontrol having finished loading in the
-    /// browser - it must run on the very first OnOpenPage pass, not just once ControlReady fires.
-    /// </summary>
-    local procedure RefreshAuditBuffer()
-    var
-        AuditBuffer: Record "Day Capacity Chart Audit Buf" temporary;
-    begin
-        SkillCapacityAnalysisMgt.BuildDayCapacityAuditBuffer(AuditBuffer, PeriodStartDate, ResourceNoFilter, ScenarioNo);
-        CurrPage.AuditDataPart.Page.LoadData(AuditBuffer, ResourceNoFilter);
+        Buffer.Reset();
+        if Buffer.FindSet() then
+            repeat
+                CategoriesArray.Add(Buffer."Skill Code");
+                RequestedValues.Add(Buffer."Requested Hours");
+            until Buffer.Next() = 0;
+
+        RequestedSeries.Add('name', RequestedHoursMeasureTxt);
+        RequestedSeries.Add('values', RequestedValues);
+
+        SeriesArray.Add(RequestedSeries);
+
+        ChartData.Add('categories', CategoriesArray);
+        ChartData.Add('series', SeriesArray);
+
+        ChartData.WriteTo(ChartDataJson);
+        CurrPage.DhxBarChart.LoadData(ChartDataJson);
     end;
 
     var
@@ -292,12 +266,11 @@ page 50692 "Requested vs Capacity Skl Dhx"
         SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
         ResourceNoFilter: Code[20];
         PeriodStartDate: Date;
-        ScenarioNo: Integer;
         ChartReady: Boolean;
         PeriodLabelText: Text[50];
         Day1Text: Text[20];
         Day7Text: Text[20];
+        RequestedHoursMeasureTxt: Label 'Requested Hours';
         PeriodLabelLbl: Label '%1 %2 - wk %3', Comment = '%1 = abbreviated month, %2 = year, %3 = ISO week number';
         DayLabelLbl: Label '%1 %2', Comment = '%1 = abbreviated weekday, %2 = day of month';
-        ScenarioRangeErr: Label 'Scenario must be between 0 and 5.';
 }

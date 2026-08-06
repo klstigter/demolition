@@ -1,7 +1,8 @@
 - [User Role](user_role.md) — Ahmad is the primary AL dev on DailyOptimizer; co-dev klstigter on GitHub
 - [Project: DailyOptimizer](project_dailyoptimizer.md) — ID ranges (test codeunits 60020/60021), core tables/codeunits (corrected names), app.json version drift
 - [Test Framework Setup](dailyoptimizer-test-framework-setup.md) — correct Library Assert/Variable Storage/Any GUIDs, live tenant is BC 28.1 not 26
-- [al_compile stale cache quirk](al_compile_stale_cache_quirk.md) — al_compile can false-positive "object missing" after rapid edits; trust al_build if it succeeds cleanly
+- [al_compile stale cache quirk](al_compile_stale_cache_quirk.md) — "missing" false-positives: trust al_build; "already declared"/phantom-path duplicates: al_downloadsymbols force=true fixes it
+- [Day Planning Creation Tests flaky failures](daysplanningcreation_tests_flaky_failures.md) — codeunit 60020 showed 3 real (non-tool-flake) assertion failures unrelated to unrelated work; likely cross-test state pollution, not a regression
 - [AL query join property](feedback_al_query_sqljointype.md) — nested query dataitem join-type property is `SqlJoinType`, not `DataItemJoinType` (AL0124 if wrong)
 - [al_symbolsearch duplicate containers](feedback_al_symbolsearch_duplicate_containers.md) — can show 2 field-set variants for one table; verify against actual .alpackages files, trust compile as final arbiter
 - [Report requestpage filter-dialog gotchas](requestpage_filter_dialog_gotchas.md) — Report.RunModal() void not Action; TableRelation field() can't ref siblings; PAGE.RunModal(0,Rec)+Codeunit46 alone is BROKEN (confirmed live) — need Page var + SetSelectionFilter() + Codeunit46

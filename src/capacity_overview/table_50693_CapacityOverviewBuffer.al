@@ -5,7 +5,7 @@ table 50693 "Capacity Overview Buffer"
     DataClassification = ToBeClassified;
 
     /// <summary>
-    /// One row per matrix line (Total Capacity, Total Request, Assigned Hours, Free Capacity,
+    /// One row per matrix line (Total Capacity, Total Request, Assigned Hours, Capacity,
     /// Request Plan (not assigned), Surplus - see codeunit 50694). Rows are fixed and contiguous,
     /// ordered by "Line No.". "Total Column" is the aggregate ("Total") column that precedes the
     /// per-skill columns. "Column 1".."Column 20" are generic per-skill columns - column N holds
