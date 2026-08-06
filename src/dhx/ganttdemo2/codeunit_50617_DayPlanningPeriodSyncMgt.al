@@ -58,10 +58,15 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
     /// already-adjusted date — this push is deliberately forward-only and unbounded: if an
     /// off-day collision would need to go past NewEnd, it does, and ExtendJobTaskEndDateIfNeeded
     /// stretches the Job Task's own Planned End Date to cover the overshoot instead of clamping
-    /// DayPlanning dates backward. Naive dates that were already identical to
-    /// each other (e.g. several DayPlanning rows clamped onto the same new end date when a task
-    /// is shortened) are deliberately kept collapsed onto the same final date rather than being
-    /// spread out — only genuinely distinct target dates get pushed apart from one another.
+    /// DayPlanning dates backward. For the Right-Bar-Reduced and Left-Bar-Reduced scenarios
+    /// specifically, an overflowing row is never combined onto another row's date while a free
+    /// active work day still exists within NewStart..NewEnd: MapRowsUsingNaiveCascade first
+    /// searches for the nearest unoccupied active day (backward from NewEnd for Right-Bar-Reduced,
+    /// forward from NewStart for Left-Bar-Reduced) before falling back to collapsing onto the
+    /// naive boundary date — that collapse remains as a last resort only, used when no free
+    /// active day remains anywhere in the range. The Shift scenario is unaffected by this change:
+    /// its per-row offset is constant, so distinct original dates never naively collide with one
+    /// another in the first place.
     /// </summary>
     procedure CalculateChanges(JobNo: Code[20]; JobTaskNo: Code[20]; OldStart: Date; OldEnd: Date; NewStart: Date; NewEnd: Date; var TempPreviewBuffer: Record "DayPlanning Sync PreviewBuff" temporary): Boolean
     var
@@ -373,15 +378,61 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
     end;
 
     /// <summary>
+    /// Searches RangeStart..RangeEnd (backward from RangeEnd toward RangeStart when
+    /// SearchBackward = true, else forward from RangeStart toward RangeEnd) for the nearest date
+    /// that is both an active work day (per WorkHourTemplateCode) and not already spoken for —
+    /// i.e. not in OccupiedDates (dates held by DayPlanning rows for this resource/task that are
+    /// staying at their own original date) nor in ClaimedDates (dates already assigned to another
+    /// overflowing row earlier in this same MapRowsUsingNaiveCascade pass). Used by the
+    /// Right-Bar-Reduced / Left-Bar-Reduced branches of Pass 2 to spread overflowing rows onto
+    /// free space instead of combining them onto the naive boundary date. Returns false when no
+    /// such date exists anywhere in the range, in which case the caller falls back to the
+    /// original collapse-onto-boundary behavior.
+    /// </summary>
+    local procedure FindNearestFreeActiveDate(RangeStart: Date; RangeEnd: Date; SearchBackward: Boolean; WorkHourTemplateCode: Code[20]; var OccupiedDates: List of [Date]; var ClaimedDates: List of [Date]; var FoundDate: Date): Boolean
+    var
+        D: Date;
+    begin
+        if SearchBackward then begin
+            D := RangeEnd;
+            while D >= RangeStart do begin
+                if DayPlanningMgt.IsActiveWorkDay(WorkHourTemplateCode, D) and not OccupiedDates.Contains(D) and not ClaimedDates.Contains(D) then begin
+                    FoundDate := D;
+                    exit(true);
+                end;
+                D -= 1;
+            end;
+        end else begin
+            D := RangeStart;
+            while D <= RangeEnd do begin
+                if DayPlanningMgt.IsActiveWorkDay(WorkHourTemplateCode, D) and not OccupiedDates.Contains(D) and not ClaimedDates.Contains(D) then begin
+                    FoundDate := D;
+                    exit(true);
+                end;
+                D += 1;
+            end;
+        end;
+        exit(false);
+    end;
+
+    /// <summary>
     /// Naive offset/clamp + cascade fallback for one resource's rows (used when no matching Day
     /// Planning Pattern exists for that resource). Mirrors the original CalculateChanges Pass
     /// 1/Pass 2 logic, scoped to ResourceNo, but keyed by Day Line No. (not Plan Date) so results
     /// can be merged safely with pattern-based results computed for other resources that share
-    /// the same original dates. Deliberately forward-only and unbounded: if pushing a candidate
-    /// forward to the next active day would cross NewEnd, it keeps going past NewEnd rather than
-    /// clamping back — the Job Task's own Planned End Date is what stretches to cover the
-    /// overshoot (see ExtendJobTaskEndDateIfNeeded), not the DayPlanning rows that get forced
-    /// backward to fit inside a boundary.
+    /// the same original dates. Deliberately forward-only and unbounded for the Shift scenario
+    /// fallback path: if pushing a candidate forward to the next active day would cross NewEnd,
+    /// it keeps going past NewEnd rather than clamping back — the Job Task's own Planned End Date
+    /// is what stretches to cover the overshoot (see ExtendJobTaskEndDateIfNeeded), not the
+    /// DayPlanning rows that get forced backward to fit inside a boundary.
+    ///
+    /// For the Right-Bar-Reduced and Left-Bar-Reduced scenarios (detected here from the
+    /// OldStart/OldEnd/NewStart/NewEnd relationship, the same way CalculateNaiveNewDate does),
+    /// every row in OldDates is by construction an overflowing row that CalculateNaiveNewDate
+    /// clamped onto the boundary date — before accepting that clamp, Pass 2 now searches for a
+    /// free active day within NewStart..NewEnd (see FindNearestFreeActiveDate) so overflowing
+    /// rows spread onto unoccupied work days rather than combining onto the same date. Combining
+    /// is kept as a last-resort fallback, unchanged, for when no free day remains.
     /// </summary>
     local procedure MapRowsUsingNaiveCascade(JobNo: Code[20]; JobTaskNo: Code[20]; ResourceNo: Code[20]; OldStart: Date; OldEnd: Date; NewStart: Date; NewEnd: Date; WorkHourTemplateCode: Code[20]; var RowNewDateMap: Dictionary of [Integer, Date])
     var
@@ -394,8 +445,22 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
         OldDateItem: Date;
         NaiveDateMap: Dictionary of [Date, Date];
         AdjustedDateMap: Dictionary of [Date, Date];
+        SeenDates: List of [Date];
+        OccupiedDates: List of [Date];
+        ClaimedDates: List of [Date];
+        IsRightBarReduced: Boolean;
+        IsLeftBarReduced: Boolean;
     begin
-        // ── Pass 1 — naive target per distinct original date for this resource. ──────────
+        // Scenario detection mirrors CalculateNaiveNewDate's own branch conditions — this
+        // procedure has no other way to know which of the three scenarios (1.1/1.2/1.3) is
+        // currently active, since CalculateNaiveNewDate is deliberately stateless per-date.
+        IsRightBarReduced := (OldStart = NewStart) and (NewEnd < OldEnd);
+        IsLeftBarReduced := (OldStart <> NewStart) and (OldEnd = NewEnd) and (NewStart > OldStart);
+
+        // ── Pass 1 — naive target per distinct original date for this resource. Dates whose
+        // naive target equals their own original date are unmoved and therefore still "occupy"
+        // that date — tracked in OccupiedDates so Pass 2's free-space search never reassigns an
+        // overflowing row onto a date another row already keeps. ──────────────────────────────
         DayPlanning.SetCurrentKey("Plan Date");
         DayPlanning.SetRange("Job No.", JobNo);
         DayPlanning.SetRange("Job Task No.", JobTaskNo);
@@ -403,37 +468,64 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
         DayPlanning.SetRange("Plan Date", OldStart, OldEnd);
         if DayPlanning.FindSet() then
             repeat
-                if not NaiveDateMap.ContainsKey(DayPlanning."Plan Date") then begin
+                if not SeenDates.Contains(DayPlanning."Plan Date") then begin
+                    SeenDates.Add(DayPlanning."Plan Date");
                     NaiveDate := CalculateNaiveNewDate(DayPlanning."Plan Date", OldStart, OldEnd, NewStart, NewEnd);
                     if NaiveDate <> DayPlanning."Plan Date" then begin
                         NaiveDateMap.Add(DayPlanning."Plan Date", NaiveDate);
                         OldDates.Add(DayPlanning."Plan Date");
-                    end;
+                    end else
+                        OccupiedDates.Add(DayPlanning."Plan Date");
                 end;
             until DayPlanning.Next() = 0;
 
-        // ── Pass 2 — cascade-adjust each naive target onto the next active day, clamped so
-        // it never advances past NewEnd. ────────────────────────────────────────────────
+        // ── Pass 2 — cascade-adjust each naive target. Right-Bar-Reduced/Left-Bar-Reduced
+        // overflowing rows try free-space placement first; every other scenario (Shift) keeps
+        // the original push-forward-onto-next-active-day cascade unchanged. ───────────────────
         PrevNaiveDate := 0D;
         PrevAdjustedDate := 0D;
         foreach OldDateItem in OldDates do begin
             NaiveDate := NaiveDateMap.Get(OldDateItem);
 
-            if (PrevNaiveDate <> 0D) and (NaiveDate = PrevNaiveDate) then
-                // Same naive target as the previous distinct date (e.g. both clamped onto
-                // the same new end date) — deliberately collapse onto the same final date,
-                // already validated as active by the previous iteration.
-                CandidateDate := PrevAdjustedDate
-            else begin
-                if (PrevAdjustedDate <> 0D) and (NaiveDate <= PrevAdjustedDate) then
-                    CandidateDate := PrevAdjustedDate + 1
-                else
-                    CandidateDate := NaiveDate;
-                while not DayPlanningMgt.IsActiveWorkDay(WorkHourTemplateCode, CandidateDate) do
-                    CandidateDate += 1;
+            if (IsRightBarReduced or IsLeftBarReduced) then begin
+                // Prefer spreading this overflowing row onto a free active day within
+                // NewStart..NewEnd (backward from NewEnd for Right-Bar-Reduced, forward from
+                // NewStart for Left-Bar-Reduced) rather than combining it onto the naive
+                // boundary date.
+                if not FindNearestFreeActiveDate(NewStart, NewEnd, IsRightBarReduced, WorkHourTemplateCode, OccupiedDates, ClaimedDates, CandidateDate) then begin
+                    // No free active day left anywhere in the range — fall back to the original
+                    // collapse-onto-boundary behavior (accepted as a last resort).
+                    if (PrevNaiveDate <> 0D) and (NaiveDate = PrevNaiveDate) then
+                        CandidateDate := PrevAdjustedDate
+                    else begin
+                        if (PrevAdjustedDate <> 0D) and (NaiveDate <= PrevAdjustedDate) then
+                            CandidateDate := PrevAdjustedDate + 1
+                        else
+                            CandidateDate := NaiveDate;
+                        while not DayPlanningMgt.IsActiveWorkDay(WorkHourTemplateCode, CandidateDate) do
+                            CandidateDate += 1;
+                    end;
+                end;
+            end else begin
+                if (PrevNaiveDate <> 0D) and (NaiveDate = PrevNaiveDate) then
+                    // Same naive target as the previous distinct date — deliberately collapse
+                    // onto the same final date, already validated as active by the previous
+                    // iteration. (Shift scenario only: its constant per-row offset means this
+                    // branch is not expected to trigger in practice, but is kept for parity
+                    // with the original logic.)
+                    CandidateDate := PrevAdjustedDate
+                else begin
+                    if (PrevAdjustedDate <> 0D) and (NaiveDate <= PrevAdjustedDate) then
+                        CandidateDate := PrevAdjustedDate + 1
+                    else
+                        CandidateDate := NaiveDate;
+                    while not DayPlanningMgt.IsActiveWorkDay(WorkHourTemplateCode, CandidateDate) do
+                        CandidateDate += 1;
+                end;
             end;
 
             AdjustedDateMap.Add(OldDateItem, CandidateDate);
+            ClaimedDates.Add(CandidateDate);
             PrevNaiveDate := NaiveDate;
             PrevAdjustedDate := CandidateDate;
         end;
