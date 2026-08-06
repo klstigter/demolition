@@ -43,16 +43,11 @@ window.BOOT = function() {
 };
 
 // ============================================================
-// Build/replace the vertical bar chart - grouped (clustered) by default, or stacked when a
-// series requests it.
+// Build/replace the grouped (clustered, non-stacked) vertical bar chart.
 //
 // chartData shape (see LoadData below):
 //   { categories: ["SKILL1","SKILL2",...],
-//     series: [ { name: "Requested Hours", values: [decimal,...],
-//                 color: "#RRGGBB" (optional, else SERIES_COLOR_PALETTE rotation),
-//                 stacked: true (optional; any series requesting it stacks the whole chart),
-//                 border: "#RRGGBB" (optional outline colour, e.g. the Excel spec's red
-//                         "External" segment) },
+//     series: [ { name: "Requested Hours", values: [decimal,...] },
 //               { name: "Capacity",        values: [decimal,...] } ] }
 //
 // The chart is fully torn down and rebuilt on every call rather than mutated in
@@ -78,28 +73,14 @@ function RenderChart(chartData) {
         return row;
     });
 
-    // A series carries its own explicit `color` when the caller wants a fixed palette instead
-    // of the generic SERIES_COLOR_PALETTE rotation - see page 50692's stacked Ass/Internal/
-    // External/skill chart for the first caller that does this.
     var series = seriesDefs.map(function(s, sIdx) {
-        var seriesDef = {
+        return {
             id:    "s" + sIdx,
             value: "s" + sIdx,
             label: (s && s.name) ? s.name : ("Series " + (sIdx + 1)),
-            color: (s && s.color) ? s.color : SERIES_COLOR_PALETTE[sIdx % SERIES_COLOR_PALETTE.length]
+            color: SERIES_COLOR_PALETTE[sIdx % SERIES_COLOR_PALETTE.length]
         };
-        // Any series requesting `stacked` switches the whole chart to a stacked layout (suite.js
-        // reads `stacked` per-series - see Stacker/serieConfig.stacked in suite.js - but a mixed
-        // stacked/unstacked chart is not a shape any caller needs, so one flag covers all series).
-        if (s && s.stacked) {
-            seriesDef.stacked = true;
-        }
-        return seriesDef;
     });
-    var isStacked = seriesDefs.some(function(s) { return s && s.stacked; });
-    if (isStacked) {
-        series.forEach(function(s) { s.stacked = true; });
-    }
 
     var config = {
         type: "bar",
@@ -142,15 +123,6 @@ function RenderChart(chartData) {
     // native vertical-legend option would.
     RotateLegendLabel();
 
-    // dhx.Chart's Bar series has no config-level stroke/outline option (confirmed by reading
-    // suite.js's Bar._getForm(): the rendered <path> only ever gets `fill`, never `stroke`,
-    // from series config). The Excel spec's red-outlined "External" segment is therefore
-    // applied the same way RotateLegendLabel above handles what the library's config can't do
-    // - a post-render CSS pass, this time keyed off each bordered series' own fill colour
-    // rather than a class/ref (the library's internal point refs are not a stable public API
-    // to key off of).
-    ApplySeriesBorders(seriesDefs, series);
-
     // Bar click -> BC (mirrors OnEventDoubleClick's InvokeExtensibilityMethod pattern
     // used throughout src/dhx/resourceschedule/wrapper.js). id is the Skill Code we
     // set as each data row's "id"/"category" above.
@@ -158,30 +130,6 @@ function RenderChart(chartData) {
         try {
             Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnDataPointClicked", [String(id)]);
         } catch (e) { /* ignore */ }
-    });
-}
-
-// Applies a CSS stroke to every rendered bar <path> whose fill matches a series that requested
-// a `border` colour (e.g. the Excel spec's red-outlined "External" segment). Deferred one frame
-// past chart construction for the same reason as RotateLegendLabel below.
-function ApplySeriesBorders(seriesDefs, series) {
-    var borderedColors = [];
-    seriesDefs.forEach(function(s, sIdx) {
-        if (s && s.border && series[sIdx]) {
-            borderedColors.push({ fill: series[sIdx].color, stroke: s.border });
-        }
-    });
-    if (!borderedColors.length) return;
-
-    requestAnimationFrame(function() {
-        if (!chartContainer) return;
-        borderedColors.forEach(function(entry) {
-            var paths = chartContainer.querySelectorAll('path[fill="' + entry.fill + '"]');
-            paths.forEach(function(p) {
-                p.style.stroke = entry.stroke;
-                p.style.strokeWidth = "1.5px";
-            });
-        });
     });
 }
 

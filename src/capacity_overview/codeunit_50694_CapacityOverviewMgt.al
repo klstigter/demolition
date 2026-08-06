@@ -15,8 +15,8 @@ codeunit 50694 "Capacity Overview Mgt."
     ///                          Per-skill columns = same sum filtered to that column's Skill Code.
     ///  3. Assigned Hours     - C = SUM("Day Planning"."Assigned Hours") for all skills.
     ///                          Per-skill columns = same sum filtered to that column's Skill Code.
-    ///  4. Free Capacity      - Row1 - Row3, computed independently per column (C and every
-    ///                          per-skill column). Row1's per-skill columns are 0, so Free
+    ///  4. Capacity           - Row1 - Row3, computed independently per column (C and every
+    ///                          per-skill column). Row1's per-skill columns are 0, so
     ///                          Capacity's per-skill columns become the negative of that skill's
     ///                          Assigned Hours - intentional, per spec, not a bug.
     ///  5. Request Plan       - Row2 - Row3, computed independently per column, same pattern.
@@ -184,7 +184,7 @@ codeunit 50694 "Capacity Overview Mgt."
 
     /// <summary>
     /// Inserts a matrix row whose values are the column-wise difference of two prior rows'
-    /// values (used for "Free Capacity" = Row1 - Row3 and "Request Plan (not assigned)" =
+    /// values (used for "Capacity" = Row1 - Row3 and "Request Plan (not assigned)" =
     /// Row2 - Row3).
     /// </summary>
     local procedure InsertDifferenceRow(var Buffer: Record "Capacity Overview Buffer" temporary; LineNo: Integer; RowDescription: Text; TotalValue: Decimal; MinuendPerColumn: List of [Decimal]; SubtrahendPerColumn: List of [Decimal]; ColumnCount: Integer)
@@ -203,7 +203,7 @@ codeunit 50694 "Capacity Overview Mgt."
         TotalCapacityRowLbl: Label 'Total Capacity';
         TotalRequestRowLbl: Label 'Total Request';
         AssignedHoursRowLbl: Label 'Assigned Hours';
-        FreeCapacityRowLbl: Label 'Free Capacity';
+        FreeCapacityRowLbl: Label 'Capacity';
         RequestPlanRowLbl: Label 'Request Plan (not assigned)';
         SurplusRowLbl: Label 'Surplus';
 }
