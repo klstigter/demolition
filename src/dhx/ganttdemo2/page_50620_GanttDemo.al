@@ -103,6 +103,8 @@ page 50620 "Gantt Demo DHX 2"
                     ChildJobNo: Code[20];
                     ChildJobTaskNo: Code[20];
                 begin
+                    Clear(ResourcePanelChildTaskIds);
+
                     // Parse Job No. and Job Task No. from the composite task id ("JobNo|JobTaskNo")
                     EventIDList := taskId.Split('|');
                     if EventIDList.Count() >= 2 then begin
@@ -123,8 +125,10 @@ page 50620 "Gantt Demo DHX 2"
                                     if ChildIdParts.Count() >= 2 then begin
                                         ChildJobNo := CopyStr(ChildIdParts.Get(1), 1, 20);
                                         ChildJobTaskNo := CopyStr(ChildIdParts.Get(2), 1, 20);
-                                        if JobTask.Get(ChildJobNo, ChildJobTaskNo) then
+                                        if JobTask.Get(ChildJobNo, ChildJobTaskNo) then begin
                                             JobTask.Mark(true);
+                                            ResourcePanelChildTaskIds.Add(ChildJobNo + '|' + ChildJobTaskNo);
+                                        end;
                                     end;
                                 end;
                             end;
@@ -1099,10 +1103,12 @@ page 50620 "Gantt Demo DHX 2"
         JobTaskFilter: Text;
         CurrentResourcePanelFilterJsonString: Text;
         PreviewCancelled: Boolean;
+        ResourcePanelChildTaskIds: List of [Text]; // each entry "JobNo|JobTaskNo", mirrors the children marked in OnShowResourcesForTask so ReloadResourcePanelFromStoredFilter/LoadAllData can re-mark them later
 
     local procedure ClearResourcePanelFilter()
     begin
         CurrentResourcePanelFilterJsonString := '';
+        Clear(ResourcePanelChildTaskIds);
         CurrPage.DHXGanttControl2.ClearResourceFilter();
     end;
 
@@ -1145,6 +1151,10 @@ page 50620 "Gantt Demo DHX 2"
         JobTask: Record "Job Task";
         Window: Dialog;
         LoadingLbl: Label 'Loading Gantt data...\n#1######################';
+        ChildTaskId: Text;
+        ChildParts: List of [Text];
+        ChildJobNo: Code[20];
+        ChildJobTaskNo: Code[20];
     begin
         // Control add-in JS calls (LoadProject/RenderGantt/etc.) only actually execute in the
         // browser once this whole AL trigger returns to the client — so a JS-side overlay can't
@@ -1220,6 +1230,21 @@ page 50620 "Gantt Demo DHX 2"
                     JobTask.SetRange("Job Task No.", FilterJobTaskNo);
                     if JobTask.FindFirst() then
                         JobTask.Mark(true);
+
+                    // Re-mark every child task that was part of the panel's original scope
+                    // (marked in OnShowResourcesForTask) - clear the filters set above first
+                    // since Get() below should operate against an unfiltered Job Task record.
+                    JobTask.Reset();
+                    foreach ChildTaskId in ResourcePanelChildTaskIds do begin
+                        ChildParts := ChildTaskId.Split('|');
+                        if ChildParts.Count() = 2 then begin
+                            ChildJobNo := CopyStr(ChildParts.Get(1), 1, MaxStrLen(ChildJobNo));
+                            ChildJobTaskNo := CopyStr(ChildParts.Get(2), 1, MaxStrLen(ChildJobTaskNo));
+                            if JobTask.Get(ChildJobNo, ChildJobTaskNo) then
+                                JobTask.Mark(true);
+                        end;
+                    end;
+
                     if GuiAllowed() then
                         Window.Update(1, 'Resources && Day Plannings...');
                     LoadFilteredResourcesAndDayPlannings(JobTask, FilterFromDate, FilterToDate);
@@ -1277,6 +1302,10 @@ page 50620 "Gantt Demo DHX 2"
         FilterJobNo: Code[20];
         FilterJobTaskNo: Code[20];
         JobTask: Record "Job Task";
+        ChildTaskId: Text;
+        ChildParts: List of [Text];
+        ChildJobNo: Code[20];
+        ChildJobTaskNo: Code[20];
     begin
         if CurrentResourcePanelFilterJsonString = '' then
             exit(false);
@@ -1295,6 +1324,19 @@ page 50620 "Gantt Demo DHX 2"
         if not JobTask.Get(FilterJobNo, FilterJobTaskNo) then
             exit(false);
         JobTask.Mark(true);
+
+        // Re-mark every child task that was part of the panel's original scope (marked in
+        // OnShowResourcesForTask) - the stored filter only remembers the single parent job/task,
+        // so without this the reload below would only find Day Plannings on the parent itself.
+        foreach ChildTaskId in ResourcePanelChildTaskIds do begin
+            ChildParts := ChildTaskId.Split('|');
+            if ChildParts.Count() = 2 then begin
+                ChildJobNo := CopyStr(ChildParts.Get(1), 1, MaxStrLen(ChildJobNo));
+                ChildJobTaskNo := CopyStr(ChildParts.Get(2), 1, MaxStrLen(ChildJobTaskNo));
+                if JobTask.Get(ChildJobNo, ChildJobTaskNo) then
+                    JobTask.Mark(true);
+            end;
+        end;
 
         // The stored filter's periodFrom/periodTo were captured when the resource panel was
         // last opened for this task and go stale the moment the task (and its Day Plannings)
