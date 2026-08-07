@@ -23,6 +23,11 @@ table 50622 "Skill Req. vs Capacity Buffer"
             DataClassification = ToBeClassified;
             Caption = 'Week Day No.';
         }
+        field(4; "Segment"; Text[30])
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Segment';
+        }
         field(10; "Requested Hours"; Decimal)
         {
             DataClassification = ToBeClassified;

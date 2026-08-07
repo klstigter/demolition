@@ -23,6 +23,7 @@ var chartMutationObserver = null; // set up once in BOOT; disconnected/reconnect
 // whole reason this DHTMLX proof-of-concept exists, so we always assign an explicit
 // colour per series here rather than relying on the library's own default palette.
 var SERIES_COLOR_PALETTE = ["#2A9D8F", "#E76F51", "#11A3D0", "#E5A910", "#985F99", "#78586F"];
+var LEGEND_SWATCH_BORDER_WIDTH = 3; // px, see ApplySeriesBorders
 
 // Bottom-axis "day group" row (see RenderDayGroupRow) - kept as named constants since the
 // geometry math has to agree with the `bottom` scale's own `textPadding`/`size` config below.
@@ -34,6 +35,9 @@ var DAY_ROW_HEIGHT = 24;            // px reserved for EACH of the 2 bottom-axis
 // so the day-group row's grid reads as part of the same chart instead of a heavier overlay.
 var DAY_GROUP_BORDER_COLOR = "var(--dhx-color-gray-100)";
 var DAY_GROUP_BORDER_WIDTH = 1;
+// Lighter than DAY_GROUP_BORDER_COLOR itself (suite.css has no gray shade lighter than gray-100)
+// so the gray-100 divider lines still read against it instead of blending into plain white.
+var DAY_GROUP_BACKGROUND_COLOR = "#f7f7f7";
 
 // ============================================================
 // BOOT – called by startupScript.js
@@ -247,9 +251,13 @@ function SchedulePostRenderPatches() {
     });
 }
 
-// Applies a CSS stroke to every rendered bar <path> whose fill matches a series that requested
-// a `border` colour (e.g. the Excel spec's red-outlined "External" segment). Idempotent - safe
-// to call again on every repaint (see SchedulePostRenderPatches).
+// Applies a CSS stroke to every rendered bar <path> AND legend swatch whose fill matches a
+// series that requested a `border` colour (e.g. the Excel spec's red-outlined "External"
+// segment) - suite.js's own legend swatch renderer (legendShape/forms.rect in suite.js) does
+// support a stroke via `item.color`, but nothing in Legend._getData() ever populates that from
+// series config, so it's dead code from this chart's side; a CSS patch is the only way to reach
+// it, matching how the bar's own border is already applied. Idempotent - safe to call again on
+// every repaint (see SchedulePostRenderPatches).
 function ApplySeriesBorders(seriesDefs, series) {
     var borderedColors = [];
     seriesDefs.forEach(function(s, sIdx) {
@@ -264,6 +272,11 @@ function ApplySeriesBorders(seriesDefs, series) {
         paths.forEach(function(p) {
             p.style.stroke = entry.stroke;
             p.style.strokeWidth = "1.5px";
+        });
+        var swatches = chartContainer.querySelectorAll('.legend-item .figure[fill="' + entry.fill + '"]');
+        swatches.forEach(function(sw) {
+            sw.style.stroke = entry.stroke;
+            sw.style.strokeWidth = LEGEND_SWATCH_BORDER_WIDTH + "px";
         });
     });
 }
@@ -294,6 +307,8 @@ function RenderDayGroupRow(dayLabels) {
 
     var existing = axisGroup.querySelector(".day-group-row");
     if (existing) existing.remove();
+    var existingBg = axisGroup.querySelector(".day-group-bg");
+    if (existingBg) existingBg.remove();
 
     if (!dayLabels || !dayLabels.length) return;
 
@@ -317,12 +332,23 @@ function RenderDayGroupRow(dayLabels) {
     var leftEdge = xs[0] - step / 2;
     var rightEdge = xs[xs.length - 1] + step / 2;
 
+    // The background fill MUST be painted BEHIND the native "Capacity"/"Requested" tick text
+    // (siblings within axisGroup, already there before this function ever runs) - SVG has no
+    // z-index, paint order is DOM order, so an opaque fill appended normally (last = on top)
+    // would silently cover that text instead of sitting behind it. insertBefore(...,
+    // firstChild) is the one line standing between "background tint" and "row 1 text vanishes".
+    var bgRect = SvgEl("rect", {
+        "class": "day-group-bg",
+        x: leftEdge, y: axisY, width: rightEdge - leftEdge, height: DAY_ROW_HEIGHT * 2,
+        fill: DAY_GROUP_BACKGROUND_COLOR, stroke: DAY_GROUP_BORDER_COLOR, "stroke-width": DAY_GROUP_BORDER_WIDTH
+    });
+    axisGroup.insertBefore(bgRect, axisGroup.firstChild);
+
+    // Everything else (row divider, dividers, day-name text) is unfilled strokes/text that never
+    // covers the native ticks, so it stays appended normally (on top, where it needs to be
+    // visible over the background).
     var group = SvgEl("g", { "class": "day-group-row" });
 
-    group.appendChild(SvgEl("rect", {
-        x: leftEdge, y: axisY, width: rightEdge - leftEdge, height: DAY_ROW_HEIGHT * 2,
-        fill: "none", stroke: DAY_GROUP_BORDER_COLOR, "stroke-width": DAY_GROUP_BORDER_WIDTH
-    }));
     group.appendChild(SvgEl("line", {
         x1: leftEdge, x2: rightEdge, y1: axisY + DAY_ROW_HEIGHT, y2: axisY + DAY_ROW_HEIGHT,
         stroke: DAY_GROUP_BORDER_COLOR, "stroke-width": DAY_GROUP_BORDER_WIDTH

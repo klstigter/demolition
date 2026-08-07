@@ -141,8 +141,38 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         Buffer."Bar Type" := BarType;
         Buffer."No." := Code;
         Buffer."Week Day No." := WkdayNo;
+        Buffer."Segment" := BuildSegmentLabel(BarType, Code);
         Buffer."Requested Hours" := Hours;
         Buffer.Insert();
+    end;
+
+    /// <summary>
+    /// Builds a self-describing "Cap. X"/"Req. X" label for the factbox's "Segment" column
+    /// (page 50691) - "No." alone is ambiguous once exported flat (e.g. to Excel): 'Assigned' is
+    /// inserted under BOTH bar types (see CalcFreeCapacity) and, without the hidden "Bar Type"
+    /// column, reads as an unexplained duplicate; a blank Skill Code (an unassigned Day Planning
+    /// line with no Skill set) reads as an unexplained blank row. Both are still shown - not
+    /// dropped - just labelled clearly instead of relabelled away, matching this codeunit's
+    /// broader "show at 0/blank rather than silently disappearing" approach elsewhere.
+    /// </summary>
+    local procedure BuildSegmentLabel(BarType: Enum "Day Capacity Chart Bar Type"; SkillCode: Code[20]): Text[30]
+    var
+        Prefix: Text[10];
+        NameText: Text[20];
+    begin
+        case BarType of
+            BarType::Capacity:
+                Prefix := CapSegmentPrefixLbl;
+            BarType::Requested:
+                Prefix := ReqSegmentPrefixLbl;
+        end;
+
+        if SkillCode = '' then
+            NameText := NoSkillSegmentLbl
+        else
+            NameText := SkillCode;
+
+        exit(Prefix + NameText);
     end;
 
 
@@ -236,7 +266,6 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
 
         AddChartSeries(SeriesArray, AssSeriesNameLbl, AssValues, AssColorTok, '');
         AddChartSeries(SeriesArray, InternalSeriesNameLbl, InternalValues, InternalColorTok, '');
-        AddChartSeries(SeriesArray, ExternalSeriesNameLbl, ExternalValues, ExternalColorTok, ExternalBorderColorTok);
 
         SkillPaletteIdx := 0;
         foreach SkillCode in ActiveSkillList do begin
@@ -248,6 +277,12 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
             AddChartSeries(SeriesArray, SkillCode, SkillValues, GetSkillSeriesColor(SkillPaletteIdx), '');
             SkillPaletteIdx += 1;
         end;
+
+        // Added LAST (not right after Internal) so it always stacks as the TOPMOST segment on
+        // whichever bar it has data on - wrapper.js's stacking (suite.js's Stacker.dataReady)
+        // accumulates each series' baseline from the PREVIOUS series in declaration order, so the
+        // last-declared series ends up furthest from the axis / closest to the top.
+        AddChartSeries(SeriesArray, ExternalSeriesNameLbl, ExternalValues, ExternalColorTok, ExternalBorderColorTok);
 
         ChartData.Add('categories', CategoriesArray);
         ChartData.Add('dayLabels', DayLabelsArray);
@@ -573,4 +608,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         AssignedSegmentTok: Label 'Assigned', Locked = true;
         InternalSegmentTok: Label 'Internal', Locked = true;
         ExternalSegmentTok: Label 'External', Locked = true;
+        CapSegmentPrefixLbl: Label 'Cap. ';
+        ReqSegmentPrefixLbl: Label 'Req. ';
+        NoSkillSegmentLbl: Label '(No Skill)';
 }

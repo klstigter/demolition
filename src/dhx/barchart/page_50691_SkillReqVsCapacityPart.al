@@ -16,10 +16,10 @@ page 50691 "Skill Req. vs Capacity Part"
         {
             repeater(Lines)
             {
-                field("Skill Code"; Rec."No.")
+                field(Segment; Rec.Segment)
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the skill code that the requested hours and capacity are aggregated for.';
+                    ToolTip = 'Specifies what this row''s "Requested Hours" figure represents - "Cap. X" for a capacity-side total (Assigned/Internal/External), "Req. X" for a skill''s requested-hours total ("Req. (No Skill)" for unassigned lines with no Skill set). Drilldown still uses the underlying raw Skill Code, unaffected by this label.';
                 }
                 // field(Description; Rec.Description)
                 // {
