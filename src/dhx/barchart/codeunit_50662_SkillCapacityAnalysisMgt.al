@@ -116,6 +116,8 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
                 External := resource."Is External" OR Resource."Is Pool" OR Resource."Is Pool Member";
                 tempResource.calcfields("Assigned Hours", "Capacity");
                 FreeCapacity := tempResource."Capacity" - tempResource."Assigned Hours";
+                If FreeCapacity < 0 then
+                    freeCapacity := 0;
                 if FreeCapacity <> 0 then
                     if External then
                         TotalFreeCapacity[1] += FreeCapacity
