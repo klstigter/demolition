@@ -39,7 +39,6 @@ page 50704 "Day Capacity Chart Audit"
                     trigger OnDrillDown()
                     var
                         DayPlanning: Record "Day Planning";
-                        ResCapacityEntry: Record "Res. Capacity Entry";
                         Resource: Record Resource;
                         ResourceNoList: List of [Code[20]];
                         ResourceNoFilterText: Text;
@@ -53,11 +52,16 @@ page 50704 "Day Capacity Chart Audit"
                             Page.Run(Page::"Day Plannings", DayPlanning);
                         end else
                             if (Rec.Segment = UpperCase(InternalSegmentTok)) or (Rec.Segment = UpperCase(ExternalSegmentTok)) then begin
-                                ResCapacityEntry.Reset();
-                                ResCapacityEntry.SetRange(Date, Rec.Day);
+                                // "Internal"/"External" rows are now codeunit 50662's Assigned-
+                                // Hours split (CalcAssignedSplit), not a free-capacity split - so
+                                // this drills into the ASSIGNED Day Planning lines behind that
+                                // split, not Res. Capacity Entries.
+                                DayPlanning.Reset();
+                                DayPlanning.SetRange("Plan Date", Rec.Day);
+                                DayPlanning.SetFilter("Assigned Resource No.", '<>%1', '');
 
                                 if CurrResourceNoFilter <> '' then
-                                    ResCapacityEntry.SetRange("Resource No.", CurrResourceNoFilter)
+                                    DayPlanning.SetRange("Assigned Resource No.", CurrResourceNoFilter)
                                 else begin
                                     Clear(ResourceNoList);
                                     Resource.Reset();
@@ -69,16 +73,20 @@ page 50704 "Day Capacity Chart Audit"
 
                                     ResourceNoFilterText := BuildCodeOrFilter(ResourceNoList);
                                     if ResourceNoFilterText <> '' then
-                                        ResCapacityEntry.SetFilter("Resource No.", ResourceNoFilterText);
+                                        DayPlanning.SetFilter("Assigned Resource No.", ResourceNoFilterText);
                                 end;
 
-                                Page.Run(Page::"Res. Capacity Entries", ResCapacityEntry);
+                                Page.Run(Page::"Day Plannings", DayPlanning);
                             end else begin
-                                // A Skill Code segment - matches CalcUnassignedSkillRequestedHours'
-                                // own filter exactly (Plan Date + Assigned Resource No. = '' +
-                                // Skill). Deliberately not narrowed by CurrResourceNoFilter -
-                                // unassigned lines have no assigned resource to filter on (see
-                                // that procedure's own doc comment in codeunit 50662).
+                                // A Skill Code segment (Internal or External half - both share the
+                                // same bare Skill Code as their Segment text, see codeunit 50662's
+                                // BuildDayCapacityAuditBuffer doc comment) - matches
+                                // CalcUnassignedSkillRequestedSplit's own filter exactly (Plan
+                                // Date + Assigned Resource No. = '' + Skill), covering BOTH halves
+                                // together rather than trying to single one out. Deliberately not
+                                // narrowed by CurrResourceNoFilter - unassigned lines have no
+                                // assigned resource to filter on (see that procedure's own doc
+                                // comment in codeunit 50662).
                                 DayPlanning.Reset();
                                 DayPlanning.SetRange("Plan Date", Rec.Day);
                                 DayPlanning.SetRange("Assigned Resource No.", '');

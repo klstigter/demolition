@@ -23,7 +23,6 @@ var chartMutationObserver = null; // set up once in BOOT; disconnected/reconnect
 // whole reason this DHTMLX proof-of-concept exists, so we always assign an explicit
 // colour per series here rather than relying on the library's own default palette.
 var SERIES_COLOR_PALETTE = ["#2A9D8F", "#E76F51", "#11A3D0", "#E5A910", "#985F99", "#78586F"];
-var LEGEND_SWATCH_BORDER_WIDTH = 3; // px, see ApplySeriesBorders
 
 // Bottom-axis "day group" row (see RenderDayGroupRow) - kept as named constants since the
 // geometry math has to agree with the `bottom` scale's own `textPadding`/`size` config below.
@@ -185,8 +184,20 @@ function RenderChart(chartData) {
             },
             left:   { type: "numeric" }
         },
+        // De-duplicated by label - two series can share a display name (e.g. codeunit 50662's
+        // "Assigned" internal/external halves, same colour, stacked apart so the external half
+        // can carry its own red border) without producing two identical-looking legend rows;
+        // only the FIRST series with a given label is listed here, later ones with the same
+        // label still render in the stack, just not as their own legend entry.
         legend: {
-            series: series.map(function(s) { return s.id; }),
+            series: (function() {
+                var seenLabels = {};
+                return series.filter(function(s) {
+                    if (seenLabels[s.label]) return false;
+                    seenLabels[s.label] = true;
+                    return true;
+                }).map(function(s) { return s.id; });
+            })(),
             halign: "right",
             valign: "top"
         }
@@ -251,33 +262,41 @@ function SchedulePostRenderPatches() {
     });
 }
 
-// Applies a CSS stroke to every rendered bar <path> AND legend swatch whose fill matches a
-// series that requested a `border` colour (e.g. the Excel spec's red-outlined "External"
-// segment) - suite.js's own legend swatch renderer (legendShape/forms.rect in suite.js) does
-// support a stroke via `item.color`, but nothing in Legend._getData() ever populates that from
-// series config, so it's dead code from this chart's side; a CSS patch is the only way to reach
-// it, matching how the bar's own border is already applied. Idempotent - safe to call again on
-// every repaint (see SchedulePostRenderPatches).
+// Applies a CSS stroke to every rendered bar <path> of a series that requested a `border`
+// colour AND actually has a nonzero value for that category (e.g. codeunit 50662's red-outlined
+// external half of "Assigned") - a zero-value stacked segment still paints as a real (if
+// invisible-height) <path> at its baseline, so stroking it unconditionally left a persistent red
+// hairline sitting at y=0 on every bar with no external data at all, drowning out the real
+// signal instead of highlighting it. The fill itself stays solid, same visual weight as every
+// other series - only the stroke is special-cased here, not the fill.
+//
+// Bar <path>s are matched by scoping to that series' own `g[aria-label="chart s<N>"]` wrapper
+// (suite.js's Bar.paint sets this aria-label from the series' own `value`/id - see
+// Bar.prototype.paint in suite.js) rather than by `path[fill="..."]` - two DIFFERENT series can
+// legitimately share one fill colour (the "Assigned" internal/external halves both use
+// AssColorTok), so a fill-only selector would incorrectly grab the OTHER series' bars too. Paths
+// render in the same left-to-right category order as `s.values`, so the two can be walked in
+// lockstep by index.
+//
+// The legend swatch is deliberately left plain (no stroke), even for a label like "Assigned"
+// whose external half IS bordered on the bars themselves: the legend entry is always the FIRST
+// series with that label (see RenderChart's legend.series de-dup), i.e. the internal/unbordered
+// half - matching that swatch to it is correct, and a fill-colour-based swatch match would have
+// wrongly styled it to look like the (different, later-declared) external half instead.
+//
+// Idempotent - safe to call again on every repaint (see SchedulePostRenderPatches).
 function ApplySeriesBorders(seriesDefs, series) {
-    var borderedColors = [];
     seriesDefs.forEach(function(s, sIdx) {
         if (s && s.border && series[sIdx]) {
-            borderedColors.push({ fill: series[sIdx].color, stroke: s.border });
+            var values = Array.isArray(s.values) ? s.values : [];
+            var paths = chartContainer.querySelectorAll('g[aria-label="chart ' + series[sIdx].id + '"] path');
+            paths.forEach(function(p, pIdx) {
+                if (values[pIdx]) {
+                    p.style.stroke = s.border;
+                    p.style.strokeWidth = "1.5px";
+                }
+            });
         }
-    });
-    if (!borderedColors.length) return;
-
-    borderedColors.forEach(function(entry) {
-        var paths = chartContainer.querySelectorAll('path[fill="' + entry.fill + '"]');
-        paths.forEach(function(p) {
-            p.style.stroke = entry.stroke;
-            p.style.strokeWidth = "1.5px";
-        });
-        var swatches = chartContainer.querySelectorAll('.legend-item .figure[fill="' + entry.fill + '"]');
-        swatches.forEach(function(sw) {
-            sw.style.stroke = entry.stroke;
-            sw.style.strokeWidth = LEGEND_SWATCH_BORDER_WIDTH + "px";
-        });
     });
 }
 
