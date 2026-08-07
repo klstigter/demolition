@@ -211,7 +211,6 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         CategoriesArray: JsonArray;
         DayLabelsArray: JsonArray;
         SeriesArray: JsonArray;
-        TempDayPlanning: Record "Day Planning" temporary;
         AssInternalValues: List of [Decimal];
         AssExternalValues: List of [Decimal];
         SkillInternalValues: List of [Decimal];
@@ -228,7 +227,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         AssExternalD: Decimal;
         SkillPaletteIdx: Integer;
     begin
-        LoadDayPlanningBuffer(TempDayPlanning, PeriodStartDate, PeriodStartDate + 4);
+        EnsureDayPlanningBuffer(PeriodStartDate, PeriodStartDate + 4);
 
         // Each category is "<Wkd>|Capacity" / "<Wkd>|Requested" - still unique per bar (the
         // DHTMLX "text" scale positions each bar by looking up its own category value, so
@@ -247,14 +246,14 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
             DayLabelsArray.Add(FormatWeekdayShort(CurrDate));
         end;
 
-        BuildActiveSkillList(TempDayPlanning, ActiveSkillList);
+        BuildActiveSkillList(ActiveSkillList);
 
         Clear(AssInternalValues);
         Clear(AssExternalValues);
         for WeekdayIndex := 1 to 5 do begin
             CurrDate := PeriodStartDate + (WeekdayIndex - 1);
 
-            CalcDaySegments(CurrDate, ActiveSkillList, TempDayPlanning, AssInternalD, AssExternalD, OneDaySkillInternalValues, OneDaySkillExternalValues);
+            CalcDaySegments(CurrDate, ActiveSkillList, AssInternalD, AssExternalD, OneDaySkillInternalValues, OneDaySkillExternalValues);
 
             // Capacity bar value, then Requested bar value - both halves of Assigned are
             // identical on both bars, same as the old single "Assigned" series was.
@@ -313,7 +312,6 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// </summary>
     procedure BuildDayCapacityAuditBuffer(var Buffer: Record "Day Capacity Chart Audit Buf" temporary; PeriodStartDate: Date)
     var
-        TempDayPlanning: Record "Day Planning" temporary;
         ActiveSkillList: List of [Code[20]];
         SkillInternalValues: Dictionary of [Code[20], Decimal];
         SkillExternalValues: Dictionary of [Code[20], Decimal];
@@ -327,15 +325,15 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         Buffer.Reset();
         Buffer.DeleteAll();
 
-        LoadDayPlanningBuffer(TempDayPlanning, PeriodStartDate, PeriodStartDate + 4);
+        EnsureDayPlanningBuffer(PeriodStartDate, PeriodStartDate + 4);
 
-        BuildActiveSkillList(TempDayPlanning, ActiveSkillList);
+        BuildActiveSkillList(ActiveSkillList);
 
         LineNo := 0;
         for WeekdayIndex := 1 to 5 do begin
             CurrDate := PeriodStartDate + (WeekdayIndex - 1);
 
-            CalcDaySegments(CurrDate, ActiveSkillList, TempDayPlanning, AssignedInternal, AssignedExternal, SkillInternalValues, SkillExternalValues);
+            CalcDaySegments(CurrDate, ActiveSkillList, AssignedInternal, AssignedExternal, SkillInternalValues, SkillExternalValues);
 
             // Capacity bar: Assigned-Internal/Assigned-External carry the day's assigned-hours
             // split, skills are always 0 (skills never appear on the Capacity bar).
@@ -383,9 +381,11 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// BuildDayCapacityAuditBuffer so the chart and its audit trail can never drift apart. Returns
     /// the day's Assigned Hours split by the assigned resource's "Is External" flag (via
     /// CalcAssignedSplit) plus, for each active skill, its unassigned-Requested-Hours split by
-    /// "Requested Resource No." (via CalcUnassignedSkillRequestedSplit) for ONE weekday.
+    /// "Requested Resource No." (via CalcUnassignedSkillRequestedSplit) for ONE weekday. Reads
+    /// from the shared GDayPlanningBuf (see EnsureDayPlanningBuffer) - callers must have already
+    /// ensured it is loaded for a range covering PlanDate.
     /// </summary>
-    local procedure CalcDaySegments(PlanDate: Date; var ActiveSkillList: List of [Code[20]]; var TempDayPlanning: Record "Day Planning" temporary; var AssignedInternal: Decimal; var AssignedExternal: Decimal; var SkillInternalValues: Dictionary of [Code[20], Decimal]; var SkillExternalValues: Dictionary of [Code[20], Decimal])
+    local procedure CalcDaySegments(PlanDate: Date; var ActiveSkillList: List of [Code[20]]; var AssignedInternal: Decimal; var AssignedExternal: Decimal; var SkillInternalValues: Dictionary of [Code[20], Decimal]; var SkillExternalValues: Dictionary of [Code[20], Decimal])
     var
         SkillCode: Code[20];
         SkillInternalD: Decimal;
@@ -394,35 +394,50 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         Clear(SkillInternalValues);
         Clear(SkillExternalValues);
 
-        CalcAssignedSplit(PlanDate, AssignedInternal, AssignedExternal, TempDayPlanning);
+        CalcAssignedSplit(PlanDate, AssignedInternal, AssignedExternal);
 
         foreach SkillCode in ActiveSkillList do begin
-            CalcUnassignedSkillRequestedSplit(PlanDate, SkillCode, TempDayPlanning, SkillInternalD, SkillExternalD);
+            CalcUnassignedSkillRequestedSplit(PlanDate, SkillCode, SkillInternalD, SkillExternalD);
             SkillInternalValues.Set(SkillCode, SkillInternalD);
             SkillExternalValues.Set(SkillCode, SkillExternalD);
         end;
     end;
 
     /// <summary>
-    /// Loads all "Day Planning" rows for the given period into TempDayPlanning ONCE, so the
-    /// per-weekday/per-skill computations in CalcDaySegments (and BuildActiveSkillList) can
-    /// aggregate purely from this in-memory buffer instead of re-querying the physical table
-    /// once per weekday / once per active skill.
+    /// Loads GDayPlanningBuf (the codeunit-level shared TEMPORARY buffer - see its var
+    /// declaration) with a copy of DateFrom..DateTo's Day Planning rows if it is not already
+    /// holding that exact range, so the per-weekday/per-skill computations in
+    /// CalcDaySegments/CalcAssignedSplit/CalcUnassignedSkillRequestedSplit/BuildActiveSkillList
+    /// can aggregate purely from this in-memory buffer (Reset()+SetRange()+FindSet() against a
+    /// temporary table is an in-process scan, not a SQL round-trip) instead of re-querying the
+    /// physical table once per weekday/skill - and so BuildDayCapacityChartData and
+    /// BuildDayCapacityAuditBuffer, called back-to-back for the same period by page 50692's
+    /// RefreshData, share ONE physical read instead of one each. GDayPlanningBuf is a
+    /// codeunit-instance-level (not table-level) buffer: safe across this codeunit's lifetime on
+    /// one page, not shared between different pages/sessions.
     /// </summary>
-    local procedure LoadDayPlanningBuffer(var TempDayPlanning: Record "Day Planning" temporary; DateFrom: Date; DateTo: Date)
+    local procedure EnsureDayPlanningBuffer(DateFrom: Date; DateTo: Date)
     var
         DayPlanning: Record "Day Planning";
     begin
-        TempDayPlanning.Reset();
-        TempDayPlanning.DeleteAll();
+        if GBufferLoaded and (GBufferDateFrom = DateFrom) and (GBufferDateTo = DateTo) then
+            exit;
+
+        GDayPlanningBuf.Reset();
+        GDayPlanningBuf.DeleteAll();
         DayPlanning.Reset();
         DayPlanning.SetLoadFields("Plan Date", Skill, "Assigned Resource No.", "Assigned Hours", "Requested Hours", "Requested Resource No.");
         DayPlanning.SetRange("Plan Date", DateFrom, DateTo);
         if DayPlanning.FindSet() then
             repeat
-                TempDayPlanning := DayPlanning;
-                TempDayPlanning.Insert();
+                GDayPlanningBuf := DayPlanning;
+                GDayPlanningBuf.Insert();
             until DayPlanning.Next() = 0;
+        GDayPlanningBuf.Reset();
+
+        GBufferDateFrom := DateFrom;
+        GBufferDateTo := DateTo;
+        GBufferLoaded := true;
     end;
 
     /// <summary>
@@ -430,9 +445,13 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// unassigned ("Assigned Resource No." = '') Day Planning row whose "Requested Hours" sum
     /// across the whole period is nonzero. Deliberately not the full Skill Code master list
     /// (unlike BuildSkillBuffer) - a skill with nothing requested in this period simply gets no
-    /// series/bar segment at all.
+    /// series/bar segment at all. Reads from the shared GDayPlanningBuf (see
+    /// EnsureDayPlanningBuffer) - caller must have already ensured it is loaded. Resets
+    /// GDayPlanningBuf's filters before returning (cheap - it is a temporary/in-memory table, not
+    /// a SQL round-trip), so the next function to use the shared buffer always starts from a
+    /// clean, unfiltered record.
     /// </summary>
-    local procedure BuildActiveSkillList(var TempDayPlanning: Record "Day Planning" temporary; var ActiveSkillList: List of [Code[20]])
+    local procedure BuildActiveSkillList(var ActiveSkillList: List of [Code[20]])
     var
         SkillTotals: Dictionary of [Code[20], Decimal];
         SkillCode: Code[20];
@@ -440,17 +459,18 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     begin
         Clear(ActiveSkillList);
 
-        TempDayPlanning.Reset();
-        TempDayPlanning.SetRange("Assigned Resource No.", '');
-        if TempDayPlanning.FindSet() then
+        GDayPlanningBuf.Reset();
+        GDayPlanningBuf.SetRange("Assigned Resource No.", '');
+        if GDayPlanningBuf.FindSet() then
             repeat
-                if TempDayPlanning.Skill <> '' then begin
+                if GDayPlanningBuf.Skill <> '' then begin
                     CurrentValue := 0;
-                    if SkillTotals.ContainsKey(TempDayPlanning.Skill) then
-                        CurrentValue := SkillTotals.Get(TempDayPlanning.Skill);
-                    SkillTotals.Set(TempDayPlanning.Skill, CurrentValue + TempDayPlanning."Requested Hours");
+                    if SkillTotals.ContainsKey(GDayPlanningBuf.Skill) then
+                        CurrentValue := SkillTotals.Get(GDayPlanningBuf.Skill);
+                    SkillTotals.Set(GDayPlanningBuf.Skill, CurrentValue + GDayPlanningBuf."Requested Hours");
                 end;
-            until TempDayPlanning.Next() = 0;
+            until GDayPlanningBuf.Next() = 0;
+        GDayPlanningBuf.Reset();
 
         foreach SkillCode in SkillTotals.Keys() do
             if SkillTotals.Get(SkillCode) <> 0 then
@@ -461,9 +481,12 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// Splits the day's Assigned Hours into Internal / External buckets by the assigned
     /// resource's "Is External" flag. Rows with a blank "Assigned Resource No." cannot be
     /// classified and are skipped (in practice Assigned Hours is only ever populated once a
-    /// resource is assigned).
+    /// resource is assigned). Reads from the shared GDayPlanningBuf (see EnsureDayPlanningBuffer)
+    /// - caller must have already ensured it is loaded. Resets GDayPlanningBuf's filters before
+    /// returning (cheap - temporary/in-memory table), so the next function to use the shared
+    /// buffer always starts from a clean, unfiltered record.
     /// </summary>
-    local procedure CalcAssignedSplit(PlanDate: Date; var InternalAssigned: Decimal; var ExternalAssigned: Decimal; var TempDayPlanning: Record "Day Planning" temporary)
+    local procedure CalcAssignedSplit(PlanDate: Date; var InternalAssigned: Decimal; var ExternalAssigned: Decimal)
     var
         Resource: Record Resource;
     begin
@@ -472,18 +495,19 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
 
         Resource.SetLoadFields("Is External");
 
-        TempDayPlanning.Reset();
-        TempDayPlanning.SetRange("Plan Date", PlanDate);
-        if TempDayPlanning.FindSet() then
+        GDayPlanningBuf.Reset();
+        GDayPlanningBuf.SetRange("Plan Date", PlanDate);
+        if GDayPlanningBuf.FindSet() then
             repeat
-                if TempDayPlanning."Assigned Resource No." <> '' then
-                    if Resource.Get(TempDayPlanning."Assigned Resource No.") then begin
+                if GDayPlanningBuf."Assigned Resource No." <> '' then
+                    if Resource.Get(GDayPlanningBuf."Assigned Resource No.") then begin
                         if Resource."Is External" then
-                            ExternalAssigned += TempDayPlanning."Assigned Hours"
+                            ExternalAssigned += GDayPlanningBuf."Assigned Hours"
                         else
-                            InternalAssigned += TempDayPlanning."Assigned Hours";
+                            InternalAssigned += GDayPlanningBuf."Assigned Hours";
                     end;
-            until TempDayPlanning.Next() = 0;
+            until GDayPlanningBuf.Next() = 0;
+        GDayPlanningBuf.Reset();
     end;
 
     /// <summary>
@@ -497,9 +521,12 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// yet) counts as Internal, the same default an ordinary, not-yet-targeted request would
     /// read as. Deliberately ignores any Resource No. filter - unassigned lines have no assigned
     /// resource to filter on (see the procedure doc comment on BuildDayCapacityChartData / the
-    /// caller's spec).
+    /// caller's spec). Reads from the shared GDayPlanningBuf (see EnsureDayPlanningBuffer) -
+    /// caller must have already ensured it is loaded. Resets GDayPlanningBuf's filters before
+    /// returning (cheap - temporary/in-memory table), so the next function to use the shared
+    /// buffer always starts from a clean, unfiltered record.
     /// </summary>
-    local procedure CalcUnassignedSkillRequestedSplit(PlanDate: Date; SkillCode: Code[20]; var TempDayPlanning: Record "Day Planning" temporary; var InternalRequested: Decimal; var ExternalRequested: Decimal)
+    local procedure CalcUnassignedSkillRequestedSplit(PlanDate: Date; SkillCode: Code[20]; var InternalRequested: Decimal; var ExternalRequested: Decimal)
     var
         Resource: Record Resource;
     begin
@@ -508,17 +535,18 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
 
         Resource.SetLoadFields("Is External");
 
-        TempDayPlanning.Reset();
-        TempDayPlanning.SetRange("Plan Date", PlanDate);
-        TempDayPlanning.SetRange("Assigned Resource No.", '');
-        TempDayPlanning.SetRange(Skill, SkillCode);
-        if TempDayPlanning.FindSet() then
+        GDayPlanningBuf.Reset();
+        GDayPlanningBuf.SetRange("Plan Date", PlanDate);
+        GDayPlanningBuf.SetRange("Assigned Resource No.", '');
+        GDayPlanningBuf.SetRange(Skill, SkillCode);
+        if GDayPlanningBuf.FindSet() then
             repeat
-                if (TempDayPlanning."Requested Resource No." <> '') and Resource.Get(TempDayPlanning."Requested Resource No.") and Resource."Is External" then
-                    ExternalRequested += TempDayPlanning."Requested Hours"
+                if (GDayPlanningBuf."Requested Resource No." <> '') and Resource.Get(GDayPlanningBuf."Requested Resource No.") and Resource."Is External" then
+                    ExternalRequested += GDayPlanningBuf."Requested Hours"
                 else
-                    InternalRequested += TempDayPlanning."Requested Hours";
-            until TempDayPlanning.Next() = 0;
+                    InternalRequested += GDayPlanningBuf."Requested Hours";
+            until GDayPlanningBuf.Next() = 0;
+        GDayPlanningBuf.Reset();
     end;
 
     local procedure FormatWeekdayShort(ADate: Date): Text
@@ -568,6 +596,18 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     end;
 
     var
+        // Codeunit-instance-level cache for the current period's Day Planning rows - see
+        // EnsureDayPlanningBuffer. Deliberately `temporary`: Reset()+SetRange()+FindSet() against
+        // it is an in-process scan, not a SQL round-trip, so every consumer below can freely
+        // re-filter it without repeated database queries. Every procedure that filters
+        // GDayPlanningBuf resets its filters (Reset()) before returning, so the buffer is always
+        // handed back clean/unfiltered for the next caller; none of these procedures call each
+        // other while mid-iteration over GDayPlanningBuf, so there is no re-entrancy risk from
+        // sharing one Record instance.
+        GDayPlanningBuf: Record "Day Planning" temporary;
+        GBufferDateFrom: Date;
+        GBufferDateTo: Date;
+        GBufferLoaded: Boolean;
         AssSeriesNameLbl: Label 'Assigned';
         FreeCapacityCategoryLbl: Label 'Capacity';
         RequestedCategoryLbl: Label 'Requested';
