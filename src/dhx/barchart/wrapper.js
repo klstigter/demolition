@@ -4,6 +4,17 @@
 var chartContainer;         // DOM element reference (readiness flag)
 var chartInstance = null;   // current dhx.Chart instance (recreated on every LoadData)
 
+// Latest render inputs, kept around so a resize-triggered re-application (see
+// SchedulePostRenderPatches) can redraw the post-render patches without needing a fresh
+// LoadData call - dhx.Chart itself repaints on container resize (via suite.js's own internal
+// resizer()/ResizeObserver, observing a sentinel node it creates fresh inside chartContainer on
+// every RenderChart call), which would otherwise silently wipe these patches.
+var lastSeriesDefs = [];
+var lastSeries = [];
+var lastDayLabels = [];
+var pendingPatchFrame = null;
+var chartMutationObserver = null; // set up once in BOOT; disconnected/reconnected around our own patch writes
+
 // Distinct, fixed colours per series ordinal — DHTMLX Suite's Chart lets us set
 // series.color explicitly (see Chart.setConfig / BaseSeria._setDefaults in suite.js),
 // unlike BC's native BusinessChart add-in which has no colour API at all and just
@@ -12,6 +23,13 @@ var chartInstance = null;   // current dhx.Chart instance (recreated on every Lo
 // whole reason this DHTMLX proof-of-concept exists, so we always assign an explicit
 // colour per series here rather than relying on the library's own default palette.
 var SERIES_COLOR_PALETTE = ["#2A9D8F", "#E76F51", "#11A3D0", "#E5A910", "#985F99", "#78586F"];
+
+// Bottom-axis "day group" row (see RenderDayGroupRow) - kept as named constants since the
+// geometry math has to agree with the `bottom` scale's own `textPadding`/`size` config below.
+var CATEGORY_DELIMITER = "|";       // matches codeunit 50662's CategoryDelimiterTok
+var BOTTOM_TEXT_PADDING = 12;       // matches scales.bottom.textPadding in RenderChart
+var DAY_ROW_HEIGHT = 24;            // px reserved for EACH of the 2 bottom-axis rows
+var DAY_GROUP_BORDER_COLOR = "#000000";
 
 // ============================================================
 // BOOT – called by startupScript.js
@@ -34,6 +52,31 @@ window.BOOT = function() {
 
         // ---- Render an empty chart so the control has something to show immediately ----
         RenderChart({ categories: [], series: [] });
+
+        // dhx.Chart repaints its whole SVG - discarding every post-render DOM patch applied below
+        // (series borders, the day-group row) - for more reasons than just a
+        // container resize: confirmed live (via Playwright against the actual BC web client) that
+        // a repaint can also follow shortly after the FIRST successful patch pass with no size
+        // change involved at all, most likely BC's own factbox/page layout still settling. A
+        // MutationObserver watching for the library replacing its own tick/legend/bar elements is
+        // a direct signal of "a repaint just happened, reapply now" rather than inferring it from
+        // a proxy like container size - childList+subtree catches the library's node
+        // teardown/rebuild; disconnect/reconnect around our OWN writes below (see
+        // SchedulePostRenderPatches) stops that from re-triggering itself in a loop.
+        if (typeof MutationObserver !== "undefined") {
+            chartMutationObserver = new MutationObserver(function() {
+                if (chartInstance) SchedulePostRenderPatches();
+            });
+            chartMutationObserver.observe(chartContainer, { childList: true, subtree: true });
+        }
+        // Kept as a defense-in-depth second signal: a resize that only repositions existing
+        // elements (attribute changes, no node add/remove) wouldn't trip the MutationObserver
+        // above, but would still invalidate the day-group row's cached tick x-positions.
+        if (typeof ResizeObserver !== "undefined") {
+            new ResizeObserver(function() {
+                if (chartInstance) SchedulePostRenderPatches();
+            }).observe(chartContainer);
+        }
 
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("ControlReady", []);
 
@@ -65,6 +108,7 @@ function RenderChart(chartData) {
 
     var categories = (chartData && Array.isArray(chartData.categories)) ? chartData.categories : [];
     var seriesDefs  = (chartData && Array.isArray(chartData.series))     ? chartData.series     : [];
+    var dayLabels   = (chartData && Array.isArray(chartData.dayLabels))  ? chartData.dayLabels  : [];
 
     // One data row per category ("id" doubles as the click-handler's row identifier —
     // dhx.Chart's bar click handler fires with (id, seriesValueField), see suite.js
@@ -110,26 +154,27 @@ function RenderChart(chartData) {
         // locator(config.text)`). `value` on a scale config is a no-op for the "text"
         // type — using it here previously made every row resolve to the same blank (""),
         // collapsing all categories onto the same x-slot and producing garbled/ghost bars.
+        // For the same reason each category must stay UNIQUE per bar even though only part of
+        // it is shown: TextScale.point() positions a bar by `steps.indexOf(categoryValue)`
+        // (see suite.js), so two bars sharing identical category text would collapse onto the
+        // same x-slot. Categories therefore arrive as "<Wkd>|Capacity"/"<Wkd>|Requested"
+        // (CATEGORY_DELIMITER-joined, still unique per bar) and textTemplate below strips the
+        // "<Wkd>|" prefix so the tick only ever shows "Capacity"/"Requested" - the weekday
+        // itself is rendered separately by RenderDayGroupRow from chartData.dayLabels.
         //
-        // scaleRotate: -45 — with many categories (e.g. 10 "<Wkd> Capacity"/"<Wkd> Requested"
-        // labels on the stacked chart) the default horizontal text overlaps into unreadable
-        // run-together labels. suite.js's bottom-axis renderer (see `bottom()` in suite.js)
-        // natively supports rotating scale text via this config key — reusing the library's
-        // own rotation support here, unlike RotateLegendLabel below which is a post-render CSS
-        // hack for something the library has no config option for at all. Negative = same
-        // counter-clockwise direction as RotateLegendLabel's `rotate(-90deg)` below, just a
-        // shallower 45° angle: each label pivots at its tick (bottom-right of the text) and
-        // reads diagonally up-and-to-the-right (north-east), not straight up.
-        //
-        // size: 80 — Scale's own default reserved space for a bottom/top axis is a flat 20px
-        // (see `this.config.size = this.config.size || 20 + ...` in suite.js's base Scale
-        // class), sized for a single line of HORIZONTAL text. Rotating does not grow that
-        // reservation automatically (scaleRotate only changes the SVG transform, not the layout
-        // math), so without an explicit larger `size` the rotated labels would be clipped by the
-        // plot area. 80 fits the longest label ("Mon Requested" etc, ~13 chars) at 45°
-        // (vertical extent = sin(45°) * text length, well under a full 90° rotation's need).
+        // Bottom axis labels are kept horizontal (no scaleRotate) per spec. size is set to fit
+        // both the native "Capacity"/"Requested" row and RenderDayGroupRow's extra day-name row
+        // stacked directly underneath it (DAY_ROW_HEIGHT each) - the library's own flat-20px
+        // default (see suite.js's base Scale class) only ever accounted for a single line.
         scales: {
-            bottom: { type: "text", text: "category", scaleRotate: -45, textPadding: 12, size: 80 },
+            bottom: {
+                type: "text", text: "category", textPadding: BOTTOM_TEXT_PADDING, size: DAY_ROW_HEIGHT * 2,
+                textTemplate: function(item) {
+                    var s = String(item);
+                    var i = s.indexOf(CATEGORY_DELIMITER);
+                    return i >= 0 ? s.slice(i + 1) : s;
+                }
+            },
             left:   { type: "numeric" }
         },
         legend: {
@@ -147,27 +192,25 @@ function RenderChart(chartData) {
 
     chartInstance = new dhx.Chart(chartContainer, config);
 
-    // dhx.Chart's Legend has no built-in rotation/orientation option (see suite.js's Legend
-    // class - halign/valign/direction only, no angle). Rotating the "Requested Hours" label to
-    // read vertically, bottom-to-top, tucked into the top-right corner is done here as a
-    // post-render CSS transform on the legend's own SVG <text> node instead. transform-box:
-    // fill-box + transform-origin: 0% 100% pins the rotation pivot to the text's own bottom-left
-    // corner, so it stays anchored roughly where the library placed it and the rotated text
-    // extends upward from there - "left-bottom to right-top" reading direction. This does NOT
-    // reserve extra layout space for the now-taller-than-wide rotated label (the library's own
-    // margin math in getDefaultMargin/scaleReady only ever knew about the pre-rotation
-    // horizontal size), so at extreme container sizes it may sit closer to the plot area than a
-    // native vertical-legend option would.
-    RotateLegendLabel();
+    // Stash for SchedulePostRenderPatches - both this call's own first application below AND
+    // any later resize-triggered re-application (see the ResizeObserver set up in BOOT) read
+    // from these rather than from RenderChart's local closure, since a resize can fire long
+    // after this specific call has returned.
+    lastSeriesDefs = seriesDefs;
+    lastSeries = series;
+    lastDayLabels = dayLabels;
 
-    // dhx.Chart's Bar series has no config-level stroke/outline option (confirmed by reading
-    // suite.js's Bar._getForm(): the rendered <path> only ever gets `fill`, never `stroke`,
-    // from series config). The Excel spec's red-outlined "External" segment is therefore
-    // applied the same way RotateLegendLabel above handles what the library's config can't do
-    // - a post-render CSS pass, this time keyed off each bordered series' own fill colour
-    // rather than a class/ref (the library's internal point refs are not a stable public API
-    // to key off of).
-    ApplySeriesBorders(seriesDefs, series);
+    // Two post-render DOM patches for things dhx.Chart's own config has no option for:
+    //   - ApplySeriesBorders: Bar series has no stroke/outline option (suite.js's Bar._getForm()
+    //     only ever sets `fill` on the rendered <path>) - the Excel spec's red-outlined
+    //     "External" segment is a CSS stroke pass keyed off each bordered series' fill colour.
+    //   - RenderDayGroupRow: the bottom "text" scale has no multi-level/grouped category concept
+    //     (suite.js's Scale classes only ever paint one row of ticks) - the merged per-weekday
+    //     header row is hand-drawn from the already-rendered tick positions.
+    // Both mutate/append DOM directly rather than going through chart config, so
+    // SchedulePostRenderPatches (not just this one call) is what keeps them alive across the
+    // resize-triggered repaints described in BOOT's ResizeObserver comment.
+    SchedulePostRenderPatches();
 
     // Bar click -> BC (mirrors OnEventDoubleClick's InvokeExtensibilityMethod pattern
     // used throughout src/dhx/resourceschedule/wrapper.js). id is the Skill Code we
@@ -179,9 +222,30 @@ function RenderChart(chartData) {
     });
 }
 
+// Schedules (de-duplicated - a burst of mutation/resize signals collapses to one pass) a single
+// frame-deferred re-application of all three post-render patches. requestAnimationFrame is what
+// makes the timing safe: per spec, a frame's entire MutationObserver microtask queue and
+// ResizeObserver batch (every observer, including both ours and dhx.Chart's own internal one) is
+// fully resolved and painted BEFORE any rAF callback for that frame runs - so by the time this
+// fires, whatever repaint triggered it has already happened, with nothing left to undo these
+// patches afterward. The MutationObserver is disconnected for the duration of the writes below
+// and reconnected immediately after, so appending our own day-group-row (itself a mutation)
+// can't re-trigger this same scheduler in a loop.
+function SchedulePostRenderPatches() {
+    if (pendingPatchFrame) return;
+    pendingPatchFrame = requestAnimationFrame(function() {
+        pendingPatchFrame = null;
+        if (!chartContainer) return;
+        if (chartMutationObserver) chartMutationObserver.disconnect();
+        ApplySeriesBorders(lastSeriesDefs, lastSeries);
+        RenderDayGroupRow(lastDayLabels);
+        if (chartMutationObserver) chartMutationObserver.observe(chartContainer, { childList: true, subtree: true });
+    });
+}
+
 // Applies a CSS stroke to every rendered bar <path> whose fill matches a series that requested
-// a `border` colour (e.g. the Excel spec's red-outlined "External" segment). Deferred one frame
-// past chart construction for the same reason as RotateLegendLabel below.
+// a `border` colour (e.g. the Excel spec's red-outlined "External" segment). Idempotent - safe
+// to call again on every repaint (see SchedulePostRenderPatches).
 function ApplySeriesBorders(seriesDefs, series) {
     var borderedColors = [];
     seriesDefs.forEach(function(s, sIdx) {
@@ -191,32 +255,100 @@ function ApplySeriesBorders(seriesDefs, series) {
     });
     if (!borderedColors.length) return;
 
-    requestAnimationFrame(function() {
-        if (!chartContainer) return;
-        borderedColors.forEach(function(entry) {
-            var paths = chartContainer.querySelectorAll('path[fill="' + entry.fill + '"]');
-            paths.forEach(function(p) {
-                p.style.stroke = entry.stroke;
-                p.style.strokeWidth = "1.5px";
-            });
+    borderedColors.forEach(function(entry) {
+        var paths = chartContainer.querySelectorAll('path[fill="' + entry.fill + '"]');
+        paths.forEach(function(p) {
+            p.style.stroke = entry.stroke;
+            p.style.strokeWidth = "1.5px";
         });
     });
 }
 
-// Rotates every legend item's <text class="legend-text"> 90deg counter-clockwise so it reads
-// bottom-to-top instead of left-to-right. Deferred one frame past chart construction: dhx.Chart
-// paints its SVG synchronously in practice, but querying immediately after `new dhx.Chart(...)`
-// is fragile if that ever changes, so this waits a frame rather than assuming paint order.
-function RotateLegendLabel() {
-    requestAnimationFrame(function() {
-        if (!chartContainer) return;
-        var legendTexts = chartContainer.querySelectorAll(".legend-text");
-        legendTexts.forEach(function(textEl) {
-            textEl.style.transformBox = "fill-box";
-            textEl.style.transformOrigin = "0% 100%";
-            textEl.style.transform = "rotate(-90deg)";
-        });
-    });
+// Creates an SVG element (SVG needs its own namespace - plain document.createElement won't
+// render inside an <svg>) and applies the given attributes.
+function SvgEl(tag, attrs) {
+    var el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (var key in attrs) {
+        el.setAttribute(key, attrs[key]);
+    }
+    return el;
+}
+
+// Draws the "day of week" header row spanning each weekday's 2 bars (Capacity + Requested),
+// directly underneath the native "Capacity"/"Requested" tick labels, plus a grid of borders
+// around both rows - matching page 50692's spec: a two-tier bottom axis, top tier = per-bar
+// Capacity/Requested label (native, via textTemplate above), bottom tier = one merged label per
+// weekday. dhx.Chart's bottom "text" scale has no built-in concept of grouped/multi-level
+// categories (suite.js's Scale classes only ever paint one row of ticks), so this row is drawn
+// entirely by hand from the ALREADY-RENDERED tick positions rather than through any chart
+// config. Idempotent - safe to call again on every repaint (see SchedulePostRenderPatches):
+// removes any group it previously appended before drawing a fresh one, so a resize storm can
+// never stack duplicates.
+function RenderDayGroupRow(dayLabels) {
+    var axisGroup = chartContainer.querySelector('g[aria-label^="x-axis"]');
+    if (!axisGroup) return;
+
+    var existing = axisGroup.querySelector(".day-group-row");
+    if (existing) existing.remove();
+
+    if (!dayLabels || !dayLabels.length) return;
+
+    var ticks = axisGroup.querySelectorAll("text.scale-text");
+    if (ticks.length !== dayLabels.length * 2) return; // shape mismatch - bail rather than misdraw
+
+    var xs = [];
+    for (var t = 0; t < ticks.length; t++) {
+        xs.push(parseFloat(ticks[t].getAttribute("x")));
+    }
+    var tickY = parseFloat(ticks[0].getAttribute("y"));
+    var step = xs[1] - xs[0];
+    if (!step) return; // degenerate layout (e.g. a single category) - nothing sane to draw
+
+    // Reconstruct the bottom axis's own local y=0 line (suite.js's bottom() sets every
+    // tick's y to `height + textPadding`, see SvgScales.bottom in suite.js) so the new rows
+    // stack directly beneath it in the SAME local coordinate space as the existing ticks -
+    // no need to read any DOM transform/bounding box.
+    var axisY = tickY - BOTTOM_TEXT_PADDING;
+    var row2Y = axisY + DAY_ROW_HEIGHT + BOTTOM_TEXT_PADDING;
+    var leftEdge = xs[0] - step / 2;
+    var rightEdge = xs[xs.length - 1] + step / 2;
+
+    var group = SvgEl("g", { "class": "day-group-row" });
+
+    group.appendChild(SvgEl("rect", {
+        x: leftEdge, y: axisY, width: rightEdge - leftEdge, height: DAY_ROW_HEIGHT * 2,
+        fill: "none", stroke: DAY_GROUP_BORDER_COLOR, "stroke-width": 1
+    }));
+    group.appendChild(SvgEl("line", {
+        x1: leftEdge, x2: rightEdge, y1: axisY + DAY_ROW_HEIGHT, y2: axisY + DAY_ROW_HEIGHT,
+        stroke: DAY_GROUP_BORDER_COLOR, "stroke-width": 1
+    }));
+    // Top row: one divider between every bar (Capacity | Requested | Capacity | ...).
+    for (var k = 0; k < xs.length - 1; k++) {
+        var dividerX = (xs[k] + xs[k + 1]) / 2;
+        group.appendChild(SvgEl("line", {
+            x1: dividerX, x2: dividerX, y1: axisY, y2: axisY + DAY_ROW_HEIGHT,
+            stroke: DAY_GROUP_BORDER_COLOR, "stroke-width": 1
+        }));
+    }
+    // Bottom row: one divider between each WEEKDAY pair only (not between a day's own
+    // Capacity/Requested bars, since those share the same merged day-name cell).
+    for (var d = 0; d < dayLabels.length - 1; d++) {
+        var pairBoundaryX = (xs[d * 2 + 1] + xs[d * 2 + 2]) / 2;
+        group.appendChild(SvgEl("line", {
+            x1: pairBoundaryX, x2: pairBoundaryX, y1: axisY + DAY_ROW_HEIGHT, y2: axisY + DAY_ROW_HEIGHT * 2,
+            stroke: DAY_GROUP_BORDER_COLOR, "stroke-width": 1
+        }));
+    }
+    // One merged day-name label per weekday, centered over its own pair of bars.
+    for (var i = 0; i < dayLabels.length; i++) {
+        var midX = (xs[i * 2] + xs[i * 2 + 1]) / 2;
+        var dayText = SvgEl("text", { x: midX, y: row2Y, "text-anchor": "middle", "class": "scale-text" });
+        dayText.textContent = String(dayLabels[i]);
+        group.appendChild(dayText);
+    }
+
+    axisGroup.appendChild(group);
 }
 
 // ============================================================

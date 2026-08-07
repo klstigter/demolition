@@ -218,7 +218,7 @@ page 50692 "Requested vs Capacity Skl Dhx"
         PeriodEndDate: Date;
     begin
         PeriodEndDate := PeriodStartDate + 6;
-        SkillCapacityAnalysisMgt.BuildSkillBuffer(Buffer, PeriodStartDate, PeriodEndDate, '');
+        SkillCapacityAnalysisMgt.BuildSkillBuffer(Buffer, PeriodStartDate, PeriodEndDate);
         CurrPage.DataPart.Page.LoadData(Buffer, PeriodStartDate, PeriodEndDate);
         RefreshChart();
         RefreshAuditBuffer();

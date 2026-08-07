@@ -21,6 +21,10 @@
           "clientId": "faa3f716-0f1d-4692-b073-dad6bd147191",
           "callbackPort": 33418
       }
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
     }
   }
 }

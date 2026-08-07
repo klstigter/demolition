@@ -130,37 +130,19 @@ codeunit 60024 "Skill Capacity Chart Tests"
     // JSON assertion helpers (see BuildDayCapacityChartData's doc comment for the shape)
     // ================================================================
 
-    local procedure BuildCategoryText(PlanDate: Date; Suffix: Text): Text
-    begin
-        exit(Format(PlanDate, 0, '<Weekday Text,3>') + Suffix);
-    end;
-
-    local procedure GetCategories(ChartDataJson: Text; var Categories: List of [Text])
+    /// <summary>
+    /// Categories are bare ("Capacity"/"Requested", no weekday prefix - see
+    /// BuildDayCapacityChartData's doc comment), 2 per weekday in fixed Capacity-then-Requested
+    /// order, so the index into any series' "values" array can be computed directly from the
+    /// day offset and bar type instead of searching "categories" by text.
+    /// </summary>
+    local procedure CalcCategoryIndex(PeriodStartDate: Date; PlanDate: Date; IsCapacityBar: Boolean): Integer
     var
-        ChartData: JsonObject;
-        CategoriesToken: JsonToken;
-        CategoriesArray: JsonArray;
-        ItemToken: JsonToken;
-        i: Integer;
+        BarOffset: Integer;
     begin
-        Clear(Categories);
-        AssertIsTrue(ChartData.ReadFrom(ChartDataJson), 'Chart data JSON did not parse.');
-        AssertIsTrue(ChartData.Get('categories', CategoriesToken), 'Chart data JSON has no "categories" key.');
-        CategoriesArray := CategoriesToken.AsArray();
-        for i := 0 to CategoriesArray.Count() - 1 do begin
-            CategoriesArray.Get(i, ItemToken);
-            Categories.Add(ItemToken.AsValue().AsText());
-        end;
-    end;
-
-    local procedure FindCategoryIndex(Categories: List of [Text]; CategoryText: Text): Integer
-    var
-        i: Integer;
-    begin
-        for i := 1 to Categories.Count() do
-            if Categories.Get(i) = CategoryText then
-                exit(i - 1); // zero-based, matches each series' "values" array indexing
-        exit(-1);
+        if not IsCapacityBar then
+            BarOffset := 1;
+        exit((PlanDate - PeriodStartDate) * 2 + BarOffset);
     end;
 
     local procedure TryGetSeriesValues(ChartDataJson: Text; SeriesName: Text; var Values: List of [Decimal]): Boolean
@@ -207,15 +189,12 @@ codeunit 60024 "Skill Capacity Chart Tests"
         exit(TryGetSeriesValues(ChartDataJson, SeriesName, Values));
     end;
 
-    local procedure GetSeriesValueAtCategory(ChartDataJson: Text; SeriesName: Text; CategoryText: Text): Decimal
+    local procedure GetSeriesValueAtDayBar(ChartDataJson: Text; SeriesName: Text; PeriodStartDate: Date; PlanDate: Date; IsCapacityBar: Boolean): Decimal
     var
-        Categories: List of [Text];
         Values: List of [Decimal];
         CategoryIndex: Integer;
     begin
-        GetCategories(ChartDataJson, Categories);
-        CategoryIndex := FindCategoryIndex(Categories, CategoryText);
-        AssertIsTrue(CategoryIndex >= 0, StrSubstNo('Category not found: %1', CategoryText));
+        CategoryIndex := CalcCategoryIndex(PeriodStartDate, PlanDate, IsCapacityBar);
         AssertIsTrue(TryGetSeriesValues(ChartDataJson, SeriesName, Values), StrSubstNo('Series not found: %1', SeriesName));
         exit(Values.Get(CategoryIndex + 1)); // List.Get() is 1-based
     end;
@@ -258,8 +237,6 @@ codeunit 60024 "Skill Capacity Chart Tests"
     procedure GivenAssignedHours_WhenBuildChartData_ThenAssignedIdenticalOnBothBars()
     var
         PeriodStart: Date;
-        MondayFreeCapacity: Text;
-        MondayRequested: Text;
         ChartDataJson: Text;
     begin
         // [GIVEN] A resource with 6 Assigned Hours on the period's Monday.
@@ -270,24 +247,19 @@ codeunit 60024 "Skill Capacity Chart Tests"
         CreateTestSkillCode('SCCTSKA');
         InsertDayPlanningLine(PeriodStart, 'SCCTRA', 6, 'SCCTSKA', 0);
 
-        MondayFreeCapacity := BuildCategoryText(PeriodStart, ' Capacity');
-        MondayRequested := BuildCategoryText(PeriodStart, ' Requested');
-
         // [WHEN] BuildDayCapacityChartData is called with no filters and no scenario collapse
         ChartDataJson := SkillCapacityAnalysisMgt.BuildDayCapacityChartData(PeriodStart);
 
         // [THEN] The "Assigned" series carries the same value (6) on both the Capacity and
         // Requested bar for that day.
-        AssertAreEqual(6, GetSeriesValueAtCategory(ChartDataJson, 'Assigned', MondayFreeCapacity), 'Assigned on Capacity bar.');
-        AssertAreEqual(6, GetSeriesValueAtCategory(ChartDataJson, 'Assigned', MondayRequested), 'Assigned on Requested bar.');
+        AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned', PeriodStart, PeriodStart, true), 'Assigned on Capacity bar.');
+        AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned', PeriodStart, PeriodStart, false), 'Assigned on Requested bar.');
     end;
 
     [Test]
     procedure GivenInternalAndExternalCapacity_WhenBuildChartData_ThenSplitMatchesIsExternal()
     var
         PeriodStart: Date;
-        MondayFreeCapacity: Text;
-        MondayRequested: Text;
         ChartDataJson: Text;
     begin
         // [GIVEN] An internal resource with 8 Capacity and an external resource with 5 Capacity
@@ -300,25 +272,21 @@ codeunit 60024 "Skill Capacity Chart Tests"
         InsertResCapacityEntry('SCCTRI1', PeriodStart, 8);
         InsertResCapacityEntry('SCCTRE1', PeriodStart, 5);
 
-        MondayFreeCapacity := BuildCategoryText(PeriodStart, ' Capacity');
-        MondayRequested := BuildCategoryText(PeriodStart, ' Requested');
-
         // [WHEN] BuildDayCapacityChartData is called with no filters and no scenario collapse
         ChartDataJson := SkillCapacityAnalysisMgt.BuildDayCapacityChartData(PeriodStart);
 
         // [THEN] "Internal"/"External" free-capacity segments match each resource's Is External
         // flag, and are only ever nonzero on the Capacity bar (0 on the Requested bar).
-        AssertAreEqual(8, GetSeriesValueAtCategory(ChartDataJson, 'Internal', MondayFreeCapacity), 'Internal free capacity.');
-        AssertAreEqual(5, GetSeriesValueAtCategory(ChartDataJson, 'External', MondayFreeCapacity), 'External free capacity.');
-        AssertAreEqual(0, GetSeriesValueAtCategory(ChartDataJson, 'Internal', MondayRequested), 'Internal must be 0 on the Requested bar.');
-        AssertAreEqual(0, GetSeriesValueAtCategory(ChartDataJson, 'External', MondayRequested), 'External must be 0 on the Requested bar.');
+        AssertAreEqual(8, GetSeriesValueAtDayBar(ChartDataJson, 'Internal', PeriodStart, PeriodStart, true), 'Internal free capacity.');
+        AssertAreEqual(5, GetSeriesValueAtDayBar(ChartDataJson, 'External', PeriodStart, PeriodStart, true), 'External free capacity.');
+        AssertAreEqual(0, GetSeriesValueAtDayBar(ChartDataJson, 'Internal', PeriodStart, PeriodStart, false), 'Internal must be 0 on the Requested bar.');
+        AssertAreEqual(0, GetSeriesValueAtDayBar(ChartDataJson, 'External', PeriodStart, PeriodStart, false), 'External must be 0 on the Requested bar.');
     end;
 
     [Test]
     procedure GivenAssignedAndUnassignedLineSameSkill_WhenBuildChartData_ThenOnlyUnassignedCounted()
     var
         PeriodStart: Date;
-        MondayRequested: Text;
         ChartDataJson: Text;
     begin
         // [GIVEN] Two Day Planning lines on Monday for the same skill: one already assigned
@@ -332,13 +300,11 @@ codeunit 60024 "Skill Capacity Chart Tests"
         InsertDayPlanningLine(PeriodStart, 'SCCTRA2', 0, 'SCCTSKB', 15); // assigned - excluded
         InsertDayPlanningLine(PeriodStart, '', 0, 'SCCTSKB', 4);        // unassigned - counted
 
-        MondayRequested := BuildCategoryText(PeriodStart, ' Requested');
-
         // [WHEN] BuildDayCapacityChartData is called with no filters and no scenario collapse
         ChartDataJson := SkillCapacityAnalysisMgt.BuildDayCapacityChartData(PeriodStart);
 
         // [THEN] Only the unassigned line's 4 hours show up in the skill's Requested segment.
-        AssertAreEqual(4, GetSeriesValueAtCategory(ChartDataJson, 'SCCTSKB', MondayRequested), 'Skill Requested segment must only count the unassigned line.');
+        AssertAreEqual(4, GetSeriesValueAtDayBar(ChartDataJson, 'SCCTSKB', PeriodStart, PeriodStart, false), 'Skill Requested segment must only count the unassigned line.');
     end;
 
     [Test]
@@ -370,12 +336,6 @@ codeunit 60024 "Skill Capacity Chart Tests"
         MondayDate: Date;
         TuesdayDate: Date;
         WednesdayDate: Date;
-        MondayFreeCapacity: Text;
-        MondayRequested: Text;
-        TuesdayFreeCapacity: Text;
-        TuesdayRequested: Text;
-        WednesdayFreeCapacity: Text;
-        WednesdayRequested: Text;
         ChartDataJson: Text;
     begin
         // [GIVEN] Identical setup on Monday, Tuesday, Wednesday: an internal resource with 6
@@ -405,36 +365,29 @@ codeunit 60024 "Skill Capacity Chart Tests"
         InsertDayPlanningLine(TuesdayDate, '', 0, 'SCCTSKD', 3);
         InsertDayPlanningLine(WednesdayDate, '', 0, 'SCCTSKD', 3);
 
-        MondayFreeCapacity := BuildCategoryText(MondayDate, ' Capacity');
-        MondayRequested := BuildCategoryText(MondayDate, ' Requested');
-        TuesdayFreeCapacity := BuildCategoryText(TuesdayDate, ' Capacity');
-        TuesdayRequested := BuildCategoryText(TuesdayDate, ' Requested');
-        WednesdayFreeCapacity := BuildCategoryText(WednesdayDate, ' Capacity');
-        WednesdayRequested := BuildCategoryText(WednesdayDate, ' Requested');
-
         // [WHEN] BuildDayCapacityChartData is called with ScenarioNo = 2 (Monday=weekday 1 and
         // Tuesday=weekday 2 are "closed").
         ChartDataJson := SkillCapacityAnalysisMgt.BuildDayCapacityChartData(PeriodStart);
 
         // [THEN] Assigned is unaffected by the collapse on every day.
-        AssertAreEqual(6, GetSeriesValueAtCategory(ChartDataJson, 'Assigned', MondayFreeCapacity), 'Monday Assigned (Capacity bar).');
-        AssertAreEqual(6, GetSeriesValueAtCategory(ChartDataJson, 'Assigned', MondayRequested), 'Monday Assigned (Requested bar).');
-        AssertAreEqual(6, GetSeriesValueAtCategory(ChartDataJson, 'Assigned', TuesdayFreeCapacity), 'Tuesday Assigned (Capacity bar).');
-        AssertAreEqual(6, GetSeriesValueAtCategory(ChartDataJson, 'Assigned', TuesdayRequested), 'Tuesday Assigned (Requested bar).');
-        AssertAreEqual(6, GetSeriesValueAtCategory(ChartDataJson, 'Assigned', WednesdayFreeCapacity), 'Wednesday Assigned (Capacity bar).');
-        AssertAreEqual(6, GetSeriesValueAtCategory(ChartDataJson, 'Assigned', WednesdayRequested), 'Wednesday Assigned (Requested bar).');
+        AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned', PeriodStart, MondayDate, true), 'Monday Assigned (Capacity bar).');
+        AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned', PeriodStart, MondayDate, false), 'Monday Assigned (Requested bar).');
+        AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned', PeriodStart, TuesdayDate, true), 'Tuesday Assigned (Capacity bar).');
+        AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned', PeriodStart, TuesdayDate, false), 'Tuesday Assigned (Requested bar).');
+        AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned', PeriodStart, WednesdayDate, true), 'Wednesday Assigned (Capacity bar).');
+        AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned', PeriodStart, WednesdayDate, false), 'Wednesday Assigned (Requested bar).');
 
         // [THEN] Monday and Tuesday (closed) have their Internal free-capacity and skill
         // Requested segments zeroed out.
-        AssertAreEqual(0, GetSeriesValueAtCategory(ChartDataJson, 'Internal', MondayFreeCapacity), 'Monday Internal must be collapsed to 0.');
-        AssertAreEqual(0, GetSeriesValueAtCategory(ChartDataJson, 'SCCTSKD', MondayRequested), 'Monday skill segment must be collapsed to 0.');
-        AssertAreEqual(0, GetSeriesValueAtCategory(ChartDataJson, 'Internal', TuesdayFreeCapacity), 'Tuesday Internal must be collapsed to 0.');
-        AssertAreEqual(0, GetSeriesValueAtCategory(ChartDataJson, 'SCCTSKD', TuesdayRequested), 'Tuesday skill segment must be collapsed to 0.');
+        AssertAreEqual(0, GetSeriesValueAtDayBar(ChartDataJson, 'Internal', PeriodStart, MondayDate, true), 'Monday Internal must be collapsed to 0.');
+        AssertAreEqual(0, GetSeriesValueAtDayBar(ChartDataJson, 'SCCTSKD', PeriodStart, MondayDate, false), 'Monday skill segment must be collapsed to 0.');
+        AssertAreEqual(0, GetSeriesValueAtDayBar(ChartDataJson, 'Internal', PeriodStart, TuesdayDate, true), 'Tuesday Internal must be collapsed to 0.');
+        AssertAreEqual(0, GetSeriesValueAtDayBar(ChartDataJson, 'SCCTSKD', PeriodStart, TuesdayDate, false), 'Tuesday skill segment must be collapsed to 0.');
 
         // [THEN] Wednesday (weekday 3, open) is untouched: Internal free capacity = 10 - 6 = 4,
         // skill segment = 3.
-        AssertAreEqual(4, GetSeriesValueAtCategory(ChartDataJson, 'Internal', WednesdayFreeCapacity), 'Wednesday Internal must be untouched.');
-        AssertAreEqual(3, GetSeriesValueAtCategory(ChartDataJson, 'SCCTSKD', WednesdayRequested), 'Wednesday skill segment must be untouched.');
+        AssertAreEqual(4, GetSeriesValueAtDayBar(ChartDataJson, 'Internal', PeriodStart, WednesdayDate, true), 'Wednesday Internal must be untouched.');
+        AssertAreEqual(3, GetSeriesValueAtDayBar(ChartDataJson, 'SCCTSKD', PeriodStart, WednesdayDate, false), 'Wednesday skill segment must be untouched.');
     end;
 
     // ================================================================
@@ -461,8 +414,6 @@ codeunit 60024 "Skill Capacity Chart Tests"
         CurrDate: Date;
         ResNo: Code[20];
         SkillCodeValue: Code[10];
-        FreeCapacityCategory: Text;
-        RequestedCategory: Text;
         ChartDataJson: Text;
         ExpectedInternal: Decimal;
         ExpectedSkill: Decimal;
@@ -498,12 +449,10 @@ codeunit 60024 "Skill Capacity Chart Tests"
         // too.
         for WeekdayIndex := 1 to 5 do begin
             CurrDate := PeriodStart + (WeekdayIndex - 1);
-            FreeCapacityCategory := BuildCategoryText(CurrDate, ' Capacity');
-            RequestedCategory := BuildCategoryText(CurrDate, ' Requested');
 
-            AssertAreEqual(6, GetSeriesValueAtCategory(ChartDataJson, 'Assigned', FreeCapacityCategory),
+            AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned', PeriodStart, CurrDate, true),
                 StrSubstNo('Scenario %1, weekday %2 Assigned (Capacity bar).', WeekdayIndex));
-            AssertAreEqual(6, GetSeriesValueAtCategory(ChartDataJson, 'Assigned', RequestedCategory),
+            AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned', PeriodStart, CurrDate, false),
                 StrSubstNo('Scenario %1, weekday %2 Assigned (Requested bar).', WeekdayIndex));
 
             if WeekdayIndex <= ScenarioNo then begin
@@ -514,9 +463,9 @@ codeunit 60024 "Skill Capacity Chart Tests"
                 ExpectedSkill := 3;
             end;
 
-            AssertAreEqual(ExpectedInternal, GetSeriesValueAtCategory(ChartDataJson, 'Internal', FreeCapacityCategory),
+            AssertAreEqual(ExpectedInternal, GetSeriesValueAtDayBar(ChartDataJson, 'Internal', PeriodStart, CurrDate, true),
                 StrSubstNo('Scenario %1, weekday %2 Internal free capacity.', WeekdayIndex));
-            AssertAreEqual(ExpectedSkill, GetSeriesValueAtCategory(ChartDataJson, SkillCodeValue, RequestedCategory),
+            AssertAreEqual(ExpectedSkill, GetSeriesValueAtDayBar(ChartDataJson, SkillCodeValue, PeriodStart, CurrDate, false),
                 StrSubstNo('Scenario %1, weekday %2 skill segment.', WeekdayIndex));
         end;
     end;
@@ -590,17 +539,17 @@ codeunit 60024 "Skill Capacity Chart Tests"
         // category/series value.
         AssertIsTrue(FindAuditRow(AuditBuffer, MondayDate, Enum::"Day Capacity Chart Bar Type"::Capacity, 'Assigned'),
             'Monday Capacity/Assigned row must exist.');
-        AssertAreEqual(GetSeriesValueAtCategory(ChartDataJson, 'Assigned', BuildCategoryText(MondayDate, ' Capacity')), AuditBuffer.Value,
+        AssertAreEqual(GetSeriesValueAtDayBar(ChartDataJson, 'Assigned', PeriodStart, MondayDate, true), AuditBuffer.Value,
             'Monday Capacity/Assigned value must match the chart.');
 
         AssertIsTrue(FindAuditRow(AuditBuffer, WednesdayDate, Enum::"Day Capacity Chart Bar Type"::Capacity, 'Internal'),
             'Wednesday Capacity/Internal row must exist.');
-        AssertAreEqual(GetSeriesValueAtCategory(ChartDataJson, 'Internal', BuildCategoryText(WednesdayDate, ' Capacity')), AuditBuffer.Value,
+        AssertAreEqual(GetSeriesValueAtDayBar(ChartDataJson, 'Internal', PeriodStart, WednesdayDate, true), AuditBuffer.Value,
             'Wednesday Capacity/Internal value must match the chart.');
 
         AssertIsTrue(FindAuditRow(AuditBuffer, WednesdayDate, Enum::"Day Capacity Chart Bar Type"::Requested, 'SCCTSKE'),
             'Wednesday Requested/SCCTSKE row must exist.');
-        AssertAreEqual(GetSeriesValueAtCategory(ChartDataJson, 'SCCTSKE', BuildCategoryText(WednesdayDate, ' Requested')), AuditBuffer.Value,
+        AssertAreEqual(GetSeriesValueAtDayBar(ChartDataJson, 'SCCTSKE', PeriodStart, WednesdayDate, false), AuditBuffer.Value,
             'Wednesday Requested/SCCTSKE value must match the chart.');
     end;
 
