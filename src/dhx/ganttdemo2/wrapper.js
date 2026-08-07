@@ -1637,6 +1637,19 @@ function RenderGantt(pskipTrigger_OnJobTaskUpdated) {
       return;
     }
 
+    // During a full reload cycle (ClearData -> ... -> RenderGantt), LoadResourcesData/
+    // LoadDayPlanningsData call resourcesStore.parse()/DayPlanningsStore.parse() but skip
+    // their own gantt.render() while _isRefreshing is true, deferring the one real paint to
+    // this function. That leaves a race: the resource-panel grid views are bound via
+    // RecreateGanttLayout's "bind: resources" (re-triggered by SetResourcePanelVisibility just
+    // before this call from AL), but the bound views were confirmed live to sometimes still
+    // paint stale/empty data even though resourcesStore/DayPlanningsStore already held the
+    // fresh items at that exact moment - the same .refresh() forcing-a-resync-before-redraw
+    // pattern already relied on elsewhere in this file (see UpsertDayPlanning's
+    // resourcesStore.refresh() after a store mutation) closes that gap here too.
+    if (resourcesStore && resourcesStore.refresh) resourcesStore.refresh();
+    if (DayPlanningsStore && DayPlanningsStore.refresh) DayPlanningsStore.refresh();
+
     // Final render after all data loaded
     gantt.render();
 

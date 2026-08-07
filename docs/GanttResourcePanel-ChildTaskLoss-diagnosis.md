@@ -105,6 +105,47 @@ publisher changes required.
 | Symptom | Day Planning entries disappear from Gantt Resource Panel after task bar drag/resize; Refresh Data doesn't restore them; close+reopen does |
 | Layer | Data scope / Logic |
 | Root cause | `ReloadResourcePanelFromStoredFilter` (page 50620) marks only the single stored parent Job Task, losing the child-task marks that were part of the panel's original scope, so child tasks' Day Plannings drop out of every subsequent reload |
-| Fix applied | Added `ResourcePanelChildTaskIds` page var; populated in `OnShowResourcesForTask`, re-marked in `ReloadResourcePanelFromStoredFilter` and `LoadAllData`, cleared in `ClearResourcePanelFilter` |
+| Fix applied | See "Post-fix follow-up" below — the children-marking fix was necessary but not sufficient; two further defects were found via live browser testing and fixed |
 | Diagnosis doc | docs\GanttResourcePanel-ChildTaskLoss-diagnosis.md |
 | Tests defined | 3 (manual verification — see Tests required above) |
+
+## Post-fix follow-up (2026-08-07, same day)
+
+Live testing (Playwright-driven browser against the `NL_Test` sandbox) surfaced two further defects
+in the same reload paths, on top of the children-marking fix above:
+
+1. **Resource panel layout never rebuilt after a reload.** The panel's visible grid only binds to
+   `resourcesStore`/`DayPlanningsStore` when `SetResourcePanelVisibility(true)` (→
+   `RecreateGanttLayout`) runs — the "click a task" path does this, but `LoadAllData` (Refresh Data)
+   and `OnJobTaskUpdated` (drag/resize) did not call it again after reloading data. Fixed by adding a
+   guarded `SetResourcePanelVisibility(true)` call (when `ResourcePanelFlag` is set) right before each
+   `RenderGantt` call in both places.
+
+2. **Root cause of the "still empty after Refresh Data" symptom, confirmed via a live debug session
+   (temporary `Message()` instrumentation, since removed):** in `LoadAllData`'s stored-filter branch,
+   a `JobTask.Reset()` call — added between marking the primary task and marking its children —
+   was found to **also clear the marked-record list**, not just filters as assumed. This silently
+   un-marked the primary task immediately after marking it. For a task with children, the
+   children-marking loop re-marked *those*, masking the bug. For a leaf task with no children (e.g.
+   task 1080 in the reported repro), nothing re-marked it, so the panel ended up with zero marked
+   Job Task records and rendered completely empty on every Refresh Data click. Fixed by removing that
+   `Reset()` call — `Get()` does not depend on active filters, so it was unnecessary as well as
+   harmful.
+
+   A secondary, related finding during the same investigation: the reload logic originally decided
+   whether to apply the resource-panel filter by re-parsing `CurrentResourcePanelFilterJsonString`,
+   which is only populated via an async JS round trip
+   (`SetResourcePanelFilterInfo` → `GetResourceFilter` → `OnResourceFilterRetrieved`). This was
+   replaced with plain synchronous AL page variables (`ResourcePanelJobNo`, `ResourcePanelJobTaskNo`,
+   `ResourcePanelFromDate`, `ResourcePanelToDate`) set directly in `OnShowResourcesForTask` and
+   `ReloadResourcePanelFromStoredFilter`, removing a source of timing-dependent behavior even though
+   it turned out not to be the primary cause of this particular symptom.
+
+3. **Defensive JS-side hardening** (`wrapper.js`, `RenderGantt`): added `resourcesStore.refresh()` /
+   `DayPlanningsStore.refresh()` immediately before the final `gantt.render()`, mirroring the same
+   resync-before-redraw pattern already used elsewhere in the file (`UpsertDayPlanning`). Kept as a
+   safety net even though the AL-side `Reset()` fix was the actual root cause.
+
+All three changes were verified live: repeated click-task → Refresh Data cycles (including on the
+originally-failing leaf task 1080) consistently kept the resource panel populated across multiple
+consecutive refreshes.
