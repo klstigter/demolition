@@ -806,7 +806,7 @@ table 50610 "Day Planning"
         key(DateKey; "Plan Date", "Start Time Assigned")
         {
         }
-        Key(Key2; "Plan Date", "Assigned Resource No.", "Start Time Assigned")
+        Key(Key2; "Plan Date", "Skill", "Assigned Resource No.")
         {
         }
     }
