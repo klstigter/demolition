@@ -337,6 +337,16 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// Shared per-day computation used by both BuildDayCapacityChartData and
     /// BuildDayCapacityAuditBuffer so the chart and its audit trail can never drift apart. Returns
     /// the Assigned/Internal/External/per-skill values for ONE weekday.
+    ///
+    /// "Fulfilled" day collapse (design ref: "Cappacity vs Requested.xlsx", View sheet's Scenario
+    /// rows - Data!C18:I19 etc show Internal/External/skill columns all blank once "Ass" alone
+    /// already accounts for the whole day): when every unit of Requested Hours for PlanDate
+    /// already has an assigned resource (SkillValues sums to 0 across every active skill),
+    /// InternalFree/ExternalFree are also forced to 0 - even if the day's resources still have
+    /// spare capacity - so the Capacity bar collapses to the same single "Assigned" (green)
+    /// segment the Requested bar already shows naturally in that case. Guarded on ActiveSkillList
+    /// being non-empty so a period with no request activity anywhere (nothing to "fulfill") isn't
+    /// misread as every day being fulfilled.
     /// </summary>
     local procedure CalcDaySegments(PlanDate: Date; var ActiveSkillList: List of [Code[20]]; var TempDayPlanning: Record "Day Planning" temporary; var AssignedValue: Decimal; var InternalFree: Decimal; var ExternalFree: Decimal; var SkillValues: Dictionary of [Code[20], Decimal])
     var
@@ -345,6 +355,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         InternalAssignedD: Decimal;
         ExternalAssignedD: Decimal;
         SkillCode: Code[20];
+        TotalUnassignedRequestedD: Decimal;
     begin
         Clear(SkillValues);
 
@@ -355,8 +366,16 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         InternalFree := InternalCapacityD - InternalAssignedD;
         ExternalFree := ExternalCapacityD - ExternalAssignedD;
 
-        foreach SkillCode in ActiveSkillList do
+        TotalUnassignedRequestedD := 0;
+        foreach SkillCode in ActiveSkillList do begin
             SkillValues.Set(SkillCode, CalcUnassignedSkillRequestedHours(PlanDate, SkillCode, TempDayPlanning));
+            TotalUnassignedRequestedD += SkillValues.Get(SkillCode);
+        end;
+
+        if (ActiveSkillList.Count() <> 0) and (TotalUnassignedRequestedD = 0) then begin
+            InternalFree := 0;
+            ExternalFree := 0;
+        end;
     end;
 
     /// <summary>

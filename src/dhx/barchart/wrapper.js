@@ -29,7 +29,11 @@ var SERIES_COLOR_PALETTE = ["#2A9D8F", "#E76F51", "#11A3D0", "#E5A910", "#985F99
 var CATEGORY_DELIMITER = "|";       // matches codeunit 50662's CategoryDelimiterTok
 var BOTTOM_TEXT_PADDING = 12;       // matches scales.bottom.textPadding in RenderChart
 var DAY_ROW_HEIGHT = 24;            // px reserved for EACH of the 2 bottom-axis rows
-var DAY_GROUP_BORDER_COLOR = "#000000";
+// Matches the native plot area's own gridlines (suite.css: `.grid-line{stroke:var(--dhx-color-
+// gray-100)}`, no explicit stroke-width -> browser default of 1px) rather than a bold black line,
+// so the day-group row's grid reads as part of the same chart instead of a heavier overlay.
+var DAY_GROUP_BORDER_COLOR = "var(--dhx-color-gray-100)";
+var DAY_GROUP_BORDER_WIDTH = 1;
 
 // ============================================================
 // BOOT – called by startupScript.js
@@ -317,18 +321,18 @@ function RenderDayGroupRow(dayLabels) {
 
     group.appendChild(SvgEl("rect", {
         x: leftEdge, y: axisY, width: rightEdge - leftEdge, height: DAY_ROW_HEIGHT * 2,
-        fill: "none", stroke: DAY_GROUP_BORDER_COLOR, "stroke-width": 1
+        fill: "none", stroke: DAY_GROUP_BORDER_COLOR, "stroke-width": DAY_GROUP_BORDER_WIDTH
     }));
     group.appendChild(SvgEl("line", {
         x1: leftEdge, x2: rightEdge, y1: axisY + DAY_ROW_HEIGHT, y2: axisY + DAY_ROW_HEIGHT,
-        stroke: DAY_GROUP_BORDER_COLOR, "stroke-width": 1
+        stroke: DAY_GROUP_BORDER_COLOR, "stroke-width": DAY_GROUP_BORDER_WIDTH
     }));
     // Top row: one divider between every bar (Capacity | Requested | Capacity | ...).
     for (var k = 0; k < xs.length - 1; k++) {
         var dividerX = (xs[k] + xs[k + 1]) / 2;
         group.appendChild(SvgEl("line", {
             x1: dividerX, x2: dividerX, y1: axisY, y2: axisY + DAY_ROW_HEIGHT,
-            stroke: DAY_GROUP_BORDER_COLOR, "stroke-width": 1
+            stroke: DAY_GROUP_BORDER_COLOR, "stroke-width": DAY_GROUP_BORDER_WIDTH
         }));
     }
     // Bottom row: one divider between each WEEKDAY pair only (not between a day's own
@@ -337,7 +341,7 @@ function RenderDayGroupRow(dayLabels) {
         var pairBoundaryX = (xs[d * 2 + 1] + xs[d * 2 + 2]) / 2;
         group.appendChild(SvgEl("line", {
             x1: pairBoundaryX, x2: pairBoundaryX, y1: axisY + DAY_ROW_HEIGHT, y2: axisY + DAY_ROW_HEIGHT * 2,
-            stroke: DAY_GROUP_BORDER_COLOR, "stroke-width": 1
+            stroke: DAY_GROUP_BORDER_COLOR, "stroke-width": DAY_GROUP_BORDER_WIDTH
         }));
     }
     // One merged day-name label per weekday, centered over its own pair of bars.
