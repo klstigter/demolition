@@ -54,11 +54,6 @@ page 50692 "Requested vs Capacity Skl Dhx"
 
         area(FactBoxes)
         {
-            part(DataPart; "Skill Req. vs Capacity Part")
-            {
-                ApplicationArea = All;
-                Caption = 'Requested vs Capacity per Skill';
-            }
             part(AuditDataPart; "Day Capacity Chart Audit")
             {
                 ApplicationArea = All;
@@ -214,12 +209,7 @@ page 50692 "Requested vs Capacity Skl Dhx"
     end;
 
     local procedure RefreshData()
-    var
-        PeriodEndDate: Date;
     begin
-        PeriodEndDate := PeriodStartDate + 6;
-        SkillCapacityAnalysisMgt.BuildSkillBuffer(Buffer, PeriodStartDate, PeriodEndDate);
-        CurrPage.DataPart.Page.LoadData(Buffer, PeriodStartDate, PeriodEndDate);
         RefreshChart();
         RefreshAuditBuffer();
     end;
@@ -230,8 +220,7 @@ page 50692 "Requested vs Capacity Skl Dhx"
     // JSON shape (categories/series with name/values/color/[border]/stacked keys) that
     // src/dhx/barchart/wrapper.js' RenderChart expects. This page only supplies the current
     // filters (period, Resource No., Scenario) and forwards the resulting JSON string straight to
-    // CurrPage.DhxBarChart.LoadData - it builds no JSON of its own. Buffer (populated by
-    // RefreshData from the unrelated BuildSkillBuffer) still drives the factbox part only.
+    // CurrPage.DhxBarChart.LoadData - it builds no JSON of its own.
     local procedure RefreshChart()
     var
         ChartDataJson: Text;
@@ -260,7 +249,6 @@ page 50692 "Requested vs Capacity Skl Dhx"
     end;
 
     var
-        Buffer: Record "Skill Req. vs Capacity Buffer" temporary;
         SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
         PeriodStartDate: Date;
         ChartReady: Boolean;
