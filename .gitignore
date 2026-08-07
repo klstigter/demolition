@@ -7,6 +7,8 @@
 #./app.json
 .snapshots/
 .vs/
+# Playwright MCP test-session artifacts (screenshots, page/console snapshots) - not AL code
+.playwright-mcp/
 # Explicitly ignore VS Code launch settings
 
 # Others
