@@ -147,12 +147,12 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     end;
 
     /// <summary>
-    /// Builds a self-describing "Cap. X"/"Req. X" label for the factbox's "Segment" column
-    /// (page 50691) - "No." alone is ambiguous once exported flat (e.g. to Excel): 'Assigned' is
-    /// inserted under BOTH bar types (see CalcFreeCapacity) and, without the hidden "Bar Type"
-    /// column, reads as an unexplained duplicate; a blank Skill Code (an unassigned Day Planning
-    /// line with no Skill set) reads as an unexplained blank row. Both are still shown - not
-    /// dropped - just labelled clearly instead of relabelled away, matching this codeunit's
+    /// Builds a self-describing "Cap. X"/"Req. X" label for the "Skill Req. vs Capacity Buffer"
+    /// table's "Segment" field - "No." alone is ambiguous once exported flat (e.g. to Excel):
+    /// 'Assigned' is inserted under BOTH bar types (see CalcFreeCapacity) and, without the hidden
+    /// "Bar Type" column, reads as an unexplained duplicate; a blank Skill Code (an unassigned Day
+    /// Planning line with no Skill set) reads as an unexplained blank row. Both are still shown -
+    /// not dropped - just labelled clearly instead of relabelled away, matching this codeunit's
     /// broader "show at 0/blank rather than silently disappearing" approach elsewhere.
     /// </summary>
     local procedure BuildSegmentLabel(BarType: Enum "Day Capacity Chart Bar Type"; SkillCode: Code[20]): Text[30]
@@ -401,6 +401,19 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         InternalFree := InternalCapacityD - InternalAssignedD;
         ExternalFree := ExternalCapacityD - ExternalAssignedD;
 
+        // Floored at 0 - matches the sibling CalcFreeCapacity procedure's own existing clamp
+        // (used by the unrelated BuildSkillBuffer/factbox flow). An over-assigned day going
+        // negative here does not just read oddly on the axis; it structurally breaks the
+        // "External always renders as the topmost stacked segment" requirement, because negative
+        // stacked values extend BELOW the zero baseline instead of continuing the top-of-stack
+        // sequence - so a negative External detaches from the stack entirely rather than merely
+        // shrinking. Flooring both here (not just External) keeps Internal/External consistent
+        // with each other and with CalcFreeCapacity's precedent.
+        if InternalFree < 0 then
+            InternalFree := 0;
+        if ExternalFree < 0 then
+            ExternalFree := 0;
+
         TotalUnassignedRequestedD := 0;
         foreach SkillCode in ActiveSkillList do begin
             SkillValues.Set(SkillCode, CalcUnassignedSkillRequestedHours(PlanDate, SkillCode, TempDayPlanning));
@@ -603,7 +616,10 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         CategoryDelimiterTok: Label '|', Locked = true;
         AssColorTok: Label '#548235', Locked = true;
         InternalColorTok: Label '#8EA9DB', Locked = true;
-        ExternalColorTok: Label '#B4C6E7', Locked = true;
+        // A clearly saturated blue - '#B4C6E7' (previous value) sat too close to Internal's own
+        // pale blue above to tell the two series apart at a glance, even with External's red
+        // border (ExternalBorderColorTok below, unchanged) helping.
+        ExternalColorTok: Label '#2E75B6', Locked = true;
         ExternalBorderColorTok: Label '#FF0000', Locked = true;
         AssignedSegmentTok: Label 'Assigned', Locked = true;
         InternalSegmentTok: Label 'Internal', Locked = true;

@@ -66,7 +66,7 @@ page 50681 "Req. vs Capacity Skl Dhx v1"
 
         area(FactBoxes)
         {
-            part(DataPart; "Skill Req. vs Capacity Part")
+            part(DataPart; "SkillReq. vs CapacityPart v1")
             {
                 ApplicationArea = All;
                 Caption = 'Requested vs Capacity per Skill';
@@ -207,8 +207,8 @@ page 50681 "Req. vs Capacity Skl Dhx v1"
         PeriodEndDate: Date;
     begin
         PeriodEndDate := PeriodStartDate + 6;
-        SkillCapacityAnalysisMgt.BuildSkillBuffer(Buffer, PeriodStartDate, PeriodEndDate);
-        CurrPage.DataPart.Page.LoadData(Buffer, PeriodStartDate, PeriodEndDate);
+        SkillCapacityAnalysisMgt.BuildSkillBuffer(Buffer, ResourceNoFilter, PeriodStartDate, PeriodEndDate, '');
+        CurrPage.DataPart.Page.LoadData(Buffer, ResourceNoFilter, PeriodStartDate, PeriodEndDate);
         RefreshChart();
     end;
 
@@ -263,7 +263,7 @@ page 50681 "Req. vs Capacity Skl Dhx v1"
 
     var
         Buffer: Record "Skill Req. vs Capacity Buffer" temporary;
-        SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
+        SkillCapacityAnalysisMgt: Codeunit "SkillCapacityAnalysisMgt.v1";
         ResourceNoFilter: Code[20];
         PeriodStartDate: Date;
         ChartReady: Boolean;
