@@ -6,16 +6,22 @@ table 50622 "Skill Req. vs Capacity Buffer"
 
     fields
     {
-        field(1; "Skill Code"; Code[10])
+
+        field(1; "Bar Type"; Enum "Day Capacity Chart Bar Type")
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Bar Type';
+        }
+        field(2; "No."; Code[20])
         {
             DataClassification = ToBeClassified;
             Caption = 'Skill Code';
-            TableRelation = "Skill Code";
+
         }
-        field(2; Description; Text[100])
+        field(3; "Week Day No."; Integer)
         {
             DataClassification = ToBeClassified;
-            Caption = 'Description';
+            Caption = 'Week Day No.';
         }
         field(10; "Requested Hours"; Decimal)
         {
@@ -27,7 +33,7 @@ table 50622 "Skill Req. vs Capacity Buffer"
 
     keys
     {
-        key(PK; "Skill Code")
+        key(PK; "Bar Type", "No.", "Week Day No.")
         {
             Clustered = true;
         }
@@ -35,8 +41,9 @@ table 50622 "Skill Req. vs Capacity Buffer"
 
     fieldgroups
     {
-        fieldgroup(DropDown; "Skill Code", Description)
+        fieldgroup(DropDown; "No.", "Week Day No.", "Requested Hours")
         {
         }
+
     }
 }

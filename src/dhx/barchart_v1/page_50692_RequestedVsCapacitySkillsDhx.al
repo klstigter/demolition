@@ -207,8 +207,8 @@ page 50681 "Req. vs Capacity Skl Dhx v1"
         PeriodEndDate: Date;
     begin
         PeriodEndDate := PeriodStartDate + 6;
-        SkillCapacityAnalysisMgt.BuildSkillBuffer(Buffer, ResourceNoFilter, PeriodStartDate, PeriodEndDate, '');
-        CurrPage.DataPart.Page.LoadData(Buffer, ResourceNoFilter, PeriodStartDate, PeriodEndDate);
+        SkillCapacityAnalysisMgt.BuildSkillBuffer(Buffer, PeriodStartDate, PeriodEndDate, '');
+        CurrPage.DataPart.Page.LoadData(Buffer, PeriodStartDate, PeriodEndDate);
         RefreshChart();
     end;
 
@@ -245,7 +245,7 @@ page 50681 "Req. vs Capacity Skl Dhx v1"
         Buffer.Reset();
         if Buffer.FindSet() then
             repeat
-                CategoriesArray.Add(Buffer."Skill Code");
+                CategoriesArray.Add(Buffer."No.");
                 RequestedValues.Add(Buffer."Requested Hours");
             until Buffer.Next() = 0;
 

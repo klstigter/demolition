@@ -33,65 +33,42 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// Builds the Requested Hours (per skill) / Capacity (single aggregate) buffer for the
     /// supplied filters. All filter parameters are optional; blank / 0D means "no filter".
     /// </summary>
-    procedure BuildSkillBuffer(var Buffer: Record "Skill Req. vs Capacity Buffer" temporary; ResourceNoFilter: Code[20]; DateFromFilter: Date; DateToFilter: Date; SkillCodeFilter: Code[10])
+    procedure BuildSkillBuffer(var Buffer: Record "Skill Req. vs Capacity Buffer" temporary; DateFromFilter: Date; DateToFilter: Date; SkillCodeFilter: Code[10])
     var
         DayPlanning: Record "Day Planning";
         SkillCodeRec: Record "Skill Code";
-        RequestedHoursPerSkill: Dictionary of [Code[10], Decimal];
+        DateRc: Record Date;
         SkillCode: Code[10];
+        WkDayNo: Integer;
+        BarType: Enum "Day Capacity Chart Bar Type";
     begin
         Buffer.Reset();
         Buffer.DeleteAll();
-
-        ApplyDayPlanningFilters(DayPlanning, ResourceNoFilter, DateFromFilter, DateToFilter, SkillCodeFilter);
-
-        if DayPlanning.FindSet() then
+        DateRc.setrange("Period Type", DateRc."Period Type"::Date);
+        DateRc.setrange("Period Start", DateFromFilter, DateToFilter);
+        DateRc.findset();
+        repeat
+            this.CalcFiltersDayPlanning(DayPlanning, DateRc."Period Start");
+            WkDayNo := Date2DWY(DateRc."Period Start", 1);
             repeat
-                // Requested Hours belong to the skill recorded on the line itself.
-                AddToTotals(RequestedHoursPerSkill, CopyStr(DayPlanning.Skill, 1, MaxStrLen(SkillCode)), DayPlanning."Requested Hours");
+                dayplanning.setrange(Skill, dayplanning.skill);
+                dayplanning.CalcSums("Requested Hours");
+                insertBufferLine(Buffer, BarType::Requested, dayplanning.skill, WkDayNo, dayplanning."Requested Hours");
+                if dayplanning.FindLast() then;
+                dayplanning.setrange(Skill);
             until DayPlanning.Next() = 0;
-
-        // One row per "Skill Code" MASTER record - not per skill actually found on a Day
-        // Planning line - so every configured skill shows (at 0 if it has no matching lines)
-        // instead of silently disappearing. Matches codeunit 50694's BuildSkillCodeList on the
-        // Capacity Overview page. SkillCodeFilter (when set) narrows this to a single master
-        // record, same as it always narrowed ApplyDayPlanningFilters above.
-        SkillCodeRec.Reset();
-        if SkillCodeFilter <> '' then
-            SkillCodeRec.SetRange(Code, SkillCodeFilter);
-        if SkillCodeRec.FindSet() then
-            repeat
-                SkillCode := CopyStr(SkillCodeRec.Code, 1, MaxStrLen(SkillCode));
-                InsertBufferLine(Buffer, SkillCode, GetTotal(RequestedHoursPerSkill, SkillCode));
-            until SkillCodeRec.Next() = 0;
-
-        // Single aggregate Capacity row, always appended (even when 0) so the chart/factbox
-        // consistently show the reference bar/row. Deliberately ignores SkillCodeFilter.
-        InsertCapacityLine(Buffer, CalcAggregateCapacity(ResourceNoFilter, DateFromFilter, DateToFilter));
-
+            this.CalcFreeCapacity(Buffer, DateRc."Period Start");
+        until DateRc.next() = 0;
         Buffer.Reset();
         if Buffer.FindFirst() then;
     end;
 
-    local procedure ApplyDayPlanningFilters(var DayPlanning: Record "Day Planning"; ResourceNoFilter: Code[20]; DateFromFilter: Date; DateToFilter: Date; SkillCodeFilter: Code[10])
+    local procedure CalcFiltersDayPlanning(var DayPlanning: Record "Day Planning"; DateFilter: Date)
     begin
         DayPlanning.Reset();
-        DayPlanning.SetCurrentKey("Plan Date", "Assigned Resource No.", "Start Time Assigned");
-
-        if ResourceNoFilter <> '' then
-            DayPlanning.SetRange("Assigned Resource No.", ResourceNoFilter);
-
-        case true of
-            (DateFromFilter <> 0D) and (DateToFilter <> 0D):
-                DayPlanning.SetRange("Plan Date", DateFromFilter, DateToFilter);
-            DateFromFilter <> 0D:
-                DayPlanning.SetFilter("Plan Date", '>=%1', DateFromFilter);
-            DateToFilter <> 0D:
-                DayPlanning.SetFilter("Plan Date", '<=%1', DateToFilter);
-        end;
-
-        if SkillCodeFilter <> '' then
-            DayPlanning.SetRange(Skill, SkillCodeFilter);
+        DayPlanning.SetCurrentKey("Plan Date", Skill, "Assigned Resource No.");
+        DayPlanning.SetFilter("Assigned Resource No.", '=%1', '');
+        DayPlanning.SetRange("Plan Date", DateFilter);
     end;
 
     /// <summary>
@@ -99,77 +76,77 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// using the same partial-range logic as ApplyDayPlanningFilters. Deliberately has no
     /// Skill Code parameter - capacity is a resource/date total, not a per-skill figure.
     /// </summary>
-    local procedure CalcAggregateCapacity(ResourceNoFilter: Code[20]; DateFromFilter: Date; DateToFilter: Date): Decimal
+    local procedure CalcFreeCapacity(var Buffer: Record "Skill Req. vs Capacity Buffer" temporary; DateFilter: Date): Decimal
     var
         ResCapacityEntry: Record "Res. Capacity Entry";
+        DayPlan: Record "Day Planning";
+        TempResource: Record Resource temporary;
+        Resource: Record Resource;
+        WkDayNo: Integer;
+        FreeCapacity: Decimal;
+        TotalFreeCapacity: array[2] of Decimal;
+        TotalAssigned: Decimal;
+        BarType: Enum "Day Capacity Chart Bar Type";
+        External: Boolean;
+        Code: Code[20];
     begin
-        ResCapacityEntry.Reset();
+        WkDayNo := Date2DWY(DateFilter, 1);
+        ResCapacityEntry.SetLoadFields("Resource No.");
+        ResCapacityEntry.SetRange(Date, DateFilter);
+        if resCapacityEntry.FindSet() then
+            repeat
+                if Not TempResource.Get(ResCapacityEntry."Resource No.") then begin
+                    TempResource."No." := ResCapacityEntry."Resource No.";
+                    tempResource.Insert();
+                end;
+            until ResCapacityEntry.Next() = 0;
+        DayPlan.SetLoadFields("Plan Date", "Assigned Resource No.", "Assigned Hours");
+        DayPlan.SetRange("Assigned Resource No.", '<>%1', '');
+        dayPlan.SetRange("Plan Date", DateFilter);
+        if dayPlan.FindSet() then
+            repeat
+                if not tempResource.Get(dayPlan."Assigned Resource No.") then begin
+                    tempResource."No." := dayPlan."Assigned Resource No.";
+                    tempResource.Insert();
+                end;
+            until dayPlan.Next() = 0;
+        if tempResource.FindSet() then
+            repeat
+                resource.Get(tempResource."No.");
+                External := resource."Is External" OR Resource."Is Pool" OR Resource."Is Pool Member";
+                tempResource.calcfields("Assigned Hours", "Capacity");
+                FreeCapacity := tempResource."Capacity" - tempResource."Assigned Hours";
+                if FreeCapacity <> 0 then
+                    if External then
+                        TotalFreeCapacity[1] += FreeCapacity
+                    else
+                        TotalFreeCapacity[2] += FreeCapacity;
+                if tempResource."Assigned Hours" <> 0 then
+                    TotalAssigned += tempResource."Assigned Hours";
+            until tempResource.Next() = 0;
 
-        if ResourceNoFilter <> '' then
-            ResCapacityEntry.SetRange("Resource No.", ResourceNoFilter);
-
-        case true of
-            (DateFromFilter <> 0D) and (DateToFilter <> 0D):
-                ResCapacityEntry.SetRange(Date, DateFromFilter, DateToFilter);
-            DateFromFilter <> 0D:
-                ResCapacityEntry.SetFilter(Date, '>=%1', DateFromFilter);
-            DateToFilter <> 0D:
-                ResCapacityEntry.SetFilter(Date, '<=%1', DateToFilter);
+        if TotalFreeCapacity[1] <> 0 then
+            InsertBufferLine(Buffer, BarType::Capacity, ExternalSegmentTok, WkDayNo, TotalFreeCapacity[1]);
+        if TotalFreeCapacity[2] <> 0 then
+            InsertBufferLine(Buffer, BarType::Capacity, InternalSegmentTok, WkDayNo, TotalFreeCapacity[2]);
+        if TotalAssigned <> 0 then begin
+            InsertBufferLine(Buffer, BarType::Capacity, 'Assigned', WkDayNo, TotalAssigned);
+            InsertBufferLine(Buffer, BarType::Requested, 'Assigned', WkDayNo, TotalAssigned);
         end;
 
-        ResCapacityEntry.CalcSums(Capacity);
-        exit(ResCapacityEntry.Capacity);
     end;
 
-    local procedure InsertBufferLine(var Buffer: Record "Skill Req. vs Capacity Buffer" temporary; SkillCode: Code[10]; RequestedHours: Decimal)
-    var
-        SkillCodeRec: Record "Skill Code";
+    local procedure InsertBufferLine(var Buffer: Record "Skill Req. vs Capacity Buffer" temporary; BarType: Enum "Day Capacity Chart Bar Type"; Code: Code[20]; WkdayNo: Integer; Hours: Decimal)
     begin
         Buffer.Init();
-        Buffer."Skill Code" := SkillCode;
-        if SkillCodeRec.Get(SkillCode) then
-            Buffer.Description := SkillCodeRec.Description;
-        Buffer."Requested Hours" := RequestedHours;
+        Buffer."Bar Type" := BarType;
+        Buffer."No." := Code;
+        Buffer."Week Day No." := WkdayNo;
+        Buffer."Requested Hours" := Hours;
         Buffer.Insert();
     end;
 
-    /// <summary>
-    /// Inserts the single synthetic "CAPACITY" row that carries the aggregate resource
-    /// capacity total (see the codeunit doc comment) directly in "Requested Hours" - the buffer
-    /// has no separate Capacity field. Its Skill Code is a literal marker, not a real
-    /// "Skill Code" table entry, so the Description is set literally instead of routed through
-    /// a table lookup. Page 50691's Requested Hours OnDrillDown special-cases this same
-    /// literal - keep both in sync if it ever changes.
-    /// </summary>
-    local procedure InsertCapacityLine(var Buffer: Record "Skill Req. vs Capacity Buffer" temporary; CapacityTotal: Decimal)
-    begin
-        Buffer.Init();
-        Buffer."Skill Code" := CapacitySkillCodeTok;
-        Buffer.Description := CapacityDescriptionTxt;
-        Buffer."Requested Hours" := CapacityTotal;
-        Buffer.Insert();
-    end;
 
-    local procedure AddToTotals(var Totals: Dictionary of [Code[10], Decimal]; SkillCode: Code[10]; ValueToAdd: Decimal)
-    var
-        CurrentValue: Decimal;
-    begin
-        if SkillCode = '' then
-            exit;
-
-        if Totals.ContainsKey(SkillCode) then
-            CurrentValue := Totals.Get(SkillCode);
-
-        Totals.Set(SkillCode, CurrentValue + ValueToAdd);
-    end;
-
-    local procedure GetTotal(var Totals: Dictionary of [Code[10], Decimal]; SkillCode: Code[10]): Decimal
-    begin
-        if Totals.ContainsKey(SkillCode) then
-            exit(Totals.Get(SkillCode));
-
-        exit(0);
-    end;
 
     /// <summary>
     /// Builds the JSON payload for the stacked "Capacity vs Requested" chart on page 50692,
@@ -193,7 +170,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// closed/committed and no longer open for planning. Range validation is the caller's
     /// responsibility (page 50692 validates 0..5 on its Scenario field before calling here).
     /// </summary>
-    procedure BuildDayCapacityChartData(PeriodStartDate: Date; ResourceNoFilter: Code[20]; ScenarioNo: Integer) ChartDataJson: Text
+    procedure BuildDayCapacityChartData(PeriodStartDate: Date) ChartDataJson: Text
     var
         ChartData: JsonObject;
         CategoriesArray: JsonArray;
@@ -228,9 +205,8 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         Clear(ExternalValues);
         for WeekdayIndex := 1 to 5 do begin
             CurrDate := PeriodStartDate + (WeekdayIndex - 1);
-            IsClosedDay := WeekdayIndex <= ScenarioNo;
 
-            CalcDaySegments(CurrDate, ResourceNoFilter, IsClosedDay, ActiveSkillList, AssD, InternalFreeD, ExternalFreeD, OneDaySkillValues);
+            CalcDaySegments(CurrDate, ActiveSkillList, AssD, InternalFreeD, ExternalFreeD, OneDaySkillValues);
 
             // Capacity bar value, then Requested bar value - Assigned is identical on both.
             AssValues.Add(AssD);
@@ -280,7 +256,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// Requested bar's rows in the same segment order. Shares CalcDaySegments with
     /// BuildDayCapacityChartData so the two views can never drift apart.
     /// </summary>
-    procedure BuildDayCapacityAuditBuffer(var Buffer: Record "Day Capacity Chart Audit Buf" temporary; PeriodStartDate: Date; ResourceNoFilter: Code[20]; ScenarioNo: Integer)
+    procedure BuildDayCapacityAuditBuffer(var Buffer: Record "Day Capacity Chart Audit Buf" temporary; PeriodStartDate: Date)
     var
         ActiveSkillList: List of [Code[20]];
         SkillValues: Dictionary of [Code[20], Decimal];
@@ -301,9 +277,8 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         LineNo := 0;
         for WeekdayIndex := 1 to 5 do begin
             CurrDate := PeriodStartDate + (WeekdayIndex - 1);
-            IsClosedDay := WeekdayIndex <= ScenarioNo;
 
-            CalcDaySegments(CurrDate, ResourceNoFilter, IsClosedDay, ActiveSkillList, AssignedValue, InternalFree, ExternalFree, SkillValues);
+            CalcDaySegments(CurrDate, ActiveSkillList, AssignedValue, InternalFree, ExternalFree, SkillValues);
 
             // Capacity bar: Assigned/Internal/External carry the free-capacity values, skills are
             // always 0 (skills never appear on the Capacity bar).
@@ -353,7 +328,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// ExternalFree, and every entry in SkillValues are forced to 0 while AssignedValue is left
     /// untouched - matching the collapse behavior every caller needs identically.
     /// </summary>
-    local procedure CalcDaySegments(PlanDate: Date; ResourceNoFilter: Code[20]; IsClosedDay: Boolean; var ActiveSkillList: List of [Code[20]]; var AssignedValue: Decimal; var InternalFree: Decimal; var ExternalFree: Decimal; var SkillValues: Dictionary of [Code[20], Decimal])
+    local procedure CalcDaySegments(PlanDate: Date; var ActiveSkillList: List of [Code[20]]; var AssignedValue: Decimal; var InternalFree: Decimal; var ExternalFree: Decimal; var SkillValues: Dictionary of [Code[20], Decimal])
     var
         InternalCapacityD: Decimal;
         ExternalCapacityD: Decimal;
@@ -363,21 +338,15 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     begin
         Clear(SkillValues);
 
-        AssignedValue := CalcAssignedHoursForDate(PlanDate, ResourceNoFilter);
-        CalcCapacitySplit(PlanDate, ResourceNoFilter, InternalCapacityD, ExternalCapacityD);
-        CalcAssignedSplit(PlanDate, ResourceNoFilter, InternalAssignedD, ExternalAssignedD);
+        AssignedValue := CalcAssignedHoursForDate(PlanDate);
+        CalcCapacitySplit(PlanDate, InternalCapacityD, ExternalCapacityD);
+        CalcAssignedSplit(PlanDate, InternalAssignedD, ExternalAssignedD);
 
         InternalFree := InternalCapacityD - InternalAssignedD;
         ExternalFree := ExternalCapacityD - ExternalAssignedD;
 
-        if IsClosedDay then begin
-            InternalFree := 0;
-            ExternalFree := 0;
-            foreach SkillCode in ActiveSkillList do
-                SkillValues.Set(SkillCode, 0);
-        end else
-            foreach SkillCode in ActiveSkillList do
-                SkillValues.Set(SkillCode, CalcUnassignedSkillRequestedHours(PlanDate, SkillCode));
+        foreach SkillCode in ActiveSkillList do
+            SkillValues.Set(SkillCode, CalcUnassignedSkillRequestedHours(PlanDate, SkillCode));
     end;
 
     /// <summary>
@@ -415,14 +384,12 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
                 ActiveSkillList.Add(SkillCode);
     end;
 
-    local procedure CalcAssignedHoursForDate(PlanDate: Date; ResourceNoFilter: Code[20]): Decimal
+    local procedure CalcAssignedHoursForDate(PlanDate: Date): Decimal
     var
         DayPlanning: Record "Day Planning";
     begin
         DayPlanning.Reset();
         DayPlanning.SetRange("Plan Date", PlanDate);
-        if ResourceNoFilter <> '' then
-            DayPlanning.SetRange("Assigned Resource No.", ResourceNoFilter);
         DayPlanning.CalcSums("Assigned Hours");
         exit(DayPlanning."Assigned Hours");
     end;
@@ -433,7 +400,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// "Assigned Resource No." cannot be classified and are skipped (in practice Assigned Hours
     /// is only ever populated once a resource is assigned).
     /// </summary>
-    local procedure CalcAssignedSplit(PlanDate: Date; ResourceNoFilter: Code[20]; var InternalAssigned: Decimal; var ExternalAssigned: Decimal)
+    local procedure CalcAssignedSplit(PlanDate: Date; var InternalAssigned: Decimal; var ExternalAssigned: Decimal)
     var
         DayPlanning: Record "Day Planning";
         Resource: Record Resource;
@@ -446,8 +413,6 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         DayPlanning.Reset();
         DayPlanning.SetLoadFields("Assigned Resource No.", "Assigned Hours");
         DayPlanning.SetRange("Plan Date", PlanDate);
-        if ResourceNoFilter <> '' then
-            DayPlanning.SetRange("Assigned Resource No.", ResourceNoFilter);
         if DayPlanning.FindSet() then
             repeat
                 if DayPlanning."Assigned Resource No." <> '' then
@@ -464,7 +429,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// Splits the day's "Res. Capacity Entry".Capacity into Internal / External buckets by each
     /// entry's resource "Is External" flag.
     /// </summary>
-    local procedure CalcCapacitySplit(PlanDate: Date; ResourceNoFilter: Code[20]; var InternalCapacity: Decimal; var ExternalCapacity: Decimal)
+    local procedure CalcCapacitySplit(PlanDate: Date; var InternalCapacity: Decimal; var ExternalCapacity: Decimal)
     var
         ResCapacityEntry: Record "Res. Capacity Entry";
         Resource: Record Resource;
@@ -477,8 +442,6 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         ResCapacityEntry.Reset();
         ResCapacityEntry.SetLoadFields("Resource No.", Capacity);
         ResCapacityEntry.SetRange(Date, PlanDate);
-        if ResourceNoFilter <> '' then
-            ResCapacityEntry.SetRange("Resource No.", ResourceNoFilter);
         if ResCapacityEntry.FindSet() then
             repeat
                 if Resource.Get(ResCapacityEntry."Resource No.") then begin

@@ -16,16 +16,16 @@ page 50661 "SkillReq. vs CapacityPart v1"
         {
             repeater(Lines)
             {
-                field("Skill Code"; Rec."Skill Code")
+                field("Skill Code"; Rec."No.")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the skill code that the requested hours and capacity are aggregated for.';
                 }
-                field(Description; Rec.Description)
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the description of the skill code.';
-                }
+                // field(Description; Rec.Description)
+                // {
+                //     ApplicationArea = All;
+                //     ToolTip = 'Specifies the description of the skill code.';
+                // }
                 field("Requested Hours"; Rec."Requested Hours")
                 {
                     ApplicationArea = All;
@@ -36,7 +36,7 @@ page 50661 "SkillReq. vs CapacityPart v1"
                         DayPlanning: Record "Day Planning";
                         ResCapacityEntry: Record "Res. Capacity Entry";
                     begin
-                        if Rec."Skill Code" = CapacitySkillCodeTok then begin
+                        if Rec."No." = CapacitySkillCodeTok then begin
                             // Synthetic aggregate row: capacity is resource/date only, no skill
                             // lookup involved (see codeunit 50662's doc comment). This is the
                             // same drilldown logic that used to live on the separate Capacity
@@ -57,7 +57,7 @@ page 50661 "SkillReq. vs CapacityPart v1"
                             Page.Run(Page::"Res. Capacity Entries", ResCapacityEntry);
                         end else begin
                             DayPlanning.Reset();
-                            DayPlanning.SetRange(Skill, Rec."Skill Code");
+                            DayPlanning.SetRange(Skill, Rec."No.");
                             if CurrResourceNoFilter <> '' then
                                 DayPlanning.SetRange("Assigned Resource No.", CurrResourceNoFilter);
                             case true of
