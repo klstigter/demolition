@@ -1,0 +1,39 @@
+- generic [ref=f21e1]:
+  - banner [ref=f21e9]:
+    - button "App launcher" [ref=f21e12] [cursor=pointer]: 
+    - generic [ref=f21e18]:
+      - generic [ref=f21e19]: Dynamics 365 Business Central
+      - generic [ref=f21e24]:
+        - 'button "CRONUS NL, Environment: NL_Test" [ref=f21e28] [cursor=pointer]':
+          - generic [ref=f21e34]:
+            - generic [ref=f21e35]: "Environment:"
+            - generic [ref=f21e36]: NL_Test
+        - button "Copilot" [ref=f21e39] [cursor=pointer]:
+          - generic [ref=f21e40]: 
+        - button "Search" [ref=f21e43] [cursor=pointer]:
+          - generic [ref=f21e44]: 
+        - button "Notifications" [ref=f21e47] [cursor=pointer]:
+          - generic [ref=f21e48]: 
+        - button "Settings" [ref=f21e51] [cursor=pointer]:
+          - generic [ref=f21e52]: 
+        - button "Help" [ref=f21e55] [cursor=pointer]:
+          - generic [ref=f21e56]: 
+    - generic [ref=f21e57]:
+      - button "Account manager for Dynamics Development" [ref=f21e59] [cursor=pointer]:
+        - generic [ref=f21e66]:
+          - generic [ref=f21e67]: DD
+          - img "DD" [ref=f21e69]
+      - generic: 
+  - iframe [active] [ref=f21e76]:
+    - dialog [active] [ref=f22e4]:
+      - main [ref=f22e5]:
+        - generic [ref=f22e6]:
+          - generic [ref=f22e8]:
+            - heading "Repair Data" [level=1] [ref=f22e10]
+            - generic [ref=f22e12]:
+              - button "" [ref=f22e16] [cursor=pointer]
+              - button "" [ref=f22e22] [cursor=pointer]
+          - generic [ref=f22e29]:
+            - button "Schedule..." [ref=f22e30] [cursor=pointer]
+            - button "OK" [ref=f22e32] [cursor=pointer]
+            - button "Cancel" [ref=f22e34] [cursor=pointer]

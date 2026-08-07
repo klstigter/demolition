@@ -126,9 +126,7 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
         SkillCodeRec: Record "Skill Code";
     begin
         Buffer.Init();
-        Buffer."Skill Code" := SkillCode;
-        if SkillCodeRec.Get(SkillCode) then
-            Buffer.Description := SkillCodeRec.Description;
+        Buffer."No." := SkillCode;
         Buffer."Requested Hours" := RequestedHours;
         Buffer.Insert();
     end;
@@ -144,8 +142,7 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
     local procedure InsertCapacityLine(var Buffer: Record "Skill Req. vs Capacity Buffer" temporary; CapacityTotal: Decimal)
     begin
         Buffer.Init();
-        Buffer."Skill Code" := CapacitySkillCodeTok;
-        Buffer.Description := CapacityDescriptionTxt;
+        Buffer."No." := CapacitySkillCodeTok;
         Buffer."Requested Hours" := CapacityTotal;
         Buffer.Insert();
     end;

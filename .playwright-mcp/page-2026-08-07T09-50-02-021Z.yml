@@ -1,0 +1,805 @@
+- generic [ref=f12e1]:
+  - banner [ref=f12e9]:
+    - button "App launcher" [ref=f12e12] [cursor=pointer]: 
+    - generic [ref=f12e18]:
+      - generic [ref=f12e19]: Dynamics 365 Business Central
+      - generic [ref=f12e24]:
+        - 'button "CRONUS NL, Environment: NL_Test" [ref=f12e28] [cursor=pointer]':
+          - generic [ref=f12e34]:
+            - generic [ref=f12e35]: "Environment:"
+            - generic [ref=f12e36]: NL_Test
+        - button "Copilot" [ref=f12e39] [cursor=pointer]:
+          - generic [ref=f12e40]: 
+        - button "Search" [ref=f12e43] [cursor=pointer]:
+          - generic [ref=f12e44]: 
+        - button "Notifications" [ref=f12e47] [cursor=pointer]:
+          - generic [ref=f12e48]: 
+        - button "Settings" [ref=f12e51] [cursor=pointer]:
+          - generic [ref=f12e52]: 
+        - button "Help" [ref=f12e55] [cursor=pointer]:
+          - generic [ref=f12e56]: 
+    - generic [ref=f12e57]:
+      - button "Account manager for Dynamics Development" [ref=f12e59] [cursor=pointer]:
+        - generic [ref=f12e66]:
+          - generic [ref=f12e67]: DD
+          - img "DD" [ref=f12e69]
+      - generic: 
+  - iframe [active] [ref=f12e76]:
+    - generic [ref=f13e1]:
+      - generic [ref=f13e2]:
+        - generic:
+          - form "Skill Requested/Capacity" [active]:
+            - main:
+              - generic [ref=f13e4]:
+                - generic [ref=f13e7]:
+                  - button "Back" [ref=f13e10] [cursor=pointer]:
+                    - generic [ref=f13e11]: 
+                  - generic [ref=f13e13]:
+                    - generic [ref=f13e14]:
+                      - button "Make changes on the page" [disabled] [ref=f13e15]:
+                        - generic [ref=f13e16]: 
+                      - button "Share this page with other users or apps" [ref=f13e18] [cursor=pointer]:
+                        - generic [ref=f13e19]: 
+                      - button "Create a new entry." [disabled] [ref=f13e21]:
+                        - generic [ref=f13e22]: 
+                      - button "Delete the information" [disabled] [ref=f13e24]:
+                        - generic [ref=f13e25]: 
+                    - generic [ref=f13e27]:
+                      - button "Not bookmarked" [ref=f13e30] [cursor=pointer]:
+                        - generic [ref=f13e31]: 
+                      - button "This page will close in this window and it will open in a pop-up window." [ref=f13e35] [cursor=pointer]:
+                        - generic [ref=f13e36]: 
+                      - button "Toggle wide layout" [pressed] [ref=f13e40] [cursor=pointer]:
+                        - generic [ref=f13e41]: 
+                    - generic [ref=f13e43]: Skill Requested/Capacity
+                - menubar [ref=f13e54]:
+                  - generic [ref=f13e64]:
+                    - generic [ref=f13e68]:
+                      - menuitem "Refresh" [ref=f13e73] [cursor=pointer]
+                      - menuitem "Previous" [ref=f13e84] [cursor=pointer]
+                      - menuitem "Today" [ref=f13e95] [cursor=pointer]
+                      - menuitem "Next" [ref=f13e106] [cursor=pointer]
+                    - menuitemcheckbox "Toggle FactBox" [checked] [ref=f13e116] [cursor=pointer]:
+                      - generic [ref=f13e117]: 
+                - generic [ref=f13e122]:
+                  - generic [ref=f13e125]:
+                    - generic [ref=f13e126]:
+                      - button [expanded] [ref=f13e129] [cursor=pointer]:
+                        - heading "Filters" [level=2] [ref=f13e130]
+                      - generic [ref=f13e134]:
+                        - button "Period" [ref=f13e135] [cursor=pointer]
+                        - textbox "Period Aug 2026 - wk 32 (Mon 03 - Sun 09)" [ref=f13e137]
+                    - generic [ref=f13e138]:
+                      - button [expanded] [ref=f13e141] [cursor=pointer]:
+                        - heading "Requested Hours vs Capacity" [level=2] [ref=f13e142]
+                      - iframe [ref=f13e147]:
+                        - 'generic "bar chart. X scale category: bottom axis from Mon|Capacity to Fri|Requested. Y scale : left axis from 0 to 1600. Series: s0, s1, s2, s3, s4, s5." [ref=f18e4]':
+                          - img [ref=f18e5]:
+                            - generic [ref=f18e6]:
+                              - generic "x-axis, category" [ref=f18e9]:
+                                - generic [ref=f18e11]: Capacity
+                                - generic [ref=f18e12]: Requested
+                                - generic [ref=f18e13]: Capacity
+                                - generic [ref=f18e14]: Requested
+                                - generic [ref=f18e15]: Capacity
+                                - generic [ref=f18e16]: Requested
+                                - generic [ref=f18e17]: Capacity
+                                - generic [ref=f18e18]: Requested
+                                - generic [ref=f18e19]: Capacity
+                                - generic [ref=f18e20]: Requested
+                                - generic [ref=f18e21]:
+                                  - generic [ref=f18e22]: Mon
+                                  - generic [ref=f18e23]: Tue
+                                  - generic [ref=f18e24]: Wed
+                                  - generic [ref=f18e25]: Thu
+                                  - generic [ref=f18e26]: Fri
+                              - generic "y-axis" [ref=f18e28]:
+                                - generic [ref=f18e29]: "0"
+                                - generic [ref=f18e30]: "100"
+                                - generic [ref=f18e31]: "200"
+                                - generic [ref=f18e32]: "300"
+                                - generic [ref=f18e33]: "400"
+                                - generic [ref=f18e34]: "500"
+                                - generic [ref=f18e35]: "600"
+                                - generic [ref=f18e36]: "700"
+                                - generic [ref=f18e37]: "800"
+                                - generic [ref=f18e38]: "900"
+                                - generic [ref=f18e39]: "1000"
+                                - generic [ref=f18e40]: "1100"
+                                - generic [ref=f18e41]: "1200"
+                                - generic [ref=f18e42]: "1300"
+                                - generic [ref=f18e43]: "1400"
+                                - generic [ref=f18e44]: "1500"
+                                - generic [ref=f18e45]: "1600"
+                              - generic [ref=f18e46]:
+                                - generic "chart s0" [ref=f18e47]:
+                                  - generic "bar x=Mon|Capacity, y from 0 to 0" [ref=f18e48]
+                                  - generic "bar x=Mon|Requested, y from 0 to 0" [ref=f18e49]
+                                  - generic "bar x=Tue|Capacity, y from 0 to 1088" [ref=f18e50]
+                                  - generic "bar x=Tue|Requested, y from 0 to 1088" [ref=f18e51]
+                                  - generic "bar x=Wed|Capacity, y from 0 to 8" [ref=f18e52]
+                                  - generic "bar x=Wed|Requested, y from 0 to 8" [ref=f18e53]
+                                  - generic "bar x=Thu|Capacity, y from 0 to 16" [ref=f18e54]
+                                  - generic "bar x=Thu|Requested, y from 0 to 16" [ref=f18e55]
+                                  - generic "bar x=Fri|Capacity, y from 0 to 8" [ref=f18e56]
+                                  - generic "bar x=Fri|Requested, y from 0 to 8" [ref=f18e57]
+                                - generic "chart s1" [ref=f18e58]:
+                                  - generic "bar x=Mon|Capacity, y from 0 to 0"
+                                  - generic "bar x=Mon|Requested, y from 0 to 0"
+                                  - generic "bar x=Tue|Capacity, y from -1051 to 0" [ref=f18e59]
+                                  - generic "bar x=Tue|Requested, y from 0 to 0"
+                                  - generic "bar x=Wed|Capacity, y from 0 to 1" [ref=f18e60]
+                                  - generic "bar x=Wed|Requested, y from 0 to 0"
+                                  - generic "bar x=Thu|Capacity, y from 0 to 5" [ref=f18e61]
+                                  - generic "bar x=Thu|Requested, y from 0 to 0"
+                                  - generic "bar x=Fri|Capacity, y from 0 to 9" [ref=f18e62]
+                                  - generic "bar x=Fri|Requested, y from 0 to 0"
+                                - generic "chart s2" [ref=f18e63]:
+                                  - generic "bar x=Mon|Capacity, y from 0 to 0"
+                                  - generic "bar x=Mon|Requested, y from 0 to 0"
+                                  - generic "bar x=Tue|Capacity, y from 0 to 0"
+                                  - generic "bar x=Tue|Requested, y from 0 to 244" [ref=f18e64]
+                                  - generic "bar x=Wed|Capacity, y from 0 to 0"
+                                  - generic "bar x=Wed|Requested, y from 0 to 584" [ref=f18e65]
+                                  - generic "bar x=Thu|Capacity, y from 0 to 0"
+                                  - generic "bar x=Thu|Requested, y from 0 to 621" [ref=f18e66]
+                                  - generic "bar x=Fri|Capacity, y from 0 to 0"
+                                  - generic "bar x=Fri|Requested, y from 0 to 365" [ref=f18e67]
+                                - generic "chart s3" [ref=f18e68]:
+                                  - generic "bar x=Mon|Capacity, y from 0 to 0"
+                                  - generic "bar x=Mon|Requested, y from 0 to 0"
+                                  - generic "bar x=Tue|Capacity, y from 0 to 0"
+                                  - generic "bar x=Tue|Requested, y from 0 to 8" [ref=f18e69]
+                                  - generic "bar x=Wed|Capacity, y from 0 to 0"
+                                  - generic "bar x=Wed|Requested, y from 0 to 0"
+                                  - generic "bar x=Thu|Capacity, y from 0 to 0"
+                                  - generic "bar x=Thu|Requested, y from 0 to 0"
+                                  - generic "bar x=Fri|Capacity, y from 0 to 0"
+                                  - generic "bar x=Fri|Requested, y from 0 to 0"
+                                - generic "chart s4" [ref=f18e70]:
+                                  - generic "bar x=Mon|Capacity, y from 0 to 0"
+                                  - generic "bar x=Mon|Requested, y from 0 to 0"
+                                  - generic "bar x=Tue|Capacity, y from 0 to 0"
+                                  - generic "bar x=Tue|Requested, y from 0 to 224" [ref=f18e71]
+                                  - generic "bar x=Wed|Capacity, y from 0 to 0"
+                                  - generic "bar x=Wed|Requested, y from 0 to 736" [ref=f18e72]
+                                  - generic "bar x=Thu|Capacity, y from 0 to 0"
+                                  - generic "bar x=Thu|Requested, y from 0 to 549" [ref=f18e73]
+                                  - generic "bar x=Fri|Capacity, y from 0 to 0"
+                                  - generic "bar x=Fri|Requested, y from 0 to 390" [ref=f18e74]
+                                - generic "chart s5" [ref=f18e75]:
+                                  - generic "bar x=Mon|Capacity, y from 0 to 0"
+                                  - generic "bar x=Mon|Requested, y from 0 to 0"
+                                  - generic "bar x=Tue|Capacity, y from 0 to 8" [ref=f18e76]
+                                  - generic "bar x=Tue|Requested, y from 0 to 0"
+                                  - generic "bar x=Wed|Capacity, y from 0 to 8" [ref=f18e77]
+                                  - generic "bar x=Wed|Requested, y from 0 to 0"
+                                  - generic "bar x=Thu|Capacity, y from 0 to 8" [ref=f18e78]
+                                  - generic "bar x=Thu|Requested, y from 0 to 0"
+                                  - generic "bar x=Fri|Capacity, y from 0 to 8" [ref=f18e79]
+                                  - generic "bar x=Fri|Requested, y from 0 to 0"
+                              - generic "Legend" [ref=f18e80]:
+                                - button "Hide chart Assigned" [ref=f18e81] [cursor=pointer]:
+                                  - generic [ref=f18e82]: Assigned
+                                - button "Hide chart Internal" [ref=f18e84] [cursor=pointer]:
+                                  - generic [ref=f18e85]: Internal
+                                - button "Hide chart ELEKTR" [ref=f18e87] [cursor=pointer]:
+                                  - generic [ref=f18e88]: ELEKTR
+                                - button "Hide chart DESIGN" [ref=f18e90] [cursor=pointer]:
+                                  - generic [ref=f18e91]: DESIGN
+                                - button "Hide chart SANITAIR" [ref=f18e93] [cursor=pointer]:
+                                  - generic [ref=f18e94]: SANITAIR
+                                - button "Hide chart External" [ref=f18e96] [cursor=pointer]:
+                                  - generic [ref=f18e97]: External
+                  - generic [ref=f13e148]:
+                    - button "Resize the factbox area." [ref=f13e149]
+                    - generic [ref=f13e154]:
+                      - generic [ref=f13e155]:
+                        - heading [level=2] [ref=f13e157]:
+                          - button "Requested vs Capacity per Skill" [ref=f13e158] [cursor=pointer]
+                        - grid "Requested vs Capacity per Skill" [ref=f13e162]:
+                          - rowgroup [ref=f13e164]:
+                            - row [ref=f13e165]:
+                              - columnheader [ref=f13e166]:
+                                - button "Segment" [ref=f13e168] [cursor=pointer]
+                                - button "Open menu for Segment" [ref=f13e169] [cursor=pointer]
+                                - button [ref=f13e170]
+                              - columnheader "More Options" [ref=f13e173]
+                              - columnheader [ref=f13e175]:
+                                - button "Requested Hours" [ref=f13e177] [cursor=pointer]
+                                - button "Open menu for Requested Hours" [ref=f13e178] [cursor=pointer]
+                                - button [ref=f13e179]
+                          - generic [ref=f13e182]:
+                            - rowgroup [ref=f13e183]:
+                              - row [ref=f13e184]:
+                                - columnheader [ref=f13e185]
+                                - columnheader [ref=f13e186]
+                                - columnheader [ref=f13e188]
+                            - row [selected] [ref=f13e189]:
+                              - gridcell [ref=f13e190]:
+                                - textbox "Segment" [ref=f13e191]
+                              - gridcell [ref=f13e192]:
+                                - button "Show more options" [ref=f13e193] [cursor=pointer]
+                              - gridcell [ref=f13e194]:
+                                - button "Requested Hours 341" [ref=f13e195] [cursor=pointer]: "341"
+                            - row [ref=f13e196]:
+                              - gridcell [ref=f13e197]:
+                                - textbox "Segment Cap. ASSIGNED" [ref=f13e198]
+                              - gridcell [ref=f13e199]:
+                                - button "Show more options" [ref=f13e200] [cursor=pointer]
+                              - gridcell [ref=f13e201]:
+                                - button "Requested Hours 262" [ref=f13e202] [cursor=pointer]: "262"
+                            - row [ref=f13e203]:
+                              - gridcell [ref=f13e204]:
+                                - textbox "Segment Cap. ASSIGNED" [ref=f13e205]
+                              - gridcell [ref=f13e206]:
+                                - button "Show more options" [ref=f13e207] [cursor=pointer]
+                              - gridcell [ref=f13e208]:
+                                - button "Requested Hours 262" [ref=f13e209] [cursor=pointer]: "262"
+                            - row [ref=f13e210]:
+                              - gridcell [ref=f13e211]:
+                                - textbox "Segment Cap. ASSIGNED" [ref=f13e212]
+                              - gridcell [ref=f13e213]:
+                                - button "Show more options" [ref=f13e214] [cursor=pointer]
+                              - gridcell [ref=f13e215]:
+                                - button "Requested Hours 262" [ref=f13e216] [cursor=pointer]: "262"
+                            - row [ref=f13e217]:
+                              - gridcell [ref=f13e218]:
+                                - textbox "Segment Cap. EXTERNAL" [ref=f13e219]
+                              - gridcell [ref=f13e220]:
+                                - button "Show more options" [ref=f13e221] [cursor=pointer]
+                              - gridcell [ref=f13e222]:
+                                - button "Requested Hours 40" [ref=f13e223] [cursor=pointer]: "40"
+                            - row [ref=f13e224]:
+                              - gridcell [ref=f13e225]:
+                                - textbox "Segment Cap. EXTERNAL" [ref=f13e226]
+                              - gridcell [ref=f13e227]:
+                                - button "Show more options" [ref=f13e228] [cursor=pointer]
+                              - gridcell [ref=f13e229]:
+                                - button "Requested Hours 226" [ref=f13e230] [cursor=pointer]: "226"
+                            - row [ref=f13e231]:
+                              - gridcell [ref=f13e232]:
+                                - textbox "Segment Cap. EXTERNAL" [ref=f13e233]
+                              - gridcell [ref=f13e234]:
+                                - button "Show more options" [ref=f13e235] [cursor=pointer]
+                              - gridcell [ref=f13e236]:
+                                - button "Requested Hours 164" [ref=f13e237] [cursor=pointer]: "164"
+                            - row [ref=f13e238]:
+                              - gridcell [ref=f13e239]:
+                                - textbox "Segment Cap. EXTERNAL" [ref=f13e240]
+                              - gridcell [ref=f13e241]:
+                                - button "Show more options" [ref=f13e242] [cursor=pointer]
+                              - gridcell [ref=f13e243]:
+                                - button "Requested Hours 164" [ref=f13e244] [cursor=pointer]: "164"
+                            - row [ref=f13e245]:
+                              - gridcell [ref=f13e246]:
+                                - textbox "Segment Cap. EXTERNAL" [ref=f13e247]
+                              - gridcell [ref=f13e248]:
+                                - button "Show more options" [ref=f13e249] [cursor=pointer]
+                              - gridcell [ref=f13e250]:
+                                - button "Requested Hours 164" [ref=f13e251] [cursor=pointer]: "164"
+                            - row [ref=f13e252]:
+                              - gridcell [ref=f13e253]:
+                                - textbox "Segment Req. (No Skill)" [ref=f13e254]
+                              - gridcell [ref=f13e255]:
+                                - button "Show more options" [ref=f13e256] [cursor=pointer]
+                              - gridcell [ref=f13e257]:
+                                - button "Requested Hours 0" [ref=f13e258] [cursor=pointer]: "0"
+                            - row [ref=f13e259]:
+                              - gridcell [ref=f13e260]:
+                                - textbox "Segment Req. (No Skill)" [ref=f13e261]
+                              - gridcell [ref=f13e262]:
+                                - button "Show more options" [ref=f13e263] [cursor=pointer]
+                              - gridcell [ref=f13e264]:
+                                - button "Requested Hours 0" [ref=f13e265] [cursor=pointer]: "0"
+                            - row [ref=f13e266]:
+                              - gridcell [ref=f13e267]:
+                                - textbox "Segment Req. ASSIGNED" [ref=f13e268]
+                              - gridcell [ref=f13e269]:
+                                - button "Show more options" [ref=f13e270] [cursor=pointer]
+                              - gridcell [ref=f13e271]:
+                                - button "Requested Hours 341" [ref=f13e272] [cursor=pointer]: "341"
+                            - row [ref=f13e273]:
+                              - gridcell [ref=f13e274]:
+                                - textbox "Segment Req. ASSIGNED" [ref=f13e275]
+                              - gridcell [ref=f13e276]:
+                                - button "Show more options" [ref=f13e277] [cursor=pointer]
+                              - gridcell [ref=f13e278]:
+                                - button "Requested Hours 262" [ref=f13e279] [cursor=pointer]: "262"
+                            - row [ref=f13e280]:
+                              - gridcell [ref=f13e281]:
+                                - textbox "Segment Req. ASSIGNED" [ref=f13e282]
+                              - gridcell [ref=f13e283]:
+                                - button "Show more options" [ref=f13e284] [cursor=pointer]
+                              - gridcell [ref=f13e285]:
+                                - button "Requested Hours 262" [ref=f13e286] [cursor=pointer]: "262"
+                            - row [ref=f13e287]:
+                              - gridcell [ref=f13e288]:
+                                - textbox "Segment Req. ASSIGNED" [ref=f13e289]
+                              - gridcell [ref=f13e290]:
+                                - button "Show more options" [ref=f13e291] [cursor=pointer]
+                              - gridcell [ref=f13e292]:
+                                - button "Requested Hours 262" [ref=f13e293] [cursor=pointer]: "262"
+                            - row [ref=f13e294]:
+                              - gridcell [ref=f13e295]:
+                                - textbox "Segment Req. DESIGN" [ref=f13e296]
+                              - gridcell [ref=f13e297]:
+                                - button "Show more options" [ref=f13e298] [cursor=pointer]
+                              - gridcell [ref=f13e299]:
+                                - button "Requested Hours 8" [ref=f13e300] [cursor=pointer]: "8"
+                            - row [ref=f13e301]:
+                              - gridcell [ref=f13e302]:
+                                - textbox "Segment Req. ELEKTR" [ref=f13e303]
+                              - gridcell [ref=f13e304]:
+                                - button "Show more options" [ref=f13e305] [cursor=pointer]
+                              - gridcell [ref=f13e306]:
+                                - button "Requested Hours 244" [ref=f13e307] [cursor=pointer]: "244"
+                            - row [ref=f13e308]:
+                              - gridcell [ref=f13e309]:
+                                - textbox "Segment Req. SANITAIR" [ref=f13e310]
+                              - gridcell [ref=f13e311]:
+                                - button "Show more options" [ref=f13e312] [cursor=pointer]
+                              - gridcell [ref=f13e313]:
+                                - button "Requested Hours 224" [ref=f13e314] [cursor=pointer]: "224"
+                            - row [ref=f13e315]:
+                              - gridcell [ref=f13e316]:
+                                - textbox "Segment Req. SANITAIR" [ref=f13e317]
+                              - gridcell [ref=f13e318]:
+                                - button "Show more options" [ref=f13e319] [cursor=pointer]
+                              - gridcell [ref=f13e320]:
+                                - button "Requested Hours 736" [ref=f13e321] [cursor=pointer]: "736"
+                            - row [ref=f13e322]:
+                              - gridcell [ref=f13e323]:
+                                - textbox "Segment Req. SANITAIR" [ref=f13e324]
+                              - gridcell [ref=f13e325]:
+                                - button "Show more options" [ref=f13e326] [cursor=pointer]
+                              - gridcell [ref=f13e327]:
+                                - button "Requested Hours 549" [ref=f13e328] [cursor=pointer]: "549"
+                            - row [ref=f13e329]:
+                              - gridcell [ref=f13e330]:
+                                - textbox "Segment Req. SANITAIR" [ref=f13e331]
+                              - gridcell [ref=f13e332]:
+                                - button "Show more options" [ref=f13e333] [cursor=pointer]
+                              - gridcell [ref=f13e334]:
+                                - button "Requested Hours 390" [ref=f13e335] [cursor=pointer]: "390"
+                            - row [ref=f13e336]:
+                              - gridcell [ref=f13e337]:
+                                - textbox "Segment Req. SANITAIR" [ref=f13e338]
+                              - gridcell [ref=f13e339]:
+                                - button "Show more options" [ref=f13e340] [cursor=pointer]
+                              - gridcell [ref=f13e341]:
+                                - button "Requested Hours 0" [ref=f13e342] [cursor=pointer]: "0"
+                            - row [ref=f13e343]:
+                              - gridcell [ref=f13e344]:
+                                - textbox "Segment Req. SANITAIR" [ref=f13e345]
+                              - gridcell [ref=f13e346]:
+                                - button "Show more options" [ref=f13e347] [cursor=pointer]
+                              - gridcell [ref=f13e348]:
+                                - button "Requested Hours 0" [ref=f13e349] [cursor=pointer]: "0"
+                      - grid "Day Capacity Chart Audit" [ref=f13e355]:
+                        - rowgroup [ref=f13e357]:
+                          - row [ref=f13e358]:
+                            - columnheader [ref=f13e359]:
+                              - button "Day Name" [ref=f13e361] [cursor=pointer]
+                              - button "Open menu for Day Name" [ref=f13e362] [cursor=pointer]
+                              - button [ref=f13e363]
+                            - columnheader "More Options" [ref=f13e366]
+                            - columnheader [ref=f13e368]:
+                              - button "Bar Type" [ref=f13e370] [cursor=pointer]
+                              - button "Open menu for Bar Type" [ref=f13e371] [cursor=pointer]
+                              - button [ref=f13e372]
+                            - columnheader [ref=f13e375]:
+                              - button "Segment" [ref=f13e377] [cursor=pointer]
+                              - button "Open menu for Segment" [ref=f13e378] [cursor=pointer]
+                              - button [ref=f13e379]
+                            - columnheader [ref=f13e382]:
+                              - button "Value" [ref=f13e384] [cursor=pointer]
+                              - button "Open menu for Value" [ref=f13e385] [cursor=pointer]
+                              - button [ref=f13e386]
+                        - generic [ref=f13e389]:
+                          - rowgroup [ref=f13e390]:
+                            - row [ref=f13e391]:
+                              - columnheader [ref=f13e392]
+                              - columnheader [ref=f13e393]
+                              - columnheader [ref=f13e395]
+                              - columnheader [ref=f13e396]
+                              - columnheader [ref=f13e397]
+                          - row [selected] [ref=f13e398]:
+                            - gridcell [ref=f13e399]:
+                              - textbox "Day Name" [ref=f13e400]
+                            - gridcell [ref=f13e401]:
+                              - button "Show more options" [ref=f13e402] [cursor=pointer]
+                            - gridcell [ref=f13e403]:
+                              - textbox "Bar Type" [ref=f13e404]
+                            - gridcell [ref=f13e405]:
+                              - textbox "Segment" [ref=f13e406]
+                            - gridcell [ref=f13e407]:
+                              - button "Value 0" [ref=f13e408] [cursor=pointer]: "0"
+                          - row [ref=f13e409]:
+                            - gridcell [ref=f13e410]:
+                              - textbox "Day Name Mon" [ref=f13e411]
+                            - gridcell [ref=f13e412]:
+                              - button "Show more options" [ref=f13e413] [cursor=pointer]
+                            - gridcell [ref=f13e414]:
+                              - textbox "Bar Type Capacity" [ref=f13e415]
+                            - gridcell [ref=f13e416]:
+                              - textbox "Segment INTERNAL" [ref=f13e417]
+                            - gridcell [ref=f13e418]:
+                              - button "Value 0" [ref=f13e419] [cursor=pointer]: "0"
+                          - row [ref=f13e420]:
+                            - gridcell [ref=f13e421]:
+                              - textbox "Day Name Mon" [ref=f13e422]
+                            - gridcell [ref=f13e423]:
+                              - button "Show more options" [ref=f13e424] [cursor=pointer]
+                            - gridcell [ref=f13e425]:
+                              - textbox "Bar Type Capacity" [ref=f13e426]
+                            - gridcell [ref=f13e427]:
+                              - textbox "Segment EXTERNAL" [ref=f13e428]
+                            - gridcell [ref=f13e429]:
+                              - button "Value 0" [ref=f13e430] [cursor=pointer]: "0"
+                          - row [ref=f13e431]:
+                            - gridcell [ref=f13e432]:
+                              - textbox "Day Name Mon" [ref=f13e433]
+                            - gridcell [ref=f13e434]:
+                              - button "Show more options" [ref=f13e435] [cursor=pointer]
+                            - gridcell [ref=f13e436]:
+                              - textbox "Bar Type Capacity" [ref=f13e437]
+                            - gridcell [ref=f13e438]:
+                              - textbox "Segment ELEKTR" [ref=f13e439]
+                            - gridcell [ref=f13e440]:
+                              - button "Value 0" [ref=f13e441] [cursor=pointer]: "0"
+                          - row [ref=f13e442]:
+                            - gridcell [ref=f13e443]:
+                              - textbox "Day Name Mon" [ref=f13e444]
+                            - gridcell [ref=f13e445]:
+                              - button "Show more options" [ref=f13e446] [cursor=pointer]
+                            - gridcell [ref=f13e447]:
+                              - textbox "Bar Type Capacity" [ref=f13e448]
+                            - gridcell [ref=f13e449]:
+                              - textbox "Segment DESIGN" [ref=f13e450]
+                            - gridcell [ref=f13e451]:
+                              - button "Value 0" [ref=f13e452] [cursor=pointer]: "0"
+                          - row [ref=f13e453]:
+                            - gridcell [ref=f13e454]:
+                              - textbox "Day Name Mon" [ref=f13e455]
+                            - gridcell [ref=f13e456]:
+                              - button "Show more options" [ref=f13e457] [cursor=pointer]
+                            - gridcell [ref=f13e458]:
+                              - textbox "Bar Type Capacity" [ref=f13e459]
+                            - gridcell [ref=f13e460]:
+                              - textbox "Segment SANITAIR" [ref=f13e461]
+                            - gridcell [ref=f13e462]:
+                              - button "Value 0" [ref=f13e463] [cursor=pointer]: "0"
+                          - row [ref=f13e464]:
+                            - gridcell [ref=f13e465]:
+                              - textbox "Day Name Mon" [ref=f13e466]
+                            - gridcell [ref=f13e467]:
+                              - button "Show more options" [ref=f13e468] [cursor=pointer]
+                            - gridcell [ref=f13e469]:
+                              - textbox "Bar Type Requested" [ref=f13e470]
+                            - gridcell [ref=f13e471]:
+                              - textbox "Segment ASSIGNED" [ref=f13e472]
+                            - gridcell [ref=f13e473]:
+                              - button "Value 0" [ref=f13e474] [cursor=pointer]: "0"
+                          - row [ref=f13e475]:
+                            - gridcell [ref=f13e476]:
+                              - textbox "Day Name Mon" [ref=f13e477]
+                            - gridcell [ref=f13e478]:
+                              - button "Show more options" [ref=f13e479] [cursor=pointer]
+                            - gridcell [ref=f13e480]:
+                              - textbox "Bar Type Requested" [ref=f13e481]
+                            - gridcell [ref=f13e482]:
+                              - textbox "Segment INTERNAL" [ref=f13e483]
+                            - gridcell [ref=f13e484]:
+                              - button "Value 0" [ref=f13e485] [cursor=pointer]: "0"
+                          - row [ref=f13e486]:
+                            - gridcell [ref=f13e487]:
+                              - textbox "Day Name Mon" [ref=f13e488]
+                            - gridcell [ref=f13e489]:
+                              - button "Show more options" [ref=f13e490] [cursor=pointer]
+                            - gridcell [ref=f13e491]:
+                              - textbox "Bar Type Requested" [ref=f13e492]
+                            - gridcell [ref=f13e493]:
+                              - textbox "Segment EXTERNAL" [ref=f13e494]
+                            - gridcell [ref=f13e495]:
+                              - button "Value 0" [ref=f13e496] [cursor=pointer]: "0"
+                          - row [ref=f13e497]:
+                            - gridcell [ref=f13e498]:
+                              - textbox "Day Name Mon" [ref=f13e499]
+                            - gridcell [ref=f13e500]:
+                              - button "Show more options" [ref=f13e501] [cursor=pointer]
+                            - gridcell [ref=f13e502]:
+                              - textbox "Bar Type Requested" [ref=f13e503]
+                            - gridcell [ref=f13e504]:
+                              - textbox "Segment ELEKTR" [ref=f13e505]
+                            - gridcell [ref=f13e506]:
+                              - button "Value 0" [ref=f13e507] [cursor=pointer]: "0"
+                          - row [ref=f13e508]:
+                            - gridcell [ref=f13e509]:
+                              - textbox "Day Name Mon" [ref=f13e510]
+                            - gridcell [ref=f13e511]:
+                              - button "Show more options" [ref=f13e512] [cursor=pointer]
+                            - gridcell [ref=f13e513]:
+                              - textbox "Bar Type Requested" [ref=f13e514]
+                            - gridcell [ref=f13e515]:
+                              - textbox "Segment DESIGN" [ref=f13e516]
+                            - gridcell [ref=f13e517]:
+                              - button "Value 0" [ref=f13e518] [cursor=pointer]: "0"
+                          - row [ref=f13e519]:
+                            - gridcell [ref=f13e520]:
+                              - textbox "Day Name Mon" [ref=f13e521]
+                            - gridcell [ref=f13e522]:
+                              - button "Show more options" [ref=f13e523] [cursor=pointer]
+                            - gridcell [ref=f13e524]:
+                              - textbox "Bar Type Requested" [ref=f13e525]
+                            - gridcell [ref=f13e526]:
+                              - textbox "Segment SANITAIR" [ref=f13e527]
+                            - gridcell [ref=f13e528]:
+                              - button "Value 0" [ref=f13e529] [cursor=pointer]: "0"
+                          - row [ref=f13e530]:
+                            - gridcell [ref=f13e531]:
+                              - textbox "Day Name Tue" [ref=f13e532]
+                            - gridcell [ref=f13e533]:
+                              - button "Show more options" [ref=f13e534] [cursor=pointer]
+                            - gridcell [ref=f13e535]:
+                              - textbox "Bar Type Capacity" [ref=f13e536]
+                            - gridcell [ref=f13e537]:
+                              - textbox "Segment ASSIGNED" [ref=f13e538]
+                            - gridcell [ref=f13e539]:
+                              - button "Value 1,088" [ref=f13e540] [cursor=pointer]: 1,088
+                          - row [ref=f13e541]:
+                            - gridcell [ref=f13e542]:
+                              - textbox "Day Name Tue" [ref=f13e543]
+                            - gridcell [ref=f13e544]:
+                              - button "Show more options" [ref=f13e545] [cursor=pointer]
+                            - gridcell [ref=f13e546]:
+                              - textbox "Bar Type Capacity" [ref=f13e547]
+                            - gridcell [ref=f13e548]:
+                              - textbox "Segment INTERNAL" [ref=f13e549]
+                            - gridcell [ref=f13e550]:
+                              - button "Value -1,051" [ref=f13e551] [cursor=pointer]: "-1,051"
+                          - row [ref=f13e552]:
+                            - gridcell [ref=f13e553]:
+                              - textbox "Day Name Tue" [ref=f13e554]
+                            - gridcell [ref=f13e555]:
+                              - button "Show more options" [ref=f13e556] [cursor=pointer]
+                            - gridcell [ref=f13e557]:
+                              - textbox "Bar Type Capacity" [ref=f13e558]
+                            - gridcell [ref=f13e559]:
+                              - textbox "Segment EXTERNAL" [ref=f13e560]
+                            - gridcell [ref=f13e561]:
+                              - button "Value 8" [ref=f13e562] [cursor=pointer]: "8"
+                          - row [ref=f13e563]:
+                            - gridcell [ref=f13e564]:
+                              - textbox "Day Name Tue" [ref=f13e565]
+                            - gridcell [ref=f13e566]:
+                              - button "Show more options" [ref=f13e567] [cursor=pointer]
+                            - gridcell [ref=f13e568]:
+                              - textbox "Bar Type Capacity" [ref=f13e569]
+                            - gridcell [ref=f13e570]:
+                              - textbox "Segment ELEKTR" [ref=f13e571]
+                            - gridcell [ref=f13e572]:
+                              - button "Value 0" [ref=f13e573] [cursor=pointer]: "0"
+                          - row [ref=f13e574]:
+                            - gridcell [ref=f13e575]:
+                              - textbox "Day Name Tue" [ref=f13e576]
+                            - gridcell [ref=f13e577]:
+                              - button "Show more options" [ref=f13e578] [cursor=pointer]
+                            - gridcell [ref=f13e579]:
+                              - textbox "Bar Type Capacity" [ref=f13e580]
+                            - gridcell [ref=f13e581]:
+                              - textbox "Segment DESIGN" [ref=f13e582]
+                            - gridcell [ref=f13e583]:
+                              - button "Value 0" [ref=f13e584] [cursor=pointer]: "0"
+                          - row [ref=f13e585]:
+                            - gridcell [ref=f13e586]:
+                              - textbox "Day Name Tue" [ref=f13e587]
+                            - gridcell [ref=f13e588]:
+                              - button "Show more options" [ref=f13e589] [cursor=pointer]
+                            - gridcell [ref=f13e590]:
+                              - textbox "Bar Type Capacity" [ref=f13e591]
+                            - gridcell [ref=f13e592]:
+                              - textbox "Segment SANITAIR" [ref=f13e593]
+                            - gridcell [ref=f13e594]:
+                              - button "Value 0" [ref=f13e595] [cursor=pointer]: "0"
+                          - row [ref=f13e596]:
+                            - gridcell [ref=f13e597]:
+                              - textbox "Day Name Tue" [ref=f13e598]
+                            - gridcell [ref=f13e599]:
+                              - button "Show more options" [ref=f13e600] [cursor=pointer]
+                            - gridcell [ref=f13e601]:
+                              - textbox "Bar Type Requested" [ref=f13e602]
+                            - gridcell [ref=f13e603]:
+                              - textbox "Segment ASSIGNED" [ref=f13e604]
+                            - gridcell [ref=f13e605]:
+                              - button "Value 1,088" [ref=f13e606] [cursor=pointer]: 1,088
+                          - row [ref=f13e607]:
+                            - gridcell [ref=f13e608]:
+                              - textbox "Day Name Tue" [ref=f13e609]
+                            - gridcell [ref=f13e610]:
+                              - button "Show more options" [ref=f13e611] [cursor=pointer]
+                            - gridcell [ref=f13e612]:
+                              - textbox "Bar Type Requested" [ref=f13e613]
+                            - gridcell [ref=f13e614]:
+                              - textbox "Segment INTERNAL" [ref=f13e615]
+                            - gridcell [ref=f13e616]:
+                              - button "Value 0" [ref=f13e617] [cursor=pointer]: "0"
+                          - row [ref=f13e618]:
+                            - gridcell [ref=f13e619]:
+                              - textbox "Day Name Tue" [ref=f13e620]
+                            - gridcell [ref=f13e621]:
+                              - button "Show more options" [ref=f13e622] [cursor=pointer]
+                            - gridcell [ref=f13e623]:
+                              - textbox "Bar Type Requested" [ref=f13e624]
+                            - gridcell [ref=f13e625]:
+                              - textbox "Segment EXTERNAL" [ref=f13e626]
+                            - gridcell [ref=f13e627]:
+                              - button "Value 0" [ref=f13e628] [cursor=pointer]: "0"
+                          - row [ref=f13e629]:
+                            - gridcell [ref=f13e630]:
+                              - textbox "Day Name Tue" [ref=f13e631]
+                            - gridcell [ref=f13e632]:
+                              - button "Show more options" [ref=f13e633] [cursor=pointer]
+                            - gridcell [ref=f13e634]:
+                              - textbox "Bar Type Requested" [ref=f13e635]
+                            - gridcell [ref=f13e636]:
+                              - textbox "Segment ELEKTR" [ref=f13e637]
+                            - gridcell [ref=f13e638]:
+                              - button "Value 244" [ref=f13e639] [cursor=pointer]: "244"
+                          - row [ref=f13e640]:
+                            - gridcell [ref=f13e641]:
+                              - textbox "Day Name Tue" [ref=f13e642]
+                            - gridcell [ref=f13e643]:
+                              - button "Show more options" [ref=f13e644] [cursor=pointer]
+                            - gridcell [ref=f13e645]:
+                              - textbox "Bar Type Requested" [ref=f13e646]
+                            - gridcell [ref=f13e647]:
+                              - textbox "Segment DESIGN" [ref=f13e648]
+                            - gridcell [ref=f13e649]:
+                              - button "Value 8" [ref=f13e650] [cursor=pointer]: "8"
+                          - row [ref=f13e651]:
+                            - gridcell [ref=f13e652]:
+                              - textbox "Day Name Tue" [ref=f13e653]
+                            - gridcell [ref=f13e654]:
+                              - button "Show more options" [ref=f13e655] [cursor=pointer]
+                            - gridcell [ref=f13e656]:
+                              - textbox "Bar Type Requested" [ref=f13e657]
+                            - gridcell [ref=f13e658]:
+                              - textbox "Segment SANITAIR" [ref=f13e659]
+                            - gridcell [ref=f13e660]:
+                              - button "Value 224" [ref=f13e661] [cursor=pointer]: "224"
+                          - row [ref=f13e662]:
+                            - gridcell [ref=f13e663]:
+                              - textbox "Day Name Wed" [ref=f13e664]
+                            - gridcell [ref=f13e665]:
+                              - button "Show more options" [ref=f13e666] [cursor=pointer]
+                            - gridcell [ref=f13e667]:
+                              - textbox "Bar Type Capacity" [ref=f13e668]
+                            - gridcell [ref=f13e669]:
+                              - textbox "Segment ASSIGNED" [ref=f13e670]
+                            - gridcell [ref=f13e671]:
+                              - button "Value 8" [ref=f13e672] [cursor=pointer]: "8"
+                          - row [ref=f13e673]:
+                            - gridcell [ref=f13e674]:
+                              - textbox "Day Name Wed" [ref=f13e675]
+                            - gridcell [ref=f13e676]:
+                              - button "Show more options" [ref=f13e677] [cursor=pointer]
+                            - gridcell [ref=f13e678]:
+                              - textbox "Bar Type Capacity" [ref=f13e679]
+                            - gridcell [ref=f13e680]:
+                              - textbox "Segment INTERNAL" [ref=f13e681]
+                            - gridcell [ref=f13e682]:
+                              - button "Value 1" [ref=f13e683] [cursor=pointer]: "1"
+                          - row [ref=f13e684]:
+                            - gridcell [ref=f13e685]:
+                              - textbox "Day Name Wed" [ref=f13e686]
+                            - gridcell [ref=f13e687]:
+                              - button "Show more options" [ref=f13e688] [cursor=pointer]
+                            - gridcell [ref=f13e689]:
+                              - textbox "Bar Type Capacity" [ref=f13e690]
+                            - gridcell [ref=f13e691]:
+                              - textbox "Segment EXTERNAL" [ref=f13e692]
+                            - gridcell [ref=f13e693]:
+                              - button "Value 8" [ref=f13e694] [cursor=pointer]: "8"
+                          - row [ref=f13e695]:
+                            - gridcell [ref=f13e696]:
+                              - textbox "Day Name Wed" [ref=f13e697]
+                            - gridcell [ref=f13e698]:
+                              - button "Show more options" [ref=f13e699] [cursor=pointer]
+                            - gridcell [ref=f13e700]:
+                              - textbox "Bar Type Capacity" [ref=f13e701]
+                            - gridcell [ref=f13e702]:
+                              - textbox "Segment ELEKTR" [ref=f13e703]
+                            - gridcell [ref=f13e704]:
+                              - button "Value 0" [ref=f13e705] [cursor=pointer]: "0"
+                          - row [ref=f13e706]:
+                            - gridcell [ref=f13e707]:
+                              - textbox "Day Name Wed" [ref=f13e708]
+                            - gridcell [ref=f13e709]:
+                              - button "Show more options" [ref=f13e710] [cursor=pointer]
+                            - gridcell [ref=f13e711]:
+                              - textbox "Bar Type Capacity" [ref=f13e712]
+                            - gridcell [ref=f13e713]:
+                              - textbox "Segment DESIGN" [ref=f13e714]
+                            - gridcell [ref=f13e715]:
+                              - button "Value 0" [ref=f13e716] [cursor=pointer]: "0"
+                          - row [ref=f13e717]:
+                            - gridcell [ref=f13e718]:
+                              - textbox "Day Name Wed" [ref=f13e719]
+                            - gridcell [ref=f13e720]:
+                              - button "Show more options" [ref=f13e721] [cursor=pointer]
+                            - gridcell [ref=f13e722]:
+                              - textbox "Bar Type Capacity" [ref=f13e723]
+                            - gridcell [ref=f13e724]:
+                              - textbox "Segment SANITAIR" [ref=f13e725]
+                            - gridcell [ref=f13e726]:
+                              - button "Value 0" [ref=f13e727] [cursor=pointer]: "0"
+                          - row [ref=f13e728]:
+                            - gridcell [ref=f13e729]:
+                              - textbox "Day Name Wed" [ref=f13e730]
+                            - gridcell [ref=f13e731]:
+                              - button "Show more options" [ref=f13e732] [cursor=pointer]
+                            - gridcell [ref=f13e733]:
+                              - textbox "Bar Type Requested" [ref=f13e734]
+                            - gridcell [ref=f13e735]:
+                              - textbox "Segment ASSIGNED" [ref=f13e736]
+                            - gridcell [ref=f13e737]:
+                              - button "Value 8" [ref=f13e738] [cursor=pointer]: "8"
+                          - row [ref=f13e739]:
+                            - gridcell [ref=f13e740]:
+                              - textbox "Day Name Wed" [ref=f13e741]
+                            - gridcell [ref=f13e742]:
+                              - button "Show more options" [ref=f13e743] [cursor=pointer]
+                            - gridcell [ref=f13e744]:
+                              - textbox "Bar Type Requested" [ref=f13e745]
+                            - gridcell [ref=f13e746]:
+                              - textbox "Segment INTERNAL" [ref=f13e747]
+                            - gridcell [ref=f13e748]:
+                              - button "Value 0" [ref=f13e749] [cursor=pointer]: "0"
+                          - row [ref=f13e750]:
+                            - gridcell [ref=f13e751]:
+                              - textbox "Day Name Wed" [ref=f13e752]
+                            - gridcell [ref=f13e753]:
+                              - button "Show more options" [ref=f13e754] [cursor=pointer]
+                            - gridcell [ref=f13e755]:
+                              - textbox "Bar Type Requested" [ref=f13e756]
+                            - gridcell [ref=f13e757]:
+                              - textbox "Segment EXTERNAL" [ref=f13e758]
+                            - gridcell [ref=f13e759]:
+                              - button "Value 0" [ref=f13e760] [cursor=pointer]: "0"
+                          - row [ref=f13e761]:
+                            - gridcell [ref=f13e762]:
+                              - textbox "Day Name Wed" [ref=f13e763]
+                            - gridcell [ref=f13e764]:
+                              - button "Show more options" [ref=f13e765] [cursor=pointer]
+                            - gridcell [ref=f13e766]:
+                              - textbox "Bar Type Requested" [ref=f13e767]
+                            - gridcell [ref=f13e768]:
+                              - textbox "Segment ELEKTR" [ref=f13e769]
+                            - gridcell [ref=f13e770]:
+                              - button "Value 584" [ref=f13e771] [cursor=pointer]: "584"
+                          - row [ref=f13e772]:
+                            - gridcell [ref=f13e773]:
+                              - textbox "Day Name Wed" [ref=f13e774]
+                            - gridcell [ref=f13e775]:
+                              - button "Show more options" [ref=f13e776] [cursor=pointer]
+                            - gridcell [ref=f13e777]:
+                              - textbox "Bar Type Requested" [ref=f13e778]
+                            - gridcell [ref=f13e779]:
+                              - textbox "Segment DESIGN" [ref=f13e780]
+                            - gridcell [ref=f13e781]:
+                              - button "Value 0" [ref=f13e782] [cursor=pointer]: "0"
+                          - row [ref=f13e783]:
+                            - gridcell [ref=f13e784]:
+                              - textbox "Day Name Wed" [ref=f13e785]
+                            - gridcell [ref=f13e786]:
+                              - button "Show more options" [ref=f13e787] [cursor=pointer]
+                            - gridcell [ref=f13e788]:
+                              - textbox "Bar Type Requested" [ref=f13e789]
+                            - gridcell [ref=f13e790]:
+                              - textbox "Segment SANITAIR" [ref=f13e791]
+                            - gridcell [ref=f13e792]:
+                              - button "Value 736" [ref=f13e793] [cursor=pointer]: "736"
+      - text: Use the Left and Right arrow keys to adjust the size. Use the Escape key to undo or the Enter key to accept.
+      - paragraph [ref=f13e799]: List with title "Day Capacity Chart Audit" now has 75 items
+      - paragraph [ref=f13e801]: List with title "Requested vs Capacity per Skill" now has 23 items

@@ -94,9 +94,8 @@ page 50704 "Day Capacity Chart Audit"
     /// <summary>
     /// Replaces the content of this page with the rows of the supplied temporary buffer.
     /// </summary>
-    procedure LoadData(var SourceBuffer: Record "Day Capacity Chart Audit Buf" temporary; ResourceNoFilter: Code[20])
+    procedure LoadData(var SourceBuffer: Record "Day Capacity Chart Audit Buf" temporary)
     begin
-        CurrResourceNoFilter := ResourceNoFilter;
 
         Rec.Reset();
         Rec.DeleteAll();

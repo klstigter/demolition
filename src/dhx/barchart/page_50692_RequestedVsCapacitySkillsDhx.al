@@ -29,32 +29,6 @@ page 50692 "Requested vs Capacity Skl Dhx"
                     Editable = false;
                     ToolTip = 'Specifies the month, year, and ISO week number of the displayed period.';
                 }
-                field(ResourceNoFilterCtrl; ResourceNoFilter)
-                {
-                    ApplicationArea = All;
-                    Caption = 'Resource No.';
-                    TableRelation = Resource;
-                    ToolTip = 'Specifies the resource to analyze. Leave blank to include all resources.';
-
-                    trigger OnValidate()
-                    begin
-                        RefreshData();
-                    end;
-                }
-                field(ScenarioNoCtrl; ScenarioNo)
-                {
-                    ApplicationArea = All;
-                    Caption = 'Scenario';
-                    ToolTip = 'Specifies how many weekdays of the displayed period, starting from Monday, are collapsed to a single Assigned Hours bar - simulating days that are already closed/committed and no longer open for planning. 0 = none collapsed, 5 = all collapsed.';
-
-                    trigger OnValidate()
-                    begin
-                        if (ScenarioNo < 0) or (ScenarioNo > 5) then
-                            Error(ScenarioRangeErr);
-                        RefreshChart();
-                        RefreshAuditBuffer();
-                    end;
-                }
             }
 
             group(ChartGroup)
@@ -213,8 +187,6 @@ page 50692 "Requested vs Capacity Skl Dhx"
         Day1Text := FormatDayText(PeriodStartDate);
         Day7Text := FormatDayText(PeriodStartDate + 6);
 
-        ScenarioNo := CalcDefaultScenarioNo();
-
         RefreshData();
     end;
 
@@ -246,8 +218,8 @@ page 50692 "Requested vs Capacity Skl Dhx"
         PeriodEndDate: Date;
     begin
         PeriodEndDate := PeriodStartDate + 6;
-        SkillCapacityAnalysisMgt.BuildSkillBuffer(Buffer, ResourceNoFilter, PeriodStartDate, PeriodEndDate, '');
-        CurrPage.DataPart.Page.LoadData(Buffer, ResourceNoFilter, PeriodStartDate, PeriodEndDate);
+        SkillCapacityAnalysisMgt.BuildSkillBuffer(Buffer, PeriodStartDate, PeriodEndDate);
+        CurrPage.DataPart.Page.LoadData(Buffer, PeriodStartDate, PeriodEndDate);
         RefreshChart();
         RefreshAuditBuffer();
     end;
@@ -267,7 +239,7 @@ page 50692 "Requested vs Capacity Skl Dhx"
         if not ChartReady then
             exit;
 
-        ChartDataJson := SkillCapacityAnalysisMgt.BuildDayCapacityChartData(PeriodStartDate, ResourceNoFilter, ScenarioNo);
+        ChartDataJson := SkillCapacityAnalysisMgt.BuildDayCapacityChartData(PeriodStartDate);
         CurrPage.DhxBarChart.LoadData(ChartDataJson);
     end;
 
@@ -283,16 +255,14 @@ page 50692 "Requested vs Capacity Skl Dhx"
     var
         AuditBuffer: Record "Day Capacity Chart Audit Buf" temporary;
     begin
-        SkillCapacityAnalysisMgt.BuildDayCapacityAuditBuffer(AuditBuffer, PeriodStartDate, ResourceNoFilter, ScenarioNo);
-        CurrPage.AuditDataPart.Page.LoadData(AuditBuffer, ResourceNoFilter);
+        SkillCapacityAnalysisMgt.BuildDayCapacityAuditBuffer(AuditBuffer, PeriodStartDate);
+        CurrPage.AuditDataPart.Page.LoadData(AuditBuffer);
     end;
 
     var
         Buffer: Record "Skill Req. vs Capacity Buffer" temporary;
         SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
-        ResourceNoFilter: Code[20];
         PeriodStartDate: Date;
-        ScenarioNo: Integer;
         ChartReady: Boolean;
         PeriodLabelText: Text[50];
         Day1Text: Text[20];
