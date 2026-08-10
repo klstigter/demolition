@@ -185,10 +185,13 @@ function RenderChart(chartData) {
             left:   { type: "numeric" }
         },
         // De-duplicated by label - two series can share a display name (e.g. codeunit 50662's
-        // "Assigned" internal/external halves, same colour, stacked apart so the external half
-        // can carry its own red border) without producing two identical-looking legend rows;
-        // only the FIRST series with a given label is listed here, later ones with the same
-        // label still render in the stack, just not as their own legend entry.
+        // per-skill internal/external halves, both named after the Skill Code, same colour,
+        // stacked apart so the external half can carry its own red border) without producing two
+        // identical-looking legend rows; only the FIRST series with a given label is listed here,
+        // later ones with the same label still render in the stack, just not as their own legend
+        // entry. The Assigned/free-capacity segments each use their own distinct series name
+        // (e.g. "Assigned Capacity - Internal" vs "Assigned Capacity - External") specifically so
+        // they do NOT collapse here and each gets its own legend entry.
         legend: {
             series: (function() {
                 var seenLabels = {};
@@ -257,6 +260,7 @@ function SchedulePostRenderPatches() {
         if (!chartContainer) return;
         if (chartMutationObserver) chartMutationObserver.disconnect();
         ApplySeriesBorders(lastSeriesDefs, lastSeries);
+        ApplyLegendSwatchBorders(lastSeriesDefs, lastSeries);
         RenderDayGroupRow(lastDayLabels);
         if (chartMutationObserver) chartMutationObserver.observe(chartContainer, { childList: true, subtree: true });
     });
@@ -278,11 +282,15 @@ function SchedulePostRenderPatches() {
 // render in the same left-to-right category order as `s.values`, so the two can be walked in
 // lockstep by index.
 //
-// The legend swatch is deliberately left plain (no stroke), even for a label like "Assigned"
-// whose external half IS bordered on the bars themselves: the legend entry is always the FIRST
-// series with that label (see RenderChart's legend.series de-dup), i.e. the internal/unbordered
-// half - matching that swatch to it is correct, and a fill-colour-based swatch match would have
-// wrongly styled it to look like the (different, later-declared) external half instead.
+// This function only ever touches the BARS. The legend swatch is a separate concern, handled by
+// ApplyLegendSwatchBorders below: for a label shared by a bordered series (e.g. codeunit 50662's
+// per-skill segments, where the external half IS bordered on the bars themselves), the legend
+// entry is always the FIRST series with that label (see RenderChart's legend.series de-dup), i.e.
+// the internal/unbordered half - so that swatch correctly stays plain. But a series whose label is
+// NOT shared with any earlier series (e.g. "Assigned Capacity - External", which has its own
+// distinct, non-deduped legend slot) genuinely owns its legend entry, and that swatch DOES need
+// the border - see ApplyLegendSwatchBorders' own de-dup-aware matching for how it tells the two
+// cases apart.
 //
 // Idempotent - safe to call again on every repaint (see SchedulePostRenderPatches).
 function ApplySeriesBorders(seriesDefs, series) {
@@ -296,6 +304,72 @@ function ApplySeriesBorders(seriesDefs, series) {
                     p.style.strokeWidth = "1.5px";
                 }
             });
+        }
+    });
+}
+
+// Applies the same red-outline convention as ApplySeriesBorders, but to a bordered series' own
+// LEGEND SWATCH - only when that series genuinely owns its own de-duped legend slot (e.g. the now-
+// distinct "Assigned Capacity - External"/"Free Capacity - External" entries), never for a series
+// whose label was suppressed by RenderChart's legend.series de-dup (every per-skill segment's
+// external half, which always shares its label with an earlier, unbordered internal series - see
+// the comment on ApplySeriesBorders above). Re-derives that SAME first-occurrence-by-label
+// ownership rule from `series` here rather than trusting anything already in the DOM, since the
+// only DOM signal available (a `<g class="legend-item">`'s rendered label text, see below) can't
+// by itself distinguish "this label has no earlier owner" from "it does".
+//
+// suite.js's Legend.prototype.paint() (verified by direct grep, suite.js ~13330-13439) renders
+// each legend entry as `<g class="legend-item" aria-label="Show/Hide chart <label>">` containing a
+// `<text class="start-text legend-text">` (whose rendered textContent - via a child <tspan>, see
+// verticalCenteredText ~line 1949 - equals the series' own `label`, unique per entry precisely
+// because of the de-dup upstream) and a swatch shape from `legendShape()` (suite.js ~35684, class
+// "figure", defaulting to a `<rect class="figure ...">` since `config.legend.form` is never set
+// here and Legend's own defaults ~line 13274 default `form` to "rect"). Matching swatches by that
+// rendered label text (not DOM index) is what lets this stay correct regardless of how many
+// series were filtered out ahead of any given legend entry.
+//
+// SVG shapes ignore the CSS `border` property entirely - only `stroke`/`stroke-width` paints
+// visibly on a `<rect>`/`<circle>`, which is also exactly what ApplySeriesBorders already uses for
+// the bars themselves, so the swatch is styled the same way for visual consistency (an inline
+// `style.stroke` write always wins over the shape's own default `stroke="none"` presentation
+// attribute set by legendShape/forms.rect, no !important needed).
+//
+// Idempotent - safe to call again on every repaint (see SchedulePostRenderPatches): swatches are
+// plain style writes (no elements appended), and the non-bordered branch below explicitly clears
+// any stale stroke rather than just skipping the element, though in practice dhx.Chart tears down
+// and repaints the whole legend from scratch on every call anyway (see RenderChart's
+// chartContainer.innerHTML = "" reset), so no swatch DOM node actually survives across calls.
+function ApplyLegendSwatchBorders(seriesDefs, series) {
+    if (!chartContainer) return;
+    var legendGroup = chartContainer.querySelector('g[aria-label="Legend"]');
+    if (!legendGroup) return;
+
+    // First-occurrence-by-label ownership - MUST mirror RenderChart's own `legend.series` de-dup
+    // filter exactly, or a skill segment's external half could wrongly be treated as owning a
+    // legend slot it never actually got.
+    var seenLabels = {};
+    var legendOwnerIndexByLabel = {};
+    (series || []).forEach(function(s, sIdx) {
+        if (!s || seenLabels[s.label]) return;
+        seenLabels[s.label] = true;
+        legendOwnerIndexByLabel[s.label] = sIdx;
+    });
+
+    var items = legendGroup.querySelectorAll(".legend-item");
+    items.forEach(function(item) {
+        var textEl = item.querySelector(".legend-text");
+        var swatch = item.querySelector(".figure");
+        if (!textEl || !swatch) return;
+
+        var ownerIdx = legendOwnerIndexByLabel[textEl.textContent];
+        var ownerDef = (ownerIdx !== undefined) ? seriesDefs[ownerIdx] : null;
+
+        if (ownerDef && ownerDef.border) {
+            swatch.style.stroke = ownerDef.border;
+            swatch.style.strokeWidth = "1.5px";
+        } else {
+            swatch.style.stroke = "";
+            swatch.style.strokeWidth = "";
         }
     });
 }

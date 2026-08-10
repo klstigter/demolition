@@ -109,6 +109,34 @@ scale/series data was proven correct), but `ScaleSeria._calckFinalPoints(width, 
 can be called directly for pixel-level (x_px, y_px) confirmation without any DOM commit
 at all, which is what actually proved this fix.
 
+**Legend DOM structure** (added 2026-08-10, grepped directly from `src/dhx/suite.js`, used to
+build `ApplyLegendSwatchBorders` in `src/dhx/barchart/wrapper.js`, a post-render patch that red-
+borders legend swatches for series with their own de-duped `border`-flavored legend slot):
+- `Legend.prototype.paint()` (~line 13330-13439) renders the whole legend as one
+  `<g aria-label="Legend">` wrapper. Each entry inside it is a `<g class="legend-item ...">
+  role="button" aria-label="Show chart <label>"` (or `"Hide chart <label>"` once toggled off via
+  click — `getLegendAriaAttrs`, ~line 13332), containing a `<text class="start-text legend-text">`
+  whose rendered `textContent` (via a child `<tspan>` from `verticalCenteredText()`, ~line 1949)
+  equals that entry's `label` — and a swatch shape from `legendShape()` (~line 35684).
+- Swatch shape defaults to `<rect class="figure ...">` (`class="figure with-stroke"` when a stroke
+  colour is set, else `"figure "`) — `Legend`'s own `defaults` object (~line 13274) sets
+  `form: "rect"` and nothing in this project's chart config (`RenderChart`'s `legend` block) ever
+  overrides `form`, so every legend built here uses the rect swatch, not circle/line.
+- `Legend.prototype._getData()`'s plain-series branch (~line 13508-13524, the one a regular
+  multi-series bar/line chart hits — not the `treeSeries`/pie/scale branches) builds one legend
+  entry per id in `config.legend.$seriesInfo` (itself built from `config.legend.series`, the
+  explicit id array — see the "Legend text comes from series[].label" bullet above), in that same
+  array order — so DOM order of `.legend-item` groups matches `config.legend.series` order 1:1.
+  BUT matching swatches by rendered label text (not DOM index) is more robust and is what
+  `ApplyLegendSwatchBorders` actually does, since the whole point of the upstream label-based
+  de-dup (`RenderChart`'s `legend.series` builder) is that every legend entry's label is already
+  guaranteed unique.
+- SVG shapes ignore the CSS `border` property — only `stroke`/`stroke-width` (as attributes OR
+  inline `style.stroke`, which always wins over `legendShape`'s own `stroke="none"` presentation
+  attribute default) actually paints an outline on a `<rect>`/`<circle>`. Confirmed by reading
+  `forms.rect` (~line 35641-35652) directly — it sets `stroke`/`stroke-width` attributes, never
+  a `border`-anything, on the swatch `<rect>` it returns.
+
 **How to apply:** If DHTMLX Suite Chart is used for another chart type (line, area, pie,
 scatter, treeMap...) on a future page, re-grep `suite.js` for that specific chart type's
 factory/config shape rather than assuming it matches `"bar"` — `Chart.setConfig()`'s

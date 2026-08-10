@@ -18,20 +18,14 @@ page 50692 "Requested vs Capacity Skl Dhx"
     {
         area(Content)
         {
-            group(Filters)
+            field(PeriodLabelCtrl; PeriodLabelText + ' (' + Day1Text + ' - ' + Day7Text + ')')
             {
-                Caption = 'Filters';
-
-                field(PeriodLabelCtrl; PeriodLabelText + ' (' + Day1Text + ' - ' + Day7Text + ')')
-                {
-                    ApplicationArea = All;
-                    Caption = 'Period';
-                    Editable = false;
-                    ToolTip = 'Specifies the month, year, and ISO week number of the displayed period.';
-                }
+                ApplicationArea = All;
+                Caption = 'Period';
+                Editable = false;
+                ToolTip = 'Specifies the month, year, and ISO week number of the displayed period.';
             }
-
-            group(ChartGroup)
+            group(Filters)
             {
                 Caption = 'Requested Hours vs Capacity';
 
@@ -185,24 +179,6 @@ page 50692 "Requested vs Capacity Skl Dhx"
         RefreshData();
     end;
 
-    /// <summary>
-    /// Default Scenario is the count of weekdays (Monday..Friday) in the current period that are
-    /// already in the past relative to Today() - i.e. days that would already be closed/committed
-    /// - clamped to 0..5 simply by construction (the loop only ever counts 5 weekdays). The user
-    /// can still override this via the Scenario field after the period is shown.
-    /// </summary>
-    local procedure CalcDefaultScenarioNo(): Integer
-    var
-        WeekdayIndex: Integer;
-        ClosedCount: Integer;
-    begin
-        ClosedCount := 0;
-        for WeekdayIndex := 1 to 5 do
-            if (PeriodStartDate + (WeekdayIndex - 1)) < Today() then
-                ClosedCount += 1;
-        exit(ClosedCount);
-    end;
-
     local procedure FormatDayText(DayDate: Date): Text[20]
     begin
         exit(StrSubstNo(DayLabelLbl, Format(DayDate, 0, '<Weekday Text,3>'), Format(DayDate, 0, '<Day,2>')));
@@ -219,8 +195,9 @@ page 50692 "Requested vs Capacity Skl Dhx"
     // entirely by codeunit 50662's BuildDayCapacityChartData, which already returns the exact
     // JSON shape (categories/series with name/values/color/[border]/stacked keys) that
     // src/dhx/barchart/wrapper.js' RenderChart expects. This page only supplies the current
-    // filters (period, Resource No., Scenario) and forwards the resulting JSON string straight to
-    // CurrPage.DhxBarChart.LoadData - it builds no JSON of its own.
+    // filters (period, Resource No.) and forwards the resulting JSON string straight to
+    // CurrPage.DhxBarChart.LoadData - it builds no JSON of its own. No scenario/what-if override
+    // concept exists - the chart always shows actual/existing data for the displayed week.
     local procedure RefreshChart()
     var
         ChartDataJson: Text;
@@ -234,7 +211,7 @@ page 50692 "Requested vs Capacity Skl Dhx"
 
     /// <summary>
     /// Keeps the "Chart Audit Trail" factbox in sync with the chart data - same
-    /// PeriodStartDate/ResourceNoFilter/ScenarioNo inputs, same codeunit 50662 shared per-day
+    /// PeriodStartDate input, same codeunit 50662 shared per-day
     /// computation, so the factbox always shows exactly the numbers behind the chart. Called
     /// unconditionally (not gated by ChartReady like RefreshChart) since it is pure AL/factbox
     /// logic with no dependency on the DhxBarChart usercontrol having finished loading in the
@@ -257,5 +234,4 @@ page 50692 "Requested vs Capacity Skl Dhx"
         Day7Text: Text[20];
         PeriodLabelLbl: Label '%1 %2 - wk %3', Comment = '%1 = abbreviated month, %2 = year, %3 = ISO week number';
         DayLabelLbl: Label '%1 %2', Comment = '%1 = abbreviated weekday, %2 = day of month';
-        ScenarioRangeErr: Label 'Scenario must be between 0 and 5.';
 }

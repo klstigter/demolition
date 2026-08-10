@@ -35,6 +35,7 @@ report 50600 "RepairData"
         // MakeAssignedBackToRequested(20260804D, 30);
         // CreateExternalCapacityForWeek(20260803D, 300);
         // MakeInternalResourcesExternal(20260803D, 30);
+        // UndoMakeInternalResourcesExternal();
     end;
 
     /// <summary>
@@ -234,6 +235,61 @@ report 50600 "RepairData"
     end;
 
     /// <summary>
+    /// Undoes the contamination left behind by a past manual run of MakeInternalResourcesExternal
+    /// (or an equivalent direct-field-assignment flip), which set Resource."Is External" := true on
+    /// resources without checking whether they were already classified "Is Pool" or "Is Pool
+    /// Member" - a combination tableext 50603's own OnValidate triggers treat as mutually exclusive
+    /// and would never allow through Validate(). Finds the contaminated set dynamically via
+    /// SetRange (NOT a hardcoded resource list), so it is safe to re-run: once the sandbox is clean,
+    /// both FindSet calls simply find 0 records.
+    ///
+    /// Clears "Is External" via DIRECT FIELD ASSIGNMENT, not Validate("Is External", false). Field
+    /// 50604's OnValidate else-branch (the "set to false" path) also wipes "Vendor No.", "Pool
+    /// Resource No.", "Is Pool", AND "Is Pool Member" as a side effect - going through Validate()
+    /// here would destroy the exact Pool/Pool Member classification this procedure exists to
+    /// restore. Direct assignment mirrors how the original contamination bug itself worked, undoing
+    /// only the one flag that was wrongly set.
+    ///
+    /// Vendor No. is handled differently per group, based on live-data investigation:
+    /// - "Is Pool" resources: Vendor No. is left AS-IS. Each carries its own legitimate,
+    ///   pre-existing pool vendor (e.g. DRP001 -> DRV001), never touched by the original
+    ///   MakeInternalResourcesExternal run because it only ever sets Vendor No. when blank.
+    /// - "Is Pool Member" resources: Vendor No. is explicitly CLEARED back to ''. A genuine Pool
+    ///   Member always has a blank Vendor No. (table 50603's own "Is Pool Member" OnValidate always
+    ///   clears it), so a non-blank value here is contamination, not real data - confirmed live,
+    ///   where every contaminated Pool Member resource carried the identical Vendor No. "10000"
+    ///   (Vendor.FindFirst()'s result from the original repair run), not a per-resource value.
+    /// </summary>
+    procedure UndoMakeInternalResourcesExternal()
+    var
+        Resource: Record Resource;
+        FixedPoolCount: Integer;
+        FixedPoolMemberCount: Integer;
+    begin
+        Resource.SetRange("Is External", true);
+        Resource.SetRange("Is Pool", true);
+        if Resource.FindSet(true) then
+            repeat
+                Resource."Is External" := false;
+                Resource.Modify();
+                FixedPoolCount += 1;
+            until Resource.Next() = 0;
+
+        Resource.Reset();
+        Resource.SetRange("Is External", true);
+        Resource.SetRange("Is Pool Member", true);
+        if Resource.FindSet(true) then
+            repeat
+                Resource."Is External" := false;
+                Resource."Vendor No." := '';
+                Resource.Modify();
+                FixedPoolMemberCount += 1;
+            until Resource.Next() = 0;
+
+        Message(UndoInternalToExternalResultMsg, FixedPoolCount, FixedPoolMemberCount);
+    end;
+
+    /// <summary>
     /// Tops up ResourceNo's Res. Capacity Entry for EntryDate so its Capacity is at least
     /// BoostPercentage% above its own Assigned Hours that day - giving it real spare capacity to
     /// contribute to CalcCapacitySplit's External bucket once flipped, instead of a wash against
@@ -386,6 +442,7 @@ report 50600 "RepairData"
         ExternalDemoResourceNoTok: Label 'EXTDEMO', Locked = true;
         ExternalDemoResourceNameTxt: Label 'External Demo Resource';
         InternalToExternalResultMsg: Label 'Flipped %1 Internal resource(s) (sampled per weekday) to External, week starting %2.';
+        UndoInternalToExternalResultMsg: Label 'Cleared "Is External" on %1 Pool resource(s) and %2 Pool Member resource(s) (Vendor No. also cleared on the latter).';
         BalanceCapacityResultMsg: Label 'Added %2 Assigned Hours on %1 (now %3 total), to match %4 Requested Hours.';
         CreateSkillDemandResultMsg: Label 'Created %1 unassigned Requested Hours for skill %2 on %3.';
 }
