@@ -42,6 +42,11 @@ page 50692 "Requested vs Capacity Skl Dhx"
                     trigger OnDataPointClicked(SkillCode: Text)
                     begin
                     end;
+
+                    trigger OnShowSegmentData(SegmentId: Text; BarType: Text; DayIndex: Integer; WholeWeek: Boolean)
+                    begin
+                        SkillCapacityAnalysisMgt.ShowSegmentData(SegmentId, BarType, PeriodStartDate, DayIndex, WholeWeek);
+                    end;
                 }
             }
         }

@@ -168,6 +168,97 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
         exit(0);
     end;
 
+    /// <summary>
+    /// Resolves a chart segment - identified by SegmentId (a bare Skill Code, or the literal
+    /// CapacitySkillCodeTok 'CAPACITY' marker used for the synthetic aggregate row - see
+    /// BuildSkillBuffer's own doc comment) plus its click origin - back to the real "Day
+    /// Planning"/"Res. Capacity Entry" records that number was built from, and opens the matching
+    /// standard list page pre-filtered to exactly that record set. Called from page 50681's
+    /// OnShowSegmentData usercontrol trigger, itself fired by wrapper.js's right-click "Show Data"
+    /// context menu on either:
+    ///   - a single BAR (WholeChart = false) - that one skill's Day Planning rows, or, for the
+    ///     CAPACITY bar, that period's Res. Capacity Entry rows. Uses the exact same filter logic
+    ///     already used by page 50661's "Requested Hours" OnDrillDown, so the two drilldown
+    ///     entry points (factbox field vs. chart right-click) can never disagree.
+    ///   - the LEGEND entry (WholeChart = true, SegmentId ignored) - this chart has exactly ONE
+    ///     series ("Requested Hours"), so there is no single narrower segment to broaden from the
+    ///     way the live barchart's legend click broadens a classified series from one day to the
+    ///     whole week. The closest analog here is broadening from one skill to every skill: all
+    ///     Day Planning rows with a non-blank Skill for the current Resource No./period filters -
+    ///     the combined rows behind every skill bar at once. The CAPACITY bar is deliberately
+    ///     excluded from this - its number comes from a different source table
+    ///     ("Res. Capacity Entry") and is not itself part of the skill breakdown the legend
+    ///     generalizes over.
+    /// This chart has no per-day breakdown at all - every bar already aggregates the whole
+    /// displayed period - so, unlike the live barchart's ShowSegmentData, there is no
+    /// DayIndex/BarType to resolve a date range from; DateFromFilter/DateToFilter are simply the
+    /// page's own currently displayed period (always a concrete Monday..Sunday range, never
+    /// blank), passed straight through.
+    /// </summary>
+    procedure ShowSegmentData(SegmentId: Text; WholeChart: Boolean; ResourceNoFilter: Code[20]; DateFromFilter: Date; DateToFilter: Date)
+    begin
+        if WholeChart then begin
+            ShowAllSkillsSegment(ResourceNoFilter, DateFromFilter, DateToFilter);
+            exit;
+        end;
+
+        if SegmentId = CapacitySkillCodeTok then
+            ShowCapacitySegment(ResourceNoFilter, DateFromFilter, DateToFilter)
+        else
+            ShowSkillSegment(CopyStr(SegmentId, 1, 10), ResourceNoFilter, DateFromFilter, DateToFilter);
+    end;
+
+    /// <summary>
+    /// Drilldown for a single skill bar - mirrors page 50661's "Requested Hours" OnDrillDown
+    /// non-CAPACITY branch exactly (same fields, same filters), just reached from the chart's
+    /// right-click menu instead of a factbox field click.
+    /// </summary>
+    local procedure ShowSkillSegment(SkillCode: Code[10]; ResourceNoFilter: Code[20]; DateFromFilter: Date; DateToFilter: Date)
+    var
+        DayPlanning: Record "Day Planning";
+    begin
+        DayPlanning.Reset();
+        DayPlanning.SetRange(Skill, SkillCode);
+        if ResourceNoFilter <> '' then
+            DayPlanning.SetRange("Assigned Resource No.", ResourceNoFilter);
+        DayPlanning.SetRange("Plan Date", DateFromFilter, DateToFilter);
+        Page.Run(Page::"Day Plannings", DayPlanning);
+    end;
+
+    /// <summary>
+    /// Drilldown for the synthetic CAPACITY bar - mirrors page 50661's "Requested Hours"
+    /// OnDrillDown CAPACITY branch exactly (same fields, same filters, no Skill involved - capacity
+    /// is a resource/date concept, not a per-skill one).
+    /// </summary>
+    local procedure ShowCapacitySegment(ResourceNoFilter: Code[20]; DateFromFilter: Date; DateToFilter: Date)
+    var
+        ResCapacityEntry: Record "Res. Capacity Entry";
+    begin
+        ResCapacityEntry.Reset();
+        if ResourceNoFilter <> '' then
+            ResCapacityEntry.SetRange("Resource No.", ResourceNoFilter);
+        ResCapacityEntry.SetRange(Date, DateFromFilter, DateToFilter);
+        Page.Run(Page::"Res. Capacity Entries", ResCapacityEntry);
+    end;
+
+    /// <summary>
+    /// Drilldown for the legend entry (WholeChart = true) - see ShowSegmentData's own doc comment
+    /// for why this is the chosen "whole" analog. A plain SetFilter(Skill, '&lt;&gt;%1', '')
+    /// suffices (no resource classification/Mark() idiom needed, unlike the live barchart's
+    /// Internal/External segments) since Skill is a plain Day Planning field.
+    /// </summary>
+    local procedure ShowAllSkillsSegment(ResourceNoFilter: Code[20]; DateFromFilter: Date; DateToFilter: Date)
+    var
+        DayPlanning: Record "Day Planning";
+    begin
+        DayPlanning.Reset();
+        DayPlanning.SetFilter(Skill, '<>%1', '');
+        if ResourceNoFilter <> '' then
+            DayPlanning.SetRange("Assigned Resource No.", ResourceNoFilter);
+        DayPlanning.SetRange("Plan Date", DateFromFilter, DateToFilter);
+        Page.Run(Page::"Day Plannings", DayPlanning);
+    end;
+
     var
         CapacitySkillCodeTok: Label 'CAPACITY', Locked = true;
         CapacityDescriptionTxt: Label 'Capacity';

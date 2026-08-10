@@ -249,6 +249,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         ChartData: JsonObject;
         CategoriesArray: JsonArray;
         DayLabelsArray: JsonArray;
+        DayIndicesArray: JsonArray;
         SeriesArray: JsonArray;
         AssInternalValues: List of [Decimal];
         AssExternalValues: List of [Decimal];
@@ -288,6 +289,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         // skipped day contributes no categories/dayLabels/values entries at all, not a zero pair.
         Clear(CategoriesArray);
         Clear(DayLabelsArray);
+        Clear(DayIndicesArray);
         Clear(AssInternalValues);
         Clear(AssExternalValues);
         Clear(CapInternalValues);
@@ -304,6 +306,12 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
             CategoriesArray.Add(FormatWeekdayShort(CurrDate) + CategoryDelimiterTok + FreeCapacityCategoryLbl);
             CategoriesArray.Add(FormatWeekdayShort(CurrDate) + CategoryDelimiterTok + RequestedCategoryLbl);
             DayLabelsArray.Add(FormatWeekdayShort(CurrDate));
+            // Parallel to DayLabelsArray (same index, same "only included days" skipping) but
+            // carries the raw 1..7 WeekdayIndex instead of display text - wrapper.js's right-click
+            // "Show Data" handler (see ResolveBarSegmentFromEvent) needs this to hand a real day
+            // back to ShowSegmentData, since a locale-formatted 3-letter weekday name is not a safe
+            // round-trip key (FormatWeekdayShort uses "<Weekday Text,3>", which is locale-dependent).
+            DayIndicesArray.Add(WeekdayIndex);
 
             // Capacity bar keeps its own Internal/External split. Requested bar collapses the
             // Assigned segment to a single plain total - no Internal/External distinction - so
@@ -363,6 +371,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
 
         ChartData.Add('categories', CategoriesArray);
         ChartData.Add('dayLabels', DayLabelsArray);
+        ChartData.Add('dayIndices', DayIndicesArray);
         ChartData.Add('series', SeriesArray);
         ChartData.WriteTo(ChartDataJson);
     end;
@@ -748,6 +757,300 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     end;
 
     /// <summary>
+    /// Joins Values into a single '|'-delimited OR filter string suitable for SetFilter - same
+    /// helper/pattern as page 50704's own local BuildCodeOrFilter. No filter-character escaping is
+    /// attempted (matching that existing precedent): Resource No./Skill Code values in this system
+    /// are plain alphanumeric identifiers, not user-authored text, so this is a pragmatic, low-risk
+    /// choice consistent with the rest of this codebase rather than a general-purpose filter
+    /// builder.
+    /// </summary>
+    local procedure BuildCodeOrFilter(var Values: List of [Code[20]]): Text
+    var
+        Value: Code[20];
+        FilterText: Text;
+    begin
+        foreach Value in Values do
+            if FilterText = '' then
+                FilterText := Value
+            else
+                FilterText += '|' + Value;
+        exit(FilterText);
+    end;
+
+    /// <summary>
+    /// Resolves a chart segment - identified by SegmentId (one of the fixed series-name Labels
+    /// declared below, e.g. AssInternalSeriesNameLbl/CapExternalSeriesNameLbl, or a bare Skill
+    /// Code for a per-skill series) plus its click origin - back to the real "Day Planning"/
+    /// "Res. Capacity Entry" records that number was built from, and opens the matching standard
+    /// list page ("Day Plannings"/"Res. Capacity Entries") pre-filtered to exactly that record
+    /// set. Called from page 50692's OnShowSegmentData usercontrol trigger, itself fired by
+    /// wrapper.js's right-click "Show Data" context menu on either:
+    ///   - an individual stacked-bar SEGMENT (WholeWeek = false, BarType = "Capacity"/"Requested",
+    ///     DayIndex = 1..7) - that one day's slice of that segment, or
+    ///   - a LEGEND entry (WholeWeek = true, BarType/DayIndex ignored) - that segment's total
+    ///     across the whole displayed Monday..Sunday period (PeriodStartDate.. +6).
+    /// DayIndex is the raw 1..7 weekday index (see BuildDayCapacityChartData's "dayIndices" JSON
+    /// array) - NOT a locale-formatted weekday name - so the actual Date is always recomputed here
+    /// from the page's own PeriodStartDate rather than trusting anything parsed back out of
+    /// display text.
+    /// </summary>
+    procedure ShowSegmentData(SegmentId: Text; BarType: Text; PeriodStartDate: Date; DayIndex: Integer; WholeWeek: Boolean)
+    var
+        DateFrom: Date;
+        DateTo: Date;
+    begin
+        if WholeWeek then begin
+            DateFrom := PeriodStartDate;
+            DateTo := PeriodStartDate + 6;
+        end else begin
+            if (DayIndex < 1) or (DayIndex > 7) then
+                exit; // malformed/stale click payload - nothing sane to open.
+            DateFrom := PeriodStartDate + (DayIndex - 1);
+            DateTo := DateFrom;
+        end;
+
+        case SegmentId of
+            AssInternalSeriesNameLbl, AssExternalSeriesNameLbl:
+                ShowAssignedCapacitySegment(SegmentId, BarType, DateFrom, DateTo, WholeWeek);
+            CapInternalSeriesNameLbl, CapExternalSeriesNameLbl:
+                ShowFreeCapacitySegment(SegmentId, DateFrom, DateTo);
+            else
+                ShowSkillSegment(SegmentId, DateFrom, DateTo);
+        end;
+    end;
+
+    /// <summary>
+    /// Drilldown for "Assigned Capacity - Internal"/"External". Day Planning has no field storing
+    /// the assigned resource's own "Is External" flag, so the classified resource set is computed
+    /// first (BuildAssignedResourceSet) and then turned into a plain "Assigned Resource No." OR
+    /// filter (BuildCodeOrFilter - same helper/pattern already used by page 50704's own
+    /// Internal/External OnDrillDown) before opening "Day Plannings".
+    ///
+    /// Deliberately NOT the Mark()+MarkedOnly()+Page.Run() idiom this drilldown originally used:
+    /// confirmed live (via Playwright against the actual BC web client) that Page.Run() invoked
+    /// from THIS call path - a control add-in event trigger (OnShowSegmentData), itself fired via
+    /// wrapper.js's Microsoft.Dynamics.NAV.InvokeExtensibilityMethod - always opens the target page
+    /// at a fresh bookmarked URL rather than as an in-session page-stack push. Plain SetRange/
+    /// SetFilter field filters survive that round-trip (they serialize straight into the URL/
+    /// bookmark), but Record.Mark()'s in-memory marked-list does not, so MarkedOnly(true) always
+    /// resolved to zero rows here even though AnyMarked had been true moments earlier in the same
+    /// call - the list opened but was always empty. A plain OR-filter has no such boundary to cross.
+    ///
+    /// The Internal/External classification only applies when UseClassification is true - true
+    /// for WholeWeek (legend) clicks and for a click on the CAPACITY bar's own Assigned segment,
+    /// both of which represent this series' real, always-classified identity. A click on the
+    /// REQUESTED bar's Assigned segment is the one exception: per BuildDayCapacityChartData's own
+    /// doc comment, that segment is a deliberately collapsed combined total (the "external" series
+    /// is always 0 there), so its drilldown shows ALL assigned rows for that day regardless of the
+    /// assigned resource's Is External flag - matching what the plotted number actually represents.
+    /// </summary>
+    local procedure ShowAssignedCapacitySegment(SegmentId: Text; BarType: Text; DateFrom: Date; DateTo: Date; WholeWeek: Boolean)
+    var
+        DayPlanning: Record "Day Planning";
+        ResourceNoList: List of [Code[20]];
+        ClassifyExternal: Boolean;
+        UseClassification: Boolean;
+        ResourceNoFilterText: Text;
+    begin
+        ClassifyExternal := (SegmentId = AssExternalSeriesNameLbl);
+        UseClassification := WholeWeek or (BarType = CapacityBarTypeTok);
+
+        BuildAssignedResourceSet(DateFrom, DateTo, ClassifyExternal, not UseClassification, ResourceNoList);
+        if ResourceNoList.Count() = 0 then begin
+            Message(NoMatchingDataMsg);
+            exit;
+        end;
+
+        ResourceNoFilterText := BuildCodeOrFilter(ResourceNoList);
+
+        DayPlanning.Reset();
+        DayPlanning.SetRange("Plan Date", DateFrom, DateTo);
+        DayPlanning.SetFilter("Assigned Resource No.", ResourceNoFilterText);
+        Page.Run(Page::"Day Plannings", DayPlanning);
+    end;
+
+    /// <summary>
+    /// Collects the distinct "Assigned Resource No." values with at least one Day Planning row in
+    /// DateFrom..DateTo. When AnyClassification is false, only resources whose Resource."Is
+    /// External" matches ClassifyExternal are kept - a resource's Is External is a constant
+    /// resource-level property (not date-dependent), so this classification is exact, unlike the
+    /// free-capacity equivalent below (see GetFreeCapacityResourcesForDate's own comment).
+    /// </summary>
+    local procedure BuildAssignedResourceSet(DateFrom: Date; DateTo: Date; ClassifyExternal: Boolean; AnyClassification: Boolean; var ResourceNoList: List of [Code[20]])
+    var
+        DayPlanning: Record "Day Planning";
+        Resource: Record Resource;
+        SeenResources: Dictionary of [Code[20], Boolean];
+    begin
+        Clear(ResourceNoList);
+        Resource.SetLoadFields("Is External");
+
+        DayPlanning.Reset();
+        DayPlanning.SetLoadFields("Assigned Resource No.");
+        DayPlanning.SetRange("Plan Date", DateFrom, DateTo);
+        DayPlanning.SetFilter("Assigned Resource No.", '<>%1', '');
+        if DayPlanning.FindSet() then
+            repeat
+                if not SeenResources.ContainsKey(DayPlanning."Assigned Resource No.") then begin
+                    SeenResources.Add(DayPlanning."Assigned Resource No.", true);
+                    if AnyClassification then
+                        ResourceNoList.Add(DayPlanning."Assigned Resource No.")
+                    else
+                        if Resource.Get(DayPlanning."Assigned Resource No.") and (Resource."Is External" = ClassifyExternal) then
+                            ResourceNoList.Add(DayPlanning."Assigned Resource No.");
+                end;
+            until DayPlanning.Next() = 0;
+    end;
+
+    /// <summary>
+    /// Drilldown for "Free Capacity - Internal"/"External" - always uses the segment's true
+    /// classified meaning regardless of BarType (this series is only ever nonzero on the Capacity
+    /// bar in the first place - see BuildDayCapacityChartData). For each day in DateFrom..DateTo,
+    /// recomputes which resources actually contributed nonzero free capacity of the requested
+    /// classification that day (GetFreeCapacityResourcesForDate, mirroring CalcCapacitySplit),
+    /// unions those resource numbers across the whole range (deduplicated), and opens "Res.
+    /// Capacity Entries" filtered to Date in DateFrom..DateTo AND "Resource No." in that union (via
+    /// BuildCodeOrFilter - same helper/pattern page 50704's own OnDrillDown already uses).
+    ///
+    /// Deliberately NOT Mark()+MarkedOnly()+Page.Run() (this drilldown's original implementation):
+    /// confirmed live (via Playwright against the actual BC web client) that Page.Run() invoked
+    /// from THIS call path - a control add-in event trigger (OnShowSegmentData), itself fired via
+    /// wrapper.js's Microsoft.Dynamics.NAV.InvokeExtensibilityMethod - always opens the target page
+    /// at a fresh bookmarked URL rather than as an in-session page-stack push. Plain SetRange/
+    /// SetFilter field filters survive that round-trip (they serialize straight into the URL/
+    /// bookmark), but Record.Mark()'s in-memory marked-list does not, so MarkedOnly(true) always
+    /// resolved to zero rows here even though marking itself had found matching entries - the list
+    /// opened but was always empty. A plain OR-filter has no such boundary to cross.
+    ///
+    /// Unioning across the whole range (rather than re-filtering per day, which is what Mark() did)
+    /// means a resource that only had free capacity on ONE day of DateFrom..DateTo can now also
+    /// bring in its entries from days where it had none (capacity fully assigned that day,
+    /// contributing 0) - already a documented, accepted imprecision of this same drilldown for
+    /// WholeWeek (legend) clicks even before this fix (every row the aggregate was built from is
+    /// still shown, just also a few same-resource/other-day rows that net to 0). For a single-day
+    /// bar-segment click DateFrom = DateTo, so the union has exactly one day's terms and this is
+    /// precision-identical to the old per-day Mark() loop.
+    /// </summary>
+    local procedure ShowFreeCapacitySegment(SegmentId: Text; DateFrom: Date; DateTo: Date)
+    var
+        ResCapacityEntry: Record "Res. Capacity Entry";
+        DateResourceList: List of [Code[20]];
+        UnionResourceList: List of [Code[20]];
+        SeenResources: Dictionary of [Code[20], Boolean];
+        ClassifyExternal: Boolean;
+        CurrDate: Date;
+        ResourceNo: Code[20];
+        ResourceNoFilterText: Text;
+    begin
+        ClassifyExternal := (SegmentId = CapExternalSeriesNameLbl);
+
+        EnsureDayPlanningBuffer(DateFrom, DateTo);
+
+        CurrDate := DateFrom;
+        while CurrDate <= DateTo do begin
+            Clear(DateResourceList);
+            GetFreeCapacityResourcesForDate(CurrDate, ClassifyExternal, DateResourceList);
+            foreach ResourceNo in DateResourceList do
+                if not SeenResources.ContainsKey(ResourceNo) then begin
+                    SeenResources.Add(ResourceNo, true);
+                    UnionResourceList.Add(ResourceNo);
+                end;
+            CurrDate += 1;
+        end;
+
+        if UnionResourceList.Count() = 0 then begin
+            Message(NoMatchingDataMsg);
+            exit;
+        end;
+
+        ResourceNoFilterText := BuildCodeOrFilter(UnionResourceList);
+
+        ResCapacityEntry.Reset();
+        ResCapacityEntry.SetRange(Date, DateFrom, DateTo);
+        ResCapacityEntry.SetFilter("Resource No.", ResourceNoFilterText);
+        Page.Run(Page::"Res. Capacity Entries", ResCapacityEntry);
+    end;
+
+    /// <summary>
+    /// Returns the Resource No.s with nonzero TRUE free capacity (Res. Capacity Entry sum minus
+    /// that day's Day Planning Assigned Hours, floored at 0) on PlanDate whose Resource."Is
+    /// External" matches ClassifyExternal - the same computation as CalcCapacitySplit, but
+    /// collecting the contributing resource numbers instead of summing their totals. Kept as its
+    /// own procedure (deliberately not refactored to share CalcCapacitySplit's body) so this new
+    /// drilldown path cannot accidentally change the chart's own totals. Reads/relies on the
+    /// shared GDayPlanningBuf being already loaded for a range covering PlanDate - caller
+    /// (ShowFreeCapacitySegment) calls EnsureDayPlanningBuffer first.
+    /// </summary>
+    local procedure GetFreeCapacityResourcesForDate(PlanDate: Date; ClassifyExternal: Boolean; var ResourceNoList: List of [Code[20]])
+    var
+        ResCapacityEntry: Record "Res. Capacity Entry";
+        Resource: Record Resource;
+        ResourceCapacityTotals: Dictionary of [Code[20], Decimal];
+        ResourceAssignedTotals: Dictionary of [Code[20], Decimal];
+        ResourceNo: Code[20];
+        CapacityTotal: Decimal;
+        AssignedTotal: Decimal;
+        FreeCapacity: Decimal;
+    begin
+        ResCapacityEntry.SetLoadFields("Resource No.", Capacity);
+        ResCapacityEntry.SetRange(Date, PlanDate);
+        if ResCapacityEntry.FindSet() then
+            repeat
+                CapacityTotal := 0;
+                if ResourceCapacityTotals.ContainsKey(ResCapacityEntry."Resource No.") then
+                    CapacityTotal := ResourceCapacityTotals.Get(ResCapacityEntry."Resource No.");
+                ResourceCapacityTotals.Set(ResCapacityEntry."Resource No.", CapacityTotal + ResCapacityEntry.Capacity);
+            until ResCapacityEntry.Next() = 0;
+
+        if ResourceCapacityTotals.Keys().Count > 0 then begin
+            GDayPlanningBuf.Reset();
+            GDayPlanningBuf.SetRange("Plan Date", PlanDate);
+            GDayPlanningBuf.SetFilter("Assigned Resource No.", '<>%1', '');
+            if GDayPlanningBuf.FindSet() then
+                repeat
+                    AssignedTotal := 0;
+                    if ResourceAssignedTotals.ContainsKey(GDayPlanningBuf."Assigned Resource No.") then
+                        AssignedTotal := ResourceAssignedTotals.Get(GDayPlanningBuf."Assigned Resource No.");
+                    ResourceAssignedTotals.Set(GDayPlanningBuf."Assigned Resource No.", AssignedTotal + GDayPlanningBuf."Assigned Hours");
+                until GDayPlanningBuf.Next() = 0;
+            GDayPlanningBuf.Reset();
+        end;
+
+        foreach ResourceNo in ResourceCapacityTotals.Keys() do begin
+            CapacityTotal := ResourceCapacityTotals.Get(ResourceNo);
+            AssignedTotal := 0;
+            if ResourceAssignedTotals.ContainsKey(ResourceNo) then
+                AssignedTotal := ResourceAssignedTotals.Get(ResourceNo);
+            FreeCapacity := CapacityTotal - AssignedTotal;
+            if FreeCapacity < 0 then
+                FreeCapacity := 0;
+            if FreeCapacity <> 0 then
+                if Resource.Get(ResourceNo) then
+                    if Resource."Is External" = ClassifyExternal then
+                        ResourceNoList.Add(ResourceNo);
+        end;
+    end;
+
+    /// <summary>
+    /// Drilldown for a per-skill segment - the simple case: "Skill" is a plain Day Planning field,
+    /// so a direct SetRange suffices (no resource-set resolution needed), matching the existing
+    /// drilldown pattern already used by page 50696's DrillDownColumn. Skill segments are only
+    /// ever nonzero on the Requested bar for unassigned rows (see
+    /// CalcUnassignedSkillRequestedSplit), so the filter is unconditionally "Assigned Resource
+    /// No." = '' regardless of which BarType the click actually originated from.
+    /// </summary>
+    local procedure ShowSkillSegment(SkillCode: Text; DateFrom: Date; DateTo: Date)
+    var
+        DayPlanning: Record "Day Planning";
+    begin
+        DayPlanning.Reset();
+        DayPlanning.SetRange("Plan Date", DateFrom, DateTo);
+        DayPlanning.SetRange("Assigned Resource No.", '');
+        DayPlanning.SetRange(Skill, CopyStr(SkillCode, 1, MaxStrLen(DayPlanning.Skill)));
+        Page.Run(Page::"Day Plannings", DayPlanning);
+    end;
+
+    /// <summary>
     /// Cycles through a fixed 5-colour palette for skill series beyond the fixed Assigned/Internal/
     /// External ones, so any number of active skills always gets a colour.
     /// </summary>
@@ -817,4 +1120,6 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         CapSegmentPrefixLbl: Label 'Cap. ';
         ReqSegmentPrefixLbl: Label 'Req. ';
         NoSkillSegmentLbl: Label '(No Skill)';
+        CapacityBarTypeTok: Label 'Capacity', Locked = true;
+        NoMatchingDataMsg: Label 'No records match this chart segment.';
 }
