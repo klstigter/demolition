@@ -47,7 +47,7 @@ page 50681 "Req. vs Capacity Skl Dhx v1"
             {
                 Caption = 'Requested Hours vs Capacity';
 
-                usercontrol(DhxBarChart; DHXBarChartAddin)
+                usercontrol(DhxBarChart; DHXBarChartAddin_v1)
                 {
                     ApplicationArea = All;
 
@@ -59,6 +59,11 @@ page 50681 "Req. vs Capacity Skl Dhx v1"
 
                     trigger OnDataPointClicked(SkillCode: Text)
                     begin
+                    end;
+
+                    trigger OnShowSegmentData(SegmentId: Text; WholeChart: Boolean)
+                    begin
+                        SkillCapacityAnalysisMgt.ShowSegmentData(SegmentId, WholeChart, ResourceNoFilter, PeriodStartDate, PeriodStartDate + 6);
                     end;
                 }
             }
