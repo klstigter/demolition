@@ -190,6 +190,13 @@ page 50612 "Planning Role Center"
                     RunObject = page "Capacity Overview";
                     ToolTip = 'Open the Capacity Overview matrix of requested, assigned, and free capacity per skill.';
                 }
+                action("Set Capacity")
+                {
+                    ApplicationArea = Basic, Suite;
+                    Caption = 'Set Capacity';
+                    RunObject = report "Set Capacity opt.";
+                    ToolTip = 'Batch-set or update resource capacity for many resources at once, based on a Work-Hour Template and a date range.';
+                }
             }
             group("SettingGroup")
             {

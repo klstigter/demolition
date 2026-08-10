@@ -1,7 +1,7 @@
 controladdin DHXBarChartAddin
 {
-    RequestedHeight = 500;
-    MinimumHeight = 300;
+    RequestedHeight = 600;
+    MinimumHeight = 400;
     VerticalShrink = true;
     VerticalStretch = true;
 
