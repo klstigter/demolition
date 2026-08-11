@@ -46,60 +46,60 @@ page 50601 "Opti Resource List"
                             ToolTip = 'The skill to filter the resources that have day plannings with the specified skill.';
                         }
                     }
-                    group(Col3)
-                    {
-                        ShowCaption = false;
-                        field(Filters; RecFilters)
-                        {
-                            ApplicationArea = Jobs;
-                            Caption = 'Filters (toggle clear and reapply)';
-                            ToolTip = 'Filters applied to the list. Use this field to identify the filters that are applied to the list, including filters applied through the user interface and programmatically.';
-                            Editable = false;
+                    // group(Col3)
+                    // {
+                    //     ShowCaption = false;
+                    //     field(Filters; RecFilters)
+                    //     {
+                    //         ApplicationArea = Jobs;
+                    //         Caption = 'Filters (toggle clear and reapply)';
+                    //         ToolTip = 'Filters applied to the list. Use this field to identify the filters that are applied to the list, including filters applied through the user interface and programmatically.';
+                    //         Editable = false;
 
-                            trigger OnAssistEdit()
-                            var
-                                KeepDateFilter: Text;
-                            begin
-                                if (RecFilters <> '') or Rec.MarkedOnly() then begin
-                                    // Save view and marked state before clearing
-                                    xRecFilters := Rec.GetView();
-                                    xRecMarkedOnly := Rec.MarkedOnly();
-                                    KeepDateFilter := Rec.GetFilter("Date Filter");
-                                    // Save which records were marked into xRecMarking's own mark table.
-                                    // Reset() clears all marks in xRecMarking before saving new ones.
-                                    xRecMarking.Reset();
-                                    if xRecMarkedOnly then
-                                        if Rec.FindSet() then  // FindSet with MarkedOnly=true returns only marked records
-                                            repeat
-                                                if xRecMarking.Get(Rec."No.") then
-                                                    xRecMarking.Mark(true);
-                                            until Rec.Next() = 0;
-                                    Rec.MarkedOnly(false);
-                                    Rec.Reset();
-                                    if KeepDateFilter <> '' then
-                                        Rec.SetFilter("Date Filter", KeepDateFilter);
-                                    RecFilters := '';
-                                end else begin
-                                    if (xRecFilters <> '') or xRecMarkedOnly then begin
-                                        Rec.SetView(xRecFilters);
-                                        if xRecMarkedOnly then begin
-                                            // Restore marks from xRecMarking back into Rec
-                                            xRecMarking.MarkedOnly(true);
-                                            if xRecMarking.FindSet() then
-                                                repeat
-                                                    if Rec.Get(xRecMarking."No.") then
-                                                        Rec.Mark(true);
-                                                until xRecMarking.Next() = 0;
-                                            xRecMarking.MarkedOnly(false);
-                                            Rec.MarkedOnly(true);
-                                        end;
-                                        RecFilters := Rec.GetFilters();
-                                    end;
-                                end;
-                                CurrPage.Update(false);
-                            end;
-                        }
-                    }
+                    //         trigger OnAssistEdit()
+                    //         var
+                    //             KeepDateFilter: Text;
+                    //         begin
+                    //             if (RecFilters <> '') or Rec.MarkedOnly() then begin
+                    //                 // Save view and marked state before clearing
+                    //                 xRecFilters := Rec.GetView();
+                    //                 xRecMarkedOnly := Rec.MarkedOnly();
+                    //                 KeepDateFilter := Rec.GetFilter("Date Filter");
+                    //                 // Save which records were marked into xRecMarking's own mark table.
+                    //                 // Reset() clears all marks in xRecMarking before saving new ones.
+                    //                 xRecMarking.Reset();
+                    //                 if xRecMarkedOnly then
+                    //                     if Rec.FindSet() then  // FindSet with MarkedOnly=true returns only marked records
+                    //                         repeat
+                    //                             if xRecMarking.Get(Rec."No.") then
+                    //                                 xRecMarking.Mark(true);
+                    //                         until Rec.Next() = 0;
+                    //                 Rec.MarkedOnly(false);
+                    //                 Rec.Reset();
+                    //                 if KeepDateFilter <> '' then
+                    //                     Rec.SetFilter("Date Filter", KeepDateFilter);
+                    //                 RecFilters := '';
+                    //             end else begin
+                    //                 if (xRecFilters <> '') or xRecMarkedOnly then begin
+                    //                     Rec.SetView(xRecFilters);
+                    //                     if xRecMarkedOnly then begin
+                    //                         // Restore marks from xRecMarking back into Rec
+                    //                         xRecMarking.MarkedOnly(true);
+                    //                         if xRecMarking.FindSet() then
+                    //                             repeat
+                    //                                 if Rec.Get(xRecMarking."No.") then
+                    //                                     Rec.Mark(true);
+                    //                             until xRecMarking.Next() = 0;
+                    //                         xRecMarking.MarkedOnly(false);
+                    //                         Rec.MarkedOnly(true);
+                    //                     end;
+                    //                     RecFilters := Rec.GetFilters();
+                    //                 end;
+                    //             end;
+                    //             CurrPage.Update(false);
+                    //         end;
+                    //     }
+                    // }
 
                 }
             }
