@@ -23,7 +23,7 @@ page 50606 "DayPlanningApi Opt"
                 }
                 field(taskDate; Rec."Plan Date")
                 {
-                    Caption = 'Work Date';
+                    Caption = 'Plan Date';
                 }
                 field(dayLineNo_; Rec."Day Line No.")
                 {

@@ -29,7 +29,7 @@ page 50668 "Day Planning Card Opt"
                     field("Task Date"; Rec."Plan Date")
                     {
                         ApplicationArea = All;
-                        caption = 'Work Date';
+                        caption = 'Plan Date';
                     }
                     field("Plan Status"; Rec."Plan Status")
                     {

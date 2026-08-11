@@ -82,7 +82,7 @@ page 50676 "Work Order Day Plannings"
                 field("Task Date"; Rec."Plan Date")
                 {
                     ApplicationArea = All;
-                    Caption = 'Work Date';
+                    Caption = 'Plan Date';
                 }
                 field("Requested Hours"; Rec."Requested Hours")
                 {

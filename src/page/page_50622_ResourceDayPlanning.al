@@ -47,7 +47,7 @@ page 50622 "Resource Day Plannings"
                 field("Task Date"; Rec."Plan Date")
                 {
                     ApplicationArea = All;
-                    Caption = 'Work Date';
+                    Caption = 'Plan Date';
                 }
                 field(DayLineNo; Rec."Day Line No.")
                 {

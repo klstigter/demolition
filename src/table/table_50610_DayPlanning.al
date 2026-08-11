@@ -60,7 +60,7 @@ table 50610 "Day Planning"
         field(1; "Plan Date"; Date)
         {
             DataClassification = ToBeClassified;
-            Caption = 'Work Date';
+            Caption = 'Plan Date';
 
             trigger OnValidate()
             var

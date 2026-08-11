@@ -22,7 +22,7 @@ page 50624 "Day Planning Info FactBox"
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the task date.';
-                    Caption = 'Work Date';
+                    Caption = 'Plan Date';
                 }
                 field("Plan Status"; Rec."Plan Status")
                 {

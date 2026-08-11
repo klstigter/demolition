@@ -15,7 +15,7 @@ page 50634 "Day Plannings FactBox"
                 field("Task Date"; Rec."Plan Date")
                 {
                     ApplicationArea = All;
-                    Caption = 'Work Date';
+                    Caption = 'Plan Date';
                 }
                 field("DayLine No."; Rec."Day Line No.")
                 {
