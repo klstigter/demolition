@@ -44,6 +44,7 @@ codeunit 50610 "Day Plannings Mgt."
         JobTask: Record "Job Task";
         DayPlannings: Record "Day Planning";
         Resource: Record Resource;
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
         StartDate: Date;
         EndDate: Date;
         NewTaskDate: Date;
@@ -57,6 +58,7 @@ codeunit 50610 "Day Plannings Mgt."
         NonWorkingHours: Decimal;
         Counter: Integer;
         HasOverlap: Boolean;
+        NoDefaultSkillErr: Label 'Cannot generate Day Planning lines from pattern %1: it has no Skills Required, and "Daily Optimizer Setup"."Default Skill" is not set. Configure a Default Skill before generating lines this way.', Comment = '%1 = Day Planning Pattern Line No.';
     begin
         DayPlanningPattern.TestField("Work-Hour Template");
         case true of
@@ -133,7 +135,7 @@ codeunit 50610 "Day Plannings Mgt."
                 DayPlannings.VALIDATE("Non Working Minutes Requested", NonWorkingHours);
 
                 // Copy other fields from job planning line
-                DayPlannings."Requested Resource No." := DayPlanningPattern."Resource No.";
+                DayPlannings.Validate("Requested Resource No.", DayPlanningPattern."Resource No.");
                 // Calculate working hours
                 if DayPlanningPattern."Requested Hours" <> 0 then begin
                     DayPlannings."Requested Hours" := DayPlanningPattern."Requested Hours";
@@ -141,7 +143,26 @@ codeunit 50610 "Day Plannings Mgt."
 
                 //DayPlannings.Description := DayPlanningGenerator.Description;
                 //DayPlannings."Unit of Measure Code" := JobTask."Unit of Measure Code";
-                DayPlannings.Skill := DayPlanningPattern.SkillsRequired;
+                // The pattern's own Skills Required always wins when given, overriding whatever
+                // "Requested Resource No."'s OnValidate auto-derived (table 50610's
+                // GetFirstSkill) - it's the authoritative business intent for this generated line,
+                // set AFTER the resource validate above so it isn't clobbered by that side effect.
+                // Only when the pattern has NO Skills Required do we fall back to "Daily Optimizer
+                // Setup"."Default Skill" - and only if the resource-derived Skill also came back
+                // blank (don't override a skill the resource already validated as holding).
+                // DailyOptimizerSetup.Get() sits inside that innermost check, not hoisted above
+                // the day-loop, since patterns with an explicit Skills Required (the common case)
+                // never need it - one Get() per generated line only when genuinely required,
+                // not once per day regardless.
+                if DayPlanningPattern.SkillsRequired <> '' then
+                    DayPlannings.Validate(Skill, DayPlanningPattern.SkillsRequired)
+                else
+                    if DayPlannings.Skill = '' then begin
+                        DailyOptimizerSetup.Get();
+                        if DailyOptimizerSetup."Default Skill" = '' then
+                            Error(NoDefaultSkillErr, DayPlanningPattern."Line No.");
+                        DayPlannings.Validate(Skill, DailyOptimizerSetup."Default Skill");
+                    end;
                 //DayPlannings."Work Type Code" := JobTask."Work Type Code";
                 //DayPlannings.Depth := DayPlanningGenerator.Depth;
                 //DayPlannings.IsBoor := DayPlanningGenerator.Isboor;
