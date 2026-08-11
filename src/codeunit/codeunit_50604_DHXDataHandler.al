@@ -1315,6 +1315,7 @@ codeunit 50604 "DHX Data Handler"
         PlanningLine: record "Job Task";
         DayPlanning: record "Day Planning";
         Res: record Resource;
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
         EventJSonObj: JsonObject;
         JToken: JsonToken;
         SectionIdParts: List of [Text];
@@ -1336,6 +1337,7 @@ codeunit 50604 "DHX Data Handler"
         _DateTime: DateTime;
         _DateTimeUserZone: DateTime;
         JsonLbl: Label '{"OldEventId": "%1", "NewEventId": "%2|%3|%4|%5|%6"}';
+        NoDefaultSkillErr: Label 'Cannot create a Day Planning line from the scheduler: no Skill context is available for this drag-and-drop event, and "Daily Optimizer Setup"."Default Skill" is not set. Configure a Default Skill before assigning resources this way.';
     begin
         //Message('New Event Created with eventData = %2', eventData);
         /*
@@ -1393,7 +1395,21 @@ codeunit 50604 "DHX Data Handler"
         DayPlanning."Job No." := JobNo;
         DayPlanning."Job Task No." := TaskNo;
 
-        DayPlanning."Assigned Resource No." := Res."No.";
+        // Validate the resource first (CheckResourceHasSkill confirms it has *a* skill) - its own
+        // OnValidate auto-fills Skill with the resource's first skill as a side effect. Only fall
+        // back to "Daily Optimizer Setup"."Default Skill" if that left Skill blank (i.e. don't
+        // override a skill the resource already validated as holding) - this drag-and-drop
+        // payload carries no Skill context of its own (see the sample JSON shape in the comment
+        // above), so blank is possible. DailyOptimizerSetup.Get() is deliberately INSIDE this
+        // check, not called upfront, since Skill is rarely actually blank here - no need for the
+        // extra SQL round-trip on the common path.
+        DayPlanning.Validate("Assigned Resource No.", Res."No.");
+        if DayPlanning.Skill = '' then begin
+            DailyOptimizerSetup.Get();
+            if DailyOptimizerSetup."Default Skill" = '' then
+                Error(NoDefaultSkillErr);
+            DayPlanning.Validate(Skill, DailyOptimizerSetup."Default Skill");
+        end;
         DayPlanning."Start Time Assigned" := StartTime;
         DayPlanning."End Time Assigned" := EndTime;
         DayPlanning.Description := Res.Name;
