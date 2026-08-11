@@ -15,6 +15,10 @@ var contextMenuDismissHandlers = null; // {click,contextmenu,scroll,keydown} cur
 // document for dismissing the open "Show Data" popup, or null if none attached - see ShowContextMenu/
 // HideContextMenu for why this is tracked explicitly instead of relying on {once:true} self-removal.
 
+var barColorObserver = null; // MutationObserver that keeps ApplyBarColorOverrides' <path> fill
+// patches in sync with dhx.Chart's OWN repaint passes - see that function's own comment for why a
+// single requestAnimationFrame after construction is not sufficient here.
+
 // Distinct, fixed colours per series ordinal — DHTMLX Suite's Chart lets us set
 // series.color explicitly (see Chart.setConfig / BaseSeria._setDefaults in suite.js),
 // unlike BC's native BusinessChart add-in which has no colour API at all and just
@@ -95,8 +99,18 @@ window.BOOT = function() {
 //
 // chartData shape (see LoadData below):
 //   { categories: ["SKILL1","SKILL2",...],
-//     series: [ { name: "Requested Hours", values: [decimal,...] },
-//               { name: "Capacity",        values: [decimal,...] } ] }
+//     series: [ { name: "Requested Hours", values: [decimal,...] } ],
+//     colors: ["#RRGGBB", "", ...] }  (optional, parallel to categories - blank/absent entry
+//                                      means that category's bar keeps the default series colour
+//                                      - see ApplyBarColorOverrides' own comment)
+//
+// Each built `data` row also carries a `barColor` field - the same resolved colour
+// ApplyBarColorOverrides paints that row's bar with (override, or the default series colour when
+// there is none). This drives the legend, which is configured as `legend: { values: { text:
+// "category", color: "barColor" } }` - one item per category/bar rather than per series - so the
+// legend's swatches always match the bars. See the comments next to that config below, and next
+// to the chartInstance.events.detach("toggleSeries") call, for why the legend is data-driven here
+// and why left-click on a legend item is deliberately a no-op as a result.
 //
 // The chart is fully torn down and rebuilt on every call rather than mutated in
 // place — dhx.Chart's data/scales/series are cheapest to reason about as a clean
@@ -108,6 +122,7 @@ function RenderChart(chartData) {
 
     var categories = (chartData && Array.isArray(chartData.categories)) ? chartData.categories : [];
     var seriesDefs  = (chartData && Array.isArray(chartData.series))     ? chartData.series     : [];
+    var barColors   = (chartData && Array.isArray(chartData.colors))    ? chartData.colors     : [];
 
     // One data row per category ("id" doubles as the click-handler's row identifier —
     // dhx.Chart's bar click handler fires with (id, seriesValueField), see suite.js
@@ -118,6 +133,9 @@ function RenderChart(chartData) {
             var values = (s && Array.isArray(s.values)) ? s.values : [];
             row["s" + sIdx] = (values[idx] !== undefined && values[idx] !== null) ? values[idx] : 0;
         });
+        // Same resolved colour ApplyBarColorOverrides applies to this row's bar - see the
+        // shape-comment above RenderChart for why this exists (drives the data-driven legend).
+        row.barColor = barColors[idx] || SERIES_COLOR_PALETTE[0];
         return row;
     });
 
@@ -143,8 +161,14 @@ function RenderChart(chartData) {
             bottom: { type: "text", text: "category" },
             left:   { type: "numeric" }
         },
+        // Data-driven legend (one item per category/bar, via suite.js Legend._getData's
+        // `config.values` branch - see suite.js ~line 13462) instead of the default series-driven
+        // legend (one item per series). This chart only ever has one series ("Requested Hours"),
+        // so a series-driven legend would show exactly one flat swatch - wrong once individual
+        // bars carry their own "Skill Code"."Bar Color" override. `barColor` is the field added
+        // to each `data` row above.
         legend: {
-            series: series.map(function(s) { return s.id; }),
+            values: { text: "category", color: "barColor" },
             halign: "right",
             valign: "top"
         }
@@ -157,6 +181,23 @@ function RenderChart(chartData) {
     chartContainer.innerHTML = "";
 
     chartInstance = new dhx.Chart(chartContainer, config);
+
+    // The legend above is now data-driven (one item per category, via legend.values) rather than
+    // series-driven, so the library's own "click a legend item to hide/show" wiring resolves
+    // incorrectly for this chart's shape: Legend's onclick fires the toggleSeries event as
+    // (item.id, config.values) - see suite.js ~line 13287 - and since config.values is a truthy
+    // object, Chart._initEvents' toggleSeries handler (suite.js ~line 13199) always takes its
+    // "pieLike" branch and toggles the chart's ONE series ("s0") active/inactive, regardless of
+    // WHICH category's legend item was actually clicked (Bar/ScaleSeria's inherited toggle() -
+    // suite.js ~line 5250 - ignores the id argument entirely). That means clicking any single
+    // skill's legend swatch would blank out EVERY bar, and clicking again (any item) brings
+    // everything back - a confusing bait-and-switch that has nothing to do with the item that was
+    // actually clicked. Rather than try to reimplement per-category show/hide, left-click on a
+    // legend item is deliberately made a no-op by detaching the chart's own toggleSeries listener
+    // entirely. Right-click "Show Data" on the legend (ResolveLegendSegmentFromEvent) is
+    // unaffected - it is wired through our own contextmenu delegate on chartContainer, not
+    // through this event.
+    chartInstance.events.detach("toggleSeries");
 
     // Stash for the right-click "Show Data" handler (ResolveBarSegmentFromEvent) - see
     // lastCategories' own declaration comment. Read from here rather than this call's local
@@ -176,6 +217,7 @@ function RenderChart(chartData) {
     // horizontal size), so at extreme container sizes it may sit closer to the plot area than a
     // native vertical-legend option would.
     RotateLegendLabel();
+    ApplyBarColorOverrides(barColors);
 
     // Bar click -> BC (mirrors OnEventDoubleClick's InvokeExtensibilityMethod pattern
     // used throughout src/dhx/resourceschedule/wrapper.js). id is the Skill Code we
@@ -201,6 +243,77 @@ function RotateLegendLabel() {
             textEl.style.transform = "rotate(-90deg)";
         });
     });
+}
+
+// Overrides individual bars' fill colour per "Skill Code"."Bar Color" (codeunit 50608's
+// GetSkillBarColor), on top of the one flat SERIES_COLOR_PALETTE colour dhx.Chart already
+// painted the whole "Requested Hours" series with. dhx.Chart's Bar series (suite.js) only
+// exposes a single `fill` per SERIES, not per data point/category, so there is no config-level
+// way to ask for this - instead this walks the already-rendered SVG bars directly and sets
+// each <path>'s `fill` attribute (which paint() set inline, not via CSS, so an attribute
+// override here always wins with no specificity fight - confirmed there is no competing CSS rule
+// for `.seria path` fill in suite.css either).
+//
+// barColors is parallel to `categories`/`lastCategories` (blank/undefined entry = leave that
+// bar at its default series colour). Relies on the same "path index within its `g[aria-label^=
+// "chart s"]` group == category index" ordering documented on ResolveBarSegmentFromEvent below.
+//
+// WHY A SINGLE requestAnimationFrame WAS NOT ENOUGH (root cause of the "no per-skill colour shows
+// at all" bug, fixed here 2026-08-11): suite.js's Chart constructor deliberately paints its FIRST
+// pass at width=0/height=0 ("using zero values ensure that widget will not attempt to render self
+// in the hidden state") and only paints its REAL geometry once its own internal ResizeObserver
+// (see suite.js's `resizer()` helper, mounted as a hidden child of the chart root) reports the
+// container's true size. That second, real-geometry paint is an async signal with no guaranteed
+// ordering against a single requestAnimationFrame scheduled right after `new dhx.Chart(...)`, and
+// when it lands, the library's own vdom patch resets every <path>'s `fill` attribute straight
+// back to the series' configured default - silently wiping out whatever override a one-shot rAF
+// had already applied to the earlier, degenerate (width=0) paint. That is exactly why every bar
+// rendered at the flat default colour with no per-skill override visible, regardless of "Skill
+// Code"."Bar Color" - a single rAF either ran before the real paths existed (no-op) or got
+// overwritten moments later by the real-geometry repaint.
+//
+// Fix: watch chartContainer for ANY DOM mutation (not just resize) via MutationObserver and
+// reapply the overrides every time one lands, guarded by `applying` so our own attribute writes
+// don't re-trigger themselves. This stays correct no matter how many repaint passes dhx.Chart
+// performs or what triggers them (initial layout settle, or a later real resize e.g. the user
+// resizing the browser window or the FactBox pane) - not just the very first one.
+function ApplyBarColorOverrides(barColors) {
+    if (barColorObserver) {
+        barColorObserver.disconnect();
+        barColorObserver = null;
+    }
+    if (!chartContainer || !barColors.length) return;
+
+    var applying = false;
+
+    function paintOverrides() {
+        var group = chartContainer.querySelector('g[aria-label^="chart s"]');
+        if (!group) return;
+        applying = true;
+        var paths = group.querySelectorAll("path");
+        paths.forEach(function(pathEl, idx) {
+            var override = barColors[idx];
+            if (override && pathEl.getAttribute("fill") !== override) {
+                pathEl.setAttribute("fill", override);
+            }
+        });
+        applying = false;
+    }
+
+    requestAnimationFrame(paintOverrides);
+
+    if (typeof MutationObserver !== "undefined") {
+        barColorObserver = new MutationObserver(function() {
+            if (applying) return;
+            requestAnimationFrame(paintOverrides);
+        });
+        barColorObserver.observe(chartContainer, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ["fill"]
+        });
+    }
 }
 
 // ============================================================

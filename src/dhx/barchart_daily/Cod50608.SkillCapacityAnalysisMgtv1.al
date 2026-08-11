@@ -169,6 +169,22 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
     end;
 
     /// <summary>
+    /// Returns this skill's configured "Skill Code"."Bar Color" override for the daily chart's
+    /// bars, or blank if the skill has no override (or SkillCode doesn't match a real "Skill
+    /// Code" record, e.g. the synthetic 'CAPACITY' marker row - see BuildSkillBuffer's own doc
+    /// comment). wrapper.js's ApplyBarColorOverrides leaves a bar at its normal series colour
+    /// when handed a blank override.
+    /// </summary>
+    procedure GetSkillBarColor(SkillCode: Code[10]): Text
+    var
+        SkillCodeRec: Record "Skill Code";
+    begin
+        if not SkillCodeRec.Get(SkillCode) then
+            exit('');
+        exit(SkillCodeRec."Bar Color".Trim());
+    end;
+
+    /// <summary>
     /// Resolves a chart segment - identified by SegmentId (a bare Skill Code, or the literal
     /// CapacitySkillCodeTok 'CAPACITY' marker used for the synthetic aggregate row - see
     /// BuildSkillBuffer's own doc comment) plus its click origin - back to the real "Day
