@@ -232,6 +232,12 @@ page 50681 "Requested vs Capacity Daily"
     // category plus one capacity reference bar, never a paired Requested/Capacity bar per
     // category. wrapper.js' RenderChart renders however many series it is given (s0, s1, ...),
     // so dropping down to one series here needs no JS changes.
+    //
+    // Per-bar colour overrides: each category's bar can now be recoloured individually via
+    // "Skill Code"."Bar Color" (codeunit 50608's GetSkillBarColor), independent of the single
+    // series colour above. The optional top-level "colors" array carries one entry per
+    // CategoriesArray/RequestedValues row (blank = no override, keep the series colour) - see
+    // wrapper.js' ApplyBarColorOverrides for how these are applied client-side.
     local procedure RefreshChart()
     var
         ChartData: JsonObject;
@@ -239,6 +245,7 @@ page 50681 "Requested vs Capacity Daily"
         SeriesArray: JsonArray;
         RequestedSeries: JsonObject;
         RequestedValues: JsonArray;
+        ColorsArray: JsonArray;
         ChartDataJson: Text;
     begin
         if not ChartReady then
@@ -246,12 +253,14 @@ page 50681 "Requested vs Capacity Daily"
 
         Clear(CategoriesArray);
         Clear(RequestedValues);
+        Clear(ColorsArray);
 
         Buffer.Reset();
         if Buffer.FindSet() then
             repeat
                 CategoriesArray.Add(Buffer."No.");
                 RequestedValues.Add(Buffer."Requested Hours");
+                ColorsArray.Add(SkillCapacityAnalysisMgt.GetSkillBarColor(CopyStr(Buffer."No.", 1, 10)));
             until Buffer.Next() = 0;
 
         RequestedSeries.Add('name', RequestedHoursMeasureTxt);
@@ -261,6 +270,7 @@ page 50681 "Requested vs Capacity Daily"
 
         ChartData.Add('categories', CategoriesArray);
         ChartData.Add('series', SeriesArray);
+        ChartData.Add('colors', ColorsArray);
 
         ChartData.WriteTo(ChartDataJson);
         CurrPage.DhxBarChart.LoadData(ChartDataJson);

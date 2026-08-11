@@ -364,8 +364,8 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
                 SkillExternalValues.Add(0);
                 SkillExternalValues.Add(0);
             end;
-            AddChartSeries(SeriesArray, SkillCode, SkillInternalValues, GetSkillSeriesColor(SkillPaletteIdx), '');
-            AddChartSeries(SeriesArray, SkillCode, SkillExternalValues, GetSkillSeriesColor(SkillPaletteIdx), ExternalBorderColorTok);
+            AddChartSeries(SeriesArray, SkillCode, SkillInternalValues, GetSkillSeriesColor(SkillCode, SkillPaletteIdx), '');
+            AddChartSeries(SeriesArray, SkillCode, SkillExternalValues, GetSkillSeriesColor(SkillCode, SkillPaletteIdx), ExternalBorderColorTok);
             SkillPaletteIdx += 1;
         end;
 
@@ -1051,13 +1051,23 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     end;
 
     /// <summary>
-    /// Cycles through a fixed 5-colour palette for skill series beyond the fixed Assigned/Internal/
-    /// External ones, so any number of active skills always gets a colour.
+    /// Returns the colour to use for SkillCode's series. If the "Skill Code" record has a
+    /// non-blank "Bar Color" override, that takes precedence; otherwise cycles through a fixed
+    /// 5-colour palette for skill series beyond the fixed Assigned/Internal/External ones, so any
+    /// number of active skills always gets a colour.
     /// </summary>
-    local procedure GetSkillSeriesColor(PaletteIndex: Integer): Text
+    local procedure GetSkillSeriesColor(SkillCode: Code[20]; PaletteIndex: Integer): Text
     var
+        SkillCodeRec: Record "Skill Code";
         Palette: array[5] of Text[10];
+        BarColor: Text;
     begin
+        if SkillCodeRec.Get(SkillCode) then begin
+            BarColor := SkillCodeRec."Bar Color".Trim();
+            if BarColor <> '' then
+                exit(BarColor);
+        end;
+
         Palette[1] := '#C55A11';
         Palette[2] := '#ED7D31';
         Palette[3] := '#F4B183';
