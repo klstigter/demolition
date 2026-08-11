@@ -20,3 +20,5 @@
 - [suite.css 404 was transient, not a regression](barchart_suitecss_404_transient_not_regression.md) — reproduced live 2x fresh loads: suite.css=200 both times, real baseline is 2x font 404 (unbundled roboto fonts) + 6x company 401
 - [barchart_v1 context-menu hang fixed](barchart_v1_contextmenu_hang_fixed.md) — ported live chart's tracked-dismiss-handler fix to barchart_v1/wrapper.js; verified 1:1 Hide-call ratio live; re-wrapping a page-global across repeat evaluate() calls falsely looks like accumulation
 - [Verify subagent diffs against scope](feedback_verify_subagent_diffs_against_scope.md) — always git diff a delegated subagent's changes against do-not-touch list; don't trust its self-attribution of out-of-scope edits
+- [Summary View (page 50626) is reference-only — never modify](feedback_summaryview_do_not_modify.md) — build new display variants as standalone new pages instead
+- [Skill Hours Summary page (50705)](project_skill_hours_summary_page.md) — standalone requested-hours-per-skill-per-week view w/ daily period nav, opened from Workorder Card + Work Order Sub
