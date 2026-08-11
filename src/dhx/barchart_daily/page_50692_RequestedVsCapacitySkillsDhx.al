@@ -18,32 +18,26 @@ page 50681 "Requested vs Capacity Daily"
     {
         area(Content)
         {
-            group(Filters)
+            field(PeriodLabelCtrl; PeriodLabelText)
             {
-                Caption = 'Filters';
-
-                field(PeriodLabelCtrl; PeriodLabelText + ' (' + Day1Text + ' - ' + Day7Text + ')')
-                {
-                    ApplicationArea = All;
-                    Caption = 'Period';
-                    Editable = false;
-                    ToolTip = 'Specifies the month, year, and ISO week number of the displayed period.';
-                }
-                field(ResourceNoFilterCtrl; ResourceNoFilter)
-                {
-                    ApplicationArea = All;
-                    Caption = 'Resource No.';
-                    TableRelation = Resource;
-                    ToolTip = 'Specifies the resource to analyze. Leave blank to include all resources.';
-
-                    trigger OnValidate()
-                    begin
-                        RefreshData();
-                    end;
-                }
+                ApplicationArea = All;
+                Caption = 'Period';
+                Editable = false;
+                ToolTip = 'Specifies the currently displayed period - a week (with its Monday-Sunday range) in Weekly view, or a single date in Daily view.';
             }
+            // field(ResourceNoFilterCtrl; ResourceNoFilter)
+            // {
+            //     ApplicationArea = All;
+            //     Caption = 'Resource No.';
+            //     TableRelation = Resource;
+            //     ToolTip = 'Specifies the resource to analyze. Leave blank to include all resources.';
 
-            group(ChartGroup)
+            //     trigger OnValidate()
+            //     begin
+            //         RefreshData();
+            //     end;
+            // }
+            group(Filters)
             {
                 Caption = 'Requested Hours vs Capacity';
 
@@ -63,7 +57,10 @@ page 50681 "Requested vs Capacity Daily"
 
                     trigger OnShowSegmentData(SegmentId: Text; WholeChart: Boolean)
                     begin
-                        SkillCapacityAnalysisMgt.ShowSegmentData(SegmentId, WholeChart, ResourceNoFilter, PeriodStartDate, PeriodStartDate + 6);
+                        if WeeklyFlag then
+                            SkillCapacityAnalysisMgt.ShowSegmentData(SegmentId, WholeChart, ResourceNoFilter, PeriodStartDate, PeriodStartDate + 6)
+                        else
+                            SkillCapacityAnalysisMgt.ShowSegmentData(SegmentId, WholeChart, ResourceNoFilter, PeriodStartDate, PeriodStartDate);
                     end;
                 }
             }
@@ -104,11 +101,14 @@ page 50681 "Requested vs Capacity Daily"
                     ApplicationArea = All;
                     Caption = 'Previous';
                     Image = PreviousRecord;
-                    ToolTip = 'Move the displayed period back by one week.';
+                    ToolTip = 'Move the displayed period back one step - a week in Weekly view, a day in Daily view.';
 
                     trigger OnAction()
                     begin
-                        PeriodStartDate := PeriodStartDate - 7;
+                        if WeeklyFlag then
+                            PeriodStartDate := PeriodStartDate - 7
+                        else
+                            PeriodStartDate := PeriodStartDate - 1;
                         RefreshPeriod();
                     end;
                 }
@@ -117,7 +117,7 @@ page 50681 "Requested vs Capacity Daily"
                     ApplicationArea = All;
                     Caption = 'Today';
                     Image = Calculate;
-                    ToolTip = 'Jump to the week that contains today''s date.';
+                    ToolTip = 'Jump to the period that contains today''s date - the current week in Weekly view, or today in Daily view.';
 
                     trigger OnAction()
                     begin
@@ -130,11 +130,45 @@ page 50681 "Requested vs Capacity Daily"
                     ApplicationArea = All;
                     Caption = 'Next';
                     Image = NextRecord;
-                    ToolTip = 'Move the displayed period forward by one week.';
+                    ToolTip = 'Move the displayed period forward one step - a week in Weekly view, a day in Daily view.';
 
                     trigger OnAction()
                     begin
-                        PeriodStartDate := PeriodStartDate + 7;
+                        if WeeklyFlag then
+                            PeriodStartDate := PeriodStartDate + 7
+                        else
+                            PeriodStartDate := PeriodStartDate + 1;
+                        RefreshPeriod();
+                    end;
+                }
+
+                action(SetToWeekly)
+                {
+                    Caption = 'Set to Weekly';
+                    ApplicationArea = All;
+                    Image = AddWatch;
+                    Visible = not WeeklyFlag;
+                    ToolTip = 'Switch the chart to a weekly aggregate view (Monday through Sunday).';
+
+                    trigger OnAction()
+                    begin
+                        WeeklyFlag := true;
+                        SetPeriodToToday();
+                        RefreshPeriod();
+                    end;
+                }
+                action(SetToDaily)
+                {
+                    Caption = 'Set to Daily';
+                    ApplicationArea = All;
+                    Image = DataEntry;
+                    Visible = WeeklyFlag;
+                    ToolTip = 'Switch the chart to a single-day view.';
+
+                    trigger OnAction()
+                    begin
+                        WeeklyFlag := false;
+                        SetPeriodToToday();
                         RefreshPeriod();
                     end;
                 }
@@ -158,19 +192,29 @@ page 50681 "Requested vs Capacity Daily"
                 actionref(NextAction_Promoted; NextAction)
                 {
                 }
+                actionref(SetToWeekly_Promoted; SetToWeekly)
+                {
+                }
+                actionref(SetToDaily_Promoted; SetToDaily)
+                {
+                }
             }
         }
     }
 
     trigger OnOpenPage()
     begin
+        WeeklyFlag := true;
         SetPeriodToToday();
         RefreshPeriod();
     end;
 
     local procedure SetPeriodToToday()
     begin
-        PeriodStartDate := CalcMonday(Today());
+        if WeeklyFlag then
+            PeriodStartDate := CalcMonday(Today())
+        else
+            PeriodStartDate := Today();
     end;
 
     /// <summary>
@@ -191,13 +235,14 @@ page 50681 "Requested vs Capacity Daily"
         WeekNo: Integer;
         YearNo: Integer;
     begin
-        WeekNo := Date2DWY(PeriodStartDate, 2);
-        YearNo := Date2DWY(PeriodStartDate, 3);
-
-        PeriodLabelText := StrSubstNo(PeriodLabelLbl, Format(PeriodStartDate, 0, '<Month Text,3>'), YearNo, WeekNo);
-
-        Day1Text := FormatDayText(PeriodStartDate);
-        Day7Text := FormatDayText(PeriodStartDate + 6);
+        if WeeklyFlag then begin
+            WeekNo := Date2DWY(PeriodStartDate, 2);
+            YearNo := Date2DWY(PeriodStartDate, 3);
+            Day1Text := FormatDayText(PeriodStartDate);
+            Day7Text := FormatDayText(PeriodStartDate + 6);
+            PeriodLabelText := CopyStr(StrSubstNo(WeeklyPeriodLabelLbl, Format(PeriodStartDate, 0, '<Month Text,3>'), YearNo, WeekNo, Day1Text, Day7Text), 1, MaxStrLen(PeriodLabelText));
+        end else
+            PeriodLabelText := CopyStr(StrSubstNo(DailyPeriodLabelLbl, FormatFullDayText(PeriodStartDate)), 1, MaxStrLen(PeriodLabelText));
 
         RefreshData();
     end;
@@ -207,11 +252,20 @@ page 50681 "Requested vs Capacity Daily"
         exit(StrSubstNo(DayLabelLbl, Format(DayDate, 0, '<Weekday Text,3>'), Format(DayDate, 0, '<Day,2>')));
     end;
 
+    local procedure FormatFullDayText(ADate: Date): Text
+    begin
+        exit(Format(ADate, 0, '<Weekday Text,3> <Day,2> <Month Text,3> <Year4>'));
+    end;
+
     local procedure RefreshData()
     var
         PeriodEndDate: Date;
     begin
-        PeriodEndDate := PeriodStartDate + 6;
+        if WeeklyFlag then
+            PeriodEndDate := PeriodStartDate + 6
+        else
+            PeriodEndDate := PeriodStartDate;
+
         SkillCapacityAnalysisMgt.BuildSkillBuffer(Buffer, ResourceNoFilter, PeriodStartDate, PeriodEndDate, '');
         CurrPage.DataPart.Page.LoadData(Buffer, ResourceNoFilter, PeriodStartDate, PeriodEndDate);
         RefreshChart();
@@ -279,13 +333,15 @@ page 50681 "Requested vs Capacity Daily"
     var
         Buffer: Record "Skill Req. vs Capacity Buffer" temporary;
         SkillCapacityAnalysisMgt: Codeunit "SkillCapacityAnalysisMgt.v1";
+        WeeklyFlag: Boolean;
         ResourceNoFilter: Code[20];
         PeriodStartDate: Date;
         ChartReady: Boolean;
-        PeriodLabelText: Text[50];
+        PeriodLabelText: Text[80];
         Day1Text: Text[20];
         Day7Text: Text[20];
         RequestedHoursMeasureTxt: Label 'Requested Hours';
-        PeriodLabelLbl: Label '%1 %2 - wk %3', Comment = '%1 = abbreviated month, %2 = year, %3 = ISO week number';
+        WeeklyPeriodLabelLbl: Label 'Weekly: %1 %2 - wk %3 (%4 - %5)', Comment = '%1 = abbreviated month, %2 = year, %3 = ISO week number, %4 = period start day text, %5 = period end day text';
+        DailyPeriodLabelLbl: Label 'Daily: %1', Comment = '%1 = full date text';
         DayLabelLbl: Label '%1 %2', Comment = '%1 = abbreviated weekday, %2 = day of month';
 }
