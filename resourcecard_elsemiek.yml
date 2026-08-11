@@ -588,7 +588,7 @@
                             - rowgroup [ref=f32e1238]:
                               - row [ref=f32e1239]:
                                 - columnheader [ref=f32e1240]:
-                                  - button "Work Date" [ref=f32e1242] [cursor=pointer]
+                                  - button "Plan Date" [ref=f32e1242] [cursor=pointer]
                                   - button "Open menu for Work Date" [ref=f32e1243] [cursor=pointer]
                                   - button [ref=f32e1244]
                                 - columnheader "More Options" [ref=f32e1247]

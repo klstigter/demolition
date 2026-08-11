@@ -37,7 +37,7 @@ page 50675 "DayPlanning Line Opt"
                 }
                 field(taskDate; Rec."Plan Date")
                 {
-                    Caption = 'Work Date';
+                    Caption = 'Plan Date';
                 }
                 field(no_; Rec."Assigned Resource No.")
                 {
