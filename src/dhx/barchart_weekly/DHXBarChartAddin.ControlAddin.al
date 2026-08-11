@@ -12,9 +12,9 @@ controladdin DHXBarChartAddin
 
     Scripts =
         'src/dhx/suite.js',
-        'src/dhx/barchart/wrapper.js';
+        'src/dhx/barchart_weekly/wrapper.js';
 
-    StartupScript = 'src/dhx/barchart/startupScript.js';
+    StartupScript = 'src/dhx/barchart_weekly/startupScript.js';
 
     StyleSheets =
         'src/dhx/suite.css';

@@ -60,7 +60,7 @@ report 50661 "Set Capacity opt."
             begin
                 // Filter by Resource Type (All/Internal/External), matching the
                 // same boolean expression used in
-                // src/dhx/barchart/codeunit_50662_SkillCapacityAnalysisMgt.al
+                // src/dhx/barchart_weekly/codeunit_50662_SkillCapacityAnalysisMgt.al
                 case ResourceTypeFilter of
                     ResourceTypeFilter::Internal:
                         if IsExternalResource(Resource) then
