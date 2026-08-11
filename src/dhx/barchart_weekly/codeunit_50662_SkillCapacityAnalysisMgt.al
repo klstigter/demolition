@@ -650,7 +650,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// deliberately NOT treated as External here - this is an intentional, documented divergence
     /// from the legacy/dead CalcFreeCapacity procedure elsewhere in this codeunit, which still
     /// folds "Is Pool"/"Is Pool Member" into its own External classification for the old
-    /// barchart_v1 page it alone serves. Caller must have already ensured GDayPlanningBuf is
+    /// barchart_daily page it alone serves. Caller must have already ensured GDayPlanningBuf is
     /// loaded for a range covering PlanDate.
     /// </summary>
     local procedure CalcCapacitySplit(PlanDate: Date; var InternalCapacity: Decimal; var ExternalCapacity: Decimal)
@@ -1068,7 +1068,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
 
     /// <summary>
     /// Appends one series object (name/values/color/[border]/stacked) to SeriesArray, matching
-    /// the exact JSON contract src/dhx/barchart/wrapper.js's RenderChart expects. BorderHex may
+    /// the exact JSON contract src/dhx/barchart_weekly/wrapper.js's RenderChart expects. BorderHex may
     /// be blank to omit the optional "border" key.
     /// </summary>
     local procedure AddChartSeries(var SeriesArray: JsonArray; SeriesName: Text; Values: List of [Decimal]; ColorHex: Text; BorderHex: Text)

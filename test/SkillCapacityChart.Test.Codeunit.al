@@ -493,7 +493,7 @@ codeunit 60024 "Skill Capacity Chart Tests"
         // (codeunit 50662) deliberately buckets Internal/External purely by "Is External" -
         // Pool/Pool Member resources are NOT treated as External there (unlike the legacy, dead
         // CalcFreeCapacity procedure, which still folds Pool/Pool Member into External for the
-        // old barchart_v1 page).
+        // old barchart_daily page).
         Initialize();
         PeriodStart := GetTestMonday(28);
         ClearPeriodData(PeriodStart);

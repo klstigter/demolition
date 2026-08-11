@@ -1,9 +1,9 @@
-page 50692 "Requested vs Capacity Skl Dhx"
+page 50681 "Requested vs Capacity Daily"
 {
     PageType = Card;
     ApplicationArea = All;
     UsageCategory = ReportsAndAnalysis;
-    Caption = 'Skill Requested/Capacity';
+    Caption = 'Daily Requested/Capacity';
 
     /// <summary>
     /// The date range is now a "current period" (always a Monday..Sunday week) stepped via the
@@ -18,18 +18,36 @@ page 50692 "Requested vs Capacity Skl Dhx"
     {
         area(Content)
         {
-            field(PeriodLabelCtrl; PeriodLabelText + ' (' + Day1Text + ' - ' + Day7Text + ')')
-            {
-                ApplicationArea = All;
-                Caption = 'Period';
-                Editable = false;
-                ToolTip = 'Specifies the month, year, and ISO week number of the displayed period.';
-            }
             group(Filters)
+            {
+                Caption = 'Filters';
+
+                field(PeriodLabelCtrl; PeriodLabelText + ' (' + Day1Text + ' - ' + Day7Text + ')')
+                {
+                    ApplicationArea = All;
+                    Caption = 'Period';
+                    Editable = false;
+                    ToolTip = 'Specifies the month, year, and ISO week number of the displayed period.';
+                }
+                field(ResourceNoFilterCtrl; ResourceNoFilter)
+                {
+                    ApplicationArea = All;
+                    Caption = 'Resource No.';
+                    TableRelation = Resource;
+                    ToolTip = 'Specifies the resource to analyze. Leave blank to include all resources.';
+
+                    trigger OnValidate()
+                    begin
+                        RefreshData();
+                    end;
+                }
+            }
+
+            group(ChartGroup)
             {
                 Caption = 'Requested Hours vs Capacity';
 
-                usercontrol(DhxBarChart; DHXBarChartAddin)
+                usercontrol(DhxBarChart; DHXBarChartAddin_daily)
                 {
                     ApplicationArea = All;
 
@@ -43,9 +61,9 @@ page 50692 "Requested vs Capacity Skl Dhx"
                     begin
                     end;
 
-                    trigger OnShowSegmentData(SegmentId: Text; BarType: Text; DayIndex: Integer; WholeWeek: Boolean)
+                    trigger OnShowSegmentData(SegmentId: Text; WholeChart: Boolean)
                     begin
-                        SkillCapacityAnalysisMgt.ShowSegmentData(SegmentId, BarType, PeriodStartDate, DayIndex, WholeWeek);
+                        SkillCapacityAnalysisMgt.ShowSegmentData(SegmentId, WholeChart, ResourceNoFilter, PeriodStartDate, PeriodStartDate + 6);
                     end;
                 }
             }
@@ -53,10 +71,10 @@ page 50692 "Requested vs Capacity Skl Dhx"
 
         area(FactBoxes)
         {
-            part(AuditDataPart; "Day Capacity Chart Audit")
+            part(DataPart; "SkillReq. vs CapacityPart v1")
             {
                 ApplicationArea = All;
-                Caption = 'Chart Audit Trail';
+                Caption = 'Requested vs Capacity per Skill';
             }
         }
     }
@@ -190,53 +208,74 @@ page 50692 "Requested vs Capacity Skl Dhx"
     end;
 
     local procedure RefreshData()
+    var
+        PeriodEndDate: Date;
     begin
+        PeriodEndDate := PeriodStartDate + 6;
+        SkillCapacityAnalysisMgt.BuildSkillBuffer(Buffer, ResourceNoFilter, PeriodStartDate, PeriodEndDate, '');
+        CurrPage.DataPart.Page.LoadData(Buffer, ResourceNoFilter, PeriodStartDate, PeriodEndDate);
         RefreshChart();
-        RefreshAuditBuffer();
     end;
 
-    // The chart is now a genuinely multi-series stacked chart (two bars per weekday - "Capacity"
-    // and "Requested" - each a stack of Assigned/Internal/External/per-skill segments) built
-    // entirely by codeunit 50662's BuildDayCapacityChartData, which already returns the exact
-    // JSON shape (categories/series with name/values/color/[border]/stacked keys) that
-    // src/dhx/barchart/wrapper.js' RenderChart expects. This page only supplies the current
-    // filters (period, Resource No.) and forwards the resulting JSON string straight to
-    // CurrPage.DhxBarChart.LoadData - it builds no JSON of its own. No scenario/what-if override
-    // concept exists - the chart always shows actual/existing data for the displayed week.
+    // SERIES COLOURS - the native BusinessChart version of this page (formerly
+    // src/page/page_50690_RequestedVsCapacitySkills.al) was superseded by this DHTMLX page and
+    // removed; its long comment used to explain a "phantom Variance measure" workaround needed
+    // because BusinessChart's fixed palette put Requested Hours and Capacity on adjacent grey
+    // slots. That workaround does not apply here: the DHTMLX Suite Chart add-in lets every
+    // series carry its own explicit colour (wrapper.js' RenderChart assigns
+    // SERIES_COLOR_PALETTE[seriesIndex]), so there is no fixed-palette grey-collision problem.
+    //
+    // Table 50622 no longer has a separate Capacity field/column - codeunit 50662 now returns
+    // the aggregate capacity total directly in "Requested Hours" on the synthetic "CAPACITY"
+    // buffer row, alongside each real skill's own Requested Hours total on its own row. So a
+    // single series built from Buffer."Requested Hours" already covers both: one bar per skill
+    // category plus one capacity reference bar, never a paired Requested/Capacity bar per
+    // category. wrapper.js' RenderChart renders however many series it is given (s0, s1, ...),
+    // so dropping down to one series here needs no JS changes.
     local procedure RefreshChart()
     var
+        ChartData: JsonObject;
+        CategoriesArray: JsonArray;
+        SeriesArray: JsonArray;
+        RequestedSeries: JsonObject;
+        RequestedValues: JsonArray;
         ChartDataJson: Text;
     begin
         if not ChartReady then
             exit;
 
-        ChartDataJson := SkillCapacityAnalysisMgt.BuildDayCapacityChartData(PeriodStartDate);
+        Clear(CategoriesArray);
+        Clear(RequestedValues);
+
+        Buffer.Reset();
+        if Buffer.FindSet() then
+            repeat
+                CategoriesArray.Add(Buffer."No.");
+                RequestedValues.Add(Buffer."Requested Hours");
+            until Buffer.Next() = 0;
+
+        RequestedSeries.Add('name', RequestedHoursMeasureTxt);
+        RequestedSeries.Add('values', RequestedValues);
+
+        SeriesArray.Add(RequestedSeries);
+
+        ChartData.Add('categories', CategoriesArray);
+        ChartData.Add('series', SeriesArray);
+
+        ChartData.WriteTo(ChartDataJson);
         CurrPage.DhxBarChart.LoadData(ChartDataJson);
     end;
 
-    /// <summary>
-    /// Keeps the "Chart Audit Trail" factbox in sync with the chart data - same
-    /// PeriodStartDate input, same codeunit 50662 shared per-day
-    /// computation, so the factbox always shows exactly the numbers behind the chart. Called
-    /// unconditionally (not gated by ChartReady like RefreshChart) since it is pure AL/factbox
-    /// logic with no dependency on the DhxBarChart usercontrol having finished loading in the
-    /// browser - it must run on the very first OnOpenPage pass, not just once ControlReady fires.
-    /// </summary>
-    local procedure RefreshAuditBuffer()
     var
-        AuditBuffer: Record "Day Capacity Chart Audit Buf" temporary;
-    begin
-        SkillCapacityAnalysisMgt.BuildDayCapacityAuditBuffer(AuditBuffer, PeriodStartDate);
-        CurrPage.AuditDataPart.Page.LoadData(AuditBuffer);
-    end;
-
-    var
-        SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
+        Buffer: Record "Skill Req. vs Capacity Buffer" temporary;
+        SkillCapacityAnalysisMgt: Codeunit "SkillCapacityAnalysisMgt.v1";
+        ResourceNoFilter: Code[20];
         PeriodStartDate: Date;
         ChartReady: Boolean;
         PeriodLabelText: Text[50];
         Day1Text: Text[20];
         Day7Text: Text[20];
+        RequestedHoursMeasureTxt: Label 'Requested Hours';
         PeriodLabelLbl: Label '%1 %2 - wk %3', Comment = '%1 = abbreviated month, %2 = year, %3 = ISO week number';
         DayLabelLbl: Label '%1 %2', Comment = '%1 = abbreviated weekday, %2 = day of month';
 }

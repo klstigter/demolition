@@ -8,7 +8,7 @@ var chartInstance = null;   // current dhx.Chart instance (recreated on every Lo
 // bar's <path> index back to the Skill Code (or the synthetic 'CAPACITY' marker) it belongs to -
 // this chart has exactly one series/one bar per category, so a <path>'s index within its series
 // group IS the category index directly (unlike the live barchart, which stacks 2 bars per weekday
-// and needs a day/2 + even-odd split - see src/dhx/barchart/wrapper.js's ResolveBarSegmentFromEvent).
+// and needs a day/2 + even-odd split - see src/dhx/barchart_daily/wrapper.js's ResolveBarSegmentFromEvent).
 var lastCategories = [];
 var contextMenuEl = null; // the current "Show Data" right-click popup, if one is open (see ShowContextMenu/HideContextMenu)
 var contextMenuDismissHandlers = null; // {click,contextmenu,scroll,keydown} currently attached to
@@ -257,7 +257,7 @@ function ResolveLegendSegmentFromEvent(e) {
 // "contextmenu" self-cleaned, since each NEW right-click's own contextmenu event bubbles to
 // `document` and fires the previous one) - unbounded growth, one full set per right-click, which is
 // what made the page feel like it was hanging after clicking around for a while. Same root cause
-// and fix as src/dhx/barchart/wrapper.js's HideContextMenu (fixed there first). Explicit tracking +
+// and fix as src/dhx/barchart_daily/wrapper.js's HideContextMenu (fixed there first). Explicit tracking +
 // removal in HideContextMenu (called at the START of every ShowContextMenu, not just on dismissal)
 // caps this at exactly one attached set, always.
 function HideContextMenu() {

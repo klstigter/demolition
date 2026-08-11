@@ -1,4 +1,4 @@
-controladdin DHXBarChartAddin_v1
+controladdin DHXBarChartAddin_daily
 {
     RequestedHeight = 500;
     MinimumHeight = 300;
@@ -12,9 +12,9 @@ controladdin DHXBarChartAddin_v1
 
     Scripts =
         'src/dhx/suite.js',
-        'src/dhx/barchart_v1/wrapper.js';
+        'src/dhx/barchart_daily/wrapper.js';
 
-    StartupScript = 'src/dhx/barchart_v1/startupScript.js';
+    StartupScript = 'src/dhx/barchart_daily/startupScript.js';
 
     StyleSheets =
         'src/dhx/suite.css';
