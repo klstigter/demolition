@@ -46,6 +46,34 @@ page 50601 "Opti Resource List"
                             ToolTip = 'The skill to filter the resources that have day plannings with the specified skill.';
                         }
                     }
+
+                    group(Col3)
+                    {
+                        ShowCaption = false;
+                        field("CapacityFilter"; CapacityFilter)
+                        {
+                            ApplicationArea = Jobs;
+                            Caption = 'Capacity Filter';
+                            ToolTip = 'The capacity filter flag.';
+
+                            trigger OnValidate()
+                            begin
+                                ApplyResourceContextFilters();
+                            end;
+                        }
+                        field("SkillFilter"; SkillFilter)
+                        {
+                            ApplicationArea = Jobs;
+                            Caption = 'Skill Filter';
+                            ToolTip = 'The skill filter flag.';
+
+                            trigger OnValidate()
+                            begin
+                                ApplyResourceContextFilters();
+                            end;
+                        }
+                    }
+
                     // group(Col3)
                     // {
                     //     ShowCaption = false;
@@ -667,6 +695,8 @@ page 50601 "Opti Resource List"
         ExtendedPriceEnabled := PriceCalculationMgt.IsExtendedPriceCalculationEnabled();
         RecFilters := Rec.GetFilters();
         xRecFilters := Rec.GetView();
+        CapacityFilter := true;
+        SkillFilter := true;
     end;
 
     var
@@ -680,6 +710,8 @@ page 50601 "Opti Resource List"
         xRecMarkedOnly: Boolean;
         xRecMarking: Record Resource;
         SkillToFind: Code[10];
+        CapacityFilter: Boolean;
+        SkillFilter: Boolean;
 
     procedure GetSelectionFilter(): Text
     var
@@ -698,5 +730,46 @@ page 50601 "Opti Resource List"
     procedure SetSkillToFind(Skill: code[10])
     begin
         SkillToFind := Skill;
+    end;
+
+    local procedure ApplyResourceContextFilters()
+    var
+        ResourceSkill: Record "Resource Skill";
+        CapacityUniqueResource: Query "Unique Resource in Capacity";
+        PlanDate: Date;
+        SkillActive: Boolean;
+    begin
+        Rec.MarkedOnly(false);
+        Rec.ClearMarks();
+        PlanDate := Rec.GetRangeMin("Date Filter");
+        SkillActive := SkillFilter and (SkillToFind <> '');
+
+        if CapacityFilter then begin
+            Clear(CapacityUniqueResource);
+            CapacityUniqueResource.SetRange(EntryDateFilter, PlanDate);
+            CapacityUniqueResource.Open();
+            while CapacityUniqueResource.Read() do
+                if Rec.Get(CapacityUniqueResource.Resource_No_) then
+                    Rec.Mark(true);
+            CapacityUniqueResource.Close();
+
+            if SkillActive then begin
+                Rec.MarkedOnly(true);
+                if Rec.FindSet() then
+                    repeat
+                        if not ResourceSkill.Get(ResourceSkill.Type::Resource, Rec."No.", SkillToFind) then
+                            Rec.Mark(false);
+                    until Rec.Next() = 0;
+            end;
+        end else
+            if SkillActive then
+                if Rec.FindSet() then
+                    repeat
+                        if ResourceSkill.Get(ResourceSkill.Type::Resource, Rec."No.", SkillToFind) then
+                            Rec.Mark(true);
+                    until Rec.Next() = 0;
+
+        Rec.MarkedOnly(CapacityFilter or SkillActive);
+        CurrPage.Update(false);
     end;
 }
