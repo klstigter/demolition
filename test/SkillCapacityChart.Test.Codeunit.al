@@ -1,10 +1,23 @@
 codeunit 60024 "Skill Capacity Chart Tests"
 {
     // Tests for codeunit 50662 "Skill Capacity Analysis Mgt." - procedure
-    // BuildDayCapacityChartData(PeriodStartDate; ResourceNoFilter; ScenarioNo).
+    // BuildDayCapacityChartData(PeriodStartDate).
     // Asserts directly against the returned chart JSON (categories/series with name/values/
     // color/[border]/stacked keys) rather than going through page 50692's UI - see the
-    // procedure's own doc comment for the exact contract.
+    // procedure's own doc comment for the exact contract. Covers the full Monday..Sunday period
+    // (7 days), and the "Internal"/"External" free-capacity series on the Capacity bar - true
+    // calendar capacity read from "Res. Capacity Entry" net of that day's Day Planning Assigned
+    // Hours, NOT a copy of the Requested bar's Assigned/Requested figures.
+    //
+    // DYNAMIC DAY INCLUSION: a weekday only gets a category pair (and a values-list entry on
+    // every series) when it has ANY nonzero data anywhere (Assigned, free Capacity, or any active
+    // skill's requested hours) - see DayHasAnyChartData in codeunit 50662. Most single/multi-day
+    // tests below only ever populate an EARLIER day (Monday, or Monday..Wednesday) than any day
+    // they assert against via GetSeriesValueAtDayBar, so CalcCategoryIndex's day-offset-based
+    // index still lines up with the (possibly shorter) actual values list - no day before the one
+    // under test is ever omitted in those tests. Tests that specifically exercise omission
+    // (GivenFullWeekPeriod_WhenBuildChartData_ThenEmptyDaysAreOmitted and friends, near the end of
+    // this file) instead assert directly against the "categories"/"dayLabels" JSON arrays.
     Subtype = Test;
     TestPermissions = Disabled;
 
@@ -73,6 +86,31 @@ codeunit 60024 "Skill Capacity Chart Tests"
         Resource.Modify();
     end;
 
+    /// <summary>
+    /// Same as CreateTestResource, but for a Pool Member resource (Is Pool Member = true,
+    /// Is External = false) - used to lock in that Pool Member resources bucket as Internal
+    /// capacity in CalcCapacitySplit (codeunit 50662), NOT External. Both fields are set via
+    /// direct field assignment, never Validate() - table 50603's tableext OnValidate triggers on
+    /// "Is Pool"/"Is Pool Member" pop up an interactive Vendor/Resource List lookup page
+    /// (VenList.RunModal / ResList.RunModal) when set through Validate(), which would hang a
+    /// test run.
+    /// </summary>
+    local procedure CreateTestPoolMemberResource(ResNo: Code[20])
+    var
+        Resource: Record Resource;
+    begin
+        if not Resource.Get(ResNo) then begin
+            Resource.Init();
+            Resource."No." := ResNo;
+            Resource.Name := 'Skill Capacity Chart Test Resource ' + ResNo;
+            Resource.Type := Resource.Type::Person;
+            Resource.Insert();
+        end;
+        Resource."Is External" := false;
+        Resource."Is Pool Member" := true;
+        Resource.Modify();
+    end;
+
     local procedure CreateTestSkillCode(SkillCodeValue: Code[10])
     var
         SkillCode: Record "Skill Code";
@@ -104,6 +142,28 @@ codeunit 60024 "Skill Capacity Chart Tests"
         DayPlanning."Assigned Hours" := AssignedHours;
         DayPlanning.Skill := SkillCodeValue;
         DayPlanning."Requested Hours" := RequestedHours;
+        DayPlanning.Insert();
+    end;
+
+    /// <summary>
+    /// Same as InsertDayPlanningLine, but also sets "Requested Resource No." - the field
+    /// CalcUnassignedSkillRequestedSplit uses to bucket an unassigned line's Requested Hours as
+    /// Internal/External (see codeunit 50662).
+    /// </summary>
+    local procedure InsertDayPlanningLineWithRequestedResource(PlanDate: Date; AssignedResourceNo: Code[20]; AssignedHours: Decimal; SkillCodeValue: Code[20]; RequestedHours: Decimal; RequestedResourceNo: Code[20])
+    var
+        DayPlanning: Record "Day Planning";
+    begin
+        DayPlanning.Init();
+        DayPlanning."Job No." := TestJobNo;
+        DayPlanning."Job Task No." := TestJobTaskNo;
+        DayPlanning."Plan Date" := PlanDate;
+        DayPlanning.GetNextDayLineNo();
+        DayPlanning."Assigned Resource No." := AssignedResourceNo;
+        DayPlanning."Assigned Hours" := AssignedHours;
+        DayPlanning.Skill := SkillCodeValue;
+        DayPlanning."Requested Hours" := RequestedHours;
+        DayPlanning."Requested Resource No." := RequestedResourceNo;
         DayPlanning.Insert();
     end;
 
@@ -146,6 +206,18 @@ codeunit 60024 "Skill Capacity Chart Tests"
     end;
 
     local procedure TryGetSeriesValues(ChartDataJson: Text; SeriesName: Text; var Values: List of [Decimal]): Boolean
+    begin
+        exit(TryGetSeriesValuesOccurrence(ChartDataJson, SeriesName, 0, Values));
+    end;
+
+    /// <summary>
+    /// Same as TryGetSeriesValues, but selects the Nth (0-based) series matching SeriesName -
+    /// needed because every segment (Assigned, each skill) is declared as an internal/external
+    /// SERIES PAIR sharing the same "name" (see AddChartSeries callers in
+    /// BuildDayCapacityChartData): occurrence 0 is always the internal half (no "border" key),
+    /// occurrence 1 is always the external half ("border" key present).
+    /// </summary>
+    local procedure TryGetSeriesValuesOccurrence(ChartDataJson: Text; SeriesName: Text; Occurrence: Integer; var Values: List of [Decimal]): Boolean
     var
         ChartData: JsonObject;
         SeriesToken: JsonToken;
@@ -158,6 +230,7 @@ codeunit 60024 "Skill Capacity Chart Tests"
         ValueItemToken: JsonToken;
         i: Integer;
         j: Integer;
+        MatchCount: Integer;
     begin
         Clear(Values);
         if not ChartData.ReadFrom(ChartDataJson) then
@@ -165,18 +238,22 @@ codeunit 60024 "Skill Capacity Chart Tests"
         if not ChartData.Get('series', SeriesToken) then
             exit(false);
         SeriesArray := SeriesToken.AsArray();
+        MatchCount := 0;
         for i := 0 to SeriesArray.Count() - 1 do begin
             SeriesArray.Get(i, OneSeriesToken);
             OneSeriesObj := OneSeriesToken.AsObject();
             OneSeriesObj.Get('name', NameToken);
             if NameToken.AsValue().AsText() = SeriesName then begin
-                OneSeriesObj.Get('values', ValuesToken);
-                ValuesArray := ValuesToken.AsArray();
-                for j := 0 to ValuesArray.Count() - 1 do begin
-                    ValuesArray.Get(j, ValueItemToken);
-                    Values.Add(ValueItemToken.AsValue().AsDecimal());
+                if MatchCount = Occurrence then begin
+                    OneSeriesObj.Get('values', ValuesToken);
+                    ValuesArray := ValuesToken.AsArray();
+                    for j := 0 to ValuesArray.Count() - 1 do begin
+                        ValuesArray.Get(j, ValueItemToken);
+                        Values.Add(ValueItemToken.AsValue().AsDecimal());
+                    end;
+                    exit(true);
                 end;
-                exit(true);
+                MatchCount += 1;
             end;
         end;
         exit(false);
@@ -189,13 +266,84 @@ codeunit 60024 "Skill Capacity Chart Tests"
         exit(TryGetSeriesValues(ChartDataJson, SeriesName, Values));
     end;
 
+    /// <summary>
+    /// Reads the top-level "categories" array directly - used by the dynamic-day-inclusion tests,
+    /// which need to assert on which days are PRESENT/ABSENT rather than look up a value at a
+    /// fixed index (see this file's own top-of-file comment on DYNAMIC DAY INCLUSION).
+    /// </summary>
+    local procedure GetCategoriesArray(ChartDataJson: Text; var CategoriesArray: JsonArray)
+    var
+        ChartData: JsonObject;
+        CategoriesToken: JsonToken;
+    begin
+        AssertIsTrue(ChartData.ReadFrom(ChartDataJson), 'Chart JSON must parse.');
+        AssertIsTrue(ChartData.Get('categories', CategoriesToken), 'Chart JSON must have a "categories" key.');
+        CategoriesArray := CategoriesToken.AsArray();
+    end;
+
+    local procedure GetDayLabelsArray(ChartDataJson: Text; var DayLabelsArray: JsonArray)
+    var
+        ChartData: JsonObject;
+        DayLabelsToken: JsonToken;
+    begin
+        AssertIsTrue(ChartData.ReadFrom(ChartDataJson), 'Chart JSON must parse.');
+        AssertIsTrue(ChartData.Get('dayLabels', DayLabelsToken), 'Chart JSON must have a "dayLabels" key.');
+        DayLabelsArray := DayLabelsToken.AsArray();
+    end;
+
+    /// <summary>True if "categories" contains an entry with exactly this text.</summary>
+    local procedure CategoryTextExists(ChartDataJson: Text; CategoryText: Text): Boolean
+    var
+        CategoriesArray: JsonArray;
+        CategoryToken: JsonToken;
+        i: Integer;
+    begin
+        GetCategoriesArray(ChartDataJson, CategoriesArray);
+        for i := 0 to CategoriesArray.Count() - 1 do begin
+            CategoriesArray.Get(i, CategoryToken);
+            if CategoryToken.AsValue().AsText() = CategoryText then
+                exit(true);
+        end;
+        exit(false);
+    end;
+
+    /// <summary>
+    /// Same weekday-short-text format codeunit 50662's own (local, not callable from here)
+    /// FormatWeekdayShort uses - kept in lockstep deliberately so these tests build the exact
+    /// same category text the production code emits.
+    /// </summary>
+    local procedure FormatWeekdayShortForTest(ADate: Date): Text
+    begin
+        exit(Format(ADate, 0, '<Weekday Text,3>'));
+    end;
+
+    local procedure CapacityCategoryText(ADate: Date): Text
+    begin
+        exit(FormatWeekdayShortForTest(ADate) + '|Capacity');
+    end;
+
+    local procedure RequestedCategoryText(ADate: Date): Text
+    begin
+        exit(FormatWeekdayShortForTest(ADate) + '|Requested');
+    end;
+
     local procedure GetSeriesValueAtDayBar(ChartDataJson: Text; SeriesName: Text; PeriodStartDate: Date; PlanDate: Date; IsCapacityBar: Boolean): Decimal
+    begin
+        exit(GetSeriesValueAtDayBarOccurrence(ChartDataJson, SeriesName, 0, PeriodStartDate, PlanDate, IsCapacityBar));
+    end;
+
+    /// <summary>
+    /// Same as GetSeriesValueAtDayBar, but reads the Nth (0-based) series sharing SeriesName -
+    /// occurrence 0 = internal half, occurrence 1 = external half (see
+    /// TryGetSeriesValuesOccurrence).
+    /// </summary>
+    local procedure GetSeriesValueAtDayBarOccurrence(ChartDataJson: Text; SeriesName: Text; Occurrence: Integer; PeriodStartDate: Date; PlanDate: Date; IsCapacityBar: Boolean): Decimal
     var
         Values: List of [Decimal];
         CategoryIndex: Integer;
     begin
         CategoryIndex := CalcCategoryIndex(PeriodStartDate, PlanDate, IsCapacityBar);
-        AssertIsTrue(TryGetSeriesValues(ChartDataJson, SeriesName, Values), StrSubstNo('Series not found: %1', SeriesName));
+        AssertIsTrue(TryGetSeriesValuesOccurrence(ChartDataJson, SeriesName, Occurrence, Values), StrSubstNo('Series occurrence not found: %1 (#%2)', SeriesName, Occurrence));
         exit(Values.Get(CategoryIndex + 1)); // List.Get() is 1-based
     end;
 
@@ -229,6 +377,26 @@ codeunit 60024 "Skill Capacity Chart Tests"
         exit(AuditBuffer.FindFirst());
     end;
 
+    /// <summary>
+    /// Same as FindAuditRow, but positions on the Nth (0-based) row sharing (Day, Bar Type,
+    /// Segment) - needed for skill segments on the Requested bar, which now always insert TWO
+    /// rows per skill (combined total, then always-0) sharing the same Segment text (see
+    /// InsertAuditLine callers in BuildDayCapacityAuditBuffer). Occurrence 0 = the combined-total
+    /// row, occurrence 1 = the always-0 row.
+    /// </summary>
+    local procedure FindAuditRowOccurrence(var AuditBuffer: Record "Day Capacity Chart Audit Buf" temporary; RowDate: Date; BarType: Enum "Day Capacity Chart Bar Type"; Segment: Code[20]; Occurrence: Integer): Boolean
+    begin
+        AuditBuffer.Reset();
+        AuditBuffer.SetRange(Day, RowDate);
+        AuditBuffer.SetRange("Bar Type", BarType);
+        AuditBuffer.SetRange(Segment, Segment);
+        if not AuditBuffer.FindSet() then
+            exit(false);
+        if Occurrence = 0 then
+            exit(true);
+        exit(AuditBuffer.Next(Occurrence) = Occurrence);
+    end;
+
     // ================================================================
     // Tests
     // ================================================================
@@ -247,13 +415,44 @@ codeunit 60024 "Skill Capacity Chart Tests"
         CreateTestSkillCode('SCCTSKA');
         InsertDayPlanningLine(PeriodStart, 'SCCTRA', 6, 'SCCTSKA', 0);
 
-        // [WHEN] BuildDayCapacityChartData is called with no filters and no scenario collapse
+        // [WHEN] BuildDayCapacityChartData is called.
         ChartDataJson := SkillCapacityAnalysisMgt.BuildDayCapacityChartData(PeriodStart);
 
         // [THEN] The "Assigned" series carries the same value (6) on both the Capacity and
         // Requested bar for that day.
-        AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned', PeriodStart, PeriodStart, true), 'Assigned on Capacity bar.');
-        AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned', PeriodStart, PeriodStart, false), 'Assigned on Requested bar.');
+        AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned Capacity - Internal', PeriodStart, PeriodStart, true), 'Assigned on Capacity bar.');
+        AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned Capacity - Internal', PeriodStart, PeriodStart, false), 'Assigned on Requested bar.');
+    end;
+
+    [Test]
+    procedure GivenInternalAndExternalAssignedHours_WhenBuildChartData_ThenRequestedBarCollapsesAssignedToCombinedTotal()
+    var
+        PeriodStart: Date;
+        ChartDataJson: Text;
+    begin
+        // [GIVEN] An internal resource with 6 Assigned Hours and an external resource with 4
+        // Assigned Hours, both on the period's Monday.
+        Initialize();
+        PeriodStart := GetTestMonday(23);
+        ClearPeriodData(PeriodStart);
+        CreateTestResource('SCCTRAI', false);
+        CreateTestResource('SCCTRAE', true);
+        CreateTestSkillCode('SCCTSKH');
+        InsertDayPlanningLine(PeriodStart, 'SCCTRAI', 6, 'SCCTSKH', 0);
+        InsertDayPlanningLine(PeriodStart, 'SCCTRAE', 4, 'SCCTSKH', 0);
+
+        // [WHEN] BuildDayCapacityChartData is called.
+        ChartDataJson := SkillCapacityAnalysisMgt.BuildDayCapacityChartData(PeriodStart);
+
+        // [THEN] The Capacity bar keeps the real Internal (6) / External (4) split on its
+        // "Assigned" series pair.
+        AssertAreEqual(6, GetSeriesValueAtDayBarOccurrence(ChartDataJson, 'Assigned Capacity - Internal', 0, PeriodStart, PeriodStart, true), 'Capacity bar Assigned internal half.');
+        AssertAreEqual(4, GetSeriesValueAtDayBarOccurrence(ChartDataJson, 'Assigned Capacity - External', 0, PeriodStart, PeriodStart, true), 'Capacity bar Assigned external half.');
+
+        // [THEN] The Requested bar collapses to a single plain total - the internal series
+        // carries the combined value (10), the external series is always 0 (no red border).
+        AssertAreEqual(10, GetSeriesValueAtDayBarOccurrence(ChartDataJson, 'Assigned Capacity - Internal', 0, PeriodStart, PeriodStart, false), 'Requested bar Assigned combined total.');
+        AssertAreEqual(0, GetSeriesValueAtDayBarOccurrence(ChartDataJson, 'Assigned Capacity - External', 0, PeriodStart, PeriodStart, false), 'Requested bar Assigned external half must be 0.');
     end;
 
     [Test]
@@ -272,15 +471,41 @@ codeunit 60024 "Skill Capacity Chart Tests"
         InsertResCapacityEntry('SCCTRI1', PeriodStart, 8);
         InsertResCapacityEntry('SCCTRE1', PeriodStart, 5);
 
-        // [WHEN] BuildDayCapacityChartData is called with no filters and no scenario collapse
+        // [WHEN] BuildDayCapacityChartData is called.
         ChartDataJson := SkillCapacityAnalysisMgt.BuildDayCapacityChartData(PeriodStart);
 
         // [THEN] "Internal"/"External" free-capacity segments match each resource's Is External
         // flag, and are only ever nonzero on the Capacity bar (0 on the Requested bar).
-        AssertAreEqual(8, GetSeriesValueAtDayBar(ChartDataJson, 'Internal', PeriodStart, PeriodStart, true), 'Internal free capacity.');
-        AssertAreEqual(5, GetSeriesValueAtDayBar(ChartDataJson, 'External', PeriodStart, PeriodStart, true), 'External free capacity.');
-        AssertAreEqual(0, GetSeriesValueAtDayBar(ChartDataJson, 'Internal', PeriodStart, PeriodStart, false), 'Internal must be 0 on the Requested bar.');
-        AssertAreEqual(0, GetSeriesValueAtDayBar(ChartDataJson, 'External', PeriodStart, PeriodStart, false), 'External must be 0 on the Requested bar.');
+        AssertAreEqual(8, GetSeriesValueAtDayBar(ChartDataJson, 'Free Capacity - Internal', PeriodStart, PeriodStart, true), 'Internal free capacity.');
+        AssertAreEqual(5, GetSeriesValueAtDayBar(ChartDataJson, 'Free Capacity - External', PeriodStart, PeriodStart, true), 'External free capacity.');
+        AssertAreEqual(0, GetSeriesValueAtDayBar(ChartDataJson, 'Free Capacity - Internal', PeriodStart, PeriodStart, false), 'Internal must be 0 on the Requested bar.');
+        AssertAreEqual(0, GetSeriesValueAtDayBar(ChartDataJson, 'Free Capacity - External', PeriodStart, PeriodStart, false), 'External must be 0 on the Requested bar.');
+    end;
+
+    [Test]
+    procedure GivenPoolMemberResourceWithFreeCapacity_WhenBuildChartData_ThenBucketedAsInternal()
+    var
+        PeriodStart: Date;
+        ChartDataJson: Text;
+    begin
+        // [GIVEN] A Pool Member resource (Is Pool Member = true, Is External = false) with 7
+        // Capacity and no Day Planning assignment on the period's Monday. CalcCapacitySplit
+        // (codeunit 50662) deliberately buckets Internal/External purely by "Is External" -
+        // Pool/Pool Member resources are NOT treated as External there (unlike the legacy, dead
+        // CalcFreeCapacity procedure, which still folds Pool/Pool Member into External for the
+        // old barchart_daily page).
+        Initialize();
+        PeriodStart := GetTestMonday(28);
+        ClearPeriodData(PeriodStart);
+        CreateTestPoolMemberResource('SCCTRP1');
+        InsertResCapacityEntry('SCCTRP1', PeriodStart, 7);
+
+        // [WHEN] BuildDayCapacityChartData is called.
+        ChartDataJson := SkillCapacityAnalysisMgt.BuildDayCapacityChartData(PeriodStart);
+
+        // [THEN] The Pool Member's free capacity is bucketed entirely as Internal, not External.
+        AssertAreEqual(7, GetSeriesValueAtDayBar(ChartDataJson, 'Free Capacity - Internal', PeriodStart, PeriodStart, true), 'Pool Member free capacity must bucket as Internal.');
+        AssertAreEqual(0, GetSeriesValueAtDayBar(ChartDataJson, 'Free Capacity - External', PeriodStart, PeriodStart, true), 'Pool Member free capacity must NOT bucket as External.');
     end;
 
     [Test]
@@ -300,11 +525,41 @@ codeunit 60024 "Skill Capacity Chart Tests"
         InsertDayPlanningLine(PeriodStart, 'SCCTRA2', 0, 'SCCTSKB', 15); // assigned - excluded
         InsertDayPlanningLine(PeriodStart, '', 0, 'SCCTSKB', 4);        // unassigned - counted
 
-        // [WHEN] BuildDayCapacityChartData is called with no filters and no scenario collapse
+        // [WHEN] BuildDayCapacityChartData is called.
         ChartDataJson := SkillCapacityAnalysisMgt.BuildDayCapacityChartData(PeriodStart);
 
         // [THEN] Only the unassigned line's 4 hours show up in the skill's Requested segment.
         AssertAreEqual(4, GetSeriesValueAtDayBar(ChartDataJson, 'SCCTSKB', PeriodStart, PeriodStart, false), 'Skill Requested segment must only count the unassigned line.');
+    end;
+
+    [Test]
+    procedure GivenSkillWithInternalAndExternalRequested_WhenBuildChartData_ThenRequestedBarCollapsesSkillToCombinedTotal()
+    var
+        PeriodStart: Date;
+        ChartDataJson: Text;
+    begin
+        // [GIVEN] Two unassigned Day Planning lines on Monday for the same skill: one with no
+        // "Requested Resource No." set (Internal, 5 hours) and one targeting an external
+        // resource (External, 3 hours).
+        Initialize();
+        PeriodStart := GetTestMonday(24);
+        ClearPeriodData(PeriodStart);
+        CreateTestResource('SCCTRSE', true);
+        CreateTestSkillCode('SCCTSKI');
+        InsertDayPlanningLine(PeriodStart, '', 0, 'SCCTSKI', 5);
+        InsertDayPlanningLineWithRequestedResource(PeriodStart, '', 0, 'SCCTSKI', 3, 'SCCTRSE');
+
+        // [WHEN] BuildDayCapacityChartData is called.
+        ChartDataJson := SkillCapacityAnalysisMgt.BuildDayCapacityChartData(PeriodStart);
+
+        // [THEN] The skill never appears on the Capacity bar (both halves 0).
+        AssertAreEqual(0, GetSeriesValueAtDayBarOccurrence(ChartDataJson, 'SCCTSKI', 0, PeriodStart, PeriodStart, true), 'Capacity bar skill internal half must be 0.');
+        AssertAreEqual(0, GetSeriesValueAtDayBarOccurrence(ChartDataJson, 'SCCTSKI', 1, PeriodStart, PeriodStart, true), 'Capacity bar skill external half must be 0.');
+
+        // [THEN] The Requested bar collapses to a single plain total - the internal series
+        // carries the combined value (5 + 3 = 8), the external series is always 0.
+        AssertAreEqual(8, GetSeriesValueAtDayBarOccurrence(ChartDataJson, 'SCCTSKI', 0, PeriodStart, PeriodStart, false), 'Requested bar skill combined total.');
+        AssertAreEqual(0, GetSeriesValueAtDayBarOccurrence(ChartDataJson, 'SCCTSKI', 1, PeriodStart, PeriodStart, false), 'Requested bar skill external half must be 0.');
     end;
 
     [Test]
@@ -322,7 +577,7 @@ codeunit 60024 "Skill Capacity Chart Tests"
         CreateTestSkillCode('SCCTSKC');
         InsertDayPlanningLine(PeriodStart, 'SCCTRA3', 0, 'SCCTSKC', 7);
 
-        // [WHEN] BuildDayCapacityChartData is called with no filters and no scenario collapse
+        // [WHEN] BuildDayCapacityChartData is called.
         ChartDataJson := SkillCapacityAnalysisMgt.BuildDayCapacityChartData(PeriodStart);
 
         // [THEN] The skill gets no chart series at all - not even a zero-valued one.
@@ -330,7 +585,7 @@ codeunit 60024 "Skill Capacity Chart Tests"
     end;
 
     [Test]
-    procedure GivenScenarioTwo_WhenBuildChartData_ThenFirstTwoDaysCollapsedExceptAssigned()
+    procedure GivenCapacityAndAssignedHoursOnMultipleDays_WhenBuildChartData_ThenEachDayComputedIndependently()
     var
         PeriodStart: Date;
         MondayDate: Date;
@@ -365,130 +620,168 @@ codeunit 60024 "Skill Capacity Chart Tests"
         InsertDayPlanningLine(TuesdayDate, '', 0, 'SCCTSKD', 3);
         InsertDayPlanningLine(WednesdayDate, '', 0, 'SCCTSKD', 3);
 
-        // [WHEN] BuildDayCapacityChartData is called with ScenarioNo = 2 (Monday=weekday 1 and
-        // Tuesday=weekday 2 are "closed").
+        // [WHEN] BuildDayCapacityChartData is called.
         ChartDataJson := SkillCapacityAnalysisMgt.BuildDayCapacityChartData(PeriodStart);
 
-        // [THEN] Assigned is unaffected by the collapse on every day.
-        AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned', PeriodStart, MondayDate, true), 'Monday Assigned (Capacity bar).');
-        AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned', PeriodStart, MondayDate, false), 'Monday Assigned (Requested bar).');
-        AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned', PeriodStart, TuesdayDate, true), 'Tuesday Assigned (Capacity bar).');
-        AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned', PeriodStart, TuesdayDate, false), 'Tuesday Assigned (Requested bar).');
-        AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned', PeriodStart, WednesdayDate, true), 'Wednesday Assigned (Capacity bar).');
-        AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned', PeriodStart, WednesdayDate, false), 'Wednesday Assigned (Requested bar).');
+        // [THEN] Assigned (6) is identical on both bars, every day - unaffected by capacity.
+        AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned Capacity - Internal', PeriodStart, MondayDate, true), 'Monday Assigned (Capacity bar).');
+        AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned Capacity - Internal', PeriodStart, MondayDate, false), 'Monday Assigned (Requested bar).');
+        AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned Capacity - Internal', PeriodStart, TuesdayDate, true), 'Tuesday Assigned (Capacity bar).');
+        AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned Capacity - Internal', PeriodStart, TuesdayDate, false), 'Tuesday Assigned (Requested bar).');
+        AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned Capacity - Internal', PeriodStart, WednesdayDate, true), 'Wednesday Assigned (Capacity bar).');
+        AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned Capacity - Internal', PeriodStart, WednesdayDate, false), 'Wednesday Assigned (Requested bar).');
 
-        // [THEN] Monday and Tuesday (closed) have their Internal free-capacity and skill
-        // Requested segments zeroed out.
-        AssertAreEqual(0, GetSeriesValueAtDayBar(ChartDataJson, 'Internal', PeriodStart, MondayDate, true), 'Monday Internal must be collapsed to 0.');
-        AssertAreEqual(0, GetSeriesValueAtDayBar(ChartDataJson, 'SCCTSKD', PeriodStart, MondayDate, false), 'Monday skill segment must be collapsed to 0.');
-        AssertAreEqual(0, GetSeriesValueAtDayBar(ChartDataJson, 'Internal', PeriodStart, TuesdayDate, true), 'Tuesday Internal must be collapsed to 0.');
-        AssertAreEqual(0, GetSeriesValueAtDayBar(ChartDataJson, 'SCCTSKD', PeriodStart, TuesdayDate, false), 'Tuesday skill segment must be collapsed to 0.');
-
-        // [THEN] Wednesday (weekday 3, open) is untouched: Internal free capacity = 10 - 6 = 4,
-        // skill segment = 3.
-        AssertAreEqual(4, GetSeriesValueAtDayBar(ChartDataJson, 'Internal', PeriodStart, WednesdayDate, true), 'Wednesday Internal must be untouched.');
-        AssertAreEqual(3, GetSeriesValueAtDayBar(ChartDataJson, 'SCCTSKD', PeriodStart, WednesdayDate, false), 'Wednesday skill segment must be untouched.');
+        // [THEN] Internal free capacity (10 - 6 = 4) and the skill's Requested segment (3) are
+        // computed the same, independent way on every day - no day is treated any differently
+        // from any other (there is no "closed period" collapsing behavior in this codeunit).
+        AssertAreEqual(4, GetSeriesValueAtDayBar(ChartDataJson, 'Free Capacity - Internal', PeriodStart, MondayDate, true), 'Monday Internal free capacity.');
+        AssertAreEqual(3, GetSeriesValueAtDayBar(ChartDataJson, 'SCCTSKD', PeriodStart, MondayDate, false), 'Monday skill segment.');
+        AssertAreEqual(4, GetSeriesValueAtDayBar(ChartDataJson, 'Free Capacity - Internal', PeriodStart, TuesdayDate, true), 'Tuesday Internal free capacity.');
+        AssertAreEqual(3, GetSeriesValueAtDayBar(ChartDataJson, 'SCCTSKD', PeriodStart, TuesdayDate, false), 'Tuesday skill segment.');
+        AssertAreEqual(4, GetSeriesValueAtDayBar(ChartDataJson, 'Free Capacity - Internal', PeriodStart, WednesdayDate, true), 'Wednesday Internal free capacity.');
+        AssertAreEqual(3, GetSeriesValueAtDayBar(ChartDataJson, 'SCCTSKD', PeriodStart, WednesdayDate, false), 'Wednesday skill segment.');
     end;
 
-    // ================================================================
-    // ScenarioNo boundary coverage (ScenarioNo = 1, 3, 4)
-    // ================================================================
-    //
-    // Shared by the three [Test] procedures below so the GIVEN-data setup (identical across all
-    // scenario values) isn't triplicated. Each test only differs in which ScenarioNo it passes
-    // and which WeeksAhead offset it uses to keep its period non-overlapping with every other
-    // test in this codeunit.
-    //
-    // Builds Monday..Friday with identical GIVEN data on every weekday: an internal resource with
-    // 6 Assigned Hours and 10 Capacity (4 free), plus an unassigned skill line with 3 Requested
-    // Hours. It then asserts, for every weekday i = 1 (Monday) .. 5 (Friday), that day i is
-    // "closed" (Internal free capacity and skill Requested segment forced to 0, Assigned
-    // untouched) exactly when i <= ScenarioNo, and "open" (Internal = 4, skill = 3, Assigned
-    // untouched) exactly
-    // when i > ScenarioNo - i.e. the closed/open boundary sits precisely at ScenarioNo, checked
-    // on every single day rather than only at the boundary itself.
-
-    local procedure RunScenarioBoundaryTest(ScenarioNo: Integer; WeeksAhead: Integer)
+    [Test]
+    procedure GivenCapacityEntryButNoAssignmentYet_WhenBuildChartData_ThenCapacityBarShowsFullCapacity()
     var
         PeriodStart: Date;
-        CurrDate: Date;
-        ResNo: Code[20];
-        SkillCodeValue: Code[10];
+        MondayDate: Date;
+        TuesdayDate: Date;
         ChartDataJson: Text;
-        ExpectedInternal: Decimal;
-        ExpectedSkill: Decimal;
-        WeekdayIndex: Integer;
     begin
-        // [GIVEN] Identical setup on all 5 weekdays: an internal resource with 6 Assigned Hours
-        // and 10 Capacity (4 free), plus an unassigned skill line with 3 Requested Hours.
+        // [GIVEN] Reproduces the reported bug: two internal resources each with 8 hours of real
+        // calendar capacity (Res. Capacity Entry) on both Monday and Tuesday, but Day Planning
+        // assignments only starting Tuesday - so Monday has real capacity but zero Day Planning
+        // activity yet.
         Initialize();
-        PeriodStart := GetTestMonday(WeeksAhead);
+        PeriodStart := GetTestMonday(21);
         ClearPeriodData(PeriodStart);
+        MondayDate := PeriodStart;
+        TuesdayDate := PeriodStart + 1;
 
-        ResNo := 'SCCTRS' + Format(ScenarioNo);
-        SkillCodeValue := 'SCCTSKS' + Format(ScenarioNo);
-        CreateTestResource(ResNo, false);
-        CreateTestSkillCode(SkillCodeValue);
+        CreateTestResource('SCCTRM1', false);
+        CreateTestResource('SCCTRM2', false);
+        CreateTestSkillCode('SCCTSKM');
+        InsertResCapacityEntry('SCCTRM1', MondayDate, 8);
+        InsertResCapacityEntry('SCCTRM2', MondayDate, 8);
+        InsertResCapacityEntry('SCCTRM1', TuesdayDate, 8);
+        InsertResCapacityEntry('SCCTRM2', TuesdayDate, 8);
+        InsertDayPlanningLine(TuesdayDate, 'SCCTRM1', 8, 'SCCTSKM', 0); // assignments start Tuesday only
 
-        for WeekdayIndex := 1 to 5 do begin
-            CurrDate := PeriodStart + (WeekdayIndex - 1);
-            // Skill is set even on this Assigned-only line (it plays no part in the Assigned
-            // calculation) purely to avoid Day Planning's OnInsert trigger falling back to Daily
-            // Optimizer Setup."Default Skill", which would error if that singleton has never
-            // been created.
-            InsertDayPlanningLine(CurrDate, ResNo, 6, SkillCodeValue, 0);
-            InsertResCapacityEntry(ResNo, CurrDate, 10);
-            InsertDayPlanningLine(CurrDate, '', 0, SkillCodeValue, 3);
-        end;
-
-        // [WHEN] BuildDayCapacityChartData is called with the scenario under test.
+        // [WHEN] BuildDayCapacityChartData is called.
         ChartDataJson := SkillCapacityAnalysisMgt.BuildDayCapacityChartData(PeriodStart);
 
-        // [THEN] Every weekday i = 1..5: closed (i <= ScenarioNo) collapses Internal/skill to 0
-        // while Assigned stays untouched; open (i > ScenarioNo) leaves Internal/skill untouched
-        // too.
-        for WeekdayIndex := 1 to 5 do begin
-            CurrDate := PeriodStart + (WeekdayIndex - 1);
+        // [THEN] Monday's Capacity bar shows the full 16 hours of real calendar capacity (no Day
+        // Planning assignment yet that day means nothing is subtracted) - NOT near-zero, which is
+        // what happened when the Capacity bar was wrongly sourced from Day Planning Assigned
+        // Hours instead of "Res. Capacity Entry".
+        AssertAreEqual(16, GetSeriesValueAtDayBar(ChartDataJson, 'Free Capacity - Internal', PeriodStart, MondayDate, true), 'Monday Internal capacity must be the full calendar capacity.');
+        AssertAreEqual(0, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned Capacity - Internal', PeriodStart, MondayDate, true), 'Monday Assigned must be 0 - no Day Planning yet.');
 
-            AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned', PeriodStart, CurrDate, true),
-                StrSubstNo('Scenario %1, weekday %2 Assigned (Capacity bar).', WeekdayIndex));
-            AssertAreEqual(6, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned', PeriodStart, CurrDate, false),
-                StrSubstNo('Scenario %1, weekday %2 Assigned (Requested bar).', WeekdayIndex));
-
-            if WeekdayIndex <= ScenarioNo then begin
-                ExpectedInternal := 0;
-                ExpectedSkill := 0;
-            end else begin
-                ExpectedInternal := 4;
-                ExpectedSkill := 3;
-            end;
-
-            AssertAreEqual(ExpectedInternal, GetSeriesValueAtDayBar(ChartDataJson, 'Internal', PeriodStart, CurrDate, true),
-                StrSubstNo('Scenario %1, weekday %2 Internal free capacity.', WeekdayIndex));
-            AssertAreEqual(ExpectedSkill, GetSeriesValueAtDayBar(ChartDataJson, SkillCodeValue, PeriodStart, CurrDate, false),
-                StrSubstNo('Scenario %1, weekday %2 skill segment.', WeekdayIndex));
-        end;
+        // [THEN] Tuesday's Capacity bar reflects the new assignment: free capacity drops to 8
+        // (16 total - 8 assigned), Assigned shows 8.
+        AssertAreEqual(8, GetSeriesValueAtDayBar(ChartDataJson, 'Free Capacity - Internal', PeriodStart, TuesdayDate, true), 'Tuesday Internal capacity must be net of the new assignment.');
+        AssertAreEqual(8, GetSeriesValueAtDayBar(ChartDataJson, 'Assigned Capacity - Internal', PeriodStart, TuesdayDate, true), 'Tuesday Assigned (Capacity bar).');
     end;
 
     [Test]
-    procedure GivenScenarioOne_WhenBuildChartData_ThenOnlyMondayCollapsed()
+    procedure GivenFullWeekPeriod_WhenBuildChartData_ThenEmptyDaysAreOmitted()
+    var
+        PeriodStart: Date;
+        SaturdayDate: Date;
+        SundayDate: Date;
+        ChartDataJson: Text;
+        CategoriesArray: JsonArray;
+        DayLabelsArray: JsonArray;
     begin
-        // Boundary at ScenarioNo = 1: Monday (weekday 1) closed, Tuesday..Friday (2..5) open.
-        RunScenarioBoundaryTest(1, 15);
+        // [GIVEN] A period with capacity/requested data only on Monday - Saturday and Sunday are
+        // deliberately left with no Res. Capacity Entry and no Day Planning rows at all, matching
+        // a normal non-working weekend. Tuesday..Friday are likewise left empty so the whole
+        // period only has one day of real data.
+        Initialize();
+        PeriodStart := GetTestMonday(22);
+        ClearPeriodData(PeriodStart);
+        SaturdayDate := PeriodStart + 5;
+        SundayDate := PeriodStart + 6;
+
+        CreateTestResource('SCCTRW1', false);
+        CreateTestSkillCode('SCCTSKW');
+        InsertResCapacityEntry('SCCTRW1', PeriodStart, 8);
+        InsertDayPlanningLine(PeriodStart, '', 0, 'SCCTSKW', 2);
+
+        // [WHEN] BuildDayCapacityChartData is called for the full 7-day period.
+        ChartDataJson := SkillCapacityAnalysisMgt.BuildDayCapacityChartData(PeriodStart);
+
+        // [THEN] Only Monday - the one day with any nonzero data - gets a category pair/day
+        // label; every other day (including, but not limited to, Saturday/Sunday) is omitted
+        // entirely rather than rendered as an empty/zero-height bar pair.
+        GetCategoriesArray(ChartDataJson, CategoriesArray);
+        GetDayLabelsArray(ChartDataJson, DayLabelsArray);
+        AssertAreEqual(2, CategoriesArray.Count(), 'Only Monday''s Capacity/Requested category pair should be present.');
+        AssertAreEqual(1, DayLabelsArray.Count(), 'Only Monday''s day label should be present.');
+        AssertIsTrue(CategoryTextExists(ChartDataJson, CapacityCategoryText(PeriodStart)), 'Monday Capacity category must exist.');
+        AssertIsTrue(CategoryTextExists(ChartDataJson, RequestedCategoryText(PeriodStart)), 'Monday Requested category must exist.');
+        AssertIsTrue(not CategoryTextExists(ChartDataJson, CapacityCategoryText(SaturdayDate)), 'Saturday Capacity category must be omitted.');
+        AssertIsTrue(not CategoryTextExists(ChartDataJson, RequestedCategoryText(SaturdayDate)), 'Saturday Requested category must be omitted.');
+        AssertIsTrue(not CategoryTextExists(ChartDataJson, CapacityCategoryText(SundayDate)), 'Sunday Capacity category must be omitted.');
+        AssertIsTrue(not CategoryTextExists(ChartDataJson, RequestedCategoryText(SundayDate)), 'Sunday Requested category must be omitted.');
+
+        // [THEN] Monday's own values are unaffected by the omission of the other 6 days.
+        AssertAreEqual(8, GetSeriesValueAtDayBar(ChartDataJson, 'Free Capacity - Internal', PeriodStart, PeriodStart, true), 'Monday Internal capacity.');
+        AssertAreEqual(2, GetSeriesValueAtDayBar(ChartDataJson, 'SCCTSKW', PeriodStart, PeriodStart, false), 'Monday skill Requested segment.');
     end;
 
     [Test]
-    procedure GivenScenarioThree_WhenBuildChartData_ThenFirstThreeDaysCollapsed()
+    procedure GivenDayWithOnlyUnassignedSkillRequest_WhenBuildChartData_ThenDayIsIncluded()
+    var
+        PeriodStart: Date;
+        MondayDate: Date;
+        ChartDataJson: Text;
     begin
-        // Boundary at ScenarioNo = 3: Monday..Wednesday (1..3) closed, Thursday..Friday (4..5) open.
-        RunScenarioBoundaryTest(3, 16);
+        // [GIVEN] A day with NO Assigned Hours and NO Res. Capacity Entry anywhere - the only
+        // nonzero data in the whole period is one unassigned skill-requested line on Monday. This
+        // exercises the "any active skill's requested hours" branch of the inclusion check on its
+        // own, independent of Assigned/Capacity.
+        Initialize();
+        PeriodStart := GetTestMonday(26);
+        ClearPeriodData(PeriodStart);
+        MondayDate := PeriodStart;
+
+        CreateTestSkillCode('SCCTSKX');
+        InsertDayPlanningLine(MondayDate, '', 0, 'SCCTSKX', 2);
+
+        // [WHEN] BuildDayCapacityChartData is called.
+        ChartDataJson := SkillCapacityAnalysisMgt.BuildDayCapacityChartData(PeriodStart);
+
+        // [THEN] Monday is still included - a skill-only nonzero day is not treated as empty.
+        AssertIsTrue(CategoryTextExists(ChartDataJson, RequestedCategoryText(MondayDate)), 'A day with only skill-requested hours must still be included.');
+        AssertAreEqual(2, GetSeriesValueAtDayBar(ChartDataJson, 'SCCTSKX', PeriodStart, MondayDate, false), 'Skill segment value on the Requested bar.');
     end;
 
     [Test]
-    procedure GivenScenarioFour_WhenBuildChartData_ThenOnlyFridayOpen()
+    procedure GivenPeriodWithNoDataAnywhere_WhenBuildChartData_ThenChartRendersEmptyWithoutError()
+    var
+        PeriodStart: Date;
+        ChartDataJson: Text;
+        CategoriesArray: JsonArray;
+        DayLabelsArray: JsonArray;
     begin
-        // Boundary at ScenarioNo = 4: Monday..Thursday (1..4) closed, only Friday (5) open.
-        RunScenarioBoundaryTest(4, 17);
+        // [GIVEN] A period with no Day Planning rows and no Res. Capacity Entry rows at all - the
+        // edge case where every single one of the 7 days is empty.
+        Initialize();
+        PeriodStart := GetTestMonday(27);
+        ClearPeriodData(PeriodStart);
+
+        // [WHEN] BuildDayCapacityChartData is called.
+        ChartDataJson := SkillCapacityAnalysisMgt.BuildDayCapacityChartData(PeriodStart);
+
+        // [THEN] No error is raised, and the chart comes back with empty categories/dayLabels -
+        // not 7 days' worth of zero-valued bars.
+        GetCategoriesArray(ChartDataJson, CategoriesArray);
+        GetDayLabelsArray(ChartDataJson, DayLabelsArray);
+        AssertAreEqual(0, CategoriesArray.Count(), 'Categories must be empty when no day in the period has any data.');
+        AssertAreEqual(0, DayLabelsArray.Count(), 'DayLabels must be empty when no day in the period has any data.');
     end;
 
     // ================================================================
@@ -498,7 +791,7 @@ codeunit 60024 "Skill Capacity Chart Tests"
     // ================================================================
 
     [Test]
-    procedure GivenScenarioTwo_WhenBuildAuditBuffer_ThenRowsMatchChartData()
+    procedure GivenMultiDayCapacity_WhenBuildAuditBuffer_ThenRowsMatchChartData()
     var
         PeriodStart: Date;
         MondayDate: Date;
@@ -507,7 +800,7 @@ codeunit 60024 "Skill Capacity Chart Tests"
         ChartDataJson: Text;
         AuditBuffer: Record "Day Capacity Chart Audit Buf" temporary;
     begin
-        // [GIVEN] Same shape of setup as GivenScenarioTwo_WhenBuildChartData_ThenFirstTwoDaysCollapsedExceptAssigned:
+        // [GIVEN] Same shape of setup as GivenCapacityAndAssignedHoursOnMultipleDays_WhenBuildChartData_ThenEachDayComputedIndependently:
         // an internal resource with 6 Assigned Hours and 10 Capacity (4 free) on Monday..Wednesday,
         // plus an unassigned skill line with 3 Requested Hours on each day.
         Initialize();
@@ -531,7 +824,7 @@ codeunit 60024 "Skill Capacity Chart Tests"
         InsertDayPlanningLine(WednesdayDate, '', 0, 'SCCTSKE', 3);
 
         // [WHEN] Both BuildDayCapacityChartData and BuildDayCapacityAuditBuffer are called with
-        // the same inputs (ScenarioNo = 2: Monday and Tuesday closed).
+        // the same inputs.
         ChartDataJson := SkillCapacityAnalysisMgt.BuildDayCapacityChartData(PeriodStart);
         SkillCapacityAnalysisMgt.BuildDayCapacityAuditBuffer(AuditBuffer, PeriodStart);
 
@@ -539,12 +832,12 @@ codeunit 60024 "Skill Capacity Chart Tests"
         // category/series value.
         AssertIsTrue(FindAuditRow(AuditBuffer, MondayDate, Enum::"Day Capacity Chart Bar Type"::Capacity, 'Assigned'),
             'Monday Capacity/Assigned row must exist.');
-        AssertAreEqual(GetSeriesValueAtDayBar(ChartDataJson, 'Assigned', PeriodStart, MondayDate, true), AuditBuffer.Value,
+        AssertAreEqual(GetSeriesValueAtDayBar(ChartDataJson, 'Assigned Capacity - Internal', PeriodStart, MondayDate, true), AuditBuffer.Value,
             'Monday Capacity/Assigned value must match the chart.');
 
         AssertIsTrue(FindAuditRow(AuditBuffer, WednesdayDate, Enum::"Day Capacity Chart Bar Type"::Capacity, 'Internal'),
             'Wednesday Capacity/Internal row must exist.');
-        AssertAreEqual(GetSeriesValueAtDayBar(ChartDataJson, 'Internal', PeriodStart, WednesdayDate, true), AuditBuffer.Value,
+        AssertAreEqual(GetSeriesValueAtDayBar(ChartDataJson, 'Free Capacity - Internal', PeriodStart, WednesdayDate, true), AuditBuffer.Value,
             'Wednesday Capacity/Internal value must match the chart.');
 
         AssertIsTrue(FindAuditRow(AuditBuffer, WednesdayDate, Enum::"Day Capacity Chart Bar Type"::Requested, 'SCCTSKE'),
@@ -554,7 +847,7 @@ codeunit 60024 "Skill Capacity Chart Tests"
     end;
 
     [Test]
-    procedure GivenScenarioCollapse_WhenBuildAuditBuffer_ThenCollapsedSegmentRowStillExistsAtZero()
+    procedure GivenCapacityAndSkillRequest_WhenBuildAuditBuffer_ThenRowsHoldRealValues()
     var
         PeriodStart: Date;
         MondayDate: Date;
@@ -574,19 +867,66 @@ codeunit 60024 "Skill Capacity Chart Tests"
         InsertResCapacityEntry('SCCTRA6', MondayDate, 10);
         InsertDayPlanningLine(MondayDate, '', 0, 'SCCTSKF', 3);
 
-        // [WHEN] BuildDayCapacityAuditBuffer is called with ScenarioNo = 1 (Monday, weekday 1, is
-        // closed).
+        // [WHEN] BuildDayCapacityAuditBuffer is called.
         SkillCapacityAnalysisMgt.BuildDayCapacityAuditBuffer(AuditBuffer, PeriodStart);
 
-        // [THEN] Monday's Capacity/Internal row and Requested/SCCTSKF row - both collapsed to 0
-        // by the scenario - still exist in the buffer rather than being omitted.
+        // [THEN] Monday's Capacity/Internal row holds the true free capacity (10 Capacity - 6
+        // Assigned Hours = 4), not the Day Planning Assigned Hours figure and not 0.
         AssertIsTrue(FindAuditRow(AuditBuffer, MondayDate, Enum::"Day Capacity Chart Bar Type"::Capacity, 'Internal'),
-            'Collapsed Monday Capacity/Internal row must still exist in the buffer.');
-        AssertAreEqual(0, AuditBuffer.Value, 'Collapsed Monday Capacity/Internal value must be 0.');
+            'Monday Capacity/Internal row must exist.');
+        AssertAreEqual(4, AuditBuffer.Value, 'Monday Capacity/Internal must be net free capacity (10 - 6).');
 
+        // [THEN] Monday's Requested/SCCTSKF row still holds the unassigned Requested Hours (3).
         AssertIsTrue(FindAuditRow(AuditBuffer, MondayDate, Enum::"Day Capacity Chart Bar Type"::Requested, 'SCCTSKF'),
-            'Collapsed Monday Requested/SCCTSKF row must still exist in the buffer.');
-        AssertAreEqual(0, AuditBuffer.Value, 'Collapsed Monday Requested/SCCTSKF value must be 0.');
+            'Monday Requested/SCCTSKF row must exist.');
+        AssertAreEqual(3, AuditBuffer.Value, 'Monday Requested/SCCTSKF must hold the unassigned Requested Hours.');
+
+        // [THEN] Monday's Capacity/Assigned row holds the combined (internal+external) Assigned
+        // Hours total (6), matching the chart's "Assigned" series.
+        AssertIsTrue(FindAuditRow(AuditBuffer, MondayDate, Enum::"Day Capacity Chart Bar Type"::Capacity, 'Assigned'),
+            'Monday Capacity/Assigned row must exist.');
+        AssertAreEqual(6, AuditBuffer.Value, 'Monday Capacity/Assigned must hold the combined Assigned Hours total.');
+    end;
+
+    [Test]
+    procedure GivenSkillWithInternalAndExternalRequested_WhenBuildAuditBuffer_ThenRequestedRowsCollapseToCombinedTotal()
+    var
+        PeriodStart: Date;
+        MondayDate: Date;
+        AuditBuffer: Record "Day Capacity Chart Audit Buf" temporary;
+    begin
+        // [GIVEN] Two unassigned Day Planning lines on Monday for the same skill: one with no
+        // "Requested Resource No." set (Internal, 5 hours) and one targeting an external
+        // resource (External, 3 hours).
+        Initialize();
+        PeriodStart := GetTestMonday(25);
+        ClearPeriodData(PeriodStart);
+        MondayDate := PeriodStart;
+
+        CreateTestResource('SCCTRSF', true);
+        CreateTestSkillCode('SCCTSKJ');
+        InsertDayPlanningLine(MondayDate, '', 0, 'SCCTSKJ', 5);
+        InsertDayPlanningLineWithRequestedResource(MondayDate, '', 0, 'SCCTSKJ', 3, 'SCCTRSF');
+
+        // [WHEN] BuildDayCapacityAuditBuffer is called.
+        SkillCapacityAnalysisMgt.BuildDayCapacityAuditBuffer(AuditBuffer, PeriodStart);
+
+        // [THEN] The Requested bar's first SCCTSKJ row holds the combined total (5 + 3 = 8), the
+        // second SCCTSKJ row is always 0 - matching the chart's collapse.
+        AssertIsTrue(FindAuditRowOccurrence(AuditBuffer, MondayDate, Enum::"Day Capacity Chart Bar Type"::Requested, 'SCCTSKJ', 0),
+            'Monday Requested/SCCTSKJ combined-total row must exist.');
+        AssertAreEqual(8, AuditBuffer.Value, 'Monday Requested/SCCTSKJ combined-total row must hold 5 + 3.');
+        AssertIsTrue(FindAuditRowOccurrence(AuditBuffer, MondayDate, Enum::"Day Capacity Chart Bar Type"::Requested, 'SCCTSKJ', 1),
+            'Monday Requested/SCCTSKJ second row must exist.');
+        AssertAreEqual(0, AuditBuffer.Value, 'Monday Requested/SCCTSKJ second row must always be 0.');
+
+        // [THEN] Both Capacity-bar SCCTSKJ rows stay 0 (skills never appear on the Capacity bar).
+        AssertIsTrue(FindAuditRowOccurrence(AuditBuffer, MondayDate, Enum::"Day Capacity Chart Bar Type"::Capacity, 'SCCTSKJ', 0),
+            'Monday Capacity/SCCTSKJ first row must exist.');
+        AssertAreEqual(0, AuditBuffer.Value, 'Monday Capacity/SCCTSKJ first row must be 0.');
+        AssertIsTrue(FindAuditRowOccurrence(AuditBuffer, MondayDate, Enum::"Day Capacity Chart Bar Type"::Capacity, 'SCCTSKJ', 1),
+            'Monday Capacity/SCCTSKJ second row must exist.');
+        AssertAreEqual(0, AuditBuffer.Value, 'Monday Capacity/SCCTSKJ second row must be 0.');
     end;
 
     [Test]
@@ -605,7 +945,7 @@ codeunit 60024 "Skill Capacity Chart Tests"
         CreateTestSkillCode('SCCTSKG');
         InsertDayPlanningLine(PeriodStart, 'SCCTRA7', 0, 'SCCTSKG', 7);
 
-        // [WHEN] BuildDayCapacityAuditBuffer is called with no filters and no scenario collapse.
+        // [WHEN] BuildDayCapacityAuditBuffer is called with no filters.
         SkillCapacityAnalysisMgt.BuildDayCapacityAuditBuffer(AuditBuffer, PeriodStart);
 
         // [THEN] The skill gets no buffer rows at all - not even a zero-valued one - on either

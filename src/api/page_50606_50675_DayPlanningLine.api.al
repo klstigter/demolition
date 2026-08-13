@@ -37,7 +37,7 @@ page 50675 "DayPlanning Line Opt"
                 }
                 field(taskDate; Rec."Plan Date")
                 {
-                    Caption = 'Work Date';
+                    Caption = 'Plan Date';
                 }
                 field(no_; Rec."Assigned Resource No.")
                 {
@@ -117,9 +117,11 @@ page 50675 "DayPlanning Line Opt"
     var
         TempLine: Record "Day Planning" temporary;
         ExistingLine: Record "Day Planning";
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
         NextLineNo: Integer;
         GuidVar: Guid;
         ModifyRec: Boolean;
+        NoDefaultSkillErr: Label 'Cannot insert this Day Planning line: no Skill was submitted, and "Daily Optimizer Setup"."Default Skill" is not set. Configure a Default Skill, or submit a Skill value.';
     begin
         // Step 1: snapshot ALL incoming API data FIRST, before Rec is touched
         TempLine.Copy(Rec);
@@ -151,7 +153,9 @@ page 50675 "DayPlanning Line Opt"
 
         // Apply incoming payload — TempLine always holds the API-submitted values
         Rec."Plan Date" := TempLine."Plan Date";
-        Rec."Assigned Resource No." := TempLine."Assigned Resource No.";
+        // Validate (not a raw assignment) so CheckResourceHasSkill runs - an external API caller
+        // could otherwise push any Resource/Skill combo straight past validation.
+        Rec.Validate("Assigned Resource No.", TempLine."Assigned Resource No.");
         Rec.Description := TempLine.Description;
         Rec."Plan Status" := TempLine."Plan Status";
         Rec."Start Time Assigned" := TempLine."Start Time Assigned";
@@ -164,7 +168,22 @@ page 50675 "DayPlanning Line Opt"
         Rec."Requested Leader" := TempLine."Requested Leader";
         Rec."Assigned Leader" := TempLine."Assigned Leader";
         Rec."Work Order No." := TempLine."Work Order No.";
-        Rec."Skill" := TempLine."Skill";
+        // Validate, applied AFTER "Assigned Resource No." above: the Skill field's own OnValidate
+        // cross-checks that the now-assigned resource actually holds this specific skill
+        // (SkillRes.Get(Type::Resource, "Assigned Resource No.", Skill)), which is the real
+        // resource<->skill match check - CheckResourceHasSkill above only confirms the resource
+        // has *a* skill, not this one. If the caller submitted no Skill at all, fall back to
+        // "Daily Optimizer Setup"."Default Skill" (Get() only happens here, not called upfront -
+        // no SQL round-trip when the caller already supplied one) - hard error when no default is
+        // configured either, same convention as codeunit 50604's onEventAdded.
+        if TempLine."Skill" <> '' then
+            Rec.Validate("Skill", TempLine."Skill")
+        else begin
+            DailyOptimizerSetup.Get();
+            if DailyOptimizerSetup."Default Skill" = '' then
+                Error(NoDefaultSkillErr);
+            Rec.Validate("Skill", DailyOptimizerSetup."Default Skill");
+        end;
 
         if ModifyRec then
             Rec.Modify()

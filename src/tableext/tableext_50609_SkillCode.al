@@ -13,5 +13,9 @@ tableextension 50609 "Opt. Skill Code" extends "Skill Code"
             TableRelation = Resource."No.";
             ToolTip = 'Specifies the resource that billable planning lines for this skill are created against when preparing invoice lines from posted Day Planning usage.';
         }
+        field(50600; "Bar Color"; Text[50])
+        {
+            DataClassification = ToBeClassified;
+        }
     }
 }

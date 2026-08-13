@@ -17,6 +17,7 @@ codeunit 50661 "Order Intake Kanban Handler"
     procedure BuildKanbanJson(): Text
     var
         OrderIntake: Record "Order Intake Header Opt.";
+        StatusEnum: Enum "DayPlanning Order Intake Status";
         Columns: JsonArray;
         Cards: JsonArray;
         Root: JsonObject;
@@ -26,24 +27,25 @@ codeunit 50661 "Order Intake Kanban Handler"
         TimeLine: Text;
         Result: Text;
         StatusInt: Integer;
+        StatusOrdinals: List of [Integer];
+        StatusNames: List of [Text];
+        i: Integer;
     begin
-        // ---- Columns – one per Status enum value ----
-        Clear(Col);
-        Col.Add('id', '0');
-        Col.Add('label', 'Open');
-        Columns.Add(Col);
-        Clear(Col);
-        Col.Add('id', '1');
-        Col.Add('label', 'Ready');
-        Columns.Add(Col);
-        Clear(Col);
-        Col.Add('id', '2');
-        Col.Add('label', 'Released');
-        Columns.Add(Col);
-        Clear(Col);
-        Col.Add('id', '3');
-        Col.Add('label', 'Done');
-        Columns.Add(Col);
+        // ---- Columns – one per "DayPlanning Order Intake Status" enum value ----
+        // Enum-driven (Ordinals/Names), NOT derived from existing Order Intake
+        // records, so the full column set (Open/Ready/Released/Done, and any
+        // future values added via enum extension - the enum is Extensible = true)
+        // always appears, even on a fresh install with zero records. Card
+        // population per column still comes from filtering actual records by
+        // status below - only the column *definitions* are enum-derived.
+        StatusOrdinals := StatusEnum.Ordinals();
+        StatusNames := StatusEnum.Names();
+        for i := 1 to StatusOrdinals.Count() do begin
+            Clear(Col);
+            Col.Add('id', Format(StatusOrdinals.Get(i)));
+            Col.Add('label', StatusNames.Get(i));
+            Columns.Add(Col);
+        end;
 
         // ---- Cards – one per Order Intake record ----
         if OrderIntake.FindSet() then

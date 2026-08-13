@@ -25,9 +25,16 @@ page 50696 "Capacity Overview Matrix"
     /// time.
     ///
     /// Every value cell (Total + each per-skill column) drills down into the underlying detail
-    /// list for its row - see DrillDownColumn. Rows without a per-skill breakdown (Total Capacity,
-    /// Capacity, Surplus) drill into "Res. Capacity Entries" filtered by the period only
-    /// (Skill Code does not apply to capacity entries), even when clicked from a per-skill column.
+    /// list for its row - see DrillDownColumn. "Total Capacity" and "Capacity" now DO have a
+    /// per-skill breakdown for their VALUES (codeunit 50694's CalcCapacityPerSkill), but their
+    /// DRILLDOWN is still unfiltered by skill - rows 10000/40000/60000 always open
+    /// "Res. Capacity Entries" filtered by the period only, regardless of which column was
+    /// clicked (a known follow-up gap, not fixed here). Only "Surplus" (60000) still has neither
+    /// a per-skill value breakdown nor a skill-aware drilldown.
+    ///
+    /// Every value field control (Total + Column1..Column20) has StyleExpr = Rec.Style, set by
+    /// codeunit 50694's InsertRow/InsertDifferenceRow, so the "Capacity" (Free Capacity) row
+    /// renders bold ('Strong') - the Description (row label) field is deliberately not styled.
     ///
     /// Column windowing: FullSkillCodeList (set via LoadPeriod) holds EVERY skill code, unbounded.
     /// Only GetMaxMatrixColumns() (20) of them are ever shown at once - ColumnOffset is the
@@ -53,6 +60,7 @@ page 50696 "Capacity Overview Matrix"
                 {
                     ApplicationArea = All;
                     Caption = 'Total';
+                    StyleExpr = Rec.Style;
                     ToolTip = 'Specifies the total across all skills for the current period. Choose the value to see the underlying detail records.';
 
                     trigger OnDrillDown()
@@ -65,6 +73,7 @@ page 50696 "Capacity Overview Matrix"
                     ApplicationArea = All;
                     CaptionClass = '3,' + Column1Caption;
                     Visible = Column1Visible;
+                    StyleExpr = Rec.Style;
                     ToolTip = 'Specifies the value for this skill for the current period. Choose the value to see the underlying detail records.';
 
                     trigger OnDrillDown()
@@ -77,6 +86,7 @@ page 50696 "Capacity Overview Matrix"
                     ApplicationArea = All;
                     CaptionClass = '3,' + Column2Caption;
                     Visible = Column2Visible;
+                    StyleExpr = Rec.Style;
                     ToolTip = 'Specifies the value for this skill for the current period. Choose the value to see the underlying detail records.';
 
                     trigger OnDrillDown()
@@ -89,6 +99,7 @@ page 50696 "Capacity Overview Matrix"
                     ApplicationArea = All;
                     CaptionClass = '3,' + Column3Caption;
                     Visible = Column3Visible;
+                    StyleExpr = Rec.Style;
                     ToolTip = 'Specifies the value for this skill for the current period. Choose the value to see the underlying detail records.';
 
                     trigger OnDrillDown()
@@ -101,6 +112,7 @@ page 50696 "Capacity Overview Matrix"
                     ApplicationArea = All;
                     CaptionClass = '3,' + Column4Caption;
                     Visible = Column4Visible;
+                    StyleExpr = Rec.Style;
                     ToolTip = 'Specifies the value for this skill for the current period. Choose the value to see the underlying detail records.';
 
                     trigger OnDrillDown()
@@ -113,6 +125,7 @@ page 50696 "Capacity Overview Matrix"
                     ApplicationArea = All;
                     CaptionClass = '3,' + Column5Caption;
                     Visible = Column5Visible;
+                    StyleExpr = Rec.Style;
                     ToolTip = 'Specifies the value for this skill for the current period. Choose the value to see the underlying detail records.';
 
                     trigger OnDrillDown()
@@ -125,6 +138,7 @@ page 50696 "Capacity Overview Matrix"
                     ApplicationArea = All;
                     CaptionClass = '3,' + Column6Caption;
                     Visible = Column6Visible;
+                    StyleExpr = Rec.Style;
                     ToolTip = 'Specifies the value for this skill for the current period. Choose the value to see the underlying detail records.';
 
                     trigger OnDrillDown()
@@ -137,6 +151,7 @@ page 50696 "Capacity Overview Matrix"
                     ApplicationArea = All;
                     CaptionClass = '3,' + Column7Caption;
                     Visible = Column7Visible;
+                    StyleExpr = Rec.Style;
                     ToolTip = 'Specifies the value for this skill for the current period. Choose the value to see the underlying detail records.';
 
                     trigger OnDrillDown()
@@ -149,6 +164,7 @@ page 50696 "Capacity Overview Matrix"
                     ApplicationArea = All;
                     CaptionClass = '3,' + Column8Caption;
                     Visible = Column8Visible;
+                    StyleExpr = Rec.Style;
                     ToolTip = 'Specifies the value for this skill for the current period. Choose the value to see the underlying detail records.';
 
                     trigger OnDrillDown()
@@ -161,6 +177,7 @@ page 50696 "Capacity Overview Matrix"
                     ApplicationArea = All;
                     CaptionClass = '3,' + Column9Caption;
                     Visible = Column9Visible;
+                    StyleExpr = Rec.Style;
                     ToolTip = 'Specifies the value for this skill for the current period. Choose the value to see the underlying detail records.';
 
                     trigger OnDrillDown()
@@ -173,6 +190,7 @@ page 50696 "Capacity Overview Matrix"
                     ApplicationArea = All;
                     CaptionClass = '3,' + Column10Caption;
                     Visible = Column10Visible;
+                    StyleExpr = Rec.Style;
                     ToolTip = 'Specifies the value for this skill for the current period. Choose the value to see the underlying detail records.';
 
                     trigger OnDrillDown()
@@ -185,6 +203,7 @@ page 50696 "Capacity Overview Matrix"
                     ApplicationArea = All;
                     CaptionClass = '3,' + Column11Caption;
                     Visible = Column11Visible;
+                    StyleExpr = Rec.Style;
                     ToolTip = 'Specifies the value for this skill for the current period. Choose the value to see the underlying detail records.';
 
                     trigger OnDrillDown()
@@ -197,6 +216,7 @@ page 50696 "Capacity Overview Matrix"
                     ApplicationArea = All;
                     CaptionClass = '3,' + Column12Caption;
                     Visible = Column12Visible;
+                    StyleExpr = Rec.Style;
                     ToolTip = 'Specifies the value for this skill for the current period. Choose the value to see the underlying detail records.';
 
                     trigger OnDrillDown()
@@ -209,6 +229,7 @@ page 50696 "Capacity Overview Matrix"
                     ApplicationArea = All;
                     CaptionClass = '3,' + Column13Caption;
                     Visible = Column13Visible;
+                    StyleExpr = Rec.Style;
                     ToolTip = 'Specifies the value for this skill for the current period. Choose the value to see the underlying detail records.';
 
                     trigger OnDrillDown()
@@ -221,6 +242,7 @@ page 50696 "Capacity Overview Matrix"
                     ApplicationArea = All;
                     CaptionClass = '3,' + Column14Caption;
                     Visible = Column14Visible;
+                    StyleExpr = Rec.Style;
                     ToolTip = 'Specifies the value for this skill for the current period. Choose the value to see the underlying detail records.';
 
                     trigger OnDrillDown()
@@ -233,6 +255,7 @@ page 50696 "Capacity Overview Matrix"
                     ApplicationArea = All;
                     CaptionClass = '3,' + Column15Caption;
                     Visible = Column15Visible;
+                    StyleExpr = Rec.Style;
                     ToolTip = 'Specifies the value for this skill for the current period. Choose the value to see the underlying detail records.';
 
                     trigger OnDrillDown()
@@ -245,6 +268,7 @@ page 50696 "Capacity Overview Matrix"
                     ApplicationArea = All;
                     CaptionClass = '3,' + Column16Caption;
                     Visible = Column16Visible;
+                    StyleExpr = Rec.Style;
                     ToolTip = 'Specifies the value for this skill for the current period. Choose the value to see the underlying detail records.';
 
                     trigger OnDrillDown()
@@ -257,6 +281,7 @@ page 50696 "Capacity Overview Matrix"
                     ApplicationArea = All;
                     CaptionClass = '3,' + Column17Caption;
                     Visible = Column17Visible;
+                    StyleExpr = Rec.Style;
                     ToolTip = 'Specifies the value for this skill for the current period. Choose the value to see the underlying detail records.';
 
                     trigger OnDrillDown()
@@ -269,6 +294,7 @@ page 50696 "Capacity Overview Matrix"
                     ApplicationArea = All;
                     CaptionClass = '3,' + Column18Caption;
                     Visible = Column18Visible;
+                    StyleExpr = Rec.Style;
                     ToolTip = 'Specifies the value for this skill for the current period. Choose the value to see the underlying detail records.';
 
                     trigger OnDrillDown()
@@ -281,6 +307,7 @@ page 50696 "Capacity Overview Matrix"
                     ApplicationArea = All;
                     CaptionClass = '3,' + Column19Caption;
                     Visible = Column19Visible;
+                    StyleExpr = Rec.Style;
                     ToolTip = 'Specifies the value for this skill for the current period. Choose the value to see the underlying detail records.';
 
                     trigger OnDrillDown()
@@ -293,6 +320,7 @@ page 50696 "Capacity Overview Matrix"
                     ApplicationArea = All;
                     CaptionClass = '3,' + Column20Caption;
                     Visible = Column20Visible;
+                    StyleExpr = Rec.Style;
                     ToolTip = 'Specifies the value for this skill for the current period. Choose the value to see the underlying detail records.';
 
                     trigger OnDrillDown()

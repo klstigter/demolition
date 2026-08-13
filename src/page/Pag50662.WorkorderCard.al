@@ -247,6 +247,20 @@ page 50662 "Workorder Card"
                     SummaryPage.Run();
                 end;
             }
+            action(ShowSkillHoursSummary)
+            {
+                ApplicationArea = All;
+                Caption = 'Skill Hours Summary';
+                Image = ResourceGroup;
+                ToolTip = 'View requested hours per skill code, year and week for this project task.';
+                trigger OnAction()
+                var
+                    SkillHoursPage: Page "Skill Hours Summary";
+                begin
+                    SkillHoursPage.LoadContext(Rec."Project No.", Rec."Project Task No.");
+                    SkillHoursPage.Run();
+                end;
+            }
         }
         area(Promoted)
         {
@@ -269,6 +283,9 @@ page 50662 "Workorder Card"
                 {
                 }
                 actionref(ShowSummary_Promoted; ShowSummary)
+                {
+                }
+                actionref(ShowSkillHoursSummary_Promoted; ShowSkillHoursSummary)
                 {
                 }
             }

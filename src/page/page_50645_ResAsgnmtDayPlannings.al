@@ -37,7 +37,7 @@ page 50645 "Res. Asgmt. Day Plannings"
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the date of the day task.';
-                    Caption = 'Work Date';
+                    Caption = 'Plan Date';
                 }
                 field("Day Line No."; Rec."Day Line No.")
                 {

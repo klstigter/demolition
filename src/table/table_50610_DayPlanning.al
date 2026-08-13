@@ -60,7 +60,7 @@ table 50610 "Day Planning"
         field(1; "Plan Date"; Date)
         {
             DataClassification = ToBeClassified;
-            Caption = 'Work Date';
+            Caption = 'Plan Date';
 
             trigger OnValidate()
             var
@@ -998,7 +998,7 @@ table 50610 "Day Planning"
     procedure CopyRequestedToAssigned()
     begin
         if Rec."Assigned Resource No." = '' then
-            Rec."Assigned Resource No." := Rec."Requested Resource No.";
+            Rec.Validate("Assigned Resource No.", Rec."Requested Resource No.");
         if Rec."Assigned Pool Resource No." = '' then
             Rec."Assigned Pool Resource No." := Rec."Requested Pool Resource No.";
 

@@ -9,6 +9,8 @@
 .vs/
 # Playwright MCP test-session artifacts (screenshots, page/console snapshots) - not AL code
 .playwright-mcp/
+# Ad-hoc verification screenshots dropped in the repo root during testing (docs/*.png and images/*.png stay tracked)
+/*.png
 # Explicitly ignore VS Code launch settings
 
 # Others

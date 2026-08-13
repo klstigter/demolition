@@ -47,7 +47,7 @@ page 50622 "Resource Day Plannings"
                 field("Task Date"; Rec."Plan Date")
                 {
                     ApplicationArea = All;
-                    Caption = 'Work Date';
+                    Caption = 'Plan Date';
                 }
                 field(DayLineNo; Rec."Day Line No.")
                 {
@@ -138,18 +138,17 @@ page 50622 "Resource Day Plannings"
     trigger OnNewRecord(BelowxRec: Boolean)
     var
         DayPlanningRec: Record "Day Planning";
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
         ResourceNo: Code[20];
         NewDate: Date;
         DayLineNo: Integer;
+        NoDefaultSkillErr: Label 'Cannot create a Day Planning line here: this subpage has no Skill context of its own, and "Daily Optimizer Setup"."Default Skill" is not set. Configure a Default Skill before assigning resources this way.';
     begin
         // Get the No. from the SubPageLink filter (FilterGroup 4)
         Rec.FilterGroup(4);
         if Rec.GetFilter("Assigned Resource No.") <> '' then
             ResourceNo := Rec.GetRangeMin("Assigned Resource No.");
         Rec.FilterGroup(0);
-
-        if ResourceNo <> '' then
-            Rec."Assigned Resource No." := ResourceNo;
 
         NewDate := Today();
         DayLineNo := 10000;
@@ -159,6 +158,22 @@ page 50622 "Resource Day Plannings"
 
         Rec."Plan Date" := NewDate;
         Rec."Day Line No." := DayLineNo;
+
+        if ResourceNo <> '' then begin
+            // No Skill field/column exists on this subpage. Validate the resource first (its own
+            // OnValidate auto-fills Skill with the resource's first skill) - only fall back to
+            // "Daily Optimizer Setup"."Default Skill" if that left Skill blank (don't override a
+            // skill the resource already validated as holding). DailyOptimizerSetup.Get() is
+            // deliberately INSIDE this check, not called upfront - no SQL round-trip on the common
+            // path where the resource's own skill already covers it.
+            Rec.Validate("Assigned Resource No.", ResourceNo);
+            if Rec.Skill = '' then begin
+                DailyOptimizerSetup.Get();
+                if DailyOptimizerSetup."Default Skill" = '' then
+                    Error(NoDefaultSkillErr);
+                Rec.Validate(Skill, DailyOptimizerSetup."Default Skill");
+            end;
+        end;
     end;
 
 }

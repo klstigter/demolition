@@ -17,8 +17,15 @@ table 50693 "Capacity Overview Buffer"
     ///
     /// BlankZero = true / Editable = false on the value fields is intentional and row-independent:
     /// per spec, the "Total Capacity" and "Surplus" rows never populate the per-skill columns
-    /// (codeunit 50694 leaves them at 0), and BlankZero makes those cells render blank instead of
-    /// "0" without needing any per-row conditional formatting.
+    /// (codeunit 50694 leaves them at 0 for both) - Total Capacity's real per-skill split IS
+    /// calculated (CalcCapacityPerSkill) but only feeds the "Capacity" (Free Capacity) row's own
+    /// calculation, not this row's displayed columns. BlankZero makes those cells render blank
+    /// instead of "0" without needing any per-row conditional formatting.
+    ///
+    /// "Style" carries the row's StyleExpr token (e.g. 'Standard', 'Strong') set by codeunit
+    /// 50694's InsertRow/InsertDifferenceRow, and is read by page 50696's value field controls
+    /// (StyleExpr = Rec.Style) to bold the "Capacity" (Free Capacity) row - the row label
+    /// (Description) itself is deliberately not styled.
     /// </summary>
 
     fields
@@ -41,6 +48,11 @@ table 50693 "Capacity Overview Buffer"
             DecimalPlaces = 0 : 2;
             BlankZero = true;
             Editable = false;
+        }
+        field(4; "Style"; Text[30])
+        {
+            DataClassification = SystemMetadata;
+            Caption = 'Style';
         }
         field(10; "Column 1"; Decimal)
         {

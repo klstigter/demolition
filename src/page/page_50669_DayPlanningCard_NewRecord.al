@@ -48,7 +48,7 @@ page 50669 "Day Planning Card - New Record"
                     field("Task Date"; Rec."Plan Date")
                     {
                         ApplicationArea = All;
-                        Caption = 'Work Date';
+                        Caption = 'Plan Dates';
                     }
                     field("Day No."; Rec."Day No.")
                     {

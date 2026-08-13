@@ -101,7 +101,55 @@ pageextension 50603 "Opt ResourceList" extends "Resource List"
                 ToolTip = 'View and register absence entries for this resource.';
             }
 
+            action("S&kills_Custom")
+            {
+                ApplicationArea = Basic, Suite;
+                Caption = 'S&kills';
+                Image = Skills;
+                RunObject = Page "Resource Skills";
+                RunPageLink = Type = const(Resource),
+                                "No." = field("No.");
+                ToolTip = 'View the assignment of skills to the resource. You can use skill codes to allocate skilled resources to service items or items that need special skills for servicing.';
+            }
+            action("Resource Scheduler")
+            {
+                ApplicationArea = All;
+                trigger OnAction()
+                var
+                    ResScheduler: page "DHX Resource Scheduler";
+                begin
+                    ResScheduler.SetResourceFilter(Rec."No.");
+                    ResScheduler.RunModal();
+                end;
+            }
+            action(DayPlanning)
+            {
+                ApplicationArea = All;
+                Caption = 'Day Planning';
 
+                trigger OnAction()
+                var
+                    DayPlanning: Record "Day Planning";
+                begin
+                    DayPlanning.Reset();
+                    DayPlanning.FilterGroup(2);
+                    DayPlanning.SetRange("Requested Resource No.", Rec."No.");
+                    if DayPlanning.FindSet() then
+                        repeat
+                            DayPlanning.Mark(true);
+                        until DayPlanning.Next() = 0;
+                    DayPlanning.SetRange("Requested Resource No.");
+                    DayPlanning.SetRange("Assigned Resource No.", Rec."No.");
+                    if DayPlanning.FindSet() then
+                        repeat
+                            DayPlanning.Mark(true);
+                        until DayPlanning.Next() = 0;
+                    DayPlanning.SetRange("Assigned Resource No.");
+                    DayPlanning.MarkedOnly := true;
+                    DayPlanning.FilterGroup(0);
+                    Page.Run(Page::"Day Plannings", DayPlanning);
+                end;
+            }
         }
         addafter("Ledger E&ntries_Promoted")
         {
@@ -123,6 +171,15 @@ pageextension 50603 "Opt ResourceList" extends "Resource List"
                 actionref("DayPlannings (Visual) actionref"; "DayPlannings (Visual)") { }
                 actionref("Capacity actionref"; "Capacity (Visual)") { }
             }
+        }
+        addafter("Create Time Sheets_Promoted")
+        {
+            actionref("S&kills_Promoted_custom_list"; "S&kills_Custom") { }
+            actionref("Resource Scheduler_Promoted_list"; "Resource Scheduler") { }
+            actionref("DayPlanningRef_list"; DayPlanning) { }
+            actionref("Set Capacity Opt actionref_home"; "Set Capacity Opt") { }
+            actionref("Absence actionref_home"; "Absence") { }
+            actionref("Resource Capacity actionref_home"; "Resource &Capacity") { }
         }
     }
 

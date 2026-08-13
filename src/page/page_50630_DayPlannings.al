@@ -100,7 +100,7 @@ page 50630 "Day Plannings"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the date of this day task.';
                     StyleExpr = StyleStr;
-                    Caption = 'Work Date';
+                    Caption = 'Plan Date';
                 }
                 field("Work Order No."; Rec."Work Order No.")
                 {

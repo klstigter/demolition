@@ -46,60 +46,88 @@ page 50601 "Opti Resource List"
                             ToolTip = 'The skill to filter the resources that have day plannings with the specified skill.';
                         }
                     }
+
                     group(Col3)
                     {
                         ShowCaption = false;
-                        field(Filters; RecFilters)
+                        field("CapacityFilter"; CapacityFilter)
                         {
                             ApplicationArea = Jobs;
-                            Caption = 'Filters (toggle clear and reapply)';
-                            ToolTip = 'Filters applied to the list. Use this field to identify the filters that are applied to the list, including filters applied through the user interface and programmatically.';
-                            Editable = false;
+                            Caption = 'Capacity Filter';
+                            ToolTip = 'The capacity filter flag.';
 
-                            trigger OnAssistEdit()
-                            var
-                                KeepDateFilter: Text;
+                            trigger OnValidate()
                             begin
-                                if (RecFilters <> '') or Rec.MarkedOnly() then begin
-                                    // Save view and marked state before clearing
-                                    xRecFilters := Rec.GetView();
-                                    xRecMarkedOnly := Rec.MarkedOnly();
-                                    KeepDateFilter := Rec.GetFilter("Date Filter");
-                                    // Save which records were marked into xRecMarking's own mark table.
-                                    // Reset() clears all marks in xRecMarking before saving new ones.
-                                    xRecMarking.Reset();
-                                    if xRecMarkedOnly then
-                                        if Rec.FindSet() then  // FindSet with MarkedOnly=true returns only marked records
-                                            repeat
-                                                if xRecMarking.Get(Rec."No.") then
-                                                    xRecMarking.Mark(true);
-                                            until Rec.Next() = 0;
-                                    Rec.MarkedOnly(false);
-                                    Rec.Reset();
-                                    if KeepDateFilter <> '' then
-                                        Rec.SetFilter("Date Filter", KeepDateFilter);
-                                    RecFilters := '';
-                                end else begin
-                                    if (xRecFilters <> '') or xRecMarkedOnly then begin
-                                        Rec.SetView(xRecFilters);
-                                        if xRecMarkedOnly then begin
-                                            // Restore marks from xRecMarking back into Rec
-                                            xRecMarking.MarkedOnly(true);
-                                            if xRecMarking.FindSet() then
-                                                repeat
-                                                    if Rec.Get(xRecMarking."No.") then
-                                                        Rec.Mark(true);
-                                                until xRecMarking.Next() = 0;
-                                            xRecMarking.MarkedOnly(false);
-                                            Rec.MarkedOnly(true);
-                                        end;
-                                        RecFilters := Rec.GetFilters();
-                                    end;
-                                end;
-                                CurrPage.Update(false);
+                                ApplyResourceContextFilters();
+                            end;
+                        }
+                        field("SkillFilter"; SkillFilter)
+                        {
+                            ApplicationArea = Jobs;
+                            Caption = 'Skill Filter';
+                            ToolTip = 'The skill filter flag.';
+
+                            trigger OnValidate()
+                            begin
+                                ApplyResourceContextFilters();
                             end;
                         }
                     }
+
+                    // group(Col3)
+                    // {
+                    //     ShowCaption = false;
+                    //     field(Filters; RecFilters)
+                    //     {
+                    //         ApplicationArea = Jobs;
+                    //         Caption = 'Filters (toggle clear and reapply)';
+                    //         ToolTip = 'Filters applied to the list. Use this field to identify the filters that are applied to the list, including filters applied through the user interface and programmatically.';
+                    //         Editable = false;
+
+                    //         trigger OnAssistEdit()
+                    //         var
+                    //             KeepDateFilter: Text;
+                    //         begin
+                    //             if (RecFilters <> '') or Rec.MarkedOnly() then begin
+                    //                 // Save view and marked state before clearing
+                    //                 xRecFilters := Rec.GetView();
+                    //                 xRecMarkedOnly := Rec.MarkedOnly();
+                    //                 KeepDateFilter := Rec.GetFilter("Date Filter");
+                    //                 // Save which records were marked into xRecMarking's own mark table.
+                    //                 // Reset() clears all marks in xRecMarking before saving new ones.
+                    //                 xRecMarking.Reset();
+                    //                 if xRecMarkedOnly then
+                    //                     if Rec.FindSet() then  // FindSet with MarkedOnly=true returns only marked records
+                    //                         repeat
+                    //                             if xRecMarking.Get(Rec."No.") then
+                    //                                 xRecMarking.Mark(true);
+                    //                         until Rec.Next() = 0;
+                    //                 Rec.MarkedOnly(false);
+                    //                 Rec.Reset();
+                    //                 if KeepDateFilter <> '' then
+                    //                     Rec.SetFilter("Date Filter", KeepDateFilter);
+                    //                 RecFilters := '';
+                    //             end else begin
+                    //                 if (xRecFilters <> '') or xRecMarkedOnly then begin
+                    //                     Rec.SetView(xRecFilters);
+                    //                     if xRecMarkedOnly then begin
+                    //                         // Restore marks from xRecMarking back into Rec
+                    //                         xRecMarking.MarkedOnly(true);
+                    //                         if xRecMarking.FindSet() then
+                    //                             repeat
+                    //                                 if Rec.Get(xRecMarking."No.") then
+                    //                                     Rec.Mark(true);
+                    //                             until xRecMarking.Next() = 0;
+                    //                         xRecMarking.MarkedOnly(false);
+                    //                         Rec.MarkedOnly(true);
+                    //                     end;
+                    //                     RecFilters := Rec.GetFilters();
+                    //                 end;
+                    //             end;
+                    //             CurrPage.Update(false);
+                    //         end;
+                    //     }
+                    // }
 
                 }
             }
@@ -667,6 +695,8 @@ page 50601 "Opti Resource List"
         ExtendedPriceEnabled := PriceCalculationMgt.IsExtendedPriceCalculationEnabled();
         RecFilters := Rec.GetFilters();
         xRecFilters := Rec.GetView();
+        CapacityFilter := true;
+        SkillFilter := true;
     end;
 
     var
@@ -680,6 +710,8 @@ page 50601 "Opti Resource List"
         xRecMarkedOnly: Boolean;
         xRecMarking: Record Resource;
         SkillToFind: Code[10];
+        CapacityFilter: Boolean;
+        SkillFilter: Boolean;
 
     procedure GetSelectionFilter(): Text
     var
@@ -698,5 +730,48 @@ page 50601 "Opti Resource List"
     procedure SetSkillToFind(Skill: code[10])
     begin
         SkillToFind := Skill;
+    end;
+
+    local procedure ApplyResourceContextFilters()
+    var
+        ResourceSkill: Record "Resource Skill";
+        CapacityUniqueResource: Query "Unique Resource Joined";
+        PlanDate: Date;
+        SkillActive: Boolean;
+    begin
+        Rec.MarkedOnly(false);
+        Rec.ClearMarks();
+        PlanDate := Rec.GetRangeMin("Date Filter");
+        SkillActive := SkillFilter and (SkillToFind <> '');
+
+        if CapacityFilter then begin
+            Clear(CapacityUniqueResource);
+            CapacityUniqueResource.SetRange(EntryDateFilter, PlanDate);
+            CapacityUniqueResource.Open();
+            while CapacityUniqueResource.Read() do begin
+                Rec.Init();
+                Rec."No." := CapacityUniqueResource.Resource_No_;
+                Rec.Mark(true);
+            end;
+            CapacityUniqueResource.Close();
+
+            if SkillActive then begin
+                Rec.MarkedOnly(true);
+                if Rec.FindSet() then
+                    repeat
+                        if not ResourceSkill.Get(ResourceSkill.Type::Resource, Rec."No.", SkillToFind) then
+                            Rec.Mark(false);
+                    until Rec.Next() = 0;
+            end;
+        end else
+            if SkillActive then
+                if Rec.FindSet() then
+                    repeat
+                        if ResourceSkill.Get(ResourceSkill.Type::Resource, Rec."No.", SkillToFind) then
+                            Rec.Mark(true);
+                    until Rec.Next() = 0;
+
+        Rec.MarkedOnly(CapacityFilter or SkillActive);
+        CurrPage.Update(false);
     end;
 }

@@ -135,17 +135,22 @@ page 50612 "Planning Role Center"
                     Caption = 'Order Intake Kanban';
                     RunObject = page "DHX Order Intake Kanban";
                 }
-                action("VisualPlanning7")
+                group("Requested/Capacity")
                 {
-                    ApplicationArea = All;
-                    Caption = 'Skill Requested/Capacity';
-                    RunObject = page "Req. vs Capacity Skl Dhx v1";
-                }
-                action("VisualPlanning8")
-                {
-                    ApplicationArea = All;
-                    Caption = 'Skill Req./Cap. (New)';
-                    RunObject = page "Requested vs Capacity Skl Dhx";
+                    caption = 'Requested/Capacity';
+
+                    action("VisualPlanning7")
+                    {
+                        ApplicationArea = All;
+                        Caption = 'Daily';
+                        RunObject = page "Requested vs Capacity Daily";
+                    }
+                    action("VisualPlanning8")
+                    {
+                        ApplicationArea = All;
+                        Caption = 'Weekly';
+                        RunObject = page "Requested vs Capacity Weekly";
+                    }
                 }
             }
 
@@ -189,6 +194,13 @@ page 50612 "Planning Role Center"
                     Caption = 'Capacity Overview';
                     RunObject = page "Capacity Overview";
                     ToolTip = 'Open the Capacity Overview matrix of requested, assigned, and free capacity per skill.';
+                }
+                action("Set Capacity")
+                {
+                    ApplicationArea = Basic, Suite;
+                    Caption = 'Set Capacity';
+                    RunObject = report "Set Capacity opt.";
+                    ToolTip = 'Batch-set or update resource capacity for many resources at once, based on a Work-Hour Template and a date range.';
                 }
             }
             group("SettingGroup")
