@@ -24,12 +24,13 @@ page 50656 "Work Order Sub"
                 field(orderIntakeNo; Rec."Order Intake No.")
                 {
                     ApplicationArea = All;
-                    Visible = true;
+                    Visible = false;
                 }
                 field("Customer No."; Rec."Customer No.")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the value of the Customer No. field.', Comment = '%';
+                    Visible = false;
                 }
                 field(Description; Rec.Description)
                 {
@@ -97,15 +98,15 @@ page 50656 "Work Order Sub"
                         exit(false);
                     end;
                 }
-                field("Date Window Start"; Rec."Date Window Start")
+                field("Planned Start Date"; Rec."Planned Start Date")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the value of the Date Window Start field.', Comment = '%';
+                    ToolTip = 'Specifies the value of the Planned Start Date field.', Comment = '%';
                 }
-                field("Date Window End"; Rec."Date Window End")
+                field("Planned End Date"; Rec."Planned End Date")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the value of the Date Window End field.', Comment = '%';
+                    ToolTip = 'Specifies the value of the Planned End Date field.', Comment = '%';
                 }
                 field("Deadline Date"; Rec."Deadline Date")
                 {

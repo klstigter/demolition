@@ -131,9 +131,10 @@ page 50639 "Day Planning Pattern"
             if WorkOrderNoFilter <> '' then begin
                 WorkOrder.SetFilter("Work Order No.", WorkOrderNoFilter);
                 if WorkOrder.FindFirst() then begin
+                    WorkOrder.CalcFields("Planned Start Date", "Planned End Date");
                     Rec."Work Order No." := WorkOrder."Work Order No.";
-                    Rec."Start Date" := WorkOrder."Date Window Start";
-                    Rec."End Date" := WorkOrder."Date Window End";
+                    Rec."Start Date" := WorkOrder."Planned Start Date";
+                    Rec."End Date" := WorkOrder."Planned End Date";
                 end;
             end;
             if (rec."Start Date" <> 0D) and (rec."End Date" <> 0D) then

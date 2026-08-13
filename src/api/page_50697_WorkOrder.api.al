@@ -61,13 +61,13 @@ page 50697 "WorkOrderApi Opt"
                 {
                     Caption = 'Source Type';
                 }
-                field(dateWindowStart; Rec."Date Window Start")
+                field(plannedStartDate; Rec."Planned Start Date")
                 {
-                    Caption = 'Date Window Start';
+                    Caption = 'Planned Start Date';
                 }
-                field(dateWindowEnd; Rec."Date Window End")
+                field(plannedEndDate; Rec."Planned End Date")
                 {
-                    Caption = 'Date Window End';
+                    Caption = 'Planned End Date';
                 }
                 field(deadlineDate; Rec."Deadline Date")
                 {
