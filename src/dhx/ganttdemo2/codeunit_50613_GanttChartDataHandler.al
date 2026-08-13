@@ -45,43 +45,138 @@ codeunit 50613 "GanttChartDataHandler"
     procedure GetJobTasksAsJson(AchorDate: Date; pJobFilter: Text; pJobTaskFilter: Text) JsonText: Text
     var
         GanttSetup: Record "Gantt Chart Setup";
+        JobTaskByPlanned: Record "Job Task";
+        JobTaskByConstraint: Record "Job Task";
         JobTask: Record "Job Task";
         StartDate: Date;
         EndDate: Date;
+        EffectiveStartDate: Date;
+        EffectiveEndDate: Date;
         JsonArray: JsonArray;
         JsonObject: JsonObject;
         JobNoFilter: Code[20];
         OldJobNo: Code[20];
-        OffsetDays: Integer;
         Skip: Boolean;
-        Job: Record Job;
+        HasPlannedRow: Boolean;
+        HasConstraintRow: Boolean;
+        KeyCompare: Integer;
+        FromConstraintRow: Boolean;
     begin
         GanttSetup.Get(UserId);
         JobNoFilter := GanttSetup."Job No. Filter";
         if pJobFilter <> '' then
             JobNoFilter := pJobFilter;
-        if JobNoFilter <> '' then
-            JobTask.SetFilter("Job No.", JobNoFilter);
-        if pJobTaskFilter <> '' then
-            JobTask.SetFilter("Job Task No.", pJobTaskFilter);
         GetDateRange(GanttSetup, AchorDate, StartDate, EndDate);
-        JobTask.SetFilter("PlannedStartDate", '<=%1', EndDate);
-        JobTask.SetFilter("PlannedEndDate", '>=%1', StartDate); // to exclude blank references
-        if JobTask.FindSet() then
-            repeat
-                if OldJobNo <> JobTask."Job No." then begin
-                    OldJobNo := JobTask."Job No.";
-                    clear(ParentJobTaskId);
-                end;
-                Skip := (JobTask."Job Task Type" = JobTask."Job Task Type"::"End-Total") or
-                     (JobTask."Job Task Type" = JobTask."Job Task Type"::"Total");
-                if not skip then begin
-                    JsonObject := CreateJobTaskJsonObject(JobTask);
-                    JsonArray.Add(JsonObject);
-                end;
-            until JobTask.Next() = 0;
+
+        // Two independently server-side-filtered cursors, merge-joined below in primary-key
+        // (Job No., Job Task No.) order - NOT a single unfiltered FindSet() over the whole table.
+        // Cursor 1: tasks whose own Planned dates overlap the visible window (original behavior).
+        if JobNoFilter <> '' then
+            JobTaskByPlanned.SetFilter("Job No.", JobNoFilter);
+        if pJobTaskFilter <> '' then
+            JobTaskByPlanned.SetFilter("Job Task No.", pJobTaskFilter);
+        JobTaskByPlanned.SetFilter("PlannedStartDate", '<=%1', EndDate);
+        JobTaskByPlanned.SetFilter("PlannedEndDate", '>=%1', StartDate);
+
+        // Cursor 2: tasks whose persisted constraint-derived period ("Constraint Calc. - Start/End
+        // Date", kept up to date by UpdateConstraintCalcDates in tableext 50605) overlaps the
+        // visible window. Mirrors Cursor 1's shape exactly, now that the constraint math is
+        // precomputed at write time instead of on every read - bounded by how many tasks actually
+        // use constraint scheduling, NOT by overall Job Task table size.
+        if JobNoFilter <> '' then
+            JobTaskByConstraint.SetFilter("Job No.", JobNoFilter);
+        if pJobTaskFilter <> '' then
+            JobTaskByConstraint.SetFilter("Job Task No.", pJobTaskFilter);
+        JobTaskByConstraint.SetFilter("Constraint Calc. - Start Date", '<=%1', EndDate);
+        JobTaskByConstraint.SetFilter("Constraint Calc. - End Date", '>=%1', StartDate);
+
+        HasPlannedRow := JobTaskByPlanned.FindSet();
+        HasConstraintRow := JobTaskByConstraint.FindSet();
+
+        while HasPlannedRow or HasConstraintRow do begin
+            // Merge-join: both cursors are already ordered by primary key, so at each step take
+            // whichever current row sorts first. A row satisfying BOTH filters (valid Planned
+            // dates AND a populated constraint) appears in both cursors - KeyCompare = 0 dedupes
+            // it to a single processing pass via the Planned-dates cursor and advances both.
+            if HasPlannedRow and HasConstraintRow then
+                KeyCompare := CompareJobTaskKey(JobTaskByPlanned, JobTaskByConstraint)
+            else
+                if HasPlannedRow then KeyCompare := -1 else KeyCompare := 1;
+
+            FromConstraintRow := KeyCompare > 0;
+            if FromConstraintRow then
+                JobTask := JobTaskByConstraint
+            else
+                JobTask := JobTaskByPlanned;
+
+            if OldJobNo <> JobTask."Job No." then begin
+                OldJobNo := JobTask."Job No.";
+                clear(ParentJobTaskId);
+            end;
+            Skip := (JobTask."Job Task Type" = JobTask."Job Task Type"::"End-Total") or
+                 (JobTask."Job Task Type" = JobTask."Job Task Type"::"Total");
+            if not Skip then begin
+                // GetEffectivePeriod is now a plain field pick (no date math - see below), so this
+                // re-check is cheap. Still needed: a row can have BOTH complete-but-out-of-window
+                // Planned dates (fails Cursor 1) AND an in-window Constraint Calc period (passes
+                // Cursor 2) - GetEffectivePeriod always prefers real Planned dates when both are
+                // set, so without this guard such a row would slip through via Cursor 2 and then
+                // render at its out-of-window Planned position instead of being excluded.
+                GetEffectivePeriod(JobTask, EffectiveStartDate, EffectiveEndDate);
+                if (EffectiveStartDate = 0D) or (EffectiveEndDate = 0D) or
+                   (EffectiveStartDate > EndDate) or (EffectiveEndDate < StartDate)
+                then
+                    Skip := true;
+            end;
+            if not skip then begin
+                JsonObject := CreateJobTaskJsonObject(JobTask);
+                JsonArray.Add(JsonObject);
+            end;
+
+            if KeyCompare = 0 then begin
+                HasPlannedRow := JobTaskByPlanned.Next() <> 0;
+                HasConstraintRow := JobTaskByConstraint.Next() <> 0;
+            end else
+                if FromConstraintRow then
+                    HasConstraintRow := JobTaskByConstraint.Next() <> 0
+                else
+                    HasPlannedRow := JobTaskByPlanned.Next() <> 0;
+        end;
 
         JsonArray.WriteTo(JsonText);
+    end;
+
+    /// <summary>
+    /// Compares two Job Task records by primary key (Job No., Job Task No.) for the merge-join
+    /// in GetJobTasksAsJson. Returns -1 if A sorts before B, 0 if equal, 1 if A sorts after B.
+    /// </summary>
+    local procedure CompareJobTaskKey(A: Record "Job Task"; B: Record "Job Task") Result: Integer
+    begin
+        if A."Job No." < B."Job No." then exit(-1);
+        if A."Job No." > B."Job No." then exit(1);
+        if A."Job Task No." < B."Job Task No." then exit(-1);
+        if A."Job Task No." > B."Job Task No." then exit(1);
+        exit(0);
+    end;
+
+    /// <summary>
+    /// Resolves the effective Start/Finish period used to place a Job Task's bar on the Gantt.
+    /// When both PlannedStartDate and PlannedEndDate are populated, they are used unchanged.
+    /// Otherwise falls back to the persisted "Constraint Calc. - Start/End Date" fields (tableext
+    /// 50605), which UpdateConstraintCalcDates keeps up to date whenever "Constraint Type"/
+    /// "Constraint Date"/"Max Duration" change - the constraint math itself no longer happens
+    /// here, this is now a plain field pick. Those calc fields are already 0D/0D when the
+    /// constraint isn't fully populated, so no source is available and the caller excludes the row.
+    /// </summary>
+    local procedure GetEffectivePeriod(JobTask: Record "Job Task"; var EffectiveStartDate: Date; var EffectiveEndDate: Date)
+    begin
+        if (JobTask.PlannedStartDate <> 0D) and (JobTask.PlannedEndDate <> 0D) then begin
+            EffectiveStartDate := JobTask.PlannedStartDate;
+            EffectiveEndDate := JobTask.PlannedEndDate;
+        end else begin
+            EffectiveStartDate := JobTask."Constraint Calc. - Start Date";
+            EffectiveEndDate := JobTask."Constraint Calc. - End Date";
+        end;
     end;
 
     local procedure CreateJobTaskJsonObject(JobTask: Record "Job Task") JsonObject: JsonObject
@@ -94,13 +189,17 @@ codeunit 50613 "GanttChartDataHandler"
         SchedulingTypeText: Text;
         Codevar: Code[20];
         GanttDuration: Integer;
+        EffectiveStartDate: Date;
+        EffectiveEndDate: Date;
     begin
+
+        GetEffectivePeriod(JobTask, EffectiveStartDate, EffectiveEndDate);
 
         JsonObject.Add('id', Format(JobTask."Job No.") + '|' + Format(JobTask."Job Task No."));
         JsonObject.Add('text', (JobTask."Job Task Type" = JobTask."Job Task Type"::Posting ? JobTask."Job Task No." + ' - ' : '') + JobTask.Description);
         // Start date (format: dd-MM-yyyy)
-        if JobTask.PlannedStartDate <> 0D then
-            StartDateText := FormatDate(JobTask.PlannedStartDate)
+        if EffectiveStartDate <> 0D then
+            StartDateText := FormatDate(EffectiveStartDate)
         else
             StartDateText := '';
         JsonObject.Add('start_date', StartDateText);
@@ -113,8 +212,10 @@ codeunit 50613 "GanttChartDataHandler"
         // PlannedStartDate + 1). Recomputing it fresh here from the two dates guarantees the
         // rendered bar can never desync from what the task's own card shows, regardless of
         // whether the stored Duration field happens to be in sync.
-        if (JobTask.PlannedStartDate <> 0D) and (JobTask.PlannedEndDate <> 0D) then
-            GanttDuration := JobTask.PlannedEndDate - JobTask.PlannedStartDate + 1
+        // EffectiveStartDate/EffectiveEndDate fall back to the constraint-derived period when
+        // Planned dates aren't both populated (see GetEffectivePeriod).
+        if (EffectiveStartDate <> 0D) and (EffectiveEndDate <> 0D) then
+            GanttDuration := EffectiveEndDate - EffectiveStartDate + 1
         else
             GanttDuration := JobTask.Duration;
         JsonObject.Add('duration', GanttDuration);

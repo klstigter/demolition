@@ -86,6 +86,11 @@ page 50689 "Job Task Planning Part"
                         ApplicationArea = All;
                         ToolTip = 'Specifies the constraint date of the project task.';
                     }
+                    field("Max Duration"; Rec."Max Duration")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Specifies the maximum duration for the project task.';
+                    }
                 }
             }
         }

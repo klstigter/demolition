@@ -845,7 +845,9 @@ window.BOOT = function() {
         var fmt = gantt.date.date_to_str("%Y-%m-%d");
         var task = gantt.getTask(id);
         var periodFrom = task && task.start_date ? fmt(task.start_date) : "";
-        var periodTo   = task && task.end_date   ? fmt(task.end_date)   : "";
+        // task.end_date is DHTMLX's internal EXCLUSIVE end - subtract a day so this matches
+        // BC's inclusive Planned End Date, same as gantt.templates.tooltip_text above.
+        var periodTo   = task && task.end_date   ? fmt(gantt.date.add(task.end_date, -1, "day")) : "";
 
         // Collect direct children of this task
         var children = [];
@@ -873,7 +875,9 @@ window.BOOT = function() {
         var fmt = gantt.date.date_to_str("%Y-%m-%d");
         var task = gantt.getTask(id);
         var periodFrom = task && task.start_date ? fmt(task.start_date) : "";
-        var periodTo   = task && task.end_date   ? fmt(task.end_date)   : "";
+        // task.end_date is DHTMLX's internal EXCLUSIVE end - subtract a day so this matches
+        // BC's inclusive Planned End Date, same as gantt.templates.tooltip_text above.
+        var periodTo   = task && task.end_date   ? fmt(gantt.date.add(task.end_date, -1, "day")) : "";
 
         // Collect direct children of this task
         var children = [];
