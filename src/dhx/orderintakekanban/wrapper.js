@@ -58,7 +58,26 @@ window.BOOT = function () {
             // "start_date" shows the DayPlanning Date chip at the bottom of the card
             start_date:  { show: true, label: "Date" },
             end_date:    false,
-            menu:        true,
+            // Overriding menu.items with a fixed array (same pattern as
+            // columnShape.menu below) to add the custom "Order Intake" entry
+            // alongside the library's built-in Duplicate/Delete actions.
+            menu: {
+                items: [
+                    { id: "duplicate-card", icon: "wxi-content-copy", text: "Duplicate" },
+                    { id: "delete-card", icon: "wxi-delete-outline", text: "Delete" },
+                    {
+                        id: "order-intake-card",
+                        icon: "wxi-external",
+                        text: "Order Intake",
+                        onClick: function (ctx) {
+                            if (ctx && ctx.card && ctx.card.id !== undefined) {
+                                Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnOrderIntakeCardRequested",
+                                    [String(ctx.card.id)]);
+                            }
+                        }
+                    }
+                ]
+            },
             // Coloured top bar driven by the card's "color" property
             color:       true,
             // Priority badge hidden – status is already shown by the column

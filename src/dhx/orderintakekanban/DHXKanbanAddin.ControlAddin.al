@@ -69,6 +69,12 @@ controladdin DHXKanbanAddin
     event OnCardDeleted(EntryNo: Text);
 
     /// <summary>
+    /// Fired when the user clicks "Order Intake" on a card's "..." menu.
+    /// EntryNo – Entry No. of the record whose Order Intake Card should be opened.
+    /// </summary>
+    event OnOrderIntakeCardRequested(EntryNo: Text);
+
+    /// <summary>
     /// Loads (or replaces) all board data.
     /// JsonText must be: { "columns": [...], "cards": [...] }
     /// </summary>

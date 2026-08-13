@@ -100,6 +100,19 @@ page 50653 "DHX Order Intake Kanban"
                     KanbanHandler.DeleteCard(CopyStr(EntryNo, 1, 20));
                     CurrPage.DhxKanban.RefreshKanbanData(KanbanHandler.BuildKanbanJson());
                 end;
+
+                // ----------------------------------------------------------------
+                // OnOrderIntakeCardRequested – user clicked "Order Intake" on a
+                // card's "..." menu. Open the full Order Intake Card page (unlike
+                // OnCardSelected, which opens the list page 50651 on double-click).
+                // ----------------------------------------------------------------
+                trigger OnOrderIntakeCardRequested(EntryNo: Text)
+                var
+                    OrderIntake: Record "Order Intake Header Opt.";
+                begin
+                    if OrderIntake.Get(CopyStr(EntryNo, 1, 20)) then
+                        Page.Run(Page::"Order Intake Card", OrderIntake);
+                end;
             }
         }
     }
