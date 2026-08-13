@@ -135,12 +135,41 @@ tableextension 50605 "Job Task ext" extends "Job Task"
             Caption = 'Planning Constraint Type';
             ToolTip = 'Specifies the scheduling constraint (ASAP, ALAP, SNET, SNLT, etc.) for the planning engine.';
             InitValue = ASAP;
+
+            trigger OnValidate()
+            begin
+                UpdateConstraintCalcDates();
+            end;
         }
         field(50621; "Constraint Date"; Date)
         {
             DataClassification = CustomerContent;
             Caption = 'Planning Constraint Date';
             ToolTip = 'Specifies the date associated with the selected planning constraint type.';
+
+            trigger OnValidate()
+            begin
+                UpdateConstraintCalcDates();
+            end;
+        }
+        field(50622; "Max Duration"; Integer)
+        {
+            DataClassification = CustomerContent;
+            Caption = 'Max Duration (Days)';
+            ToolTip = 'Specifies the maximum duration for the project task.';
+
+            trigger OnValidate()
+            begin
+                UpdateConstraintCalcDates();
+            end;
+        }
+        field(50623; "Constraint Calc. - Start Date"; Date)
+        {
+            DataClassification = CustomerContent;
+        }
+        field(50624; "Constraint Calc. - End Date"; Date)
+        {
+            DataClassification = CustomerContent;
         }
 
         field(50660; Depth; Decimal)
@@ -242,6 +271,44 @@ tableextension 50605 "Job Task ext" extends "Job Task"
         end;
         if rec.Duration < 0 then
             error('Duration cannot be negative!');
+    end;
+
+    /// <summary>
+    /// Recalculates and persists "Constraint Calc. - Start Date"/"Constraint Calc. - End Date"
+    /// from "Constraint Type"/"Constraint Date"/"Max Duration" - called from each of those three
+    /// fields' OnValidate trigger so the calc fields never go stale relative to their inputs.
+    /// Finish-anchored types (ALAP, FNET, FNLT, MFO) anchor on Finish = Constraint Date and compute
+    /// Start backward; start-anchored types (ASAP, SNET, SNLT, MSO) anchor on Start = Constraint
+    /// Date and compute Finish forward. Left blank (0D/0D) when Constraint Date or Max Duration
+    /// isn't populated - "Constraint Type" always has a value (InitValue = ASAP), so it's not a
+    /// reliable "is a constraint populated" signal on its own.
+    /// </summary>
+    local procedure UpdateConstraintCalcDates()
+    begin
+        Rec."Constraint Calc. - Start Date" := 0D;
+        Rec."Constraint Calc. - End Date" := 0D;
+
+        if (Rec."Constraint Date" = 0D) or (Rec."Max Duration" <= 0) then
+            exit;
+
+        case Rec."Constraint Type" of
+            Rec."Constraint Type"::ALAP,
+            Rec."Constraint Type"::FNET,
+            Rec."Constraint Type"::FNLT,
+            Rec."Constraint Type"::MFO:
+                begin
+                    Rec."Constraint Calc. - End Date" := Rec."Constraint Date";
+                    Rec."Constraint Calc. - Start Date" := CalcDate(StrSubstNo('<-%1D>', Rec."Max Duration" - 1), Rec."Constraint Calc. - End Date");
+                end;
+            Rec."Constraint Type"::ASAP,
+            Rec."Constraint Type"::SNET,
+            Rec."Constraint Type"::SNLT,
+            Rec."Constraint Type"::MSO:
+                begin
+                    Rec."Constraint Calc. - Start Date" := Rec."Constraint Date";
+                    Rec."Constraint Calc. - End Date" := CalcDate(StrSubstNo('<+%1D>', Rec."Max Duration" - 1), Rec."Constraint Calc. - Start Date");
+                end;
+        end;
     end;
 
     procedure CheckDataLimitations()

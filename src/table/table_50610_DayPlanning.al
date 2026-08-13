@@ -991,8 +991,31 @@ table 50610 "Day Planning"
             exit; // skip check if Job Task is not specified
 
         JobTask.get("Job No.", "Job Task No.");
-        if ("Plan Date" < JobTask.PlannedStartDate) or ("Plan Date" > JobTask.PlannedEndDate) then
-            Error(ErrLbl, "Plan Date", JobTask.PlannedStartDate, JobTask.PlannedEndDate);
+
+        // Planned Start/End Date both set - original hard boundary check, unchanged.
+        if (JobTask.PlannedStartDate <> 0D) and (JobTask.PlannedEndDate <> 0D) then begin
+            if ("Plan Date" < JobTask.PlannedStartDate) or ("Plan Date" > JobTask.PlannedEndDate) then
+                Error(ErrLbl, "Plan Date", JobTask.PlannedStartDate, JobTask.PlannedEndDate);
+            exit;
+        end;
+
+        // No (complete) Planned dates yet - fall back to the constraint-derived period
+        // ("Constraint Calc. - Start/End Date", tableext 50605). This is the task's first real
+        // Day Planning commitment: if Plan Date falls inside that period, allow it and
+        // materialize Planned Start/End Date to this single day, so the Gantt bar - until now
+        // only shown via the wider constraint-derived period - reflects the actual scheduled day
+        // on the next refresh.
+        if (JobTask."Constraint Calc. - Start Date" <> 0D) and (JobTask."Constraint Calc. - End Date" <> 0D) and
+           ("Plan Date" >= JobTask."Constraint Calc. - Start Date") and ("Plan Date" <= JobTask."Constraint Calc. - End Date")
+        then begin
+            JobTask.PlannedStartDate := "Plan Date";
+            JobTask.PlannedEndDate := "Plan Date";
+            JobTask.CalculateDuration();
+            JobTask.Modify();
+            exit;
+        end;
+
+        Error(ErrLbl, "Plan Date", JobTask.PlannedStartDate, JobTask.PlannedEndDate);
     end;
 
     procedure CopyRequestedToAssigned()
