@@ -22,3 +22,5 @@
 - [Verify subagent diffs against scope](feedback_verify_subagent_diffs_against_scope.md) — always git diff a delegated subagent's changes against do-not-touch list; don't trust its self-attribution of out-of-scope edits
 - [Summary View (page 50626) is reference-only — never modify](feedback_summaryview_do_not_modify.md) — build new display variants as standalone new pages instead
 - [Skill Hours Summary page (50705)](project_skill_hours_summary_page.md) — standalone requested-hours-per-skill-per-week view w/ daily period nav, opened from Workorder Card + Work Order Sub
+- [Don't publish/verify when told not to](feedback_no_publish_when_told.md) — stop at al_compile/al_build + report when told not to publish or manually verify; overrides default deploy-loop workflow
+- [al_publish "Invalid URI" tooling bug](al_publish_invalid_uri_tooling_bug.md) — failed 5x regardless of params (appPath/projectPath/env/tenant); auth was fine; looks like broken MCP tooling, not fixable via params

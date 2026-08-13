@@ -113,6 +113,43 @@ page 50653 "DHX Order Intake Kanban"
                     if OrderIntake.Get(CopyStr(EntryNo, 1, 20)) then
                         Page.Run(Page::"Order Intake Card", OrderIntake);
                 end;
+
+                // ----------------------------------------------------------------
+                // OnCardCustomerSelected – user picked a Customer in the editor
+                // panel's combo. Validate (this also derives the Primary Contact,
+                // if any) and push the confirmed values back onto the card.
+                // ----------------------------------------------------------------
+                trigger OnCardCustomerSelected(EntryNo: Text; CustomerNo: Text)
+                var
+                    OrderIntake: Record "Order Intake Header Opt.";
+                    KanbanHandler: Codeunit "Order Intake Kanban Handler";
+                begin
+                    if not OrderIntake.Get(CopyStr(EntryNo, 1, 20)) then
+                        exit;
+                    OrderIntake.Validate("Customer No.", CopyStr(CustomerNo, 1, 20));
+                    OrderIntake.Modify(true);
+                    CurrPage.DhxKanban.UpdateCardFields(EntryNo, KanbanHandler.BuildCardFieldsJson(OrderIntake));
+                end;
+
+                // ----------------------------------------------------------------
+                // OnCardContactSelected – user picked a Contact in the editor
+                // panel's combo. Validate (this also derives/validates the related
+                // Customer) and push the confirmed values back onto the card.
+                // Errors naturally (standard BC dialog) if the contact is not
+                // related to any customer – UpdateCardFields is then never
+                // reached, so the JS side stays untouched by design.
+                // ----------------------------------------------------------------
+                trigger OnCardContactSelected(EntryNo: Text; ContactNo: Text)
+                var
+                    OrderIntake: Record "Order Intake Header Opt.";
+                    KanbanHandler: Codeunit "Order Intake Kanban Handler";
+                begin
+                    if not OrderIntake.Get(CopyStr(EntryNo, 1, 20)) then
+                        exit;
+                    OrderIntake.Validate("Contact No.", CopyStr(ContactNo, 1, 20));
+                    OrderIntake.Modify(true);
+                    CurrPage.DhxKanban.UpdateCardFields(EntryNo, KanbanHandler.BuildCardFieldsJson(OrderIntake));
+                end;
             }
         }
     }
