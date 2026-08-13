@@ -46,26 +46,22 @@ table 50604 "Order Intake Header Opt."
 
             trigger OnValidate()
             var
-                WorkOrder: Record "Work Order";
-                DayPlanning: Record "Day Planning";
-                JobPlanningLine: Record "Job Planning Line";
-                CannotChangeCustomerErr: Label 'Cannot change the customer because Day Planning lines and/or Project Planning lines already exist for this order intake. Remove those lines before changing the customer.';
+                Customer: Record Customer;
             begin
-                if (xRec."Customer No." = '') or (xRec."Customer No." = "Customer No.") then
-                    exit;
+                if xRec."Customer No." = "Customer No." then
+                    exit; // no actual change
 
-                WorkOrder.SetRange("Order Intake No.", "No.");
-                if WorkOrder.FindSet() then
-                    repeat
-                        DayPlanning.SetRange("Work Order No.", WorkOrder."Work Order No.");
-                        if not DayPlanning.IsEmpty() then
-                            Error(CannotChangeCustomerErr);
+                if xRec."Customer No." <> '' then
+                    CheckCanChangeCustomer(); // guard only relevant when REPLACING an existing customer
 
-                        JobPlanningLine.SetRange("Job No.", WorkOrder."Project No.");
-                        JobPlanningLine.SetRange("Job Task No.", WorkOrder."Project Task No.");
-                        if not JobPlanningLine.IsEmpty() then
-                            Error(CannotChangeCustomerErr);
-                    until WorkOrder.Next() = 0;
+                if "Customer No." <> '' then begin
+                    Customer.Get("Customer No.");
+                    "Customer Name" := Customer.Name;
+                    "Contact No." := Customer."Primary Contact No."; // direct assignment - do not recursively trigger Contact No.'s OnValidate here
+                end else begin
+                    "Customer Name" := '';
+                    "Contact No." := '';
+                end;
             end;
         }
         field(25; "Customer Name"; Text[100])
@@ -79,7 +75,40 @@ table 50604 "Order Intake Header Opt."
             DataClassification = CustomerContent;
             Caption = 'Contact No.';
             ToolTip = 'Specifies the contact number for the order intake. This field is typically used for display purposes and is not required, as the customer number can be used to retrieve the contact number from the related customer record.';
-            TableRelation = "Contact" where(Type = const(Person), "Company No." = field("Customer No."));
+            TableRelation = "Contact" where(Type = const(Person));
+
+            trigger OnValidate()
+            var
+                Cont: Record Contact;
+                ContBusRel: Record "Contact Business Relation";
+                Customer: Record Customer;
+                CompanyContactNo: Code[20];
+                ContactNotRelatedErr: Label 'The contact %1 is not related to any customer.', Comment = '%1 = Contact No.';
+            begin
+                if xRec."Contact No." = "Contact No." then
+                    exit;
+                if "Contact No." = '' then
+                    exit; // allow clearing without forcing a lookup
+
+                Cont.Get("Contact No.");
+                if Cont.Type = Cont.Type::Person then
+                    CompanyContactNo := Cont."Company No."
+                else
+                    CompanyContactNo := Cont."No.";
+
+                ContBusRel.SetRange("Contact No.", CompanyContactNo);
+                ContBusRel.SetRange("Link to Table", ContBusRel."Link to Table"::Customer);
+                if ContBusRel.FindFirst() then begin
+                    if "Customer No." <> ContBusRel."No." then begin
+                        if "Customer No." <> '' then
+                            CheckCanChangeCustomer();
+                        "Customer No." := ContBusRel."No."; // direct assignment - avoids re-deriving/overwriting the Contact we just picked
+                        if Customer.Get("Customer No.") then
+                            "Customer Name" := Customer.Name;
+                    end;
+                end else
+                    Error(ContactNotRelatedErr, "Contact No.");
+            end;
         }
 
         field(12; "Short Description"; Text[100])
@@ -193,6 +222,27 @@ table 50604 "Order Intake Header Opt."
             Rec := gOrderIntake;
             exit(true);
         end;
+    end;
+
+    local procedure CheckCanChangeCustomer()
+    var
+        WorkOrder: Record "Work Order";
+        DayPlanning: Record "Day Planning";
+        JobPlanningLine: Record "Job Planning Line";
+        CannotChangeCustomerErr: Label 'Cannot change the customer because Day Planning lines and/or Project Planning lines already exist for this order intake. Remove those lines before changing the customer.';
+    begin
+        WorkOrder.SetRange("Order Intake No.", "No.");
+        if WorkOrder.FindSet() then
+            repeat
+                DayPlanning.SetRange("Work Order No.", WorkOrder."Work Order No.");
+                if not DayPlanning.IsEmpty() then
+                    Error(CannotChangeCustomerErr);
+
+                JobPlanningLine.SetRange("Job No.", WorkOrder."Project No.");
+                JobPlanningLine.SetRange("Job Task No.", WorkOrder."Project Task No.");
+                if not JobPlanningLine.IsEmpty() then
+                    Error(CannotChangeCustomerErr);
+            until WorkOrder.Next() = 0;
     end;
 
     procedure SetDescription(pDescBody: Text)

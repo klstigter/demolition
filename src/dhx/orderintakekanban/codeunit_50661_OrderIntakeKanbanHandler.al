@@ -20,6 +20,8 @@ codeunit 50661 "Order Intake Kanban Handler"
         StatusEnum: Enum "DayPlanning Order Intake Status";
         Columns: JsonArray;
         Cards: JsonArray;
+        CustomerOptionsArr: JsonArray;
+        ContactOptionsArr: JsonArray;
         Root: JsonObject;
         Col: JsonObject;
         Card: JsonObject;
@@ -78,11 +80,25 @@ codeunit 50661 "Order Intake Kanban Handler"
                     Card.Add('start_date',
                         Format(OrderIntake."Order Date", 0, '<Year4>-<Month,2>-<Day,2>'));
 
+                // Customer / Contact combo field values (see editorShape "customer"/"contact" in wrapper.js)
+                Card.Add('customer', OrderIntake."Customer No.");
+                Card.Add('contact', OrderIntake."Contact No.");
+
                 Cards.Add(Card);
             until OrderIntake.Next() = 0;
 
+        // Customer/Contact combo options – delivered once at board load instead of per
+        // card-open (kanbanBoard.parse() unconditionally resets the editor "_edit" state,
+        // which would close the panel again if fetched on every OnEditorOpened - see
+        // wrapper.js LoadKanbanData). Blank CustomerNo: no "current card" context exists
+        // at board-load time, so GetContactOptionsJson returns the unfiltered contact list.
+        CustomerOptionsArr.ReadFrom(GetCustomerOptionsJson());
+        ContactOptionsArr.ReadFrom(GetContactOptionsJson(''));
+
         Root.Add('columns', Columns);
         Root.Add('cards', Cards);
+        Root.Add('customerOptions', CustomerOptionsArr);
+        Root.Add('contactOptions', ContactOptionsArr);
         Root.WriteTo(Result);
         exit(Result);
     end;
@@ -175,6 +191,88 @@ codeunit 50661 "Order Intake Kanban Handler"
         OrderIntake.Validate("Short Description", CopyStr(NewShortDescription, 1, MaxStrLen(OrderIntake."Short Description")));
         OrderIntake.Modify(true);
         OrderIntake.SetDescription(PlainTextToHtml(NewLongDescription));
+    end;
+
+    /// <summary>
+    /// Builds a JSON array of { "id": "&lt;No.&gt;", "label": "&lt;No.&gt; - &lt;Name&gt;" } options for
+    /// every non-blocked Customer. Used to populate the Kanban editor panel's "Customer" combo.
+    /// </summary>
+    procedure GetCustomerOptionsJson(): Text
+    var
+        Customer: Record Customer;
+        Options: JsonArray;
+        Opt: JsonObject;
+        Result: Text;
+    begin
+        Customer.SetRange(Blocked, Customer.Blocked::" ");
+        if Customer.FindSet() then
+            repeat
+                Clear(Opt);
+                Opt.Add('id', Customer."No.");
+                Opt.Add('label', Customer."No." + ' - ' + Customer.Name);
+                Options.Add(Opt);
+            until Customer.Next() = 0;
+        Options.WriteTo(Result);
+        exit(Result);
+    end;
+
+    /// <summary>
+    /// Builds a JSON array of { "id": "&lt;No.&gt;", "label": "&lt;No.&gt; - &lt;Name&gt;" } options for
+    /// Person-type Contacts. Used to populate the Kanban editor panel's "Contact" combo.
+    /// When CustomerNo is supplied, the list is narrowed to that customer's company Contact's
+    /// related people (via the reverse Contact Business Relation lookup). Falls back to ALL
+    /// Person-type contacts when no customer is set or no relation is found, so the combo is
+    /// never left empty.
+    /// </summary>
+    /// <param name="CustomerNo">Customer No. to narrow the contact list to, or blank for all contacts.</param>
+    procedure GetContactOptionsJson(CustomerNo: Code[20]): Text
+    var
+        Cont: Record Contact;
+        ContBusRel: Record "Contact Business Relation";
+        Options: JsonArray;
+        Opt: JsonObject;
+        Result: Text;
+        CompanyContactNo: Code[20];
+        HasCompanyFilter: Boolean;
+    begin
+        if CustomerNo <> '' then begin
+            ContBusRel.SetRange("Link to Table", ContBusRel."Link to Table"::Customer);
+            ContBusRel.SetRange("No.", CustomerNo);
+            if ContBusRel.FindFirst() then begin
+                CompanyContactNo := ContBusRel."Contact No.";
+                HasCompanyFilter := true;
+            end;
+        end;
+
+        Cont.SetRange(Type, Cont.Type::Person);
+        if HasCompanyFilter then
+            Cont.SetRange("Company No.", CompanyContactNo);
+
+        if Cont.FindSet() then
+            repeat
+                Clear(Opt);
+                Opt.Add('id', Cont."No.");
+                Opt.Add('label', Cont."No." + ' - ' + Cont.Name);
+                Options.Add(Opt);
+            until Cont.Next() = 0;
+        Options.WriteTo(Result);
+        exit(Result);
+    end;
+
+    /// <summary>
+    /// Builds the { "customer": "...", "contact": "..." } JSON patch pushed back to the Kanban
+    /// card after BC has validated/derived the final Customer No. / Contact No. for a record.
+    /// </summary>
+    /// <param name="OrderIntake">Record whose current Customer No. / Contact No. should be serialized.</param>
+    procedure BuildCardFieldsJson(var OrderIntake: Record "Order Intake Header Opt."): Text
+    var
+        Fields: JsonObject;
+        Result: Text;
+    begin
+        Fields.Add('customer', OrderIntake."Customer No.");
+        Fields.Add('contact', OrderIntake."Contact No.");
+        Fields.WriteTo(Result);
+        exit(Result);
     end;
 
     /// <summary>

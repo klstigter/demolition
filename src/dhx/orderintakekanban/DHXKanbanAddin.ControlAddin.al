@@ -75,6 +75,20 @@ controladdin DHXKanbanAddin
     event OnOrderIntakeCardRequested(EntryNo: Text);
 
     /// <summary>
+    /// Fired when the user picks a value in the editor panel's "Customer" combo.
+    /// EntryNo    – the No. of the edited record (as text).
+    /// CustomerNo – the selected Customer No. (blank if cleared).
+    /// </summary>
+    event OnCardCustomerSelected(EntryNo: Text; CustomerNo: Text);
+
+    /// <summary>
+    /// Fired when the user picks a value in the editor panel's "Contact" combo.
+    /// EntryNo   – the No. of the edited record (as text).
+    /// ContactNo – the selected Contact No. (blank if cleared).
+    /// </summary>
+    event OnCardContactSelected(EntryNo: Text; ContactNo: Text);
+
+    /// <summary>
     /// Loads (or replaces) all board data.
     /// JsonText must be: { "columns": [...], "cards": [...] }
     /// </summary>
@@ -90,4 +104,12 @@ controladdin DHXKanbanAddin
     /// NewStatus – string representation of the Status integer value.
     /// </summary>
     procedure UpdateCardStatus(EntryNo: Text; NewStatus: Text);
+
+    /// <summary>
+    /// Pushes BC-confirmed field values (e.g. Customer No. / Contact No. after validation)
+    /// back onto a single card without re-triggering the Customer/Contact selection events.
+    /// EntryNo    – string representation of the Entry No.
+    /// FieldsJson – JSON object, e.g. { "customer": "...", "contact": "..." }.
+    /// </summary>
+    procedure UpdateCardFields(EntryNo: Text; FieldsJson: Text);
 }

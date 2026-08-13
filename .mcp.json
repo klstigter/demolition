@@ -22,6 +22,20 @@
           "callbackPort": 33418
       }
     },
+    "ah_bc_mcp": {
+      "type": "http",
+      "url": "https://mcp.businesscentral.dynamics.com",
+      "headers": {
+        "TenantId": "78685ea9-9ad1-4b8c-ab0a-329bef42667a",
+        "EnvironmentName": "NL_Demo",
+        "Company": "CRONUS NL",
+        "ConfigurationName": "ClaudeRead"
+      },
+      "oauth": {
+          "clientId": "9abe9b2b-29c0-4cb8-93bc-7a482f5ef342",
+          "callbackPort": 33418
+      }
+    },
     "playwright": {
       "command": "npx",
       "args": ["-y", "@playwright/mcp@latest"]
