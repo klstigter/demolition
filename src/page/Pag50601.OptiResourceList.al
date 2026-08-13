@@ -735,7 +735,7 @@ page 50601 "Opti Resource List"
     local procedure ApplyResourceContextFilters()
     var
         ResourceSkill: Record "Resource Skill";
-        CapacityUniqueResource: Query "Unique Resource in Capacity";
+        CapacityUniqueResource: Query "Unique Resource Joined";
         PlanDate: Date;
         SkillActive: Boolean;
     begin
@@ -748,9 +748,11 @@ page 50601 "Opti Resource List"
             Clear(CapacityUniqueResource);
             CapacityUniqueResource.SetRange(EntryDateFilter, PlanDate);
             CapacityUniqueResource.Open();
-            while CapacityUniqueResource.Read() do
-                if Rec.Get(CapacityUniqueResource.Resource_No_) then
-                    Rec.Mark(true);
+            while CapacityUniqueResource.Read() do begin
+                Rec.Init();
+                Rec."No." := CapacityUniqueResource.Resource_No_;
+                Rec.Mark(true);
+            end;
             CapacityUniqueResource.Close();
 
             if SkillActive then begin
