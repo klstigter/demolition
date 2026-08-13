@@ -83,16 +83,17 @@ table 50608 "Work Order"
             //manual, order intake
         }
 
-        field(200; "Date Window Start"; Date)
+        field(200; "Planned Start Date"; Date)
         {
-            Caption = 'Date Window Start';
-            DataClassification = CustomerContent;
+            Caption = 'Planned Start Date';
+            FieldClass = FlowField;
+            CalcFormula = lookup("Job Task"."PlannedStartDate" where("Job No." = field("Project No."), "Job Task No." = FIELD("Project Task No.")));
         }
-
-        field(210; "Date Window End"; Date)
+        field(201; "Planned End Date"; Date)
         {
-            Caption = 'Date Window End';
-            DataClassification = CustomerContent;
+            Caption = 'Planned End Date';
+            FieldClass = FlowField;
+            CalcFormula = lookup("Job Task"."PlannedEndDate" where("Job No." = field("Project No."), "Job Task No." = FIELD("Project Task No.")));
         }
 
         field(280; "Deadline Date"; Date)
@@ -100,23 +101,6 @@ table 50608 "Work Order"
             Caption = 'Deadline Date';
             DataClassification = CustomerContent;
         }
-
-        // field(220; "Time Span Days"; Integer)
-        // {
-        //     Caption = 'Time Span Days';
-        //     DataClassification = CustomerContent;
-        //     trigger OnValidate()
-        //     var
-        //         WorkloadSpec: Record "Workorder Capacity Request";
-        //     begin
-        //         WorkloadSpec.SetRange("Workorder No.", "Work Order No.");
-        //         if WorkloadSpec.FindFirst() then
-        //             repeat
-        //                 WorkloadSpec.CalcTotalHours("Time Span Days");
-        //             until WorkloadSpec.Next() = 0;
-
-        //     end;
-        // }
 
         field(225; "Placeholder Date"; Date)
         {
@@ -208,22 +192,18 @@ table 50608 "Work Order"
             Clustered = true;
         }
 
-        key(CustomerDateWindow; "Customer No.", "Date Window Start", "Date Window End")
+        key(CustomerDateWindow; "Customer No.")
         {
         }
 
         key(OrderIntake; "Order Intake No.")
         {
         }
-
-        key(DateWindow; "Date Window Start", "Date Window End")
-        {
-        }
     }
 
     fieldgroups
     {
-        fieldgroup(DropDown; "Work Order No.", Description, "Customer No.", "Date Window Start", "Date Window End")
+        fieldgroup(DropDown; "Work Order No.", Description, "Customer No.", "Planned Start Date", "Planned End Date")
         {
         }
 
@@ -308,6 +288,17 @@ table 50608 "Work Order"
         end;
         exit(DescText);
     end;
+
+    // procedure "Planned Start Date"():Date
+    // var
+    //     OrderIntake: Record "Order Intake Header Opt.";
+    //     ProjectTask: Record "Job Task";
+    // begin
+    //     if not OrderIntake.Get("Order Intake No.") then
+    //         exit(0D);
+    //     ProjectTask.Get(OrderIntake."Project No.", OrderIntake."Project Task No.");
+    //     exit(ProjectTask."Planned Start Date");
+    // end;
 
     local procedure SetLastModified()
     begin
