@@ -810,7 +810,6 @@ codeunit 50604 "DHX Data Handler"
         ResourceTemp: Record Resource temporary;
         TempPool: record Resource temporary;
         DayPlanning: record "Day Planning";
-        Resource: Record Resource;
         Job: Record Job;
         Task: Record "Job Task";
 
@@ -869,9 +868,11 @@ codeunit 50604 "DHX Data Handler"
                     end;
                 end else begin
                 */
-                if not Resource.Get(ResCap."Resource No.") then
-                    Clear(Resource);
-                section_id := section_id + '|' + Resource."Pool Resource No.";
+                // Pool Resource No. now comes straight off the query's joined Resource column
+                // (see query_50604_CapacityPerDayPerResource.al) instead of a per-row
+                // Resource.Get() here - this loop runs once per capacity-entry row for the
+                // whole week, so that Get() was the dominant cost in this page's load time.
+                section_id := section_id + '|' + ResCapQry.Pool_Resource_No_;
                 /*
                 end;
                 */
@@ -1026,10 +1027,13 @@ codeunit 50604 "DHX Data Handler"
                         ResourceTemp.SetRange("Pool Resource No.", TempPool."No.");
                         if ResourceTemp.FindSet() then
                             repeat
-                                if not Resource.Get(ResourceTemp."No.") then
-                                    Clear(Resource);
+                                // ResourceTemp."Pool Resource No." is already populated by
+                                // GetUniqueResFromCapacity_Pool above - re-fetching it via
+                                // Resource.Get() here was a redundant full-table read on every
+                                // resource in the tree (the single biggest contributor to this
+                                // page's slow weekly load).
                                 Clear(ResourceObject);
-                                ResourceObject.Add('key', TempResGroup."No." + '|' + ResourceTemp."No." + '|' + Resource."Pool Resource No.");
+                                ResourceObject.Add('key', TempResGroup."No." + '|' + ResourceTemp."No." + '|' + ResourceTemp."Pool Resource No.");
                                 ResourceObject.Add('label', ResourceTemp.Name);
                                 ResourceObject.Add('category', 'Resource');
                                 InternalExternalChildrenArray.Add(ResourceObject);
