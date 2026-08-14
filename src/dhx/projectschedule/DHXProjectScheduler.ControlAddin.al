@@ -26,6 +26,7 @@ controladdin DHXProjectScheduleAddin
     event OnEventChanged(eventId: Text; eventData: Text);
     event OnAfterEventIdUpdated(oldid: Text; newid: Text);
     event onEventAdded(eventId: Text; eventData: Text);
+    event OnDragCreateDayPlanning(sectionId: Text; startDateIso: Text; endDateIso: Text);
     event OnOpenResourcePage(lightboxId: Text; eventData: Text);
     event OnPlanningLineClick(Id: Text; EventJson: Text);
     event OnTimelineNavigate(NavigateJson: Text);

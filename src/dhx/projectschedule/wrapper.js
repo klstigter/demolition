@@ -761,18 +761,47 @@ window.BOOT = function() {
         if (bc) bc.style.display = bcPlanningVisible ? "" : "none";
     });
 
-    // Mark events created from the UI
+    // Mark events created from the UI (drag-create) - unchanged from before: the temp event
+    // is left in the data store as-is here, so it renders immediately as a normal draft bar
+    // on the timeline while the user is still mid-interaction, before any lightbox decision
+    // is made.
     scheduler.attachEvent("onEventCreated", function (id) {
         var ev = scheduler.getEvent(id);
         if (ev) ev._isNewForLightbox = true;
         return true;
     });
-    
+
+    // New event creation (drag-create on the timeline) is handled entirely by BC now - the
+    // Day Planning Card (page 50668), not the native DHTMLX lightbox. onBeforeLightbox (not
+    // onEventCreated) is the right interception point: it can cancel just the LIGHTBOX while
+    // leaving the draft event/bar drawn on the timeline exactly where the user dragged it -
+    // that draft stays visible for as long as the BC Card is open, and only disappears once
+    // RefreshSchedule() (called from AL after the Card closes, Save or Cancel either way)
+    // does its normal scheduler.clearAll() + reparse-from-BC cycle: on Save the real saved
+    // event takes its place, on Cancel nothing new comes back and the draft is simply gone -
+    // no separate "delete the draft" step needed on either path.
+    //
+    // start_date/end_date of the drag both get sent - AL uses start_date for Plan Date and
+    // prefills Start/End Time Requested from the drag's own start/end clock time (the user can
+    // still change either on the Card). The drag is still constrained to a single day by
+    // construction: only the Plan Date comes from start_date, so a drag that happens to cross
+    // midnight simply has its end time's DATE component ignored, not its time-of-day.
     scheduler.attachEvent("onBeforeLightbox", function (id) {
         var ev = scheduler.getEvent(id);
         var isNew = !!(ev && ev._isNewForLightbox);
-        resourceBlockVisible = isNew;
-        bcPlanningVisible = !isNew;
+
+        if (isNew) {
+            var sectionId = ev.section_id || '';
+            var startDateIso = ev.start_date ? new Date(ev.start_date).toISOString() : '';
+            var endDateIso = ev.end_date ? new Date(ev.end_date).toISOString() : '';
+            if (sectionId && startDateIso) {
+                Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnDragCreateDayPlanning", [sectionId, startDateIso, endDateIso]);
+            }
+            return false; // cancel the lightbox only - the draft bar stays on the timeline
+        }
+
+        resourceBlockVisible = false;
+        bcPlanningVisible = true;
         return true;
     });
 
