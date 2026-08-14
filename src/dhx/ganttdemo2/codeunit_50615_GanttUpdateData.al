@@ -1,6 +1,6 @@
 codeunit 50615 "Gantt Update Data"
 {
-    procedure UpdateJobTaskFromJson(JsonText: Text): Boolean
+    procedure UpdateJobTaskFromJson(JsonText: Text; var PreviewCancelledByUser: Boolean): Boolean
     var
         JobTask: Record "Job Task";
         JsonObject: JsonObject;
@@ -129,8 +129,10 @@ codeunit 50615 "Gantt Update Data"
                     JobTask.Duration := JobTask.PlannedEndDate - JobTask.PlannedStartDate + 1;
                     JobTask.Modify();
                 end;
-            end else
+            end else begin
+                PreviewCancelledByUser := true;
                 exit(false);
+            end;
         end else begin
             // No period change: save immediately for other field changes (description, etc.)
             if not JobTask.Modify(true) then
@@ -138,6 +140,85 @@ codeunit 50615 "Gantt Update Data"
         end;
 
         exit(true);
+    end;
+
+    /// <summary>
+    /// Persists only the Job Task's Planned Start/End Date from a dhtmlx drag/resize payload,
+    /// deliberately bypassing DayPlanning Period Sync entirely - no DayPlanning record is
+    /// read, moved, or created. Used when the user closed the DayPlanning Period Change
+    /// Preview without clicking Apply Changes but still wants the task's own planned period
+    /// to reflect the drag.
+    /// </summary>
+    procedure ApplyPlannedDatesOnly(JsonText: Text): Boolean
+    var
+        JobTask: Record "Job Task";
+        DayPlanning: Record "Day Planning";
+        JsonObject: JsonObject;
+        JsonToken: JsonToken;
+        JobNo: Code[20];
+        JobTaskNo: Code[20];
+        JsonKey: Text;
+        JsonValue: JsonValue;
+        D: Date;
+    begin
+        if not JsonObject.ReadFrom(JsonText) then
+            exit(false);
+
+        if JsonObject.Get('bcJobNo', JsonToken) then
+            JobNo := CopyStr(JsonToken.AsValue().AsCode(), 1, MaxStrLen(JobNo));
+        if JsonObject.Get('bcJobTaskNo', JsonToken) then
+            JobTaskNo := CopyStr(JsonToken.AsValue().AsCode(), 1, MaxStrLen(JobTaskNo));
+
+        if not JobTask.Get(JobNo, JobTaskNo) then
+            exit(false);
+
+        foreach JsonKey in JsonObject.Keys do begin
+            JsonObject.Get(JsonKey, JsonToken);
+            JsonValue := JsonToken.AsValue();
+            if not JsonValue.IsNull() then
+                case JsonKey of
+                    'start_date':
+                        begin
+                            D := JsonValue.AsDate();
+                            if D <> JobTask.PlannedStartDate then
+                                JobTask.PlannedStartDate := D;
+                        end;
+                    'end_date':
+                        begin
+                            D := CalcDate('<-1D>', JsonValue.AsDate());
+                            if D <> JobTask.PlannedEndDate then
+                                JobTask.PlannedEndDate := D;
+                        end;
+                end;
+        end;
+
+        // Since the user just declined the DayPlanning Period Change Preview's cascade
+        // (Apply Changes was not clicked), no existing Day Planning row may be relocated
+        // here. If the new Planned Start/End Date period would leave any existing Day
+        // Planning row's Plan Date outside that period, it would become silently orphaned
+        // - stranded outside the task's own planned period with no record of it. Refuse to
+        // save in that case instead of leaving Day Planning data inconsistent.
+        if (JobTask.PlannedStartDate <> 0D) and (JobTask.PlannedEndDate <> 0D) then begin
+            DayPlanning.SetRange("Job No.", JobTask."Job No.");
+            DayPlanning.SetRange("Job Task No.", JobTask."Job Task No.");
+            DayPlanning.SetFilter("Plan Date", '<%1|>%2', JobTask.PlannedStartDate, JobTask.PlannedEndDate);
+            if DayPlanning.FindFirst() then
+                Error(DayPlanningOutOfRangeErr, JobTask.PlannedStartDate, JobTask.PlannedEndDate, DayPlanning."Plan Date");
+        end;
+
+        JobTask.CalculateDuration();
+        exit(JobTask.Modify(true));
+    end;
+
+    /// <summary>
+    /// TryFunction wrapper around ApplyPlannedDatesOnly so callers can catch the
+    /// Day Planning out-of-range Error() via GetLastErrorText() instead of having it
+    /// abort the caller outright.
+    /// </summary>
+    [TryFunction]
+    procedure TryApplyPlannedDatesOnly(JsonText: Text)
+    begin
+        ApplyPlannedDatesOnly(JsonText);
     end;
 
     // Related to Duration / Progress
@@ -176,4 +257,7 @@ codeunit 50615 "Gantt Update Data"
                 exit(ganttConstraintType::"Finish No Later Than");
         end;
     end;
+
+    var
+        DayPlanningOutOfRangeErr: Label 'Cannot update the Planned Start Date and Planned End Date to %1..%2 because a Day Planning entry exists on %3, which would fall outside that period. Use Apply Changes in the DayPlanning Period Change Preview instead so the affected Day Planning entries can be relocated.';
 }
