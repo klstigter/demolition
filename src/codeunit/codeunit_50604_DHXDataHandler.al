@@ -3256,4 +3256,570 @@ codeunit 50604 "DHX Data Handler"
         DayPlanning.SetRange("Plan Date", TaskDay);
         PAGE.Run(PAGE::"Resource Day Plannings", DayPlanning);
     end;
+
+    // =========================================================
+    // Resource Scheduler (New) – "resourceschedule_with_capacity" add-in
+    // (page 50706 "DHX Scheduler (Resource+Capacity)"). JSON builder
+    // procedures for the Skill > Resource tree and the combined
+    // Capacity + Day Planning (Requested/Assigned) events. Kept in its
+    // own region, prefixed "SkillResScheduler_", separate from the
+    // Pool ("GetYUnitElementsJSON_Pool"/...) and Project-specific
+    // procedures elsewhere in this codeunit - same "generic reuse in
+    // this shared data handler" convention already established by the
+    // "ResScheduler_" region above (moved here from the DHX Resource
+    // Scheduler page).
+    // =========================================================
+
+    /// <summary>
+    /// True when ResNo should be excluded from the Skill/Resource tree - either a blank-name
+    /// placeholder resource, or a resource referenced as a Skill Code's "Invoice Resource No."
+    /// (a stand-in for the skill itself on invoice preparation, not a real worker - see
+    /// tableextension 50609 "Opt. Skill Code").
+    /// </summary>
+    local procedure SkillResScheduler_IsPlaceholderResource(ResNo: Code[20]; var Res: Record Resource): Boolean
+    var
+        SkillCode: Record "Skill Code";
+    begin
+        if not Res.Get(ResNo) then
+            exit(true);
+        if Res.Name = '' then
+            exit(true);
+        SkillCode.SetRange("Invoice Resource No.", ResNo);
+        exit(not SkillCode.IsEmpty());
+    end;
+
+    /// <summary>
+    /// The Skill Code a resource is grouped under in the tree - the first (lowest Skill Code)
+    /// "Resource Skill" row for that resource. Returns '' when the resource has no skill
+    /// assigned at all (bucketed under the "No Skill Assigned" node by the caller).
+    /// </summary>
+    local procedure SkillResScheduler_GetPrimarySkill(ResNo: Code[20]): Code[20]
+    var
+        ResourceSkill: Record "Resource Skill";
+    begin
+        ResourceSkill.SetRange(Type, ResourceSkill.Type::Resource);
+        ResourceSkill.SetRange("No.", ResNo);
+        if ResourceSkill.FindFirst() then
+            exit(ResourceSkill."Skill Code");
+        exit('');
+    end;
+
+    /// <summary>
+    /// Builds the left-panel tree: one top-level node per Skill Code, with that skill's
+    /// (non-placeholder) Resources as leaf children. Resources with no skill assigned are
+    /// grouped under a trailing "No Skill Assigned" node - omitted entirely when SkillFilter
+    /// is set, since a specific skill filter can never match a resource that has none. Skill/
+    /// Resource nodes with no (matching) children are omitted entirely, same convention as
+    /// GetYUnitElementsJSON_Pool. Leaf key = plain Resource "No." (also used as event
+    /// resource_id/section_id below); Skill node key = "SKILL|" + Skill Code so it can never
+    /// collide with a Resource No.
+    /// </summary>
+    procedure SkillResScheduler_BuildTreeJson(ResourceFilter: Text; SkillFilter: Text): Text
+    var
+        SkillCode: Record "Skill Code";
+        Res: Record Resource;
+        TempResourceOfSkill: Record Resource temporary;
+        TempNoSkillResource: Record Resource temporary;
+        SkillObj: JsonObject;
+        ResObj: JsonObject;
+        ChildrenArray: JsonArray;
+        DataArray: JsonArray;
+        Root: JsonObject;
+        OutText: Text;
+        PrimarySkill: Code[10];
+    begin
+        if SkillFilter = '' then begin
+            Res.Reset();
+            if ResourceFilter <> '' then
+                Res.SetFilter("No.", ResourceFilter)
+            else
+                Res.SetFilter("No.", '<>%1', '');
+            if Res.FindSet() then
+                repeat
+                    if not SkillResScheduler_IsPlaceholderResource(Res."No.", Res) then begin
+                        PrimarySkill := SkillResScheduler_GetPrimarySkill(Res."No.");
+                        if PrimarySkill = '' then begin
+                            TempNoSkillResource := Res;
+                            TempNoSkillResource.Insert();
+                        end;
+                    end;
+                until Res.Next() = 0;
+        end;
+
+        SkillCode.Reset();
+        if SkillFilter <> '' then
+            SkillCode.SetFilter(Code, SkillFilter);
+        if SkillCode.FindSet() then
+            repeat
+                Clear(ChildrenArray);
+                TempResourceOfSkill.Reset();
+                TempResourceOfSkill.DeleteAll();
+                Res.Reset();
+                if ResourceFilter <> '' then
+                    Res.SetFilter("No.", ResourceFilter)
+                else
+                    Res.SetFilter("No.", '<>%1', '');
+                if Res.FindSet() then
+                    repeat
+                        if not SkillResScheduler_IsPlaceholderResource(Res."No.", Res) then
+                            if SkillResScheduler_GetPrimarySkill(Res."No.") = SkillCode.Code then begin
+                                Clear(ResObj);
+                                ResObj.Add('key', Res."No.");
+                                ResObj.Add('label', Res.Name);
+                                ResObj.Add('category', 'Resource');
+                                ChildrenArray.Add(ResObj);
+                            end;
+                    until Res.Next() = 0;
+
+                if ChildrenArray.Count() > 0 then begin
+                    Clear(SkillObj);
+                    SkillObj.Add('key', 'SKILL|' + SkillCode.Code);
+                    if SkillCode.Description <> '' then
+                        SkillObj.Add('label', SkillCode.Description)
+                    else
+                        SkillObj.Add('label', SkillCode.Code);
+                    SkillObj.Add('category', 'Skill');
+                    SkillObj.Add('open', true);
+                    SkillObj.Add('children', ChildrenArray);
+                    DataArray.Add(SkillObj);
+                end;
+            until SkillCode.Next() = 0;
+
+        // Trailing "No Skill Assigned" node
+        if TempNoSkillResource.FindSet() then begin
+            Clear(ChildrenArray);
+            repeat
+                Clear(ResObj);
+                ResObj.Add('key', TempNoSkillResource."No.");
+                ResObj.Add('label', TempNoSkillResource.Name);
+                ResObj.Add('category', 'Resource');
+                ChildrenArray.Add(ResObj);
+            until TempNoSkillResource.Next() = 0;
+
+            Clear(SkillObj);
+            SkillObj.Add('key', 'SKILL|~NOSKILL~');
+            SkillObj.Add('label', 'No Skill Assigned');
+            SkillObj.Add('category', 'Skill');
+            SkillObj.Add('open', true);
+            SkillObj.Add('children', ChildrenArray);
+            DataArray.Add(SkillObj);
+        end;
+
+        Clear(Root);
+        Root.Add('data', DataArray);
+        Root.WriteTo(OutText);
+        exit(OutText);
+    end;
+
+    /// <summary>
+    /// Aggregated Capacity events (one bar per Resource/Date, summed Capacity, earliest Start
+    /// Time - same aggregation as ResScheduler_BuildCapacityJson) but always tagged with a
+    /// fixed classname/type so the bar renders in the dedicated "Capacity" color regardless of
+    /// which resource it belongs to (ResScheduler_GetResourceColor's per-resource hash color
+    /// does not satisfy the "3 distinct, clearly different colors" requirement here). Res.
+    /// Capacity Entry has no Skill field of its own, so SkillFilter is applied per-row via the
+    /// shared ResourceMatchesSkillFilter helper (Resource Skill lookup) rather than a table
+    /// filter - non-matching rows are simply never aggregated/emitted, which is safe because
+    /// the aggregation state (LastResNo/LastDate/AggCapacity) is only ever touched for rows that
+    /// pass the check, so a run of matching rows for the same resource/date still flushes
+    /// correctly when the next matching row differs.
+    /// </summary>
+    procedure SkillResScheduler_BuildCapacityJson(ResourceFilter: Text; SkillFilter: Text; StartDate: Date; EndDate: Date): Text
+    var
+        ResCap: Record "Res. Capacity Entry";
+        TempResCap: Record "Res. Capacity Entry" temporary;
+        JArray: JsonArray;
+        JObj: JsonObject;
+        JRoot: JsonObject;
+        Result: Text;
+        StartDateTimeStr: Text;
+        EndDateTimeStr: Text;
+        LastResNo: Code[20];
+        LastDate: Date;
+        AggStartTime: Time;
+        AggCapacity: Decimal;
+    begin
+        ResCap.Reset();
+        ResCap.SetCurrentKey("Resource No.", "Date");
+        if (StartDate <> 0D) and (EndDate <> 0D) then
+            ResCap.SetRange("Date", StartDate, EndDate);
+        if ResourceFilter <> '' then
+            ResCap.SetFilter("Resource No.", ResourceFilter)
+        else
+            ResCap.SetFilter("Resource No.", '<>%1', '');
+
+        LastResNo := '';
+        LastDate := 0D;
+        AggStartTime := 0T;
+        AggCapacity := 0;
+
+        if ResCap.FindSet() then
+            repeat
+                if ResourceMatchesSkillFilter(ResCap."Resource No.", SkillFilter) then
+                if (ResCap."Resource No." <> LastResNo) or (ResCap."Date" <> LastDate) then begin
+                    if (LastResNo <> '') and (AggCapacity > 0) then begin
+                        TempResCap.Init();
+                        TempResCap."Resource No." := LastResNo;
+                        TempResCap."Date" := LastDate;
+                        TempResCap."Start Time" := AggStartTime;
+                        GetStartEndTxt(TempResCap, AggCapacity, StartDateTimeStr, EndDateTimeStr);
+                        if (StartDateTimeStr <> '') and (EndDateTimeStr <> '') then begin
+                            Clear(JObj);
+                            JObj.Add('id', 'CAP|' + LastResNo + '|' + Format(LastDate, 0, '<Year4><Month,2><Day,2>'));
+                            JObj.Add('resource_id', LastResNo);
+                            JObj.Add('section_id', LastResNo);
+                            JObj.Add('start_date', StartDateTimeStr);
+                            JObj.Add('end_date', EndDateTimeStr);
+                            JObj.Add('text', 'Capacity');
+                            JObj.Add('classname', 'event-capacity');
+                            JObj.Add('type', 'capacity');
+                            JObj.Add('hours', AggCapacity);
+                            JArray.Add(JObj);
+                        end;
+                    end;
+                    LastResNo := ResCap."Resource No.";
+                    LastDate := ResCap."Date";
+                    AggStartTime := ResCap."Start Time";
+                    AggCapacity := ResCap.Capacity;
+                end else begin
+                    AggCapacity += ResCap.Capacity;
+                    if (ResCap."Start Time" <> 0T) then
+                        if (AggStartTime = 0T) or (ResCap."Start Time" < AggStartTime) then
+                            AggStartTime := ResCap."Start Time";
+                end;
+            until ResCap.Next() = 0;
+
+        if (LastResNo <> '') and (AggCapacity > 0) then begin
+            TempResCap.Init();
+            TempResCap."Resource No." := LastResNo;
+            TempResCap."Date" := LastDate;
+            TempResCap."Start Time" := AggStartTime;
+            GetStartEndTxt(TempResCap, AggCapacity, StartDateTimeStr, EndDateTimeStr);
+            if (StartDateTimeStr <> '') and (EndDateTimeStr <> '') then begin
+                Clear(JObj);
+                JObj.Add('id', 'CAP|' + LastResNo + '|' + Format(LastDate, 0, '<Year4><Month,2><Day,2>'));
+                JObj.Add('resource_id', LastResNo);
+                JObj.Add('section_id', LastResNo);
+                JObj.Add('start_date', StartDateTimeStr);
+                JObj.Add('end_date', EndDateTimeStr);
+                JObj.Add('text', 'Capacity');
+                JObj.Add('classname', 'event-capacity');
+                JObj.Add('type', 'capacity');
+                JObj.Add('hours', AggCapacity);
+                JArray.Add(JObj);
+            end;
+        end;
+
+        Clear(JRoot);
+        JRoot.Add('data', JArray);
+        JRoot.WriteTo(Result);
+        exit(Result);
+    end;
+
+    /// <summary>
+    /// "HH:mm" text for a Time value, blank when 0T (used by the JS-side progress-split
+    /// segment math). Built via explicit zero-padding rather than the "<Hours24,2>" custom
+    /// format placeholder - that placeholder space-pads single-digit hours/minutes here (e.g.
+    /// "08:00" comes back as " 8:00"), which the JS-side parseHHmm expects zero-padded.
+    /// </summary>
+    local procedure SkillResScheduler_FormatHHmm(pTime: Time): Text
+    var
+        HourTxt: Text;
+        MinuteTxt: Text;
+    begin
+        if pTime = 0T then
+            exit('');
+        HourTxt := Format(pTime, 0, '<Hours24>');
+        MinuteTxt := Format(pTime, 0, '<Minutes>');
+        exit(PadStr('', 2 - StrLen(HourTxt), '0') + HourTxt + ':' + PadStr('', 2 - StrLen(MinuteTxt), '0') + MinuteTxt);
+    end;
+
+    /// <summary>
+    /// One event per Day Planning row (Plan Date within [StartDate,EndDate]) placed on the
+    /// Assigned Resource's row (falling back to the Requested Resource's row when nothing is
+    /// assigned yet - so an unassigned request is still visible on the intended resource).
+    /// The bar's start_date/end_date is the envelope (earliest..latest) of whichever of
+    /// Assigned/Requested have both a Start and End Time set; the raw "HH:mm" Assigned/
+    /// Requested times are carried separately (start_time_assigned/end_time_assigned/
+    /// start_time_requested/end_time_requested) for the JS event_bar_text template to render
+    /// as two proportional sub-segments inside the bar - same technique as projectschedule's
+    /// wrapper.js (see that file's event_bar_text/segmentHtml). SkillFilter is applied directly
+    /// against Day Planning's own "Skill" field (a table filter, not a per-resource lookup like
+    /// Capacity's - Day Planning is skill-tagged per row, independent of whichever skill(s) the
+    /// Assigned/Requested resource happens to carry).
+    /// </summary>
+    procedure SkillResScheduler_BuildDayPlanningJson(ResourceFilter: Text; SkillFilter: Text; StartDate: Date; EndDate: Date): Text
+    var
+        DayPlanning: Record "Day Planning";
+        Res: Record Resource;
+        RequestedRes: Record Resource;
+        JArray: JsonArray;
+        JObj: JsonObject;
+        JRoot: JsonObject;
+        Result: Text;
+        RowResourceNo: Code[20];
+        AssignedResName: Text;
+        RequestedResName: Text;
+        AssignedValid: Boolean;
+        RequestedValid: Boolean;
+        EnvStartDateTime: DateTime;
+        EnvEndDateTime: DateTime;
+        AssignedStartDT: DateTime;
+        AssignedEndDT: DateTime;
+        RequestedStartDT: DateTime;
+        RequestedEndDT: DateTime;
+        EnvStartTxt: Text;
+        EnvEndTxt: Text;
+        EventText: Text;
+    begin
+        DayPlanning.Reset();
+        if (StartDate <> 0D) and (EndDate <> 0D) then
+            DayPlanning.SetRange("Plan Date", StartDate, EndDate);
+        if SkillFilter <> '' then
+            DayPlanning.SetFilter(Skill, SkillFilter);
+        if DayPlanning.FindSet() then
+            repeat
+                RowResourceNo := DayPlanning."Assigned Resource No.";
+                if RowResourceNo = '' then
+                    RowResourceNo := DayPlanning."Requested Resource No.";
+                if RowResourceNo <> '' then
+                    if (ResourceFilter = '') or ResourceMatchesNoFilter(RowResourceNo, ResourceFilter) then begin
+                        AssignedValid := (DayPlanning."Start Time Assigned" <> 0T) and (DayPlanning."End Time Assigned" <> 0T);
+                        RequestedValid := (DayPlanning."Start Time Requested" <> 0T) and (DayPlanning."End Time Requested" <> 0T);
+
+                        Clear(EnvStartDateTime);
+                        Clear(EnvEndDateTime);
+                        if AssignedValid then begin
+                            AssignedStartDT := CreateDateTime(DayPlanning."Plan Date", DayPlanning."Start Time Assigned");
+                            AssignedEndDT := CreateDateTime(DayPlanning."Plan Date", DayPlanning."End Time Assigned");
+                            EnvStartDateTime := AssignedStartDT;
+                            EnvEndDateTime := AssignedEndDT;
+                        end;
+                        if RequestedValid then begin
+                            RequestedStartDT := CreateDateTime(DayPlanning."Plan Date", DayPlanning."Start Time Requested");
+                            RequestedEndDT := CreateDateTime(DayPlanning."Plan Date", DayPlanning."End Time Requested");
+                            if (EnvStartDateTime = 0DT) or (RequestedStartDT < EnvStartDateTime) then
+                                EnvStartDateTime := RequestedStartDT;
+                            if (EnvEndDateTime = 0DT) or (RequestedEndDT > EnvEndDateTime) then
+                                EnvEndDateTime := RequestedEndDT;
+                        end;
+                        if (EnvStartDateTime = 0DT) or (EnvEndDateTime = 0DT) then begin
+                            EnvStartDateTime := CreateDateTime(DayPlanning."Plan Date", 000000T);
+                            EnvEndDateTime := CreateDateTime(DayPlanning."Plan Date", 235959T);
+                        end;
+
+                        EnvStartTxt := ToSessionDateTimeTxt(DT2Date(EnvStartDateTime), DT2Time(EnvStartDateTime));
+                        EnvEndTxt := ToSessionDateTimeTxt(DT2Date(EnvEndDateTime), DT2Time(EnvEndDateTime));
+
+                        AssignedResName := '';
+                        if DayPlanning."Assigned Resource No." <> '' then
+                            if Res.Get(DayPlanning."Assigned Resource No.") then
+                                AssignedResName := Res.Name;
+                        RequestedResName := '';
+                        if DayPlanning."Requested Resource No." <> '' then
+                            if RequestedRes.Get(DayPlanning."Requested Resource No.") then
+                                RequestedResName := RequestedRes.Name;
+
+                        EventText := DayPlanning.Description;
+                        if EventText = '' then
+                            if AssignedResName <> '' then
+                                EventText := AssignedResName
+                            else
+                                if RequestedResName <> '' then
+                                    EventText := RequestedResName
+                                else
+                                    EventText := 'Day Planning';
+
+                        Clear(JObj);
+                        JObj.Add('id', Format(DayPlanning.RecordId));
+                        JObj.Add('resource_id', RowResourceNo);
+                        JObj.Add('section_id', RowResourceNo);
+                        JObj.Add('start_date', EnvStartTxt);
+                        JObj.Add('end_date', EnvEndTxt);
+                        JObj.Add('text', EventText);
+                        JObj.Add('classname', 'event-DayPlanning');
+                        JObj.Add('type', 'DayPlanning');
+                        JObj.Add('start_time_assigned', SkillResScheduler_FormatHHmm(DayPlanning."Start Time Assigned"));
+                        JObj.Add('end_time_assigned', SkillResScheduler_FormatHHmm(DayPlanning."End Time Assigned"));
+                        JObj.Add('start_time_requested', SkillResScheduler_FormatHHmm(DayPlanning."Start Time Requested"));
+                        JObj.Add('end_time_requested', SkillResScheduler_FormatHHmm(DayPlanning."End Time Requested"));
+                        JObj.Add('assigned_resource_no', DayPlanning."Assigned Resource No.");
+                        JObj.Add('assigned_resource_name', AssignedResName);
+                        JObj.Add('assigned_hours', DayPlanning."Assigned Hours");
+                        JObj.Add('requested_resource_no', DayPlanning."Requested Resource No.");
+                        JObj.Add('requested_resource_name', RequestedResName);
+                        JObj.Add('requested_hours', DayPlanning."Requested Hours");
+                        JObj.Add('skill', DayPlanning.Skill);
+                        JArray.Add(JObj);
+                    end;
+            until DayPlanning.Next() = 0;
+
+        Clear(JRoot);
+        JRoot.Add('data', JArray);
+        JRoot.WriteTo(Result);
+        exit(Result);
+    end;
+
+    /// <summary>
+    /// Opens the single Day Planning record behind a "Resource Scheduler (New)" event bar, as
+    /// its own Card - NOT the "Day Plannings" list page (page 50630) that the shared
+    /// OpenDayPlanning procedure above opens for the other schedulers (that list-filtered-to-
+    /// one-row approach is what OpenDayPlanning's own callers expect and must keep working
+    /// unchanged; this add-in's own right-click/double-click just needs a genuine single-record
+    /// card, confirmed live - the list view read as "open all, not just this one" to the user).
+    /// Unlike OpenDayPlanning (which parses a "JobNo|TaskNo|Date|LineNo" event ID), this add-in's
+    /// events use Format(RecordId) as their ID (see SkillResScheduler_BuildDayPlanningJson), so
+    /// the record is looked up directly via RecordId instead - same technique as page
+    /// "DHX Resource Scheduler"'s OnEventDoubleClick.
+    /// </summary>
+    procedure SkillResScheduler_OpenDayPlanningByEventId(EventId: Text)
+    var
+        DayPlanning: Record "Day Planning";
+        RecRef: RecordRef;
+        RecId: RecordId;
+    begin
+        if not Evaluate(RecId, EventId) then begin
+            Message('Day planning not found for Event ID: %1', EventId);
+            exit;
+        end;
+        if not RecRef.Get(RecId) then begin
+            Message('Day planning not found for Event ID: %1', EventId);
+            exit;
+        end;
+        RecRef.SetTable(DayPlanning);
+        Page.Run(Page::"Day Planning Card Opt", DayPlanning);
+    end;
+
+    /// <summary>
+    /// Opens the Resource Capacity page for the resource/week behind a "Resource Scheduler
+    /// (New)" Capacity bar. Event ID format: "CAP|ResourceNo|YYYYMMDD" (see
+    /// SkillResScheduler_BuildCapacityJson) - the aggregated bar has no single underlying
+    /// "Res. Capacity Entry" (it can sum several rows for the same day), so this filters by
+    /// resource + week instead of looking up one entry, mirroring OpenCapacity's own filter.
+    /// </summary>
+    procedure SkillResScheduler_OpenCapacityByEventId(EventId: Text)
+    var
+        ResCap: Record "Res. Capacity Entry";
+        Parts: List of [Text];
+        DatePart: Text;
+        ResNo: Code[20];
+        RowDate: Date;
+        StartDate: Date;
+        EndDate: Date;
+        Y: Integer;
+        M: Integer;
+        D: Integer;
+    begin
+        Parts := EventId.Split('|');
+        if Parts.Count() < 3 then
+            exit;
+        ResNo := CopyStr(Parts.Get(2), 1, MaxStrLen(ResNo));
+        DatePart := Parts.Get(3);
+        if StrLen(DatePart) <> 8 then
+            exit;
+        if not Evaluate(Y, CopyStr(DatePart, 1, 4)) then
+            exit;
+        if not Evaluate(M, CopyStr(DatePart, 5, 2)) then
+            exit;
+        if not Evaluate(D, CopyStr(DatePart, 7, 2)) then
+            exit;
+        RowDate := DMY2Date(D, M, Y);
+        GetWeekPeriodDates(RowDate, StartDate, EndDate);
+        ResCap.SetRange("Resource No.", ResNo);
+        ResCap.SetRange("Date", StartDate, EndDate);
+        Page.RunModal(0, ResCap);
+    end;
+
+    /// <summary>Opens the Resource Card for a Resource No. (tree leaf / event resource_id).</summary>
+    procedure SkillResScheduler_OpenResourceCard(ResNo: Text)
+    var
+        Res: Record Resource;
+    begin
+        if StrLen(ResNo) > MaxStrLen(Res."No.") then
+            exit;
+        if Res.Get(CopyStr(ResNo, 1, MaxStrLen(Res."No."))) then
+            Page.Run(Page::"Resource Card", Res);
+    end;
+
+    /// <summary>Opens the Resource Skills list filtered to a Resource No. (tree leaf right-click).</summary>
+    procedure SkillResScheduler_OpenResourceSkills(ResNo: Text)
+    var
+        ResourceSkill: Record "Resource Skill";
+    begin
+        if StrLen(ResNo) > MaxStrLen(ResourceSkill."No.") then
+            exit;
+        ResourceSkill.SetRange(Type, ResourceSkill.Type::Resource);
+        ResourceSkill.SetRange("No.", CopyStr(ResNo, 1, MaxStrLen(ResourceSkill."No.")));
+        Page.Run(0, ResourceSkill);
+    end;
+
+    /// <summary>
+    /// Opens the "Day Plannings" LIST (deliberately a list here, unlike
+    /// SkillResScheduler_OpenDayPlanningByEventId's single-record Card - this is a resource-row
+    /// right-click meant to show everything for that resource in the active week, not one bar)
+    /// for every Day Planning where the resource is EITHER the Requested Resource No. OR the
+    /// Assigned Resource No., within [StartDate, EndDate]. SetRange/SetFilter always AND
+    /// together across different fields, so a cross-field OR needs two separate filtered passes
+    /// marking into the same (non-temporary) record variable - Mark() persists across filter
+    /// changes on the same variable, so the two passes safely accumulate into one marked set.
+    ///
+    /// Opened via Page.Run(ObjectId, Record), NOT SetTableView()+RunModal() - confirmed live
+    /// that SetTableView() only captures field-based SetRange/SetFilter conditions into a filter
+    /// STRING, which cannot express an arbitrary marked-RecordId set (there is no filter syntax
+    /// for "these exact records"), so it silently dropped the Mark()/MarkedOnly() state and the
+    /// list came back empty. Page.Run(ObjectId, Record) is the documented, correct way to open a
+    /// page bound to a live, marked record variable.
+    /// </summary>
+    procedure SkillResScheduler_OpenDayPlanningsForResource(ResNo: Text; StartDate: Date; EndDate: Date)
+    var
+        DayPlanning: Record "Day Planning";
+        ResNoCode: Code[20];
+    begin
+        if StrLen(ResNo) > MaxStrLen(ResNoCode) then
+            exit;
+        ResNoCode := CopyStr(ResNo, 1, MaxStrLen(ResNoCode));
+
+        DayPlanning.Reset();
+        if (StartDate <> 0D) and (EndDate <> 0D) then
+            DayPlanning.SetRange("Plan Date", StartDate, EndDate);
+        DayPlanning.SetRange("Assigned Resource No.", ResNoCode);
+        if DayPlanning.FindSet() then
+            repeat
+                DayPlanning.Mark(true);
+            until DayPlanning.Next() = 0;
+
+        DayPlanning.SetRange("Assigned Resource No.");
+        DayPlanning.SetRange("Requested Resource No.", ResNoCode);
+        if DayPlanning.FindSet() then
+            repeat
+                DayPlanning.Mark(true);
+            until DayPlanning.Next() = 0;
+
+        DayPlanning.SetRange("Requested Resource No.");
+        DayPlanning.MarkedOnly(true);
+        Page.Run(Page::"Day Plannings", DayPlanning);
+    end;
+
+    /// <summary>
+    /// Opens the standard Res. Capacity Entry list (page 0 = the table's own default page, same
+    /// target SkillResScheduler_OpenCapacityByEventId above already uses for a Capacity-bar
+    /// right-click) filtered to a single Resource No. and [StartDate, EndDate] - the resource-row
+    /// right-click equivalent of SkillResScheduler_OpenDayPlanningsForResource, but simpler since
+    /// Res. Capacity Entry has only one resource field (no Assigned/Requested OR to reconcile),
+    /// so a plain SetRange pair is enough - no Mark()/MarkedOnly() needed here.
+    /// </summary>
+    procedure SkillResScheduler_ShowCapacityForResource(ResNo: Text; StartDate: Date; EndDate: Date)
+    var
+        ResCap: Record "Res. Capacity Entry";
+        ResNoCode: Code[20];
+    begin
+        if StrLen(ResNo) > MaxStrLen(ResNoCode) then
+            exit;
+        ResNoCode := CopyStr(ResNo, 1, MaxStrLen(ResNoCode));
+
+        ResCap.SetRange("Resource No.", ResNoCode);
+        if (StartDate <> 0D) and (EndDate <> 0D) then
+            ResCap.SetRange("Date", StartDate, EndDate);
+        Page.RunModal(0, ResCap);
+    end;
 }

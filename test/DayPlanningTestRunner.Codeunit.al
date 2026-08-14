@@ -8,6 +8,7 @@ codeunit 60021 "Day Planning Test Runner"
         Codeunit.Run(Codeunit::"Day Planning Creation Tests");
         Codeunit.Run(Codeunit::"Skill Capacity Chart Tests");
         Codeunit.Run(Codeunit::"OI Customer/Contact Tests");
+        Codeunit.Run(Codeunit::"Resource Capacity Sched Tests");
     end;
 
     trigger OnBeforeTestRun(CodeunitId: Integer; CodeunitName: Text; FunctionName: Text; Permissions: TestPermissions): Boolean
