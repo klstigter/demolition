@@ -3,7 +3,9 @@ report 50600 "RepairData"
     Permissions = tabledata "Day Planning" = rim,
                   tabledata "Res. Capacity Entry" = rimd,
                   tabledata Resource = rim,
-                  tabledata Vendor = r;
+                  tabledata Vendor = r,
+                  tabledata "Resource Skill" = rim,
+                  tabledata "Skill Code" = r;
     UsageCategory = Administration;
     ApplicationArea = All;
     Caption = 'Repair Data';
@@ -16,22 +18,30 @@ report 50600 "RepairData"
 
     trigger OnPreReport()
     begin
-        // Monday (20260803D) had 0 Requested Hours anywhere this week, so it had no data at all
-        // (both bars empty) and no active skill series to show. Seeds it with DESIGN demand
-        // first, so BalanceCapacityToRequested below has an actual Requested total to be
-        // proportional against instead of treating "0 Requested" as already-balanced.
-        CreateSkillDemand(20260803D, 'DESIGN', 300);
+        // Step 1: Rebalance first. Confirmed live in NL_Copy20240710: the pre-existing 206
+        // Resource Skill rows were only ever ELEKTR (~103) or SANITAIR (~103) - DESIGN had
+        // ZERO resources and DELIVER had exactly 1 (the one AssignVarietySkillsToUnskilledResources
+        // itself assigned earlier), so no amount of round-robin resource *selection* could ever
+        // surface DESIGN - there was nothing in that skill to pick. This overwrites every
+        // non-placeholder resource's skill with an even round-robin spread across all 4 Skill
+        // Codes, so all 4 actually have resources to draw from.
+        RebalanceResourceSkillsAcrossAllSkillCodes();
 
-        // Brings each day's Capacity bar (= total Assigned Hours, see codeunit 50662) up to
-        // roughly the same magnitude as that day's Requested bar (= total unassigned Requested
-        // Hours), so the two bars read as comparable instead of Capacity being a near-invisible
-        // sliver next to a full Requested bar.
-        BalanceCapacityToRequested(20260803D, 100);
-        BalanceCapacityToRequested(20260805D, 100);
-        BalanceCapacityToRequested(20260806D, 100);
-        BalanceCapacityToRequested(20260807D, 100);
+        // Step 2: Regenerate the week's Requested demand AFTER rebalancing (not before), so the
+        // demand lines reflect the new, evenly-spread skill assignments instead of the stale
+        // pre-rebalance ones. Wk 34 2026 (Mon 20260817D .. Sun 20260823D): unassigned Requested
+        // demand spread across a variety of Requested Resource No./Skill, sized per day to
+        // TargetPercentageOfCapacity% of that day's actual total Capacity so demand and
+        // capacity stay proportional instead of an arbitrary flat number.
+        CreateVarietyRequestedDemandForWeek(20260817D, 100, 12);
 
         // Previously used one-off calls, kept for reuse rather than re-run automatically:
+        // AssignVarietySkillsToUnskilledResources();
+        // CreateSkillDemand(20260803D, 'DESIGN', 300);
+        // BalanceCapacityToRequested(20260803D, 100);
+        // BalanceCapacityToRequested(20260805D, 100);
+        // BalanceCapacityToRequested(20260806D, 100);
+        // BalanceCapacityToRequested(20260807D, 100);
         // MakeAssignedBackToRequested(20260804D, 30);
         // CreateExternalCapacityForWeek(20260803D, 300);
         // MakeInternalResourcesExternal(20260803D, 30);
@@ -337,6 +347,315 @@ report 50600 "RepairData"
     end;
 
     /// <summary>
+    /// Gives every Resource that currently has zero "Resource Skill" rows exactly one Skill Code,
+    /// cycling round-robin through all Skill Code records (not the same code repeated for every
+    /// resource) so the result reads as a realistic variety - same round-robin-via-List pattern
+    /// as GetNextSkill() in codeunit 50602 "CreateDemoData".
+    ///
+    /// Skips two groups, both determined dynamically (never a hardcoded resource list, so this
+    /// stays correct/safe to re-run as Skill Codes or resources change):
+    ///   - Resources that already have at least one Resource Skill row - nothing to repair.
+    ///   - Resources that are themselves a Skill Code's "Invoice Resource No." (tableextension
+    ///     50609 "Opt. Skill Code") - these are invoice-only placeholders representing the skill
+    ///     itself (blank Name, no real worker; e.g. ELEKTR/SANITAIR/DELIVER/DESIGN in the
+    ///     NL_Copy20240710 sandbox), not resources that should carry a skill of their own.
+    ///
+    /// Idempotent: already-skilled resources are skipped, so re-running only fills in whatever
+    /// is still missing (e.g. after new resources are created) instead of adding duplicates -
+    /// which also makes this safe to resume if it's ever interrupted mid-run, since progress is
+    /// committed every CommitBatchSize resources (see below) rather than held in one giant
+    /// transaction for the entire Resource table.
+    /// </summary>
+    procedure AssignVarietySkillsToUnskilledResources()
+    var
+        Resource: Record Resource;
+        ResourceSkill: Record "Resource Skill";
+        SkillCode: Record "Skill Code";
+        PlaceholderResourceNos: List of [Code[20]];
+        SkillCodesList: List of [Code[10]];
+        SkillIdx: Integer;
+        AssignedCount: Integer;
+        SkippedHasSkillCount: Integer;
+        SinceLastCommit: Integer;
+        CommitBatchSize: Integer;
+    begin
+        SkillCode.Reset();
+        if SkillCode.FindSet() then
+            repeat
+                SkillCodesList.Add(SkillCode.Code);
+                if (SkillCode."Invoice Resource No." <> '') and (not PlaceholderResourceNos.Contains(SkillCode."Invoice Resource No.")) then
+                    PlaceholderResourceNos.Add(SkillCode."Invoice Resource No.");
+            until SkillCode.Next() = 0;
+
+        if SkillCodesList.Count() = 0 then begin
+            Message(NoSkillCodesMsg);
+            exit;
+        end;
+
+        // Large Resource tables (tens of thousands of rows - confirmed live in the
+        // NL_Copy20240710 sandbox) can make this run long enough to risk a request timeout if
+        // held as one transaction; committing in batches means an interruption only loses the
+        // uncommitted tail, and the idempotent skip-if-already-has-a-skill check above picks up
+        // exactly where it left off on a re-run.
+        CommitBatchSize := 1000;
+
+        Resource.SetLoadFields("No.");
+        if Resource.FindSet() then
+            repeat
+                if not PlaceholderResourceNos.Contains(Resource."No.") then begin
+                    ResourceSkill.SetRange(Type, ResourceSkill.Type::Resource);
+                    ResourceSkill.SetRange("No.", Resource."No.");
+                    if ResourceSkill.IsEmpty() then begin
+                        ResourceSkill.Init();
+                        ResourceSkill.Type := ResourceSkill.Type::Resource;
+                        ResourceSkill."No." := Resource."No.";
+                        SkillIdx += 1;
+                        ResourceSkill."Skill Code" := SkillCodesList.Get(((SkillIdx - 1) mod SkillCodesList.Count()) + 1);
+                        ResourceSkill.Insert(true);
+                        AssignedCount += 1;
+                        SinceLastCommit += 1;
+                        if SinceLastCommit >= CommitBatchSize then begin
+                            Commit();
+                            SinceLastCommit := 0;
+                        end;
+                    end else
+                        SkippedHasSkillCount += 1;
+                end;
+            until Resource.Next() = 0;
+
+        Message(AssignVarietySkillsResultMsg, AssignedCount, SkippedHasSkillCount, SkillCodesList.Count());
+    end;
+
+    /// <summary>
+    /// Overwrites every non-placeholder Resource's Skill Code assignment with an even
+    /// round-robin spread across ALL Skill Code records, so every skill actually has a fair
+    /// share of resources instead of whatever lopsided distribution existed before. Unlike
+    /// AssignVarietySkillsToUnskilledResources above (which only ever fills in resources that
+    /// have NO skill yet), this REPLACES existing assignments too - needed because a resource
+    /// already having *some* skill doesn't mean every skill is represented: confirmed live in
+    /// NL_Copy20240710, all 206 pre-existing Resource Skill rows were split only between ELEKTR
+    /// and SANITAIR, leaving DESIGN with zero resources and DELIVER with exactly one, so no
+    /// amount of round-robin *selection* elsewhere could ever surface DESIGN - there was
+    /// nothing in it to pick.
+    ///
+    /// Only real resources are touched - Skill Code "Invoice Resource No." placeholders
+    /// (tableextension 50609, found dynamically, never hardcoded) are skipped, same exclusion
+    /// as every other procedure in this report that iterates Resource.
+    ///
+    /// This is a demo/test-data rebalance, not a business change: it deliberately discards
+    /// whatever skill a resource happened to have before in favor of an even spread, so only
+    /// run this when the goal genuinely is "show variety across all skills" (e.g. for a chart
+    /// like page 50692 "Requested vs Capacity Weekly" that breaks demand down by skill).
+    /// </summary>
+    procedure RebalanceResourceSkillsAcrossAllSkillCodes()
+    var
+        Resource: Record Resource;
+        ResourceSkill: Record "Resource Skill";
+        SkillCode: Record "Skill Code";
+        PlaceholderResourceNos: List of [Code[20]];
+        SkillCodesList: List of [Code[10]];
+        SkillIdx: Integer;
+        RebalancedCount: Integer;
+        SinceLastCommit: Integer;
+        CommitBatchSize: Integer;
+    begin
+        SkillCode.Reset();
+        if SkillCode.FindSet() then
+            repeat
+                SkillCodesList.Add(SkillCode.Code);
+                if (SkillCode."Invoice Resource No." <> '') and (not PlaceholderResourceNos.Contains(SkillCode."Invoice Resource No.")) then
+                    PlaceholderResourceNos.Add(SkillCode."Invoice Resource No.");
+            until SkillCode.Next() = 0;
+
+        if SkillCodesList.Count() = 0 then begin
+            Message(NoSkillCodesMsg);
+            exit;
+        end;
+
+        CommitBatchSize := 1000;
+
+        Resource.SetLoadFields("No.");
+        if Resource.FindSet() then
+            repeat
+                if not PlaceholderResourceNos.Contains(Resource."No.") then begin
+                    ResourceSkill.SetRange(Type, ResourceSkill.Type::Resource);
+                    ResourceSkill.SetRange("No.", Resource."No.");
+                    ResourceSkill.DeleteAll();
+
+                    ResourceSkill.Init();
+                    ResourceSkill.Type := ResourceSkill.Type::Resource;
+                    ResourceSkill."No." := Resource."No.";
+                    SkillIdx += 1;
+                    ResourceSkill."Skill Code" := SkillCodesList.Get(((SkillIdx - 1) mod SkillCodesList.Count()) + 1);
+                    ResourceSkill.Insert(true);
+                    RebalancedCount += 1;
+
+                    SinceLastCommit += 1;
+                    if SinceLastCommit >= CommitBatchSize then begin
+                        Commit();
+                        SinceLastCommit := 0;
+                    end;
+                end;
+            until Resource.Next() = 0;
+
+        Message(RebalanceResourceSkillsResultMsg, RebalancedCount, SkillCodesList.Count());
+    end;
+
+    /// <summary>
+    /// Seeds unassigned ("Requested") Day Planning demand across WeekStartDate's 7 days
+    /// (Mon..Sun), split into LinesPerDay lines per day. Round-robins SKILL first, then
+    /// resources WITHIN that skill second, so every Skill Code that has at least one resource
+    /// is guaranteed to actually appear in the created lines - not just whichever 1-2 skills
+    /// happen to dominate the first few resources in alphabetical order. (A first version of
+    /// this procedure round-robinned resources alphabetically only; confirmed live in the
+    /// NL_Copy20240710 sandbox that only surfaced 2 of the 4 Skill Codes, because pre-existing
+    /// resource-to-skill assignments were not evenly spread by name.) Skill is never left blank -
+    /// every line gets exactly the skill it was grouped under. Pure demand only: Assigned
+    /// Resource No./Assigned Hours are never touched, so nothing here is double-counted as
+    /// fulfilled.
+    ///
+    /// Sized proportionally to each day's own total Capacity (sum of that day's Res. Capacity
+    /// Entry rows, across all resources) rather than a flat number, so demand and capacity stay
+    /// comparable in magnitude regardless of which week this points at - same
+    /// percentage-of-the-other-side idea as BalanceCapacityToRequested above, just driving
+    /// Requested off Capacity instead of Assigned off Requested. A day with 0 Capacity gets 0
+    /// lines (nothing to be proportional to) rather than an arbitrary flat amount.
+    ///
+    /// Resource pool is every Resource with at least one Resource Skill row, EXCLUDING the same
+    /// Skill Code "Invoice Resource No." placeholders AssignVarietySkillsToUnskilledResources
+    /// excludes (found dynamically, not hardcoded) - those are invoice-only placeholders, not
+    /// real workers that should show up as Requested demand.
+    ///
+    /// Idempotent per week: first deletes any unassigned lines this same procedure previously
+    /// created for WeekStartDate's 7 days (same reused template Job No./Job Task No., blank
+    /// Assigned Resource No.) before recreating, so re-running - e.g. with a different
+    /// LinesPerDay/TargetPercentageOfCapacity - replaces the prior result instead of piling more
+    /// demand on top of it and silently breaking the "proportional to Capacity" target.
+    /// </summary>
+    procedure CreateVarietyRequestedDemandForWeek(WeekStartDate: Date; TargetPercentageOfCapacity: Decimal; LinesPerDay: Integer)
+    var
+        Resource: Record Resource;
+        ResourceSkill: Record "Resource Skill";
+        SkillCode: Record "Skill Code";
+        ResCapacityEntry: Record "Res. Capacity Entry";
+        DayPlanning: Record "Day Planning";
+        TemplateDayPlanning: Record "Day Planning";
+        PlaceholderResourceNos: List of [Code[20]];
+        EligibleSkills: List of [Code[10]];
+        ResourcesBySkill: Dictionary of [Code[10], List of [Code[20]]];
+        SkillResourceIdx: Dictionary of [Code[10], Integer];
+        ResourcesForSkill: List of [Code[20]];
+        CurSkill: Code[10];
+        ResNo: Code[20];
+        ResIdx: Integer;
+        DayOffset: Integer;
+        EntryDate: Date;
+        TotalCapacity: Decimal;
+        TargetTotalRequested: Decimal;
+        HoursPerLine: Decimal;
+        SkillIdx: Integer;
+        LineIdx: Integer;
+        CreatedCount: Integer;
+        DeletedCount: Integer;
+        SkippedNoCapacityDayCount: Integer;
+    begin
+        SkillCode.Reset();
+        if SkillCode.FindSet() then
+            repeat
+                if (SkillCode."Invoice Resource No." <> '') and (not PlaceholderResourceNos.Contains(SkillCode."Invoice Resource No.")) then
+                    PlaceholderResourceNos.Add(SkillCode."Invoice Resource No.");
+            until SkillCode.Next() = 0;
+
+        // Group every skilled, non-placeholder Resource by its Skill Code up front.
+        Resource.SetLoadFields("No.");
+        if Resource.FindSet() then
+            repeat
+                if not PlaceholderResourceNos.Contains(Resource."No.") then begin
+                    ResourceSkill.SetRange(Type, ResourceSkill.Type::Resource);
+                    ResourceSkill.SetRange("No.", Resource."No.");
+                    if ResourceSkill.FindFirst() then begin
+                        CurSkill := ResourceSkill."Skill Code";
+                        if not ResourcesBySkill.ContainsKey(CurSkill) then begin
+                            EligibleSkills.Add(CurSkill);
+                            Clear(ResourcesForSkill);
+                            ResourcesBySkill.Add(CurSkill, ResourcesForSkill);
+                        end;
+                        ResourcesForSkill := ResourcesBySkill.Get(CurSkill);
+                        ResourcesForSkill.Add(Resource."No.");
+                        ResourcesBySkill.Set(CurSkill, ResourcesForSkill);
+                    end;
+                end;
+            until Resource.Next() = 0;
+
+        if EligibleSkills.Count() = 0 then begin
+            Message(NoSkilledResourcesMsg);
+            exit;
+        end;
+
+        // Reuses an existing Job No./Job Task No. the same way CreateSkillDemand/
+        // BalanceCapacityToRequested do below - this repair report only ever targets test/demo
+        // data, so which real job the synthetic lines nominally belong to is not significant.
+        DayPlanning.Reset();
+        DayPlanning.SetFilter("Job No.", '<>%1', '');
+        if not DayPlanning.FindFirst() then begin
+            Message(NoTemplateJobTaskMsg);
+            exit;
+        end;
+        TemplateDayPlanning := DayPlanning;
+
+        DayPlanning.Reset();
+        DayPlanning.SetRange("Job No.", TemplateDayPlanning."Job No.");
+        DayPlanning.SetRange("Job Task No.", TemplateDayPlanning."Job Task No.");
+        DayPlanning.SetRange("Plan Date", WeekStartDate, WeekStartDate + 6);
+        DayPlanning.SetRange("Assigned Resource No.", '');
+        DeletedCount := DayPlanning.Count();
+        if DeletedCount > 0 then
+            DayPlanning.DeleteAll();
+
+        for DayOffset := 0 to 6 do begin
+            EntryDate := WeekStartDate + DayOffset;
+
+            ResCapacityEntry.Reset();
+            ResCapacityEntry.SetRange(Date, EntryDate);
+            ResCapacityEntry.CalcSums(Capacity);
+            TotalCapacity := ResCapacityEntry.Capacity;
+
+            if TotalCapacity <= 0 then
+                SkippedNoCapacityDayCount += 1
+            else begin
+                TargetTotalRequested := Round(TotalCapacity * TargetPercentageOfCapacity / 100, 0.01, '=');
+                HoursPerLine := Round(TargetTotalRequested / LinesPerDay, 0.01, '=');
+
+                if HoursPerLine > 0 then
+                    for LineIdx := 1 to LinesPerDay do begin
+                        SkillIdx += 1;
+                        CurSkill := EligibleSkills.Get(((SkillIdx - 1) mod EligibleSkills.Count()) + 1);
+                        ResourcesForSkill := ResourcesBySkill.Get(CurSkill);
+
+                        if not SkillResourceIdx.ContainsKey(CurSkill) then
+                            SkillResourceIdx.Add(CurSkill, 0);
+                        ResIdx := SkillResourceIdx.Get(CurSkill) + 1;
+                        SkillResourceIdx.Set(CurSkill, ResIdx);
+                        ResNo := ResourcesForSkill.Get(((ResIdx - 1) mod ResourcesForSkill.Count()) + 1);
+
+                        DayPlanning.Init();
+                        DayPlanning."Job No." := TemplateDayPlanning."Job No.";
+                        DayPlanning."Job Task No." := TemplateDayPlanning."Job Task No.";
+                        DayPlanning."Plan Date" := EntryDate;
+                        DayPlanning.GetNextDayLineNo();
+                        DayPlanning."Requested Resource No." := ResNo;
+                        DayPlanning.Skill := CurSkill;
+                        DayPlanning."Requested Hours" := HoursPerLine;
+                        DayPlanning.Insert();
+                        CreatedCount += 1;
+                    end;
+            end;
+        end;
+
+        Message(CreateVarietyRequestedDemandResultMsg, CreatedCount, WeekStartDate, WeekStartDate + 6, SkippedNoCapacityDayCount, DeletedCount, EligibleSkills.Count());
+    end;
+
+    /// <summary>
     /// Creates a single unassigned Day Planning line on PlanDate for SkillCode with the given
     /// Requested Hours, so codeunit 50662's BuildActiveSkillList picks up SkillCode as an active
     /// series again if it had none this week (a skill with 0 unassigned Requested Hours anywhere
@@ -445,4 +764,10 @@ report 50600 "RepairData"
         UndoInternalToExternalResultMsg: Label 'Cleared "Is External" on %1 Pool resource(s) and %2 Pool Member resource(s) (Vendor No. also cleared on the latter).';
         BalanceCapacityResultMsg: Label 'Added %2 Assigned Hours on %1 (now %3 total), to match %4 Requested Hours.';
         CreateSkillDemandResultMsg: Label 'Created %1 unassigned Requested Hours for skill %2 on %3.';
+        NoSkillCodesMsg: Label 'No Skill Code records exist - nothing to assign.';
+        AssignVarietySkillsResultMsg: Label 'Assigned a skill to %1 resource(s) (round-robin across %3 Skill Code(s)); skipped %2 resource(s) that already had one.';
+        RebalanceResourceSkillsResultMsg: Label 'Rebalanced %1 resource(s) to an even round-robin spread across %2 Skill Code(s), replacing whatever skill each had before.';
+        NoSkilledResourcesMsg: Label 'No Resource has a Skill assigned yet - run AssignVarietySkillsToUnskilledResources first.';
+        NoTemplateJobTaskMsg: Label 'No Day Planning line with a Job No. exists to reuse as a template - nothing was created.';
+        CreateVarietyRequestedDemandResultMsg: Label 'Created %1 Requested Day Planning line(s) for %2..%3 (proportional to each day''s Capacity, round-robin across %6 Skill Code(s)); %4 day(s) skipped for having 0 Capacity; %5 previously-created line(s) for this week replaced.';
 }
