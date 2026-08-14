@@ -134,6 +134,27 @@ page 50621 "DHX Scheduler (Project)"
 
                 #endregion new event added
 
+                #region Drag-create new Day Planning (BC Card, not the native DHTMLX lightbox)
+
+                // Fired by wrapper.js as soon as a drag-create gesture completes - the native
+                // lightbox is cancelled (per the user's requirement to always use the BC Day
+                // Planning Card instead), while the temp DHTMLX draft bar is left on the
+                // timeline until RefreshSchedule() below replaces it with the real bar (or
+                // removes it, if the Card was cancelled), so onEventAdded above is effectively
+                // dead for the drag-create path now (left in place since other code may still
+                // reference it; not this add-in's scope to remove). startDateIso's DATE portion
+                // sets Plan Date; both startDateIso/endDateIso's TIME portions prefill Start/End
+                // Time Requested on the Card. The drag is still constrained to a single day by
+                // construction: only startDateIso's date is ever used as the Plan Date, so a
+                // drag that crosses midnight doesn't create a multi-day record.
+                trigger OnDragCreateDayPlanning(sectionId: Text; startDateIso: Text; endDateIso: Text)
+                begin
+                    DHXDataHandler.DragCreateDayPlanningCard(sectionId, startDateIso, endDateIso);
+                    RefreshSchedule();
+                end;
+
+                #endregion Drag-create new Day Planning
+
                 #region Event Changes
                 trigger OnEventChanged(eventId: Text; eventData: Text)
                 var
@@ -238,7 +259,10 @@ page 50621 "DHX Scheduler (Project)"
                         'OpenTask':
                             DHXDataHandler.OpenJobTaskCardFromEventId(eventId);
                         'OpenDayPlanning':
-                            DHXDataHandler.OpenDayPlanning(eventId);
+                            begin
+                                DHXDataHandler.OpenDayPlanning(eventId);
+                                RefreshSchedule();
+                            end;
                         'OpenDayPlanningVisual':
                             DHXDataHandler.OpenDayPlanningVisual(eventId);
                         'OpenResourceSchedulerAssigned':

@@ -1692,6 +1692,96 @@ codeunit 50604 "DHX Data Handler"
         exit(rtv);
     end;
 
+    /// <summary>
+    /// Opens the "Day Planning Card" (page 50668) as a brand-new, NOT-YET-INSERTED record,
+    /// pre-filled with Job No./Job Task No. (from SectionId, format "JobNo|JobTaskNo" - same
+    /// key format the Task Scheduler's tree leaves and events already use), Plan Date (the
+    /// DATE portion of StartDateIso, an ISO datetime string from the drag-create gesture's
+    /// start instant - parsed/timezone-converted the same way OnEventChanged_Project above
+    /// does for its own start_date), and Start/End Time Requested (the TIME portions of
+    /// StartDateIso/EndDateIso respectively). Only StartDateIso's DATE is used for Plan Date;
+    /// a Day Planning is inherently single-day, so EndDateIso's date component (if the drag
+    /// happened to cross midnight) is discarded - only its time-of-day is kept.
+    ///
+    /// Three earlier attempts at "phantom new record, never Insert()'d" all failed, confirmed
+    /// live against a Job Task that already has real Day Planning history:
+    ///   1. Page.RunModal(ObjectId, Record-with-FilterGroup(2)-only) - opened blank (filters
+    ///      were never applied to the page's own query at all).
+    ///   2. A Page VARIABLE's SetTableView(Record-with-FilterGroup(2))+RunModal() - opened, but
+    ///      blank AND NOT EDITABLE (browsing an empty result set, not New mode).
+    ///   3. Init() + direct field assignment (Job No./Job Task No./a "guaranteed free" Day Line
+    ///      No. via GetNextDayLineNo()), never Insert()'d, passed straight to RunModal - this
+    ///      looked right, but RunModal(ObjectId, Record) turned out to always navigate to the
+    ///      nearest EXISTING row for whatever key was given rather than opening a genuinely
+    ///      blank one when ANY rows already exist for that Job No./Job Task No. - confirmed via
+    ///      the BC MCP tool: the Card silently showed a real, pre-existing Day Planning (real
+    ///      Skill/Resource/Plan Date, none of which this procedure ever set) instead of the
+    ///      blank new one intended. There is no "force New mode" switch for RunModal(ObjectId,
+    ///      Record) - that only happens via the framework's own "+ New" action internals, which
+    ///      calling this procedure doesn't go through.
+    ///
+    /// So: skip the phantom-record games entirely. Insert a REAL row (with a guaranteed-free
+    /// Day Line No. computed directly here, not via table 50610's own GetNextDayLineNo() -
+    /// deliberately not reused after attempt 3 called it and still got redirected to a
+    /// colliding existing row; computing it inline removes any doubt about what's actually
+    /// running), open the Card on that now-unambiguous key (RunModal has exactly one row to
+    /// find), and delete it again if the user didn't confirm the page with OK - the standard
+    /// "insert real, delete on cancel" idiom, more predictable here than fighting RunModal's
+    /// new-vs-navigate ambiguity.
+    /// </summary>
+    procedure DragCreateDayPlanningCard(SectionId: Text; StartDateIso: Text; EndDateIso: Text)
+    var
+        NewDayPlanning: Record "Day Planning";
+        LastDayPlanning: Record "Day Planning";
+        SectionParts: List of [Text];
+        JobNo: Code[20];
+        JobTaskNo: Code[20];
+        PlanDate: Date;
+        _DateTime: DateTime;
+        _DateTimeUserZone: DateTime;
+        _EndDateTime: DateTime;
+        _EndDateTimeUserZone: DateTime;
+        NewDayLineNo: Integer;
+    begin
+        SectionParts := SectionId.Split('|');
+        if SectionParts.Count() < 2 then
+            exit;
+        JobNo := CopyStr(SectionParts.Get(1), 1, MaxStrLen(JobNo));
+        JobTaskNo := CopyStr(SectionParts.Get(2), 1, MaxStrLen(JobTaskNo));
+        if (JobNo = '') or (JobTaskNo = '') then
+            exit;
+
+        if not Evaluate(_DateTime, StartDateIso) then
+            exit;
+        _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
+        PlanDate := DT2Date(_DateTimeUserZone);
+
+        LastDayPlanning.Reset();
+        LastDayPlanning.SetRange("Job No.", JobNo);
+        LastDayPlanning.SetRange("Job Task No.", JobTaskNo);
+        if LastDayPlanning.FindLast() then
+            NewDayLineNo := LastDayPlanning."Day Line No." + 10000
+        else
+            NewDayLineNo := 10000;
+
+        NewDayPlanning.Init();
+        NewDayPlanning."Job No." := JobNo;
+        NewDayPlanning."Job Task No." := JobTaskNo;
+        NewDayPlanning."Day Line No." := NewDayLineNo;
+        NewDayPlanning."Plan Date" := PlanDate;
+        NewDayPlanning."Start Time Requested" := DT2Time(_DateTimeUserZone);
+        if (EndDateIso <> '') and Evaluate(_EndDateTime, EndDateIso) then begin
+            _EndDateTimeUserZone := ConvertToUserTimeZone(_EndDateTime);
+            NewDayPlanning."End Time Requested" := DT2Time(_EndDateTimeUserZone);
+        end;
+        NewDayPlanning.Insert(true);
+        Commit();
+
+        if Page.RunModal(Page::"Day Planning Card Opt", NewDayPlanning) <> Action::LookupOK then
+            if NewDayPlanning.Get(JobNo, JobTaskNo, NewDayLineNo) then
+                NewDayPlanning.Delete(true);
+    end;
+
     procedure ConvertToUserTimeZone(UtcDateTime: DateTime): DateTime
     var
         TypeHelper: Codeunit "Type Helper";
