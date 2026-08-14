@@ -209,12 +209,20 @@ page 50600 "DHX Scheduler (Pool Resource)"
                     EventsJsonTxt: Text;
                     StartDate: Date;
                     EndDate: Date;
+                    Window: Dialog;
+                    LoadingLbl: Label 'Loading Capacity data...\n#1######################';
                 begin
+                    if GuiAllowed() then
+                        Window.Open(LoadingLbl);
                     if DHXDataHandler.GetDayPlanningAsResourcesAndEventsJSon_Resource(NavigateJson, False, ResourceJSONTxt, EventsJsonTxt) then begin
                         DHXDataHandler.GetStartEndDatesFromTimeLineJSon(NavigateJson, startDate, endDate);
+                        if GuiAllowed() then
+                            Window.Update(1, 'Rendering...');
                         CurrPage.DhxScheduler.RefreshTimeline(ResourceJSONTxt, EventsJsonTxt, startDate); //TODO: pass resourcesJson and eventsJson
                         AnchorDate := startDate;
                     end;
+                    if GuiAllowed() then
+                        Window.Close();
                 end;
                 #endregion Timeline Navigate
 

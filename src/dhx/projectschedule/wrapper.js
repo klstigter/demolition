@@ -12,6 +12,81 @@ var timelineEndHour = 24;         // end of the visible daily window (24 = midni
 // filter info (src/dhx/ganttdemo2/wrapper.js: _resourceFilterInfo / SetResourcePanelFilterInfo).
 var _taskFilterInfo = null;
 
+// Collapse/expand-all state for the tree timeline's folder rows (Job/Job Task
+// sections). Toggled by the icon at the top-left of the grid — mirrors
+// _allTasksCollapsed / ToggleCollapseExpandAll in src/dhx/ganttdemo2/wrapper.js.
+var _allSectionsCollapsed = false;
+
+// -------------------------------------------------------
+// Loading overlay - shown while a full data (re)load is in progress. Same
+// look/lifecycle as _loadingOverlay in src/dhx/ganttdemo2/wrapper.js: created
+// once in BOOT (earliest point this add-in's JS runs), shown again at the
+// start of every full reload entry point (Init/RefreshTimeline), hidden once
+// that reload cycle's own render is done (LoadData for the initial
+// Init->LoadData sequence, RefreshTimeline for subsequent reloads).
+// -------------------------------------------------------
+var _loadingOverlay = null;
+var _loadingSafetyTimer = null;
+
+function _createTskLoadingOverlay(host) {
+    if (_loadingOverlay) return;
+
+    var style = document.createElement("style");
+    style.textContent = [
+        "#tsk-loading-overlay {",
+        "  position:absolute; inset:0; z-index:100000;",
+        "  display:none; align-items:center; justify-content:center;",
+        "  background:rgba(255,255,255,0.35);",
+        "}",
+        "#tsk-loading-overlay .tlo-box {",
+        "  background:#fff; border:1px solid #d8d8d8; border-radius:6px;",
+        "  box-shadow:0 6px 24px rgba(0,0,0,0.25);",
+        "  padding:18px 26px; width:170px; text-align:center;",
+        "  font:13px/1.4 'Segoe UI', Tahoma, sans-serif;",
+        "}",
+        "#tsk-loading-overlay .tlo-bar {",
+        "  height:16px; border:1px solid #2f6fdb; border-radius:2px; overflow:hidden;",
+        "  margin-bottom:10px; background:#fff;",
+        "}",
+        "#tsk-loading-overlay .tlo-bar-fill {",
+        "  height:100%; width:200%;",
+        "  background-image: repeating-linear-gradient(-55deg, #2f6fdb 0 8px, #eaf1fd 8px 16px);",
+        "  animation: tlo-slide 0.9s linear infinite;",
+        "}",
+        "@keyframes tlo-slide { from { transform: translateX(-50%); } to { transform: translateX(0%); } }",
+        "#tsk-loading-overlay .tlo-title { color:#2f6fdb; font-weight:700; font-size:16px; letter-spacing:1px; }",
+        "#tsk-loading-overlay .tlo-sub { color:#8a8a8a; margin-top:2px; }"
+    ].join("\n");
+    document.head.appendChild(style);
+
+    var overlay = document.createElement("div");
+    overlay.id = "tsk-loading-overlay";
+    overlay.innerHTML =
+        '<div class="tlo-box">' +
+            '<div class="tlo-bar"><div class="tlo-bar-fill"></div></div>' +
+            '<div class="tlo-title">LOADING</div>' +
+            '<div class="tlo-sub">Please wait...</div>' +
+        '</div>';
+
+    if (!host.style.position) host.style.position = "relative";
+    host.appendChild(overlay);
+    _loadingOverlay = overlay;
+}
+
+function _showTskLoading() {
+    if (!_loadingOverlay) return;
+    _loadingOverlay.style.display = "flex";
+    // Safety fallback: never let the overlay get stuck forever if a reload cycle's hide
+    // call is never reached (e.g. an error earlier in the AL load sequence).
+    if (_loadingSafetyTimer) clearTimeout(_loadingSafetyTimer);
+    _loadingSafetyTimer = setTimeout(_hideTskLoading, 180000);
+}
+
+function _hideTskLoading() {
+    if (_loadingOverlay) _loadingOverlay.style.display = "none";
+    if (_loadingSafetyTimer) { clearTimeout(_loadingSafetyTimer); _loadingSafetyTimer = null; }
+}
+
 //<< Inject CSS to hide default tabs : Day, Week, Month **** 2025.12.24
 // Toggle helpers
 function SetDefaultTabsVisible(visible) {
@@ -199,11 +274,36 @@ window.BOOT = function() {
     #tsk-filter-toolbar {
         position: absolute;
         top: 6px;
-        left: 6px;
+        left: 34px;
         z-index: 70;
         display: flex;
         align-items: center;
         gap: 4px;
+    }
+    /* Collapse/Expand-all toggle icon — sits left of the filter toolbar, same
+       overlay approach (a DOM sibling of the scheduler's own markup, so it
+       survives internal re-renders). */
+    #tsk-collapseall-icon {
+        position: absolute;
+        top: 6px;
+        left: 6px;
+        z-index: 71;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        padding: 0;
+        border: none;
+        border-radius: 50%;
+        background: #5f6368;
+        cursor: pointer;
+    }
+    #tsk-collapseall-icon:hover {
+        background: #2f8bfb;
+    }
+    #tsk-collapseall-icon:active {
+        background: #1f6fe0;
     }
     /* Fixed body-level tooltip popup (never clipped by the grid's overflow:hidden) —
        same styling as the Gantt resource-panel filter tooltip for visual consistency. */
@@ -234,6 +334,11 @@ window.BOOT = function() {
     div.style.margin = "0";
     div.style.padding = "0";
     div.style.background = "lightgrey";
+
+    // Show immediately — earliest point this add-in's own JS runs, well before
+    // ControlReady/Init/LoadData ever fire.
+    _createTskLoadingOverlay(div);
+    _showTskLoading();
 
     var scheduler_element = document.createElement("div");
     scheduler_element.id = "scheduler_here";
@@ -799,6 +904,11 @@ function SetBarColors(colorsJson) {
 }
 
 function Init(dataelements, EarliestPlanningDate) {
+    // First JS call of the initial load cycle (ControlReady -> Init -> LoadData) — make sure
+    // the overlay is showing even if BOOT's own earliest-show got missed for some reason.
+    // Hidden at the end of LoadData(), the true last step of that cycle.
+    _showTskLoading();
+
     // Parse input safely (supports JSON string or object)
     let parsed = ParseJSonTxt(dataelements);
     // Always use an array for y_unit, even if empty
@@ -834,12 +944,15 @@ function Init(dataelements, EarliestPlanningDate) {
     // Wire the Job/Job Task filter toolbar now that scheduler DOM exists
     setupFilterToolbar();
 
+    // Wire the Collapse/Expand All icon now that the tree timeline exists
+    setupCollapseAllToggle();
+
     // Notify BC
     Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnAfterInit", []);
 }
 
 function LoadData(eventsJson) {
-    console.log("LoadData called with:", eventsJson);    
+    console.log("LoadData called with:", eventsJson);
     if (!scheduler_here) {
         console.warn("scheduler not initialized. Call Init() first.");
         return;
@@ -850,7 +963,7 @@ function LoadData(eventsJson) {
             console.error("DHX Scheduler library not loaded. Cannot load data.");
             return;
         }
-        
+
         scheduler.clearAll();
 
         // Always parse and validate events array
@@ -867,9 +980,13 @@ function LoadData(eventsJson) {
         if (events.length > 0) {
             scheduler.parse(events); // load events into scheduler
         }
-        
+
     } catch (err) {
         console.error("Unexpected error in LoadData:", err);
+    } finally {
+        // True last step of the initial load cycle (ControlReady -> Init -> LoadData) —
+        // always hide, even if parsing threw, so the overlay never gets stuck.
+        _hideTskLoading();
     }
 }
 
@@ -1017,6 +1134,10 @@ function RefreshTimeline(resourcesJson, eventsJson, dateAnchor) {
     console.log("resourcesJson:", resourcesJson);
     console.log("eventsJson:", eventsJson);
 
+    // Self-contained full reload cycle (sections + events + view in one shot) — show at the
+    // start, hide in the finally below so it never gets stuck even if something throws.
+    _showTskLoading();
+
     try {
         //debugger;
         // 1) Parse and update sections (y_unit)
@@ -1067,6 +1188,8 @@ function RefreshTimeline(resourcesJson, eventsJson, dateAnchor) {
 
     } catch (e) {
         console.error("RefreshTimeline failed:", e);
+    } finally {
+        _hideTskLoading();
     }
 }
 
@@ -1295,6 +1418,66 @@ function setupFilterToolbar() {
     root.appendChild(toolbar);
 
     _updateTaskFilterToolbar();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Collapse/Expand All (folder rows of the tree timeline)
+// ═══════════════════════════════════════════════════════════════
+function setupCollapseAllToggle() {
+    var root = document.getElementById('scheduler_here');
+    if (!root || root._collapseAllWired) return;
+    root._collapseAllWired = true;
+
+    var btn = document.createElement('button');
+    btn.id = 'tsk-collapseall-icon';
+    btn.type = 'button';
+    _renderCollapseAllIcon(btn);
+    btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        ToggleCollapseExpandAllSections();
+    });
+
+    root.appendChild(btn);
+}
+
+function _renderCollapseAllIcon(btn) {
+    var collapsed = _allSectionsCollapsed;
+    btn.title = collapsed ? 'Expand All' : 'Collapse All';
+    btn.innerHTML = collapsed
+        ? '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>'
+        : '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M10 14l-7 7"/></svg>';
+}
+
+// Sets open/closed on every folder node of the tree timeline (recursively,
+// via the y_unit_original tree the treetimeline plugin keeps internally) and
+// forces a redraw. Same idea as gantt.eachTask(...)+gantt.render() in
+// src/dhx/ganttdemo2/wrapper.js's ToggleCollapseExpandAll, adapted to the
+// dhtmlx Scheduler's tree API (_getArrayToDisplay flattens y_unit_original
+// into the visible y_unit; onOptionsLoad is what the library itself fires
+// after a folder toggle to trigger the matching re-render).
+function ToggleCollapseExpandAllSections() {
+    if (typeof scheduler === "undefined" || !scheduler.matrix || !scheduler.matrix.timeline ||
+        !scheduler.matrix.timeline.y_unit_original) {
+        return;
+    }
+
+    _allSectionsCollapsed = !_allSectionsCollapsed;
+    var open = !_allSectionsCollapsed;
+
+    (function setOpen(nodes) {
+        for (var i = 0; i < nodes.length; i++) {
+            if (nodes[i].children) {
+                nodes[i].open = open;
+                setOpen(nodes[i].children);
+            }
+        }
+    })(scheduler.matrix.timeline.y_unit_original);
+
+    scheduler.matrix.timeline.y_unit = scheduler._getArrayToDisplay(scheduler.matrix.timeline.y_unit_original);
+    scheduler.callEvent("onOptionsLoad", []);
+
+    var btn = document.getElementById('tsk-collapseall-icon');
+    if (btn) _renderCollapseAllIcon(btn);
 }
 
 function _positionTskFilterTooltip(e) {

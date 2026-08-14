@@ -25,9 +25,20 @@ page 50621 "DHX Scheduler (Project)"
                     ResourceJSONTxt: Text;
                     ColorsJsonTxt: Text;
                     HasSetup: Boolean;
+                    Window: Dialog;
+                    LoadingLbl: Label 'Loading Task Scheduler data...\n#1######################';
                 begin
+                    // Control add-in JS calls only actually run in the browser once this whole AL
+                    // trigger returns to the client, so this native Dialog is what can show progress
+                    // while the JSON payload below is being built server-side (mirrors LoadAllData in
+                    // src/dhx/ganttdemo2/page_50620_GanttDemo.al).
+                    if GuiAllowed() then
+                        Window.Open(LoadingLbl);
+
                     //DHXDataHandler.GetOneYearPeriodDates(Today(), startDate, endDate);
                     DHXDataHandler.GetWeekPeriodDates(Today(), startDate, endDate);
+                    if GuiAllowed() then
+                        Window.Update(1, 'Day Plannings...');
                     if jobFilter <> '' then
                         DHXDataHandler.GetDayPlanningAsResourcesAndEventsJSon_Project_StartEnd(
                             startDate, endDate, jobFilter, JobTaskFilter,
@@ -41,6 +52,8 @@ page 50621 "DHX Scheduler (Project)"
                         CurrPage.DhxScheduler.SetTimelineHourStep(DayPlanningBarSetup."Timeline Hour Step");
                     if HasSetup and (DayPlanningBarSetup."Timeline End Hour" > 0) then
                         CurrPage.DhxScheduler.SetTimelineHourRange(DayPlanningBarSetup."Timeline Start Hour", DayPlanningBarSetup."Timeline End Hour");
+                    if GuiAllowed() then
+                        Window.Update(1, 'Rendering...');
                     CurrPage.DhxScheduler.Init(ResourceJSONTxt, EarliestPlanningDate);
                     if HasSetup then
                         if (DayPlanningBarSetup."Envelope Color" <> '') or
@@ -62,6 +75,9 @@ page 50621 "DHX Scheduler (Project)"
                     CurrPage.DhxScheduler.LoadData(PlanninJsonTxt);
                     CurrPage.DhxScheduler.SetTaskFilterInfo(jobFilter, JobTaskFilter, Format(startDate, 0, '<Year4>-<Month,2>-<Day,2>'), Format(endDate, 0, '<Year4>-<Month,2>-<Day,2>'));
                     AnchorDate := startDate;
+
+                    if GuiAllowed() then
+                        Window.Close();
                 end;
 
                 #endregion Init and Load Data on Control Ready
@@ -174,12 +190,22 @@ page 50621 "DHX Scheduler (Project)"
                     EventsJsonTxt: Text;
                     StartDate: Date;
                     EndDate: Date;
+                    Window: Dialog;
+                    LoadingLbl: Label 'Loading Task Scheduler data...\n#1######################';
                 begin
+                    if GuiAllowed() then
+                        Window.Open(LoadingLbl);
+                    if GuiAllowed() then
+                        Window.Update(1, 'Day Plannings...');
                     if DHXDataHandler.GetDayPlanningAsResourcesAndEventsJSon_Project(NavigateJson, ResourceFilter, ResourceJSONTxt, EventsJsonTxt) then begin
                         DHXDataHandler.GetStartEndDatesFromTimeLineJSon(NavigateJson, startDate, endDate);
+                        if GuiAllowed() then
+                            Window.Update(1, 'Rendering...');
                         CurrPage.DhxScheduler.RefreshTimeline(ResourceJSONTxt, EventsJsonTxt, startDate); //TODO: pass resourcesJson and eventsJson
                         AnchorDate := startDate;
                     end;
+                    if GuiAllowed() then
+                        Window.Close();
                 end;
                 #endregion Timeline Navigate
 
@@ -405,8 +431,15 @@ page 50621 "DHX Scheduler (Project)"
         ResourceJSONTxt: Text;
         EventsJsonTxt: Text;
         EarliestPlanningDate: Date;
+        Window: Dialog;
+        LoadingLbl: Label 'Loading Task Scheduler data...\n#1######################';
     begin
+        if GuiAllowed() then
+            Window.Open(LoadingLbl);
+
         DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
+        if GuiAllowed() then
+            Window.Update(1, 'Day Plannings...');
         if jobFilter <> '' then
             DHXDataHandler.GetDayPlanningAsResourcesAndEventsJSon_Project_StartEnd(startDate,
                                                                           endDate,
@@ -422,8 +455,13 @@ page 50621 "DHX Scheduler (Project)"
                                                                           ResourceJSONTxt,
                                                                           EventsJsonTxt,
                                                                           EarliestPlanningDate);
+        if GuiAllowed() then
+            Window.Update(1, 'Rendering...');
         CurrPage.DhxScheduler.RefreshTimeline(ResourceJSONTxt, EventsJsonTxt, startDate);
         CurrPage.DhxScheduler.SetTaskFilterInfo(jobFilter, JobTaskFilter, Format(startDate, 0, '<Year4>-<Month,2>-<Day,2>'), Format(endDate, 0, '<Year4>-<Month,2>-<Day,2>'));
+
+        if GuiAllowed() then
+            Window.Close();
     end;
 
     procedure SetResourceFilter(pResourceFilter: Text)
