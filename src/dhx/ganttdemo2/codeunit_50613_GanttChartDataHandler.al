@@ -191,6 +191,7 @@ codeunit 50613 "GanttChartDataHandler"
         GanttDuration: Integer;
         EffectiveStartDate: Date;
         EffectiveEndDate: Date;
+        ConstraintTypeText: Text;
     begin
 
         GetEffectivePeriod(JobTask, EffectiveStartDate, EffectiveEndDate);
@@ -223,6 +224,21 @@ codeunit 50613 "GanttChartDataHandler"
         JsonObject.Add('bcJobTaskNo', JobTask."Job Task No.");
         SchedulingTypeText := GetSchedulingTypeText(JobTask."Scheduling Type");
         JsonObject.Add('schedulingType', SchedulingTypeText);
+
+        // "Constraint Type" always carries a value (InitValue = ASAP - see tableext 50605's
+        // UpdateConstraintCalcDates comment), so it isn't a reliable "is a constraint populated"
+        // signal on its own. Gate on "Constraint Date" instead, same as the rest of the constraint
+        // logic does. Format() on an enum returns its Caption (human-readable text), not its Name.
+        // NOTE: bcConstraintType/bcConstraintDate/bcMaxDuration are distinct from DHTMLX's own
+        // built-in constraint_type/constraint_date auto-scheduling keys used elsewhere in this
+        // pipeline (codeunit 50616, wrapper.js) - do not conflate the two.
+        if JobTask."Constraint Date" <> 0D then
+            ConstraintTypeText := Format(JobTask."Constraint Type")
+        else
+            ConstraintTypeText := '';
+        JsonObject.Add('bcConstraintType', ConstraintTypeText);
+        JsonObject.Add('bcConstraintDate', FormatDate(JobTask."Constraint Date"));
+        JsonObject.Add('bcMaxDuration', JobTask."Max Duration");
 
         JsonObject.Add('progress', JobTask."Progress" / 100); // Convert percentage to a value between 0 and 1
 

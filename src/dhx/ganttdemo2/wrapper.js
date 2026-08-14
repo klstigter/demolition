@@ -657,16 +657,12 @@ window.BOOT = function() {
     };
 
     gantt.templates.tooltip_text = function(start, end, task) {
-      let constraintText = "—";
-
-      if (task.constraint_type) {
-        if (task.constraint_date) {
-          constraintText =
-            `${task.constraint_type} (${gantt.templates.date_grid(task.constraint_date)})`;
-        } else {
-          constraintText = task.constraint_type;
-        }
-      }
+      // bcConstraintType/bcConstraintDate/bcMaxDuration come from the Job Task's own
+      // "Constraint Type"/"Constraint Date"/"Max Duration" fields (tableext 50605) - the BC
+      // business constraint, NOT dhtmlx's own constraint_type/constraint_date (that's a separate,
+      // still-incomplete auto-scheduling feature - see codeunit_50616 - and must not be confused
+      // with these).
+      const constraintDate = _toGanttDate(task.bcConstraintDate);
 
       // task.end_date is DHTMLX's internal EXCLUSIVE end (start_date + duration days) - one
       // day past the task's actual last working day, needed for correct bar-width/duration math.
@@ -681,7 +677,9 @@ window.BOOT = function() {
         Task: ${task.bcJobTaskNo || "-"}<br/>
         Period: ${task.start_date ? gantt.templates.date_grid(task.start_date) : "-"} - ${displayEndDate ? gantt.templates.date_grid(displayEndDate) : "-"}<br/>
         <hr/>
-        Constraint: ${constraintText}
+        Constraint: ${task.bcConstraintType || "-"}<br/>
+        Constraint Date: ${constraintDate ? gantt.templates.date_grid(constraintDate) : "-"}<br/>
+        Max Duration: ${task.bcMaxDuration ? task.bcMaxDuration + " days" : "-"}
       `;
     };
 
