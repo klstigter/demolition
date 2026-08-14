@@ -194,33 +194,6 @@ report 50661 "Set Capacity opt."
                         LookupPageID = "Work-Hour Templates";
                         TableRelation = "Work-Hour Template";
                         ToolTip = 'Specifies the work-hour template applied uniformly to every resource processed by this run.';
-
-                        trigger OnValidate()
-                        begin
-                            ApplyWorkTemplateDefaults();
-                        end;
-                    }
-                    field(fldStartTime; StartTime)
-                    {
-                        ApplicationArea = All;
-                        Caption = 'Start Time';
-                        ToolTip = 'Specifies the default start time for the resource working hours. Overrides the Work-Hour Template''s per-weekday hours when set together with End Time.';
-
-                        trigger OnValidate()
-                        begin
-                            UseCustomTimes := true;
-                        end;
-                    }
-                    field(fldEndTime; EndTime)
-                    {
-                        ApplicationArea = All;
-                        Caption = 'End Time';
-                        ToolTip = 'Specifies the default end time for the resource working hours. Overrides the Work-Hour Template''s per-weekday hours when set together with Start Time.';
-
-                        trigger OnValidate()
-                        begin
-                            UseCustomTimes := true;
-                        end;
                     }
                     field(fldNoOfDuplicates; NoOfDuplicates)
                     {
@@ -245,11 +218,9 @@ report 50661 "Set Capacity opt."
             Mandatory := true;
             ResourceTypeFilter := ResourceTypeFilter::All;
             NoOfDuplicates := 1;
-            UseCustomTimes := false;
 
             if DailyOptimizerSetup.Get() and (DailyOptimizerSetup."Work hour Template" <> '') then begin
                 WorkTemplateCode := DailyOptimizerSetup."Work hour Template";
-                ApplyWorkTemplateDefaults();
             end;
         end;
     }
@@ -262,11 +233,11 @@ report 50661 "Set Capacity opt."
         WorkTemplateCode: Code[10];
         StartDate: Date;
         EndDate: Date;
-        StartTime: Time;
-        EndTime: Time;
+        // StartTime: Time;
+        // EndTime: Time;
         NoOfDuplicates: Integer;
         Mandatory: Boolean;
-        UseCustomTimes: Boolean;
+        //UseCustomTimes: Boolean;
         ResourcesChanged: Integer;
         TotalChangedDays: Integer;
         ResourceTypeFilter: Option All,Internal,External;
@@ -281,16 +252,6 @@ report 50661 "Set Capacity opt."
 #pragma warning restore AA0470
         Text008: Label 'No resources were changed.';
 #pragma warning restore AA0074
-
-    local procedure ApplyWorkTemplateDefaults()
-    var
-        WorkTemplateRec: Record "Work-Hour Template";
-    begin
-        if WorkTemplateRec.Get(WorkTemplateCode) then begin
-            StartTime := WorkTemplateRec."Default Start Time";
-            EndTime := WorkTemplateRec."Default End Time";
-        end;
-    end;
 
     local procedure IsExternalResource(var Resource: Record Resource): Boolean
     begin
@@ -365,13 +326,10 @@ report 50661 "Set Capacity opt."
             if Holiday then
                 NewCapacity := 0
             else
-                if UseCustomTimes and (StartTime <> 0T) and (EndTime <> 0T) then
-                    NewCapacity := (EndTime - StartTime) / 3600000
+                if HasWorkTemplate then
+                    NewCapacity := SelectCapacity(WorkTemplateRec, TempDate)
                 else
-                    if HasWorkTemplate then
-                        NewCapacity := SelectCapacity(WorkTemplateRec, TempDate)
-                    else
-                        NewCapacity := 0;
+                    NewCapacity := 0;
 
             if NewCapacity <> 0 then begin
                 for LoopCounter := 1 to NoOfDuplicates do begin
@@ -395,13 +353,7 @@ report 50661 "Set Capacity opt."
                     ResCapacityEntry2."Duplicate Id" := LoopCounter;
 
                     //<< Same as page 50627's UpdateCapacity action
-                    if UseCustomTimes and (StartTime <> 0T) then begin
-                        ResCapacityEntry2."Start Time" := StartTime;
-                        if EndTime <> 0T then
-                            ResCapacityEntry2."End Time" := EndTime
-                        else
-                            ResCapacityEntry2."End Time" := StartTime + (Abs(ResCapacityEntry2.Capacity) * 3600000);
-                    end else if HasWorkTemplate then begin
+                    if HasWorkTemplate then begin
                         if WorkTemplateRec."Default Start Time" <> 0T then begin
                             ResCapacityEntry2."Start Time" := WorkTemplateRec."Default Start Time";
                             if WorkTemplateRec."Default End Time" <> 0T then
