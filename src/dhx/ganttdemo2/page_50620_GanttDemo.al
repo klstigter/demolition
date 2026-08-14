@@ -246,6 +246,9 @@ page 50620 "Gantt Demo DHX 2"
                 trigger OnJobTaskUpdated(eventData: Text)
                 var
                     GantUpdatedata: Codeunit "Gantt Update Data";
+                    TypeHelper: Codeunit "Type Helper";
+                    PreviewWasCancelledByUser: Boolean;
+                    PreviewCancelledMsg: Text;
                 begin
                     // Guard: RenderGantt(true) suppresses only the first onAfterTaskUpdate
                     // in JS; a second event (e.g. from auto-scheduling cascade) still fires
@@ -257,10 +260,27 @@ page 50620 "Gantt Demo DHX 2"
 
                     // UpdateJobTaskFromJson returns false when the user closed the
                     // DayPlanning Period Sync Preview popup without clicking Apply Changes
-                    // (OnClosePage fires on the preview page, Applied stays false).
-                    // In that case reload task + link data so the Gantt bar reverts to
-                    // the original DB position instead of staying at the dragged spot.
-                    if not GantUpdatedata.UpdateJobTaskFromJson(eventData) then begin
+                    // (OnClosePage fires on the preview page, Applied stays false) - flagged
+                    // via PreviewWasCancelledByUser - or for an unrelated hard failure (invalid
+                    // JSON, Job Task not found). Only the former offers the user a choice to
+                    // still update the Job Task's own Planned Start/End Date without the
+                    // Day Planning changes; any other failure just reverts, as before.
+                    if not GantUpdatedata.UpdateJobTaskFromJson(eventData, PreviewWasCancelledByUser) then begin
+                        if PreviewWasCancelledByUser then begin
+                            // AL Label literals do NOT treat \n as a newline escape (it leaves a
+                            // stray literal "n" behind) - TypeHelper.CRLFSeparator() is the correct
+                            // way to insert a real line break into a Confirm/Message string.
+                            PreviewCancelledMsg :=
+                                'You closed the DayPlanning Period Change Preview without clicking Apply Changes, so the proposed Day Planning updates will not be saved.' +
+                                TypeHelper.CRLFSeparator() + TypeHelper.CRLFSeparator() +
+                                'Do you still want to update this task''s Planned Start Date and Planned End Date to match what you dragged in the Gantt chart?' +
+                                TypeHelper.CRLFSeparator() + TypeHelper.CRLFSeparator() +
+                                'Choose No to revert the task bar to its original size.';
+                            if Confirm(PreviewCancelledMsg, false) then
+                                if not GantUpdatedata.TryApplyPlannedDatesOnly(eventData) then
+                                    Message(GetLastErrorText());
+                        end;
+
                         PreviewCancelled := true; // absorb the RenderGantt re-entry event
                         LoadTaskData();
                         LoadLinkData();
@@ -1442,13 +1462,11 @@ page 50620 "Gantt Demo DHX 2"
         JobTaskNo: Code[20];
         StartDateTxt: Text;
         EndDateTxt: Text;
-        DurationTxt: Text;
         ConstraintDateTxt: Text;
         SchedulingTypeTxt: Text;
         Description: Text[100];
         StartDate: Date;
         EndDate: Date;
-        Duration: Integer;
         ConstraintDate: Date;
     begin
         // Parse the JSON
@@ -1495,14 +1513,6 @@ page 50620 "Gantt Demo DHX 2"
             end;
         end;
 
-        // Extract and update Duration
-        if JsonObj.Get('duration', JsonToken) then begin
-            Duration := JsonToken.AsValue().AsInteger();
-            if (JobTask.PlannedStartDate <> 0D) and (Duration > 0) then begin
-                JobTask.PlannedEndDate := JobTask.PlannedStartDate + Duration;
-            end;
-        end;
-
         // Extract and update Scheduling Type
         if JsonObj.Get('schedulingType', JsonToken) then begin
             SchedulingTypeTxt := JsonToken.AsValue().AsText();
@@ -1530,36 +1540,22 @@ page 50620 "Gantt Demo DHX 2"
 
     local procedure ParseDate(DateText: Text) ParsedDate: Date
     var
-        Day: Integer;
-        Month: Integer;
         Year: Integer;
-        DayTxt: Text;
-        MonthTxt: Text;
-        YearTxt: Text;
-        DashPos1: Integer;
-        DashPos2: Integer;
+        Month: Integer;
+        Day: Integer;
+        Parts: List of [Text];
     begin
+        // Accepts  YYYY-MM-DD  (ISO format used by dhtmlx, gantt.config.date_format = "%Y-%m-%d")
         if DateText = '' then
             exit(0D);
 
-        // Parse format: dd-MM-yyyy
-        DashPos1 := StrPos(DateText, '-');
-        if DashPos1 = 0 then
+        Parts := DateText.Split('-');
+        if Parts.Count <> 3 then
             exit(0D);
 
-        DayTxt := CopyStr(DateText, 1, DashPos1 - 1);
-        DateText := CopyStr(DateText, DashPos1 + 1);
-
-        DashPos2 := StrPos(DateText, '-');
-        if DashPos2 = 0 then
-            exit(0D);
-
-        MonthTxt := CopyStr(DateText, 1, DashPos2 - 1);
-        YearTxt := CopyStr(DateText, DashPos2 + 1);
-
-        Evaluate(Day, DayTxt);
-        Evaluate(Month, MonthTxt);
-        Evaluate(Year, YearTxt);
+        if not Evaluate(Year, Parts.Get(1)) then exit(0D);
+        if not Evaluate(Month, Parts.Get(2)) then exit(0D);
+        if not Evaluate(Day, Parts.Get(3)) then exit(0D);
 
         ParsedDate := DMY2Date(Day, Month, Year);
     end;

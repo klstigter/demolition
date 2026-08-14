@@ -631,8 +631,11 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
         TempPreviewBuffer: Record "DayPlanning Sync PreviewBuff" temporary;
         PreviewPage: Page "DayPlanning PeriodSyncPreview";
     begin
-        if not CalculateChanges(JobTask."Job No.", JobTask."Job Task No.", OldStart, OldEnd, JobTask.PlannedStartDate, JobTask.PlannedEndDate, TempPreviewBuffer) then
+        if not CalculateChanges(JobTask."Job No.", JobTask."Job Task No.", OldStart, OldEnd, JobTask.PlannedStartDate, JobTask.PlannedEndDate, TempPreviewBuffer) then begin
+            if not SkipJobTaskModify then
+                JobTask.Modify(true);
             exit(true);
+        end;
         if SkipJobTaskModify then
             exit(true); // No DayPlannings affected; the calling page handles the JobTask persist.
 
