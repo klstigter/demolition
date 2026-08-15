@@ -43,6 +43,15 @@ page 50665 "Opti Week Pattern Card"
 
                 }
             }
+            part(DayPatternDialog; "Opti Week Pattern Dialog Sub")
+            {
+                ApplicationArea = All;
+                Caption = 'Daily';
+
+                //SubPageLink = "Week Pattern Code" = field("Week Pattern Code");
+                UpdatePropagation = Both;
+            }
+
             part(DailyPatterns; "Opti Week Pattern Lines")
             {
                 ApplicationArea = All;
@@ -89,6 +98,14 @@ page 50665 "Opti Week Pattern Card"
             }
         }
     }
+
+    trigger OnafterGetCurrRecord()
+    var
+        TempWeekPatternBuffer: Record "Opti Week Pattern Dialog" temporary;
+    begin
+        FillTempWeekPatternBuffer(TempWeekPatternBuffer);
+        CurrPage.DayPatternDialog.page.LoadDataSet(TempWeekPatternBuffer);
+    end;
 
     local procedure RunDialogAndApply()
     var
