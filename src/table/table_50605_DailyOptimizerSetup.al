@@ -8,10 +8,10 @@ table 50605 "Daily Optimizer Setup"
         {
             Caption = 'Primary Key';
         }
-        field(10; "Work hour Template"; Code[10])
+        field(10; "Work Pattern"; Code[20])
         {
             DataClassification = CustomerContent;
-            Caption = 'Work Hour Template';
+            Caption = 'Work Pattern';
             TableRelation = "Work-Hour Template";
         }
         field(15; "Base Calendar"; Code[10])

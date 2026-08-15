@@ -445,11 +445,11 @@ page 50627 "Resource Capacity Settings Opt"
         DailyOptimizerSetup: Record "Daily Optimizer Setup";
         DefaultTemplateCode: Code[10];
     begin
-        if Rec."Work Hour Template" <> '' then
-            DefaultTemplateCode := CopyStr(Rec."Work Hour Template", 1, MaxStrLen(DefaultTemplateCode))
+        if Rec."Week Pattern" <> '' then
+            DefaultTemplateCode := CopyStr(Rec."Week Pattern", 1, MaxStrLen(DefaultTemplateCode))
         else
             if DailyOptimizerSetup.Get() then
-                DefaultTemplateCode := DailyOptimizerSetup."Work hour Template";
+                DefaultTemplateCode := DailyOptimizerSetup."Work Pattern";
 
         if DefaultTemplateCode <> '' then begin
             WorkTemplateCode := DefaultTemplateCode;

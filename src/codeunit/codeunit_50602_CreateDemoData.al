@@ -200,7 +200,7 @@ codeunit 50602 "Create Demo Data"
         end;
 
         Setup."Base Calendar" := CalendarCode;
-        Setup."Work hour Template" := 'BASIS';
+        Setup."Work Pattern" := 'BASIS';
         Setup."Default Skill" := 'ELEKTR';
         Setup."Order Intake Nos" := 'OI';
         Setup."Work Order Nos" := 'WO';
@@ -1405,7 +1405,7 @@ codeunit 50602 "Create Demo Data"
         Res."Gen. Prod. Posting Group" := GetNextGenProdPostingGroup();
         Res."VAT Prod. Posting Group" := GetNextVATProdPostingGroup();
         Res."Resource Group No." := GetNextResourceGroup();
-        Res."Work Hour Template" := gWorkHoursTemplate.Code;
+        Res."Week Pattern" := gWorkHoursTemplate.Code;
         if (not Res."Is Pool") and (not Res."Is External") then
             // ~60% Mandatory Schedulling = true, ~40% = false
             Res."Mandatory Schedulling" := (Random(100) <= 60);

@@ -259,7 +259,7 @@ page 50601 "Opti Resource List"
                         StyleExpr = Stylexp;
 
                     }
-                    field("Work Hour Template"; Rec."Work Hour Template")
+                    field("Work Hour Template"; Rec."Week Pattern")
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Specifies the work hour template that is assigned to the resource.';

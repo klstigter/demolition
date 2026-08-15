@@ -19,7 +19,7 @@ page 50654 "Daily Optimizer Setup"
                 {
                     ApplicationArea = All;
                 }
-                field("Work hour Template"; Rec."Work hour Template")
+                field("Work hour Template"; Rec."Work Pattern")
                 {
                     ApplicationArea = All;
                 }

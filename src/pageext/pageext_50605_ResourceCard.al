@@ -5,7 +5,7 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
         // Add changes to page layout here
         addafter("Default Deferral Template Code")
         {
-            field("Work Hour Template"; Rec."Work Hour Template")
+            field("Work Hour Template"; Rec."Week Pattern")
             {
                 ApplicationArea = All;
             }

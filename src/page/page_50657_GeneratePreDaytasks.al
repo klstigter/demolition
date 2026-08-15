@@ -231,7 +231,7 @@ page 50657 "Generate Pre DayPlannings"
 
         // Load defaults from Daily Optimizer Setup (table 50605)
         if Setup.Get() then begin
-            Rec."Work-Hour Template" := Setup."Work hour Template";
+            Rec."Work-Hour Template" := Setup."Work Pattern";
             Rec."Base Calendar" := Setup."Base Calendar";
 
             // Populate start/end times from the work-hour template

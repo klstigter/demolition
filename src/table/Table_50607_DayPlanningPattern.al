@@ -35,8 +35,8 @@ table 50607 "Day Planning Pattern"
                 ResourceSkill: Record "Resource Skill";
             begin
                 if Res.Get("Resource No.") then begin
-                    if Res."Work Hour Template" <> '' then
-                        Rec.Validate("Work-Hour Template", Res."Work Hour Template");
+                    if Res."Week Pattern" <> '' then
+                        Rec.Validate("Work-Hour Template", Res."Week Pattern");
                     ResourceSkill.SetRange(Type, ResourceSkill.Type::Resource);
                     ResourceSkill.SetRange("No.", "Resource No.");
                     ResourceSkill.SetRange(Prefered, true);

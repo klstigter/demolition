@@ -81,7 +81,7 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
         if JobTask.Get(JobNo, JobTaskNo) then
             EffectiveWorkHourTemplate := JobTask."Work Hour Template";
         if EffectiveWorkHourTemplate = '' then
-            EffectiveWorkHourTemplate := DailyOptimizerSetup."Work hour Template";
+            EffectiveWorkHourTemplate := DailyOptimizerSetup."Work Pattern";
 
         // ── Pass 1 — compute the naive (flat offset/clamp) target date for every
         // distinct original Task Date in range, exactly as the old scenario logic did. ──

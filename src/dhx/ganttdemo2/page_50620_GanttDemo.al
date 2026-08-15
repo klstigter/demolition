@@ -379,8 +379,8 @@ page 50620 "Gantt Demo DHX 2"
                         if Prefix = 'VEN-' then
                             DayPlanning.Validate("Vendor No.", ResourceCode);
                     DayPlanning."Plan Status" := DayPlanning."Plan Status"::"In Request";
-                    if OptiSetup."Work hour Template" <> '' then begin
-                        WorkHourTemplate.Get(OptiSetup."Work hour Template");
+                    if OptiSetup."Work Pattern" <> '' then begin
+                        WorkHourTemplate.Get(OptiSetup."Work Pattern");
                         DayPlanning."Non Working Minutes Assigned" := WorkHourTemplate."Non Working Minutes";
                         DayPlanning.Validate("Start Time Requested", WorkHourTemplate."Default Start Time");
                         DayPlanning.Validate("End Time Requested", WorkHourTemplate."Default End Time");

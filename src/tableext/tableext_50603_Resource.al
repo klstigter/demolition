@@ -241,11 +241,11 @@ tableextension 50603 "Resource Opt" extends Resource
             CalcFormula = Lookup(Resource.Name Where("No." = field("Default Foreman")));
             Editable = false;
         }
-        field(50640; "Work Hour Template"; Code[20])
+        field(50640; "Week Pattern"; Code[20])
         {
             DataClassification = ToBeClassified;
             Caption = 'Work Hour Template';
-            TableRelation = "Work-Hour Template";
+            TableRelation = "Opti week pattern header"."Week Pattern Code";
         }
 
     }

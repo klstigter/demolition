@@ -133,7 +133,7 @@ page 50639 "Day Planning Pattern"
         if xRec.SkillsRequired = '' then begin // first new record
 
             DailyOptimizerSetup.Get();
-            Rec.Validate("Work-Hour Template", DailyOptimizerSetup."Work hour Template");
+            Rec.Validate("Work-Hour Template", DailyOptimizerSetup."Work Pattern");
             Rec.SkillsRequired := DailyOptimizerSetup."Default Skill";
             Rec."Quantity of Lines" := 1;
             if WorkOrderNoFilter <> '' then begin
