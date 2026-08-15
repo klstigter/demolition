@@ -88,7 +88,7 @@ page 50696 "Opti Resource Capacity Weeks"
                 }
 
             }
-            part(CapacityDialogs; "Opti Week Capacity Dialogs")
+            part(CapacityDialogs; "Opti Week Capacity Dialogs Sub")
             {
                 ApplicationArea = All;
                 SubPageLink = "Resource No." = field("Resource No."),
@@ -130,37 +130,45 @@ page 50696 "Opti Resource Capacity Weeks"
                         false);
                 end;
             }
-            // action(EditWeek)
-            // {
-            //     //action(EditWeek)
+            action(EditWeek)
+            {
 
-            //     ApplicationArea = All;
-            //     Caption = 'Edit Week';
-            //     Image = EditLines;
-            //     ToolTip = 'Edit the capacity time slots for the selected resource and week.';
+                ApplicationArea = All;
+                Caption = 'Edit Week';
+                Image = EditLines;
+                ToolTip = 'Edit the capacity time slots for the selected resource and week.';
 
-            //     trigger OnAction()
-            //     var
-            //         ResourceWeekEdit: Page "Opti Resource Week Edit";
-            //     begin
-            //         Rec.TestField("Resource No.");
-            //         Rec.TestField("Week Start Date");
+                trigger OnAction()
+                var
+                    ResourceWeekEdit: Page "Opti Resource Week Edit";
+                begin
+                    Rec.TestField("Resource No.");
+                    Rec.TestField("Week Start Date");
 
-            //         ResourceWeekEdit.SetWeek(
-            //             Rec."Resource No.",
-            //             Rec."Week Start Date");
-            //         ResourceWeekEdit.LookupMode := true;
-            //         ResourceWeekEdit.RunModal();
+                    ResourceWeekEdit.SetWeek(
+                        Rec."Resource No.",
+                        Rec."Week Start Date");
+                    ResourceWeekEdit.LookupMode := true;
+                    ResourceWeekEdit.RunModal();
 
-            //         CurrPage.Update(false);
+                    CurrPage.Update(false);
 
-            //         CurrPage.CapacitySlots.Page.SetWeek(
-            //             Rec."Resource No.",
-            //             Rec."Week Start Date");
-            //     end;
-            // }
+                    CurrPage.CapacityDialogs.Page.LoadData(Rec."Resource No.", Rec."Week Start Date");
+                end;
+            }
 
+            action(Edit_Week_Pattern_Klaas)
+            {
+                ApplicationArea = All;
+                Caption = 'Edit Pattern';
+                Image = EditLines;
+                ToolTip = 'Opens the weekly time-slot pattern for entry or editing.';
 
+                trigger OnAction()
+                begin
+                    RunDialogAndApply();
+                end;
+            }
             action(ExportToExcel)
             {
                 ApplicationArea = All;
@@ -176,6 +184,7 @@ page 50696 "Opti Resource Capacity Weeks"
             }
 
         }
+
         area(Navigation)
         {
 
@@ -340,17 +349,28 @@ page 50696 "Opti Resource Capacity Weeks"
             actionref(CreateResourceCapacityPromoted; CreateResourceCapacity)
             {
             }
-            // actionref(EditWeekPromoted; EditWeek)
-            // {
-            // }
+            actionref(EditWeekPromoted; EditWeek)
+            {
+            }
             actionref(ExportToExcelPromoted; ExportToExcel)
             {
             }
         }
     }
+
     trigger OnAfterGetCurrRecord()
     begin
         currpage.CapacityDialogs.page.LoadData(Rec."Resource No.", Rec."Week Start Date");
     end;
+
+    Procedure RunDialogAndApply()
+    var
+        WeekPatternDialog: Page "Opti Week Capacity Dialogs";
+        TempWeekPatternBuffer: Record "Opti Week Pattern Dialog" temporary;
+    begin
+        WeekPatternDialog.LoadData(Rec."Resource No.", Rec."Week Start Date");
+        WeekPatternDialog.runModal();
+    end;
+
 
 }

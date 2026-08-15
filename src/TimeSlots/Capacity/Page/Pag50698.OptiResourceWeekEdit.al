@@ -1,8 +1,7 @@
 page 50698 "Opti Resource Week Edit"
 {
-    Caption = 'Edit Resource Capacity Week';
     PageType = Worksheet;
-    SourceTable = "Opti Week Capacity Slot";
+    SourceTable = "Opti Week Capacity Dialog";
     DelayedInsert = true;
     SourceTableTemporary = true;
     ApplicationArea = All;
@@ -11,6 +10,9 @@ page 50698 "Opti Resource Week Edit"
     InsertAllowed = false;
     ModifyAllowed = true;
     DeleteAllowed = false;
+    caption = 'Edit Resource Capacity Week';
+    DataCaptionExpression = this.GetPageCaption();
+
 
     layout
     {
@@ -19,6 +21,7 @@ page 50698 "Opti Resource Week Edit"
             group(Week)
             {
                 Caption = 'Resource and Week';
+                showCaption = false;
 
                 field(SelectedResourceNo; SelectedResourceNo)
                 {
@@ -88,7 +91,7 @@ page 50698 "Opti Resource Week Edit"
                     end;
                 }
 
-                field("Rest Minutes"; Rec."Rest Minutes")
+                field("Rest Minutes"; Rec."Idle Time")
                 {
                     ApplicationArea = All;
 
@@ -276,15 +279,9 @@ page 50698 "Opti Resource Week Edit"
         SelectedResourceNo: Code[20];
         SelectedWeekStartDate: Date;
         SelectedWeekEndDate: Date;
-
-        DeleteCapacityEntryQst:
-            Label 'Do you want to delete the complete capacity entry for %1?';
-
-        StartAndEndTimeRequiredErr:
-            Label 'Start Time and End Time must be entered.';
-
-        EndBeforeStartErr:
-            Label 'End Time must be after Start Time.';
+        DeleteCapacityEntryQst: Label 'Do you want to delete the complete capacity entry for %1?';
+        StartAndEndTimeRequiredErr: Label 'Start Time and End Time must be entered.';
+        EndBeforeStartErr: Label 'End Time must be after Start Time.';
 
     procedure SetWeek(
         ResourceNo: Code[20];
@@ -324,7 +321,7 @@ page 50698 "Opti Resource Week Edit"
 
     local procedure GetNextBufferEntryNo(CapacityDate: Date): Integer
     var
-        WeekCapacitySlot: Record "Opti Week Capacity Slot" temporary;
+        WeekCapacitySlot: Record "Opti Week Capacity Dialog" temporary;
         DayNo: Integer;
     begin
         WeekCapacitySlot.Copy(Rec, true);
@@ -367,7 +364,7 @@ page 50698 "Opti Resource Week Edit"
 
         Rec."Working Minutes" :=
             Round(GrossDuration / 60000, 1, '=') -
-            Rec."Rest Minutes";
+            Rec."Idle Time";
 
         if Rec."Working Minutes" < 0 then
             Rec."Working Minutes" := 0;
@@ -402,7 +399,7 @@ page 50698 "Opti Resource Week Edit"
             TimeSlot.GetTimeSlotID(
                 Rec."Start Time",
                 Rec."End Time",
-                Rec."Rest Minutes");
+                Rec."Idle Time");
 
         // /*
         // Existing physical capacity entry:
@@ -606,8 +603,8 @@ page 50698 "Opti Resource Week Edit"
         Rec."End Time" :=
             TimeSlot."End Time";
 
-        Rec."Rest Minutes" :=
-            TimeSlot."Rest Minutes";
+        Rec."Idle Time" :=
+            TimeSlot."Idle Time";
 
         Rec."Working Minutes" :=
             TimeSlot."Working Minutes";
@@ -694,6 +691,11 @@ page 50698 "Opti Resource Week Edit"
         end;
 
         exit('');
+    end;
+
+    Local Procedure GetPageCaption(): Text[100]
+    begin
+        exit('Edit ' + Format(SelectedResourceNo) + ' - Week ' + Format(date2DWY(SelectedWeekStartDate, 2)) + ' ' + Format(date2DWY(SelectedWeekStartDate, 3)));
     end;
 
 

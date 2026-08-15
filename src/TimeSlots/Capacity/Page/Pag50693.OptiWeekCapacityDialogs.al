@@ -1,14 +1,11 @@
-page 50697 "Opti Week Capacity Dialogs Sub"
+page 50693 "Opti Week Capacity Dialogs"
 {
     Caption = 'Capacity Time Slots';
-    PageType = ListPart;
+    PageType = StandardDialog;
     SourceTable = "Opti Week Capacity Dialog";
     SourceTableTemporary = true;
     ApplicationArea = All;
-    Editable = false;
-    insertAllowed = false;
-    modifyAllowed = false;
-    deleteAllowed = false;
+    DataCaptionExpression = this.GetPageCaption();
 
     layout
     {
@@ -55,15 +52,6 @@ page 50697 "Opti Week Capacity Dialogs Sub"
             }
         }
     }
-    actions
-    {
-        area(processing)
-        {
-
-
-        }
-
-    }
 
     procedure LoadData(ResourceNo: Code[20]; StartDate: Date)
     var
@@ -101,6 +89,9 @@ page 50697 "Opti Week Capacity Dialogs Sub"
         CurrPage.Update(false);
     end;
 
-
+    Local Procedure GetPageCaption(): Text[100]
+    begin
+        exit(Format(Rec."Resource No.") + ' - ' + Format(Rec."Week No."));
+    end;
 
 }
