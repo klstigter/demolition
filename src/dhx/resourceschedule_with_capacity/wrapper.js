@@ -124,7 +124,7 @@ window.BOOT = function () {
         .dhx_cal_event_line.event-capacity,
         .dhx_event_line.event-capacity {
             background: var(--cap-color) !important;
-            border-color: var(--cap-color-border) !important;
+            border: 1px solid var(--cap-color-border) !important;
             color: #3a2600 !important;
             font-size: 12px !important;
         }
@@ -143,7 +143,7 @@ window.BOOT = function () {
         .dhx_cal_event_line.event-DayPlanning,
         .dhx_event_line.event-DayPlanning {
             background: var(--dp-color-envelope) !important;
-            border-color: var(--dp-color-envelope-border) !important;
+            border: 1px solid var(--dp-color-envelope-border) !important;
             font-size: 12px !important;
             padding: 0 !important;
         }
@@ -193,7 +193,7 @@ window.BOOT = function () {
         .dhtmlXTooltip.tooltip { background: #000000 !important; color: #ffffff !important; border: none !important; }
         .dhx-tt { min-width: 220px; font-family: inherit; font-size: 12px; line-height: 1.5; color: #f0f0f0; }
         .dhx-tt-res { font-weight: 700; font-size: 13px; margin-bottom: 1px; color: #ffffff; }
-        .dhx-tt-date { color: #aaaaaa; font-size: 11px; margin-bottom: 6px; }
+        .dhx-tt-date { color: #aaaaaa; font-size: 11px; margin-bottom: 6px; white-space: nowrap; }
         .dhx-tt-table { display: grid; grid-template-columns: 110px 1fr 1fr; gap: 2px 10px; margin-top: 4px; }
         .dhx-tt-th { font-weight: 700; color: #ffffff; border-bottom: 1px solid #444; padding-bottom: 2px; }
         .dhx-tt-label { color: #cfcfcf; font-weight: 700; padding: 1px 0; }
@@ -311,7 +311,7 @@ window.BOOT = function () {
 
             var html = '<div class="dhx-tt">';
             html += '<div class="dhx-tt-res">Day Planning: ' + escapeRcHtml(ev.text || "") + '</div>';
-            html += '<div class="dhx-tt-date">Skill: ' + escapeRcHtml(ev.skill || "") + ' &nbsp;|&nbsp; Date: ' + formatDateOnly(start) + '</div>';
+            html += '<div class="dhx-tt-date">Skill: ' + escapeRcHtml(ev.skill || "") + ' &nbsp;|&nbsp; Date: ' + formatDateOnly(start) + ' &nbsp;|&nbsp; Job: ' + escapeRcHtml(ev.job_no || "") + ' &nbsp;|&nbsp; Task: ' + escapeRcHtml(ev.job_task_no || "") + '</div>';
             html += '<div class="dhx-tt-table">';
             html += '<div class="dhx-tt-th"></div><div class="dhx-tt-th">Assigned</div><div class="dhx-tt-th">Requested</div>';
             html += '<div class="dhx-tt-label">Resource No.</div><div class="dhx-tt-val">' + escapeRcHtml(ev.assigned_resource_no || "") + '</div><div class="dhx-tt-val">' + escapeRcHtml(ev.requested_resource_no || "") + '</div>';
@@ -608,9 +608,11 @@ function SetBarColors(colorsJson) {
         var root = document.getElementById("scheduler_here");
         if (!root) return;
         if (colors.envelope) root.style.setProperty("--dp-color-envelope", colors.envelope);
-        if (colors.envelopeBorder) root.style.setProperty("--dp-color-envelope-border", colors.envelopeBorder);
+        root.style.setProperty("--dp-color-envelope-border", colors.envelopeBorder || "transparent");
         if (colors.assigned) root.style.setProperty("--dp-color-assigned", colors.assigned);
         if (colors.requested) root.style.setProperty("--dp-color-requested", colors.requested);
+        if (colors.capacity) root.style.setProperty("--cap-color", colors.capacity);
+        root.style.setProperty("--cap-color-border", colors.capacityBorder || "transparent");
         // Assigned/Requested split - from Resource Scheduler Setup's "Assigned High (%)"/
         // "Requested High (%)". Left at their CSS default (50%/50%) whenever setup doesn't
         // override them (0/blank).
@@ -869,6 +871,10 @@ function setupContextMenu() {
             '<span class="dhx-ctx-icon">&#128197;</span>Open Day Planning</div>' +
         '<div class="dhx-ctx-item" data-action="OpenCapacity">' +
             '<span class="dhx-ctx-icon">&#128202;</span>Open Capacity</div>' +
+        '<div class="dhx-ctx-item" data-action="OpenTask">' +
+            '<span class="dhx-ctx-icon">&#128203;</span>Open Task</div>' +
+        '<div class="dhx-ctx-item" data-action="OpenResource">' +
+            '<span class="dhx-ctx-icon">&#128100;</span>Open Resource</div>' +
         '<div class="dhx-ctx-separator"></div>' +
         '<div class="dhx-ctx-item" data-action="OpenResourceCard">' +
             '<span class="dhx-ctx-icon">&#128100;</span>Open Resource Card</div>' +
@@ -876,6 +882,8 @@ function setupContextMenu() {
             '<span class="dhx-ctx-icon">&#127942;</span>Open Resource Skills</div>' +
         '<div class="dhx-ctx-item" data-action="OpenDayPlannings">' +
             '<span class="dhx-ctx-icon">&#128198;</span>Open Day Plannings</div>' +
+        '<div class="dhx-ctx-item" data-action="OpenTask">' +
+            '<span class="dhx-ctx-icon">&#128203;</span>Open Task</div>' +
         '<div class="dhx-ctx-item" data-action="ShowCapacity">' +
             '<span class="dhx-ctx-icon">&#128202;</span>Show Capacity</div>' +
         '<div class="dhx-ctx-separator"></div>' +
@@ -892,11 +900,22 @@ function setupContextMenu() {
         var isSkillSection = !isEvent && target.subtype === 'Skill';
         var isResourceSection = !isEvent && target.subtype === 'Resource';
 
+        // There are TWO menu items with data-action="OpenTask" (one for Day Planning event
+        // bars, one for the resource-row section - see setupContextMenu's innerHTML comment).
+        // querySelector() only ever returns the first DOM match, so a plain
+        // menu.querySelector('[data-action="OpenTask"]') call would collide between the two
+        // and leave one of them stuck. querySelectorAll()+index disambiguates by DOM order
+        // (event-bar item first, resource-row item second) instead.
+        var ctxOpenTaskItems = menu.querySelectorAll('[data-action="OpenTask"]');
+
         menu.querySelector('[data-action="OpenDayPlanning"]').style.display = isDayPlanningEvent ? '' : 'none';
         menu.querySelector('[data-action="OpenCapacity"]').style.display = isCapacityEvent ? '' : 'none';
+        if (ctxOpenTaskItems[0]) ctxOpenTaskItems[0].style.display = isDayPlanningEvent ? '' : 'none';
+        menu.querySelector('[data-action="OpenResource"]').style.display = isDayPlanningEvent ? '' : 'none';
         menu.querySelector('[data-action="OpenResourceCard"]').style.display = isResourceSection ? '' : 'none';
         menu.querySelector('[data-action="OpenResourceSkills"]').style.display = isResourceSection ? '' : 'none';
         menu.querySelector('[data-action="OpenDayPlannings"]').style.display = isResourceSection ? '' : 'none';
+        if (ctxOpenTaskItems[1]) ctxOpenTaskItems[1].style.display = isResourceSection ? '' : 'none';
         menu.querySelector('[data-action="ShowCapacity"]').style.display = isResourceSection ? '' : 'none';
 
         if (isSkillSection) { hideMenu(); return; } // no menu items apply to a Skill row
