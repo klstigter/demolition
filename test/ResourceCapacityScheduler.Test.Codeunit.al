@@ -285,7 +285,7 @@ codeunit 60026 "Resource Capacity Sched Tests"
         AssignResourceSkill('RCSTRA1', 'RCSTSKA');
 
         // [WHEN] SkillResScheduler_BuildTreeJson is called.
-        TreeJson := DHXDataHandler.SkillResScheduler_BuildTreeJson('RCSTRA1', '');
+        TreeJson := DHXDataHandler.SkillResScheduler_BuildTreeJson('RCSTRA1', '', 0D, 0D);
 
         // [THEN] A "SKILL|RCSTSKA" node exists with RCSTRA1 as a child leaf.
         AssertIsTrue(TryFindSkillNode(TreeJson, 'RCSTSKA', SkillNode), 'Skill node RCSTSKA must exist.');
@@ -308,7 +308,7 @@ codeunit 60026 "Resource Capacity Sched Tests"
 
         // [WHEN] SkillResScheduler_BuildTreeJson is called (no Resource filter - would include
         // both resources if the placeholder exclusion did not apply).
-        TreeJson := DHXDataHandler.SkillResScheduler_BuildTreeJson('RCSTRPH|RCSTRA2', '');
+        TreeJson := DHXDataHandler.SkillResScheduler_BuildTreeJson('RCSTRPH|RCSTRA2', '', 0D, 0D);
 
         // [THEN] The placeholder resource never appears as a leaf; the real resource does.
         AssertIsTrue(TryFindSkillNode(TreeJson, 'RCSTSKB', SkillNode), 'Skill node RCSTSKB must exist.');
@@ -332,7 +332,7 @@ codeunit 60026 "Resource Capacity Sched Tests"
         AssignResourceSkill('RCSTRBN', 'RCSTSKC');
 
         // [WHEN] SkillResScheduler_BuildTreeJson is called.
-        TreeJson := DHXDataHandler.SkillResScheduler_BuildTreeJson('RCSTRBN', '');
+        TreeJson := DHXDataHandler.SkillResScheduler_BuildTreeJson('RCSTRBN', '', 0D, 0D);
 
         // [THEN] The skill gets no node at all (its only resource is excluded, so it has zero children).
         AssertIsTrue(not TreeHasNodeWithKey(TreeJson, 'SKILL|RCSTSKC'), 'A skill whose only resource is blank-name must have no tree node.');
@@ -348,7 +348,7 @@ codeunit 60026 "Resource Capacity Sched Tests"
         CreateTestResource('RCSTRNS', 'RCST No Skill Resource');
 
         // [WHEN] SkillResScheduler_BuildTreeJson is called.
-        TreeJson := DHXDataHandler.SkillResScheduler_BuildTreeJson('RCSTRNS', '');
+        TreeJson := DHXDataHandler.SkillResScheduler_BuildTreeJson('RCSTRNS', '', 0D, 0D);
 
         // [THEN] It is bucketed under the "SKILL|~NOSKILL~" node.
         AssertIsTrue(TryFindSkillNode(TreeJson, '~NOSKILL~', SkillNode), 'No-Skill node must exist.');
@@ -424,7 +424,7 @@ codeunit 60026 "Resource Capacity Sched Tests"
         InsertDayPlanningLine(PeriodStart, 'RCSTRD1', 080000T, 160000T, 'RCSTRD1', 090000T, 120000T, 'RCSTSKD');
 
         // [WHEN] SkillResScheduler_BuildDayPlanningJson is called.
-        EventsJson := DHXDataHandler.SkillResScheduler_BuildDayPlanningJson('RCSTRD1', '', PeriodStart, PeriodStart + 6);
+        EventsJson := DHXDataHandler.SkillResScheduler_BuildDayPlanningJson('RCSTRD1', '', '', '', PeriodStart, PeriodStart + 6);
 
         // [THEN] The event is placed on the resource's row, tagged "event-DayPlanning"/"DayPlanning",
         // and carries the raw Assigned/Requested "HH:mm" times the JS event_bar_text segment math needs.
@@ -453,7 +453,7 @@ codeunit 60026 "Resource Capacity Sched Tests"
         InsertDayPlanningLine(PeriodStart, '', 0T, 0T, 'RCSTRE1', 100000T, 140000T, 'RCSTSKE');
 
         // [WHEN] SkillResScheduler_BuildDayPlanningJson is called.
-        EventsJson := DHXDataHandler.SkillResScheduler_BuildDayPlanningJson('RCSTRE1', '', PeriodStart, PeriodStart + 6);
+        EventsJson := DHXDataHandler.SkillResScheduler_BuildDayPlanningJson('RCSTRE1', '', '', '', PeriodStart, PeriodStart + 6);
 
         // [THEN] The event's section_id/resource_id is the Requested Resource, with a blank
         // Assigned time pair and a populated Requested time pair.
@@ -480,7 +480,7 @@ codeunit 60026 "Resource Capacity Sched Tests"
         InsertDayPlanningLine(OutsideDate, 'RCSTRF1', 080000T, 120000T, 'RCSTRF1', 080000T, 120000T, 'RCSTSKF');
 
         // [WHEN] SkillResScheduler_BuildDayPlanningJson is called for PeriodStart's week only.
-        EventsJson := DHXDataHandler.SkillResScheduler_BuildDayPlanningJson('RCSTRF1', '', PeriodStart, PeriodStart + 6);
+        EventsJson := DHXDataHandler.SkillResScheduler_BuildDayPlanningJson('RCSTRF1', '', '', '', PeriodStart, PeriodStart + 6);
 
         // [THEN] No events are returned - the line falls outside the queried date range.
         GetEventsArray(EventsJson, EventsArray);
@@ -513,7 +513,7 @@ codeunit 60026 "Resource Capacity Sched Tests"
         InsertDayPlanningLine(PeriodStart, 'RCSTRH1', 080000T, 120000T, 'RCSTRH1', 080000T, 120000T, 'RCSTSKH');
 
         // [WHEN] SkillResScheduler_BuildDayPlanningJson is called with SkillFilter = 'RCSTSKG'.
-        EventsJson := DHXDataHandler.SkillResScheduler_BuildDayPlanningJson('', 'RCSTSKG', PeriodStart, PeriodStart + 6);
+        EventsJson := DHXDataHandler.SkillResScheduler_BuildDayPlanningJson('', 'RCSTSKG', '', '', PeriodStart, PeriodStart + 6);
 
         // [THEN] Only the RCSTSKG event is returned - the RCSTSKH event must not leak through.
         GetEventsArray(EventsJson, EventsArray);
@@ -564,7 +564,7 @@ codeunit 60026 "Resource Capacity Sched Tests"
         AssignResourceSkill('RCSTRL1', 'RCSTSKL');
 
         // [WHEN] SkillResScheduler_BuildTreeJson is called with SkillFilter = 'RCSTSKK'.
-        TreeJson := DHXDataHandler.SkillResScheduler_BuildTreeJson('', 'RCSTSKK');
+        TreeJson := DHXDataHandler.SkillResScheduler_BuildTreeJson('', 'RCSTSKK', 0D, 0D);
 
         // [THEN] Only the RCSTSKK skill node exists in the tree.
         AssertIsTrue(TryFindSkillNode(TreeJson, 'RCSTSKK', SkillNode), 'Matching-skill node must exist.');

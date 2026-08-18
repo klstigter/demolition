@@ -3395,29 +3395,201 @@ codeunit 50604 "DHX Data Handler"
     end;
 
     /// <summary>
-    /// Builds the left-panel tree: one top-level node per Skill Code, with that skill's
-    /// (non-placeholder) Resources as leaf children. Resources with no skill assigned are
-    /// grouped under a trailing "No Skill Assigned" node - omitted entirely when SkillFilter
-    /// is set, since a specific skill filter can never match a resource that has none. Skill/
-    /// Resource nodes with no (matching) children are omitted entirely, same convention as
-    /// GetYUnitElementsJSON_Pool. Leaf key = plain Resource "No." (also used as event
-    /// resource_id/section_id below); Skill node key = "SKILL|" + Skill Code so it can never
-    /// collide with a Resource No.
+    /// Records one (ResNo, SkillVal) pair into all three combined-lookup structures at once -
+    /// shared by every source SkillResScheduler_BuildCombinedSkillLookup feeds from ("Resource
+    /// Skill" registrations, the Assigned-side query, the Requested-side AL loop), so the
+    /// add/dedupe logic (ContainsKey guards, List.Contains dedupe before adding) exists exactly
+    /// once instead of once per source.
     /// </summary>
-    procedure SkillResScheduler_BuildTreeJson(ResourceFilter: Text; SkillFilter: Text): Text
+    local procedure SkillResScheduler_AddCombinedSkillPair(ResNo: Code[20]; SkillVal: Code[20]; var CombinedSkills: Dictionary of [Text, Boolean]; var ResourceHasAny: Dictionary of [Code[20], Boolean]; var ResourceSkillsMap: Dictionary of [Code[20], List of [Code[20]]])
+    var
+        CompositeKey: Text;
+        SkillListForRes: List of [Code[20]];
+    begin
+        CompositeKey := ResNo + '|' + SkillVal;
+        if not CombinedSkills.ContainsKey(CompositeKey) then
+            CombinedSkills.Add(CompositeKey, true);
+        if not ResourceHasAny.ContainsKey(ResNo) then
+            ResourceHasAny.Add(ResNo, true);
+        if ResourceSkillsMap.ContainsKey(ResNo) then
+            SkillListForRes := ResourceSkillsMap.Get(ResNo)
+        else
+            Clear(SkillListForRes);
+        if not SkillListForRes.Contains(SkillVal) then
+            SkillListForRes.Add(SkillVal);
+        ResourceSkillsMap.Set(ResNo, SkillListForRes);
+    end;
+
+    /// <summary>
+    /// Builds the combined tree-membership lookup shared by SkillResScheduler_BuildTreeJson and
+    /// SkillResScheduler_BuildCapacityJson: a resource belongs on a Skill branch if EITHER it has
+    /// a "Resource Skill" master-data registration for that skill, OR a Day Planning row actually
+    /// exists tagging that resource with that skill. The Day-Planning side is sourced from TWO
+    /// fully independent, structurally identical plain AL loops over "Day Planning" - unlike
+    /// RowResourceNo's "Assigned if set, else Requested" resolution used elsewhere in this codeunit
+    /// (e.g. SkillResScheduler_BuildDayPlanningJson, for bar placement), tree membership is NOT
+    /// mutually exclusive between the two: Source 2 contributes an (Assigned Resource No., Skill)
+    /// pair for every row with an Assigned Resource, and Source 3 contributes a (Requested Resource
+    /// No., Skill) pair for every row with a Requested Resource - independently of whether that
+    /// same row also has an Assigned Resource. A row with both set to two different resources (a
+    /// confirmed real scenario) therefore grows a skill branch for each resource. The two sources
+    /// naturally overlap when Assigned = Requested on the same row (both contribute the same pair)
+    /// - harmless, since SkillResScheduler_AddCombinedSkillPair dedupes via ContainsKey/
+    /// List.Contains checks. Blank-skill Day Planning rows are excluded from both sources via each
+    /// loop's own SetFilter below, so they can't manufacture a spurious tree branch; that case is
+    /// handled separately via the "No Skill Assigned" bucket (ResourceHasAny).
+    ///
+    /// CombinedSkills is keyed by composite "<Resource No.>|<Skill Code>" (mirrors the tree's leaf
+    /// key format) for O(1) single-pair membership tests. ResourceHasAny is keyed by plain
+    /// Resource No. and answers "does this resource have ANY skill entry at all" - used to decide
+    /// "No Skill Assigned" bucket membership without re-deriving it from CombinedSkills.
+    /// ResourceSkillsMap is keyed by plain Resource No. and holds each resource's distinct
+    /// combined skill list (needed by SkillResScheduler_BuildCapacityJson/EmitCapacityEvents to
+    /// enumerate which skill branches to duplicate a Capacity bar onto - a Dictionary keyed by
+    /// composite text like CombinedSkills can't be enumerated by "all skills for one resource").
+    ///
+    /// RegisteredSkills is keyed by the same composite "<Resource No.>|<Skill Code>" format as
+    /// CombinedSkills, but only ever populated from Source 1 ("Resource Skill" master-data
+    /// registrations) - never from Sources 2/3 (Day-Planning-observed pairs). It lets a caller
+    /// distinguish, for a given (resource, skill) pair that IS in CombinedSkills, whether that
+    /// membership is backed by an actual registration or exists purely because of Day Planning
+    /// data (used by SkillResScheduler_BuildTreeJson to flag the latter case with a " (*)" label
+    /// suffix).
+    ///
+    /// Deliberately not cached across calls (rebuilt fresh every time it's called) - this
+    /// codeunit doesn't hold cross-call state anywhere else and this migration shouldn't
+    /// introduce that; each caller builds its own copy.
+    ///
+    /// StartDate/EndDate scope Sources 2 and 3 (the Day-Planning-derived sources) to the caller's
+    /// displayed week, same "Plan Date" range convention as SkillResScheduler_BuildDayPlanningJson/
+    /// SkillResScheduler_BuildCapacityJson - both a performance win (Day Planning can be a large
+    /// table; scanning the whole thing on every tree rebuild is wasteful) and a correctness fix
+    /// (tree membership naturally stays in sync with whatever week is on screen, since the tree is
+    /// rebuilt on every Prev/Next/Today/Refresh/filter-change). Source 1 (Resource Skill master
+    /// data) is NEVER date-filtered - it has no date of its own and always reflects current
+    /// registrations regardless of which week is displayed.
+    /// </summary>
+    local procedure SkillResScheduler_BuildCombinedSkillLookup(var CombinedSkills: Dictionary of [Text, Boolean]; var ResourceHasAny: Dictionary of [Code[20], Boolean]; var ResourceSkillsMap: Dictionary of [Code[20], List of [Code[20]]]; var RegisteredSkills: Dictionary of [Text, Boolean]; StartDate: Date; EndDate: Date)
+    var
+        ResourceSkill: Record "Resource Skill";
+        AssignedDP: Record "Day Planning";
+        RequestedDP: Record "Day Planning";
+    begin
+        Clear(CombinedSkills);
+        Clear(ResourceHasAny);
+        Clear(ResourceSkillsMap);
+        Clear(RegisteredSkills);
+
+        // Source 1: "Resource Skill" master-data registrations - never date-filtered (see header comment).
+        ResourceSkill.SetRange(Type, ResourceSkill.Type::Resource);
+        if ResourceSkill.FindSet() then
+            repeat
+                SkillResScheduler_AddCombinedSkillPair(ResourceSkill."No.", ResourceSkill."Skill Code", CombinedSkills, ResourceHasAny, ResourceSkillsMap);
+                if not RegisteredSkills.ContainsKey(ResourceSkill."No." + '|' + ResourceSkill."Skill Code") then
+                    RegisteredSkills.Add(ResourceSkill."No." + '|' + ResourceSkill."Skill Code", true);
+            until ResourceSkill.Next() = 0;
+
+        // Source 2: Day Planning rows with an Assigned Resource - independent of Source 3 (see this
+        // procedure's header comment), same shape as Source 3 just filtered on the other resource field.
+        // Scoped to the caller's displayed week (see header comment).
+        AssignedDP.Reset();
+        if (StartDate <> 0D) and (EndDate <> 0D) then
+            AssignedDP.SetRange("Plan Date", StartDate, EndDate);
+        AssignedDP.SetFilter("Assigned Resource No.", '<>%1', '');
+        AssignedDP.SetFilter(Skill, '<>%1', '');
+        if AssignedDP.FindSet() then
+            repeat
+                SkillResScheduler_AddCombinedSkillPair(AssignedDP."Assigned Resource No.", AssignedDP.Skill, CombinedSkills, ResourceHasAny, ResourceSkillsMap);
+            until AssignedDP.Next() = 0;
+
+        // Source 3: Day Planning rows with a Requested Resource - independent of Source 2, so a
+        // row that has BOTH an Assigned and a (different) Requested Resource contributes a skill
+        // pair for each (see this procedure's header comment). Scoped to the caller's displayed
+        // week (see header comment).
+        RequestedDP.Reset();
+        if (StartDate <> 0D) and (EndDate <> 0D) then
+            RequestedDP.SetRange("Plan Date", StartDate, EndDate);
+        RequestedDP.SetFilter("Requested Resource No.", '<>%1', '');
+        RequestedDP.SetFilter(Skill, '<>%1', '');
+        if RequestedDP.FindSet() then
+            repeat
+                SkillResScheduler_AddCombinedSkillPair(RequestedDP."Requested Resource No.", RequestedDP.Skill, CombinedSkills, ResourceHasAny, ResourceSkillsMap);
+            until RequestedDP.Next() = 0;
+    end;
+
+    /// <summary>
+    /// Extracts the plain Resource "No." from a composite tree/section key ("<No.>|<SkillCode>"
+    /// or "<No.>|~NOSKILL~"). Falls back to returning the input unchanged if it isn't composite,
+    /// so callers stay safe against any legacy plain-key value. Callers must still guard against
+    /// "SKILL|..." folder-node keys themselves before calling this.
+    /// </summary>
+    procedure SkillResScheduler_ExtractResourceNo(SectionId: Text): Code[20]
+    var
+        Parts: List of [Text];
+        ResNo: Code[20];
+    begin
+        Parts := SectionId.Split('|');
+        if Parts.Count() >= 1 then
+            ResNo := CopyStr(Parts.Get(1), 1, MaxStrLen(ResNo))
+        else
+            ResNo := CopyStr(SectionId, 1, MaxStrLen(ResNo));
+        exit(ResNo);
+    end;
+
+    /// <summary>
+    /// Builds the left-panel tree: one top-level node per Skill Code, with the resources
+    /// registered for that skill as leaf children - a resource registered for multiple skills
+    /// appears once per skill branch. Resources with no skill assigned are grouped under a
+    /// trailing "No Skill Assigned" node - omitted entirely when SkillFilter is set, since a
+    /// specific skill filter can never match a resource that has none. Skill/Resource nodes with
+    /// no (matching) children are omitted entirely, same convention as GetYUnitElementsJSON_Pool.
+    /// Leaf key is the composite "<Resource No.>|<Skill Code>" (or "<Resource No.>|~NOSKILL~"),
+    /// so a Day Planning/Capacity bar's section_id can target the specific skill row it belongs
+    /// on (see SkillResScheduler_ExtractResourceNo for turning this back into a plain Resource
+    /// No.); event resource_id stays the plain Resource No. for tooltip/lookup purposes. Skill
+    /// node key is "SKILL|" + Skill Code, which can never collide with a composite leaf key.
+    ///
+    /// A leaf's label gets a trailing " (*)" suffix (e.g. "Arnoud Wolthuis (*)") when that
+    /// resource's membership on this specific Skill branch comes ONLY from Day Planning data
+    /// (Sources 2/3 of SkillResScheduler_BuildCombinedSkillLookup) with no matching "Resource
+    /// Skill" master-data registration (Source 1) for that exact skill - i.e. the resource is
+    /// doing work outside their registered skill set, a setup-data gap worth flagging visually.
+    /// No suffix when the resource IS registered for that skill. The trailing "No Skill Assigned"
+    /// bucket is unaffected - those resources have zero skill entries at all, so there is no
+    /// registered/unregistered distinction to make there.
+    ///
+    /// StartDate/EndDate scope the Day-Planning-derived portion of tree membership (Sources 2/3 of
+    /// SkillResScheduler_BuildCombinedSkillLookup) to the caller's displayed week - branches that
+    /// only exist because of a Day Planning row outside that week will not appear. Resource
+    /// Skill-registered branches (Source 1) are unaffected by StartDate/EndDate and remain always
+    /// present regardless of week.
+    /// </summary>
+    procedure SkillResScheduler_BuildTreeJson(ResourceFilter: Text; SkillFilter: Text; StartDate: Date; EndDate: Date): Text
     var
         SkillCode: Record "Skill Code";
         Res: Record Resource;
         TempResourceOfSkill: Record Resource temporary;
         TempNoSkillResource: Record Resource temporary;
+        CombinedSkills: Dictionary of [Text, Boolean];
+        ResourceHasAny: Dictionary of [Code[20], Boolean];
+        UnusedResourceSkillsMap: Dictionary of [Code[20], List of [Code[20]]];
+        RegisteredSkills: Dictionary of [Text, Boolean];
         SkillObj: JsonObject;
         ResObj: JsonObject;
         ChildrenArray: JsonArray;
         DataArray: JsonArray;
         Root: JsonObject;
         OutText: Text;
-        PrimarySkill: Code[10];
     begin
+        // Tree membership = "Resource Skill" registrations UNION skills observed on Day Planning
+        // rows - see SkillResScheduler_BuildCombinedSkillLookup's header comment. The per-resource
+        // skill-list output (UnusedResourceSkillsMap) is only needed by
+        // SkillResScheduler_BuildCapacityJson, not here. RegisteredSkills IS used here - it lets
+        // leaf labels distinguish an actual "Resource Skill" registration from a branch the
+        // resource only appears on because of Day Planning data (see the " (*)" convention noted
+        // below in the leaf-building block).
+        SkillResScheduler_BuildCombinedSkillLookup(CombinedSkills, ResourceHasAny, UnusedResourceSkillsMap, RegisteredSkills, StartDate, EndDate);
+
         if SkillFilter = '' then begin
             Res.Reset();
             if ResourceFilter <> '' then
@@ -3426,13 +3598,11 @@ codeunit 50604 "DHX Data Handler"
                 Res.SetFilter("No.", '<>%1', '');
             if Res.FindSet() then
                 repeat
-                    if not SkillResScheduler_IsPlaceholderResource(Res."No.", Res) then begin
-                        PrimarySkill := SkillResScheduler_GetPrimarySkill(Res."No.");
-                        if PrimarySkill = '' then begin
+                    if not SkillResScheduler_IsPlaceholderResource(Res."No.", Res) then
+                        if not ResourceHasAny.ContainsKey(Res."No.") then begin
                             TempNoSkillResource := Res;
                             TempNoSkillResource.Insert();
                         end;
-                    end;
                 until Res.Next() = 0;
         end;
 
@@ -3452,10 +3622,16 @@ codeunit 50604 "DHX Data Handler"
                 if Res.FindSet() then
                     repeat
                         if not SkillResScheduler_IsPlaceholderResource(Res."No.", Res) then
-                            if SkillResScheduler_GetPrimarySkill(Res."No.") = SkillCode.Code then begin
+                            if CombinedSkills.ContainsKey(Res."No." + '|' + SkillCode.Code) then begin
                                 Clear(ResObj);
-                                ResObj.Add('key', Res."No.");
-                                ResObj.Add('label', Res.Name);
+                                ResObj.Add('key', Res."No." + '|' + SkillCode.Code);
+                                // " (*)" flags a resource that appears on this skill branch ONLY
+                                // because of Day Planning data, with no matching "Resource Skill"
+                                // registration - a setup-data gap worth surfacing to the user.
+                                if RegisteredSkills.ContainsKey(Res."No." + '|' + SkillCode.Code) then
+                                    ResObj.Add('label', Res.Name)
+                                else
+                                    ResObj.Add('label', Res.Name + ' (*)');
                                 ResObj.Add('category', 'Resource');
                                 ChildrenArray.Add(ResObj);
                             end;
@@ -3480,7 +3656,7 @@ codeunit 50604 "DHX Data Handler"
             Clear(ChildrenArray);
             repeat
                 Clear(ResObj);
-                ResObj.Add('key', TempNoSkillResource."No.");
+                ResObj.Add('key', TempNoSkillResource."No." + '|~NOSKILL~');
                 ResObj.Add('label', TempNoSkillResource.Name);
                 ResObj.Add('category', 'Resource');
                 ChildrenArray.Add(ResObj);
@@ -3502,33 +3678,142 @@ codeunit 50604 "DHX Data Handler"
     end;
 
     /// <summary>
+    /// Emits one Capacity JSON event per skill branch the resource appears on in the tree -
+    /// ResSkills is the resource's combined skill set (Resource Skill registrations UNION
+    /// Day-Planning-observed skills, see SkillResScheduler_BuildCombinedSkillLookup), passed in
+    /// by the caller rather than re-queried here, since it was already built once at the top of
+    /// SkillResScheduler_BuildCapacityJson. SkillFilter-restricted when set (a plain code-value
+    /// match against each candidate skill, same semantics as the old "Resource Skill" table
+    /// filter check it replaces). Falls back to a single "~NOSKILL~" bucket entry when ResSkills
+    /// is empty, mirroring SkillResScheduler_BuildTreeJson's convention - but only when
+    /// SkillFilter is blank, since a specific skill filter can never match a no-skill resource.
+    /// Shared by both flush sites (mid-loop resource/date change and end-of-loop) in
+    /// SkillResScheduler_BuildCapacityJson below.
+    /// </summary>
+    local procedure SkillResScheduler_EmitCapacityEvents(var JArray: JsonArray; ResNo: Code[20]; CapDate: Date; StartTxt: Text; EndTxt: Text; Hours: Decimal; SkillFilter: Text; var ResSkills: List of [Code[20]])
+    var
+        TempSkillFilterCheck: Record "Skill Code" temporary;
+        JObj: JsonObject;
+        SkillVal: Code[20];
+        AnyEmitted: Boolean;
+    begin
+        foreach SkillVal in ResSkills do begin
+            if SkillFilter <> '' then begin
+                TempSkillFilterCheck.Reset();
+                TempSkillFilterCheck.DeleteAll();
+                TempSkillFilterCheck.Init();
+                TempSkillFilterCheck.Code := SkillVal;
+                TempSkillFilterCheck.Insert();
+                TempSkillFilterCheck.SetFilter(Code, SkillFilter);
+                if TempSkillFilterCheck.IsEmpty() then
+                    continue;
+            end;
+
+            Clear(JObj);
+            JObj.Add('id', 'CAP|' + ResNo + '|' + Format(CapDate, 0, '<Year4><Month,2><Day,2>') + '|' + SkillVal);
+            JObj.Add('resource_id', ResNo);
+            JObj.Add('section_id', ResNo + '|' + SkillVal);
+            JObj.Add('start_date', StartTxt);
+            JObj.Add('end_date', EndTxt);
+            JObj.Add('text', 'Capacity');
+            JObj.Add('classname', 'event-capacity');
+            JObj.Add('type', 'capacity');
+            JObj.Add('hours', Hours);
+            JArray.Add(JObj);
+            AnyEmitted := true;
+        end;
+
+        if (not AnyEmitted) and (SkillFilter = '') then begin
+            Clear(JObj);
+            JObj.Add('id', 'CAP|' + ResNo + '|' + Format(CapDate, 0, '<Year4><Month,2><Day,2>') + '|~NOSKILL~');
+            JObj.Add('resource_id', ResNo);
+            JObj.Add('section_id', ResNo + '|~NOSKILL~');
+            JObj.Add('start_date', StartTxt);
+            JObj.Add('end_date', EndTxt);
+            JObj.Add('text', 'Capacity');
+            JObj.Add('classname', 'event-capacity');
+            JObj.Add('type', 'capacity');
+            JObj.Add('hours', Hours);
+            JArray.Add(JObj);
+        end;
+    end;
+
+    /// <summary>
+    /// True when at least one skill in SkillList satisfies SkillFilter's filter expression (via a
+    /// throwaway temporary "Skill Code" table so full BC filter syntax - "A|B", ranges, "<>X" -
+    /// works against an in-memory list rather than a real query). Blank SkillFilter always
+    /// matches, same not-blank convention as ResourceMatchesNoFilter/ResourceMatchesSkillFilter.
+    /// Used by SkillResScheduler_BuildCapacityJson to decide whether a resource's Res. Capacity
+    /// Entry rows should be aggregated at all when a SkillFilter is active, sourced from the same
+    /// combined (Resource Skill UNION Day-Planning-observed) skill set the tree uses - not just
+    /// "Resource Skill" registrations, so a Capacity row for a resource that only has a skill via
+    /// Day Planning still passes when SkillFilter targets that skill.
+    /// </summary>
+    local procedure SkillResScheduler_SkillListMatchesFilter(var SkillList: List of [Code[20]]; SkillFilter: Text): Boolean
+    var
+        TempSkillFilterCheck: Record "Skill Code" temporary;
+        SkillVal: Code[20];
+    begin
+        if SkillFilter = '' then
+            exit(true);
+        foreach SkillVal in SkillList do begin
+            if not TempSkillFilterCheck.Get(SkillVal) then begin
+                TempSkillFilterCheck.Init();
+                TempSkillFilterCheck.Code := SkillVal;
+                TempSkillFilterCheck.Insert();
+            end;
+        end;
+        TempSkillFilterCheck.SetFilter(Code, SkillFilter);
+        exit(not TempSkillFilterCheck.IsEmpty());
+    end;
+
+    /// <summary>
     /// Aggregated Capacity events (one bar per Resource/Date, summed Capacity, earliest Start
     /// Time - same aggregation as ResScheduler_BuildCapacityJson) but always tagged with a
     /// fixed classname/type so the bar renders in the dedicated "Capacity" color regardless of
     /// which resource it belongs to (ResScheduler_GetResourceColor's per-resource hash color
     /// does not satisfy the "3 distinct, clearly different colors" requirement here). Res.
-    /// Capacity Entry has no Skill field of its own, so SkillFilter is applied per-row via the
-    /// shared ResourceMatchesSkillFilter helper (Resource Skill lookup) rather than a table
-    /// filter - non-matching rows are simply never aggregated/emitted, which is safe because
-    /// the aggregation state (LastResNo/LastDate/AggCapacity) is only ever touched for rows that
-    /// pass the check, so a run of matching rows for the same resource/date still flushes
-    /// correctly when the next matching row differs.
+    /// Capacity Entry has no Skill field of its own, so SkillFilter is applied per-row against
+    /// each resource's combined skill set (Resource Skill registrations UNION Day-Planning-
+    /// observed skills - built once up front via SkillResScheduler_BuildCombinedSkillLookup, same
+    /// lookup SkillResScheduler_BuildTreeJson uses) rather than a table filter - non-matching rows
+    /// are simply never aggregated/emitted, which is safe because the aggregation state
+    /// (LastResNo/LastDate/AggCapacity) is only ever touched for rows that pass the check, so a
+    /// run of matching rows for the same resource/date still flushes correctly when the next
+    /// matching row differs. Each flush passes the resource's own skill list on to
+    /// SkillResScheduler_EmitCapacityEvents, which duplicates the Capacity bar onto every branch
+    /// in that list (SkillFilter-restricted there too) - including Day-Planning-only branches, so
+    /// e.g. a resource registered only for DELIVER but with an ELEKTR Day Planning still gets its
+    /// Capacity bar duplicated onto both the Delivery Service and Elektrisch tree rows.
     /// </summary>
     procedure SkillResScheduler_BuildCapacityJson(ResourceFilter: Text; SkillFilter: Text; StartDate: Date; EndDate: Date): Text
     var
         ResCap: Record "Res. Capacity Entry";
         TempResCap: Record "Res. Capacity Entry" temporary;
+        CombinedSkills: Dictionary of [Text, Boolean];
+        ResourceHasAny: Dictionary of [Code[20], Boolean];
+        ResourceSkillsMap: Dictionary of [Code[20], List of [Code[20]]];
+        UnusedRegisteredSkills: Dictionary of [Text, Boolean];
+        CurrentResSkills: List of [Code[20]];
         JArray: JsonArray;
-        JObj: JsonObject;
         JRoot: JsonObject;
         Result: Text;
         StartDateTimeStr: Text;
         EndDateTimeStr: Text;
         LastResNo: Code[20];
         LastDate: Date;
+        LastResSkills: List of [Code[20]];
         AggStartTime: Time;
         AggCapacity: Decimal;
     begin
+        // Combined per-resource skill set - same union rule as the tree (see
+        // SkillResScheduler_BuildCombinedSkillLookup). Rebuilt fresh here rather than shared with
+        // SkillResScheduler_BuildTreeJson's call, same "no cross-call caching" convention as the
+        // rest of this codeunit. UnusedRegisteredSkills (registered-vs-observed distinction) is
+        // only needed by SkillResScheduler_BuildTreeJson's leaf-label " (*)" flag, not here -
+        // this procedure already gets what it needs from ResourceSkillsMap.
+        SkillResScheduler_BuildCombinedSkillLookup(CombinedSkills, ResourceHasAny, ResourceSkillsMap, UnusedRegisteredSkills, StartDate, EndDate);
+
         ResCap.Reset();
         ResCap.SetCurrentKey("Resource No.", "Date");
         if (StartDate <> 0D) and (EndDate <> 0D) then
@@ -3545,7 +3830,11 @@ codeunit 50604 "DHX Data Handler"
 
         if ResCap.FindSet() then
             repeat
-                if ResourceMatchesSkillFilter(ResCap."Resource No.", SkillFilter) then
+                if ResourceSkillsMap.ContainsKey(ResCap."Resource No.") then
+                    CurrentResSkills := ResourceSkillsMap.Get(ResCap."Resource No.")
+                else
+                    Clear(CurrentResSkills);
+                if SkillResScheduler_SkillListMatchesFilter(CurrentResSkills, SkillFilter) then
                 if (ResCap."Resource No." <> LastResNo) or (ResCap."Date" <> LastDate) then begin
                     if (LastResNo <> '') and (AggCapacity > 0) then begin
                         TempResCap.Init();
@@ -3553,22 +3842,12 @@ codeunit 50604 "DHX Data Handler"
                         TempResCap."Date" := LastDate;
                         TempResCap."Start Time" := AggStartTime;
                         GetStartEndTxt(TempResCap, AggCapacity, StartDateTimeStr, EndDateTimeStr);
-                        if (StartDateTimeStr <> '') and (EndDateTimeStr <> '') then begin
-                            Clear(JObj);
-                            JObj.Add('id', 'CAP|' + LastResNo + '|' + Format(LastDate, 0, '<Year4><Month,2><Day,2>'));
-                            JObj.Add('resource_id', LastResNo);
-                            JObj.Add('section_id', LastResNo);
-                            JObj.Add('start_date', StartDateTimeStr);
-                            JObj.Add('end_date', EndDateTimeStr);
-                            JObj.Add('text', 'Capacity');
-                            JObj.Add('classname', 'event-capacity');
-                            JObj.Add('type', 'capacity');
-                            JObj.Add('hours', AggCapacity);
-                            JArray.Add(JObj);
-                        end;
+                        if (StartDateTimeStr <> '') and (EndDateTimeStr <> '') then
+                            SkillResScheduler_EmitCapacityEvents(JArray, LastResNo, LastDate, StartDateTimeStr, EndDateTimeStr, AggCapacity, SkillFilter, LastResSkills);
                     end;
                     LastResNo := ResCap."Resource No.";
                     LastDate := ResCap."Date";
+                    LastResSkills := CurrentResSkills;
                     AggStartTime := ResCap."Start Time";
                     AggCapacity := ResCap.Capacity;
                 end else begin
@@ -3585,19 +3864,8 @@ codeunit 50604 "DHX Data Handler"
             TempResCap."Date" := LastDate;
             TempResCap."Start Time" := AggStartTime;
             GetStartEndTxt(TempResCap, AggCapacity, StartDateTimeStr, EndDateTimeStr);
-            if (StartDateTimeStr <> '') and (EndDateTimeStr <> '') then begin
-                Clear(JObj);
-                JObj.Add('id', 'CAP|' + LastResNo + '|' + Format(LastDate, 0, '<Year4><Month,2><Day,2>'));
-                JObj.Add('resource_id', LastResNo);
-                JObj.Add('section_id', LastResNo);
-                JObj.Add('start_date', StartDateTimeStr);
-                JObj.Add('end_date', EndDateTimeStr);
-                JObj.Add('text', 'Capacity');
-                JObj.Add('classname', 'event-capacity');
-                JObj.Add('type', 'capacity');
-                JObj.Add('hours', AggCapacity);
-                JArray.Add(JObj);
-            end;
+            if (StartDateTimeStr <> '') and (EndDateTimeStr <> '') then
+                SkillResScheduler_EmitCapacityEvents(JArray, LastResNo, LastDate, StartDateTimeStr, EndDateTimeStr, AggCapacity, SkillFilter, LastResSkills);
         end;
 
         Clear(JRoot);
@@ -3636,9 +3904,14 @@ codeunit 50604 "DHX Data Handler"
     /// wrapper.js (see that file's event_bar_text/segmentHtml). SkillFilter is applied directly
     /// against Day Planning's own "Skill" field (a table filter, not a per-resource lookup like
     /// Capacity's - Day Planning is skill-tagged per row, independent of whichever skill(s) the
-    /// Assigned/Requested resource happens to carry).
+    /// Assigned/Requested resource happens to carry). The bar's section_id targets the specific
+    /// composite tree row for the row resource's Skill (the row's own Skill when set, else that
+    /// resource's primary skill via SkillResScheduler_GetPrimarySkill, else "~NOSKILL~" - the
+    /// tree always has a branch for the row's own Skill now, since this same row is one of the
+    /// rows SkillResScheduler_BuildCombinedSkillLookup's Source 2/3 loops scanned to build that
+    /// branch) - resource_id stays the plain Resource No.
     /// </summary>
-    procedure SkillResScheduler_BuildDayPlanningJson(ResourceFilter: Text; SkillFilter: Text; StartDate: Date; EndDate: Date): Text
+    procedure SkillResScheduler_BuildDayPlanningJson(ResourceFilter: Text; SkillFilter: Text; JobNoFilter: Text; JobTaskNoFilter: Text; StartDate: Date; EndDate: Date): Text
     var
         DayPlanning: Record "Day Planning";
         Res: Record Resource;
@@ -3661,12 +3934,17 @@ codeunit 50604 "DHX Data Handler"
         EnvStartTxt: Text;
         EnvEndTxt: Text;
         EventText: Text;
+        EffectiveSkill: Code[20];
     begin
         DayPlanning.Reset();
         if (StartDate <> 0D) and (EndDate <> 0D) then
             DayPlanning.SetRange("Plan Date", StartDate, EndDate);
         if SkillFilter <> '' then
             DayPlanning.SetFilter(Skill, SkillFilter);
+        if JobNoFilter <> '' then
+            DayPlanning.SetFilter("Job No.", JobNoFilter);
+        if JobTaskNoFilter <> '' then
+            DayPlanning.SetFilter("Job Task No.", JobTaskNoFilter);
         if DayPlanning.FindSet() then
             repeat
                 RowResourceNo := DayPlanning."Assigned Resource No.";
@@ -3720,10 +3998,22 @@ codeunit 50604 "DHX Data Handler"
                                 else
                                     EventText := 'Day Planning';
 
+                        // The tree now always has a branch for whatever skill this Day Planning
+                        // row actually carries (this row is one of the rows query "Res Skill Day
+                        // Planning List" scans), so the old "is the resource registered for this
+                        // skill" gate (SkillResScheduler_ResolveRowSkill/HasSkill) is no longer
+                        // needed - just use the row's own Skill, falling back to the resource's
+                        // primary skill only when the row itself has no Skill set at all.
+                        EffectiveSkill := DayPlanning.Skill;
+                        if EffectiveSkill = '' then
+                            EffectiveSkill := SkillResScheduler_GetPrimarySkill(RowResourceNo);
+                        if EffectiveSkill = '' then
+                            EffectiveSkill := '~NOSKILL~';
+
                         Clear(JObj);
                         JObj.Add('id', Format(DayPlanning.RecordId));
                         JObj.Add('resource_id', RowResourceNo);
-                        JObj.Add('section_id', RowResourceNo);
+                        JObj.Add('section_id', RowResourceNo + '|' + EffectiveSkill);
                         JObj.Add('start_date', EnvStartTxt);
                         JObj.Add('end_date', EnvEndTxt);
                         JObj.Add('text', EventText);
@@ -3740,6 +4030,8 @@ codeunit 50604 "DHX Data Handler"
                         JObj.Add('requested_resource_name', RequestedResName);
                         JObj.Add('requested_hours', DayPlanning."Requested Hours");
                         JObj.Add('skill', DayPlanning.Skill);
+                        JObj.Add('job_no', DayPlanning."Job No.");
+                        JObj.Add('job_task_no', DayPlanning."Job Task No.");
                         JArray.Add(JObj);
                     end;
             until DayPlanning.Next() = 0;
@@ -3820,6 +4112,56 @@ codeunit 50604 "DHX Data Handler"
         Page.RunModal(0, ResCap);
     end;
 
+    /// <summary>
+    /// Opens the Job Task for the single Day Planning bar behind an event right-click - looks
+    /// the record up via RecordId (same technique as SkillResScheduler_OpenDayPlanningByEventId),
+    /// then opens its Job Task via Page::"Job Task List - Project" (PageType=List, SourceTable=
+    /// "Job Task", no restrictive SourceTableView, CardPageID = "Opti Job Task Card"), the same
+    /// target SkillResScheduler_OpenTasksForResource below uses, for consistency between the
+    /// event-bar and resource-row "Open Task" actions.
+    /// </summary>
+    procedure SkillResScheduler_OpenTaskByEventId(EventId: Text)
+    var
+        DayPlanning: Record "Day Planning";
+        JobTask: Record "Job Task";
+        RecRef: RecordRef;
+        RecId: RecordId;
+    begin
+        if not Evaluate(RecId, EventId) then
+            exit;
+        if not RecRef.Get(RecId) then
+            exit;
+        RecRef.SetTable(DayPlanning);
+        if JobTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
+            Page.Run(Page::"Job Task List - Project", JobTask);
+    end;
+
+    /// <summary>
+    /// Opens the Resource Card for the single Day Planning bar behind an event right-click -
+    /// Assigned Resource No. if set, else Requested Resource No. (same "Assigned-else-Requested"
+    /// resolution used elsewhere in this codeunit, e.g. RowResourceNo in
+    /// SkillResScheduler_BuildDayPlanningJson - matches which resource's ROW this bar is already
+    /// sitting on, so opening "the resource" from here is unambiguous). Delegates to the existing
+    /// SkillResScheduler_OpenResourceCard(ResNo: Text) once the resource is resolved.
+    /// </summary>
+    procedure SkillResScheduler_OpenResourceByEventId(EventId: Text)
+    var
+        DayPlanning: Record "Day Planning";
+        RecRef: RecordRef;
+        RecId: RecordId;
+        ResNo: Code[20];
+    begin
+        if not Evaluate(RecId, EventId) then
+            exit;
+        if not RecRef.Get(RecId) then
+            exit;
+        RecRef.SetTable(DayPlanning);
+        ResNo := DayPlanning."Assigned Resource No.";
+        if ResNo = '' then
+            ResNo := DayPlanning."Requested Resource No.";
+        SkillResScheduler_OpenResourceCard(ResNo);
+    end;
+
     /// <summary>Opens the Resource Card for a Resource No. (tree leaf / event resource_id).</summary>
     procedure SkillResScheduler_OpenResourceCard(ResNo: Text)
     var
@@ -3888,6 +4230,66 @@ codeunit 50604 "DHX Data Handler"
         DayPlanning.SetRange("Requested Resource No.");
         DayPlanning.MarkedOnly(true);
         Page.Run(Page::"Day Plannings", DayPlanning);
+    end;
+
+    /// <summary>
+    /// Opens the Job Task LIST for every DISTINCT (Job No., Job Task No.) pair referenced by a Day
+    /// Planning row where the given resource is EITHER the Assigned Resource No. OR the Requested
+    /// Resource No., within [StartDate, EndDate] - the resource-row right-click "Open Task" action,
+    /// one level up from SkillResScheduler_OpenDayPlanningsForResource (which shows the Day Planning
+    /// lines themselves; this shows the Job Tasks those lines belong to). Reuses the same
+    /// Mark()/MarkedOnly() two-pass OR technique as OpenDayPlanningsForResource for the Day Planning
+    /// side, then marks the corresponding Job Task records - deduped via a temporary Job Task record
+    /// keyed on (Job No., Job Task No.), since the same task can be referenced by multiple Day
+    /// Planning rows across the week - and opens them via Page::"Job Task List - Project"
+    /// (PageType=List, SourceTable="Job Task", no restrictive SourceTableView, CardPageID =
+    /// "Opti Job Task Card"), the same target SkillResScheduler_OpenTaskByEventId above uses, so
+    /// multiple distinct Job Tasks marked here render as a list on the same page a single task
+    /// would open to from an event bar.
+    /// </summary>
+    procedure SkillResScheduler_OpenTasksForResource(ResNo: Text; StartDate: Date; EndDate: Date)
+    var
+        DayPlanning: Record "Day Planning";
+        JobTask: Record "Job Task";
+        TempJobTaskKey: Record "Job Task" temporary;
+        ResNoCode: Code[20];
+    begin
+        if StrLen(ResNo) > MaxStrLen(ResNoCode) then
+            exit;
+        ResNoCode := CopyStr(ResNo, 1, MaxStrLen(ResNoCode));
+
+        DayPlanning.Reset();
+        if (StartDate <> 0D) and (EndDate <> 0D) then
+            DayPlanning.SetRange("Plan Date", StartDate, EndDate);
+        DayPlanning.SetRange("Assigned Resource No.", ResNoCode);
+        if DayPlanning.FindSet() then
+            repeat
+                DayPlanning.Mark(true);
+            until DayPlanning.Next() = 0;
+
+        DayPlanning.SetRange("Assigned Resource No.");
+        DayPlanning.SetRange("Requested Resource No.", ResNoCode);
+        if DayPlanning.FindSet() then
+            repeat
+                DayPlanning.Mark(true);
+            until DayPlanning.Next() = 0;
+
+        DayPlanning.SetRange("Requested Resource No.");
+        DayPlanning.MarkedOnly(true);
+        if DayPlanning.FindSet() then
+            repeat
+                if not TempJobTaskKey.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then begin
+                    TempJobTaskKey.Init();
+                    TempJobTaskKey."Job No." := DayPlanning."Job No.";
+                    TempJobTaskKey."Job Task No." := DayPlanning."Job Task No.";
+                    TempJobTaskKey.Insert();
+                    if JobTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
+                        JobTask.Mark(true);
+                end;
+            until DayPlanning.Next() = 0;
+
+        JobTask.MarkedOnly(true);
+        Page.Run(Page::"Job Task List - Project", JobTask);
     end;
 
     /// <summary>

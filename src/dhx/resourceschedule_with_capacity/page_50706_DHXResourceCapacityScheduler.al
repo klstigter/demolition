@@ -28,7 +28,7 @@ page 50706 "DHX Scheduler (Res+Capacity)"
                         Window.Open(LoadingLbl);
 
                     DHXDataHandler.GetWeekPeriodDates(Today(), AnchorDate, DummyEndDate);
-                    TreeJsonTxt := DHXDataHandler.SkillResScheduler_BuildTreeJson(ResourceFilter, SkillFilter);
+                    TreeJsonTxt := DHXDataHandler.SkillResScheduler_BuildTreeJson(ResourceFilter, SkillFilter, AnchorDate, DummyEndDate);
 
                     HasSetup := ResSchedSetup.Get(UserId);
                     if HasSetup and (ResSchedSetup."Timeline Hour Step" > 0) then
@@ -45,15 +45,19 @@ page 50706 "DHX Scheduler (Res+Capacity)"
                            (ResSchedSetup."Assigned Color" <> '') or
                            (ResSchedSetup."Requested Color" <> '') or
                            (ResSchedSetup."Assigned High (%)" > 0) or
-                           (ResSchedSetup."Requested High (%)" > 0)
+                           (ResSchedSetup."Requested High (%)" > 0) or
+                           (ResSchedSetup."Capacity Color" <> '') or
+                           (ResSchedSetup."Capacity Border Color" <> '')
                         then begin
-                            ColorsJsonTxt := StrSubstNo('{"envelope":"%1","envelopeBorder":"%2","assigned":"%3","requested":"%4","assignedHeight":%5,"requestedHeight":%6}',
+                            ColorsJsonTxt := StrSubstNo('{"envelope":"%1","envelopeBorder":"%2","assigned":"%3","requested":"%4","assignedHeight":%5,"requestedHeight":%6,"capacity":"%7","capacityBorder":"%8"}',
                                 ResSchedSetup."Envelope Color",
                                 ResSchedSetup."Envelope Border Color",
                                 ResSchedSetup."Assigned Color",
                                 ResSchedSetup."Requested Color",
                                 ResSchedSetup."Assigned High (%)",
-                                ResSchedSetup."Requested High (%)");
+                                ResSchedSetup."Requested High (%)",
+                                ResSchedSetup."Capacity Color",
+                                ResSchedSetup."Capacity Border Color");
                             CurrPage.DhxScheduler.SetBarColors(ColorsJsonTxt);
                         end;
                     PushResourceFilterInfo();
@@ -70,7 +74,7 @@ page 50706 "DHX Scheduler (Res+Capacity)"
                 begin
                     DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
                     CurrPage.DhxScheduler.LoadCapacity(DHXDataHandler.SkillResScheduler_BuildCapacityJson(ResourceFilter, SkillFilter, startDate, endDate));
-                    CurrPage.DhxScheduler.LoadData(DHXDataHandler.SkillResScheduler_BuildDayPlanningJson(ResourceFilter, SkillFilter, startDate, endDate));
+                    CurrPage.DhxScheduler.LoadData(DHXDataHandler.SkillResScheduler_BuildDayPlanningJson(ResourceFilter, SkillFilter, JobFilter, JobTaskFilter, startDate, endDate));
                 end;
 
                 #endregion Init and Load Data on Control Ready
@@ -79,10 +83,11 @@ page 50706 "DHX Scheduler (Res+Capacity)"
 
                 trigger OnSectionDblClick(sectionId: Text; label: Text; viewdate: Text)
                 begin
-                    // Skill (folder) rows have key "SKILL|..." - only Resource leaf rows (plain
-                    // Resource "No.") open the Resource Card; a Skill row double-click is a no-op.
+                    // Skill (folder) rows have key "SKILL|..." - only Resource leaf rows
+                    // (composite "<Resource No.>|<Skill Code>") open the Resource Card; a Skill
+                    // row double-click is a no-op. Extract the plain Resource No. before lookup.
                     if not sectionId.StartsWith('SKILL|') then
-                        DHXDataHandler.SkillResScheduler_OpenResourceCard(sectionId);
+                        DHXDataHandler.SkillResScheduler_OpenResourceCard(DHXDataHandler.SkillResScheduler_ExtractResourceNo(sectionId));
                 end;
 
                 trigger OnEventDblClick(eventId: Text; eventData: Text)
@@ -113,9 +118,9 @@ page 50706 "DHX Scheduler (Res+Capacity)"
                     DHXDataHandler.GetStartEndDatesFromTimeLineJSon(NavigateJson, startDate, endDate);
                     if startDate <> 0D then begin
                         AnchorDate := startDate;
-                        TreeJsonTxt := DHXDataHandler.SkillResScheduler_BuildTreeJson(ResourceFilter, SkillFilter);
+                        TreeJsonTxt := DHXDataHandler.SkillResScheduler_BuildTreeJson(ResourceFilter, SkillFilter, startDate, endDate);
                         CapacityJsonTxt := DHXDataHandler.SkillResScheduler_BuildCapacityJson(ResourceFilter, SkillFilter, startDate, endDate);
-                        EventsJsonTxt := DHXDataHandler.SkillResScheduler_BuildDayPlanningJson(ResourceFilter, SkillFilter, startDate, endDate);
+                        EventsJsonTxt := DHXDataHandler.SkillResScheduler_BuildDayPlanningJson(ResourceFilter, SkillFilter, JobFilter, JobTaskFilter, startDate, endDate);
 
                         if GuiAllowed() then
                             Window.Update(1, 'Rendering...');
@@ -159,30 +164,45 @@ page 50706 "DHX Scheduler (Res+Capacity)"
                         'OpenCapacity':
                             if eventId.StartsWith('CAP|') then
                                 DHXDataHandler.SkillResScheduler_OpenCapacityByEventId(eventId);
+                        'OpenTask':
+                            if not eventId.StartsWith('CAP|') then
+                                DHXDataHandler.SkillResScheduler_OpenTaskByEventId(eventId);
+                        'OpenResource':
+                            if not eventId.StartsWith('CAP|') then
+                                DHXDataHandler.SkillResScheduler_OpenResourceByEventId(eventId);
                     end;
                 end;
 
                 trigger OnSectionContextMenu(sectionId: Text; action: Text; payloadJson: Text)
                 var
+                    ResNo: Code[20];
                     startDate: Date;
                     endDate: Date;
                 begin
                     if sectionId.StartsWith('SKILL|') then
                         exit; // no per-skill actions yet
+                    // Resource leaf rows are the composite "<Resource No.>|<Skill Code>" key;
+                    // these actions all operate on the plain Resource No. across every skill.
+                    ResNo := DHXDataHandler.SkillResScheduler_ExtractResourceNo(sectionId);
                     case action of
                         'OpenResourceCard':
-                            DHXDataHandler.SkillResScheduler_OpenResourceCard(sectionId);
+                            DHXDataHandler.SkillResScheduler_OpenResourceCard(ResNo);
                         'OpenResourceSkills':
-                            DHXDataHandler.SkillResScheduler_OpenResourceSkills(sectionId);
+                            DHXDataHandler.SkillResScheduler_OpenResourceSkills(ResNo);
                         'OpenDayPlannings':
                             begin
                                 DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
-                                DHXDataHandler.SkillResScheduler_OpenDayPlanningsForResource(sectionId, startDate, endDate);
+                                DHXDataHandler.SkillResScheduler_OpenDayPlanningsForResource(ResNo, startDate, endDate);
+                            end;
+                        'OpenTask':
+                            begin
+                                DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
+                                DHXDataHandler.SkillResScheduler_OpenTasksForResource(ResNo, startDate, endDate);
                             end;
                         'ShowCapacity':
                             begin
                                 DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
-                                DHXDataHandler.SkillResScheduler_ShowCapacityForResource(sectionId, startDate, endDate);
+                                DHXDataHandler.SkillResScheduler_ShowCapacityForResource(ResNo, startDate, endDate);
                             end;
                     end;
                 end;
@@ -197,8 +217,12 @@ page 50706 "DHX Scheduler (Res+Capacity)"
                     NewResNoFilter: Text;
                     NewResNameFilter: Text;
                     NewSkillFilter: Text;
+                    NewJobFilter: Text;
+                    NewJobTaskFilter: Text;
                 begin
                     FilterDlg.SetFilter(ResourceFilter, ResourceNameFilter, SkillFilter);
+                    FilterDlg.EnableJobFilter();
+                    FilterDlg.SetJobFilter(JobFilter, JobTaskFilter);
                     FilterDlg.RunModal();
                     if FilterDlg.IsConfirmed() then begin
                         FilterDlg.GetFilter(NewResNoFilter, NewResNameFilter, NewSkillFilter);
@@ -209,6 +233,18 @@ page 50706 "DHX Scheduler (Res+Capacity)"
                         ResourceFilter := NewResNoFilter;
                         ResourceNameFilter := NewResNameFilter;
                         SkillFilter := NewSkillFilter;
+                        FilterDlg.GetJobFilter(NewJobFilter, NewJobTaskFilter);
+                        JobFilter := NewJobFilter;
+                        JobTaskFilter := NewJobTaskFilter;
+                        // Narrowing by Job typically leaves most resources with zero matching Day
+                        // Planning bars - force "Hide no event resources" on so the tree isn't mostly
+                        // empty rows. Only forced ON when a job filter becomes active; clearing the
+                        // job filter (here or via OnClearResourceFilter) does NOT force it back off -
+                        // that stays a manual user toggle via the existing Hide/Show actions.
+                        if (JobFilter <> '') or (JobTaskFilter <> '') then begin
+                            HideNoEventResourcesFlag := true;
+                            CurrPage.DhxScheduler.SetHideNoEventResources(true);
+                        end;
                         RefreshSchedule();
                     end;
                 end;
@@ -218,6 +254,8 @@ page 50706 "DHX Scheduler (Res+Capacity)"
                     ResourceFilter := '';
                     ResourceNameFilter := '';
                     SkillFilter := '';
+                    JobFilter := '';
+                    JobTaskFilter := '';
                     RefreshSchedule();
                 end;
 
@@ -445,6 +483,8 @@ page 50706 "DHX Scheduler (Res+Capacity)"
         ResourceFilter: Text;
         ResourceNameFilter: Text;
         SkillFilter: Text;
+        JobFilter: Text;
+        JobTaskFilter: Text;
         ShowCapacityFlag: Boolean;
         ShowDayPlanningFlag: Boolean;
         HideNoEventResourcesFlag: Boolean;
@@ -463,9 +503,9 @@ page 50706 "DHX Scheduler (Res+Capacity)"
             Window.Open(LoadingLbl);
 
         DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
-        TreeJsonTxt := DHXDataHandler.SkillResScheduler_BuildTreeJson(ResourceFilter, SkillFilter);
+        TreeJsonTxt := DHXDataHandler.SkillResScheduler_BuildTreeJson(ResourceFilter, SkillFilter, startDate, endDate);
         CapacityJsonTxt := DHXDataHandler.SkillResScheduler_BuildCapacityJson(ResourceFilter, SkillFilter, startDate, endDate);
-        EventsJsonTxt := DHXDataHandler.SkillResScheduler_BuildDayPlanningJson(ResourceFilter, SkillFilter, startDate, endDate);
+        EventsJsonTxt := DHXDataHandler.SkillResScheduler_BuildDayPlanningJson(ResourceFilter, SkillFilter, JobFilter, JobTaskFilter, startDate, endDate);
 
         if GuiAllowed() then
             Window.Update(1, 'Rendering...');
@@ -489,6 +529,8 @@ page 50706 "DHX Scheduler (Res+Capacity)"
             ResNameLbl += StrSubstNo(' (name filter: %1)', ResourceNameFilter);
         if SkillFilter <> '' then
             ResNameLbl += StrSubstNo(' (skill filter: %1)', SkillFilter);
+        if (JobFilter <> '') or (JobTaskFilter <> '') then
+            ResNameLbl += StrSubstNo(' (job filter: %1 %2)', JobFilter, JobTaskFilter);
         CurrPage.DhxScheduler.SetResourceFilterInfo(
             ResourceFilter,
             ResNameLbl,

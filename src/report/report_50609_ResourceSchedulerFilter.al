@@ -93,6 +93,33 @@
 ///           RefreshWithResourceFilterChange();
 ///       end;
 ///   end;
+///
+/// IMPORTANT (4th pass — opt-in Job/Job Task filter group added): Page 50706 "DHX
+/// Scheduler (Res+Capacity)" is the only one of this report's three callers whose
+/// underlying data (Day Planning) has Job No./Job Task No. fields meaningfully wired
+/// up (see DHXDataHandler.SkillResScheduler_BuildDayPlanningJson). Pages 50619 and
+/// 50600 have no job-filtering hooks at all, so the new "Filter by Job / Job Task"
+/// group is HIDDEN BY DEFAULT (ShowJobFilter = false) and only becomes visible when a
+/// caller explicitly opts in by calling EnableJobFilter() before RunModal(). Callers
+/// that want the group also call SetJobFilter()/GetJobFilter() (same before/after
+/// RunModal() contract as SetFilter()/GetFilter()). Extended caller pattern for a
+/// job-aware caller (e.g. Page 50706):
+///   var
+///       FilterDlg        : Report "Resource Scheduler Filter";
+///       ...
+///       NewJobNoFilter     : Text;
+///       NewJobTaskNoFilter : Text;
+///   begin
+///       FilterDlg.SetFilter(ResourceFilter, ResourceNameFilter, SkillFilter);
+///       FilterDlg.EnableJobFilter();
+///       FilterDlg.SetJobFilter(JobFilter, JobTaskFilter);
+///       FilterDlg.RunModal();
+///       if FilterDlg.IsConfirmed() then begin
+///           FilterDlg.GetFilter(NewResNoFilter, NewResNameFilter, NewSkillFilter);
+///           FilterDlg.GetJobFilter(NewJobNoFilter, NewJobTaskNoFilter);
+///           ...
+///       end;
+///   end;
 /// </summary>
 report 50609 "Resource Scheduler Filter"
 {
@@ -183,6 +210,25 @@ report 50609 "Resource Scheduler Filter"
                         end;
                     }
                 }
+                group(JobFilterGroup)
+                {
+                    Caption = 'Filter by Job / Job Task';
+                    Visible = ShowJobFilter;
+
+                    field(fldJobNo; JobNoFilter)
+                    {
+                        ApplicationArea = All;
+                        Caption = 'Job No.';
+                        ToolTip = 'Specifies the filter to apply on Day Planning''s Job No. Standard filter syntax is supported (e.g. wildcards, ranges, OR-lists).';
+                        TableRelation = Job;
+                    }
+                    field(fldJobTaskNo; JobTaskNoFilter)
+                    {
+                        ApplicationArea = All;
+                        Caption = 'Job Task No.';
+                        ToolTip = 'Specifies the filter to apply on Day Planning''s Job Task No. Standard filter syntax is supported (e.g. wildcards, ranges, OR-lists). Not constrained by Job No. - enter both fields for a meaningful filter.';
+                    }
+                }
             }
         }
 
@@ -197,6 +243,9 @@ report 50609 "Resource Scheduler Filter"
         ResourceNoFilter: Text;
         ResourceNameFilter: Text;
         SkillFilter: Text;
+        JobNoFilter: Text;
+        JobTaskNoFilter: Text;
+        ShowJobFilter: Boolean;
         Confirmed: Boolean;
 
     /// <summary>
@@ -230,5 +279,38 @@ report 50609 "Resource Scheduler Filter"
     procedure IsConfirmed(): Boolean
     begin
         exit(Confirmed);
+    end;
+
+    /// <summary>
+    /// Must be called BEFORE RunModal(). Opt-in switch that makes the "Filter by Job /
+    /// Job Task" group visible on the request page. Hidden by default because only
+    /// Page 50706 "DHX Scheduler (Res+Capacity)" has Job/Job Task filtering meaningfully
+    /// wired to its data (Day Planning); callers that never call this (Pages 50619,
+    /// 50600) keep the group hidden and never see a dead filter.
+    /// </summary>
+    procedure EnableJobFilter()
+    begin
+        ShowJobFilter := true;
+    end;
+
+    /// <summary>
+    /// Must be called BEFORE RunModal(). Pre-fills the request page with the caller's
+    /// currently active Job No./Job Task No. filters (blank for "show everything").
+    /// Only meaningful when combined with EnableJobFilter().
+    /// </summary>
+    procedure SetJobFilter(pJobNoFilter: Text; pJobTaskNoFilter: Text)
+    begin
+        JobNoFilter := pJobNoFilter;
+        JobTaskNoFilter := pJobTaskNoFilter;
+    end;
+
+    /// <summary>
+    /// Must be called AFTER RunModal(), guarded by IsConfirmed(). Returns the raw
+    /// filter text entered by the user for Job No. and Job Task No.
+    /// </summary>
+    procedure GetJobFilter(var pJobNoFilter: Text; var pJobTaskNoFilter: Text)
+    begin
+        pJobNoFilter := JobNoFilter;
+        pJobTaskNoFilter := JobTaskNoFilter;
     end;
 }

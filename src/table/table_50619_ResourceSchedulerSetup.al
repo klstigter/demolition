@@ -41,6 +41,16 @@ table 50619 "Resource Scheduler Setup"
             Caption = 'Requested High (%)';
             DataClassification = CustomerContent;
         }
+        field(42; "Capacity Color"; Text[20])
+        {
+            Caption = 'Capacity Color';
+            DataClassification = CustomerContent;
+        }
+        field(43; "Capacity Border Color"; Text[20])
+        {
+            Caption = 'Capacity Border Color';
+            DataClassification = CustomerContent;
+        }
         field(50; "Timeline Hour Step"; Integer)
         {
             Caption = 'Timeline Hour Step';

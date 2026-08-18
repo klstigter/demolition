@@ -30,6 +30,16 @@ page 50678 "Resource Scheduler Setup"
                         ApplicationArea = All;
                         ToolTip = 'Border color of the full Day Planning bar. Enter a hex color, e.g. #14294D.';
                     }
+                    field("Capacity Color"; Rec."Capacity Color")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Color of the Capacity time-range strip on the Day Planning bar. Enter a hex color, e.g. #F2994A.';
+                    }
+                    field("Capacity Border Color"; Rec."Capacity Border Color")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Border color of the Capacity bar. Enter a hex color, e.g. #C97F16. Leave blank for no border.';
+                    }
                 }
                 group(AssignedRequested)
                 {
