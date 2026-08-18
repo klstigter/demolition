@@ -17,7 +17,10 @@ page 50706 "DHX Scheduler (Res+Capacity)"
 
                 trigger ControlReady()
                 var
+                    ResSchedSetup: Record "Resource Scheduler Setup";
                     TreeJsonTxt: Text;
+                    ColorsJsonTxt: Text;
+                    HasSetup: Boolean;
                     Window: Dialog;
                     LoadingLbl: Label 'Loading Capacity data...\n#1######################';
                 begin
@@ -27,9 +30,32 @@ page 50706 "DHX Scheduler (Res+Capacity)"
                     DHXDataHandler.GetWeekPeriodDates(Today(), AnchorDate, DummyEndDate);
                     TreeJsonTxt := DHXDataHandler.SkillResScheduler_BuildTreeJson(ResourceFilter, SkillFilter);
 
+                    HasSetup := ResSchedSetup.Get(UserId);
+                    if HasSetup and (ResSchedSetup."Timeline Hour Step" > 0) then
+                        CurrPage.DhxScheduler.SetTimelineHourStep(ResSchedSetup."Timeline Hour Step");
+                    if HasSetup and (ResSchedSetup."Timeline End Hour" > 0) then
+                        CurrPage.DhxScheduler.SetTimelineHourRange(ResSchedSetup."Timeline Start Hour", ResSchedSetup."Timeline End Hour");
+
                     if GuiAllowed() then
                         Window.Update(1, 'Rendering...');
                     CurrPage.DhxScheduler.Init(TreeJsonTxt, AnchorDate);
+                    if HasSetup then
+                        if (ResSchedSetup."Envelope Color" <> '') or
+                           (ResSchedSetup."Envelope Border Color" <> '') or
+                           (ResSchedSetup."Assigned Color" <> '') or
+                           (ResSchedSetup."Requested Color" <> '') or
+                           (ResSchedSetup."Assigned High (%)" > 0) or
+                           (ResSchedSetup."Requested High (%)" > 0)
+                        then begin
+                            ColorsJsonTxt := StrSubstNo('{"envelope":"%1","envelopeBorder":"%2","assigned":"%3","requested":"%4","assignedHeight":%5,"requestedHeight":%6}',
+                                ResSchedSetup."Envelope Color",
+                                ResSchedSetup."Envelope Border Color",
+                                ResSchedSetup."Assigned Color",
+                                ResSchedSetup."Requested Color",
+                                ResSchedSetup."Assigned High (%)",
+                                ResSchedSetup."Requested High (%)");
+                            CurrPage.DhxScheduler.SetBarColors(ColorsJsonTxt);
+                        end;
                     PushResourceFilterInfo();
                     CurrPage.Update(false);
 
