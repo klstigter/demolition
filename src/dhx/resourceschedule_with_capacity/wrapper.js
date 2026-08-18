@@ -13,6 +13,9 @@ var allDayPlanningEvents = [];   // raw events from LoadData (type: 'DayPlanning
 var allCapacityEvents = [];      // raw events from LoadCapacity (type: 'capacity')
 var showDayPlanning = true;
 var showCapacity = true;
+var timelineHourStep = 3;         // hours between marks on the timeline scale; overridable via SetTimelineHourStep (AL setup)
+var timelineStartHour = 0;        // start of the visible daily window (0 = midnight); overridable via SetTimelineHourRange
+var timelineEndHour = 24;         // end of the visible daily window (24 = midnight); overridable via SetTimelineHourRange
 var hideNoEventResources = false; // Hide/Show no event resources toggle - see SetHideNoEventResources
 var _rawTreeSections = null;      // last unfiltered Skill>Resource tree received from AL (Init/RefreshTimeline)
 var _allSectionsCollapsed = false;
@@ -133,6 +136,8 @@ window.BOOT = function () {
             --dp-color-envelope-border: #14294D;
             --dp-color-assigned: #7FB3FA;
             --dp-color-requested: #6FCF97;
+            --dp-height-assigned: 50%;
+            --dp-height-requested: 50%;
         }
         .dhx_cal_event.event-DayPlanning,
         .dhx_cal_event_line.event-DayPlanning,
@@ -143,8 +148,8 @@ window.BOOT = function () {
             padding: 0 !important;
         }
         .dp-bar-wrap { position: relative; width: 100%; height: 100%; overflow: hidden; }
-        .dp-bar-assigned { position: absolute; top: 0; height: 50%; background: var(--dp-color-assigned) !important; }
-        .dp-bar-requested { position: absolute; bottom: 0; height: 50%; background: var(--dp-color-requested) !important; }
+        .dp-bar-assigned { position: absolute; top: 0; height: var(--dp-height-assigned); background: var(--dp-color-assigned) !important; }
+        .dp-bar-requested { position: absolute; bottom: 0; height: var(--dp-height-requested); background: var(--dp-color-requested) !important; }
         .dp-bar-label {
             position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
             color: #fff; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -236,6 +241,14 @@ window.BOOT = function () {
         scheduler.config.details_on_dblclick = false;
         scheduler.config.start_on_monday = true;
         scheduler.date.timeline_start = function (date) { return scheduler.date.week_start(date); };
+
+        // Compacts (not just hides) hour columns outside [timelineStartHour, timelineEndHour)
+        // on the "timeline" view - reads the live module-level vars, so it stays correct
+        // across RecreateTimelineView calls without needing to be redefined.
+        scheduler.ignore_timeline = function (date) {
+            var h = date.getHours();
+            return (h < timelineStartHour) || (h >= timelineEndHour);
+        };
 
         // Progress-split segment renderer for Day Planning bars (adapted verbatim from
         // projectschedule's wrapper.js event_bar_text/segmentHtml). Capacity bars just get
@@ -398,6 +411,15 @@ function RcArrayFrom(parsed) {
     return [];
 }
 
+// Returns a copy of dateObj with the time set to timelineStartHour:00:00, so the
+// visible window starts exactly there every day (when timelineHourStep evenly divides
+// the window).
+function applyTimelineStartHour(dateObj) {
+    var d = new Date(dateObj);
+    d.setHours(timelineStartHour, 0, 0, 0);
+    return d;
+}
+
 // ============================================================
 // Tree timeline (Skill > Resource) - same shape/config as poolresourceschedule's
 // RecreateTimelineView, adapted category names (Skill/Resource instead of
@@ -408,13 +430,17 @@ function RecreateTimelineView(sections) {
         if (typeof scheduler.deleteView === "function") scheduler.deleteView("timeline");
         delete scheduler.matrix.timeline;
     }
+    var windowHours = Math.max(1, timelineEndHour - timelineStartHour);
+    var columnsPerDay = Math.ceil(windowHours / timelineHourStep);
+    var visibleColumns = Math.max(1, columnsPerDay * 7);
+
     scheduler.createTimelineView({
         name: "timeline",
         x_unit: "hour",
         x_date: "%H",
-        x_step: 3,
-        x_size: (8 * 7),
-        x_length: (8 * 7),
+        x_step: timelineHourStep,
+        x_size: visibleColumns,
+        x_length: visibleColumns,
         dy: 20,
         event_dy: 20,
         folder_dy: 20,
@@ -527,7 +553,7 @@ function Init(elementsJson, EarliestPlanningDate) {
     // _rawTreeSections/the rendered tree out of sync.
     _rawTreeSections = sections;
     RecreateTimelineView(_currentTreeSections());
-    scheduler.init('scheduler_here', EarliestPlanningDate, "timeline");
+    scheduler.init('scheduler_here', applyTimelineStartHour(EarliestPlanningDate), "timeline");
 
     setupCollapseAllToggle();
     setupFilterToolbar();
@@ -574,6 +600,49 @@ function RefreshEvents() {
 }
 
 // ============================================================
+// AL-callable: SetBarColors - apply setup-driven Day Planning bar colors/split
+// ============================================================
+function SetBarColors(colorsJson) {
+    try {
+        var colors = ParseRcJsonTxt(colorsJson) || {};
+        var root = document.getElementById("scheduler_here");
+        if (!root) return;
+        if (colors.envelope) root.style.setProperty("--dp-color-envelope", colors.envelope);
+        if (colors.envelopeBorder) root.style.setProperty("--dp-color-envelope-border", colors.envelopeBorder);
+        if (colors.assigned) root.style.setProperty("--dp-color-assigned", colors.assigned);
+        if (colors.requested) root.style.setProperty("--dp-color-requested", colors.requested);
+        // Assigned/Requested split - from Resource Scheduler Setup's "Assigned High (%)"/
+        // "Requested High (%)". Left at their CSS default (50%/50%) whenever setup doesn't
+        // override them (0/blank).
+        if (colors.assignedHeight) root.style.setProperty("--dp-height-assigned", colors.assignedHeight + "%");
+        if (colors.requestedHeight) root.style.setProperty("--dp-height-requested", colors.requestedHeight + "%");
+    } catch (e) {
+        console.warn("SetBarColors: invalid colorsJson", colorsJson, e);
+    }
+}
+
+// Called from AL (setup-driven) to override the hour interval shown on the timeline
+// scale (default 3h). Must be called (if at all) BEFORE Init(), since
+// RecreateTimelineView() reads this at build time.
+function SetTimelineHourStep(hourStep) {
+    var step = parseInt(hourStep, 10);
+    timelineHourStep = (step > 0) ? step : 3;
+}
+
+// Called from AL (setup-driven) to restrict the timeline to a daily window, e.g.
+// 07:00-19:00, instead of the full 24h day. Works together with scheduler.ignore_timeline
+// above. Must be called (if at all) BEFORE Init(), same ordering requirement as
+// SetTimelineHourStep. Invalid/out-of-range input is ignored and the full-day default
+// (0-24) is kept.
+function SetTimelineHourRange(startHour, endHour) {
+    var s = parseInt(startHour, 10);
+    var e = parseInt(endHour, 10);
+    if (isNaN(s) || isNaN(e) || s < 0 || e > 24 || s >= e) return;
+    timelineStartHour = s;
+    timelineEndHour = e;
+}
+
+// ============================================================
 // AL-callable: SetShowDayPlanning / SetShowCapacity - instant client-side toggle
 // ============================================================
 function SetShowDayPlanning(pShow) {
@@ -614,6 +683,7 @@ function RefreshTimeline(resourcesJson, eventsJson, capacityJson, dateAnchor) {
             else if (typeof dateAnchor === "string") { var d = new Date(dateAnchor); if (!isNaN(d)) anchor = d; }
         }
         var viewDate = anchor ? scheduler.date.week_start(anchor) : scheduler.getState().date;
+        viewDate = applyTimelineStartHour(viewDate);
         scheduler.setCurrentView(viewDate, "timeline");
     } catch (e) {
         console.error("RefreshTimeline failed:", e);

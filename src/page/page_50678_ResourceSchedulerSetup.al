@@ -12,14 +12,79 @@ page 50678 "Resource Scheduler Setup"
     {
         area(Content)
         {
-            group(General)
+            group(Colors)
             {
-                Caption = 'General';
+                Caption = 'Day Planning Bar Colors';
 
-                field("Vacant Field"; Rec."Vacant Field")
+                group(Envelope)
+                {
+                    Caption = 'Envelope';
+
+                    field("Envelope Color"; Rec."Envelope Color")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Background color of the full Day Planning bar (visible where neither the Assigned nor Requested strip covers it). Enter a hex color, e.g. #1B3A6B.';
+                    }
+                    field("Envelope Border Color"; Rec."Envelope Border Color")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Border color of the full Day Planning bar. Enter a hex color, e.g. #14294D.';
+                    }
+                }
+                group(AssignedRequested)
+                {
+                    ShowCaption = false;
+
+                    group(Assigned)
+                    {
+                        Caption = 'Assigned';
+
+                        field("Assigned Color"; Rec."Assigned Color")
+                        {
+                            ApplicationArea = All;
+                            ToolTip = 'Color of the Assigned time-range strip on the Day Planning bar. Enter a hex color, e.g. #7FB3FA.';
+                        }
+                        field("Assigned High (%)"; Rec."Assigned High (%)")
+                        {
+                            ApplicationArea = All;
+                            ToolTip = 'Percentage of the Assigned height relative to envelope.';
+                        }
+                    }
+                    group(Requested)
+                    {
+                        Caption = 'Requested';
+
+                        field("Requested Color"; Rec."Requested Color")
+                        {
+                            ApplicationArea = All;
+                            ToolTip = 'Color of the Requested time-range strip on the Day Planning bar. Enter a hex color, e.g. #6FCF97.';
+                        }
+                        field("Requested High (%)"; Rec."Requested High (%)")
+                        {
+                            ApplicationArea = All;
+                            ToolTip = 'Percentage of the Requested height relative to envelope.';
+                        }
+                    }
+                }
+            }
+            group(Timeline)
+            {
+                Caption = 'Timeline';
+
+                field("Timeline Hour Step"; Rec."Timeline Hour Step")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the vacant field.';
+                    ToolTip = 'Number of hours between marks on the Task Scheduler''s timeline header (e.g. 3 shows 00, 03, 06...). Leave blank to use the default (3).';
+                }
+                field("Timeline Start Hour"; Rec."Timeline Start Hour")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Hour of day the timeline starts at (e.g. 7 for 07:00). Leave blank/0 for midnight (full day).';
+                }
+                field("Timeline End Hour"; Rec."Timeline End Hour")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Hour of day the timeline ends at (e.g. 19 for 19:00). Leave blank/0 for midnight (full day, i.e. 24).';
                 }
             }
         }
