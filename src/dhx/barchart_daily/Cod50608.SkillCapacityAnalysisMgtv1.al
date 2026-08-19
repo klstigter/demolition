@@ -169,19 +169,35 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
     end;
 
     /// <summary>
-    /// Returns this skill's configured "Skill Code"."Bar Color" override for the daily chart's
-    /// bars, or blank if the skill has no override (or SkillCode doesn't match a real "Skill
-    /// Code" record, e.g. the synthetic 'CAPACITY' marker row - see BuildSkillBuffer's own doc
-    /// comment). wrapper.js's ApplyBarColorOverrides leaves a bar at its normal series colour
-    /// when handed a blank override.
+    /// Returns the colour to use for SkillCode's bar on the daily chart - same logic/palette as
+    /// page 50692's own GetSkillSeriesColor (codeunit "Skill Capacity Analysis Mgt.", weekly
+    /// chart), kept in sync deliberately so a given skill renders the same colour family on both
+    /// the Daily and Weekly views. "Skill Code"."Bar Color" takes precedence when set; otherwise
+    /// PaletteIndex cycles through the same fixed 5-colour palette the weekly chart uses. Blank
+    /// for the synthetic 'CAPACITY' marker row (see BuildSkillBuffer's own doc comment) - that
+    /// bar keeps wrapper.js's normal series colour instead of a skill colour.
     /// </summary>
-    procedure GetSkillBarColor(SkillCode: Code[10]): Text
+    procedure GetSkillBarColor(SkillCode: Code[10]; PaletteIndex: Integer): Text
     var
         SkillCodeRec: Record "Skill Code";
+        Palette: array[5] of Text[10];
+        BarColor: Text;
     begin
-        if not SkillCodeRec.Get(SkillCode) then
+        if SkillCode = CapacitySkillCodeTok then
             exit('');
-        exit(SkillCodeRec."Bar Color".Trim());
+
+        if SkillCodeRec.Get(SkillCode) then begin
+            BarColor := SkillCodeRec."Bar Color".Trim();
+            if BarColor <> '' then
+                exit(BarColor);
+        end;
+
+        Palette[1] := '#C55A11';
+        Palette[2] := '#ED7D31';
+        Palette[3] := '#F4B183';
+        Palette[4] := '#F8CBAD';
+        Palette[5] := '#FBE5D6';
+        exit(Palette[(PaletteIndex mod 5) + 1]);
     end;
 
     /// <summary>
@@ -258,6 +274,146 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
     end;
 
     /// <summary>
+    /// Returns PlanDateFrom..PlanDateTo's Assigned/Free Capacity split, Internal/External, so the
+    /// CAPACITY reference bar can render the same stacked Assigned/Free breakdown as
+    /// src/dhx/barchart_weekly's per-day chart instead of a single flat aggregate. Delegates
+    /// entirely to Codeunit "Skill Capacity Analysis Mgt." (the Weekly chart's own management
+    /// codeunit) - see that codeunit's GetCapacitySplitForRange - rather than reimplementing the
+    /// Internal/External classification here, so the two charts' numbers can never drift apart.
+    /// </summary>
+    procedure GetCapacityAssignedFreeSplit(PlanDateFrom: Date; PlanDateTo: Date; var AssignedInternal: Decimal; var AssignedExternal: Decimal; var CapacityInternal: Decimal; var CapacityExternal: Decimal)
+    begin
+        SkillCapacityAnalysisMgtWeekly.GetCapacitySplitForRange(PlanDateFrom, PlanDateTo, AssignedInternal, AssignedExternal, CapacityInternal, CapacityExternal);
+    end;
+
+    /// <summary>
+    /// Returns the same Assigned/Free-Capacity colour tokens src/dhx/barchart_weekly's stacked
+    /// chart uses (green Assigned, blue Free Capacity, red External border) - see Codeunit "Skill
+    /// Capacity Analysis Mgt.".GetCapacitySegmentColors - so the CAPACITY bar's stacked segments
+    /// (and its legend swatch, painted with CapacityColor as the bar's single representative
+    /// colour) always match Weekly's exact tokens, never a locally hardcoded copy.
+    /// </summary>
+    procedure GetCapacitySegmentColors(var AssignedColor: Text; var CapacityColor: Text; var ExternalBorderColor: Text)
+    begin
+        SkillCapacityAnalysisMgtWeekly.GetCapacitySegmentColors(AssignedColor, CapacityColor, ExternalBorderColor);
+    end;
+
+    /// <summary>
+    /// Appends the CAPACITY bar's 4 stacked segments (Assigned Internal/External, Free Capacity
+    /// Internal/External) to SeriesArray, matching wrapper.js's series JSON contract (name/values/
+    /// color/[border]/stacked - same shape codeunit 50662's own AddChartSeries builds for the
+    /// Weekly chart). Each *Values array must already be index-aligned with the chart's
+    /// CategoriesArray (0 at every non-CAPACITY row, the real split only at the CAPACITY row) -
+    /// see page 50681/50707's own RefreshChart for how those are built. Colours are passed in
+    /// (not re-fetched here) so a caller that also needs them for the CAPACITY row's legend swatch
+    /// (see GetCapacitySegmentColors) only calls that once.
+    /// </summary>
+    procedure AddCapacitySegmentSeries(var SeriesArray: JsonArray; AssInternalValues: JsonArray; AssExternalValues: JsonArray; CapInternalValues: JsonArray; CapExternalValues: JsonArray; AssignedColor: Text; CapacityColor: Text; ExternalBorderColor: Text)
+    begin
+        AddSeries(SeriesArray, AssInternalSeriesNameLbl, AssInternalValues, AssignedColor, '');
+        AddSeries(SeriesArray, AssExternalSeriesNameLbl, AssExternalValues, AssignedColor, ExternalBorderColor);
+        AddSeries(SeriesArray, CapInternalSeriesNameLbl, CapInternalValues, CapacityColor, '');
+        AddSeries(SeriesArray, CapExternalSeriesNameLbl, CapExternalValues, CapacityColor, ExternalBorderColor);
+    end;
+
+    local procedure AddSeries(var SeriesArray: JsonArray; SeriesName: Text; Values: JsonArray; ColorHex: Text; BorderHex: Text)
+    var
+        SeriesObj: JsonObject;
+    begin
+        SeriesObj.Add('name', SeriesName);
+        SeriesObj.Add('values', Values);
+        SeriesObj.Add('color', ColorHex);
+        if BorderHex <> '' then
+            SeriesObj.Add('border', BorderHex);
+        SeriesObj.Add('stacked', true);
+        SeriesArray.Add(SeriesObj);
+    end;
+
+    /// <summary>
+    /// Splits each Skill Code's demand into an Assigned bucket and an Unassigned bucket, using
+    /// the SAME two fields/concepts codeunit "Skill Capacity Analysis Mgt." (weekly chart) uses
+    /// for its own day-level Assigned/Requested split (CalcAssignedSplit / the doc comment on
+    /// BuildDayCapacityChartData) - NOT both drawn from "Requested Hours". Assigned is
+    /// "Assigned Hours" (only ever populated once a resource is actually assigned, same as
+    /// CalcAssignedSplit sums with no extra "Assigned Resource No." filter needed); Unassigned is
+    /// "Requested Hours" on rows with a blank "Assigned Resource No." (matches
+    /// CalcUnassignedSkillRequestedSplit's own row population exactly). Summing
+    /// AssignedHoursPerSkill across every skill for one date reproduces the exact same total the
+    /// weekly chart's Assigned Capacity segment shows for that date - same rows, same field, just
+    /// grouped by Skill here instead of collapsed to one day-level figure there. Because Assigned
+    /// Hours and Requested Hours are different fields that can diverge per row, a skill's
+    /// AssignedHoursPerSkill + UnassignedHoursPerSkill no longer necessarily sums back to that
+    /// skill's flat "Requested Hours" buffer-row total (page 50691's factbox) - that's expected,
+    /// not a bug: the factbox still shows pure Requested Hours, the chart now shows how much of
+    /// that demand is actually assigned-capacity vs still-outstanding-request.
+    ///
+    /// Deliberately NOT folded into the "Skill Req. vs Capacity Buffer" table itself - matching
+    /// this codeunit's own doc comment on why that buffer's shape/meaning stays a single flat
+    /// "Requested Hours" per row (page 50691's factbox list still shows that flat total,
+    /// unchanged) - this is a chart-only concern, computed as its own parallel lookup, same
+    /// pattern GetCapacityAssignedFreeSplit/GetCapacitySegmentColors already established for the
+    /// CAPACITY row's own split. Callers pass the SAME (ResourceNoFilter, DateFromFilter,
+    /// DateToFilter) their own BuildSkillBuffer call used, or the two totals will disagree.
+    ///
+    /// One bulk pass (not one query per skill) - mirrors BuildSkillBuffer's own single-pass/
+    /// Dictionary-accumulation shape (AddToTotals), just accumulating into two Dictionaries
+    /// instead of one.
+    /// </summary>
+    procedure BuildSkillAssignedUnassignedSplit(ResourceNoFilter: Code[20]; DateFromFilter: Date; DateToFilter: Date; var AssignedHoursPerSkill: Dictionary of [Code[10], Decimal]; var UnassignedHoursPerSkill: Dictionary of [Code[10], Decimal])
+    var
+        DayPlanning: Record "Day Planning";
+        SkillCode: Code[10];
+    begin
+        Clear(AssignedHoursPerSkill);
+        Clear(UnassignedHoursPerSkill);
+
+        ApplyDayPlanningFilters(DayPlanning, ResourceNoFilter, DateFromFilter, DateToFilter, '');
+        if DayPlanning.FindSet() then
+            repeat
+                SkillCode := CopyStr(DayPlanning.Skill, 1, MaxStrLen(SkillCode));
+                if DayPlanning."Assigned Resource No." <> '' then
+                    AddToTotals(AssignedHoursPerSkill, SkillCode, DayPlanning."Assigned Hours")
+                else
+                    AddToTotals(UnassignedHoursPerSkill, SkillCode, DayPlanning."Requested Hours");
+            until DayPlanning.Next() = 0;
+    end;
+
+    /// <summary>
+    /// Appends the single shared "Requested - Assigned" series that sits at the BOTTOM of every
+    /// SKILL bar's stack (green, same AssignedColor token as GetCapacitySegmentColors/the
+    /// CAPACITY bar's own Assigned segments) - the "distribute Assigned Hours into the daily
+    /// chart" feature requested against the flat-CAPACITY-bar work above: each skill's own
+    /// Requested Hours total is now split into how much of it already has an Assigned Resource
+    /// (this series) vs how much is still Unassigned (see AddSkillUnassignedSeries). ONE shared
+    /// series across every skill category (not one per skill) because the Assigned colour never
+    /// varies by skill - only the Unassigned segment on top does, which is why that one needs its
+    /// own series per skill. Values must be 0 on the CAPACITY row - that row's own Assigned figure
+    /// comes from a different, unrelated source (GetCapacityAssignedFreeSplit reads resource
+    /// calendar capacity, not Day Planning Requested Hours - see codeunit 50662's own
+    /// CalcAssignedSplit) and is carried entirely by AddCapacitySegmentSeries' own series instead.
+    /// </summary>
+    procedure AddRequestedAssignedSeries(var SeriesArray: JsonArray; Values: JsonArray; AssignedColor: Text)
+    begin
+        AddSeries(SeriesArray, RequestedAssignedSeriesNameLbl, Values, AssignedColor, '');
+    end;
+
+    /// <summary>
+    /// Appends one SKILL's own "Unassigned" segment series - the portion of that skill's
+    /// Requested Hours still without an Assigned Resource, stacked directly on top of the shared
+    /// Assigned series (AddRequestedAssignedSeries, declared first so it sits at the bottom) in
+    /// that same skill's own colour (the exact same GetSkillBarColor(SkillCode, PaletteIndex)
+    /// value the caller already used for that row's "colors"/legend-swatch entry, so the swatch
+    /// and this visible top segment always match - same colour continuity CAPACITY's own legend
+    /// swatch/segment colours already have). Values must be 0 everywhere except this skill's own
+    /// category index - one dedicated series per skill, unlike the shared Assigned series above,
+    /// precisely because this colour DOES vary per skill.
+    /// </summary>
+    procedure AddSkillUnassignedSeries(var SeriesArray: JsonArray; SkillCode: Code[10]; Values: JsonArray; UnassignedColor: Text)
+    begin
+        AddSeries(SeriesArray, StrSubstNo(SkillUnassignedSeriesNameLbl, SkillCode), Values, UnassignedColor, '');
+    end;
+
+    /// <summary>
     /// Drilldown for the legend entry (WholeChart = true) - see ShowSegmentData's own doc comment
     /// for why this is the chosen "whole" analog. A plain SetFilter(Skill, '&lt;&gt;%1', '')
     /// suffices (no resource classification/Mark() idiom needed, unlike the live barchart's
@@ -276,6 +432,21 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
     end;
 
     var
+        SkillCapacityAnalysisMgtWeekly: Codeunit "Skill Capacity Analysis Mgt.";
         CapacitySkillCodeTok: Label 'CAPACITY', Locked = true;
         CapacityDescriptionTxt: Label 'Capacity';
+        // Must stay text-identical to codeunit 50662's own AssInternalSeriesNameLbl/
+        // AssExternalSeriesNameLbl/CapInternalSeriesNameLbl/CapExternalSeriesNameLbl - see
+        // AddCapacitySegmentSeries's own doc comment for why these aren't fetched from that
+        // codeunit directly (only its colour tokens are - series names are cosmetic legend/
+        // right-click-menu text, not a "must never drift" numeric value).
+        AssInternalSeriesNameLbl: Label 'Assigned Capacity - Internal';
+        AssExternalSeriesNameLbl: Label 'Assigned Capacity - External';
+        CapInternalSeriesNameLbl: Label 'Free Capacity - Internal';
+        CapExternalSeriesNameLbl: Label 'Free Capacity - External';
+        // Skill-bar Assigned/Unassigned series names - see AddRequestedAssignedSeries/
+        // AddSkillUnassignedSeries's own doc comments for why Assigned is one shared series but
+        // Unassigned is one per skill.
+        RequestedAssignedSeriesNameLbl: Label 'Requested - Assigned';
+        SkillUnassignedSeriesNameLbl: Label '%1 - Unassigned', Comment = '%1 = Skill Code';
 }

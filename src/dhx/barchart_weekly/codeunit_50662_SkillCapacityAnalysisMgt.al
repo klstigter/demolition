@@ -1077,6 +1077,63 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     end;
 
     /// <summary>
+    /// Returns one day's (PlanDate's) Assigned/Free Capacity split, Internal/External, plus the
+    /// sum of all days in [DateFrom..DateTo] - the same per-day computation
+    /// BuildDayCapacityChartData uses for the Capacity bar's 4 stacked segments (CalcAssignedSplit/
+    /// CalcCapacitySplit via CalcDaySegments), just summed across a caller-supplied range instead
+    /// of always Monday..Sunday. Exists so src/dhx/barchart_daily's single-flat-bar CAPACITY
+    /// reference can show the identical Assigned/Free Internal/External breakdown (and, via
+    /// GetCapacitySegmentColors below, the identical colours) as this codeunit's own stacked
+    /// weekly chart, without duplicating CalcAssignedSplit/CalcCapacitySplit's logic in a second
+    /// codeunit. ActiveSkillList is passed as an empty, throwaway list - CalcDaySegments' per-skill
+    /// loop then does nothing, since callers of this procedure only ever want the Assigned/Free
+    /// totals, never a per-skill breakdown (Daily's per-skill bars already have their own, simpler
+    /// flat-value source - see codeunit 50608's BuildSkillBuffer). DateFrom = DateTo is the normal
+    /// single-day case; a wider range (e.g. Daily's own week-aggregate mode) sums every day in it.
+    /// </summary>
+    procedure GetCapacitySplitForRange(DateFrom: Date; DateTo: Date; var AssignedInternal: Decimal; var AssignedExternal: Decimal; var CapacityInternal: Decimal; var CapacityExternal: Decimal)
+    var
+        ActiveSkillList: List of [Code[20]];
+        SkillInternalValues: Dictionary of [Code[20], Decimal];
+        SkillExternalValues: Dictionary of [Code[20], Decimal];
+        CurrDate: Date;
+        DayAssignedInternal: Decimal;
+        DayAssignedExternal: Decimal;
+        DayCapacityInternal: Decimal;
+        DayCapacityExternal: Decimal;
+    begin
+        AssignedInternal := 0;
+        AssignedExternal := 0;
+        CapacityInternal := 0;
+        CapacityExternal := 0;
+
+        EnsureDayPlanningBuffer(DateFrom, DateTo);
+
+        CurrDate := DateFrom;
+        while CurrDate <= DateTo do begin
+            CalcDaySegments(CurrDate, ActiveSkillList, DayAssignedInternal, DayAssignedExternal, DayCapacityInternal, DayCapacityExternal, SkillInternalValues, SkillExternalValues);
+            AssignedInternal += DayAssignedInternal;
+            AssignedExternal += DayAssignedExternal;
+            CapacityInternal += DayCapacityInternal;
+            CapacityExternal += DayCapacityExternal;
+            CurrDate += 1;
+        end;
+    end;
+
+    /// <summary>
+    /// Returns this codeunit's own Assigned/Free-Capacity colour tokens (AssColorTok/
+    /// CapacityColorTok/ExternalBorderColorTok) so other charts - currently src/dhx/barchart_daily's
+    /// CAPACITY reference bar - can reuse the exact same colours as this codeunit's stacked weekly
+    /// chart instead of hardcoding a second copy of the same hex strings that could drift apart.
+    /// </summary>
+    procedure GetCapacitySegmentColors(var AssignedColor: Text; var CapacityColor: Text; var ExternalBorderColor: Text)
+    begin
+        AssignedColor := AssColorTok;
+        CapacityColor := CapacityColorTok;
+        ExternalBorderColor := ExternalBorderColorTok;
+    end;
+
+    /// <summary>
     /// Appends one series object (name/values/color/[border]/stacked) to SeriesArray, matching
     /// the exact JSON contract src/dhx/barchart_weekly/wrapper.js's RenderChart expects. BorderHex may
     /// be blank to omit the optional "border" key.

@@ -145,39 +145,121 @@ page 50707 "Requested vs Capacity Daily P"
         RefreshChart();
     end;
 
-    // Same JSON-assembly shape as page 50681's own RefreshChart - one series ("Requested Hours"),
-    // one bar per Skill Code plus the synthetic "CAPACITY" reference bar, per-bar colour overrides
-    // via Codeunit "SkillCapacityAnalysisMgt.v1".GetSkillBarColor. No aggregation happens here;
-    // Buffer is already fully aggregated by BuildSkillBuffer above.
+    // Same JSON-assembly shape as page 50681's own RefreshChart (see that page's own doc comment
+    // for the full breakdown - kept in sync here deliberately): CAPACITY's 4 stacked
+    // Assigned/Free-Capacity segments (unchanged from the previous round), plus every SKILL bar
+    // now split into 2 stacked segments - a shared "Requested - Assigned" green series at the
+    // bottom (that skill's Requested Hours with an Assigned Resource) and that skill's own
+    // Unassigned series on top (its own colour, same as its legend swatch), instead of one flat
+    // "Requested Hours" bar. No aggregation happens here for the flat totals; Buffer is already
+    // fully aggregated by BuildSkillBuffer above - only the Assigned/Unassigned split
+    // (BuildSkillAssignedUnassignedSplit) and the CAPACITY split (GetCapacityAssignedFreeSplit)
+    // are computed fresh. This part is always Daily-only (PeriodStartDate is both the range's
+    // start and end - see this page's own doc comment), so both splits are always called for a
+    // single day, never a range.
     local procedure RefreshChart()
     var
         ChartData: JsonObject;
         CategoriesArray: JsonArray;
         SeriesArray: JsonArray;
-        RequestedSeries: JsonObject;
-        RequestedValues: JsonArray;
         ColorsArray: JsonArray;
+        AssInternalValues: JsonArray;
+        AssExternalValues: JsonArray;
+        CapInternalValues: JsonArray;
+        CapExternalValues: JsonArray;
+        RequestedAssignedValues: JsonArray;
+        SkillUnassignedValues: JsonArray;
+        SkillCodeList: List of [Code[10]];
+        AssignedHoursPerSkill: Dictionary of [Code[10], Decimal];
+        UnassignedHoursPerSkill: Dictionary of [Code[10], Decimal];
         ChartDataJson: Text;
+        SkillPaletteIndex: Integer;
+        AssignedInternal: Decimal;
+        AssignedExternal: Decimal;
+        CapacityInternal: Decimal;
+        CapacityExternal: Decimal;
+        AssignedColorHex: Text;
+        CapacityColorHex: Text;
+        ExternalBorderColorHex: Text;
+        UnassignedColorHex: Text;
+        IsCapacityRow: Boolean;
+        RowSkillCode: Code[10];
+        LoopSkillCode: Code[10];
+        RowValue: Decimal;
     begin
         if not ChartReady then
             exit;
 
         Clear(CategoriesArray);
-        Clear(RequestedValues);
         Clear(ColorsArray);
+        Clear(AssInternalValues);
+        Clear(AssExternalValues);
+        Clear(CapInternalValues);
+        Clear(CapExternalValues);
+        Clear(RequestedAssignedValues);
+        Clear(SkillCodeList);
+
+        SkillCapacityAnalysisMgt.GetCapacitySegmentColors(AssignedColorHex, CapacityColorHex, ExternalBorderColorHex);
+        SkillCapacityAnalysisMgt.BuildSkillAssignedUnassignedSplit(ResourceNoFilter, PeriodStartDate, PeriodStartDate, AssignedHoursPerSkill, UnassignedHoursPerSkill);
 
         Buffer.Reset();
         if Buffer.FindSet() then
             repeat
+                IsCapacityRow := Buffer."No." = CapacitySkillCodeLbl;
                 CategoriesArray.Add(Buffer."No.");
-                RequestedValues.Add(Buffer."Requested Hours");
-                ColorsArray.Add(SkillCapacityAnalysisMgt.GetSkillBarColor(CopyStr(Buffer."No.", 1, 10)));
+
+                if IsCapacityRow then begin
+                    ColorsArray.Add(CapacityColorHex);
+                    SkillCapacityAnalysisMgt.GetCapacityAssignedFreeSplit(PeriodStartDate, PeriodStartDate, AssignedInternal, AssignedExternal, CapacityInternal, CapacityExternal);
+                    RequestedAssignedValues.Add(0);
+                end else begin
+                    RowSkillCode := CopyStr(Buffer."No.", 1, 10);
+                    SkillCodeList.Add(RowSkillCode);
+                    ColorsArray.Add(SkillCapacityAnalysisMgt.GetSkillBarColor(RowSkillCode, SkillPaletteIndex));
+                    SkillPaletteIndex += 1;
+                    AssignedInternal := 0;
+                    AssignedExternal := 0;
+                    CapacityInternal := 0;
+                    CapacityExternal := 0;
+                    if AssignedHoursPerSkill.ContainsKey(RowSkillCode) then
+                        RequestedAssignedValues.Add(AssignedHoursPerSkill.Get(RowSkillCode))
+                    else
+                        RequestedAssignedValues.Add(0);
+                end;
+
+                AssInternalValues.Add(AssignedInternal);
+                AssExternalValues.Add(AssignedExternal);
+                CapInternalValues.Add(CapacityInternal);
+                CapExternalValues.Add(CapacityExternal);
             until Buffer.Next() = 0;
 
-        RequestedSeries.Add('name', RequestedHoursMeasureTxt);
-        RequestedSeries.Add('values', RequestedValues);
+        SkillCapacityAnalysisMgt.AddCapacitySegmentSeries(SeriesArray, AssInternalValues, AssExternalValues, CapInternalValues, CapExternalValues, AssignedColorHex, CapacityColorHex, ExternalBorderColorHex);
+        SkillCapacityAnalysisMgt.AddRequestedAssignedSeries(SeriesArray, RequestedAssignedValues, AssignedColorHex);
 
-        SeriesArray.Add(RequestedSeries);
+        // One Unassigned series per active skill - see page 50681's own RefreshChart for why this
+        // is a second per-skill pass over Buffer, and why re-walking SkillPaletteIndex from 0 in
+        // the SAME order SkillCodeList was built in reproduces the identical GetSkillBarColor
+        // result as that skill's own ColorsArray/legend entry above.
+        SkillPaletteIndex := 0;
+        foreach LoopSkillCode in SkillCodeList do begin
+            Clear(SkillUnassignedValues);
+            Buffer.Reset();
+            if Buffer.FindSet() then
+                repeat
+                    if CopyStr(Buffer."No.", 1, 10) = LoopSkillCode then begin
+                        if UnassignedHoursPerSkill.ContainsKey(LoopSkillCode) then
+                            RowValue := UnassignedHoursPerSkill.Get(LoopSkillCode)
+                        else
+                            RowValue := 0;
+                    end else
+                        RowValue := 0;
+                    SkillUnassignedValues.Add(RowValue);
+                until Buffer.Next() = 0;
+
+            UnassignedColorHex := SkillCapacityAnalysisMgt.GetSkillBarColor(LoopSkillCode, SkillPaletteIndex);
+            SkillCapacityAnalysisMgt.AddSkillUnassignedSeries(SeriesArray, LoopSkillCode, SkillUnassignedValues, UnassignedColorHex);
+            SkillPaletteIndex += 1;
+        end;
 
         ChartData.Add('categories', CategoriesArray);
         ChartData.Add('series', SeriesArray);
@@ -194,6 +276,9 @@ page 50707 "Requested vs Capacity Daily P"
         PeriodStartDate: Date;
         ChartReady: Boolean;
         PeriodLabelText: Text[80];
-        RequestedHoursMeasureTxt: Label 'Requested Hours';
         DailyPeriodLabelLbl: Label 'Daily: %1', Comment = '%1 = full date text';
+        // Matches page 50681's own independently-declared 'CAPACITY' Label (see codeunit 50608's
+        // BuildSkillBuffer doc comment for why this literal is intentionally duplicated rather
+        // than shared - keep in sync if it ever changes).
+        CapacitySkillCodeLbl: Label 'CAPACITY', Locked = true;
 }
