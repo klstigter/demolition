@@ -151,9 +151,10 @@ window.BOOT = function () {
         .dp-bar-assigned { position: absolute; top: 0; height: var(--dp-height-assigned); background: var(--dp-color-assigned) !important; }
         .dp-bar-requested { position: absolute; bottom: 0; height: var(--dp-height-requested); background: var(--dp-color-requested) !important; }
         .dp-bar-label {
-            position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+            position: absolute; inset: 0; display: flex; align-items: center; justify-content: flex-start;
             color: #fff; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
             pointer-events: none; text-shadow: 0 0 2px rgba(0,0,0,0.7); z-index: 2;
+            padding-left: 4px; text-align: left; min-width: 0;
         }
 
         /* ── Right-click context menu (same mechanism as pool/project) ── */

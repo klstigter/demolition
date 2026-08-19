@@ -28,7 +28,10 @@ page 50706 "DHX Scheduler - TimeLine"
                         Window.Open(LoadingLbl);
 
                     DHXDataHandler.GetWeekPeriodDates(Today(), AnchorDate, DummyEndDate);
-                    TreeJsonTxt := DHXDataHandler.SkillResScheduler_BuildTreeJson(ResourceFilter, SkillFilter, AnchorDate, DummyEndDate);
+                    if IsResourceGroupMode() then
+                        TreeJsonTxt := DHXDataHandler.ResGroupResScheduler_BuildTreeJson(ResourceFilter, SkillFilter)
+                    else
+                        TreeJsonTxt := DHXDataHandler.SkillResScheduler_BuildTreeJson(ResourceFilter, SkillFilter, AnchorDate, DummyEndDate);
 
                     HasSetup := ResSchedSetup.Get(UserId);
                     if HasSetup and (ResSchedSetup."Timeline Hour Step" > 0) then
@@ -71,10 +74,19 @@ page 50706 "DHX Scheduler - TimeLine"
                 var
                     startDate: Date;
                     endDate: Date;
+                    CapacityJsonTxt: Text;
+                    EventsJsonTxt: Text;
                 begin
                     DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
-                    CurrPage.DhxScheduler.LoadCapacity(DHXDataHandler.SkillResScheduler_BuildCapacityJson(ResourceFilter, SkillFilter, startDate, endDate));
-                    CurrPage.DhxScheduler.LoadData(DHXDataHandler.SkillResScheduler_BuildDayPlanningJson(ResourceFilter, SkillFilter, JobFilter, JobTaskFilter, startDate, endDate));
+                    if IsResourceGroupMode() then begin
+                        CapacityJsonTxt := DHXDataHandler.ResGroupResScheduler_BuildCapacityJson(ResourceFilter, SkillFilter, startDate, endDate);
+                        EventsJsonTxt := DHXDataHandler.ResGroupResScheduler_BuildDayPlanningJson(ResourceFilter, SkillFilter, JobFilter, JobTaskFilter, startDate, endDate);
+                    end else begin
+                        CapacityJsonTxt := DHXDataHandler.SkillResScheduler_BuildCapacityJson(ResourceFilter, SkillFilter, startDate, endDate);
+                        EventsJsonTxt := DHXDataHandler.SkillResScheduler_BuildDayPlanningJson(ResourceFilter, SkillFilter, JobFilter, JobTaskFilter, startDate, endDate);
+                    end;
+                    CurrPage.DhxScheduler.LoadCapacity(CapacityJsonTxt);
+                    CurrPage.DhxScheduler.LoadData(EventsJsonTxt);
                 end;
 
                 #endregion Init and Load Data on Control Ready
@@ -83,10 +95,12 @@ page 50706 "DHX Scheduler - TimeLine"
 
                 trigger OnSectionDblClick(sectionId: Text; label: Text; viewdate: Text)
                 begin
-                    // Skill (folder) rows have key "SKILL|..." - only Resource leaf rows
-                    // (composite "<Resource No.>|<Skill Code>") open the Resource Card; a Skill
-                    // row double-click is a no-op. Extract the plain Resource No. before lookup.
-                    if not sectionId.StartsWith('SKILL|') then
+                    // Skill (folder) rows have key "SKILL|..." and Resource Group (folder) rows
+                    // have key "GROUP|..." - only Resource leaf rows (composite "<Resource No.>|
+                    // <Skill Code>" or "<Resource No.>|<Resource Group No.>") open the Resource
+                    // Card; a folder row double-click is a no-op. Extract the plain Resource No.
+                    // before lookup.
+                    if not (sectionId.StartsWith('SKILL|') or sectionId.StartsWith('GROUP|')) then
                         DHXDataHandler.SkillResScheduler_OpenResourceCard(DHXDataHandler.SkillResScheduler_ExtractResourceNo(sectionId));
                 end;
 
@@ -118,9 +132,15 @@ page 50706 "DHX Scheduler - TimeLine"
                     DHXDataHandler.GetStartEndDatesFromTimeLineJSon(NavigateJson, startDate, endDate);
                     if startDate <> 0D then begin
                         AnchorDate := startDate;
-                        TreeJsonTxt := DHXDataHandler.SkillResScheduler_BuildTreeJson(ResourceFilter, SkillFilter, startDate, endDate);
-                        CapacityJsonTxt := DHXDataHandler.SkillResScheduler_BuildCapacityJson(ResourceFilter, SkillFilter, startDate, endDate);
-                        EventsJsonTxt := DHXDataHandler.SkillResScheduler_BuildDayPlanningJson(ResourceFilter, SkillFilter, JobFilter, JobTaskFilter, startDate, endDate);
+                        if IsResourceGroupMode() then begin
+                            TreeJsonTxt := DHXDataHandler.ResGroupResScheduler_BuildTreeJson(ResourceFilter, SkillFilter);
+                            CapacityJsonTxt := DHXDataHandler.ResGroupResScheduler_BuildCapacityJson(ResourceFilter, SkillFilter, startDate, endDate);
+                            EventsJsonTxt := DHXDataHandler.ResGroupResScheduler_BuildDayPlanningJson(ResourceFilter, SkillFilter, JobFilter, JobTaskFilter, startDate, endDate);
+                        end else begin
+                            TreeJsonTxt := DHXDataHandler.SkillResScheduler_BuildTreeJson(ResourceFilter, SkillFilter, startDate, endDate);
+                            CapacityJsonTxt := DHXDataHandler.SkillResScheduler_BuildCapacityJson(ResourceFilter, SkillFilter, startDate, endDate);
+                            EventsJsonTxt := DHXDataHandler.SkillResScheduler_BuildDayPlanningJson(ResourceFilter, SkillFilter, JobFilter, JobTaskFilter, startDate, endDate);
+                        end;
 
                         if GuiAllowed() then
                             Window.Update(1, 'Rendering...');
@@ -179,10 +199,11 @@ page 50706 "DHX Scheduler - TimeLine"
                     startDate: Date;
                     endDate: Date;
                 begin
-                    if sectionId.StartsWith('SKILL|') then
-                        exit; // no per-skill actions yet
-                    // Resource leaf rows are the composite "<Resource No.>|<Skill Code>" key;
-                    // these actions all operate on the plain Resource No. across every skill.
+                    if sectionId.StartsWith('SKILL|') or sectionId.StartsWith('GROUP|') then
+                        exit; // no per-skill/per-group actions yet
+                    // Resource leaf rows are the composite "<Resource No.>|<Skill Code>" (or
+                    // "<Resource No.>|<Resource Group No.>") key; these actions all operate on
+                    // the plain Resource No. regardless of which tree grouping mode is active.
                     ResNo := DHXDataHandler.SkillResScheduler_ExtractResourceNo(sectionId);
                     case action of
                         'OpenResourceCard':
@@ -489,6 +510,23 @@ page 50706 "DHX Scheduler - TimeLine"
         ShowDayPlanningFlag: Boolean;
         HideNoEventResourcesFlag: Boolean;
 
+    /// <summary>
+    /// External entry point for opening this page pre-filtered by Skill (left resource panel
+    /// filtered to resources carrying the given Skill Code, rather than to a specific resource).
+    /// Used by the Task Scheduler's right-click context menu action "Open Res. Scheduler
+    /// (Assigned) - Timeline" (see codeunit "DHX Data Handler".OpenResSchedulerTimeline).
+    /// Respects whichever grouping mode "Daily Optimizer Setup"."Resource Scheduler - List Type"
+    /// currently selects - both the SkillResScheduler_ (By Skill) and ResGroupResScheduler_ (By
+    /// Resource Group) builder families accept a SkillFilter parameter, so the Skill restriction
+    /// applies either way; only the grouping (by Skill branch vs. by Resource Group branch)
+    /// differs.
+    /// </summary>
+    procedure OpenSkillFiltered(SkillCodeVal: Code[20])
+    begin
+        SkillFilter := SkillCodeVal;
+        ResourceFilter := '';
+    end;
+
     local procedure RefreshSchedule()
     var
         TreeJsonTxt: Text;
@@ -503,9 +541,15 @@ page 50706 "DHX Scheduler - TimeLine"
             Window.Open(LoadingLbl);
 
         DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
-        TreeJsonTxt := DHXDataHandler.SkillResScheduler_BuildTreeJson(ResourceFilter, SkillFilter, startDate, endDate);
-        CapacityJsonTxt := DHXDataHandler.SkillResScheduler_BuildCapacityJson(ResourceFilter, SkillFilter, startDate, endDate);
-        EventsJsonTxt := DHXDataHandler.SkillResScheduler_BuildDayPlanningJson(ResourceFilter, SkillFilter, JobFilter, JobTaskFilter, startDate, endDate);
+        if IsResourceGroupMode() then begin
+            TreeJsonTxt := DHXDataHandler.ResGroupResScheduler_BuildTreeJson(ResourceFilter, SkillFilter);
+            CapacityJsonTxt := DHXDataHandler.ResGroupResScheduler_BuildCapacityJson(ResourceFilter, SkillFilter, startDate, endDate);
+            EventsJsonTxt := DHXDataHandler.ResGroupResScheduler_BuildDayPlanningJson(ResourceFilter, SkillFilter, JobFilter, JobTaskFilter, startDate, endDate);
+        end else begin
+            TreeJsonTxt := DHXDataHandler.SkillResScheduler_BuildTreeJson(ResourceFilter, SkillFilter, startDate, endDate);
+            CapacityJsonTxt := DHXDataHandler.SkillResScheduler_BuildCapacityJson(ResourceFilter, SkillFilter, startDate, endDate);
+            EventsJsonTxt := DHXDataHandler.SkillResScheduler_BuildDayPlanningJson(ResourceFilter, SkillFilter, JobFilter, JobTaskFilter, startDate, endDate);
+        end;
 
         if GuiAllowed() then
             Window.Update(1, 'Rendering...');
@@ -537,6 +581,25 @@ page 50706 "DHX Scheduler - TimeLine"
             Format(startDate, 0, '<Year4>-<Month,2>-<Day,2>'),
             Format(endDate, 0, '<Year4>-<Month,2>-<Day,2>'),
             SkillFilter);
+    end;
+
+    /// <summary>
+    /// True when "Daily Optimizer Setup"."Resource Scheduler - List Type" = "By Resource Group",
+    /// the switch that makes the left-panel tree group by "Resource Group" (table 72, via each
+    /// Resource's own "Resource Group No." field - see codeunit "DHX Data Handler"'s
+    /// "ResGroupResScheduler_" procedure family) instead of the default Skill grouping
+    /// ("SkillResScheduler_" family). Rec.Get() with no key value reads the setup singleton
+    /// (blank "Primary Key"), same pattern used elsewhere in this app (e.g. table "Day Planning"
+    /// OnInsert, codeunit "Day Planning Mgt."); false (Skill grouping) when the setup record
+    /// does not exist yet.
+    /// </summary>
+    local procedure IsResourceGroupMode(): Boolean
+    var
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+    begin
+        if not DailyOptimizerSetup.Get() then
+            exit(false);
+        exit(DailyOptimizerSetup."Resource Scheduler - List Type" = DailyOptimizerSetup."Resource Scheduler - List Type"::"By Resource Group");
     end;
 
     local procedure GetResourceName(pResourceNo: Text): Text

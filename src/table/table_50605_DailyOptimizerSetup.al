@@ -46,6 +46,12 @@ table 50605 "Daily Optimizer Setup"
         {
             Caption = 'Bearer Token';
         }
+        field(50; "Resource Scheduler - List Type"; Option)
+        {
+            Caption = 'Resource Scheduler - List Type';
+            OptionMembers = "By Resource Group","By Skill";
+            OptionCaption = 'By Resource Group,By Skill';
+        }
     }
 
     keys
