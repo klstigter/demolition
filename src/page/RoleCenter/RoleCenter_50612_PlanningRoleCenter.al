@@ -15,6 +15,14 @@ page 50612 "Planning Role Center"
             // {
             //     ApplicationArea = Jobs;
             // }
+            part(RequestedVsCapacityDaily; "Requested vs Capacity Daily P")
+            {
+                ApplicationArea = All;
+            }
+            part(RequestedVsCapacityWeekly; "Requested vs Capacity Weekly P")
+            {
+                ApplicationArea = All;
+            }
         }
     }
 
