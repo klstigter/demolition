@@ -464,7 +464,7 @@ page 50630 "Day Plannings"
                 ApplicationArea = All;
                 trigger OnAction()
                 var
-                    ResScheduler: page "DHX Resource Scheduler";
+                    ResScheduler: page "Resource Scheduler - Calendar";
                     ResourceNo: code[20];
                 begin
                     if rec."Assigned Resource No." <> '' then

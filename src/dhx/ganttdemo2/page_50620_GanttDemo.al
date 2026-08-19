@@ -486,7 +486,7 @@ page 50620 "Gantt Demo DHX 2"
 
                 trigger onOpenResourceScheduler(resourceId: Text)
                 var
-                    ResScheduler: page "DHX Resource Scheduler";
+                    ResScheduler: page "Resource Scheduler - Calendar";
                     DHXDataHandler: Codeunit "DHX Data Handler";
                     TextList: List of [Text];
                     ResNo: Code[20];

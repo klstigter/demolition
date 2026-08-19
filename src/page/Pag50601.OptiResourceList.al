@@ -354,7 +354,7 @@ page 50601 "Opti Resource List"
                     ApplicationArea = All;
                     trigger OnAction()
                     var
-                        ResScheduler: page "DHX Resource Scheduler";
+                        ResScheduler: page "Resource Scheduler - Calendar";
                     begin
                         ResScheduler.SetResourceFilter(GetSelectionFilter());
                         ResScheduler.RunModal();

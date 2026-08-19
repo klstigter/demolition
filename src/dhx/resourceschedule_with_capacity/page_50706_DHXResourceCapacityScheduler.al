@@ -1,9 +1,9 @@
-page 50706 "DHX Scheduler (Res+Capacity)"
+page 50706 "DHX Scheduler - TimeLine"
 {
     PageType = Card;
     ApplicationArea = All;
     UsageCategory = Tasks;
-    Caption = 'Resource Scheduler (New)';
+    Caption = 'Resource Scheduler - Timeline';
 
     layout
     {

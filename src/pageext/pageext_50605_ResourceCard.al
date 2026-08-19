@@ -133,7 +133,7 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
                 ApplicationArea = All;
                 trigger OnAction()
                 var
-                    ResScheduler: page "DHX Resource Scheduler";
+                    ResScheduler: page "Resource Scheduler - Calendar";
                 begin
                     ResScheduler.SetResourceFilter(Rec."No.");
                     ResScheduler.RunModal();
