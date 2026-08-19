@@ -169,19 +169,35 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
     end;
 
     /// <summary>
-    /// Returns this skill's configured "Skill Code"."Bar Color" override for the daily chart's
-    /// bars, or blank if the skill has no override (or SkillCode doesn't match a real "Skill
-    /// Code" record, e.g. the synthetic 'CAPACITY' marker row - see BuildSkillBuffer's own doc
-    /// comment). wrapper.js's ApplyBarColorOverrides leaves a bar at its normal series colour
-    /// when handed a blank override.
+    /// Returns the colour to use for SkillCode's bar on the daily chart - same logic/palette as
+    /// page 50692's own GetSkillSeriesColor (codeunit "Skill Capacity Analysis Mgt.", weekly
+    /// chart), kept in sync deliberately so a given skill renders the same colour family on both
+    /// the Daily and Weekly views. "Skill Code"."Bar Color" takes precedence when set; otherwise
+    /// PaletteIndex cycles through the same fixed 5-colour palette the weekly chart uses. Blank
+    /// for the synthetic 'CAPACITY' marker row (see BuildSkillBuffer's own doc comment) - that
+    /// bar keeps wrapper.js's normal series colour instead of a skill colour.
     /// </summary>
-    procedure GetSkillBarColor(SkillCode: Code[10]): Text
+    procedure GetSkillBarColor(SkillCode: Code[10]; PaletteIndex: Integer): Text
     var
         SkillCodeRec: Record "Skill Code";
+        Palette: array[5] of Text[10];
+        BarColor: Text;
     begin
-        if not SkillCodeRec.Get(SkillCode) then
+        if SkillCode = CapacitySkillCodeTok then
             exit('');
-        exit(SkillCodeRec."Bar Color".Trim());
+
+        if SkillCodeRec.Get(SkillCode) then begin
+            BarColor := SkillCodeRec."Bar Color".Trim();
+            if BarColor <> '' then
+                exit(BarColor);
+        end;
+
+        Palette[1] := '#C55A11';
+        Palette[2] := '#ED7D31';
+        Palette[3] := '#F4B183';
+        Palette[4] := '#F8CBAD';
+        Palette[5] := '#FBE5D6';
+        exit(Palette[(PaletteIndex mod 5) + 1]);
     end;
 
     /// <summary>

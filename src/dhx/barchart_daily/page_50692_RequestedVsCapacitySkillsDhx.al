@@ -301,6 +301,7 @@ page 50681 "Requested vs Capacity Daily"
         RequestedValues: JsonArray;
         ColorsArray: JsonArray;
         ChartDataJson: Text;
+        SkillPaletteIndex: Integer;
     begin
         if not ChartReady then
             exit;
@@ -314,7 +315,8 @@ page 50681 "Requested vs Capacity Daily"
             repeat
                 CategoriesArray.Add(Buffer."No.");
                 RequestedValues.Add(Buffer."Requested Hours");
-                ColorsArray.Add(SkillCapacityAnalysisMgt.GetSkillBarColor(CopyStr(Buffer."No.", 1, 10)));
+                ColorsArray.Add(SkillCapacityAnalysisMgt.GetSkillBarColor(CopyStr(Buffer."No.", 1, 10), SkillPaletteIndex));
+                SkillPaletteIndex += 1;
             until Buffer.Next() = 0;
 
         RequestedSeries.Add('name', RequestedHoursMeasureTxt);
