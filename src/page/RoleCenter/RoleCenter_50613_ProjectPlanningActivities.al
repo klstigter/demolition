@@ -43,11 +43,19 @@ page 50613 "Project Planning Activities"
                     ApplicationArea = Basic, Suite;
                     ToolTip = 'Capacity for today.';
                 }
-                field("DayPlanning (Today)"; Rec."DayPlanning (Today)")
+                field("DayPlanning (Today)"; Rec.DayPlanningHours(Today()))
                 {
                     Caption = 'DayPlanning';
                     ApplicationArea = Basic, Suite;
-                    ToolTip = 'Number of day plannings for today.';
+                    ToolTip = 'Total hours for today''s day plannings - Assigned Hours where set, else Requested Hours.';
+
+                    trigger OnDrillDown()
+                    var
+                        DayPlanning: Record "Day Planning";
+                    begin
+                        DayPlanning.SetRange("Plan Date", Today());
+                        Page.Run(Page::"Day Plannings", DayPlanning);
+                    end;
                 }
             }
             cuegroup("Tomorrow")
@@ -82,11 +90,19 @@ page 50613 "Project Planning Activities"
                     ApplicationArea = Basic, Suite;
                     ToolTip = 'Capacity for tomorrow.';
                 }
-                field("DayPlanning (Tomorrow)"; Rec."DayPlanning (Tomorrow)")
+                field("DayPlanning (Tomorrow)"; Rec.DayPlanningHours(CalcDate('<1D>', Today())))
                 {
                     Caption = 'DayPlanning';
                     ApplicationArea = Basic, Suite;
-                    ToolTip = 'Number of day plannings for tomorrow.';
+                    ToolTip = 'Total hours for tomorrow''s day plannings - Assigned Hours where set, else Requested Hours.';
+
+                    trigger OnDrillDown()
+                    var
+                        DayPlanning: Record "Day Planning";
+                    begin
+                        DayPlanning.SetRange("Plan Date", CalcDate('<1D>', Today()));
+                        Page.Run(Page::"Day Plannings", DayPlanning);
+                    end;
                 }
             }
 

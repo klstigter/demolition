@@ -38,20 +38,6 @@ table 50603 "PLanning Cue"
             Caption = 'Capacity (Tomorrow)';
             Editable = false;
         }
-        field(50; "DayPlanning (Today)"; Integer)
-        {
-            FieldClass = FlowField;
-            CalcFormula = Count("Day Planning" where("Plan Date" = field("Date Filter")));
-            Caption = 'DayPlanning (Today)';
-            Editable = false;
-        }
-        field(60; "DayPlanning (Tomorrow)"; Integer)
-        {
-            FieldClass = FlowField;
-            CalcFormula = Count("Day Planning" where("Plan Date" = field("Date Filter2")));
-            Caption = 'DayPlanning (Tomorrow)';
-            Editable = false;
-        }
         field(100; "Date Filter"; Date)
         {
             Caption = 'Date Filter';
@@ -131,5 +117,25 @@ table 50603 "PLanning Cue"
         exit(rtv);
     end;
 
-
+    /// <summary>
+    /// Total Day Planning hours for ADate: per line, Assigned Hours when it's non-zero, else
+    /// Requested Hours (a request with nothing assigned yet still counts toward the cue).
+    /// Replaces the old "DayPlanning (Today)"/"(Tomorrow)" FlowFields, which only counted the
+    /// number of Day Planning lines rather than their hours.
+    /// </summary>
+    procedure DayPlanningHours(ADate: Date): Decimal
+    var
+        DayPlanning: Record "Day Planning";
+        TotalHours: Decimal;
+    begin
+        DayPlanning.SetRange("Plan Date", ADate);
+        if DayPlanning.FindSet() then
+            repeat
+                if DayPlanning."Assigned Hours" <> 0 then
+                    TotalHours += DayPlanning."Assigned Hours"
+                else
+                    TotalHours += DayPlanning."Requested Hours";
+            until DayPlanning.Next() = 0;
+        exit(TotalHours);
+    end;
 }
