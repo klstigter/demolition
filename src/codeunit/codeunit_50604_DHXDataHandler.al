@@ -1895,7 +1895,7 @@ codeunit 50604 "DHX Data Handler"
     procedure OpenResourceSchedulerAssigned(eventId: Text)
     var
         DayPlanning: Record "Day Planning";
-        ResScheduler: Page "DHX Resource Scheduler";
+        ResScheduler: Page "Resource Scheduler - Calendar";
         EventIDList: List of [Text];
         JobNo: Code[20];
         TaskNo: Code[20];
@@ -1923,7 +1923,7 @@ codeunit 50604 "DHX Data Handler"
     procedure OpenResourceSchedulerRequested(eventId: Text)
     var
         DayPlanning: Record "Day Planning";
-        ResScheduler: Page "DHX Resource Scheduler";
+        ResScheduler: Page "Resource Scheduler - Calendar";
         EventIDList: List of [Text];
         JobNo: Code[20];
         TaskNo: Code[20];
@@ -3835,27 +3835,27 @@ codeunit 50604 "DHX Data Handler"
                 else
                     Clear(CurrentResSkills);
                 if SkillResScheduler_SkillListMatchesFilter(CurrentResSkills, SkillFilter) then
-                if (ResCap."Resource No." <> LastResNo) or (ResCap."Date" <> LastDate) then begin
-                    if (LastResNo <> '') and (AggCapacity > 0) then begin
-                        TempResCap.Init();
-                        TempResCap."Resource No." := LastResNo;
-                        TempResCap."Date" := LastDate;
-                        TempResCap."Start Time" := AggStartTime;
-                        GetStartEndTxt(TempResCap, AggCapacity, StartDateTimeStr, EndDateTimeStr);
-                        if (StartDateTimeStr <> '') and (EndDateTimeStr <> '') then
-                            SkillResScheduler_EmitCapacityEvents(JArray, LastResNo, LastDate, StartDateTimeStr, EndDateTimeStr, AggCapacity, SkillFilter, LastResSkills);
+                    if (ResCap."Resource No." <> LastResNo) or (ResCap."Date" <> LastDate) then begin
+                        if (LastResNo <> '') and (AggCapacity > 0) then begin
+                            TempResCap.Init();
+                            TempResCap."Resource No." := LastResNo;
+                            TempResCap."Date" := LastDate;
+                            TempResCap."Start Time" := AggStartTime;
+                            GetStartEndTxt(TempResCap, AggCapacity, StartDateTimeStr, EndDateTimeStr);
+                            if (StartDateTimeStr <> '') and (EndDateTimeStr <> '') then
+                                SkillResScheduler_EmitCapacityEvents(JArray, LastResNo, LastDate, StartDateTimeStr, EndDateTimeStr, AggCapacity, SkillFilter, LastResSkills);
+                        end;
+                        LastResNo := ResCap."Resource No.";
+                        LastDate := ResCap."Date";
+                        LastResSkills := CurrentResSkills;
+                        AggStartTime := ResCap."Start Time";
+                        AggCapacity := ResCap.Capacity;
+                    end else begin
+                        AggCapacity += ResCap.Capacity;
+                        if (ResCap."Start Time" <> 0T) then
+                            if (AggStartTime = 0T) or (ResCap."Start Time" < AggStartTime) then
+                                AggStartTime := ResCap."Start Time";
                     end;
-                    LastResNo := ResCap."Resource No.";
-                    LastDate := ResCap."Date";
-                    LastResSkills := CurrentResSkills;
-                    AggStartTime := ResCap."Start Time";
-                    AggCapacity := ResCap.Capacity;
-                end else begin
-                    AggCapacity += ResCap.Capacity;
-                    if (ResCap."Start Time" <> 0T) then
-                        if (AggStartTime = 0T) or (ResCap."Start Time" < AggStartTime) then
-                            AggStartTime := ResCap."Start Time";
-                end;
             until ResCap.Next() = 0;
 
         if (LastResNo <> '') and (AggCapacity > 0) then begin

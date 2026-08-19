@@ -122,18 +122,30 @@ page 50612 "Planning Role Center"
                     Caption = 'Resource Capacity Scheduler';
                     RunObject = page "DHX Scheduler (Pool Resource)";
                 }
+                /*
+                Split buttons aren't supported in context menus. 
+                When the feature key ModernActionBar is turned off, then it isn't supported if the ShowAs property is set to SplitButton on a promoted action category group.
 
-                action("VisualPlanning5")
+                group(MyGroup)
                 {
-                    ApplicationArea = All;
-                    Caption = 'Resources Scheduler';
-                    RunObject = page "DHX Resource Scheduler";
-                }
+                    ShowAs = SplitButton;
+                    
+                    action(MyAction)
+                    {
+                    }   
+                    ...
+                */
                 action("VisualPlanning5b")
                 {
                     ApplicationArea = All;
-                    Caption = 'Resource Scheduler (New)';
-                    RunObject = page "DHX Scheduler (Res+Capacity)";
+                    Caption = 'Resources Scheduler (Time-Line)';
+                    RunObject = page "DHX Scheduler - TimeLine";
+                }
+                action("VisualPlanning5")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Resources Scheduler (Week/Calendar)';
+                    RunObject = page "Resource Scheduler - Calendar";
                 }
                 action("VisualPlanning6")
                 {
