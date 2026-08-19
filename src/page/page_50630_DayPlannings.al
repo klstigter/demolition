@@ -578,7 +578,11 @@ page 50630 "Day Plannings"
         case true of
             rec."Assigned Resource No." = '':
                 begin
-                    StyleOpt := StyleOpt::StrongAccent;
+                    // Bold, no color tint - deliberately NOT Ambiguous: in this theme Ambiguous
+                    // renders visually identical to the Favorable green used below for "has an
+                    // assigned resource", which would defeat the point of a distinct blank style.
+                    // Strong is unused everywhere else in this case statement.
+                    StyleOpt := StyleOpt::Strong;
                     Descr := 'No resource assigned';
                 end;
             rec.Capacity = 0:
@@ -600,6 +604,13 @@ page 50630 "Day Plannings"
                 begin
                     StyleOpt := StyleOpt::Subordinate;
                     descr := 'Capacity fully utilized';
+                end;
+            rec."Assigned Resource No." <> '':
+                begin
+                    // Terminal fallback for an assigned row that tripped none of the capacity
+                    // warnings above - green, signalling "resource assigned, nothing to flag".
+                    StyleOpt := StyleOpt::Favorable;
+                    descr := 'Resource assigned';
                 end;
         end;
         StyleStr := Format(StyleOpt);
