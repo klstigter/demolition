@@ -209,13 +209,14 @@ window.BOOT = function() {
         background: var(--dp-color-requested) !important;
     }
 
-    /* Centered label on top of both strips */
+    /* Left-aligned label on top of both strips - keeps the Skill portion of the text
+       visible first when the bar is too narrow for the full "<Skill> | <Resource>" text. */
     .dp-bar-label {
         position: absolute;
         inset: 0;
         display: flex;
         align-items: center;
-        justify-content: center;
+        justify-content: flex-start;
         color: #fff;
         font-size: 12px;
         white-space: nowrap;
@@ -224,6 +225,9 @@ window.BOOT = function() {
         pointer-events: none;
         text-shadow: 0 0 2px rgba(0,0,0,0.7);
         z-index: 2;
+        padding-left: 4px;
+        text-align: left;
+        min-width: 0;
     }
 
     /* ── Right-click context menu ─────────────────────────────── */
@@ -1316,8 +1320,11 @@ function setupContextMenu() {
         '<div class="dhx-ctx-item" data-action="OpenDayPlanningVisual">' +
             '<span class="dhx-ctx-icon">&#128248;</span>Open Job Task Scheduler</div>' +
         '<div class="dhx-ctx-separator"></div>' +
+        '<div class="dhx-ctx-item" data-action="OpenResSchedulerTimeline">' +
+            '<span class="dhx-ctx-icon">&#128101;</span>Open Resource Scheduler (Timeline)</div>' +
+        '<div class="dhx-ctx-separator"></div>' +
         '<div class="dhx-ctx-item" data-action="OpenResourceSchedulerAssigned">' +
-            '<span class="dhx-ctx-icon">&#128101;</span>Open Resource Scheduler (assigned)</div>' +
+            '<span class="dhx-ctx-icon">&#128101;</span>Open Resource Scheduler (assigned)</div>' +        
         '<div class="dhx-ctx-item" data-action="OpenResourceSchedulerRequested">' +
             '<span class="dhx-ctx-icon">&#128101;</span>Open Resource Scheduler (Requested)</div>' +
         '<div class="dhx-ctx-item" data-action="OpenAssignedResourceCard">' +
@@ -1342,6 +1349,8 @@ function setupContextMenu() {
         menu.querySelector('[data-action="OpenDayPlanningVisual"]').style.display =
             (target.type === 'event') ? '' : 'none';
         menu.querySelector('[data-action="OpenResourceSchedulerAssigned"]').style.display =
+            (target.type === 'event') ? '' : 'none';
+        menu.querySelector('[data-action="OpenResSchedulerTimeline"]').style.display =
             (target.type === 'event') ? '' : 'none';
         menu.querySelector('[data-action="OpenResourceSchedulerRequested"]').style.display =
             (target.type === 'event') ? '' : 'none';

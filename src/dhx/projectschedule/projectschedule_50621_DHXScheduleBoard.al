@@ -267,6 +267,8 @@ page 50621 "DHX Scheduler (Project)"
                             DHXDataHandler.OpenDayPlanningVisual(eventId);
                         'OpenResourceSchedulerAssigned':
                             DHXDataHandler.OpenResourceSchedulerAssigned(eventId);
+                        'OpenResSchedulerTimeline':
+                            DHXDataHandler.OpenResSchedulerTimeline(eventId);
                         'OpenResourceSchedulerRequested':
                             DHXDataHandler.OpenResourceSchedulerRequested(eventId);
                         'OpenRequestedResourceCard':

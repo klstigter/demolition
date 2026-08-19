@@ -28,6 +28,19 @@ page 50654 "Daily Optimizer Setup"
                     ApplicationArea = All;
                 }
             }
+            group(Visual)
+            {
+                group("Resource Scheduler")
+                {
+                    Caption = 'Resource Scheduler';
+
+                    field("Resource Scheduler - List Type"; Rec."Resource Scheduler - List Type")
+                    {
+                        ApplicationArea = All;
+                        caption = 'List Type';
+                    }
+                }
+            }
             group(Numbering)
             {
                 Caption = 'Numbering';
