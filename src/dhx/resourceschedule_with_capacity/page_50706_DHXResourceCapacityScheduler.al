@@ -18,8 +18,13 @@ page 50706 "DHX Scheduler - TimeLine"
                 trigger ControlReady()
                 var
                     ResSchedSetup: Record "Resource Scheduler Setup";
+                    DailyOptimizerSetup: Record "Daily Optimizer Setup";
+                    SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
                     TreeJsonTxt: Text;
                     ColorsJsonTxt: Text;
+                    AssignedColorHex: Text;
+                    CapacityColorHex: Text;
+                    ExternalBorderColorHex: Text;
                     HasSetup: Boolean;
                     Window: Dialog;
                     LoadingLbl: Label 'Loading Capacity data...\n#1######################';
@@ -42,27 +47,40 @@ page 50706 "DHX Scheduler - TimeLine"
                     if GuiAllowed() then
                         Window.Update(1, 'Rendering...');
                     CurrPage.DhxScheduler.Init(TreeJsonTxt, AnchorDate);
-                    if HasSetup then
-                        if (ResSchedSetup."Envelope Color" <> '') or
-                           (ResSchedSetup."Envelope Border Color" <> '') or
-                           (ResSchedSetup."Assigned Color" <> '') or
-                           (ResSchedSetup."Requested Color" <> '') or
-                           (ResSchedSetup."Assigned High (%)" > 0) or
-                           (ResSchedSetup."Requested High (%)" > 0) or
-                           (ResSchedSetup."Capacity Color" <> '') or
-                           (ResSchedSetup."Capacity Border Color" <> '')
-                        then begin
-                            ColorsJsonTxt := StrSubstNo('{"envelope":"%1","envelopeBorder":"%2","assigned":"%3","requested":"%4","assignedHeight":%5,"requestedHeight":%6,"capacity":"%7","capacityBorder":"%8"}',
-                                ResSchedSetup."Envelope Color",
-                                ResSchedSetup."Envelope Border Color",
-                                ResSchedSetup."Assigned Color",
-                                ResSchedSetup."Requested Color",
-                                ResSchedSetup."Assigned High (%)",
-                                ResSchedSetup."Requested High (%)",
-                                ResSchedSetup."Capacity Color",
-                                ResSchedSetup."Capacity Border Color");
-                            CurrPage.DhxScheduler.SetBarColors(ColorsJsonTxt);
-                        end;
+                    // Envelope/Assigned/Height/Capacity colors now come from the company-wide
+                    // "Daily Optimizer Setup" singleton (table 50605), not the per-user "Resource
+                    // Scheduler Setup" - the old flat "Requested Color" field is gone entirely
+                    // (requested segments are now colored per-skill - see codeunit "DHX Data
+                    // Handler"'s ResolveRequestedColor, wired into each event's own
+                    // "requested_color" JSON field, CSS "--dp-color-requested" is the fallback
+                    // default), and "Capacity Border Color" has no AL source at all anymore -
+                    // dropped from this JSON entirely, wrapper.js keeps its own hardcoded
+                    // "--cap-color-border" CSS default when the key is absent.
+                    // Boolean-context Get() - a bare "DailyOptimizerSetup.Get();" statement
+                    // throws a runtime error if the singleton row doesn't exist yet (it's only
+                    // ever created lazily, the first time someone opens page 50654's OnOpenPage -
+                    // there's no install-time seeding), unlike this same call used in an "if"
+                    // condition, which just leaves DailyOptimizerSetup blank/Init()'d on a miss -
+                    // exactly what's wanted here since every field read below already tolerates
+                    // blank (SetBarColors' per-key guards, GetCapacitySegmentColors' own fallback).
+                    if DailyOptimizerSetup.Get() then;
+                    // Assigned/Capacity colors are resolved via GetCapacitySegmentColors (one
+                    // call resolves both) so this page always matches the Daily/Weekly bar-chart
+                    // tiles' defaults (#548235/#2E75B6), instead of silently falling back to
+                    // wrapper.js's own (previously mismatched) CSS defaults whenever "Daily
+                    // Optimizer Setup" is entirely blank. SetBarColors is now always called
+                    // unconditionally - every property write inside it is individually guarded
+                    // against blank values, so sending blanks for Envelope/EnvelopeBorder/Heights
+                    // when the setup record doesn't exist is a safe no-op per key.
+                    SkillCapacityAnalysisMgt.GetCapacitySegmentColors(AssignedColorHex, CapacityColorHex, ExternalBorderColorHex);
+                    ColorsJsonTxt := StrSubstNo('{"envelope":"%1","envelopeBorder":"%2","assigned":"%3","assignedHeight":%4,"requestedHeight":%5,"capacity":"%6"}',
+                        DailyOptimizerSetup."Envelope Color",
+                        DailyOptimizerSetup."Envelope Border Color",
+                        AssignedColorHex,
+                        DailyOptimizerSetup."Assigned High (%)",
+                        DailyOptimizerSetup."Requested High (%)",
+                        CapacityColorHex);
+                    CurrPage.DhxScheduler.SetBarColors(ColorsJsonTxt);
                     PushResourceFilterInfo();
                     CurrPage.Update(false);
 

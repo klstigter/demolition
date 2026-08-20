@@ -271,6 +271,8 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         CapInternalD: Decimal;
         CapExternalD: Decimal;
         SkillPaletteIdx: Integer;
+        AssignedColorHex: Text;
+        CapacityColorHex: Text;
     begin
         EnsureDayPlanningBuffer(PeriodStartDate, PeriodStartDate + 6);
 
@@ -341,10 +343,11 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
             end;
         end;
 
-        AddChartSeries(SeriesArray, AssInternalSeriesNameLbl, AssInternalValues, AssColorTok, '');
-        AddChartSeries(SeriesArray, AssExternalSeriesNameLbl, AssExternalValues, AssColorTok, ExternalBorderColorTok);
-        AddChartSeries(SeriesArray, CapInternalSeriesNameLbl, CapInternalValues, CapacityColorTok, '');
-        AddChartSeries(SeriesArray, CapExternalSeriesNameLbl, CapExternalValues, CapacityColorTok, ExternalBorderColorTok);
+        ResolveCapacitySegmentColors(AssignedColorHex, CapacityColorHex);
+        AddChartSeries(SeriesArray, AssInternalSeriesNameLbl, AssInternalValues, AssignedColorHex, '');
+        AddChartSeries(SeriesArray, AssExternalSeriesNameLbl, AssExternalValues, AssignedColorHex, ExternalBorderColorTok);
+        AddChartSeries(SeriesArray, CapInternalSeriesNameLbl, CapInternalValues, CapacityColorHex, '');
+        AddChartSeries(SeriesArray, CapExternalSeriesNameLbl, CapExternalValues, CapacityColorHex, ExternalBorderColorTok);
 
         SkillPaletteIdx := 0;
         foreach SkillCode in ActiveSkillList do begin
@@ -1121,16 +1124,40 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     end;
 
     /// <summary>
-    /// Returns this codeunit's own Assigned/Free-Capacity colour tokens (AssColorTok/
-    /// CapacityColorTok/ExternalBorderColorTok) so other charts - currently src/dhx/barchart_daily's
-    /// CAPACITY reference bar - can reuse the exact same colours as this codeunit's stacked weekly
-    /// chart instead of hardcoding a second copy of the same hex strings that could drift apart.
+    /// Returns this codeunit's own effective Assigned/Free-Capacity colours (user-configured via
+    /// "Daily Optimizer Setup" when set, else AssColorTok/CapacityColorTok) plus
+    /// ExternalBorderColorTok (not user-configurable - no corresponding setup field) so other
+    /// charts - currently src/dhx/barchart_daily's CAPACITY reference bar - can reuse the exact
+    /// same colours as this codeunit's stacked weekly chart instead of hardcoding a second copy
+    /// of the same hex strings that could drift apart.
     /// </summary>
     procedure GetCapacitySegmentColors(var AssignedColor: Text; var CapacityColor: Text; var ExternalBorderColor: Text)
     begin
+        ResolveCapacitySegmentColors(AssignedColor, CapacityColor);
+        ExternalBorderColor := ExternalBorderColorTok;
+    end;
+
+    /// <summary>
+    /// Resolves the effective Assigned/Free-Capacity colours: "Daily Optimizer Setup"."Assigned
+    /// Color" / "Unassigned Capacity Color" when the singleton exists and the field is non-blank,
+    /// else this codeunit's own hardcoded AssColorTok/CapacityColorTok fallback. Shared by
+    /// BuildDayCapacityChartData (the stacked weekly chart's own series colours) and
+    /// GetCapacitySegmentColors (src/dhx/barchart_daily's CAPACITY reference bar, via that
+    /// codeunit's forwarding call) so both consumers can never drift apart.
+    /// </summary>
+    local procedure ResolveCapacitySegmentColors(var AssignedColor: Text; var CapacityColor: Text)
+    var
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+    begin
         AssignedColor := AssColorTok;
         CapacityColor := CapacityColorTok;
-        ExternalBorderColor := ExternalBorderColorTok;
+
+        if DailyOptimizerSetup.Get() then begin
+            if DailyOptimizerSetup."Assigned Color" <> '' then
+                AssignedColor := DailyOptimizerSetup."Assigned Color";
+            if DailyOptimizerSetup."Unassigned Capacity Color" <> '' then
+                CapacityColor := DailyOptimizerSetup."Unassigned Capacity Color";
+        end;
     end;
 
     /// <summary>

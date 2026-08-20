@@ -122,6 +122,8 @@ codeunit 50604 "DHX Data Handler"
         RequestedEndTime: Time;
         EnvelopeStartTime: Time;
         EnvelopeEndTime: Time;
+        SkillColorDict: Dictionary of [Code[20], Text];
+        NextSkillPaletteIndex: Integer;
     begin
         PlanninJsonTxt := '';
         //Marking Job based on Day Plannings within the given date range
@@ -271,6 +273,7 @@ codeunit 50604 "DHX Data Handler"
                     PlanningObject.Add('end_time_requested', '');
                 PlanningObject.Add('non_working_minutes_requested', DayPlanning."Non Working Minutes Requested");
                 PlanningObject.Add('requested_hours', DayPlanning."Requested Hours");
+                PlanningObject.Add('requested_color', ResolveRequestedColor(DayPlanning.Skill, SkillColorDict, NextSkillPaletteIndex));
 
                 PlanningArray.Add(PlanningObject);
                 PlanningArray.WriteTo(PlanninJsonTxt);
@@ -4059,6 +4062,8 @@ codeunit 50604 "DHX Data Handler"
         EnvEndTxt: Text;
         EventText: Text;
         EffectiveSkill: Code[20];
+        SkillColorDict: Dictionary of [Code[20], Text];
+        NextSkillPaletteIndex: Integer;
     begin
         DayPlanning.Reset();
         if (StartDate <> 0D) and (EndDate <> 0D) then
@@ -4146,6 +4151,7 @@ codeunit 50604 "DHX Data Handler"
                         JObj.Add('requested_resource_name', RequestedResName);
                         JObj.Add('requested_hours', DayPlanning."Requested Hours");
                         JObj.Add('skill', DayPlanning.Skill);
+                        JObj.Add('requested_color', ResolveRequestedColor(DayPlanning.Skill, SkillColorDict, NextSkillPaletteIndex));
                         JObj.Add('job_no', DayPlanning."Job No.");
                         JObj.Add('job_task_no', DayPlanning."Job Task No.");
                         JArray.Add(JObj);
@@ -4747,6 +4753,8 @@ codeunit 50604 "DHX Data Handler"
         EnvEndTxt: Text;
         EventText: Text;
         SectionSuffix: Code[20];
+        SkillColorDict: Dictionary of [Code[20], Text];
+        NextSkillPaletteIndex: Integer;
     begin
         DayPlanning.Reset();
         if (StartDate <> 0D) and (EndDate <> 0D) then
@@ -4824,6 +4832,7 @@ codeunit 50604 "DHX Data Handler"
                         JObj.Add('requested_resource_name', RequestedResName);
                         JObj.Add('requested_hours', DayPlanning."Requested Hours");
                         JObj.Add('skill', DayPlanning.Skill);
+                        JObj.Add('requested_color', ResolveRequestedColor(DayPlanning.Skill, SkillColorDict, NextSkillPaletteIndex));
                         JObj.Add('job_no', DayPlanning."Job No.");
                         JObj.Add('job_task_no', DayPlanning."Job Task No.");
                         JArray.Add(JObj);
@@ -4834,5 +4843,43 @@ codeunit 50604 "DHX Data Handler"
         JRoot.Add('data', JArray);
         JRoot.WriteTo(Result);
         exit(Result);
+    end;
+
+    /// <summary>
+    /// Resolves the per-event "requested" segment color for a scheduler bar (projectschedule
+    /// page 50621 and resourceschedule_with_capacity page 50706), reusing the exact same color
+    /// source as the "Requested Hours vs Capacity" daily bar-chart factbox: the "Skill Code"
+    /// master's own "Bar Color" override (tableext 50609, field 50600), falling back to
+    /// codeunit "SkillCapacityAnalysisMgt.v1"'s fixed 5-color palette when blank - called
+    /// cross-codeunit via its already-public GetSkillBarColor rather than duplicating the
+    /// palette here or in codeunit 50662's local GetSkillSeriesColor twin.
+    ///
+    /// Each DISTINCT, non-blank skill code encountered while building ONE JSON payload gets its
+    /// own palette slot, assigned in first-encountered order (mirrors codeunit 50662's
+    /// SkillPaletteIdx loop) - the caller supplies SkillColorDict/NextPaletteIndex as fresh local
+    /// variables for each JSON-build call, so numbering naturally resets per call rather than
+    /// accumulating globally. A blank SkillCode resolves to a blank color so the caller omits
+    /// the JSON key and the bar falls back to wrapper.js's own "--dp-color-requested" CSS
+    /// default, instead of silently occupying a palette slot for "no skill".
+    ///
+    /// GetSkillBarColor's own parameter is Code[10] - narrower than Day Planning's "Skill" field
+    /// (Code[20]) - but "Skill" has TableRelation = "Skill Code", whose master "Code" field is
+    /// itself Code[10], so any value that ever validated successfully already fits within 10
+    /// characters; the CopyStr below is a safety truncation for already-valid data, not a real
+    /// loss of precision.
+    /// </summary>
+    local procedure ResolveRequestedColor(SkillCode: Code[20]; var SkillColorDict: Dictionary of [Code[20], Text]; var NextPaletteIndex: Integer): Text
+    var
+        SkillCapacityAnalysisMgtV1: Codeunit "SkillCapacityAnalysisMgt.v1";
+        ResolvedColor: Text;
+    begin
+        if SkillCode = '' then
+            exit('');
+        if SkillColorDict.Get(SkillCode, ResolvedColor) then
+            exit(ResolvedColor);
+        ResolvedColor := SkillCapacityAnalysisMgtV1.GetSkillBarColor(CopyStr(SkillCode, 1, 10), NextPaletteIndex);
+        SkillColorDict.Add(SkillCode, ResolvedColor);
+        NextPaletteIndex += 1;
+        exit(ResolvedColor);
     end;
 }

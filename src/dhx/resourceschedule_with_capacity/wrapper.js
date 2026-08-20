@@ -118,8 +118,11 @@ window.BOOT = function () {
             font-weight: normal !important;
         }
 
-        /* ── Capacity bars: solid, distinct orange - separate from Day Planning colors ── */
-        #scheduler_here { --cap-color: #F2A93C; --cap-color-border: #C97F16; }
+        /* ── Capacity bars: matches Daily/Weekly's Capacity color default (CapacityColorTok in
+           codeunit 50662, resolved via GetCapacitySegmentColors and always sent as
+           colors.capacity by ControlReady) - see --cap-color-border below for the still-distinct
+           border accent ── */
+        #scheduler_here { --cap-color: #2E75B6; --cap-color-border: #C97F16; }
         .dhx_cal_event.event-capacity,
         .dhx_cal_event_line.event-capacity,
         .dhx_event_line.event-capacity {
@@ -134,7 +137,7 @@ window.BOOT = function () {
         #scheduler_here {
             --dp-color-envelope: #1B3A6B;
             --dp-color-envelope-border: #14294D;
-            --dp-color-assigned: #7FB3FA;
+            --dp-color-assigned: #548235;
             --dp-color-requested: #6FCF97;
             --dp-height-assigned: 50%;
             --dp-height-requested: 50%;
@@ -275,21 +278,27 @@ window.BOOT = function () {
             var sameRange = assignedValid && requestedValid &&
                 (assignedStartMin === requestedStartMin) && (assignedEndMin === requestedEndMin);
 
-            function segmentHtml(cls, segStartMin, segEndMin, fullHeight) {
+            // colorOverride: an event's own resolved per-skill color (ev.requested_color, set by
+            // AL's ResolveRequestedColor - see codeunit "DHX Data Handler") applied as an inline
+            // !important style so it wins over the CSS "--dp-color-requested" rule (itself
+            // !important - see .dp-bar-requested above), which stays in place as the fallback
+            // for a blank/unresolved color (no Skill Code on the row).
+            function segmentHtml(cls, segStartMin, segEndMin, fullHeight, colorOverride) {
                 var left = Math.max(0, Math.min(100, ((segStartMin - envStartMin) / totalMin) * 100));
                 var width = Math.max(0, Math.min(100 - left, ((segEndMin - segStartMin) / totalMin) * 100));
                 var extra = fullHeight ? ' top:0; bottom:auto; height:100%;' : '';
-                return '<div class="' + cls + '" style="left:' + left + '%; width:' + width + '%;' + extra + '"></div>';
+                var colorStyle = colorOverride ? ' background:' + colorOverride + ' !important;' : '';
+                return '<div class="' + cls + '" style="left:' + left + '%; width:' + width + '%;' + extra + colorStyle + '"></div>';
             }
 
             var segmentsHtml = "";
             if (assignedValid && requestedValid && !sameRange) {
                 segmentsHtml += segmentHtml('dp-bar-assigned', assignedStartMin, assignedEndMin, false);
-                segmentsHtml += segmentHtml('dp-bar-requested', requestedStartMin, requestedEndMin, false);
+                segmentsHtml += segmentHtml('dp-bar-requested', requestedStartMin, requestedEndMin, false, ev.requested_color);
             } else if (sameRange || assignedValid) {
                 segmentsHtml += segmentHtml('dp-bar-assigned', assignedStartMin, assignedEndMin, true);
             } else if (requestedValid) {
-                segmentsHtml += segmentHtml('dp-bar-requested', requestedStartMin, requestedEndMin, true);
+                segmentsHtml += segmentHtml('dp-bar-requested', requestedStartMin, requestedEndMin, true, ev.requested_color);
             }
 
             return '<div class="dp-bar-wrap">' + segmentsHtml + '<div class="dp-bar-label">' + label + '</div></div>';
@@ -613,7 +622,11 @@ function SetBarColors(colorsJson) {
         if (colors.assigned) root.style.setProperty("--dp-color-assigned", colors.assigned);
         if (colors.requested) root.style.setProperty("--dp-color-requested", colors.requested);
         if (colors.capacity) root.style.setProperty("--cap-color", colors.capacity);
-        root.style.setProperty("--cap-color-border", colors.capacityBorder || "transparent");
+        // "capacityBorder" has no AL source anymore (table field removed - AL never sends this
+        // key at all now, see page 50706's ControlReady), so only override when actually
+        // present; otherwise keep the CSS "--cap-color-border" default (#C97F16, set in BOOT's
+        // injected stylesheet above) instead of unconditionally clobbering it to "transparent".
+        if (colors.capacityBorder) root.style.setProperty("--cap-color-border", colors.capacityBorder);
         // Assigned/Requested split - from Resource Scheduler Setup's "Assigned High (%)"/
         // "Requested High (%)". Left at their CSS default (50%/50%) whenever setup doesn't
         // override them (0/blank).

@@ -40,6 +40,67 @@ page 50654 "Daily Optimizer Setup"
                         caption = 'List Type';
                     }
                 }
+                group(Colors)
+                {
+                    Caption = 'Bar Colors';
+
+                    group(Capacity)
+                    {
+                        Caption = 'Capacity';
+
+                        field("Unassigned Capacity Color"; Rec."Unassigned Capacity Color")
+                        {
+                            ApplicationArea = All;
+                            ToolTip = 'Color of the Unassigned Capacity bar. Enter a hex color, e.g. #7FB3FA.';
+                        }
+                    }
+
+                    group(Envelope)
+                    {
+                        Caption = 'Envelope';
+
+                        field("Envelope Color"; Rec."Envelope Color")
+                        {
+                            ApplicationArea = All;
+                            ToolTip = 'Background color of the full Day Planning bar (visible where neither the Assigned nor Requested strip covers it). Enter a hex color, e.g. #1B3A6B.';
+                        }
+                        field("Envelope Border Color"; Rec."Envelope Border Color")
+                        {
+                            ApplicationArea = All;
+                            ToolTip = 'Border color of the full Day Planning bar. Enter a hex color, e.g. #14294D.';
+                        }
+                    }
+                    group(AssignedRequested)
+                    {
+                        ShowCaption = false;
+
+                        group(Assigned)
+                        {
+                            Caption = 'Assigned';
+
+                            field("Assigned Color"; Rec."Assigned Color")
+                            {
+                                ApplicationArea = All;
+                                ToolTip = 'Color of the Assigned time-range strip on the Day Planning bar. Enter a hex color, e.g. #7FB3FA.';
+                            }
+                            field("Assigned High (%)"; Rec."Assigned High (%)")
+                            {
+                                ApplicationArea = All;
+                                ToolTip = 'Percentage of the Assigned height relative to envelope.';
+                            }
+                        }
+                        group(Requested)
+                        {
+                            Caption = 'Requested';
+
+                            field("Requested High (%)"; Rec."Requested High (%)")
+                            {
+                                ApplicationArea = All;
+                                ToolTip = 'Percentage of the Requested height relative to envelope.';
+                            }
+                        }
+                    }
+                }
             }
             group(Numbering)
             {
