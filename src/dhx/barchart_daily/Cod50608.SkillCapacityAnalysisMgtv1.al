@@ -169,35 +169,18 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
     end;
 
     /// <summary>
-    /// Returns the colour to use for SkillCode's bar on the daily chart - same logic/palette as
-    /// page 50692's own GetSkillSeriesColor (codeunit "Skill Capacity Analysis Mgt.", weekly
-    /// chart), kept in sync deliberately so a given skill renders the same colour family on both
-    /// the Daily and Weekly views. "Skill Code"."Bar Color" takes precedence when set; otherwise
-    /// PaletteIndex cycles through the same fixed 5-colour palette the weekly chart uses. Blank
-    /// for the synthetic 'CAPACITY' marker row (see BuildSkillBuffer's own doc comment) - that
-    /// bar keeps wrapper.js's normal series colour instead of a skill colour.
+    /// Returns the colour to use for SkillCode's bar on the daily chart - kept public because
+    /// other code (codeunit 50604 "DHX Data Handler"'s ResolveRequestedColor) calls it
+    /// cross-codeunit. Thin forward to codeunit "Color Constants Opti." (50609) - see that
+    /// codeunit's GetSkillBarColor for the actual "Bar Color"-override/5-colour-palette/
+    /// CAPACITY-marker-blank logic, now the single authoritative copy shared with codeunit
+    /// 50662's own GetSkillSeriesColor twin.
     /// </summary>
     procedure GetSkillBarColor(SkillCode: Code[10]; PaletteIndex: Integer): Text
     var
-        SkillCodeRec: Record "Skill Code";
-        Palette: array[5] of Text[10];
-        BarColor: Text;
+        ColorConstants: Codeunit "Color Constants Opti.";
     begin
-        if SkillCode = CapacitySkillCodeTok then
-            exit('');
-
-        if SkillCodeRec.Get(SkillCode) then begin
-            BarColor := SkillCodeRec."Bar Color".Trim();
-            if BarColor <> '' then
-                exit(BarColor);
-        end;
-
-        Palette[1] := '#C55A11';
-        Palette[2] := '#ED7D31';
-        Palette[3] := '#F4B183';
-        Palette[4] := '#F8CBAD';
-        Palette[5] := '#FBE5D6';
-        exit(Palette[(PaletteIndex mod 5) + 1]);
+        exit(ColorConstants.GetSkillBarColor(SkillCode, PaletteIndex));
     end;
 
     /// <summary>
@@ -288,10 +271,13 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
 
     /// <summary>
     /// Returns the same Assigned/Free-Capacity colour tokens src/dhx/barchart_weekly's stacked
-    /// chart uses (green Assigned, blue Free Capacity, red External border) - see Codeunit "Skill
-    /// Capacity Analysis Mgt.".GetCapacitySegmentColors - so the CAPACITY bar's stacked segments
-    /// (and its legend swatch, painted with CapacityColor as the bar's single representative
-    /// colour) always match Weekly's exact tokens, never a locally hardcoded copy.
+    /// chart uses (green Assigned, blue Free Capacity, red External border) so the CAPACITY bar's
+    /// stacked segments (and its legend swatch, painted with CapacityColor as the bar's single
+    /// representative colour) always match Weekly's exact tokens, never a locally hardcoded copy.
+    /// Forwards through Codeunit "Skill Capacity Analysis Mgt." (50662) rather than calling
+    /// codeunit "Color Constants Opti." (50609) directly - 50662's own GetCapacitySegmentColors is
+    /// itself now just a thin forward to 50609, so the resolved values are identical either way;
+    /// going through 50662 is the smaller/lower-churn change since this call site already existed.
     /// </summary>
     procedure GetCapacitySegmentColors(var AssignedColor: Text; var CapacityColor: Text; var ExternalBorderColor: Text)
     begin

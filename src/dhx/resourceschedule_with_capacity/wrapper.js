@@ -118,10 +118,12 @@ window.BOOT = function () {
             font-weight: normal !important;
         }
 
-        /* ── Capacity bars: matches Daily/Weekly's Capacity color default (CapacityColorTok in
-           codeunit 50662, resolved via GetCapacitySegmentColors and always sent as
-           colors.capacity by ControlReady) - see --cap-color-border below for the still-distinct
-           border accent ── */
+        /* ── Capacity bars: matches Daily/Weekly's Capacity color default (CapacityColorTok in AL
+           codeunit 50609 "Color Constants Opti.", resolved via GetCapacitySegmentColors and
+           always sent as colors.capacity by ControlReady) - see --cap-color-border below for the
+           still-distinct border accent. --cap-color-border (#C97F16) has no corresponding "Daily
+           Optimizer Setup" field - it's documented in codeunit 50609 as CapacityBorderColorTok
+           purely as a named constant; nothing dynamically overrides it ── */
         #scheduler_here { --cap-color: #2E75B6; --cap-color-border: #C97F16; }
         .dhx_cal_event.event-capacity,
         .dhx_cal_event_line.event-capacity,
@@ -137,8 +139,8 @@ window.BOOT = function () {
         #scheduler_here {
             --dp-color-envelope: #1B3A6B;
             --dp-color-envelope-border: #14294D;
-            --dp-color-assigned: #548235;
-            --dp-color-requested: #6FCF97;
+            --dp-color-assigned: #548235; /* source of truth: AL codeunit 50609 "Color Constants Opti." AssColorTok */
+            --dp-color-requested: #6FCF97; /* unrelated to codeunit 50609's skill palette - see ev.requested_color below */
             --dp-height-assigned: 50%;
             --dp-height-requested: 50%;
         }

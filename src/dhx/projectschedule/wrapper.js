@@ -161,8 +161,8 @@ window.BOOT = function() {
     #scheduler_here {
         --dp-color-envelope: #1B3A6B;
         --dp-color-envelope-border: #14294D;
-        --dp-color-assigned: #548235;
-        --dp-color-requested: #6FCF97;
+        --dp-color-assigned: #548235; /* source of truth: AL codeunit 50609 "Color Constants Opti." AssColorTok */
+        --dp-color-requested: #6FCF97; /* unrelated to codeunit 50609's skill palette - see ev.requested_color below */
         /* Default 3-part split (Assigned/Requested both valid and different) — overridable
            at runtime from Task Scheduler Setup's "Assigned High (%)"/"Requested High (%)"
            via SetBarColors below. Defaults stay 80/20 even when setup has no override. */

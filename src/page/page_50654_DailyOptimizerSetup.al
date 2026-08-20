@@ -52,6 +52,18 @@ page 50654 "Daily Optimizer Setup"
                         {
                             ApplicationArea = All;
                             ToolTip = 'Color of the Unassigned Capacity bar. Enter a hex color, e.g. #7FB3FA.';
+
+                            trigger OnAssistEdit()
+                            var
+                                ColorPickerPage: Page "Color Picker Lookup";
+                            begin
+                                ColorPickerPage.SetInitialColor(Rec."Unassigned Capacity Color");
+                                if ColorPickerPage.RunModal() = Action::OK then begin
+                                    Rec."Unassigned Capacity Color" := ColorPickerPage.GetSelectedColor();
+                                    Rec.Modify(true);
+                                    CurrPage.Update(false);
+                                end;
+                            end;
                         }
                     }
 
@@ -63,11 +75,35 @@ page 50654 "Daily Optimizer Setup"
                         {
                             ApplicationArea = All;
                             ToolTip = 'Background color of the full Day Planning bar (visible where neither the Assigned nor Requested strip covers it). Enter a hex color, e.g. #1B3A6B.';
+
+                            trigger OnAssistEdit()
+                            var
+                                ColorPickerPage: Page "Color Picker Lookup";
+                            begin
+                                ColorPickerPage.SetInitialColor(Rec."Envelope Color");
+                                if ColorPickerPage.RunModal() = Action::OK then begin
+                                    Rec."Envelope Color" := ColorPickerPage.GetSelectedColor();
+                                    Rec.Modify(true);
+                                    CurrPage.Update(false);
+                                end;
+                            end;
                         }
                         field("Envelope Border Color"; Rec."Envelope Border Color")
                         {
                             ApplicationArea = All;
                             ToolTip = 'Border color of the full Day Planning bar. Enter a hex color, e.g. #14294D.';
+
+                            trigger OnAssistEdit()
+                            var
+                                ColorPickerPage: Page "Color Picker Lookup";
+                            begin
+                                ColorPickerPage.SetInitialColor(Rec."Envelope Border Color");
+                                if ColorPickerPage.RunModal() = Action::OK then begin
+                                    Rec."Envelope Border Color" := ColorPickerPage.GetSelectedColor();
+                                    Rec.Modify(true);
+                                    CurrPage.Update(false);
+                                end;
+                            end;
                         }
                     }
                     group(AssignedRequested)
@@ -82,6 +118,18 @@ page 50654 "Daily Optimizer Setup"
                             {
                                 ApplicationArea = All;
                                 ToolTip = 'Color of the Assigned time-range strip on the Day Planning bar. Enter a hex color, e.g. #7FB3FA.';
+
+                                trigger OnAssistEdit()
+                                var
+                                    ColorPickerPage: Page "Color Picker Lookup";
+                                begin
+                                    ColorPickerPage.SetInitialColor(Rec."Assigned Color");
+                                    if ColorPickerPage.RunModal() = Action::OK then begin
+                                        Rec."Assigned Color" := ColorPickerPage.GetSelectedColor();
+                                        Rec.Modify(true);
+                                        CurrPage.Update(false);
+                                    end;
+                                end;
                             }
                             field("Assigned High (%)"; Rec."Assigned High (%)")
                             {
