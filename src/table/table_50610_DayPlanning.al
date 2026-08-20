@@ -554,7 +554,7 @@ table 50610 "Day Planning"
         {
             DataClassification = ToBeClassified;
             Caption = 'Requested Resource No.';
-            TableRelation = Resource;
+            TableRelation = Resource where(Blocked = const(false));
 
             trigger OnValidate()
             var
@@ -576,42 +576,6 @@ table 50610 "Day Planning"
                     CalculateWorkingHours();
                 end else
                     Validate("Requested Hours", 0);
-            end;
-
-            trigger OnLookup()
-            var
-                Resource: Record Resource;
-                ResSklill: Record "Resource Skill";
-                ResLookupPage: Page "Opti Resource List";
-                CapacityUniqueResource: Query "Unique Resource in Capacity";
-            begin
-                Resource.Reset();
-                // Check Existing capacity entries for the resource
-                clear(CapacityUniqueResource);
-                CapacityUniqueResource.SetRange(EntryDateFilter, "Plan Date");
-                CapacityUniqueResource.Open();
-                while CapacityUniqueResource.Read() do begin
-                    if Resource.Get(CapacityUniqueResource.Resource_No_) then
-                        Resource.Mark(true);
-                end;
-                Resource.MarkedOnly(true);  // Get marked resources
-                CapacityUniqueResource.Close();
-                if "Skill" <> '' then begin
-                    if Resource.FindSet() then
-                        repeat
-                            if not ResSklill.Get(ResSklill.Type::Resource, Resource."No.", Skill) then
-                                Resource.Mark(false);
-                        until Resource.Next() = 0;
-                end;
-                Resource.MarkedOnly(true);  // Get marked resources with the skill
-                Resource.SetFilter("Date Filter", '%1', "Plan Date");
-                ResLookupPage.SetTableView(Resource);
-                ResLookupPage.LookupMode(true);
-                if ResLookupPage.RunModal() = ACTION::LookupOK then begin
-                    ResLookupPage.GetRecord(Resource);
-                    Validate("Requested Resource No.", Resource."No.");
-                    Description := Resource.Name;
-                end;
             end;
         }
         field(31; "Unit of Measure Code"; Code[10])
