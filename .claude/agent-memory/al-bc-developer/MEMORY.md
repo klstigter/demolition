@@ -24,3 +24,4 @@
 - [Skill Hours Summary page (50705)](project_skill_hours_summary_page.md) — standalone requested-hours-per-skill-per-week view w/ daily period nav, opened from Workorder Card + Work Order Sub
 - [Don't publish/verify when told not to](feedback_no_publish_when_told.md) — stop at al_compile/al_build + report when told not to publish or manually verify; overrides default deploy-loop workflow
 - [al_publish "Invalid URI" tooling bug](al_publish_invalid_uri_tooling_bug.md) — failed 5x regardless of params (appPath/projectPath/env/tenant); auth was fine; looks like broken MCP tooling, not fixable via params
+- [DHTMLX Suite Grid API](dhtmlx_suite_grid_api.md) — `dhx.Grid` is actually `ProGrid` wrapping `ExtendedGrid`; grouped headers via `column.header[]` array + colspan/rowspan; `leftSplit` pins columns; `cellClick` gives real (row,col) objects; page 50704 pivot-grid FactBox

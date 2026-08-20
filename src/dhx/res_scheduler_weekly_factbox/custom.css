@@ -1,0 +1,29 @@
+/* DHXGridFactboxAddin - pivot grid FactBox styling.
+   suite.css already supplies the base dhtmlx Grid look; these overrides only add the
+   spec's "shaded group header" convention (matching src/dhx/barchart_weekly/wrapper.js's
+   own DAY_GROUP_BACKGROUND_COLOR choice, #f7f7f7, for the same "this is a header, not
+   data" visual cue) and a slightly stronger left border on the pinned label column so the
+   frozen/scrolling boundary reads clearly once the 7 day-groups start scrolling. */
+
+.dhx_grid-header-cell {
+    background: #f7f7f7;
+    font-weight: 600;
+}
+
+/* Sub Total / Grand Total columns are display-only (no drilldown, see wrapper.js's
+   ResolveDrillDownTarget) - a light tint distinguishes them from the clickable
+   Requested/Assigned cells without relying on cursor affordance alone. */
+.dhx-grid-subtotal-cell,
+.dhx-grid-grandtotal-cell {
+    background: #fafafa;
+}
+
+.dhx-grid-grandtotal-cell {
+    font-weight: 600;
+}
+
+/* Visual boundary for the pinned "label" column (leftSplit: 1 in wrapper.js) once the
+   day-group columns scroll underneath it. */
+.dhx_grid__cols-border--frozen {
+    border-right: 1px solid var(--dhx-color-gray-200, #d0d0d0);
+}
