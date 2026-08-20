@@ -22,6 +22,10 @@ page 50668 "Day Planning Card Opt"
                     {
                         ApplicationArea = All;
                     }
+                    field(skill; Rec."Skill")
+                    {
+                        ApplicationArea = All;
+                    }
 
                 }
                 Group(Planning)
@@ -53,11 +57,6 @@ page 50668 "Day Planning Card Opt"
             }
             Group(Resource)
             {
-                field(skill; Rec."Skill")
-                {
-                    ApplicationArea = All;
-                }
-
                 group(Requested)
                 {
                     field("Requested Pool Resource No."; Rec."Requested Pool Resource No.")

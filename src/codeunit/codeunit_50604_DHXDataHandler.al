@@ -2038,6 +2038,30 @@ codeunit 50604 "DHX Data Handler"
             Message(MsgLbl, eventId);
     end;
 
+    /// <summary>
+    /// Opens the Day Planning Card (Opt) for the day planning line linked to the given event ID
+    /// (format: JobNo|JobTaskNo|DayNo|DayLineNo|...).
+    /// Used by the right-click context menu "Open Day Planning Card" on an event.
+    /// </summary>
+    procedure OpenDayPlanningCard(eventId: Text)
+    var
+        DayPlanning: Record "Day Planning";
+        EventIDList: List of [Text];
+        JobNo: Code[20];
+        TaskNo: Code[20];
+        DayLineNo: Integer;
+        MsgLbl: Label 'Day planning not found for Event ID: %1';
+    begin
+        EventIDList := eventId.Split('|');
+        JobNo := EventIDList.Get(1);
+        TaskNo := EventIDList.Get(2);
+        Evaluate(DayLineNo, EventIDList.Get(4));
+        if DayPlanning.Get(JobNo, TaskNo, DayLineNo) then
+            PAGE.Run(PAGE::"Day Planning Card Opt", DayPlanning)
+        else
+            Message(MsgLbl, eventId);
+    end;
+
     procedure OpenResourceCard(SectionId: Text)
     var
         Resource: Record Resource;
