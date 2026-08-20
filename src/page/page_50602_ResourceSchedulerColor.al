@@ -54,6 +54,7 @@ page 50602 "Resource Scheduler Color opt"
                 var
                     Res: Record Resource;
                     ResColor: Record "Planning Color Opt.";
+                    ColorConstants: Codeunit "Color Constants Opti.";
                     DayPlanningColors: array[8] of Text[30];
                     CapColors: array[8] of Text[30];
                     Idx: Integer;
@@ -65,22 +66,8 @@ page 50602 "Resource Scheduler Color opt"
                         exit;
 
                     // Modern complementary pairs: lighter shade for Day Planning, deeper shade for Capacity
-                    DayPlanningColors[1] := 'sky';
-                    CapColors[1] := 'ocean';
-                    DayPlanningColors[2] := 'coral';
-                    CapColors[2] := 'crimson';
-                    DayPlanningColors[3] := 'mint';
-                    CapColors[3] := 'teal';
-                    DayPlanningColors[4] := 'sand';
-                    CapColors[4] := 'amber';
-                    DayPlanningColors[5] := 'rose';
-                    CapColors[5] := 'plum';
-                    DayPlanningColors[6] := 'lavender';
-                    CapColors[6] := 'indigo';
-                    DayPlanningColors[7] := 'green';
-                    CapColors[7] := 'violet';
-                    DayPlanningColors[8] := 'yellow';
-                    CapColors[8] := 'blue';
+                    ColorConstants.GetResourceSchedulerDayPlanningPalette(DayPlanningColors);
+                    ColorConstants.GetResourceSchedulerCapacityPalette(CapColors);
 
                     Count := 0;
                     Res.Reset();

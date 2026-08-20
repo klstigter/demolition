@@ -3135,15 +3135,11 @@ codeunit 50604 "DHX Data Handler"
     procedure ResScheduler_GetResourceColor(pResourceNo: Code[20]; pColorType: Text): Text
     var
         ResColor: Record "Planning Color Opt.";
-        FallbackColors: array[4] of Text;
+        ColorConstants: Codeunit "Color Constants Opti.";
         ColorHash: Integer;
         i: Integer;
         ColorValue: Text;
     begin
-        FallbackColors[1] := 'blue';
-        FallbackColors[2] := 'green';
-        FallbackColors[3] := 'violet';
-        FallbackColors[4] := 'yellow';
         if ResColor.Get(ResColor.Type::"Resource Scheduler", pResourceNo, '', '') then begin
             case pColorType of
                 'DayPlanning':
@@ -3157,7 +3153,7 @@ codeunit 50604 "DHX Data Handler"
         ColorHash := 0;
         for i := 1 to StrLen(pResourceNo) do
             ColorHash += pResourceNo[i];
-        exit(FallbackColors[(ColorHash mod 4) + 1]);
+        exit(ColorConstants.GetResourceSchedulerFallbackColor(ColorHash));
     end;
 
     // =========================================================
@@ -4850,9 +4846,13 @@ codeunit 50604 "DHX Data Handler"
     /// page 50621 and resourceschedule_with_capacity page 50706), reusing the exact same color
     /// source as the "Requested Hours vs Capacity" daily bar-chart factbox: the "Skill Code"
     /// master's own "Bar Color" override (tableext 50609, field 50600), falling back to
-    /// codeunit "SkillCapacityAnalysisMgt.v1"'s fixed 5-color palette when blank - called
-    /// cross-codeunit via its already-public GetSkillBarColor rather than duplicating the
-    /// palette here or in codeunit 50662's local GetSkillSeriesColor twin.
+    /// codeunit "Color Constants Opti." (50609)'s fixed 5-color palette when blank - called
+    /// cross-codeunit via its public GetSkillBarColor rather than duplicating the palette here.
+    /// Codeunit 50609 is the single authoritative copy of this palette/lookup logic, also used
+    /// (via thin forwarding wrappers) by codeunit 50662's GetSkillSeriesColor and codeunit
+    /// 50608's own GetSkillBarColor - called directly here rather than through either of those
+    /// forwards since this procedure already did its own palette-index/memoization bookkeeping
+    /// and only ever needed the underlying single-color lookup.
     ///
     /// Each DISTINCT, non-blank skill code encountered while building ONE JSON payload gets its
     /// own palette slot, assigned in first-encountered order (mirrors codeunit 50662's
@@ -4864,20 +4864,20 @@ codeunit 50604 "DHX Data Handler"
     ///
     /// GetSkillBarColor's own parameter is Code[10] - narrower than Day Planning's "Skill" field
     /// (Code[20]) - but "Skill" has TableRelation = "Skill Code", whose master "Code" field is
-    /// itself Code[10], so any value that ever validated successfully already fits within 10
-    /// characters; the CopyStr below is a safety truncation for already-valid data, not a real
-    /// loss of precision.
+    /// itself Code[10] (confirmed live via al_symbolsearch), so any value that ever validated
+    /// successfully already fits within 10 characters; the CopyStr below is a safety truncation
+    /// for already-valid data, not a real loss of precision.
     /// </summary>
     local procedure ResolveRequestedColor(SkillCode: Code[20]; var SkillColorDict: Dictionary of [Code[20], Text]; var NextPaletteIndex: Integer): Text
     var
-        SkillCapacityAnalysisMgtV1: Codeunit "SkillCapacityAnalysisMgt.v1";
+        ColorConstants: Codeunit "Color Constants Opti.";
         ResolvedColor: Text;
     begin
         if SkillCode = '' then
             exit('');
         if SkillColorDict.Get(SkillCode, ResolvedColor) then
             exit(ResolvedColor);
-        ResolvedColor := SkillCapacityAnalysisMgtV1.GetSkillBarColor(CopyStr(SkillCode, 1, 10), NextPaletteIndex);
+        ResolvedColor := ColorConstants.GetSkillBarColor(CopyStr(SkillCode, 1, 10), NextPaletteIndex);
         SkillColorDict.Add(SkillCode, ResolvedColor);
         NextPaletteIndex += 1;
         exit(ResolvedColor);

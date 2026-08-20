@@ -1,0 +1,18 @@
+/* ============================================================
+   DHX Colorpicker Addin - custom.css
+   Keeps the picker's own fixed-width layout centered and lets the
+   add-in container scroll rather than clip if the host dialog ends up
+   narrower/shorter than the widget's natural size.
+   ============================================================ */
+
+#controlAddIn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 8px;
+}
+
+#dhx-color-picker {
+    max-width: 100%;
+}

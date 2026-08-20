@@ -13,6 +13,18 @@ pageextension 50626 "Skill Codes Opt." extends "Skill Codes"
             {
                 ApplicationArea = All;
                 ToolTip = 'Specifies the color of the bar that is used to represent this skill in the Bar chart.';
+
+                trigger OnAssistEdit()
+                var
+                    ColorPickerPage: Page "Color Picker Lookup";
+                begin
+                    ColorPickerPage.SetInitialColor(Rec."Bar Color");
+                    if ColorPickerPage.RunModal() = Action::OK then begin
+                        Rec."Bar Color" := ColorPickerPage.GetSelectedColor();
+                        Rec.Modify(true);
+                        CurrPage.Update(false);
+                    end;
+                end;
             }
         }
     }

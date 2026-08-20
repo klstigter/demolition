@@ -27,6 +27,9 @@ var contextMenuDismissHandlers = null; // {click,contextmenu,scroll,keydown} cur
 // src/page/page_50690_RequestedVsCapacitySkills.al around line 169-183). That is the
 // whole reason this DHTMLX proof-of-concept exists, so we always assign an explicit
 // colour per series here rather than relying on the library's own default palette.
+// NOTE: this is a separate, currently-dead generic-series fallback palette - intentionally
+// distinct from AL codeunit 50609 "Color Constants Opti."'s skill-bar 5-colour palette. Do not
+// "fix" these into matching each other.
 var SERIES_COLOR_PALETTE = ["#2A9D8F", "#E76F51", "#11A3D0", "#E5A910", "#985F99", "#78586F"];
 
 // Bottom-axis "day group" row (see RenderDayGroupRow) - kept as named constants since the

@@ -273,6 +273,8 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         SkillPaletteIdx: Integer;
         AssignedColorHex: Text;
         CapacityColorHex: Text;
+        ExternalBorderColorHex: Text;
+        ColorConstants: Codeunit "Color Constants Opti.";
     begin
         EnsureDayPlanningBuffer(PeriodStartDate, PeriodStartDate + 6);
 
@@ -343,11 +345,11 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
             end;
         end;
 
-        ResolveCapacitySegmentColors(AssignedColorHex, CapacityColorHex);
+        ColorConstants.GetCapacitySegmentColors(AssignedColorHex, CapacityColorHex, ExternalBorderColorHex);
         AddChartSeries(SeriesArray, AssInternalSeriesNameLbl, AssInternalValues, AssignedColorHex, '');
-        AddChartSeries(SeriesArray, AssExternalSeriesNameLbl, AssExternalValues, AssignedColorHex, ExternalBorderColorTok);
+        AddChartSeries(SeriesArray, AssExternalSeriesNameLbl, AssExternalValues, AssignedColorHex, ExternalBorderColorHex);
         AddChartSeries(SeriesArray, CapInternalSeriesNameLbl, CapInternalValues, CapacityColorHex, '');
-        AddChartSeries(SeriesArray, CapExternalSeriesNameLbl, CapExternalValues, CapacityColorHex, ExternalBorderColorTok);
+        AddChartSeries(SeriesArray, CapExternalSeriesNameLbl, CapExternalValues, CapacityColorHex, ExternalBorderColorHex);
 
         SkillPaletteIdx := 0;
         foreach SkillCode in ActiveSkillList do begin
@@ -368,7 +370,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
                 SkillExternalValues.Add(0);
             end;
             AddChartSeries(SeriesArray, SkillCode, SkillInternalValues, GetSkillSeriesColor(SkillCode, SkillPaletteIdx), '');
-            AddChartSeries(SeriesArray, SkillCode, SkillExternalValues, GetSkillSeriesColor(SkillCode, SkillPaletteIdx), ExternalBorderColorTok);
+            AddChartSeries(SeriesArray, SkillCode, SkillExternalValues, GetSkillSeriesColor(SkillCode, SkillPaletteIdx), ExternalBorderColorHex);
             SkillPaletteIdx += 1;
         end;
 
@@ -1054,29 +1056,18 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     end;
 
     /// <summary>
-    /// Returns the colour to use for SkillCode's series. If the "Skill Code" record has a
-    /// non-blank "Bar Color" override, that takes precedence; otherwise cycles through a fixed
-    /// 5-colour palette for skill series beyond the fixed Assigned/Internal/External ones, so any
-    /// number of active skills always gets a colour.
+    /// Returns the colour to use for SkillCode's series. Thin forward to codeunit "Color
+    /// Constants Opti." (50609) - see that codeunit's GetSkillBarColor for the actual "Bar
+    /// Color"-override/5-colour-palette logic, now the single authoritative copy shared with
+    /// codeunit 50608's own GetSkillBarColor and codeunit 50604's ResolveRequestedColor. SkillCode
+    /// is truncated to Code[10] before the call - see GetSkillBarColor's own doc comment for why
+    /// this is a safe truncation, not a real loss of precision.
     /// </summary>
     local procedure GetSkillSeriesColor(SkillCode: Code[20]; PaletteIndex: Integer): Text
     var
-        SkillCodeRec: Record "Skill Code";
-        Palette: array[5] of Text[10];
-        BarColor: Text;
+        ColorConstants: Codeunit "Color Constants Opti.";
     begin
-        if SkillCodeRec.Get(SkillCode) then begin
-            BarColor := SkillCodeRec."Bar Color".Trim();
-            if BarColor <> '' then
-                exit(BarColor);
-        end;
-
-        Palette[1] := '#C55A11';
-        Palette[2] := '#ED7D31';
-        Palette[3] := '#F4B183';
-        Palette[4] := '#F8CBAD';
-        Palette[5] := '#FBE5D6';
-        exit(Palette[(PaletteIndex mod 5) + 1]);
+        exit(ColorConstants.GetSkillBarColor(CopyStr(SkillCode, 1, 10), PaletteIndex));
     end;
 
     /// <summary>
@@ -1124,40 +1115,18 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     end;
 
     /// <summary>
-    /// Returns this codeunit's own effective Assigned/Free-Capacity colours (user-configured via
-    /// "Daily Optimizer Setup" when set, else AssColorTok/CapacityColorTok) plus
-    /// ExternalBorderColorTok (not user-configurable - no corresponding setup field) so other
-    /// charts - currently src/dhx/barchart_daily's CAPACITY reference bar - can reuse the exact
-    /// same colours as this codeunit's stacked weekly chart instead of hardcoding a second copy
-    /// of the same hex strings that could drift apart.
+    /// Returns this codeunit's own effective Assigned/Free-Capacity/ExternalBorder colours. Thin
+    /// forward to codeunit "Color Constants Opti." (50609) - kept here (same name/signature) so
+    /// existing callers - currently src/dhx/barchart_daily's CAPACITY reference bar (via that
+    /// codeunit's own forwarding call) and all three scheduler pages (projectschedule/50621,
+    /// resourceschedule_with_capacity/50706, poolresourceschedule/50600), which all call this
+    /// procedure directly from their ControlReady triggers - need zero changes.
     /// </summary>
     procedure GetCapacitySegmentColors(var AssignedColor: Text; var CapacityColor: Text; var ExternalBorderColor: Text)
-    begin
-        ResolveCapacitySegmentColors(AssignedColor, CapacityColor);
-        ExternalBorderColor := ExternalBorderColorTok;
-    end;
-
-    /// <summary>
-    /// Resolves the effective Assigned/Free-Capacity colours: "Daily Optimizer Setup"."Assigned
-    /// Color" / "Unassigned Capacity Color" when the singleton exists and the field is non-blank,
-    /// else this codeunit's own hardcoded AssColorTok/CapacityColorTok fallback. Shared by
-    /// BuildDayCapacityChartData (the stacked weekly chart's own series colours) and
-    /// GetCapacitySegmentColors (src/dhx/barchart_daily's CAPACITY reference bar, via that
-    /// codeunit's forwarding call) so both consumers can never drift apart.
-    /// </summary>
-    local procedure ResolveCapacitySegmentColors(var AssignedColor: Text; var CapacityColor: Text)
     var
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        ColorConstants: Codeunit "Color Constants Opti.";
     begin
-        AssignedColor := AssColorTok;
-        CapacityColor := CapacityColorTok;
-
-        if DailyOptimizerSetup.Get() then begin
-            if DailyOptimizerSetup."Assigned Color" <> '' then
-                AssignedColor := DailyOptimizerSetup."Assigned Color";
-            if DailyOptimizerSetup."Unassigned Capacity Color" <> '' then
-                CapacityColor := DailyOptimizerSetup."Unassigned Capacity Color";
-        end;
+        ColorConstants.GetCapacitySegmentColors(AssignedColor, CapacityColor, ExternalBorderColor);
     end;
 
     /// <summary>
@@ -1205,9 +1174,6 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         FreeCapacityCategoryLbl: Label 'Capacity';
         RequestedCategoryLbl: Label 'Requested';
         CategoryDelimiterTok: Label '|', Locked = true;
-        AssColorTok: Label '#548235', Locked = true;
-        CapacityColorTok: Label '#2E75B6', Locked = true;
-        ExternalBorderColorTok: Label '#FF0000', Locked = true;
         AssignedSegmentTok: Label 'Assigned', Locked = true;
         InternalSegmentTok: Label 'Internal', Locked = true;
         ExternalSegmentTok: Label 'External', Locked = true;
