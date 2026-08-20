@@ -140,11 +140,17 @@ table 50610 "Day Planning"
             var
                 Resource: Record Resource;
             begin
-                if ("Requested Pool Resource No." <> '') and ("Requested Resource No." <> '') then begin
-                    Resource.Get("Requested Resource No.");
-                    if Resource."Pool Resource No." <> "Requested Pool Resource No." then
-                        Error('Resource %1 does not belong to Pool Resource %2.', "Requested Resource No.", "Requested Pool Resource No.");
-                end
+                if "Requested Pool Resource No." <> '' then begin
+                    if "Requested Resource No." <> '' then begin
+                        Resource.Get("Requested Resource No.");
+                        if Resource."Pool Resource No." <> "Requested Pool Resource No." then
+                            "Requested Resource No." := "Requested Pool Resource No.";
+                    end else begin
+                        "Requested Resource No." := "Requested Pool Resource No.";
+                    end;
+                end else begin
+                    validate("Requested Resource No.");
+                end;
             end;
 
             trigger OnLookup()
@@ -176,11 +182,17 @@ table 50610 "Day Planning"
             var
                 Resource: Record Resource;
             begin
-                if ("Assigned Pool Resource No." <> '') and ("Assigned Resource No." <> '') then begin
-                    Resource.Get("Assigned Resource No.");
-                    if Resource."Pool Resource No." <> "Assigned Pool Resource No." then
-                        Error('Resource %1 does not belong to Pool Resource %2.', "Assigned Resource No.", "Assigned Pool Resource No.");
-                end
+                if "Assigned Pool Resource No." <> '' then begin
+                    if "Assigned Resource No." <> '' then begin
+                        Resource.Get("Assigned Resource No.");
+                        if Resource."Pool Resource No." <> "Assigned Pool Resource No." then
+                            "Assigned Resource No." := "Assigned Pool Resource No.";
+                    end else begin
+                        "Assigned Resource No." := "Assigned Pool Resource No.";
+                    end;
+                end else begin
+                    validate("Assigned Resource No.");
+                end;
             end;
 
             trigger OnLookup()
@@ -269,14 +281,23 @@ table 50610 "Day Planning"
                     "Resource Group No." := Resource."Resource Group No.";
                     if Resource."Vendor No." <> '' then
                         "Vendor No." := Resource."Vendor No.";
-                    if Resource."Pool Resource No." <> '' then
-                        "Assigned Pool Resource No." := Resource."Pool Resource No.";
+
+                    if Resource."Is Pool" or Resource."Is Pool Member" then begin
+                        if Resource."Is Pool" then
+                            "Assigned Pool Resource No." := Resource."No.";
+                        if Resource."Is Pool Member" then
+                            "Assigned Pool Resource No." := Resource."Pool Resource No.";
+                    end else
+                        "Assigned Pool Resource No." := '';
+
                     "Assigned Leader" := Resource."Is Foreman";
-                    "Requested Team Leader" := Resource."Default Foreman";
+                    "Assigned Team Leader" := Resource."Default Foreman";
                     Skill := GetFirstSkill("Assigned Resource No.");
                     CalculateWorkingHours();
                 end else begin
                     validate("Assigned Hours", 0);
+                    if "Assigned Pool Resource No." <> '' then
+                        "Assigned Resource No." := "Assigned Pool Resource No.";
                 end;
             end;
 
@@ -564,18 +585,28 @@ table 50610 "Day Planning"
                     Resource.Get("Requested Resource No.");
                     CheckResourceHasSkill("Requested Resource No.");
                     "Resource Group No." := Resource."Resource Group No.";
-                    if "Assigned Resource No." = '' then begin
-                        if (Resource."Vendor No." <> '') then
-                            "Vendor No." := Resource."Vendor No.";
-                        "Requested Leader" := Resource."Is Foreman";
-                        "Requested Team Leader" := Resource."Default Foreman";
-                        Skill := GetFirstSkill("Requested Resource No.");
-                    end;
-                    if Resource."Pool Resource No." <> '' then
-                        "Requested Pool Resource No." := Resource."Pool Resource No.";
+                    if Resource."Vendor No." <> '' then
+                        "Vendor No." := Resource."Vendor No.";
+
+                    if Resource."Is Pool" or Resource."Is Pool Member" then begin
+                        if Resource."Is Pool" then
+                            "Requested Pool Resource No." := Resource."No.";
+                        if Resource."Is Pool Member" then
+                            "Requested Pool Resource No." := Resource."Pool Resource No.";
+                    end else
+                        "Requested Pool Resource No." := '';
+
+                    "Requested Leader" := Resource."Is Foreman";
+                    "Requested Team Leader" := Resource."Default Foreman";
+                    Skill := GetFirstSkill("Requested Resource No.");
+                    if "Assigned Resource No." <> '' then
+                        Skill := GetFirstSkill("Assigned Resource No.");
                     CalculateWorkingHours();
-                end else
+                end else begin
                     Validate("Requested Hours", 0);
+                    if "Requested Pool Resource No." <> '' then
+                        "Requested Resource No." := "Requested Pool Resource No.";
+                end;
             end;
         }
         field(31; "Unit of Measure Code"; Code[10])
