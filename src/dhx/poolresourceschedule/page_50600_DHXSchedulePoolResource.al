@@ -17,11 +17,16 @@ page 50600 "DHX Scheduler (Pool Resource)"
 
                 trigger ControlReady()
                 var
+                    SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
                     startDate: Date;
                     endDate: Date;
                     EarliestPlanningDate: Date;
                     PlanninJsonTxt: Text;
                     ResourceJSONTxt: Text;
+                    ColorsJsonTxt: Text;
+                    AssignedColorHex: Text;
+                    CapacityColorHex: Text;
+                    ExternalBorderColorHex: Text;
                     Window: Dialog;
                     LoadingLbl: Label 'Loading Capacity data...\n#1######################';
                 begin
@@ -36,6 +41,16 @@ page 50600 "DHX Scheduler (Pool Resource)"
                         Window.Update(1, 'Rendering...');
                     CurrPage.DhxScheduler.Init(ResourceJSONTxt, EarliestPlanningDate);
                     CurrPage.DhxScheduler.LoadData(PlanninJsonTxt);
+                    // This page is Capacity-only (see the "Capacity-only mode for now" comment
+                    // on the DayPlanning action group below) - no Envelope/Assigned/Requested
+                    // JSON keys are sent since nothing here renders those bar types. Capacity
+                    // color is resolved via GetCapacitySegmentColors (same call used by page
+                    // 50706 and the Daily/Weekly bar-chart tiles) so this page always matches
+                    // their default (#2E75B6), instead of the wrapper.js CSS default. Called
+                    // unconditionally - SetBarColors' per-key guard makes a blank value a no-op.
+                    SkillCapacityAnalysisMgt.GetCapacitySegmentColors(AssignedColorHex, CapacityColorHex, ExternalBorderColorHex);
+                    ColorsJsonTxt := StrSubstNo('{"capacity":"%1"}', CapacityColorHex);
+                    CurrPage.DhxScheduler.SetBarColors(ColorsJsonTxt);
                     AnchorDate := startDate;
                     PushResourceFilterInfo(startDate, endDate);
                     CurrPage.Update(false);

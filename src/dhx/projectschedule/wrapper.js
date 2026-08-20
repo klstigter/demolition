@@ -161,7 +161,7 @@ window.BOOT = function() {
     #scheduler_here {
         --dp-color-envelope: #1B3A6B;
         --dp-color-envelope-border: #14294D;
-        --dp-color-assigned: #7FB3FA;
+        --dp-color-assigned: #548235;
         --dp-color-requested: #6FCF97;
         /* Default 3-part split (Assigned/Requested both valid and different) — overridable
            at runtime from Task Scheduler Setup's "Assigned High (%)"/"Requested High (%)"
@@ -438,21 +438,27 @@ window.BOOT = function() {
         var sameRange = assignedValid && requestedValid &&
             (assignedStartMin === requestedStartMin) && (assignedEndMin === requestedEndMin);
 
-        function segmentHtml(cls, segStartMin, segEndMin, fullHeight) {
+        // colorOverride: an event's own resolved per-skill color (ev.requested_color, set by
+        // AL's ResolveRequestedColor - see codeunit "DHX Data Handler") applied as an inline
+        // !important style so it wins over the CSS "--dp-color-requested" rule (itself
+        // !important - see the .dp-bar-requested rule above), which stays in place as the
+        // fallback for a blank/unresolved color (no Skill Code on the row).
+        function segmentHtml(cls, segStartMin, segEndMin, fullHeight, colorOverride) {
             var left = Math.max(0, Math.min(100, ((segStartMin - envStartMin) / totalMin) * 100));
             var width = Math.max(0, Math.min(100 - left, ((segEndMin - segStartMin) / totalMin) * 100));
             var extra = fullHeight ? ' top:0; bottom:auto; height:100%;' : '';
-            return '<div class="' + cls + '" style="left:' + left + '%; width:' + width + '%;' + extra + '"></div>';
+            var colorStyle = colorOverride ? ' background:' + colorOverride + ' !important;' : '';
+            return '<div class="' + cls + '" style="left:' + left + '%; width:' + width + '%;' + extra + colorStyle + '"></div>';
         }
 
         var segmentsHtml = "";
         if (assignedValid && requestedValid && !sameRange) {
             segmentsHtml += segmentHtml('dp-bar-assigned', assignedStartMin, assignedEndMin, false);
-            segmentsHtml += segmentHtml('dp-bar-requested', requestedStartMin, requestedEndMin, false);
+            segmentsHtml += segmentHtml('dp-bar-requested', requestedStartMin, requestedEndMin, false, ev.requested_color);
         } else if (sameRange || assignedValid) {
             segmentsHtml += segmentHtml('dp-bar-assigned', assignedStartMin, assignedEndMin, true);
         } else if (requestedValid) {
-            segmentsHtml += segmentHtml('dp-bar-requested', requestedStartMin, requestedEndMin, true);
+            segmentsHtml += segmentHtml('dp-bar-requested', requestedStartMin, requestedEndMin, true, ev.requested_color);
         }
 
         return '<div class="dp-bar-wrap">' + segmentsHtml +

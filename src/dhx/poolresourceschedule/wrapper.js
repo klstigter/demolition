@@ -215,6 +215,15 @@ window.BOOT = function() {
     }
     ************************ */
 
+    /* Setup-driven bar colors (overridden at runtime by SetBarColors via
+       root.style.setProperty on #scheduler_here - see SetBarColors below). Defaults here
+       match this block's own previous (dead/commented-out) hardcoded values, so nothing
+       visually changes until AL actually calls SetBarColors. */
+    #scheduler_here {
+        --cap-color: #D4EDDA;
+        --cap-color-border: #28A745;
+    }
+
     /* Event styling per type */
     /* Capacity events */
     .dhx_cal_event.event-capacity,
@@ -223,11 +232,9 @@ window.BOOT = function() {
     .dhx_cal_event.event-capacity .dhx_title,
     .dhx_cal_event.event-capacity .dhx_body {
         color: black !important;
-        font-size: 14px !important;        
-        /*
-        background-color: #D4EDDA !important;
-        border-color: #28A745 !important;
-        */
+        font-size: 14px !important;
+        background-color: var(--cap-color) !important;
+        border-color: var(--cap-color-border) !important;
     }
 
     /* Vacancy events */
@@ -1018,6 +1025,26 @@ function SetResourceFilterInfo(resNo, resName, periodFrom, periodTo, skillFilter
         };
     }
     _updateResFilterToolbar();
+}
+
+// ============================================================
+// AL-callable: SetBarColors - apply setup-driven Capacity bar color/border. This page is
+// Capacity-only (see the "Capacity-only mode for now" comment on the DayPlanning action
+// group in page_50600_DHXSchedulePoolResource.al) - no Envelope/Assigned/Requested keys
+// are read here since nothing on this page renders those bar types. Same idiom as
+// src/dhx/resourceschedule_with_capacity/wrapper.js's own SetBarColors (per-key guards,
+// tolerant JSON parse).
+// ============================================================
+function SetBarColors(colorsJson) {
+    try {
+        var colors = ParseJSonTxt(colorsJson) || {};
+        var root = document.getElementById("scheduler_here");
+        if (!root) return;
+        if (colors.capacity) root.style.setProperty("--cap-color", colors.capacity);
+        if (colors.capacityBorder) root.style.setProperty("--cap-color-border", colors.capacityBorder);
+    } catch (e) {
+        console.warn("SetBarColors: invalid colorsJson", colorsJson, e);
+    }
 }
 
 function LoadData(eventsJson) {

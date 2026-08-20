@@ -52,6 +52,38 @@ table 50605 "Daily Optimizer Setup"
             OptionMembers = "By Resource Group","By Skill";
             OptionCaption = 'By Resource Group,By Skill';
         }
+
+        // Bar Colors: applicable to Scheduler Timeline and Bar Chart
+        field(60; "Envelope Color"; Text[20])
+        {
+            Caption = 'Envelope Color';
+            DataClassification = CustomerContent;
+        }
+        field(61; "Envelope Border Color"; Text[20])
+        {
+            Caption = 'Envelope Border Color';
+            DataClassification = CustomerContent;
+        }
+        field(62; "Assigned Color"; Text[20])
+        {
+            Caption = 'Assigned Color';
+            DataClassification = CustomerContent;
+        }
+        field(63; "Assigned High (%)"; Integer)
+        {
+            Caption = 'Assigned High (%)';
+            DataClassification = CustomerContent;
+        }
+        field(64; "Requested High (%)"; Integer)
+        {
+            Caption = 'Requested High (%)';
+            DataClassification = CustomerContent;
+        }
+        field(65; "Unassigned Capacity Color"; Text[20])
+        {
+            Caption = 'Unassigned Capacity Color';
+            DataClassification = CustomerContent;
+        }
     }
 
     keys

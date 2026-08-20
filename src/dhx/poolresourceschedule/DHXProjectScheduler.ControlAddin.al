@@ -47,4 +47,5 @@ controladdin DHXPoolResourceScheduleAddin
     procedure getAllEvents();
     procedure getAllSections();
     procedure SetResourceFilterInfo(resNo: Text; resName: Text; periodFrom: Text; periodTo: Text; skillFilter: Text);
+    procedure SetBarColors(ColorsJson: Text);
 }

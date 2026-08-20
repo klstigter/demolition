@@ -18,12 +18,17 @@ page 50621 "DHX Scheduler (Project)"
                 trigger ControlReady()
                 var
                     DayPlanningBarSetup: Record "Task Scheduler Setup";
+                    DailyOptimizerSetup: Record "Daily Optimizer Setup";
+                    SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
                     startDate: Date;
                     endDate: Date;
                     EarliestPlanningDate: Date;
                     PlanninJsonTxt: Text;
                     ResourceJSONTxt: Text;
                     ColorsJsonTxt: Text;
+                    AssignedColorHex: Text;
+                    CapacityColorHex: Text;
+                    ExternalBorderColorHex: Text;
                     HasSetup: Boolean;
                     Window: Dialog;
                     LoadingLbl: Label 'Loading Task Scheduler data...\n#1######################';
@@ -55,23 +60,37 @@ page 50621 "DHX Scheduler (Project)"
                     if GuiAllowed() then
                         Window.Update(1, 'Rendering...');
                     CurrPage.DhxScheduler.Init(ResourceJSONTxt, EarliestPlanningDate);
-                    if HasSetup then
-                        if (DayPlanningBarSetup."Envelope Color" <> '') or
-                           (DayPlanningBarSetup."Envelope Border Color" <> '') or
-                           (DayPlanningBarSetup."Assigned Color" <> '') or
-                           (DayPlanningBarSetup."Requested Color" <> '') or
-                           (DayPlanningBarSetup."Assigned High (%)" > 0) or
-                           (DayPlanningBarSetup."Requested High (%)" > 0)
-                        then begin
-                            ColorsJsonTxt := StrSubstNo('{"envelope":"%1","envelopeBorder":"%2","assigned":"%3","requested":"%4","assignedHeight":%5,"requestedHeight":%6}',
-                                DayPlanningBarSetup."Envelope Color",
-                                DayPlanningBarSetup."Envelope Border Color",
-                                DayPlanningBarSetup."Assigned Color",
-                                DayPlanningBarSetup."Requested Color",
-                                DayPlanningBarSetup."Assigned High (%)",
-                                DayPlanningBarSetup."Requested High (%)");
-                            CurrPage.DhxScheduler.SetBarColors(ColorsJsonTxt);
-                        end;
+                    // Envelope/Assigned/Height colors now come from the company-wide "Daily
+                    // Optimizer Setup" singleton (table 50605), not the per-user "Task Scheduler
+                    // Setup" - the old "Requested Color" flat field is gone entirely; requested
+                    // segments are now colored per-skill (see codeunit "DHX Data Handler"'s
+                    // ResolveRequestedColor, wired into each event's own "requested_color" JSON
+                    // field), with the CSS "--dp-color-requested" default as the fallback when an
+                    // event has no resolved color.
+                    // Boolean-context Get() - a bare "DailyOptimizerSetup.Get();" statement
+                    // throws a runtime error if the singleton row doesn't exist yet (it's only
+                    // ever created lazily, the first time someone opens page 50654's OnOpenPage -
+                    // there's no install-time seeding), unlike this same call used in an "if"
+                    // condition, which just leaves DailyOptimizerSetup blank/Init()'d on a miss -
+                    // exactly what's wanted here since every field read below already tolerates
+                    // blank (SetBarColors' per-key guards, GetCapacitySegmentColors' own fallback).
+                    if DailyOptimizerSetup.Get() then;
+                    // Assigned color is resolved via GetCapacitySegmentColors so this page always
+                    // matches the Daily/Weekly bar-chart tiles' default (#548235), instead of
+                    // silently falling back to wrapper.js's own (previously mismatched) CSS
+                    // default whenever "Daily Optimizer Setup" is entirely blank. SetBarColors is
+                    // now always called unconditionally - every property write inside it is
+                    // individually guarded against blank values, so sending blanks for
+                    // Envelope/EnvelopeBorder/Heights when the setup record doesn't exist is a
+                    // safe no-op per key.
+                    SkillCapacityAnalysisMgt.GetCapacitySegmentColors(AssignedColorHex, CapacityColorHex, ExternalBorderColorHex);
+                    ColorsJsonTxt := StrSubstNo('{"envelope":"%1","envelopeBorder":"%2","assigned":"%3","assignedHeight":%4,"requestedHeight":%5}',
+                        DailyOptimizerSetup."Envelope Color",
+                        DailyOptimizerSetup."Envelope Border Color",
+                        AssignedColorHex,
+                        DailyOptimizerSetup."Assigned High (%)",
+                        DailyOptimizerSetup."Requested High (%)");
+                    CurrPage.DhxScheduler.SetBarColors(ColorsJsonTxt);
                     CurrPage.DhxScheduler.LoadData(PlanninJsonTxt);
                     CurrPage.DhxScheduler.SetTaskFilterInfo(jobFilter, JobTaskFilter, Format(startDate, 0, '<Year4>-<Month,2>-<Day,2>'), Format(endDate, 0, '<Year4>-<Month,2>-<Day,2>'));
                     AnchorDate := startDate;
