@@ -1318,6 +1318,8 @@ function setupContextMenu() {
     menu.innerHTML =
         '<div class="dhx-ctx-item" data-action="OpenDayPlanning">' +
             '<span class="dhx-ctx-icon">&#128197;</span>Open Day Planning</div>' +
+        '<div class="dhx-ctx-item" data-action="OpenDayPlanningCard">' +
+            '<span class="dhx-ctx-icon">&#128211;</span>Open Day Planning Card</div>' +
         '<div class="dhx-ctx-separator"></div>' +
         '<div class="dhx-ctx-item" data-action="OpenTask">' +
             '<span class="dhx-ctx-icon">&#128196;</span>Open Job Task Card</div>' +
@@ -1351,6 +1353,8 @@ function setupContextMenu() {
             (target.type === 'event') ? '' : 'none';
         // Show DayPlanning actions only for events
         menu.querySelector('[data-action="OpenDayPlanning"]').style.display =
+            (target.type === 'event') ? '' : 'none';
+        menu.querySelector('[data-action="OpenDayPlanningCard"]').style.display =
             (target.type === 'event') ? '' : 'none';
         menu.querySelector('[data-action="OpenDayPlanningVisual"]').style.display =
             (target.type === 'event') ? '' : 'none';
