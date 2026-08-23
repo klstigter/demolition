@@ -2066,6 +2066,7 @@ codeunit 50602 "Create Demo Data"
             DP."Assigned Hours" := AsgnHours;
         end;
         DP."Assigned Pool Resource No." := GetResourcePoolNo(DP);
+        DP.AssignedCheck();
         DP.Insert(false);
         LogRecord(Database::"Day Planning", DP.RecordId(), JT."Job No." + '.' + JT."Job Task No." + ' ' + Format(DT) + ' L' + DescSuffix);
     end;
@@ -2110,6 +2111,7 @@ codeunit 50602 "Create Demo Data"
             DP."Assigned Hours" := AsgnHours;
         end;
         DP."Assigned Pool Resource No." := GetResourcePoolNo(DP);
+        DP.AssignedCheck();
         DP.Insert(false);
         LogRecord(Database::"Day Planning", DP.RecordId(), JT."Job No." + '.' + JT."Job Task No." + ' ' + Format(DT) + ' M' + DescSuffix);
     end;
@@ -2473,6 +2475,7 @@ codeunit 50602 "Create Demo Data"
             DP."Assigned Hours" := Hours;
         end;
         DP."Assigned Pool Resource No." := GetResourcePoolNo(DP);
+        DP.AssignedCheck();
         DP.Insert(false);
         LogRecord(Database::"Day Planning", DP.RecordId(), JT."Job No." + '.' + JT."Job Task No." + ' ' + Format(DT) + ' WO ' + WorkOrderNo);
     end;
