@@ -65,7 +65,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     begin
         DayPlanning.Reset();
         DayPlanning.SetCurrentKey("Plan Date", Skill, "Assigned Resource No.");
-        DayPlanning.SetFilter("Assigned Resource No.", '=%1', '');
+        DayPlanning.SetRange(Assigned, false);
         DayPlanning.SetRange("Plan Date", DateFilter);
     end;
 
@@ -97,8 +97,8 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
                     tempResource.Insert();
                 end;
             until ResCapacityEntry.Next() = 0;
-        DayPlan.SetLoadFields("Plan Date", "Assigned Resource No.", "Assigned Hours");
-        DayPlan.SetRange("Assigned Resource No.", '<>%1', '');
+        DayPlan.SetLoadFields("Plan Date", "Assigned Resource No.", "Assigned Hours", Assigned);
+        DayPlan.SetRange(Assigned, true);
         dayPlan.SetRange("Plan Date", DateFilter);
         if dayPlan.FindSet() then
             repeat
@@ -189,7 +189,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// Each category is a stack of series segments, bottom to top: "Assigned Capacity -
     /// Internal"/"Assigned Capacity - External", then "Free Capacity - Internal"/"Free Capacity -
     /// External" (Capacity bar only - see CalcCapacitySplit), then one internal/external pair per
-    /// Skill Code that has at least one unassigned ("Assigned Resource No." = '') Day Planning row
+    /// Skill Code that has at least one unassigned (Assigned = false) Day Planning row
     /// with nonzero Requested Hours somewhere in the period. Every segment is declared as an
     /// internal/external SERIES PAIR (an "internal" series with plain fill/no border, then an
     /// "external" series with the same fill colour but a red border, so an external portion is
@@ -551,7 +551,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         GDayPlanningBuf.Reset();
         GDayPlanningBuf.DeleteAll();
         DayPlanning.Reset();
-        DayPlanning.SetLoadFields("Plan Date", Skill, "Assigned Resource No.", "Assigned Hours", "Requested Hours", "Requested Resource No.");
+        DayPlanning.SetLoadFields("Plan Date", Skill, "Assigned Resource No.", "Assigned Hours", "Requested Hours", "Requested Resource No.", Assigned);
         DayPlanning.SetRange("Plan Date", DateFrom, DateTo);
         if DayPlanning.FindSet() then
             repeat
@@ -567,7 +567,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
 
     /// <summary>
     /// Determines which Skill Codes get their own chart series: any skill with at least one
-    /// unassigned ("Assigned Resource No." = '') Day Planning row whose "Requested Hours" sum
+    /// unassigned (Assigned = false) Day Planning row whose "Requested Hours" sum
     /// across the whole period is nonzero. Deliberately not the full Skill Code master list
     /// (unlike BuildSkillBuffer) - a skill with nothing requested in this period simply gets no
     /// series/bar segment at all. Reads from the shared GDayPlanningBuf (see
@@ -585,7 +585,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         Clear(ActiveSkillList);
 
         GDayPlanningBuf.Reset();
-        GDayPlanningBuf.SetRange("Assigned Resource No.", '');
+        GDayPlanningBuf.SetRange(Assigned, false);
         if GDayPlanningBuf.FindSet() then
             repeat
                 if GDayPlanningBuf.Skill <> '' then begin
@@ -622,7 +622,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
 
         GDayPlanningBuf.Reset();
         GDayPlanningBuf.SetRange("Plan Date", PlanDate);
-        GDayPlanningBuf.SetFilter("Assigned Resource No.", '<>%1', '');
+        GDayPlanningBuf.SetRange(Assigned, true);
         if GDayPlanningBuf.FindSet() then
             repeat
                 if Resource.Get(GDayPlanningBuf."Assigned Resource No.") then begin
@@ -686,7 +686,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         if ResourceCapacityTotals.Keys().Count > 0 then begin
             GDayPlanningBuf.Reset();
             GDayPlanningBuf.SetRange("Plan Date", PlanDate);
-            GDayPlanningBuf.SetFilter("Assigned Resource No.", '<>%1', '');
+            GDayPlanningBuf.SetRange(Assigned, true);
             if GDayPlanningBuf.FindSet() then
                 repeat
                     AssignedTotal := 0;
@@ -718,7 +718,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     end;
 
     /// <summary>
-    /// Splits "Requested Hours" for unassigned ("Assigned Resource No." = '') Day Planning rows
+    /// Splits "Requested Hours" for unassigned (Assigned = false) Day Planning rows
     /// on PlanDate for the given Skill into Internal / External buckets by the line's OWN
     /// "Requested Resource No." - a preferred/target resource a planner can set on a line before
     /// it is formally assigned (table 50610's own field 27), independent of "Assigned Resource
@@ -744,7 +744,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
 
         GDayPlanningBuf.Reset();
         GDayPlanningBuf.SetRange("Plan Date", PlanDate);
-        GDayPlanningBuf.SetRange("Assigned Resource No.", '');
+        GDayPlanningBuf.SetRange(Assigned, false);
         GDayPlanningBuf.SetRange(Skill, SkillCode);
         if GDayPlanningBuf.FindSet() then
             repeat
@@ -891,9 +891,9 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         Resource.SetLoadFields("Is External");
 
         DayPlanning.Reset();
-        DayPlanning.SetLoadFields("Assigned Resource No.");
+        DayPlanning.SetLoadFields("Assigned Resource No.", Assigned);
         DayPlanning.SetRange("Plan Date", DateFrom, DateTo);
-        DayPlanning.SetFilter("Assigned Resource No.", '<>%1', '');
+        DayPlanning.SetRange(Assigned, true);
         if DayPlanning.FindSet() then
             repeat
                 if not SeenResources.ContainsKey(DayPlanning."Assigned Resource No.") then begin
@@ -1010,7 +1010,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         if ResourceCapacityTotals.Keys().Count > 0 then begin
             GDayPlanningBuf.Reset();
             GDayPlanningBuf.SetRange("Plan Date", PlanDate);
-            GDayPlanningBuf.SetFilter("Assigned Resource No.", '<>%1', '');
+            GDayPlanningBuf.SetRange(Assigned, true);
             if GDayPlanningBuf.FindSet() then
                 repeat
                     AssignedTotal := 0;
@@ -1050,7 +1050,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     begin
         DayPlanning.Reset();
         DayPlanning.SetRange("Plan Date", DateFrom, DateTo);
-        DayPlanning.SetRange("Assigned Resource No.", '');
+        DayPlanning.SetRange(Assigned, false);
         DayPlanning.SetRange(Skill, CopyStr(SkillCode, 1, MaxStrLen(DayPlanning.Skill)));
         Page.Run(Page::"Day Plannings", DayPlanning);
     end;

@@ -2960,7 +2960,7 @@ codeunit 50604 "DHX Data Handler"
         if ResourceFilter <> '' then
             DayPlanning.SetFilter("Assigned Resource No.", ResourceFilter)
         else
-            DayPlanning.SetFilter("Assigned Resource No.", '<>%1', '');
+            DayPlanning.SetRange(Assigned, true);
         if DayPlanning.FindSet() then
             repeat
                 GetStartEndTxt(DayPlanning, StarDateTimeStr, EndDateTimeStr);
@@ -3204,7 +3204,7 @@ codeunit 50604 "DHX Data Handler"
         if ResourceFilter <> '' then
             DayPlanning.SetFilter("Assigned Resource No.", ResourceFilter)
         else
-            DayPlanning.SetFilter("Assigned Resource No.", '<>%1', '');
+            DayPlanning.SetRange(Assigned, true);
         if DayPlanning.FindSet() then
             repeat
                 if ResourceMatchesNameFilter(DayPlanning."Assigned Resource No.", ResourceNameFilter) and
@@ -3554,7 +3554,7 @@ codeunit 50604 "DHX Data Handler"
         AssignedDP.Reset();
         if (StartDate <> 0D) and (EndDate <> 0D) then
             AssignedDP.SetRange("Plan Date", StartDate, EndDate);
-        AssignedDP.SetFilter("Assigned Resource No.", '<>%1', '');
+        AssignedDP.SetRange(Assigned, true);
         AssignedDP.SetFilter(Skill, '<>%1', '');
         if AssignedDP.FindSet() then
             repeat

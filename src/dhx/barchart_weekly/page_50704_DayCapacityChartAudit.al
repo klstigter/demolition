@@ -315,7 +315,7 @@ page 50704 "Day Capacity Chart Audit"
             // "req" here; no branch needed.
             DayPlanning.Reset();
             DayPlanning.SetRange("Plan Date", DrillDate);
-            DayPlanning.SetRange("Assigned Resource No.", '');
+            DayPlanning.SetRange(Assigned, false);
             DayPlanning.SetRange(Skill, CopyStr(RowId, 1, MaxStrLen(DayPlanning.Skill)));
             Page.Run(Page::"Day Plannings", DayPlanning);
             exit;
@@ -329,7 +329,7 @@ page 50704 "Day Capacity Chart Audit"
                     // this page's OLD "Assigned" OnDrillDown branch.
                     DayPlanning.Reset();
                     DayPlanning.SetRange("Plan Date", DrillDate);
-                    DayPlanning.SetFilter("Assigned Resource No.", '<>%1', '');
+                    DayPlanning.SetRange(Assigned, true);
                     Page.Run(Page::"Day Plannings", DayPlanning);
                 end;
             RequestedColumnKindTok:

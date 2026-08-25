@@ -71,12 +71,18 @@ table 50610 "Day Planning"
                     exit;
                 if JobTask.Get("Job No.", "Job Task No.") then
                     DayPlanningMgt.EnsureJobTaskCoversDate(JobTask, "Plan Date");
+                AssignedCheck();
             end;
         }
         field(7; "Task Date Fixation"; Enum "Task Date Fixation")
         {
             DataClassification = ToBeClassified;
             Caption = 'Task Date Fixation'; //DA1-T62
+        }
+        field(8; Assigned; Boolean)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Assigned'; //DA1-T128
         }
         field(5; "Plan Status"; Enum "Plan Status")
         {
@@ -97,6 +103,7 @@ table 50610 "Day Planning"
             trigger OnValidate()
             begin
                 CalculateWorkingHours();
+                AssignedCheck();
             end;
         }
         field(12; "End Time Assigned"; Time)
@@ -107,6 +114,7 @@ table 50610 "Day Planning"
             trigger OnValidate()
             begin
                 CalculateWorkingHours();
+                AssignedCheck();
             end;
         }
         field(13; "Start Time Requested"; Time)
@@ -299,6 +307,7 @@ table 50610 "Day Planning"
                     if "Assigned Pool Resource No." <> '' then
                         "Assigned Resource No." := "Assigned Pool Resource No.";
                 end;
+                AssignedCheck();
             end;
 
             trigger OnLookup()
@@ -660,6 +669,11 @@ table 50610 "Day Planning"
             DecimalPlaces = 0 : 2;
             Editable = false;
             BlankZero = true;
+
+            trigger onValidate()
+            begin
+                AssignedCheck();
+            end;
         }
         field(81; "Non Working Minutes Assigned"; Integer)
         {
@@ -840,6 +854,18 @@ table 50610 "Day Planning"
         Rec.TestField("Job No.");
         Rec.TestField("Job Task No.");
         Rec."Day Line No." := GetNextDayLineNo(Rec."Plan Date", Rec."Job No.", Rec."Job Task No.");
+    end;
+
+    procedure AssignedCheck()
+    var
+        AssignedFlag: Boolean;
+    begin
+        AssignedFlag := ("Plan Date" <> 0D)
+                        and ("Assigned Resource No." <> '')
+                        and ("Start Time Assigned" <> 0T)
+                        and ("End Time Assigned" <> 0T)
+                        and ("Assigned Hours" <> 0);
+        Assigned := AssignedFlag;
     end;
 
     local procedure CheckResourceHasSkill(ResNo: Code[20])

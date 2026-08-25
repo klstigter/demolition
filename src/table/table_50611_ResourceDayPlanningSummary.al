@@ -76,7 +76,7 @@ table 50611 "Resource DayPlanning Summary"
         DayPlanning.Reset();
         DayPlanning.SetRange("Job No.", JobNo);
         DayPlanning.SetRange("Job Task No.", JobTaskNo);
-        DayPlanning.SetFilter("Assigned Resource No.", '<>%1', ''); // Only records with a Resource No.
+        DayPlanning.SetRange(Assigned, true); // Only records that are fully assigned (resource, date, times and hours all set)
         if not DayPlanning.FindSet() then
             exit;
 

@@ -245,7 +245,7 @@ page 50644 "Res. Asgmt. Job Matrix"
     var
         DayPlanning: Record "Day Planning";
         TotalCount: Integer;
-        WithResourceCount: Integer;
+        AssignedCount: Integer;
     begin
         if (DayDate = 0D) or (JobNo = '') then
             exit('');
@@ -254,8 +254,8 @@ page 50644 "Res. Asgmt. Job Matrix"
         TotalCount := DayPlanning.Count();
         if TotalCount = 0 then
             exit('');
-        DayPlanning.SetFilter("Assigned Resource No.", '<>%1', '');
-        WithResourceCount := DayPlanning.Count();
-        exit(Format(TotalCount) + ' | ' + Format(WithResourceCount));
+        DayPlanning.SetRange(Assigned, true);
+        AssignedCount := DayPlanning.Count();
+        exit(Format(TotalCount) + ' | ' + Format(AssignedCount));
     end;
 }

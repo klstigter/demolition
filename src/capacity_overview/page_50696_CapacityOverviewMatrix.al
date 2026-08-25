@@ -684,7 +684,7 @@ page 50696 "Capacity Overview Matrix"
                     DayPlanning.SetRange("Plan Date", CurrPeriodStartDate, CurrPeriodEndDate);
                     if SkillCodeFilter <> '' then
                         DayPlanning.SetRange(Skill, SkillCodeFilter);
-                    DayPlanning.SetFilter("Assigned Hours", '<>%1', 0);
+                    DayPlanning.SetRange(Assigned, true);
                     Page.Run(Page::"Day Plannings", DayPlanning);
                 end;
             50000:
@@ -693,7 +693,7 @@ page 50696 "Capacity Overview Matrix"
                     DayPlanning.SetRange("Plan Date", CurrPeriodStartDate, CurrPeriodEndDate);
                     if SkillCodeFilter <> '' then
                         DayPlanning.SetRange(Skill, SkillCodeFilter);
-                    DayPlanning.SetRange("Assigned Hours", 0);
+                    DayPlanning.SetRange(Assigned, false);
                     Page.Run(Page::"Day Plannings", DayPlanning);
                 end;
         end;
