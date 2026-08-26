@@ -27,6 +27,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
                     AssignedColorHex: Text;
                     CapacityColorHex: Text;
                     ExternalBorderColorHex: Text;
+                    CapacityBorderColorHex: Text;
                     Window: Dialog;
                     LoadingLbl: Label 'Loading Capacity data...\n#1######################';
                 begin
@@ -48,8 +49,11 @@ page 50600 "DHX Scheduler (Pool Resource)"
                     // 50706 and the Daily/Weekly bar-chart tiles) so this page always matches
                     // their default (#2E75B6), instead of the wrapper.js CSS default. Called
                     // unconditionally - SetBarColors' per-key guard makes a blank value a no-op.
+                    // capacityBorder mirrors page 50706's own wiring - wrapper.js already
+                    // supported this key, it just had nothing feeding it before.
                     SkillCapacityAnalysisMgt.GetCapacitySegmentColors(AssignedColorHex, CapacityColorHex, ExternalBorderColorHex);
-                    ColorsJsonTxt := StrSubstNo('{"capacity":"%1"}', CapacityColorHex);
+                    CapacityBorderColorHex := SkillCapacityAnalysisMgt.GetCapacityBorderColor();
+                    ColorsJsonTxt := StrSubstNo('{"capacity":"%1","capacityBorder":"%2"}', CapacityColorHex, CapacityBorderColorHex);
                     CurrPage.DhxScheduler.SetBarColors(ColorsJsonTxt);
                     AnchorDate := startDate;
                     PushResourceFilterInfo(startDate, endDate);

@@ -76,6 +76,40 @@ page 50654 "Daily Optimizer Setup"
                                 end;
                             end;
                         }
+                        field("Capacity Border Color"; Rec."Capacity Border Color")
+                        {
+                            ApplicationArea = All;
+                            ToolTip = 'Border color of the Capacity bar/event on the Resource Scheduler timeline (Resource Capacity Scheduler and Resource Scheduler - Timeline pages). Enter a hex color, e.g. #C97F16.';
+
+                            trigger OnAssistEdit()
+                            var
+                                ColorPickerPage: Page "Color Picker Lookup";
+                            begin
+                                ColorPickerPage.SetInitialColor(Rec."Capacity Border Color");
+                                if ColorPickerPage.RunModal() = Action::OK then begin
+                                    Rec."Capacity Border Color" := ColorPickerPage.GetSelectedColor();
+                                    Rec.Modify(true);
+                                    CurrPage.Update(false);
+                                end;
+                            end;
+                        }
+                        field("External Border Color"; Rec."External Border Color")
+                        {
+                            ApplicationArea = All;
+                            ToolTip = 'Border color used on the Requested Hours vs Capacity bar charts (Daily and Weekly) to flag the portion of a bar that goes over capacity. Enter a hex color, e.g. #FF0000.';
+
+                            trigger OnAssistEdit()
+                            var
+                                ColorPickerPage: Page "Color Picker Lookup";
+                            begin
+                                ColorPickerPage.SetInitialColor(Rec."External Border Color");
+                                if ColorPickerPage.RunModal() = Action::OK then begin
+                                    Rec."External Border Color" := ColorPickerPage.GetSelectedColor();
+                                    Rec.Modify(true);
+                                    CurrPage.Update(false);
+                                end;
+                            end;
+                        }
                     }
 
                     group(Envelope)
@@ -193,6 +227,60 @@ page 50654 "Daily Optimizer Setup"
     {
         area(Processing)
         {
+            group(DefaultSetup)
+            {
+                caption = 'Default Setup';
+
+                action(ResetToDefault)
+                {
+                    ApplicationArea = All;
+                    Caption = 'Reset to default';
+                    ToolTip = 'Reset all settings to their default values.';
+                    Image = Default;
+
+                    trigger OnAction()
+                    var
+                        CreateDemoData: Codeunit "Create Demo Data";
+                        VisualDefaultSettings: Codeunit "Visual Default Settings";
+                        ConfirmLbl: Label 'This will reset all Daily Optimizer Setup values - calendar/work hour template/default skill/number series, colors, and bar width - back to their built-in defaults, overwriting any customizations.\\Continue?';
+                    begin
+                        if not Confirm(ConfirmLbl, false) then
+                            exit;
+
+                        // Initialize() MUST run first - CreateDailyOptimizerSetupDefault() calls
+                        // CreateDemoCalendar()/CreateDemoCalendarChanges() internally, which do date
+                        // math (CalcDate) against gStartDate/gEndDate. Those globals are only
+                        // populated by Initialize() (normally called once at the top of the full
+                        // OnRun() demo-data run) - calling CreateDailyOptimizerSetupDefault() on its
+                        // own from this action without it left gStartDate at its default 0D,
+                        // producing "You cannot base a date calculation on an undefined date."
+                        // Initialize() has no destructive side effects of its own (just computes the
+                        // demo date window and resumes gLogEntryNo from the last log entry), so it's
+                        // safe to call standalone here - matches how external repair reports (see
+                        // report_50600_RepairDayPlanningResourceGroup.al) already call it before
+                        // reusing CreateDemoCalendar() outside a full run.
+                        //
+                        // CreateDailyOptimizerSetupDefault() owns Base Calendar/Work hour
+                        // Template/Default Skill/Order Intake Nos/Work Order Nos - it ensures the
+                        // referenced master data exists and does its own Get()/Insert()/Modify()
+                        // against the singleton. Called first, then Rec is re-fetched so the
+                        // color/width/list-type fields below are applied on top of its result in
+                        // one final Modify - avoids two competing Modify calls on the same record.
+                        CreateDemoData.Initialize();
+                        CreateDemoData.CreateDailyOptimizerSetupDefault();
+                        Rec.Get();
+
+                        Rec."Resource Scheduler - List Type" := Rec."Resource Scheduler - List Type"::"By Resource Group";
+                        Rec."Assigned Color" := VisualDefaultSettings.GetDefaultAssignedColor();
+                        Rec."Unassigned Capacity Color" := VisualDefaultSettings.GetDefaultCapacityColor();
+                        Rec."External Border Color" := VisualDefaultSettings.GetDefaultExternalBorderColor();
+                        Rec."Capacity Border Color" := VisualDefaultSettings.GetDefaultCapacityBorderColor();
+                        Rec."Bar Width (px) - Bar Chart" := VisualDefaultSettings.GetDefaultDailyBarChartWidth();
+                        Rec.Modify(true);
+                        CurrPage.Update(false);
+                    end;
+                }
+            }
             group(Color)
             {
                 Caption = 'Color Setup';
@@ -352,6 +440,7 @@ page 50654 "Daily Optimizer Setup"
             group(Category_Process)
             {
                 Caption = 'Actions';
+                actionref(ResetToDefault_ref; ResetToDefault) { }
                 actionref(ResourceSchedulerColor_ref; ResourceSchedulerColor) { }
                 actionref(TaskColor_ref; TaskColor) { }
                 actionref(ProjectTaskTypeColor_ref; ProjectTaskTypeColor) { }

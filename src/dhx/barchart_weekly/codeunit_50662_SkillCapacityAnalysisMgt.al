@@ -1131,6 +1131,20 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     end;
 
     /// <summary>
+    /// Returns the Capacity event/bar's own border colour for the two live scheduler-timeline
+    /// pages (resourceschedule_with_capacity/50706, poolresourceschedule/50600) - a different
+    /// setting from GetCapacitySegmentColors' ExternalBorderColor above, which only affects the
+    /// Daily/Weekly bar charts. Thin forward to codeunit "Visual Default Settings" (50609), same
+    /// shape as GetCapacitySegmentColors above.
+    /// </summary>
+    procedure GetCapacityBorderColor(): Text
+    var
+        ColorConstants: Codeunit "Visual Default Settings";
+    begin
+        exit(ColorConstants.GetCapacityBorderColor());
+    end;
+
+    /// <summary>
     /// Appends one series object (name/values/color/[border]/stacked) to SeriesArray, matching
     /// the exact JSON contract src/dhx/barchart_weekly/wrapper.js's RenderChart expects. BorderHex may
     /// be blank to omit the optional "border" key.
