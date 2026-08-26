@@ -277,7 +277,9 @@ table 50610 "Day Planning"
         {
             DataClassification = ToBeClassified;
             Caption = 'Assigned Resource No.';
-            TableRelation = Resource;
+            TableRelation = if ("Assigned Pool Resource No." = const('')) Resource where(Blocked = const(false))
+            else
+            Resource where(Blocked = const(false), "Pool Resource No." = field("Assigned Pool Resource No."));
 
             trigger OnValidate()
             var
@@ -584,7 +586,9 @@ table 50610 "Day Planning"
         {
             DataClassification = ToBeClassified;
             Caption = 'Requested Resource No.';
-            TableRelation = Resource where(Blocked = const(false));
+            TableRelation = if ("Requested Pool Resource No." = const('')) Resource where(Blocked = const(false))
+            else
+            Resource where(Blocked = const(false), "Pool Resource No." = field("Requested Pool Resource No."));
 
             trigger OnValidate()
             var
