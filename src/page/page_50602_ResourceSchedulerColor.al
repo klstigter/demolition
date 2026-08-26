@@ -54,7 +54,7 @@ page 50602 "Resource Scheduler Color opt"
                 var
                     Res: Record Resource;
                     ResColor: Record "Planning Color Opt.";
-                    ColorConstants: Codeunit "Color Constants Opti.";
+                    ColorConstants: Codeunit "Visual Default Settings";
                     DayPlanningColors: array[8] of Text[30];
                     CapColors: array[8] of Text[30];
                     Idx: Integer;

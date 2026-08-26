@@ -178,7 +178,7 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
     /// </summary>
     procedure GetSkillBarColor(SkillCode: Code[10]; PaletteIndex: Integer): Text
     var
-        ColorConstants: Codeunit "Color Constants Opti.";
+        ColorConstants: Codeunit "Visual Default Settings";
     begin
         exit(ColorConstants.GetSkillBarColor(SkillCode, PaletteIndex));
     end;

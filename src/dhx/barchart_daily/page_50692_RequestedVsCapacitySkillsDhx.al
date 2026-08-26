@@ -421,6 +421,7 @@ page 50681 "Requested vs Capacity Daily"
         ChartData.Add('categories', CategoriesArray);
         ChartData.Add('series', SeriesArray);
         ChartData.Add('colors', ColorsArray);
+        ChartData.Add('barWidth', VisualDefaultSettings.GetDailyBarChartWidth());
 
         ChartData.WriteTo(ChartDataJson);
         CurrPage.DhxBarChart.LoadData(ChartDataJson);
@@ -429,6 +430,7 @@ page 50681 "Requested vs Capacity Daily"
     var
         Buffer: Record "Skill Req. vs Capacity Buffer" temporary;
         SkillCapacityAnalysisMgt: Codeunit "SkillCapacityAnalysisMgt.v1";
+        VisualDefaultSettings: Codeunit "Visual Default Settings";
         WeeklyFlag: Boolean;
         ResourceNoFilter: Code[20];
         PeriodStartDate: Date;

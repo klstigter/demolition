@@ -3159,7 +3159,7 @@ codeunit 50604 "DHX Data Handler"
     procedure ResScheduler_GetResourceColor(pResourceNo: Code[20]; pColorType: Text): Text
     var
         ResColor: Record "Planning Color Opt.";
-        ColorConstants: Codeunit "Color Constants Opti.";
+        ColorConstants: Codeunit "Visual Default Settings";
         ColorHash: Integer;
         i: Integer;
         ColorValue: Text;
@@ -4894,7 +4894,7 @@ codeunit 50604 "DHX Data Handler"
     /// </summary>
     local procedure ResolveRequestedColor(SkillCode: Code[20]; var SkillColorDict: Dictionary of [Code[20], Text]; var NextPaletteIndex: Integer): Text
     var
-        ColorConstants: Codeunit "Color Constants Opti.";
+        ColorConstants: Codeunit "Visual Default Settings";
         ResolvedColor: Text;
     begin
         if SkillCode = '' then

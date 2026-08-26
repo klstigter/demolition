@@ -40,6 +40,17 @@ page 50654 "Daily Optimizer Setup"
                         caption = 'List Type';
                     }
                 }
+                group("Requested/Capacity")
+                {
+                    Caption = 'Requested/Capacity';
+
+                    field("Bar Width (px) - Bar Chart"; Rec."Bar Width (px) - Bar Chart")
+                    {
+                        ApplicationArea = All;
+                        caption = 'Bar Width (px)';
+                        ToolTip = 'Specifies the width, in pixels, of each bar on the Requested Hours vs Capacity bar charts (Daily and Weekly). Leave at 0 to use the chart''s default width.';
+                    }
+                }
                 group(Colors)
                 {
                     Caption = 'Bar Colors';
