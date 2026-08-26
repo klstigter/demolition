@@ -28,6 +28,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
                     CapacityColorHex: Text;
                     ExternalBorderColorHex: Text;
                     CapacityBorderColorHex: Text;
+                    BarFontColorHex: Text;
                     Window: Dialog;
                     LoadingLbl: Label 'Loading Capacity data...\n#1######################';
                 begin
@@ -53,7 +54,8 @@ page 50600 "DHX Scheduler (Pool Resource)"
                     // supported this key, it just had nothing feeding it before.
                     SkillCapacityAnalysisMgt.GetCapacitySegmentColors(AssignedColorHex, CapacityColorHex, ExternalBorderColorHex);
                     CapacityBorderColorHex := SkillCapacityAnalysisMgt.GetCapacityBorderColor();
-                    ColorsJsonTxt := StrSubstNo('{"capacity":"%1","capacityBorder":"%2"}', CapacityColorHex, CapacityBorderColorHex);
+                    BarFontColorHex := SkillCapacityAnalysisMgt.GetBarFontColor();
+                    ColorsJsonTxt := StrSubstNo('{"capacity":"%1","capacityBorder":"%2","fontColor":"%3"}', CapacityColorHex, CapacityBorderColorHex, BarFontColorHex);
                     CurrPage.DhxScheduler.SetBarColors(ColorsJsonTxt);
                     AnchorDate := startDate;
                     PushResourceFilterInfo(startDate, endDate);

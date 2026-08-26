@@ -2910,6 +2910,18 @@ function SetGanttTaskFilterInfo(jobNo, taskNo, periodFrom, periodTo) {
 }
 window.SetGanttTaskFilterInfo = SetGanttTaskFilterInfo;
 
+// AL-callable: SetBarFontColor - applies "Daily Optimizer Setup"."Bar Font Color" (via codeunit
+// 50609's GetBarFontColor) uniformly to every task bar's on-bar label text (.gantt_task_content,
+// see the matching override in style.css). Scoped to the #gantt_here container only, so it can't
+// leak onto anything outside the chart. Does NOT affect .gantt_tooltip text - that stays on its
+// own separate hardcoded colors (out of scope by design).
+function SetBarFontColor(fontColorHex) {
+  var root = document.getElementById("gantt_here");
+  if (!root) return;
+  if (fontColorHex) root.style.setProperty("--bar-font-color", fontColorHex);
+}
+window.SetBarFontColor = SetBarFontColor;
+
 function _updateGanttFilterToolbar() {
   try {
     // Pick the main grid's blank corner cell, not the resource panel's (that one is

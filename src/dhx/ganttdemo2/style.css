@@ -90,6 +90,17 @@ html,
 			background: transparent !important;
 		}
 
+		/* Task-bar on-bar label text color - overridable via "Daily Optimizer Setup"."Bar Font
+		   Color" (codeunit 50609's GetBarFontColor, sent by wrapper.js's SetBarFontColor into
+		   this custom property, scoped to the #gantt_here container). Overrides the vendored
+		   dhtmlxgantt.css's own --dhx-gantt-task-color (default #1e2022) rather than editing
+		   that vendored file directly - non-invasive, same approach as the .bc-indent-N border
+		   overrides below. Does NOT affect .gantt_tooltip text (out of scope by design). */
+		#gantt_here { --bar-font-color: #000000; }
+		.gantt_task_content {
+			color: var(--bar-font-color) !important;
+		}
+
 			/* EVEN weeks: black background, bold white text */
 		.gantt_scale_cell.week-even {
 		background-color: #000000;

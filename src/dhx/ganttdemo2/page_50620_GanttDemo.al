@@ -1185,6 +1185,7 @@ page 50620 "Gantt Demo DHX 2"
     local procedure LoadAllData()
     var
         GanttChartDataHandler: Codeunit "GanttChartDataHandler";
+        SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
         StartDate: Date;
         EndDate: Date;
         LoadWithOutResourcePanelFilter: Boolean;
@@ -1206,6 +1207,13 @@ page 50620 "Gantt Demo DHX 2"
         // Dialog is what can actually show progress while that server-side work is happening.
         if GuiAllowed() then
             Window.Open(LoadingLbl);
+
+        // Text/caption color for every task bar's on-bar label - "Daily Optimizer Setup"."Bar
+        // Font Color" via codeunit 50609's GetBarFontColor (forwarded through codeunit 50662,
+        // same as the scheduler pages' fontColor JSON key). Called every LoadAllData (both
+        // ControlReady and RefreshGantt funnel through here), mirroring how the scheduler pages
+        // re-send SetBarColors on every ControlReady. Does NOT affect gantt_tooltip text.
+        CurrPage.DHXGanttControl2.SetBarFontColor(SkillCapacityAnalysisMgt.GetBarFontColor());
 
         GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
 

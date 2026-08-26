@@ -38,5 +38,6 @@ controladdin DHXResourceScheduleAddin
     procedure SetShowDayPlanning(pShow: Boolean);
     procedure SetShowCapacity(pShow: Boolean);
     procedure SetResourceFilterInfo(resNo: Text; resName: Text; periodFrom: Text; periodTo: Text; skillFilter: Text);
+    procedure SetBarFontColor(fontColorHex: Text);
 
 }

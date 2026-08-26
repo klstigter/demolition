@@ -62,4 +62,5 @@ controladdin "DHX Gantt Control 2"
     procedure LoadHolidaysData(holidaysJsonTxt: Text);
     procedure GetResourceFilter();
     procedure SetGanttTaskFilterInfo(jobNo: Text; taskNo: Text; periodFrom: Text; periodTo: Text);
+    procedure SetBarFontColor(fontColorHex: Text);
 }

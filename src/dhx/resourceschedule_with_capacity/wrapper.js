@@ -125,13 +125,13 @@ window.BOOT = function () {
            Optimizer Setup"."Capacity Border Color" (codeunit 50609's GetCapacityBorderColor),
            sent as colors.capacityBorder by ControlReady - this CSS value is only the fallback for
            when that field is blank/the setup singleton doesn't exist yet ── */
-        #scheduler_here { --cap-color: #2E75B6; --cap-color-border: #C97F16; }
+        #scheduler_here { --cap-color: #2E75B6; --cap-color-border: #C97F16; --bar-font-color: #000000; }
         .dhx_cal_event.event-capacity,
         .dhx_cal_event_line.event-capacity,
         .dhx_event_line.event-capacity {
             background: var(--cap-color) !important;
             border: 1px solid var(--cap-color-border) !important;
-            color: #3a2600 !important;
+            color: var(--bar-font-color) !important;
             font-size: 12px !important;
         }
 
@@ -158,7 +158,7 @@ window.BOOT = function () {
         .dp-bar-requested { position: absolute; bottom: 0; height: var(--dp-height-requested); background: var(--dp-color-requested) !important; }
         .dp-bar-label {
             position: absolute; inset: 0; display: flex; align-items: center; justify-content: flex-start;
-            color: #fff; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            color: var(--bar-font-color); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
             pointer-events: none; text-shadow: 0 0 2px rgba(0,0,0,0.7); z-index: 2;
             padding-left: 4px; text-align: left; min-width: 0;
         }
@@ -643,6 +643,12 @@ function SetBarColors(colorsJson) {
         // override them (0/blank).
         if (colors.assignedHeight) root.style.setProperty("--dp-height-assigned", colors.assignedHeight + "%");
         if (colors.requestedHeight) root.style.setProperty("--dp-height-requested", colors.requestedHeight + "%");
+        // "fontColor" is sent by page 50706's ControlReady (via codeunit 50609's
+        // GetBarFontColor, "Daily Optimizer Setup"."Bar Font Color") - applies uniformly to every
+        // bar's on-bar label text (Day Planning's .dp-bar-label AND the Capacity event's own
+        // color rule above, which previously had its own distinct hardcoded "#3a2600"). Does NOT
+        // affect hover/tooltip text - that stays on its own separate hardcoded colors.
+        if (colors.fontColor) root.style.setProperty("--bar-font-color", colors.fontColor);
     } catch (e) {
         console.warn("SetBarColors: invalid colorsJson", colorsJson, e);
     }

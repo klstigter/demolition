@@ -40,11 +40,18 @@ page 50619 "Resource Scheduler - Calendar"
                 #region Init and Load Data on Control Ready
 
                 trigger ControlReady()
+                var
+                    SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
                 begin
                     AnchorDate := Today();
                     if CurrentStartDate <> 0D then
                         AnchorDate := CurrentStartDate;
                     CurrPage.DhxScheduler.Init(BuildResourcesJson(), AnchorDate);
+                    // Text/caption color for every event bar's on-bar label - "Daily Optimizer
+                    // Setup"."Bar Font Color" via codeunit 50609's GetBarFontColor (forwarded
+                    // through codeunit 50662), same setting as the other scheduler pages. Does
+                    // NOT affect tooltip text.
+                    CurrPage.DhxScheduler.SetBarFontColor(SkillCapacityAnalysisMgt.GetBarFontColor());
                 end;
 
                 trigger OnAfterInit()

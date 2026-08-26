@@ -100,6 +100,11 @@ table 50605 "Daily Optimizer Setup"
             Caption = 'Capacity Border Color';
             DataClassification = CustomerContent;
         }
+        field(68; "Bar Font Color"; Text[20])
+        {
+            Caption = 'Bar Font Color';
+            DataClassification = CustomerContent;
+        }
     }
 
     keys

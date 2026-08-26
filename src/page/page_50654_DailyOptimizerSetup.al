@@ -50,6 +50,23 @@ page 50654 "Daily Optimizer Setup"
                         caption = 'Bar Width (px)';
                         ToolTip = 'Specifies the width, in pixels, of each bar on the Requested Hours vs Capacity bar charts (Daily and Weekly). Leave at 0 to use the chart''s default width.';
                     }
+                    field("Bar Font Color"; Rec."Bar Font Color")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Color of the text/caption shown on every event bar''s on-bar label (Gantt chart tasks, scheduler timeline bars, and Day Planning bars). Enter a hex color, e.g. #000000.';
+
+                        trigger OnAssistEdit()
+                        var
+                            ColorPickerPage: Page "Color Picker Lookup";
+                        begin
+                            ColorPickerPage.SetInitialColor(Rec."Bar Font Color");
+                            if ColorPickerPage.RunModal() = Action::OK then begin
+                                Rec."Bar Font Color" := ColorPickerPage.GetSelectedColor();
+                                Rec.Modify(true);
+                                CurrPage.Update(false);
+                            end;
+                        end;
+                    }
                 }
                 group(Colors)
                 {
@@ -275,6 +292,7 @@ page 50654 "Daily Optimizer Setup"
                         Rec."Unassigned Capacity Color" := VisualDefaultSettings.GetDefaultCapacityColor();
                         Rec."External Border Color" := VisualDefaultSettings.GetDefaultExternalBorderColor();
                         Rec."Capacity Border Color" := VisualDefaultSettings.GetDefaultCapacityBorderColor();
+                        Rec."Bar Font Color" := VisualDefaultSettings.GetDefaultBarFontColor();
                         Rec."Bar Width (px) - Bar Chart" := VisualDefaultSettings.GetDefaultDailyBarChartWidth();
                         Rec.Modify(true);
                         CurrPage.Update(false);
