@@ -311,20 +311,27 @@ window.BOOT = function () {
         // Capacity, matching poolresourceschedule's capacity tooltip content).
         scheduler.templates.tooltip_text = function (start, end, ev) {
             var formatDateOnly = scheduler.date.date_to_str("%d-%m-%Y");
+            var formatTimeOnly = scheduler.date.date_to_str("%H:%i");
             if (ev.type === "capacity") {
                 var html = '<div class="dhx-tt">';
-                html += '<div class="dhx-tt-res">Capacity: ' + escapeRcHtml(ev.resource_id || "") + '</div>';
-                html += '<div class="dhx-tt-date">Date: ' + formatDateOnly(start) + '</div>';
                 html += '<div class="dhx-tt-table" style="grid-template-columns:110px 1fr;">';
+                html += '<div class="dhx-tt-label">Capacity</div><div class="dhx-tt-val">' + escapeRcHtml(ev.resource_id || "") + '</div>';
+                html += '<div class="dhx-tt-label">Date</div><div class="dhx-tt-val">' + formatDateOnly(start) + '</div>';
                 html += '<div class="dhx-tt-label">Capacity (h)</div><div class="dhx-tt-val">' + (ev.hours != null ? ev.hours : '') + '</div>';
+                html += '<div class="dhx-tt-label">Start Time</div><div class="dhx-tt-val">' + formatTimeOnly(start) + '</div>';
+                html += '<div class="dhx-tt-label">End Time</div><div class="dhx-tt-val">' + formatTimeOnly(end) + '</div>';
                 html += '</div></div>';
                 return html;
             }
 
             var html = '<div class="dhx-tt">';
             html += '<div class="dhx-tt-res">Day Planning: ' + escapeRcHtml(ev.text || "") + '</div>';
-            html += '<div class="dhx-tt-date">Skill: ' + escapeRcHtml(ev.skill || "") + ' &nbsp;|&nbsp; Date: ' + formatDateOnly(start) + ' &nbsp;|&nbsp; Job: ' + escapeRcHtml(ev.job_no || "") + ' &nbsp;|&nbsp; Task: ' + escapeRcHtml(ev.job_task_no || "") + '</div>';
-            html += '<div class="dhx-tt-table">';
+            html += '<div class="dhx-tt-table" style="grid-template-columns:110px 1fr;">';
+            html += '<div class="dhx-tt-label">Date</div><div class="dhx-tt-val">' + formatDateOnly(start) + '</div>';
+            html += '<div class="dhx-tt-label">Job</div><div class="dhx-tt-val">' + escapeRcHtml(ev.job_no || "") + '</div>';
+            html += '<div class="dhx-tt-label">Task</div><div class="dhx-tt-val">' + escapeRcHtml(ev.job_task_no || "") + '</div>';
+            html += '</div>';
+            html += '<div class="dhx-tt-table" style="margin-top:6px;">';
             html += '<div class="dhx-tt-th"></div><div class="dhx-tt-th">Assigned</div><div class="dhx-tt-th">Requested</div>';
             html += '<div class="dhx-tt-label">Resource No.</div><div class="dhx-tt-val">' + escapeRcHtml(ev.assigned_resource_no || "") + '</div><div class="dhx-tt-val">' + escapeRcHtml(ev.requested_resource_no || "") + '</div>';
             html += '<div class="dhx-tt-label">Resource Name</div><div class="dhx-tt-val">' + escapeRcHtml(ev.assigned_resource_name || "") + '</div><div class="dhx-tt-val">' + escapeRcHtml(ev.requested_resource_name || "") + '</div>';
