@@ -226,6 +226,7 @@ window.BOOT = function() {
     #scheduler_here {
         --cap-color: #2E75B6;
         --cap-color-border: #C97F16;
+        --bar-font-color: #000000;
     }
 
     /* Event styling per type */
@@ -235,7 +236,7 @@ window.BOOT = function() {
     .dhx_event_line.event-capacity,
     .dhx_cal_event.event-capacity .dhx_title,
     .dhx_cal_event.event-capacity .dhx_body {
-        color: black !important;
+        color: var(--bar-font-color) !important;
         font-size: 14px !important;
         background-color: var(--cap-color) !important;
         border-color: var(--cap-color-border) !important;
@@ -247,7 +248,7 @@ window.BOOT = function() {
     .dhx_event_line.event-vacancy,
     .dhx_cal_event.event-vacancy .dhx_title,
     .dhx_cal_event.event-vacancy .dhx_body {
-        color: black !important;
+        color: var(--bar-font-color) !important;
         font-size: 14px !important;
         /*
         background-color: #FFF3CD !important;
@@ -261,7 +262,7 @@ window.BOOT = function() {
     .dhx_event_line.event-DayPlanning_0,
     .dhx_cal_event.event-DayPlanning_0 .dhx_title,
     .dhx_cal_event.event-DayPlanning_0 .dhx_body {
-        color: white !important;
+        color: var(--bar-font-color) !important;
         font-size: 14px !important;
         /*
         background-color: #D1ECF1 !important;
@@ -275,7 +276,7 @@ window.BOOT = function() {
     .dhx_event_line.event-DayPlanning_1,
     .dhx_cal_event.event-DayPlanning_1 .dhx_title,
     .dhx_cal_event.event-DayPlanning_1 .dhx_body {
-        color: black !important;
+        color: var(--bar-font-color) !important;
         font-size: 14px !important;
         /*
         background-color: #F8D7DA !important;
@@ -1046,6 +1047,11 @@ function SetBarColors(colorsJson) {
         if (!root) return;
         if (colors.capacity) root.style.setProperty("--cap-color", colors.capacity);
         if (colors.capacityBorder) root.style.setProperty("--cap-color-border", colors.capacityBorder);
+        // "fontColor" is sent by page 50600's ControlReady (via codeunit 50609's
+        // GetBarFontColor, "Daily Optimizer Setup"."Bar Font Color") - applies uniformly to every
+        // bar's on-bar label text (Capacity/Vacancy/DayPlanning_0/DayPlanning_1 event types
+        // above). Does NOT affect hover/tooltip text.
+        if (colors.fontColor) root.style.setProperty("--bar-font-color", colors.fontColor);
     } catch (e) {
         console.warn("SetBarColors: invalid colorsJson", colorsJson, e);
     }

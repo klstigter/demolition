@@ -580,6 +580,17 @@ function SetShowCapacity(pShow) {
     RefreshSchedulerEvents();
 }
 
+// AL-callable: SetBarFontColor - applies "Daily Optimizer Setup"."Bar Font Color" (via codeunit
+// 50609's GetBarFontColor) uniformly to every event bar's on-bar label text. Sets --bar-font-color
+// on the #scheduler_here container; style.css's per-colour-variant classes (.blue/.violet/etc.)
+// each read it via var(--bar-font-color, <original default>), so this one call overrides every
+// variant's own --dhx-scheduler-event-color at once. Does NOT affect tooltip text.
+function SetBarFontColor(fontColorHex) {
+    var root = document.getElementById('scheduler_here');
+    if (!root) return;
+    if (fontColorHex) root.style.setProperty('--bar-font-color', fontColorHex);
+}
+
 // ============================================================
 // Right-click context menu – events and resource panel
 // ============================================================

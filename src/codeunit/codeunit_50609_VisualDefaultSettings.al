@@ -95,6 +95,32 @@ codeunit 50609 "Visual Default Settings"
     end;
 
     /// <summary>
+    /// Resolves the text/caption colour used on every event bar's on-bar label across the Gantt
+    /// chart (ganttdemo2), the scheduler timeline pages (resourceschedule, resourceschedule_with_
+    /// capacity, poolresourceschedule, projectschedule), and the Day Planning bar's label
+    /// specifically - a single global setting deliberately applied uniformly to every bar caption,
+    /// superseding any bar-specific hardcoded text colour that previously differed (e.g. the
+    /// Capacity bar's prior dark-on-light "#3a2600" in resourceschedule_with_capacity/wrapper.js).
+    /// Overridable via "Daily Optimizer Setup"."Bar Font Color" when the singleton exists and the
+    /// field is non-blank, else falls back to BarFontColorTok (black - this setting's own chosen
+    /// default, not a preservation of any single prior per-file hardcoded colour). Same safe
+    /// boolean-context Get() convention as GetCapacityBorderColor above, for the same reason.
+    ///
+    /// Explicitly NOT used for hover/tooltip text colour anywhere, nor for chrome (timeline scale
+    /// header cells, grid headers, buttons/icons, dialogs) - those are out of scope by design.
+    /// </summary>
+    procedure GetBarFontColor(): Text
+    var
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+    begin
+        if DailyOptimizerSetup.Get() then
+            if DailyOptimizerSetup."Bar Font Color" <> '' then
+                exit(DailyOptimizerSetup."Bar Font Color");
+
+        exit(BarFontColorTok);
+    end;
+
+    /// <summary>
     /// Public getters for this codeunit's own built-in default colours - exposed only so page
     /// 50654's "Reset to default" action can restore a user's setup override back to these
     /// defaults without duplicating the hex literals on the page. The underlying Tok labels stay
@@ -118,6 +144,11 @@ codeunit 50609 "Visual Default Settings"
     procedure GetDefaultCapacityBorderColor(): Text
     begin
         exit(CapacityBorderColorTok);
+    end;
+
+    procedure GetDefaultBarFontColor(): Text
+    begin
+        exit(BarFontColorTok);
     end;
 
     /// <summary>
@@ -324,6 +355,13 @@ codeunit 50609 "Visual Default Settings"
         // hand for the case where the setup singleton doesn't exist yet.
         // Used by: GetCapacityBorderColor above only.
         CapacityBorderColorTok: Label '#C97F16', Locked = true;
+        // Fallback for GetBarFontColor above - overridable via "Daily Optimizer Setup"."Bar Font
+        // Color". Black is this setting's own chosen default (deliberately superseding whatever
+        // per-bar text colour - white on most bars, dark "#3a2600" on the Capacity bar - was
+        // hardcoded per-file prior to this setting's introduction; see GetBarFontColor's doc
+        // comment).
+        // Used by: GetBarFontColor above only.
+        BarFontColorTok: Label '#000000', Locked = true;
         // Synthetic aggregate-row marker used by codeunit 50608's BuildSkillBuffer - must stay
         // text-identical to that codeunit's own CapacitySkillCodeTok.
         // Used by: GetSkillBarColor above only (blank-for-'CAPACITY' guard).

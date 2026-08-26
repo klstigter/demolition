@@ -168,6 +168,7 @@ window.BOOT = function() {
            via SetBarColors below. Defaults stay 80/20 even when setup has no override. */
         --dp-height-assigned: 80%;
         --dp-height-requested: 20%;
+        --bar-font-color: #000000;
     }
 
     /* Outer bar = envelope (earliest..latest of Requested/Assigned) — solid dark blue base */
@@ -217,7 +218,7 @@ window.BOOT = function() {
         display: flex;
         align-items: center;
         justify-content: flex-start;
-        color: #fff;
+        color: var(--bar-font-color);
         font-size: 12px;
         white-space: nowrap;
         overflow: hidden;
@@ -937,6 +938,10 @@ function SetBarColors(colorsJson) {
         // defaults (80%/20%) whenever setup doesn't override them (0/blank).
         if (colors.assignedHeight) root.style.setProperty("--dp-height-assigned", colors.assignedHeight + "%");
         if (colors.requestedHeight) root.style.setProperty("--dp-height-requested", colors.requestedHeight + "%");
+        // "fontColor" is sent by page 50621's ControlReady (via codeunit 50609's
+        // GetBarFontColor, "Daily Optimizer Setup"."Bar Font Color") - applies to the Day
+        // Planning bar's .dp-bar-label text above. Does NOT affect hover/tooltip text.
+        if (colors.fontColor) root.style.setProperty("--bar-font-color", colors.fontColor);
     } catch (e) {
         console.warn("SetBarColors: invalid colorsJson", colorsJson, e);
     }

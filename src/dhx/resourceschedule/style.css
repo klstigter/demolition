@@ -195,76 +195,86 @@
 
 /* ============================================================
    Event colour classes (match DHTMLX example palette)
+
+   Each variant's --dhx-scheduler-event-color is the on-bar label text color for
+   that variant, wrapped as var(--bar-font-color, <original-per-variant-default>)
+   so a single global "Daily Optimizer Setup"."Bar Font Color" (codeunit 50609's
+   GetBarFontColor, sent by wrapper.js's SetBarFontColor into --bar-font-color on
+   the #scheduler_here container) overrides every variant uniformly - deliberately
+   superseding the original per-variant contrast choices (#333 on the light
+   yellow/sand backgrounds, #fff on the rest), same as this setting's other
+   scheduler pages. The literal fallback after the comma is only used if
+   --bar-font-color is ever unset (JS channel not yet initialized).
    ============================================================ */
 
 .blue {
     --dhx-scheduler-event-background: linear-gradient(180deg, #4F9BFF 0%, #6BC5FF 100%);
-    --dhx-scheduler-event-color: #fff;
+    --dhx-scheduler-event-color: var(--bar-font-color, #fff);
 }
 
 .violet {
     --dhx-scheduler-event-background: linear-gradient(180deg, #D071EF 0%, #EE71D5 100%);
-    --dhx-scheduler-event-color: #fff;
+    --dhx-scheduler-event-color: var(--bar-font-color, #fff);
 }
 
 .green {
     --dhx-scheduler-event-background: linear-gradient(180deg, #12D979 0%, #1ECDEB 100%);
-    --dhx-scheduler-event-color: #fff;
+    --dhx-scheduler-event-color: var(--bar-font-color, #fff);
 }
 
 .yellow {
     --dhx-scheduler-event-background: linear-gradient(180deg, #FFB725 0%, #FAEA27 100%);
-    --dhx-scheduler-event-color: #333;
+    --dhx-scheduler-event-color: var(--bar-font-color, #333);
 }
 
 /* Modern extended palette – complementary pairs (lighter=DayPlanning, deeper=Capacity) */
 .sky {
     --dhx-scheduler-event-background: linear-gradient(180deg, #38BDF8 0%, #7DD3FC 100%);
-    --dhx-scheduler-event-color: #fff;
+    --dhx-scheduler-event-color: var(--bar-font-color, #fff);
 }
 .ocean {
     --dhx-scheduler-event-background: linear-gradient(180deg, #0369A1 0%, #0EA5E9 100%);
-    --dhx-scheduler-event-color: #fff;
+    --dhx-scheduler-event-color: var(--bar-font-color, #fff);
 }
 .coral {
     --dhx-scheduler-event-background: linear-gradient(180deg, #FB7185 0%, #FCA5A5 100%);
-    --dhx-scheduler-event-color: #fff;
+    --dhx-scheduler-event-color: var(--bar-font-color, #fff);
 }
 .crimson {
     --dhx-scheduler-event-background: linear-gradient(180deg, #DC2626 0%, #EF4444 100%);
-    --dhx-scheduler-event-color: #fff;
+    --dhx-scheduler-event-color: var(--bar-font-color, #fff);
 }
 .mint {
     --dhx-scheduler-event-background: linear-gradient(180deg, #34D399 0%, #6EE7B7 100%);
-    --dhx-scheduler-event-color: #fff;
+    --dhx-scheduler-event-color: var(--bar-font-color, #fff);
 }
 .teal {
     --dhx-scheduler-event-background: linear-gradient(180deg, #0F766E 0%, #14B8A6 100%);
-    --dhx-scheduler-event-color: #fff;
+    --dhx-scheduler-event-color: var(--bar-font-color, #fff);
 }
 .sand {
     --dhx-scheduler-event-background: linear-gradient(180deg, #FBBF24 0%, #FDE68A 100%);
-    --dhx-scheduler-event-color: #333;
+    --dhx-scheduler-event-color: var(--bar-font-color, #333);
 }
 .amber {
     --dhx-scheduler-event-background: linear-gradient(180deg, #D97706 0%, #F59E0B 100%);
-    --dhx-scheduler-event-color: #fff;
+    --dhx-scheduler-event-color: var(--bar-font-color, #fff);
 }
 .rose {
     --dhx-scheduler-event-background: linear-gradient(180deg, #F472B6 0%, #F9A8D4 100%);
-    --dhx-scheduler-event-color: #fff;
+    --dhx-scheduler-event-color: var(--bar-font-color, #fff);
 }
 .plum {
     --dhx-scheduler-event-background: linear-gradient(180deg, #7C3AED 0%, #A78BFA 100%);
-    --dhx-scheduler-event-color: #fff;
+    --dhx-scheduler-event-color: var(--bar-font-color, #fff);
 }
 .lavender {
     --dhx-scheduler-event-background: linear-gradient(180deg, #818CF8 0%, #C4B5FD 100%);
-    --dhx-scheduler-event-color: #fff;
+    --dhx-scheduler-event-color: var(--bar-font-color, #fff);
 }
 .indigo {
     --dhx-scheduler-event-background: linear-gradient(180deg, #4338CA 0%, #6366F1 100%);
-    --dhx-scheduler-event-color: #fff;
+    --dhx-scheduler-event-color: var(--bar-font-color, #fff);
 }
 
 /* ============================================================
@@ -331,7 +341,7 @@
         rgba(220, 235, 245, 0.08) 4px,
         rgba(220, 235, 245, 0.08) 12px
     ) !important;
-    color: #7a9ab5 !important;
+    color: var(--bar-font-color, #7a9ab5) !important;
     font-style: italic;
     font-size: 11px;
     display: flex;

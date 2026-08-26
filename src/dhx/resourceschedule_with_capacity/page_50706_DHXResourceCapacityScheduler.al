@@ -26,6 +26,7 @@ page 50706 "DHX Scheduler - TimeLine"
                     CapacityColorHex: Text;
                     ExternalBorderColorHex: Text;
                     CapacityBorderColorHex: Text;
+                    BarFontColorHex: Text;
                     HasSetup: Boolean;
                     Window: Dialog;
                     LoadingLbl: Label 'Loading Capacity data...\n#1######################';
@@ -77,14 +78,16 @@ page 50706 "DHX Scheduler - TimeLine"
                     // when the setup record doesn't exist is a safe no-op per key.
                     SkillCapacityAnalysisMgt.GetCapacitySegmentColors(AssignedColorHex, CapacityColorHex, ExternalBorderColorHex);
                     CapacityBorderColorHex := SkillCapacityAnalysisMgt.GetCapacityBorderColor();
-                    ColorsJsonTxt := StrSubstNo('{"envelope":"%1","envelopeBorder":"%2","assigned":"%3","assignedHeight":%4,"requestedHeight":%5,"capacity":"%6","capacityBorder":"%7"}',
+                    BarFontColorHex := SkillCapacityAnalysisMgt.GetBarFontColor();
+                    ColorsJsonTxt := StrSubstNo('{"envelope":"%1","envelopeBorder":"%2","assigned":"%3","assignedHeight":%4,"requestedHeight":%5,"capacity":"%6","capacityBorder":"%7","fontColor":"%8"}',
                         DailyOptimizerSetup."Envelope Color",
                         DailyOptimizerSetup."Envelope Border Color",
                         AssignedColorHex,
                         DailyOptimizerSetup."Assigned High (%)",
                         DailyOptimizerSetup."Requested High (%)",
                         CapacityColorHex,
-                        CapacityBorderColorHex);
+                        CapacityBorderColorHex,
+                        BarFontColorHex);
                     CurrPage.DhxScheduler.SetBarColors(ColorsJsonTxt);
                     PushResourceFilterInfo();
                     CurrPage.Update(false);
