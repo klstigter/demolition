@@ -52,6 +52,12 @@ table 50605 "Daily Optimizer Setup"
             OptionMembers = "By Resource Group","By Skill";
             OptionCaption = 'By Resource Group,By Skill';
         }
+        field(51; "Bar Width (px) - Bar Chart"; Integer)
+        {
+            Caption = 'Bar Width (px) - Bar Chart';
+            DataClassification = ToBeClassified;
+            ToolTip = 'Specifies the width, in pixels, of each bar on the Requested Hours vs Capacity bar charts (Daily and Weekly). Leave at 0 to use the chart''s default width.';
+        }
 
         // Bar Colors: applicable to Scheduler Timeline and Bar Chart
         field(60; "Envelope Color"; Text[20])

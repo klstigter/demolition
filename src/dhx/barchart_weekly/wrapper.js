@@ -50,11 +50,17 @@ var DAY_GROUP_BACKGROUND_COLOR = "#f7f7f7";
 // ApplyDayPairSpacing. Kept small but nonzero so the two bars still read as two distinct shapes
 // instead of visually fusing into one block.
 var PAIR_INNER_GAP_PX = 2;
-// Matches Bar's own suite.js default (`Bar.prototype._setDefaults`: `barWidth: 30`) - this file's
-// chart config never overrides `barWidth` (confirmed via grep), so this constant must be kept in
-// sync if that ever changes. Needed here because ApplyDayPairSpacing computes bar-center offsets
-// from it; nothing in the rendered DOM exposes barWidth directly to read back.
-var BAR_WIDTH_PX = 30;
+// Wider than suite.js's own Bar default (`Bar.prototype._setDefaults`: `barWidth: 30`) - RenderChart
+// below passes this explicitly as `config.barWidth` so the two stay in sync; kept as a named
+// module-level variable (not a fixed constant) because ApplyDayPairSpacing computes bar-center
+// offsets from it and nothing in the rendered DOM exposes barWidth directly to read back. No longer
+// a fixed sync-with-the-library-default value: RenderChart reassigns this on every call from AL's
+// "Daily Optimizer Setup"."Bar Width (px) - Bar Chart" (codeunit 50609 "Visual Default Settings"'
+// GetWeeklyBarChartWidth), falling back to 45 (matching that codeunit's own DefaultWeeklyBarWidthPx)
+// if chartData.barWidth wasn't sent or is falsy - so this always holds the live width for whatever
+// was most recently rendered, which ApplyDayPairSpacing (run right after, via
+// SchedulePostRenderPatches) then reads back unchanged.
+var BAR_WIDTH_PX = 45;
 
 // ============================================================
 // BOOT – called by startupScript.js
@@ -168,6 +174,12 @@ window.BOOT = function() {
 function RenderChart(chartData) {
     if (!chartContainer) return;
 
+    // Reassigned on every call (see this var's own declaration comment) - must happen before
+    // `config` is built below (config.barWidth reads it) and before ApplyDayPairSpacing runs
+    // (scheduled via SchedulePostRenderPatches further down), since that function derives its
+    // pair-centering math from whatever this module-level variable currently holds.
+    BAR_WIDTH_PX = (chartData && chartData.barWidth) ? chartData.barWidth : 45;
+
     var categories = (chartData && Array.isArray(chartData.categories)) ? chartData.categories : [];
     var seriesDefs  = (chartData && Array.isArray(chartData.series))     ? chartData.series     : [];
     var dayLabels   = (chartData && Array.isArray(chartData.dayLabels))  ? chartData.dayLabels  : [];
@@ -212,6 +224,9 @@ function RenderChart(chartData) {
         type: "bar",
         data: data,
         series: series,
+        // Kept in sync with BAR_WIDTH_PX (see its own comment) - ApplyDayPairSpacing derives its
+        // pair-centering math from that constant, so this value can't drift from it.
+        barWidth: BAR_WIDTH_PX,
         // NOTE: the "text" scale's category field name comes from `text`, NOT `value`
         // (confirmed by reading suite.js's TextScale._setDefaults: `this.locator =
         // locator(config.text)`). `value` on a scale config is a no-op for the "text"
@@ -234,8 +249,8 @@ function RenderChart(chartData) {
                 type: "text", text: "category", textPadding: BOTTOM_TEXT_PADDING, size: DAY_ROW_HEIGHT * 2,
                 // Single-letter "C"/"R", not the full "Capacity"/"Requested" word: once
                 // ApplyDayPairSpacing (below) pulls a day's 2 bars edge-to-edge tight (see its own
-                // comment - total pair width is just BAR_WIDTH_PX*2 + PAIR_INNER_GAP_PX, ~62px, so
-                // ~16px per bar's own label slot), the full words no longer fit and visibly overlap
+                // comment - total pair width is just BAR_WIDTH_PX*2 + PAIR_INNER_GAP_PX), the full
+                // words no longer fit at that width and visibly overlap
                 // into "CapReqiuested" - confirmed live via Playwright after the first pass of this
                 // change. A single letter fits the tight slot; the color split (Capacity bars read
                 // blue/green-dominant, Requested bars orange-dominant - see SERIES_COLOR_PALETTE)

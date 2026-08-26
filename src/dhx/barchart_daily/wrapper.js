@@ -210,6 +210,14 @@ function RenderChart(chartData) {
         type: "bar",
         data: data,
         series: series,
+        // Wider than suite.js's own Bar default (30px, see Bar.prototype._setDefaults) - with
+        // only a handful of categories per day, 30px left large empty gaps either side of each
+        // bar; widened so bars read as the dominant shape and gaps stay proportionate. Sourced
+        // from AL's "Daily Optimizer Setup"."Bar Width (px) - Bar Chart" (codeunit 50609 "Visual
+        // Default Settings"' GetDailyBarChartWidth), falling back to 50 (matching that codeunit's
+        // own DefaultDailyBarWidthPx) if the setup field wasn't sent or is falsy - same defensive
+        // style as categories/seriesDefs/barColors above.
+        barWidth: (chartData && chartData.barWidth) ? chartData.barWidth : 50,
         // NOTE: the "text" scale's category field name comes from `text`, NOT `value`
         // (confirmed by reading suite.js's TextScale._setDefaults: `this.locator =
         // locator(config.text)`). `value` on a scale config is a no-op for the "text"

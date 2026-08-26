@@ -274,7 +274,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         AssignedColorHex: Text;
         CapacityColorHex: Text;
         ExternalBorderColorHex: Text;
-        ColorConstants: Codeunit "Color Constants Opti.";
+        ColorConstants: Codeunit "Visual Default Settings";
     begin
         EnsureDayPlanningBuffer(PeriodStartDate, PeriodStartDate + 6);
 
@@ -378,6 +378,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         ChartData.Add('dayLabels', DayLabelsArray);
         ChartData.Add('dayIndices', DayIndicesArray);
         ChartData.Add('series', SeriesArray);
+        ChartData.Add('barWidth', ColorConstants.GetWeeklyBarChartWidth());
         ChartData.WriteTo(ChartDataJson);
     end;
 
@@ -1065,7 +1066,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// </summary>
     local procedure GetSkillSeriesColor(SkillCode: Code[20]; PaletteIndex: Integer): Text
     var
-        ColorConstants: Codeunit "Color Constants Opti.";
+        ColorConstants: Codeunit "Visual Default Settings";
     begin
         exit(ColorConstants.GetSkillBarColor(CopyStr(SkillCode, 1, 10), PaletteIndex));
     end;
@@ -1124,7 +1125,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// </summary>
     procedure GetCapacitySegmentColors(var AssignedColor: Text; var CapacityColor: Text; var ExternalBorderColor: Text)
     var
-        ColorConstants: Codeunit "Color Constants Opti.";
+        ColorConstants: Codeunit "Visual Default Settings";
     begin
         ColorConstants.GetCapacitySegmentColors(AssignedColor, CapacityColor, ExternalBorderColor);
     end;
