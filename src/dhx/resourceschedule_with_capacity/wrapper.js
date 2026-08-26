@@ -119,11 +119,12 @@ window.BOOT = function () {
         }
 
         /* ── Capacity bars: matches Daily/Weekly's Capacity color default (CapacityColorTok in AL
-           codeunit 50609 "Color Constants Opti.", resolved via GetCapacitySegmentColors and
+           codeunit 50609 "Visual Default Settings", resolved via GetCapacitySegmentColors and
            always sent as colors.capacity by ControlReady) - see --cap-color-border below for the
-           still-distinct border accent. --cap-color-border (#C97F16) has no corresponding "Daily
-           Optimizer Setup" field - it's documented in codeunit 50609 as CapacityBorderColorTok
-           purely as a named constant; nothing dynamically overrides it ── */
+           still-distinct border accent. --cap-color-border (#C97F16) is overridable via "Daily
+           Optimizer Setup"."Capacity Border Color" (codeunit 50609's GetCapacityBorderColor),
+           sent as colors.capacityBorder by ControlReady - this CSS value is only the fallback for
+           when that field is blank/the setup singleton doesn't exist yet ── */
         #scheduler_here { --cap-color: #2E75B6; --cap-color-border: #C97F16; }
         .dhx_cal_event.event-capacity,
         .dhx_cal_event_line.event-capacity,
@@ -631,10 +632,11 @@ function SetBarColors(colorsJson) {
         if (colors.assigned) root.style.setProperty("--dp-color-assigned", colors.assigned);
         if (colors.requested) root.style.setProperty("--dp-color-requested", colors.requested);
         if (colors.capacity) root.style.setProperty("--cap-color", colors.capacity);
-        // "capacityBorder" has no AL source anymore (table field removed - AL never sends this
-        // key at all now, see page 50706's ControlReady), so only override when actually
-        // present; otherwise keep the CSS "--cap-color-border" default (#C97F16, set in BOOT's
-        // injected stylesheet above) instead of unconditionally clobbering it to "transparent".
+        // "capacityBorder" is sent by page 50706's ControlReady (via codeunit 50609's
+        // GetCapacityBorderColor, "Daily Optimizer Setup"."Capacity Border Color"). Guarded like
+        // every other optional key here so a blank/absent value keeps the CSS "--cap-color-border"
+        // default (#C97F16, set in BOOT's injected stylesheet above) instead of unconditionally
+        // clobbering it to "transparent".
         if (colors.capacityBorder) root.style.setProperty("--cap-color-border", colors.capacityBorder);
         // Assigned/Requested split - from Resource Scheduler Setup's "Assigned High (%)"/
         // "Requested High (%)". Left at their CSS default (50%/50%) whenever setup doesn't

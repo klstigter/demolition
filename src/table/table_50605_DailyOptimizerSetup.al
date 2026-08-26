@@ -90,6 +90,16 @@ table 50605 "Daily Optimizer Setup"
             Caption = 'Unassigned Capacity Color';
             DataClassification = CustomerContent;
         }
+        field(66; "External Border Color"; Text[20])
+        {
+            Caption = 'External Border Color';
+            DataClassification = CustomerContent;
+        }
+        field(67; "Capacity Border Color"; Text[20])
+        {
+            Caption = 'Capacity Border Color';
+            DataClassification = CustomerContent;
+        }
     }
 
     keys

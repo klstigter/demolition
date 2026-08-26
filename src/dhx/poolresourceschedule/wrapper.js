@@ -217,10 +217,12 @@ window.BOOT = function() {
 
     /* Setup-driven bar colors (overridden at runtime by SetBarColors via
        root.style.setProperty on #scheduler_here - see SetBarColors below). SetBarColors is now
-       ALWAYS called unconditionally, so these defaults never actually render in practice - kept
-       in sync with resourceschedule_with_capacity's own defaults anyway (both source values are
-       AL codeunit 50609 "Color Constants Opti."'s CapacityColorTok/CapacityBorderColorTok) purely
-       for consistency across the two capacity-bearing pages. */
+       ALWAYS called unconditionally, sending both colors.capacity and colors.capacityBorder
+       (resolved via AL codeunit 50609 "Visual Default Settings"'s GetCapacitySegmentColors/
+       GetCapacityBorderColor, overridable via "Daily Optimizer Setup"), so these CSS values only
+       ever render as fallbacks - kept in sync with resourceschedule_with_capacity's own defaults
+       (CapacityColorTok/CapacityBorderColorTok) for consistency across the two capacity-bearing
+       pages. */
     #scheduler_here {
         --cap-color: #2E75B6;
         --cap-color-border: #C97F16;

@@ -177,7 +177,16 @@ codeunit 50602 "Create Demo Data"
             until UserRec.Next() = 0;
     end;
 
-    local procedure CreateDailyOptimizerSetupDefault()
+    /// <summary>
+    /// Forces the "Daily Optimizer Setup" singleton's non-visual fields (Base Calendar/Work Hour
+    /// Template/Default Skill/Order Intake Nos/Work Order Nos) to this demo data run's
+    /// configuration, creating the referenced master data (calendar/work hour template/skill
+    /// code/no. series) first if it doesn't already exist. Public (not just called from this
+    /// codeunit's own OnRun) so page 50654 "Daily Optimizer Setup"'s "Reset to default" action can
+    /// call it directly instead of duplicating the 'DEMOCAL'/'BASIS'/'ELEKTR'/'OI'/'WO' literals a
+    /// second time - this procedure remains the single source of truth for those defaults.
+    /// </summary>
+    procedure CreateDailyOptimizerSetupDefault()
     var
         Setup: Record "Daily Optimizer Setup";
         CalendarCode: Code[10];

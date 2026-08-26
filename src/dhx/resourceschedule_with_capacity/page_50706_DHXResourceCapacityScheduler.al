@@ -25,6 +25,7 @@ page 50706 "DHX Scheduler - TimeLine"
                     AssignedColorHex: Text;
                     CapacityColorHex: Text;
                     ExternalBorderColorHex: Text;
+                    CapacityBorderColorHex: Text;
                     HasSetup: Boolean;
                     Window: Dialog;
                     LoadingLbl: Label 'Loading Capacity data...\n#1######################';
@@ -53,9 +54,11 @@ page 50706 "DHX Scheduler - TimeLine"
                     // (requested segments are now colored per-skill - see codeunit "DHX Data
                     // Handler"'s ResolveRequestedColor, wired into each event's own
                     // "requested_color" JSON field, CSS "--dp-color-requested" is the fallback
-                    // default), and "Capacity Border Color" has no AL source at all anymore -
-                    // dropped from this JSON entirely, wrapper.js keeps its own hardcoded
-                    // "--cap-color-border" CSS default when the key is absent.
+                    // default). "Capacity Border Color" is back as a real setup field (table
+                    // 50605 field 67) and is now sent as "capacityBorder" below - wrapper.js
+                    // already supported this key (it just had nothing feeding it before), applying
+                    // it to the "--cap-color-border" CSS variable that the Capacity event's border
+                    // already reads.
                     // Boolean-context Get() - a bare "DailyOptimizerSetup.Get();" statement
                     // throws a runtime error if the singleton row doesn't exist yet (it's only
                     // ever created lazily, the first time someone opens page 50654's OnOpenPage -
@@ -73,13 +76,15 @@ page 50706 "DHX Scheduler - TimeLine"
                     // against blank values, so sending blanks for Envelope/EnvelopeBorder/Heights
                     // when the setup record doesn't exist is a safe no-op per key.
                     SkillCapacityAnalysisMgt.GetCapacitySegmentColors(AssignedColorHex, CapacityColorHex, ExternalBorderColorHex);
-                    ColorsJsonTxt := StrSubstNo('{"envelope":"%1","envelopeBorder":"%2","assigned":"%3","assignedHeight":%4,"requestedHeight":%5,"capacity":"%6"}',
+                    CapacityBorderColorHex := SkillCapacityAnalysisMgt.GetCapacityBorderColor();
+                    ColorsJsonTxt := StrSubstNo('{"envelope":"%1","envelopeBorder":"%2","assigned":"%3","assignedHeight":%4,"requestedHeight":%5,"capacity":"%6","capacityBorder":"%7"}',
                         DailyOptimizerSetup."Envelope Color",
                         DailyOptimizerSetup."Envelope Border Color",
                         AssignedColorHex,
                         DailyOptimizerSetup."Assigned High (%)",
                         DailyOptimizerSetup."Requested High (%)",
-                        CapacityColorHex);
+                        CapacityColorHex,
+                        CapacityBorderColorHex);
                     CurrPage.DhxScheduler.SetBarColors(ColorsJsonTxt);
                     PushResourceFilterInfo();
                     CurrPage.Update(false);
