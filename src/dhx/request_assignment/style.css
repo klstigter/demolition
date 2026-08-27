@@ -1,0 +1,2865 @@
+
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #18313d;
+  background: #f5f7f8;
+  --brand-blue: #035b7e;
+  --brand-orange: #ef4423;
+  --brand-yellow: #fdbd10;
+  --brand-sky: #00b2ff;
+  --border: #dce4e8;
+}
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 1050px; background: #f5f7f8; }
+#app { padding: 0 18px 28px; }
+.app-header {
+  margin: 0 -18px 14px;
+  padding: 16px 22px;
+  background: var(--brand-blue);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.app-header h1 { margin: 0 0 3px; font-size: 22px; }
+.app-header p { margin: 0; opacity: .82; font-size: 12px; }
+button {
+  border: 0;
+  border-radius: 6px;
+  padding: 9px 13px;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+.legend {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.legend-chip {
+  display: inline-block;
+  width: 16px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 5px;
+}
+.legend-chip.request { background: var(--brand-sky); }
+.legend-chip.capacity { background: #dce9ef; border: 1px solid #b9ced8; }
+.legend-chip.assigned { background: #2f9e5b; }
+.legend-chip.conflict { background: #ffb7ad; }
+.pane {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.pane-title {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+}
+.pane-title h2 { margin: 0; font-size: 15px; }
+.pane-title p { margin: 3px 0 0; font-size: 11px; color: #6f7f87; }
+.status { font-size: 11px; font-weight: 650; color: var(--brand-blue); }
+.scheduler-box { height: 360px; width: 100%; }
+.footnote { font-size: 11px; color: #6f7f87; padding-left: 2px; }
+
+/* Hide ordinary scheduler navigation; both panes use the same fixed planning range */
+.scheduler-box .dhx_cal_navline { display: none !important; }
+.scheduler-box .dhx_cal_header { top: 0 !important; }
+/* Timeline rows already include the scale/header offset internally.
+   Do not add a second 42px offset here. */
+.scheduler-box .dhx_cal_data { top: 0 !important; }
+
+/* Request events: colors are supplied by skillColors from the data layer. */
+.dhx_cal_event_line.request-assigned,
+.dhx_cal_event.request-assigned .dhx_body {
+  opacity: 1 !important;
+}
+
+#requestScheduler .dhx_cal_event_line.request-assigned.request-assignment-exact-match,
+#requestScheduler .dhx_cal_event.request-assigned.request-assignment-exact-match .dhx_body {
+  opacity: 1;
+}
+
+/* Resource events */
+.dhx_cal_event_line.assignment-event,
+.dhx_cal_event.assignment-event .dhx_body {
+  background: #d7e5ea !important;
+  border-color: #237947 !important;
+  color: white !important;
+}
+.dhx_cal_event_line.assignment-conflict,
+.dhx_cal_event.assignment-conflict .dhx_body {
+  background: #ffb7ad !important;
+  border-color: #ec7968 !important;
+  color: #6d251a !important;
+}
+
+/* Capacity cell styling */
+.capacity-cell {
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    transparent 0%,
+    #dce9ef 0%,
+    #dce9ef 100%
+  ) !important;
+}
+.no-capacity-cell {
+  background: repeating-linear-gradient(
+    135deg,
+    #fafbfc,
+    #fafbfc 6px,
+    #f1f4f5 6px,
+    #f1f4f5 12px
+  ) !important;
+}
+
+/* Custom left labels rendered by Timeline columns */
+.seq-cell {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  height: 100%;
+  min-width: 0;
+}
+.seq-drag {
+  width: 27px;
+  height: 27px;
+  border-radius: 5px;
+  background: #e8f1f5;
+  color: #035b7e;
+  display: inline-grid;
+  place-items: center;
+  cursor: grab;
+  font-weight: 800;
+  user-select: none;
+  flex: 0 0 auto;
+}
+.seq-drag:active { cursor: grabbing; }
+.seq-info { min-width: 0; }
+.seq-title { font-size: 11px; font-weight: 750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.seq-subtitle { font-size: 9px; color: #78878e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.resource-cell { line-height: 1.15; }
+.resource-name { font-weight: 750; font-size: 11px; }
+.resource-skill { font-size: 9px; color: #73838a; margin-top: 2px; }
+
+/* Custom whole-row drag ghost */
+#sequenceGhost {
+  position: fixed;
+  z-index: 99999;
+  pointer-events: none;
+  display: none;
+  padding: 8px 11px;
+  border-radius: 6px;
+  background: #20313d;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(0,0,0,.18);
+}
+body.sequence-dragging #resourceScheduler {
+  outline: 3px solid rgba(253, 189, 16, .55);
+  outline-offset: -3px;
+}
+
+.task-group-cell {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding-left: 4px;
+  color: #18313d;
+  font-size: 11px;
+}
+
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.header-actions button {
+  min-height: 28px;
+  padding: 4px 9px;
+  border: 1px solid #bfd3dc;
+  border-radius: 6px;
+  background: #f7fafb;
+  color: #17394a;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1;
+}
+
+.header-actions button:hover:not(:disabled) {
+  background: #eef7fb;
+}
+
+.header-actions button:disabled {
+  opacity: .42;
+  cursor: default;
+}
+
+#acceptAllBtn:not(:disabled) {
+  background: #fdbd10;
+  border-color: rgba(180, 128, 0, .45);
+  color: #20313d;
+}
+
+#rejectAllBtn:not(:disabled) {
+  background: rgba(239, 68, 35, .10);
+  border-color: rgba(190, 62, 38, .45);
+  color: #b83620;
+}
+
+#resetBtn {
+  background: rgba(3, 91, 126, .08);
+  border-color: rgba(3, 91, 126, .30);
+  color: #035b7e;
+}
+
+#undoBtn:disabled {
+  opacity: .45;
+  cursor: default;
+}
+
+#resourceScheduler .resource-drop-target {
+  background: #fff3c7 !important;
+  box-shadow: inset 0 0 0 2px #fdbd10 !important;
+}
+
+
+/* Visual transfer from request to resource capacity */
+.transfer-flyer {
+  background: linear-gradient(90deg, #00b2ff 0%, #ef4423 100%) !important;
+  border: 1px solid rgba(3, 91, 126, .35) !important;
+  color: white !important;
+  border-radius: 4px !important;
+  box-shadow: 0 8px 20px rgba(32, 49, 61, .22);
+  will-change: transform, opacity, filter;
+}
+
+body.transfer-in-progress #requestScheduler,
+body.transfer-in-progress #resourceScheduler {
+  cursor: progress;
+}
+
+body.transfer-in-progress #undoBtn,
+body.transfer-in-progress #resetBtn {
+  opacity: .55;
+}
+
+
+/* Multi-slot selection */
+#requestScheduler .request-multi-selected,
+#requestScheduler .dhx_cal_event_line.request-multi-selected {
+  outline: 3px solid #fdbd10 !important;
+  outline-offset: 1px;
+  box-shadow: 0 0 0 1px rgba(3, 91, 126, .28), 0 4px 12px rgba(32, 49, 61, .18) !important;
+  z-index: 8 !important;
+}
+
+#requestScheduler .request-multi-selected::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border: 1px solid rgba(255, 255, 255, .75);
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+
+/* Live drag preview: the actual time-slot bars follow the pointer */
+.live-transfer-flyer {
+  box-shadow: 0 10px 24px rgba(32, 49, 61, .26) !important;
+  filter: saturate(1.05);
+}
+
+body.sequence-dragging #requestScheduler .request-multi-selected {
+  opacity: .38;
+}
+
+
+.live-transfer-flyer {
+  will-change: transform, opacity;
+  transform-origin: center center;
+}
+
+
+/* Stable capacity layer: thin strips only, never full-height blocks */
+#resourceScheduler .capacity-hour-cell,
+#resourceScheduler .no-capacity-hour-cell {
+  position: relative !important;
+  background: transparent !important;
+}
+
+#resourceScheduler .capacity-hour-cell::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 4px;
+  height: 7px;
+  background: rgba(3, 91, 126, 0.22);
+  border-top: 1px solid rgba(3, 91, 126, 0.38);
+  border-bottom: 1px solid rgba(3, 91, 126, 0.25);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#resourceScheduler .resource-drop-invalid {
+  background: rgba(239, 68, 35, 0.10) !important;
+  box-shadow: inset 0 0 0 2px #ef4423 !important;
+}
+
+/* Assignments stay above the thin capacity strip */
+#resourceScheduler .assignment-event,
+#resourceScheduler .assignment-conflict {
+  z-index: 5 !important;
+}
+
+
+/* Acceptance controls added without changing wave/capacity styles */
+#acceptAllBtn:not(:disabled) {
+  background: #fdbd10;
+  color: #20313d;
+}
+
+.resource-name-line {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.resource-name-line .resource-name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.resource-accept-btn {
+  flex: 0 0 auto;
+  min-height: 23px;
+  padding: 2px 7px;
+  border: 1px solid rgba(180, 128, 0, .45);
+  border-radius: 5px;
+  background: #fdbd10;
+  color: #20313d;
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.seq-state-icon {
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  font-weight: 800;
+  background: rgba(3, 91, 126, .12);
+  color: #035b7e;
+}
+
+.sequence-pending-cell {
+  background: rgba(253, 189, 16, .08);
+}
+
+#requestScheduler .request-sequence-pending {
+  outline: 2px dashed #f0a400 !important;
+  outline-offset: 1px;
+}
+
+#requestScheduler .request-sequence-accepted {
+  opacity: .84;
+}
+
+
+/* Actual capacity time-slot blocks.
+   Thin enough to keep assignments visually dominant. */
+#resourceScheduler .capacity-slot-overlay {
+  position: absolute;
+  height: 11px;
+  min-width: 2px;
+  border-radius: 3px;
+  background: rgba(3, 91, 126, 0.24);
+  border: 1px solid rgba(3, 91, 126, 0.40);
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+}
+
+#resourceScheduler .capacity-slot-overlay span {
+  padding: 0 3px;
+  font-size: 7px;
+  line-height: 9px;
+  color: #284e5d;
+  white-space: nowrap;
+  text-overflow: clip;
+  overflow: hidden;
+}
+
+/* Keep live wave flyers visually above everything in both schedulers. */
+.live-transfer-flyer {
+  z-index: 100000 !important;
+  will-change: transform, opacity;
+  transition: none !important;
+}
+
+
+/* Stable V1: provisional decision controls */
+.resource-decision-buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.resource-reject-btn {
+  flex: 0 0 auto;
+  min-height: 23px;
+  padding: 2px 7px;
+  border: 1px solid rgba(190, 62, 38, .45);
+  border-radius: 5px;
+  background: rgba(239, 68, 35, .10);
+  color: #b83620;
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.resource-reject-btn:hover {
+  background: rgba(239, 68, 35, .17);
+}
+
+#rejectAllBtn:not(:disabled) {
+  background: rgba(239, 68, 35, .12);
+  color: #b83620;
+}
+
+/* Accepted assignment bars become editable. */
+#resourceScheduler .assignment-accepted-editable {
+  cursor: move !important;
+}
+
+#resourceScheduler .assignment-accepted-editable::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  right: 0;
+  bottom: 2px;
+  width: 6px;
+  border-right: 3px solid rgba(3, 91, 126, .55);
+  cursor: ew-resize;
+  pointer-events: none;
+}
+
+#resourceScheduler .assignment-provisional-locked {
+  cursor: default !important;
+}
+
+
+/* Stable V1 skill filtering */
+.required-skill-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 5px;
+  padding: 1px 5px;
+  border-radius: 10px;
+  background: rgba(3, 91, 126, .10);
+  color: #035b7e;
+  font-size: 8px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.sequence-skill-active {
+  background: rgba(0, 178, 255, .09);
+  box-shadow: inset 3px 0 0 rgba(0, 178, 255, .75);
+}
+
+.resource-name[title] {
+  cursor: help;
+}
+
+.resource-skill {
+  opacity: .70;
+}
+
+
+/* Stable V1 demo hierarchy: Project -> Task -> Sequence */
+.project-group-cell {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding-left: 4px;
+  font-size: 11px;
+  letter-spacing: .01em;
+}
+
+.project-group-cell strong {
+  color: #17384a;
+}
+
+.task-group-cell {
+  padding-left: 8px;
+  opacity: .92;
+}
+
+
+/* Sequence selection horizon */
+.sequence-scope-editor {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-height: 34px;
+}
+
+.sequence-scope-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  opacity: .62;
+}
+
+.sequence-scope-editor strong {
+  font-size: 11px;
+}
+
+.sequence-scope-editor label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+}
+
+.sequence-scope-editor input[type="date"] {
+  min-height: 28px;
+  padding: 2px 5px;
+  border: 1px solid rgba(3, 91, 126, .25);
+  border-radius: 5px;
+  background: #fff;
+  color: inherit;
+}
+
+.sequence-scope-editor button {
+  min-height: 28px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid rgba(3, 91, 126, .25);
+  background: rgba(3, 91, 126, .07);
+  cursor: pointer;
+}
+
+.sequence-scope-editor button:disabled,
+.sequence-scope-editor input:disabled {
+  opacity: .45;
+  cursor: default;
+}
+
+.scope-summary {
+  font-size: 10px;
+  opacity: .72;
+}
+
+#requestScheduler .request-outside-scope {
+  opacity: .22 !important;
+  filter: grayscale(.5);
+}
+
+#requestScheduler .request-inside-scope {
+  opacity: 1;
+}
+
+
+/* Accepted planning remains visible while another skill is selected. */
+#resourceScheduler .resource-context-only {
+  opacity: .58;
+}
+
+#resourceScheduler .resource-context-only .resource-name {
+  font-style: italic;
+}
+
+
+/* Skill first in Sequence rows */
+.skill-first-title {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.sequence-small-label {
+  font-size: 8px;
+  font-weight: 650;
+  opacity: .58;
+  letter-spacing: .01em;
+}
+
+/* Lower resource filter toolbar */
+.resource-filter-toolbar {
+  position: relative;
+  margin-top: 7px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.resource-filter-toolbar button {
+  min-height: 28px;
+  padding: 3px 9px;
+  border-radius: 5px;
+  border: 1px solid rgba(3, 91, 126, .25);
+  background: rgba(3, 91, 126, .07);
+  color: inherit;
+  cursor: pointer;
+}
+
+.resource-filter-summary {
+  font-size: 10px;
+  opacity: .72;
+}
+
+.manual-filter-popover {
+  position: absolute;
+  z-index: 200000;
+  margin-top: 4px;
+  padding: 8px;
+  max-width: 360px;
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  border: 1px solid rgba(3, 91, 126, .22);
+  border-radius: 7px;
+  background: white;
+  box-shadow: 0 6px 18px rgba(0,0,0,.12);
+}
+
+.manual-filter-popover[hidden] {
+  display: none;
+}
+
+.manual-filter-title {
+  flex-basis: 100%;
+  font-size: 10px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.manual-filter-option {
+  min-height: 26px;
+  padding: 3px 7px;
+  border-radius: 12px;
+  border: 1px solid rgba(3, 91, 126, .18);
+  background: rgba(3, 91, 126, .05);
+  cursor: pointer;
+  font-size: 9px;
+}
+
+.manual-filter-option.active {
+  background: #fdbd10;
+  border-color: rgba(180, 128, 0, .45);
+}
+
+
+/* Stable V1 accepted assignment editing: both start and end */
+#resourceScheduler .assignment-accepted-editable {
+  position: relative;
+}
+
+#resourceScheduler .assignment-left-resize-handle {
+  position: absolute;
+  left: 0;
+  top: 2px;
+  bottom: 2px;
+  width: 7px;
+  border-left: 3px solid rgba(3, 91, 126, .65);
+  cursor: ew-resize;
+  z-index: 20;
+}
+
+#resourceScheduler .assignment-left-resize-handle:hover {
+  background: rgba(3, 91, 126, .12);
+}
+
+#resourceScheduler .assignment-label {
+  pointer-events: none;
+}
+
+
+/* DHTMLXtempv015 — compact upper hierarchy + resizable split panes */
+
+.planner-split {
+  display: flex;
+  flex-direction: column;
+  min-height: 460px;
+  height: auto;
+  max-height: none;
+}
+
+.split-pane {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.request-pane {
+  height: auto;
+}
+
+.resource-pane {
+  flex: 1 1 auto;
+}
+
+.split-pane .scheduler-box {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Project and Task rows use the Timeline tree folder height.
+   Sequence rows keep the normal 34px planning height. */
+#requestScheduler .project-group-cell,
+#requestScheduler .task-group-cell {
+  min-height: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: 1.05;
+}
+
+#requestScheduler .seq-cell {
+  min-height: 34px;
+}
+
+/* Keep group rows visually compact. */
+#requestScheduler .project-group-cell {
+  font-size: 10px;
+}
+
+#requestScheduler .task-group-cell {
+  font-size: 9px;
+}
+
+/* Horizontal draggable splitter */
+.pane-splitter {
+  flex: 0 0 10px;
+  height: 10px;
+  cursor: row-resize;
+  position: relative;
+  background: transparent;
+  outline: none;
+  touch-action: none;
+}
+
+.pane-splitter::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 4px;
+  height: 2px;
+  background: rgba(3, 91, 126, .22);
+}
+
+.pane-splitter:hover::before,
+.pane-splitter:focus-visible::before {
+  height: 3px;
+  top: 3px;
+  background: rgba(3, 91, 126, .55);
+}
+
+.pane-splitter-grip {
+  position: absolute;
+  left: 50%;
+  top: 2px;
+  width: 54px;
+  height: 6px;
+  transform: translateX(-50%);
+  border-radius: 5px;
+  background:
+    repeating-linear-gradient(
+      to right,
+      rgba(3, 91, 126, .30) 0 4px,
+      transparent 4px 7px
+    );
+}
+
+body.pane-resizing {
+  cursor: row-resize !important;
+  user-select: none;
+}
+
+
+/* DHTMLXtempv018 — compact Task hierarchy rows */
+#requestScheduler .task-group-cell {
+  min-height: 18px !important;
+  height: 18px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  line-height: 16px !important;
+  font-size: 9px !important;
+  align-items: center;
+}
+
+/* Remove spare vertical padding inside task labels. */
+#requestScheduler .task-group-cell strong {
+  line-height: 16px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Keep Project rows slightly stronger, but still compact. */
+#requestScheduler .project-group-cell {
+  min-height: 22px !important;
+  height: 22px !important;
+  line-height: 20px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+#requestScheduler .project-group-cell strong {
+  line-height: 20px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+
+/* DHTMLXtempv019 — standard filter icon states */
+.resource-filter-toolbar .filter-icon-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid rgba(3, 91, 126, .24);
+  background: rgba(3, 91, 126, .04);
+  color: #294b5c;
+  cursor: pointer;
+}
+
+.resource-filter-toolbar .filter-icon-button:hover {
+  background: rgba(3, 91, 126, .09);
+}
+
+.resource-filter-toolbar .filter-icon-button.filter-is-active {
+  border-color: rgba(3, 91, 126, .70);
+  background: rgba(3, 91, 126, .14);
+  color: #035b7e;
+  font-weight: 700;
+}
+
+.filter-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.filter-button-text {
+  font-size: 10px;
+}
+
+.filter-active-dot {
+  display: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #fdbd10;
+  box-shadow: 0 0 0 1px rgba(150, 105, 0, .28);
+}
+
+.filter-active-dot.visible {
+  display: inline-block;
+}
+
+.resource-filter-toolbar .filter-reset-button:disabled {
+  opacity: .38;
+  cursor: default;
+}
+
+.resource-filter-toolbar .filter-reset-button:disabled:hover {
+  background: rgba(3, 91, 126, .04);
+}
+
+
+/* DHTMLXtempv020 — compact one-line planning horizon */
+.request-heading-block {
+  min-width: 0;
+}
+
+.request-heading-block h2 {
+  margin-bottom: 4px;
+}
+
+.sequence-scope-single-line {
+  margin-top: 0 !important;
+  min-height: 30px !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap !important;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.sequence-scope-single-line .sequence-scope-label,
+.sequence-scope-single-line #scopeSequenceLabel,
+.sequence-scope-single-line .scope-date-label,
+.sequence-scope-single-line .scope-summary {
+  flex: 0 0 auto;
+}
+
+.sequence-scope-single-line .scope-summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sequence-scope-single-line input[type="date"],
+.sequence-scope-single-line button {
+  min-height: 26px !important;
+  height: 26px;
+}
+
+/* Remove unnecessary extra vertical spacing in upper pane heading. */
+.request-pane .pane-title {
+  padding-top: 7px;
+  padding-bottom: 6px;
+}
+
+
+/* DHTMLXtempv021 — compact Assignment header */
+.resource-heading-compact {
+  min-width: 0;
+}
+
+.resource-heading-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.resource-heading-line h2 {
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+.resource-heading-line .resource-filter-toolbar {
+  margin-top: 0 !important;
+  flex-wrap: nowrap;
+}
+
+.resource-pane .pane-title {
+  padding-top: 7px;
+  padding-bottom: 6px;
+}
+
+
+/* DHTMLXtempv023 — capacity as background layer */
+#resourceScheduler .capacity-slot-overlay {
+  height: 30px !important;
+  margin-top: 2px !important;
+  border-radius: 4px;
+  opacity: .58;
+  z-index: 1 !important;
+  pointer-events: none;
+}
+
+/* Keep assignment bars narrower and clearly in foreground. */
+#resourceScheduler .dhx_cal_event,
+#resourceScheduler .dhx_cal_event_line {
+  z-index: 5 !important;
+}
+
+#resourceScheduler .assignment-event,
+#resourceScheduler .assignment-conflict,
+#resourceScheduler .assignment-accepted-editable,
+#resourceScheduler .assignment-provisional-locked {
+  min-height: 18px !important;
+  height: 18px !important;
+  margin-top: 7px !important;
+  z-index: 6 !important;
+}
+
+/* Capacity label remains visible but subordinate. */
+#resourceScheduler .capacity-slot-label {
+  opacity: .72;
+  font-size: 8px;
+  pointer-events: none;
+}
+
+
+/* DHTMLXtempv025 — lower Resource row geometry correction */
+
+/* Each lower Timeline row now has enough vertical room for:
+   resource label + capacity background + foreground assignment. */
+#resourceScheduler .dhx_matrix_scell,
+#resourceScheduler .dhx_matrix_line {
+  min-height: 60px !important;
+  height: 60px !important;
+}
+
+/* Resource label stays aligned within its own row. */
+#resourceScheduler .resource-cell {
+  min-height: 60px;
+  height: 60px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+#resourceScheduler .resource-cell > div {
+  min-width: 0;
+}
+
+/* Capacity is the background band, fully contained in the resource row. */
+#resourceScheduler .capacity-slot-overlay {
+  height: 40px !important;
+  margin-top: 0 !important;
+  box-sizing: border-box;
+  z-index: 1 !important;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Foreground assignment sits centered over the capacity band. */
+#resourceScheduler .dhx_cal_event,
+#resourceScheduler .dhx_cal_event_line {
+  top: auto;
+  z-index: 5 !important;
+}
+
+#resourceScheduler .assignment-event,
+#resourceScheduler .assignment-conflict,
+#resourceScheduler .assignment-accepted-editable,
+#resourceScheduler .assignment-provisional-locked {
+  height: 22px !important;
+  min-height: 22px !important;
+  margin-top: 19px !important;
+  box-sizing: border-box;
+  z-index: 6 !important;
+}
+
+/* Keep accepted decision controls inside the resource row. */
+#resourceScheduler .resource-decisions,
+#resourceScheduler .resource-accept-controls,
+#resourceScheduler .resource-actions {
+  position: relative;
+  z-index: 10;
+  align-self: center;
+}
+
+/* Capacity labels stay subtle and inside their own band. */
+#resourceScheduler .capacity-slot-label {
+  line-height: 12px;
+  max-height: 12px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+
+/* DHTMLXtempv026 — corrected capacity overlay row positioning */
+#resourceScheduler .capacity-slot-overlay .capacity-slot-label {
+  display: block;
+  line-height: 38px;
+  padding-left: 3px;
+  font-size: 7px;
+  opacity: .64;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+}
+
+
+/* DHTMLXtempv028 — compact Resource rows + one capacity layer only */
+
+/* Disable any remaining legacy thin capacity strip. */
+#resourceScheduler .capacity-hour-cell::after,
+#resourceScheduler .no-capacity-hour-cell::after {
+  display: none !important;
+  content: none !important;
+}
+
+#resourceScheduler .capacity-hour-cell,
+#resourceScheduler .no-capacity-hour-cell {
+  background: transparent !important;
+}
+
+/* Compact lower Timeline rows. */
+#resourceScheduler .dhx_matrix_scell,
+#resourceScheduler .dhx_matrix_line {
+  min-height: 48px !important;
+  height: 48px !important;
+}
+
+#resourceScheduler .resource-cell {
+  min-height: 48px !important;
+  height: 48px !important;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+}
+
+/* Capacity remains a background band, but fits the smaller row. */
+#resourceScheduler .capacity-slot-overlay {
+  height: 32px !important;
+  margin-top: 0 !important;
+  border-radius: 4px;
+  box-sizing: border-box;
+  z-index: 1 !important;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Assignment remains clearly in front. */
+#resourceScheduler .assignment-event,
+#resourceScheduler .assignment-conflict,
+#resourceScheduler .assignment-accepted-editable,
+#resourceScheduler .assignment-provisional-locked {
+  height: 18px !important;
+  min-height: 18px !important;
+  margin-top: 15px !important;
+  z-index: 6 !important;
+}
+
+/* Capacity label centered inside the smaller background band. */
+#resourceScheduler .capacity-slot-overlay .capacity-slot-label {
+  line-height: 30px !important;
+  font-size: 7px;
+  padding-left: 3px;
+  opacity: .62;
+}
+
+
+/* DHTMLXtempv029 — robust start-time resize zone on accepted assignments */
+#resourceScheduler .assignment-accepted-editable {
+  cursor: move;
+}
+
+#resourceScheduler .assignment-accepted-editable::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 2px;
+  bottom: 2px;
+  width: 7px;
+  border-left: 2px solid rgba(3, 91, 126, .72);
+  cursor: ew-resize;
+  pointer-events: none;
+  z-index: 25;
+}
+
+
+/* DHTMLXtempv030 — explicit manual filter Apply step */
+.manual-filter-options {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.manual-filter-actions {
+  flex-basis: 100%;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(3, 91, 126, .12);
+}
+
+.manual-filter-apply {
+  min-height: 28px;
+  padding: 3px 10px;
+  border-radius: 5px;
+  border: 1px solid rgba(3, 91, 126, .55);
+  background: rgba(3, 91, 126, .12);
+  color: #035b7e;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.manual-filter-apply:disabled {
+  opacity: .4;
+  cursor: default;
+}
+
+
+/* DHTMLXtempv031 — movable complete capacity time slots */
+#resourceScheduler .capacity-slot-overlay {
+  pointer-events: auto !important;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+#resourceScheduler .capacity-slot-overlay:hover {
+  outline: 1px solid rgba(3, 91, 126, .48);
+  outline-offset: -1px;
+}
+
+#resourceScheduler .capacity-slot-overlay.capacity-slot-dragging {
+  cursor: grabbing;
+  opacity: .72 !important;
+  outline: 2px solid rgba(3, 91, 126, .62);
+  outline-offset: -2px;
+}
+
+#resourceScheduler .capacity-slot-overlay .capacity-slot-label {
+  pointer-events: none;
+}
+
+
+/* DHTMLXtempv034 — planning setup + optional weekends */
+.planning-setup-button {
+  min-height: 26px;
+  height: 26px;
+  padding: 3px 10px;
+}
+
+.planning-setup-popover {
+  position: absolute;
+  right: 6px;
+  top: 32px;
+  min-width: 230px;
+  padding: 10px;
+  border: 1px solid rgba(3, 91, 126, .18);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .10);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 50;
+}
+
+.planning-setup-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #143848;
+}
+
+.planning-setup-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11px;
+  color: #294b5c;
+}
+
+.planning-setup-checkbox {
+  justify-content: flex-start;
+}
+
+.planning-setup-field select {
+  min-width: 86px;
+  min-height: 26px;
+}
+
+.planning-setup-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+  border-top: 1px solid rgba(3, 91, 126, .12);
+}
+
+.planning-setup-actions button {
+  min-height: 28px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(3, 91, 126, .45);
+  background: rgba(3, 91, 126, .10);
+  color: #035b7e;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Highlight visible non-working days such as Saturday and Sunday. */
+#requestScheduler .non-working-day-cell,
+#resourceScheduler .non-working-day-cell {
+  background: #fff7cc !important;
+}
+
+/* DHTMLXtempv036 — honor hidden state for Timeline Setup popover */
+.planning-setup-popover[hidden] {
+  display: none !important;
+}
+
+
+/* DHTMLXtempv037 — capacity scroll sync + assignment interaction priority */
+
+/* Capacity is visually behind assignments and does not intercept the middle area. */
+#resourceScheduler .capacity-slot-overlay {
+  pointer-events: none !important;
+  z-index: 1 !important;
+}
+
+/* Only the exposed top/bottom background edges are draggable. */
+#resourceScheduler .capacity-drag-zone {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 6px;
+  pointer-events: auto;
+  cursor: grab;
+  z-index: 2;
+}
+
+#resourceScheduler .capacity-drag-zone-top {
+  top: 0;
+}
+
+#resourceScheduler .capacity-drag-zone-bottom {
+  bottom: 0;
+}
+
+#resourceScheduler .capacity-drag-zone:hover {
+  background: rgba(3, 91, 126, .10);
+}
+
+#resourceScheduler .capacity-slot-overlay.capacity-slot-dragging .capacity-drag-zone {
+  cursor: grabbing;
+}
+
+/* Assignment bars must always be the primary interactive foreground. */
+#resourceScheduler .dhx_cal_event,
+#resourceScheduler .dhx_cal_event_line,
+#resourceScheduler .assignment-event,
+#resourceScheduler .assignment-conflict,
+#resourceScheduler .assignment-accepted-editable,
+#resourceScheduler .assignment-provisional-locked {
+  z-index: 20 !important;
+  pointer-events: auto !important;
+}
+
+#resourceScheduler .capacity-slot-label {
+  pointer-events: none !important;
+}
+
+
+/* DHTMLXtempv038 — capacity is a viewport overlay, never scroll content */
+#resourceScheduler {
+  position: relative;
+}
+
+#resourceScheduler .capacity-overlay-layer {
+  position: absolute;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 3;
+  contain: layout paint;
+}
+
+#resourceScheduler .capacity-overlay-layer .capacity-slot-overlay {
+  position: absolute;
+  pointer-events: none !important;
+  z-index: 1 !important;
+}
+
+/* Only the small exposed capacity edges remain draggable. */
+#resourceScheduler .capacity-overlay-layer .capacity-drag-zone {
+  pointer-events: auto;
+}
+
+/* DHTMLX assignments remain above the complete capacity portal. */
+#resourceScheduler .dhx_cal_event,
+#resourceScheduler .dhx_cal_event_line {
+  z-index: 20 !important;
+  pointer-events: auto !important;
+}
+
+
+/* DHTMLXtempv039 — use native Timeline coordinates and preserve native scrollbars */
+#resourceScheduler .capacity-overlay-layer {
+  overflow: hidden !important;
+  pointer-events: none !important;
+  box-sizing: border-box;
+  background: transparent !important;
+}
+
+/* Never let the overlay layer sit above DHTMLX's scrollbar controls. */
+#resourceScheduler .dhx_cal_data,
+#resourceScheduler .dhx_timeline_scrollable_data {
+  z-index: auto;
+}
+
+/* Capacity remains behind Assignment events. */
+#resourceScheduler .capacity-overlay-layer {
+  z-index: 2 !important;
+}
+
+#resourceScheduler .dhx_cal_event,
+#resourceScheduler .dhx_cal_event_line {
+  z-index: 20 !important;
+  pointer-events: auto !important;
+}
+
+
+
+
+/* DHTMLXtempv041 — hard left boundary for lower Timeline foreground */
+
+/*
+  DHTMLX events/current-time marker can extend underneath the fixed
+  Resource column while the horizontal Timeline scrolls.
+  Do not reposition those objects. Instead, keep the fixed left column
+  visually above every Timeline foreground layer.
+*/
+#resourceScheduler .dhx_matrix_scell {
+  position: relative !important;
+  z-index: 60 !important;
+  background: #ffffff !important;
+  isolation: isolate;
+}
+
+/* Keep the fixed Resource header above the time-grid marker as well. */
+#resourceScheduler .dhx_timeline_label_wrapper,
+#resourceScheduler .dhx_matrix_scale,
+#resourceScheduler .dhx_cal_scale_placeholder {
+  position: relative;
+  z-index: 60 !important;
+  background: #ffffff;
+}
+
+/* Assignment remains above Capacity inside the actual time area only. */
+#resourceScheduler .dhx_cal_event,
+#resourceScheduler .dhx_cal_event_line {
+  z-index: 20 !important;
+  pointer-events: auto !important;
+}
+
+
+/* DHTMLXtempv042 — one hard clipping boundary for all lower Timeline foreground */
+#resourceScheduler .timeline-left-shield {
+  position: absolute;
+  background: #ffffff;
+  pointer-events: none;
+  z-index: 200 !important;
+  overflow: hidden;
+}
+
+/* Resource labels/actions remain visible above the shield. */
+#resourceScheduler .dhx_matrix_scell {
+  position: relative !important;
+  z-index: 300 !important;
+  background: #ffffff !important;
+}
+
+/* Fixed Resource header also stays above the shield. */
+#resourceScheduler .dhx_timeline_label_wrapper,
+#resourceScheduler .dhx_matrix_scale,
+#resourceScheduler .dhx_cal_scale_placeholder {
+  position: relative;
+  z-index: 300 !important;
+  background: #ffffff;
+}
+
+/*
+  Assignments and current-time marker remain owned by DHTMLX.
+  They are simply hidden wherever they would cross into the fixed column.
+*/
+
+
+/* DHTMLXtempv043 — context menus, card placeholders, clickable hierarchy */
+.hierarchy-clickable,
+.resource-clickable {
+  cursor: pointer;
+}
+
+.slot-context-menu {
+  position: fixed;
+  z-index: 10000;
+  min-width: 120px;
+  padding: 4px;
+  border: 1px solid rgba(3, 91, 126, .22);
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .16);
+}
+
+.slot-context-menu[hidden] {
+  display: none !important;
+}
+
+.slot-context-menu button {
+  width: 100%;
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.slot-context-menu button:hover {
+  background: rgba(3, 91, 126, .08);
+}
+
+.simple-popup-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 11000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, .22);
+}
+
+.simple-popup-backdrop[hidden] {
+  display: none !important;
+}
+
+.simple-popup {
+  min-width: 260px;
+  padding: 18px;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, .22);
+}
+
+.simple-popup-text {
+  margin-bottom: 14px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #17394a;
+}
+
+.simple-popup button {
+  min-height: 30px;
+  padding: 5px 14px;
+}
+
+
+/* DHTMLXtempv045 — lighter context-menu item */
+.slot-context-menu button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 400;
+  color: #1f3540;
+}
+
+.slot-context-menu .context-menu-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  color: #496b7b;
+}
+
+
+/* DHTMLXtempv046 — compact Request Job / Task filters */
+.request-filter-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: #4f6977;
+  white-space: nowrap;
+}
+
+.request-filter-field select {
+  height: 26px;
+  min-width: 94px;
+  max-width: 155px;
+  padding: 2px 22px 2px 6px;
+  border: 1px solid #b9ced8;
+  border-radius: 5px;
+  background: #fff;
+  color: #17394a;
+  font-size: 10px;
+}
+
+#taskFilterSelect {
+  min-width: 112px;
+  max-width: 180px;
+}
+
+
+/* DHTMLXtempv048 — Capacity right-click without stealing Assignment interaction */
+#resourceScheduler .capacity-overlay-layer .capacity-slot-overlay {
+  pointer-events: auto !important;
+}
+
+/* Assignment stays above the Capacity layer and therefore wins hit-testing. */
+#resourceScheduler .dhx_cal_event,
+#resourceScheduler .dhx_cal_event_line {
+  z-index: 20 !important;
+  pointer-events: auto !important;
+}
+
+
+/* DHTMLXtempv048 — Request Filter/Clear pattern + active summary pill */
+.sequence-scope-editor {
+  position: relative;
+}
+
+.request-filter-toolbar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.request-filter-summary-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 8px;
+  border: 1px solid #7fbad4;
+  border-radius: 999px;
+  background: #eaf5fb;
+  color: #035b7e;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.request-filter-summary-pill[hidden] {
+  display: none !important;
+}
+
+.request-filter-popover {
+  position: absolute;
+  top: 32px;
+  right: 0;
+  z-index: 70;
+  min-width: 275px;
+  padding: 10px;
+  border: 1px solid rgba(3, 91, 126, .18);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .12);
+}
+
+.request-filter-popover[hidden] {
+  display: none !important;
+}
+
+.request-filter-popover-title {
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #17394a;
+}
+
+.request-filter-popover-field {
+  display: grid !important;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px !important;
+  margin-top: 7px;
+}
+
+.request-filter-popover-field select {
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  border: 1px solid #b9ced8;
+  border-radius: 5px;
+  background: #fff;
+  color: #17394a;
+  font-size: 10px;
+}
+
+.request-filter-popover-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 9px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(3, 91, 126, .10);
+}
+
+.request-filter-popover-actions button {
+  min-height: 28px;
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.request-toolbar-spacer {
+  flex: 1 1 auto;
+  min-width: 8px;
+}
+
+.planning-setup-gear {
+  flex: 0 0 auto;
+  width: 29px;
+  height: 29px;
+  padding: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(3, 91, 126, .18) !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  color: #355c6d;
+  opacity: .72;
+}
+
+.planning-setup-gear:hover {
+  opacity: 1;
+  background: rgba(3, 91, 126, .06) !important;
+}
+
+.planning-setup-gear svg {
+  display: block;
+}
+
+/* Keep the gear at the far right of the available Request header line. */
+.sequence-scope-single-line {
+  width: 100%;
+}
+
+.sequence-scope-single-line .planning-setup-gear {
+  margin-left: auto;
+}
+
+
+/* DHTMLXtempv049 — clickable Resource names use a normal hand cursor */
+#resourceScheduler .resource-name,
+#resourceScheduler .resource-name[title],
+#resourceScheduler .resource-clickable {
+  cursor: pointer !important;
+}
+
+
+/* DHTMLXtempv049 — Capacity is display-only */
+#resourceScheduler .capacity-overlay-layer,
+#resourceScheduler .capacity-overlay-layer .capacity-slot-overlay,
+#resourceScheduler .capacity-slot-overlay,
+#resourceScheduler .capacity-slot-label {
+  pointer-events: none !important;
+  cursor: default !important;
+}
+
+
+/* DHTMLXtempv049 — Request header placement */
+#requestPane {
+  position: relative;
+}
+
+#requestPane .pane-title {
+  position: relative;
+  padding-right: 42px;
+}
+
+#requestPane .planning-setup-gear {
+  position: absolute;
+  top: 5px;
+  right: 7px;
+  margin: 0 !important;
+  z-index: 80;
+}
+
+#requestScheduler .sequences-header-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 100%;
+}
+
+#requestScheduler .request-filter-mount {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+#requestScheduler .request-filter-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+
+#requestScheduler .request-filter-toolbar .filter-icon-button {
+  height: 25px;
+  min-height: 25px;
+  padding: 2px 6px;
+  font-size: 9px;
+}
+
+#requestScheduler .request-filter-summary-pill {
+  font-size: 9px;
+  min-height: 22px;
+  padding: 1px 6px;
+}
+
+#requestScheduler .request-filter-popover {
+  left: 0;
+  right: auto;
+  top: 28px;
+}
+
+
+/* Request weekend background must match Assignment weekend background. */
+#requestScheduler .dhx_matrix_cell.non-working-day-cell,
+#requestScheduler .non-working-day-cell {
+  background-color: #fff7cc !important;
+}
+
+
+/* DHTMLXtempv050 — reliable Request filter placement in Sequences header row */
+#requestScheduler {
+  position: relative;
+}
+
+#requestScheduler .request-filter-toolbar-mounted {
+  position: absolute !important;
+  top: 4px;
+  left: 82px;
+  right: auto;
+  z-index: 140;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 4px;
+  margin: 0 !important;
+}
+
+#requestScheduler .request-filter-toolbar-mounted .filter-icon-button {
+  height: 25px;
+  min-height: 25px;
+  padding: 2px 6px;
+  font-size: 9px;
+}
+
+#requestScheduler .request-filter-toolbar-mounted .request-filter-popover {
+  top: 28px;
+  left: 0;
+  right: auto;
+}
+
+/* Planning setup gear: top-level, far right, independent of the horizon row. */
+#requestPane > .planning-setup-gear {
+  position: absolute !important;
+  top: 6px !important;
+  right: 8px !important;
+  margin: 0 !important;
+  z-index: 220 !important;
+}
+
+/* Move the actual Setup popover with the gear so it can always open visibly. */
+#requestPane > .planning-setup-popover {
+  position: absolute !important;
+  top: 39px !important;
+  right: 8px !important;
+  left: auto !important;
+  z-index: 230 !important;
+  min-width: 275px;
+}
+
+/* Setup field for Sequence skill behavior. */
+.planning-setup-field-stacked {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.planning-setup-field-stacked select {
+  width: 100%;
+  min-height: 28px;
+}
+
+/* Highlight mode: matching Sequences get a clear but non-warning blue emphasis. */
+#requestScheduler .seq-cell.sequence-skill-match {
+  background: #eaf5fb;
+  box-shadow: inset 3px 0 0 #7fbad4;
+  border-radius: 4px;
+}
+
+#requestScheduler .seq-cell.sequence-skill-match .seq-title {
+  color: #035b7e;
+  font-weight: 700;
+}
+
+
+/* v050 no longer relies on HTML inside the DHTMLX column label. */
+#requestScheduler .request-filter-mount,
+#requestScheduler .sequences-header-content {
+  display: none !important;
+}
+
+
+/* DHTMLXtempv051 — remove Request status text from the header */
+#requestPane #dragStatus {
+  display: none !important;
+}
+
+
+/* DHTMLXtempv051 — Filter/Clear directly to the right of Sequences */
+#requestScheduler .request-filter-toolbar-mounted {
+  top: 3px !important;
+  left: 112px !important;
+  transform: none !important;
+  z-index: 160 !important;
+}
+
+
+/* DHTMLXtempv051 — normal Assignment = green; problem Assignment stays light red */
+#resourceScheduler .dhx_cal_event_line.assignment-event,
+#resourceScheduler .dhx_cal_event.assignment-event .dhx_body {
+  background: #d7e5ea !important;
+  border-color: #237947 !important;
+  color: #ffffff !important;
+}
+
+#resourceScheduler .dhx_cal_event_line.assignment-conflict,
+#resourceScheduler .dhx_cal_event.assignment-conflict .dhx_body {
+  background: #ffb7ad !important;
+  border-color: #ec7968 !important;
+  color: #6d251a !important;
+}
+
+
+/* v051 context menu: icon first, compact regular text */
+.slot-context-menu button {
+  font-size: 12px;
+  font-weight: 400;
+}
+
+
+/* DHTMLXtempv052 — Request Filter / Clear directly behind Request */
+#requestPane .request-heading-block {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+#requestPane .request-heading-block h2 {
+  margin-right: 0;
+  flex: 0 0 auto;
+}
+
+#requestPane .header-actions {
+  flex: 0 0 auto;
+}
+
+#requestPane .sequence-scope-single-line {
+  width: auto;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+#requestPane .request-title-filter-host {
+  display: inline-flex;
+  align-items: center;
+}
+
+#requestPane .request-title-filter-host .request-filter-toolbar {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  transform: none !important;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 4px;
+  margin: 0 !important;
+  z-index: 160;
+}
+
+#requestPane .request-title-filter-host .request-filter-popover {
+  top: 30px;
+  left: 0;
+  right: auto;
+}
+
+/* Exact Request / Assignment times = solid green border.
+   Different times = red dotted border. */
+
+
+#requestScheduler .dhx_cal_event_line.request-assignment-time-diff,
+#requestScheduler .dhx_cal_event.request-assignment-time-diff .dhx_body {
+  border: 2px dotted #d9534f !important;
+}
+
+/* Sequence drag count follows the mouse pointer. */
+.sequence-drag-tooltip {
+  position: fixed;
+  z-index: 12000;
+  padding: 4px 8px;
+  border: 1px solid rgba(3, 91, 126, .22);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, .97);
+  color: #17394a;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .12);
+}
+
+.sequence-drag-tooltip[hidden] {
+  display: none !important;
+}
+
+
+/* DHTMLXtempv053 — Request and Assignment timeline grids share one X origin */
+:root {
+  --planner-timeline-label-width: 230px;
+}
+
+#requestScheduler .dhx_matrix_scell,
+#resourceScheduler .dhx_matrix_scell {
+  width: var(--planner-timeline-label-width) !important;
+  min-width: var(--planner-timeline-label-width) !important;
+  max-width: var(--planner-timeline-label-width) !important;
+  box-sizing: border-box;
+}
+
+/* Only Assignment shows the horizontal scrollbar.
+   Request remains scrollable programmatically and follows the same X position. */
+#requestScheduler .dhx_cal_data {
+  scrollbar-width: none;
+}
+
+#requestScheduler .dhx_cal_data::-webkit-scrollbar:horizontal {
+  height: 0 !important;
+}
+
+#requestScheduler .dhx_cal_data::-webkit-scrollbar-thumb:horizontal,
+#requestScheduler .dhx_cal_data::-webkit-scrollbar-track:horizontal {
+  display: none !important;
+}
+
+/* Filtered-out resources are removed from y_unit; no context greying. */
+.resource-context-only {
+  opacity: 1 !important;
+}
+
+
+/* v054 — accepted same-skill rows are normal rows, never grey context */
+.resource-context-only,
+#resourceScheduler .resource-context-only,
+#resourceScheduler .resource-context-only .resource-name {
+  opacity: 1 !important;
+  font-style: normal !important;
+}
+
+
+/* v054 — only the lower Assignment horizontal scrollbar is visible */
+#requestScheduler .dhx_cal_data,
+#requestScheduler .dhx_matrix_data {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+#requestScheduler .dhx_cal_data::-webkit-scrollbar,
+#requestScheduler .dhx_matrix_data::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+
+/* v054 — identical filter toolbars in Request and Assignment */
+#requestPane .request-title-filter-host .request-filter-toolbar,
+.resource-filter-toolbar {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  margin: 0 !important;
+  flex-wrap: nowrap !important;
+}
+
+#requestPane .request-title-filter-host .request-filter-toolbar .filter-icon-button,
+.resource-filter-toolbar .filter-icon-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  width: 76px !important;
+  min-width: 76px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 9px !important;
+  box-sizing: border-box !important;
+  border: 1px solid #bfd3dc !important;
+  border-radius: 6px !important;
+  background: #f7fafb !important;
+  color: #17394a !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+}
+
+#requestPane .request-title-filter-host .request-filter-toolbar .filter-icon-button:hover,
+.resource-filter-toolbar .filter-icon-button:hover {
+  background: #eef7fb !important;
+}
+
+#requestPane .request-title-filter-host .request-filter-toolbar .filter-icon-button.filter-active,
+#requestPane .request-title-filter-host .request-filter-toolbar .filter-icon-button.filter-is-active,
+.resource-filter-toolbar .filter-icon-button.filter-active,
+.resource-filter-toolbar .filter-icon-button.filter-is-active {
+  border-color: #4f9fc4 !important;
+  background: #eaf5fb !important;
+  color: #035b7e !important;
+}
+
+#requestPane .request-title-filter-host .request-filter-toolbar .filter-icon,
+.resource-filter-toolbar .filter-icon {
+  width: 15px !important;
+  height: 15px !important;
+  display: inline-flex !important;
+}
+
+#requestPane .request-title-filter-host .request-filter-toolbar .filter-icon svg,
+.resource-filter-toolbar .filter-icon svg {
+  width: 15px !important;
+  height: 15px !important;
+}
+
+#requestPane .request-title-filter-host .request-filter-toolbar .filter-button-text,
+.resource-filter-toolbar .filter-button-text {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+#requestFilterSummary,
+#resourceFilterSummary {
+  display: inline-flex !important;
+  align-items: center !important;
+  width: auto !important;
+  min-width: 0 !important;
+  min-height: 24px !important;
+  margin: 0 0 0 2px !important;
+  padding: 1px 8px !important;
+  box-sizing: border-box !important;
+  border: 1px solid #71b9df !important;
+  border-radius: 999px !important;
+  background: #f2fbff !important;
+  color: #035b7e !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  line-height: 20px !important;
+  opacity: 1 !important;
+  white-space: nowrap !important;
+}
+
+#requestFilterSummary[hidden] {
+  display: none !important;
+}
+
+#resourceFilterSummary:empty {
+  display: none !important;
+}
+
+
+/* v055 — keep status nodes for logic, but remove visible Assignment status line */
+#resourcePane #resultStatus {
+  display: none !important;
+}
+
+
+/* v055 — hide the real Request horizontal scrollbar, preserve programmatic scrolling */
+#requestScheduler .hide-request-horizontal-scrollbar,
+#requestScheduler .dhx_timeline_scrollable_data,
+#requestScheduler .dhx_cal_data,
+#requestScheduler .dhx_matrix_data {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+#requestScheduler .hide-request-horizontal-scrollbar::-webkit-scrollbar,
+#requestScheduler .dhx_timeline_scrollable_data::-webkit-scrollbar,
+#requestScheduler .dhx_cal_data::-webkit-scrollbar,
+#requestScheduler .dhx_matrix_data::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+
+/* v055 — structured Assignment hover tooltip */
+.assignment-detail-tooltip {
+  position: fixed;
+  z-index: 13000;
+  min-width: 270px;
+  padding: 7px 8px;
+  border: 1px solid #bfd3dc;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, .98);
+  color: #17394a;
+  box-shadow: 0 5px 16px rgba(0, 0, 0, .14);
+  pointer-events: none;
+}
+
+.assignment-detail-tooltip[hidden] {
+  display: none !important;
+}
+
+.assignment-tooltip-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.assignment-tooltip-table th,
+.assignment-tooltip-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid #e4ecef;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.assignment-tooltip-table thead th {
+  color: #035b7e;
+  font-weight: 700;
+  background: #f4f9fb;
+}
+
+.assignment-tooltip-table tbody th {
+  color: #647681;
+  font-weight: 600;
+}
+
+.assignment-tooltip-table tbody tr:last-child th,
+.assignment-tooltip-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.assignment-tooltip-different {
+  color: #a33a2c;
+  font-weight: 700;
+}
+
+
+/* v056 — Request has no visible horizontal scrollbar or grey track */
+#requestScheduler .hide-request-horizontal-scrollbar,
+#requestScheduler .dhx_timeline_scrollable_data,
+#requestScheduler .dhx_cal_data,
+#requestScheduler .dhx_matrix_data {
+  overflow-x: hidden !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+#requestScheduler .hide-request-horizontal-scrollbar::-webkit-scrollbar,
+#requestScheduler .dhx_timeline_scrollable_data::-webkit-scrollbar,
+#requestScheduler .dhx_cal_data::-webkit-scrollbar,
+#requestScheduler .dhx_matrix_data::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+/* Resource shown only through second filter condition: subtle warning only. */
+#resourceScheduler .resource-skill-warning {
+  display: inline-block;
+  margin-left: 5px;
+  color: #c87900;
+  font-size: 12px;
+  line-height: 1;
+  vertical-align: middle;
+  cursor: help;
+}
+
+/* Skill mismatch is independent from capacity/problem fill.
+   Keep existing fill, but make the assignment border red. */
+#resourceScheduler .dhx_cal_event_line.assignment-skill-mismatch,
+#resourceScheduler .dhx_cal_event.assignment-skill-mismatch .dhx_body {
+  border: 2px solid #d9534f !important;
+  box-sizing: border-box !important;
+}
+
+
+/* Request baseline: original requested interval when Assignment time differs. */
+#resourceScheduler .assignment-request-baseline {
+  position: absolute;
+  height: 7px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  opacity: 1;
+  pointer-events: none;
+  z-index: 95;
+  box-sizing: border-box;
+}
+
+/* Keep existing Assignment block dominant above the baseline. */
+#resourceScheduler .dhx_cal_event,
+#resourceScheduler .dhx_cal_event_line {
+  z-index: 80;
+}
+
+#resourceScheduler {
+  position: relative;
+}
+
+
+/* BC-ready Stable V1 revision 3 — custom Resource skill warning tooltip */
+.resource-skill-warning-tooltip {
+  position: fixed;
+  z-index: 14000;
+  min-width: 320px;
+  max-width: 440px;
+  padding: 8px 10px;
+  border: 1px solid #bfd3dc;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, .99);
+  color: #17394a;
+  box-shadow: 0 5px 16px rgba(0, 0, 0, .14);
+  pointer-events: none;
+}
+
+.resource-skill-warning-tooltip[hidden] {
+  display: none !important;
+}
+
+.resource-warning-title {
+  margin-bottom: 6px;
+  color: #035b7e;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.resource-warning-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.resource-warning-table th,
+.resource-warning-table td {
+  padding: 5px 6px;
+  border-bottom: 1px solid #e4ecef;
+  text-align: left;
+  vertical-align: top;
+}
+
+.resource-warning-table th {
+  width: 92px;
+  color: #647681;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.resource-warning-table tr:last-child th,
+.resource-warning-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.resource-warning-problem {
+  color: #b44232;
+  font-weight: 700;
+}
+
+.resource-warning-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.resource-warning-date {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border: 1px solid #efb3aa;
+  border-radius: 999px;
+  background: #fff3f1;
+  color: #a43c2f;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+
+/* BC-ready v4 — compact Request hierarchy */
+#requestScheduler .project-group-cell,
+#requestScheduler .task-group-cell {
+  min-height: 18px !important;
+  height: 18px !important;
+  line-height: 18px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+#requestScheduler .project-group-cell strong,
+#requestScheduler .task-group-cell strong {
+  line-height: 18px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+
+/* BC-ready v7 — compact Request detail tooltip */
+.request-detail-tooltip {
+  position: fixed;
+  z-index: 14000;
+  min-width: 285px;
+  max-width: 390px;
+  padding: 8px 10px;
+  border: 1px solid #bfd3dc;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, .99);
+  color: #17394a;
+  box-shadow: 0 5px 16px rgba(0, 0, 0, .14);
+  pointer-events: none;
+}
+
+.request-detail-tooltip[hidden] {
+  display: none !important;
+}
+
+.request-tooltip-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 6px;
+  padding: 0 2px 5px;
+  border-bottom: 1px solid #e4ecef;
+}
+
+.request-tooltip-skill {
+  color: #035b7e;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.request-tooltip-date {
+  color: #647681;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.request-tooltip-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.request-tooltip-table th,
+.request-tooltip-table td {
+  padding: 5px 6px;
+  border-bottom: 1px solid #e4ecef;
+  text-align: left;
+  vertical-align: top;
+}
+
+.request-tooltip-table thead th {
+  color: #647681;
+  font-weight: 700;
+}
+
+.request-tooltip-table tbody th {
+  color: #647681;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.request-tooltip-table tr:last-child th,
+.request-tooltip-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.request-tooltip-changed {
+  color: #b44232;
+  font-weight: 700;
+}
+
+
+/* v10 — hierarchy density */
+body.hierarchy-density-compact #requestScheduler .project-group-cell,
+body.hierarchy-density-compact #requestScheduler .task-group-cell {
+  min-height: 18px !important;
+  height: 18px !important;
+  line-height: 18px !important;
+}
+
+body.hierarchy-density-normal #requestScheduler .project-group-cell,
+body.hierarchy-density-normal #requestScheduler .task-group-cell {
+  min-height: 32px !important;
+  height: 32px !important;
+  line-height: 32px !important;
+}
+
+/* v10 — safe post-render ISO week number */
+.planner-week-number {
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  z-index: 5;
+  color: #647681;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  pointer-events: none;
+}
+
+/* Request slot border always remains the requested skill border */
+#requestScheduler .dhx_cal_event_line[class*="request-skill-"],
+#requestScheduler .dhx_cal_event[class*="request-skill-"] .dhx_body {
+  border-width: 2px !important;
+  border-style: solid !important;
+  box-sizing: border-box;
+}
+
+/* Assignment differs from Request by time and/or requested skill */
+#resourceScheduler .assignment-request-mismatch,
+#resourceScheduler .assignment-request-mismatch .dhx_body,
+#resourceScheduler .dhx_cal_event_line.assignment-request-mismatch {
+  border: 2px solid #d64545 !important;
+  box-sizing: border-box;
+}
+
+
+/* v11 — shared Request / Assignment tooltip standard */
+.standard-tooltip-head {
+  display: block;
+  margin-bottom: 7px;
+  padding: 0 2px 6px;
+  border-bottom: 1px solid #e4ecef;
+}
+
+.standard-tooltip-title {
+  color: #035b7e;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.standard-tooltip-date {
+  margin-top: 2px;
+  color: #647681;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.standard-tooltip-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.standard-tooltip-table th,
+.standard-tooltip-table td {
+  padding: 5px 6px;
+  border-bottom: 1px solid #e4ecef;
+  text-align: left;
+  vertical-align: top;
+}
+
+.standard-tooltip-table thead th {
+  color: #647681;
+  font-weight: 700;
+}
+
+.standard-tooltip-table tbody th {
+  color: #647681;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.standard-tooltip-table tr:last-child th,
+.standard-tooltip-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.standard-tooltip-different {
+  color: #b44232;
+  font-weight: 700;
+}
+
+/* Make both tooltip shells visually identical */
+.request-detail-tooltip,
+.assignment-detail-tooltip {
+  min-width: 285px;
+  max-width: 390px;
+  padding: 8px 10px;
+  border: 1px solid #bfd3dc;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, .99);
+  color: #17394a;
+  box-shadow: 0 5px 16px rgba(0, 0, 0, .14);
+}
+
+
+/* v11 — week number inside day header only */
+.planner-week-number {
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  color: #647681;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
+}
+
+
+/* v12 — Job and Task section in the shared tooltip */
+.standard-tooltip-context {
+  margin-bottom: 7px;
+  padding: 0 2px 6px;
+  border-bottom: 1px solid #e4ecef;
+}
+
+.standard-tooltip-context-title {
+  color: #035b7e;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.standard-tooltip-context-line {
+  margin-top: 2px;
+  padding-left: 12px;
+  color: #465d68;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+
+/* v12 — Request OK status changes fill/text only; skill border remains authoritative */
+#requestScheduler .request-assigned.request-assignment-exact-match[class*="request-skill-"] {
+  border-style: solid !important;
+  border-width: 2px !important;
+}
+
+
+/* Red mismatch border has priority over the shared OK status fill. */
+
+
+
+/* v13 — shared tooltip standard */
+.standard-tooltip-title {
+  color: #035b7e !important;
+  font-size: 12px;
+  font-weight: 700 !important;
+  line-height: 1.35;
+}
+
+.standard-tooltip-detail {
+  margin-top: 2px;
+  padding-left: 12px;
+  color: #647681;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+
+#resourceScheduler .assignment-event,
+#resourceScheduler .assignment-conflict,
+
+
+
+/* v14 — one real Assignment scrollbar aligned to timeline origin.
+   Horizontal only - vertical scrolling has no custom replacement, so hiding
+   it here (scrollbar-width:none hides BOTH axes, and the unscoped webkit
+   rule below set width:0 as well as height:0) left users with no way to
+   scroll to any resource row beyond what DHTMLX happened to render. */
+#resourceScheduler .dhx_timeline_scrollable_data::-webkit-scrollbar:horizontal,
+#resourceScheduler .dhx_cal_data::-webkit-scrollbar:horizontal,
+#resourceScheduler .dhx_matrix_data::-webkit-scrollbar:horizontal {
+  height: 0 !important;
+  display: none !important;
+}
+
+
+.assignment-timeline-scrollbar {
+  margin-left: 230px;
+  width: calc(100% - 230px);
+  height: 18px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  box-sizing: border-box;
+  background: #ffffff;
+}
+
+.assignment-timeline-scrollbar-content {
+  height: 1px;
+  min-width: 100%;
+  pointer-events: none;
+}
+
+
+.standard-tooltip-title {
+  color: #035b7e !important;
+  font-weight: 700 !important;
+}
+
+.standard-tooltip-context-line,
+.standard-tooltip-detail {
+  padding-left: 12px;
+}
+
+
+/* v18 — Request fulfilled slot only */
+#requestScheduler .request-assigned.request-assignment-exact-match,
+#requestScheduler .request-assigned.request-assignment-exact-match .dhx_body {
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+
+/* v20 — Assignment mismatch border remains authoritative */
+#resourceScheduler .assignment-request-mismatch,
+#resourceScheduler .assignment-request-mismatch .dhx_body {
+  border-color: #d9534f !important;
+}
+
+
+/* v21 — Assignment OK background precedence only */
+#resourceScheduler .dhx_cal_event.assignment-ok,
+#resourceScheduler .dhx_cal_event.assignment-ok .dhx_body,
+#resourceScheduler .dhx_cal_event_line.assignment-ok,
+#resourceScheduler .assignment-event.assignment-ok,
+#resourceScheduler .assignment-event.assignment-ok .dhx_body,
+#resourceScheduler .assignment-ok {
+  background: #2F9E5B !important;
+  background-color: #2F9E5B !important;
+  color: #FFFFFF !important;
+  opacity: 1 !important;
+}
+
+/* mismatch border must remain visible over OK fill */
+#resourceScheduler .assignment-request-mismatch,
+#resourceScheduler .assignment-request-mismatch .dhx_body {
+  border-color: #d9534f !important;
+}
+
+
+/* v22 — actual DHTMLX Assignment event styling.
+   This targets the DOM element confirmed in DevTools:
+   .dhx_cal_event_line.assignment-event */
+#resourceScheduler .dhx_matrix_line .dhx_cal_event_line.assignment-event,
+#resourceScheduler .dhx_cal_event_line.assignment-event {
+  background: #2F9E5B !important;
+  background-color: #2F9E5B !important;
+  color: #FFFFFF !important;
+  opacity: 1 !important;
+}
+
+/* Text inside the Assignment event */
+#resourceScheduler .dhx_cal_event_line.assignment-event .assignment-label {
+  color: #FFFFFF !important;
+}
+
+/* A mismatch keeps its red border */
+#resourceScheduler .dhx_cal_event_line.assignment-event.assignment-request-mismatch {
+  border-color: #D9534F !important;
+}
+
+
+/* v23 — denser Assignment pane only */
+#resourceScheduler .dhx_matrix_scell,
+#resourceScheduler .dhx_matrix_line {
+  min-height: 34px !important;
+  height: 34px !important;
+}
+
+#resourceScheduler .dhx_cal_event_line.assignment-event {
+  height: 18px !important;
+  line-height: 18px !important;
+}
+
+/* keep Resource names vertically centered in denser rows */
+#resourceScheduler .dhx_matrix_scell {
+  display: flex;
+  align-items: center;
+}
+
+
+/* v24 — capacity overlay geometry for dense 34px Assignment rows */
+#resourceScheduler .capacity-slot-overlay {
+  height: 24px !important;
+  min-height: 24px !important;
+  max-height: 24px !important;
+  box-sizing: border-box !important;
+}
+
+#resourceScheduler .capacity-slot-overlay .capacity-slot-label {
+  line-height: 22px !important;
+}
+
+
+/* v24 — accepted Assignment edit affordance only */
+#resourceScheduler .dhx_cal_event_line.assignment-event:not(.assignment-provisional-locked) {
+  cursor: move !important;
+}
+
+#resourceScheduler .dhx_cal_event_line.assignment-event:not(.assignment-provisional-locked) .dhx_event_resize_start,
+#resourceScheduler .dhx_cal_event_line.assignment-event:not(.assignment-provisional-locked) .dhx_event_resize_end {
+  pointer-events: auto !important;
+}
+
+
+/* v25 — compact capacity overlay cleanup only */
+#resourceScheduler .capacity-slot-overlay {
+  transform: none !important;
+}
+
+#resourceScheduler .capacity-slot-overlay .capacity-slot-label {
+  display: none !important;
+}
+
+
+
+
+/* v28 — all Assignment events are editable */
+#resourceScheduler .dhx_cal_event_line.assignment-event {
+  cursor: move !important;
+}
+
+#resourceScheduler .dhx_cal_event_line.assignment-event .dhx_event_resize_start,
+#resourceScheduler .dhx_cal_event_line.assignment-event .dhx_event_resize_end {
+  pointer-events: auto !important;
+}
+
+
+/* v32 — vertical alignment only */
+#resourceScheduler .dhx_cal_event_line.assignment-event {
+  transform: translateY(-5px) !important;
+}
+
+#resourceScheduler .assignment-request-baseline {
+  height: 4px !important;
+  min-height: 4px !important;
+  max-height: 4px !important;
+}

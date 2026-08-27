@@ -42,6 +42,14 @@ page 50673 "CapacityApi Opt"
                 {
                     Caption = 'Capacity';
                 }
+                field(startTime; Rec."Start Time")
+                {
+                    Caption = 'Start Time';
+                }
+                field(endTime; Rec."End Time")
+                {
+                    Caption = 'End Time';
+                }
                 field(maxSystemCreatedAt; Rec.SystemCreatedAt)
                 {
                     Caption = 'Created At';
@@ -74,6 +82,8 @@ page 50673 "CapacityApi Opt"
             Rec."Resource No." := CapacityPerDayPerResource.Resource_No_;
             Rec."Duplicate Id" := CapacityPerDayPerResource.Duplicate_Id;
             Rec.Capacity := CapacityPerDayPerResource.Capacity;
+            Rec."Start Time" := Capacity."Start Time";
+            Rec."End Time" := Capacity."End Time";
             Rec.Insert();
         end;
         CapacityPerDayPerResource.Close();

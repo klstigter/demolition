@@ -28,3 +28,4 @@
 - [Color Constants codeunit 50609](project_colorconstants_codeunit_50609.md) — renamed "Visual Default Settings"; all overridable defaults now have setup fields + working Reset-to-default (2026-08-26)
 - [DHTMLX Suite Colorpicker API](dhtmlx_suite_colorpicker_api.md) — `dhx.Colorpicker` real class; mode:"picker" for hex input; wire `change` event not deprecated `colorChange`; page 50709 AssistEdit lookup
 - [StandardDialog Action::OK convention](standarddialog_action_ok_convention.md) — this app's StandardDialog pages return Action::OK on OK button, not Action::LookupOK (page 50657 precedent)
+- [Request/Assignment Planner objects](project_request_assignment_planner.md) — query 50609, codeunit 50604 `ReqAssign_` region, controladdin DHXRequestAssignmentAddin (+OnRequestReset), page 50710; shared workdays dayIndex map; full build now clean

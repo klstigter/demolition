@@ -130,6 +130,12 @@ page 50612 "Planning Role Center"
                     Caption = 'Resource Capacity Scheduler';
                     RunObject = page "DHX Scheduler (Pool Resource)";
                 }
+                action("RequestAssignmentBoard")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Requested/Assigned';
+                    RunObject = page "DHX Request Assignment Board";
+                }
                 /*
                 Split buttons aren't supported in context menus. 
                 When the feature key ModernActionBar is turned off, then it isn't supported if the ShowAs property is set to SplitButton on a promoted action category group.
