@@ -6,6 +6,18 @@ codeunit 50604 "DHX Data Handler"
     end;
 
     var
+        // Fallback border/text colours for the Request/Assignment Planner's "skillColors" legend
+        // (see ReqAssign_BuildSkillColorsJson, region "ReqAssign_" below) - no per-skill
+        // border/text convention exists yet in codeunit 50609 "Visual Default Settings" (only a
+        // global GetBarFontColor and a background-only GetSkillBarColor), so these stay static,
+        // matching this feature's own spec-provided fallback values verbatim. Background DOES
+        // reuse the existing GetSkillBarColor convention (same as ResolveRequestedColor above).
+        ReqAssignSkillBorderColorTok: Label '#5AA6C8', Locked = true;
+        ReqAssignSkillTextColorTok: Label '#035B7E', Locked = true;
+        // Fallback "OK/assigned" status pill colours for the Request/Assignment Planner - no
+        // equivalent named status-colour convention exists in codeunit 50609, so kept static.
+        ReqAssignOkStatusBackgroundColorTok: Label '#DDF2E5', Locked = true;
+        ReqAssignOkStatusTextColorTok: Label '#26613A', Locked = true;
 
     //     '{' +
     //         '"data": [ ' +
@@ -4905,5 +4917,544 @@ codeunit 50604 "DHX Data Handler"
         SkillColorDict.Add(SkillCode, ResolvedColor);
         NextPaletteIndex += 1;
         exit(ResolvedColor);
+    end;
+
+    // ================================================================================
+    // "ReqAssign_" region - Request/Assignment Planner (page 50710 "DHX Request Assignment
+    // Board", controladdin DHXRequestAssignmentAddin, src/dhx/request_assignment). Builds the
+    // single combined JSON payload the JS-side port consumes (workdays/resources/dayTaskLines/
+    // capacitySlots/skillColors/statusColors) and applies the seven drag-and-drop/accept-reject/
+    // reset commit events it raises back. "Sequence" has no literal field anywhere - it is a distinct
+    // (Job No., Job Task No., Skill) combination, keyed as "<Job No.>|<Job Task No.>|<Skill>" (see
+    // sequenceKey below); a single day's bar ("Day Task Line") is keyed as
+    // "<Job No.>|<Job Task No.>|<Day Line No.>" (see ReqAssign_ParseId), mirroring this codeunit's
+    // existing pipe-joined EventId conventions used elsewhere (e.g. SkillResScheduler_*).
+    // ================================================================================
+
+    /// <summary>
+    /// Builds the single combined JSON payload consumed by controladdin
+    /// DHXRequestAssignmentAddin.SetPlanningData - one JsonObject with top-level arrays
+    /// "workdays", "resources", "dayTaskLines", "capacitySlots", "skillColors" and a
+    /// "statusColors" object. Called by page 50710's ControlReady and its shared
+    /// RebuildAndSetPlanningData (Refresh action + OnRequestReset), all with a fresh 30-workday
+    /// window starting at Today().
+    ///
+    /// "workdays" is the single authoritative 0-based-index list (every Mon-Fri date from
+    /// StartDate to EndDate inclusive, as "yyyy-MM-dd" strings, in order) that BOTH
+    /// dayTaskLines[].dayIndex and capacitySlots[].dayIndex reference - built once here
+    /// (ReqAssign_BuildWorkdayIndexMap) and threaded into both builders below so they can never
+    /// disagree about what index a given date maps to.
+    /// </summary>
+    procedure ReqAssign_BuildPlanningDataJson(StartDate: Date; EndDate: Date): Text
+    var
+        RootObj: JsonObject;
+        StatusColorsObj: JsonObject;
+        OkStatusObj: JsonObject;
+        WorkdayIndexMap: Dictionary of [Date, Integer];
+        WorkdaysArr: JsonArray;
+        OutTxt: Text;
+    begin
+        ReqAssign_BuildWorkdayIndexMap(StartDate, EndDate, WorkdayIndexMap, WorkdaysArr);
+
+        OkStatusObj.Add('backgroundColor', ReqAssignOkStatusBackgroundColorTok);
+        OkStatusObj.Add('textColor', ReqAssignOkStatusTextColorTok);
+        StatusColorsObj.Add('ok', OkStatusObj);
+
+        RootObj.Add('workdays', WorkdaysArr);
+        RootObj.Add('resources', ReqAssign_BuildResourcesJson());
+        RootObj.Add('dayTaskLines', ReqAssign_BuildDayTaskLinesJson(StartDate, EndDate, WorkdayIndexMap));
+        RootObj.Add('capacitySlots', ReqAssign_BuildCapacitySlotsJson(StartDate, EndDate, WorkdayIndexMap));
+        RootObj.Add('skillColors', ReqAssign_BuildSkillColorsJson());
+        RootObj.Add('statusColors', StatusColorsObj);
+
+        RootObj.WriteTo(OutTxt);
+        exit(OutTxt);
+    end;
+
+    /// <summary>
+    /// Builds the "resources" array: every non-blocked Resource, with its registered skills
+    /// ("Resource Skill" where Type=Resource, "No."=Resource No. - same filter shape used
+    /// elsewhere in this codeunit, e.g. SkillResScheduler_BuildCombinedSkillLookup's Source 1).
+    /// </summary>
+    local procedure ReqAssign_BuildResourcesJson(): JsonArray
+    var
+        Res: Record Resource;
+        ResSkill: Record "Resource Skill";
+        ResourcesArr: JsonArray;
+        SkillsArr: JsonArray;
+        ResObj: JsonObject;
+    begin
+        Res.SetLoadFields("No.", Name, Blocked);
+        Res.SetRange(Blocked, false);
+        if Res.FindSet() then
+            repeat
+                Clear(SkillsArr);
+                ResSkill.Reset();
+                ResSkill.SetRange(Type, ResSkill.Type::Resource);
+                ResSkill.SetRange("No.", Res."No.");
+                ResSkill.SetLoadFields("Skill Code");
+                if ResSkill.FindSet() then
+                    repeat
+                        SkillsArr.Add(ResSkill."Skill Code");
+                    until ResSkill.Next() = 0;
+
+                Clear(ResObj);
+                ResObj.Add('key', Res."No.");
+                ResObj.Add('label', Res.Name);
+                ResObj.Add('skills', SkillsArr);
+                ResourcesArr.Add(ResObj);
+            until Res.Next() = 0;
+        exit(ResourcesArr);
+    end;
+
+    /// <summary>
+    /// Builds the "dayTaskLines" array: one entry per Day Planning row with "Plan Date" in
+    /// [StartDate, EndDate] - any Job/Task/Skill, no pre-filtering (the JS side groups these into
+    /// sequences/tree nodes client-side via sequenceKey). Job/Job Task descriptions are cached
+    /// per-call (Dictionary keyed by Job No. / "Job No.|Job Task No.") since this can run over
+    /// 1000+ rows for a 30-workday window and the same Job/Job Task repeats across many rows.
+    ///
+    /// dayIndex is resolved from the SAME WorkdayIndexMap the caller (ReqAssign_
+    /// BuildPlanningDataJson) also threads into ReqAssign_BuildCapacitySlotsJson - both sides
+    /// always agree on what index a given date maps to, since neither computes its own
+    /// independent offset. A Plan Date that isn't itself a Mon-Fri date (not expected in normal
+    /// data - Day Planning rows are only ever created on workdays - but not enforced at the table
+    /// level either) resolves to -1 rather than being dropped, so the line itself is never lost.
+    /// </summary>
+    local procedure ReqAssign_BuildDayTaskLinesJson(StartDate: Date; EndDate: Date; var WorkdayIndexMap: Dictionary of [Date, Integer]): JsonArray
+    var
+        DayPlanning: Record "Day Planning";
+        Job: Record Job;
+        JobTask: Record "Job Task";
+        JobDescCache: Dictionary of [Code[20], Text];
+        JobTaskDescCache: Dictionary of [Text, Text];
+        LinesArr: JsonArray;
+        LineObj: JsonObject;
+        ProjectName: Text;
+        TaskName: Text;
+        TaskCacheKey: Text;
+        IdTxt: Text;
+        SequenceKeyTxt: Text;
+        ReqStart: Decimal;
+        ReqDuration: Decimal;
+        AssignedStart: Decimal;
+        AssignedDuration: Decimal;
+        DayIndex: Integer;
+    begin
+        DayPlanning.SetRange("Plan Date", StartDate, EndDate);
+        DayPlanning.SetLoadFields("Job No.", "Job Task No.", "Day Line No.", "Plan Date", Skill,
+            "Start Time Requested", "End Time Requested", "Start Time Assigned", "End Time Assigned",
+            "Assigned Resource No.");
+        if DayPlanning.FindSet() then
+            repeat
+                if not JobDescCache.ContainsKey(DayPlanning."Job No.") then
+                    if Job.Get(DayPlanning."Job No.") then
+                        JobDescCache.Add(DayPlanning."Job No.", Job.Description)
+                    else
+                        JobDescCache.Add(DayPlanning."Job No.", '');
+                ProjectName := JobDescCache.Get(DayPlanning."Job No.");
+
+                TaskCacheKey := DayPlanning."Job No." + '|' + DayPlanning."Job Task No.";
+                if not JobTaskDescCache.ContainsKey(TaskCacheKey) then
+                    if JobTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
+                        JobTaskDescCache.Add(TaskCacheKey, JobTask.Description)
+                    else
+                        JobTaskDescCache.Add(TaskCacheKey, '');
+                TaskName := JobTaskDescCache.Get(TaskCacheKey);
+
+                IdTxt := DayPlanning."Job No." + '|' + DayPlanning."Job Task No." + '|' + Format(DayPlanning."Day Line No.");
+                SequenceKeyTxt := DayPlanning."Job No." + '|' + DayPlanning."Job Task No." + '|' + DayPlanning.Skill;
+
+                if DayPlanning."Start Time Requested" <> 0T then
+                    ReqStart := ReqAssign_TimeToDecimalHours(DayPlanning."Start Time Requested")
+                else
+                    ReqStart := 0;
+
+                if (DayPlanning."Start Time Requested" <> 0T) and (DayPlanning."End Time Requested" <> 0T) then begin
+                    ReqDuration := ReqAssign_TimeToDecimalHours(DayPlanning."End Time Requested") - ReqStart;
+                    if ReqDuration < 0 then
+                        ReqDuration := 0;
+                end else
+                    ReqDuration := 0;
+
+                if DayPlanning."Start Time Assigned" <> 0T then
+                    AssignedStart := ReqAssign_TimeToDecimalHours(DayPlanning."Start Time Assigned")
+                else
+                    AssignedStart := ReqStart;
+
+                if (DayPlanning."Start Time Assigned" <> 0T) and (DayPlanning."End Time Assigned" <> 0T) then begin
+                    AssignedDuration := ReqAssign_TimeToDecimalHours(DayPlanning."End Time Assigned") - AssignedStart;
+                    if AssignedDuration < 0 then
+                        AssignedDuration := 0;
+                end else
+                    AssignedDuration := ReqDuration;
+
+                if not WorkdayIndexMap.Get(DayPlanning."Plan Date", DayIndex) then
+                    DayIndex := -1;
+
+                Clear(LineObj);
+                LineObj.Add('id', IdTxt);
+                LineObj.Add('projectId', DayPlanning."Job No.");
+                LineObj.Add('projectName', ProjectName);
+                LineObj.Add('taskId', DayPlanning."Job Task No.");
+                LineObj.Add('taskName', TaskName);
+                LineObj.Add('sequenceKey', SequenceKeyTxt);
+                LineObj.Add('requiredSkill', DayPlanning.Skill);
+                LineObj.Add('date', ReqAssign_FormatIsoDate(DayPlanning."Plan Date"));
+                LineObj.Add('dayIndex', DayIndex);
+                LineObj.Add('requestedStart', ReqStart);
+                LineObj.Add('requestedDuration', ReqDuration);
+                LineObj.Add('assignedStart', AssignedStart);
+                LineObj.Add('assignedDuration', AssignedDuration);
+                LineObj.Add('assignedResource', DayPlanning."Assigned Resource No.");
+                LineObj.Add('sequenceAccepted', false);
+                LinesArr.Add(LineObj);
+            until DayPlanning.Next() = 0;
+        exit(LinesArr);
+    end;
+
+    /// <summary>
+    /// Builds the "capacitySlots" array from "Res. Capacity Entry" (+ its Start Time/End Time
+    /// extension fields, tableext 50606) for Date in [StartDate, EndDate]. dayIndex is resolved
+    /// from the SAME WorkdayIndexMap the caller (ReqAssign_BuildPlanningDataJson) also threads
+    /// into ReqAssign_BuildDayTaskLinesJson - the two never disagree about what index a given
+    /// date maps to, and 1000+ capacity rows each do an O(1) dictionary lookup instead of
+    /// recomputing the offset per row. A capacity entry that falls on a weekend date (outside the
+    /// map) is skipped - not expected in normal data, but defensive. A capacity entry generated
+    /// from a Work Hour Template with a blank "Default Start Time" (see report 50661's
+    /// SetCapacityOpt) has blank Start Time/End Time - those are skipped too rather than fed into
+    /// ReqAssign_TimeToDecimalHours, which errors ("Subtracting an undefined (0T) time.") on 0T.
+    /// </summary>
+    local procedure ReqAssign_BuildCapacitySlotsJson(StartDate: Date; EndDate: Date; var WorkdayIndexMap: Dictionary of [Date, Integer]): JsonArray
+    var
+        ResCapacityEntry: Record "Res. Capacity Entry";
+        SlotsArr: JsonArray;
+        SlotObj: JsonObject;
+        DayIndex: Integer;
+    begin
+        ResCapacityEntry.SetRange("Date", StartDate, EndDate);
+        ResCapacityEntry.SetLoadFields("Resource No.", "Date", "Start Time", "End Time");
+        if ResCapacityEntry.FindSet() then
+            repeat
+                if (ResCapacityEntry."Start Time" <> 0T) and (ResCapacityEntry."End Time" <> 0T) then
+                    if WorkdayIndexMap.Get(ResCapacityEntry."Date", DayIndex) then begin
+                        Clear(SlotObj);
+                        SlotObj.Add('resourceId', ResCapacityEntry."Resource No.");
+                        SlotObj.Add('dayIndex', DayIndex);
+                        SlotObj.Add('start', ReqAssign_TimeToDecimalHours(ResCapacityEntry."Start Time"));
+                        SlotObj.Add('end', ReqAssign_TimeToDecimalHours(ResCapacityEntry."End Time"));
+                        SlotsArr.Add(SlotObj);
+                    end;
+            until ResCapacityEntry.Next() = 0;
+        exit(SlotsArr);
+    end;
+
+    /// <summary>
+    /// Single source of truth for the workday calendar: in one pass, precomputes Date -> 0-based-
+    /// workday-index for every Mon-Fri date in [StartDate, EndDate] inclusive (weekend dates are
+    /// simply absent from Map), AND builds the matching ordered "yyyy-MM-dd" JsonArray
+    /// (WorkdaysArr) emitted as the payload's top-level "workdays" key. Building both from the
+    /// same loop is deliberate - ReqAssign_BuildDayTaskLinesJson and
+    /// ReqAssign_BuildCapacitySlotsJson both resolve their dayIndex from this one Map, so they can
+    /// never disagree about what index a given date maps to (see ReqAssign_BuildPlanningDataJson).
+    /// </summary>
+    local procedure ReqAssign_BuildWorkdayIndexMap(StartDate: Date; EndDate: Date; var Map: Dictionary of [Date, Integer]; var WorkdaysArr: JsonArray)
+    var
+        CurDate: Date;
+        Idx: Integer;
+    begin
+        Clear(Map);
+        Idx := 0;
+        CurDate := StartDate;
+        while CurDate <= EndDate do begin
+            if Date2DWY(CurDate, 1) < 6 then begin
+                Map.Add(CurDate, Idx);
+                WorkdaysArr.Add(ReqAssign_FormatIsoDate(CurDate));
+                Idx += 1;
+            end;
+            CurDate += 1;
+        end;
+    end;
+
+    /// <summary>
+    /// Builds the "skillColors" array from "Skill Code". backgroundColor reuses the existing
+    /// GetSkillBarColor convention (codeunit 50609 - "Bar Color" override else a 5-colour
+    /// palette), same as this codeunit's own ResolveRequestedColor above. borderColor/textColor
+    /// have no equivalent per-skill convention anywhere in codeunit 50609 (only a single global
+    /// GetBarFontColor for ALL bar text) so they stay static fallbacks
+    /// (ReqAssignSkillBorderColorTok/ReqAssignSkillTextColorTok) rather than inventing a
+    /// derivation rule nobody asked for.
+    /// </summary>
+    local procedure ReqAssign_BuildSkillColorsJson(): JsonArray
+    var
+        SkillCodeRec: Record "Skill Code";
+        ColorConstants: Codeunit "Visual Default Settings";
+        SkillColorsArr: JsonArray;
+        SkillColorObj: JsonObject;
+        PaletteIndex: Integer;
+    begin
+        if SkillCodeRec.FindSet() then
+            repeat
+                Clear(SkillColorObj);
+                SkillColorObj.Add('skill', SkillCodeRec.Code);
+                SkillColorObj.Add('backgroundColor', ColorConstants.GetSkillBarColor(SkillCodeRec.Code, PaletteIndex));
+                SkillColorObj.Add('borderColor', ReqAssignSkillBorderColorTok);
+                SkillColorObj.Add('textColor', ReqAssignSkillTextColorTok);
+                SkillColorsArr.Add(SkillColorObj);
+                PaletteIndex += 1;
+            until SkillCodeRec.Next() = 0;
+        exit(SkillColorsArr);
+    end;
+
+    /// <summary>
+    /// Converts a Time-of-day value to decimal hours (e.g. 08:30:00 -> 8.5), for the
+    /// dayTaskLines/capacitySlots decimal-hour fields (this feature's own convention - distinct
+    /// from the rest of this codeunit's ToSessionDateTimeTxt/ConvertToUserTimeZone helpers, which
+    /// build full ISO datetime strings for the DHTMLX Scheduler-style pages instead).
+    ///
+    /// Deliberately avoids "T - 0T" Time/Duration subtraction - live diagnostics on real
+    /// production data (Job 10000/Task 1010/Day Line 500000, 2026-08-28) proved that idiom throws
+    /// "Subtracting an undefined (0T) time." even for a plain, unambiguously non-blank T
+    /// (07:00:00/16:00:00), independent of any 0T-blank guard at the call site - a genuine runtime
+    /// quirk with this Time subtraction pattern on this environment, not a blank-value bug. This
+    /// version does the conversion via Format()/Evaluate() on the individual clock components
+    /// instead, so no Time arithmetic (and no literal 0T operand) is ever evaluated.
+    /// </summary>
+    local procedure ReqAssign_TimeToDecimalHours(T: Time): Decimal
+    var
+        HourPart: Integer;
+        MinutePart: Integer;
+        SecondPart: Integer;
+    begin
+        if T = 0T then
+            exit(0);
+        Evaluate(HourPart, Format(T, 0, '<Hours24>'));
+        Evaluate(MinutePart, Format(T, 0, '<Minutes,2>'));
+        Evaluate(SecondPart, Format(T, 0, '<Seconds,2>'));
+        exit(HourPart + MinutePart / 60 + SecondPart / 3600);
+    end;
+
+    /// <summary>
+    /// Converts decimal hours (e.g. 8.5) back to a Time-of-day value, for the six ReqAssign_*
+    /// commit procedures below. Clamped to just before midnight rather than erroring on an
+    /// out-of-range value from a malformed payload.
+    ///
+    /// Deliberately avoids "0T + Duration" arithmetic - live diagnostics on real production data
+    /// proved the same runtime quirk documented on ReqAssign_TimeToDecimalHours above also fires
+    /// on the reverse Time+Duration direction ("Adding to an undefined (0T) time.") whenever a
+    /// literal/blank-valued 0T is one of the operands. This version builds the Time via
+    /// Format()/Evaluate() on the individual clock components instead, so no Time arithmetic is
+    /// ever evaluated.
+    /// </summary>
+    local procedure ReqAssign_DecimalHoursToTime(Hours: Decimal): Time
+    var
+        TotalMs: Integer;
+        HourPart: Integer;
+        MinutePart: Integer;
+        SecondPart: Integer;
+        TimeTxt: Text;
+        ResultTime: Time;
+    begin
+        if Hours <= 0 then
+            exit(0T);
+
+        TotalMs := Round(Hours * 3600000, 1);
+        if TotalMs > 86399999 then
+            TotalMs := 86399999;
+
+        HourPart := TotalMs div 3600000;
+        MinutePart := (TotalMs mod 3600000) div 60000;
+        SecondPart := (TotalMs mod 60000) div 1000;
+
+        TimeTxt := StrSubstNo('%1:%2:%3', Format(HourPart).PadLeft(2, '0'), Format(MinutePart).PadLeft(2, '0'), Format(SecondPart).PadLeft(2, '0'));
+        Evaluate(ResultTime, TimeTxt, 9);
+        exit(ResultTime);
+    end;
+
+    local procedure ReqAssign_FormatIsoDate(D: Date): Text
+    begin
+        if D = 0D then
+            exit('');
+        exit(Format(D, 0, '<Year4>-<Month,2>-<Day,2>'));
+    end;
+
+    /// <summary>
+    /// Parses a Day Task Line id ("<Job No.>|<Job Task No.>|<Day Line No.>") back into its parts
+    /// so the caller can Day Planning.Get(JobNo, JobTaskNo, DayLineNo).
+    /// </summary>
+    local procedure ReqAssign_ParseId(IdTxt: Text; var JobNo: Code[20]; var JobTaskNo: Code[20]; var DayLineNo: Integer)
+    var
+        Parts: List of [Text];
+    begin
+        Parts := IdTxt.Split('|');
+        JobNo := CopyStr(Parts.Get(1), 1, MaxStrLen(JobNo));
+        JobTaskNo := CopyStr(Parts.Get(2), 1, MaxStrLen(JobTaskNo));
+        Evaluate(DayLineNo, Parts.Get(3));
+    end;
+
+    /// <summary>
+    /// Shared core behind ReqAssign_AssignDayTaskLine/ReqAssign_MoveAssignment/
+    /// ReqAssign_ResizeAssignment/ReqAssign_AcceptSequence - always uses Validate() (never a
+    /// direct field assignment) for "Assigned Resource No." and the assigned times, per this
+    /// app's hard requirement that setting "Assigned Resource No." must go through Validate() to
+    /// get its Resource Group/Vendor/Skill cascade (see table 50610's own OnValidate).
+    /// </summary>
+    local procedure ReqAssign_ApplyAssignment(var DayPlanning: Record "Day Planning"; ResourceId: Text; SetResource: Boolean; StartHour: Decimal; DurationHours: Decimal)
+    begin
+        if SetResource then
+            DayPlanning.Validate("Assigned Resource No.", CopyStr(ResourceId, 1, MaxStrLen(DayPlanning."Assigned Resource No.")));
+        DayPlanning.Validate("Start Time Assigned", ReqAssign_DecimalHoursToTime(StartHour));
+        DayPlanning.Validate("End Time Assigned", ReqAssign_DecimalHoursToTime(StartHour + DurationHours));
+        DayPlanning.Modify(true);
+    end;
+
+    /// <summary>
+    /// Commits controladdin event OnAssignDayTaskLine - payload
+    /// { "id", "resourceId", "startHour", "durationHours" }.
+    /// </summary>
+    procedure ReqAssign_AssignDayTaskLine(PayloadJsonTxt: Text)
+    var
+        PayloadObj: JsonObject;
+        JToken: JsonToken;
+        DayPlanning: Record "Day Planning";
+        JobNo: Code[20];
+        JobTaskNo: Code[20];
+        DayLineNo: Integer;
+        ResourceId: Text;
+        StartHour: Decimal;
+        DurationHours: Decimal;
+    begin
+        PayloadObj.ReadFrom(PayloadJsonTxt);
+        PayloadObj.Get('id', JToken);
+        ReqAssign_ParseId(JToken.AsValue().AsText(), JobNo, JobTaskNo, DayLineNo);
+        PayloadObj.Get('resourceId', JToken);
+        ResourceId := JToken.AsValue().AsText();
+        PayloadObj.Get('startHour', JToken);
+        StartHour := JToken.AsValue().AsDecimal();
+        PayloadObj.Get('durationHours', JToken);
+        DurationHours := JToken.AsValue().AsDecimal();
+
+        if not DayPlanning.Get(JobNo, JobTaskNo, DayLineNo) then
+            exit;
+        ReqAssign_ApplyAssignment(DayPlanning, ResourceId, true, StartHour, DurationHours);
+    end;
+
+    /// <summary>
+    /// Commits controladdin event OnMoveAssignment - identical payload/handling to
+    /// ReqAssign_AssignDayTaskLine (resource and/or time changed on an already-assigned line); JS
+    /// raises a distinct event name for "moved" vs. "newly assigned" but the AL-side persistence
+    /// is the same.
+    /// </summary>
+    procedure ReqAssign_MoveAssignment(PayloadJsonTxt: Text)
+    begin
+        ReqAssign_AssignDayTaskLine(PayloadJsonTxt);
+    end;
+
+    /// <summary>
+    /// Commits controladdin event OnResizeAssignment - payload { "id", "startHour",
+    /// "durationHours" }, no "resourceId" - updates only the assigned times.
+    /// </summary>
+    procedure ReqAssign_ResizeAssignment(PayloadJsonTxt: Text)
+    var
+        PayloadObj: JsonObject;
+        JToken: JsonToken;
+        DayPlanning: Record "Day Planning";
+        JobNo: Code[20];
+        JobTaskNo: Code[20];
+        DayLineNo: Integer;
+        StartHour: Decimal;
+        DurationHours: Decimal;
+    begin
+        PayloadObj.ReadFrom(PayloadJsonTxt);
+        PayloadObj.Get('id', JToken);
+        ReqAssign_ParseId(JToken.AsValue().AsText(), JobNo, JobTaskNo, DayLineNo);
+        PayloadObj.Get('startHour', JToken);
+        StartHour := JToken.AsValue().AsDecimal();
+        PayloadObj.Get('durationHours', JToken);
+        DurationHours := JToken.AsValue().AsDecimal();
+
+        if not DayPlanning.Get(JobNo, JobTaskNo, DayLineNo) then
+            exit;
+        ReqAssign_ApplyAssignment(DayPlanning, '', false, StartHour, DurationHours);
+    end;
+
+    /// <summary>
+    /// Commits controladdin event OnUnassignDayTaskLine - payload { "id" }. Validate()'d to blank
+    /// so table 50610's own cascade (Resource Group No./Vendor No./Skill reset) still runs.
+    /// </summary>
+    procedure ReqAssign_UnassignDayTaskLine(PayloadJsonTxt: Text)
+    var
+        PayloadObj: JsonObject;
+        JToken: JsonToken;
+        DayPlanning: Record "Day Planning";
+        JobNo: Code[20];
+        JobTaskNo: Code[20];
+        DayLineNo: Integer;
+    begin
+        PayloadObj.ReadFrom(PayloadJsonTxt);
+        PayloadObj.Get('id', JToken);
+        ReqAssign_ParseId(JToken.AsValue().AsText(), JobNo, JobTaskNo, DayLineNo);
+
+        if not DayPlanning.Get(JobNo, JobTaskNo, DayLineNo) then
+            exit;
+        DayPlanning.Validate("Assigned Resource No.", '');
+        DayPlanning.Validate("Start Time Assigned", 0T);
+        DayPlanning.Validate("End Time Assigned", 0T);
+        DayPlanning.Modify(true);
+    end;
+
+    /// <summary>
+    /// Commits controladdin event OnAcceptSequence - payload { "sequenceKey", "resourceId",
+    /// "lines": [ { "id", "startHour", "durationHours" }, ... ] }. This is the ONLY point where a
+    /// whole-sequence drag-drop actually persists - confirmed product decision: the JS side keeps
+    /// whole-sequence drops purely client-side/provisional until Accept fires. Every line in the
+    /// payload shares the one target resourceId.
+    /// </summary>
+    procedure ReqAssign_AcceptSequence(PayloadJsonTxt: Text)
+    var
+        PayloadObj: JsonObject;
+        LinesArr: JsonArray;
+        LineTok: JsonToken;
+        LineObj: JsonObject;
+        JToken: JsonToken;
+        DayPlanning: Record "Day Planning";
+        JobNo: Code[20];
+        JobTaskNo: Code[20];
+        DayLineNo: Integer;
+        ResourceId: Text;
+        StartHour: Decimal;
+        DurationHours: Decimal;
+        i: Integer;
+    begin
+        PayloadObj.ReadFrom(PayloadJsonTxt);
+        PayloadObj.Get('resourceId', JToken);
+        ResourceId := JToken.AsValue().AsText();
+        PayloadObj.Get('lines', JToken);
+        LinesArr := JToken.AsArray();
+
+        for i := 0 to LinesArr.Count() - 1 do begin
+            LinesArr.Get(i, LineTok);
+            LineObj := LineTok.AsObject();
+            LineObj.Get('id', JToken);
+            ReqAssign_ParseId(JToken.AsValue().AsText(), JobNo, JobTaskNo, DayLineNo);
+            LineObj.Get('startHour', JToken);
+            StartHour := JToken.AsValue().AsDecimal();
+            LineObj.Get('durationHours', JToken);
+            DurationHours := JToken.AsValue().AsDecimal();
+
+            if DayPlanning.Get(JobNo, JobTaskNo, DayLineNo) then
+                ReqAssign_ApplyAssignment(DayPlanning, ResourceId, true, StartHour, DurationHours);
+        end;
+    end;
+
+    /// <summary>
+    /// Commits controladdin event OnRejectSequence - payload { "sequenceKey" }. No table writes
+    /// needed: JS already discards its provisional whole-sequence-drop state on reject (confirmed
+    /// product decision, see ReqAssign_AcceptSequence's doc comment). Kept as a real procedure
+    /// (rather than omitted) so the controladdin event contract stays symmetric with
+    /// OnAcceptSequence, and as a seam for future audit logging if ever needed.
+    /// </summary>
+    procedure ReqAssign_RejectSequence(PayloadJsonTxt: Text)
+    begin
     end;
 }
