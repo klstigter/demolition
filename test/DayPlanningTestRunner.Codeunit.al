@@ -6,6 +6,7 @@ codeunit 60021 "Day Planning Test Runner"
     trigger OnRun()
     begin
         Codeunit.Run(Codeunit::"Day Planning Creation Tests");
+        Codeunit.Run(Codeunit::"Day Planning Seq No. Tests");
         Codeunit.Run(Codeunit::"Skill Capacity Chart Tests");
         Codeunit.Run(Codeunit::"OI Customer/Contact Tests");
         Codeunit.Run(Codeunit::"Resource Capacity Sched Tests");

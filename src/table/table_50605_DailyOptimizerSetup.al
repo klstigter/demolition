@@ -105,6 +105,16 @@ table 50605 "Daily Optimizer Setup"
             Caption = 'Bar Font Color';
             DataClassification = CustomerContent;
         }
+        field(69; "Weekend Color"; Text[20])
+        {
+            Caption = 'Weekend Color';
+            DataClassification = CustomerContent;
+        }
+        field(70; "Holiday Color"; Text[20])
+        {
+            Caption = 'Holiday Color';
+            DataClassification = CustomerContent;
+        }
     }
 
     keys

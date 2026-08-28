@@ -84,6 +84,11 @@ table 50610 "Day Planning"
             DataClassification = ToBeClassified;
             Caption = 'Assigned'; //DA1-T128
         }
+        field(9; "Sequence No."; Integer)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Sequence No.';
+        }
         field(5; "Plan Status"; Enum "Plan Status")
         {
             DataClassification = ToBeClassified;
@@ -835,12 +840,23 @@ table 50610 "Day Planning"
     trigger OnInsert()
     var
         DailyOptimizerSetup: record "Daily Optimizer Setup";
+        DayPlanningSequenceMgt: Codeunit "Day Planning Sequence Mgt.";
     begin
         if Rec.Skill = '' then begin
             DailyOptimizerSetup.Get();
             if DailyOptimizerSetup."Default Skill" <> '' then
                 Rec.Skill := DailyOptimizerSetup."Default Skill";
         end;
+        if Rec.Skill <> '' then
+            DayPlanningSequenceMgt.CalcSequence(Rec);
+    end;
+
+    trigger OnModify()
+    var
+        DayPlanningSequenceMgt: Codeunit "Day Planning Sequence Mgt.";
+    begin
+        if Rec.Skill <> '' then
+            DayPlanningSequenceMgt.CalcSequence(Rec);
     end;
 
     trigger OnDelete()

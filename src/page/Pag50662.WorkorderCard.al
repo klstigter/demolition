@@ -96,6 +96,12 @@ page 50662 "Workorder Card"
 
             }
 
+            part(DayPlanningSequence; "Day Planning Sequence Part")
+            {
+                ApplicationArea = All;
+                Caption = 'Day Planning Sequence';
+            }
+
             part(JobTaskPlanning; "Job Task Planning Part")
             {
                 ApplicationArea = All;
@@ -293,4 +299,9 @@ page 50662 "Workorder Card"
     }
     var
         AddinReady: Boolean;
+
+    trigger OnAfterGetCurrRecord()
+    begin
+        CurrPage.DayPlanningSequence.Page.SetContext(Rec."Project No.", Rec."Project Task No.");
+    end;
 }

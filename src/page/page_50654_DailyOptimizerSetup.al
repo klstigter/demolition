@@ -68,6 +68,47 @@ page 50654 "Daily Optimizer Setup"
                         end;
                     }
                 }
+
+                group(WeekendHoliday)
+                {
+                    Caption = 'Weekend / Day Off';
+
+                    field("Weekend Color"; Rec."Weekend Color")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Background color used to shade Saturday/Sunday columns on the Gantt chart and Day Planning Sequence timeline. Enter a hex color, e.g. #ffe0e0.';
+
+                        trigger OnAssistEdit()
+                        var
+                            ColorPickerPage: Page "Color Picker Lookup";
+                        begin
+                            ColorPickerPage.SetInitialColor(Rec."Weekend Color");
+                            if ColorPickerPage.RunModal() = Action::OK then begin
+                                Rec."Weekend Color" := ColorPickerPage.GetSelectedColor();
+                                Rec.Modify(true);
+                                CurrPage.Update(false);
+                            end;
+                        end;
+                    }
+                    field("Holiday Color"; Rec."Holiday Color")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Background color used to shade Base Calendar day-off/public-holiday dates on the Gantt chart and Day Planning Sequence timeline. Enter a hex color, e.g. #fff3cd.';
+
+                        trigger OnAssistEdit()
+                        var
+                            ColorPickerPage: Page "Color Picker Lookup";
+                        begin
+                            ColorPickerPage.SetInitialColor(Rec."Holiday Color");
+                            if ColorPickerPage.RunModal() = Action::OK then begin
+                                Rec."Holiday Color" := ColorPickerPage.GetSelectedColor();
+                                Rec.Modify(true);
+                                CurrPage.Update(false);
+                            end;
+                        end;
+                    }
+                }
+
                 group(Colors)
                 {
                     Caption = 'Bar Colors';
@@ -293,6 +334,8 @@ page 50654 "Daily Optimizer Setup"
                         Rec."External Border Color" := VisualDefaultSettings.GetDefaultExternalBorderColor();
                         Rec."Capacity Border Color" := VisualDefaultSettings.GetDefaultCapacityBorderColor();
                         Rec."Bar Font Color" := VisualDefaultSettings.GetDefaultBarFontColor();
+                        Rec."Weekend Color" := VisualDefaultSettings.GetDefaultWeekendColor();
+                        Rec."Holiday Color" := VisualDefaultSettings.GetDefaultHolidayColor();
                         Rec."Bar Width (px) - Bar Chart" := VisualDefaultSettings.GetDefaultDailyBarChartWidth();
                         Rec.Modify(true);
                         CurrPage.Update(false);

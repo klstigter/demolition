@@ -2922,6 +2922,18 @@ function SetBarFontColor(fontColorHex) {
 }
 window.SetBarFontColor = SetBarFontColor;
 
+// AL-callable: SetDayOffColors - applies "Daily Optimizer Setup"."Weekend Color"/"Holiday Color"
+// (via codeunit 50609's GetWeekendColor/GetHolidayColor) to the .weekend/.holiday cell shading
+// (see the matching var(--gantt-weekend-color)/var(--gantt-holiday-color) in style.css). Scoped
+// to the #gantt_here container only, same convention as SetBarFontColor above.
+function SetDayOffColors(weekendColorHex, holidayColorHex) {
+  var root = document.getElementById("gantt_here");
+  if (!root) return;
+  if (weekendColorHex) root.style.setProperty("--gantt-weekend-color", weekendColorHex);
+  if (holidayColorHex) root.style.setProperty("--gantt-holiday-color", holidayColorHex);
+}
+window.SetDayOffColors = SetDayOffColors;
+
 function _updateGanttFilterToolbar() {
   try {
     // Pick the main grid's blank corner cell, not the resource panel's (that one is
