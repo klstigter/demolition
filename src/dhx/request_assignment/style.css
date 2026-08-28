@@ -2185,22 +2185,51 @@ body.pane-resizing {
 }
 
 
-/* v055 — hide the real Request horizontal scrollbar, preserve programmatic scrolling */
-#requestScheduler .hide-request-horizontal-scrollbar,
-#requestScheduler .dhx_timeline_scrollable_data,
-#requestScheduler .dhx_cal_data,
-#requestScheduler .dhx_matrix_data {
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
+/* v055 — the Request pane's horizontal scrollbar is fully suppressed by `overflow-x:
+   hidden` alone (see the v056 rule below) - deliberately NOT touching ::-webkit-scrollbar
+   here at all. Confirmed live: styling ANY ::-webkit-scrollbar sub-property switches
+   Chromium from native to fully-custom scrollbar rendering for BOTH axes at once: an
+   unset `width` does not fall back to the native vertical scrollbar, it collapses to an
+   invisible 0-width custom one. That's what made v-scroll-1 disappear the first time
+   this was "fixed" - overflow-x:hidden has no such side effect, so it's the only
+   mechanism used here. */
+
+
+/* Hide the real Assignment/resource-pane native horizontal scrollbar - it spans the
+   full row width (including underneath the frozen resource-name column), so its native
+   thumb visually crosses past the events-grid boundary. .assignment-timeline-scrollbar
+   (margin-left: 230px, aligned to that same boundary) is the only horizontal scrollbar
+   meant to be visible/draggable here. Unlike the Request pane above, overflow-x must stay
+   auto (not hidden) - this pane is still the scroll "master" and must keep accepting
+   wheel/trackpad/drag scroll input - so unlike v055 above, ::-webkit-scrollbar can't be
+   avoided entirely. Per the same Chromium behavior noted above, touching it switches this
+   element to fully-custom scrollbar rendering, so the vertical scrollbar's width/thumb/
+   track must be spelled out explicitly (a plain default-only rule loses it, same failure
+   as v055's first attempt) - styled here to approximate the native Windows/Edge look. */
+#resourceScheduler .dhx_timeline_scrollable_data::-webkit-scrollbar,
+#resourceScheduler .dhx_cal_data::-webkit-scrollbar,
+#resourceScheduler .dhx_matrix_data::-webkit-scrollbar {
+  height: 0 !important;
+  width: 15px;
 }
 
-#requestScheduler .hide-request-horizontal-scrollbar::-webkit-scrollbar,
-#requestScheduler .dhx_timeline_scrollable_data::-webkit-scrollbar,
-#requestScheduler .dhx_cal_data::-webkit-scrollbar,
-#requestScheduler .dhx_matrix_data::-webkit-scrollbar {
-  width: 0 !important;
-  height: 0 !important;
-  display: none !important;
+#resourceScheduler .dhx_timeline_scrollable_data::-webkit-scrollbar-track,
+#resourceScheduler .dhx_cal_data::-webkit-scrollbar-track,
+#resourceScheduler .dhx_matrix_data::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#resourceScheduler .dhx_timeline_scrollable_data::-webkit-scrollbar-thumb,
+#resourceScheduler .dhx_cal_data::-webkit-scrollbar-thumb,
+#resourceScheduler .dhx_matrix_data::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 0;
+}
+
+#resourceScheduler .dhx_timeline_scrollable_data::-webkit-scrollbar-thumb:hover,
+#resourceScheduler .dhx_cal_data::-webkit-scrollbar-thumb:hover,
+#resourceScheduler .dhx_matrix_data::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 
@@ -2260,23 +2289,13 @@ body.pane-resizing {
 }
 
 
-/* v056 — Request has no visible horizontal scrollbar or grey track */
+/* v056 — Request has no visible horizontal scrollbar or grey track (overflow-x: hidden
+   already blocks horizontal scrolling/rendering entirely here - no vertical-axis impact) */
 #requestScheduler .hide-request-horizontal-scrollbar,
 #requestScheduler .dhx_timeline_scrollable_data,
 #requestScheduler .dhx_cal_data,
 #requestScheduler .dhx_matrix_data {
   overflow-x: hidden !important;
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-}
-
-#requestScheduler .hide-request-horizontal-scrollbar::-webkit-scrollbar,
-#requestScheduler .dhx_timeline_scrollable_data::-webkit-scrollbar,
-#requestScheduler .dhx_cal_data::-webkit-scrollbar,
-#requestScheduler .dhx_matrix_data::-webkit-scrollbar {
-  width: 0 !important;
-  height: 0 !important;
-  display: none !important;
 }
 
 /* Resource shown only through second filter condition: subtle warning only. */
@@ -2684,22 +2703,15 @@ body.hierarchy-density-normal #requestScheduler .task-group-cell {
 }
 
 
-#resourceScheduler .assignment-event,
-#resourceScheduler .assignment-conflict,
-
-
-
-/* v14 — one real Assignment scrollbar aligned to timeline origin.
-   Horizontal only - vertical scrolling has no custom replacement, so hiding
-   it here (scrollbar-width:none hides BOTH axes, and the unscoped webkit
-   rule below set width:0 as well as height:0) left users with no way to
-   scroll to any resource row beyond what DHTMLX happened to render. */
-#resourceScheduler .dhx_timeline_scrollable_data::-webkit-scrollbar:horizontal,
-#resourceScheduler .dhx_cal_data::-webkit-scrollbar:horizontal,
-#resourceScheduler .dhx_matrix_data::-webkit-scrollbar:horizontal {
-  height: 0 !important;
-  display: none !important;
-}
+/* NOTE: this used to be "#resourceScheduler .assignment-event, #resourceScheduler
+   .assignment-conflict," immediately followed by a stray blank block that swallowed
+   these two selectors into an unrelated v14 scrollbar-hiding rule below (a dangling
+   trailing comma with no declaration block of its own in between) - a pre-existing
+   file corruption, not something this session introduced. That v14 rule duplicated
+   (and, being :horizontal-based, was equally ineffective as) the now-consolidated
+   fix above ("Hide the real Assignment/resource-pane native horizontal scrollbar"),
+   so both the orphaned selector fragment and the dead rule were removed rather than
+   repaired in place. */
 
 
 .assignment-timeline-scrollbar {

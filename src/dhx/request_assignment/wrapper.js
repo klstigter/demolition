@@ -3439,8 +3439,16 @@ function syncExternalAssignmentScrollbarGeometry() {
     return;
   }
 
+  // Must be the actual scrolling element (.dhx_cal_data itself is
+  // overflow:hidden and never scrolls - its scrollWidth == clientWidth,
+  // which previously starved the proxy's range down to ~230px against a
+  // true content width of ~9470px, and its scrollLeft is always 0, which
+  // pinned the proxy thumb at the leftmost position regardless of where
+  // the real timeline was scrolled to).
   const data =
-    document.querySelector("#resourceScheduler .dhx_cal_data");
+    document.querySelector(
+      "#resourceScheduler .dhx_timeline_data_wrapper.dhx_timeline_scrollable_data"
+    );
 
   if (!data) return;
 
@@ -3462,35 +3470,40 @@ function externalAssignmentScrollbarChanged() {
     return;
   }
 
-  const timeline =
-    getTimelineView(resourceScheduler, "resources");
-
-  if (!timeline || typeof timeline.dateFromPos !== "function") {
-    return;
-  }
-
-  const date =
-    timeline.dateFromPos(
-      assignmentTimelineScrollbar.scrollLeft
+  const data =
+    document.querySelector(
+      "#resourceScheduler .dhx_timeline_data_wrapper.dhx_timeline_scrollable_data"
     );
 
-  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
-    return;
-  }
+  if (!data) return;
 
   externalScrollbarSyncLock = true;
 
-  scrollTimelineToDate(
-    resourceScheduler,
-    "resources",
-    date
-  );
+  // Direct pixel copy - both elements now share the exact same scrollWidth/clientWidth
+  // (see syncExternalAssignmentScrollbarGeometry), so no date round-trip is needed here.
+  // The previous implementation routed this through dateFromPos -> scrollTimelineToDate
+  // (posFromDate + DHTMLX's own timeline.scrollTo), and then re-read data.scrollLeft back
+  // into the proxy afterwards - any rounding drift introduced by that pixel<->date
+  // conversion (or by scrollTo not landing synchronously) fed straight back into the
+  // proxy's own scrollLeft, re-triggering this handler and compounding every frame. That
+  // only became visible as a slow, un-ending drift in Chrome (Edge apparently coalesces/
+  // settles the re-entrant writes before they're perceptible).
+  data.scrollLeft = assignmentTimelineScrollbar.scrollLeft;
 
-  syncRequestToAssignmentDate(date);
+  const timeline =
+    getTimelineView(resourceScheduler, "resources");
+
+  const date =
+    timeline && typeof timeline.dateFromPos === "function"
+      ? timeline.dateFromPos(assignmentTimelineScrollbar.scrollLeft)
+      : null;
+
+  if (date instanceof Date && !Number.isNaN(date.getTime())) {
+    syncRequestToAssignmentDate(date);
+  }
 
   requestAnimationFrame(() => {
     externalScrollbarSyncLock = false;
-    syncExternalAssignmentScrollbarGeometry();
   });
 }
 
@@ -3525,10 +3538,13 @@ function installHorizontalTimelineSync() {
     );
   }
 
+  // Same real-scrolling-element fix as syncExternalAssignmentScrollbarGeometry:
+  // .dhx_cal_data itself never scrolls, so this listener never fired on real
+  // user scrolling of the resource timeline.
   const resourceData =
     document
       .getElementById("resourceScheduler")
-      ?.querySelector(".dhx_cal_data");
+      ?.querySelector(".dhx_timeline_data_wrapper.dhx_timeline_scrollable_data");
 
   if (
     resourceData &&
@@ -3541,7 +3557,26 @@ function installHorizontalTimelineSync() {
       () => {
         if (sharedHorizontalScrollLock) return;
         syncRequestToAssignmentDate();
+        if (!externalScrollbarSyncLock) {
+          syncExternalAssignmentScrollbarGeometry();
+        }
       },
+      { passive: true }
+    );
+  }
+
+  // The proxy scrollbar's own native drag/scroll was never wired back to the
+  // real timeline - externalAssignmentScrollbarChanged existed but nothing
+  // called it, so dragging the proxy thumb had zero effect on the actual grid.
+  if (
+    assignmentTimelineScrollbar &&
+    !assignmentTimelineScrollbar.dataset.sharedDateScrollBound
+  ) {
+    assignmentTimelineScrollbar.dataset.sharedDateScrollBound = "1";
+
+    assignmentTimelineScrollbar.addEventListener(
+      "scroll",
+      externalAssignmentScrollbarChanged,
       { passive: true }
     );
   }
