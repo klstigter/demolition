@@ -19,8 +19,15 @@ from `.vscode/launch.json`) points to a bug/misconfiguration in the AL MCP tool'
 publish command in this environment, not something fixable by adjusting call arguments.
 
 **How to apply:** If `al_publish` fails with this exact "Invalid URI" error again, don't
-burn time retrying parameter variations — it's very likely the same underlying tooling
-issue. Report it as a tooling problem needing investigation outside the AL extension code
-itself (e.g. VS Code AL extension state, or the MCP server's environment-URL resolution),
-and let the user publish manually via VS Code's own Publish command instead. See also
-[[feedback_no_publish_when_told]].
+burn time retrying parameter variations on the default (build+publish) call — it's very
+likely the same underlying tooling issue. See also [[feedback_no_publish_when_told]].
+
+**Working workaround found 2026-08-28:** the bug is specifically in `al_publish`'s own
+internal build step, not the deploy step itself. Run `al_build` (onlyErrors:true) as a
+separate call first, then call `al_publish` with `skipBuild: true` and an explicit
+`appPath` pointing at the just-built .app (e.g.
+`C:\Users\Ahmad\OneDrive\x\PROJECT\STRONG\demolition\Optimizers_DailyOptimizer_28.0.0.10.app`,
+version/filename matches app.json's current version) plus the usual
+`environmentName`/`environmentType`/`tenant`/`forceUpgrade: true`. This succeeded reliably
+after 4 straight failures of the combined call in the same session. Try this before falling
+back to asking the user to publish manually.
