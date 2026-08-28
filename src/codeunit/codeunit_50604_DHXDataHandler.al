@@ -6,14 +6,6 @@ codeunit 50604 "DHX Data Handler"
     end;
 
     var
-        // Fallback border/text colours for the Request/Assignment Planner's "skillColors" legend
-        // (see ReqAssign_BuildSkillColorsJson, region "ReqAssign_" below) - no per-skill
-        // border/text convention exists yet in codeunit 50609 "Visual Default Settings" (only a
-        // global GetBarFontColor and a background-only GetSkillBarColor), so these stay static,
-        // matching this feature's own spec-provided fallback values verbatim. Background DOES
-        // reuse the existing GetSkillBarColor convention (same as ResolveRequestedColor above).
-        ReqAssignSkillBorderColorTok: Label '#5AA6C8', Locked = true;
-        ReqAssignSkillTextColorTok: Label '#035B7E', Locked = true;
         // Fallback "OK/assigned" status pill colours for the Request/Assignment Planner - no
         // equivalent named status-colour convention exists in codeunit 50609, so kept static.
         ReqAssignOkStatusBackgroundColorTok: Label '#DDF2E5', Locked = true;
@@ -285,6 +277,7 @@ codeunit 50604 "DHX Data Handler"
                     PlanningObject.Add('end_time_requested', '');
                 PlanningObject.Add('non_working_minutes_requested', DayPlanning."Non Working Minutes Requested");
                 PlanningObject.Add('requested_hours', DayPlanning."Requested Hours");
+                PlanningObject.Add('skill', DayPlanning.Skill);
                 PlanningObject.Add('requested_color', ResolveRequestedColor(DayPlanning.Skill, SkillColorDict, NextSkillPaletteIndex));
 
                 PlanningArray.Add(PlanningObject);
@@ -4919,6 +4912,44 @@ codeunit 50604 "DHX Data Handler"
         exit(ResolvedColor);
     end;
 
+    /// <summary>
+    /// Builds a {code, fontColor, borderColor} array - one entry per "Skill Code" - for the
+    /// scheduler-timeline add-ins (projectschedule/50621, resourceschedule_with_capacity/50706,
+    /// poolresourceschedule/50600) to apply per-skill bar text/border colour via a
+    /// dynamically-injected per-skill &lt;style&gt; block, the same idiom
+    /// src/dhx/dayplanning_sequence/codeunit_50695_DayPlanningSequenceMgt.al's
+    /// BuildSectionsAndEventsJson already uses (embedding fontColor/borderColor per section)
+    /// but as a standalone lookup array instead of embedded per-section/per-event JSON, since
+    /// these add-ins' events aren't grouped into skill-named sections the way
+    /// dayplanning_sequence's are. Shared by all three callers rather than duplicated per page,
+    /// mirroring how ResolveRequestedColor above is already shared for the per-skill fill colour.
+    /// Uses the same PaletteIndex-per-skill-code convention as ResolveRequestedColor/
+    /// GetSkillBarColor so an unconfigured skill's border (falling back to GetSkillBorderColor's
+    /// own fill-colour fallback) stays visually consistent with that same skill's already-resolved
+    /// background colour elsewhere on the same page.
+    /// </summary>
+    procedure BuildSkillFontBorderColorsJson(): Text
+    var
+        SkillCodeRec: Record "Skill Code";
+        ColorConstants: Codeunit "Visual Default Settings";
+        SkillsArray: JsonArray;
+        SkillObj: JsonObject;
+        PaletteIndex: Integer;
+        ResultTxt: Text;
+    begin
+        if SkillCodeRec.FindSet() then
+            repeat
+                Clear(SkillObj);
+                SkillObj.Add('code', SkillCodeRec.Code);
+                SkillObj.Add('fontColor', ColorConstants.GetSkillFontColor(SkillCodeRec.Code));
+                SkillObj.Add('borderColor', ColorConstants.GetSkillBorderColor(SkillCodeRec.Code, PaletteIndex));
+                SkillsArray.Add(SkillObj);
+                PaletteIndex += 1;
+            until SkillCodeRec.Next() = 0;
+        SkillsArray.WriteTo(ResultTxt);
+        exit(ResultTxt);
+    end;
+
     // ================================================================================
     // "ReqAssign_" region - Request/Assignment Planner (page 50710 "DHX Request Assignment
     // Board", controladdin DHXRequestAssignmentAddin, src/dhx/request_assignment). Builds the
@@ -5189,10 +5220,14 @@ codeunit 50604 "DHX Data Handler"
     /// Builds the "skillColors" array from "Skill Code". backgroundColor reuses the existing
     /// GetSkillBarColor convention (codeunit 50609 - "Bar Color" override else a 5-colour
     /// palette), same as this codeunit's own ResolveRequestedColor above. borderColor/textColor
-    /// have no equivalent per-skill convention anywhere in codeunit 50609 (only a single global
-    /// GetBarFontColor for ALL bar text) so they stay static fallbacks
-    /// (ReqAssignSkillBorderColorTok/ReqAssignSkillTextColorTok) rather than inventing a
-    /// derivation rule nobody asked for.
+    /// now reuse GetSkillBorderColor/GetSkillFontColor the same way (codeunit 50609 - Skill
+    /// Code's own "Border Color"/"Font Color" override, else that codeunit's own hardcoded
+    /// defaults - never "Daily Optimizer Setup"."Bar Font Color", which is reserved for the
+    /// Capacity bar only). Previously these two stayed on static fallback constants
+    /// (ReqAssignSkillBorderColorTok/ReqAssignSkillTextColorTok) because no per-skill Font/Border
+    /// convention existed yet on codeunit 50609 - it does now, so every skill's Request
+    /// Assignment Board bar/row-title actually reflects its own Skill Code setup instead of one
+    /// fixed color for every skill.
     /// </summary>
     local procedure ReqAssign_BuildSkillColorsJson(): JsonArray
     var
@@ -5207,8 +5242,8 @@ codeunit 50604 "DHX Data Handler"
                 Clear(SkillColorObj);
                 SkillColorObj.Add('skill', SkillCodeRec.Code);
                 SkillColorObj.Add('backgroundColor', ColorConstants.GetSkillBarColor(SkillCodeRec.Code, PaletteIndex));
-                SkillColorObj.Add('borderColor', ReqAssignSkillBorderColorTok);
-                SkillColorObj.Add('textColor', ReqAssignSkillTextColorTok);
+                SkillColorObj.Add('borderColor', ColorConstants.GetSkillBorderColor(SkillCodeRec.Code, PaletteIndex));
+                SkillColorObj.Add('textColor', ColorConstants.GetSkillFontColor(SkillCodeRec.Code));
                 SkillColorsArr.Add(SkillColorObj);
                 PaletteIndex += 1;
             until SkillCodeRec.Next() = 0;

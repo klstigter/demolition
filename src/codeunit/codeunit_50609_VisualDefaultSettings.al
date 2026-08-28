@@ -323,6 +323,60 @@ codeunit 50609 "Visual Default Settings"
     end;
 
     /// <summary>
+    /// Returns the font/text colour to use for SkillCode's bar label. The "Skill Code" master's own
+    /// "Font Color" (tableext 50609, field 50601) takes precedence when non-blank; otherwise falls
+    /// back to BarFontColorTok (the same black default GetBarFontColor already uses) - but this
+    /// procedure deliberately does NOT consult "Daily Optimizer Setup"."Bar Font Color" itself, even
+    /// as a fallback: that setting is reserved for the Capacity bar/event only (see GetBarFontColor's
+    /// own doc comment and every scheduler ControlReady that still calls it directly for the Capacity
+    /// bar specifically). Blank for the synthetic 'CAPACITY' aggregate-row marker, matching
+    /// GetSkillBarColor's own convention - callers rendering the Capacity bar should keep using
+    /// GetBarFontColor() directly instead of this procedure.
+    /// </summary>
+    procedure GetSkillFontColor(SkillCode: Code[10]): Text
+    var
+        SkillCodeRec: Record "Skill Code";
+        FontColor: Text;
+    begin
+        if SkillCode = CapacitySkillCodeTok then
+            exit('');
+
+        if SkillCodeRec.Get(SkillCode) then begin
+            FontColor := SkillCodeRec."Font Color".Trim();
+            if FontColor <> '' then
+                exit(FontColor);
+        end;
+
+        exit(BarFontColorTok);
+    end;
+
+    /// <summary>
+    /// Returns the border colour to use for SkillCode's bar. The "Skill Code" master's own "Border
+    /// Color" (tableext 50609, field 50602) takes precedence when non-blank; otherwise falls back to
+    /// that same skill's own resolved fill colour (GetSkillBarColor(SkillCode, PaletteIndex)) so an
+    /// unconfigured skill's border still looks coherent/solid rather than needing a second unrelated
+    /// hardcoded constant - matches the border-equals-fill behaviour src/dhx/dayplanning_sequence's
+    /// wrapper.js already has today (applySections: "border-color:" + (s.color || ...)), just now
+    /// overridable per-skill. Blank for 'CAPACITY', same convention as GetSkillBarColor/GetSkillFontColor.
+    /// </summary>
+    procedure GetSkillBorderColor(SkillCode: Code[10]; PaletteIndex: Integer): Text
+    var
+        SkillCodeRec: Record "Skill Code";
+        BorderColor: Text;
+    begin
+        if SkillCode = CapacitySkillCodeTok then
+            exit('');
+
+        if SkillCodeRec.Get(SkillCode) then begin
+            BorderColor := SkillCodeRec."Border Color".Trim();
+            if BorderColor <> '' then
+                exit(BorderColor);
+        end;
+
+        exit(GetSkillBarColor(SkillCode, PaletteIndex));
+    end;
+
+    /// <summary>
     /// Returns the fixed 8-slot "modern complementary pairs" palette used to auto-generate Day
     /// Planning/Capacity colours for every resource at once (lighter shade for Day Planning, deeper
     /// shade for Capacity at the same index). Index-to-value mapping is fixed and must not be

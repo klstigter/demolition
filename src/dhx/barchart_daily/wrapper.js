@@ -17,6 +17,7 @@ var chartInstance = null;   // current dhx.Chart instance (recreated on every Lo
 // barchart, which stacks 2 bars per weekday and needs a day/2 + even-odd split - see
 // src/dhx/barchart_weekly/wrapper.js's own ResolveBarSegmentFromEvent).
 var lastCategories = [];
+var lastFontColors = []; // stashed by RenderChart for RotateLegendLabel's per-item text-colour pass - see fontColors' own declaration comment in RenderChart.
 var contextMenuEl = null; // the current "Show Data" right-click popup, if one is open (see ShowContextMenu/HideContextMenu)
 var contextMenuDismissHandlers = null; // {click,contextmenu,scroll,keydown} currently attached to
 // document for dismissing the open "Show Data" popup, or null if none attached - see ShowContextMenu/
@@ -160,6 +161,11 @@ function RenderChart(chartData) {
     var categories = (chartData && Array.isArray(chartData.categories)) ? chartData.categories : [];
     var seriesDefs  = (chartData && Array.isArray(chartData.series))     ? chartData.series     : [];
     var barColors   = (chartData && Array.isArray(chartData.colors))    ? chartData.colors     : [];
+    // Per-category legend TEXT colour (codeunit 50609's GetSkillFontColor, one per skill row -
+    // blank/default black for the CAPACITY row - see the AL side's RefreshChart). Applied in
+    // RotateLegendLabel below, index-aligned with categories/legend items (both are built in the
+    // same Buffer row order).
+    var fontColors  = (chartData && Array.isArray(chartData.fontColors)) ? chartData.fontColors : [];
 
     // One data row per category ("id" doubles as the click-handler's row identifier —
     // dhx.Chart's bar click handler fires with (id, seriesValueField), see suite.js
@@ -271,6 +277,7 @@ function RenderChart(chartData) {
     // `categories` closure so a later click always resolves against whatever is CURRENTLY
     // rendered, not whatever was rendered when BOOT first ran.
     lastCategories = categories;
+    lastFontColors = fontColors;
     // Stash for ApplySeriesBorders - both this call's own first application below AND any later
     // repaint-triggered re-application (see that function's own MutationObserver) need
     // seriesDefs/series to know which series carry a `border` colour (the CAPACITY bar's
@@ -312,10 +319,16 @@ function RotateLegendLabel() {
     requestAnimationFrame(function() {
         if (!chartContainer) return;
         var legendTexts = chartContainer.querySelectorAll(".legend-text");
-        legendTexts.forEach(function(textEl) {
+        legendTexts.forEach(function(textEl, idx) {
             textEl.style.transformBox = "fill-box";
             textEl.style.transformOrigin = "0% 100%";
             textEl.style.transform = "rotate(-90deg)";
+            // Per-skill legend text colour (codeunit 50609's GetSkillFontColor) - one legend
+            // item per category/bar (data-driven legend, see RenderChart's own `legend.values`
+            // config), in the same order lastFontColors was built in.
+            if (lastFontColors[idx]) {
+                textEl.style.fill = lastFontColors[idx];
+            }
         });
     });
 }

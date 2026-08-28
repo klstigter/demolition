@@ -228,7 +228,7 @@ function installSkillColorStyles() {
 #requestScheduler .dhx_cal_event_line.request-skill-${cls},
 #requestScheduler .dhx_cal_event.request-skill-${cls} .dhx_body {
   background: ${background} !important;
-  border-color: ${border} !important;
+  border: 1px solid ${border} !important;
   color: ${text} !important;
 }
 #requestScheduler .seq-cell.request-skill-${cls} .seq-title {

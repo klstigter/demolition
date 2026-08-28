@@ -524,6 +524,15 @@ function ApplyLegendSwatchBorders(seriesDefs, series) {
             swatch.style.stroke = "";
             swatch.style.strokeWidth = "";
         }
+
+        // Per-skill legend TEXT colour (codeunit 50609's GetSkillFontColor, sent as this
+        // series' own "fontColor" - see codeunit 50662's AddChartSeries) - same de-duped
+        // ownership rule as the swatch border above, only ever set for the per-skill series.
+        if (ownerDef && ownerDef.fontColor) {
+            textEl.style.fill = ownerDef.fontColor;
+        } else {
+            textEl.style.fill = "";
+        }
     });
 }
 

@@ -316,6 +316,7 @@ page 50681 "Requested vs Capacity Daily"
         CategoriesArray: JsonArray;
         SeriesArray: JsonArray;
         ColorsArray: JsonArray;
+        FontColorsArray: JsonArray;
         AssInternalValues: JsonArray;
         AssExternalValues: JsonArray;
         CapInternalValues: JsonArray;
@@ -335,6 +336,7 @@ page 50681 "Requested vs Capacity Daily"
         CapacityColorHex: Text;
         ExternalBorderColorHex: Text;
         UnassignedColorHex: Text;
+        UnassignedBorderColorHex: Text;
         IsCapacityRow: Boolean;
         RowSkillCode: Code[10];
         LoopSkillCode: Code[10];
@@ -345,6 +347,7 @@ page 50681 "Requested vs Capacity Daily"
 
         Clear(CategoriesArray);
         Clear(ColorsArray);
+        Clear(FontColorsArray);
         Clear(AssInternalValues);
         Clear(AssExternalValues);
         Clear(CapInternalValues);
@@ -363,12 +366,19 @@ page 50681 "Requested vs Capacity Daily"
 
                 if IsCapacityRow then begin
                     ColorsArray.Add(CapacityColorHex);
+                    // CAPACITY is not a skill (blank per GetSkillFontColor/GetSkillBorderColor's
+                    // own convention) - GetDefaultBarFontColor() is codeunit 50609's raw literal
+                    // default, NOT GetBarFontColor()/"Daily Optimizer Setup"."Bar Font Color"
+                    // (that setting is reserved for the two scheduler-timeline add-ins' actual
+                    // Capacity bar/event, not this chart tile's CAPACITY category).
+                    FontColorsArray.Add(VisualDefaultSettings.GetDefaultBarFontColor());
                     SkillCapacityAnalysisMgt.GetCapacityAssignedFreeSplit(PeriodStartDate, CapacityPeriodEndDate, AssignedInternal, AssignedExternal, CapacityInternal, CapacityExternal);
                     RequestedAssignedValues.Add(0);
                 end else begin
                     RowSkillCode := CopyStr(Buffer."No.", 1, 10);
                     SkillCodeList.Add(RowSkillCode);
                     ColorsArray.Add(SkillCapacityAnalysisMgt.GetSkillBarColor(RowSkillCode, SkillPaletteIndex));
+                    FontColorsArray.Add(VisualDefaultSettings.GetSkillFontColor(RowSkillCode));
                     SkillPaletteIndex += 1;
                     AssignedInternal := 0;
                     AssignedExternal := 0;
@@ -414,13 +424,15 @@ page 50681 "Requested vs Capacity Daily"
                 until Buffer.Next() = 0;
 
             UnassignedColorHex := SkillCapacityAnalysisMgt.GetSkillBarColor(LoopSkillCode, SkillPaletteIndex);
-            SkillCapacityAnalysisMgt.AddSkillUnassignedSeries(SeriesArray, LoopSkillCode, SkillUnassignedValues, UnassignedColorHex);
+            UnassignedBorderColorHex := VisualDefaultSettings.GetSkillBorderColor(LoopSkillCode, SkillPaletteIndex);
+            SkillCapacityAnalysisMgt.AddSkillUnassignedSeries(SeriesArray, LoopSkillCode, SkillUnassignedValues, UnassignedColorHex, UnassignedBorderColorHex);
             SkillPaletteIndex += 1;
         end;
 
         ChartData.Add('categories', CategoriesArray);
         ChartData.Add('series', SeriesArray);
         ChartData.Add('colors', ColorsArray);
+        ChartData.Add('fontColors', FontColorsArray);
         ChartData.Add('barWidth', VisualDefaultSettings.GetDailyBarChartWidth());
 
         ChartData.WriteTo(ChartDataJson);

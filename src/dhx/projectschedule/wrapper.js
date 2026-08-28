@@ -168,10 +168,18 @@ window.BOOT = function() {
            via SetBarColors below. Defaults stay 80/20 even when setup has no override. */
         --dp-height-assigned: 80%;
         --dp-height-requested: 20%;
-        --bar-font-color: #000000;
+        /* dp-bar-font-color (NOT --bar-font-color/"Daily Optimizer Setup"."Bar Font Color" -
+           this scheduler has no Capacity bar of its own, so every bar here is skill-bearing and
+           text/border colour comes exclusively from per-skill overrides injected by
+           SetSkillFontBorderColors below, keyed to the "pts-skill-<token>" class added in
+           event_class). This var is only the fallback default for a skill with no per-skill
+           colour resolved (blank Skill, or codeunit 50609's own BarFontColorTok fallback). */
+        --dp-bar-font-color: #000000;
     }
 
-    /* Outer bar = envelope (earliest..latest of Requested/Assigned) — solid dark blue base */
+    /* Outer bar = envelope (earliest..latest of Requested/Assigned) — solid dark blue base.
+       border-color default here is overridden per-skill via the injected "pts-skill-<token>"
+       rules from SetSkillFontBorderColors (higher specificity, added later in <head>). */
     .dhx_cal_event.event-DayPlanning,
     .dhx_cal_event_line.event-DayPlanning,
     .dhx_event_line.event-DayPlanning {
@@ -218,7 +226,7 @@ window.BOOT = function() {
         display: flex;
         align-items: center;
         justify-content: flex-start;
-        color: var(--bar-font-color);
+        color: var(--dp-bar-font-color);
         font-size: 12px;
         white-space: nowrap;
         overflow: hidden;
@@ -374,10 +382,12 @@ window.BOOT = function() {
     // non-ignored columns, not just x_size raw ticks.
     scheduler.config.preserve_scale_length = true;
 
-    // All Day Planning bars share one class; the 3-part Requested/Assigned
-    // split is drawn by event_text below, not by vacant/assigned color.
+    // All Day Planning bars share the "event-DayPlanning" base class; the 3-part
+    // Requested/Assigned split is drawn by event_text below, not by vacant/assigned color.
+    // "pts-skill-<token>" is added so SetSkillFontBorderColors' injected per-skill <style>
+    // rules (text colour + border colour) can target this specific bar's skill.
     scheduler.templates.event_class = function(start, end, ev) {
-        return "event-DayPlanning";
+        return "event-DayPlanning pts-skill-" + safeCssToken(ev.skill);
     };
 
     // Compacts (not just hides) hour columns outside [timelineStartHour, timelineEndHour)
@@ -938,12 +948,46 @@ function SetBarColors(colorsJson) {
         // defaults (80%/20%) whenever setup doesn't override them (0/blank).
         if (colors.assignedHeight) root.style.setProperty("--dp-height-assigned", colors.assignedHeight + "%");
         if (colors.requestedHeight) root.style.setProperty("--dp-height-requested", colors.requestedHeight + "%");
-        // "fontColor" is sent by page 50621's ControlReady (via codeunit 50609's
-        // GetBarFontColor, "Daily Optimizer Setup"."Bar Font Color") - applies to the Day
-        // Planning bar's .dp-bar-label text above. Does NOT affect hover/tooltip text.
-        if (colors.fontColor) root.style.setProperty("--bar-font-color", colors.fontColor);
+        // Text/border colour is per-skill now (see SetSkillFontBorderColors below) - this
+        // scheduler has no Capacity bar of its own, so there is no longer any bar here that
+        // should read "Daily Optimizer Setup"."Bar Font Color"/GetBarFontColor.
     } catch (e) {
         console.warn("SetBarColors: invalid colorsJson", colorsJson, e);
+    }
+}
+
+function safeCssToken(txt) {
+    return String(txt == null ? "" : txt).replace(/[^a-zA-Z0-9_-]/g, "_");
+}
+
+// AL-callable: SetSkillFontBorderColors - applies per-skill bar text/border colour (codeunit
+// 50609 "Visual Default Settings"' GetSkillFontColor/GetSkillBorderColor, via codeunit 50604
+// "DHX Data Handler"'s BuildSkillFontBorderColorsJson) by injecting one CSS rule pair per skill,
+// keyed to the "pts-skill-<token>" class event_class adds to every Day Planning bar above.
+// skillsJson shape: [{code, fontColor, borderColor}, ...].
+function SetSkillFontBorderColors(skillsJson) {
+    try {
+        var skills = ParseJSonTxt(skillsJson) || [];
+        var css = skills.map(function (s) {
+            var token = safeCssToken(s.code);
+            // Full "border" shorthand, not just "border-color": these classes have no
+            // border-width/border-style anywhere in dhtmlxscheduler.css's own defaults, so a bare
+            // border-color rule renders no visible border at all (default border-style is "none").
+            return ".pts-skill-" + token + " .dp-bar-label{color:" + (s.fontColor || "#000000") + "!important;}\n" +
+                ".dhx_cal_event.event-DayPlanning.pts-skill-" + token + "," +
+                ".dhx_cal_event_line.event-DayPlanning.pts-skill-" + token + "," +
+                ".dhx_event_line.event-DayPlanning.pts-skill-" + token +
+                "{border:1px solid " + (s.borderColor || "#14294D") + "!important;}";
+        }).join("\n");
+        var styleEl = document.getElementById("pts-skill-colors");
+        if (!styleEl) {
+            styleEl = document.createElement("style");
+            styleEl.id = "pts-skill-colors";
+            document.head.appendChild(styleEl);
+        }
+        styleEl.textContent = css;
+    } catch (e) {
+        console.warn("SetSkillFontBorderColors: invalid skillsJson", skillsJson, e);
     }
 }
 

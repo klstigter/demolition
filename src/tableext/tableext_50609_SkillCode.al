@@ -17,5 +17,13 @@ tableextension 50609 "Opt. Skill Code" extends "Skill Code"
         {
             DataClassification = ToBeClassified;
         }
+        field(50601; "Font Color"; Text[50])
+        {
+            DataClassification = ToBeClassified;
+        }
+        field(50602; "Border Color"; Text[50])
+        {
+            DataClassification = ToBeClassified;
+        }
     }
 }
