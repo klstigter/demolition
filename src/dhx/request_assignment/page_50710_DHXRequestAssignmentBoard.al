@@ -143,8 +143,22 @@ page 50710 "DHX Request Assignment Board"
         DHXDataHandler: Codeunit "DHX Data Handler";
         StartDate: Date;
         EndDate: Date;
+        Window: Dialog;
+        LoadingLbl: Label 'Loading Gantt data...\n#1######################';
+        PlanningDataJson: Text;
     begin
         GetDefaultWindow(StartDate, EndDate);
-        CurrPage.DhxScheduler.SetPlanningData(DHXDataHandler.ReqAssign_BuildPlanningDataJson(StartDate, EndDate));
+
+        if GuiAllowed() then
+            Window.Open(LoadingLbl);
+
+        PlanningDataJson := DHXDataHandler.ReqAssign_BuildPlanningDataJson(StartDate, EndDate);
+
+        if GuiAllowed() then
+            Window.Update(1, 'Rendering...');
+        CurrPage.DhxScheduler.SetPlanningData(PlanningDataJson);
+
+        if GuiAllowed() then
+            Window.Close();
     end;
 }
