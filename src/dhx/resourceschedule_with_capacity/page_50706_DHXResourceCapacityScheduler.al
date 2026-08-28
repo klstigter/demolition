@@ -78,6 +78,12 @@ page 50706 "DHX Scheduler - TimeLine"
                     // when the setup record doesn't exist is a safe no-op per key.
                     SkillCapacityAnalysisMgt.GetCapacitySegmentColors(AssignedColorHex, CapacityColorHex, ExternalBorderColorHex);
                     CapacityBorderColorHex := SkillCapacityAnalysisMgt.GetCapacityBorderColor();
+                    // "fontColor"/BarFontColorHex below feeds ONLY the Capacity event's own
+                    // ".event-capacity" colour rule (wrapper.js's "--bar-font-color") - it is
+                    // this page's one genuinely skill-less bar. Day Planning bars are always
+                    // skill-bearing here and get their own per-skill text/border colour via
+                    // SetSkillFontBorderColors below instead (wrapper.js's "--dp-bar-font-color"/
+                    // "pts-skill-<token>" rules), never via GetBarFontColor().
                     BarFontColorHex := SkillCapacityAnalysisMgt.GetBarFontColor();
                     ColorsJsonTxt := StrSubstNo('{"envelope":"%1","envelopeBorder":"%2","assigned":"%3","assignedHeight":%4,"requestedHeight":%5,"capacity":"%6","capacityBorder":"%7","fontColor":"%8"}',
                         DailyOptimizerSetup."Envelope Color",
@@ -89,6 +95,7 @@ page 50706 "DHX Scheduler - TimeLine"
                         CapacityBorderColorHex,
                         BarFontColorHex);
                     CurrPage.DhxScheduler.SetBarColors(ColorsJsonTxt);
+                    CurrPage.DhxScheduler.SetSkillFontBorderColors(DHXDataHandler.BuildSkillFontBorderColorsJson());
                     PushResourceFilterInfo();
                     CurrPage.Update(false);
 

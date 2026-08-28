@@ -653,7 +653,11 @@ function applySections(sections) {
     var css = sections.map(function (s) {
         dps_sectionsByKey[s.key] = s;
         var token = safeCssToken(s.skill);
-        return ".dps-skill-" + token + "{background:" + (s.color || "#2457d6") + "!important;border-color:" + (s.color || "#2457d6") + "!important;}";
+        // Full "border" shorthand, not just "border-color": .dhx_cal_event_line/.dhx_matrix_cell
+        // have no border-width/border-style anywhere in dhtmlxscheduler.css's own defaults (only
+        // border-radius), so a bare border-color rule renders no visible border at all (default
+        // border-style is "none") - confirmed by grepping the vendor CSS before writing this fix.
+        return ".dps-skill-" + token + "{background:" + (s.color || "#2457d6") + "!important;border:1px solid " + (s.borderColor || s.color || "#2457d6") + "!important;color:" + (s.fontColor || "#000000") + "!important;}";
     }).join("\n");
     var styleEl = $id("dps-skill-colors");
     if (!styleEl) {

@@ -346,10 +346,10 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         end;
 
         ColorConstants.GetCapacitySegmentColors(AssignedColorHex, CapacityColorHex, ExternalBorderColorHex);
-        AddChartSeries(SeriesArray, AssInternalSeriesNameLbl, AssInternalValues, AssignedColorHex, '');
-        AddChartSeries(SeriesArray, AssExternalSeriesNameLbl, AssExternalValues, AssignedColorHex, ExternalBorderColorHex);
-        AddChartSeries(SeriesArray, CapInternalSeriesNameLbl, CapInternalValues, CapacityColorHex, '');
-        AddChartSeries(SeriesArray, CapExternalSeriesNameLbl, CapExternalValues, CapacityColorHex, ExternalBorderColorHex);
+        AddChartSeries(SeriesArray, AssInternalSeriesNameLbl, AssInternalValues, AssignedColorHex, '', '');
+        AddChartSeries(SeriesArray, AssExternalSeriesNameLbl, AssExternalValues, AssignedColorHex, ExternalBorderColorHex, '');
+        AddChartSeries(SeriesArray, CapInternalSeriesNameLbl, CapInternalValues, CapacityColorHex, '', '');
+        AddChartSeries(SeriesArray, CapExternalSeriesNameLbl, CapExternalValues, CapacityColorHex, ExternalBorderColorHex, '');
 
         SkillPaletteIdx := 0;
         foreach SkillCode in ActiveSkillList do begin
@@ -369,8 +369,15 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
                 SkillExternalValues.Add(0);
                 SkillExternalValues.Add(0);
             end;
-            AddChartSeries(SeriesArray, SkillCode, SkillInternalValues, GetSkillSeriesColor(SkillCode, SkillPaletteIdx), '');
-            AddChartSeries(SeriesArray, SkillCode, SkillExternalValues, GetSkillSeriesColor(SkillCode, SkillPaletteIdx), ExternalBorderColorHex);
+            // SkillInternalValues is the series that actually carries this skill's nonzero
+            // values (the Requested bar's combined total - see the comment above) and is
+            // declared FIRST, so it's the one that owns this skill's de-duped legend entry
+            // (see wrapper.js's GetLegendOwnerIndexByLabel) - both its own bar border AND its
+            // legend swatch border/text colour resolve from here. SkillExternalValues stays
+            // 0 everywhere by design (see above), so its own border (unchanged, ExternalBorderColorHex)
+            // never actually paints and it never owns a legend slot.
+            AddChartSeries(SeriesArray, SkillCode, SkillInternalValues, GetSkillSeriesColor(SkillCode, SkillPaletteIdx), GetSkillSeriesBorderColor(SkillCode, SkillPaletteIdx), GetSkillSeriesFontColor(SkillCode));
+            AddChartSeries(SeriesArray, SkillCode, SkillExternalValues, GetSkillSeriesColor(SkillCode, SkillPaletteIdx), ExternalBorderColorHex, '');
             SkillPaletteIdx += 1;
         end;
 
@@ -1072,6 +1079,32 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     end;
 
     /// <summary>
+    /// Returns the font/text colour to use for SkillCode's series/legend entry. Thin forward to
+    /// codeunit "Visual Default Settings" (50609)'s GetSkillFontColor - same Code[20]->Code[10]
+    /// truncation convention as GetSkillSeriesColor above.
+    /// </summary>
+    local procedure GetSkillSeriesFontColor(SkillCode: Code[20]): Text
+    var
+        ColorConstants: Codeunit "Visual Default Settings";
+    begin
+        exit(ColorConstants.GetSkillFontColor(CopyStr(SkillCode, 1, 10)));
+    end;
+
+    /// <summary>
+    /// Returns the border colour to use for SkillCode's series/legend swatch. Thin forward to
+    /// codeunit "Visual Default Settings" (50609)'s GetSkillBorderColor - same Code[20]->Code[10]
+    /// truncation convention as GetSkillSeriesColor above. PaletteIndex must be the SAME value
+    /// passed to GetSkillSeriesColor for this skill so an unconfigured skill's border falls back
+    /// to that same skill's own already-resolved fill colour, not a different palette slot.
+    /// </summary>
+    local procedure GetSkillSeriesBorderColor(SkillCode: Code[20]; PaletteIndex: Integer): Text
+    var
+        ColorConstants: Codeunit "Visual Default Settings";
+    begin
+        exit(ColorConstants.GetSkillBorderColor(CopyStr(SkillCode, 1, 10), PaletteIndex));
+    end;
+
+    /// <summary>
     /// Returns one day's (PlanDate's) Assigned/Free Capacity split, Internal/External, plus the
     /// sum of all days in [DateFrom..DateTo] - the same per-day computation
     /// BuildDayCapacityChartData uses for the Capacity bar's 4 stacked segments (CalcAssignedSplit/
@@ -1159,11 +1192,16 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     end;
 
     /// <summary>
-    /// Appends one series object (name/values/color/[border]/stacked) to SeriesArray, matching
-    /// the exact JSON contract src/dhx/barchart_weekly/wrapper.js's RenderChart expects. BorderHex may
-    /// be blank to omit the optional "border" key.
+    /// Appends one series object (name/values/color/[border]/[fontColor]/stacked) to SeriesArray,
+    /// matching the exact JSON contract src/dhx/barchart_weekly/wrapper.js's RenderChart expects.
+    /// BorderHex/FontColorHex may be blank to omit the optional "border"/"fontColor" keys.
+    /// FontColorHex is consumed by wrapper.js's ApplyLegendSwatchBorders (per-skill legend TEXT
+    /// colour, codeunit 50609's GetSkillFontColor - reuses that function's existing de-dup-aware
+    /// legend-ownership lookup, the same one already applies each skill's border to its legend
+    /// swatch) - only ever passed for the per-skill series below, never for the shared Assigned/
+    /// Capacity segments (which have no Skill of their own).
     /// </summary>
-    local procedure AddChartSeries(var SeriesArray: JsonArray; SeriesName: Text; Values: List of [Decimal]; ColorHex: Text; BorderHex: Text)
+    local procedure AddChartSeries(var SeriesArray: JsonArray; SeriesName: Text; Values: List of [Decimal]; ColorHex: Text; BorderHex: Text; FontColorHex: Text)
     var
         SeriesObj: JsonObject;
         ValuesArray: JsonArray;
@@ -1178,6 +1216,8 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         SeriesObj.Add('color', ColorHex);
         if BorderHex <> '' then
             SeriesObj.Add('border', BorderHex);
+        if FontColorHex <> '' then
+            SeriesObj.Add('fontColor', FontColorHex);
         SeriesObj.Add('stacked', true);
 
         SeriesArray.Add(SeriesObj);

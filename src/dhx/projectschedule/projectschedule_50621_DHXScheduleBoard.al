@@ -29,7 +29,6 @@ page 50621 "DHX Scheduler (Project)"
                     AssignedColorHex: Text;
                     CapacityColorHex: Text;
                     ExternalBorderColorHex: Text;
-                    BarFontColorHex: Text;
                     HasSetup: Boolean;
                     Window: Dialog;
                     LoadingLbl: Label 'Loading Task Scheduler data...\n#1######################';
@@ -85,15 +84,20 @@ page 50621 "DHX Scheduler (Project)"
                     // Envelope/EnvelopeBorder/Heights when the setup record doesn't exist is a
                     // safe no-op per key.
                     SkillCapacityAnalysisMgt.GetCapacitySegmentColors(AssignedColorHex, CapacityColorHex, ExternalBorderColorHex);
-                    BarFontColorHex := SkillCapacityAnalysisMgt.GetBarFontColor();
-                    ColorsJsonTxt := StrSubstNo('{"envelope":"%1","envelopeBorder":"%2","assigned":"%3","assignedHeight":%4,"requestedHeight":%5,"fontColor":"%6"}',
+                    ColorsJsonTxt := StrSubstNo('{"envelope":"%1","envelopeBorder":"%2","assigned":"%3","assignedHeight":%4,"requestedHeight":%5}',
                         DailyOptimizerSetup."Envelope Color",
                         DailyOptimizerSetup."Envelope Border Color",
                         AssignedColorHex,
                         DailyOptimizerSetup."Assigned High (%)",
-                        DailyOptimizerSetup."Requested High (%)",
-                        BarFontColorHex);
+                        DailyOptimizerSetup."Requested High (%)");
                     CurrPage.DhxScheduler.SetBarColors(ColorsJsonTxt);
+                    // This scheduler has no separate Capacity bar/event of its own - every bar is
+                    // a Day Planning bar and therefore always skill-bearing, so bar text/border
+                    // colour is driven entirely per-skill (never via "Daily Optimizer
+                    // Setup"."Bar Font Color"/GetBarFontColor - the "fontColor" key removed from
+                    // ColorsJsonTxt above accordingly). See wrapper.js's
+                    // SetSkillFontBorderColors/event_class for the per-skill application.
+                    CurrPage.DhxScheduler.SetSkillFontBorderColors(DHXDataHandler.BuildSkillFontBorderColorsJson());
                     CurrPage.DhxScheduler.LoadData(PlanninJsonTxt);
                     CurrPage.DhxScheduler.SetTaskFilterInfo(jobFilter, JobTaskFilter, Format(startDate, 0, '<Year4>-<Month,2>-<Day,2>'), Format(endDate, 0, '<Year4>-<Month,2>-<Day,2>'));
                     AnchorDate := startDate;

@@ -411,7 +411,6 @@ codeunit 50695 "Day Planning Sequence Mgt."
                 SkillDescription := RowSkillCode;
 
             BarColorHex := VisualDefaultSettings.GetSkillBarColor(RowSkillCode, PaletteIndex);
-            PaletteIndex += 1;
 
             Clear(SectionObj);
             SectionObj.Add('key', LoopSectionKey);
@@ -421,6 +420,9 @@ codeunit 50695 "Day Planning Sequence Mgt."
             SectionObj.Add('skillDescription', SkillDescription);
             SectionObj.Add('sequenceNo', RowSequenceNo);
             SectionObj.Add('color', BarColorHex);
+            SectionObj.Add('fontColor', VisualDefaultSettings.GetSkillFontColor(RowSkillCode));
+            SectionObj.Add('borderColor', VisualDefaultSettings.GetSkillBorderColor(RowSkillCode, PaletteIndex));
+            PaletteIndex += 1;
             SectionObj.Add('label', StrSubstNo('%1 - Seq %2', SkillDescription, RowSequenceNo));
             SectionObj.Add('minDate', Format(MinDateBySection.Get(LoopSectionKey), 0, '<Year4>-<Month,2>-<Day,2>'));
             SectionObj.Add('maxDate', Format(MaxDateBySection.Get(LoopSectionKey), 0, '<Year4>-<Month,2>-<Day,2>'));

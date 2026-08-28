@@ -144,6 +144,12 @@ window.BOOT = function () {
             --dp-color-requested: #6FCF97; /* unrelated to codeunit 50609's skill palette - see ev.requested_color below */
             --dp-height-assigned: 50%;
             --dp-height-requested: 50%;
+            /* Fallback default for .dp-bar-label text colour when a bar's skill has no per-skill
+               colour resolved - NOT the same channel as --bar-font-color above (that one is
+               reserved for the Capacity event only; see SetSkillFontBorderColors below for the
+               actual per-skill override, keyed to the "dp-skill-<token>" class event_class adds
+               to Day Planning bars only). */
+            --dp-bar-font-color: #000000;
         }
         .dhx_cal_event.event-DayPlanning,
         .dhx_cal_event_line.event-DayPlanning,
@@ -158,7 +164,7 @@ window.BOOT = function () {
         .dp-bar-requested { position: absolute; bottom: 0; height: var(--dp-height-requested); background: var(--dp-color-requested) !important; }
         .dp-bar-label {
             position: absolute; inset: 0; display: flex; align-items: center; justify-content: flex-start;
-            color: var(--bar-font-color); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            color: var(--dp-bar-font-color, #000000); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
             pointer-events: none; text-shadow: 0 0 2px rgba(0,0,0,0.7); z-index: 2;
             padding-left: 4px; text-align: left; min-width: 0;
         }
@@ -240,7 +246,16 @@ window.BOOT = function () {
         // wrapper.js). Without this, the event-capacity/event-DayPlanning color rules above
         // never actually apply and bars fall back to DHTMLX's default blue.
         scheduler.templates.event_class = function (start, end, ev) {
-            return ev.classname || "";
+            var cls = ev.classname || "";
+            // Day Planning bars are always skill-bearing; "dp-skill-<token>" lets
+            // SetSkillFontBorderColors' injected per-skill <style> rules target this bar's own
+            // text/border colour. The Capacity event ("event-capacity") intentionally gets no
+            // such class - it stays on the shared --bar-font-color/--cap-color-border channel
+            // (see SetBarColors/ControlReady), since it has no Skill of its own.
+            if (ev.type === "DayPlanning" && ev.skill) {
+                cls += " dp-skill-" + safeCssToken(ev.skill);
+            }
+            return cls;
         };
 
         scheduler.config.preserve_scale_length = true;
@@ -644,13 +659,54 @@ function SetBarColors(colorsJson) {
         if (colors.assignedHeight) root.style.setProperty("--dp-height-assigned", colors.assignedHeight + "%");
         if (colors.requestedHeight) root.style.setProperty("--dp-height-requested", colors.requestedHeight + "%");
         // "fontColor" is sent by page 50706's ControlReady (via codeunit 50609's
-        // GetBarFontColor, "Daily Optimizer Setup"."Bar Font Color") - applies uniformly to every
-        // bar's on-bar label text (Day Planning's .dp-bar-label AND the Capacity event's own
-        // color rule above, which previously had its own distinct hardcoded "#3a2600"). Does NOT
-        // affect hover/tooltip text - that stays on its own separate hardcoded colors.
+        // GetBarFontColor, "Daily Optimizer Setup"."Bar Font Color") - applies ONLY to the
+        // Capacity event's own color rule above (the ".event-capacity" selector), which has no
+        // Skill of its own. Day Planning bars are always skill-bearing and no longer read
+        // --bar-font-color at all - see SetSkillFontBorderColors below for their per-skill
+        // text/border colour. Does NOT affect hover/tooltip text - that stays on its own
+        // separate hardcoded colors.
         if (colors.fontColor) root.style.setProperty("--bar-font-color", colors.fontColor);
     } catch (e) {
         console.warn("SetBarColors: invalid colorsJson", colorsJson, e);
+    }
+}
+
+function safeCssToken(txt) {
+    return String(txt == null ? "" : txt).replace(/[^a-zA-Z0-9_-]/g, "_");
+}
+
+// ============================================================
+// AL-callable: SetSkillFontBorderColors - per-skill Day Planning bar text/border colour
+// (codeunit 50609 "Visual Default Settings"' GetSkillFontColor/GetSkillBorderColor, via
+// codeunit 50604 "DHX Data Handler"'s BuildSkillFontBorderColorsJson). Injects one CSS rule
+// pair per skill, keyed to the "dp-skill-<token>" class event_class adds to Day Planning bars
+// only (never to the Capacity event - that bar keeps using --bar-font-color/--cap-color-border
+// via SetBarColors above, since it has no Skill of its own).
+// skillsJson shape: [{code, fontColor, borderColor}, ...].
+// ============================================================
+function SetSkillFontBorderColors(skillsJson) {
+    try {
+        var skills = ParseRcJsonTxt(skillsJson) || [];
+        var css = skills.map(function (s) {
+            var token = safeCssToken(s.code);
+            // Full "border" shorthand, not just "border-color": these classes have no
+            // border-width/border-style anywhere in dhtmlxscheduler.css's own defaults, so a bare
+            // border-color rule renders no visible border at all (default border-style is "none").
+            return ".dp-skill-" + token + " .dp-bar-label{color:" + (s.fontColor || "#000000") + "!important;}\n" +
+                ".dhx_cal_event.event-DayPlanning.dp-skill-" + token + "," +
+                ".dhx_cal_event_line.event-DayPlanning.dp-skill-" + token + "," +
+                ".dhx_event_line.event-DayPlanning.dp-skill-" + token +
+                "{border:1px solid " + (s.borderColor || "#14294D") + "!important;}";
+        }).join("\n");
+        var styleEl = document.getElementById("rc-skill-colors");
+        if (!styleEl) {
+            styleEl = document.createElement("style");
+            styleEl.id = "rc-skill-colors";
+            document.head.appendChild(styleEl);
+        }
+        styleEl.textContent = css;
+    } catch (e) {
+        console.warn("SetSkillFontBorderColors: invalid skillsJson", skillsJson, e);
     }
 }
 

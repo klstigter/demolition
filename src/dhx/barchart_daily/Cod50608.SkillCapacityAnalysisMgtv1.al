@@ -393,10 +393,17 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
     /// swatch/segment colours already have). Values must be 0 everywhere except this skill's own
     /// category index - one dedicated series per skill, unlike the shared Assigned series above,
     /// precisely because this colour DOES vary per skill.
+    ///
+    /// BorderColor is that same skill's own resolved border colour (codeunit 50609 "Visual
+    /// Default Settings"' GetSkillBorderColor, via the caller) - the AddSeries `border` field is
+    /// fully generic (see ApplySeriesBorders' own comment in wrapper.js on why the Internal/
+    /// External capacity-source distinction previously left this blank here on purpose); a
+    /// per-skill accent border is a different, later-added semantic reusing that same mechanism.
+    /// Pass '' to omit (no visible border), same convention as AddRequestedAssignedSeries above.
     /// </summary>
-    procedure AddSkillUnassignedSeries(var SeriesArray: JsonArray; SkillCode: Code[10]; Values: JsonArray; UnassignedColor: Text)
+    procedure AddSkillUnassignedSeries(var SeriesArray: JsonArray; SkillCode: Code[10]; Values: JsonArray; UnassignedColor: Text; BorderColor: Text)
     begin
-        AddSeries(SeriesArray, StrSubstNo(SkillUnassignedSeriesNameLbl, SkillCode), Values, UnassignedColor, '');
+        AddSeries(SeriesArray, StrSubstNo(SkillUnassignedSeriesNameLbl, SkillCode), Values, UnassignedColor, BorderColor);
     end;
 
     /// <summary>

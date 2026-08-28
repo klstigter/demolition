@@ -38,6 +38,7 @@ controladdin DHXResourceCapacityScheduleAddin
 
     procedure Init(elements: Text; EarliestPlanningDate: Date);
     procedure SetBarColors(colorsJson: Text);
+    procedure SetSkillFontBorderColors(skillsJson: Text);
     procedure SetTimelineHourStep(hourStep: Integer);
     procedure SetTimelineHourRange(startHour: Integer; endHour: Integer);
     procedure LoadData(EventTxt: Text);
