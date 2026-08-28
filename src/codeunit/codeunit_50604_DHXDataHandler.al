@@ -5044,7 +5044,7 @@ codeunit 50604 "DHX Data Handler"
         DayPlanning.SetRange("Plan Date", StartDate, EndDate);
         DayPlanning.SetLoadFields("Job No.", "Job Task No.", "Day Line No.", "Plan Date", Skill,
             "Start Time Requested", "End Time Requested", "Start Time Assigned", "End Time Assigned",
-            "Assigned Resource No.");
+            "Assigned Resource No.", "Sequence No.");
         if DayPlanning.FindSet() then
             repeat
                 if not JobDescCache.ContainsKey(DayPlanning."Job No.") then
@@ -5063,7 +5063,15 @@ codeunit 50604 "DHX Data Handler"
                 TaskName := JobTaskDescCache.Get(TaskCacheKey);
 
                 IdTxt := DayPlanning."Job No." + '|' + DayPlanning."Job Task No." + '|' + Format(DayPlanning."Day Line No.");
-                SequenceKeyTxt := DayPlanning."Job No." + '|' + DayPlanning."Job Task No." + '|' + DayPlanning.Skill;
+                // Includes "Sequence No." (table 50610 field 9, codeunit 50695 "Day Planning
+                // Sequence Mgt." owns its assignment) so two independent threads sharing the same
+                // [Job No., Job Task No., Skill] - e.g. "Elektrisch - Seq 1" and "- Seq 2" from the
+                // Day Planning Sequence add-in - render as separate rows here too, instead of
+                // collapsing into one. Legacy rows still holding "Sequence No." = 0 (inserted
+                // before this field existed and not yet repaired) will still collapse together
+                // under "...|0" until report 50600 "RepairData"'s
+                // RepairSequenceNoOnAllDayPlannings is run.
+                SequenceKeyTxt := DayPlanning."Job No." + '|' + DayPlanning."Job Task No." + '|' + DayPlanning.Skill + '|' + Format(DayPlanning."Sequence No.");
 
                 if DayPlanning."Start Time Requested" <> 0T then
                     ReqStart := ReqAssign_TimeToDecimalHours(DayPlanning."Start Time Requested")
@@ -5099,6 +5107,7 @@ codeunit 50604 "DHX Data Handler"
                 LineObj.Add('taskId', DayPlanning."Job Task No.");
                 LineObj.Add('taskName', TaskName);
                 LineObj.Add('sequenceKey', SequenceKeyTxt);
+                LineObj.Add('sequenceNo', DayPlanning."Sequence No.");
                 LineObj.Add('requiredSkill', DayPlanning.Skill);
                 LineObj.Add('date', ReqAssign_FormatIsoDate(DayPlanning."Plan Date"));
                 LineObj.Add('dayIndex', DayIndex);

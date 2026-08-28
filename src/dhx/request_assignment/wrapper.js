@@ -1477,10 +1477,13 @@ function capacityFailureText(lines, resourceId) {
 
 // Sequence rows / Job > Job Task > Sequence tree are rebuilt every time
 // SetPlanningData() delivers fresh data (see applyPlanningData below).
-// A "Sequence" has no numeric identity in Business Central — it is the
-// distinct (Job No., Job Task No., Skill) combination already carried on
-// each Day Task Line as `sequenceKey`. `seq` is set to the Skill code so
-// every existing "Seq ${...}" label/tooltip keeps working unchanged.
+// A "Sequence" row's identity is the distinct (Job No., Job Task No., Skill,
+// Sequence No.) combination already carried on each Day Task Line as
+// `sequenceKey` (AL includes the real "Sequence No." in that key - see
+// codeunit 50604's ReqAssign_BuildDayTaskLinesJson), so two independently-
+// created threads sharing the same Job/Task/Skill (e.g. "Elektrisch - Seq 1"
+// and "- Seq 2") render as separate rows here, matching the Day Planning
+// Sequence add-in's own row grouping. `seq` is the real numeric Sequence No.
 function rebuildRequestTree() {
   const rowsByKey = new Map();
 
@@ -1488,13 +1491,13 @@ function rebuildRequestTree() {
     if (!rowsByKey.has(line.sequenceKey)) {
       rowsByKey.set(line.sequenceKey, {
         key: line.sequenceKey,
-        label: `Seq ${line.requiredSkill}`,
+        label: `${line.requiredSkill} - Seq ${line.seq}`,
         projectId: line.projectId,
         projectName: line.projectName,
         taskId: line.taskId,
         taskName: line.taskName,
-        seq: line.requiredSkill,
-        description: line.requiredSkill,
+        seq: line.seq,
+        description: `${line.requiredSkill} - Seq ${line.seq}`,
         requiredSkill: line.requiredSkill,
         kind: "sequence"
       });
@@ -2736,7 +2739,7 @@ function createRequestScheduler() {
             }
             <span class="seq-info">
               <span class="seq-title skill-first-title">
-                ${section.requiredSkill}
+                ${section.requiredSkill} - Seq ${section.seq}
               </span>
               <span class="seq-subtitle">
                 selected through ${getGlobalSelectionEndDate()?.toLocaleDateString("en-GB") ?? "—"}
@@ -6599,9 +6602,12 @@ function SetPlanningData(planningDataJsonTxt) {
   dayTaskLines = (data.dayTaskLines || []).map(item => ({
     ...item,
     date: parseDateOnly(item.date),
-    // No numeric "Sequence No." exists in Business Central — every label
-    // and tooltip that used to show `line.seq` now shows the Skill code.
-    seq: item.requiredSkill,
+    // `sequenceNo` is table 50610 "Day Planning"."Sequence No." (field 9), sent by AL's
+    // ReqAssign_BuildDayTaskLinesJson - a real per-thread ordinal (1, 2, 3, ...) distinguishing
+    // independently-created threads that share the same [Job No., Job Task No., Skill], same
+    // identity/numbering as the Day Planning Sequence add-in's rows. Every label/tooltip that
+    // reads `line.seq` shows this number now, not the Skill code.
+    seq: item.sequenceNo,
     assignedResource: item.assignedResource || null,
     sequenceAccepted: !!item.sequenceAccepted
   }));
