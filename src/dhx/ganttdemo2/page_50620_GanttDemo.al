@@ -1186,6 +1186,7 @@ page 50620 "Gantt Demo DHX 2"
     var
         GanttChartDataHandler: Codeunit "GanttChartDataHandler";
         SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
+        VisualDefaultSettings: Codeunit "Visual Default Settings";
         StartDate: Date;
         EndDate: Date;
         LoadWithOutResourcePanelFilter: Boolean;
@@ -1214,6 +1215,11 @@ page 50620 "Gantt Demo DHX 2"
         // ControlReady and RefreshGantt funnel through here), mirroring how the scheduler pages
         // re-send SetBarColors on every ControlReady. Does NOT affect gantt_tooltip text.
         CurrPage.DHXGanttControl2.SetBarFontColor(SkillCapacityAnalysisMgt.GetBarFontColor());
+
+        // "Daily Optimizer Setup"."Weekend Color"/"Holiday Color" via codeunit 50609's
+        // GetWeekendColor/GetHolidayColor - same call-every-LoadAllData convention as
+        // SetBarFontColor above, so a setup change takes effect on the next refresh too.
+        CurrPage.DHXGanttControl2.SetDayOffColors(VisualDefaultSettings.GetWeekendColor(), VisualDefaultSettings.GetHolidayColor());
 
         GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
 

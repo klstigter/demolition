@@ -1,0 +1,392 @@
+/* Day Planning Sequence add-in - visual port of KLAAS/SequenceGenerator (SequenceGenerator37).
+   Adapted for embedding as a BC FastTab control (no page chrome/topbar - that's the host page's
+   job); geometry/timeline rules and panel/dialog/tooltip styling are kept close to the demo. */
+
+#dps-root {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    font-family: "Segoe UI", Inter, Arial, sans-serif;
+    background: #f4f6f9;
+}
+
+#dps-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 6px 8px;
+    background: #fff;
+    border-bottom: 1px solid #d9dee7;
+}
+
+.dps-btn {
+    border: 1px solid #cbd3df;
+    background: #fff;
+    color: #24324a;
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.dps-btn.dps-primary {
+    background: #2457d6;
+    border-color: #2457d6;
+    color: #fff;
+}
+
+#dps-stage {
+    position: relative;
+    height: calc(100% - 40px);
+}
+
+#dps-scheduler-card {
+    height: 100%;
+    background: #fff;
+    border: 1px solid #d9dee7;
+    overflow: hidden;
+    position: relative;
+}
+
+#dps_scheduler_here {
+    width: 100%;
+    height: 100%;
+}
+
+/* ── Modify sequence side panel ───────────────────────────── */
+.dps-sidepanel {
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    bottom: 10px;
+    width: 300px;
+    z-index: 60;
+    background: #fff;
+    border: 1px solid #d9dee7;
+    border-radius: 8px;
+    box-shadow: 0 14px 38px rgba(25, 35, 55, .2);
+    transform: translateX(calc(-100% - 22px));
+    transition: transform .18s ease;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.dps-sidepanel.dps-open {
+    transform: translateX(0);
+}
+
+.dps-panelhead {
+    padding: 12px 14px;
+    border-bottom: 1px solid #d9dee7;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.dps-paneltitle {
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.dps-panelbody {
+    padding: 12px 14px;
+    overflow: auto;
+}
+
+.dps-info {
+    background: #f7f9fc;
+    border: 1px solid #d9dee7;
+    border-radius: 6px;
+    padding: 7px 9px;
+    margin-bottom: 9px;
+}
+
+.dps-info .dps-lbl {
+    font-size: 9px;
+    color: #697386;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.dps-info .dps-val {
+    font-size: 12px;
+    font-weight: 700;
+    margin-top: 2px;
+}
+
+.dps-field {
+    margin-bottom: 9px;
+}
+
+.dps-field label {
+    display: block;
+    font-size: 10px;
+    color: #697386;
+    margin-bottom: 3px;
+}
+
+.dps-field input,
+.dps-field select {
+    width: 100%;
+    border: 1px solid #cbd3df;
+    border-radius: 5px;
+    padding: 7px 8px;
+    background: #fff;
+    font-size: 12px;
+    box-sizing: border-box;
+}
+
+.dps-exclude-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+
+.dps-daytoggle {
+    border: 1px solid #cbd3df;
+    background: #fff;
+    border-radius: 5px;
+    padding: 6px 2px;
+    font-size: 9px;
+    cursor: pointer;
+}
+
+.dps-daytoggle.dps-excluded {
+    background: #ffe9e9;
+    border-color: #d46a6a;
+    color: #9b2727;
+    font-weight: 700;
+}
+
+.dps-daytoggle:disabled {
+    background: #f2f3f5;
+    color: #b3bac6;
+    cursor: default;
+}
+
+.dps-panelactions {
+    margin-top: auto;
+    padding: 10px 14px;
+    border-top: 1px solid #d9dee7;
+    display: flex;
+    gap: 8px;
+}
+
+.dps-panelactions .dps-btn {
+    flex: 1;
+}
+
+.dps-status {
+    min-height: 16px;
+    padding: 0 14px 6px;
+    font-size: 10px;
+    color: #637084;
+}
+
+/* ── New sequence modal dialog ────────────────────────────── */
+.dps-dialog-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(20, 28, 42, .28);
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+}
+
+.dps-dialog-backdrop.dps-open {
+    display: flex;
+}
+
+.dps-dialog {
+    width: min(400px, 100%);
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #d9dee7;
+    box-shadow: 0 18px 55px rgba(0, 0, 0, .22);
+}
+
+/* ── Row label + timeline geometry (mirrors the demo's compact 2h-cell timeline) ── */
+.dhx_cal_navline {
+    display: none !important;
+}
+
+.dhx_matrix_scell {
+    background: #fff !important;
+    border-right: 1px solid #dfe4eb !important;
+    width: 190px !important;
+    max-width: 190px !important;
+    box-sizing: border-box !important;
+}
+
+.dps-row-label {
+    display: flex;
+    align-items: center;
+    height: 30px;
+    padding: 0 8px;
+    font-weight: 700;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dps-row-label:hover {
+    background: #f7f9fc;
+}
+
+/* Same colors as the Gantt add-in (src/dhx/ganttdemo2/style.css): light red for Sat/Sun,
+   light amber for Base Calendar day-off/holiday exceptions - both driven by the same
+   Codeunit "GanttChartDataHandler".GetHolidaysAsJson data source, so a date reads identically
+   across both add-ins. */
+/* overridable via "Daily Optimizer Setup"."Weekend Color"/"Holiday Color" - see wrapper.js's
+   SetDayOffColors, which sets these on #dps-root */
+.dhx_matrix_cell.weekend-cell {
+    background: var(--dps-weekend-color, #ffe0e0) !important;
+}
+
+.dhx_scale_bar.weekend-scale,
+.dhx_cal_header .weekend-scale,
+.dhx_second_scale_bar.weekend-scale {
+    background: var(--dps-weekend-color, #ffe0e0) !important;
+}
+
+.dhx_matrix_cell.holiday-cell {
+    background: var(--dps-holiday-color, #fff3cd) !important;
+}
+
+.dhx_scale_bar.holiday-scale,
+.dhx_cal_header .holiday-scale,
+.dhx_second_scale_bar.holiday-scale {
+    background: var(--dps-holiday-color, #fff3cd) !important;
+}
+
+.dhx_cal_event_line,
+.dhx_cal_event_clear {
+    border-radius: 5px !important;
+    text-align: center !important;
+}
+
+.dps-event .dhx_event_move {
+    font-size: 10px !important;
+    padding: 0 4px !important;
+    line-height: normal !important;
+    text-align: center !important;
+}
+
+/* ── Tooltip ───────────────────────────────────────────────── */
+.dps-tooltip {
+    position: fixed;
+    z-index: 120;
+    display: none;
+    width: 260px;
+    background: #fff;
+    color: #172033;
+    border: 1px solid #d8dee8;
+    border-radius: 10px;
+    box-shadow: 0 16px 38px rgba(25, 35, 55, .18);
+    overflow: hidden;
+    pointer-events: none;
+    font-size: 10px;
+}
+
+.dps-tooltip-head {
+    padding: 8px 10px 7px;
+    border-bottom: 1px solid #e6eaf0;
+    background: #fafbfd;
+    font-weight: 800;
+}
+
+.dps-tooltip-body {
+    padding: 7px 10px 9px;
+}
+
+.dps-tooltip-row {
+    display: grid;
+    grid-template-columns: 78px 1fr;
+    gap: 8px;
+    padding: 3px 0;
+}
+
+.dps-tooltip-label {
+    color: #7b8494;
+}
+
+.dps-tooltip-value {
+    font-weight: 650;
+    color: #263248;
+}
+
+/* ── Error banner (missing DHTMLX Scheduler build) ───────────── */
+.dps-error {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: #fff;
+    color: #7b2d2d;
+    font-size: 13px;
+    text-align: center;
+    z-index: 200;
+}
+
+/* ── Loading overlay (same look as the other add-ins in this app) ── */
+#dps-loading-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 100000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.35);
+}
+
+#dps-loading-overlay .dps-lo-box {
+    background: #fff;
+    border: 1px solid #d8d8d8;
+    border-radius: 6px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+    padding: 16px 24px;
+    width: 160px;
+    text-align: center;
+    font: 12px/1.4 "Segoe UI", Tahoma, sans-serif;
+}
+
+#dps-loading-overlay .dps-lo-bar {
+    height: 14px;
+    border: 1px solid #2f6fdb;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 8px;
+    background: #fff;
+}
+
+#dps-loading-overlay .dps-lo-bar-fill {
+    height: 100%;
+    width: 200%;
+    background-image: repeating-linear-gradient(-55deg, #2f6fdb 0 8px, #eaf1fd 8px 16px);
+    animation: dps-lo-slide 0.9s linear infinite;
+}
+
+@keyframes dps-lo-slide {
+    from {
+        transform: translateX(-50%);
+    }
+
+    to {
+        transform: translateX(0%);
+    }
+}
+
+#dps-loading-overlay .dps-lo-title {
+    color: #2f6fdb;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 1px;
+}

@@ -7,11 +7,13 @@ html,
 		}
 
 		.weekend {
-			background: #ffe0e0; /* light red for Saturday / Sunday */
+			/* overridable via "Daily Optimizer Setup"."Weekend Color" - see wrapper.js's SetDayOffColors */
+			background: var(--gantt-weekend-color, #ffe0e0); /* light red for Saturday / Sunday */
 		}
 
 		.holiday {
-			background: #fff3cd; /* light amber for public holidays */
+			/* overridable via "Daily Optimizer Setup"."Holiday Color" - see wrapper.js's SetDayOffColors */
+			background: var(--gantt-holiday-color, #fff3cd); /* light amber for public holidays */
 		}
 
 		[data-column-name='constraint_type'] .gantt_tree_content {

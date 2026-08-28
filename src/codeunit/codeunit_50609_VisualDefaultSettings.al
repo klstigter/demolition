@@ -121,11 +121,60 @@ codeunit 50609 "Visual Default Settings"
     end;
 
     /// <summary>
+    /// Resolves the background colour used to shade Saturday/Sunday columns on a scheduler
+    /// timeline/Gantt chart - currently consumed as a hardcoded CSS literal by src/dhx/ganttdemo2
+    /// (.weekend, style.css) and src/dhx/dayplanning_sequence (.weekend-cell/.weekend-scale,
+    /// style.css), both of which this centralises. Overridable via "Daily Optimizer Setup"."Weekend
+    /// Color" when the singleton exists and the field is non-blank, else falls back to
+    /// WeekendColorTok. Same safe boolean-context Get() convention as GetBarFontColor above.
+    /// </summary>
+    procedure GetWeekendColor(): Text
+    var
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+    begin
+        if DailyOptimizerSetup.Get() then
+            if DailyOptimizerSetup."Weekend Color" <> '' then
+                exit(DailyOptimizerSetup."Weekend Color");
+
+        exit(WeekendColorTok);
+    end;
+
+    /// <summary>
+    /// Resolves the background colour used to shade Base Calendar day-off/public-holiday exception
+    /// dates (Mon-Fri) on a scheduler timeline/Gantt chart - currently consumed as a hardcoded CSS
+    /// literal by src/dhx/ganttdemo2 (.holiday, style.css) and src/dhx/dayplanning_sequence
+    /// (.holiday-cell/.holiday-scale, style.css), both of which this centralises. Overridable via
+    /// "Daily Optimizer Setup"."Holiday Color" when the singleton exists and the field is
+    /// non-blank, else falls back to HolidayColorTok. Same safe boolean-context Get() convention as
+    /// GetBarFontColor above.
+    /// </summary>
+    procedure GetHolidayColor(): Text
+    var
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+    begin
+        if DailyOptimizerSetup.Get() then
+            if DailyOptimizerSetup."Holiday Color" <> '' then
+                exit(DailyOptimizerSetup."Holiday Color");
+
+        exit(HolidayColorTok);
+    end;
+
+    /// <summary>
     /// Public getters for this codeunit's own built-in default colours - exposed only so page
     /// 50654's "Reset to default" action can restore a user's setup override back to these
     /// defaults without duplicating the hex literals on the page. The underlying Tok labels stay
     /// local/private per this codeunit's existing convention of never exposing raw vars directly.
     /// </summary>
+    procedure GetDefaultWeekendColor(): Text
+    begin
+        exit(WeekendColorTok);
+    end;
+
+    procedure GetDefaultHolidayColor(): Text
+    begin
+        exit(HolidayColorTok);
+    end;
+
     procedure GetDefaultAssignedColor(): Text
     begin
         exit(AssColorTok);
@@ -362,6 +411,13 @@ codeunit 50609 "Visual Default Settings"
         // comment).
         // Used by: GetBarFontColor above only.
         BarFontColorTok: Label '#000000', Locked = true;
+        // Fallback for GetWeekendColor/GetHolidayColor above - overridable via "Daily Optimizer
+        // Setup"."Weekend Color"/"Holiday Color". Values match what src/dhx/ganttdemo2/style.css
+        // and src/dhx/dayplanning_sequence/style.css already hardcode for .weekend/.holiday, kept
+        // in sync by hand for the case where the setup singleton doesn't exist yet.
+        // Used by: GetWeekendColor/GetHolidayColor above only.
+        WeekendColorTok: Label '#ffe0e0', Locked = true;
+        HolidayColorTok: Label '#fff3cd', Locked = true;
         // Synthetic aggregate-row marker used by codeunit 50608's BuildSkillBuffer - must stay
         // text-identical to that codeunit's own CapacitySkillCodeTok.
         // Used by: GetSkillBarColor above only (blank-for-'CAPACITY' guard).
