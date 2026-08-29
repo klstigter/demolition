@@ -24,7 +24,7 @@ table 50618 "Opti Week Pattern Line"
         field(20; "Day Pattern ID"; Integer)
         {
             Caption = 'Day Pattern ID';
-            TableRelation = "Opti Day-TimeSlots Header"."Day Time SLot Header ID";
+            TableRelation = "Opti Day-TimeSlots Header"."Day-TimeSLots Header No.";
         }
         field(30; "Weekday Name"; Text[20])
         {
@@ -37,7 +37,7 @@ table 50618 "Opti Week Pattern Line"
             FieldClass = FlowField;
             CalcFormula =
                 lookup("Opti Day-TimeSlots Header".Description
-                    where("Day Time SLot Header ID" = field("Day Pattern ID")));
+                    where("Day-TimeSLots Header No." = field("Day Pattern ID")));
             Editable = false;
         }
         field(50; "Working Minutes"; Integer)
@@ -46,7 +46,7 @@ table 50618 "Opti Week Pattern Line"
             FieldClass = FlowField;
             CalcFormula =
                 lookup("Opti Day-TimeSlots Header"."Total Working Minutes"
-                    where("Day Time SLot Header ID" = field("Day Pattern ID")));
+                    where("Day-TimeSLots Header No." = field("Day Pattern ID")));
             Editable = false;
         }
         field(60; "Working Hours"; Decimal)
@@ -55,7 +55,7 @@ table 50618 "Opti Week Pattern Line"
             FieldClass = FlowField;
             CalcFormula =
                 lookup("Opti Day-TimeSlots Header"."Total Working Hours"
-                    where("Day Time SLot Header ID" = field("Day Pattern ID")));
+                    where("Day-TimeSLots Header No." = field("Day Pattern ID")));
             DecimalPlaces = 0 : 5;
             Editable = false;
         }
@@ -65,7 +65,7 @@ table 50618 "Opti Week Pattern Line"
             FieldClass = FlowField;
             CalcFormula =
                 lookup("Opti Day-TimeSlots Header"."No. of Time Slots"
-                    where("Day Time SLot Header ID" = field("Day Pattern ID")));
+                    where("Day-TimeSLots Header No." = field("Day Pattern ID")));
             Editable = false;
         }
         field(80; "Day Pattern Hash"; Text[64])
@@ -74,7 +74,7 @@ table 50618 "Opti Week Pattern Line"
             FieldClass = FlowField;
             CalcFormula =
                 lookup("Opti Day-TimeSlots Header"."Pattern Hash"
-                    where("Day Time SLot Header ID" = field("Day Pattern ID")));
+                    where("Day-TimeSLots Header No." = field("Day Pattern ID")));
             Editable = false;
         }
     }

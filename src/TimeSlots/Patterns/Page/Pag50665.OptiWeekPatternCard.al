@@ -120,7 +120,7 @@ page 50665 "Opti Week Pattern Card"
             exit;
         WeekPatternDialog.GetBuffer(TempWeekPatternBuffer);
 
-        Rec.ApplyWeekPattern(TempWeekPatternBuffer);
+        Rec.ApplyWeekPatternDialog(TempWeekPatternBuffer);
         CurrPage.Update(false);
     end;
 
@@ -138,10 +138,10 @@ page 50665 "Opti Week Pattern Card"
         if WeekPatternLine.FindSet() then
             repeat
                 Day_TimeSlotLine.Reset();
-                Day_TimeSlotLine.SetRange("Day Time SLot Header ID", WeekPatternLine."Day Pattern ID");
+                Day_TimeSlotLine.SetRange("Day-TimeSLots Header No.", WeekPatternLine."Day Pattern ID");
                 if Day_TimeSlotLine.FindSet() then
                     repeat
-                        TimeSlot.Get(Day_TimeSlotLine."Time Slot ID");
+                        TimeSlot.Get(Day_TimeSlotLine."Time Slot No.");
                         EntryNo += 10000;
                         TempWeekPatternBuffer.Init();
                         TempWeekPatternBuffer."Entry No." := EntryNo;

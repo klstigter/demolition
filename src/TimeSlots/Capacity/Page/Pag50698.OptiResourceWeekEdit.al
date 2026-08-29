@@ -117,7 +117,17 @@ page 50698 "Opti Resource Week Edit"
                 {
                     ApplicationArea = All;
                 }
-                field("time slot id"; rec."time slot id")
+                field(DayTimeSlotLineNo; Rec.DayTimeSlotLineNo)
+                {
+                    ApplicationArea = All;
+                    Editable = false;
+                }
+                field(DayTimeSlotHeaderID; Rec."Day-TimeSlots Header No.")
+                {
+                    ApplicationArea = All;
+                    Editable = false;
+                }
+                field("Time Slot ID"; Rec."Time Slot No.")
                 {
                     ApplicationArea = All;
                     Editable = false;
@@ -143,7 +153,7 @@ page 50698 "Opti Resource Week Edit"
 
                 trigger OnAction()
                 begin
-                    AddEntryForDate(SelectedWeekStartDate);
+                    rec.AddEntryForDate(SelectedWeekStartDate, selectedResourceNo);
                 end;
             }
 
@@ -155,7 +165,7 @@ page 50698 "Opti Resource Week Edit"
 
                 trigger OnAction()
                 begin
-                    AddEntryForDate(SelectedWeekStartDate + 1);
+                    rec.AddEntryForDate(SelectedWeekStartDate + 1, selectedResourceNo);
                 end;
             }
 
@@ -167,7 +177,7 @@ page 50698 "Opti Resource Week Edit"
 
                 trigger OnAction()
                 begin
-                    AddEntryForDate(SelectedWeekStartDate + 2);
+                    rec.AddEntryForDate(SelectedWeekStartDate + 2, selectedResourceNo);
                 end;
             }
 
@@ -179,7 +189,7 @@ page 50698 "Opti Resource Week Edit"
 
                 trigger OnAction()
                 begin
-                    AddEntryForDate(SelectedWeekStartDate + 3);
+                    rec.AddEntryForDate(SelectedWeekStartDate + 3, selectedResourceNo);
                 end;
             }
 
@@ -191,7 +201,7 @@ page 50698 "Opti Resource Week Edit"
 
                 trigger OnAction()
                 begin
-                    AddEntryForDate(SelectedWeekStartDate + 4);
+                    rec.AddEntryForDate(SelectedWeekStartDate + 4, selectedResourceNo);
                 end;
             }
 
@@ -203,7 +213,7 @@ page 50698 "Opti Resource Week Edit"
 
                 trigger OnAction()
                 begin
-                    AddEntryForDate(SelectedWeekStartDate + 5);
+                    rec.AddEntryForDate(SelectedWeekStartDate + 5, selectedResourceNo);
                 end;
             }
 
@@ -215,7 +225,7 @@ page 50698 "Opti Resource Week Edit"
 
                 trigger OnAction()
                 begin
-                    AddEntryForDate(SelectedWeekStartDate + 6);
+                    rec.AddEntryForDate(SelectedWeekStartDate + 6, selectedResourceNo);
                 end;
             }
 
@@ -264,7 +274,7 @@ page 50698 "Opti Resource Week Edit"
     trigger OnQueryClosePage(CloseAction: Action): Boolean
     begin
         if CloseAction = action::LookupOK then begin
-            message('Please use the OK button to close this page.');
+            rec.ApplyWeekPatternDialog()
         end;
         exit(true);
     end;
@@ -283,59 +293,47 @@ page 50698 "Opti Resource Week Edit"
         StartAndEndTimeRequiredErr: Label 'Start Time and End Time must be entered.';
         EndBeforeStartErr: Label 'End Time must be after Start Time.';
 
-    procedure SetWeek(
-        ResourceNo: Code[20];
-        WeekStartDate: Date)
+    procedure SetWeek(ResourceNo: Code[20]; WeekStartDate: Date)
+    var
+        SlotsQry: Query "Opti Week Capacity Slots Qry";
+        EntryNo: Integer;
     begin
         SelectedResourceNo := ResourceNo;
         SelectedWeekStartDate := WeekStartDate;
         SelectedWeekEndDate := WeekStartDate + 6;
+        Rec.Reset();
+        Rec.DeleteAll();
 
-        BuildWeekLines();
-    end;
+        SlotsQry.SetRange(ResourceNo, ResourceNo);
+        SlotsQry.SetRange(WeekStartDate, WeekStartDate);
 
-    local procedure AddEntryForDate(CapacityDate: Date)
-    var
-        NextEntryNo: Integer;
-    begin
-        if (SelectedResourceNo = '') or
-           (CapacityDate = 0D)
-        then
-            exit;
+        SlotsQry.Open();
+        while SlotsQry.Read() do begin
+            EntryNo += 1;
 
-        NextEntryNo := GetNextBufferEntryNo(CapacityDate);
-
-        Rec.Init();
-        Rec."Entry No." := NextEntryNo;
-        Rec."Day No." := Date2DWY(CapacityDate, 1);
-        Rec."Slot Line No." := NextEntryNo;
-        Rec."Resource No." := SelectedResourceNo;
-        Rec."Capacity Date" := CapacityDate;
-        Rec."Weekday Name" := GetWeekdayName(CapacityDate);
-        Rec."Entry Type" := Rec."Entry Type"::Normal;
-        Rec.Manual := true;
-        Rec.Insert();
+            Rec.Init();
+            Rec."Day No." := SlotsQry.WeekdayNo;
+            Rec."Entry No." := EntryNo;
+            Rec."Weekday Name" := SlotsQry.WeekdayName;
+            Rec."Week No." := SlotsQry.WeekNo;
+            Rec."Week Year" := SlotsQry.WeekYear;
+            Rec."Capacity Date" := DWY2Date(SlotsQry.WeekdayNo, SlotsQry.WeekNo, SlotsQry.WeekYear);
+            Rec."Start Time" := SlotsQry.StartTime;
+            Rec."End Time" := SlotsQry.EndTime;
+            Rec."Idle Time" := SlotsQry.IdleTime;
+            Rec."Working Minutes" := SlotsQry.WorkingMinutes;
+            Rec."Working Hours" := SlotsQry.WorkingHours;
+            Rec."Resource No." := ResourceNo;
+            Rec."Week Start Date" := WeekStartDate;
+            rec."Time Slot No." := SlotsQry.TimeSlotNo;
+            rec.DayTimeSlotLineNo := SlotsQry.DayTimeSlotLineNo;
+            rec."Day-TimeSlots Header No." := SlotsQry.DayTimeSlotHeaderNo;
+            rec."Capacity Hours" := slotsQry.WorkingHours;
+            Rec.Insert();
+        end;
+        SlotsQry.Close();
 
         CurrPage.Update(false);
-    end;
-
-    local procedure GetNextBufferEntryNo(CapacityDate: Date): Integer
-    var
-        WeekCapacitySlot: Record "Opti Week Capacity Dialog" temporary;
-        DayNo: Integer;
-    begin
-        WeekCapacitySlot.Copy(Rec, true);
-        WeekCapacitySlot.Reset();
-
-        DayNo := Date2DWY(CapacityDate, 1);
-        WeekCapacitySlot.SetRange("Day No.", DayNo);
-
-        WeekCapacitySlot.SetCurrentKey("Entry No.");
-
-        if WeekCapacitySlot.FindLast() then
-            exit(WeekCapacitySlot."Entry No." + 1);
-
-        exit(1);
     end;
 
     local procedure UpdateWorkingTime()
@@ -355,27 +353,16 @@ page 50698 "Opti Resource Week Edit"
             Error(EndBeforeStartErr);
 
         GrossDuration :=
-            CreateDateTime(
-                Rec."Capacity Date",
-                Rec."End Time") -
-            CreateDateTime(
-                Rec."Capacity Date",
-                Rec."Start Time");
+            CreateDateTime(Rec."Capacity Date", Rec."End Time") -
+            CreateDateTime(Rec."Capacity Date", Rec."Start Time");
 
-        Rec."Working Minutes" :=
-            Round(GrossDuration / 60000, 1, '=') -
-            Rec."Idle Time";
+        Rec."Working Minutes" := Round(GrossDuration / 60000, 1, '=') - Rec."Idle Time";
 
         if Rec."Working Minutes" < 0 then
             Rec."Working Minutes" := 0;
 
-        Rec."Working Hours" :=
-            Rec."Working Minutes" / 60;
+        Rec."Working Hours" := Rec."Working Minutes" / 60;
 
-        Rec."Capacity Hours" :=
-            GetSlotCapacityHours(
-                Rec."Entry Type",
-                Rec."Working Hours");
     end;
 
     local procedure TryFindTimeSlotId()
@@ -393,13 +380,8 @@ page 50698 "Opti Resource Week Edit"
         then
             Error(StartAndEndTimeRequiredErr);
 
-        UpdateWorkingTime();
 
-        rec."Time Slot ID" :=
-            TimeSlot.GetTimeSlotID(
-                Rec."Start Time",
-                Rec."End Time",
-                Rec."Idle Time");
+        rec."Time Slot No." := TimeSlot.GetTimeSlotID(Rec."Start Time", Rec."End Time", Rec."Idle Time");
 
         // /*
         // Existing physical capacity entry:
@@ -504,13 +486,13 @@ page 50698 "Opti Resource Week Edit"
         TimeSlot: Record "Opti Time Slot";
         EntryNo: Integer;
     begin
-        Rec.Reset();
-        Rec.DeleteAll();
+        // Rec.Reset();
+        // Rec.DeleteAll();
 
-        if (SelectedResourceNo = '') or
-           (SelectedWeekStartDate = 0D)
-        then
-            exit;
+        // if (SelectedResourceNo = '') or
+        //    (SelectedWeekStartDate = 0D)
+        // then
+        //     exit;
 
         // CapacityEntry.Reset();
         // CapacityEntry.SetCurrentKey(
@@ -549,15 +531,15 @@ page 50698 "Opti Resource Week Edit"
         //             until DayTimeSlotLine.Next() = 0;
         //     until CapacityEntry.Next() = 0;
 
-        Rec.Reset();
-        Rec.SetCurrentKey(
-            "Capacity Date",
-            "Start Time",
-            "Entry No.");
+        // Rec.Reset();
+        // Rec.SetCurrentKey(
+        //     "Capacity Date",
+        //     "Start Time",
+        //     "Entry No.");
 
-        if Rec.FindFirst() then;
+        // if Rec.FindFirst() then;
 
-        CurrPage.Update(false);
+        // CurrPage.Update(false);
     end;
 
     local procedure InsertBufferLine(
@@ -594,8 +576,8 @@ page 50698 "Opti Resource Week Edit"
         // Rec."Entry Type" :=
         //     CapacityEntry."Entry Type";
 
-        Rec."Time Slot ID" :=
-            TimeSlot."Time Slot ID";
+        Rec."Time Slot No." :=
+            TimeSlot."Time Slot No.";
 
         Rec."Start Time" :=
             TimeSlot."Start Time";
@@ -655,43 +637,8 @@ page 50698 "Opti Resource Week Edit"
         BuildWeekLines();
     end;
 
-    local procedure GetSlotCapacityHours(
-        EntryType: Enum "Opti Capacity Entry Type";
-        WorkingHours: Decimal): Decimal
-    begin
-        case EntryType of
-            EntryType::Normal:
-                exit(WorkingHours);
 
-            EntryType::Absence:
-                exit(-WorkingHours);
-        end;
 
-        exit(0);
-    end;
-
-    local procedure GetWeekdayName(
-        CapacityDate: Date): Text[20]
-    begin
-        case Date2DWY(CapacityDate, 1) of
-            1:
-                exit('Monday');
-            2:
-                exit('Tuesday');
-            3:
-                exit('Wednesday');
-            4:
-                exit('Thursday');
-            5:
-                exit('Friday');
-            6:
-                exit('Saturday');
-            7:
-                exit('Sunday');
-        end;
-
-        exit('');
-    end;
 
     Local Procedure GetPageCaption(): Text[100]
     begin

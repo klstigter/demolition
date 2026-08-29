@@ -20,18 +20,19 @@ query 50608 "Opti Week Capacity Slots Qry"
 
                 column(WeekdayNo; "Weekday No.") { }
                 column(WeekdayName; "Weekday Name") { }
-                column(DayPatternID; "Day Pattern ID") { }
+                column(DayPatternNo; "Day-TimeSlots ID") { }
 
                 dataitem(DayTimeSlotLn; "Opti Day-TimeSlot Line")
                 {
-                    DataItemLink = "Day Time SLot Header ID" = CapacityWeekPatternLn."Day Pattern ID";
+                    DataItemLink = "Day-TimeSLots Header No." = CapacityWeekPatternLn."Day-TimeSlots ID";
                     SqlJoinType = InnerJoin;
-
-                    column(TimeSlotID; "Time Slot ID") { }
+                    column(DayTimeSlotHeaderNo; "Day-TimeSLots Header No.") { }
+                    column(DayTimeSlotLineNo; "Day-TimeSLot Line No.") { }
+                    column(TimeSlotNo; "Time Slot No.") { }
 
                     dataitem(TimeSlot; "Opti Time Slot")
                     {
-                        DataItemLink = "Time Slot ID" = DayTimeSlotLn."Time Slot ID";
+                        DataItemLink = "Time Slot No." = DayTimeSlotLn."Time Slot No.";
                         SqlJoinType = InnerJoin;
 
                         column(StartTime; "Start Time") { }

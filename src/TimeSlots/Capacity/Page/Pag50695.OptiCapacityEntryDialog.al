@@ -73,7 +73,7 @@ page 50695 "Opti Capacity Entry Dialog"
     begin
         if not Rec.FindFirst() then begin
             Rec.Init();
-            Rec."Time Slot ID" := 1;
+            Rec."Time Slot No." := 1;
             Rec.Insert();
         end;
 

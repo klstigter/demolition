@@ -7,9 +7,9 @@ table 50619 "Opti Day-TimeSlots Header"
 
     fields
     {
-        field(1; "Day Time SLot Header ID"; Integer)
+        field(1; "Day-TimeSLots Header No."; Integer)
         {
-            Caption = 'Day Time Slot Header ID';
+            Caption = 'Day-TimeSlots Header No.';
             AutoIncrement = true;
             Editable = false;
         }
@@ -42,7 +42,7 @@ table 50619 "Opti Day-TimeSlots Header"
 
     keys
     {
-        key(PK; "Day Time SLot Header ID")
+        key(PK; "Day-TimeSLots Header No.")
         {
             Clustered = true;
         }
@@ -54,70 +54,60 @@ table 50619 "Opti Day-TimeSlots Header"
 
     fieldgroups
     {
-        fieldgroup(DropDown;
-        "Day Time SLot Header ID",
-            Description,
-            "Total Working Hours")
+        fieldgroup(DropDown; "Day-TimeSLots Header No.", Description, "Total Working Hours")
         {
         }
     }
 
     procedure RecalculatePattern()
     var
-        DayTimeSlotLines: Record "Opti Day-TimeSlot Line";
+        TempTimeSlot: Record "Opti Time Slot" temporary;
         TotalWorkingMinutes: Integer;
         NumberOfTimeSlots: Integer;
     begin
-        TestField("Day Time SLot Header ID");
+        TestField("Day-TimeSLots Header No.");
 
-        DayTimeSlotLines.SetRange("Day Time SLot Header ID", "Day Time SLot Header ID");
-        "Pattern Hash" := CalculateHash(DayTimeSlotLines, TotalWorkingMinutes, NumberOfTimeSlots);
+        fillTempTimeSlot("Day-TimeSLots Header No.", TotalWorkingMinutes, NumberOfTimeSlots, TempTimeSlot);
         "Total Working Minutes" := TotalWorkingMinutes;
         "Total Working Hours" := TotalWorkingMinutes / 60;
         "No. of Time Slots" := NumberOfTimeSlots;
+        "Pattern Hash" := CalculateHash(tempTimeSlot);
         Modify(true);
     end;
 
-    procedure CalculateHash(var DayTimeSlotLines: Record "Opti Day-TimeSlot Line"; var TotalWorkingMinutes: Integer;
-        var NumberOfTimeSlots: Integer) GeneratedHash: Text;
+    procedure FillTempTimeSlot("Day-TimeSLots Header No.": Integer; var TotalWorkingMinutes: Integer;
+        var NumberOfTimeSlots: Integer; var TempTimeSlotBuffer: Record "Opti Time Slot" temporary)
     var
         TimeSlot: Record "Opti Time Slot";
-        TempTimeSlotBuffer: Record "Opti Time Slot" temporary;
-        EntryNo: Integer;
-        CryptographyManagement: Codeunit "Cryptography Management";
-        HashAlgorithm: Option MD5,SHA1,SHA256,SHA384,SHA512;
-        HashInput: Text;
-
+        DayTimeSlotLines: Record "Opti Day-TimeSlot Line";
     begin
+        DayTimeSlotLines.SetRange("Day-TimeSLots Header No.", "Day-TimeSLots Header No."); // Replace with: DayTimeSlotLines.SetRange("Day-TimeSLots Header No.", "Day-TimeSLots Header No.");
         TotalWorkingMinutes := 0;
         NumberOfTimeSlots := 0;
         if DayTimeSlotLines.FindSet() then
             repeat
-                TimeSlot.Get(DayTimeSlotLines."Time SLot ID");
-
-                EntryNo += 1;
+                TimeSlot.Get(DayTimeSlotLines."Time Slot No.");
 
                 TempTimeSlotBuffer.Init();
-                //TempTimeSlotBuffer."Entry No." := EntryNo;
-                TempTimeSlotBuffer."Time Slot ID" := TimeSlot."Time Slot ID";
+                TempTimeSlotBuffer."Time Slot No." := TimeSlot."Time Slot No.";
                 TempTimeSlotBuffer."Start Time" := TimeSlot."Start Time";
                 TempTimeSlotBuffer."End Time" := TimeSlot."End Time";
                 TempTimeSlotBuffer."Idle Time" := TimeSlot."Idle Time";
-                TempTimeSlotBuffer."Working Minutes" := TimeSlot."Working Minutes";
-                TempTimeSlotBuffer."Working Hours" := TimeSlot."Working Hours";
-                TempTimeSlotBuffer."Time Slot Hash" := TimeSlot."Time Slot Hash";
                 TempTimeSlotBuffer.Insert();
 
                 TotalWorkingMinutes += TimeSlot."Working Minutes";
                 NumberOfTimeSlots += 1;
             until DayTimeSlotLines.Next() = 0;
+    end;
 
-        TempTimeSlotBuffer.SetCurrentKey(
-            "Start Time",
-            "End Time",
-            "Idle Time",
-            "Time Slot ID");
-
+    procedure CalculateHash(var TempTimeSlotBuffer: Record "Opti Time Slot" temporary) GeneratedHash: Text;
+    var
+        EntryNo: Integer;
+        CryptographyManagement: Codeunit "Cryptography Management";
+        HashAlgorithm: Option MD5,SHA1,SHA256,SHA384,SHA512;
+        HashInput: Text;
+    begin
+        TempTimeSlotBuffer.SetCurrentKey("Start Time", "End Time", "Idle Time", "Time Slot No.");
         if TempTimeSlotBuffer.FindSet() then
             repeat
                 if HashInput <> '' then
@@ -129,7 +119,7 @@ table 50619 "Opti Day-TimeSlots Header"
                         FormatTimeForHash(TempTimeSlotBuffer."Start Time"),
                         FormatTimeForHash(TempTimeSlotBuffer."End Time"),
                         Format(TempTimeSlotBuffer."Idle Time", 0, 9),
-                        Format(TempTimeSlotBuffer."Time Slot ID", 0, 9));
+                        Format(TempTimeSlotBuffer."Time Slot No.", 0, 9));
             until TempTimeSlotBuffer.Next() = 0;
 
         if HashInput = '' then

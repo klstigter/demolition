@@ -121,7 +121,7 @@ table 50629 "Opti Capacity Week Pattern Hdr"
 
             TempTimeSlotBuffer.Init();
             //TempTimeSlotBuffer."Entry No." := EntryNo;
-            TempTimeSlotBuffer."Time Slot ID" := TimeSlot."Time Slot ID";
+            TempTimeSlotBuffer."Time Slot No." := TimeSlot."Time Slot No.";
             TempTimeSlotBuffer."Start Time" := TimeSlot."Start Time";
             TempTimeSlotBuffer."End Time" := TimeSlot."End Time";
             TempTimeSlotBuffer."Idle Time" := TimeSlot."Idle Time";
@@ -135,7 +135,7 @@ table 50629 "Opti Capacity Week Pattern Hdr"
 
         Day_TimeSlotHeader.SetRange("Pattern Hash", DayPatternHash);
         if Day_TimeSlotHeader.FindFirst() then
-            exit(Day_TimeSlotHeader."Day Time SLot Header ID");
+            exit(Day_TimeSlotHeader."Day-TimeSLots Header No.");
 
         Day_TimeSlotHeader.Init();
         Day_TimeSlotHeader.Description :=
@@ -152,21 +152,21 @@ table 50629 "Opti Capacity Week Pattern Hdr"
             "Start Time",
             "End Time",
             "Idle Time",
-            "Time Slot ID");
+            "Time Slot No.");
 
         if TempTimeSlotBuffer.FindSet() then
             repeat
                 Day_TimeSlotLine.Init();
-                Day_TimeSlotLine."Day Time SLot Header ID" := Day_TimeSlotHeader."Day Time SLot Header ID";
-                Day_TimeSlotLine."Day Time SLot Line No." := 0;
-                Day_TimeSlotLine."Time Slot ID" := TempTimeSlotBuffer."Time Slot ID";
+                Day_TimeSlotLine."Day-TimeSLots Header No." := Day_TimeSlotHeader."Day-TimeSLots Header No.";
+                Day_TimeSlotLine."Day-TimeSLot Line No." := 0;
+                Day_TimeSlotLine."Time Slot No." := TempTimeSlotBuffer."Time Slot No.";
 
                 Day_TimeSlotLine.Insert(true);
             until TempTimeSlotBuffer.Next() = 0;
 
         Day_TimeSlotHeader.RecalculatePattern();
 
-        exit(Day_TimeSlotHeader."Day Time SLot Header ID");
+        exit(Day_TimeSlotHeader."Day-TimeSLots Header No.");
     end;
 
     local procedure CalculateDayPatternHash(var TempTimeSlotBuffer: Record "Opti Time Slot" temporary): Text[64]
@@ -234,7 +234,7 @@ table 50629 "Opti Capacity Week Pattern Hdr"
     begin
         totalMinutes := 0;
         numberOfTimeSlots := 0;
-        WeekPatternLine.SetCurrentKey("Day Pattern ID");
+        WeekPatternLine.SetCurrentKey("Day-TimeSlots ID");
 
         if WeekPatternLine.FindSet() then
             repeat

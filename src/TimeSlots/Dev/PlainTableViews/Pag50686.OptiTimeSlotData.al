@@ -13,7 +13,7 @@ page 50686 "Opti Time Slot Data"
         {
             repeater(Lines)
             {
-                field("Time Slot ID"; Rec."Time Slot ID")
+                field("Time Slot ID"; Rec."Time Slot No.")
                 {
                     ApplicationArea = All;
                 }

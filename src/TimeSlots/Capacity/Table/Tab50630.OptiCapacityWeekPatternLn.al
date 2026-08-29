@@ -26,10 +26,10 @@ table 50630 "Opti Capacity Week Pattern Ln"
             Caption = 'Weekday';
             Editable = false;
         }
-        field(30; "Day Pattern ID"; Integer)
+        field(30; "Day-TimeSlots ID"; Integer)
         {
             Caption = 'Day Pattern ID';
-            TableRelation = "Opti Day-TimeSlots Header"."Day Time Slot Header ID";
+            TableRelation = "Opti Day-TimeSlots Header"."Day-TimeSLots Header No.";
         }
         field(40; "Day Effective Hash"; Text[64])
         {
@@ -53,7 +53,7 @@ table 50630 "Opti Capacity Week Pattern Ln"
             FieldClass = FlowField;
             CalcFormula =
                 lookup("Opti Day-TimeSlots Header"."Total Working Minutes"
-                    where("Day Time SLot Header ID" = field("Day Pattern ID")));
+                    where("Day-TimeSLots Header No." = field("Day-TimeSlots ID")));
             Editable = false;
         }
         field(80; "Working Hours"; Decimal)
@@ -62,7 +62,7 @@ table 50630 "Opti Capacity Week Pattern Ln"
             FieldClass = FlowField;
             CalcFormula =
                 lookup("Opti Day-TimeSlots Header"."Total Working Hours"
-                    where("Day Time SLot Header ID" = field("Day Pattern ID")));
+                    where("Day-TimeSLots Header No." = field("Day-TimeSlots ID")));
             DecimalPlaces = 0 : 5;
             Editable = false;
         }
@@ -72,7 +72,7 @@ table 50630 "Opti Capacity Week Pattern Ln"
             FieldClass = FlowField;
             CalcFormula =
                 lookup("Opti Day-TimeSlots Header"."No. of Time Slots"
-                    where("Day Time SLot Header ID" = field("Day Pattern ID")));
+                    where("Day-TimeSLots Header No." = field("Day-TimeSlots ID")));
             Editable = false;
         }
         field(100; "Day Pattern Hash"; Text[64])
@@ -81,7 +81,7 @@ table 50630 "Opti Capacity Week Pattern Ln"
             FieldClass = FlowField;
             CalcFormula =
                 lookup("Opti Day-TimeSlots Header"."Pattern Hash"
-                    where("Day Time SLot Header ID" = field("Day Pattern ID")));
+                    where("Day-TimeSLots Header No." = field("Day-TimeSlots ID")));
             Editable = false;
         }
     }
@@ -93,7 +93,7 @@ table 50630 "Opti Capacity Week Pattern Ln"
             Clustered = true;
         }
 
-        key(DayPatternKey; "Day Pattern ID")
+        key(DayPatternKey; "Day-TimeSlots ID")
         {
         }
     }

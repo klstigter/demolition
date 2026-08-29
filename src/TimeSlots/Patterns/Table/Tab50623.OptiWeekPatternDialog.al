@@ -68,7 +68,7 @@ table 50623 "Opti Week Pattern Dialog"
         field(80; "Time Slot ID"; Integer)
         {
             Caption = 'Time Slot ID';
-            TableRelation = "Opti Time Slot"."Time Slot ID";
+            TableRelation = "Opti Time Slot"."Time Slot No.";
             Editable = false;
         }
         field(90; "Time Slot Hash"; Text[64])
@@ -224,13 +224,7 @@ table 50623 "Opti Week Pattern Dialog"
         FridayLbl: Label 'Friday';
         SaturdayLbl: Label 'Saturday';
         SundayLbl: Label 'Sunday';
-
-        StartTimeRequiredErr:
-            Label 'Start Time must have a value.';
-
-        EndTimeRequiredErr:
-            Label 'End Time must have a value.';
-
-        RestMinutesNegativeErr:
-            Label 'Rest Minutes cannot be negative.';
+        StartTimeRequiredErr: Label 'Start Time must have a value.';
+        EndTimeRequiredErr: Label 'End Time must have a value.';
+        RestMinutesNegativeErr: Label 'Rest Minutes cannot be negative.';
 }

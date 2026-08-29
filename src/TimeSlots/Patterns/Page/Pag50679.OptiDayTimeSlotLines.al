@@ -14,13 +14,13 @@ page 50679 "Opti Day TimeSlot Lines"
         {
             repeater(Lines)
             {
-                field("Line No."; Rec."Day Time SLot Line No.")
+                field("Line No."; Rec."Day-TimeSLot Line No.")
                 {
                     ApplicationArea = All;
                     Visible = false;
                     ToolTip = 'Specifies the internal line number.';
                 }
-                field("Time Slot ID"; Rec."Time Slot ID")
+                field("Time Slot ID"; Rec."Time Slot No.")
                 {
                     ApplicationArea = All;
                     Visible = false;
@@ -95,10 +95,10 @@ page 50679 "Opti Day TimeSlot Lines"
         DayPatternLine.LockTable();
 
         DayPatternLine.Init();
-        DayPatternLine."Day Time SLot Header ID" := DayPatternID;
-        DayPatternLine."Day Time SLot Line No." :=
+        DayPatternLine."Day-TimeSLots Header No." := DayPatternID;
+        DayPatternLine."Day-TimeSLot Line No." :=
             DayPatternLine.GetNextLineNo(DayPatternID);
-        DayPatternLine."Time Slot ID" := TimeSlotID;
+        DayPatternLine."Time Slot No." := TimeSlotID;
         DayPatternLine.Insert(true);
 
         DayPattern.Get(DayPatternID);
@@ -115,12 +115,12 @@ page 50679 "Opti Day TimeSlot Lines"
 
         Rec.FilterGroup(4);
 
-        if Rec.GetFilter("Day Time SLot Header ID") = '' then begin
+        if Rec.GetFilter("Day-TimeSLots Header No.") = '' then begin
             Rec.FilterGroup(CurrentFilterGroup);
             Error(DayPatternNotSelectedErr);
         end;
 
-        DayPatternID := Rec.GetRangeMin("Day Time SLot Header ID");
+        DayPatternID := Rec.GetRangeMin("Day-TimeSLots Header No.");
 
         Rec.FilterGroup(CurrentFilterGroup);
 

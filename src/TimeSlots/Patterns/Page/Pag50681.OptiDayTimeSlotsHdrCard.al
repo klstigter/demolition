@@ -14,7 +14,7 @@ page 50681 "Opti Day-TimeSlots Hdr Card"
             {
                 Caption = 'General';
 
-                field("Day Pattern ID"; Rec."Day Time SLot Header ID")
+                field("Day Pattern ID"; Rec."Day-TimeSLots Header No.")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the internal day pattern ID.';
@@ -54,7 +54,7 @@ page 50681 "Opti Day-TimeSlots Hdr Card"
                 Caption = 'Time Slots';
 
                 SubPageLink =
-                    "Day Time SLot Header ID" = field("Day Time SLot Header ID");
+                    "Day-TimeSLots Header No." = field("Day-TimeSLots Header No.");
 
                 UpdatePropagation = Both;
             }

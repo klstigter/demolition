@@ -5,9 +5,9 @@ table 50622 "Opti Time Slot"
 
     fields
     {
-        field(1; "Time Slot ID"; Integer)
+        field(1; "Time Slot No."; Integer)
         {
-            Caption = 'Time Slot ID';
+            Caption = 'Time Slot No.';
             AutoIncrement = true;
             Editable = false;
         }
@@ -59,7 +59,7 @@ table 50622 "Opti Time Slot"
 
     keys
     {
-        key(PK; "Time Slot ID")
+        key(PK; "Time Slot No.")
         {
             Clustered = true;
         }
@@ -121,7 +121,7 @@ table 50622 "Opti Time Slot"
         TimeSlot."Time Slot Hash" := SlotHash;
         TimeSlot.Insert(true);
 
-        exit(TimeSlot."Time Slot ID");
+        exit(TimeSlot."Time Slot No.");
     end;
 
     procedure GetTimeSlotID(
@@ -156,7 +156,7 @@ table 50622 "Opti Time Slot"
                (TimeSlot."End Time" = EndTime) and
                (TimeSlot."Idle Time" = RestMinutes)
             then
-                exit(TimeSlot."Time Slot ID");
+                exit(TimeSlot."Time Slot No.");
         end;
     end;
 

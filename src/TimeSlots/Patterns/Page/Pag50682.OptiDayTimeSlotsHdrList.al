@@ -14,7 +14,7 @@ page 50682 "Opti Day-TimeSlots Hdr List"
         {
             repeater(DayPatterns)
             {
-                field("Day Pattern ID"; Rec."Day Time SLot Header ID")
+                field("Day Pattern ID"; Rec."Day-TimeSLots Header No.")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the internal day pattern ID.';

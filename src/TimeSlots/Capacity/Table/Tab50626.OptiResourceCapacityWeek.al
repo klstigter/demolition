@@ -459,7 +459,7 @@ table 50626 "Opti Resource Capacity Week"
             TempEffectiveWeekLine.Init();
             TempEffectiveWeekLine."Effective Week Pattern ID" := 0;
             TempEffectiveWeekLine."Weekday No." := WeekdayNo;
-            TempEffectiveWeekLine."Day Pattern ID" := DayPatternId;
+            TempEffectiveWeekLine."Day-TimeSlots ID" := DayPatternId;
             TempEffectiveWeekLine."Day Effective Hash" := DayEffectiveHash;
             TempEffectiveWeekLine."Entry Count" := EntryCount;
             TempEffectiveWeekLine."Capacity Hours" := CapacityHours;

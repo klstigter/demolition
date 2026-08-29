@@ -145,9 +145,7 @@ page 50696 "Opti Resource Capacity Weeks"
                     Rec.TestField("Resource No.");
                     Rec.TestField("Week Start Date");
 
-                    ResourceWeekEdit.SetWeek(
-                        Rec."Resource No.",
-                        Rec."Week Start Date");
+                    ResourceWeekEdit.SetWeek(Rec."Resource No.", Rec."Week Start Date");
                     ResourceWeekEdit.LookupMode := true;
                     ResourceWeekEdit.RunModal();
 
@@ -270,17 +268,17 @@ page 50696 "Opti Resource Capacity Weeks"
                     Page.Run(Page::"Opti Week Pattern Buffer Data");
                 end;
             }
-            // action(capacityEntry)
-            // {
-            //     ApplicationArea = All;
-            //     Caption = '50627 Capacity Entry';
-            //     Image = List;
+            action(capacityEntry)
+            {
+                ApplicationArea = All;
+                Caption = '50624 Resource Entry';
+                Image = List;
 
-            //     trigger OnAction()
-            //     begin
-            //         Page.Run(Page::"Opti Capacity Entry");
-            //     end;
-            // }
+                trigger OnAction()
+                begin
+                    Page.Run(Page::"Opti Resource Capacity Data");
+                end;
+            }
             action(ResourceCapacityWeek)
             {
                 ApplicationArea = All;
@@ -343,16 +341,16 @@ page 50696 "Opti Resource Capacity Weeks"
         }
         area(Promoted)
         {
-            actionref(OpenWeekPatternPromoted; OpenWeekPattern)
+            actionref(EditWeekPromoted; EditWeek)
             {
             }
             actionref(CreateResourceCapacityPromoted; CreateResourceCapacity)
             {
             }
-            actionref(EditWeekPromoted; EditWeek)
+            actionref(ExportToExcelPromoted; ExportToExcel)
             {
             }
-            actionref(ExportToExcelPromoted; ExportToExcel)
+            actionref(OpenWeekPatternPromoted; OpenWeekPattern)
             {
             }
         }

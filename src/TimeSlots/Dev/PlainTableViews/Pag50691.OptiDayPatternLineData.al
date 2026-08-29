@@ -13,15 +13,15 @@ page 50691 "Opti Day TimeSlot Line Data"
         {
             repeater(Lines)
             {
-                field("Day Pattern ID"; Rec."Day Time SLot Header ID")
+                field("Day Pattern ID"; Rec."Day-TimeSLots Header No.")
                 {
                     ApplicationArea = All;
                 }
-                field("Line No."; Rec."Day Time SLot Line No.")
+                field("Line No."; Rec."Day-TimeSLot Line No.")
                 {
                     ApplicationArea = All;
                 }
-                field("Time Slot ID"; Rec."Time Slot ID")
+                field("Time Slot ID"; Rec."Time Slot No.")
                 {
                     ApplicationArea = All;
                 }

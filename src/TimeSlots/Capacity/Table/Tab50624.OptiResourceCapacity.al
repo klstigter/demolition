@@ -31,7 +31,7 @@ table 50624 "Opti Resource Capacity"
         field(20; "Day Time Slot Header ID"; Integer)
         {
             Caption = 'Day Time Slot ID';
-            TableRelation = "Opti Day-TimeSlots Header"."Day Time Slot Header ID";
+            TableRelation = "Opti Day-TimeSlots Header"."Day-TimeSLots Header No.";
         }
 
         field(30; Description; Text[100])
@@ -44,7 +44,7 @@ table 50624 "Opti Resource Capacity"
             Caption = 'Working Minutes';
             FieldClass = FlowField;
             CalcFormula = lookup("Opti Day-TimeSlots Header"."Total Working Minutes"
-                where("Day Time Slot Header ID" = field("Day Time Slot Header ID")));
+                where("Day-TimeSLots Header No." = field("Day Time Slot Header ID")));
             Editable = false;
         }
 
@@ -53,7 +53,7 @@ table 50624 "Opti Resource Capacity"
             Caption = 'Working Hours';
             FieldClass = FlowField;
             CalcFormula = lookup("Opti Day-TimeSlots Header"."Total Working Hours"
-                where("Day Time Slot Header ID" = field("Day Time Slot Header ID")));
+                where("Day-TimeSLots Header No." = field("Day Time Slot Header ID")));
             DecimalPlaces = 0 : 5;
             Editable = false;
         }

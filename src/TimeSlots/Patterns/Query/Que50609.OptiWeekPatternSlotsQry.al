@@ -25,15 +25,15 @@ query 50609 "Opti Week Pattern Slots Qry"
 
                 dataitem(DayTimeSlotLine; "Opti Day-TimeSlot Line")
                 {
-                    DataItemLink = "Day Time SLot Header ID" = WeekPatternLine."Day Pattern ID";
+                    DataItemLink = "Day-TimeSLots Header No." = WeekPatternLine."Day Pattern ID";
                     SqlJoinType = InnerJoin;
 
-                    column(DayTimeSlotLineNo; "Day Time SLot Line No.") { }
-                    column(TimeSlotID; "Time Slot ID") { }
+                    column(DayTimeSlotLineNo; "Day-TimeSLot Line No.") { }
+                    column(TimeSlotID; "Time Slot No.") { }
 
                     dataitem(TimeSlot; "Opti Time Slot")
                     {
-                        DataItemLink = "Time Slot ID" = DayTimeSlotLine."Time Slot ID";
+                        DataItemLink = "Time Slot No." = DayTimeSlotLine."Time Slot No.";
                         SqlJoinType = InnerJoin;
 
                         column(StartTime; "Start Time") { }

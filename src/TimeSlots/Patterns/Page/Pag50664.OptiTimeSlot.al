@@ -61,7 +61,7 @@ page 50664 "Opti Time Slot"
     trigger OnOpenPage()
     begin
         Rec.Init();
-        Rec."Time Slot ID" := 1;
+        Rec."Time Slot No." := 1;
         Rec."Start Time" := 080000T;
         Rec."End Time" := 170000T;
         Rec."Idle Time" := 60;

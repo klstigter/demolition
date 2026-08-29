@@ -13,7 +13,7 @@ page 50690 "Opti Day Time Slots Hdr Data"
         {
             repeater(Lines)
             {
-                field("Day Pattern ID"; Rec."Day Time SLot Header ID")
+                field("Day Pattern ID"; Rec."Day-TimeSLots Header No.")
                 {
                     ApplicationArea = All;
                 }

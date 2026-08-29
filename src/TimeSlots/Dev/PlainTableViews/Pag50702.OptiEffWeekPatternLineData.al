@@ -23,7 +23,7 @@ page 50702 "Opti Eff WeekPattern Line Data"
                 {
                     ToolTip = 'Specifies the value of the Weekday field.', Comment = '%';
                 }
-                field("Day Pattern ID"; Rec."Day Pattern ID")
+                field("Day Pattern ID"; Rec."Day-TimeSlots ID")
                 {
                     ToolTip = 'Specifies the value of the Day Pattern ID field.', Comment = '%';
                 }

@@ -52,8 +52,6 @@ report 50608 "Opti Create Resource Capacity"
                 GetWeekPatternLines();
             end;
         }
-
-
     }
 
     requestpage
@@ -70,14 +68,29 @@ report 50608 "Opti Create Resource Capacity"
                     {
                         ApplicationArea = All;
                         Caption = 'Start Date';
+                        tooltip = 'Enter the start date (always a monday) for creating resource capacity. The system will create capacity entries starting from this date.';
+                        trigger OnValidate()
+                        begin
+                            StartDate := GetWeekNr(StartDate, false);
+                            if (StartDate <> 0D) and (EndDate <> 0D) then
+                                if StartDate > EndDate then
+                                    Error(EndDateBeforeStartDateErr);
+                        end;
                     }
 
                     field(EndDateField; EndDate)
                     {
                         ApplicationArea = All;
                         Caption = 'End Date';
+                        tooltip = 'Enter the end date (always a sunday) for creating resource capacity. The system will create capacity entries up to this date.';
+                        trigger OnValidate()
+                        begin
+                            EndDate := GetWeekNr(EndDate, true);
+                            if (StartDate <> 0D) and (EndDate <> 0D) then
+                                if EndDate < StartDate then
+                                    Error(EndDateBeforeStartDateErr);
+                        end;
                     }
-
                 }
             }
         }
@@ -213,13 +226,20 @@ report 50608 "Opti Create Resource Capacity"
                 TempCapWeekLine.init;
                 TempCapWeekLine."Effective Week Pattern ID" := 0;
                 TempCapWeekLine."Weekday No." := tempWeekPatternLine."Weekday No.";
-                TempCapWeekLine."Day Pattern ID" := TempWeekPatternLine."Day Pattern ID";
+                TempCapWeekLine."Day-TimeSlots ID" := TempWeekPatternLine."Day Pattern ID";
                 TempCapWeekLine."Day Effective Hash" := TempWeekPatternLine."Day Pattern Hash";
                 TempCapWeekLine.Insert();
             until TempWeekPatternLine.Next() = 0;
     end;
 
+    procedure GetWeekNr(DtInput: Date; GiveEnd: boolean): Date;
+    begin
+        if GiveEnd then
+            exit(DWY2Date(7, Date2DWY(DtInput, 2), Date2DWY(DtInput, 3)))
+        else
+            exit(DWY2Date(1, Date2DWY(DtInput, 2), Date2DWY(DtInput, 3)));
 
+    end;
 
     var
         TempCapWeekLine: Record "Opti Capacity Week Pattern Ln" temporary;
@@ -229,6 +249,8 @@ report 50608 "Opti Create Resource Capacity"
         DefaultWeekPattern: Code[20];
         StartDate: Date;
         EndDate: Date;
+        WeekNoStart: Integer;
+        WeekNoEnd: Integer;
         CreatedCapacityDates: Integer;
         CreatedCapacityEntries: Integer;
 
