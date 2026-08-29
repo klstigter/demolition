@@ -672,7 +672,7 @@ page 50620 "Gantt Demo DHX 2"
                     JobFilterUsed := setup."Job No. Filter";
                     if JobFilter <> '' then
                         JobFilterUsed := JobFilter; // override with global filter if set
-                    JsonTxt := GanttChartDataHandler.GetDayPlanningsAsJson(Setup."From Date", JobFilterUsed, '');
+                    JsonTxt := GanttChartDataHandler.GetDayPlanningsAsJson(AnchorDate, JobFilterUsed, '');
                     tempblob.CreateOutStream(outstream);
                     outstream.WriteText(JsonTxt);
                     tempblob.CreateInStream(instream);
