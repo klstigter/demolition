@@ -475,11 +475,12 @@ page 50706 "DHX Scheduler - TimeLine"
             }
             group(NoEventResourcesGroup)
             {
-                Caption = 'No Event Resources';
+                Caption = 'Show/Hide empty';
+
                 action(HideNoEventResourcesAct)
                 {
                     ApplicationArea = All;
-                    Caption = 'Hide no event resources';
+                    Caption = 'Hide empty';
                     Image = FilterLines;
                     Visible = not HideNoEventResourcesFlag;
                     trigger OnAction()
@@ -491,7 +492,7 @@ page 50706 "DHX Scheduler - TimeLine"
                 action(ShowNoEventResourcesAct)
                 {
                     ApplicationArea = All;
-                    Caption = 'Show no event resources';
+                    Caption = 'Show empty';
                     Image = ClearFilter;
                     Visible = HideNoEventResourcesFlag;
                     trigger OnAction()
