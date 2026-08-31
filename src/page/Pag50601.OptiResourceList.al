@@ -45,6 +45,13 @@ page 50601 "Opti Resource List"
                             editable = false;
                             ToolTip = 'The skill to filter the resources that have day plannings with the specified skill.';
                         }
+                        field("Pool Resource Filter"; PoolResourceNoToFind)
+                        {
+                            ApplicationArea = Jobs;
+                            Caption = 'Pool Resource Filter';
+                            editable = false;
+                            ToolTip = 'The pool resource to filter the resources that have day plannings with the specified pool resource.';
+                        }
                     }
 
                     group(Col3)
@@ -66,6 +73,17 @@ page 50601 "Opti Resource List"
                             ApplicationArea = Jobs;
                             Caption = 'Skill Filter';
                             ToolTip = 'The skill filter flag.';
+
+                            trigger OnValidate()
+                            begin
+                                ApplyResourceContextFilters();
+                            end;
+                        }
+                        field("PoolResourceFilter"; PoolResourceFilter)
+                        {
+                            ApplicationArea = Jobs;
+                            Caption = 'Pool Resource Filter';
+                            ToolTip = 'The pool resource filter flag.';
 
                             trigger OnValidate()
                             begin
@@ -697,6 +715,7 @@ page 50601 "Opti Resource List"
         xRecFilters := Rec.GetView();
         CapacityFilter := true;
         SkillFilter := true;
+        PoolResourceFilter := true;
     end;
 
     var
@@ -710,8 +729,10 @@ page 50601 "Opti Resource List"
         xRecMarkedOnly: Boolean;
         xRecMarking: Record Resource;
         SkillToFind: Code[10];
+        PoolResourceNoToFind: Code[20];
         CapacityFilter: Boolean;
         SkillFilter: Boolean;
+        PoolResourceFilter: Boolean;
 
     procedure GetSelectionFilter(): Text
     var
@@ -727,9 +748,10 @@ page 50601 "Opti Resource List"
         CurrPage.SetSelectionFilter(Resource);
     end;
 
-    procedure SetSkillToFind(Skill: code[10])
+    procedure SetSkillToFind(Skill: code[10]; pPoolResourceNo: Code[20])
     begin
         SkillToFind := Skill;
+        PoolResourceNoToFind := pPoolResourceNo;
     end;
 
     local procedure ApplyResourceContextFilters()
@@ -738,11 +760,13 @@ page 50601 "Opti Resource List"
         CapacityUniqueResource: Query "Unique Resource Joined";
         PlanDate: Date;
         SkillActive: Boolean;
+        PoolResourceActive: Boolean;
     begin
         Rec.MarkedOnly(false);
         Rec.ClearMarks();
         PlanDate := Rec.GetRangeMin("Date Filter");
         SkillActive := SkillFilter and (SkillToFind <> '');
+        PoolResourceActive := PoolResourceFilter and (PoolResourceNoToFind <> '');
 
         if CapacityFilter then begin
             Clear(CapacityUniqueResource);
@@ -763,15 +787,26 @@ page 50601 "Opti Resource List"
                             Rec.Mark(false);
                     until Rec.Next() = 0;
             end;
-        end else
-            if SkillActive then
+
+            if PoolResourceActive then begin
+                Rec.MarkedOnly(true);
                 if Rec.FindSet() then
                     repeat
-                        if ResourceSkill.Get(ResourceSkill.Type::Resource, Rec."No.", SkillToFind) then
+                        if Rec."Pool Resource No." <> PoolResourceNoToFind then
+                            Rec.Mark(false);
+                    until Rec.Next() = 0;
+            end;
+        end else
+            if SkillActive or PoolResourceActive then
+                if Rec.FindSet() then
+                    repeat
+                        if (not SkillActive or ResourceSkill.Get(ResourceSkill.Type::Resource, Rec."No.", SkillToFind)) and
+                           (not PoolResourceActive or (Rec."Pool Resource No." = PoolResourceNoToFind))
+                        then
                             Rec.Mark(true);
                     until Rec.Next() = 0;
 
-        Rec.MarkedOnly(CapacityFilter or SkillActive);
+        Rec.MarkedOnly(CapacityFilter or SkillActive or PoolResourceActive);
         CurrPage.Update(false);
     end;
 }

@@ -335,8 +335,13 @@ table 50610 "Day Planning"
                 CapacityUniqueResource.SetRange(EntryDateFilter, "Plan Date");
                 CapacityUniqueResource.Open();
                 while CapacityUniqueResource.Read() do begin
-                    if Resource.Get(CapacityUniqueResource.Resource_No_) then
+                    if Resource.Get(CapacityUniqueResource.Resource_No_) then begin
                         Resource.Mark(true);
+                        if "Assigned Pool Resource No." <> '' then begin
+                            if Resource."Pool Resource No." <> "Assigned Pool Resource No." then
+                                Resource.Mark(false);
+                        end;
+                    end;
                 end;
                 Resource.MarkedOnly(true);  // Get marked resources
                 CapacityUniqueResource.Close();
@@ -349,7 +354,7 @@ table 50610 "Day Planning"
                 end;
                 Resource.MarkedOnly(true);  // Get marked resources with the skill
                 Resource.SetFilter("Date Filter", '%1', "Plan Date");
-                ReslookupPage.SetSkillToFind(Skill);
+                ReslookupPage.SetSkillToFind(Skill, "Assigned Pool Resource No.");
                 ResLookupPage.SetTableView(Resource);
                 ResLookupPage.LookupMode(true);
                 if ResLookupPage.RunModal() = ACTION::LookupOK then begin
