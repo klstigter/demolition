@@ -79,6 +79,7 @@ html,
 		.gantt-collapseall-label {
 			vertical-align: middle;
 			font-weight: 600;
+			margin-left: 8px;
 		}
 
 		/* Task type classes (fixed_duration / fixed_units / fixed_work) are applied via

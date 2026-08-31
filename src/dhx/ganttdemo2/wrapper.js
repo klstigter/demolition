@@ -672,14 +672,18 @@ window.BOOT = function() {
       // model - display-only; never apply this adjustment to task.end_date itself.
       const displayEndDate = task.end_date ? gantt.date.add(task.end_date, -1, "day") : null;
 
+      // Constraint lines are only meaningful once a value is set - suppress each line
+      // individually rather than showing "-" placeholders for empty ones.
+      const constraintLines = [];
+      if (task.bcConstraintType) constraintLines.push(`Constraint: ${task.bcConstraintType}`);
+      if (constraintDate) constraintLines.push(`Constraint Date: ${gantt.templates.date_grid(constraintDate)}`);
+      if (task.bcMaxDuration) constraintLines.push(`Max Duration: ${task.bcMaxDuration} days`);
+
       return `
         <b>Job: ${task.bcJobNo || "-"}<br/>
         Task: ${task.bcJobTaskNo || "-"}<br/>
-        Period: ${task.start_date ? gantt.templates.date_grid(task.start_date) : "-"} - ${displayEndDate ? gantt.templates.date_grid(displayEndDate) : "-"}<br/>
-        <hr/>
-        Constraint: ${task.bcConstraintType || "-"}<br/>
-        Constraint Date: ${constraintDate ? gantt.templates.date_grid(constraintDate) : "-"}<br/>
-        Max Duration: ${task.bcMaxDuration ? task.bcMaxDuration + " days" : "-"}
+        Period: ${task.start_date ? gantt.templates.date_grid(task.start_date) : "-"} - ${displayEndDate ? gantt.templates.date_grid(displayEndDate) : "-"}
+        ${constraintLines.length ? "<hr/>" + constraintLines.join("<br/>") : ""}
       `;
     };
 
@@ -1316,8 +1320,8 @@ window.BOOT = function() {
         + ".res-filter-icon:hover { opacity:1; }"
         /* ── Fixed body-level tooltip (never clipped by overflow:hidden) ── */
         + "#res-filter-tooltip-popup { display:none; position:fixed; background:#1a1a2e; color:#e0e0e0; border:1px solid #4a6fa5; border-radius:5px; padding:8px 12px; font-size:12px; font-weight:normal; white-space:nowrap; z-index:999999; box-shadow:0 3px 10px rgba(0,0,0,0.5); min-width:180px; pointer-events:none; }"
-        /* ── Main grid Job/Job Task filter icon (blank top-left corner cell of the grid header) ── */
-        + ".gnt-filter-toolbar-host { display:flex !important; align-items:center; padding-left:6px; }"
+        /* ── Main grid Job/Job Task filter icon (in the "Task name" column header, after the collapse/expand-all icon) ── */
+        + ".gnt-filter-toolbar-host { display:flex !important; align-items:center; }"
         + "#gnt-filter-tooltip-popup { display:none; position:fixed; background:#1a1a2e; color:#e0e0e0; border:1px solid #4a6fa5; border-radius:5px; padding:8px 12px; font-size:12px; font-weight:normal; white-space:nowrap; z-index:999999; box-shadow:0 3px 10px rgba(0,0,0,0.5); min-width:180px; pointer-events:none; }";
       var s = document.createElement("style");
       s.textContent = css;
@@ -2889,10 +2893,9 @@ function _positionResFilterTooltip(e) {
 // Distinct from the resource-panel filter info above (_resourceFilterInfo /
 // SetResourcePanelFilterInfo / OnResetResourceFilter), which only displays context for
 // a filter applied elsewhere. This one drives the actual task list: the (funnel) button
-// is always shown in the grid's blank top-left header corner cell (".gantt_grid_scale",
-// the auto-generated spacer row dhtmlx adds above grid columns when the timeline has a
-// second scale) and opens a BC filter dialog; once applied, a (✕) reset button appears
-// next to it. Mirrors the wiring added for the Task Scheduler page
+// is always shown in the "Task name" grid column header, immediately after the
+// collapse/expand-all icon, and opens a BC filter dialog; once applied, a (✕) reset button
+// appears next to it. Mirrors the wiring added for the Task Scheduler page
 // (src/dhx/projectschedule/wrapper.js: setupFilterToolbar/SetTaskFilterInfo).
 // -------------------------------------------------------
 function SetGanttTaskFilterInfo(jobNo, taskNo, periodFrom, periodTo) {
@@ -2936,18 +2939,15 @@ window.SetDayOffColors = SetDayOffColors;
 
 function _updateGanttFilterToolbar() {
   try {
-    // Pick the main grid's blank corner cell, not the resource panel's (that one is
-    // wrapped in .gantt_resource_grid and already used by _updateResourceHeaderTooltip).
-    var candidates = document.querySelectorAll(".gantt_grid_scale");
-    var cell = null;
-    for (var i = 0; i < candidates.length; i++) {
-      if (!candidates[i].closest(".gantt_resource_grid")) { cell = candidates[i]; break; }
-    }
-    if (!cell) {
+    // Anchor on the collapse/expand-all icon (unique to the main grid's "Task name" column
+    // header, not the resource panel) and inject the filter button right after it.
+    var collapseIcon = document.querySelector(".gantt-collapseall-icon");
+    if (!collapseIcon) {
       // DOM not ready yet (resetLayout() still in progress) — retry once after paint
       setTimeout(_updateGanttFilterToolbar, 150);
       return;
     }
+    var cell = collapseIcon.parentElement;
     cell.classList.add("gnt-filter-toolbar-host");
 
     // Remove any previously injected filter buttons
@@ -2994,7 +2994,7 @@ function _updateGanttFilterToolbar() {
       '</svg>';
     filterBtn.style.cssText = "background:" + (fi ? "#1a73e8" : "#5f6368") +
       ";border:none;border-radius:50%;width:20px;height:20px;line-height:20px;" +
-      "text-align:center;padding:0;cursor:pointer;vertical-align:middle;display:inline-block;";
+      "text-align:center;padding:0;margin-left:6px;cursor:pointer;vertical-align:middle;display:inline-block;";
 
     filterBtn.addEventListener("mouseenter", function(e) {
       popup.style.display = "block";
@@ -3012,7 +3012,8 @@ function _updateGanttFilterToolbar() {
       Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnGanttFilterIconClick", []);
     });
 
-    cell.appendChild(filterBtn);
+    // Place right after the collapse/expand-all icon, ahead of the "Task name" label.
+    collapseIcon.insertAdjacentElement("afterend", filterBtn);
 
     // (✕) Reset button — only shown once a filter is applied
     if (fi) {
@@ -3030,7 +3031,7 @@ function _updateGanttFilterToolbar() {
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnGanttClearTaskFilter", []);
       });
 
-      cell.appendChild(resetBtn);
+      filterBtn.insertAdjacentElement("afterend", resetBtn);
     }
   } catch (e) {
     console.error("_updateGanttFilterToolbar failed:", e);
