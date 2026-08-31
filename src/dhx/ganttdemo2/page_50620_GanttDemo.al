@@ -29,8 +29,12 @@ page 50620 "Gantt Demo DHX 2"
                 begin
                     setup.EnsureUserRecord();
                     setup.get(UserId);
-                    LoadAllData();
+                    // Panel starts hidden - set this BEFORE LoadAllData() so its resource-panel
+                    // dispatch (see LoadAllData) sees ResourcePanelFlag = false and doesn't enqueue
+                    // any background task at all on initial open. Nothing is shown until the user
+                    // clicks "Show Resource Panel" or a task bar, so there is nothing to fetch yet.
                     ResourcePanelFlag := false;
+                    LoadAllData();
                     CurrPage.DHXGanttControl2.SetResourcePanelVisibility(ResourcePanelFlag);
                 end;
 
@@ -110,11 +114,13 @@ page 50620 "Gantt Demo DHX 2"
                     if EventIDList.Count() >= 2 then begin
                         JobNo := CopyStr(EventIDList.Get(1), 1, 20);
                         JobTaskNo := CopyStr(EventIDList.Get(2), 1, 20);
-                        if JobTask.Get(JobNo, JobTaskNo) then
-                            JobTask.Mark(true);
                     end;
 
-                    // Parse childrenJson to get Job No. and Job Task No., after that marking on JobTask
+                    // Parse childrenJson to get Job No. and Job Task No. of each child task in
+                    // scope. Record.Mark() is no longer used here - the background task below
+                    // takes plain "JobNo|JobTaskNo" key text (marks wouldn't survive into its
+                    // separate session anyway) - JobTask.Get() is kept purely as a validity check
+                    // so only real child tasks make it into ResourcePanelChildTaskIds.
                     if (childrenJson <> '') and (childrenJson <> '[]') then
                         if ChildrenArray.ReadFrom(childrenJson) then
                             foreach ChildToken in ChildrenArray do begin
@@ -125,10 +131,8 @@ page 50620 "Gantt Demo DHX 2"
                                     if ChildIdParts.Count() >= 2 then begin
                                         ChildJobNo := CopyStr(ChildIdParts.Get(1), 1, 20);
                                         ChildJobTaskNo := CopyStr(ChildIdParts.Get(2), 1, 20);
-                                        if JobTask.Get(ChildJobNo, ChildJobTaskNo) then begin
-                                            JobTask.Mark(true);
+                                        if JobTask.Get(ChildJobNo, ChildJobTaskNo) then
                                             ResourcePanelChildTaskIds.Add(ChildJobNo + '|' + ChildJobTaskNo);
-                                        end;
                                     end;
                                 end;
                             end;
@@ -159,8 +163,10 @@ page 50620 "Gantt Demo DHX 2"
                     // Pass filter context for the header tooltip (display only from here on)
                     CurrPage.DHXGanttControl2.SetResourcePanelFilterInfo(JobNo, JobTaskNo, Format(FromDate, 0, '<Year4>-<Month,2>-<Day,2>'), Format(ToDate, 0, '<Year4>-<Month,2>-<Day,2>'));
 
-                    // Load resources and day plannings filtered to this task (and its children)
-                    LoadFilteredResourcesAndDayPlannings(JobTask, FromDate, ToDate);
+                    // Load resources and day plannings filtered to this task (and its children) -
+                    // async via a Page Background Task; returns immediately, and
+                    // OnPageBackgroundTaskCompleted pushes the result in once ready.
+                    EnqueueFilteredResourcePanelReload(FromDate, ToDate);
 
                     CurrPage.DHXGanttControl2.GetResourceFilter(); // Get the active resource filter and saved it into global page var
                 end;
@@ -305,8 +311,12 @@ page 50620 "Gantt Demo DHX 2"
                     PreviewCancelled := true; // absorb the RenderGantt re-entry event below
                     LoadTaskData();
                     LoadLinkData();
+                    // Reload the resource panel to match the just-updated task - async in both
+                    // branches (each just enqueues a Page Background Task and returns). No task
+                    // filter active and the panel isn't even shown -> nothing to fetch.
                     if not ReloadResourcePanelFromStoredFilter() then
-                        LoadDayPlanningData();
+                        if ResourcePanelFlag then
+                            LoadDayPlanningData();
                     if ResourcePanelFlag then
                         CurrPage.DHXGanttControl2.SetResourcePanelVisibility(true);
                     CurrPage.DHXGanttControl2.RenderGantt(true);
@@ -548,15 +558,39 @@ page 50620 "Gantt Demo DHX 2"
                 trigger OnResetResourceFilter()
                 begin
                     // User clicked the (ℹ) button — clear the task-based resource filter
-                    // and reload all resources + all day plannings driven by the default Gantt context.
+                    // and reload all resources + all day plannings driven by the default Gantt
+                    // context. Enqueues a background task and returns immediately;
+                    // OnPageBackgroundTaskCompleted populates the panel once ready.
                     ClearResourcePanelFilter();
-                    LoadResourceData();
-                    LoadDayPlanningData();
+                    EnqueueDefaultResourcePanelReload(true, true);
                 end;
 
                 trigger OnResourceFilterRetrieved(filterJson: Text)
                 begin
                     CurrentResourcePanelFilterJsonString := filterJson;
+                end;
+
+                /// <summary>
+                /// JS-initiated poll (wrapper.js's bounded interval, started by
+                /// NotifyResourcePanelTaskPending) asking "is a background-task result ready
+                /// yet?". This is a normal synchronous trigger call, unlike
+                /// OnPageBackgroundTaskCompleted - so calling CurrPage.DHXGanttControl2.* from
+                /// here is safe (confirmed live: it is NOT safe from the completion trigger
+                /// itself - see that trigger's comment).
+                /// </summary>
+                trigger OnPollResourcePanelResult()
+                begin
+                    if not PendingResultAvailable then
+                        exit;
+
+                    PendingResultAvailable := false;
+                    if PendingResourcesJson <> '' then
+                        CurrPage.DHXGanttControl2.LoadResourcesData(PendingResourcesJson);
+                    if PendingDayPlanningsJson <> '' then
+                        CurrPage.DHXGanttControl2.LoadDayPlanningsData(PendingDayPlanningsJson);
+                    Clear(PendingResourcesJson);
+                    Clear(PendingDayPlanningsJson);
+                    CurrPage.DHXGanttControl2.StopResourcePanelPolling();
                 end;
 
                 #region Task Filter Toolbar
@@ -871,10 +905,12 @@ page 50620 "Gantt Demo DHX 2"
 
                 trigger OnAction()
                 begin
+                    // Show the panel immediately (empty) - resources are populated asynchronously
+                    // once the background task below completes (OnPageBackgroundTaskCompleted).
                     ResourcePanelFlag := true;
                     CurrPage.DHXGanttControl2.SetResourcePanelVisibility(true);
                     ClearResourcePanelFilter(); // clear any existing filter context when manually showing the panel, to avoid confusion
-                    LoadResourceData();
+                    EnqueueDefaultResourcePanelReload(true, true);
                 end;
             }
             action(HideResourcePanel)
@@ -1126,6 +1162,46 @@ page 50620 "Gantt Demo DHX 2"
         ShowPreviousNext := not (Setup."Date Range Type" = Setup."Date Range Type"::"Date Range");
     end;
 
+    /// <summary>
+    /// Fires when a Page Background Task enqueued via EnqueueFilteredResourcePanelReload/
+    /// EnqueueDefaultResourcePanelReload finishes. TaskId is compared against ResourcePanelTaskId
+    /// (overwritten by every new enqueue) so a result from a superseded reload - e.g. the user
+    /// clicked Previous/Next again before an earlier task completed - is silently discarded
+    /// instead of clobbering the panel with stale-scope data.
+    /// </summary>
+    trigger OnPageBackgroundTaskCompleted(TaskId: Integer; Results: Dictionary of [Text, Text])
+    begin
+        if TaskId <> ResourcePanelTaskId then
+            exit;
+
+        // NOTE: does NOT call CurrPage.DHXGanttControl2.* here - confirmed live that BC Server
+        // rejects any control add-in callback issued directly from this trigger ("attempted to
+        // issue a client callback on an Automation object... disallowed callback was issued from
+        // the OnPageBackgroundTaskCompleted or OnPageBackgroundTaskError trigger"). Stash the
+        // result in plain AL vars instead; the OnPollResourcePanelResult trigger (JS-initiated,
+        // via wrapper.js's bounded poll loop kicked off by NotifyResourcePanelTaskPending) is what
+        // actually pushes this into the control add-in, from a normal synchronous call stack.
+        if Results.ContainsKey('resourcesJson') then
+            PendingResourcesJson := Results.Get('resourcesJson');
+        if Results.ContainsKey('dayPlanningsJson') then
+            PendingDayPlanningsJson := Results.Get('dayPlanningsJson');
+        PendingResultAvailable := true;
+    end;
+
+    trigger OnPageBackgroundTaskError(TaskId: Integer; ErrorCode: Text; ErrorText: Text; ErrorCallStack: Text; var IsHandled: Boolean)
+    var
+        ResourcePanelLoadErrorNotification: Notification;
+    begin
+        if TaskId <> ResourcePanelTaskId then
+            exit;
+
+        IsHandled := true;
+        // A notification is allowed here (unlike a raw Message/UI render) - surface the failure
+        // without blocking the Gantt.
+        ResourcePanelLoadErrorNotification.Message := StrSubstNo('Loading Gantt resource panel data failed: %1', ErrorText);
+        ResourcePanelLoadErrorNotification.Send();
+    end;
+
     var
         Setup: Record "Gantt Chart Setup";
         OptiSetup: Record "Daily Optimizer Setup";
@@ -1141,11 +1217,15 @@ page 50620 "Gantt Demo DHX 2"
         JobTaskFilter: Text;
         CurrentResourcePanelFilterJsonString: Text;
         PreviewCancelled: Boolean;
-        ResourcePanelChildTaskIds: List of [Text]; // each entry "JobNo|JobTaskNo", mirrors the children marked in OnShowResourcesForTask so ReloadResourcePanelFromStoredFilter/LoadAllData can re-mark them later
+        ResourcePanelChildTaskIds: List of [Text]; // each entry "JobNo|JobTaskNo", populated in OnShowResourcesForTask; read by BuildResourcePanelJobTaskKeysText to build the background task's JobTaskKeys parameter
         ResourcePanelJobNo: Code[20];
         ResourcePanelJobTaskNo: Code[20];
         ResourcePanelFromDate: Date;
         ResourcePanelToDate: Date;
+        ResourcePanelTaskId: Integer; // TaskId of the most recently enqueued resource-panel background task; OnPageBackgroundTaskCompleted/Error discard any result whose TaskId doesn't match (superseded by a later reload)
+        PendingResourcesJson: Text; // set by OnPageBackgroundTaskCompleted, delivered into the control add-in by OnPollResourcePanelResult (see that trigger's comment for why the split is necessary)
+        PendingDayPlanningsJson: Text;
+        PendingResultAvailable: Boolean;
 
     local procedure ClearResourcePanelFilter()
     begin
@@ -1189,18 +1269,8 @@ page 50620 "Gantt Demo DHX 2"
         VisualDefaultSettings: Codeunit "Visual Default Settings";
         StartDate: Date;
         EndDate: Date;
-        LoadWithOutResourcePanelFilter: Boolean;
-        FilterJobNo: Code[20];
-        FilterJobTaskNo: Code[20];
-        FilterFromDate: Date;
-        FilterToDate: Date;
-        JobTask: Record "Job Task";
         Window: Dialog;
         LoadingLbl: Label 'Loading Gantt data...\n#1######################';
-        ChildTaskId: Text;
-        ChildParts: List of [Text];
-        ChildJobNo: Code[20];
-        ChildJobTaskNo: Code[20];
     begin
         // Control add-in JS calls (LoadProject/RenderGantt/etc.) only actually execute in the
         // browser once this whole AL trigger returns to the client — so a JS-side overlay can't
@@ -1259,7 +1329,13 @@ page 50620 "Gantt Demo DHX 2"
         LoadLinkData();
 
         CurrPage.DHXGanttControl2.GetResourceFilter(); // keeps the JS-side tooltip filter in sync; NOT used to decide the branch below (see ResourcePanelJobNo/JobTaskNo)
-        LoadWithOutResourcePanelFilter := true;
+
+        // Resource-panel data (resources + Day Plannings) is not fetched synchronously here -
+        // it isn't even visible until the panel is shown (see ControlReady/ShowResourcePanel),
+        // so building/sending it eagerly on every LoadAllData was pure waste, and the underlying
+        // "Day Planning" table is large enough that doing so blocked the whole page. Instead this
+        // just kicks off a Page Background Task and returns immediately;
+        // OnPageBackgroundTaskCompleted pushes the JSON into the control add-in once it's ready.
         // Read the panel's scope from the native AL vars set synchronously in
         // OnShowResourcesForTask/ReloadResourcePanelFromStoredFilter - NOT from
         // CurrentResourcePanelFilterJsonString, which depends on an async JS round trip
@@ -1267,53 +1343,15 @@ page 50620 "Gantt Demo DHX 2"
         // confirmed live to sometimes not have landed yet by the time this procedure runs, leaving
         // that string blank/stale and silently emptying the resource panel on Refresh Data.
         if (ResourcePanelJobNo <> '') and (ResourcePanelJobTaskNo <> '') then begin
-            FilterJobNo := ResourcePanelJobNo;
-            FilterJobTaskNo := ResourcePanelJobTaskNo;
-            FilterFromDate := ResourcePanelFromDate;
-            FilterToDate := ResourcePanelToDate;
-            LoadWithOutResourcePanelFilter := false;
-
-            // Mark the single task then load filtered resources + day plannings
-            JobTask.Reset();
-            JobTask.SetRange("Job No.", FilterJobNo);
-            JobTask.SetRange("Job Task No.", FilterJobTaskNo);
-            if JobTask.FindFirst() then
-                JobTask.Mark(true);
-
-            // Re-mark every child task that was part of the panel's original scope
-            // (marked in OnShowResourcesForTask). No Reset() call here - Get() below
-            // ignores active filters anyway (it fetches by primary key regardless), and
-            // Reset() was confirmed live to also clear the marked-record list, which
-            // silently un-marked the primary task above and left leaf tasks (no children
-            // to re-mark) with zero marked records - emptying the resource panel.
-            foreach ChildTaskId in ResourcePanelChildTaskIds do begin
-                ChildParts := ChildTaskId.Split('|');
-                if ChildParts.Count() = 2 then begin
-                    ChildJobNo := CopyStr(ChildParts.Get(1), 1, MaxStrLen(ChildJobNo));
-                    ChildJobTaskNo := CopyStr(ChildParts.Get(2), 1, MaxStrLen(ChildJobTaskNo));
-                    if JobTask.Get(ChildJobNo, ChildJobTaskNo) then
-                        JobTask.Mark(true);
-                end;
-            end;
-
             if GuiAllowed() then
-                Window.Update(1, 'Resources && Day Plannings...');
-            LoadFilteredResourcesAndDayPlannings(JobTask, FilterFromDate, FilterToDate);
-        end;
-
-        if LoadWithOutResourcePanelFilter then begin
-            if setup."Load Resources" and ResourcePanelFlag then begin
+                Window.Update(1, 'Resources && Day Plannings (loading in background)...');
+            EnqueueFilteredResourcePanelReload(ResourcePanelFromDate, ResourcePanelToDate);
+        end else
+            if ResourcePanelFlag then begin
                 if GuiAllowed() then
-                    Window.Update(1, 'Resources...');
-                LoadResourceData();
+                    Window.Update(1, 'Resources && Day Plannings (loading in background)...');
+                EnqueueDefaultResourcePanelReload(Setup."Load Resources", Setup."Load Day Plannings");
             end;
-
-            if setup."Load Day Plannings" then begin
-                if GuiAllowed() then
-                    Window.Update(1, 'Day Plannings...');
-                LoadDayPlanningData();
-            end;
-        end;
 
         // Finalize: render and reset refresh flag
         if GuiAllowed() then
@@ -1327,33 +1365,115 @@ page 50620 "Gantt Demo DHX 2"
     end;
 
     /// <summary>
-    /// Loads resources and day plannings filtered to the marked JobTask records within the given period.
-    /// Callers are responsible for marking the relevant Job Task records before calling this procedure.
+    /// Converts a Boolean to the literal "true"/"false" text codeunit 50713's GetParam-based flag
+    /// checks expect. Deliberately not Format() - Format(Boolean) returns the localized "Yes"/"No"
+    /// caption, not "true"/"false".
     /// </summary>
-    local procedure LoadFilteredResourcesAndDayPlannings(var pJobTask: Record "Job Task"; pFromDate: Date; pToDate: Date)
-    var
-        GanttDataHandler: Codeunit "GanttChartDataHandler";
-        JsonTxtResource: Text;
+    local procedure BoolToParamText(Value: Boolean): Text
     begin
-        pJobTask.MarkedOnly := true;
-        if pJobTask.FindSet() then;
-        JsonTxtResource := GanttDataHandler.GetResourcesByJobTaskAsJson(pJobTask, pFromDate, pToDate);
-        if JsonTxtResource <> '' then
-            CurrPage.DHXGanttControl2.LoadResourcesData(JsonTxtResource);
+        if Value then
+            exit('true');
+        exit('false');
+    end;
 
-        pJobTask.MarkedOnly := true;
-        if pJobTask.FindSet() then;
-        CurrPage.DHXGanttControl2.LoadDayPlanningsData(
-            GanttDataHandler.GetDayPlanningsByJobTaskAsJson(pJobTask, pFromDate, pToDate));
+    /// <summary>
+    /// Builds the ';'-delimited "JobNo|JobTaskNo" key list (one entry per Job Task) that the
+    /// background codeunit's Filtered mode needs, from the panel's stored scope
+    /// (ResourcePanelJobNo/JobTaskNo + ResourcePanelChildTaskIds, populated in
+    /// OnShowResourcesForTask). Returns '' when no task-filter scope is currently active.
+    /// </summary>
+    local procedure BuildResourcePanelJobTaskKeysText(): Text
+    var
+        Keys: Text;
+        ChildTaskId: Text;
+    begin
+        if (ResourcePanelJobNo = '') or (ResourcePanelJobTaskNo = '') then
+            exit('');
+
+        Keys := ResourcePanelJobNo + '|' + ResourcePanelJobTaskNo;
+        foreach ChildTaskId in ResourcePanelChildTaskIds do
+            Keys += ';' + ChildTaskId;
+        exit(Keys);
+    end;
+
+    /// <summary>
+    /// Enqueues a Page Background Task that loads resources + day plannings scoped to one Job Task
+    /// and its children (right-click "Show Job Resources", or a stored-filter reload after
+    /// drag/drop) - see codeunit 50713 "Gantt BG Resource Panel Data", Filtered mode. Returns
+    /// immediately; OnPageBackgroundTaskCompleted pushes the result into the control add-in once
+    /// ready. A no-op when no task-filter scope is active.
+    /// </summary>
+    local procedure EnqueueFilteredResourcePanelReload(pFromDate: Date; pToDate: Date)
+    var
+        TaskParameters: Dictionary of [Text, Text];
+        NewTaskId: Integer;
+        JobTaskKeysText: Text;
+    begin
+        JobTaskKeysText := BuildResourcePanelJobTaskKeysText();
+        if JobTaskKeysText = '' then
+            exit;
+
+        TaskParameters.Add('Mode', 'Filtered');
+        TaskParameters.Add('LoadResources', 'true');
+        TaskParameters.Add('LoadDayPlannings', 'true');
+        TaskParameters.Add('JobTaskKeys', JobTaskKeysText);
+        TaskParameters.Add('FromDate', Format(pFromDate, 0, '<Year4>-<Month,2>-<Day,2>'));
+        TaskParameters.Add('ToDate', Format(pToDate, 0, '<Year4>-<Month,2>-<Day,2>'));
+
+        CurrPage.EnqueueBackgroundTask(NewTaskId, Codeunit::"Gantt BG Resource Panel Data", TaskParameters, 30000, PageBackgroundTaskErrorLevel::Warning);
+        ResourcePanelTaskId := NewTaskId;
+        PendingResultAvailable := false; // any earlier not-yet-delivered result is now stale
+        CurrPage.DHXGanttControl2.NotifyResourcePanelTaskPending(); // (re)start wrapper.js's bounded poll loop - normal synchronous call, safe here
+    end;
+
+    /// <summary>
+    /// Enqueues a Page Background Task that loads the unfiltered resource panel (all resources /
+    /// day plannings for the current Job/Job Task filter and visible Gantt period) - see codeunit
+    /// 50713 "Gantt BG Resource Panel Data", Default mode. Either half can be requested on its own
+    /// (e.g. ShowResourcePanel only wants resources). Returns immediately; a no-op when neither
+    /// half is requested.
+    /// </summary>
+    local procedure EnqueueDefaultResourcePanelReload(pLoadResources: Boolean; pLoadDayPlannings: Boolean)
+    var
+        TaskParameters: Dictionary of [Text, Text];
+        NewTaskId: Integer;
+        JobFilterUsed: Text;
+    begin
+        if not (pLoadResources or pLoadDayPlannings) then
+            exit;
+
+        if pLoadDayPlannings then begin
+            // Preserve the original LoadDayPlanningData fallback: default to the Gantt Chart
+            // Setup's own "Job No. Filter" when no page-level JobFilter is active yet, and persist
+            // it back into JobFilter so later reloads (RefreshGantt, etc.) keep using it
+            // deterministically.
+            JobFilterUsed := setup."Job No. Filter";
+            if JobFilter <> '' then
+                JobFilterUsed := JobFilter
+            else
+                if JobFilterUsed <> '' then
+                    JobFilter := JobFilterUsed;
+        end;
+
+        TaskParameters.Add('Mode', 'Default');
+        // NOTE: deliberately NOT Format(pLoadResources) - AL's default Boolean format is
+        // localized "Yes"/"No" (confirmed live: codeunit 50713's `= 'true'` comparison silently
+        // evaluated false for every call, so neither half ever loaded), not "true"/"false".
+        TaskParameters.Add('LoadResources', BoolToParamText(pLoadResources));
+        TaskParameters.Add('LoadDayPlannings', BoolToParamText(pLoadDayPlannings));
+        TaskParameters.Add('JobFilter', JobFilter);
+        TaskParameters.Add('JobTaskFilter', JobTaskFilter);
+        TaskParameters.Add('AnchorDate', Format(AnchorDate, 0, '<Year4>-<Month,2>-<Day,2>'));
+
+        CurrPage.EnqueueBackgroundTask(NewTaskId, Codeunit::"Gantt BG Resource Panel Data", TaskParameters, 30000, PageBackgroundTaskErrorLevel::Warning);
+        ResourcePanelTaskId := NewTaskId;
+        PendingResultAvailable := false; // any earlier not-yet-delivered result is now stale
+        CurrPage.DHXGanttControl2.NotifyResourcePanelTaskPending(); // (re)start wrapper.js's bounded poll loop - normal synchronous call, safe here
     end;
 
     local procedure ReloadResourcePanelFromStoredFilter(): Boolean
     var
         JobTask: Record "Job Task";
-        ChildTaskId: Text;
-        ChildParts: List of [Text];
-        ChildJobNo: Code[20];
-        ChildJobTaskNo: Code[20];
     begin
         // Read from the native AL vars (set synchronously in OnShowResourcesForTask), not from
         // CurrentResourcePanelFilterJsonString - see the comment on ResourcePanelJobNo's
@@ -1361,23 +1481,8 @@ page 50620 "Gantt Demo DHX 2"
         if (ResourcePanelJobNo = '') or (ResourcePanelJobTaskNo = '') then
             exit(false);
 
-        JobTask.Reset();
         if not JobTask.Get(ResourcePanelJobNo, ResourcePanelJobTaskNo) then
             exit(false);
-        JobTask.Mark(true);
-
-        // Re-mark every child task that was part of the panel's original scope (marked in
-        // OnShowResourcesForTask) - the stored filter only remembers the single parent job/task,
-        // so without this the reload below would only find Day Plannings on the parent itself.
-        foreach ChildTaskId in ResourcePanelChildTaskIds do begin
-            ChildParts := ChildTaskId.Split('|');
-            if ChildParts.Count() = 2 then begin
-                ChildJobNo := CopyStr(ChildParts.Get(1), 1, MaxStrLen(ChildJobNo));
-                ChildJobTaskNo := CopyStr(ChildParts.Get(2), 1, MaxStrLen(ChildJobTaskNo));
-                if JobTask.Get(ChildJobNo, ChildJobTaskNo) then
-                    JobTask.Mark(true);
-            end;
-        end;
 
         // The stored period was captured when the resource panel was last opened for this task
         // and goes stale the moment the task (and its Day Plannings) are moved by a drag/apply -
@@ -1392,7 +1497,12 @@ page 50620 "Gantt Demo DHX 2"
             Format(JobTask.PlannedEndDate, 0, '<Year4>-<Month,2>-<Day,2>'));
         CurrPage.DHXGanttControl2.GetResourceFilter();
 
-        LoadFilteredResourcesAndDayPlannings(JobTask, JobTask.PlannedStartDate, JobTask.PlannedEndDate);
+        // Re-marking each child task is no longer needed here - ResourcePanelChildTaskIds (the
+        // same list populated in OnShowResourcesForTask) already carries the panel's child scope
+        // as plain "JobNo|JobTaskNo" keys, exactly what BuildResourcePanelJobTaskKeysText needs;
+        // Record marks wouldn't survive into the background task's separate session anyway.
+        // Enqueue only - returns immediately, OnPageBackgroundTaskCompleted applies the result.
+        EnqueueFilteredResourcePanelReload(JobTask.PlannedStartDate, JobTask.PlannedEndDate);
         exit(true);
     end;
 
@@ -1410,39 +1520,14 @@ page 50620 "Gantt Demo DHX 2"
         end;
     end;
 
-    local procedure LoadResourceData()
-    var
-        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
-        JsonTxtResource: Text;
-        tempblob: Codeunit "Temp Blob";
-        instream: InStream;
-        outstream: OutStream;
-        va: variant;
-    begin
-        JsonTxtResource := GanttChartDataHandler.GetResourcesAsJson();
-        if JsonTxtResource <> '' then begin
-            CurrPage.DHXGanttControl2.LoadResourcesData(JsonTxtResource);
-            if setup."Download Data for Inspection" and GuiAllowed then
-                if Confirm('Gantt Setting for %1 is enabled. Do you want to download the resources data for inspection purposes?', false, setup.FieldCaption("Download Data for Inspection")) then
-                    GanttChartDataHandler.DownloadJsonTextData(JsonTxtResource, 'GanttResourcesData.json');
-        end;
-    end;
-
+    /// <summary>
+    /// Enqueues the unfiltered/default resource-panel background load with Day Plannings only
+    /// (resources unaffected). EnqueueDefaultResourcePanelReload itself applies the "Job No.
+    /// Filter" fallback (was inlined here before this became a background-task enqueue).
+    /// </summary>
     local procedure LoadDayPlanningData()
-    var
-        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
-        JsonTxtDayPlannings: Text;
-        JobFilterUsed: Text;
     begin
-        JobFilterUsed := setup."Job No. Filter";
-        if JobFilter <> '' then
-            JobFilterUsed := JobFilter // override with global filter if set
-        else
-            if JobFilterUsed <> '' then
-                JobFilter := JobFilterUsed;
-        JsonTxtDayPlannings := GanttChartDataHandler.GetDayPlanningsAsJson(AnchorDate, JobFilter, JobTaskFilter);
-        if JsonTxtDayPlannings <> '' then
-            CurrPage.DHXGanttControl2.LoadDayPlanningsData(JsonTxtDayPlannings);
+        EnqueueDefaultResourcePanelReload(false, true);
     end;
 
     local procedure LoadLinkData()
