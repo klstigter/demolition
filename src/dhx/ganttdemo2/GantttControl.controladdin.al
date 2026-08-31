@@ -36,6 +36,17 @@ controladdin "DHX Gantt Control 2"
     event OnGanttFilterIconClick();
     event OnGanttClearTaskFilter();
     event OnGanttContextAddFilter(jobNo: Text; jobTaskNo: Text);
+    // Added for the async resource-panel background-task pipeline (page 50620): live testing
+    // confirmed BC Server rejects any CurrPage.DHXGanttControl2.<Method>() call issued directly
+    // from OnPageBackgroundTaskCompleted/OnPageBackgroundTaskError ("attempted to issue a client
+    // callback on an Automation object... not supported... disallowed callback was issued from
+    // the OnPageBackgroundTaskCompleted or OnPageBackgroundTaskError trigger") - those triggers
+    // may only touch plain AL data (Notifications included) once returned from the read-only
+    // background session, never the control add-in directly. wrapper.js polls this event on a
+    // light interval; the page's handler pushes any pending background-task result into the
+    // control add-in from THIS normal, JS-initiated synchronous call instead - the same call
+    // shape every other CurrPage.DHXGanttControl2.* call in this file already uses successfully.
+    event OnPollResourcePanelResult();
 
     procedure LoadProject(projectstartdate: date; projectenddate: date);
     procedure Undo();
@@ -64,4 +75,11 @@ controladdin "DHX Gantt Control 2"
     procedure SetGanttTaskFilterInfo(jobNo: Text; taskNo: Text; periodFrom: Text; periodTo: Text);
     procedure SetBarFontColor(fontColorHex: Text);
     procedure SetDayOffColors(weekendColorHex: Text; holidayColorHex: Text);
+    // Companion to OnPollResourcePanelResult above - called right after every resource-panel
+    // background task is enqueued (a normal synchronous AL call, not from the completion trigger)
+    // so JS knows to (re)start its bounded poll loop instead of polling forever on every page.
+    procedure NotifyResourcePanelTaskPending();
+    // Called once a pending background-task result was actually delivered into the control
+    // add-in, so JS can stop its poll burst early instead of waiting out the full timeout.
+    procedure StopResourcePanelPolling();
 }

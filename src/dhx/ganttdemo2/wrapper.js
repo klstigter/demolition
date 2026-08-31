@@ -2579,6 +2579,60 @@ function LoadDayPlanningsData(DayPlanningsJsonTxt) {
 }
 window.LoadDayPlanningsData = LoadDayPlanningsData;
 
+// ── Resource-panel background-task result polling ──────────────────────────────────────────
+// BC Server rejects any CurrPage.DHXGanttControl2.* call issued directly from
+// OnPageBackgroundTaskCompleted/OnPageBackgroundTaskError (confirmed live testing: "attempted to
+// issue a client callback on an Automation object... disallowed callback was issued from the
+// OnPageBackgroundTaskCompleted or OnPageBackgroundTaskError trigger"). So AL can only stash the
+// fetched JSON in plain page vars from that trigger - this poll loop is what actually pulls it
+// into the control add-in, via a normal JS-initiated synchronous trigger
+// (OnPollResourcePanelResult), which AL answers by calling LoadResourcesData/LoadDayPlanningsData
+// itself - from a normal call stack, not the background-task completion - if something is
+// pending. Bounded (not indefinite): each NotifyResourcePanelTaskPending() call (fired by AL right
+// after every resource-panel EnqueueBackgroundTask) (re)starts a short poll burst that stops on
+// its own once the result arrives or a generous timeout elapses, instead of polling forever on
+// every open Gantt page.
+var _resourcePanelPollTimer = null;
+var _resourcePanelPollAttempts = 0;
+var RESOURCE_PANEL_POLL_INTERVAL_MS = 500;
+var RESOURCE_PANEL_POLL_MAX_ATTEMPTS = 60; // 60 x 500ms = 30s generous ceiling
+
+function NotifyResourcePanelTaskPending() {
+  try {
+    if (_resourcePanelPollTimer) {
+      clearInterval(_resourcePanelPollTimer);
+      _resourcePanelPollTimer = null;
+    }
+    _resourcePanelPollAttempts = 0;
+    _resourcePanelPollTimer = setInterval(function () {
+      _resourcePanelPollAttempts++;
+      if (_resourcePanelPollAttempts > RESOURCE_PANEL_POLL_MAX_ATTEMPTS) {
+        clearInterval(_resourcePanelPollTimer);
+        _resourcePanelPollTimer = null;
+        return;
+      }
+      try {
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnPollResourcePanelResult", []);
+      } catch (e) {
+        console.error("OnPollResourcePanelResult poll failed:", e);
+      }
+    }, RESOURCE_PANEL_POLL_INTERVAL_MS);
+  } catch (e) {
+    console.error("NotifyResourcePanelTaskPending failed:", e);
+  }
+}
+window.NotifyResourcePanelTaskPending = NotifyResourcePanelTaskPending;
+
+// Called by AL (from the OnPollResourcePanelResult trigger handler, via the normal
+// LoadResourcesData/LoadDayPlanningsData methods) once a pending result was actually delivered -
+// stops the poll burst early instead of waiting out the full timeout.
+function StopResourcePanelPolling() {
+  if (_resourcePanelPollTimer) {
+    clearInterval(_resourcePanelPollTimer);
+    _resourcePanelPollTimer = null;
+  }
+}
+window.StopResourcePanelPolling = StopResourcePanelPolling;
 
 function UpsertDayPlanning(DayPlanningJsonTxt, upsertIfMissing = true) {
   try {

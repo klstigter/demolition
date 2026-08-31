@@ -318,71 +318,101 @@ codeunit 50613 "GanttChartDataHandler"
     /// Used to reload only the relevant events in the resource panel when the user
     /// right-clicks a task in the Gantt → Show Job Resources.
     /// </summary>
-    procedure GetDayPlanningsByJobTaskAsJson(var JobTask: Record "Job Task"; FromDate: Date; ToDate: Date) JsonText: Text
+    /// <summary>
+    /// Returns day planning JSON for the given "JobNo|JobTaskNo" keys (one entry per Job Task,
+    /// same convention as page 50620's ResourcePanelChildTaskIds), filtered to FromDate..ToDate.
+    /// Single pass over a Query on "Day Planning" - replaces the previous var-Record/marked-set
+    /// signature, whose per-Job-Task FindSet() loop was an N+1 round trip against a huge table.
+    /// Plain Text keys (not Record marks) also make this callable from a Page Background Task's
+    /// own read-only session, where marks set on the interactive session's Record don't exist.
+    /// </summary>
+    procedure GetDayPlanningsByJobTaskAsJson(JobTaskKeys: List of [Text]; FromDate: Date; ToDate: Date) JsonText: Text
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanningByJobTaskQry: Query "Day Planning By Job Task";
         JsonArray: JsonArray;
-        JsonObject: JsonObject;
+        JobNoFilterText: Text;
+        JobTaskNoFilterText: Text;
+        PairSet: List of [Text];
     begin
-        if not JobTask.FindSet() then begin
+        if JobTaskKeys.Count() = 0 then begin
             JsonArray.WriteTo(JsonText);
             exit;
         end;
-        repeat
-            DayPlanning.Reset();
-            DayPlanning.SetRange("Job No.", JobTask."Job No.");
-            DayPlanning.SetRange("Job Task No.", JobTask."Job Task No.");
-            if (FromDate <> 0D) and (ToDate <> 0D) then
-                DayPlanning.SetRange("Plan Date", FromDate, ToDate)
-            else
-                if FromDate <> 0D then
-                    DayPlanning.SetFilter("Plan Date", '>=%1', FromDate)
-                else
-                    if ToDate <> 0D then
-                        DayPlanning.SetFilter("Plan Date", '<=%1', ToDate);
-            if DayPlanning.FindSet() then
-                repeat
-                    JsonObject := CreateDayPlanningJsonObject(DayPlanning);
-                    JsonArray.Add(JsonObject);
-                until DayPlanning.Next() = 0;
-        until JobTask.Next() = 0;
+
+        BuildJobTaskKeyFilters(JobTaskKeys, JobNoFilterText, JobTaskNoFilterText, PairSet);
+        if (JobNoFilterText = '') or (JobTaskNoFilterText = '') then begin
+            JsonArray.WriteTo(JsonText);
+            exit;
+        end;
+
+        DayPlanningByJobTaskQry.SetFilter(JobNoFilter, JobNoFilterText);
+        DayPlanningByJobTaskQry.SetFilter(JobTaskNoFilter, JobTaskNoFilterText);
+        ApplyPlanDateFilter(DayPlanningByJobTaskQry, FromDate, ToDate);
+
+        if DayPlanningByJobTaskQry.Open() then begin
+            while DayPlanningByJobTaskQry.Read() do
+                // The two OR-lists above are independent (all distinct Job Nos | all distinct Job
+                // Task Nos across the requested keys), so a row could in principle satisfy both
+                // without being one of the actual requested pairs - re-check against the exact
+                // key set before including it. Cheap in-memory check, no extra DB round trip.
+                if PairSet.Contains(DayPlanningByJobTaskQry.JobNo + '|' + DayPlanningByJobTaskQry.JobTaskNo) then
+                    JsonArray.Add(BuildDayPlanningJsonObject(
+                        DayPlanningByJobTaskQry.SystemId, DayPlanningByJobTaskQry.JobNo, DayPlanningByJobTaskQry.JobTaskNo,
+                        DayPlanningByJobTaskQry.PlanDate, DayPlanningByJobTaskQry.DayLineNo, DayPlanningByJobTaskQry.StartTimeAssigned,
+                        DayPlanningByJobTaskQry.EndTimeAssigned, DayPlanningByJobTaskQry.StartTimeRequested, DayPlanningByJobTaskQry.EndTimeRequested,
+                        DayPlanningByJobTaskQry.AssignedHours, DayPlanningByJobTaskQry.RequestedHours, DayPlanningByJobTaskQry.NonWorkingMinutesAssigned,
+                        DayPlanningByJobTaskQry.NonWorkingMinutesRequested, DayPlanningByJobTaskQry.AssignedResourceNo, DayPlanningByJobTaskQry.RequestedResourceNo,
+                        DayPlanningByJobTaskQry.VendorNo, DayPlanningByJobTaskQry.PlanStatus, DayPlanningByJobTaskQry.WorkOrderNo));
+            DayPlanningByJobTaskQry.Close();
+        end;
+
         JsonArray.WriteTo(JsonText);
     end;
 
-    procedure GetResourcesByJobTaskAsJson(var JobTask: Record "Job Task"; FromDate: Date; ToDate: Date) JsonText: Text
+    /// <summary>
+    /// Returns the distinct resources assigned/requested (per row's Plan Status) across the given
+    /// "JobNo|JobTaskNo" keys, filtered to FromDate..ToDate. Reuses the same single Query pass as
+    /// GetDayPlanningsByJobTaskAsJson above - distinct-resource collection now happens in memory
+    /// (List.Contains against an already-fetched row set) instead of via a second per-Job-Task
+    /// FindSet() loop.
+    /// </summary>
+    procedure GetResourcesByJobTaskAsJson(JobTaskKeys: List of [Text]; FromDate: Date; ToDate: Date) JsonText: Text
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanningByJobTaskQry: Query "Day Planning By Job Task";
         Resource: Record Resource;
+        PlanStatusHelper: Enum "Plan Status";
         JsonArray: JsonArray;
         JsonObject: JsonObject;
         ResourceNos: List of [Code[20]];
         ResNo: Code[20];
+        JobNoFilterText: Text;
+        JobTaskNoFilterText: Text;
+        PairSet: List of [Text];
+        RowResourceNo: Code[20];
     begin
-        // Collect distinct Resource No. values from Day Plannings for this Job Task
-        if not JobTask.FindSet() then
+        if JobTaskKeys.Count() = 0 then
             exit;
-        repeat
-            DayPlanning.SetRange("Job No.", JobTask."Job No.");
-            DayPlanning.SetRange("Job Task No.", JobTask."Job Task No.");
-            if (FromDate <> 0D) and (ToDate <> 0D) then
-                DayPlanning.SetRange("Plan Date", FromDate, ToDate)
-            else
-                if FromDate <> 0D then
-                    DayPlanning.SetFilter("Plan Date", '>=%1', FromDate)
-                else
-                    if ToDate <> 0D then
-                        DayPlanning.SetFilter("Plan Date", '<=%1', ToDate);
-            if DayPlanning.FindSet() then
-                repeat
-                    if DayPlanning."Plan Status" = DayPlanning."Plan Status"::"In Request" then begin
-                        if (DayPlanning."Requested Resource No." <> '') and (not ResourceNos.Contains(DayPlanning."Requested Resource No.")) then
-                            ResourceNos.Add(DayPlanning."Requested Resource No.");
-                    end else begin
-                        if (DayPlanning."Assigned Resource No." <> '') and (not ResourceNos.Contains(DayPlanning."Assigned Resource No.")) then
-                            ResourceNos.Add(DayPlanning."Assigned Resource No.");
-                    end;
-                until DayPlanning.Next() = 0;
-        until JobTask.Next() = 0;
+
+        BuildJobTaskKeyFilters(JobTaskKeys, JobNoFilterText, JobTaskNoFilterText, PairSet);
+        if (JobNoFilterText = '') or (JobTaskNoFilterText = '') then
+            exit;
+
+        DayPlanningByJobTaskQry.SetFilter(JobNoFilter, JobNoFilterText);
+        DayPlanningByJobTaskQry.SetFilter(JobTaskNoFilter, JobTaskNoFilterText);
+        ApplyPlanDateFilter(DayPlanningByJobTaskQry, FromDate, ToDate);
+
+        if DayPlanningByJobTaskQry.Open() then begin
+            while DayPlanningByJobTaskQry.Read() do
+                if PairSet.Contains(DayPlanningByJobTaskQry.JobNo + '|' + DayPlanningByJobTaskQry.JobTaskNo) then begin
+                    if DayPlanningByJobTaskQry.PlanStatus = PlanStatusHelper::"In Request" then
+                        RowResourceNo := DayPlanningByJobTaskQry.RequestedResourceNo
+                    else
+                        RowResourceNo := DayPlanningByJobTaskQry.AssignedResourceNo;
+                    if (RowResourceNo <> '') and (not ResourceNos.Contains(RowResourceNo)) then
+                        ResourceNos.Add(RowResourceNo);
+                end;
+            DayPlanningByJobTaskQry.Close();
+        end;
 
         // If no Day Planning assignments found, return empty list (only the - NONE - placeholder).
         // "Show/Hide Resource Panel" button will reload all resources when user wants to see everything.
@@ -405,6 +435,60 @@ codeunit 50613 "GanttChartDataHandler"
         end;
 
         JsonArray.WriteTo(JsonText);
+    end;
+
+    /// <summary>
+    /// Parses "JobNo|JobTaskNo" key strings into the two AL '|' OR-lists used to filter the
+    /// "Day Planning By Job Task" query, plus PairSet - the exact set of requested keys, used by
+    /// callers to re-check each returned row (the two OR-lists are independent, so alone they can
+    /// over-match a cross combination that was never actually requested).
+    /// </summary>
+    local procedure BuildJobTaskKeyFilters(JobTaskKeys: List of [Text]; var JobNoFilterText: Text; var JobTaskNoFilterText: Text; var PairSet: List of [Text])
+    var
+        DistinctJobNos: List of [Text];
+        DistinctJobTaskNos: List of [Text];
+        KeyText: Text;
+        Parts: List of [Text];
+        JobNoValue: Code[20];
+        JobTaskNoValue: Code[20];
+    begin
+        foreach KeyText in JobTaskKeys do begin
+            Parts := KeyText.Split('|');
+            if Parts.Count() = 2 then begin
+                JobNoValue := CopyStr(Parts.Get(1), 1, MaxStrLen(JobNoValue));
+                JobTaskNoValue := CopyStr(Parts.Get(2), 1, MaxStrLen(JobTaskNoValue));
+                if (JobNoValue <> '') and (JobTaskNoValue <> '') then begin
+                    PairSet.Add(JobNoValue + '|' + JobTaskNoValue);
+                    if not DistinctJobNos.Contains(JobNoValue) then
+                        DistinctJobNos.Add(JobNoValue);
+                    if not DistinctJobTaskNos.Contains(JobTaskNoValue) then
+                        DistinctJobTaskNos.Add(JobTaskNoValue);
+                end;
+            end;
+        end;
+
+        foreach KeyText in DistinctJobNos do begin
+            if JobNoFilterText <> '' then
+                JobNoFilterText += '|';
+            JobNoFilterText += KeyText;
+        end;
+        foreach KeyText in DistinctJobTaskNos do begin
+            if JobTaskNoFilterText <> '' then
+                JobTaskNoFilterText += '|';
+            JobTaskNoFilterText += KeyText;
+        end;
+    end;
+
+    local procedure ApplyPlanDateFilter(var DayPlanningByJobTaskQry: Query "Day Planning By Job Task"; FromDate: Date; ToDate: Date)
+    begin
+        if (FromDate <> 0D) and (ToDate <> 0D) then
+            DayPlanningByJobTaskQry.SetRange(PlanDateFilter, FromDate, ToDate)
+        else
+            if FromDate <> 0D then
+                DayPlanningByJobTaskQry.SetFilter(PlanDateFilter, '>=%1', FromDate)
+            else
+                if ToDate <> 0D then
+                    DayPlanningByJobTaskQry.SetFilter(PlanDateFilter, '<=%1', ToDate);
     end;
 
     procedure GetVendorsAsJson() JsonText: Text
@@ -545,80 +629,112 @@ codeunit 50613 "GanttChartDataHandler"
     end;
 
     local procedure CreateDayPlanningJsonObject(DayPlanning: Record "Day Planning") JsonObject: JsonObject
+    begin
+        exit(BuildDayPlanningJsonObject(
+            DayPlanning.SystemId, DayPlanning."Job No.", DayPlanning."Job Task No.", DayPlanning."Plan Date",
+            DayPlanning."Day Line No.", DayPlanning."Start Time Assigned", DayPlanning."End Time Assigned",
+            DayPlanning."Start Time Requested", DayPlanning."End Time Requested", DayPlanning."Assigned Hours",
+            DayPlanning."Requested Hours", DayPlanning."Non Working Minutes Assigned", DayPlanning."Non Working Minutes Requested",
+            DayPlanning."Assigned Resource No.", DayPlanning."Requested Resource No.", DayPlanning."Vendor No.",
+            DayPlanning."Plan Status", DayPlanning."Work Order No."));
+    end;
+
+    /// <summary>
+    /// Shared JSON-shape builder behind CreateDayPlanningJsonObject (Record-based, used by the
+    /// existing synchronous GetDayPlanningsAsJson) and GetDayPlanningsByJobTaskAsJson's Query-based
+    /// path below - takes raw field values instead of a Record so it works identically whether the
+    /// caller is iterating a "Day Planning" Record or a "Day Planning By Job Task" Query cursor.
+    /// Field set/JSON keys are unchanged from the original Record-only implementation - this is a
+    /// perf rewrite of how rows are fetched, not a change to the wire format wrapper.js depends on.
+    /// </summary>
+    local procedure BuildDayPlanningJsonObject(
+        SystemIdValue: Guid;
+        JobNoValue: Code[20];
+        JobTaskNoValue: Code[20];
+        PlanDateValue: Date;
+        DayLineNoValue: Integer;
+        StartTimeAssignedValue: Time;
+        EndTimeAssignedValue: Time;
+        StartTimeRequestedValue: Time;
+        EndTimeRequestedValue: Time;
+        AssignedHoursValue: Decimal;
+        RequestedHoursValue: Decimal;
+        NonWorkingMinutesAssignedValue: Integer;
+        NonWorkingMinutesRequestedValue: Integer;
+        AssignedResourceNoValue: Code[20];
+        RequestedResourceNoValue: Code[20];
+        VendorNoValue: Code[20];
+        PlanStatusValue: Enum "Plan Status";
+        WorkOrderNoValue: Code[20]) JsonObject: JsonObject
     var
         WorkDateText: Text;
-        StartTimeText: Text;
-        EndTimeText: Text;
         ResourceId: Text;
         PlanStatusText: Text;
     begin
         // SystemId as unique ID
-        JsonObject.Add('id', Format(DayPlanning.SystemId));
-        JsonObject.Add('task', Format(DayPlanning."Job No.") + '-' + Format(DayPlanning."Job Task No."));
+        JsonObject.Add('id', Format(SystemIdValue));
+        JsonObject.Add('task', Format(JobNoValue) + '-' + Format(JobTaskNoValue));
         // Day Planning identifiers
-        JsonObject.Add('dayNo', DayPlanning."Plan Date");
-        JsonObject.Add('dayLineNo', DayPlanning."Day Line No.");
-        JsonObject.Add('jobNo', DayPlanning."Job No.");
-        JsonObject.Add('jobTaskNo', DayPlanning."Job Task No.");
+        JsonObject.Add('dayNo', PlanDateValue);
+        JsonObject.Add('dayLineNo', DayLineNoValue);
+        JsonObject.Add('jobNo', JobNoValue);
+        JsonObject.Add('jobTaskNo', JobTaskNoValue);
 
         // Date and time information
-        if DayPlanning."Plan Date" <> 0D then
-            WorkDateText := FormatDate(DayPlanning."Plan Date")
+        if PlanDateValue <> 0D then
+            WorkDateText := FormatDate(PlanDateValue)
         else
             WorkDateText := '';
         JsonObject.Add('work_date', WorkDateText);
         JsonObject.Add('placeholder_date', '');
 
-        StartTimeText := FormatTime(DayPlanning."Start Time Assigned");
-        JsonObject.Add('start_time', StartTimeText);
+        JsonObject.Add('start_time', FormatTime(StartTimeAssignedValue));
+        JsonObject.Add('end_time', FormatTime(EndTimeAssignedValue));
 
-        EndTimeText := FormatTime(DayPlanning."End Time Assigned");
-        JsonObject.Add('end_time', EndTimeText);
-
-        if DayPlanning."Assigned Resource No." <> '' then
-            JsonObject.Add('hours', DayPlanning."Assigned Hours")
+        if AssignedResourceNoValue <> '' then
+            JsonObject.Add('hours', AssignedHoursValue)
         else
-            JsonObject.Add('hours', DayPlanning."Requested Hours");
+            JsonObject.Add('hours', RequestedHoursValue);
 
         // Requested vs Assigned detail, both sides, for the resource-marker hover tooltip's
         // "Requested"/"Assigned" column groups (see InstallResourceMarkerCustomTooltipsForDayPlannings
         // in wrapper.js) - unlike 'start_time'/'end_time'/'hours' above (Assigned-only, kept for
         // other existing JS callers), these always carry both sides regardless of Plan Status.
-        JsonObject.Add('requested_start_time', FormatTime(DayPlanning."Start Time Requested"));
-        JsonObject.Add('requested_end_time', FormatTime(DayPlanning."End Time Requested"));
-        JsonObject.Add('requested_idle_minutes', DayPlanning."Non Working Minutes Requested");
-        JsonObject.Add('requested_hours', DayPlanning."Requested Hours");
-        JsonObject.Add('assigned_start_time', FormatTime(DayPlanning."Start Time Assigned"));
-        JsonObject.Add('assigned_end_time', FormatTime(DayPlanning."End Time Assigned"));
-        JsonObject.Add('assigned_idle_minutes', DayPlanning."Non Working Minutes Assigned");
-        JsonObject.Add('assigned_hours', DayPlanning."Assigned Hours");
+        JsonObject.Add('requested_start_time', FormatTime(StartTimeRequestedValue));
+        JsonObject.Add('requested_end_time', FormatTime(EndTimeRequestedValue));
+        JsonObject.Add('requested_idle_minutes', NonWorkingMinutesRequestedValue);
+        JsonObject.Add('requested_hours', RequestedHoursValue);
+        JsonObject.Add('assigned_start_time', FormatTime(StartTimeAssignedValue));
+        JsonObject.Add('assigned_end_time', FormatTime(EndTimeAssignedValue));
+        JsonObject.Add('assigned_idle_minutes', NonWorkingMinutesAssignedValue);
+        JsonObject.Add('assigned_hours', AssignedHoursValue);
 
         // Resource/Vendor information
-        ResourceId := GetResourceId(DayPlanning);
+        ResourceId := GetResourceId(AssignedResourceNoValue, RequestedResourceNoValue);
         JsonObject.Add('resource_id', ResourceId);
 
         JsonObject.Add('type', 'Resource');
 
-        if DayPlanning."Vendor No." <> '' then
-            JsonObject.Add('vendorNo', DayPlanning."Vendor No.")
+        if VendorNoValue <> '' then
+            JsonObject.Add('vendorNo', VendorNoValue)
         else
             JsonObject.Add('vendorNo', 'null');
 
         // Plan status
-        case DayPlanning."Plan Status" of
-            DayPlanning."Plan Status"::"In Request":
+        case PlanStatusValue of
+            PlanStatusValue::"In Request":
                 PlanStatusText := 'Request';
-            DayPlanning."Plan Status"::"In Progress":
+            PlanStatusValue::"In Progress":
                 PlanStatusText := 'Assigned';
-            DayPlanning."Plan Status"::Rejected:
+            PlanStatusValue::Rejected:
                 PlanStatusText := 'Rejected';
-            DayPlanning."Plan Status"::Accepted:
+            PlanStatusValue::Accepted:
                 PlanStatusText := 'Accepted';
             else
                 PlanStatusText := '';
         end;
         JsonObject.Add('plan_status', PlanStatusText);
-        JsonObject.Add('work_order_no', DayPlanning."Work Order No.");
+        JsonObject.Add('work_order_no', WorkOrderNoValue);
     end;
 
     local procedure CreateDayPlanningJsonObjectRequest(DayPlanning: Record "Day Planning"; PlaceholderDate: Date) JsonObject: JsonObject
@@ -656,7 +772,7 @@ codeunit 50613 "GanttChartDataHandler"
         JsonObject.Add('assigned_idle_minutes', DayPlanning."Non Working Minutes Assigned");
         JsonObject.Add('assigned_hours', DayPlanning."Assigned Hours");
 
-        ResourceId := GetResourceId(DayPlanning);
+        ResourceId := GetResourceId(DayPlanning."Assigned Resource No.", DayPlanning."Requested Resource No.");
         JsonObject.Add('resource_id', ResourceId);
 
         JsonObject.Add('type', 'Resource');
@@ -677,13 +793,13 @@ codeunit 50613 "GanttChartDataHandler"
         FormattedTime := DelChr(Format(InputTime, 0, '<Hours24,2>:<Minutes,2>:<Seconds,2>'), '<>', '');
     end;
 
-    local procedure GetResourceId(DayPlanning: Record "Day Planning") ResourceId: Text
+    local procedure GetResourceId(AssignedResourceNo: Code[20]; RequestedResourceNo: Code[20]) ResourceId: Text
     begin
-        if DayPlanning."Assigned Resource No." <> '' then
-            ResourceId := 'RES-' + DayPlanning."Assigned Resource No."
+        if AssignedResourceNo <> '' then
+            ResourceId := 'RES-' + AssignedResourceNo
         else
-            if DayPlanning."Requested Resource No." <> '' then
-                ResourceId := 'RES-' + DayPlanning."Requested Resource No."
+            if RequestedResourceNo <> '' then
+                ResourceId := 'RES-' + RequestedResourceNo
             else
                 ResourceId := 'RES-'; //UNASSIGNED
     end;
