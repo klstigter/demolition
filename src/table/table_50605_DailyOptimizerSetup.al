@@ -115,6 +115,44 @@ table 50605 "Daily Optimizer Setup"
             Caption = 'Holiday Color';
             DataClassification = CustomerContent;
         }
+
+        // Gantt task bar colors: applicable to Gantt chart only
+        // GTB = Gantt Task Bar
+        field(79; "GTB Color (non posting)"; Text[20])
+        {
+            Caption = 'Gantt Task Bar Color (Non-Posting)';
+            DataClassification = CustomerContent;
+        }
+        field(80; "GTB Color"; Text[20])
+        {
+            Caption = 'Gantt Task Bar Color';
+            DataClassification = CustomerContent;
+        }
+        field(81; "GTB Border Color"; Text[20])
+        {
+            Caption = 'Gantt Task Bar Border Color';
+            DataClassification = CustomerContent;
+        }
+        field(82; "GTB Progress Color"; Text[20])
+        {
+            Caption = 'Gantt Task Bar Progress Color';
+            DataClassification = CustomerContent;
+        }
+        field(83; "GTB Font Color"; Text[20])
+        {
+            Caption = 'Gantt Task Bar Font Color';
+            DataClassification = CustomerContent;
+        }
+        field(84; "GTB Font size (px)"; integer)
+        {
+            Caption = 'Gantt Task Bar Font Size (px)';
+            DataClassification = CustomerContent;
+        }
+        field(85; "GTB Height (px)"; integer)
+        {
+            Caption = 'Gantt Task Bar Height (px)';
+            DataClassification = CustomerContent;
+        }
     }
 
     keys

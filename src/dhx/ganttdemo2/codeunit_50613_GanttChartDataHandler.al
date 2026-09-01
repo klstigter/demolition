@@ -182,6 +182,7 @@ codeunit 50613 "GanttChartDataHandler"
     local procedure CreateJobTaskJsonObject(JobTask: Record "Job Task") JsonObject: JsonObject
     var
         Color: record "Planning Color Opt.";
+        VisualDefaultSettings: Codeunit "Visual Default Settings";
         ColorTxt: Text;
         StartDateText: Text;
         StartEndText: Text;
@@ -242,12 +243,17 @@ codeunit 50613 "GanttChartDataHandler"
 
         JsonObject.Add('progress', JobTask."Progress" / 100); // Convert percentage to a value between 0 and 1
 
-        // TODO: Replace with a real color field from Job Task or a setup/color table.
-        // For now, send a dummy color so the Gantt task bar and progress fill are colored.
-        // When you have a "Color" field (e.g., Job."Color" or a Job Color setup), replace this line:
-        //   JsonObject.Add('color', Job."Color");
-        // The progressColor (darker shade) is automatically derived in JS from this value.
-        ColorTxt := '#3b8ef0';
+        // Starting seed colour for every task bar, before the task-type/per-task overrides below
+        // run - "Daily Optimizer Setup"."GTB Color" via codeunit 50609's GetGanttTaskBarColor for
+        // Posting Job Tasks, or "Daily Optimizer Setup"."GTB Color (non posting)" via that
+        // codeunit's GetGanttTaskBarColorNonPosting for every other Job Task Type, each falling
+        // back to that codeunit's own built-in default when unset. The progressColor (darker
+        // shade, or "Daily Optimizer Setup"."GTB Progress Color" when set) is derived in JS from
+        // this value - see wrapper.js's onTaskLoading/_gtbProgressOverride.
+        if JobTask."Job Task Type" = JobTask."Job Task Type"::Posting then
+            ColorTxt := VisualDefaultSettings.GetGanttTaskBarColor()
+        else
+            ColorTxt := VisualDefaultSettings.GetGanttTaskBarColorNonPosting();
         // Check setting color for project task type.
         if evaluate(Codevar, Format(JobTask."Job Task Type")) then
             if Color.Get(Color.Type::"Project Task Type", Codevar, '', '') then
@@ -258,7 +264,7 @@ codeunit 50613 "GanttChartDataHandler"
             if Color.Task <> '' then
                 ColorTxt := Color.Task;
 
-        JsonObject.Add('color', ColorTxt); // dummy: blue. Replace with real BC field later.
+        JsonObject.Add('color', ColorTxt);
 
         JsonObject.Add('indentation', JobTask.Indentation);
         JsonObject.Add('bold', JobTask."Job Task Type" <> jobtask."Job Task Type"::Posting);

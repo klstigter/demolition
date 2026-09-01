@@ -16,6 +16,7 @@ var _isRefreshing = false;
 var _resourceFilterInfo = null; // { job, task, periodFrom, periodTo }
 var _ganttTaskFilterInfo = null; // { job, task, periodFrom, periodTo } - main grid Job/Job Task filter (distinct from _resourceFilterInfo above, which drives the resource panel tooltip only)
 var _ganttHolidays = {}; // { "YYYY-MM-DD": "Description", ... } loaded from BC Base Calendar
+var _gtbProgressOverride = ""; // set by SetGanttTaskBarDefaults; "" = keep today's per-task _darkenHex behaviour
 var skipTrigger_OnJobTaskUpdated = false;
 var _allTasksCollapsed = false; // toggled by the collapse/expand-all icon in the grid header
 
@@ -522,6 +523,18 @@ window.BOOT = function() {
       if (window.requestJobTaskSet && window.requestJobTaskSet[task.id]) {
         cls = (cls ? cls + " " : "") + "bc-task-bold";
       }
+      // task.bold is set (codeunit 50613) for Job Tasks whose "Job Task Type" <> Posting -
+      // i.e. group/heading rows, not real postable work. Render those as a thin baseline-style
+      // bar (see .gantt_task_line.bc-baseline-bar in style.css) instead of a full task bar.
+      // Job Task Type = Posting (the real, postable leaf tasks) gets a modestly slimmer,
+      // less-rounded rectangular bar (see .gantt_task_line.bc-posting-thin-bar) - styled after
+      // the request/assignment bars on the "Day Planning Sequence" panel - text and progress
+      // fill are left untouched, only the box itself is resized.
+      if (task.bold) {
+        cls = (cls ? cls + " " : "") + "bc-baseline-bar";
+      } else {
+        cls = (cls ? cls + " " : "") + "bc-posting-thin-bar";
+      }
       return cls;
     };
 
@@ -552,7 +565,14 @@ window.BOOT = function() {
       if (!task.color) {
         task.color = "#3b8ef0";
       }
-      task.progressColor = _darkenHex(task.color, 0.60);
+      task.progressColor = _gtbProgressOverride || _darkenHex(task.color, 0.60);
+
+      // Non-Posting Job Tasks render as a thin baseline-style reference bar (see task_class
+      // above) - lock drag/resize/progress-drag so it visually and functionally reads as a
+      // baseline, not an editable task bar.
+      if (task.bold) {
+        task.readonly = true;
+      }
 
       // Full-calendar-day bar rendering - see _normalizeTaskBarDates() for why.
       // Applies to every task loaded from BC (leaf/Posting tasks and
@@ -2990,6 +3010,40 @@ function SetDayOffColors(weekendColorHex, holidayColorHex) {
   if (holidayColorHex) root.style.setProperty("--gantt-holiday-color", holidayColorHex);
 }
 window.SetDayOffColors = SetDayOffColors;
+
+// AL-callable: SetGanttTaskBarDefaults - applies "Daily Optimizer Setup"."GTB *" fields (via
+// codeunit 50609's GetGanttTaskBar* getters) as the GLOBAL default look for every task bar's
+// border/progress-fill/font/height. "GTB Color" (fill) is NOT a param here - codeunit 50613
+// already resolves it server-side into each task's own "color" JSON field, same as its
+// existing task-type/per-task overrides, so there is nothing to do for it client-side.
+// borderColorHex/fontColorHex/fontSizePx/heightPx arrive '' or 0 only if BC's own Get*
+// getter itself returned blank (shouldn't normally happen - those getters always fall back to
+// a built-in default - see codeunit 50609), so the `if` guards here are just defensive.
+// progressColorHex is the one field allowed to genuinely be '' (no override configured) -
+// that's the signal to keep computing each task's progress colour dynamically, see onTaskLoading.
+function SetGanttTaskBarDefaults(borderColorHex, progressColorHex, fontColorHex, fontSizePx, heightPx) {
+  var root = document.getElementById("gantt_here");
+  if (!root) return;
+  if (borderColorHex) root.style.setProperty("--gtb-border-color", borderColorHex);
+  _gtbProgressOverride = progressColorHex || "";
+  // Deliberately writes to the SAME --bar-font-color custom property that SetBarFontColor above
+  // already sets (not a new --gtb-font-color var) - codeunit 50609's GetGanttTaskBarFontColor()
+  // already resolves "GTB Font Color if set, else Bar Font Color" server-side, so the value
+  // arriving here is already final. Called right after SetBarFontColor in page 50620's
+  // LoadAllData, so this is a harmless no-op re-apply when "GTB Font Color" is blank, and the
+  // intended override when it's set.
+  if (fontColorHex) root.style.setProperty("--bar-font-color", fontColorHex);
+  if (fontSizePx) root.style.setProperty("--gtb-font-size", fontSizePx + "px");
+  if (heightPx) {
+    // Reassigns gantt.config.task_height on top of the safe-default fallback set earlier in
+    // init (see `gantt.config.task_height = gantt.config.task_height || 13` above) - same
+    // layering convention as SetDayOffColors layering on top of style.css's own CSS defaults
+    // rather than replacing them. Runs every LoadAllData, so a setup change takes effect on
+    // the next refresh too.
+    gantt.config.task_height = heightPx;
+  }
+}
+window.SetGanttTaskBarDefaults = SetGanttTaskBarDefaults;
 
 function _updateGanttFilterToolbar() {
   try {
