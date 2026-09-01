@@ -6555,6 +6555,62 @@ window.BOOT = function BOOT() {
   Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("ControlReady", []);
 };
 
+// -------------------------------------------------------
+// Part B pagination: RefreshPlanningData (page 50710) sends only the first
+// ~1,200-line page of whole sequenceKey groups synchronously via
+// SetPlanningData; any remaining groups are built off the interactive
+// request path by codeunit "ReqAssign BG Day Task Lines" and appended via
+// AppendDayTaskLines below, once ready. This poll loop is what pulls that
+// result into the control add-in, via a normal JS-initiated synchronous
+// trigger (OnPollDayTaskLinesResult), which AL answers by calling
+// AppendDayTaskLines itself — from a normal call stack, not the
+// background-task completion trigger. Bounded (not indefinite), exact same
+// 500ms/60-attempt shape as src/dhx/projectschedule/wrapper.js's
+// NotifySectionsTaskPending/_sectionsPollTimer and src/dhx/ganttdemo2/
+// wrapper.js's NotifyResourcePanelTaskPending/_resourcePanelPollTimer.
+// -------------------------------------------------------
+var _dayTaskLinesPollTimer = null;
+var _dayTaskLinesPollAttempts = 0;
+var DAY_TASK_LINES_POLL_INTERVAL_MS = 500;
+var DAY_TASK_LINES_POLL_MAX_ATTEMPTS = 60; // 60 x 500ms = 30s generous ceiling
+
+function NotifyDayTaskLinesTaskPending() {
+  try {
+    if (_dayTaskLinesPollTimer) {
+      clearInterval(_dayTaskLinesPollTimer);
+      _dayTaskLinesPollTimer = null;
+    }
+    _dayTaskLinesPollAttempts = 0;
+    _dayTaskLinesPollTimer = setInterval(function () {
+      _dayTaskLinesPollAttempts++;
+      if (_dayTaskLinesPollAttempts > DAY_TASK_LINES_POLL_MAX_ATTEMPTS) {
+        clearInterval(_dayTaskLinesPollTimer);
+        _dayTaskLinesPollTimer = null;
+        return;
+      }
+      try {
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnPollDayTaskLinesResult", []);
+      } catch (e) {
+        console.error("OnPollDayTaskLinesResult poll failed:", e);
+      }
+    }, DAY_TASK_LINES_POLL_INTERVAL_MS);
+  } catch (e) {
+    console.error("NotifyDayTaskLinesTaskPending failed:", e);
+  }
+}
+window.NotifyDayTaskLinesTaskPending = NotifyDayTaskLinesTaskPending;
+
+// Called by AL (from the OnPollDayTaskLinesResult trigger handler) once a
+// pending result was actually delivered — stops the poll burst early instead
+// of waiting out the full timeout.
+function StopDayTaskLinesPolling() {
+  if (_dayTaskLinesPollTimer) {
+    clearInterval(_dayTaskLinesPollTimer);
+    _dayTaskLinesPollTimer = null;
+  }
+}
+window.StopDayTaskLinesPolling = StopDayTaskLinesPolling;
+
 // Defensive JSON parser — tolerant of a trailing comma, mirrors the pattern
 // already used by the other DHX add-ins in this project.
 function parsePlanningDataJson(jsonText) {
@@ -6570,6 +6626,55 @@ function parsePlanningDataJson(jsonText) {
     }
   }
 }
+
+// AL-callable. Part B pagination companion to SetPlanningData — appends a
+// background-loaded remainder of "dayTaskLines" (whole sequenceKey groups
+// that didn't fit RefreshPlanningData's first synchronous page) into the
+// ALREADY-RENDERED board, instead of a full reset. dayTaskLinesJsonTxt is a
+// plain JSON array (codeunit 50604's ReqAssign_BuildDayTaskLinesJson_ForKeys
+// output — the same per-line shape SetPlanningData's "dayTaskLines" already
+// uses, just not wrapped in a root object). Deliberately reuses only
+// rebuildRequestTree()/renderAll() — SetPlanningData's other steps
+// (resources/capacitySlots/workdays reset, selection/undo/filter state
+// clear) only make sense on a full fresh load and must not run here, or an
+// in-progress drag/selection/undo stack would be silently wiped out from
+// under the user by a background append they didn't initiate.
+function AppendDayTaskLines(dayTaskLinesJsonTxt) {
+  try {
+    const parsed = parsePlanningDataJson(dayTaskLinesJsonTxt);
+    const rawLines = Array.isArray(parsed) ? parsed : [];
+    if (!rawLines.length) return;
+
+    const mappedLines = rawLines.map(item => ({
+      ...item,
+      date: parseDateOnly(item.date),
+      // Same mapping SetPlanningData applies to every line — see its own
+      // comment on `seq` for why this reads sequenceNo, not requiredSkill.
+      seq: item.sequenceNo,
+      assignedResource: item.assignedResource || null,
+      sequenceAccepted: !!item.sequenceAccepted
+    }));
+
+    dayTaskLines.push(...mappedLines);
+
+    // Same two calls SetPlanningData ends with — rebuild the tree/grouping
+    // from the now-merged dayTaskLines, then re-render both panes. Never
+    // routes through SetPlanningData itself (a full-reset path this
+    // pagination feature exists to avoid).
+    rebuildRequestTree();
+    renderAll();
+
+    // Refresh the "N of M Day Task Lines in horizon" toolbar label and the
+    // scope-editor date bounds - both are derived from dayTaskLines.length
+    // (see updateSequenceScopeEditor) and were left showing the first page's
+    // stale total otherwise. No-arg call preserves the current
+    // activeScopeSequenceKey / selection instead of resetting it.
+    updateSequenceScopeEditor();
+  } catch (e) {
+    console.error("AppendDayTaskLines failed:", e);
+  }
+}
+window.AppendDayTaskLines = AppendDayTaskLines;
 
 // AL-callable. Carries the full payload (resources/dayTaskLines/
 // capacitySlots/skillColors/statusColors/workdays) — called once on
@@ -6626,7 +6731,15 @@ function SetPlanningData(planningDataJsonTxt) {
   manualSkillFilter = null;
   pendingManualSkillFilter = null;
   activeScopeSequenceKey = null;
-  globalSelectionEndDate = null;
+  // Part B.1: use AL's explicit "30-workday scope cutoff" (codeunit 50604's
+  // ReqAssign_BuildPlanningDataJson(_Paged) now always sends it) instead of
+  // re-deriving it by scanning ALL of dayTaskLines — that scan is a real
+  // hazard once Part B pagination means the client may only ever see a
+  // SUBSET of dayTaskLines at once. defaultGlobalSelectionEndDate()'s scan
+  // remains as a defensive fallback, used only if data.scopeEndDate is ever
+  // missing (getGlobalSelectionEndDate() below still lazily re-derives
+  // whenever globalSelectionEndDate is null).
+  globalSelectionEndDate = data.scopeEndDate ? parseDateOnly(data.scopeEndDate) : null;
   clearResourceDropHighlight();
 
   installSkillColorStyles();
