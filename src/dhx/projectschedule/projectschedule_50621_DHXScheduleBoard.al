@@ -44,14 +44,12 @@ page 50621 "DHX Scheduler (Project)"
                     DHXDataHandler.GetWeekPeriodDates(Today(), startDate, endDate);
                     if GuiAllowed() then
                         Window.Update(1, 'Day Plannings...');
-                    if jobFilter <> '' then
-                        DHXDataHandler.GetDayPlanningAsResourcesAndEventsJSon_Project_StartEnd(
-                            startDate, endDate, jobFilter, JobTaskFilter,
-                            ResourceJSONTxt, PlanninJsonTxt, EarliestPlanningDate)
-                    else begin
-                        ResourceJSONTxt := DHXDataHandler.GetYUnitElementsJSON_Project(Today(), startDate, endDate, ResourceFilter, PlanninJsonTxt, EarliestPlanningDate);
+                    // Loads only the first ~50-row page of sections/events synchronously (see
+                    // LoadSchedulerSectionsPaginated) - any remaining Jobs are fetched by a Page
+                    // Background Task and appended once ready (OnPollSectionsResult/AppendSections).
+                    LoadSchedulerSectionsPaginated(startDate, endDate, ResourceJSONTxt, PlanninJsonTxt, EarliestPlanningDate);
+                    if jobFilter = '' then
                         DHXDataHandler.ValidateSchedulerSectionMatch(ResourceJSONTxt, PlanninJsonTxt);
-                    end;
                     HasSetup := DayPlanningBarSetup.Get(UserId);
                     if HasSetup and (DayPlanningBarSetup."Timeline Hour Step" > 0) then
                         CurrPage.DhxScheduler.SetTimelineHourStep(DayPlanningBarSetup."Timeline Hour Step");
@@ -237,6 +235,7 @@ page 50621 "DHX Scheduler (Project)"
                     EventsJsonTxt: Text;
                     StartDate: Date;
                     EndDate: Date;
+                    EarliestPlanningDate: Date;
                     Window: Dialog;
                     LoadingLbl: Label 'Loading Task Scheduler data...\n#1######################';
                 begin
@@ -244,8 +243,12 @@ page 50621 "DHX Scheduler (Project)"
                         Window.Open(LoadingLbl);
                     if GuiAllowed() then
                         Window.Update(1, 'Day Plannings...');
-                    if DHXDataHandler.GetDayPlanningAsResourcesAndEventsJSon_Project(NavigateJson, ResourceFilter, ResourceJSONTxt, EventsJsonTxt) then begin
-                        DHXDataHandler.GetStartEndDatesFromTimeLineJSon(NavigateJson, startDate, endDate);
+                    DHXDataHandler.GetStartEndDatesFromTimeLineJSon(NavigateJson, startDate, endDate);
+                    // Same paginated fetch + background enqueue as ControlReady/RefreshSchedule -
+                    // see LoadSchedulerSectionsPaginated. Preserves the original "only refresh if
+                    // both JSONs came back non-empty" guard below.
+                    LoadSchedulerSectionsPaginated(startDate, endDate, ResourceJSONTxt, EventsJsonTxt, EarliestPlanningDate);
+                    if (ResourceJSONTxt <> '') and (EventsJsonTxt <> '') then begin
                         if GuiAllowed() then
                             Window.Update(1, 'Rendering...');
                         CurrPage.DhxScheduler.RefreshTimeline(ResourceJSONTxt, EventsJsonTxt, startDate); //TODO: pass resourcesJson and eventsJson
@@ -346,6 +349,31 @@ page 50621 "DHX Scheduler (Project)"
                 end;
 
                 #endregion Task Filter Toolbar
+
+                #region Background-loaded remaining sections (Part B pagination)
+
+                /// <summary>
+                /// JS-initiated poll (wrapper.js's bounded interval, started by
+                /// NotifySectionsTaskPending) asking "is a background-task result ready yet?".
+                /// This is a normal synchronous trigger call, unlike OnPageBackgroundTaskCompleted -
+                /// so calling CurrPage.DhxScheduler.* from here is safe (confirmed live via codeunit
+                /// 50713's identical pattern for the Gantt add-in: it is NOT safe from the
+                /// completion trigger itself).
+                /// </summary>
+                trigger OnPollSectionsResult()
+                begin
+                    if not PendingResultAvailable then
+                        exit;
+
+                    PendingResultAvailable := false;
+                    if (PendingSectionsJson <> '') or (PendingEventsJson <> '') then
+                        CurrPage.DhxScheduler.AppendSections(PendingSectionsJson, PendingEventsJson);
+                    Clear(PendingSectionsJson);
+                    Clear(PendingEventsJson);
+                    CurrPage.DhxScheduler.StopSectionsPolling();
+                end;
+
+                #endregion Background-loaded remaining sections (Part B pagination)
             }
         }
     }
@@ -469,6 +497,71 @@ page 50621 "DHX Scheduler (Project)"
         }
     }
 
+    /// <summary>
+    /// Fires when a Page Background Task enqueued via EnqueueSectionsBackgroundTask finishes.
+    /// TaskId is compared against SectionsTaskId (overwritten by every new enqueue) so a result
+    /// from a superseded reload - e.g. the user already clicked Next again before an earlier
+    /// task completed - is discarded, same TaskId-based staleness check as codeunit 50713's Gantt
+    /// resource-panel flow (page 50620). On top of that, the period/filter the task was actually
+    /// enqueued for (BGPending*) is re-checked against the page's CURRENT AnchorDate/jobFilter/
+    /// JobTaskFilter/ResourceFilter before promoting the result - the extra belt-and-braces check
+    /// requested for this feature, whose promote-on-completion mechanics mirror (mechanics only,
+    /// not its speculative Prev/Next prefetch idea - see feedback_bg_task_prefetch_overhead.md)
+    /// the parked codeunit 50714 "Gantt BG Prefetch Task Data" (branch save_gantt).
+    /// </summary>
+    trigger OnPageBackgroundTaskCompleted(TaskId: Integer; Results: Dictionary of [Text, Text])
+    var
+        CurrentEffResourceFilter: Text;
+        CurrentEffJobFilter: Text;
+        CurrentEffJobTaskFilter: Text;
+    begin
+        if TaskId <> SectionsTaskId then
+            exit;
+
+        if jobFilter <> '' then begin
+            CurrentEffResourceFilter := '';
+            CurrentEffJobFilter := jobFilter;
+            CurrentEffJobTaskFilter := JobTaskFilter;
+        end else begin
+            CurrentEffResourceFilter := ResourceFilter;
+            CurrentEffJobFilter := '';
+            CurrentEffJobTaskFilter := '';
+        end;
+
+        if (BGPendingStartDate <> AnchorDate) or
+           (BGPendingResourceFilter <> CurrentEffResourceFilter) or
+           (BGPendingJobFilter <> CurrentEffJobFilter) or
+           (BGPendingJobTaskFilter <> CurrentEffJobTaskFilter)
+        then
+            exit; // stale - the displayed period/filter moved on since this task was enqueued
+
+        // NOTE: does NOT call CurrPage.DhxScheduler.* here - confirmed live that BC Server rejects
+        // any control add-in callback issued directly from this trigger (see codeunit 50713's
+        // identical comment for the Gantt add-in). Stash into plain AL vars instead;
+        // OnPollSectionsResult (JS-initiated, via wrapper.js's bounded poll loop kicked off by
+        // NotifySectionsTaskPending) is what actually pushes this into the control add-in, from a
+        // normal synchronous call stack.
+        if Results.ContainsKey('sectionsJson') then
+            PendingSectionsJson := Results.Get('sectionsJson');
+        if Results.ContainsKey('eventsJson') then
+            PendingEventsJson := Results.Get('eventsJson');
+        PendingResultAvailable := (PendingSectionsJson <> '') or (PendingEventsJson <> '');
+    end;
+
+    trigger OnPageBackgroundTaskError(TaskId: Integer; ErrorCode: Text; ErrorText: Text; ErrorCallStack: Text; var IsHandled: Boolean)
+    var
+        SectionsLoadErrorNotification: Notification;
+    begin
+        if TaskId <> SectionsTaskId then
+            exit;
+
+        IsHandled := true;
+        // A notification is allowed here (unlike a raw Message/UI render) - surface the failure
+        // without blocking the Task Scheduler; the first page already rendered successfully.
+        SectionsLoadErrorNotification.Message := StrSubstNo('Loading the remaining Task Scheduler sections failed: %1', ErrorText);
+        SectionsLoadErrorNotification.Send();
+    end;
+
     var
         DHXDataHandler: Codeunit "DHX Data Handler";
         ShowDefaultTabs: Boolean;
@@ -476,6 +569,78 @@ page 50621 "DHX Scheduler (Project)"
         ResourceFilter: Text;
         jobFilter: Text;
         JobTaskFilter: Text;
+        SectionsTaskId: Integer; // TaskId of the most recently enqueued sections background task; OnPageBackgroundTaskCompleted/Error discard any result whose TaskId doesn't match (superseded by a later reload)
+        PendingSectionsJson: Text; // set by OnPageBackgroundTaskCompleted, delivered into the control add-in by OnPollSectionsResult (see that trigger's comment for why the split is necessary)
+        PendingEventsJson: Text;
+        PendingResultAvailable: Boolean;
+        BGPendingStartDate: Date; // AnchorDate/filters the in-flight SectionsTaskId was enqueued for, set by EnqueueSectionsBackgroundTask; compared against the CURRENT page state in OnPageBackgroundTaskCompleted before promoting a result
+        BGPendingResourceFilter: Text;
+        BGPendingJobFilter: Text;
+        BGPendingJobTaskFilter: Text;
+
+    /// <summary>
+    /// Shared by ControlReady/RefreshSchedule/OnTimelineNavigate: fetches the first ~50-row page
+    /// of sections/events for the given period (synchronous - what the caller renders immediately)
+    /// via GetYUnitElementsJSON_Project_Paged, then enqueues a Page Background Task for whatever
+    /// Jobs didn't fit (see EnqueueSectionsBackgroundTask) - a no-op enqueue when everything already
+    /// fit on the first page. Applies the same Resource-filter-only vs Job/Job-Task-filter mutual
+    /// exclusivity the page's non-paginated calls already used (never both at once).
+    /// </summary>
+    local procedure LoadSchedulerSectionsPaginated(pStartDate: Date; pEndDate: Date; var ResourceJSONTxt: Text; var PlanninJsonTxt: Text; var EarliestPlanningDate: Date)
+    var
+        DHXDataHandlerLocal: Codeunit "DHX Data Handler";
+        RemainingJobFilter: Text;
+        EffResourceFilter: Text;
+        EffJobFilter: Text;
+        EffJobTaskFilter: Text;
+        SectionsPageSize: Integer;
+    begin
+        if jobFilter <> '' then begin
+            EffResourceFilter := '';
+            EffJobFilter := jobFilter;
+            EffJobTaskFilter := JobTaskFilter;
+        end else begin
+            EffResourceFilter := ResourceFilter;
+            EffJobFilter := '';
+            EffJobTaskFilter := '';
+        end;
+
+        SectionsPageSize := 50; // user-approved literal first-N-sections pagination size
+        ResourceJSONTxt := DHXDataHandlerLocal.GetYUnitElementsJSON_Project_Paged(pStartDate, pStartDate, pEndDate,
+            EffResourceFilter, EffJobFilter, EffJobTaskFilter, SectionsPageSize, PlanninJsonTxt, EarliestPlanningDate, RemainingJobFilter);
+
+        EnqueueSectionsBackgroundTask(pStartDate, pEndDate, EffResourceFilter, EffJobFilter, EffJobTaskFilter, RemainingJobFilter);
+    end;
+
+    /// <summary>
+    /// Enqueues codeunit "Task Scheduler BG Sections" to build whatever Jobs didn't fit on the
+    /// first paginated page (RemainingJobFilter) - a no-op when RemainingJobFilter is blank (the
+    /// whole period already fit). Returns immediately; OnPageBackgroundTaskCompleted applies the
+    /// result once ready, via OnPollSectionsResult's poll delivery.
+    /// </summary>
+    local procedure EnqueueSectionsBackgroundTask(pStartDate: Date; pEndDate: Date; pResourceFilter: Text; pJobFilter: Text; pJobTaskFilter: Text; RemainingJobFilter: Text)
+    var
+        TaskParameters: Dictionary of [Text, Text];
+        NewTaskId: Integer;
+    begin
+        if RemainingJobFilter = '' then
+            exit; // everything already fit on the first page - nothing to background-load
+
+        TaskParameters.Add('ResourceFilter', pResourceFilter);
+        TaskParameters.Add('JobFilter', RemainingJobFilter);
+        TaskParameters.Add('JobTaskFilter', pJobTaskFilter);
+        TaskParameters.Add('StartDate', Format(pStartDate, 0, '<Year4>-<Month,2>-<Day,2>'));
+        TaskParameters.Add('EndDate', Format(pEndDate, 0, '<Year4>-<Month,2>-<Day,2>'));
+
+        CurrPage.EnqueueBackgroundTask(NewTaskId, Codeunit::"Task Scheduler BG Sections", TaskParameters, 30000, PageBackgroundTaskErrorLevel::Warning);
+        SectionsTaskId := NewTaskId;
+        BGPendingStartDate := pStartDate;
+        BGPendingResourceFilter := pResourceFilter;
+        BGPendingJobFilter := pJobFilter; // the PAGE-level filter scope this task was enqueued for (not RemainingJobFilter) - used for the staleness check in OnPageBackgroundTaskCompleted
+        BGPendingJobTaskFilter := pJobTaskFilter;
+        PendingResultAvailable := false; // any earlier not-yet-delivered result is now stale
+        CurrPage.DhxScheduler.NotifySectionsTaskPending(); // (re)start wrapper.js's bounded poll loop - normal synchronous call, safe here
+    end;
 
     local procedure RefreshSchedule()
     var
@@ -494,21 +659,9 @@ page 50621 "DHX Scheduler (Project)"
         DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
         if GuiAllowed() then
             Window.Update(1, 'Day Plannings...');
-        if jobFilter <> '' then
-            DHXDataHandler.GetDayPlanningAsResourcesAndEventsJSon_Project_StartEnd(startDate,
-                                                                          endDate,
-                                                                          jobFilter,
-                                                                          JobTaskFilter,
-                                                                          ResourceJSONTxt,
-                                                                          EventsJsonTxt,
-                                                                          EarliestPlanningDate)
-        else
-            DHXDataHandler.GetDayPlanningAsResourcesAndEventsJSon_Project_StartEnd(startDate,
-                                                                          endDate,
-                                                                          ResourceFilter,
-                                                                          ResourceJSONTxt,
-                                                                          EventsJsonTxt,
-                                                                          EarliestPlanningDate);
+        // Same paginated fetch + background enqueue as ControlReady/OnTimelineNavigate - see
+        // LoadSchedulerSectionsPaginated.
+        LoadSchedulerSectionsPaginated(startDate, endDate, ResourceJSONTxt, EventsJsonTxt, EarliestPlanningDate);
         if GuiAllowed() then
             Window.Update(1, 'Rendering...');
         CurrPage.DhxScheduler.RefreshTimeline(ResourceJSONTxt, EventsJsonTxt, startDate);

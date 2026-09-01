@@ -38,6 +38,12 @@ controladdin DHXProjectScheduleAddin
     event OnSectionContextMenu(sectionId: Text; action: Text; payloadJson: Text);
     event OnFilterIconClick();
     event OnClearTaskFilter();
+    // JS-initiated poll asking "is a background-task result ready yet?" (see page 50621's
+    // OnPollSectionsResult / EnqueueSectionsBackgroundTask, and codeunit "Task Scheduler BG
+    // Sections") - a normal synchronous trigger call, so AL answering it with
+    // CurrPage.DhxScheduler.AppendSections is safe, unlike from OnPageBackgroundTaskCompleted
+    // itself. Same shape as ganttdemo2's OnPollResourcePanelResult.
+    event OnPollSectionsResult();
 
     procedure Init(elements: Text; EarliestPlanningDate: Date);
     procedure LoadData(EventTxt: Text);
@@ -54,4 +60,17 @@ controladdin DHXProjectScheduleAddin
     procedure getAllEvents();
     procedure getAllSections();
     procedure SetTaskFilterInfo(jobNo: Text; taskNo: Text; periodFrom: Text; periodTo: Text);
+    // Appends a Page Background Task's remaining sections+events (Part B pagination) into the
+    // already-rendered timeline in place - see wrapper.js's AppendSections, modeled on the
+    // existing ToggleCollapseExpandAllSections in-place y_unit_original mutation pattern. Never
+    // routes through RecreateTimelineView/Init/RefreshTimeline (those are full-reset paths).
+    procedure AppendSections(sectionsJson: Text; eventsJson: Text);
+    // Companion to OnPollSectionsResult above - called right after every sections background task
+    // is enqueued (a normal synchronous AL call, not from the completion trigger) so JS knows to
+    // (re)start its bounded poll loop instead of polling forever on every page. Same shape as
+    // ganttdemo2's NotifyResourcePanelTaskPending.
+    procedure NotifySectionsTaskPending();
+    // Called once a pending background-task result was actually delivered into the control
+    // add-in, so JS can stop its poll burst early instead of waiting out the full timeout.
+    procedure StopSectionsPolling();
 }

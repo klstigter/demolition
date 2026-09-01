@@ -28,6 +28,58 @@ var _allSectionsCollapsed = false;
 var _loadingOverlay = null;
 var _loadingSafetyTimer = null;
 
+// -------------------------------------------------------
+// Part B pagination: bounded poll for the "remaining sections" background task result. AL fetches
+// the first ~50-row page synchronously and enqueues a Page Background Task for the rest (see page
+// 50621's EnqueueSectionsBackgroundTask); the fetched JSON is stashed in plain page vars from
+// OnPageBackgroundTaskCompleted - this poll loop is what actually pulls it into the control add-in,
+// via a normal JS-initiated synchronous trigger (OnPollSectionsResult), which AL answers by calling
+// AppendSections itself - from a normal call stack, not the background-task completion - if
+// something is pending. Bounded (not indefinite), exact same 500ms/60-attempt shape as
+// src/dhx/ganttdemo2/wrapper.js's NotifyResourcePanelTaskPending/_resourcePanelPollTimer.
+// -------------------------------------------------------
+var _sectionsPollTimer = null;
+var _sectionsPollAttempts = 0;
+var SECTIONS_POLL_INTERVAL_MS = 500;
+var SECTIONS_POLL_MAX_ATTEMPTS = 60; // 60 x 500ms = 30s generous ceiling
+
+function NotifySectionsTaskPending() {
+    try {
+        if (_sectionsPollTimer) {
+            clearInterval(_sectionsPollTimer);
+            _sectionsPollTimer = null;
+        }
+        _sectionsPollAttempts = 0;
+        _sectionsPollTimer = setInterval(function () {
+            _sectionsPollAttempts++;
+            if (_sectionsPollAttempts > SECTIONS_POLL_MAX_ATTEMPTS) {
+                clearInterval(_sectionsPollTimer);
+                _sectionsPollTimer = null;
+                return;
+            }
+            try {
+                Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnPollSectionsResult", []);
+            } catch (e) {
+                console.error("OnPollSectionsResult poll failed:", e);
+            }
+        }, SECTIONS_POLL_INTERVAL_MS);
+    } catch (e) {
+        console.error("NotifySectionsTaskPending failed:", e);
+    }
+}
+window.NotifySectionsTaskPending = NotifySectionsTaskPending;
+
+// Called by AL (from the OnPollSectionsResult trigger handler, via AppendSections) once a pending
+// result was actually delivered - stops the poll burst early instead of waiting out the full
+// timeout.
+function StopSectionsPolling() {
+    if (_sectionsPollTimer) {
+        clearInterval(_sectionsPollTimer);
+        _sectionsPollTimer = null;
+    }
+}
+window.StopSectionsPolling = StopSectionsPolling;
+
 function _createTskLoadingOverlay(host) {
     if (_loadingOverlay) return;
 
@@ -1576,6 +1628,57 @@ function ToggleCollapseExpandAllSections() {
     var btn = document.getElementById('tsk-collapseall-icon');
     if (btn) _renderCollapseAllIcon(btn);
 }
+
+// Part B pagination: appends a background-loaded remainder (Jobs that didn't fit on the first
+// synchronous ~50-row page) into the already-rendered timeline IN PLACE - modeled directly on
+// ToggleCollapseExpandAllSections above (same y_unit_original mutation + _getArrayToDisplay +
+// onOptionsLoad("onOptionsLoad") sequence, proven to redraw the tree without a full deleteView/
+// scheduler.init reset). sectionsJson is the same {"data":[{key,label,open,children},...]} shape
+// Init/RefreshTimeline already use (one entry per Job); eventsJson is the same plain JSON array of
+// event objects LoadData/RefreshTimeline already use. Deliberately does NOT go through
+// RecreateTimelineView/Init/RefreshTimeline - those are full-reset paths this pagination feature
+// exists to avoid. scheduler.parse() is additive by design, so no clearAll() is needed for the
+// event half either.
+function AppendSections(sectionsJson, eventsJson) {
+    try {
+        if (typeof scheduler === "undefined" || !scheduler.matrix || !scheduler.matrix.timeline ||
+            !scheduler.matrix.timeline.y_unit_original) {
+            return;
+        }
+
+        var parsedSections = ParseJSonTxt(sectionsJson);
+        var newJobNodes = (parsedSections && Array.isArray(parsedSections.data)) ? parsedSections.data : [];
+        if (!Array.isArray(newJobNodes)) newJobNodes = [];
+
+        if (newJobNodes.length > 0) {
+            // Drop the "No Data" placeholder node (injected by Init/RefreshTimeline whenever the
+            // first page came back with zero sections) before appending the real Jobs.
+            var existing = scheduler.matrix.timeline.y_unit_original.filter(function (n) {
+                return n.key !== "nodata";
+            });
+            scheduler.matrix.timeline.y_unit_original = existing.concat(newJobNodes);
+            scheduler.matrix.timeline.y_unit = scheduler._getArrayToDisplay(scheduler.matrix.timeline.y_unit_original);
+            scheduler.callEvent("onOptionsLoad", []);
+        }
+
+        var parsedEvents = ParseJSonTxt(eventsJson);
+        var newEvents = [];
+        if (parsedEvents) {
+            if (Array.isArray(parsedEvents.data)) {
+                newEvents = parsedEvents.data;
+            } else if (Array.isArray(parsedEvents)) {
+                newEvents = parsedEvents;
+            }
+        }
+        if (!Array.isArray(newEvents)) newEvents = [];
+        if (newEvents.length > 0) {
+            scheduler.parse(newEvents);
+        }
+    } catch (e) {
+        console.error("AppendSections failed:", e);
+    }
+}
+window.AppendSections = AppendSections;
 
 function _positionTskFilterTooltip(e) {
     var popup = document.getElementById('tsk-filter-tooltip-popup');
