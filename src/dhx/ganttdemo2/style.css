@@ -33,6 +33,13 @@ html,
 			z-index: 1;
 		}
 
+		/* "Task name" column header cell has no default left padding, so the
+		   collapse/expand icon sits flush against the grid's left edge. */
+		.gantt_grid_head_cell[data-column-name='text'] {
+			padding-left: 10px;
+			box-sizing: border-box;
+		}
+
 		/* Collapse/Expand-all toggle icon in the "Task name" grid header
 		   (that header row is forced to a black background elsewhere — see
 		   ".gantt_grid_scale { background:#000 !important; }" below — so this
