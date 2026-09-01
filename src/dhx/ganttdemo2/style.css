@@ -111,6 +111,19 @@ html,
 			color: var(--bar-font-color) !important;
 		}
 
+		/* "Daily Optimizer Setup"."GTB Border Color"/"GTB Font size (px)" (codeunit 50609's
+		   GetGanttTaskBarBorderColor/GetGanttTaskBarFontSize, sent by wrapper.js's
+		   SetGanttTaskBarDefaults into these custom properties, scoped to the #gantt_here container).
+		   Global default for every task bar; fallback values match the vendored dhtmlxgantt.css
+		   theme's own resolved defaults (border: 1px solid #3588c5; font-size: 16px) so a blank
+		   setup field preserves today's look exactly. */
+		.gantt_task_line {
+			border-color: var(--gtb-border-color, #3588c5) !important;
+		}
+		.gantt_task_content {
+			font-size: var(--gtb-font-size, 16px) !important;
+		}
+
 			/* EVEN weeks: black background, bold white text */
 		.gantt_scale_cell.week-even {
 		background-color: #000000;
@@ -155,6 +168,58 @@ html,
 		.bc-indent-5 .gantt_task_content{ border-color:#9467bd; }
 		.bc-indent-6 .gantt_task_content{ border-color:#17becf; }
 
+		/* Job Tasks whose "Job Task Type" <> Posting (group/heading rows - see task_class in
+		   wrapper.js, driven by the JSON "bold" flag from codeunit 50613) render as a thin
+		   baseline-style reference bar instead of a full task bar. Row height is 30px and the
+		   default bar height is 13px (gantt.config.row_height / task_height in wrapper.js),
+		   both centered by DHTMLX; shrinking to 8px and nudging down 2.5px re-centers it in
+		   the row (matches the vendored baselines plugin's own default bar_height:8). */
+		.gantt_task_line.bc-baseline-bar {
+			height: 8px !important;
+			margin-top: 2.5px !important;
+			border-radius: 4px !important;
+			box-shadow: none !important;
+		}
+		.gantt_task_line.bc-baseline-bar .gantt_task_progress {
+			border-radius: 4px !important;
+		}
+		.gantt_task_line.bc-baseline-bar .gantt_task_content,
+		.gantt_task_line.bc-baseline-bar .gantt_side_content,
+		.gantt_task_line.bc-baseline-bar .gantt_task_drag {
+			display: none !important;
+		}
+
+		/* Job Tasks whose "Job Task Type" = Posting (the real, postable leaf tasks) get a
+		   modestly slimmer bar with squared-off corners, styled after the request/assignment
+		   bars on the "Day Planning Sequence" panel (solid rectangle, not a rounded pill).
+		   The vendored theme's default corner radius is a very rounded 18px - that's the main
+		   reason the default bar reads as "chunky"; this only tones that down to 4px and trims
+		   the height a bit. Text, progress-fill and drag handles are left completely alone.
+		   Same centering math as .bc-baseline-bar above: default bar is 13px centered in the
+		   30px row (top 8.5px); shrinking to 11px and nudging down 1px re-centers it. */
+		.gantt_task_line.bc-posting-thin-bar {
+			height: 18px !important;
+			margin-top: 1px !important;
+			border-radius: 4px !important;
+			box-shadow: none !important;
+		}
+		.gantt_task_line.bc-posting-thin-bar .gantt_task_progress {
+			border-radius: 4px !important;
+		}
+		/* Vendor .gantt_task_content is position:absolute with top:0 + padding-top:1px and
+		   only text-align:center (horizontal only) - it never centers vertically against the
+		   bar's own height. Flex-centering here (instead of a hardcoded line-height) keeps text
+		   centered no matter what height value bc-posting-thin-bar ends up tuned to. */
+		.gantt_task_line.bc-posting-thin-bar .gantt_task_content {
+			font-size: 9px !important;
+			top: 0 !important;
+			height: 100% !important;
+			padding-top: 0 !important;
+			display: flex !important;
+			align-items: center;
+			justify-content: center;
+		}
+		
 		.gantt_tooltip {
 			font-size: 12px;
 			line-height: 1.4;

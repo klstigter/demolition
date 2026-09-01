@@ -160,6 +160,127 @@ codeunit 50609 "Visual Default Settings"
     end;
 
     /// <summary>
+    /// Resolves the fill colour used as the starting seed for every Gantt task bar (ganttdemo2) -
+    /// codeunit 50613's CreateJobTaskJsonObject applies this before its own task-type/per-task
+    /// Color.Get override waterfall runs, exactly as it already did with the prior hardcoded
+    /// literal this setting replaces. Overridable via "Daily Optimizer Setup"."GTB Color" when the
+    /// singleton exists and the field is non-blank, else falls back to GanttTaskBarColorTok. Same
+    /// safe boolean-context Get() convention as GetHolidayColor above.
+    /// </summary>
+    procedure GetGanttTaskBarColor(): Text
+    var
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+    begin
+        if DailyOptimizerSetup.Get() then
+            if DailyOptimizerSetup."GTB Color" <> '' then
+                exit(DailyOptimizerSetup."GTB Color");
+        exit(GanttTaskBarColorTok);
+    end;
+
+    /// <summary>
+    /// Resolves the fill colour used as the starting seed for every non-Posting Gantt task bar
+    /// (ganttdemo2) - codeunit 50613's CreateJobTaskJsonObject applies this before its own
+    /// task-type/per-task Color.Get override waterfall runs, for Job Tasks whose "Job Task Type"
+    /// <> Posting. Overridable via "Daily Optimizer Setup"."GTB Color (non posting)" when the
+    /// singleton exists and the field is non-blank, else falls back to
+    /// GanttTaskBarColorNonPostingTok. Same safe boolean-context Get() convention as
+    /// GetHolidayColor above.
+    /// </summary>
+    procedure GetGanttTaskBarColorNonPosting(): Text
+    var
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+    begin
+        if DailyOptimizerSetup.Get() then
+            if DailyOptimizerSetup."GTB Color (non posting)" <> '' then
+                exit(DailyOptimizerSetup."GTB Color (non posting)");
+        exit(GanttTaskBarColorNonPostingTok);
+    end;
+
+    /// <summary>
+    /// Resolves the border colour used for every Gantt task bar (ganttdemo2), applied globally via
+    /// wrapper.js's SetGanttTaskBarDefaults into the "--gtb-border-color" CSS custom property.
+    /// Overridable via "Daily Optimizer Setup"."GTB Border Color" when the singleton exists and the
+    /// field is non-blank, else falls back to GanttTaskBarBorderColorTok. Same safe boolean-context
+    /// Get() convention as GetHolidayColor above.
+    /// </summary>
+    procedure GetGanttTaskBarBorderColor(): Text
+    var
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+    begin
+        if DailyOptimizerSetup.Get() then
+            if DailyOptimizerSetup."GTB Border Color" <> '' then
+                exit(DailyOptimizerSetup."GTB Border Color");
+        exit(GanttTaskBarBorderColorTok);
+    end;
+
+    /// <summary>
+    /// Resolves the progress-fill colour used for every Gantt task bar's completed-portion overlay
+    /// (ganttdemo2). Deliberately returns blank when unset, unlike every other GetGanttTaskBarXxx
+    /// getter above - a blank result tells wrapper.js's onTaskLoading handler to keep computing each
+    /// task's progress colour dynamically (darkening that task's own fill colour by 60%, see
+    /// _darkenHex) rather than freezing every task's progress colour to one fixed hex. Overridable
+    /// via "Daily Optimizer Setup"."GTB Progress Color" when the singleton exists and the field is
+    /// non-blank.
+    /// </summary>
+    procedure GetGanttTaskBarProgressColor(): Text
+    var
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+    begin
+        if DailyOptimizerSetup.Get() then
+            exit(DailyOptimizerSetup."GTB Progress Color");
+        exit('');
+    end;
+
+    /// <summary>
+    /// Resolves the on-bar label text colour for every Gantt task bar (ganttdemo2). Overridable via
+    /// "Daily Optimizer Setup"."GTB Font Color" when the singleton exists and the field is
+    /// non-blank, else falls back to GetBarFontColor() (the same global "Bar Font Color" setting
+    /// used by every other scheduler/chart bar) - so an unconfigured "GTB Font Color" keeps
+    /// following future "Bar Font Color" changes rather than freezing to a separate default.
+    /// </summary>
+    procedure GetGanttTaskBarFontColor(): Text
+    var
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+    begin
+        if DailyOptimizerSetup.Get() then
+            if DailyOptimizerSetup."GTB Font Color" <> '' then
+                exit(DailyOptimizerSetup."GTB Font Color");
+        exit(GetBarFontColor());
+    end;
+
+    /// <summary>
+    /// Resolves the on-bar label font size (px) for every Gantt task bar (ganttdemo2). Overridable
+    /// via "Daily Optimizer Setup"."GTB Font size (px)" when the singleton exists and the field is
+    /// non-zero, else falls back to DefaultGanttTaskBarFontSizePx (matching the vendored
+    /// dhtmlxgantt.css theme's own default).
+    /// </summary>
+    procedure GetGanttTaskBarFontSize(): Integer
+    var
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+    begin
+        if DailyOptimizerSetup.Get() then
+            if DailyOptimizerSetup."GTB Font size (px)" <> 0 then
+                exit(DailyOptimizerSetup."GTB Font size (px)");
+        exit(DefaultGanttTaskBarFontSizePx());
+    end;
+
+    /// <summary>
+    /// Resolves the bar height (px) for every Gantt task bar (ganttdemo2), applied via
+    /// gantt.config.task_height. Overridable via "Daily Optimizer Setup"."GTB Height (px)" when the
+    /// singleton exists and the field is non-zero, else falls back to DefaultGanttTaskBarHeightPx
+    /// (matching wrapper.js's own pre-existing hardcoded fallback).
+    /// </summary>
+    procedure GetGanttTaskBarHeight(): Integer
+    var
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+    begin
+        if DailyOptimizerSetup.Get() then
+            if DailyOptimizerSetup."GTB Height (px)" <> 0 then
+                exit(DailyOptimizerSetup."GTB Height (px)");
+        exit(DefaultGanttTaskBarHeightPx());
+    end;
+
+    /// <summary>
     /// Public getters for this codeunit's own built-in default colours - exposed only so page
     /// 50654's "Reset to default" action can restore a user's setup override back to these
     /// defaults without duplicating the hex literals on the page. The underlying Tok labels stay
@@ -198,6 +319,49 @@ codeunit 50609 "Visual Default Settings"
     procedure GetDefaultBarFontColor(): Text
     begin
         exit(BarFontColorTok);
+    end;
+
+    procedure GetDefaultGanttTaskBarColor(): Text
+    begin
+        exit(GanttTaskBarColorTok);
+    end;
+
+    procedure GetDefaultGanttTaskBarColorNonPosting(): Text
+    begin
+        exit(GanttTaskBarColorNonPostingTok);
+    end;
+
+    procedure GetDefaultGanttTaskBarBorderColor(): Text
+    begin
+        exit(GanttTaskBarBorderColorTok);
+    end;
+
+    procedure GetDefaultGanttTaskBarProgressColor(): Text
+    begin
+        // Deliberately blank, unlike every other GetDefaultXxx in this codeunit: this field's
+        // "default" behaviour is dynamic (wrapper.js darkens each task's own fill colour by 60%
+        // per task, not a single fixed hex), so there is no literal default colour to restore -
+        // Reset-to-default must clear this field back to blank, not freeze in some colour.
+        exit('');
+    end;
+
+    procedure GetDefaultGanttTaskBarFontColor(): Text
+    begin
+        // Deliberately blank, same reasoning as GetDefaultGanttTaskBarProgressColor above: this
+        // field's default behaviour is to inherit "Bar Font Color" (see GetGanttTaskBarFontColor),
+        // which is itself already overridable - freezing a snapshot here would stop it from
+        // following future "Bar Font Color" changes.
+        exit('');
+    end;
+
+    procedure GetDefaultGanttTaskBarFontSize(): Integer
+    begin
+        exit(DefaultGanttTaskBarFontSizePx());
+    end;
+
+    procedure GetDefaultGanttTaskBarHeight(): Integer
+    begin
+        exit(DefaultGanttTaskBarHeightPx());
     end;
 
     /// <summary>
@@ -279,6 +443,29 @@ codeunit 50609 "Visual Default Settings"
     local procedure DefaultWeeklyBarWidthPx(): Integer
     begin
         exit(60);
+    end;
+
+    /// <summary>
+    /// Named default on-bar label font size (px) for every Gantt task bar (ganttdemo2) - matches
+    /// the vendored dhtmlxgantt.css theme's own default (--dhx-gantt-regular-font-size: 16px). Same
+    /// local-procedure-as-named-constant idiom as DefaultDailyBarWidthPx/DefaultWeeklyBarWidthPx
+    /// above.
+    /// </summary>
+    local procedure DefaultGanttTaskBarFontSizePx(): Integer
+    begin
+        exit(16);
+    end;
+
+    /// <summary>
+    /// Named default bar height (px) for every Gantt task bar (ganttdemo2) - matches
+    /// src/dhx/ganttdemo2/wrapper.js's own pre-existing hardcoded fallback
+    /// (`gantt.config.task_height = gantt.config.task_height || 13`). Same
+    /// local-procedure-as-named-constant idiom as DefaultDailyBarWidthPx/DefaultWeeklyBarWidthPx
+    /// above.
+    /// </summary>
+    local procedure DefaultGanttTaskBarHeightPx(): Integer
+    begin
+        exit(13);
     end;
 
     /// <summary>
@@ -472,6 +659,23 @@ codeunit 50609 "Visual Default Settings"
         // Used by: GetWeekendColor/GetHolidayColor above only.
         WeekendColorTok: Label '#ffe0e0', Locked = true;
         HolidayColorTok: Label '#fff3cd', Locked = true;
+        // Fallback for GetGanttTaskBarColor above - overridable via "Daily Optimizer Setup"."GTB
+        // Color". Matches src/dhx/ganttdemo2/codeunit_50613's own pre-existing hardcoded seed
+        // default for a Job Task's bar fill (before that codeunit's own task-type/per-task Color.Get
+        // overrides run) - this setting is now that same seed, just made configurable.
+        // Used by: GetGanttTaskBarColor above only.
+        GanttTaskBarColorTok: Label '#3b8ef0', Locked = true;
+        // Fallback for GetGanttTaskBarColorNonPosting above - overridable via "Daily Optimizer
+        // Setup"."GTB Color (non posting)". Same literal value as GanttTaskBarColorTok: today
+        // Posting and non-Posting bars are visually identical until this field is explicitly set,
+        // so the fallback must preserve that until a customer configures it differently.
+        // Used by: GetGanttTaskBarColorNonPosting above only.
+        GanttTaskBarColorNonPostingTok: Label '#3b8ef0', Locked = true;
+        // Fallback for GetGanttTaskBarBorderColor above - overridable via "Daily Optimizer
+        // Setup"."GTB Border Color". Matches the vendored dhtmlxgantt.css theme's own resolved
+        // default task-bar border colour (--dhx-gantt-task-border: 1px solid #3588c5).
+        // Used by: GetGanttTaskBarBorderColor above only.
+        GanttTaskBarBorderColorTok: Label '#3588c5', Locked = true;
         // Synthetic aggregate-row marker used by codeunit 50608's BuildSkillBuffer - must stay
         // text-identical to that codeunit's own CapacitySkillCodeTok.
         // Used by: GetSkillBarColor above only (blank-for-'CAPACITY' guard).

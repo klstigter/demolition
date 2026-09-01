@@ -109,6 +109,108 @@ page 50654 "Daily Optimizer Setup"
                     }
                 }
 
+                group(ganttBarTask)
+                {
+                    Caption = 'Gantt Task Bar';
+
+                    field("GTB Color (non posting)"; Rec."GTB Color (non posting)")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Background color of the Gantt chart task bar for non-posting Job Tasks. Enter a hex color, e.g. #7FB3FA.';
+
+                        trigger OnAssistEdit()
+                        var
+                            ColorPickerPage: Page "Color Picker Lookup";
+                        begin
+                            ColorPickerPage.SetInitialColor(Rec."GTB Color (non posting)");
+                            if ColorPickerPage.RunModal() = Action::OK then begin
+                                Rec."GTB Color (non posting)" := ColorPickerPage.GetSelectedColor();
+                                Rec.Modify(true);
+                                CurrPage.Update(false);
+                            end;
+                        end;
+                    }
+                    field("GTB Color"; Rec."GTB Color")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Background color of the Gantt chart task bar. Enter a hex color, e.g. #7FB3FA.';
+
+                        trigger OnAssistEdit()
+                        var
+                            ColorPickerPage: Page "Color Picker Lookup";
+                        begin
+                            ColorPickerPage.SetInitialColor(Rec."GTB Color");
+                            if ColorPickerPage.RunModal() = Action::OK then begin
+                                Rec."GTB Color" := ColorPickerPage.GetSelectedColor();
+                                Rec.Modify(true);
+                                CurrPage.Update(false);
+                            end;
+                        end;
+                    }
+                    field("GTB Border Color"; Rec."GTB Border Color")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Border color of the Gantt chart task bar. Enter a hex color, e.g. #14294D.';
+
+                        trigger OnAssistEdit()
+                        var
+                            ColorPickerPage: Page "Color Picker Lookup";
+                        begin
+                            ColorPickerPage.SetInitialColor(Rec."GTB Border Color");
+                            if ColorPickerPage.RunModal() = Action::OK then begin
+                                Rec."GTB Border Color" := ColorPickerPage.GetSelectedColor();
+                                Rec.Modify(true);
+                                CurrPage.Update(false);
+                            end;
+                        end;
+                    }
+                    field("GTB Progress Color"; Rec."GTB Progress Color")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Progress color of the Gantt chart task bar. Enter a hex color, e.g. #7FB3FA.';
+
+                        trigger OnAssistEdit()
+                        var
+                            ColorPickerPage: Page "Color Picker Lookup";
+                        begin
+                            ColorPickerPage.SetInitialColor(Rec."GTB Progress Color");
+                            if ColorPickerPage.RunModal() = Action::OK then begin
+                                Rec."GTB Progress Color" := ColorPickerPage.GetSelectedColor();
+                                Rec.Modify(true);
+                                CurrPage.Update(false);
+                            end;
+                        end;
+                    }
+                    field("GTB Font Color"; Rec."GTB Font Color")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Font color of the Gantt chart task bar text. Enter a hex color, e.g. #000000.';
+
+                        trigger OnAssistEdit()
+                        var
+                            ColorPickerPage: Page "Color Picker Lookup";
+                        begin
+                            ColorPickerPage.SetInitialColor(Rec."GTB Font Color");
+                            if ColorPickerPage.RunModal() = Action::OK then begin
+                                Rec."GTB Font Color" := ColorPickerPage.GetSelectedColor();
+                                Rec.Modify(true);
+                                CurrPage.Update(false);
+                            end;
+                        end;
+                    }
+                    field("GTB Font Size (px)"; Rec."GTB Font size (px)")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Font size of the Gantt chart task bar text. Enter a value in pixels.';
+                    }
+                    field("GTB Height (px)"; Rec."GTB Height (px)")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Height of the Gantt chart task bar. Enter a value in pixels.';
+                    }
+
+                }
+
                 group(Colors)
                 {
                     Caption = 'Bar Colors';
@@ -337,6 +439,13 @@ page 50654 "Daily Optimizer Setup"
                         Rec."Weekend Color" := VisualDefaultSettings.GetDefaultWeekendColor();
                         Rec."Holiday Color" := VisualDefaultSettings.GetDefaultHolidayColor();
                         Rec."Bar Width (px) - Bar Chart" := VisualDefaultSettings.GetDefaultDailyBarChartWidth();
+                        Rec."GTB Color" := VisualDefaultSettings.GetDefaultGanttTaskBarColor();
+                        Rec."GTB Color (non posting)" := VisualDefaultSettings.GetDefaultGanttTaskBarColorNonPosting();
+                        Rec."GTB Border Color" := VisualDefaultSettings.GetDefaultGanttTaskBarBorderColor();
+                        Rec."GTB Progress Color" := VisualDefaultSettings.GetDefaultGanttTaskBarProgressColor();
+                        Rec."GTB Font Color" := VisualDefaultSettings.GetDefaultGanttTaskBarFontColor();
+                        Rec."GTB Font size (px)" := VisualDefaultSettings.GetDefaultGanttTaskBarFontSize();
+                        Rec."GTB Height (px)" := VisualDefaultSettings.GetDefaultGanttTaskBarHeight();
                         Rec.Modify(true);
                         CurrPage.Update(false);
                     end;

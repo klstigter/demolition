@@ -75,6 +75,7 @@ controladdin "DHX Gantt Control 2"
     procedure SetGanttTaskFilterInfo(jobNo: Text; taskNo: Text; periodFrom: Text; periodTo: Text);
     procedure SetBarFontColor(fontColorHex: Text);
     procedure SetDayOffColors(weekendColorHex: Text; holidayColorHex: Text);
+    procedure SetGanttTaskBarDefaults(borderColorHex: Text; progressColorHex: Text; fontColorHex: Text; fontSizePx: Integer; heightPx: Integer);
     // Companion to OnPollResourcePanelResult above - called right after every resource-panel
     // background task is enqueued (a normal synchronous AL call, not from the completion trigger)
     // so JS knows to (re)start its bounded poll loop instead of polling forever on every page.

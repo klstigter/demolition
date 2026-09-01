@@ -1291,6 +1291,19 @@ page 50620 "Gantt Demo DHX 2"
         // SetBarFontColor above, so a setup change takes effect on the next refresh too.
         CurrPage.DHXGanttControl2.SetDayOffColors(VisualDefaultSettings.GetWeekendColor(), VisualDefaultSettings.GetHolidayColor());
 
+        // "Daily Optimizer Setup"."GTB *" fields (codeunit 50609's GetGanttTaskBar* getters) - global
+        // defaults for every Gantt task bar's box/text (border colour, progress-fill colour,
+        // on-bar font colour/size, bar height). Layered underneath any per-task/per-task-type fill
+        // override (codeunit 50613's own Color.Get resolution for "color") exactly like "GTB Color"
+        // already is. Same call-every-LoadAllData convention as SetBarFontColor/SetDayOffColors above,
+        // so a setup change takes effect on the next refresh too.
+        CurrPage.DHXGanttControl2.SetGanttTaskBarDefaults(
+            VisualDefaultSettings.GetGanttTaskBarBorderColor(),
+            VisualDefaultSettings.GetGanttTaskBarProgressColor(),
+            VisualDefaultSettings.GetGanttTaskBarFontColor(),
+            VisualDefaultSettings.GetGanttTaskBarFontSize(),
+            VisualDefaultSettings.GetGanttTaskBarHeight());
+
         GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
 
         // Keep the filter-toolbar icon/tooltip (funnel + reset) in sync with the current
