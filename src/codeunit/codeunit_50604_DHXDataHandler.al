@@ -5484,6 +5484,55 @@ codeunit 50604 "DHX Data Handler"
         RootObj.Add('capacitySlots', ReqAssign_BuildCapacitySlotsJson(StartDate, EndDate, WorkdayIndexMap));
         RootObj.Add('skillColors', ReqAssign_BuildSkillColorsJson());
         RootObj.Add('statusColors', StatusColorsObj);
+        // Part B.1 - the explicit 30-workday scope cutoff (see page 50710's GetDefaultWindow,
+        // which computes this SAME EndDate). wrapper.js's defaultGlobalSelectionEndDate() used to
+        // re-derive this by scanning ALL of dayTaskLines for distinct dates - a real hazard once
+        // Part B.2 pagination means the client may only ever see a subset of dayTaskLines at once.
+        // Sending it explicitly makes every later pagination decision safe by construction; the
+        // scan-based derivation stays in wrapper.js only as a defensive fallback.
+        RootObj.Add('scopeEndDate', ReqAssign_FormatIsoDate(EndDate));
+
+        RootObj.WriteTo(OutTxt);
+        exit(OutTxt);
+    end;
+
+    /// <summary>
+    /// Paged variant of ReqAssign_BuildPlanningDataJson (Part B.2) - identical payload shape/keys,
+    /// used by page 50710's synchronous first load. "resources"/"capacitySlots"/"workdays"/
+    /// "skillColors"/"statusColors"/"scopeEndDate" are always sent in full (cheap - dozens/hundreds
+    /// of entries, never the cost driver); only "dayTaskLines" is paginated, and only by whole
+    /// sequenceKey GROUPS (see ReqAssign_BuildDayTaskLinesJson_Paged) - the group that crosses
+    /// MaxLines is still included whole, since sequenceKey is the atomic unit wrapper.js's
+    /// rebuildRequestTree()/pendingSequences/accept-reject/drag all operate on and must never see
+    /// split across two loads. RemainingSequenceKeys (a JSON array of sequenceKey strings, blank ''
+    /// if nothing remains) is what the caller threads into
+    /// CurrPage.EnqueueBackgroundTask(Codeunit::"ReqAssign BG Day Task Lines", ...).
+    /// </summary>
+    procedure ReqAssign_BuildPlanningDataJson_Paged(StartDate: Date; EndDate: Date; MaxLines: Integer; var RemainingSequenceKeys: Text): Text
+    var
+        RootObj: JsonObject;
+        StatusColorsObj: JsonObject;
+        OkStatusObj: JsonObject;
+        WorkdayIndexMap: Dictionary of [Date, Integer];
+        WorkdaysArr: JsonArray;
+        FirstPageLinesArr: JsonArray;
+        OutTxt: Text;
+    begin
+        ReqAssign_BuildWorkdayIndexMap(StartDate, EndDate, WorkdayIndexMap, WorkdaysArr);
+
+        OkStatusObj.Add('backgroundColor', ReqAssignOkStatusBackgroundColorTok);
+        OkStatusObj.Add('textColor', ReqAssignOkStatusTextColorTok);
+        StatusColorsObj.Add('ok', OkStatusObj);
+
+        ReqAssign_BuildDayTaskLinesJson_Paged(StartDate, EndDate, WorkdayIndexMap, MaxLines, FirstPageLinesArr, RemainingSequenceKeys);
+
+        RootObj.Add('workdays', WorkdaysArr);
+        RootObj.Add('resources', ReqAssign_BuildResourcesJson());
+        RootObj.Add('dayTaskLines', FirstPageLinesArr);
+        RootObj.Add('capacitySlots', ReqAssign_BuildCapacitySlotsJson(StartDate, EndDate, WorkdayIndexMap));
+        RootObj.Add('skillColors', ReqAssign_BuildSkillColorsJson());
+        RootObj.Add('statusColors', StatusColorsObj);
+        RootObj.Add('scopeEndDate', ReqAssign_FormatIsoDate(EndDate));
 
         RootObj.WriteTo(OutTxt);
         exit(OutTxt);
@@ -5501,20 +5550,34 @@ codeunit 50604 "DHX Data Handler"
         ResourcesArr: JsonArray;
         SkillsArr: JsonArray;
         ResObj: JsonObject;
+        MoreSkills: Boolean;
     begin
+        // Part A perf fix - this was a genuine N+1 (a fresh ResSkill.SetRange/FindSet PER
+        // resource). Both Res and "Resource Skill" are already scanned in their own primary-key
+        // order (No.; Type/No./Skill Code) with no SetCurrentKey override, so after filtering
+        // "Resource Skill" to Type=Resource, its rows are guaranteed contiguous per resource "No."
+        // - a single merge-join pass over both single sorted FindSets (one prefetch, not one per
+        // resource) replaces the old per-resource re-query, same "prefetch once, look up in one
+        // pass" idiom already used by ReqAssign_BuildDayTaskLinesJson's JobDescCache/
+        // JobTaskDescCache. Confirmed via grep that ReqAssign_* has no other N+1.
+        ResSkill.SetRange(Type, ResSkill.Type::Resource);
+        ResSkill.SetLoadFields("No.", "Skill Code");
+        MoreSkills := ResSkill.FindSet();
+
         Res.SetLoadFields("No.", Name, Blocked);
         Res.SetRange(Blocked, false);
         if Res.FindSet() then
             repeat
                 Clear(SkillsArr);
-                ResSkill.Reset();
-                ResSkill.SetRange(Type, ResSkill.Type::Resource);
-                ResSkill.SetRange("No.", Res."No.");
-                ResSkill.SetLoadFields("Skill Code");
-                if ResSkill.FindSet() then
-                    repeat
-                        SkillsArr.Add(ResSkill."Skill Code");
-                    until ResSkill.Next() = 0;
+                // Catch the skill cursor up to (or past, if this resource has none) the current
+                // resource - skill rows for a resource excluded above (Blocked) or with no
+                // matching Res row at all are simply skipped over, never re-visited.
+                while MoreSkills and (ResSkill."No." < Res."No.") do
+                    MoreSkills := ResSkill.Next() <> 0;
+                while MoreSkills and (ResSkill."No." = Res."No.") do begin
+                    SkillsArr.Add(ResSkill."Skill Code");
+                    MoreSkills := ResSkill.Next() <> 0;
+                end;
 
                 Clear(ResObj);
                 ResObj.Add('key', Res."No.");
@@ -5542,22 +5605,10 @@ codeunit 50604 "DHX Data Handler"
     local procedure ReqAssign_BuildDayTaskLinesJson(StartDate: Date; EndDate: Date; var WorkdayIndexMap: Dictionary of [Date, Integer]): JsonArray
     var
         DayPlanning: Record "Day Planning";
-        Job: Record Job;
-        JobTask: Record "Job Task";
         JobDescCache: Dictionary of [Code[20], Text];
         JobTaskDescCache: Dictionary of [Text, Text];
         LinesArr: JsonArray;
-        LineObj: JsonObject;
-        ProjectName: Text;
-        TaskName: Text;
-        TaskCacheKey: Text;
-        IdTxt: Text;
         SequenceKeyTxt: Text;
-        ReqStart: Decimal;
-        ReqDuration: Decimal;
-        AssignedStart: Decimal;
-        AssignedDuration: Decimal;
-        DayIndex: Integer;
     begin
         DayPlanning.SetRange("Plan Date", StartDate, EndDate);
         DayPlanning.SetLoadFields("Job No.", "Job Task No.", "Day Line No.", "Plan Date", Skill,
@@ -5565,79 +5616,239 @@ codeunit 50604 "DHX Data Handler"
             "Assigned Resource No.", "Sequence No.");
         if DayPlanning.FindSet() then
             repeat
-                if not JobDescCache.ContainsKey(DayPlanning."Job No.") then
-                    if Job.Get(DayPlanning."Job No.") then
-                        JobDescCache.Add(DayPlanning."Job No.", Job.Description)
-                    else
-                        JobDescCache.Add(DayPlanning."Job No.", '');
-                ProjectName := JobDescCache.Get(DayPlanning."Job No.");
-
-                TaskCacheKey := DayPlanning."Job No." + '|' + DayPlanning."Job Task No.";
-                if not JobTaskDescCache.ContainsKey(TaskCacheKey) then
-                    if JobTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
-                        JobTaskDescCache.Add(TaskCacheKey, JobTask.Description)
-                    else
-                        JobTaskDescCache.Add(TaskCacheKey, '');
-                TaskName := JobTaskDescCache.Get(TaskCacheKey);
-
-                IdTxt := DayPlanning."Job No." + '|' + DayPlanning."Job Task No." + '|' + Format(DayPlanning."Day Line No.");
-                // Includes "Sequence No." (table 50610 field 9, codeunit 50695 "Day Planning
-                // Sequence Mgt." owns its assignment) so two independent threads sharing the same
-                // [Job No., Job Task No., Skill] - e.g. "Elektrisch - Seq 1" and "- Seq 2" from the
-                // Day Planning Sequence add-in - render as separate rows here too, instead of
-                // collapsing into one. Legacy rows still holding "Sequence No." = 0 (inserted
-                // before this field existed and not yet repaired) will still collapse together
-                // under "...|0" until report 50600 "RepairData"'s
-                // RepairSequenceNoOnAllDayPlannings is run.
-                SequenceKeyTxt := DayPlanning."Job No." + '|' + DayPlanning."Job Task No." + '|' + DayPlanning.Skill + '|' + Format(DayPlanning."Sequence No.");
-
-                if DayPlanning."Start Time Requested" <> 0T then
-                    ReqStart := ReqAssign_TimeToDecimalHours(DayPlanning."Start Time Requested")
-                else
-                    ReqStart := 0;
-
-                if (DayPlanning."Start Time Requested" <> 0T) and (DayPlanning."End Time Requested" <> 0T) then begin
-                    ReqDuration := ReqAssign_TimeToDecimalHours(DayPlanning."End Time Requested") - ReqStart;
-                    if ReqDuration < 0 then
-                        ReqDuration := 0;
-                end else
-                    ReqDuration := 0;
-
-                if DayPlanning."Start Time Assigned" <> 0T then
-                    AssignedStart := ReqAssign_TimeToDecimalHours(DayPlanning."Start Time Assigned")
-                else
-                    AssignedStart := ReqStart;
-
-                if (DayPlanning."Start Time Assigned" <> 0T) and (DayPlanning."End Time Assigned" <> 0T) then begin
-                    AssignedDuration := ReqAssign_TimeToDecimalHours(DayPlanning."End Time Assigned") - AssignedStart;
-                    if AssignedDuration < 0 then
-                        AssignedDuration := 0;
-                end else
-                    AssignedDuration := ReqDuration;
-
-                if not WorkdayIndexMap.Get(DayPlanning."Plan Date", DayIndex) then
-                    DayIndex := -1;
-
-                Clear(LineObj);
-                LineObj.Add('id', IdTxt);
-                LineObj.Add('projectId', DayPlanning."Job No.");
-                LineObj.Add('projectName', ProjectName);
-                LineObj.Add('taskId', DayPlanning."Job Task No.");
-                LineObj.Add('taskName', TaskName);
-                LineObj.Add('sequenceKey', SequenceKeyTxt);
-                LineObj.Add('sequenceNo', DayPlanning."Sequence No.");
-                LineObj.Add('requiredSkill', DayPlanning.Skill);
-                LineObj.Add('date', ReqAssign_FormatIsoDate(DayPlanning."Plan Date"));
-                LineObj.Add('dayIndex', DayIndex);
-                LineObj.Add('requestedStart', ReqStart);
-                LineObj.Add('requestedDuration', ReqDuration);
-                LineObj.Add('assignedStart', AssignedStart);
-                LineObj.Add('assignedDuration', AssignedDuration);
-                LineObj.Add('assignedResource', DayPlanning."Assigned Resource No.");
-                LineObj.Add('sequenceAccepted', false);
-                LinesArr.Add(LineObj);
+                LinesArr.Add(ReqAssign_BuildDayTaskLineObj(DayPlanning, JobDescCache, JobTaskDescCache, WorkdayIndexMap, SequenceKeyTxt));
             until DayPlanning.Next() = 0;
         exit(LinesArr);
+    end;
+
+    /// <summary>
+    /// Builds ONE "dayTaskLines" entry's JsonObject for a single already-loaded Day Planning row -
+    /// the shared core behind ReqAssign_BuildDayTaskLinesJson (full/unpaged), ReqAssign_
+    /// BuildDayTaskLinesJson_Paged (first page) and ReqAssign_BuildDayTaskLinesJson_ForKeys
+    /// (background-task remainder, Part B.2/B.3) - extracted so all three build byte-for-byte
+    /// identical line JSON for the same row instead of maintaining three copies of this logic.
+    /// JobDescCache/JobTaskDescCache are threaded through by the caller so the per-Job/Job-Task
+    /// description lookup stays cached across the whole call, not per-line. Also returns the
+    /// line's own SequenceKeyTxt via var parameter - every paginating caller needs it for
+    /// whole-sequence grouping/filtering; ReqAssign_BuildDayTaskLinesJson itself just discards it.
+    /// </summary>
+    local procedure ReqAssign_BuildDayTaskLineObj(var DayPlanning: Record "Day Planning"; var JobDescCache: Dictionary of [Code[20], Text]; var JobTaskDescCache: Dictionary of [Text, Text]; var WorkdayIndexMap: Dictionary of [Date, Integer]; var SequenceKeyTxt: Text): JsonObject
+    var
+        Job: Record Job;
+        JobTask: Record "Job Task";
+        LineObj: JsonObject;
+        ProjectName: Text;
+        TaskName: Text;
+        TaskCacheKey: Text;
+        IdTxt: Text;
+        ReqStart: Decimal;
+        ReqDuration: Decimal;
+        AssignedStart: Decimal;
+        AssignedDuration: Decimal;
+        DayIndex: Integer;
+    begin
+        if not JobDescCache.ContainsKey(DayPlanning."Job No.") then
+            if Job.Get(DayPlanning."Job No.") then
+                JobDescCache.Add(DayPlanning."Job No.", Job.Description)
+            else
+                JobDescCache.Add(DayPlanning."Job No.", '');
+        ProjectName := JobDescCache.Get(DayPlanning."Job No.");
+
+        TaskCacheKey := DayPlanning."Job No." + '|' + DayPlanning."Job Task No.";
+        if not JobTaskDescCache.ContainsKey(TaskCacheKey) then
+            if JobTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
+                JobTaskDescCache.Add(TaskCacheKey, JobTask.Description)
+            else
+                JobTaskDescCache.Add(TaskCacheKey, '');
+        TaskName := JobTaskDescCache.Get(TaskCacheKey);
+
+        IdTxt := DayPlanning."Job No." + '|' + DayPlanning."Job Task No." + '|' + Format(DayPlanning."Day Line No.");
+        // Includes "Sequence No." (table 50610 field 9, codeunit 50695 "Day Planning
+        // Sequence Mgt." owns its assignment) so two independent threads sharing the same
+        // [Job No., Job Task No., Skill] - e.g. "Elektrisch - Seq 1" and "- Seq 2" from the
+        // Day Planning Sequence add-in - render as separate rows here too, instead of
+        // collapsing into one. Legacy rows still holding "Sequence No." = 0 (inserted
+        // before this field existed and not yet repaired) will still collapse together
+        // under "...|0" until report 50600 "RepairData"'s
+        // RepairSequenceNoOnAllDayPlannings is run.
+        SequenceKeyTxt := DayPlanning."Job No." + '|' + DayPlanning."Job Task No." + '|' + DayPlanning.Skill + '|' + Format(DayPlanning."Sequence No.");
+
+        if DayPlanning."Start Time Requested" <> 0T then
+            ReqStart := ReqAssign_TimeToDecimalHours(DayPlanning."Start Time Requested")
+        else
+            ReqStart := 0;
+
+        if (DayPlanning."Start Time Requested" <> 0T) and (DayPlanning."End Time Requested" <> 0T) then begin
+            ReqDuration := ReqAssign_TimeToDecimalHours(DayPlanning."End Time Requested") - ReqStart;
+            if ReqDuration < 0 then
+                ReqDuration := 0;
+        end else
+            ReqDuration := 0;
+
+        if DayPlanning."Start Time Assigned" <> 0T then
+            AssignedStart := ReqAssign_TimeToDecimalHours(DayPlanning."Start Time Assigned")
+        else
+            AssignedStart := ReqStart;
+
+        if (DayPlanning."Start Time Assigned" <> 0T) and (DayPlanning."End Time Assigned" <> 0T) then begin
+            AssignedDuration := ReqAssign_TimeToDecimalHours(DayPlanning."End Time Assigned") - AssignedStart;
+            if AssignedDuration < 0 then
+                AssignedDuration := 0;
+        end else
+            AssignedDuration := ReqDuration;
+
+        if not WorkdayIndexMap.Get(DayPlanning."Plan Date", DayIndex) then
+            DayIndex := -1;
+
+        LineObj.Add('id', IdTxt);
+        LineObj.Add('projectId', DayPlanning."Job No.");
+        LineObj.Add('projectName', ProjectName);
+        LineObj.Add('taskId', DayPlanning."Job Task No.");
+        LineObj.Add('taskName', TaskName);
+        LineObj.Add('sequenceKey', SequenceKeyTxt);
+        LineObj.Add('sequenceNo', DayPlanning."Sequence No.");
+        LineObj.Add('requiredSkill', DayPlanning.Skill);
+        LineObj.Add('date', ReqAssign_FormatIsoDate(DayPlanning."Plan Date"));
+        LineObj.Add('dayIndex', DayIndex);
+        LineObj.Add('requestedStart', ReqStart);
+        LineObj.Add('requestedDuration', ReqDuration);
+        LineObj.Add('assignedStart', AssignedStart);
+        LineObj.Add('assignedDuration', AssignedDuration);
+        LineObj.Add('assignedResource', DayPlanning."Assigned Resource No.");
+        LineObj.Add('sequenceAccepted', false);
+        exit(LineObj);
+    end;
+
+    /// <summary>
+    /// Paged variant of ReqAssign_BuildDayTaskLinesJson (Part B.2) - builds the same per-line JSON
+    /// (via the shared ReqAssign_BuildDayTaskLineObj) for every Day Planning row in range, but only
+    /// emits whole sequenceKey GROUPS into FirstPageLinesArr up to MaxLines lines - the group that
+    /// crosses MaxLines is still included whole, since sequenceKey is the atomic grouping unit
+    /// wrapper.js's rebuildRequestTree()/pendingSequences/accept-reject/drag all operate on and can
+    /// never be split across two loads. Whatever whole sequenceKey groups didn't fit are returned as
+    /// RemainingSequenceKeys - a JSON array of sequenceKey strings, blank '' when nothing remains -
+    /// for codeunit "ReqAssign BG Day Task Lines" to build separately via ReqAssign_
+    /// BuildDayTaskLinesJson_ForKeys.
+    ///
+    /// Two passes over "Day Planning": pass 1 reads only the key fields (Job No./Job Task No./
+    /// Skill/Sequence No.) to decide grouping/order/page-membership ONCE, cheaply, before any
+    /// per-line JSON is built; pass 2 builds the full line JSON but skips the (cheap, string-only)
+    /// membership check first, so rows that don't land on the first page never pay for the Job/Job
+    /// Task description lookups or decimal-hour conversions.
+    /// </summary>
+    local procedure ReqAssign_BuildDayTaskLinesJson_Paged(StartDate: Date; EndDate: Date; var WorkdayIndexMap: Dictionary of [Date, Integer]; MaxLines: Integer; var FirstPageLinesArr: JsonArray; var RemainingSequenceKeys: Text)
+    var
+        DayPlanning: Record "Day Planning";
+        JobDescCache: Dictionary of [Code[20], Text];
+        JobTaskDescCache: Dictionary of [Text, Text];
+        SequenceKeyOrder: List of [Text];
+        SeenKeys: Dictionary of [Text, Boolean];
+        KeyLineCount: Dictionary of [Text, Integer];
+        FirstPageKeys: Dictionary of [Text, Boolean];
+        RemainingKeysArr: JsonArray;
+        SequenceKeyTxt: Text;
+        RunningTotal: Integer;
+        PriorCount: Integer;
+    begin
+        DayPlanning.SetRange("Plan Date", StartDate, EndDate);
+
+        // Pass 1: cheap pre-scan (key fields only) - establishes whole-sequence grouping order and
+        // per-group line counts so the MaxLines cutoff below can never split a group.
+        DayPlanning.SetLoadFields("Job No.", "Job Task No.", Skill, "Sequence No.");
+        if DayPlanning.FindSet() then
+            repeat
+                SequenceKeyTxt := DayPlanning."Job No." + '|' + DayPlanning."Job Task No." + '|' + DayPlanning.Skill + '|' + Format(DayPlanning."Sequence No.");
+                if not SeenKeys.ContainsKey(SequenceKeyTxt) then begin
+                    SeenKeys.Add(SequenceKeyTxt, true);
+                    SequenceKeyOrder.Add(SequenceKeyTxt);
+                    KeyLineCount.Add(SequenceKeyTxt, 1);
+                end else begin
+                    // Dictionary has no in-place increment - Remove+Add is the portable way to
+                    // overwrite an existing key's value (avoids relying on .Set(), not used
+                    // elsewhere in this codebase).
+                    PriorCount := KeyLineCount.Get(SequenceKeyTxt);
+                    KeyLineCount.Remove(SequenceKeyTxt);
+                    KeyLineCount.Add(SequenceKeyTxt, PriorCount + 1);
+                end;
+            until DayPlanning.Next() = 0;
+
+        RunningTotal := 0;
+        foreach SequenceKeyTxt in SequenceKeyOrder do
+            if RunningTotal < MaxLines then begin
+                FirstPageKeys.Add(SequenceKeyTxt, true);
+                RunningTotal += KeyLineCount.Get(SequenceKeyTxt);
+            end else
+                RemainingKeysArr.Add(SequenceKeyTxt);
+
+        if RemainingKeysArr.Count() > 0 then
+            RemainingKeysArr.WriteTo(RemainingSequenceKeys)
+        else
+            RemainingSequenceKeys := '';
+
+        // Pass 2: build each first-page line's full JSON via the shared per-line builder.
+        DayPlanning.SetLoadFields("Job No.", "Job Task No.", "Day Line No.", "Plan Date", Skill,
+            "Start Time Requested", "End Time Requested", "Start Time Assigned", "End Time Assigned",
+            "Assigned Resource No.", "Sequence No.");
+        if DayPlanning.FindSet() then
+            repeat
+                SequenceKeyTxt := DayPlanning."Job No." + '|' + DayPlanning."Job Task No." + '|' + DayPlanning.Skill + '|' + Format(DayPlanning."Sequence No.");
+                if FirstPageKeys.ContainsKey(SequenceKeyTxt) then
+                    FirstPageLinesArr.Add(ReqAssign_BuildDayTaskLineObj(DayPlanning, JobDescCache, JobTaskDescCache, WorkdayIndexMap, SequenceKeyTxt));
+            until DayPlanning.Next() = 0;
+    end;
+
+    /// <summary>
+    /// Companion to ReqAssign_BuildDayTaskLinesJson_Paged for the remainder Page Background Task
+    /// (codeunit "ReqAssign BG Day Task Lines", Part B.3) - builds the same per-line JSON (again via
+    /// the shared ReqAssign_BuildDayTaskLineObj), but only for Day Planning rows whose sequenceKey
+    /// is one of RemainingSequenceKeysJson's JSON array of strings (as produced by ReqAssign_
+    /// BuildDayTaskLinesJson_Paged's RemainingSequenceKeys out parameter). Rebuilds its own
+    /// WorkdayIndexMap for the same [StartDate, EndDate] window - this runs in the background
+    /// task's own session, so it cannot share the interactive session's Map instance, but
+    /// ReqAssign_BuildWorkdayIndexMap is a pure function of [StartDate, EndDate] and always
+    /// produces the identical Map either way (see ReqAssign_BuildPlanningDataJson's doc comment).
+    /// Returns the resulting "dayTaskLines" JsonArray already serialized to Text (what the Page
+    /// Background Task stashes into its result Dictionary and the control add-in's
+    /// AppendDayTaskLines consumes) - '[]' when RemainingSequenceKeysJson is blank (a no-op call).
+    /// Public (not local) - called from codeunit "ReqAssign BG Day Task Lines"'s OnRun and directly
+    /// unit-testable on its own.
+    /// </summary>
+    procedure ReqAssign_BuildDayTaskLinesJson_ForKeys(StartDate: Date; EndDate: Date; RemainingSequenceKeysJson: Text): Text
+    var
+        DayPlanning: Record "Day Planning";
+        JobDescCache: Dictionary of [Code[20], Text];
+        JobTaskDescCache: Dictionary of [Text, Text];
+        WorkdayIndexMap: Dictionary of [Date, Integer];
+        WorkdaysArr: JsonArray;
+        WantedKeys: Dictionary of [Text, Boolean];
+        WantedKeysArr: JsonArray;
+        KeyTok: JsonToken;
+        LinesArr: JsonArray;
+        SequenceKeyTxt: Text;
+        OutTxt: Text;
+    begin
+        if RemainingSequenceKeysJson = '' then
+            exit('[]');
+
+        WantedKeysArr.ReadFrom(RemainingSequenceKeysJson);
+        foreach KeyTok in WantedKeysArr do
+            WantedKeys.Add(KeyTok.AsValue().AsText(), true);
+
+        ReqAssign_BuildWorkdayIndexMap(StartDate, EndDate, WorkdayIndexMap, WorkdaysArr);
+
+        DayPlanning.SetRange("Plan Date", StartDate, EndDate);
+        DayPlanning.SetLoadFields("Job No.", "Job Task No.", "Day Line No.", "Plan Date", Skill,
+            "Start Time Requested", "End Time Requested", "Start Time Assigned", "End Time Assigned",
+            "Assigned Resource No.", "Sequence No.");
+        if DayPlanning.FindSet() then
+            repeat
+                SequenceKeyTxt := DayPlanning."Job No." + '|' + DayPlanning."Job Task No." + '|' + DayPlanning.Skill + '|' + Format(DayPlanning."Sequence No.");
+                if WantedKeys.ContainsKey(SequenceKeyTxt) then
+                    LinesArr.Add(ReqAssign_BuildDayTaskLineObj(DayPlanning, JobDescCache, JobTaskDescCache, WorkdayIndexMap, SequenceKeyTxt));
+            until DayPlanning.Next() = 0;
+
+        LinesArr.WriteTo(OutTxt);
+        exit(OutTxt);
     end;
 
     /// <summary>

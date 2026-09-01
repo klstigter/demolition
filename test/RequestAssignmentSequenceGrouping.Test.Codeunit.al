@@ -17,6 +17,7 @@ codeunit 60027 "Req Assign Seq Grouping Tests"
         TestJobTaskNo: Code[20];
         TestSkillCode: Code[10];
         TestOtherSkillCode: Code[10];
+        TestThirdSkillCode: Code[10];
 
     local procedure Initialize()
     var
@@ -28,6 +29,7 @@ codeunit 60027 "Req Assign Seq Grouping Tests"
         TestJobTaskNo := '1000';
         TestSkillCode := 'RASGTSKL';
         TestOtherSkillCode := 'RASGTSK2';
+        TestThirdSkillCode := 'RASGTSK3';
 
         if IsInitialized then
             exit;
@@ -57,6 +59,12 @@ codeunit 60027 "Req Assign Seq Grouping Tests"
             SkillCode.Init();
             SkillCode.Code := TestOtherSkillCode;
             SkillCode.Description := 'Req Assign Seq Grouping Test Skill 2';
+            SkillCode.Insert();
+        end;
+        if not SkillCode.Get(TestThirdSkillCode) then begin
+            SkillCode.Init();
+            SkillCode.Code := TestThirdSkillCode;
+            SkillCode.Description := 'Req Assign Seq Grouping Test Skill 3';
             SkillCode.Insert();
         end;
 
@@ -191,6 +199,234 @@ codeunit 60027 "Req Assign Seq Grouping Tests"
         // Exact expected shape: "JobNo|JobTaskNo|Skill|SequenceNo"
         AssertAreEqual(StrSubstNo('%1|%2|%3|1', TestJobNo, TestJobTaskNo, TestSkillCode), FirstKeyTxt, 'First line''s sequenceKey should end in its own Sequence No.');
         AssertAreEqual(StrSubstNo('%1|%2|%3|2', TestJobNo, TestJobTaskNo, TestSkillCode), SecondKeyTxt, 'Second line''s sequenceKey should end in its own Sequence No.');
+    end;
+
+    // ================================================================
+    // Part B.2 pagination tests - codeunit 50604's ReqAssign_BuildPlanningDataJson_Paged /
+    // ReqAssign_BuildDayTaskLinesJson_Paged / ReqAssign_BuildDayTaskLinesJson_ForKeys. Fixture: 3
+    // sequences (each its own Skill, so each independently gets Sequence No. 1 - see
+    // InsertPagingFixture) inserted in DEFINITE Day Line No. order so DayPlanning.FindSet()'s
+    // primary-key scan always visits them Sequence A (2 lines) -> Sequence B (3 lines) ->
+    // Sequence C (2 lines), 7 lines total.
+    // ================================================================
+
+    /// <summary>
+    /// A fixed far-future date, deliberately NOT WorkDate() - ReqAssign_BuildPlanningDataJson (and
+    /// its _Paged/_ForKeys variants) have no Job No. filter by design ("any Job/Task/Skill", see
+    /// their own doc comments), so the paging tests' unfiltered id-count assertions need a date
+    /// window guaranteed free of real CRONUS NL production Day Plannings - WorkDate() (today) is
+    /// squarely inside the real dataset's populated range and collides with it.
+    /// </summary>
+    local procedure PagingFixtureIsolatedDate(): Date
+    begin
+        exit(DMY2Date(1, 1, 2050));
+    end;
+
+    local procedure InsertPagingFixture(var SeqAKey: Text; var SeqBKey: Text; var SeqCKey: Text)
+    var
+        PlanDate: Date;
+    begin
+        Initialize();
+        ClearDayPlanningsFor(TestJobNo, TestJobTaskNo);
+        PlanDate := PagingFixtureIsolatedDate();
+
+        // Sequence A - Skill 1, 2 distinct dates (each date has only this one row for Skill 1, so
+        // CalcSequence independently assigns Sequence No. 1 to both - same Sequence No. across
+        // dates is exactly what makes them one "sequence"/row per sequenceKey).
+        InsertDayPlanningDirect(10000, TestSkillCode, PlanDate);
+        InsertDayPlanningDirect(20000, TestSkillCode, PlanDate + 1);
+
+        // Sequence B - Skill 2, 3 distinct dates.
+        InsertDayPlanningDirect(30000, TestOtherSkillCode, PlanDate);
+        InsertDayPlanningDirect(40000, TestOtherSkillCode, PlanDate + 1);
+        InsertDayPlanningDirect(50000, TestOtherSkillCode, PlanDate + 2);
+
+        // Sequence C - Skill 3, 2 distinct dates.
+        InsertDayPlanningDirect(60000, TestThirdSkillCode, PlanDate);
+        InsertDayPlanningDirect(70000, TestThirdSkillCode, PlanDate + 1);
+
+        SeqAKey := StrSubstNo('%1|%2|%3|1', TestJobNo, TestJobTaskNo, TestSkillCode);
+        SeqBKey := StrSubstNo('%1|%2|%3|1', TestJobNo, TestJobTaskNo, TestOtherSkillCode);
+        SeqCKey := StrSubstNo('%1|%2|%3|1', TestJobNo, TestJobTaskNo, TestThirdSkillCode);
+    end;
+
+    local procedure GetLinesArrFromPlanningDataJson(PlanningDataJson: Text): JsonArray
+    var
+        RootObj: JsonObject;
+        LinesToken: JsonToken;
+    begin
+        RootObj.ReadFrom(PlanningDataJson);
+        RootObj.Get('dayTaskLines', LinesToken);
+        exit(LinesToken.AsArray());
+    end;
+
+    local procedure GetLinesArrFromRawArrayJson(ArrJsonTxt: Text): JsonArray
+    var
+        LinesArr: JsonArray;
+    begin
+        if ArrJsonTxt = '' then
+            exit(LinesArr);
+        LinesArr.ReadFrom(ArrJsonTxt);
+        exit(LinesArr);
+    end;
+
+    /// <summary>
+    /// Extracts every "id" value from a "dayTaskLines"-shaped JsonArray, and the count of entries
+    /// whose "sequenceKey" equals WantedSequenceKey (so callers can assert both "which ids are
+    /// present" and "how many lines of a given sequence made it in", without a second pass).
+    /// </summary>
+    local procedure GetIdsAndSequenceCount(LinesArr: JsonArray; WantedSequenceKey: Text; var Ids: List of [Text]; var SequenceLineCount: Integer)
+    var
+        LineTok: JsonToken;
+        LineObj: JsonObject;
+        FieldTok: JsonToken;
+    begin
+        Clear(Ids);
+        SequenceLineCount := 0;
+        foreach LineTok in LinesArr do begin
+            LineObj := LineTok.AsObject();
+            LineObj.Get('id', FieldTok);
+            Ids.Add(FieldTok.AsValue().AsText());
+            LineObj.Get('sequenceKey', FieldTok);
+            if FieldTok.AsValue().AsText() = WantedSequenceKey then
+                SequenceLineCount += 1;
+        end;
+    end;
+
+    local procedure ListContains(Ids: List of [Text]; WantedId: Text): Boolean
+    var
+        IdTxt: Text;
+    begin
+        foreach IdTxt in Ids do
+            if IdTxt = WantedId then
+                exit(true);
+        exit(false);
+    end;
+
+    /// <summary>
+    /// True iff both lists have the same count and every element of ListA is present in ListB (ids
+    /// are unique by construction in this fixture, so this is a genuine set-equality check, not
+    /// just "same size").
+    /// </summary>
+    local procedure ListsAreSetEqual(ListA: List of [Text]; ListB: List of [Text]): Boolean
+    var
+        IdTxt: Text;
+    begin
+        if ListA.Count() <> ListB.Count() then
+            exit(false);
+        foreach IdTxt in ListA do
+            if not ListContains(ListB, IdTxt) then
+                exit(false);
+        exit(true);
+    end;
+
+    /// <summary>
+    /// Parses RemainingSequenceKeys (a JSON array of strings, as produced by
+    /// ReqAssign_BuildDayTaskLinesJson_Paged/ReqAssign_BuildPlanningDataJson_Paged) into a plain
+    /// List of [Text].
+    /// </summary>
+    local procedure ParseRemainingSequenceKeys(RemainingSequenceKeysJson: Text): List of [Text]
+    var
+        KeysArr: JsonArray;
+        KeyTok: JsonToken;
+        Keys: List of [Text];
+    begin
+        if RemainingSequenceKeysJson = '' then
+            exit(Keys);
+        KeysArr.ReadFrom(RemainingSequenceKeysJson);
+        foreach KeyTok in KeysArr do
+            Keys.Add(KeyTok.AsValue().AsText());
+        exit(Keys);
+    end;
+
+    [Test]
+    procedure GivenSeqCrossesMaxLinesBoundary_WhenBuildPlanningDataPaged_ThenIncludedWholeAndThirdDeferred()
+    var
+        DHXDataHandler: Codeunit "DHX Data Handler";
+        PlanDate: Date;
+        SeqAKey: Text;
+        SeqBKey: Text;
+        SeqCKey: Text;
+        PlanningDataJson: Text;
+        RemainingSequenceKeys: Text;
+        FirstPageIds: List of [Text];
+        RemainingKeysList: List of [Text];
+        SeqBLineCountInFirstPage: Integer;
+    begin
+        // [GIVEN] 3 sequences (A=2 lines, B=3 lines, C=2 lines, visited in that Day Line No. order)
+        InsertPagingFixture(SeqAKey, SeqBKey, SeqCKey);
+        PlanDate := PagingFixtureIsolatedDate();
+
+        // [WHEN] Building the paged payload with MaxLines=3 - A alone (2 lines) is under the
+        // cutoff, but including B (3 more lines, running total 5) is what actually crosses it.
+        PlanningDataJson := DHXDataHandler.ReqAssign_BuildPlanningDataJson_Paged(PlanDate, PlanDate + 2, 3, RemainingSequenceKeys);
+
+        // [THEN] The first page still contains B's Sequence WHOLE (all 3 lines) - it must never be
+        // split just because the running total crossed MaxLines partway through it.
+        GetIdsAndSequenceCount(GetLinesArrFromPlanningDataJson(PlanningDataJson), SeqBKey, FirstPageIds, SeqBLineCountInFirstPage);
+        AssertAreEqual(3, SeqBLineCountInFirstPage, 'Sequence B (which the MaxLines=3 cutoff falls inside) must be included WHOLE on the first page (3 lines), never split.');
+        AssertAreEqual(5, FirstPageIds.Count(), 'First page must contain exactly Sequence A (2) + Sequence B (3) = 5 lines.');
+        AssertIsTrue(ListContains(FirstPageIds, StrSubstNo('%1|%2|10000', TestJobNo, TestJobTaskNo)), 'First page must contain Sequence A''s first line.');
+        AssertIsTrue(ListContains(FirstPageIds, StrSubstNo('%1|%2|50000', TestJobNo, TestJobTaskNo)), 'First page must contain Sequence B''s LAST line (50000) too - the whole crossing sequence, not just enough lines to reach MaxLines.');
+        AssertIsTrue(not ListContains(FirstPageIds, StrSubstNo('%1|%2|60000', TestJobNo, TestJobTaskNo)), 'First page must NOT contain any of Sequence C - it comes entirely after the crossing point.');
+
+        // [THEN] Sequence C (untouched by the first page) is exactly what's reported as remaining.
+        RemainingKeysList := ParseRemainingSequenceKeys(RemainingSequenceKeys);
+        AssertAreEqual(1, RemainingKeysList.Count(), 'Exactly one sequenceKey (Sequence C) should remain.');
+        AssertIsTrue(ListContains(RemainingKeysList, SeqCKey), 'The remaining sequenceKey must be Sequence C''s.');
+    end;
+
+    [Test]
+    procedure GivenPagedFirstPagePlusBackgroundRemainder_WhenCombined_ThenSetEqualToNonPagedFullOutput()
+    var
+        DHXDataHandler: Codeunit "DHX Data Handler";
+        PlanDate: Date;
+        SeqAKey: Text;
+        SeqBKey: Text;
+        SeqCKey: Text;
+        FullPlanningDataJson: Text;
+        PagedPlanningDataJson: Text;
+        RemainingSequenceKeys: Text;
+        RemainderLinesJson: Text;
+        FullIds: List of [Text];
+        FirstPageIds: List of [Text];
+        RemainderIds: List of [Text];
+        CombinedIds: List of [Text];
+        IdTxt: Text;
+        UnusedCount: Integer;
+    begin
+        // [GIVEN] The same 3-sequence/7-line fixture
+        InsertPagingFixture(SeqAKey, SeqBKey, SeqCKey);
+        PlanDate := PagingFixtureIsolatedDate();
+
+        // [WHEN] Building the full non-paged payload (ground truth) ...
+        FullPlanningDataJson := DHXDataHandler.ReqAssign_BuildPlanningDataJson(PlanDate, PlanDate + 2);
+        GetIdsAndSequenceCount(GetLinesArrFromPlanningDataJson(FullPlanningDataJson), '', FullIds, UnusedCount);
+        AssertAreEqual(7, FullIds.Count(), 'Sanity check: the non-paged builder must return all 7 fixture lines.');
+
+        // ... and, separately, the paged first page (MaxLines=3, same as the previous test) plus
+        // the background remainder built via ReqAssign_BuildDayTaskLinesJson_ForKeys for whatever
+        // sequenceKeys the paged call reported as remaining (mirrors what codeunit "ReqAssign BG
+        // Day Task Lines" does for the real Page Background Task).
+        PagedPlanningDataJson := DHXDataHandler.ReqAssign_BuildPlanningDataJson_Paged(PlanDate, PlanDate + 2, 3, RemainingSequenceKeys);
+        GetIdsAndSequenceCount(GetLinesArrFromPlanningDataJson(PagedPlanningDataJson), '', FirstPageIds, UnusedCount);
+
+        RemainderLinesJson := DHXDataHandler.ReqAssign_BuildDayTaskLinesJson_ForKeys(PlanDate, PlanDate + 2, RemainingSequenceKeys);
+        GetIdsAndSequenceCount(GetLinesArrFromRawArrayJson(RemainderLinesJson), '', RemainderIds, UnusedCount);
+
+        // [THEN] First page (5) + remainder (2) = 7, and the combined id SET (order-independent) is
+        // exactly the same as the non-paged builder's full output - pagination changes nothing
+        // about what data ultimately reaches the client, only when/how it arrives.
+        AssertAreEqual(5, FirstPageIds.Count(), 'Sanity check: first page should hold 5 lines (Sequence A + B).');
+        AssertAreEqual(2, RemainderIds.Count(), 'Sanity check: remainder should hold 2 lines (Sequence C).');
+
+        foreach IdTxt in FirstPageIds do
+            CombinedIds.Add(IdTxt);
+        foreach IdTxt in RemainderIds do
+            CombinedIds.Add(IdTxt);
+
+        AssertIsTrue(ListsAreSetEqual(CombinedIds, FullIds),
+            'Combining the paged first page with the background remainder must be SET-EQUAL to the non-paged builder''s full output.');
     end;
 
     [Test]
