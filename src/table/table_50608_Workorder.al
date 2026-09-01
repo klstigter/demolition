@@ -213,10 +213,14 @@ table 50608 "Work Order"
     }
 
     trigger OnInsert()
+    var
+        OI: Record "Order Intake Header Opt.";
     begin
         testfield("Work Order No.");
         "Created DateTime" := CurrentDateTime();
         "Created By" := CopyStr(UserId(), 1, MaxStrLen("Created By"));
+        if OI.Get("Order Intake No.") then
+            OI.TestField("Customer No.");
         SetLastModified();
     end;
 
