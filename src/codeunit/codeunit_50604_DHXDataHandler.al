@@ -90,14 +90,20 @@ codeunit 50604 "DHX Data Handler"
         TEMPJobTasks: Record "Job Task" temporary;
         //PlanningLine: Record "Job Task";
         DayPlanning: Record "Day Planning";
+        DayPlanningPrefetch: Record "Day Planning";
         WeekTemp: record "Aging Band Buffer" temporary;
-        Resource: record Resource;
-        Ven: Record Vendor;
+        ResourcePrefetch: Record Resource;
+        VendorPrefetch: Record Vendor;
         Job: Record Job;
+        ResourceNameDict: Dictionary of [Code[20], Text]; // "No." -> Name, bulk-prefetched once (see ApplyProjectSchedulerDayPlanningFilters/BuildCodeOrFilter) instead of a Resource.Get() per Day Planning row
+        VendorNameDict: Dictionary of [Code[20], Text]; // "No." -> Name, same bulk-prefetch idea for Vendor
+        ResourceNoSet: List of [Code[20]];
+        VendorNoSet: List of [Code[20]];
 
         ResNo: Code[20];
         ResName: Text;
         ReqResName: Text;
+        VenName: Text;
         CurrentJobNo: Code[20];
 
         JobObject, TaskObject, PlanningLineObject : JsonObject;
@@ -131,42 +137,66 @@ codeunit 50604 "DHX Data Handler"
     begin
         PlanninJsonTxt := '';
         //Marking Job based on Day Plannings within the given date range
-        DayPlanning.SetCurrentKey("Plan Date", "Start Time Assigned");
-        DayPlanning.SetRange("Plan Date", StartDate, EndDate);
-        if JobFilter <> '' then
-            DayPlanning.SetFilter("Job No.", JobFilter)
-        else
-            DayPlanning.SetFilter("Job No.", '<>%1', ''); //Exclude blank Job Nos
-        if jobTaskFilter <> '' then
-            DayPlanning.SetFilter("Job Task No.", jobTaskFilter)
-        else
-            DayPlanning.SetFilter("Job Task No.", '<>%1', ''); //Exclude blank task Nos
-        if ResourceFilter <> '' then
-            DayPlanning.Setfilter("Assigned Resource No.", ResourceFilter);
+        ApplyProjectSchedulerDayPlanningFilters(DayPlanning, StartDate, EndDate, ResourceFilter, JobFilter, jobTaskFilter);
+
+        // Bulk-prefetch every Resource/Vendor referenced by this week's (filtered) Day Plannings
+        // in ONE FindSet each, into an in-memory No.->Name dictionary - instead of the old
+        // Resource.Get()/Resource.Get()/Vendor.Get() done per Day Planning row below (up to 3
+        // single-record DB round trips per row). Uses a separate DayPlanningPrefetch cursor so it
+        // doesn't disturb the main DayPlanning.FindSet() loop's own cursor further down.
+        Clear(ResourceNameDict);
+        Clear(VendorNameDict);
+        Clear(ResourceNoSet);
+        Clear(VendorNoSet);
+        ApplyProjectSchedulerDayPlanningFilters(DayPlanningPrefetch, StartDate, EndDate, ResourceFilter, JobFilter, jobTaskFilter);
+        if DayPlanningPrefetch.FindSet() then
+            repeat
+                if (DayPlanningPrefetch."Assigned Resource No." <> '') and not ResourceNoSet.Contains(DayPlanningPrefetch."Assigned Resource No.") then
+                    ResourceNoSet.Add(DayPlanningPrefetch."Assigned Resource No.");
+                if (DayPlanningPrefetch."Requested Resource No." <> '') and not ResourceNoSet.Contains(DayPlanningPrefetch."Requested Resource No.") then
+                    ResourceNoSet.Add(DayPlanningPrefetch."Requested Resource No.");
+                if (DayPlanningPrefetch."Vendor No." <> '') and not VendorNoSet.Contains(DayPlanningPrefetch."Vendor No.") then
+                    VendorNoSet.Add(DayPlanningPrefetch."Vendor No.");
+            until DayPlanningPrefetch.Next() = 0;
+        if ResourceNoSet.Count() > 0 then begin
+            ResourcePrefetch.Reset();
+            ResourcePrefetch.SetFilter("No.", BuildCodeOrFilter(ResourceNoSet));
+            if ResourcePrefetch.FindSet() then
+                repeat
+                    ResourceNameDict.Add(ResourcePrefetch."No.", ResourcePrefetch.Name);
+                until ResourcePrefetch.Next() = 0;
+        end;
+        if VendorNoSet.Count() > 0 then begin
+            VendorPrefetch.Reset();
+            VendorPrefetch.SetFilter("No.", BuildCodeOrFilter(VendorNoSet));
+            if VendorPrefetch.FindSet() then
+                repeat
+                    VendorNameDict.Add(VendorPrefetch."No.", VendorPrefetch.Name);
+                until VendorPrefetch.Next() = 0;
+        end;
+
         //DayPlanning.SetRange(Type, DayPlanning.Type::Resource);
         if DayPlanning.FindSet() then begin
             repeat
-                JobTasks.Get(DayPlanning."Job No.", DayPlanning."Job Task No.");
-                TEMPJobTasks := JobTasks;
-                if not tempjobtasks.get(jobTasks."Job No.", jobTasks."Job Task No.") then begin
+                // Job Task cache-first: skip the DB Get entirely once this Job Task has already
+                // been seen this run (TEMPJobTasks is the in-memory cache being built here).
+                if not TEMPJobTasks.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then begin
+                    JobTasks.Get(DayPlanning."Job No.", DayPlanning."Job Task No.");
+                    TEMPJobTasks := JobTasks;
                     TEMPJobTasks.insert();
                 end;
 
-                // resource data
-                clear(Resource);
+                // resource data - from the bulk-prefetched dictionary above
                 ResNo := '';
                 ResName := '';
-                if Resource.Get(DayPlanning."Assigned Resource No.") then begin
-                    ResNo := Resource."No.";
-                    ResName := Resource.Name;
-                end;
+                if DayPlanning."Assigned Resource No." <> '' then
+                    if ResourceNameDict.Get(DayPlanning."Assigned Resource No.", ResName) then
+                        ResNo := DayPlanning."Assigned Resource No.";
 
-                // requested resource data
-                Clear(Resource);
+                // requested resource data - same dictionary
                 ReqResName := '';
                 if DayPlanning."Requested Resource No." <> '' then
-                    if Resource.Get(DayPlanning."Requested Resource No.") then
-                        ReqResName := Resource.Name;
+                    ResourceNameDict.Get(DayPlanning."Requested Resource No.", ReqResName);
                 // create event data
                 if AnchorDate = 0D then
                     CountToWeekNumber(DayPlanning."Plan Date", WeekTemp);
@@ -248,9 +278,10 @@ codeunit 50604 "DHX Data Handler"
                 //     else
                 //         PlanningObject.Add('color', 'green');
                 // end;
-                if not Ven.Get(DayPlanning."Vendor No.") then
-                    Clear(Ven);
-                PlanningObject.Add('details', Ven.Name);
+                VenName := '';
+                if DayPlanning."Vendor No." <> '' then
+                    VendorNameDict.Get(DayPlanning."Vendor No.", VenName);
+                PlanningObject.Add('details', VenName);
                 // StrSubstNo(DetailsLabel, Ven."No.", Ven.Name
                 // , DayPlanning."Job No.", Jobs.Description
                 // , DayPlanning."Job Task No.", JobTasks.Description));
@@ -281,8 +312,12 @@ codeunit 50604 "DHX Data Handler"
                 PlanningObject.Add('requested_color', ResolveRequestedColor(DayPlanning.Skill, SkillColorDict, NextSkillPaletteIndex));
 
                 PlanningArray.Add(PlanningObject);
-                PlanningArray.WriteTo(PlanninJsonTxt);
             until DayPlanning.Next() = 0;
+            // Serialize once, after the loop, instead of re-serializing the whole (growing)
+            // array on every single row - the final string is identical either way since only
+            // the last write's result is ever read, but this cuts an O(n) redundant
+            // re-serialization down to one write.
+            PlanningArray.WriteTo(PlanninJsonTxt);
 
             if AnchorDate = 0D then begin
                 WeekTemp.Reset();
@@ -390,53 +425,515 @@ codeunit 50604 "DHX Data Handler"
         exit('');
     end;
 
-    // Iteratively adds all ancestor Begin-Total / Heading tasks for every task in
-    // TEMPJobTasks that has Indentation > 0.  A snapshot is taken each pass so
-    // we never modify the table while iterating it.  The loop repeats until a full
-    // pass produces no new insertions, which handles arbitrary nesting depth.
+    // Adds every ancestor Begin-Total / Heading task for every task in TEMPJobTasks that has
+    // Indentation > 0, with the SAME ancestor-insertion contract as before (direct parent = the
+    // last Begin-Total/Heading row - never Posting/End-Total/Total - strictly before this task's
+    // own Job Task No., at exactly Indentation - 1; repeated up the chain to the root), but
+    // computed with a single sorted FindSet per distinct Job No. instead of a multi-pass
+    // "repeat...until not NewAncestorAdded" outer loop that re-ran a fresh filtered FindLast()
+    // query for every indented task on every pass. For each Job: one FindSet over that Job's own
+    // Job Task list (primary-key order = Job Task No. ascending) is held in memory (AllJobTasksForJob),
+    // and while walking it forward, LastAncestorAtLevel[Indentation+1] is kept up to date with the
+    // most recently seen ancestor-eligible row at that indentation - the same "last row with a
+    // smaller Job Task No." that FindLast() used to compute per task, now read off in O(1) as each
+    // row is visited. ParentOfMap then holds every row's immediate parent (Job Task No. ->
+    // parent's Job Task No.), and the originally-touched tasks are walked up that map to their
+    // root, inserting every missing ancestor along the way - no repeated DB round trips at all.
     local procedure AddAncestorsToTemp(var TEMPJobTasks: Record "Job Task" temporary)
     var
+        TouchedSnapshot: Record "Job Task" temporary;
         JobTaskReal: Record "Job Task";
-        TempSnapshot: Record "Job Task" temporary;
-        NewAncestorAdded: Boolean;
+        AllJobTasksForJob: Record "Job Task" temporary;
+        DistinctJobNos: List of [Code[20]];
+        JobNo: Code[20];
+        ParentOfMap: Dictionary of [Code[20], Code[20]];
+        // Dictionary, not a fixed-size array: a fixed array[60] (the original shape here) throws
+        // "Index out of bounds" the moment any real Job Task's Indentation exceeds the array's
+        // bound - confirmed live against CRONUS NL via the AL call stack pointing at this exact
+        // line. A Dictionary has no such ceiling, so arbitrarily deep WBS nesting just works.
+        LastAncestorAtLevel: Dictionary of [Integer, Code[20]];
+        LastAncestorCode: Code[20];
+        ToProcess: List of [Code[20]];
+        StartKey: Code[20];
+        CurrentKey: Code[20];
+        ParentKey: Code[20];
     begin
-        repeat
-            NewAncestorAdded := false;
+        // Snapshot the originally-touched tasks (one in-memory pass, no query) and collect the
+        // distinct Job Nos among them.
+        TEMPJobTasks.Reset();
+        if TEMPJobTasks.FindSet() then
+            repeat
+                TouchedSnapshot := TEMPJobTasks;
+                TouchedSnapshot.Insert();
+                if not DistinctJobNos.Contains(TEMPJobTasks."Job No.") then
+                    DistinctJobNos.Add(TEMPJobTasks."Job No.");
+            until TEMPJobTasks.Next() = 0;
 
-            // Snapshot the current contents of TEMPJobTasks
-            TempSnapshot.Reset();
-            TempSnapshot.DeleteAll();
-            TEMPJobTasks.Reset();
-            if TEMPJobTasks.FindSet() then
-                repeat
-                    TempSnapshot := TEMPJobTasks;
-                    TempSnapshot.Insert();
-                until TEMPJobTasks.Next() = 0;
+        foreach JobNo in DistinctJobNos do begin
+            AllJobTasksForJob.Reset();
+            AllJobTasksForJob.DeleteAll();
+            Clear(ParentOfMap);
+            Clear(LastAncestorAtLevel);
 
-            // For each task with indentation > 0, find its direct parent heading
-            if TempSnapshot.FindSet() then
+            // Single sorted pass over this Job's own Job Task list - held in memory so every
+            // ancestor lookup below is a Get()/dictionary lookup, never a fresh DB round trip.
+            JobTaskReal.Reset();
+            JobTaskReal.SetRange("Job No.", JobNo);
+            if JobTaskReal.FindSet() then
                 repeat
-                    if TempSnapshot.Indentation > 0 then begin
-                        // Direct parent = last Begin-Total or Heading before this task
-                        // at exactly Indentation - 1.  Exclude Posting, End-Total, Total
-                        // so that closing markers are never treated as parent nodes.
-                        JobTaskReal.Reset();
-                        JobTaskReal.SetRange("Job No.", TempSnapshot."Job No.");
-                        JobTaskReal.SetFilter("Job Task Type", '<>%1&<>%2&<>%3',
-                            JobTaskReal."Job Task Type"::Posting,
-                            JobTaskReal."Job Task Type"::"End-Total",
-                            JobTaskReal."Job Task Type"::Total);
-                        JobTaskReal.SetFilter("Job Task No.", '<%1', TempSnapshot."Job Task No.");
-                        JobTaskReal.SetRange("Indentation", TempSnapshot.Indentation - 1);
-                        if JobTaskReal.FindLast() then
-                            if not TEMPJobTasks.Get(JobTaskReal."Job No.", JobTaskReal."Job Task No.") then begin
-                                TEMPJobTasks := JobTaskReal;
-                                TEMPJobTasks.Insert();
-                                NewAncestorAdded := true;
-                            end;
+                    AllJobTasksForJob := JobTaskReal;
+                    AllJobTasksForJob.Insert();
+
+                    // Direct parent = the last ancestor-eligible row strictly before this one
+                    // (i.e. seen earlier in this ascending walk), at exactly Indentation - 1 -
+                    // same definition the old per-task FindLast() used.
+                    if (JobTaskReal.Indentation > 0) and LastAncestorAtLevel.Get(JobTaskReal.Indentation, LastAncestorCode) then
+                        ParentOfMap.Add(JobTaskReal."Job Task No.", LastAncestorCode);
+
+                    // Ancestor-eligible = not Posting/End-Total/Total (closing markers are never
+                    // parent nodes) - update this row's own level for rows seen after it.
+                    if (JobTaskReal."Job Task Type" <> JobTaskReal."Job Task Type"::Posting) and
+                       (JobTaskReal."Job Task Type" <> JobTaskReal."Job Task Type"::"End-Total") and
+                       (JobTaskReal."Job Task Type" <> JobTaskReal."Job Task Type"::Total) then
+                        LastAncestorAtLevel.Set(JobTaskReal.Indentation + 1, JobTaskReal."Job Task No.");
+                until JobTaskReal.Next() = 0;
+
+            // Every task of this Job that was originally touched, walked up its ancestor chain -
+            // inserting every missing ancestor handles arbitrary nesting depth without an outer
+            // "did anything change" loop, since the chain is fully resolved on first climb.
+            Clear(ToProcess);
+            TouchedSnapshot.Reset();
+            TouchedSnapshot.SetRange("Job No.", JobNo);
+            if TouchedSnapshot.FindSet() then
+                repeat
+                    ToProcess.Add(TouchedSnapshot."Job Task No.");
+                until TouchedSnapshot.Next() = 0;
+
+            foreach StartKey in ToProcess do begin
+                CurrentKey := StartKey;
+                while ParentOfMap.Get(CurrentKey, ParentKey) do begin
+                    if TEMPJobTasks.Get(JobNo, ParentKey) then
+                        break; // already present - its own ancestor chain was already fully resolved
+                    if AllJobTasksForJob.Get(JobNo, ParentKey) then begin
+                        TEMPJobTasks := AllJobTasksForJob;
+                        TEMPJobTasks.Insert();
                     end;
-                until TempSnapshot.Next() = 0;
-        until not NewAncestorAdded;
+                    CurrentKey := ParentKey;
+                end;
+            end;
+        end;
+    end;
+
+    // Shared Day Planning filter setup for the Task Scheduler's weekly data window - one place
+    // for the "Plan Date" range + Job/Job Task/Resource filters used by GetYUnitElementsJSON_Project,
+    // its Resource/Vendor bulk-prefetch pass, and GetYUnitElementsJSON_Project_Paged, so the three
+    // never drift out of sync with each other.
+    local procedure ApplyProjectSchedulerDayPlanningFilters(var DayPlanningRec: Record "Day Planning"; StartDate: Date; EndDate: Date; ResourceFilter: Text; JobFilter: Text; JobTaskFilter: Text)
+    begin
+        DayPlanningRec.Reset();
+        DayPlanningRec.SetCurrentKey("Plan Date", "Start Time Assigned");
+        DayPlanningRec.SetRange("Plan Date", StartDate, EndDate);
+        if JobFilter <> '' then
+            DayPlanningRec.SetFilter("Job No.", JobFilter)
+        else
+            DayPlanningRec.SetFilter("Job No.", '<>%1', ''); //Exclude blank Job Nos
+        if JobTaskFilter <> '' then
+            DayPlanningRec.SetFilter("Job Task No.", JobTaskFilter)
+        else
+            DayPlanningRec.SetFilter("Job Task No.", '<>%1', ''); //Exclude blank task Nos
+        if ResourceFilter <> '' then
+            DayPlanningRec.SetFilter("Assigned Resource No.", ResourceFilter);
+    end;
+
+    // Joins a list of Code[20] values into a single AL OR-filter ("A|B|C") suitable for
+    // SetFilter("No.", ...) - used to bulk-load a Resource/Vendor prefetch dictionary in one
+    // FindSet instead of one Get() per distinct value.
+    local procedure BuildCodeOrFilter(var Codes: List of [Code[20]]): Text
+    var
+        FilterTxt: Text;
+        CodeVal: Code[20];
+    begin
+        foreach CodeVal in Codes do begin
+            if FilterTxt <> '' then
+                FilterTxt += '|';
+            FilterTxt += CodeVal;
+        end;
+        exit(FilterTxt);
+    end;
+
+    /// <summary>
+    /// Paginated sibling of GetYUnitElementsJSON_Project: builds the exact same Job-by-Job section
+    /// tree + events for the given period/filters, but stops adding whole Jobs to the returned JSON
+    /// once the running section-row count reaches MaxRows - always AT a Job boundary, never mid-job
+    /// (a Job's own indented task tree is never split across the sync/async boundary; the first Job
+    /// is always included even if it alone exceeds MaxRows). RemainingJobFilter comes back as an AL
+    /// OR-filter ("JobA|JobB|...") of every Job No. NOT included in this page, ready to hand to a
+    /// background task (see codeunit "Task Scheduler BG Sections") that finishes the rest via a
+    /// plain GetYUnitElementsJSON_Project call scoped to just that filter.
+    /// Reuses Part A's fixed AddAncestorsToTemp/prefetch technique in full (this is effectively a
+    /// self-contained copy of GetYUnitElementsJSON_Project's assembly logic, kept separate rather
+    /// than sharing code with it, so the already-verified byte-identical non-paged procedure is
+    /// never put at risk by pagination-only changes here) - only the "where do we stop" bookkeeping
+    /// at the very end (deciding which Jobs make the first page, and filtering the events
+    /// accordingly) is new.
+    /// </summary>
+    procedure GetYUnitElementsJSON_Project_Paged(AnchorDate: Date;
+                               StartDate: Date;
+                               EndDate: Date;
+                               ResourceFilter: Text;
+                               JobFilter: Text;
+                               JobTaskFilter: Text;
+                               MaxRows: Integer;
+                               var PlanninJsonTxt: Text;
+                               var EarliestPlanningDate: Date;
+                               var RemainingJobFilter: Text): Text
+    var
+        JobTasks: Record "Job Task";
+        TEMPJobTasks: Record "Job Task" temporary;
+        DayPlanning: Record "Day Planning";
+        DayPlanningPrefetch: Record "Day Planning";
+        WeekTemp: record "Aging Band Buffer" temporary;
+        ResourcePrefetch: Record Resource;
+        VendorPrefetch: Record Vendor;
+        Job: Record Job;
+        ResourceNameDict: Dictionary of [Code[20], Text];
+        VendorNameDict: Dictionary of [Code[20], Text];
+        ResourceNoSet: List of [Code[20]];
+        VendorNoSet: List of [Code[20]];
+
+        ResNo: Code[20];
+        ResName: Text;
+        ReqResName: Text;
+        VenName: Text;
+        CurrentJobNo: Code[20];
+
+        JobObject, TaskObject, PlanningLineObject : JsonObject;
+        ChildrenArray, ChildrenArray2 : JsonArray;
+        StackArr: array[50] of JsonArray;
+        StackObj: array[50] of JsonObject;
+        StackIndent: array[50] of Integer;
+        StackDepth: Integer;
+        TaskLeaf: JsonObject;
+        HeadingNode: JsonObject;
+        FreshArr: JsonArray;
+        PlanningObject, Root : JsonObject;
+        PlanningArray, FilteredPlanningArray, DataArray : JsonArray;
+        EventJobNos: List of [Code[20]]; // parallel to PlanningArray - EventJobNos.Get(i+1) is the Job No. for PlanningArray's i-th (0-based) element
+        EvToken: JsonToken;
+        EvIdx: Integer;
+        OutText: Text;
+
+        StartDateTxt: Text;
+        EndDateTxt: Text;
+        _DummyEndDate: Date;
+
+        HasAssigned: Boolean;
+        HasRequested: Boolean;
+        AssignedStartTime: Time;
+        AssignedEndTime: Time;
+        RequestedStartTime: Time;
+        RequestedEndTime: Time;
+        EnvelopeStartTime: Time;
+        EnvelopeEndTime: Time;
+        SkillColorDict: Dictionary of [Code[20], Text];
+        NextSkillPaletteIndex: Integer;
+
+        JobRowCounts: Dictionary of [Code[20], Integer];
+        JobOrder: List of [Code[20]];
+        IncludedJobs: Dictionary of [Code[20], Boolean];
+        IncludedJobsList: List of [Code[20]];
+        RunningTotal: Integer;
+        JN: Code[20];
+    begin
+        PlanninJsonTxt := '';
+        RemainingJobFilter := '';
+        if MaxRows <= 0 then
+            MaxRows := 1; // always render at least the first Job's worth of sections
+
+        ApplyProjectSchedulerDayPlanningFilters(DayPlanning, StartDate, EndDate, ResourceFilter, JobFilter, JobTaskFilter);
+
+        // Same bulk Resource/Vendor prefetch as GetYUnitElementsJSON_Project (Part A) - see that
+        // procedure's comment for why. Scoped to the FULL filtered period (not just the eventual
+        // first page) since the main loop below still walks every matching Day Planning once, to
+        // build TEMPJobTasks/row counts correctly - only the OUTPUT is paginated, not this scan.
+        Clear(ResourceNameDict);
+        Clear(VendorNameDict);
+        Clear(ResourceNoSet);
+        Clear(VendorNoSet);
+        ApplyProjectSchedulerDayPlanningFilters(DayPlanningPrefetch, StartDate, EndDate, ResourceFilter, JobFilter, JobTaskFilter);
+        if DayPlanningPrefetch.FindSet() then
+            repeat
+                if (DayPlanningPrefetch."Assigned Resource No." <> '') and not ResourceNoSet.Contains(DayPlanningPrefetch."Assigned Resource No.") then
+                    ResourceNoSet.Add(DayPlanningPrefetch."Assigned Resource No.");
+                if (DayPlanningPrefetch."Requested Resource No." <> '') and not ResourceNoSet.Contains(DayPlanningPrefetch."Requested Resource No.") then
+                    ResourceNoSet.Add(DayPlanningPrefetch."Requested Resource No.");
+                if (DayPlanningPrefetch."Vendor No." <> '') and not VendorNoSet.Contains(DayPlanningPrefetch."Vendor No.") then
+                    VendorNoSet.Add(DayPlanningPrefetch."Vendor No.");
+            until DayPlanningPrefetch.Next() = 0;
+        if ResourceNoSet.Count() > 0 then begin
+            ResourcePrefetch.Reset();
+            ResourcePrefetch.SetFilter("No.", BuildCodeOrFilter(ResourceNoSet));
+            if ResourcePrefetch.FindSet() then
+                repeat
+                    ResourceNameDict.Add(ResourcePrefetch."No.", ResourcePrefetch.Name);
+                until ResourcePrefetch.Next() = 0;
+        end;
+        if VendorNoSet.Count() > 0 then begin
+            VendorPrefetch.Reset();
+            VendorPrefetch.SetFilter("No.", BuildCodeOrFilter(VendorNoSet));
+            if VendorPrefetch.FindSet() then
+                repeat
+                    VendorNameDict.Add(VendorPrefetch."No.", VendorPrefetch.Name);
+                until VendorPrefetch.Next() = 0;
+        end;
+
+        if DayPlanning.FindSet() then begin
+            repeat
+                if not TEMPJobTasks.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then begin
+                    JobTasks.Get(DayPlanning."Job No.", DayPlanning."Job Task No.");
+                    TEMPJobTasks := JobTasks;
+                    TEMPJobTasks.insert();
+                end;
+
+                ResNo := '';
+                ResName := '';
+                if DayPlanning."Assigned Resource No." <> '' then
+                    if ResourceNameDict.Get(DayPlanning."Assigned Resource No.", ResName) then
+                        ResNo := DayPlanning."Assigned Resource No.";
+
+                ReqResName := '';
+                if DayPlanning."Requested Resource No." <> '' then
+                    ResourceNameDict.Get(DayPlanning."Requested Resource No.", ReqResName);
+
+                if AnchorDate = 0D then
+                    CountToWeekNumber(DayPlanning."Plan Date", WeekTemp);
+
+                HasAssigned := (DayPlanning."Start Time Assigned" <> 0T) or (DayPlanning."End Time Assigned" <> 0T);
+                HasRequested := (DayPlanning."Start Time Requested" <> 0T) or (DayPlanning."End Time Requested" <> 0T);
+
+                if HasAssigned then begin
+                    if DayPlanning."Start Time Assigned" <> 0T then
+                        AssignedStartTime := DayPlanning."Start Time Assigned"
+                    else
+                        AssignedStartTime := 000000T;
+                    if DayPlanning."End Time Assigned" <> 0T then
+                        AssignedEndTime := DayPlanning."End Time Assigned"
+                    else
+                        AssignedEndTime := 235959T;
+                end;
+
+                if HasRequested then begin
+                    if DayPlanning."Start Time Requested" <> 0T then
+                        RequestedStartTime := DayPlanning."Start Time Requested"
+                    else
+                        RequestedStartTime := 000000T;
+                    if DayPlanning."End Time Requested" <> 0T then
+                        RequestedEndTime := DayPlanning."End Time Requested"
+                    else
+                        RequestedEndTime := 235959T;
+                end;
+
+                if HasAssigned and HasRequested then begin
+                    if AssignedStartTime < RequestedStartTime then
+                        EnvelopeStartTime := AssignedStartTime
+                    else
+                        EnvelopeStartTime := RequestedStartTime;
+                    if AssignedEndTime > RequestedEndTime then
+                        EnvelopeEndTime := AssignedEndTime
+                    else
+                        EnvelopeEndTime := RequestedEndTime;
+                end else if HasAssigned then begin
+                    EnvelopeStartTime := AssignedStartTime;
+                    EnvelopeEndTime := AssignedEndTime;
+                end else if HasRequested then begin
+                    EnvelopeStartTime := RequestedStartTime;
+                    EnvelopeEndTime := RequestedEndTime;
+                end else begin
+                    EnvelopeStartTime := 000000T;
+                    EnvelopeEndTime := 235959T;
+                end;
+
+                StartDateTxt := ToSessionDateTimeTxt(DayPlanning."Plan Date", EnvelopeStartTime);
+                EndDateTxt := ToSessionDateTimeTxt(DayPlanning."Plan Date", EnvelopeEndTime);
+                Clear(PlanningObject);
+                PlanningObject.Add('id', DayPlanning."Job No." + '|' +
+                                         DayPlanning."Job Task No." + '|' +
+                                         Format(DayPlanning."Plan Date") + '|' +
+                                         Format(DayPlanning."Day Line No.") + '|' +
+                                         ResNo + '|' +
+                                         ResName);
+                PlanningObject.Add('start_date', StartDateTxt);
+                PlanningObject.Add('end_date', EndDateTxt);
+                PlanningObject.Add('text', TaskSchedulerEventBarText(DayPlanning.Skill, ResName, ReqResName,
+                    DayPlanning."Job No." + '|' + DayPlanning."Job Task No." + ' (vacant)'));
+
+                PlanningObject.Add('section_id', DayPlanning."Job No." + '|' + DayPlanning."Job Task No.");
+                VenName := '';
+                if DayPlanning."Vendor No." <> '' then
+                    VendorNameDict.Get(DayPlanning."Vendor No.", VenName);
+                PlanningObject.Add('details', VenName);
+
+                PlanningObject.Add('non_working_minutes_assigned', DayPlanning."Non Working Minutes Assigned");
+                PlanningObject.Add('assigned_hours', DayPlanning."Assigned Hours");
+                PlanningObject.Add('requested_resource_no', DayPlanning."Requested Resource No.");
+                PlanningObject.Add('requested_resource_name', ReqResName);
+                if DayPlanning."Start Time Assigned" <> 0T then
+                    PlanningObject.Add('start_time_assigned', Format(DayPlanning."Start Time Assigned", 0, '<Hours24,2>:<Minutes,2>'))
+                else
+                    PlanningObject.Add('start_time_assigned', '');
+                if DayPlanning."End Time Assigned" <> 0T then
+                    PlanningObject.Add('end_time_assigned', Format(DayPlanning."End Time Assigned", 0, '<Hours24,2>:<Minutes,2>'))
+                else
+                    PlanningObject.Add('end_time_assigned', '');
+                if DayPlanning."Start Time Requested" <> 0T then
+                    PlanningObject.Add('start_time_requested', Format(DayPlanning."Start Time Requested", 0, '<Hours24,2>:<Minutes,2>'))
+                else
+                    PlanningObject.Add('start_time_requested', '');
+                if DayPlanning."End Time Requested" <> 0T then
+                    PlanningObject.Add('end_time_requested', Format(DayPlanning."End Time Requested", 0, '<Hours24,2>:<Minutes,2>'))
+                else
+                    PlanningObject.Add('end_time_requested', '');
+                PlanningObject.Add('non_working_minutes_requested', DayPlanning."Non Working Minutes Requested");
+                PlanningObject.Add('requested_hours', DayPlanning."Requested Hours");
+                PlanningObject.Add('skill', DayPlanning.Skill);
+                PlanningObject.Add('requested_color', ResolveRequestedColor(DayPlanning.Skill, SkillColorDict, NextSkillPaletteIndex));
+
+                PlanningArray.Add(PlanningObject);
+                EventJobNos.Add(DayPlanning."Job No.");
+            until DayPlanning.Next() = 0;
+
+            if AnchorDate = 0D then begin
+                WeekTemp.Reset();
+                WeekTemp.SetCurrentKey("Column 3 Amt.");
+                WeekTemp.FindSet();
+                if WeekTemp.FindLast() then
+                    EarliestPlanningDate := DWY2Date(1, WeekTemp."Column 2 Amt.", WeekTemp."Column 1 Amt.")
+                else
+                    EarliestPlanningDate := Today();
+            end else
+                GetWeekPeriodDates(AnchorDate, EarliestPlanningDate, _DummyEndDate);
+        end else
+            EarliestPlanningDate := Today();
+
+        AddAncestorsToTemp(TEMPJobTasks);
+
+        // Decide the page cutoff: count TEMPJobTasks rows per Job (the same rows the tree-build
+        // below turns 1-for-1 into section nodes), then walk Jobs in their natural Job No. order
+        // (matching the tree-build's own primary-key order) accumulating until MaxRows is
+        // reached - the Job that pushes the total over the line is still fully included (never
+        // split mid-job); every Job after it becomes RemainingJobFilter.
+        TEMPJobTasks.Reset();
+        if TEMPJobTasks.FindSet() then
+            repeat
+                if not JobRowCounts.ContainsKey(TEMPJobTasks."Job No.") then begin
+                    JobRowCounts.Add(TEMPJobTasks."Job No.", 0);
+                    JobOrder.Add(TEMPJobTasks."Job No.");
+                end;
+                JobRowCounts.Set(TEMPJobTasks."Job No.", JobRowCounts.Get(TEMPJobTasks."Job No.") + 1);
+            until TEMPJobTasks.Next() = 0;
+
+        RunningTotal := 0;
+        foreach JN in JobOrder do
+            if RunningTotal >= MaxRows then begin
+                if RemainingJobFilter <> '' then
+                    RemainingJobFilter += '|';
+                RemainingJobFilter += JN;
+            end else begin
+                IncludedJobs.Add(JN, true);
+                RunningTotal += JobRowCounts.Get(JN);
+            end;
+
+        // Events: only the included Jobs' events belong on this first page - the rest travel with
+        // RemainingJobFilter to the background task.
+        for EvIdx := 0 to PlanningArray.Count - 1 do begin
+            PlanningArray.Get(EvIdx, EvToken);
+            if IncludedJobs.ContainsKey(EventJobNos.Get(EvIdx + 1)) then
+                FilteredPlanningArray.Add(EvToken);
+        end;
+        FilteredPlanningArray.WriteTo(PlanninJsonTxt);
+
+        // Sections: identical stack-based tree-build to GetYUnitElementsJSON_Project, just scoped
+        // to the included Jobs via a filter on TEMPJobTasks - so a page that fits within MaxRows
+        // entirely (RemainingJobFilter = '') produces byte-identical output to the non-paged call.
+        IncludedJobsList := IncludedJobs.Keys();
+        if IncludedJobsList.Count() > 0 then
+            TEMPJobTasks.SetFilter("Job No.", BuildCodeOrFilter(IncludedJobsList))
+        else
+            TEMPJobTasks.SetFilter("Job No.", '');
+
+        if TEMPJobTasks.FindSet() then begin
+            Clear(DataArray);
+            CurrentJobNo := '';
+            StackDepth := 0;
+            repeat
+                if TEMPJobTasks."Job No." <> CurrentJobNo then begin
+                    if CurrentJobNo <> '' then begin
+                        while StackDepth > 0 do begin
+                            StackObj[StackDepth].Add('children', StackArr[StackDepth + 1]);
+                            StackArr[StackDepth].Add(StackObj[StackDepth]);
+                            StackDepth -= 1;
+                        end;
+                        JobObject.Add('children', StackArr[1]);
+                        DataArray.Add(JobObject);
+                    end;
+                    CurrentJobNo := TEMPJobTasks."Job No.";
+                    Clear(JobObject);
+                    Clear(FreshArr);
+                    StackArr[1] := FreshArr;
+                    StackDepth := 0;
+                    JobObject.Add('key', CurrentJobNo);
+                    if Job.Get(CurrentJobNo) then
+                        JobObject.Add('label', StrSubstNo('%1 - %2', CurrentJobNo, Job.Description))
+                    else
+                        JobObject.Add('label', CurrentJobNo);
+                    JobObject.Add('open', true);
+                end;
+
+                while StackDepth > 0 do begin
+                    if StackIndent[StackDepth] < TEMPJobTasks.Indentation then
+                        break;
+                    StackObj[StackDepth].Add('children', StackArr[StackDepth + 1]);
+                    StackArr[StackDepth].Add(StackObj[StackDepth]);
+                    StackDepth -= 1;
+                end;
+
+                if TEMPJobTasks."Job Task Type" = TEMPJobTasks."Job Task Type"::Posting then begin
+                    Clear(TaskLeaf);
+                    TaskLeaf.Add('key', TEMPJobTasks."Job No." + '|' + TEMPJobTasks."Job Task No.");
+                    TaskLeaf.Add('label', StrSubstNo('%1 - %2', TEMPJobTasks."Job Task No.", TEMPJobTasks.Description));
+                    StackArr[StackDepth + 1].Add(TaskLeaf);
+                end else if (TEMPJobTasks."Job Task Type" = TEMPJobTasks."Job Task Type"::"End-Total") or
+                            (TEMPJobTasks."Job Task Type" = TEMPJobTasks."Job Task Type"::Total) then begin
+                    // skip closing markers
+                end else begin
+                    if StackDepth < 49 then begin
+                        StackDepth += 1;
+                        Clear(HeadingNode);
+                        HeadingNode.Add('key', TEMPJobTasks."Job No." + '|' + TEMPJobTasks."Job Task No.");
+                        HeadingNode.Add('label', StrSubstNo('%1 - %2', TEMPJobTasks."Job Task No.", TEMPJobTasks.Description));
+                        HeadingNode.Add('open', true);
+                        StackObj[StackDepth] := HeadingNode;
+                        Clear(FreshArr);
+                        StackArr[StackDepth + 1] := FreshArr;
+                        StackIndent[StackDepth] := TEMPJobTasks.Indentation;
+                    end;
+                end;
+            until TEMPJobTasks.Next() = 0;
+            if CurrentJobNo <> '' then begin
+                while StackDepth > 0 do begin
+                    StackObj[StackDepth].Add('children', StackArr[StackDepth + 1]);
+                    StackArr[StackDepth].Add(StackObj[StackDepth]);
+                    StackDepth -= 1;
+                end;
+                JobObject.Add('children', StackArr[1]);
+                DataArray.Add(JobObject);
+            end;
+            Clear(Root);
+            Root.Add('data', DataArray);
+            Root.WriteTo(OutText);
+            exit(OutText);
+        end;
+        exit('');
     end;
 
     /// <summary>
@@ -2158,11 +2655,6 @@ codeunit 50604 "DHX Data Handler"
                                                                   var ResouecesJSon: Text;
                                                                   var EventsJSon: Text;
                                                                   var EarliestPlanningDate: date): Boolean
-    var
-        TimeLineJSonObj: JsonObject;
-        JToken: JsonToken;
-        _DateTime: DateTime;
-        _DateTimeUserZone: DateTime;
     begin
         ResouecesJSon := GetYUnitElementsJSON_Project(StartDate,
                                             StartDate,
@@ -2180,11 +2672,6 @@ codeunit 50604 "DHX Data Handler"
                                                                   var ResouecesJSon: Text;
                                                                   var EventsJSon: Text;
                                                                   var EarliestPlanningDate: date): Boolean
-    var
-        TimeLineJSonObj: JsonObject;
-        JToken: JsonToken;
-        _DateTime: DateTime;
-        _DateTimeUserZone: DateTime;
     begin
         ResouecesJSon := GetYUnitElementsJSON_Project(StartDate,
                                             StartDate,
