@@ -54,6 +54,11 @@ page 50655 "Order Intake Card"
                         field("Customer No."; Rec."Customer No.")
                         {
                             ApplicationArea = All;
+
+                            trigger OnValidate()
+                            begin
+                                CurrPage.OrderLines.PAGE.SetEditable(Rec."Customer No." <> '');
+                            end;
                         }
                     }
 
@@ -149,6 +154,8 @@ page 50655 "Order Intake Card"
         // Guard with AddinReady: on first load ControlReady fires the initial load.
         if AddinReady then
             CurrPage.RichTextEditor.SetValue(Rec.GetDescription());
+
+        CurrPage.OrderLines.PAGE.SetEditable(Rec."Customer No." <> '');
     end;
 
     var

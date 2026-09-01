@@ -226,23 +226,31 @@ page 50656 "Work Order Sub"
         }
     }
 
+    procedure SetEditable(NewEditable: Boolean)
+    begin
+        CurrPage.Editable(NewEditable);
+    end;
+
     trigger OnInsertRecord(belowxRec: Boolean): Boolean
     var
         OrderIntak: Record "Order Intake Header opt.";
         OptimizerSetup: record "Daily Optimizer Setup";
         NoSeries: Codeunit "No. Series";
     begin
+        rec.FilterGroup(4);
+        rec."Order Intake No." := rec.GetFilter("Order Intake No.");
+        rec.FilterGroup(0);
+
+        if rec."Order Intake No." <> '' then begin
+            OrderIntak.Get(rec."Order Intake No.");
+            OrderIntak.TestField("Customer No.");
+            rec."Customer No." := OrderIntak."Customer No.";
+        end;
+
         OptimizerSetup.Get();
         OptimizerSetup.TestField("Work Order Nos");
         rec."Work Order NOS" := OptimizerSetup."Work Order Nos";
         rec."Work Order No." := NoSeries.GetNextNo(rec."Work Order NOS");
-        rec.FilterGroup(4);
-        rec."Order Intake No." := rec.GetFilter("Order Intake No.");
-        if rec."Order Intake No." <> '' then begin
-            OrderIntak.Get(rec."Order Intake No.");
-            rec."Customer No." := OrderIntak."Customer No.";
-        end;
-        rec.FilterGroup(0);
     end;
 
 
