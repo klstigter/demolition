@@ -390,6 +390,141 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     end;
 
     /// <summary>
+    /// Range-generalized twin of BuildDayCapacityChartData for the Capacity Planning Overview
+    /// add-in (page 50722, controladdin DHXCapacityPlanningOverviewAddin, codeunit 50604's
+    /// CPO_BuildPlanningDataJson - Section 3) - identical JSON shape/keys, identical segment
+    /// definitions (Assigned Internal/External, Free Capacity Internal/External, per-skill
+    /// Internal/External pairs), and the identical Capacity-bar-keeps-split /
+    /// Requested-bar-collapses-to-a-single-total rule (see that procedure's own doc comment for
+    /// the full contract - unchanged here, not re-invented), but loops every calendar day in
+    /// [StartDate, EndDate] instead of always a fixed Monday..Sunday week - a Work Order's own
+    /// visible window is an arbitrary caller-supplied span, not a calendar week. Reuses
+    /// EnsureDayPlanningBuffer/BuildActiveSkillList/CalcDaySegments/DayHasAnyChartData/
+    /// AddChartSeries/the same color-resolution helpers as BuildDayCapacityChartData - no new
+    /// categorization invented for this caller. DayIndex here is 1-based across the whole
+    /// [StartDate,EndDate] span (not a 1..7 weekday number) - "dayIndices" in the returned JSON
+    /// carries that same 1-based span index, so a caller that needs the real Date back must
+    /// re-derive it as StartDate + (dayIndex - 1), mirroring how BuildDayCapacityChartData's own
+    /// "dayIndices" is a raw 1..7 weekday index rather than a formatted date.
+    /// </summary>
+    procedure BuildDayCapacityChartDataForRange(StartDate: Date; EndDate: Date) ChartDataJson: Text
+    var
+        ChartData: JsonObject;
+        CategoriesArray: JsonArray;
+        DayLabelsArray: JsonArray;
+        DayIndicesArray: JsonArray;
+        SeriesArray: JsonArray;
+        AssInternalValues: List of [Decimal];
+        AssExternalValues: List of [Decimal];
+        CapInternalValues: List of [Decimal];
+        CapExternalValues: List of [Decimal];
+        SkillInternalValues: List of [Decimal];
+        SkillExternalValues: List of [Decimal];
+        ActiveSkillList: List of [Code[20]];
+        OneDaySkillInternalValues: Dictionary of [Code[20], Decimal];
+        OneDaySkillExternalValues: Dictionary of [Code[20], Decimal];
+        AllDaySkillInternalValues: Dictionary of [Text, Decimal];
+        AllDaySkillExternalValues: Dictionary of [Text, Decimal];
+        IncludedDay: List of [Boolean];
+        SkillCode: Code[20];
+        DayIndex: Integer;
+        DayCount: Integer;
+        CurrDate: Date;
+        AssInternalD: Decimal;
+        AssExternalD: Decimal;
+        CapInternalD: Decimal;
+        CapExternalD: Decimal;
+        SkillPaletteIdx: Integer;
+        AssignedColorHex: Text;
+        CapacityColorHex: Text;
+        ExternalBorderColorHex: Text;
+        ColorConstants: Codeunit "Visual Default Settings";
+        IsIncluded: Boolean;
+    begin
+        Clear(ChartDataJson);
+        if EndDate < StartDate then
+            exit;
+
+        EnsureDayPlanningBuffer(StartDate, EndDate);
+
+        BuildActiveSkillList(ActiveSkillList);
+
+        Clear(CategoriesArray);
+        Clear(DayLabelsArray);
+        Clear(DayIndicesArray);
+        Clear(AssInternalValues);
+        Clear(AssExternalValues);
+        Clear(CapInternalValues);
+        Clear(CapExternalValues);
+        Clear(IncludedDay);
+
+        DayCount := EndDate - StartDate + 1;
+        CurrDate := StartDate;
+        for DayIndex := 1 to DayCount do begin
+            CalcDaySegments(CurrDate, ActiveSkillList, AssInternalD, AssExternalD, CapInternalD, CapExternalD, OneDaySkillInternalValues, OneDaySkillExternalValues);
+
+            IsIncluded := DayHasAnyChartData(AssInternalD, AssExternalD, CapInternalD, CapExternalD, ActiveSkillList, OneDaySkillInternalValues, OneDaySkillExternalValues);
+            IncludedDay.Add(IsIncluded);
+            if IsIncluded then begin
+                CategoriesArray.Add(FormatWeekdayShort(CurrDate) + CategoryDelimiterTok + FreeCapacityCategoryLbl);
+                CategoriesArray.Add(FormatWeekdayShort(CurrDate) + CategoryDelimiterTok + RequestedCategoryLbl);
+                DayLabelsArray.Add(FormatWeekdayShort(CurrDate));
+                DayIndicesArray.Add(DayIndex);
+
+                AssInternalValues.Add(AssInternalD);
+                AssInternalValues.Add(AssInternalD + AssExternalD);
+                AssExternalValues.Add(AssExternalD);
+                AssExternalValues.Add(0);
+
+                CapInternalValues.Add(CapInternalD);
+                CapInternalValues.Add(0);
+                CapExternalValues.Add(CapExternalD);
+                CapExternalValues.Add(0);
+
+                foreach SkillCode in ActiveSkillList do begin
+                    AllDaySkillInternalValues.Set(Format(DayIndex) + '|' + SkillCode, OneDaySkillInternalValues.Get(SkillCode));
+                    AllDaySkillExternalValues.Set(Format(DayIndex) + '|' + SkillCode, OneDaySkillExternalValues.Get(SkillCode));
+                end;
+            end;
+
+            CurrDate += 1;
+        end;
+
+        ColorConstants.GetCapacitySegmentColors(AssignedColorHex, CapacityColorHex, ExternalBorderColorHex);
+        AddChartSeries(SeriesArray, AssInternalSeriesNameLbl, AssInternalValues, AssignedColorHex, '', '');
+        AddChartSeries(SeriesArray, AssExternalSeriesNameLbl, AssExternalValues, AssignedColorHex, ExternalBorderColorHex, '');
+        AddChartSeries(SeriesArray, CapInternalSeriesNameLbl, CapInternalValues, CapacityColorHex, '', '');
+        AddChartSeries(SeriesArray, CapExternalSeriesNameLbl, CapExternalValues, CapacityColorHex, ExternalBorderColorHex, '');
+
+        SkillPaletteIdx := 0;
+        foreach SkillCode in ActiveSkillList do begin
+            Clear(SkillInternalValues);
+            Clear(SkillExternalValues);
+            for DayIndex := 1 to DayCount do begin
+                if not IncludedDay.Get(DayIndex) then
+                    continue; // stays index-aligned with CategoriesArray - excluded days get no entry at all.
+
+                SkillInternalValues.Add(0); // Capacity bar - skills never appear there.
+                SkillInternalValues.Add(
+                    AllDaySkillInternalValues.Get(Format(DayIndex) + '|' + SkillCode) +
+                    AllDaySkillExternalValues.Get(Format(DayIndex) + '|' + SkillCode));
+                SkillExternalValues.Add(0);
+                SkillExternalValues.Add(0);
+            end;
+            AddChartSeries(SeriesArray, SkillCode, SkillInternalValues, GetSkillSeriesColor(SkillCode, SkillPaletteIdx), GetSkillSeriesBorderColor(SkillCode, SkillPaletteIdx), GetSkillSeriesFontColor(SkillCode));
+            AddChartSeries(SeriesArray, SkillCode, SkillExternalValues, GetSkillSeriesColor(SkillCode, SkillPaletteIdx), ExternalBorderColorHex, '');
+            SkillPaletteIdx += 1;
+        end;
+
+        ChartData.Add('categories', CategoriesArray);
+        ChartData.Add('dayLabels', DayLabelsArray);
+        ChartData.Add('dayIndices', DayIndicesArray);
+        ChartData.Add('series', SeriesArray);
+        ChartData.Add('barWidth', ColorConstants.GetWeeklyBarChartWidth());
+        ChartData.WriteTo(ChartDataJson);
+    end;
+
+    /// <summary>
     /// True if PlanDate's segment values carry ANY nonzero data anywhere - Assigned (internal or
     /// external), free Capacity (internal or external), or any active skill's requested hours
     /// (internal or external) - used by BuildDayCapacityChartData to decide whether that day gets

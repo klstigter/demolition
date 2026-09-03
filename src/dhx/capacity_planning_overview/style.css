@@ -1,0 +1,716 @@
+/* Capacity Planning Overview - control add-in styles.
+   Class names/geometry mirror capacityPlanningOverview.js's own CapacityPlanningOverview.*
+   layout constants (ROW_LABEL_WIDTH=200, COLUMN_WIDTH=60, SCALE_HEIGHT=36, CALC_ROW_HEIGHT=34,
+   ROW_HEIGHT=32) - keep these two files in sync if either changes. */
+
+#cpo-root {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    /* NOT overflow-y:auto - matches the reference's own layout: only section 4's own box
+       (.cpo-central-tree-host, below) scrolls vertically when its tree has more rows than fit;
+       the rest of the layout is fixed-height, no whole-page scrollbar. A page-level scroll here
+       was an earlier workaround for section 3 getting clipped, but that's no longer needed - each
+       section's own height is already bounded (section 2/.cpo-wo-scheduler-host and section 4/
+       .cpo-central-tree-host both clamp to a MIN/MAX and scroll internally on their own), and the
+       controladdin's RequestedHeight/MinimumHeight already give enough room for the bounded sum. */
+}
+
+.cpo-top-bar {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px;
+    background: #ffe066;
+}
+
+.cpo-top-title {
+    font-size: 16px;
+    font-weight: 600;
+    padding: 8px 12px;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* JS-owned "Days to show" control (see capacityPlanningOverview.js's bindDaysToShowInput) -
+   lives inside this one component, not as a native BC page field, per the single-JS-component
+   architecture. */
+.cpo-days-to-show {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #667085;
+    padding: 8px 12px;
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.cpo-days-to-show input {
+    width: 56px;
+    font-size: 12px;
+    padding: 2px 6px;
+    border: 1px solid #d0d5dd;
+    border-radius: 4px;
+}
+
+.cpo-loading {
+    padding: 24px;
+    color: #666;
+    font-size: 13px;
+}
+
+/* ---------- Sections 1 & 2 - real DHTMLX Scheduler timeline host divs ---------- */
+
+/* width:100% (no artificial max-width cap - an earlier pass added one to force DHTMLX to respect
+   its literal column_width, which left a large wasted blank area whenever the real modal was
+   wider than the cap). With the reference's OWN correct dx:360/column_width:92 values now in use
+   (see the ROW_LABEL_WIDTH/COLUMN_WIDTH constants), content is wide enough (360+92*dayCount) to
+   genuinely overflow most realistic panel widths on its own once Days-to-show is reasonably
+   large; `scrollable:true` lets DHTMLX's real internal scroll engage for that case. For a small
+   Days-to-show where content DOESN'T overflow, DHTMLX auto-stretches columns to fill the
+   available width - but since sections 1/2/4 all share the same host width and day count, they
+   auto-stretch IDENTICALLY to each other regardless; section 3 (plain HTML) matches whichever
+   result actually happened via measureColumnWidth() rather than assuming the literal constant. */
+.cpo-scheduler-host {
+    width: 100%;
+    position: relative;
+    flex: 0 0 auto;
+}
+
+/* Section 1 - two fixed rows ("Calculated conclusion" / "Current position shortage"), so its
+   height is a constant derived from the same SCALE_HEIGHT/CALC_ROW_HEIGHT constants the JS feeds
+   into createTimelineView (36 + 2*34 = 104px), not proportional to any row count. */
+.cpo-wo-summary-host {
+    height: 104px;
+    border-bottom: 2px solid #d7d7d7;
+}
+
+/* Section 2 - height is set inline by applySchedulerContainerHeight(), proportional to this
+   Work Order's actual section/row count (a previous fixed height left a large dead gap whenever
+   a WO had only 1-2 rows - confirmed live on DWO0008). This min-height is only a pre-first-render
+   fallback; overflow-y is a safety net in case DHTMLX's own row list ever exceeds the inline
+   height's MAX_SCHEDULER_HEIGHT clamp. */
+.cpo-wo-scheduler-host {
+    min-height: 90px;
+    overflow-y: auto;
+    /* #cpo-root is a fixed-height flex column - without this, the flex column's default
+       flex-shrink:1 would proportionally squash this section (and every other one) whenever the
+       sum of all sections' heights exceeds #cpo-root's own bounded height, instead of letting
+       THIS section's own overflow-y:auto take over. Confirmed live: #cpo-shared-scroll (a much
+       smaller flex sibling, see below) was being crushed from its declared 16px down to ~1px by
+       exactly this mechanism. */
+    flex: 0 0 auto;
+}
+
+/* Section 2 sets scale_height:0 in its own createTimelineView config to avoid duplicating
+   section 1's shared date-header row (both use the SAME ROW_LABEL_WIDTH, so one shared header
+   lines up with both) - confirmed live this is NOT sufficient by itself: DHTMLX still renders a
+   ".dhx_cal_header" (its scale-row container, appended unconditionally by scheduler.init - see
+   dhtmlxscheduler.js's r.init) with visible content for a second Scheduler instance sharing the
+   same page. CSS-forced hide, scoped strictly to section 2's host div so section 1's own header
+   (which legitimately must show) is untouched - same class of fix projectschedule/wrapper.js's
+   own .dhx-hide-default-tabs technique applies to its navline.
+   Section 4 (#cpo-central-tree) deliberately does NOT get this treatment - it uses a WIDER
+   TREE_LABEL_WIDTH (360px, a real 3-column Skill/Job/Task header) than sections 1-3's
+   ROW_LABEL_WIDTH (200px), matching the reference prototype's own layout (its "Central planning
+   grid" block has its own independent date-header row, at a different left-offset than the
+   Work Order block's header above it - confirmed from the user's own reference screenshot: two
+   separate day-number rows, not one shared row). Hiding section 4's header and reusing section
+   1's assumed a 200px offset that section 4 doesn't have, which is what caused a real reported
+   misalignment (section 4's day columns start ~160px further right than the shared header
+   assumed). Section 4's own scale_height (see renderCentralScheduler) is a real nonzero value so
+   its date row renders correctly at ITS OWN 360px offset instead. */
+#cpo-wo-scheduler .dhx_cal_header,
+#cpo-wo-scheduler .dhx_scale_bar {
+    display: none !important;
+    height: 0 !important;
+}
+
+/* Section 1's two calc rows */
+.cpo-wo-cell-text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.25;
+    padding: 2px 0;
+}
+
+.cpo-wo-cell-text b {
+    font-size: 13px;
+}
+
+.cpo-wo-cell-text small {
+    font-size: 10px;
+    color: #555;
+}
+
+.cpo-wo-summary-divider {
+    border-top: 1px solid #ececec;
+}
+
+.cpo-weekend-scale {
+    background: #fafafa;
+}
+
+.cpo-wo-fit-off .cpo-wo-cell-text,
+.cpo-wo-short-off .cpo-wo-cell-text {
+    color: #aaa;
+}
+
+.cpo-wo-fit-good .cpo-wo-cell-text b,
+.cpo-wo-short-good .cpo-wo-cell-text b {
+    color: #2e7d32;
+}
+
+.cpo-wo-fit-tight .cpo-wo-cell-text b,
+.cpo-wo-short-small .cpo-wo-cell-text b {
+    color: #e08a00;
+}
+
+.cpo-wo-fit-bad .cpo-wo-cell-text b,
+.cpo-wo-short-bad .cpo-wo-cell-text b,
+.cpo-wo-short-bad .cpo-wo-cell-text small {
+    color: #c62828;
+}
+
+/* Section 2 - Day Planning event bars */
+.cpo-weekend-cell {
+    background: #fafafa;
+}
+
+.cpo-wo-event-heat {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    border-radius: 3px;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    overflow: hidden;
+}
+
+.cpo-wo-event-main {
+    padding: 0 4px;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, .25);
+    white-space: nowrap;
+}
+
+/* ---------- Event tooltip (section 2 hover) ---------- */
+
+.cpo-event-tip,
+.cpo-daily-summary-tip {
+    display: none;
+    position: fixed;
+    z-index: 20000;
+    background: #fff;
+    border: 1px solid #d7d7d7;
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, .15);
+    padding: 8px 10px;
+    font-size: 11px;
+    max-width: 280px;
+    pointer-events: none;
+}
+
+.cpo-tip-section-title {
+    font-weight: 700;
+    font-size: 11px;
+    color: #344054;
+    margin-top: 4px;
+}
+
+.cpo-tip-main {
+    font-size: 12px;
+    color: #101828;
+}
+
+.cpo-tip-muted {
+    color: #667085;
+}
+
+.cpo-tip-rule {
+    border-top: 1px solid #ececec;
+    margin: 6px 0;
+}
+
+.cpo-tip-grid {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+}
+
+.cpo-tip-grid th,
+.cpo-tip-grid td {
+    padding: 2px 6px 2px 0;
+    text-align: left;
+}
+
+.cpo-missing {
+    color: #bbb;
+}
+
+.cpo-tip-capacity-shortage {
+    color: #c62828;
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+/* Section 2 event bars whose shortageHours > 0 (max-flow engine's own per-sequence shortage
+   allocation, see renderWorkOrder's own doc comment) get a thin red left accent, on top of their
+   own skill heat-gradient fill. */
+.cpo-wo-capacity-shortage .cpo-wo-event-heat {
+    box-shadow: inset 3px 0 0 #c62828;
+}
+
+.cpo-wo-event-shortage-caption {
+    display: block;
+    font-size: 9px;
+    font-weight: 600;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, .3);
+}
+
+/* Section 3's day column currently anchoring section 2's Work Order sequences (this.woAnchor). */
+.cpo-daily-chart-day.cpo-wo-anchor-day {
+    background: #eef4ff;
+}
+.cpo-daily-chart-day.cpo-wo-anchor-day .cpo-daily-chart-date b {
+    color: #3867d6;
+}
+
+/* ---------- Daily summary tooltip (section 3 hover) ---------- */
+
+.cpo-dst-title {
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.cpo-dst-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 1px 0;
+}
+
+.cpo-dst-row span:nth-child(2) {
+    flex: 1;
+}
+
+.cpo-dst-swatch {
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+    border: 1px solid rgba(0, 0, 0, .15);
+    flex: 0 0 auto;
+}
+
+.cpo-dst-value {
+    font-weight: 600;
+}
+
+.cpo-dst-rule {
+    border-top: 1px solid #ececec;
+    margin: 4px 0;
+}
+
+.cpo-dst-total {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 700;
+}
+
+/* ---------- Section 3 - Capacity vs Requested daily stacked bars ---------- */
+
+.cpo-capacity-bars {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: row;
+    border-top: 1px solid #d7d7d7;
+    background: #fff;
+}
+
+.cpo-daily-chart-fixed {
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    border-right: 1px solid #ececec;
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.cpo-daily-chart-overview-box {
+    display: flex;
+    flex-direction: column;
+    font-size: 10px;
+    color: #667085;
+    line-height: 1.4;
+}
+
+.cpo-daily-chart-overview-box b {
+    font-size: 12px;
+    color: #344054;
+}
+
+.cpo-daily-chart-total {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.cpo-daily-chart-total-label {
+    font-size: 10px;
+    color: #667085;
+    font-weight: 700;
+}
+
+.cpo-daily-chart-total-actions {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.cpo-mini-action-btn {
+    font-size: 10px;
+    padding: 2px 6px;
+    border: 1px solid #d0d5dd;
+    border-radius: 4px;
+    background: #f9fafb;
+    cursor: pointer;
+    color: #344054;
+}
+
+.cpo-mini-action-btn:hover {
+    background: #eef2ff;
+}
+
+.cpo-daily-chart-scroll {
+    flex: 1 1 auto;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+/* Shared horizontal scrollbar - ports the reference's #sharedScroll/.shared-scroll exactly
+   (DHTMLXtempv112.html ~L61-65): ONE always-reachable proxy bar, pinned to the bottom of the
+   whole component, drives sections 1/2/3/4's own native horizontal scroll together (see
+   capacityPlanningOverview.js's refreshSharedScrollbar). Sticky (not the reference's
+   position:absolute) since THIS add-in's #cpo-root scrolls vertically as a whole page rather than
+   living inside a fixed-height dhx.Layout viewport - sticky keeps the bar reachable at the bottom
+   of the visible viewport during a vertical scroll, the same practical effect the reference's
+   absolute-within-a-non-scrolling-container achieves in its own layout model. */
+.cpo-shared-scroll {
+    position: sticky;
+    /* Starts where the actual data/day columns begin (the reference's central-block label width,
+       360px - same value section 3/4's own fixed left panels now use), not the page edge - a bar
+       spanning under the fixed label columns too would be visually wrong (nothing there scrolls). */
+    margin-left: 360px;
+    right: 0;
+    bottom: 0;
+    height: 16px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    background: #fff;
+    border-top: 1px solid #dfe4eb;
+    z-index: 50;
+    /* #cpo-root is a fixed-height flex column (display:flex; flex-direction:column) - without
+       this, the flex column's default flex-shrink:1 crushes this bar from its declared 16px down
+       to ~1px (confirmed live via getBoundingClientRect()) whenever the other sections' combined
+       height exceeds #cpo-root's own bounded height, making the bar technically present but
+       visually/functionally invisible. flex-basis 16px + no shrink/grow keeps it at its real size
+       regardless of sibling pressure. */
+    flex: 0 0 16px;
+}
+
+.cpo-shared-scroll-inner {
+    height: 1px;
+    min-width: 1px;
+}
+
+/* Native scheduler/section-3 horizontal scrollbars stay functional but hidden - the shared bar
+   above is the only one the user sees/drags, matching the reference's own behavior exactly. */
+.dhx_timeline_data_wrapper.dhx_timeline_scrollable_data,
+.cpo-daily-chart-scroll {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.dhx_timeline_data_wrapper.dhx_timeline_scrollable_data::-webkit-scrollbar,
+.cpo-daily-chart-scroll::-webkit-scrollbar {
+    height: 0;
+    width: 0;
+}
+
+.cpo-daily-chart-grid {
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+}
+
+.cpo-daily-chart-day {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid #ececec;
+    position: relative;
+    flex: 0 0 auto;
+}
+
+.cpo-daily-chart-day.cpo-weekend {
+    background: #fafafa;
+}
+
+.cpo-daily-chart-date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 0;
+    font-size: 9px;
+    color: #667085;
+    line-height: 1.1;
+}
+
+.cpo-daily-chart-date b {
+    font-size: 11px;
+    color: #344054;
+}
+
+.cpo-daily-chart-shortage {
+    position: absolute;
+    top: 22px;
+    left: 2px;
+    right: 2px;
+    height: 3px;
+    background: #c62828;
+    border-radius: 2px;
+}
+
+.cpo-daily-chart-bars {
+    flex: 1;
+    min-height: 92px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 8px;
+    padding: 6px 4px 3px;
+}
+
+.cpo-daily-chart-col {
+    width: 26px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    cursor: default;
+}
+
+.cpo-daily-chart-label {
+    font-size: 9px;
+    font-weight: 700;
+    color: #667085;
+    margin-bottom: 2px;
+}
+
+.cpo-daily-chart-bar-area {
+    width: 100%;
+    flex: 1;
+    min-height: 58px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.cpo-daily-chart-stack {
+    width: 26px;
+    display: flex;
+    flex-direction: column-reverse;
+    justify-content: flex-start;
+    align-items: stretch;
+}
+
+.cpo-daily-chart-segment {
+    width: 100%;
+    min-height: 1px;
+    border-left: 1px solid rgba(0, 0, 0, .1);
+    border-right: 1px solid rgba(0, 0, 0, .1);
+}
+
+.cpo-daily-chart-value {
+    min-height: 16px;
+    padding-top: 2px;
+    padding-bottom: 3px;
+    text-align: center;
+    font-size: 9px;
+    font-weight: 700;
+    color: #344054;
+}
+
+/* ---------- Section 4 - tree+chip panel (real DHTMLX Scheduler render:'tree' timeline) ---------- */
+
+.cpo-central-tree-host {
+    min-height: 120px;
+    overflow-y: auto;
+    border-top: 1px solid #d7d7d7;
+    /* Same flex-shrink protection as .cpo-wo-scheduler-host above - #cpo-root's flex column must
+       not squash this section either. */
+    flex: 0 0 auto;
+}
+
+/* DHTMLX's treetimeline plugin reserves left padding/an expand-arrow slot inside the tree's
+   own row-header cell (.dhx_matrix_scell) for folder rows (skill/detail, which have children) -
+   without overriding it, that padding eats into our fixed 176/92/92 3-column grid's available
+   width, clipping the rightmost column's text (confirmed live: a Job Task No. like "1080"
+   rendered as just "10"). Ports the reference's own fix for this exact class of problem
+   (DHTMLXtempv112.html ~L1225-1234: .dhx_matrix_scell{position:relative;padding-left:0} + the
+   label content made position:absolute/inset:0 to escape that reserved space entirely) - applied
+   to ALL of #cpo-central-tree's rows (not just sequence rows, unlike the reference, which only
+   needed it there) since our 3-column grid needs the full 360px on every row type. */
+#cpo-central-tree .dhx_matrix_scell {
+    position: relative !important;
+    padding-left: 0 !important;
+}
+
+#cpo-central-tree .cpo-central-left-grid,
+#cpo-central-tree .cpo-sequence-label-full {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Sequence (leaf) rows - one chip per real Day Planning line for that day, never merged.
+   Ports the reference prototype's .dpl-cell-pack/.dpl-mini-cell exactly (DHTMLXtempv112.html
+   ~L811-830): each chip is a proportional-fill gradient bar with its own hours TEXT shown
+   inside, packed left-to-right - not a tiny fixed-width dot. */
+.cpo-tree-chip-row {
+    position: absolute;
+    inset: 2px;
+    display: flex;
+    gap: 2px;
+    align-items: center;
+    justify-content: flex-start;
+    overflow: hidden;
+}
+
+/* 3-column "Skill | Job | Task" left header/rows - ports the reference's central-left-header/
+   central-left-grid/skill-left-grid/sequence-label-full exactly (DHTMLXtempv112.html ~L948-968). */
+.cpo-central-left-header,
+.cpo-central-left-grid {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: 176px 92px 92px;
+    align-items: center;
+    box-sizing: border-box;
+}
+
+.cpo-central-left-header span {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-right: 1px solid #dfe4eb;
+    font-weight: 700;
+    font-size: 10px;
+    color: #667085;
+}
+
+.cpo-central-left-header span:last-child {
+    border-right: 0;
+}
+
+.cpo-central-left-grid > span {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-right: 1px solid #dfe4eb;
+    box-sizing: border-box;
+    font-size: 11px;
+}
+
+.cpo-central-left-grid > span:last-child {
+    border-right: 0;
+}
+
+.cpo-skill-left-grid {
+    font-weight: 600;
+}
+
+.cpo-skill-left-grid > span:first-child {
+    font-weight: 800;
+    color: #3867d6;
+}
+
+.cpo-sequence-label-full {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding-left: 10px;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+    background: #f8fafc;
+    color: #344054;
+    font-size: 11px;
+}
+
+.cpo-tree-chip {
+    flex: 1 1 0;
+    min-width: 16px;
+    max-width: 42px;
+    height: 20px;
+    border: 1px solid;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 2px;
+    box-sizing: border-box;
+    font-size: 9px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, .3);
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+/* Skill/Job-Task summary rows - one aggregated heat-map cell (mirrors section 2's event_bar_text gradient-fill technique). */
+.cpo-tree-summary-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    border-radius: 3px;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, .25);
+    overflow: hidden;
+}
+
+.cpo-tree-row-skill {
+    background: #f5f7fa;
+    font-weight: 700;
+}
+
+.cpo-tree-row-detail {
+    background: #fafbfc;
+}

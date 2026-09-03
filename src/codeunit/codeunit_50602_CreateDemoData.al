@@ -2519,6 +2519,499 @@ codeunit 50602 "Create Demo Data"
     end;
 
     // ──────────────────────────────────────────────────────────────────────────
+    // Data — one richer, standalone demo Work Order (DWO0011)
+    // exercising page 50722 "Capacity Planning Overview" beyond what DWO0001-DWO0010 (1 skill/1
+    // sequence/3 lines each, all unassigned) ever could: 4 skills (ELEKTR x2 Job Tasks, MECH,
+    // CIVIL, WELD), up to 14 distinct Sequence Nos under one Skill/Job Task, a genuine
+    // assigned/partial/unassigned mix, a deliberate real multi-Day-Planning-line-per-cell case
+    // (same Job No./Job Task No./Skill/Sequence No./Plan Date on 2+ separate rows), and one
+    // deliberate demand spike day (all ELEKTR sequences forced to land on the same date) sized to
+    // exceed CPO_BuildResourcesArray's capped ~15-resource/skill pool so the client-side max-flow
+    // shortage engine (capacityPlanningOverview.js) shows genuine partial (not 0%/100%) coverage.
+    // Public, standalone, idempotent (safe to re-run - only clears/rebuilds its own DWO0011 Day
+    // Planning lines via "Work Order No."), reuses the existing shared "Work Order Demo Data" Job
+    // rather than inventing a new one, and is NOT part of the destructive full OnRun()/
+    // DeleteDemoData() cycle - wired to its own page 50654 "Create CPO Demo Data" action instead.
+    // ──────────────────────────────────────────────────────────────────────────
+
+    procedure CreateCapacityPlanningOverviewDemoData()
+    var
+        Customer: Record Customer;
+        Job: Record Job;
+        JobNo: Code[20];
+        ConfirmLbl: Label 'This will create/refresh the richer "Capacity Planning Overview" demo Work Order (DWO0011) and its Day Planning lines, under the existing "Work Order Demo Data" job.\\Continue?';
+    begin
+        if GuiAllowed() then
+            if not Confirm(ConfirmLbl, true) then
+                exit;
+
+        // Populates gWorkHoursTemplate/gLogEntryNo (resumed from the last existing log entry, so
+        // LogRecord()'s Entry No. never collides with prior runs' rows) - same prerequisite every
+        // other public entry point in this codeunit relies on (see this procedure's own doc
+        // comment above CreateDemoCalendar).
+        Initialize();
+
+        if not Customer.FindFirst() then
+            EnsureCustomer(Customer);
+        JobNo := Customer."No.";
+        if not Job.Get(JobNo) then
+            UpsertJob(Job, JobNo, 'Work Order Demo Data', Customer."No.");
+
+        BuildCPODemoTasks(JobNo);
+        UpsertWorkOrder('DWO0011', GetFirstOrderIntakeNo(), Customer."No.",
+            'Electrical & Mechanical Fit-Out', JobNo, '5010');
+        ClearCPODemoLines('DWO0011');
+        CreateCPODemoLines(JobNo);
+
+        if GuiAllowed() then
+            Message('Work Order DWO0011 created/refreshed. %1 records logged.', gLogEntryNo);
+    end;
+
+    local procedure GetFirstOrderIntakeNo(): Code[20]
+    var
+        OrderIntake: Record "Order Intake Header Opt.";
+    begin
+        // Best-effort link only (WorkOrder."Order Intake No." isn't consumed anywhere by the CPO
+        // add-in) - reuses whatever Order Intake already exists rather than fabricating a new one;
+        // blank is a harmless fallback if none exist yet.
+        if OrderIntake.FindFirst() then
+            exit(OrderIntake."No.");
+        exit('');
+    end;
+
+    local procedure BuildCPODemoTasks(JobNo: Code[20])
+    var
+        JT: Record "Job Task";
+        Indent: Codeunit "Job Task Indent";
+        WindowStart: Date;
+        WindowEnd: Date;
+    begin
+        // A fresh, dedicated 18-calendar-day window anchored on Today() (NOT gStartDate/gEndDate -
+        // CPO_BuildPlanningDataJson's own visible window is always Today()..Today()+NumberOfDays-1,
+        // unrelated to any Job Task's Planned dates) so every Day Planning line this generates
+        // falls inside the add-in's default 30-day "Days to show" view with no user action needed.
+        WindowStart := CalcDate('+1D', Today());
+        WindowEnd := CalcDate('+18D', Today());
+        JT."Job No." := JobNo;
+
+        AddTask(JT, '5000', '', WindowStart, WindowEnd, JT."Job Task Type"::"Begin-Total");
+        AddTask(JT, '5010', 'CPO Demo - Electrical Rough-In', WindowStart, WindowEnd, JT."Job Task Type"::Posting);
+        AddTask(JT, '5020', 'CPO Demo - Electrical Fit-Out', WindowStart, WindowEnd, JT."Job Task Type"::Posting);
+        AddTask(JT, '5030', 'CPO Demo - Mechanical Install', WindowStart, WindowEnd, JT."Job Task Type"::Posting);
+        AddTask(JT, '5040', 'CPO Demo - Civil Foundation Work', WindowStart, WindowEnd, JT."Job Task Type"::Posting);
+        AddTask(JT, '5050', 'CPO Demo - Structural Welding', WindowStart, WindowEnd, JT."Job Task Type"::Posting);
+        AddTask(JT, '5999', 'Total', WindowStart, WindowEnd, JT."Job Task Type"::"End-Total");
+
+        Indent.setHideMessage();
+        Indent.IndentJobTasks(JT, true);
+    end;
+
+    local procedure ClearCPODemoLines(WorkOrderNo: Code[20])
+    var
+        DP: Record "Day Planning";
+    begin
+        // Bypasses OnDelete's TestField("Assigned Hours",0)/TestField("Realized Hours",0) guard via
+        // Delete(false) - same convention DeleteDemoData() itself already uses - so a re-run can
+        // freely wipe and rebuild this one Work Order's own lines regardless of assigned hours.
+        DP.SetRange("Work Order No.", WorkOrderNo);
+        if DP.FindSet(true) then
+            repeat
+                DP.Delete(false);
+            until DP.Next() = 0;
+    end;
+
+    local procedure CreateCPODemoLines(JobNo: Code[20])
+    var
+        WorkingDays: List of [Date];
+        PeakDate: Date;
+        DT: Date;
+    begin
+        Clear(WorkingDays);
+        DT := CalcDate('+1D', Today());
+        while DT <= CalcDate('+18D', Today()) do begin
+            if IsDemoWorkingDay(DT) then
+                WorkingDays.Add(DT);
+            DT := CalcDate('+1D', DT);
+        end;
+        if WorkingDays.Count() = 0 then
+            exit;
+        if WorkingDays.Count() >= 5 then
+            PeakDate := WorkingDays.Get(5)
+        else
+            PeakDate := WorkingDays.Get(WorkingDays.Count());
+
+        // ELEKTR: Job Task 5010 gets 14 Sequence Nos (section 2/4 scrollbar stress + the deliberate
+        // multi-chip pair on Sequence 1); Job Task 5020 gets 3 more Sequence Nos under the SAME
+        // skill (the "2nd detail row under one skill" case). Both are forced-peak: every one of
+        // these 17 ELEKTR sequences also gets an occurrence on PeakDate (17 x 8h = 136h requested),
+        // deliberately over CPO_BuildResourcesArray's ~15-resource-per-skill x 8h = 120h capped
+        // supply pool - the one deliberate genuine-partial-(not 0%/100%)-coverage day.
+        CreateCPOSkillThreads(JobNo, '5010', 'ELEKTR', 14, WorkingDays, PeakDate, true);
+        CreateCPOSkillThreads(JobNo, '5020', 'ELEKTR', 3, WorkingDays, PeakDate, true);
+
+        // MECH/CIVIL/WELD: normal variety, no forced peak - demand stays comfortably under any
+        // reasonable resource pool for these skills, so most days show good/full coverage here
+        // while ELEKTR's own PeakDate still drags that one day's overall (all-skill) coverage down.
+        CreateCPOSkillThreads(JobNo, '5030', 'MECH', 4, WorkingDays, PeakDate, false);
+        CreateCPOSkillThreads(JobNo, '5040', 'CIVIL', 4, WorkingDays, PeakDate, false);
+        CreateCPOSkillThreads(JobNo, '5050', 'WELD', 4, WorkingDays, PeakDate, false);
+    end;
+
+    /// <summary>
+    /// Creates SequenceCount independent "sequence threads" for [JobNo, JobTaskNo, SkillCode], each
+    /// landing on roughly every OTHER entry of WorkingDays (offset by the sequence number for
+    /// variety) plus, when ForcePeak is true, an explicit extra occurrence on PeakDate for every
+    /// sequence that doesn't already land there from its own thread pattern (this is what pushes
+    /// this skill's total PeakDate demand past its capped resource pool's supply). Sequence 1's
+    /// very first thread day additionally gets a SECOND, distinct Day Planning line (different
+    /// resource/hours) - the deliberate real multi-chip-per-cell case (same Job No./Job Task
+    /// No./Skill/Sequence No./Plan Date on 2 separate rows), never before exercised against real
+    /// data in this add-in.
+    /// </summary>
+    local procedure CreateCPOSkillThreads(JobNo: Code[20]; JobTaskNo: Code[20]; SkillCode: Code[10]; SequenceCount: Integer; var WorkingDays: List of [Date]; PeakDate: Date; ForcePeak: Boolean)
+    var
+        SampleResources: List of [Code[20]];
+        SeqNo: Integer;
+        DayIdx: Integer;
+        ThreadDate: Date;
+        PatternIdx: Integer;
+        ResNo: Code[20];
+        ReqHours: Decimal;
+        AsgnHours: Decimal;
+        HasPeakLine: Boolean;
+        FirstThreadDate: Date;
+    begin
+        GetSampleResourcesForSkill(SkillCode, 15, SampleResources);
+
+        for SeqNo := 1 to SequenceCount do begin
+            HasPeakLine := false;
+            FirstThreadDate := 0D;
+            for DayIdx := 1 to WorkingDays.Count() do
+                if ((DayIdx + SeqNo) mod 2) = 0 then begin
+                    ThreadDate := WorkingDays.Get(DayIdx);
+                    if FirstThreadDate = 0D then
+                        FirstThreadDate := ThreadDate;
+                    if ThreadDate = PeakDate then
+                        HasPeakLine := true;
+
+                    // 3-way pattern (fully assigned / partially assigned / unassigned) so this WO
+                    // shows a genuine mix, not the all-zero-assigned shape DWO0008 had.
+                    PatternIdx := (SeqNo + DayIdx) mod 3;
+                    ReqHours := 8;
+                    case PatternIdx of
+                        0:
+                            begin
+                                ResNo := PickSampleResource(SampleResources, SeqNo + DayIdx);
+                                AsgnHours := 8;
+                            end;
+                        1:
+                            begin
+                                ResNo := PickSampleResource(SampleResources, SeqNo + DayIdx);
+                                AsgnHours := 4;
+                            end;
+                        else begin
+                            ResNo := '';
+                            AsgnHours := 0;
+                        end;
+                    end;
+
+                    InsertCPODemoLine(JobNo, JobTaskNo, SkillCode, SeqNo, ThreadDate, ReqHours, AsgnHours, ResNo, 'DWO0011');
+                end;
+
+            if ForcePeak and (not HasPeakLine) and (PeakDate <> 0D) then begin
+                PatternIdx := SeqNo mod 3;
+                ResNo := '';
+                AsgnHours := 0;
+                if PatternIdx = 0 then begin
+                    ResNo := PickSampleResource(SampleResources, SeqNo);
+                    AsgnHours := 8;
+                end else
+                    if PatternIdx = 1 then begin
+                        ResNo := PickSampleResource(SampleResources, SeqNo);
+                        AsgnHours := 4;
+                    end;
+                InsertCPODemoLine(JobNo, JobTaskNo, SkillCode, SeqNo, PeakDate, 8, AsgnHours, ResNo, 'DWO0011');
+            end;
+
+            if (SeqNo = 1) and (FirstThreadDate <> 0D) then
+                InsertCPODemoLine(JobNo, JobTaskNo, SkillCode, SeqNo, FirstThreadDate, 8, 8,
+                    PickSampleResource(SampleResources, 99), 'DWO0011');
+        end;
+    end;
+
+    local procedure PickSampleResource(var SampleResources: List of [Code[20]]; Seed: Integer): Code[20]
+    begin
+        if SampleResources.Count() = 0 then
+            exit('');
+        exit(SampleResources.Get(((Seed - 1) mod SampleResources.Count()) + 1));
+    end;
+
+    /// <summary>
+    /// Real resources actually holding SkillCode (Resource Skill, Type=Resource) - up to MaxCount,
+    /// in table order - used instead of any hardcoded/MCP-observed resource No. so this generator
+    /// stays correct regardless of which specific resources this live company happens to have
+    /// tagged with each skill.
+    /// </summary>
+    local procedure GetSampleResourcesForSkill(SkillCode: Code[10]; MaxCount: Integer; var ResultList: List of [Code[20]])
+    var
+        ResourceSkill: Record "Resource Skill";
+        FoundCount: Integer;
+    begin
+        Clear(ResultList);
+        ResourceSkill.SetRange(Type, ResourceSkill.Type::Resource);
+        ResourceSkill.SetRange("Skill Code", SkillCode);
+        if ResourceSkill.FindSet() then
+            repeat
+                if not ResultList.Contains(ResourceSkill."No.") then begin
+                    ResultList.Add(ResourceSkill."No.");
+                    FoundCount += 1;
+                end;
+            until (ResourceSkill.Next() = 0) or (FoundCount >= MaxCount);
+    end;
+
+    local procedure InsertCPODemoLine(JobNo: Code[20]; JobTaskNo: Code[20]; SkillCode: Code[10]; SeqNo: Integer; PlanDate: Date; ReqHours: Decimal; AsgnHours: Decimal; ResNo: Code[20]; WorkOrderNo: Code[20])
+    var
+        DP: Record "Day Planning";
+        StartT: Time;
+    begin
+        StartT := 080000T;
+
+        DP.Init();
+        DP."Job No." := JobNo;
+        DP."Job Task No." := JobTaskNo;
+        DP."Plan Date" := PlanDate;
+        DP."Day Line No." := NextDayLineNo(JobNo, JobTaskNo);
+        DP."Plan Status" := CalcPlanStatus(PlanDate);
+        DP.Skill := SkillCode;
+        DP."Sequence No." := SeqNo;
+        DP."Work Order No." := WorkOrderNo;
+        DP."Requested Resource No." := ResNo;
+        DP."Start Time Requested" := StartT;
+        DP."End Time Requested" := StartT + (ReqHours * 3600000);
+        DP."Requested Hours" := ReqHours;
+        DP."Requested Leader" := true;
+        DP."Requested Team Leader" := ResNo;
+        DP."Data Owner" := "Data Owner Opt."::"TeamLeader";
+        DP.Description := CopyStr(StrSubstNo('CPO Demo %1: %2 Seq %3', SkillCode, JobTaskNo, SeqNo), 1, 100);
+
+        if ResNo <> '' then begin
+            DP."Assigned Resource No." := ResNo;
+            DP."Assigned Leader" := true;
+            DP."Resource Group No." := GetResGrp(ResNo);
+            DP."Start Time Assigned" := StartT;
+            DP."End Time Assigned" := StartT + (AsgnHours * 3600000);
+            DP."Assigned Hours" := AsgnHours;
+        end;
+
+        DP."Assigned Pool Resource No." := GetResourcePoolNo(DP);
+        DP.AssignedCheck();
+        DP.Insert(false);
+        LogRecord(Database::"Day Planning", DP.RecordId(),
+            JobNo + '.' + JobTaskNo + ' ' + Format(PlanDate) + ' CPO ' + SkillCode + ' Seq' + Format(SeqNo));
+    end;
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Data — richer/varied Day Planning lines for DWO0009 ("Subcontractor Coordination", Job Task
+    // 1090) and DWO0010 ("Weather Delay Assessment", Job Task 1100), replacing their current
+    // single-resource/single-skill/flat-8h shape (still generated unmodified by
+    // CreateWorkOrderLinkedDayPlannings/InsertWorkOrderDayPlanning above) with 2-3 skills, several
+    // Sequence Nos per skill, resources drawn from real "Resource Skill" records (via the existing
+    // GetSampleResourcesForSkill/PickSampleResource helpers above, reused as-is), and a genuine
+    // fully-assigned/partially-assigned/unassigned mix - same spirit as the DWO0011 CPO_* generator
+    // above, just smaller scale and deliberately NOT touching DWO0001-DWO0008 or DWO0011/CPO_* at
+    // all. Spreads across a short window anchored on each Job Task's OWN "Planned Start/End Date"
+    // (already set by BuildWorkOrderDemoTasks/AddTask) rather than a fixed calendar offset, so the
+    // lines stay near dates other parts of the app already expect for these two Work Orders. Public,
+    // standalone, idempotent (clears/rebuilds only its own two Work Orders' lines via "Work Order
+    // No."), and NOT part of the destructive full OnRun()/DeleteDemoData() cycle - wired to report
+    // 50600 "RepairData"'s OnPreReport alongside CreateCapacityPlanningOverviewDemoData instead.
+    // ──────────────────────────────────────────────────────────────────────────
+
+    procedure CreateWorkOrderVariedDemoData()
+    var
+        Customer: Record Customer;
+        Job: Record Job;
+        JobNo: Code[20];
+        ConfirmLbl: Label 'This will create/refresh richer, varied Day Planning demo data (multiple skills/sequences/resources) for Work Orders DWO0009 and DWO0010, under the existing "Work Order Demo Data" job.\\Continue?';
+    begin
+        if GuiAllowed() then
+            if not Confirm(ConfirmLbl, true) then
+                exit;
+
+        // Same prerequisite every other public entry point in this codeunit relies on - populates
+        // gWorkHoursTemplate/gLogEntryNo so LogRecord()'s Entry No. never collides with prior runs.
+        Initialize();
+
+        if not Customer.FindFirst() then
+            EnsureCustomer(Customer);
+        JobNo := Customer."No.";
+        if not Job.Get(JobNo) then
+            UpsertJob(Job, JobNo, 'Work Order Demo Data', Customer."No.");
+
+        CreateVariedWorkOrderDemoLines(JobNo, '1090', 'DWO0009');
+        CreateVariedWorkOrderDemoLines(JobNo, '1100', 'DWO0010');
+
+        if GuiAllowed() then
+            Message('Work Orders DWO0009 and DWO0010 refreshed with varied demo data. %1 records logged.', gLogEntryNo);
+    end;
+
+    local procedure CreateVariedWorkOrderDemoLines(JobNo: Code[20]; JobTaskNo: Code[20]; WorkOrderNo: Code[20])
+    var
+        JT: Record "Job Task";
+        WorkingDays: List of [Date];
+        WindowStart: Date;
+        WindowEnd: Date;
+        DT: Date;
+    begin
+        // Job Task 1090/1100 is created by BuildWorkOrderDemoTasks as part of the base
+        // CreateWorkOrderDemoData flow - if it isn't there yet (base demo data never run), there is
+        // nothing sensible to attach richer lines to, so skip rather than fabricate dates.
+        if not JT.Get(JobNo, JobTaskNo) then
+            exit;
+
+        ClearVariedWorkOrderDemoLines(WorkOrderNo);
+
+        // A short window anchored just before/after this Job Task's OWN planned span (2-3 calendar
+        // days for 1090/1100) rather than a fixed offset from Today()/gStartDate - gives enough
+        // working days for a handful of Sequence Nos per skill to spread out over, while staying
+        // near the dates other parts of the app already expect for this specific Work Order.
+        WindowStart := CalcDate('-2D', JT."PlannedStartDate");
+        WindowEnd := CalcDate('+5D', JT."PlannedEndDate");
+        Clear(WorkingDays);
+        DT := WindowStart;
+        while DT <= WindowEnd do begin
+            if IsDemoWorkingDay(DT) then
+                WorkingDays.Add(DT);
+            DT := CalcDate('+1D', DT);
+        end;
+        if WorkingDays.Count() = 0 then
+            exit;
+
+        case JobTaskNo of
+            '1090':
+                // Subcontractor Coordination: 3 subcontracted trades, 7 sequence threads total.
+                begin
+                    CreateVariedWorkOrderSkillThread(JobNo, JobTaskNo, 'MECH', 3, WorkingDays, WorkOrderNo);
+                    CreateVariedWorkOrderSkillThread(JobNo, JobTaskNo, 'CIVIL', 2, WorkingDays, WorkOrderNo);
+                    CreateVariedWorkOrderSkillThread(JobNo, JobTaskNo, 'WELD', 2, WorkingDays, WorkOrderNo);
+                end;
+            '1100':
+                // Weather Delay Assessment: 2 trades checking storm/weather impact, 5 sequence
+                // threads total.
+                begin
+                    CreateVariedWorkOrderSkillThread(JobNo, JobTaskNo, 'ELEKTR', 3, WorkingDays, WorkOrderNo);
+                    CreateVariedWorkOrderSkillThread(JobNo, JobTaskNo, 'MECH', 2, WorkingDays, WorkOrderNo);
+                end;
+        end;
+    end;
+
+    local procedure ClearVariedWorkOrderDemoLines(WorkOrderNo: Code[20])
+    var
+        DP: Record "Day Planning";
+    begin
+        // Same Delete(false) TestField-bypass pattern ClearCPODemoLines/DeleteDemoData use, scoped
+        // to just this one Work Order's own lines via "Work Order No." so a re-run is idempotent
+        // without touching DWO0001-DWO0008 or DWO0011.
+        DP.SetRange("Work Order No.", WorkOrderNo);
+        if DP.FindSet(true) then
+            repeat
+                DP.Delete(false);
+            until DP.Next() = 0;
+    end;
+
+    /// <summary>
+    /// Creates SequenceCount independent sequence threads for [JobNo, JobTaskNo, SkillCode], each
+    /// landing on roughly every OTHER entry of WorkingDays (offset by the sequence number for
+    /// variety, same distribution formula as CreateCPOSkillThreads above) with a 3-way fully
+    /// assigned/partially assigned/unassigned pattern per line - simpler than CreateCPOSkillThreads
+    /// (no forced demand-spike day, no multi-line-per-cell case) since these two Work Orders don't
+    /// need to stress-test the CPO add-in's shortage engine, just look like real varied data.
+    /// </summary>
+    local procedure CreateVariedWorkOrderSkillThread(JobNo: Code[20]; JobTaskNo: Code[20]; SkillCode: Code[10]; SequenceCount: Integer; var WorkingDays: List of [Date]; WorkOrderNo: Code[20])
+    var
+        SampleResources: List of [Code[20]];
+        SeqNo: Integer;
+        DayIdx: Integer;
+        ThreadDate: Date;
+        PatternIdx: Integer;
+        ResNo: Code[20];
+        ReqHours: Decimal;
+        AsgnHours: Decimal;
+    begin
+        GetSampleResourcesForSkill(SkillCode, 10, SampleResources);
+
+        for SeqNo := 1 to SequenceCount do
+            for DayIdx := 1 to WorkingDays.Count() do
+                if ((DayIdx + SeqNo) mod 2) = 0 then begin
+                    ThreadDate := WorkingDays.Get(DayIdx);
+
+                    // 3-way pattern (fully assigned / partially assigned / unassigned) so these two
+                    // Work Orders show a genuine mix instead of their previous all-one-shape lines.
+                    PatternIdx := (SeqNo + DayIdx) mod 3;
+                    ReqHours := 8;
+                    case PatternIdx of
+                        0:
+                            begin
+                                ResNo := PickSampleResource(SampleResources, SeqNo + DayIdx);
+                                AsgnHours := 8;
+                            end;
+                        1:
+                            begin
+                                ResNo := PickSampleResource(SampleResources, SeqNo + DayIdx);
+                                AsgnHours := 4;
+                            end;
+                        else begin
+                            ResNo := '';
+                            AsgnHours := 0;
+                        end;
+                    end;
+
+                    InsertVariedWorkOrderDayPlanning(JobNo, JobTaskNo, SkillCode, SeqNo, ThreadDate, ReqHours, AsgnHours, ResNo, WorkOrderNo);
+                end;
+    end;
+
+    local procedure InsertVariedWorkOrderDayPlanning(JobNo: Code[20]; JobTaskNo: Code[20]; SkillCode: Code[10]; SeqNo: Integer; PlanDate: Date; ReqHours: Decimal; AsgnHours: Decimal; ResNo: Code[20]; WorkOrderNo: Code[20])
+    var
+        DP: Record "Day Planning";
+        StartT: Time;
+    begin
+        StartT := 080000T;
+
+        DP.Init();
+        DP."Job No." := JobNo;
+        DP."Job Task No." := JobTaskNo;
+        DP."Plan Date" := PlanDate;
+        DP."Day Line No." := NextDayLineNo(JobNo, JobTaskNo);
+        DP."Plan Status" := CalcPlanStatus(PlanDate);
+        DP.Skill := SkillCode;
+        DP."Sequence No." := SeqNo;
+        DP."Work Order No." := WorkOrderNo;
+        DP."Requested Resource No." := ResNo;
+        DP."Start Time Requested" := StartT;
+        DP."End Time Requested" := StartT + (ReqHours * 3600000);
+        DP."Requested Hours" := ReqHours;
+        DP."Requested Leader" := true;
+        DP."Requested Team Leader" := ResNo;
+        DP."Data Owner" := "Data Owner Opt."::"TeamLeader";
+        DP.Description := CopyStr(StrSubstNo('Work Order %1: %2 Seq %3', WorkOrderNo, SkillCode, SeqNo), 1, 100);
+
+        if ResNo <> '' then begin
+            DP."Assigned Resource No." := ResNo;
+            DP."Assigned Leader" := true;
+            DP."Resource Group No." := GetResGrp(ResNo);
+            DP."Start Time Assigned" := StartT;
+            DP."End Time Assigned" := StartT + (AsgnHours * 3600000);
+            DP."Assigned Hours" := AsgnHours;
+        end;
+
+        DP."Assigned Pool Resource No." := GetResourcePoolNo(DP);
+        DP.AssignedCheck();
+        DP.Insert(false);
+        LogRecord(Database::"Day Planning", DP.RecordId(),
+            JobNo + '.' + JobTaskNo + ' ' + Format(PlanDate) + ' ' + WorkOrderNo + ' ' + SkillCode + ' Seq' + Format(SeqNo));
+    end;
+
+    // ──────────────────────────────────────────────────────────────────────────
     // Helpers
     // ──────────────────────────────────────────────────────────────────────────
 
