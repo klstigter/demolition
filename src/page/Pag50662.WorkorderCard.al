@@ -226,6 +226,24 @@ page 50662 "Workorder Card"
                 end;
 
             }
+            action(CapacityPlanningOverviewAct)
+            {
+                ApplicationArea = All;
+                Image = Planning;
+                Caption = 'Capacity Planning Overview';
+                trigger OnAction()
+                var
+                    CPO: Page "Capacity Planning Overview";
+                begin
+                    // Run() (not RunModal()) - a plain top-level navigation, same as how
+                    // "DHX Request Assignment Board" (page 50710) is launched from a Role Center
+                    // tile - so BC renders just the back arrow instead of a modal dialog's own
+                    // title bar/Manage-Actions-Fewer options toolbar/Close button on top of this
+                    // control add-in's own JS-rendered header (which would otherwise duplicate it).
+                    CPO.SetWorkOrderNo(Rec."Work Order No.");
+                    CPO.Run();
+                end;
+            }
             action(ShowJobLedgerEntries)
             {
                 ApplicationArea = All;
@@ -283,6 +301,9 @@ page 50662 "Workorder Card"
                 {
                 }
                 actionref(GanttChartDHX_Promoted; GanttChartDHX)
+                {
+                }
+                actionref(CapacityPlanningOverviewAct_Promoted; CapacityPlanningOverviewAct)
                 {
                 }
                 actionref(ShowJobLedgerEntries_Promoted; ShowJobLedgerEntries)

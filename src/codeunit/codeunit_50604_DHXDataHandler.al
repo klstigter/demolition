@@ -6199,4 +6199,1100 @@ codeunit 50604 "DHX Data Handler"
     procedure ReqAssign_RejectSequence(PayloadJsonTxt: Text)
     begin
     end;
+
+    // ================================================================================
+    // "CPO_" region - Capacity Planning Overview (page 50722 "Capacity Planning Overview",
+    // controladdin DHXCapacityPlanningOverviewAddin, src/dhx/capacity_planning_overview).
+    //
+    // ARCHITECTURE PIVOT (2026-09-02, explicit user decision - see this add-in's project memory
+    // for the full history): the earlier "simple per-skill capacity-vs-demand" shortage engine
+    // (statsRows/treeNodes/treeCells/capacityBars, all computed HERE in AL) is REPLACED by a
+    // near-verbatim port of the reference prototype's OWN client-side multi-skill max-flow engine
+    // (capacityPlanningOverview.js's maxFlowDay/evaluateWO/currentPositionShortage - see
+    // C:\Users\Ahmad\OneDrive\x\PROJECT\KLAAS\CPO_v131\DHTMLXtempv112-app.js). AL's job shrinks to
+    // ONE thing: build a JSON payload shaped exactly like the reference's own mock
+    // "window.DHTMLXPlannerData" global (DHTMLXtempv112-data.js) from real Business Central data -
+    // skills[]/resources[]/baseCapacity/externalFree[]/groups[]/dayPlanningLines[]/
+    // workOrderSequences[] - and hand it to the JS side to compute EVERYTHING else (shortage,
+    // coverage, the daily capacity/request bars, the Skill->Job/Task->Sequence tree) exactly like
+    // the reference does. This is a deliberate REVERSAL of the earlier "no max-flow optimizer"
+    // decision, not an incremental improvement on top of it - the old statsRows/treeNodes/
+    // treeCells/capacityBars procedures and the codeunit 50662 dependency they used are gone.
+    //
+    // CROSS-WORK-ORDER SCOPE (2026-09-03, explicit user correction/refinement - see this add-in's
+    // project memory for the full history): "dayPlanningLines[]" is no longer scoped to just the
+    // inspected Work Order - it now ALSO carries every OTHER Work Order's Day Planning demand
+    // within the same visible [StartDate, EndDate] window, each line tagged with its own real
+    // "workOrderNo". Per section: Section 1/2 (stats header + this WO's own scheduler) and
+    // Section 3's own "Requested" bar stay about the INSPECTED Work Order specifically (Section
+    // 3's underlying capacity/free totals were already legitimately company-wide before this
+    // change - only its demand side needed a workOrderNo filter to stay WO-specific). Section 4
+    // (Skill->Job/Task->Sequence tree, "groups[]") now shows "everything else going on in this
+    // window" - i.e. every OTHER Work Order's demand, EXCLUDING the inspected one (see
+    // CPO_BuildPlanningDataJson's own Pass 3 doc comment). This intentionally makes the page
+    // slower to load (a company-wide, date-bounded scan every refresh) - the user explicitly
+    // accepted that tradeoff for correctness.
+    // ================================================================================
+
+    /// <summary>
+    /// Builds the single combined JSON payload consumed by controladdin
+    /// DHXCapacityPlanningOverviewAddin.SetPlanningData for one Work Order - shaped as closely as
+    /// possible to the reference prototype's own mock "window.DHTMLXPlannerData" object (see this
+    /// procedure's own region-header doc comment above for why). The visible window is always
+    /// Today()..Today()+NumberOfDays-1 (unchanged from before this pivot - still NOT anchored to
+    /// the Work Order's own Planned Start/End Date, per the earlier explicit user instruction);
+    /// "startDate" doubles as the reference's own implicit workday-offset anchor (offset 1 =
+    /// StartDate itself, or the first workday at/after it - see CPO_ComputeWorkdayOffset), which
+    /// is what lets the JS side's ported idxWork()/workOrderExtra() reconstruct each
+    /// workOrderSequences[] occurrence's real calendar date without a separate anchor field.
+    /// Safe to call with an unresolvable WorkOrderNo - returns a well-formed, empty-safe payload
+    /// (no lines, empty skill/resource/group arrays) rather than erroring, since this runs from a
+    /// page trigger with no user-facing error path.
+    /// </summary>
+    procedure CPO_BuildPlanningDataJson(WorkOrderNo: Code[20]; NumberOfDays: Integer): Text
+    var
+        WorkOrder: Record "Work Order";
+        Job: Record Job;
+        DayPlanning: Record "Day Planning";
+        // Company-wide (minus WorkOrderNo), date-bounded query for Pass 3 below - see that pass's
+        // own doc comment.
+        OtherDayPlanning: Record "Day Planning";
+        RootObj: JsonObject;
+        ProjectObj: JsonObject;
+        WorkOrderObj: JsonObject;
+        DayPlanningLinesArr: JsonArray;
+        ActiveSkillList: List of [Code[20]];
+        // Skills seen ONLY in the "other Work Orders" pass (Pass 3 below) - a subset of
+        // ActiveSkillList, used purely to drive CPO_BuildGroupsArray's own iteration so Section 4
+        // does not render an empty skill header for a skill only WorkOrderNo itself demands.
+        OtherSkillList: List of [Code[20]];
+        // Group dedup (section 4 tree source data) - one entry per distinct Skill+Job No.+Job Task
+        // No. combination, in first-seen order (parallel Lists, same "ordered-distinct via
+        // Contains()" idiom this codeunit already uses elsewhere, e.g. ResolveRequestedColor's
+        // SkillColorDict / the old CPO_BuildTreeNodesArray).
+        // REPURPOSED (2026-09-03, explicit user correction - see this add-in's project memory):
+        // used to be populated from WorkOrderNo's OWN lines in Pass 1; now populated EXCLUSIVELY
+        // from Pass 3 below (every OTHER Work Order's demand in the same [StartDate, EndDate]
+        // window) - Section 4 is "everything else going on in this window", NOT WorkOrderNo's own
+        // tree (Section 2/workOrderSequences[] below already covers WorkOrderNo's own schedule).
+        GroupOrder: List of [Text];
+        GroupSkill: List of [Code[20]];
+        GroupJobNo: List of [Code[20]];
+        GroupJobTaskNo: List of [Code[20]];
+        GroupDescription: List of [Text];
+        // Sequence dedup (section 2 source data) - one entry per distinct Skill+Job No.+Job Task
+        // No.+Sequence No. combination, in first-seen order. SeqOrder's 1-based position (via
+        // CPO_IndexOfText) is reused as a compact numeric prefix for SeqOffsetKeyOrder/
+        // SeqOffsetHours below, so those don't need to embed the full pipe-joined text key.
+        SeqOrder: List of [Text];
+        SeqSkill: List of [Code[20]];
+        SeqJobNo: List of [Code[20]];
+        SeqJobTaskNo: List of [Code[20]];
+        SeqSequenceNo: List of [Integer];
+        SeqLineNo: List of [Integer];
+        // Per-(sequence, workday-offset) requested-hours accumulation - built in a SECOND pass
+        // over the same Day Planning recordset (cheap - bounded to this one WO's own lines), since
+        // it needs SeqOrder fully populated first to resolve each line's own sequence index.
+        SeqOffsetKeyOrder: List of [Text];
+        SeqOffsetHours: Dictionary of [Text, Decimal];
+        // Populated by CPO_BuildResourcesArray (out param) - the skill-scoped, capped resource
+        // pool "resources[]" is built from; reused by CPO_BuildExternalFreeArray so "externalFree"
+        // stays commensurate with that same pool instead of a separate company-wide query.
+        ResourcePool: List of [Code[20]];
+        GroupKeyTxt: Text;
+        SeqKeyTxt: Text;
+        OffsetKeyTxt: Text;
+        SeqIdx: Integer;
+        WorkdayOffset: Integer;
+        CurHours: Decimal;
+        StartDate: Date;
+        EndDate: Date;
+        JobNo: Code[20];
+        JobTaskNo: Code[20];
+        WorkOrderFound: Boolean;
+        OutTxt: Text;
+    begin
+        WorkOrderFound := WorkOrder.Get(WorkOrderNo);
+
+        if WorkOrderFound then begin
+            JobNo := WorkOrder."Project No.";
+            JobTaskNo := WorkOrder."Project Task No.";
+            WorkOrderObj.Add('no', WorkOrder."Work Order No.");
+            // The Work Order's OWN description (e.g. "Snag List Resolution") - JS's title bar
+            // uses this, NOT the parent Project's description (an earlier version of the JS
+            // wrongly fell back to the project's description, which was misleading - e.g. showing
+            // "Work Order Demo Data" instead of the WO's own text).
+            WorkOrderObj.Add('description', WorkOrder.Description);
+            // Unused by any ported reference function (grepped DHTMLXtempv112-app.js - neither
+            // field is read anywhere), kept only as descriptive metadata mirroring the reference's
+            // own mock shape - mapped from this WO's own Planned Start/End Date.
+            WorkOrderObj.Add('notEarlierThan', ReqAssign_FormatIsoDate(WorkOrder."Planned Start Date"));
+            WorkOrderObj.Add('notLaterThan', ReqAssign_FormatIsoDate(WorkOrder."Planned End Date"));
+        end else begin
+            WorkOrderObj.Add('no', WorkOrderNo);
+            WorkOrderObj.Add('description', '');
+            WorkOrderObj.Add('notEarlierThan', '');
+            WorkOrderObj.Add('notLaterThan', '');
+        end;
+
+        if (JobNo <> '') and Job.Get(JobNo) then begin
+            ProjectObj.Add('no', JobNo);
+            ProjectObj.Add('description', Job.Description);
+        end else begin
+            ProjectObj.Add('no', JobNo);
+            ProjectObj.Add('description', '');
+        end;
+
+        if NumberOfDays <= 0 then
+            NumberOfDays := 30;
+        StartDate := Today();
+        EndDate := StartDate + NumberOfDays - 1;
+
+        // Echoed back so the JS-owned "Days to show" input can sync its displayed value to
+        // whatever AL actually used (initial default, or after Reset position).
+        RootObj.Add('daysToShow', NumberOfDays);
+        RootObj.Add('startDate', ReqAssign_FormatIsoDate(StartDate));
+        RootObj.Add('endDate', ReqAssign_FormatIsoDate(EndDate));
+        RootObj.Add('workdays', CPO_BuildDateRangeArray(StartDate, EndDate));
+
+        if WorkOrderFound then begin
+            DayPlanning.SetLoadFields("Job No.", "Job Task No.", "Day Line No.", Skill, "Sequence No.", Description,
+                "Plan Date", Assigned, "Assigned Resource No.", "Requested Hours", "Assigned Hours",
+                "Start Time Requested", "End Time Requested", "Start Time Assigned", "End Time Assigned",
+                "Work Order No.");
+            // Scoped by Job No./Job Task No. (this WO's own "Project No."/"Project Task No."),
+            // NOT the "Work Order No." field (2026-09-03 bug fix - see this add-in's project
+            // memory): confirmed live on DWO0008 that some of a Work Order's own Day Planning
+            // Sequences (e.g. added via the Workorder Card's native "New sequence" button) can
+            // carry a BLANK "Work Order No." field, even though they're genuinely this WO's own
+            // data - the native "Day Planning Sequence" part on the Workorder Card itself only
+            // ever filters by Job No./Job Task No., never by "Work Order No.", so CPO must match
+            // that same semantics or it silently drops rows from Section 2 (and Pass 3 below then
+            // wrongly re-adds them to Section 4 as if they were some OTHER Work Order's demand).
+            // Falls back to the old "Work Order No." field filter only if this WO has no linked
+            // Job at all (blank Project No.) - without SOME filter here, blank Job No./Job Task
+            // No. would match every unassigned Day Planning line company-wide.
+            if JobNo <> '' then begin
+                DayPlanning.SetRange("Job No.", JobNo);
+                DayPlanning.SetRange("Job Task No.", JobTaskNo);
+            end else
+                DayPlanning.SetRange("Work Order No.", WorkOrderNo);
+
+            // ---- Pass 1: dayPlanningLines[] (WorkOrderNo's OWN lines) + distinct-key dedup
+            // (skills/sequences - NOT groups, see Pass 3 below for why) ----
+            if DayPlanning.FindSet() then
+                repeat
+                    DayPlanningLinesArr.Add(CPO_BuildDayPlanningLineObj(DayPlanning, WorkOrderNo, JobNo, JobTaskNo));
+
+                    // A blank Skill is real (unclassified) demand but cannot be placed under any
+                    // Skill tree node or matched to a resource pool - excluded from every
+                    // skill-keyed structure below, same convention the pre-pivot code already used.
+                    if DayPlanning.Skill <> '' then begin
+                        if not ActiveSkillList.Contains(DayPlanning.Skill) then
+                            ActiveSkillList.Add(DayPlanning.Skill);
+
+                        SeqKeyTxt := DayPlanning.Skill + '|' + DayPlanning."Job No." + '|' + DayPlanning."Job Task No." + '|' + Format(DayPlanning."Sequence No.");
+                        if not SeqOrder.Contains(SeqKeyTxt) then begin
+                            SeqOrder.Add(SeqKeyTxt);
+                            SeqSkill.Add(DayPlanning.Skill);
+                            SeqJobNo.Add(DayPlanning."Job No.");
+                            SeqJobTaskNo.Add(DayPlanning."Job Task No.");
+                            SeqSequenceNo.Add(DayPlanning."Sequence No.");
+                            SeqLineNo.Add(DayPlanning."Day Line No.");
+                        end;
+                    end;
+                until DayPlanning.Next() = 0;
+
+            // ---- Pass 2: per-line workday-offset -> requested-hours accumulation, now that
+            // SeqOrder is fully populated (needed to resolve each line's own sequence index). ----
+            if DayPlanning.FindSet() then
+                repeat
+                    if DayPlanning.Skill <> '' then begin
+                        SeqKeyTxt := DayPlanning.Skill + '|' + DayPlanning."Job No." + '|' + DayPlanning."Job Task No." + '|' + Format(DayPlanning."Sequence No.");
+                        SeqIdx := CPO_IndexOfText(SeqOrder, SeqKeyTxt);
+                        if SeqIdx > 0 then begin
+                            WorkdayOffset := CPO_ComputeWorkdayOffset(StartDate, DayPlanning."Plan Date");
+                            if WorkdayOffset >= 1 then begin
+                                OffsetKeyTxt := Format(SeqIdx) + '|' + Format(WorkdayOffset);
+                                if not SeqOffsetKeyOrder.Contains(OffsetKeyTxt) then
+                                    SeqOffsetKeyOrder.Add(OffsetKeyTxt);
+                                CurHours := 0;
+                                if SeqOffsetHours.ContainsKey(OffsetKeyTxt) then
+                                    CurHours := SeqOffsetHours.Get(OffsetKeyTxt);
+                                SeqOffsetHours.Set(OffsetKeyTxt, CurHours + DayPlanning."Requested Hours");
+                            end;
+                        end;
+                    end;
+                until DayPlanning.Next() = 0;
+
+            // ---- Pass 3 (explicit user correction, 2026-09-03 - see this add-in's project
+            // memory for the full history): append every OTHER Work Order's Day Planning demand
+            // in this SAME [StartDate, EndDate] window into dayPlanningLines[], and build
+            // groups[] (Section 4's own tree source) EXCLUSIVELY from this other-WOs data instead
+            // of WorkOrderNo's own - in the user's own words, "section 3 for DWO0008 but section 4
+            // for all day planning data in days time frame except DWO0008". Section 2
+            // (workOrderSequences[] above) is untouched and still shows ONLY WorkOrderNo's own
+            // schedule. Scoped ONLY by Plan Date in [StartDate, EndDate] and Skill <> '' (Pass 1's
+            // own convention) and "Work Order No." <> WorkOrderNo - deliberately NOT further
+            // scoped by Job No./Job Task No. overlap with WorkOrderNo's own combos, since the
+            // user's own words name WorkOrderNo itself as the only exclusion. Company-wide but
+            // date-bounded (~30 days typical) - the user explicitly accepted a slower page load
+            // for this correctness, so no further paging/scoping is added.
+            //
+            // Every appended line also carries its own real "Work Order No." (see
+            // CPO_BuildDayPlanningLineObj's 'workOrderNo') - now that dayPlanningLines[] holds
+            // BOTH WorkOrderNo's own lines (Pass 1) and every other WO's lines (this pass), the
+            // ported JS needs that tag to keep section 3's own "Requested" bar scoped to
+            // WorkOrderNo and sections 2/4's own line-matching from ever mixing the two WOs'
+            // rows together on a coincidental Job/Task/Skill/Sequence No. collision - see
+            // capacityPlanningOverview.js's own doc comments at capParts/dailyCapacityRequestData/
+            // workOrderAssignmentState/skillDaySummary/taskDaySummary/sequenceDayLines for the
+            // matching JS-side change.
+            OtherDayPlanning.SetLoadFields("Job No.", "Job Task No.", "Day Line No.", Skill, "Sequence No.", Description,
+                "Plan Date", Assigned, "Assigned Resource No.", "Requested Hours", "Assigned Hours",
+                "Start Time Requested", "End Time Requested", "Start Time Assigned", "End Time Assigned",
+                "Work Order No.");
+            // NOT filtered by "Work Order No." <> WorkOrderNo anymore (2026-09-03 bug fix - see
+            // Pass 1's own doc comment above for the full reasoning): that field can be blank on
+            // some of WorkOrderNo's OWN Day Planning Sequences, which then wrongly passed this
+            // "<>" filter and leaked into Section 4 as if they were another Work Order's demand.
+            // The real exclusion criterion must mirror Pass 1's own scoping - Job No./Job Task
+            // No. equal to WorkOrderNo's own - checked in-code below (SetRange/SetFilter can only
+            // AND conditions together, not express "NOT(JobNo=X AND TaskNo=Y)" as a single table
+            // filter) rather than as a fourth SetRange here.
+            OtherDayPlanning.SetFilter(Skill, '<>%1', '');
+            OtherDayPlanning.SetRange("Plan Date", StartDate, EndDate);
+            if OtherDayPlanning.FindSet() then
+                repeat
+                    // Skip this WO's own line (matched by Job No./Job Task No., regardless of its
+                    // "Work Order No." field) - already covered by Pass 1 above.
+                    if not ((JobNo <> '') and (OtherDayPlanning."Job No." = JobNo) and (OtherDayPlanning."Job Task No." = JobTaskNo)) then begin
+                        DayPlanningLinesArr.Add(CPO_BuildDayPlanningLineObj(OtherDayPlanning, WorkOrderNo, JobNo, JobTaskNo));
+
+                        if not ActiveSkillList.Contains(OtherDayPlanning.Skill) then
+                            ActiveSkillList.Add(OtherDayPlanning.Skill);
+                        if not OtherSkillList.Contains(OtherDayPlanning.Skill) then
+                            OtherSkillList.Add(OtherDayPlanning.Skill);
+
+                        GroupKeyTxt := OtherDayPlanning.Skill + '|' + OtherDayPlanning."Job No." + '|' + OtherDayPlanning."Job Task No.";
+                        if not GroupOrder.Contains(GroupKeyTxt) then begin
+                            GroupOrder.Add(GroupKeyTxt);
+                            GroupSkill.Add(OtherDayPlanning.Skill);
+                            GroupJobNo.Add(OtherDayPlanning."Job No.");
+                            GroupJobTaskNo.Add(OtherDayPlanning."Job Task No.");
+                            GroupDescription.Add(OtherDayPlanning.Description);
+                        end;
+                    end;
+                until OtherDayPlanning.Next() = 0;
+        end;
+
+        RootObj.Add('project', ProjectObj);
+        RootObj.Add('workOrder', WorkOrderObj);
+        // ActiveSkillList is now the UNION of WorkOrderNo's own active skills (Pass 1) and every
+        // other Work Order's active skills in this window (Pass 3) - broadening skills[]/
+        // resources[]/externalFree[] this way is safe for WorkOrderNo's own shortage math
+        // (evaluateWO/currentPositionShortage only ever measure a BEFORE/AFTER delta over the
+        // identical resource+skill graph - see this add-in's project memory) and is required so
+        // Section 4's now-broadened groups[] tree gets correct per-skill color metadata instead of
+        // falling back to a generic default color for a skill only some OTHER Work Order uses.
+        RootObj.Add('skills', CPO_BuildSkillsArray(ActiveSkillList));
+        RootObj.Add('resources', CPO_BuildResourcesArray(ActiveSkillList, ResourcePool));
+        // Flat per-resource-per-day hours, matching the reference's own flat "baseCapacity":8 -
+        // this WO's own project team's actual Res. Capacity Entry values are not uniformly 8h in
+        // every real BC company, but 8h/day is this codebase's standard full-time representative
+        // value (matches "Daily Optimizer Setup" conventions elsewhere) and the reference's own
+        // maxFlowDay only ever needs ONE flat number per resource per (non-weekend) day - not a
+        // richer per-resource shape.
+        RootObj.Add('baseCapacity', 8);
+        // ResourcePool (out param from CPO_BuildResourcesArray above) is the SAME skill-scoped,
+        // capped pool "resources[]" already carries - see CPO_BuildExternalFreeArray's own doc
+        // comment for why externalFree must reuse it rather than querying company-wide.
+        RootObj.Add('externalFree', CPO_BuildExternalFreeArray(ResourcePool, StartDate, EndDate));
+        // OtherSkillList (NOT the broadened ActiveSkillList) - see that List's own doc comment.
+        RootObj.Add('groups', CPO_BuildGroupsArray(OtherSkillList, GroupSkill, GroupJobNo, GroupJobTaskNo, GroupDescription));
+        RootObj.Add('dayPlanningLines', DayPlanningLinesArr);
+        RootObj.Add('workOrderSequences', CPO_BuildWorkOrderSequencesArray(SeqOrder, SeqSkill, SeqJobNo, SeqJobTaskNo, SeqSequenceNo, SeqLineNo, SeqOffsetKeyOrder, SeqOffsetHours));
+
+        RootObj.WriteTo(OutTxt);
+        exit(OutTxt);
+    end;
+
+    // ================================================================================
+    // Page Background Task pagination (2026-09-03, explicit user request - "the system takes a
+    // long time to generate the JSON and load it into DHTMLX ... get the first 50 records, and the
+    // remaining will background process"). Modeled directly on codeunit "ReqAssign BG Day Task
+    // Lines" / page 50710 "DHX Request Assignment Board"'s own pattern (ReqAssign_
+    // BuildPlanningDataJson_Paged / ReqAssign_BuildDayTaskLinesJson_Paged / ReqAssign_
+    // BuildDayTaskLinesJson_ForKeys) - same two-pass split, same atomic-group pagination unit idea,
+    // same "cheap full pre-scan decides structure/paging, expensive per-line build is what's
+    // actually paginated" shape.
+    //
+    // ONLY Pass 3 (every OTHER Work Order's demand, company-wide across the visible window) is
+    // paginated - that is the actual "huge Day Planning data volume" bottleneck the user
+    // identified. Pass 1/2 (the inspected Work Order's OWN data, feeding section 2/
+    // workOrderSequences[]) stay exactly as they are in CPO_BuildPlanningDataJson above - bounded
+    // to one Work Order's own lines, never the cost driver.
+    //
+    // The atomic pagination unit is a whole "group" - Skill+Job No.+Job Task No., the SAME
+    // Skill/Job/Task combination Section 4's tree groups by (see CPO_BuildGroupsArray) - a group
+    // is never split across the synchronous first page and the background remainder, so Section
+    // 4's tree structure is always internally consistent at every point in the load.
+    //
+    // skills[]/resources[]/externalFree[]/groups[] (the TREE SKELETON - which skills and which
+    // Job/Task groups exist) are built from a cheap key-fields-only scan that ALWAYS covers the
+    // FULL window, never paginated - trivial cost even over a huge dayPlanningLines volume (a few
+    // hundred distinct groups at most). Only the EXPENSIVE part - building each group's full
+    // dayPlanningLines[] entries (Job/Job Task description lookups, time-to-decimal conversions,
+    // per-line JSON) - is deferred for whatever groups don't fit MaxOtherLines. The practical
+    // effect: Section 4's tree renders its full Skill/Job/Task skeleton immediately; the
+    // Sequence-level leaf chips for later groups backfill once the background task delivers them.
+    // Section 1/3's shortage/coverage numbers are correspondingly PROVISIONAL until that backfill
+    // completes (capParts()'s company-wide "assigned" sum needs every group's real hours) - the
+    // JS-side AppendOtherWorkOrderData (capacityPlanningOverview.js) re-runs the full shortage
+    // recompute and re-renders sections 1/3/4 once the remainder arrives, correcting this.
+    // ================================================================================
+
+    /// <summary>
+    /// Cheap, ALWAYS-full pre-scan (key fields only - no Job/Job Task description lookups, no time
+    /// formatting) over every OTHER Work Order's Day Planning demand in [StartDate, EndDate] -
+    /// establishes the complete distinct-group list/order/per-group line count (GroupOrder/
+    /// GroupLineCount) and the complete active-skill lists (ActiveSkillList, the UNION also used by
+    /// skills[]/resources[]/externalFree[]; OtherSkillList, this pass's own skills only - same two
+    /// lists CPO_BuildPlanningDataJson's own Pass 3 already threads into CPO_BuildSkillsArray/
+    /// CPO_BuildGroupsArray respectively). Never paginated - see this region's own header comment
+    /// for why this is safe/cheap even over a huge dayPlanningLines volume. Same exclusion
+    /// criterion as CPO_BuildPlanningDataJson's Pass 3 (Job No./Job Task No. match, not the
+    /// unreliable "Work Order No." field - see that pass's own doc comment).
+    /// </summary>
+    local procedure CPO_ScanOtherWorkOrderGroups(JobNo: Code[20]; JobTaskNo: Code[20]; StartDate: Date; EndDate: Date; var ActiveSkillList: List of [Code[20]]; var OtherSkillList: List of [Code[20]]; var GroupOrder: List of [Text]; var GroupSkill: List of [Code[20]]; var GroupJobNo: List of [Code[20]]; var GroupJobTaskNo: List of [Code[20]]; var GroupDescription: List of [Text]; var GroupLineCount: Dictionary of [Text, Integer])
+    var
+        OtherDayPlanning: Record "Day Planning";
+        GroupKeyTxt: Text;
+        PriorCount: Integer;
+    begin
+        OtherDayPlanning.SetLoadFields("Job No.", "Job Task No.", Skill, Description);
+        OtherDayPlanning.SetFilter(Skill, '<>%1', '');
+        OtherDayPlanning.SetRange("Plan Date", StartDate, EndDate);
+        if OtherDayPlanning.FindSet() then
+            repeat
+                if not ((JobNo <> '') and (OtherDayPlanning."Job No." = JobNo) and (OtherDayPlanning."Job Task No." = JobTaskNo)) then begin
+                    if not ActiveSkillList.Contains(OtherDayPlanning.Skill) then
+                        ActiveSkillList.Add(OtherDayPlanning.Skill);
+                    if not OtherSkillList.Contains(OtherDayPlanning.Skill) then
+                        OtherSkillList.Add(OtherDayPlanning.Skill);
+
+                    GroupKeyTxt := OtherDayPlanning.Skill + '|' + OtherDayPlanning."Job No." + '|' + OtherDayPlanning."Job Task No.";
+                    if not GroupLineCount.ContainsKey(GroupKeyTxt) then begin
+                        GroupOrder.Add(GroupKeyTxt);
+                        GroupSkill.Add(OtherDayPlanning.Skill);
+                        GroupJobNo.Add(OtherDayPlanning."Job No.");
+                        GroupJobTaskNo.Add(OtherDayPlanning."Job Task No.");
+                        GroupDescription.Add(OtherDayPlanning.Description);
+                        GroupLineCount.Add(GroupKeyTxt, 1);
+                    end else begin
+                        // Dictionary has no in-place increment - Remove+Add overwrites the existing
+                        // value, same idiom ReqAssign_BuildDayTaskLinesJson_Paged already uses.
+                        PriorCount := GroupLineCount.Get(GroupKeyTxt);
+                        GroupLineCount.Remove(GroupKeyTxt);
+                        GroupLineCount.Add(GroupKeyTxt, PriorCount + 1);
+                    end;
+                end;
+            until OtherDayPlanning.Next() = 0;
+    end;
+
+    /// <summary>
+    /// Expensive per-line JSON build (Job/Job Task description lookups, time-to-decimal
+    /// conversions, via the shared CPO_BuildDayPlanningLineObj) for every OTHER Work Order's Day
+    /// Planning row in [StartDate, EndDate] WHOSE Skill+Job No.+Job Task No. group is a key in
+    /// WantedGroupKeys - shared by both CPO_BuildPlanningDataJson_Paged's own synchronous first
+    /// page (WantedGroupKeys = the groups that fit MaxOtherLines) and
+    /// CPO_BuildOtherWorkOrderLinesJson_ForKeys's background-task remainder (WantedGroupKeys =
+    /// whatever didn't fit) - both build byte-for-byte identical line JSON for the same row instead
+    /// of maintaining two copies of this logic.
+    /// </summary>
+    local procedure CPO_BuildOtherWorkOrderLinesForGroups(WorkOrderNo: Code[20]; JobNo: Code[20]; JobTaskNo: Code[20]; StartDate: Date; EndDate: Date; var WantedGroupKeys: Dictionary of [Text, Boolean]): JsonArray
+    var
+        OtherDayPlanning: Record "Day Planning";
+        LinesArr: JsonArray;
+        GroupKeyTxt: Text;
+    begin
+        OtherDayPlanning.SetLoadFields("Job No.", "Job Task No.", "Day Line No.", Skill, "Sequence No.", Description,
+            "Plan Date", Assigned, "Assigned Resource No.", "Requested Hours", "Assigned Hours",
+            "Start Time Requested", "End Time Requested", "Start Time Assigned", "End Time Assigned",
+            "Work Order No.");
+        OtherDayPlanning.SetFilter(Skill, '<>%1', '');
+        OtherDayPlanning.SetRange("Plan Date", StartDate, EndDate);
+        if OtherDayPlanning.FindSet() then
+            repeat
+                if not ((JobNo <> '') and (OtherDayPlanning."Job No." = JobNo) and (OtherDayPlanning."Job Task No." = JobTaskNo)) then begin
+                    GroupKeyTxt := OtherDayPlanning.Skill + '|' + OtherDayPlanning."Job No." + '|' + OtherDayPlanning."Job Task No.";
+                    if WantedGroupKeys.ContainsKey(GroupKeyTxt) then
+                        LinesArr.Add(CPO_BuildDayPlanningLineObj(OtherDayPlanning, WorkOrderNo, JobNo, JobTaskNo));
+                end;
+            until OtherDayPlanning.Next() = 0;
+        exit(LinesArr);
+    end;
+
+    /// <summary>
+    /// Paged variant of CPO_BuildPlanningDataJson - see this region's own header comment for the
+    /// full design. Identical payload shape/keys; skills[]/resources[]/externalFree[]/groups[] are
+    /// always complete (cheap full pre-scan, CPO_ScanOtherWorkOrderGroups); dayPlanningLines[] gets
+    /// the inspected Work Order's own lines in full (Pass 1, unchanged) plus only the first
+    /// MaxOtherLines-worth of whole OTHER-Work-Order groups (Pass 3b, CPO_
+    /// BuildOtherWorkOrderLinesForGroups). RemainingGroupKeys (a JSON array of "Skill|JobNo|
+    /// JobTaskNo" strings, blank '' if nothing remains) is what the caller threads into
+    /// CurrPage.EnqueueBackgroundTask(Codeunit::"CPO BG Other WO Data", ...).
+    /// </summary>
+    procedure CPO_BuildPlanningDataJson_Paged(WorkOrderNo: Code[20]; NumberOfDays: Integer; MaxOtherLines: Integer; var RemainingGroupKeys: Text): Text
+    var
+        WorkOrder: Record "Work Order";
+        Job: Record Job;
+        DayPlanning: Record "Day Planning";
+        RootObj: JsonObject;
+        ProjectObj: JsonObject;
+        WorkOrderObj: JsonObject;
+        DayPlanningLinesArr: JsonArray;
+        FirstPageOtherLinesArr: JsonArray;
+        LineTok: JsonToken;
+        ActiveSkillList: List of [Code[20]];
+        OtherSkillList: List of [Code[20]];
+        GroupOrder: List of [Text];
+        GroupSkill: List of [Code[20]];
+        GroupJobNo: List of [Code[20]];
+        GroupJobTaskNo: List of [Code[20]];
+        GroupDescription: List of [Text];
+        GroupLineCount: Dictionary of [Text, Integer];
+        FirstPageGroupKeys: Dictionary of [Text, Boolean];
+        RemainingGroupKeysArr: JsonArray;
+        SeqOrder: List of [Text];
+        SeqSkill: List of [Code[20]];
+        SeqJobNo: List of [Code[20]];
+        SeqJobTaskNo: List of [Code[20]];
+        SeqSequenceNo: List of [Integer];
+        SeqLineNo: List of [Integer];
+        SeqOffsetKeyOrder: List of [Text];
+        SeqOffsetHours: Dictionary of [Text, Decimal];
+        ResourcePool: List of [Code[20]];
+        GroupKeyTxt: Text;
+        SeqKeyTxt: Text;
+        OffsetKeyTxt: Text;
+        SeqIdx: Integer;
+        WorkdayOffset: Integer;
+        CurHours: Decimal;
+        RunningTotal: Integer;
+        StartDate: Date;
+        EndDate: Date;
+        JobNo: Code[20];
+        JobTaskNo: Code[20];
+        WorkOrderFound: Boolean;
+        OutTxt: Text;
+    begin
+        WorkOrderFound := WorkOrder.Get(WorkOrderNo);
+
+        if WorkOrderFound then begin
+            JobNo := WorkOrder."Project No.";
+            JobTaskNo := WorkOrder."Project Task No.";
+            WorkOrderObj.Add('no', WorkOrder."Work Order No.");
+            WorkOrderObj.Add('description', WorkOrder.Description);
+            WorkOrderObj.Add('notEarlierThan', ReqAssign_FormatIsoDate(WorkOrder."Planned Start Date"));
+            WorkOrderObj.Add('notLaterThan', ReqAssign_FormatIsoDate(WorkOrder."Planned End Date"));
+        end else begin
+            WorkOrderObj.Add('no', WorkOrderNo);
+            WorkOrderObj.Add('description', '');
+            WorkOrderObj.Add('notEarlierThan', '');
+            WorkOrderObj.Add('notLaterThan', '');
+        end;
+
+        if (JobNo <> '') and Job.Get(JobNo) then begin
+            ProjectObj.Add('no', JobNo);
+            ProjectObj.Add('description', Job.Description);
+        end else begin
+            ProjectObj.Add('no', JobNo);
+            ProjectObj.Add('description', '');
+        end;
+
+        if NumberOfDays <= 0 then
+            NumberOfDays := 30;
+        StartDate := Today();
+        EndDate := StartDate + NumberOfDays - 1;
+
+        RootObj.Add('daysToShow', NumberOfDays);
+        RootObj.Add('startDate', ReqAssign_FormatIsoDate(StartDate));
+        RootObj.Add('endDate', ReqAssign_FormatIsoDate(EndDate));
+        RootObj.Add('workdays', CPO_BuildDateRangeArray(StartDate, EndDate));
+
+        if WorkOrderFound then begin
+            // ---- Pass 1 + Pass 2: WorkOrderNo's OWN lines (section 2/workOrderSequences[]) -
+            // byte-for-byte identical to CPO_BuildPlanningDataJson's own Pass 1/2, unchanged/
+            // un-paginated (bounded to one Work Order's own lines, never the cost driver). ----
+            DayPlanning.SetLoadFields("Job No.", "Job Task No.", "Day Line No.", Skill, "Sequence No.", Description,
+                "Plan Date", Assigned, "Assigned Resource No.", "Requested Hours", "Assigned Hours",
+                "Start Time Requested", "End Time Requested", "Start Time Assigned", "End Time Assigned",
+                "Work Order No.");
+            if JobNo <> '' then begin
+                DayPlanning.SetRange("Job No.", JobNo);
+                DayPlanning.SetRange("Job Task No.", JobTaskNo);
+            end else
+                DayPlanning.SetRange("Work Order No.", WorkOrderNo);
+
+            if DayPlanning.FindSet() then
+                repeat
+                    DayPlanningLinesArr.Add(CPO_BuildDayPlanningLineObj(DayPlanning, WorkOrderNo, JobNo, JobTaskNo));
+
+                    if DayPlanning.Skill <> '' then begin
+                        if not ActiveSkillList.Contains(DayPlanning.Skill) then
+                            ActiveSkillList.Add(DayPlanning.Skill);
+
+                        SeqKeyTxt := DayPlanning.Skill + '|' + DayPlanning."Job No." + '|' + DayPlanning."Job Task No." + '|' + Format(DayPlanning."Sequence No.");
+                        if not SeqOrder.Contains(SeqKeyTxt) then begin
+                            SeqOrder.Add(SeqKeyTxt);
+                            SeqSkill.Add(DayPlanning.Skill);
+                            SeqJobNo.Add(DayPlanning."Job No.");
+                            SeqJobTaskNo.Add(DayPlanning."Job Task No.");
+                            SeqSequenceNo.Add(DayPlanning."Sequence No.");
+                            SeqLineNo.Add(DayPlanning."Day Line No.");
+                        end;
+                    end;
+                until DayPlanning.Next() = 0;
+
+            if DayPlanning.FindSet() then
+                repeat
+                    if DayPlanning.Skill <> '' then begin
+                        SeqKeyTxt := DayPlanning.Skill + '|' + DayPlanning."Job No." + '|' + DayPlanning."Job Task No." + '|' + Format(DayPlanning."Sequence No.");
+                        SeqIdx := CPO_IndexOfText(SeqOrder, SeqKeyTxt);
+                        if SeqIdx > 0 then begin
+                            WorkdayOffset := CPO_ComputeWorkdayOffset(StartDate, DayPlanning."Plan Date");
+                            if WorkdayOffset >= 1 then begin
+                                OffsetKeyTxt := Format(SeqIdx) + '|' + Format(WorkdayOffset);
+                                if not SeqOffsetKeyOrder.Contains(OffsetKeyTxt) then
+                                    SeqOffsetKeyOrder.Add(OffsetKeyTxt);
+                                CurHours := 0;
+                                if SeqOffsetHours.ContainsKey(OffsetKeyTxt) then
+                                    CurHours := SeqOffsetHours.Get(OffsetKeyTxt);
+                                SeqOffsetHours.Set(OffsetKeyTxt, CurHours + DayPlanning."Requested Hours");
+                            end;
+                        end;
+                    end;
+                until DayPlanning.Next() = 0;
+
+            // ---- Pass 3a: cheap, ALWAYS-full scan - complete skills/groups structure. ----
+            CPO_ScanOtherWorkOrderGroups(JobNo, JobTaskNo, StartDate, EndDate, ActiveSkillList, OtherSkillList,
+                GroupOrder, GroupSkill, GroupJobNo, GroupJobTaskNo, GroupDescription, GroupLineCount);
+
+            // ---- Decide the first page's whole groups (greedy, in first-seen order) vs the
+            // remainder - same greedy-until-MaxLines-exceeded shape as ReqAssign_
+            // BuildDayTaskLinesJson_Paged's own cutoff. ----
+            RunningTotal := 0;
+            foreach GroupKeyTxt in GroupOrder do
+                if RunningTotal < MaxOtherLines then begin
+                    FirstPageGroupKeys.Add(GroupKeyTxt, true);
+                    RunningTotal += GroupLineCount.Get(GroupKeyTxt);
+                end else
+                    RemainingGroupKeysArr.Add(GroupKeyTxt);
+
+            if RemainingGroupKeysArr.Count() > 0 then
+                RemainingGroupKeysArr.WriteTo(RemainingGroupKeys)
+            else
+                RemainingGroupKeys := '';
+
+            // ---- Pass 3b: expensive per-line build, ONLY for the first page's groups. ----
+            FirstPageOtherLinesArr := CPO_BuildOtherWorkOrderLinesForGroups(WorkOrderNo, JobNo, JobTaskNo, StartDate, EndDate, FirstPageGroupKeys);
+            foreach LineTok in FirstPageOtherLinesArr do
+                DayPlanningLinesArr.Add(LineTok.AsObject());
+        end;
+
+        RootObj.Add('project', ProjectObj);
+        RootObj.Add('workOrder', WorkOrderObj);
+        RootObj.Add('skills', CPO_BuildSkillsArray(ActiveSkillList));
+        RootObj.Add('resources', CPO_BuildResourcesArray(ActiveSkillList, ResourcePool));
+        RootObj.Add('baseCapacity', 8);
+        RootObj.Add('externalFree', CPO_BuildExternalFreeArray(ResourcePool, StartDate, EndDate));
+        // groups[] is the COMPLETE tree skeleton (every group, not just the first page) - see this
+        // region's own header comment for why that's safe/cheap; only its LINES (chips) backfill.
+        RootObj.Add('groups', CPO_BuildGroupsArray(OtherSkillList, GroupSkill, GroupJobNo, GroupJobTaskNo, GroupDescription));
+        RootObj.Add('dayPlanningLines', DayPlanningLinesArr);
+        RootObj.Add('workOrderSequences', CPO_BuildWorkOrderSequencesArray(SeqOrder, SeqSkill, SeqJobNo, SeqJobTaskNo, SeqSequenceNo, SeqLineNo, SeqOffsetKeyOrder, SeqOffsetHours));
+
+        RootObj.WriteTo(OutTxt);
+        exit(OutTxt);
+    end;
+
+    /// <summary>
+    /// Page Background Task companion to CPO_BuildPlanningDataJson_Paged (called from codeunit "CPO
+    /// BG Other WO Data"'s OnRun) - builds the SAME per-line JSON (via CPO_
+    /// BuildOtherWorkOrderLinesForGroups/CPO_BuildDayPlanningLineObj) for only the OTHER Work
+    /// Orders' groups named in RemainingGroupKeysJson (the paged builder's own RemainingGroupKeys
+    /// out parameter). Runs in the background task's own session, so StartDate/EndDate are passed
+    /// in explicitly (formatted text, parsed by the caller) rather than recomputed from
+    /// NumberOfDays/Today() - avoids any midnight-boundary drift between the interactive session's
+    /// window and the background session's own. Returns the resulting JSON array already
+    /// serialized to Text (what the Page Background Task stashes into its result Dictionary and the
+    /// control add-in's AppendOtherWorkOrderData consumes) - '[]' when RemainingGroupKeysJson is
+    /// blank (a no-op call).
+    /// </summary>
+    procedure CPO_BuildOtherWorkOrderLinesJson_ForKeys(WorkOrderNo: Code[20]; StartDate: Date; EndDate: Date; RemainingGroupKeysJson: Text): Text
+    var
+        WorkOrder: Record "Work Order";
+        WantedGroupKeys: Dictionary of [Text, Boolean];
+        WantedGroupKeysArr: JsonArray;
+        KeyTok: JsonToken;
+        LinesArr: JsonArray;
+        JobNo: Code[20];
+        JobTaskNo: Code[20];
+        OutTxt: Text;
+    begin
+        if RemainingGroupKeysJson = '' then
+            exit('[]');
+
+        if WorkOrder.Get(WorkOrderNo) then begin
+            JobNo := WorkOrder."Project No.";
+            JobTaskNo := WorkOrder."Project Task No.";
+        end;
+
+        WantedGroupKeysArr.ReadFrom(RemainingGroupKeysJson);
+        foreach KeyTok in WantedGroupKeysArr do
+            WantedGroupKeys.Add(KeyTok.AsValue().AsText(), true);
+
+        LinesArr := CPO_BuildOtherWorkOrderLinesForGroups(WorkOrderNo, JobNo, JobTaskNo, StartDate, EndDate, WantedGroupKeys);
+        LinesArr.WriteTo(OutTxt);
+        exit(OutTxt);
+    end;
+
+    /// <summary>
+    /// Caps the per-skill resource pool fed into the client-side max-flow engine
+    /// (capacityPlanningOverview.js's maxFlowDay) - deliberately NOT "every company resource
+    /// holding this skill" (this demo company alone was observed seeding 100+ resources for some
+    /// skills, per this add-in's project memory). maxFlowDay's Edmonds-Karp-style augmenting-path
+    /// search cost scales roughly with (resource count)^2 per day, and it is called from BOTH the
+    /// section-1 cell templates AND evaluateWO/currentPositionShortage's own internal per-day
+    /// loops - an uncapped pool would make the browser hang on this real demo data. 15 is a
+    /// deliberate, PERFORMANCE-driven scoping choice, not a data-completeness compromise: the
+    /// max-flow model's achievable coverage is capped by DEMAND, not supply (see this add-in's
+    /// project memory for the full reasoning), so a smaller-than-total-but-non-empty resource pool
+    /// still produces a meaningful, non-inflated percentage.
+    /// </summary>
+    local procedure CPO_MaxResourcesPerSkill(): Integer
+    begin
+        exit(15);
+    end;
+
+    /// <summary>
+    /// Builds "skills[]" - one entry per distinct Skill this Work Order's project demands, colors
+    /// resolved via codeunit 50609's existing GetSkillBarColor/GetSkillBorderColor/GetSkillFontColor
+    /// (same PaletteIndex-increments-in-first-encountered-order convention as this codeunit's own
+    /// ResolveRequestedColor) - no new color source invented. "dark"/"light" (used by the ported
+    /// JS's gradient-fill chip/bar rendering) reuse the same border/fill pair every OTHER caller in
+    /// this codeunit already treats as the "deep"/"light" tone for a skill, since no separate
+    /// dark/light tint helper exists in codeunit 50609.
+    /// </summary>
+    local procedure CPO_BuildSkillsArray(var ActiveSkillList: List of [Code[20]]): JsonArray
+    var
+        ColorConstants: Codeunit "Visual Default Settings";
+        SkillsArr: JsonArray;
+        SkillObj: JsonObject;
+        SkillCode: Code[20];
+        PaletteIndex: Integer;
+        FillColorTxt: Text;
+        BorderColorTxt: Text;
+    begin
+        foreach SkillCode in ActiveSkillList do begin
+            FillColorTxt := ColorConstants.GetSkillBarColor(CopyStr(SkillCode, 1, 10), PaletteIndex);
+            BorderColorTxt := ColorConstants.GetSkillBorderColor(CopyStr(SkillCode, 1, 10), PaletteIndex);
+
+            Clear(SkillObj);
+            SkillObj.Add('code', SkillCode);
+            SkillObj.Add('color', FillColorTxt);
+            SkillObj.Add('textColor', ColorConstants.GetSkillFontColor(CopyStr(SkillCode, 1, 10)));
+            SkillObj.Add('border', BorderColorTxt);
+            SkillObj.Add('dark', BorderColorTxt);
+            SkillObj.Add('light', FillColorTxt);
+            SkillsArr.Add(SkillObj);
+            PaletteIndex += 1;
+        end;
+        exit(SkillsArr);
+    end;
+
+    /// <summary>
+    /// Builds "resources[]" - "name" is deliberately the resource's own "No." (NOT its friendly
+    /// Name field): the reference's dayPlanningLines[].assignedResourceNo and resources[].name are
+    /// the SAME join key throughout every ported function (resourceAssignedHours/
+    /// resourceRemaining match on this value), and this add-in's own "Assigned Resource No." field
+    /// is already the resource's No. - keeping "name" = No. preserves that join without a second
+    /// display-name lookup.
+    ///
+    /// Pool scope: every resource holding ANY skill this WO's project demands (NOT project-team-
+    /// scoped, unlike the pre-pivot engine's corrected formula) - deliberately broader, because the
+    /// max-flow model's own achievable coverage is capped by demand, not supply (see this add-in's
+    /// project memory for the full reasoning this pivot is based on), so a wider real supply pool
+    /// is the CORRECT input now, not a bug risk like it was for the old simple formula. Capped at
+    /// CPO_MaxResourcesPerSkill() new resources per skill (see that procedure's own doc comment)
+    /// purely for client-side max-flow performance - a real, deliberate, documented gap, not a
+    /// silent approximation.
+    /// </summary>
+    local procedure CPO_BuildResourcesArray(var ActiveSkillList: List of [Code[20]]; var ResourceOrder: List of [Code[20]]): JsonArray
+    var
+        ResourceSkill: Record "Resource Skill";
+        ResourcesArr: JsonArray;
+        ResourceObj: JsonObject;
+        SkillsForResourceArr: JsonArray;
+        SkillCode: Code[20];
+        ResourceNo: Code[20];
+        CountForSkill: Integer;
+    begin
+        foreach SkillCode in ActiveSkillList do begin
+            CountForSkill := 0;
+            ResourceSkill.Reset();
+            ResourceSkill.SetLoadFields("No.");
+            ResourceSkill.SetRange(Type, ResourceSkill.Type::Resource);
+            ResourceSkill.SetRange("Skill Code", SkillCode);
+            if ResourceSkill.FindSet() then
+                repeat
+                    if not ResourceOrder.Contains(ResourceSkill."No.") then begin
+                        ResourceOrder.Add(ResourceSkill."No.");
+                        CountForSkill += 1;
+                    end;
+                until (ResourceSkill.Next() = 0) or (CountForSkill >= CPO_MaxResourcesPerSkill());
+        end;
+
+        foreach ResourceNo in ResourceOrder do begin
+            Clear(SkillsForResourceArr);
+            foreach SkillCode in ActiveSkillList do begin
+                ResourceSkill.Reset();
+                ResourceSkill.SetRange(Type, ResourceSkill.Type::Resource);
+                ResourceSkill.SetRange("No.", ResourceNo);
+                ResourceSkill.SetRange("Skill Code", SkillCode);
+                if not ResourceSkill.IsEmpty() then
+                    SkillsForResourceArr.Add(SkillCode);
+            end;
+
+            Clear(ResourceObj);
+            ResourceObj.Add('name', ResourceNo);
+            ResourceObj.Add('skills', SkillsForResourceArr);
+            ResourcesArr.Add(ResourceObj);
+        end;
+        exit(ResourcesArr);
+    end;
+
+    /// <summary>
+    /// Builds "externalFree[]" - one entry per calendar day in [StartDate, EndDate], summing real
+    /// "Res. Capacity Entry".Capacity for whichever of THIS payload's own already-built
+    /// "resources[]" pool (ResourceOrder, as returned by CPO_BuildResourcesArray - the same
+    /// skill-scoped, CPO_MaxResourcesPerSkill()-capped pool "internal" capacity is computed from,
+    /// see capParts()/capacityPlanningOverview.js) also has a non-blank "Vendor No." (this
+    /// codebase's existing external/subcontracted-resource marker, per tableext 50603).
+    /// Deliberately NOT a separate, differently-scoped "every Resource company-wide with a Vendor
+    /// No." query - an earlier version of this procedure queried ALL vendor-linked resources
+    /// company-wide with no skill-relevance filter or cap, which inflated section 3's daily
+    /// capacity totals into the hundreds of hours (confirmed live: ~822h/day against DWO0008,
+    /// clearly disproportionate next to the internal pool's own capped 15*8=120h/day ceiling) -
+    /// reusing the SAME already-capped resource list keeps "external" and "internal" capacity
+    /// commensurate with each other, both scoped to resources actually relevant to this WO's own
+    /// demanded skills. A day with no such resources or no capacity entries legitimately sums to 0
+    /// (not fabricated).
+    /// </summary>
+    local procedure CPO_BuildExternalFreeArray(var ResourceOrder: List of [Code[20]]; StartDate: Date; EndDate: Date): JsonArray
+    var
+        ExtResource: Record Resource;
+        ResCapacityEntry: Record "Res. Capacity Entry";
+        ExternalArr: JsonArray;
+        ByDate: Dictionary of [Date, Decimal];
+        ResourceNo: Code[20];
+        CurDate: Date;
+        CurVal: Decimal;
+    begin
+        foreach ResourceNo in ResourceOrder do begin
+            ExtResource.Reset();
+            ExtResource.SetLoadFields("Vendor No.");
+            if ExtResource.Get(ResourceNo) and (ExtResource."Vendor No." <> '') then begin
+                ResCapacityEntry.Reset();
+                ResCapacityEntry.SetLoadFields(Date, Capacity);
+                ResCapacityEntry.SetRange("Resource No.", ResourceNo);
+                ResCapacityEntry.SetRange(Date, StartDate, EndDate);
+                if ResCapacityEntry.FindSet() then
+                    repeat
+                        CurVal := 0;
+                        if ByDate.ContainsKey(ResCapacityEntry.Date) then
+                            CurVal := ByDate.Get(ResCapacityEntry.Date);
+                        ByDate.Set(ResCapacityEntry.Date, CurVal + ResCapacityEntry.Capacity);
+                    until ResCapacityEntry.Next() = 0;
+            end;
+        end;
+
+        CurDate := StartDate;
+        while CurDate <= EndDate do begin
+            CurVal := 0;
+            if ByDate.ContainsKey(CurDate) then
+                CurVal := ByDate.Get(CurDate);
+            ExternalArr.Add(CurVal);
+            CurDate += 1;
+        end;
+        exit(ExternalArr);
+    end;
+
+    /// <summary>
+    /// Builds "groups[]" (section 4's tree source data) - one entry per distinct Skill, each with
+    /// "details[]" = one entry per distinct Job No./Job Task No. that skill's demand touches. This
+    /// is ALL the AL-side tree building needed now - the ported JS's own buildCentralSections()/
+    /// skillDaySummary()/taskDaySummary()/sequenceDayLines() derive the rest (per-day summaries,
+    /// the Sequence leaf level, per-line chip cells) CLIENT-SIDE straight from "groups" +
+    /// "dayPlanningLines", exactly like the reference prototype does - the old
+    /// CPO_BuildTreeNodesArray/CPO_BuildDayTotalsObj/CPO_BuildTreeCellsObj machinery this replaces
+    /// is gone.
+    ///
+    /// CALLER CONTRACT CHANGED (2026-09-03, explicit user correction - see this add-in's project
+    /// memory): the caller (CPO_BuildPlanningDataJson) now passes OtherSkillList/GroupSkill/
+    /// GroupJobNo/GroupJobTaskNo/GroupDescription built from every OTHER Work Order's demand in
+    /// the visible window (Pass 3), NOT the inspected WorkOrderNo's own data - Section 4 is
+    /// "everything else going on in this window", per the user's own words. This procedure itself
+    /// is unchanged; only what the caller feeds it changed.
+    /// </summary>
+    local procedure CPO_BuildGroupsArray(var ActiveSkillList: List of [Code[20]]; var GroupSkill: List of [Code[20]]; var GroupJobNo: List of [Code[20]]; var GroupJobTaskNo: List of [Code[20]]; var GroupDescription: List of [Text]): JsonArray
+    var
+        GroupsArr: JsonArray;
+        GroupObj: JsonObject;
+        DetailsArr: JsonArray;
+        DetailObj: JsonObject;
+        SkillCode: Code[20];
+        i: Integer;
+    begin
+        foreach SkillCode in ActiveSkillList do begin
+            Clear(DetailsArr);
+            for i := 1 to GroupSkill.Count() do
+                if GroupSkill.Get(i) = SkillCode then begin
+                    Clear(DetailObj);
+                    DetailObj.Add('job', GroupJobNo.Get(i));
+                    DetailObj.Add('task', GroupJobTaskNo.Get(i));
+                    DetailObj.Add('description', GroupDescription.Get(i));
+                    DetailsArr.Add(DetailObj);
+                end;
+
+            Clear(GroupObj);
+            GroupObj.Add('skill', SkillCode);
+            GroupObj.Add('expanded', true);
+            GroupObj.Add('details', DetailsArr);
+            GroupsArr.Add(GroupObj);
+        end;
+        exit(GroupsArr);
+    end;
+
+    /// <summary>
+    /// Linear-scan index-of over a List of [Text] (1-based, 0 if not found) - AL's List type has no
+    /// built-in IndexOf; used by CPO_BuildPlanningDataJson's pass 2 to resolve a Day Planning
+    /// line's own sequence position within SeqOrder. Cost is O(sequence count) per line, trivial at
+    /// this feature's scale (one Work Order's own lines/sequences, never company-wide).
+    /// </summary>
+    local procedure CPO_IndexOfText(var TextList: List of [Text]; Value: Text): Integer
+    var
+        i: Integer;
+    begin
+        for i := 1 to TextList.Count() do
+            if TextList.Get(i) = Value then
+                exit(i);
+        exit(0);
+    end;
+
+    /// <summary>
+    /// Reverse of the ported JS's own idxWork(start,wd) (DHTMLXtempv112-app.js ~L150-154): given
+    /// AnchorDate (always this payload's own StartDate - see CPO_BuildPlanningDataJson's doc
+    /// comment) and a real TargetDate, returns the 1-based workday-offset "wd" such that
+    /// idxWork(dayIndex(AnchorDate), wd) lands back on TargetDate - i.e. workdays are counted from
+    /// the first workday AT OR AFTER AnchorDate (matching idxWork's own "while(isWeekendDate(i))
+    /// i++" when wd=1), incrementing once per workday, weekends skipped. Returns 0 (caller treats
+    /// as "exclude this occurrence") if TargetDate falls before the effective anchor, which should
+    /// not happen in practice since AnchorDate is always this payload's own window start and real
+    /// Day Planning lines are only ever queried within that same window.
+    /// </summary>
+    local procedure CPO_ComputeWorkdayOffset(AnchorDate: Date; TargetDate: Date): Integer
+    var
+        EffectiveAnchor: Date;
+        CurDate: Date;
+        OffsetCount: Integer;
+    begin
+        if (AnchorDate = 0D) or (TargetDate = 0D) then
+            exit(0);
+
+        EffectiveAnchor := AnchorDate;
+        while Date2DWY(EffectiveAnchor, 1) in [6, 7] do
+            EffectiveAnchor += 1;
+
+        if TargetDate < EffectiveAnchor then
+            exit(0);
+
+        CurDate := EffectiveAnchor;
+        while CurDate <= TargetDate do begin
+            if not (Date2DWY(CurDate, 1) in [6, 7]) then
+                OffsetCount += 1;
+            CurDate += 1;
+        end;
+        exit(OffsetCount);
+    end;
+
+    /// <summary>
+    /// Collects every workday-offset recorded for sequence position SeqIndex out of
+    /// SeqOffsetKeyOrder (keys shaped "SeqIndex|Offset" - see CPO_BuildPlanningDataJson's pass 2),
+    /// sorted ascending via simple insertion (trivial cost - one Work Order's own occurrence count
+    /// per sequence is always small). Used by CPO_BuildWorkOrderSequencesArray to build each
+    /// sequence's own "workdays[]" in the exact ascending order the reference's own mock data
+    /// shape uses.
+    /// </summary>
+    local procedure CPO_BuildSortedOffsets(var SeqOffsetKeyOrder: List of [Text]; SeqIndex: Integer; var SortedOffsets: List of [Integer])
+    var
+        KeyTxt: Text;
+        PrefixTxt: Text;
+        OffsetPart: Text;
+        OffsetVal: Integer;
+        TempVal: Integer;
+        i: Integer;
+        j: Integer;
+    begin
+        Clear(SortedOffsets);
+        PrefixTxt := Format(SeqIndex) + '|';
+        foreach KeyTxt in SeqOffsetKeyOrder do
+            if CopyStr(KeyTxt, 1, StrLen(PrefixTxt)) = PrefixTxt then begin
+                OffsetPart := CopyStr(KeyTxt, StrLen(PrefixTxt) + 1);
+                if Evaluate(OffsetVal, OffsetPart) then
+                    SortedOffsets.Add(OffsetVal);
+            end;
+
+        // Simple in-place bubble sort using ONLY Get/Set (both operate on an EXISTING index in
+        // [1,Count] and never throw) - deliberately NOT List.Insert (confirmed live to throw "An
+        // invalid argument was passed to a 'List' data type method" the moment its target index
+        // reaches Count+1, i.e. appending past the current end - a case an insertion-sort's own
+        // "biggest value so far" step hits immediately on the very first element). Offset counts
+        // per sequence are always tiny (bounded by this one Work Order's own real Day Planning
+        // line count), so this O(n^2) pass is trivially cheap.
+        for i := 1 to SortedOffsets.Count() do
+            for j := 1 to SortedOffsets.Count() - i do
+                if SortedOffsets.Get(j) > SortedOffsets.Get(j + 1) then begin
+                    TempVal := SortedOffsets.Get(j);
+                    SortedOffsets.Set(j, SortedOffsets.Get(j + 1));
+                    SortedOffsets.Set(j + 1, TempVal);
+                end;
+    end;
+
+    /// <summary>
+    /// Builds "workOrderSequences[]" - one entry per distinct Skill+Job No.+Job Task No.+Sequence
+    /// No. combination, each with "workdays[]" (ascending 1-based workday-offsets relative to this
+    /// payload's own StartDate - see CPO_ComputeWorkdayOffset) and "hoursByWorkday" ({offset:
+    /// hours}, summed if more than one real line ever lands on the same offset for this sequence,
+    /// though normally exactly one Day Planning line per day). This is the ONE field with no direct
+    /// real-BC equivalent (BC has no synthetic anchor-relative workday model of its own) - derived
+    /// entirely from the real "Plan Date"/"Requested Hours" values already collected in
+    /// CPO_BuildPlanningDataJson's pass 2, so the ported JS's evaluateWO/idxWork/workOrderExtra
+    /// keep working unchanged even though the underlying source data is real absolute dates.
+    /// </summary>
+    local procedure CPO_BuildWorkOrderSequencesArray(var SeqOrder: List of [Text]; var SeqSkill: List of [Code[20]]; var SeqJobNo: List of [Code[20]]; var SeqJobTaskNo: List of [Code[20]]; var SeqSequenceNo: List of [Integer]; var SeqLineNo: List of [Integer]; var SeqOffsetKeyOrder: List of [Text]; var SeqOffsetHours: Dictionary of [Text, Decimal]): JsonArray
+    var
+        SeqArr: JsonArray;
+        SeqObj: JsonObject;
+        WorkdaysArr: JsonArray;
+        HoursObj: JsonObject;
+        SortedOffsets: List of [Integer];
+        OffsetVal: Integer;
+        OffsetKeyTxt: Text;
+        si: Integer;
+    begin
+        for si := 1 to SeqOrder.Count() do begin
+            CPO_BuildSortedOffsets(SeqOffsetKeyOrder, si, SortedOffsets);
+
+            Clear(WorkdaysArr);
+            Clear(HoursObj);
+            foreach OffsetVal in SortedOffsets do begin
+                WorkdaysArr.Add(OffsetVal);
+                OffsetKeyTxt := Format(si) + '|' + Format(OffsetVal);
+                HoursObj.Add(Format(OffsetVal), SeqOffsetHours.Get(OffsetKeyTxt));
+            end;
+
+            Clear(SeqObj);
+            SeqObj.Add('skill', SeqSkill.Get(si));
+            SeqObj.Add('job', SeqJobNo.Get(si));
+            SeqObj.Add('task', SeqJobTaskNo.Get(si));
+            SeqObj.Add('lineNo', SeqLineNo.Get(si));
+            SeqObj.Add('sequenceNo', SeqSequenceNo.Get(si));
+            SeqObj.Add('workdays', WorkdaysArr);
+            SeqObj.Add('hoursByWorkday', HoursObj);
+            SeqArr.Add(SeqObj);
+        end;
+        exit(SeqArr);
+    end;
+
+    /// <summary>Blank-safe "HH:mm" Time formatting - "" (not "00:00") for an unset (0T) time, matching the reference mock data's own convention for a not-yet-scheduled line.</summary>
+    local procedure CPO_FormatTimeHHMM(T: Time): Text
+    begin
+        if T = 0T then
+            exit('');
+        exit(Format(T, 0, '<Hours24,2>:<Minutes,2>'));
+    end;
+
+    /// <summary>
+    /// Builds one "dayPlanningLines[]" entry from a Day Planning record, shaped per the reference's
+    /// own mock data (DHTMLXtempv112-data.js). "id"/"sequenceLineNo" both derive from this table's
+    /// own "Day Line No." (the only directly-analogous real field - the reference's mock "id"/
+    /// "sequenceLineNo" are two independent synthetic values with no single real BC equivalent;
+    /// reusing one real field for both is a documented simplification, not a fabrication).
+    /// "assignedDate" mirrors "requestDate" when Assigned = true (Day Planning has no separate
+    /// assigned-date field of its own - an assignment always lands on the same "Plan Date").
+    /// "workOrderNo" (2026-09-03 addition - explicit user correction, see CPO_BuildPlanningDataJson's
+    /// own Pass 3 doc comment) - dayPlanningLines[] now mixes WorkOrderNo's own rows with every
+    /// other Work Order's rows in the same window, so the ported JS needs this real tag to keep
+    /// each section scoped to whichever Work Order it is actually supposed to represent.
+    /// </summary>
+    local procedure CPO_BuildDayPlanningLineObj(var DayPlanning: Record "Day Planning"; InspectedWorkOrderNo: Code[20]; InspectedJobNo: Code[20]; InspectedJobTaskNo: Code[20]): JsonObject
+    var
+        LineObj: JsonObject;
+        EffectiveWorkOrderNo: Code[20];
+    begin
+        // Normalizes 'workOrderNo' to the INSPECTED Work Order's own No. whenever this line's
+        // Job No./Job Task No. matches it (2026-09-03 bug fix companion to
+        // CPO_BuildPlanningDataJson's Pass 1/Pass 3 rescoping) - the raw "Work Order No." FIELD
+        // can be blank on some of a Work Order's own genuine Day Planning Sequences, which would
+        // otherwise make the ported JS's own workOrderNo-based section 2/3 matching wrongly treat
+        // them as unaffiliated/foreign demand even though AL now correctly includes them as this
+        // WO's own line. Any line that does NOT match (a genuinely other Work Order's line, or one
+        // with no Job/Task at all) keeps its raw field value unchanged.
+        EffectiveWorkOrderNo := DayPlanning."Work Order No.";
+        if (InspectedJobNo <> '') and (DayPlanning."Job No." = InspectedJobNo) and (DayPlanning."Job Task No." = InspectedJobTaskNo) then
+            EffectiveWorkOrderNo := InspectedWorkOrderNo;
+        LineObj.Add('id', Format(DayPlanning."Day Line No."));
+        LineObj.Add('workOrderNo', EffectiveWorkOrderNo);
+        LineObj.Add('job', DayPlanning."Job No.");
+        LineObj.Add('task', DayPlanning."Job Task No.");
+        LineObj.Add('description', DayPlanning.Description);
+        LineObj.Add('sequenceLineNo', DayPlanning."Day Line No.");
+        LineObj.Add('requestDate', ReqAssign_FormatIsoDate(DayPlanning."Plan Date"));
+        LineObj.Add('requestedStartTime', CPO_FormatTimeHHMM(DayPlanning."Start Time Requested"));
+        LineObj.Add('requestedEndTime', CPO_FormatTimeHHMM(DayPlanning."End Time Requested"));
+        LineObj.Add('requestedHours', DayPlanning."Requested Hours");
+        LineObj.Add('requestedSkill', DayPlanning.Skill);
+        LineObj.Add('assignedResourceNo', DayPlanning."Assigned Resource No.");
+        if DayPlanning.Assigned then
+            LineObj.Add('assignedDate', ReqAssign_FormatIsoDate(DayPlanning."Plan Date"))
+        else
+            LineObj.Add('assignedDate', '');
+        LineObj.Add('assignedStartTime', CPO_FormatTimeHHMM(DayPlanning."Start Time Assigned"));
+        LineObj.Add('assignedEndTime', CPO_FormatTimeHHMM(DayPlanning."End Time Assigned"));
+        LineObj.Add('assignedHours', DayPlanning."Assigned Hours");
+        LineObj.Add('sequenceNo', DayPlanning."Sequence No.");
+        exit(LineObj);
+    end;
+
+    /// <summary>
+    /// Every calendar day from StartDate to EndDate inclusive, as "yyyy-MM-dd" ISO strings, in
+    /// order - deliberately NOT the Mon-Fri-only convention ReqAssign_BuildWorkdayIndexMap uses,
+    /// since this feature's visible window must be a contiguous date range (weekends included)
+    /// over one Work Order's own planned-date span, not a workday-only calendar.
+    /// </summary>
+    local procedure CPO_BuildDateRangeArray(StartDate: Date; EndDate: Date): JsonArray
+    var
+        DatesArr: JsonArray;
+        CurDate: Date;
+    begin
+        CurDate := StartDate;
+        while CurDate <= EndDate do begin
+            DatesArr.Add(ReqAssign_FormatIsoDate(CurDate));
+            CurDate += 1;
+        end;
+        exit(DatesArr);
+    end;
+
 }
