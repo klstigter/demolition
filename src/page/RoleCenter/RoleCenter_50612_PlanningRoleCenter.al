@@ -41,6 +41,14 @@ page 50612 "Planning Role Center"
                     Image = Quote;
                     ToolTip = 'Open the DayPlanning Order Intake page to manage DayPlanning orders.';
                 }
+                action("WorkOrders")
+                {
+                    ApplicationArea = Jobs;
+                    Caption = 'Work Orders';
+                    RunObject = Page "Work Order List";
+                    Image = TaskList;
+                    ToolTip = 'Open the list of work orders.';
+                }
                 action("Jobs")
                 {
                     ApplicationArea = Jobs;
