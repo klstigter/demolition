@@ -379,6 +379,10 @@ codeunit 50610 "Day Plannings Mgt."
     begin
         StartDate := 0D;
         EndDate := 0D;
+        // The primary key sorts by Day Line No., not Plan Date, so FindFirst/FindLast would
+        // otherwise return the row with the lowest/highest Day Line No. instead of the
+        // earliest/latest Plan Date. Use the Plan Date key explicitly.
+        DayPlannings.SetCurrentKey("Job No.", "Job Task No.", "Plan Date");
         DayPlannings.SetRange("Job No.", JobNo);
         if JobTaskNo <> '' then
             DayPlannings.SetRange("Job Task No.", JobTaskNo);

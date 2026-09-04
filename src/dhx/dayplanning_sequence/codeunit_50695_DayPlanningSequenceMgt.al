@@ -60,12 +60,14 @@ codeunit 50695 "Day Planning Sequence Mgt."
     /// calendar date (excluded weekdays and inactive Work-Hour-Template/calendar days are
     /// skipped). Returns the assigned Sequence No.
     /// </summary>
-    procedure GenerateSequence(JobNo: Code[20]; JobTaskNo: Code[20]; SkillCode: Code[10]; WorkHourTemplateCode: Code[20]; StartDate: Date; EndDate: Date; ExcludedWeekdaysCsv: Text): Integer
+    procedure GenerateSequence(JobNo: Code[20]; JobTaskNo: Code[20]; SkillCode: Code[10]; WorkHourTemplateCode: Code[20]; StartDate: Date; EndDate: Date; ExcludedWeekdaysCsv: Text; WorkOrderNo: Code[20]): Integer
     var
         WorkHourTemplate: Record "Work-Hour Template";
         DayPlanningMgt: Codeunit "Day Plannings Mgt.";
         SequenceNo: Integer;
         d: Date;
+        ActualMinDate: Date;
+        ActualMaxDate: Date;
     begin
         SequenceNo := FindFreeSequenceNoForRange(JobNo, JobTaskNo, SkillCode, StartDate, EndDate);
 
@@ -75,11 +77,16 @@ codeunit 50695 "Day Planning Sequence Mgt."
         d := StartDate;
         while d <= EndDate do begin
             if not IsWeekdayExcluded(ExcludedWeekdaysCsv, Date2DWY(d, 1)) then
-                if DayPlanningMgt.IsActiveWorkDay(WorkHourTemplateCode, d) then
-                    InsertSequenceLine(JobNo, JobTaskNo, SkillCode, SequenceNo, WorkHourTemplate, d);
+                if DayPlanningMgt.IsActiveWorkDay(WorkHourTemplateCode, d) then begin
+                    InsertSequenceLine(JobNo, JobTaskNo, SkillCode, SequenceNo, WorkHourTemplate, d, WorkOrderNo);
+                    if ActualMinDate = 0D then
+                        ActualMinDate := d;
+                    ActualMaxDate := d;
+                end;
             d := CalcDate('<+1D>', d);
         end;
 
+        ExtendJobTaskPlannedPeriod(JobNo, JobTaskNo, ActualMinDate, ActualMaxDate);
         exit(SequenceNo);
     end;
 
@@ -95,12 +102,14 @@ codeunit 50695 "Day Planning Sequence Mgt."
     /// number on one particular overlapping date, in which case CalcSequence bumps just that one
     /// date's line to a different free number. That is correct, intentional behavior per spec.
     /// </summary>
-    procedure RegenerateSequence(JobNo: Code[20]; JobTaskNo: Code[20]; SkillCode: Code[10]; SequenceNo: Integer; WorkHourTemplateCode: Code[20]; StartDate: Date; EndDate: Date; ExcludedWeekdaysCsv: Text)
+    procedure RegenerateSequence(JobNo: Code[20]; JobTaskNo: Code[20]; SkillCode: Code[10]; SequenceNo: Integer; WorkHourTemplateCode: Code[20]; StartDate: Date; EndDate: Date; ExcludedWeekdaysCsv: Text; WorkOrderNo: Code[20])
     var
         DayPlanning: Record "Day Planning";
         WorkHourTemplate: Record "Work-Hour Template";
         DayPlanningMgt: Codeunit "Day Plannings Mgt.";
         d: Date;
+        ActualMinDate: Date;
+        ActualMaxDate: Date;
     begin
         DayPlanning.SetRange("Job No.", JobNo);
         DayPlanning.SetRange("Job Task No.", JobTaskNo);
@@ -117,13 +126,19 @@ codeunit 50695 "Day Planning Sequence Mgt."
         d := StartDate;
         while d <= EndDate do begin
             if not IsWeekdayExcluded(ExcludedWeekdaysCsv, Date2DWY(d, 1)) then
-                if DayPlanningMgt.IsActiveWorkDay(WorkHourTemplateCode, d) then
-                    InsertSequenceLine(JobNo, JobTaskNo, SkillCode, SequenceNo, WorkHourTemplate, d);
+                if DayPlanningMgt.IsActiveWorkDay(WorkHourTemplateCode, d) then begin
+                    InsertSequenceLine(JobNo, JobTaskNo, SkillCode, SequenceNo, WorkHourTemplate, d, WorkOrderNo);
+                    if ActualMinDate = 0D then
+                        ActualMinDate := d;
+                    ActualMaxDate := d;
+                end;
             d := CalcDate('<+1D>', d);
         end;
+
+        ExtendJobTaskPlannedPeriod(JobNo, JobTaskNo, ActualMinDate, ActualMaxDate);
     end;
 
-    local procedure InsertSequenceLine(JobNo: Code[20]; JobTaskNo: Code[20]; SkillCode: Code[10]; SequenceNo: Integer; WorkHourTemplate: Record "Work-Hour Template"; PlanDate: Date)
+    local procedure InsertSequenceLine(JobNo: Code[20]; JobTaskNo: Code[20]; SkillCode: Code[10]; SequenceNo: Integer; WorkHourTemplate: Record "Work-Hour Template"; PlanDate: Date; WorkOrderNo: Code[20])
     var
         NewDayPlanning: Record "Day Planning";
         DefaultStartTimeTok: Time;
@@ -135,6 +150,7 @@ codeunit 50695 "Day Planning Sequence Mgt."
         NewDayPlanning.Skill := SkillCode;
         NewDayPlanning."Plan Date" := PlanDate;
         NewDayPlanning."Sequence No." := SequenceNo;
+        NewDayPlanning."Work Order No." := WorkOrderNo;
         NewDayPlanning."Day Line No." := NewDayPlanning.GetNextDayLineNo(PlanDate, JobNo, JobTaskNo);
 
         if (WorkHourTemplate."Default Start Time" <> 0T) and (WorkHourTemplate."Default End Time" <> 0T) then begin
@@ -161,6 +177,51 @@ codeunit 50695 "Day Planning Sequence Mgt."
         NewDayPlanning."Requested Hours" :=
             ((DefaultEndTimeTok - DefaultStartTimeTok) div 60000 - WorkHourTemplate."Non Working Minutes") / 60;
         NewDayPlanning.Insert(true); // fires OnInsert -> CalcSequence(Rec) as a no-op safety check
+    end;
+
+    /// <summary>
+    /// Widens the parent Job Task's PlannedStartDate/PlannedEndDate (tableext 50605) so a newly
+    /// generated/regenerated sequence is never left dangling outside the task's displayed planned
+    /// window. Unlike codeunit 50617 "DayPlanning Period Sync Mgt."'s own
+    /// ExtendJobTaskEndDateIfNeeded - which only ever pushes the END date forward, because that
+    /// flow already has an explicit "old period" (OldStart/OldEnd) it is diffing the reschedule
+    /// against - this one is symmetric in both directions: the sequence add-in has no prior "old
+    /// period" to anchor to, so a brand new sequence can legitimately start EARLIER than the
+    /// task's current Planned Start Date just as easily as it can run later than its Planned End
+    /// Date. Direct field assignment + explicit CalculateDuration() (never Validate()) deliberately
+    /// mirrors ExtendJobTaskEndDateIfNeeded's own pattern, so tableext 50605's
+    /// PlannedStartDate/PlannedEndDate OnValidate triggers - which are deliberately NOT wired to
+    /// any Day-Planning-sync flow, per that tableext's own doc comments - do not unexpectedly fire.
+    /// </summary>
+    local procedure ExtendJobTaskPlannedPeriod(JobNo: Code[20]; JobTaskNo: Code[20]; RangeStart: Date; RangeEnd: Date)
+    var
+        JobTask: Record "Job Task";
+        Changed: Boolean;
+    begin
+        if (RangeStart = 0D) or (RangeEnd = 0D) then
+            exit;
+        if not JobTask.Get(JobNo, JobTaskNo) then
+            exit;
+
+        if (JobTask.PlannedStartDate = 0D) or (RangeStart < JobTask.PlannedStartDate) then begin
+            JobTask.PlannedStartDate := RangeStart;
+            Changed := true;
+        end;
+        if (JobTask.PlannedEndDate = 0D) or (RangeEnd > JobTask.PlannedEndDate) then begin
+            JobTask.PlannedEndDate := RangeEnd;
+            Changed := true;
+        end;
+
+        if Changed then begin
+            JobTask.CalculateDuration();
+            JobTask.Modify(true);
+            OnAfterExtendJobTaskPlannedPeriod(JobNo, JobTaskNo);
+        end;
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterExtendJobTaskPlannedPeriod(JobNo: Code[20]; JobTaskNo: Code[20])
+    begin
     end;
 
     /// <summary>
@@ -347,9 +408,11 @@ codeunit 50695 "Day Planning Sequence Mgt."
     /// Builds the timeline's row (section) list and bar (event) list for [JobNo, JobTaskNo],
     /// grouped into (Job No., Job Task No., Skill, Sequence No.) rows per spec. EarliestDate is
     /// the earliest Plan Date found (0D if none), used by the add-in to pick an initial scroll
-    /// position.
+    /// position. LatestDate is the latest Plan Date found (0D if none), used together with
+    /// EarliestDate by the add-in to size the timeline's horizontal span dynamically to the
+    /// actual data range, instead of a fixed window that can silently cut off real data.
     /// </summary>
-    procedure BuildSectionsAndEventsJson(JobNo: Code[20]; JobTaskNo: Code[20]; var SectionsJson: Text; var EventsJson: Text; var EarliestDate: Date)
+    procedure BuildSectionsAndEventsJson(JobNo: Code[20]; JobTaskNo: Code[20]; var SectionsJson: Text; var EventsJson: Text; var EarliestDate: Date; var LatestDate: Date)
     var
         DayPlanning: Record "Day Planning";
         SkillCodeRec: Record "Skill Code";
@@ -372,6 +435,7 @@ codeunit 50695 "Day Planning Sequence Mgt."
         PaletteIndex: Integer;
     begin
         EarliestDate := 0D;
+        LatestDate := 0D;
 
         // Ascending Plan Date order, so MinDateBySection is fixed on each section's first sighting
         // and MaxDateBySection is simply overwritten every time (last write = latest date) - one
@@ -384,6 +448,8 @@ codeunit 50695 "Day Planning Sequence Mgt."
             repeat
                 if (EarliestDate = 0D) or (DayPlanning."Plan Date" < EarliestDate) then
                     EarliestDate := DayPlanning."Plan Date";
+                if DayPlanning."Plan Date" > LatestDate then
+                    LatestDate := DayPlanning."Plan Date";
 
                 SectionKey := BuildSectionId(DayPlanning."Job No.", DayPlanning."Job Task No.", DayPlanning.Skill, DayPlanning."Sequence No.");
                 if not SeenSectionKeys.Contains(SectionKey) then begin

@@ -321,9 +321,8 @@ codeunit 50604 "DHX Data Handler"
 
             if AnchorDate = 0D then begin
                 WeekTemp.Reset();
-                WeekTemp.SetCurrentKey("Column 3 Amt.");
-                WeekTemp.FindSet();
-                if WeekTemp.FindLast() then
+                WeekTemp.SetCurrentKey("Column 1 Amt.", "Column 2 Amt.");
+                if WeekTemp.FindFirst() then
                     EarliestPlanningDate := DWY2Date(1, WeekTemp."Column 2 Amt.", WeekTemp."Column 1 Amt.")
                 else
                     EarliestPlanningDate := Today();
@@ -804,9 +803,8 @@ codeunit 50604 "DHX Data Handler"
 
             if AnchorDate = 0D then begin
                 WeekTemp.Reset();
-                WeekTemp.SetCurrentKey("Column 3 Amt.");
-                WeekTemp.FindSet();
-                if WeekTemp.FindLast() then
+                WeekTemp.SetCurrentKey("Column 1 Amt.", "Column 2 Amt.");
+                if WeekTemp.FindFirst() then
                     EarliestPlanningDate := DWY2Date(1, WeekTemp."Column 2 Amt.", WeekTemp."Column 1 Amt.")
                 else
                     EarliestPlanningDate := Today();
@@ -1182,9 +1180,8 @@ codeunit 50604 "DHX Data Handler"
 
         if AnchorDate = 0D then begin
             WeekTemp.Reset();
-            WeekTemp.SetCurrentKey("Column 3 Amt.");
-            WeekTemp.FindSet();
-            if WeekTemp.FindLast() then
+            WeekTemp.SetCurrentKey("Column 1 Amt.", "Column 2 Amt.");
+            if WeekTemp.FindFirst() then
                 EarliestPlanningDate := DWY2Date(1, WeekTemp."Column 2 Amt.", WeekTemp."Column 1 Amt.")
             else
                 EarliestPlanningDate := Today();
@@ -1446,9 +1443,8 @@ codeunit 50604 "DHX Data Handler"
 
         if AnchorDate = 0D then begin
             WeekTemp.Reset();
-            WeekTemp.SetCurrentKey("Column 3 Amt.");
-            WeekTemp.FindSet();
-            if WeekTemp.FindLast() then
+            WeekTemp.SetCurrentKey("Column 1 Amt.", "Column 2 Amt.");
+            if WeekTemp.FindFirst() then
                 EarliestPlanningDate := DWY2Date(1, WeekTemp."Column 2 Amt.", WeekTemp."Column 1 Amt.")
             else
                 EarliestPlanningDate := Today();

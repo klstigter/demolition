@@ -14,6 +14,7 @@
 // try/catch/finally around data loads) mirror src/dhx/projectschedule/wrapper.js.
 // ============================================================================
 
+var dps_currentTimelineSpanDays = 0;  // days currently applied to the timeline view's x_size; 0 = not yet configured
 var dps_scheduler_ready = false;   // true once scheduler.init() has run
 var dps_isRefreshing = false;      // guard: true while a full AL-driven reload is being applied,
                                     // so onEventChanged/onEventDeleted fired by that reload's own
@@ -213,33 +214,8 @@ function configureScheduler() {
 
     scheduler.serverList("sections", []);
 
-    scheduler.createTimelineView({
-        name: "timeline",
-        render: "bar",
-        dx: 190,
-
-        x_unit: "hour",
-        x_step: 2,
-        x_start: 0,
-        x_size: 12 * 31,
-        x_length: 12,
-        x_date: "%H",
-
-        y_unit: scheduler.serverList("sections"),
-        y_property: "section_id",
-
-        dy: 28,
-        section_autoheight: false,
-
-        scrollable: true,
-        scroll_position: new Date(new Date().setHours(6, 0, 0, 0)),
-        column_width: 38,
-
-        second_scale: {
-            x_unit: "day",
-            x_date: "%D %d %M"
-        }
-    });
+    dps_currentTimelineSpanDays = 31;
+    scheduler.createTimelineView(buildTimelineViewConfig(dps_currentTimelineSpanDays));
 
     // Keep only the working-time cells 06-18, per spec's compact timeline window.
     scheduler.ignore_timeline = function (date) {
@@ -314,6 +290,81 @@ function configureScheduler() {
 
     scheduler.init("dps_scheduler_here", new Date(), "timeline");
     dps_scheduler_ready = true;
+}
+
+// -------------------------------------------------------
+// Timeline view config, extracted so it can be rebuilt with a different x_size once the real
+// earliest/latest Plan Date span is known (see resizeTimelineSpan) - configureScheduler() itself
+// only knows a placeholder 31-day span at BOOT time, before any AL data has loaded yet.
+// -------------------------------------------------------
+function buildTimelineViewConfig(spanDays) {
+    return {
+        name: "timeline",
+        render: "bar",
+        dx: 190,
+
+        x_unit: "hour",
+        x_step: 2,
+        x_start: 0,
+        x_size: 12 * spanDays,
+        x_length: 12,
+        x_date: "%H",
+
+        y_unit: scheduler.serverList("sections"),
+        y_property: "section_id",
+
+        dy: 28,
+        section_autoheight: false,
+
+        scrollable: true,
+        scroll_position: new Date(new Date().setHours(6, 0, 0, 0)),
+        column_width: 38,
+
+        second_scale: {
+            x_unit: "day",
+            x_date: "%D %d %M"
+        }
+    };
+}
+
+// -------------------------------------------------------
+// Recomputes the timeline's total horizontal span (x_size) from the real earliest/latest Plan
+// Date of whatever data was just loaded, so every existing Day Planning line for this Job
+// No./Job Task No. is always reachable via the horizontal scroll bar - no fixed cap. Falls back
+// to a 31-day minimum span (same as the original hard-coded default) when dates are missing or
+// span less than that, so a task with little/no data still gets a reasonably sized timeline
+// rather than a degenerate near-zero-width one. Adds a 7-day buffer past the latest date so the
+// last bar isn't rendered flush against the scrollable edge. Re-invoking scheduler.
+// createTimelineView with the same view name ("timeline") is DHTMLX's supported way to
+// reconfigure an existing view at runtime - it does not lose the underlying "sections" DataStore
+// (scheduler.serverList("sections"), already kept in sync separately by applySections's own
+// scheduler.updateCollection call). Only actually rebuilds the view when the required span
+// changed, since createTimelineView is not free and both Init and RefreshTimeline call this on
+// every load.
+// -------------------------------------------------------
+function resizeTimelineSpan(earliestDateValue, latestDateValue) {
+    var MIN_SPAN_DAYS = 31;
+    var BUFFER_DAYS = 7;
+    var MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+    var start = toDateOrNull(earliestDateValue);
+    var end = toDateOrNull(latestDateValue);
+
+    var spanDays = MIN_SPAN_DAYS;
+    if (start && end) {
+        var diffDays = Math.round((end.getTime() - start.getTime()) / MS_PER_DAY) + 1; // inclusive of both ends
+        spanDays = Math.max(MIN_SPAN_DAYS, diffDays + BUFFER_DAYS);
+    }
+
+    if (spanDays === dps_currentTimelineSpanDays) return;
+    dps_currentTimelineSpanDays = spanDays;
+    scheduler.createTimelineView(buildTimelineViewConfig(spanDays));
+}
+
+function toDateOrNull(v) {
+    if (!v) return null;
+    var d = (v instanceof Date) ? v : new Date(v);
+    return isNaN(d.getTime()) ? null : d;
 }
 
 function escapeHtml(txt) {
@@ -559,11 +610,12 @@ function isoDateOnly(d) {
 // -------------------------------------------------------
 // AL-callable procedures (Init / LoadData / RefreshTimeline)
 // -------------------------------------------------------
-function Init(sectionsJson, skillsJson, templatesJson, earliestDate) {
+function Init(sectionsJson, skillsJson, templatesJson, earliestDate, latestDate) {
     try {
         applySections(ParseJSonTxt(sectionsJson) || []);
         dps_skills = ParseJSonTxt(skillsJson) || [];
         dps_templates = ParseJSonTxt(templatesJson) || [];
+        resizeTimelineSpan(earliestDate, latestDate);
         scrollToDate(earliestDate);
     } catch (e) {
         console.log("Day Planning Sequence Init error:", e);
@@ -585,11 +637,12 @@ function LoadData(eventsJson) {
     }
 }
 
-function RefreshTimeline(sectionsJson, eventsJson, anchorDate) {
+function RefreshTimeline(sectionsJson, eventsJson, anchorDate, latestDate) {
     try {
         _showDpsLoading();
         dps_isRefreshing = true;
         applySections(ParseJSonTxt(sectionsJson) || []);
+        resizeTimelineSpan(anchorDate, latestDate);
         scheduler.clearAll();
         var events = ParseJSonTxt(eventsJson) || [];
         scheduler.parse(events, "json");

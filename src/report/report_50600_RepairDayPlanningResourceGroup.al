@@ -5,7 +5,9 @@ report 50600 "RepairData"
                   tabledata Resource = rim,
                   tabledata Vendor = r,
                   tabledata "Resource Skill" = rim,
-                  tabledata "Skill Code" = r;
+                  tabledata "Skill Code" = r,
+                  tabledata "Work Order" = r,
+                  tabledata "Job Task" = rim;
     UsageCategory = Administration;
     ApplicationArea = All;
     Caption = 'Repair Data';
@@ -18,22 +20,64 @@ report 50600 "RepairData"
 
     trigger OnPreReport()
     begin
-        //RepairAssignedFieldOnAllDayPlannings();
-        RepairSequenceNoOnAllDayPlannings();
+        RepairDurationOnAllJobTasks();
+        RepairWorkingHoursOnAllDayPlannings();
     end;
 
     /// <summary>
-    /// Recomputes the Assigned field (DA1-T128) for every existing Day Planning line from its 5
-    /// underlying legacy fields ("Plan Date", "Assigned Resource No.", "Start Time Assigned",
-    /// "End Time Assigned", "Assigned Hours") via AssignedCheck() - a one-time backfill for rows
-    /// that existed before the Assigned field was added and therefore still carry its default
-    /// (false) regardless of what those 5 fields actually say. Only writes rows whose computed
-    /// value differs from what is already stored, so this is cheap and safe to re-run. Commits
-    /// in batches, same pattern as the other bulk-repair procedures in this report.
+    /// Recomputes Duration (tableextension 50605 "Job Task ext") for every Job Task with both
+    /// PlannedStartDate and PlannedEndDate set - a one-time backfill for tasks left with a stale
+    /// Duration by the CalculateDuration() bug fixed earlier this session (its case statement had
+    /// no fallback for Scheduling Types other than FixedDuration/FixedWork - e.g. FixedUnits - so
+    /// Duration was silently never recalculated for those). Only counts a row as repaired when the
+    /// recomputed value actually differs from what's stored.
     /// </summary>
-    procedure RepairAssignedFieldOnAllDayPlannings()
+    procedure RepairDurationOnAllJobTasks()
+    var
+        JobTask: Record "Job Task";
+        OldDuration: Integer;
+        TotalCount: Integer;
+        RepairedCount: Integer;
+    begin
+        JobTask.SetFilter(PlannedStartDate, '<>%1', 0D);
+        JobTask.SetFilter(PlannedEndDate, '<>%1', 0D);
+        if JobTask.FindSet(true) then
+            repeat
+                TotalCount += 1;
+                OldDuration := JobTask.Duration;
+                JobTask.CalculateDuration();
+                if JobTask.Duration <> OldDuration then begin
+                    JobTask.Modify();
+                    RepairedCount += 1;
+                end;
+            until JobTask.Next() = 0;
+
+        Message(RepairDurationResultMsg, RepairedCount, TotalCount);
+    end;
+
+    /// <summary>
+    /// Recomputes "Assigned Hours", "Requested Hours", "Realized Hours", and "Capacity Fully
+    /// Utilized" (all via CalculateWorkingHours()) plus "Assigned" (via AssignedCheck(), which
+    /// depends on "Assigned Hours") on every existing Day Planning line - a one-time backfill for
+    /// the CalculateRealizedWorkingHours() field-swap bug fixed in table 50610 this session (it
+    /// wrote computed Realized hours into "Assigned Hours" instead of "Realized Hours", so
+    /// "Realized Hours" was never once correctly populated anywhere, and "Assigned Hours" was
+    /// silently corrupted whenever a line had both "Start Time Realized"/"End Time Realized" set).
+    /// Fully recoverable with no data loss: the underlying time fields these are derived from were
+    /// never touched by the bug, only their computed outputs were wrong. Deliberately does NOT use
+    /// SetLoadFields - CalculateWorkingHours() routes through Codeunit "General Planning
+    /// Utilities".DayPlanningFulFillment, whose full field dependencies aren't enumerated here, so
+    /// partial field loading risks silently feeding it stale/blank values. Only counts a row as
+    /// repaired when at least one of the four recomputed values actually changed. Commits in
+    /// batches, same pattern as the other bulk-repair procedures in this report.
+    /// </summary>
+    procedure RepairWorkingHoursOnAllDayPlannings()
     var
         DayPlanning: Record "Day Planning";
+        OldAssignedHours: Decimal;
+        OldRequestedHours: Decimal;
+        OldRealizedHours: Decimal;
+        OldCapacityFullyUtilized: Boolean;
         OldAssigned: Boolean;
         TotalCount: Integer;
         RepairedCount: Integer;
@@ -42,13 +86,22 @@ report 50600 "RepairData"
     begin
         CommitBatchSize := 1000;
 
-        DayPlanning.SetLoadFields("Plan Date", "Assigned Resource No.", "Start Time Assigned", "End Time Assigned", "Assigned Hours", Assigned);
         if DayPlanning.FindSet(true) then
             repeat
                 TotalCount += 1;
+                OldAssignedHours := DayPlanning."Assigned Hours";
+                OldRequestedHours := DayPlanning."Requested Hours";
+                OldRealizedHours := DayPlanning."Realized Hours";
+                OldCapacityFullyUtilized := DayPlanning."Capacity Fully Utilized";
                 OldAssigned := DayPlanning.Assigned;
+
+                DayPlanning.CalculateWorkingHours();
                 DayPlanning.AssignedCheck();
-                if DayPlanning.Assigned <> OldAssigned then begin
+
+                if (DayPlanning."Assigned Hours" <> OldAssignedHours) or (DayPlanning."Requested Hours" <> OldRequestedHours)
+                   or (DayPlanning."Realized Hours" <> OldRealizedHours) or (DayPlanning."Capacity Fully Utilized" <> OldCapacityFullyUtilized)
+                   or (DayPlanning.Assigned <> OldAssigned)
+                then begin
                     DayPlanning.Modify();
                     RepairedCount += 1;
                     SinceLastCommit += 1;
@@ -59,55 +112,14 @@ report 50600 "RepairData"
                 end;
             until DayPlanning.Next() = 0;
 
-        Message(RepairAssignedFieldResultMsg, RepairedCount, TotalCount);
-    end;
-
-    /// <summary>
-    /// Deterministically (re)builds "Sequence No." (DA1-T??? Day Planning Sequence) across ALL
-    /// existing Day Planning lines with a non-blank Skill, by looping them in
-    /// [Job No., Job Task No., Skill, Plan Date] order and calling Codeunit "Day Planning
-    /// Sequence Mgt.".CalcSequence on each - the exact same collision-avoidance logic table 50610's
-    /// own OnInsert/OnModify triggers already use, just re-run in a stable order across every
-    /// existing row instead of relying on insert/modify order. No separate/bespoke algorithm is
-    /// implemented here. This repo's "Job No.","Job Task No.","Plan Date","Day Line No." key
-    /// (Rec1) is close but doesn't include Skill, so an inline SetCurrentKey with a Skill-aware
-    /// ordering is used instead of touching the table's key list. Commits in batches, same pattern
-    /// as RepairAssignedFieldOnAllDayPlannings above.
-    /// </summary>
-    procedure RepairSequenceNoOnAllDayPlannings()
-    var
-        DayPlanning: Record "Day Planning";
-        DayPlanningSequenceMgt: Codeunit "Day Planning Sequence Mgt.";
-        OldSequenceNo: Integer;
-        TotalCount: Integer;
-        RepairedCount: Integer;
-        SinceLastCommit: Integer;
-        CommitBatchSize: Integer;
-    begin
-        CommitBatchSize := 1000;
-
-        DayPlanning.SetCurrentKey("Job No.", "Job Task No.", Skill, "Plan Date");
-        DayPlanning.SetFilter(Skill, '<>%1', '');
-        if DayPlanning.FindSet(true) then
-            repeat
-                TotalCount += 1;
-                OldSequenceNo := DayPlanning."Sequence No.";
-                DayPlanningSequenceMgt.CalcSequence(DayPlanning);
-                if DayPlanning."Sequence No." <> OldSequenceNo then begin
-                    DayPlanning.Modify();
-                    RepairedCount += 1;
-                    SinceLastCommit += 1;
-                    if SinceLastCommit >= CommitBatchSize then begin
-                        Commit();
-                        SinceLastCommit := 0;
-                    end;
-                end;
-            until DayPlanning.Next() = 0;
-
-        Message(RepairSequenceNoResultMsg, RepairedCount, TotalCount);
+        Message(RepairWorkingHoursResultMsg, RepairedCount, TotalCount);
     end;
 
     var
         RepairAssignedFieldResultMsg: Label 'Recomputed the Assigned field on %1 of %2 Day Planning line(s) from their underlying legacy fields.';
         RepairSequenceNoResultMsg: Label 'Recomputed the Sequence No. field on %1 of %2 Day Planning line(s) with a Skill.';
+        RepairWorkOrderNoResultMsg: Label 'Backfilled "Work Order No." on %1 Day Planning line(s) across %2 Work Order(s).';
+        RepairJobTaskPlannedPeriodResultMsg: Label 'Widened PlannedStartDate/PlannedEndDate on %1 of %2 Job Task(s) to cover their existing Day Planning dates.';
+        RepairDurationResultMsg: Label 'Recomputed Duration on %1 of %2 Job Task(s) with both Planned Start and End Date set.';
+        RepairWorkingHoursResultMsg: Label 'Recomputed Assigned/Requested/Realized Hours (and Capacity Fully Utilized / Assigned) on %1 of %2 Day Planning line(s).';
 }

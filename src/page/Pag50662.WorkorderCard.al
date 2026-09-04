@@ -323,6 +323,6 @@ page 50662 "Workorder Card"
 
     trigger OnAfterGetCurrRecord()
     begin
-        CurrPage.DayPlanningSequence.Page.SetContext(Rec."Project No.", Rec."Project Task No.");
+        CurrPage.DayPlanningSequence.Page.SetContext(Rec."Project No.", Rec."Project Task No.", Rec."Work Order No.");
     end;
 }
