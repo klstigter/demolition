@@ -1,3 +1,20 @@
+// Safety net for the full-page .cpo-loading-overlay - same role as request_assignment/
+// wrapper.js's _loadingSafetyTimer: guards against it staying stuck forever if a load cycle's
+// hide call (applyPlanningData's own last step) is somehow never reached.
+var _cpoLoadingSafetyTimer = null;
+// Exposed on window (rather than a local wrapper.js-only function) so capacityPlanningOverview.js's
+// showLoading/hideLoading can (re)arm/clear it on EVERY show/hide, not just BOOT's - a "Days to
+// show" reload calls showLoading() again long after BOOT, and needs the same safety net.
+window._cpoArmLoadingSafetyTimer = function () {
+    if (_cpoLoadingSafetyTimer) clearTimeout(_cpoLoadingSafetyTimer);
+    _cpoLoadingSafetyTimer = setTimeout(function () {
+        if (window.__cpo) window.__cpo.hideLoading();
+    }, 180000);
+};
+window._cpoClearLoadingSafetyTimer = function () {
+    if (_cpoLoadingSafetyTimer) { clearTimeout(_cpoLoadingSafetyTimer); _cpoLoadingSafetyTimer = null; }
+};
+
 window.BOOT = function BOOT() {
     const host = document.getElementById("controlAddIn");
     host.style.width = "100%";
@@ -7,6 +24,10 @@ window.BOOT = function BOOT() {
     host.id = "cpo-root";
 
     window.__cpo = new CapacityPlanningOverview("cpo-root");
+    // Show immediately - earliest point this add-in's own JS runs, well before
+    // ControlReady/SetPlanningData's round-trip ever completes (buildLayout, called from the
+    // constructor above, is what actually creates #cpo-loading-overlay).
+    window.__cpo.showLoading();
     Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("ControlReady", []);
 };
 
@@ -40,6 +61,7 @@ var CPO_OTHER_WORK_ORDER_DATA_POLL_MAX_ATTEMPTS = 60; // 60 x 500ms = 30s genero
 
 window.NotifyOtherWorkOrderDataTaskPending = function NotifyOtherWorkOrderDataTaskPending() {
     try {
+        if (window.__cpo) window.__cpo.showBackgroundLoading();
         if (_cpoOtherWorkOrderDataPollTimer) {
             clearInterval(_cpoOtherWorkOrderDataPollTimer);
             _cpoOtherWorkOrderDataPollTimer = null;
@@ -50,6 +72,7 @@ window.NotifyOtherWorkOrderDataTaskPending = function NotifyOtherWorkOrderDataTa
             if (_cpoOtherWorkOrderDataPollAttempts > CPO_OTHER_WORK_ORDER_DATA_POLL_MAX_ATTEMPTS) {
                 clearInterval(_cpoOtherWorkOrderDataPollTimer);
                 _cpoOtherWorkOrderDataPollTimer = null;
+                if (window.__cpo) window.__cpo.hideBackgroundLoading(); // safety net - matches _loadingSafetyTimer's role for the full-page overlay, so a task that never completes doesn't leave the badge stuck forever
                 return;
             }
             try {
@@ -70,6 +93,7 @@ window.StopOtherWorkOrderDataPolling = function StopOtherWorkOrderDataPolling() 
         clearInterval(_cpoOtherWorkOrderDataPollTimer);
         _cpoOtherWorkOrderDataPollTimer = null;
     }
+    if (window.__cpo) window.__cpo.hideBackgroundLoading();
 };
 
 // AL-callable. Part-page-2 pagination companion to SetPlanningData - appends a background-loaded

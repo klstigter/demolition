@@ -37,6 +37,34 @@
     white-space: nowrap;
 }
 
+/* The one deliberate BC round-trip point for a reschedule (2026-09-04 redesign - see
+   capacityPlanningOverview.js's bindConfirmButton/confirmChanges doc comments) - every local
+   drag/click-to-relocate is pure client-side simulation now and only enables this button
+   (markUnconfirmedChange) instead of touching AL. Disabled/muted until there's actually
+   something to send; .cpo-confirm-btn-pending is the enabled, "you have unsaved moves" look. */
+.cpo-confirm-btn {
+    flex: 0 0 auto;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 4px;
+    border: 1px solid #d0d5dd;
+    background: #f2f4f7;
+    color: #98a2b3;
+    cursor: not-allowed;
+}
+
+.cpo-confirm-btn.cpo-confirm-btn-pending {
+    border-color: #2f6fdb;
+    background: #2f6fdb;
+    color: #fff;
+    cursor: pointer;
+}
+
+.cpo-confirm-btn.cpo-confirm-btn-pending:hover {
+    background: #2559b8;
+}
+
 /* JS-owned "Days to show" control (see capacityPlanningOverview.js's bindDaysToShowInput) -
    lives inside this one component, not as a native BC page field, per the single-JS-component
    architecture. */
@@ -108,29 +136,20 @@
     flex: 0 0 auto;
 }
 
-/* Section 2 sets scale_height:0 in its own createTimelineView config to avoid duplicating
-   section 1's shared date-header row (both use the SAME ROW_LABEL_WIDTH, so one shared header
-   lines up with both) - confirmed live this is NOT sufficient by itself: DHTMLX still renders a
-   ".dhx_cal_header" (its scale-row container, appended unconditionally by scheduler.init - see
-   dhtmlxscheduler.js's r.init) with visible content for a second Scheduler instance sharing the
-   same page. CSS-forced hide, scoped strictly to section 2's host div so section 1's own header
-   (which legitimately must show) is untouched - same class of fix projectschedule/wrapper.js's
-   own .dhx-hide-default-tabs technique applies to its navline.
-   Section 4 (#cpo-central-tree) deliberately does NOT get this treatment - it uses a WIDER
-   TREE_LABEL_WIDTH (360px, a real 3-column Skill/Job/Task header) than sections 1-3's
-   ROW_LABEL_WIDTH (200px), matching the reference prototype's own layout (its "Central planning
-   grid" block has its own independent date-header row, at a different left-offset than the
-   Work Order block's header above it - confirmed from the user's own reference screenshot: two
-   separate day-number rows, not one shared row). Hiding section 4's header and reusing section
-   1's assumed a 200px offset that section 4 doesn't have, which is what caused a real reported
-   misalignment (section 4's day columns start ~160px further right than the shared header
-   assumed). Section 4's own scale_height (see renderCentralScheduler) is a real nonzero value so
-   its date row renders correctly at ITS OWN 360px offset instead. */
-#cpo-wo-scheduler .dhx_cal_header,
-#cpo-wo-scheduler .dhx_scale_bar {
-    display: none !important;
-    height: 0 !important;
-}
+/* Section 2 used to set scale_height:0 and CSS-force-hide its own ".dhx_cal_header"/".dhx_scale_bar"
+   to avoid duplicating section 1's date-header row, relying on section 1's header sitting directly
+   above it to look like one continuous table. That made sections 1 and 2 - two SEPARATE DHTMLX
+   Scheduler instances, each with their own independent native horizontal scroll - dependent on
+   staying pixel-continuous with each other on every scroll, which a user-reported visual seam
+   during a fast scrollbar drag traced back to (2026-09-04): a burst of scroll-sync events could
+   update one instance's scrollLeft a frame ahead of the other's, and because their content HAD to
+   line up as one seamless row, that lag was visible. Sections 3 (hand-rolled, no sibling to align
+   with) and 4 (a single self-contained DHTMLX instance with its OWN header - see below) never had
+   this problem for the same reason: nothing about them depends on staying continuous with a
+   sibling. Section 2 now matches section 4's pattern instead - its own real, nonzero scale_height
+   (renderWoScheduler) draws its own header, so it no longer needs to be pixel-perfect with section
+   1 at all; a few pixels of drift during a fast drag now just looks like two headers close
+   together; matches the applySchedulerContainerHeight height fix. */
 
 /* Section 1's two calc rows */
 .cpo-wo-cell-text {
@@ -713,4 +732,66 @@
 
 .cpo-tree-row-detail {
     background: #fafbfc;
+}
+
+/* ================================================================================
+   Processing indicators - one shared ring-spinner look (conic-gradient dark arc on a light
+   track, matching this project's other DHX add-ins' loading-overlay convention - see
+   request_assignment/wrapper.js's _createLoadingOverlay - but a spinner icon instead of that
+   add-in's sliding progress bar) reused at two different sizes/contexts:
+   - .cpo-loading-overlay: full-host block during a load/reload that replaces ALL of this WO's
+     data (initial ControlReady, "Days to show" change) - #cpo-root has no data worth interacting
+     with yet, so blocking it is correct.
+   - .cpo-inline-loading: a small non-blocking badge in the top bar for the OTHER-Work-Order
+     background pagination task (codeunit "CPO BG Other WO Data") - sections 1-4 are already
+     showing this WO's own real data by the time that task is still running, so it must not block.
+   Both are hidden by default (display:none) and toggled to flex by JS - see
+   wrapper.js's _showLoading/_hideLoading and capacityPlanningOverview.js's
+   showBackgroundLoading/hideBackgroundLoading.
+   ================================================================================ */
+
+.cpo-spinner {
+    display: inline-block;
+    border-radius: 50%;
+    background: conic-gradient(#333 0deg 90deg, #dcdfe4 90deg 360deg);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+    mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+    animation: cpo-spin 0.8s linear infinite;
+}
+
+@keyframes cpo-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.cpo-loading-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 100000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, .6);
+}
+
+.cpo-loading-overlay .cpo-spinner {
+    width: 44px;
+    height: 44px;
+}
+
+.cpo-inline-loading {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #667085;
+    padding: 8px 4px;
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.cpo-inline-loading .cpo-spinner {
+    width: 14px;
+    height: 14px;
 }
