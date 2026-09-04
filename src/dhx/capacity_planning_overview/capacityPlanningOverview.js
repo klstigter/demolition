@@ -1323,6 +1323,38 @@ class CapacityPlanningOverview {
         s.init('cpo-central-tree', this.dates[0], 'centraltree');
         s.clearAll();
         this.attachTreeChipTooltip();
+        this.bindCentralTreeHeightSync(s);
+    }
+
+    /// <summary>
+    /// Keeps applyCentralTreeHeight's wrapEl/containerEl sizing in sync with the LIVE visible row
+    /// count, not just whatever was visible at the last full renderCentralTree call. DHTMLX's
+    /// treetimeline fires onOptionsLoad both when setTreeOpenState's Expand/Collapse-all buttons
+    /// recompute y_unit AND when the user clicks a single row's own fold/unfold arrow (same
+    /// y_unit-recompute-then-onOptionsLoad sequence, confirmed live) - without this, collapsing
+    /// rows left the wrapper's clip height (and so its scrollbar range) sized for whatever row
+    /// count was visible at the last full render, producing a scrollbar whose thumb still spans
+    /// the fully-expanded range and a blank gap below the now-shorter row list when scrolled down
+    /// (2026-09-04 bug report). setCurrentView forces DHTMLX to re-lay-out rows against the
+    /// corrected container height, matching the pattern renderWorkOrder already uses elsewhere in
+    /// this file to force a post-mutation redraw.
+    /// </summary>
+    bindCentralTreeHeightSync(s) {
+        if (this._treeHeightSyncBound) return;
+        this._treeHeightSyncBound = true;
+        const self = this;
+        s.attachEvent('onOptionsLoad', function () {
+            if (self._treeHeightSyncing) return; // re-entrancy guard - setCurrentView below can itself re-trigger onOptionsLoad
+            const yUnit = s.matrix && s.matrix.centraltree && s.matrix.centraltree.y_unit_original;
+            if (!yUnit) return;
+            self.applyCentralTreeHeight(yUnit);
+            self._treeHeightSyncing = true;
+            try {
+                s.setCurrentView(self.dates[0], 'centraltree');
+            } finally {
+                self._treeHeightSyncing = false;
+            }
+        });
     }
 
     dplLineById(id) {
