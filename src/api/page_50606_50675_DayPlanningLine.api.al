@@ -95,6 +95,10 @@ page 50675 "DayPlanning Line Opt"
                 {
                     ApplicationArea = All;
                 }
+                field(sequenceNo; Rec."Sequence No.")
+                {
+                    ApplicationArea = All;
+                }
             }
         }
     }
