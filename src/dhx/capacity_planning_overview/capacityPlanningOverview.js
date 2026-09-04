@@ -10,6 +10,14 @@ function cpoParseDateOnly(value) {
     return new Date(year, month - 1, day);
 }
 
+/// <summary>Formats a local-midnight JS Date as "yyyy-MM-dd" - the exact inverse of cpoParseDateOnly above, used by confirmChanges (2026-09-04) to tell AL which occurrence's CURRENT Plan Date to match when persisting a per-occurrence reschedule.</summary>
+function cpoFormatDateOnly(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + d;
+}
+
 /// <summary>HTML-escapes a value for safe interpolation into template strings (reference's own "esc").</summary>
 function cpoEsc(v) {
     return String(v === undefined || v === null || v === '' ? '\u2014' : v).replace(/[&<>"]/g, function (m) {
@@ -115,7 +123,24 @@ class CapacityPlanningOverview {
         this.BASE_CAP = 8;
         this.startDate = null;
         this.endDate = null;
-        this.woAnchor = 0;
+        // Per-OCCURRENCE anchor map (2026-09-04 redesign, replacing the single shared woAnchor,
+        // then a per-SEQUENCE-ROW anchor - see occurrenceKey's own doc comment for why sequence
+        // granularity still wasn't fine enough) - keyed by occurrenceKey(seq, wd)
+        // ('job|task|skill|sequenceNo|workday'), each value is that ONE individual Day Planning
+        // occurrence's own day-index. Dragging one bar in section 2 now moves ONLY that bar (see
+        // the onEventChanged handler in renderWoScheduler), never any other occurrence of the same
+        // sequence, let alone another row - the user explicitly reported anything coarser as a bug
+        // ("I want effected on 15 sep only, the others of day plannings should be stay same").
+        // Section 3's click-to-relocate (moveWorkOrderToDay) is DELIBERATELY still a bulk action -
+        // it sets EVERY occurrence at once (preserving their relative workday spacing via
+        // idxWork), unchanged from the old shared-woAnchor behavior (explicit user correction:
+        // "Section 3 should relocate the whole group as it does today") - the two input paths are
+        // intentionally asymmetric.
+        this.occurrenceAnchors = {};
+        // Cross-row (Sequence No.) reassignment tracking (2026-09-04) - see moveOccurrenceToSequence's
+        // own doc comment for why this is needed on top of occurrenceAnchors alone.
+        this.pendingSequenceMoves = {};
+        this._bulkAnchorHint = null; // cosmetic only - see renderCapacityBars' own comment on cpo-wo-anchor-day
         this.woSummaryScheduler = null;
         this.woScheduler = null;
         this.centralTreeScheduler = null;
@@ -124,8 +149,10 @@ class CapacityPlanningOverview {
         this._currentPositionSkillShortageArr = null;
         this._baseRequests = null;
         this._baselineWithoutWO = null;
+        this._treeSummaryIndex = null;
         this._scrollLock = false;
         this._treeChipTooltipBound = false;
+        this._hasUnconfirmedChanges = false;
         this.buildLayout();
     }
 
@@ -140,6 +167,8 @@ class CapacityPlanningOverview {
         host.innerHTML =
             '<div class="cpo-top-bar">' +
             '<div class="cpo-top-title" id="cpo-title">Capacity Planning Overview</div>' +
+            '<button id="cpo-confirm-btn" class="cpo-confirm-btn" type="button" disabled>Confirm changes</button>' +
+            '<div class="cpo-inline-loading" id="cpo-bg-loading"><span class="cpo-spinner"></span><span>Loading more data...</span></div>' +
             '<label class="cpo-days-to-show"><span>Days to show</span><input type="number" id="cpo-days-to-show-input" min="1" max="365" step="1"></label>' +
             '</div>' +
             '<div id="cpo-wo-summary" class="cpo-scheduler-host cpo-wo-summary-host"></div>' +
@@ -164,9 +193,12 @@ class CapacityPlanningOverview {
             '</div>' +
             '<div id="cpo-shared-scroll" class="cpo-shared-scroll"><div id="cpo-shared-scroll-inner" class="cpo-shared-scroll-inner"></div></div>' +
             '<div id="cpo-event-tip" class="cpo-event-tip"></div>' +
-            '<div id="cpo-daily-summary-tip" class="cpo-daily-summary-tip"></div>';
+            '<div id="cpo-daily-summary-tip" class="cpo-daily-summary-tip"></div>' +
+            '<div id="cpo-loading-overlay" class="cpo-loading-overlay"><span class="cpo-spinner"></span></div>';
 
+        if (!host.style.position) host.style.position = 'relative';
         this.bindDaysToShowInput();
+        this.bindConfirmButton();
         this.bindResizeRealign();
     }
 
@@ -186,10 +218,14 @@ class CapacityPlanningOverview {
     bindDaysToShowInput() {
         const input = document.getElementById('cpo-days-to-show-input');
         if (!input) return;
+        const self = this;
         const commit = function () {
             let n = parseInt(input.value, 10);
             if (!n || n <= 0) n = 30;
             if (typeof Microsoft !== 'undefined') {
+                // Re-triggers AL's RefreshData -> full SetPlanningData round-trip, same as the
+                // initial load - show the same blocking spinner while it rebuilds.
+                self.showLoading();
                 Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnDaysToShowChanged', [n]);
             }
         };
@@ -197,6 +233,182 @@ class CapacityPlanningOverview {
         input.addEventListener('keydown', function (e) {
             if (e.key === 'Enter') { commit(); input.blur(); }
         });
+    }
+
+    /// <summary>
+    /// Reschedule (section 2 drag - per-row now, section 3 click-to-relocate - still bulk, see
+    /// moveWorkOrderToDay's own comment) is pure client-side simulation (2026-09-04 redesign, per
+    /// the user's explicit ask) - moving one or more sequences' own anchors and re-rendering
+    /// sections 1-3 from data already in JS needs no BC round-trip at all (profiling the OLD
+    /// per-action InvokeExtensibilityMethod('OnRescheduleWorkOrder', ...) call showed the call
+    /// itself was near-instant, but firing one on every single drag/click still meant paying real
+    /// network latency for nothing useful yet). Now every local move just calls
+    /// markUnconfirmedChange() to enable this button instead of touching AL at all; the ONE
+    /// deliberate BC round-trip point is this button, clicked once the user is happy with wherever
+    /// they've dragged/clicked the schedule to - and (2026-09-04) OnRescheduleWorkOrder now really
+    /// does persist it (page 50722's PersistReschedule), no longer a no-op stub.
+    /// </summary>
+    bindConfirmButton() {
+        const self = this;
+        const btn = document.getElementById('cpo-confirm-btn');
+        if (!btn) return;
+        btn.onclick = function () {
+            if (!self._hasUnconfirmedChanges) return;
+            self.confirmChanges();
+        };
+    }
+
+    /// <summary>Enables/highlights the Confirm button - called after every local reschedule move (moveWorkOrderToDay, the section 2 drag handler) instead of any AL invoke.</summary>
+    markUnconfirmedChange() {
+        this._hasUnconfirmedChanges = true;
+        this.updateConfirmButtonState();
+    }
+
+    updateConfirmButtonState() {
+        const btn = document.getElementById('cpo-confirm-btn');
+        if (!btn) return;
+        btn.disabled = !this._hasUnconfirmedChanges;
+        btn.classList.toggle('cpo-confirm-btn-pending', this._hasUnconfirmedChanges);
+    }
+
+    /// <summary>
+    /// The one deliberate BC round-trip point for a reschedule - sends one entry per INDIVIDUALLY-
+    /// moved occurrence (2026-09-04: per-occurrence, not per-sequence-row or one shared woAnchor -
+    /// see occurrenceAnchors' own doc comment), rather than one call per intermediate drag/click.
+    /// Only occurrences actually present in occurrenceAnchors AND whose current day-index differs
+    /// from their natural never-moved position (idxWork(0, wd)) are sent - an untouched occurrence,
+    /// or one section 3 happened to bulk-relocate back to exactly where it already was, has nothing
+    /// to persist. `fromDate` (that natural position's calendar date - i.e. whatever Plan Date this
+    /// occurrence currently has IN BC, since occurrenceAnchors is always empty right after a fresh
+    /// load) is what lets AL's PersistReschedule find the SPECIFIC Day Planning line among however
+    /// many share the same Job/Task/Skill/SequenceNo - `shift` alone (as used by the WO-level and
+    /// sequence-level designs this replaced) could no longer disambiguate which of several dates
+    /// under one sequence was the one actually dragged. DayShift (the first invoke arg) is sent as
+    /// 0 and otherwise unused now; PayloadJsonTxt carries the real data as
+    /// {shifts:[{job,task,skill,sequenceNo,fromDate,shift,toSequenceNo},...]}.
+    ///
+    /// Cross-row moves (2026-09-04, moveOccurrenceToSequence/pendingSequenceMoves) are folded into
+    /// this same loop rather than a separate payload shape: for an occurrence with a pending move,
+    /// `sequenceNo`/`fromDate` are read from pendingSequenceMoves' TRUE ORIGINAL identity (what's
+    /// still actually in BC right now), not from the current seq/wd - which, post-move, is a
+    /// synthetic local-only identity (see moveOccurrenceToSequence's own comment). `toSequenceNo`
+    /// is only included when a move is pending, so PersistReschedule can tell "just a date shift"
+    /// (no such field) apart from "also reassign Sequence No." - and the `newIdx === originalIdx`
+    /// early-return below is skipped for a pending move even with zero date delta, since dropping
+    /// straight onto a same-day vacant slot in another row is still a real change to persist.
+    ///
+    /// hideLoading right after the invoke returns matches openCapacityLookup's own stub-invoke
+    /// pattern elsewhere in this file - PersistReschedule (page 50722) is synchronous within this
+    /// one trigger call and calls RefreshData() itself once done, so by the time this JS call
+    /// returns the persist has either already fully happened or errored out natively; there is no
+    /// separate async completion callback to wait for.
+    /// </summary>
+    confirmChanges() {
+        this.showLoading();
+        if (typeof Microsoft !== 'undefined') {
+            const self = this;
+            const shifts = [];
+            (this.db.workOrderSequences || []).forEach(function (seq) {
+                (seq.workdays || []).forEach(function (wd) {
+                    const key = self.occurrenceKey(seq, wd);
+                    if (!Object.prototype.hasOwnProperty.call(self.occurrenceAnchors, key)) return;
+                    const pendingMove = self.pendingSequenceMoves[key];
+                    const originalWd = pendingMove ? pendingMove.originalWd : wd;
+                    const originalSequenceNo = pendingMove ? pendingMove.originalSequenceNo : seq.sequenceNo;
+                    const originalIdx = self.idxWork(0, originalWd);
+                    const newIdx = self.occurrenceAnchors[key];
+                    if (!pendingMove && newIdx === originalIdx) return;
+                    const originalDate = self.dates[originalIdx];
+                    if (!originalDate) return;
+                    // sequenceNo/toSequenceNo always sent as NUMBERs (0 for blank/unset) - NOT the
+                    // `|| ''` fallback used elsewhere in this file for display purposes - so AL's
+                    // own "Sequence No." field (Integer) can parse them directly with no separate
+                    // string-vs-number branch (see PersistReschedule's own comment).
+                    const entry = {
+                        job: seq.job, task: seq.task, skill: seq.skill, sequenceNo: Number(originalSequenceNo) || 0,
+                        fromDate: cpoFormatDateOnly(originalDate), shift: newIdx - originalIdx
+                    };
+                    if (pendingMove) entry.toSequenceNo = Number(seq.sequenceNo) || 0;
+                    shifts.push(entry);
+                });
+            });
+            Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnRescheduleWorkOrder', [0, JSON.stringify({ shifts: shifts })]);
+        }
+        this._hasUnconfirmedChanges = false;
+        this.updateConfirmButtonState();
+        this.hideLoading();
+    }
+
+    /// <summary>
+    /// Full-host blocking spinner (style.css's .cpo-loading-overlay) for a load/reload that
+    /// replaces ALL of this WO's data - there is nothing worth interacting with underneath yet, so
+    /// blocking it is correct, unlike showBackgroundLoading below. wrapper.js's BOOT shows this at
+    /// the earliest point this add-in's own JS runs (well before ControlReady's round-trip
+    /// completes); its SetPlanningData hides it right after applyPlanningData finishes rendering -
+    /// that hide is the user's actual "processing is done, safe to act" signal. Also
+    /// shown/hidden around an OnDaysToShowChanged reload (bindDaysToShowInput below), since that
+    /// re-triggers the exact same full RefreshData/SetPlanningData round-trip.
+    /// </summary>
+    showLoading() {
+        const el = document.getElementById('cpo-loading-overlay');
+        if (el) el.style.display = 'flex';
+        if (typeof window._cpoArmLoadingSafetyTimer === 'function') window._cpoArmLoadingSafetyTimer();
+    }
+    hideLoading() {
+        const el = document.getElementById('cpo-loading-overlay');
+        if (el) el.style.display = 'none';
+        if (typeof window._cpoClearLoadingSafetyTimer === 'function') window._cpoClearLoadingSafetyTimer();
+    }
+
+    /// <summary>
+    /// Wraps a synchronous, GENUINELY slow (multi-second) unit of PURE client-side work with the
+    /// same showLoading/hideLoading signal used for a full data reload - currently only
+    /// setTreeOpenState's Expand/Collapse-all rebuild (bindHierarchyButtons below) qualifies;
+    /// moveWorkOrderToDay/the section 2 drag handler's renderWorkOrder call used to be wrapped here
+    /// too, but at only ~100-150ms it never needed a spinner and the ~5s+ delay a user could see
+    /// from it was this wrapper's OWN double-rAF overhead being starved on a page with an
+    /// unrelated, already-bloated DOM (see moveWorkOrderToDay's own comment) - not a real cost of
+    /// the render itself, so it was removed from that path rather than kept "just in case".
+    /// Calling showLoading() and running heavy synchronous work in the very same tick would never
+    /// let the browser get a chance to actually PAINT the overlay before the work blocks the
+    /// thread, since nothing in that path ever returns control to the browser on its own - the
+    /// double requestAnimationFrame here forces one real paint first; confirmed live via a
+    /// MutationObserver on #cpo-loading-overlay's style attribute, the overlay reliably shows and
+    /// holds for the full multi-second Expand/Collapse-all rebuild before hiding again. NOT needed
+    /// around InvokeExtensibilityMethod itself elsewhere in this file (openCapacityLookup, the
+    /// section 4 chip click, confirmChanges) - that call is fire-and-forget from JS's own
+    /// perspective (confirmed live: it returns in under a millisecond, well before AL's own trigger
+    /// handler finishes running - any real response comes back later through a separate AL-to-JS
+    /// call, e.g. SetPlanningData), so showLoading() called right before it already gets a real
+    /// paint for free.
+    /// </summary>
+    runBusy(fn) {
+        this.showLoading();
+        const self = this;
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                try { fn(); } finally { self.hideLoading(); }
+            });
+        });
+    }
+
+    /// <summary>
+    /// Toggles the small non-blocking top-bar spinner badge for the OTHER-Work-Order background
+    /// pagination task (see style.css's .cpo-inline-loading doc comment for why this must stay
+    /// non-blocking, unlike showLoading above) - shown by wrapper.js's
+    /// NotifyOtherWorkOrderDataTaskPending when the poll loop starts, hidden once
+    /// StopOtherWorkOrderDataPolling fires (a result was delivered, whether or not it actually had
+    /// lines to merge - see appendOtherWorkOrderData) or the poll's own 30s ceiling is hit, so the
+    /// user sees it disappear exactly when Section 4's "other work orders" totals become complete
+    /// (or the load gave up) and it's safe to act.
+    /// </summary>
+    showBackgroundLoading() {
+        const el = document.getElementById('cpo-bg-loading');
+        if (el) el.style.display = 'flex';
+    }
+    hideBackgroundLoading() {
+        const el = document.getElementById('cpo-bg-loading');
+        if (el) el.style.display = 'none';
     }
 
     // ================================================================================
@@ -218,15 +430,22 @@ class CapacityPlanningOverview {
         }
         // The visible window's own start (dates[0]) doubles as the reference's implicit
         // workday-offset anchor (offset 1 = the first workday at/after StartDate - see codeunit
-        // 50604's CPO_ComputeWorkdayOffset) - initial woAnchor = 0 matches the reference's own
-        // `let woAnchor=0` for the exact same reason.
-        this.woAnchor = 0;
+        // 50604's CPO_ComputeWorkdayOffset) - every occurrence starts un-overridden (empty map, so
+        // getOccurrenceDayIndex falls back to its natural idxWork(0, wd) position - exactly
+        // wherever AL's fresh workOrderSequences[] currently has it), matching the reference's own
+        // `let woAnchor=0` for the exact same reason, just per-occurrence now instead of one shared
+        // value (see this class's own constructor comment on occurrenceAnchors).
+        this.occurrenceAnchors = {};
+        this.pendingSequenceMoves = {};
+        this._bulkAnchorHint = null; // cosmetic only - see renderCapacityBars' own comment on cpo-wo-anchor-day
+        this._hasUnconfirmedChanges = false; // fresh server data - any earlier unconfirmed local moves are moot
 
         this._evalWOCache = {};
         this._currentPositionShortageArr = null;
         this._currentPositionSkillShortageArr = null;
         this._baseRequests = this.aggregateRequests();
         this._baselineWithoutWO = this.aggregateOutstandingRequestsWithoutWO();
+        this._treeSummaryIndex = null;
 
         const titleEl = document.getElementById('cpo-title');
         if (titleEl) {
@@ -254,6 +473,11 @@ class CapacityPlanningOverview {
         this.renderCapacityBars(this.db);
         this.renderCentralTree(this.db);
         this.bindScrollSync();
+        this.updateConfirmButtonState(); // fresh server data - clears the Confirm button's pending/enabled look too
+        // True last step of every full load/reload cycle (initial ControlReady or a "Days to
+        // show" change) - always hide, even on a re-entrant call, so the overlay never gets stuck;
+        // this is the user's actual "processing is done, ready for the next action" signal.
+        this.hideLoading();
     }
 
     /// <summary>
@@ -292,6 +516,7 @@ class CapacityPlanningOverview {
         this._currentPositionSkillShortageArr = null;
         this._baseRequests = this.aggregateRequests();
         this._baselineWithoutWO = this.aggregateOutstandingRequestsWithoutWO();
+        this._treeSummaryIndex = null;
 
         this.renderWoSummaryScheduler(this.db);
         this.renderCapacityBars(this.db);
@@ -299,7 +524,7 @@ class CapacityPlanningOverview {
         this.bindScrollSync();
     }
 
-    /// <summary>Clears the two woAnchor-dependent caches (NOT this._evalWOCache, which is independent of woAnchor) - call after any woAnchor change (drag, click-to-relocate).</summary>
+    /// <summary>Clears the two sequence-anchor-dependent caches (NOT this._evalWOCache, which is independent of every sequence's own anchor) - call after any anchor change (a single-row drag, or Section 3's bulk click-to-relocate).</summary>
     resetAnchorDependentCaches() {
         this._currentPositionShortageArr = null;
         this._currentPositionSkillShortageArr = null;
@@ -473,7 +698,93 @@ class CapacityPlanningOverview {
     validStart(i) {
         return i >= 0 && i < this.dates.length && !cpoIsWeekend(this.dates[i]) && this.idxWork(i, this.maxVisibleWOWorkday()) < this.dates.length;
     }
-    /// <summary>Places this Work Order's own workOrderSequences[] demand at candidate anchor `start`, returning a per-day {skill: hours} map - reference's own "workOrderExtra".</summary>
+
+    /// <summary>
+    /// Stable per-OCCURRENCE identity for occurrenceAnchors (2026-09-04, replacing an earlier
+    /// per-SEQUENCE-ROW design) - one sequence row (Skill+Job+Task+SequenceNo) can carry several
+    /// individually-dated occurrences (workOrderSequences[].workdays[], each a real Day Planning
+    /// line), and the user explicitly corrected that dragging ONE of those must not move the
+    /// others: "I want effected on 15 sep only, the others of day plannings should be stay same".
+    /// `wd` (the workday number) is part of the key precisely so each occurrence under the same
+    /// sequence gets its own independent slot.
+    /// </summary>
+    occurrenceKey(seq, wd) {
+        return (seq.job || '') + '|' + (seq.task || '') + '|' + (seq.skill || '') + '|' + (seq.sequenceNo == null ? '' : seq.sequenceNo) + '|' + wd;
+    }
+    /// <summary>This occurrence's CURRENT day-index - its own override if it was moved (individually or by section 3's bulk relocate), else its natural, never-moved position (idxWork(0, wd), which is exactly wherever AL's own workOrderSequences[] currently has it, since occurrenceAnchors is empty on every fresh load).</summary>
+    getOccurrenceDayIndex(seq, wd) {
+        const key = this.occurrenceKey(seq, wd);
+        return Object.prototype.hasOwnProperty.call(this.occurrenceAnchors, key) ? this.occurrenceAnchors[key] : this.idxWork(0, wd);
+    }
+    setOccurrenceDayIndex(seq, wd, dayIndex) {
+        this.occurrenceAnchors[this.occurrenceKey(seq, wd)] = dayIndex;
+    }
+
+    /// <summary>
+    /// Cross-row reassignment (2026-09-04, explicit user request: "as long as same skill, and
+    /// there is vacant sequence for a day then user must able to move single day planning from
+    /// sequence 2 into sequence 1 in same day") - moves ONE occurrence out of `sourceSeq.workdays`
+    /// and into `targetSeq.workdays`, landing at `targetDayIndex`. Deliberately narrower than the
+    /// user's literal wording per their own follow-up answer: only allowed between two sequences
+    /// that share the same Job No./Job Task No. (just a different Sequence No.) AND the same
+    /// Skill, and only onto a genuinely vacant slot (no existing occurrence of targetSeq already
+    /// sitting on that exact day) - returns false and mutates nothing on any mismatch, letting the
+    /// caller's unconditional renderWorkOrder() snap the dragged bar back to its untouched origin.
+    ///
+    /// `wd` numbers are otherwise just a per-sequence identity tag (idxWork(0, wd) only matters as
+    /// a FALLBACK default position - see getOccurrenceDayIndex), so reusing the source's own `wd`
+    /// on the target is fine UNLESS targetSeq already has an unrelated occurrence tagged with that
+    /// same number (their identity keys would collide and overwrite each other) - in that case the
+    /// smallest free integer above it is used instead.
+    ///
+    /// pendingSequenceMoves tracks the TRUE original (job/task/skill/sequenceNo/wd - i.e. exactly
+    /// what's still persisted in BC right now) for confirmChanges to find later, since after this
+    /// move idxWork(0, newWd) under targetSeq no longer corresponds to any real BC date/sequence -
+    /// it's a synthetic identity that only exists locally until Confirm. Carries the ORIGINAL
+    /// identity forward (not just "whatever it was one move ago") so a same-session move-then-move
+    /// (A into B, then B into C, before ever confirming) still traces back to the one real BC
+    /// record - see confirmChanges' own doc comment for how this is consumed.
+    /// </summary>
+    moveOccurrenceToSequence(sourceSeqIndex, wd, targetSeqIndex, targetDayIndex) {
+        const sequences = (this.db && this.db.workOrderSequences) || [];
+        const sourceSeq = sequences[sourceSeqIndex];
+        const targetSeq = sequences[targetSeqIndex];
+        if (!sourceSeq || !targetSeq || sourceSeq === targetSeq) return false;
+        if (sourceSeq.job !== targetSeq.job || sourceSeq.task !== targetSeq.task || sourceSeq.skill !== targetSeq.skill) return false;
+        if (!Array.isArray(sourceSeq.workdays) || sourceSeq.workdays.indexOf(wd) === -1) return false;
+
+        const self = this;
+        const targetWorkdays = Array.isArray(targetSeq.workdays) ? targetSeq.workdays : (targetSeq.workdays = []);
+        const occupied = targetWorkdays.some(function (existingWd) { return self.getOccurrenceDayIndex(targetSeq, existingWd) === targetDayIndex; });
+        if (occupied) return false;
+
+        const oldKey = this.occurrenceKey(sourceSeq, wd);
+        const priorMove = this.pendingSequenceMoves[oldKey];
+        const trueOriginalSequenceNo = priorMove ? priorMove.originalSequenceNo : sourceSeq.sequenceNo;
+        const trueOriginalWd = priorMove ? priorMove.originalWd : wd;
+        const hours = sourceSeq.hoursByWorkday ? sourceSeq.hoursByWorkday[wd] : undefined;
+
+        sourceSeq.workdays.splice(sourceSeq.workdays.indexOf(wd), 1);
+        if (sourceSeq.hoursByWorkday) delete sourceSeq.hoursByWorkday[wd];
+        delete this.occurrenceAnchors[oldKey];
+        if (priorMove) delete this.pendingSequenceMoves[oldKey];
+
+        let newWd = wd;
+        while (targetWorkdays.indexOf(newWd) !== -1) newWd++;
+        targetWorkdays.push(newWd);
+        targetWorkdays.sort(function (a, b) { return a - b; });
+        if (!targetSeq.hoursByWorkday) targetSeq.hoursByWorkday = {};
+        if (hours != null) targetSeq.hoursByWorkday[newWd] = hours;
+        this.setOccurrenceDayIndex(targetSeq, newWd, targetDayIndex);
+
+        this.pendingSequenceMoves[this.occurrenceKey(targetSeq, newWd)] = {
+            originalSequenceNo: trueOriginalSequenceNo,
+            originalWd: trueOriginalWd
+        };
+        return true;
+    }
+
+    /// <summary>Places this Work Order's own workOrderSequences[] demand at candidate anchor `start`, returning a per-day {skill: hours} map - reference's own "workOrderExtra". Still takes ONE uniform `start` for every sequence - only used by evaluateWO's "if the whole WO were placed starting on day X" per-day scan (section 1's "Calculated conclusion" row), a different, unchanged feature from the per-sequence current-position placement below.</summary>
     workOrderExtra(start) {
         const self = this;
         const extra = this.dates.map(function () { const o = {}; self.skills.forEach(function (s) { o[s] = 0; }); return o; });
@@ -481,6 +792,27 @@ class CapacityPlanningOverview {
             (seq.workdays || []).forEach(function (wd) {
                 const idx = self.idxWork(start, wd);
                 if (idx < self.dates.length) {
+                    const hrs = (seq.hoursByWorkday && seq.hoursByWorkday[wd] != null) ? Number(seq.hoursByWorkday[wd]) : 8;
+                    extra[idx][seq.skill] = (extra[idx][seq.skill] || 0) + hrs;
+                }
+            });
+        });
+        return extra;
+    }
+    /// <summary>
+    /// Per-OCCURRENCE version of workOrderExtra (2026-09-04) - each individual occurrence is placed
+    /// at ITS OWN current day-index (getOccurrenceDayIndex) instead of one shared `start` for the
+    /// whole WO. Used by currentPositionShortage/currentPositionSkillShortage (section 1's "Current
+    /// position shortage" row) and renderWorkOrder (section 2's own bar placement) - both need
+    /// "wherever each occurrence ACTUALLY currently sits", not evaluateWO's uniform hypothetical.
+    /// </summary>
+    workOrderExtraCurrent() {
+        const self = this;
+        const extra = this.dates.map(function () { const o = {}; self.skills.forEach(function (s) { o[s] = 0; }); return o; });
+        (this.db.workOrderSequences || []).forEach(function (seq) {
+            (seq.workdays || []).forEach(function (wd) {
+                const idx = self.getOccurrenceDayIndex(seq, wd);
+                if (idx >= 0 && idx < self.dates.length) {
                     const hrs = (seq.hoursByWorkday && seq.hoursByWorkday[wd] != null) ? Number(seq.hoursByWorkday[wd]) : 8;
                     extra[idx][seq.skill] = (extra[idx][seq.skill] || 0) + hrs;
                 }
@@ -510,10 +842,10 @@ class CapacityPlanningOverview {
         this._evalWOCache[start] = result;
         return result;
     }
-    /// <summary>Per-day added shortage caused specifically by this WO's demand at its CURRENT anchor position (this.woAnchor) - reference's own "currentPositionShortage". Cached until the next resetAnchorDependentCaches() (woAnchor change) or applyPlanningData() call.</summary>
+    /// <summary>Per-day added shortage caused specifically by this WO's demand at each sequence's CURRENT (independent, 2026-09-04) anchor position - reference's own "currentPositionShortage", now summed from workOrderExtraCurrent() instead of one shared woAnchor. Cached until the next resetAnchorDependentCaches() (any anchor change) or applyPlanningData() call.</summary>
     currentPositionShortage() {
         if (this._currentPositionShortageArr) return this._currentPositionShortageArr;
-        const extra = this.workOrderExtra(this.woAnchor);
+        const extra = this.workOrderExtraCurrent();
         const out = this.dates.map((d, i) => {
             if (cpoIsWeekend(d)) return null;
             const before = this.maxFlowDay(i, this._baselineWithoutWO[i]);
@@ -529,7 +861,7 @@ class CapacityPlanningOverview {
     currentPositionSkillShortage() {
         if (this._currentPositionSkillShortageArr) return this._currentPositionSkillShortageArr;
         const self = this;
-        const extra = this.workOrderExtra(this.woAnchor);
+        const extra = this.workOrderExtraCurrent();
         const out = this.dates.map(function () { const o = {}; self.skills.forEach(function (s) { o[s] = 0; }); return o; });
         for (let i = 0; i < this.dates.length; i++) {
             if (cpoIsWeekend(this.dates[i])) continue;
@@ -654,10 +986,11 @@ class CapacityPlanningOverview {
     // Section 2 - the WO's own Day Planning sequence rows, a REAL Scheduler timeline with native
     // drag. Near-verbatim port of the reference's createWorkOrderScheduler/renderWorkOrder/
     // workOrderAssignmentState (DHTMLXtempv112-app.js ~L255-372) - events are positioned via
-    // idxWork(woAnchor, workday-offset), exactly like the reference, instead of the pre-pivot
-    // version's real absolute "Plan Date" placement; dragging a bar shifts woAnchor and re-renders
-    // client-side (matching the reference's own pure-simulation drag behavior) and ALSO still fires
-    // OnRescheduleWorkOrder (page 50722's stub trigger) so that wiring stays exercised.
+    // idxWork(anchor, workday-offset), same as the reference's own idxWork(woAnchor, ...), except
+    // `anchor` is now EACH INDIVIDUAL OCCURRENCE's own independent getOccurrenceDayIndex(seq, wd)
+    // (2026-09-04), not one shared value for the whole WO, nor even one shared value per sequence
+    // row - dragging a bar shifts ONLY that one occurrence and re-renders client-side; nothing
+    // reaches AL until the user clicks Confirm (§3.1/§13.1x - see bindConfirmButton/confirmChanges).
     // ================================================================================
 
     renderWoScheduler(json) {
@@ -711,7 +1044,13 @@ class CapacityPlanningOverview {
             dx: CapacityPlanningOverview.ROW_LABEL_WIDTH,
             scrollable: true,
             cell_template: false,
-            scale_height: 0
+            // Own independent header (2026-09-04) - matches section 4's own long-standing pattern
+            // instead of section 1's (see applySchedulerContainerHeight's own comment and this
+            // section's updated doc comment for why relying on a SIBLING instance's header was the
+            // actual root cause of a user-reported horizontal-scroll visual seam between sections
+            // 1 and 2, and why giving each instance its own header removes the need for the two to
+            // ever stay pixel-continuous with each other).
+            scale_height: CapacityPlanningOverview.SCALE_HEIGHT
         });
 
         s.date.workorder_start = function () { return self.dates[0]; };
@@ -733,18 +1072,56 @@ class CapacityPlanningOverview {
             self.openCapacityLookup(ev.dayIndex, ev.skill);
             return true;
         });
+        // Moves ONLY the dragged bar's own single occurrence (2026-09-04 redesign, per explicit
+        // user correction: dragging one date of a multi-date sequence must not move the sequence's
+        // OTHER dates) - `ev` already carries the exact job/task/skill/sequenceNo/workday fields
+        // occurrenceKey() needs (see renderWorkOrder's own events.push), so no lookup into
+        // workOrderSequences[] is needed to identify which occurrence this drag belongs to.
+        // Deliberately asymmetric with Section 3's click-to-relocate (moveWorkOrderToDay), which is
+        // a bulk action by explicit user request - this is the "single day planning shift" path,
+        // that is the "whole group" path. No relative-shift math needed here at all: the drop
+        // position IS the new absolute day-index for this one occurrence.
         s.attachEvent('onEventChanged', function (id, ev) {
-            const movedTo = self.dayIndex(ev.start_date);
-            const shift = movedTo - ev.dayIndex;
-            let target = self.woAnchor + shift;
-            target = Math.max(0, Math.min(self.dates.length - 1, target));
-            if (cpoIsWeekend(self.dates[target])) { while (target < self.dates.length && cpoIsWeekend(self.dates[target])) target++; }
-            if (self.validStart(target)) self.woAnchor = target;
-            self.resetAnchorDependentCaches();
-            self.renderWorkOrder();
-            if (typeof Microsoft !== 'undefined') {
-                Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnRescheduleWorkOrder', [shift, JSON.stringify({ woAnchor: self.woAnchor })]);
+            const target = self.dayIndex(ev.start_date);
+            // Vertical drag onto a DIFFERENT sequence row (2026-09-04, explicit user request: "as
+            // long as same skill, and there is vacant sequence for a day then user must able to
+            // move single day planning from sequence 2 into sequence 1 in same day") - DHTMLX
+            // already writes the DROP TARGET's section_id straight onto `ev` for a units-based
+            // timeline view; `ev.seqIndex` (set once in renderWorkOrder's own events.push, never
+            // touched by DHTMLX) is still this bar's ORIGINAL row, so comparing the two tells us a
+            // row change was attempted. moveOccurrenceToSequence validates same Job/Task/Skill +
+            // target-day vacancy itself and is a no-op (returns false, mutates nothing) on any
+            // mismatch - the unconditional renderWorkOrder() below then naturally snaps an invalid
+            // drop back to its untouched origin, since it always rebuilds purely from
+            // workOrderSequences/occurrenceAnchors, never from the DOM's own post-drag state.
+            const droppedSeqIndex = parseInt(String(ev.section_id).split(':')[1], 10);
+            const rowChanged = !isNaN(droppedSeqIndex) && ev.seqIndex != null && droppedSeqIndex !== ev.seqIndex;
+            if (target >= 0 && target < self.dates.length && !cpoIsWeekend(self.dates[target])) {
+                if (rowChanged) {
+                    self.moveOccurrenceToSequence(ev.seqIndex, ev.workday, droppedSeqIndex, target);
+                } else {
+                    self.setOccurrenceDayIndex(ev, ev.workday, target);
+                }
             }
+            // renderWorkOrder() deferred to setTimeout(0) (2026-09-04) - it does a destructive
+            // woScheduler.clearAll()+parse() (a full rebuild of every event's DOM), and running
+            // that SYNCHRONOUSLY inside onEventChanged (DHTMLX's own drag-completion callback) risks
+            // DHTMLX still being mid-way through its own post-drag DOM cleanup for the JUST-DRAGGED
+            // element when we rip out the whole event set out from under it - a known category of
+            // drag-and-drop bug (leaves a stale/duplicate "ghost" bar behind), reported live: after
+            // dragging one occurrence of a two-occurrence sequence row, a third pale/ghost chip
+            // appeared at the drop target while both original chips stayed in place. Deferring one
+            // tick lets DHTMLX fully finish handling the drop first. Pure client-side simulation
+            // either way (2026-09-04 redesign) - no AL round-trip per drag, no runBusy overlay
+            // (renderWorkOrder's own cost is a real but small ~100-150ms of synchronous JS, not
+            // worth a spinner flash for). markUnconfirmedChange enables the Confirm button instead -
+            // see its own/bindConfirmButton's doc comment for the full reasoning on why this moved
+            // off a per-action BC call.
+            setTimeout(function () {
+                self.resetAnchorDependentCaches();
+                self.renderWorkOrder();
+                self.markUnconfirmedChange();
+            }, 0);
             return true;
         });
 
@@ -790,14 +1167,17 @@ class CapacityPlanningOverview {
     }
 
     /// <summary>
-    /// Rebuilds section 2's events from db.workOrderSequences positioned at the CURRENT woAnchor,
-    /// allocating each day's currentPositionSkillShortage() across the sequence cells that actually
-    /// contribute to it (never double-counted - a running "remaining" pool per day/skill is
-    /// depleted as each sequence event claims its share) - near-verbatim port of the reference's own
-    /// "renderWorkOrder". Also refreshes section 1 (setCurrentView forces its cell templates to
-    /// re-read the now-current woAnchor/caches) and re-renders section 3 (its "shortage"/anchor-
-    /// highlight both depend on woAnchor) - section 4 is deliberately NOT touched here (its own data
-    /// has no woAnchor dependency, matching the reference).
+    /// Rebuilds section 2's events from db.workOrderSequences, each individual OCCURRENCE
+    /// positioned at ITS OWN current day-index (getOccurrenceDayIndex, 2026-09-04 - no longer one
+    /// shared woAnchor for the whole WO, nor even one anchor per sequence row - see
+    /// occurrenceAnchors' own doc comment), allocating each day's currentPositionSkillShortage()
+    /// across the sequence cells that actually contribute to it (never double-counted - a running
+    /// "remaining" pool per day/skill is depleted as each sequence event claims its share) -
+    /// near-verbatim port of the reference's own "renderWorkOrder". Also refreshes section 1
+    /// (setCurrentView forces its cell templates to re-read the now-current occurrence
+    /// anchors/caches) and re-renders section 3 (its "shortage" figure and, cosmetically, its
+    /// single-day highlight both depend on this) - section 4 is deliberately NOT touched here (its
+    /// own data has no anchor dependency at all, matching the reference).
     /// </summary>
     renderWorkOrder() {
         if (!this.woScheduler) return;
@@ -814,8 +1194,8 @@ class CapacityPlanningOverview {
         let id = 1;
         sequences.forEach(function (seq, seqIndex) {
             (seq.workdays || []).forEach(function (wd) {
-                const idx = self.idxWork(self.woAnchor, wd);
-                if (idx >= self.dates.length) return;
+                const idx = self.getOccurrenceDayIndex(seq, wd);
+                if (idx < 0 || idx >= self.dates.length) return;
                 const d = self.dates[idx];
                 const start = new Date(d); start.setHours(8, 0, 0, 0);
                 const end = new Date(d); end.setHours(16, 0, 0, 0);
@@ -831,6 +1211,7 @@ class CapacityPlanningOverview {
                     end_date: end,
                     text: '',
                     section_id: 'seq:' + seqIndex,
+                    seqIndex: seqIndex,
                     skill: seq.skill,
                     hours: requestedHours,
                     requestedHours: requestedHours,
@@ -860,22 +1241,61 @@ class CapacityPlanningOverview {
         this.bindScrollSync();
     }
 
-    /// <summary>Section 3/4 shared "Capacity lookup" entry point - stub extensibility round-trip, matches page 50722's own currently-stubbed OnRequestCapacityLookup trigger (the shared modal itself is a later, still out-of-scope build step).</summary>
+    /// <summary>
+    /// Section 3/4 shared "Capacity lookup" entry point - stub extensibility round-trip, matches
+    /// page 50722's own currently-stubbed OnRequestCapacityLookup trigger (the shared modal itself
+    /// is a later, still out-of-scope build step). showLoading/hideLoading bracket the invoke
+    /// itself here (not deferred via runBusy - InvokeExtensibilityMethod is fire-and-forget from
+    /// JS's own perspective, confirmed live it returns immediately rather than blocking the thread,
+    /// so a plain showLoading() right before it still gets a real paint) so the spinner shows for
+    /// this action too - hideLoading is ALSO called from showCapacityModal below, so this stays
+    /// correct either way once OnRequestCapacityLookup is wired to real AL logic: a same-call-stack
+    /// response hides here first (that later call becomes a harmless no-op), an async
+    /// background-task response hides itself when it actually arrives instead.
+    /// </summary>
     openCapacityLookup(dayIdx, skillFilter) {
         if (typeof Microsoft !== 'undefined') {
+            this.showLoading();
             Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnRequestCapacityLookup', [JSON.stringify({ dayIndex: dayIdx, skill: skillFilter || null })]);
+            this.hideLoading();
         }
     }
 
-    /// <summary>Click-to-relocate - moves woAnchor directly to a clicked section-3 day column and re-renders, exactly like a drag - reference's own "moveWorkOrderToDay".</summary>
+    /// <summary>
+    /// Click-to-relocate - reference's own "moveWorkOrderToDay". Pure client-side simulation
+    /// (2026-09-04 redesign) - no AL round-trip, no runBusy overlay (renderWorkOrder's own cost is
+    /// a real but small ~100-150ms of synchronous JS, not worth a spinner flash for) -
+    /// markUnconfirmedChange enables the Confirm button instead, same as the section 2 drag
+    /// handler now does; see bindConfirmButton's doc comment for the full reasoning. (A prior
+    /// version of this method WAS wrapped in runBusy, and one live measurement showed a ~5s gap
+    /// before hideLoading fired despite renderWorkOrder itself only costing ~124ms - traced to a
+    /// test session whose DOM was still carrying tens of thousands of nodes from repeated
+    /// Expand-all clicks earlier in that same session, which starves requestAnimationFrame; not a
+    /// real cost of this action on a normal page, and moot now that this path doesn't call
+    /// runBusy/rAF at all.)
+    ///
+    /// DELIBERATELY still a bulk action (2026-09-04 - explicit, repeated user correction: "leave
+    /// section 3 as is, do not change, section 3 should be drive section 2 in a group or whole
+    /// sequence") - sets EVERY occurrence of EVERY sequence to idxWork(dayIndex, wd), preserving
+    /// each occurrence's relative workday spacing from the others exactly like the old single
+    /// shared woAnchor did, unlike the section 2 drag handler above (onEventChanged), which moves
+    /// only the one bar actually dragged and nothing else. _bulkAnchorHint is cosmetic-only
+    /// bookkeeping for renderCapacityBars' single-day highlight (see its own comment) - never read
+    /// by any shortage/positioning math, since once individual occurrences have been dragged
+    /// independently there is no longer one single day everything sits on in general.
+    /// </summary>
     moveWorkOrderToDay(dayIndex) {
         if (dayIndex < 0 || dayIndex >= this.dates.length || cpoIsWeekend(this.dates[dayIndex])) return;
-        this.woAnchor = dayIndex;
+        const self = this;
+        (this.db.workOrderSequences || []).forEach(function (seq) {
+            (seq.workdays || []).forEach(function (wd) {
+                self.setOccurrenceDayIndex(seq, wd, self.idxWork(dayIndex, wd));
+            });
+        });
+        this._bulkAnchorHint = dayIndex;
         this.resetAnchorDependentCaches();
         this.renderWorkOrder();
-        if (typeof Microsoft !== 'undefined') {
-            Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnRescheduleWorkOrder', [dayIndex, JSON.stringify({ woAnchor: dayIndex })]);
-        }
+        this.markUnconfirmedChange();
     }
 
     /// <summary>
@@ -888,7 +1308,11 @@ class CapacityPlanningOverview {
         const wrapEl = document.getElementById('cpo-wo-scheduler-wrap');
         const containerEl = document.getElementById('cpo-wo-scheduler');
         if (!wrapEl || !containerEl) return;
-        const computedHeight = (Math.max(0, rowCount) * CapacityPlanningOverview.ROW_HEIGHT) + CapacityPlanningOverview.SCHEDULER_HEIGHT_PADDING;
+        // +SCALE_HEIGHT (2026-09-04) - section 2 now renders its own date-header row instead of
+        // borrowing section 1's (same reasoning as applyCentralTreeHeight's own +SCALE_HEIGHT for
+        // section 4); without this the row list would get squeezed to make room for that header
+        // inside a container still sized for rows alone.
+        const computedHeight = (Math.max(0, rowCount) * CapacityPlanningOverview.ROW_HEIGHT) + CapacityPlanningOverview.SCHEDULER_HEIGHT_PADDING + CapacityPlanningOverview.SCALE_HEIGHT;
         const finalHeight = Math.max(CapacityPlanningOverview.MIN_SCHEDULER_HEIGHT, Math.min(CapacityPlanningOverview.MAX_SCHEDULER_HEIGHT, computedHeight));
         wrapEl.style.height = finalHeight + 'px';
         containerEl.style.height = Math.max(computedHeight, finalHeight) + 'px';
@@ -1075,7 +1499,12 @@ class CapacityPlanningOverview {
             const cStack = seg(x.assigned, '#63aa72') + seg(x.freeInt, '#5f8fd8') + seg(x.freeExt, '#8fb7ee');
             let rStack = seg(x.assignedRequest, '#63aa72');
             self.skills.forEach(function (sk) { const meta = self.skillMeta(sk); rStack += seg(x.unassignedBySkill[sk], meta.color); });
-            const anchor = x.dayIndex === self.woAnchor ? ' cpo-wo-anchor-day' : '';
+            // _bulkAnchorHint (2026-09-04) - cosmetic-only, set by moveWorkOrderToDay's bulk
+            // relocate (never by an individual section 2 drag) - once rows have been dragged
+            // independently there is no longer one single day every row sits on in general, so this
+            // simply stops highlighting anything (null) rather than picking one row's anchor
+            // arbitrarily.
+            const anchor = self._bulkAnchorHint !== null && x.dayIndex === self._bulkAnchorHint ? ' cpo-wo-anchor-day' : '';
             const shortageBar = x.shortage > 0 ? '<div class="cpo-daily-chart-shortage"></div>' : '';
             return '<div class="cpo-daily-chart-day' + anchor + '" data-day-index="' + x.dayIndex + '" style="width:' + columnWidth + 'px;min-width:' + columnWidth + 'px;">' +
                 '<div class="cpo-daily-chart-date"><b>' + dayNo + '</b><span>' + dayName + '</span></div>' +
@@ -1144,11 +1573,16 @@ class CapacityPlanningOverview {
     // codeunit 50604's now-removed CPO_BuildTreeNodesArray/CPO_BuildTreeCellsObj) is gone.
     // ================================================================================
 
+    // Both levels start CLOSED (2026-09-04) regardless of AL's own groups[].expanded flag -
+    // fully expanding this tree is expensive (real DOM-construction cost that scales with row
+    // count, confirmed live: 2,831 rows fully expanded took ~1.7s even after treeSummaryIndex made
+    // every cell lookup O(1) - see that method's own comment), so it should only ever be paid when
+    // the user deliberately clicks Expand/Exp. to Task, not on every page open.
     buildCentralSections() {
         const self = this;
         return (this.db.groups || []).map(function (g) {
             return {
-                key: 'skill:' + g.skill, section_id: 'skill:' + g.skill, label: g.skill, skill: g.skill, type: 'skill', open: !!g.expanded,
+                key: 'skill:' + g.skill, section_id: 'skill:' + g.skill, label: g.skill, skill: g.skill, type: 'skill', open: false,
                 children: (g.details || []).map(function (det, di) {
                     const lines = (self.db.dayPlanningLines || []).filter(function (line) { return line.requestedSkill === g.skill && line.job === det.job && line.task === det.task; });
                     const seqNos = [];
@@ -1156,7 +1590,7 @@ class CapacityPlanningOverview {
                     return {
                         key: 'detail:' + g.skill + ':' + di, section_id: 'detail:' + g.skill + ':' + di,
                         label: det.description || (det.job + ' / ' + det.task), skill: g.skill, type: 'detail', job: det.job, task: det.task,
-                        description: det.description || '', open: true,
+                        description: det.description || '', open: false,
                         children: seqNos.map(function (sequenceNo, si) {
                             return { key: 'sequence:' + g.skill + ':' + di + ':' + si, section_id: 'sequence:' + g.skill + ':' + di + ':' + si,
                                 label: '', skill: g.skill, type: 'sequence', job: det.job, task: det.task, description: det.description || '', sequenceNo: sequenceNo };
@@ -1174,41 +1608,60 @@ class CapacityPlanningOverview {
     // both WOs' rows in one array (see this file's own architecture-pivot doc comment) - without
     // this exclusion, a colliding inspected-WO row could double into Section 4's "other work
     // orders" totals, which are meant to be this WO's own schedule's exact complement.
-    skillDaySummary(skill, idx) {
+    //
+    // All three are called once per RENDERED CELL (DHTMLX's cell_template - one call per visible
+    // row x visible day), so a per-call O(dayPlanningLines) scan/filter here means the WHOLE
+    // section 4 redraw costs O(rows x days x dayPlanningLines.length) - confirmed live as the
+    // actual cost of Expand/Collapse-all on a real multi-work-order dataset (profiled at several
+    // real seconds, ALL of it inside DHTMLX's own native redraw calling these repeatedly - not an
+    // AL round-trip, the data is already local, see the 2026-09-04 "why does this take so long"
+    // question this fixes). buildTreeSummaryIndex groups dayPlanningLines ONCE per render pass
+    // (O(dayPlanningLines.length) total) into skill/day, skill+job+task/day, and
+    // skill+job+task+sequenceNo/day buckets, turning every one of these into an O(1) lookup - same
+    // exclusion/aggregation rules as before, just computed once instead of once per cell.
+    treeSummaryIndex() {
+        if (this._treeSummaryIndex) return this._treeSummaryIndex;
         const woNo = this.db.workOrder && this.db.workOrder.no;
-        let requested = 0, assigned = 0;
+        const bySkillDay = {};
+        const byTaskDay = {};
+        const bySeqDay = {};
         (this.db.dayPlanningLines || []).forEach((line) => {
             if (line.workOrderNo === woNo) return;
-            if (line.requestedSkill !== skill || this.dplDayIndex(line) !== idx) return;
+            const idx = this.dplDayIndex(line);
             const req = Number(line.requestedHours) || 0;
-            requested += req;
-            assigned += Math.min(req, Number(line.assignedHours) || 0);
+            const assigned = Math.min(req, Number(line.assignedHours) || 0);
+
+            const skillKey = line.requestedSkill + '|' + idx;
+            const sAgg = bySkillDay[skillKey] || (bySkillDay[skillKey] = { requested: 0, assigned: 0 });
+            sAgg.requested += req; sAgg.assigned += assigned;
+
+            const taskKey = skillKey + '|' + line.job + '|' + line.task;
+            const tAgg = byTaskDay[taskKey] || (byTaskDay[taskKey] = { requested: 0, assigned: 0 });
+            tAgg.requested += req; tAgg.assigned += assigned;
+
+            const seqKey = taskKey + '|' + (line.sequenceNo == null ? '' : line.sequenceNo);
+            (bySeqDay[seqKey] || (bySeqDay[seqKey] = [])).push(line);
         });
-        return { requested: requested, assigned: assigned, shortage: Math.max(0, requested - assigned) };
+        this._treeSummaryIndex = { bySkillDay: bySkillDay, byTaskDay: byTaskDay, bySeqDay: bySeqDay };
+        return this._treeSummaryIndex;
+    }
+
+    skillDaySummary(skill, idx) {
+        const agg = this.treeSummaryIndex().bySkillDay[skill + '|' + idx] || { requested: 0, assigned: 0 };
+        return { requested: agg.requested, assigned: agg.assigned, shortage: Math.max(0, agg.requested - agg.assigned) };
     }
 
     taskDaySummary(section, idx) {
-        const woNo = this.db.workOrder && this.db.workOrder.no;
-        let requested = 0, assigned = 0;
-        (this.db.dayPlanningLines || []).forEach((line) => {
-            if (line.workOrderNo === woNo) return;
-            if (line.requestedSkill !== section.skill || line.job !== section.job || line.task !== section.task || this.dplDayIndex(line) !== idx) return;
-            const req = Number(line.requestedHours) || 0;
-            requested += req;
-            assigned += Math.min(req, Number(line.assignedHours) || 0);
-        });
-        return { requested: requested, assigned: assigned, shortage: Math.max(0, requested - assigned) };
+        const key = section.skill + '|' + idx + '|' + section.job + '|' + section.task;
+        const agg = this.treeSummaryIndex().byTaskDay[key] || { requested: 0, assigned: 0 };
+        return { requested: agg.requested, assigned: agg.assigned, shortage: Math.max(0, agg.requested - agg.assigned) };
     }
 
     sequenceDayLines(section, idx) {
-        const self = this;
-        const woNo = this.db.workOrder && this.db.workOrder.no;
-        return (this.db.dayPlanningLines || []).filter(function (line) {
-            return line.workOrderNo !== woNo &&
-                line.requestedSkill === section.skill && line.job === section.job && line.task === section.task &&
-                String(line.sequenceNo == null ? '' : line.sequenceNo) === String(section.sequenceNo == null ? '' : section.sequenceNo) &&
-                self.dplDayIndex(line) === idx;
-        }).slice().sort(function (a, b) {
+        const key = section.skill + '|' + idx + '|' + section.job + '|' + section.task + '|' + (section.sequenceNo == null ? '' : section.sequenceNo);
+        const lines = this.treeSummaryIndex().bySeqDay[key];
+        if (!lines) return [];
+        return lines.slice().sort(function (a, b) {
             return String(a.requestedStartTime).localeCompare(String(b.requestedStartTime)) ||
                 String(a.requestedEndTime).localeCompare(String(b.requestedEndTime)) ||
                 String(a.id).localeCompare(String(b.id));
@@ -1277,6 +1730,13 @@ class CapacityPlanningOverview {
             column_width: CapacityPlanningOverview.COLUMN_WIDTH,
             dx: CapacityPlanningOverview.TREE_LABEL_WIDTH,
             scrollable: true,
+            // Tried smart_rendering: true here (2026-09-04) - DHTMLX Scheduler's own viewport-based lazy-render
+            // option, on the theory that Expand-all's real cost (confirmed by profiling: ~218ms of template-callback
+            // time out of ~3.4s total - see treeSummaryIndex's own comment) was DHTMLX eagerly building DOM for all
+            // 2,831 rows x ~20 workdays at once instead of only the ~420px visible window. Measured LIVE: it made
+            // Expand-all slower (~8.1s, not faster) - reverted. Section 4 was rebuilt on the Gantt add-ins' own tree
+            // mechanism instead (see buildGanttStyleCentralTree's own comment) rather than pursuing further
+            // Scheduler-treetimeline-specific tuning.
             columns: [{
                 label: '<div class="cpo-central-left-header"><span>Skill</span><span>Job</span><span>Task</span></div>',
                 width: CapacityPlanningOverview.TREE_LABEL_WIDTH,
@@ -1328,32 +1788,37 @@ class CapacityPlanningOverview {
 
     /// <summary>
     /// Keeps applyCentralTreeHeight's wrapEl/containerEl sizing in sync with the LIVE visible row
-    /// count, not just whatever was visible at the last full renderCentralTree call. DHTMLX's
-    /// treetimeline fires onOptionsLoad both when setTreeOpenState's Expand/Collapse-all buttons
-    /// recompute y_unit AND when the user clicks a single row's own fold/unfold arrow (same
-    /// y_unit-recompute-then-onOptionsLoad sequence, confirmed live) - without this, collapsing
-    /// rows left the wrapper's clip height (and so its scrollbar range) sized for whatever row
-    /// count was visible at the last full render, producing a scrollbar whose thumb still spans
-    /// the fully-expanded range and a blank gap below the now-shorter row list when scrolled down
-    /// (2026-09-04 bug report). setCurrentView forces DHTMLX to re-lay-out rows against the
-    /// corrected container height, matching the pattern renderWorkOrder already uses elsewhere in
-    /// this file to force a post-mutation redraw.
+    /// count, not just whatever was visible at the last full renderCentralTree call - covers the
+    /// user clicking a single row's own native fold/unfold arrow (DHTMLX's treetimeline recomputes
+    /// y_unit and fires onOptionsLoad itself for that, before this listener ever runs). Without
+    /// this, collapsing rows left the wrapper's clip height (and so its scrollbar range) sized for
+    /// whatever row count was visible at the last full render, producing a scrollbar whose thumb
+    /// still spans the fully-expanded range and a blank gap below the now-shorter row list when
+    /// scrolled down (2026-09-04 bug report).
+    ///
+    /// This does NOT also force a setCurrentView redraw (an earlier version of this fix did, on the
+    /// theory that DHTMLX's own native onOptionsLoad redraw might read a stale container height
+    /// otherwise) - profiling that version live showed the EXTRA setCurrentView call wasn't
+    /// actually adding meaningful cost on top of DHTMLX's own native redraw; removing it changed
+    /// nothing about correctness (no squished/misaligned rows either way - applyCentralTreeHeight
+    /// alone only changes the WRAPPER's clip/scroll box, never the already-rendered rows' own
+    /// layout) but avoids doing the same redraw work twice for the Expand/Collapse-all button path
+    /// specifically, since setTreeOpenState below now pre-applies the height BEFORE firing
+    /// onOptionsLoad, so DHTMLX's one native redraw already reads the correct height. The REAL cost
+    /// of Expand/Collapse-all (profiled live at several real seconds on this WO's data, prompting
+    /// the 2026-09-04 "why does this take so long, the data's already in JS" question) was never
+    /// this listener at all - it was skillDaySummary/taskDaySummary/sequenceDayLines each doing an
+    /// O(dayPlanningLines) scan PER RENDERED CELL, called by DHTMLX's own native redraw once per
+    /// visible row x day; see treeSummaryIndex's own comment for the actual fix.
     /// </summary>
     bindCentralTreeHeightSync(s) {
         if (this._treeHeightSyncBound) return;
         this._treeHeightSyncBound = true;
         const self = this;
         s.attachEvent('onOptionsLoad', function () {
-            if (self._treeHeightSyncing) return; // re-entrancy guard - setCurrentView below can itself re-trigger onOptionsLoad
             const yUnit = s.matrix && s.matrix.centraltree && s.matrix.centraltree.y_unit_original;
             if (!yUnit) return;
             self.applyCentralTreeHeight(yUnit);
-            self._treeHeightSyncing = true;
-            try {
-                s.setCurrentView(self.dates[0], 'centraltree');
-            } finally {
-                self._treeHeightSyncing = false;
-            }
         });
     }
 
@@ -1416,7 +1881,14 @@ class CapacityPlanningOverview {
             if (!line) return;
             e.preventDefault(); e.stopPropagation();
             if (typeof Microsoft !== 'undefined') {
+                // Same show/hide-around-the-invoke treatment as openCapacityLookup above (see its
+                // own comment on why hiding right after a fire-and-forget invoke is correct here) -
+                // unlike that one, this trigger has no dedicated JS-callable "result arrived" hook
+                // of its own to hide from instead, so this stays the one and only hide point even
+                // once OnSequenceChipClick is wired to its real "open Day Plannings" behavior.
+                self.showLoading();
                 Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnSequenceChipClick', [JSON.stringify({ lineId: line.id, job: line.job, task: line.task, skill: line.requestedSkill, sequenceNo: line.sequenceNo })]);
+                self.hideLoading();
             }
         });
     }
@@ -1450,7 +1922,16 @@ class CapacityPlanningOverview {
         containerEl.style.height = Math.max(computedHeight, finalHeight) + 'px';
     }
 
-    /// <summary>Ports wrapper.js's own ToggleCollapseExpandAllSections technique verbatim - unchanged from before this pivot.</summary>
+    /// <summary>
+    /// Ports wrapper.js's own ToggleCollapseExpandAllSections technique verbatim - unchanged from
+    /// before this pivot. applyCentralTreeHeight is called HERE, before firing onOptionsLoad
+    /// (2026-09-04) - not left to bindCentralTreeHeightSync's own onOptionsLoad listener to fix up
+    /// afterward - so DHTMLX's own native onOptionsLoad handler (which does the real row redraw,
+    /// and runs BEFORE any listener attached via attachEvent) already reads the corrected container
+    /// height on its one and only pass; see bindCentralTreeHeightSync's own comment for why this
+    /// (avoiding one redundant redraw) turned out NOT to be where Expand/Collapse-all's real
+    /// multi-second cost was coming from - kept anyway since it's a free, correct micro-saving.
+    /// </summary>
     setTreeOpenState(skillOpen, detailOpen) {
         const s = this.centralTreeScheduler;
         if (!s || !s.matrix || !s.matrix.centraltree || !s.matrix.centraltree.y_unit_original) return;
@@ -1463,6 +1944,7 @@ class CapacityPlanningOverview {
             }
         });
         s.matrix.centraltree.y_unit = s._getArrayToDisplay(s.matrix.centraltree.y_unit_original);
+        this.applyCentralTreeHeight(s.matrix.centraltree.y_unit_original);
         s.callEvent('onOptionsLoad', []);
     }
 
@@ -1471,9 +1953,9 @@ class CapacityPlanningOverview {
         const expandAll = document.getElementById('cpo-expand-all');
         const expandToTask = document.getElementById('cpo-expand-to-task');
         const collapseAll = document.getElementById('cpo-collapse-all');
-        if (expandAll) expandAll.onclick = function () { self.setTreeOpenState(true, true); };
-        if (expandToTask) expandToTask.onclick = function () { self.setTreeOpenState(true, false); };
-        if (collapseAll) collapseAll.onclick = function () { self.setTreeOpenState(false, false); };
+        if (expandAll) expandAll.onclick = function () { self.runBusy(function () { self.setTreeOpenState(true, true); }); };
+        if (expandToTask) expandToTask.onclick = function () { self.runBusy(function () { self.setTreeOpenState(true, false); }); };
+        if (collapseAll) collapseAll.onclick = function () { self.runBusy(function () { self.setTreeOpenState(false, false); }); };
     }
 
     // ================================================================================
@@ -1508,17 +1990,43 @@ class CapacityPlanningOverview {
             if (!owner || owner.dataset.cpoSharedBound === '1') return;
             owner.dataset.cpoSharedBound = '1';
             owner.addEventListener('scroll', function () {
-                if (self._scrollLock) return;
-                self._scrollLock = true;
-                self.liveHorizontalOwners().forEach(function (o) {
-                    if (o !== owner && Math.abs(o.scrollLeft - owner.scrollLeft) > 0.5) o.scrollLeft = owner.scrollLeft;
-                });
-                if (bar && Math.abs(bar.scrollLeft - owner.scrollLeft) > 0.5) bar.scrollLeft = owner.scrollLeft;
-                self._scrollLock = false;
+                self._pendingScrollOwner = owner;
+                self.scheduleScrollSync();
             }, { passive: true });
         });
 
         this.refreshSharedScrollbar(bar, owners);
+    }
+
+    /// <summary>
+    /// Coalesces scroll-sync work to at most once per animation frame (2026-09-04) - a fast native
+    /// drag of the shared scrollbar (or any one owner's own native scrollbar) can fire many 'scroll'
+    /// events in quick succession, and each one previously wrote scrollLeft synchronously to all 3
+    /// OTHER owners immediately - sections 1/2/4 are DHTMLX-managed (a scrollLeft write can trigger
+    /// real internal reflow, unlike section 3's plain div), so a burst of events could out-pace the
+    /// browser's ability to keep all four in lockstep, producing a visibly torn/ghosted frame where
+    /// some sections had caught up to the new scroll position and others hadn't yet (user-reported,
+    /// screenshot evidence, mid-drag only - never reproducible at rest, matching this diagnosis).
+    /// Reading scrollLeft fresh INSIDE the rAF callback (not at event-fire time) is what makes this
+    /// coalesce correctly - many events collapse into one sync of wherever the source owner actually
+    /// ended up by the time the browser is ready to paint, instead of replaying every intermediate
+    /// position.
+    /// </summary>
+    scheduleScrollSync() {
+        const self = this;
+        if (self._scrollSyncRAF) return;
+        self._scrollSyncRAF = requestAnimationFrame(function () {
+            self._scrollSyncRAF = null;
+            const owner = self._pendingScrollOwner;
+            if (self._scrollLock || !owner) return;
+            self._scrollLock = true;
+            const bar = document.getElementById('cpo-shared-scroll');
+            self.liveHorizontalOwners().forEach(function (o) {
+                if (o !== owner && Math.abs(o.scrollLeft - owner.scrollLeft) > 0.5) o.scrollLeft = owner.scrollLeft;
+            });
+            if (bar && Math.abs(bar.scrollLeft - owner.scrollLeft) > 0.5) bar.scrollLeft = owner.scrollLeft;
+            self._scrollLock = false;
+        });
     }
 
     /// <summary>
@@ -1549,13 +2057,23 @@ class CapacityPlanningOverview {
                 self._sharedBarActive = true;
                 clearTimeout(self._sharedBarReleaseTimer);
 
-                if (self._scrollLock) return;
-                self._scrollLock = true;
-                self.liveHorizontalOwners().forEach(function (owner) {
-                    const ownerMax = Math.max(0, owner.scrollWidth - owner.clientWidth);
-                    owner.scrollLeft = Math.min(bar.scrollLeft, ownerMax);
-                });
-                self._scrollLock = false;
+                // rAF-coalesced (2026-09-04, same reasoning as scheduleScrollSync above) - this IS
+                // the bar the user actually drags with the mouse (native scrollbars on the 4 owners
+                // themselves are hidden, per this method's own doc comment), so a fast drag fires
+                // this handler the most out of any scroll listener in the file - the exact case that
+                // produced the user-reported torn/ghosted frame mid-drag.
+                if (!self._sharedBarSyncRAF) {
+                    self._sharedBarSyncRAF = requestAnimationFrame(function () {
+                        self._sharedBarSyncRAF = null;
+                        if (self._scrollLock) return;
+                        self._scrollLock = true;
+                        self.liveHorizontalOwners().forEach(function (owner) {
+                            const ownerMax = Math.max(0, owner.scrollWidth - owner.clientWidth);
+                            owner.scrollLeft = Math.min(bar.scrollLeft, ownerMax);
+                        });
+                        self._scrollLock = false;
+                    });
+                }
 
                 self._sharedBarReleaseTimer = setTimeout(function () { self._sharedBarActive = false; }, 140);
             }, { passive: true });
@@ -1577,7 +2095,11 @@ class CapacityPlanningOverview {
     }
 
     showCapacityModal(json) {
-        // no-op placeholder - capacity lookup modal comes in a later step.
+        // no-op placeholder - capacity lookup modal comes in a later step. hideLoading() is a
+        // no-op if openCapacityLookup's own already fired (today's stub, same call stack) - kept
+        // here so this becomes the real hide point with no further change once
+        // OnRequestCapacityLookup/LoadCapacityLookup deliver a result asynchronously instead.
+        this.hideLoading();
     }
 }
 

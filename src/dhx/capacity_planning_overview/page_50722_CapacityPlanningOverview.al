@@ -44,10 +44,15 @@ page 50722 "Capacity Planning Overview"
 
                 trigger OnRescheduleWorkOrder(DayShift: Integer; PayloadJsonTxt: Text)
                 begin
-                    // Stub only - real transactional Validate("Plan Date", ...) loop over the WO's
-                    // Day Planning lines comes in a later step of the implementation plan. For now
-                    // just prove the round-trip fires.
-                    Message('Reschedule stub: shift=%1', DayShift);
+                    // 2026-09-04: real persistence, replacing what used to be a stub (first a
+                    // blocking Message() dialog, then nothing at all - see PersistReschedule's own
+                    // doc comment). DayShift itself is unused now (sent as 0) - section 2's drag
+                    // moved from one shared woAnchor to, eventually, each INDIVIDUAL Day Planning
+                    // occurrence having its own independent day-index, so a single flat DayShift can
+                    // no longer describe the whole reschedule; PayloadJsonTxt now carries the real
+                    // data, one {job,task,skill,sequenceNo,fromDate,shift} entry per occurrence that
+                    // actually moved.
+                    PersistReschedule(PayloadJsonTxt);
                 end;
 
                 trigger OnRequestCapacityLookup(FilterJsonTxt: Text)
@@ -196,6 +201,130 @@ page 50722 "Capacity Planning Overview"
         CurrPage.DhxCpo.SetPlanningData(PlanningDataJson);
 
         EnqueueOtherWorkOrderDataBackgroundTask(RemainingGroupKeys);
+    end;
+
+    /// <summary>
+    /// Persists a confirmed reschedule (JS's Confirm changes button - capacityPlanningOverview.js's
+    /// confirmChanges/bindConfirmButton) by shifting each INDIVIDUALLY-moved Day Planning
+    /// OCCURRENCE's own "Plan Date" forward/backward by ITS OWN shift amount, in calendar days.
+    /// This is v1 - "just shift Plan Date" (explicit user decision, 2026-09-04) - it does not
+    /// attempt to replicate the JS side's workday-offset (idxWork) placement logic server-side, and
+    /// does not re-check resource/capacity availability at the new date; both are documented,
+    /// deliberate scope cuts for a first working version, not oversights.
+    ///
+    /// PayloadJsonTxt shape: {"shifts":[{"job":"...","task":"...","skill":"...","sequenceNo":N,
+    /// "fromDate":"yyyy-MM-dd","shift":N},...]} - one entry per individual OCCURRENCE that actually
+    /// moved (capacityPlanningOverview.js only includes an occurrence here if its own day-index
+    /// differs from its natural, never-moved position; dragging one bar in section 2 no longer
+    /// moves any other occurrence, even of the SAME sequence - see that file's own
+    /// occurrenceAnchors doc comment for why sequence-row granularity still wasn't fine enough).
+    /// `fromDate` is what narrows Job/Task/Skill/SequenceNo (which alone can match SEVERAL lines,
+    /// one per occurrence) down to the ONE line that was actually at that date when the user
+    /// dragged it - without it, this would shift every occurrence of the sequence by the same
+    /// amount again, exactly the bug this replaced. Each entry's job/task/skill/sequenceNo already
+    /// come from workOrderSequences[], itself built (codeunit 50604) scoped to exactly this WO's own
+    /// Day Planning rows - no separate Job No./Job Task No. re-derivation from the Work Order header
+    /// is needed here.
+    ///
+    /// Runs entirely inside this one trigger call (implicit transaction) - if Validate("Plan Date",
+    /// ...) errors on any row (e.g. outside the Job Task's own date range), the whole reschedule
+    /// rolls back and the error surfaces natively; no partial-success handling in this v1.
+    /// RefreshData() at the end re-pushes the now-persisted state as a fresh payload, which resets
+    /// every occurrence's anchor override on the JS side - the persisted dates become the new
+    /// baseline for the NEXT reschedule, so a shift is always relative to what's actually in the
+    /// database, never compounding across multiple confirms.
+    /// </summary>
+    local procedure PersistReschedule(PayloadJsonTxt: Text)
+    var
+        DayPlanning: Record "Day Planning";
+        PayloadJObj: JsonObject;
+        ShiftsJArr: JsonArray;
+        ShiftJToken: JsonToken;
+        ShiftJObj: JsonObject;
+        FieldJToken: JsonToken;
+        JobNo: Code[20];
+        JobTaskNo: Code[20];
+        SkillCode: Code[20];
+        SequenceNoInt: Integer;
+        ToSequenceNoInt: Integer;
+        HasToSequenceNo: Boolean;
+        FromDateTxt: Text;
+        FromDate: Date;
+        FromYear: Integer;
+        FromMonth: Integer;
+        FromDay: Integer;
+        ShiftDays: Integer;
+        AnyShiftApplied: Boolean;
+    begin
+        if (GWorkOrderNo = '') or (PayloadJsonTxt = '') then
+            exit;
+        if not PayloadJObj.ReadFrom(PayloadJsonTxt) then
+            exit;
+        if not PayloadJObj.Get('shifts', FieldJToken) then
+            exit;
+        ShiftsJArr := FieldJToken.AsArray();
+
+        foreach ShiftJToken in ShiftsJArr do begin
+            ShiftJObj := ShiftJToken.AsObject();
+            JobNo := ''; JobTaskNo := ''; SkillCode := ''; SequenceNoInt := 0; ShiftDays := 0;
+            FromDateTxt := ''; FromDate := 0D; ToSequenceNoInt := 0; HasToSequenceNo := false;
+
+            if ShiftJObj.Get('job', FieldJToken) then
+                JobNo := CopyStr(FieldJToken.AsValue().AsText(), 1, MaxStrLen(JobNo));
+            if ShiftJObj.Get('task', FieldJToken) then
+                JobTaskNo := CopyStr(FieldJToken.AsValue().AsText(), 1, MaxStrLen(JobTaskNo));
+            if ShiftJObj.Get('skill', FieldJToken) then
+                SkillCode := CopyStr(FieldJToken.AsValue().AsText(), 1, MaxStrLen(SkillCode));
+            // Always a JSON number (capacityPlanningOverview.js sends Number(seq.sequenceNo) || 0,
+            // never the '' fallback used elsewhere in that file for display) - matches Day
+            // Planning's own "Sequence No." field (Integer, blank/unset = 0), no string/number
+            // branching needed here.
+            if ShiftJObj.Get('sequenceNo', FieldJToken) then
+                SequenceNoInt := FieldJToken.AsValue().AsInteger();
+            // "yyyy-MM-dd" (cpoFormatDateOnly, JS-side) - parsed via explicit Y/M/D substrings
+            // + DMY2Date rather than Evaluate(Date,...), which is locale-sensitive without an
+            // explicit format code; this way is unambiguous regardless of user/server locale.
+            if ShiftJObj.Get('fromDate', FieldJToken) then begin
+                FromDateTxt := FieldJToken.AsValue().AsText();
+                if StrLen(FromDateTxt) = 10 then
+                    if Evaluate(FromYear, CopyStr(FromDateTxt, 1, 4)) and Evaluate(FromMonth, CopyStr(FromDateTxt, 6, 2))
+                        and Evaluate(FromDay, CopyStr(FromDateTxt, 9, 2))
+                    then
+                        FromDate := DMY2Date(FromDay, FromMonth, FromYear);
+            end;
+            if ShiftJObj.Get('shift', FieldJToken) then
+                ShiftDays := FieldJToken.AsValue().AsInteger();
+            // Optional - only present when this occurrence was also dragged onto a DIFFERENT
+            // sequence row client-side (moveOccurrenceToSequence/pendingSequenceMoves, 2026-09-04:
+            // "move single day planning from sequence 2 into sequence 1"). `sequenceNo` above still
+            // identifies the record to find (its TRUE current Sequence No. in BC); this is only the
+            // NEW value to assign it.
+            if ShiftJObj.Get('toSequenceNo', FieldJToken) then begin
+                ToSequenceNoInt := FieldJToken.AsValue().AsInteger();
+                HasToSequenceNo := ToSequenceNoInt <> SequenceNoInt;
+            end;
+
+            if (JobNo <> '') and (JobTaskNo <> '') and (FromDate <> 0D) and ((ShiftDays <> 0) or HasToSequenceNo) then begin
+                DayPlanning.Reset();
+                DayPlanning.SetRange("Job No.", JobNo);
+                DayPlanning.SetRange("Job Task No.", JobTaskNo);
+                DayPlanning.SetRange(Skill, SkillCode);
+                DayPlanning.SetRange("Sequence No.", SequenceNoInt);
+                DayPlanning.SetRange("Plan Date", FromDate);
+                if DayPlanning.FindSet(true) then
+                    repeat
+                        if HasToSequenceNo then
+                            DayPlanning.Validate("Sequence No.", ToSequenceNoInt);
+                        if ShiftDays <> 0 then
+                            DayPlanning.Validate("Plan Date", DayPlanning."Plan Date" + ShiftDays);
+                        DayPlanning.Modify(true);
+                        AnyShiftApplied := true;
+                    until DayPlanning.Next() = 0;
+            end;
+        end;
+
+        if AnyShiftApplied then
+            RefreshData();
     end;
 
     /// <summary>
