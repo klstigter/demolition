@@ -1018,7 +1018,7 @@ page 50618 "Opti Job Task Card"
             SetControlVisibility();
         CurrPage.ResourceWeekView.Page.SetContext(Rec."Job No.", Rec."Job Task No.");
         CurrPage.ResourceSummaryFactbox.Page.SetContext(Rec."Job No.", Rec."Job Task No.");
-        CurrPage.DayPlanningSequence.Page.SetContext(Rec."Job No.", Rec."Job Task No.");
+        CurrPage.DayPlanningSequence.Page.SetContext(Rec."Job No.", Rec."Job Task No.", '');
 
     end;
 

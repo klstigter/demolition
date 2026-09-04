@@ -231,44 +231,31 @@ tableextension 50605 "Job Task ext" extends "Job Task"
         // DayPlanningPeriodSyncMgt: Codeunit "DayPlanning Period Sync Mgt.";
         Job: Record Job;
 
+    /// <summary>
+    /// Recalculates "Duration" as the inclusive calendar-day count between PlannedStartDate and
+    /// PlannedEndDate. This intentionally applies to every "Scheduling Type" value - the case
+    /// statement this replaced only had FixedDuration/FixedWork branches, both with byte-for-byte
+    /// identical bodies, and no fallback - so any other value (e.g. FixedUnits, which has never
+    /// been implemented here or in codeunit 50613's GetSchedulingTypeText) silently left Duration
+    /// stale (never recalculated) instead of erroring or defaulting. That was a real stale-data
+    /// bug, not just a missing feature: report 50600's RepairJobTaskPlannedPeriodOnAllJobTasks
+    /// widened a Job Task's PlannedEndDate but Duration never moved, because that Job Task's
+    /// Scheduling Type fell through this case with no matching branch. If a future Scheduling Type
+    /// genuinely needs different Duration semantics, branch on "Scheduling Type" here explicitly -
+    /// but don't reintroduce a case with no fallback, since that's exactly how this bug happened.
+    /// </summary>
     procedure CalculateDuration()
     begin
-        case "Scheduling Type" of
-            schedulingType::FixedDuration:
-                begin
-                    if ("PlannedStartDate" = 0D) or ("PlannedEndDate" = 0D) then begin
-                        rec.Duration := 0;
-                        exit
-                    end;
-
-                    if PlannedEndDate < PlannedStartDate then
-                        error('Planned End Date cannot be before Planned Start Date!');
-
-                    rec.Duration := "PlannedEndDate" - "PlannedStartDate" + 1;
-                end;
-            // TODO
-            // schedulingType::FixedUnits:
-            //     begin
-            //     // Implement Fixed Units duration calculation if needed
-            //     if ("PlannedStartDate" = 0D) or ("PlannedEndDate" = 0D) then
-            //         exit;
-
-            //     rec.Duration := "PlannedEndDate" - "PlannedStartDate";
-            // end;
-            schedulingType::FixedWork:
-                begin
-                    if ("PlannedStartDate" = 0D) or ("PlannedEndDate" = 0D) then begin
-                        rec.Duration := 0;
-                        exit
-                    end;
-
-                    if PlannedEndDate < PlannedStartDate then
-                        error('Planned End Date cannot be before Planned Start Date!');
-
-                    rec.Duration := "PlannedEndDate" - "PlannedStartDate" + 1;
-
-                end;
+        if ("PlannedStartDate" = 0D) or ("PlannedEndDate" = 0D) then begin
+            rec.Duration := 0;
+            exit;
         end;
+
+        if PlannedEndDate < PlannedStartDate then
+            error('Planned End Date cannot be before Planned Start Date!');
+
+        rec.Duration := "PlannedEndDate" - "PlannedStartDate" + 1;
+
         if rec.Duration < 0 then
             error('Duration cannot be negative!');
     end;

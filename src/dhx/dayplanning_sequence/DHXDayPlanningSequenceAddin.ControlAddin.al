@@ -28,9 +28,9 @@ controladdin DHXDayPlanningSequenceAddin
     event OnEventDeleted(eventId: Text);
     event OnEventDblClick(eventId: Text; eventData: Text);
 
-    procedure Init(sectionsJson: Text; skillsJson: Text; templatesJson: Text; earliestDate: Date);
+    procedure Init(sectionsJson: Text; skillsJson: Text; templatesJson: Text; earliestDate: Date; latestDate: Date);
     procedure LoadData(eventsJson: Text);
-    procedure RefreshTimeline(sectionsJson: Text; eventsJson: Text; anchorDate: Date);
+    procedure RefreshTimeline(sectionsJson: Text; eventsJson: Text; anchorDate: Date; latestDate: Date);
     procedure LoadHolidaysData(holidaysJsonTxt: Text);
     procedure SetDayOffColors(weekendColorHex: Text; holidayColorHex: Text);
 }

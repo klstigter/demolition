@@ -28,18 +28,19 @@ page 50711 "Day Planning Sequence Part"
                     SkillsJsonTxt: Text;
                     TemplatesJsonTxt: Text;
                     EarliestDate: Date;
+                    LatestDate: Date;
                 begin
                     ControlIsReady := true;
                     if (JobNo = '') or (JobTaskNo = '') then
                         exit;
 
-                    DayPlanningSequenceMgt.BuildSectionsAndEventsJson(JobNo, JobTaskNo, SectionsJsonTxt, EventsJsonTxt, EarliestDate);
+                    DayPlanningSequenceMgt.BuildSectionsAndEventsJson(JobNo, JobTaskNo, SectionsJsonTxt, EventsJsonTxt, EarliestDate, LatestDate);
                     SkillsJsonTxt := DayPlanningSequenceMgt.BuildSkillsJson();
                     TemplatesJsonTxt := DayPlanningSequenceMgt.BuildTemplatesJson();
 
-                    CurrPage.DhxSequence.Init(SectionsJsonTxt, SkillsJsonTxt, TemplatesJsonTxt, EarliestDate);
+                    CurrPage.DhxSequence.Init(SectionsJsonTxt, SkillsJsonTxt, TemplatesJsonTxt, EarliestDate, LatestDate);
                     CurrPage.DhxSequence.LoadData(EventsJsonTxt);
-                    PushHolidaysData(EarliestDate);
+                    PushHolidaysData(EarliestDate, LatestDate);
                     CurrPage.DhxSequence.SetDayOffColors(VisualDefaultSettings.GetWeekendColor(), VisualDefaultSettings.GetHolidayColor());
                 end;
 
@@ -74,8 +75,15 @@ page 50711 "Day Planning Sequence Part"
                     if (SkillCode = '') or (StartDate = 0D) or (EndDate = 0D) then
                         exit;
 
-                    DayPlanningSequenceMgt.GenerateSequence(JobNo, JobTaskNo, SkillCode, TemplateCode, StartDate, EndDate, ExcludedWeekdaysCsv);
+                    DayPlanningSequenceMgt.GenerateSequence(JobNo, JobTaskNo, SkillCode, TemplateCode, StartDate, EndDate, ExcludedWeekdaysCsv, WorkOrderNo);
                     RefreshTimeline();
+                    // A new sequence can widen the parent Job Task's PlannedStartDate/PlannedEndDate
+                    // (see codeunit 50695's ExtendJobTaskPlannedPeriod) via a separate Record variable,
+                    // not through the host card's own bound Rec - so the host's header fields
+                    // (Planned Start/End Date, Duration) would otherwise stay stale until the card is
+                    // reopened. CurrPage.Update(false) here reloads the whole open card (this Part's
+                    // host), not just this Part, the same way any other page-bound field refresh works.
+                    CurrPage.Update(false);
                 end;
 
                 /// <summary>
@@ -109,8 +117,12 @@ page 50711 "Day Planning Sequence Part"
                     if (SkillCode = '') or (SequenceNo = 0) or (StartDate = 0D) or (EndDate = 0D) then
                         exit;
 
-                    DayPlanningSequenceMgt.RegenerateSequence(JobNo, JobTaskNo, SkillCode, SequenceNo, TemplateCode, StartDate, EndDate, ExcludedWeekdaysCsv);
+                    DayPlanningSequenceMgt.RegenerateSequence(JobNo, JobTaskNo, SkillCode, SequenceNo, TemplateCode, StartDate, EndDate, ExcludedWeekdaysCsv, WorkOrderNo);
                     RefreshTimeline();
+                    // See the matching comment in OnCreateSequence above - a regenerated sequence can
+                    // likewise widen the parent Job Task's planned period, so the host card needs the
+                    // same refresh.
+                    CurrPage.Update(false);
                 end;
 
                 trigger OnEventChanged(eventId: Text; eventData: Text)
@@ -139,19 +151,27 @@ page 50711 "Day Planning Sequence Part"
         VisualDefaultSettings: Codeunit "Visual Default Settings";
         JobNo: Code[20];
         JobTaskNo: Code[20];
+        WorkOrderNo: Code[20];
         ControlIsReady: Boolean;
 
     /// <summary>
-    /// Pushes Job No./Job Task No. context from the host card page. On first load (before
-    /// ControlReady has fired) this just stores the context - ControlReady itself reads it to
-    /// build the initial payload, same call-order precedent as page 50638's own SetContext. On a
-    /// re-entry (context changing on an already-live control), it also pushes fresh data
-    /// immediately via RefreshTimeline.
+    /// Pushes Job No./Job Task No. context from the host card page, plus an optional Work Order
+    /// No. to stamp onto newly-created/regenerated lines (table 50610 field 55). Blank is valid
+    /// and expected when hosted from the Job Task card (page_50618_JobTaskCard_Project.al) - a
+    /// task can span multiple work orders there, so there's no single value to pass. When hosted
+    /// from the Workorder Card (Pag50662.WorkorderCard.al) the real Rec."Work Order No." is
+    /// passed, so lines created/regenerated here also show up on that card's "Day Plannings"
+    /// fasttab (page 50676), which filters on "Work Order No.". On first load (before ControlReady
+    /// has fired) this just stores the context - ControlReady itself reads it to build the initial
+    /// payload, same call-order precedent as page 50638's own SetContext. On a re-entry (context
+    /// changing on an already-live control), it also pushes fresh data immediately via
+    /// RefreshTimeline.
     /// </summary>
-    procedure SetContext(NewJobNo: Code[20]; NewJobTaskNo: Code[20])
+    procedure SetContext(NewJobNo: Code[20]; NewJobTaskNo: Code[20]; NewWorkOrderNo: Code[20])
     begin
         JobNo := NewJobNo;
         JobTaskNo := NewJobTaskNo;
+        WorkOrderNo := NewWorkOrderNo;
         if ControlIsReady then
             RefreshTimeline();
     end;
@@ -161,34 +181,41 @@ page 50711 "Day Planning Sequence Part"
         SectionsJsonTxt: Text;
         EventsJsonTxt: Text;
         EarliestDate: Date;
+        LatestDate: Date;
     begin
         if not ControlIsReady then
             exit;
         if (JobNo = '') or (JobTaskNo = '') then
             exit;
 
-        DayPlanningSequenceMgt.BuildSectionsAndEventsJson(JobNo, JobTaskNo, SectionsJsonTxt, EventsJsonTxt, EarliestDate);
-        CurrPage.DhxSequence.RefreshTimeline(SectionsJsonTxt, EventsJsonTxt, EarliestDate);
-        PushHolidaysData(EarliestDate);
+        DayPlanningSequenceMgt.BuildSectionsAndEventsJson(JobNo, JobTaskNo, SectionsJsonTxt, EventsJsonTxt, EarliestDate, LatestDate);
+        CurrPage.DhxSequence.RefreshTimeline(SectionsJsonTxt, EventsJsonTxt, EarliestDate, LatestDate);
+        PushHolidaysData(EarliestDate, LatestDate);
     end;
 
     /// <summary>
     /// Same day-off/holiday shading as the Gantt add-in (src/dhx/ganttdemo2): reuses
     /// Codeunit "GanttChartDataHandler".GetHolidaysAsJson (already generic - Base Calendar driven,
     /// not Gantt-specific) so both add-ins render identical colors from the identical source data,
-    /// instead of re-deriving calendar-exception logic here. Windowed to [AnchorDate,
-    /// AnchorDate+31D] to match this timeline's own visible span (x_size: 12*31 two-hour cells =
-    /// 31 days) - AnchorDate falls back to Today() when there's no data yet (EarliestDate = 0D),
-    /// same fallback Init/RefreshTimeline already apply to the scheduler's own anchor.
+    /// instead of re-deriving calendar-exception logic here. Windowed to [AnchorDate, EndDate] -
+    /// EndDate is now the caller's actual latest Plan Date (see codeunit 50695's LatestDate),
+    /// matching whatever span this timeline itself dynamically renders, rather than the old
+    /// hard-coded +31D window (that fixed window was exactly the same cutoff bug this whole
+    /// dynamic-span change fixes). Falls back to AnchorDate+31D only when EndDate is blank (e.g.
+    /// no data yet), same as the old default. AnchorDate itself falls back to Today() when there's
+    /// no data yet (EarliestDate = 0D), same fallback Init/RefreshTimeline already apply to the
+    /// scheduler's own anchor.
     /// </summary>
-    local procedure PushHolidaysData(AnchorDate: Date)
+    local procedure PushHolidaysData(AnchorDate: Date; EndDate: Date)
     var
         GanttChartDataHandler: Codeunit "GanttChartDataHandler";
         HolidaysJsonTxt: Text;
     begin
         if AnchorDate = 0D then
             AnchorDate := Today();
-        HolidaysJsonTxt := GanttChartDataHandler.GetHolidaysAsJson(AnchorDate, CalcDate('<+31D>', AnchorDate));
+        if EndDate = 0D then
+            EndDate := CalcDate('<+31D>', AnchorDate);
+        HolidaysJsonTxt := GanttChartDataHandler.GetHolidaysAsJson(AnchorDate, EndDate);
         CurrPage.DhxSequence.LoadHolidaysData(HolidaysJsonTxt);
     end;
 

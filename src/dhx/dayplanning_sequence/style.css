@@ -390,3 +390,38 @@
     font-size: 14px;
     letter-spacing: 1px;
 }
+
+/* Explicit horizontal scrollbar styling for the timeline's data area - Chromium switches an
+   element to fully-custom scrollbar rendering the moment ANY ::-webkit-scrollbar sub-property is
+   touched on it, so once styled it must be fully specified (height/track/thumb) or it can render
+   invisible instead of falling back to native - same confirmed-live gotcha already documented in
+   src/dhx/request_assignment/style.css's v055 section for the same underlying DHTMLX library.
+   Scoped under #dps_scheduler_here only (this add-in's own scheduler root), covering every class
+   name DHTMLX's Timeline/"bar" render mode might apply to its scrollable data container, so users
+   always have a visible, draggable way to reach Day Planning lines beyond the initial viewport. */
+#dps_scheduler_here .dhx_timeline_scrollable_data::-webkit-scrollbar,
+#dps_scheduler_here .dhx_cal_data::-webkit-scrollbar,
+#dps_scheduler_here .dhx_matrix_data::-webkit-scrollbar {
+    height: 14px;
+    width: 14px;
+}
+
+#dps_scheduler_here .dhx_timeline_scrollable_data::-webkit-scrollbar-track,
+#dps_scheduler_here .dhx_cal_data::-webkit-scrollbar-track,
+#dps_scheduler_here .dhx_matrix_data::-webkit-scrollbar-track {
+    background: #eef1f6;
+}
+
+#dps_scheduler_here .dhx_timeline_scrollable_data::-webkit-scrollbar-thumb,
+#dps_scheduler_here .dhx_cal_data::-webkit-scrollbar-thumb,
+#dps_scheduler_here .dhx_matrix_data::-webkit-scrollbar-thumb {
+    background: #b7c0cf;
+    border-radius: 7px;
+    border: 3px solid #eef1f6;
+}
+
+#dps_scheduler_here .dhx_timeline_scrollable_data::-webkit-scrollbar-thumb:hover,
+#dps_scheduler_here .dhx_cal_data::-webkit-scrollbar-thumb:hover,
+#dps_scheduler_here .dhx_matrix_data::-webkit-scrollbar-thumb:hover {
+    background: #9aa5b8;
+}

@@ -935,7 +935,8 @@ table 50610 "Day Planning"
         end;
 
         "Capacity Fully Utilized" := PlanningUtil.DayPlanningFulFillment(Rec, PartType::Realized, RealizedHours, Capacity);
-        "Assigned Hours" := RealizedHours;
+        // Previously swapped with CalculateAssignedWorkingHours's own assignment, which corrupted "Assigned Hours" while leaving "Realized Hours" permanently at 0.
+        "Realized Hours" := RealizedHours;
     end;
 
     local procedure CalculateAssignedWorkingHours()
@@ -1017,6 +1018,7 @@ table 50610 "Day Planning"
         end;
 
         // check the first and last planning dates for the given first and last dates
+        DayPlanning.SetCurrentKey("Job No.", "Job Task No.", "Plan Date");
         DayPlanning.SetRange("Job No.", "Job No.");
         DayPlanning.SetRange("Job Task No.", "Job Task No.");
         if DayPlanning.FindFirst() then
