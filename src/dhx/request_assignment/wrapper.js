@@ -2501,7 +2501,7 @@ function showSlotContextMenu(event, targetInfo) {
     addContextMenuItem({
       caption: "Open Card",
       icon: "card",
-      action: () => showSimplePopup("Under Construction")
+      action: () => openDayPlanningCard(targetInfo.lineId)
     });
   }
 
@@ -2509,7 +2509,15 @@ function showSlotContextMenu(event, targetInfo) {
     addContextMenuItem({
       caption: "Open Card",
       icon: "card",
-      action: () => showSimplePopup("Under Construction")
+      action: () => openDayPlanningCard(targetInfo.lineId)
+    });
+  }
+
+  if (targetInfo.type === "capacity") {
+    addContextMenuItem({
+      caption: "Open Capacity",
+      icon: "card",
+      action: () => openCapacity(targetInfo.resourceId)
     });
   }
 
@@ -2591,6 +2599,28 @@ function unassignDayTaskLine(lineId) {
 
   updateUndoButton();
   renderAll();
+}
+
+function openDayPlanningCard(lineId) {
+  if (!lineId) return;
+
+  Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnOpenDayPlanningCard", [lineId]);
+}
+
+function openCapacity(resourceId) {
+  if (!resourceId) return;
+
+  const lines = allPlanningLines();
+  if (!lines.length) return;
+
+  const horizonStart = lines[0].date;
+  const horizonEnd = getGlobalSelectionEndDate() || lines[lines.length - 1].date;
+  if (!horizonStart || !horizonEnd) return;
+
+  Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(
+    "OnOpenCapacity",
+    [resourceId, dateOnlyKey(horizonStart), dateOnlyKey(horizonEnd)]
+  );
 }
 
 function unassignSequence(sequenceKey) {
@@ -6004,7 +6034,8 @@ window.BOOT = function BOOT() {
       event.target.closest(".dhx_cal_event, .dhx_cal_event_line");
 
     if (assignmentElement) {
-      showSlotContextMenu(event, { type: "assignment" });
+      const line = assignmentLineFromPointerTarget(event.target);
+      showSlotContextMenu(event, { type: "assignment", lineId: line?.id });
       return;
     }
 
@@ -6016,10 +6047,11 @@ window.BOOT = function BOOT() {
 
     if (!capacity) return;
 
-    event.preventDefault();
-    event.stopImmediatePropagation();
-
-    showSimplePopup("Open Edit week pattern");
+    showSlotContextMenu(event, {
+      type: "capacity",
+      resourceId: capacity.dataset.resourceId,
+      capacityIndex: Number(capacity.dataset.capacityIndex)
+    });
   }, true);
 
   document.getElementById("resourceScheduler").addEventListener("pointerdown", event => {

@@ -66,6 +66,21 @@ page 50710 "DHX Request Assignment Board"
                     DHXDataHandler.ReqAssign_UnassignDayTaskLine(PayloadJsonTxt);
                 end;
 
+                trigger OnOpenDayPlanningCard(LineId: Text)
+                var
+                    DHXDataHandler: Codeunit "DHX Data Handler";
+                begin
+                    DHXDataHandler.ReqAssign_OpenDayPlanningCard(LineId);
+                    RefreshPlanningData();
+                end;
+
+                trigger OnOpenCapacity(ResourceId: Text; StartDateTxt: Text; EndDateTxt: Text)
+                var
+                    DHXDataHandler: Codeunit "DHX Data Handler";
+                begin
+                    DHXDataHandler.ReqAssign_OpenCapacity(ResourceId, StartDateTxt, EndDateTxt);
+                end;
+
                 trigger OnRequestReset()
                 begin
                     // In-canvas "Reset assignments" button - the ported wrapper.js discards all

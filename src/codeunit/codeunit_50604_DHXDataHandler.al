@@ -6142,6 +6142,59 @@ codeunit 50604 "DHX Data Handler"
     end;
 
     /// <summary>
+    /// Commits controladdin event OnOpenDayPlanningCard - LineId in the "JobNo|JobTaskNo|DayLineNo"
+    /// format (see ReqAssign_ParseId), from the "Open Card" context-menu item on either a request
+    /// row or an assignment bar. Opens the Day Planning Card (Opt) modally; page 50710's trigger
+    /// always calls RefreshPlanningData() afterwards so any edits made in the card (status,
+    /// assigned resource/times, etc.) are reflected back into the board.
+    /// </summary>
+    procedure ReqAssign_OpenDayPlanningCard(LineId: Text)
+    var
+        DayPlanning: Record "Day Planning";
+        JobNo: Code[20];
+        JobTaskNo: Code[20];
+        DayLineNo: Integer;
+        MsgLbl: Label 'Day planning not found for Line ID: %1';
+    begin
+        ReqAssign_ParseId(LineId, JobNo, JobTaskNo, DayLineNo);
+        if DayPlanning.Get(JobNo, JobTaskNo, DayLineNo) then
+            Page.RunModal(Page::"Day Planning Card Opt", DayPlanning)
+        else
+            Message(MsgLbl, LineId);
+    end;
+
+    /// <summary>
+    /// Commits controladdin event OnOpenCapacity - "Open Capacity" context-menu item on a
+    /// resource's capacity slot background bar. There is no single "Res. Capacity Entry" behind a
+    /// slot (the JS-side capacitySlots payload only carries resourceId/dayIndex/start/end, see
+    /// ReqAssign_BuildCapacitySlotsJson), so this filters by Resource No. + an explicit date range
+    /// instead of looking up one entry. StartDateTxt/EndDateTxt are "yyyy-MM-dd" text built by
+    /// wrapper.js's dateOnlyKey from the board's own currently-displayed planning horizon bounds
+    /// (openCapacity: allPlanningLines()[0].date .. getGlobalSelectionEndDate()) - so the capacity
+    /// list matches whatever horizon the "PLANNING HORIZON ... Select until" toolbar control shows,
+    /// not a fixed week. Plain Evaluate() into a Date accepts "yyyy-MM-dd" directly, same idiom as
+    /// codeunit 50721's EvaluateDateParam (this feature's own background-task date round-trip).
+    /// </summary>
+    procedure ReqAssign_OpenCapacity(ResourceId: Text; StartDateTxt: Text; EndDateTxt: Text)
+    var
+        ResCap: Record "Res. Capacity Entry";
+        StartDate: Date;
+        EndDate: Date;
+        ResNo: Code[20];
+    begin
+        if (StartDateTxt = '') or (EndDateTxt = '') then
+            exit;
+        if not Evaluate(StartDate, StartDateTxt) then
+            exit;
+        if not Evaluate(EndDate, EndDateTxt) then
+            exit;
+        ResNo := CopyStr(ResourceId, 1, MaxStrLen(ResNo));
+        ResCap.SetRange("Resource No.", ResNo);
+        ResCap.SetRange("Date", StartDate, EndDate);
+        Page.RunModal(0, ResCap);
+    end;
+
+    /// <summary>
     /// Commits controladdin event OnAcceptSequence - payload { "sequenceKey", "resourceId",
     /// "lines": [ { "id", "startHour", "durationHours" }, ... ] }. This is the ONLY point where a
     /// whole-sequence drag-drop actually persists - confirmed product decision: the JS side keeps
