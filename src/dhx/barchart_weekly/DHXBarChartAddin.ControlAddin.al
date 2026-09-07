@@ -5,7 +5,7 @@ controladdin DHXBarChartAddin
     VerticalShrink = true;
     VerticalStretch = true;
 
-    RequestedWidth = 900;
+    RequestedWidth = 1100;
     MinimumWidth = 400;
     HorizontalStretch = true;
     HorizontalShrink = true;

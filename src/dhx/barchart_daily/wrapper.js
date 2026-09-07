@@ -17,7 +17,7 @@ var chartInstance = null;   // current dhx.Chart instance (recreated on every Lo
 // barchart, which stacks 2 bars per weekday and needs a day/2 + even-odd split - see
 // src/dhx/barchart_weekly/wrapper.js's own ResolveBarSegmentFromEvent).
 var lastCategories = [];
-var lastFontColors = []; // stashed by RenderChart for RotateLegendLabel's per-item text-colour pass - see fontColors' own declaration comment in RenderChart.
+var lastFontColors = []; // stashed by RenderChart for ApplyLegendTextColors' per-item text-colour pass - see fontColors' own declaration comment in RenderChart.
 var contextMenuEl = null; // the current "Show Data" right-click popup, if one is open (see ShowContextMenu/HideContextMenu)
 var contextMenuDismissHandlers = null; // {click,contextmenu,scroll,keydown} currently attached to
 // document for dismissing the open "Show Data" popup, or null if none attached - see ShowContextMenu/
@@ -33,6 +33,39 @@ var seriesBorderObserver = null; // MutationObserver that keeps ApplySeriesBorde
 var lastSeriesDefs = []; // stashed by RenderChart for ApplySeriesBorders' border pass - see that var's own comment in src/dhx/barchart_weekly/wrapper.js for the equivalent.
 var lastSeries = [];     // ditto - the series actually handed to dhx.Chart (ids/colors), needed to scope each border to its own `g[aria-label="chart s<N>"]` group.
 
+var lastChartData = null; // the raw chartData object last passed to RenderChart, stashed so
+// CorrectLegendTopOverflowIfNeeded (see ScheduleLegendPatches) can trigger a corrective re-render
+// with a larger legend.size without the caller needing to keep its own reference around.
+var lastLegendSize = 40;  // the config.legend.size actually used by the most recent RenderChart
+// call - 40 is suite.js's own default reserved top margin when legend.size is left unset (Legend.
+// scaleReady, suite.js ~13317). CorrectLegendTopOverflowIfNeeded reads this to compute how much
+// MORE space is needed rather than assuming the un-corrected default every time.
+
+var lastRenderedWidth = 0; // chartContainer.clientWidth at the time of the most recent RenderChart
+// call - see the BOOT ResizeObserver's own comment for why this is needed: dhx.Chart's own internal
+// ResizeObserver repaints bars/scales when the container resizes, but does NOT recompute the
+// legend's row-wrap decision against the new width (confirmed live 2026-09-07: BC's role-center
+// flex layout can settle into its FINAL column width - e.g. a 3-column-vs-2-column split - only
+// AFTER this control add-in has already done its first paint at whatever transient width the DOM
+// had at that moment, and the legend keeps wrapping against that stale width forever after,
+// visually bleeding past chartContainer's own right edge into a neighbouring role-center panel).
+
+var legendPatchObserver = null; // MutationObserver mirroring src/dhx/barchart_weekly/wrapper.js's
+// own repaint-reactive SchedulePostRenderPatches (see that file's BOOT comment for the full
+// reasoning this is ported from). Reapplies ApplyLegendTextColors + the legend top-overflow
+// correction on EVERY dhx.Chart repaint, not just the first construction. This is NOT optional
+// polish: dhx.Chart's own internal ResizeObserver settle pass does a FULL vdom rebuild of the
+// chart's SVG (fresh <text> nodes, no inline style/colour) sometime shortly after construction -
+// confirmed live via Playwright (2026-09-07) that a one-shot rAF tied only to the initial
+// RenderChart call (this file's original design) reliably loses that race: whatever a single
+// post-construction pass applied would get silently wiped by that later repaint, with nothing
+// left to re-apply it - same reasoning ApplySeriesBorders' own seriesBorderObserver already
+// documents for the unrelated border-stroke problem below. (This file previously also rotated
+// each legend label -90deg here - retired 2026-09-07 in favour of a plain horizontal legend
+// matching src/dhx/barchart_weekly/wrapper.js's own appearance; the repaint-reactive machinery
+// stays, since un-rotated legend items can still row-wrap and clip the same way Weekly's do.)
+var pendingLegendPatchFrame = null;
+
 // Distinct, fixed colours per series ordinal — DHTMLX Suite's Chart lets us set
 // series.color explicitly (see Chart.setConfig / BaseSeria._setDefaults in suite.js),
 // unlike BC's native BusinessChart add-in which has no colour API at all and just
@@ -46,16 +79,114 @@ var lastSeries = [];     // ditto - the series actually handed to dhx.Chart (ids
 var SERIES_COLOR_PALETTE = ["#2A9D8F", "#E76F51", "#11A3D0", "#E5A910", "#985F99", "#78586F"];
 
 // ============================================================
+// Header (title + period line) - plain HTML rendered above chartContainer, replacing the
+// field(PeriodLabelCtrl)/group(Filters) Caption that page 50707 "Requested vs Capacity Daily P"
+// used to render via its own AL page layout (see that page's own layout() area comment for the
+// full reasoning: those BC-rendered elements were constraining this control's own width once it
+// stopped being the page's only content). Order is Title -> "Period: <value>" -> (dhx.Chart's own
+// legend, valign:"top", inside chartContainer below this) -> plot - confirmed 2026-09-07.
+//
+// Deliberately styled DISTINCT from BC's own field-caption/FastTab-caption look (an accent-barred
+// title instead of a plain bold line, a single muted "Period: ..." line instead of a stacked
+// grey-caption-over-value pair) - a round-1 version of this header used the stacked
+// caption-over-value BC-field look and the user could not visually tell it apart from an actual
+// BC field, even though it was already a plain DOM element with no BC control wrapping it. Both
+// elements also carry a `data-dhx-header` marker attribute for unambiguous DOM inspection (a real
+// BC field/group would carry BC's own smart-*/control-* wrapper classes/attributes, never this
+// one).
+//
+// This wrapper.js file is SHARED with page 50681 "Requested vs Capacity Daily" (the live,
+// standalone, PageType=Card version of this chart - see DHXBarChartAddin_daily's own Scripts
+// property) - that page keeps its OWN field(PeriodLabelCtrl)/group(Filters) Caption in its AL
+// layout, untouched, and never sends 'periodLabel'/'title' in its ChartData JSON. UpdateHeader
+// therefore hides headerEl entirely whenever BOTH keys are absent, so this header stays fully
+// inert (no blank label row, no reserved space) on page 50681 - only page 50707 (which now DOES
+// send both keys - see that page's RefreshChart) ever shows it.
+// ============================================================
+function BuildHeader(addin) {
+    var headerEl = document.createElement("div");
+    headerEl.id = "dhx-barchart-headerinfo";
+    headerEl.setAttribute("data-dhx-header", "true");
+    headerEl.style.cssText = "flex:0 0 auto;padding:4px 4px 8px 8px;display:none;border-left:3px solid #2A9D8F;";
+
+    // Title FIRST (top of the header) - accent-barred (via headerEl's own border-left above) and
+    // bold, deliberately not matching BC's own plain group-caption typography.
+    var titleEl = document.createElement("div");
+    titleEl.id = "dhx-barchart-title";
+    titleEl.setAttribute("data-dhx-header", "true");
+    titleEl.style.cssText = "font-size:14px;line-height:18px;font-weight:700;color:#242424;";
+
+    // Period SECOND, directly below the title - a single "Period: <value>" line (no separate
+    // small-caps label row) in a muted, smaller, italic style so it reads as a subtitle, not a BC
+    // field value.
+    var periodEl = document.createElement("div");
+    periodEl.id = "dhx-barchart-period-value";
+    periodEl.setAttribute("data-dhx-header", "true");
+    periodEl.style.cssText = "font-size:12px;line-height:16px;font-style:italic;color:#5f6368;margin-top:2px;";
+
+    headerEl.appendChild(titleEl);
+    headerEl.appendChild(periodEl);
+    addin.appendChild(headerEl);
+}
+
+// Called at the top of every RenderChart - see BuildHeader's own comment for why hiding headerEl
+// entirely (rather than just leaving values blank) is what keeps this a no-op on page 50681, which
+// never sends either key.
+function UpdateHeader(chartData) {
+    var headerEl = document.getElementById("dhx-barchart-headerinfo");
+    if (!headerEl) return;
+
+    var periodLabel = (chartData && chartData.periodLabel) ? String(chartData.periodLabel) : "";
+    var title = (chartData && chartData.title) ? String(chartData.title) : "";
+
+    if (!periodLabel && !title) {
+        headerEl.style.display = "none";
+        return;
+    }
+    headerEl.style.display = "";
+
+    var titleEl = document.getElementById("dhx-barchart-title");
+    if (titleEl) {
+        titleEl.style.display = title ? "" : "none";
+        titleEl.textContent = title;
+    }
+
+    var periodEl = document.getElementById("dhx-barchart-period-value");
+    if (periodEl) {
+        periodEl.style.display = periodLabel ? "" : "none";
+        // Single "Period: <value>" line - PeriodLabelText already arrives as e.g. "Daily: Mon 07
+        // Sep 2026" (see page 50707's own DailyPeriodLabelLbl), so this is deliberately prefixed
+        // with "Period: " rather than repeating/duplicating that "Daily:" wording.
+        periodEl.textContent = "Period: " + periodLabel;
+    }
+}
+
+// ============================================================
 // BOOT – called by startupScript.js
 // ============================================================
 window.BOOT = function() {
     try {
         var addin = document.getElementById("controlAddIn");
-        addin.style.cssText = "width:100%;height:100%;margin:0;padding:0;";
+        // overflow:hidden on BOTH the add-in host and the chart container is a deliberate hard
+        // boundary: whatever causes the legend (or any future chart element) to compute its own
+        // width wrong, nothing can ever visually bleed past this panel's own box into a
+        // neighbouring role-center panel again - defense-in-depth alongside the real-width
+        // re-render fix below (lastRenderedWidth), not a substitute for it.
+        // display:flex/flex-direction:column (2026-09-07) so headerEl (see BuildHeader) and
+        // chartContainer stack vertically and SHARE this box's fixed height, instead of both
+        // independently claiming height:100% and overlapping - chartContainer's own flex:1 1 auto +
+        // min-height:0 (below) is what lets it shrink to "whatever's left after headerEl" rather
+        // than overflowing.
+        addin.style.cssText = "width:100%;height:100%;margin:0;padding:0;overflow:hidden;display:flex;flex-direction:column;";
+
+        BuildHeader(addin);
 
         chartContainer = document.createElement("div");
         chartContainer.id = "dhx-barchart-container";
-        chartContainer.style.cssText = "width:100%;height:100%;";
+        // flex:1 1 auto + min-height:0 (not height:100%, which would ignore headerEl's own height
+        // and force an overflow now that addin is a flex column) - see addin.style.cssText's own
+        // comment.
+        chartContainer.style.cssText = "width:100%;flex:1 1 auto;min-height:0;overflow:hidden;";
         addin.appendChild(chartContainer);
 
         // ---- Check library ----
@@ -66,6 +197,48 @@ window.BOOT = function() {
 
         // ---- Render an empty chart so the control has something to show immediately ----
         RenderChart({ categories: [], series: [] });
+
+        // See legendPatchObserver's own declaration comment for why this repaint-reactive
+        // reapplication is required, not just a one-shot pass at construction time - ported from
+        // src/dhx/barchart_weekly/wrapper.js's own BOOT, which established this same pattern first.
+        // childList+subtree catches dhx.Chart's internal repaint (a full node teardown/rebuild);
+        // disconnect/reconnect around our OWN writes (see ScheduleLegendPatches) stops that from
+        // re-triggering itself in a loop.
+        if (typeof MutationObserver !== "undefined") {
+            legendPatchObserver = new MutationObserver(function() {
+                if (chartInstance) ScheduleLegendPatches();
+            });
+            legendPatchObserver.observe(chartContainer, { childList: true, subtree: true });
+        }
+        // Two-tier resize handling. A resize that only repositions existing elements (attribute
+        // changes, no node add/remove) wouldn't trip the MutationObserver above, but could still
+        // change how many rows the legend wraps onto - so ANY resize at minimum re-runs
+        // ScheduleLegendPatches (defense-in-depth, same reasoning as
+        // src/dhx/barchart_weekly/wrapper.js's own BOOT). But a genuine WIDTH change needs more
+        // than that: dhx.Chart's own internal ResizeObserver repaints bars/scales for a resize, but
+        // does NOT recompute the legend's horizontal row-wrap decision against the new width - it
+        // keeps whatever wrap it decided on at construction. Confirmed live 2026-09-07: BC's
+        // role-center flex layout can settle into its FINAL column width only AFTER this control
+        // add-in's first paint (e.g. changing from a 3-column to a 2-column split once the page
+        // finishes laying out), and the legend kept wrapping against that earlier, stale width -
+        // all 8-ish legend items tried to stay on one row and ran off chartContainer's own right
+        // edge into the neighbouring panel (the overflow:hidden above stops the visual bleed, but
+        // the legend was still measuring itself wrong). Fix: track the container width the chart
+        // was last actually built against (lastRenderedWidth, set in RenderChart) and force a real
+        // RenderChart rebuild - not just a patch pass - whenever the container's current width has
+        // genuinely moved (a couple of px of tolerance for sub-pixel layout noise), so the legend's
+        // row-wrap math always runs against the CURRENT real width.
+        if (typeof ResizeObserver !== "undefined") {
+            new ResizeObserver(function() {
+                if (!chartInstance || !chartContainer) return;
+                var currentWidth = chartContainer.clientWidth;
+                if (Math.abs(currentWidth - lastRenderedWidth) > 2) {
+                    RenderChart(lastChartData, lastLegendSize);
+                } else {
+                    ScheduleLegendPatches();
+                }
+            }).observe(chartContainer);
+        }
 
         // Right-click "Show Data" - registered ONCE here on chartContainer itself (not per
         // RenderChart call) since chartContainer persists across every LoadData/RenderChart call
@@ -155,16 +328,44 @@ window.BOOT = function() {
 // rebuild (mirrors this project's existing "wipe and rebuild" convention, e.g.
 // BuildResourcePanel in src/dhx/resourceschedule/wrapper.js).
 // ============================================================
-function RenderChart(chartData) {
+function RenderChart(chartData, legendSizeOverride, isCorrectivePass) {
     if (!chartContainer) return;
+
+    UpdateHeader(chartData);
+
+    lastChartData = chartData;
+    // See lastRenderedWidth's own declaration comment and the BOOT ResizeObserver - stashed here,
+    // at the START of every real build, so a later resize can tell whether the container has
+    // ACTUALLY moved since this chart was built (vs. some other DOM mutation with no size change).
+    lastRenderedWidth = chartContainer.clientWidth;
+
+    if (!isCorrectivePass) {
+        // Hidden until ScheduleLegendPatches' completion callback confirms the legend actually
+        // fits (or, if not, until the corrective re-render it triggers finishes) - without this,
+        // a container that needs correcting would otherwise flash the clipped first-pass layout
+        // for one frame before growing to its corrected size. A corrective pass (isCorrectivePass)
+        // is a nested RenderChart call from within that same still-hidden window, so it must NOT
+        // re-hide (which would just extend the same hidden window, harmlessly, but there's nothing
+        // to hide FROM at that point).
+        chartContainer.style.visibility = "hidden";
+    }
+
+    // See getDefaultMargin/Legend.scaleReady in suite.js (~13250-13268, ~13317): legend.size is
+    // the ONLY thing that controls how much top margin the library reserves for the legend
+    // (sizes.top) - the legend's own local position within that reserved band (Legend.paint's
+    // positionY) is independent of it. CorrectLegendTopOverflowIfNeeded exploits exactly this:
+    // bumping legend.size by the measured overflow shifts the whole legend down by that same
+    // amount, cancelling the clip with no need to replicate the library's own row-wrap math.
+    var legendSize = legendSizeOverride || 40;
+    lastLegendSize = legendSize;
 
     var categories = (chartData && Array.isArray(chartData.categories)) ? chartData.categories : [];
     var seriesDefs  = (chartData && Array.isArray(chartData.series))     ? chartData.series     : [];
     var barColors   = (chartData && Array.isArray(chartData.colors))    ? chartData.colors     : [];
     // Per-category legend TEXT colour (codeunit 50609's GetSkillFontColor, one per skill row -
     // blank/default black for the CAPACITY row - see the AL side's RefreshChart). Applied in
-    // RotateLegendLabel below, index-aligned with categories/legend items (both are built in the
-    // same Buffer row order).
+    // ApplyLegendTextColors below, index-aligned with categories/legend items (both are built in
+    // the same Buffer row order).
     var fontColors  = (chartData && Array.isArray(chartData.fontColors)) ? chartData.fontColors : [];
 
     // One data row per category ("id" doubles as the click-handler's row identifier —
@@ -243,7 +444,14 @@ function RenderChart(chartData) {
         legend: {
             values: { text: "category", color: "barColor" },
             halign: "right",
-            valign: "top"
+            valign: "top",
+            // Explicit reserved top margin - see legendSize's own comment above, and
+            // MeasureLegendTopOverflow's root-cause writeup below. Left at the library's own
+            // default (40) on a normal first pass; bumped by CorrectLegendTopOverflowIfNeeded on a
+            // corrective re-render when that default wasn't enough room for however many rows this
+            // chart's legend items actually wrap onto - same fix as src/dhx/barchart_weekly/
+            // wrapper.js's own legend.size.
+            size: legendSize
         }
     };
 
@@ -286,19 +494,14 @@ function RenderChart(chartData) {
     lastSeriesDefs = seriesDefs;
     lastSeries = series;
 
-    // dhx.Chart's Legend has no built-in rotation/orientation option (see suite.js's Legend
-    // class - halign/valign/direction only, no angle). Rotating each legend label (one per
-    // category/bar - see the data-driven legend config above) to read vertically, bottom-to-top,
-    // tucked into the top-right corner is done here as a
-    // post-render CSS transform on the legend's own SVG <text> node instead. transform-box:
-    // fill-box + transform-origin: 0% 100% pins the rotation pivot to the text's own bottom-left
-    // corner, so it stays anchored roughly where the library placed it and the rotated text
-    // extends upward from there - "left-bottom to right-top" reading direction. This does NOT
-    // reserve extra layout space for the now-taller-than-wide rotated label (the library's own
-    // margin math in getDefaultMargin/scaleReady only ever knew about the pre-rotation
-    // horizontal size), so at extreme container sizes it may sit closer to the plot area than a
-    // native vertical-legend option would.
-    RotateLegendLabel();
+    // Plain horizontal legend (same appearance as src/dhx/barchart_weekly/wrapper.js's own legend
+    // - no rotation, matching that file's own ApplyLegendSwatchBorders-driven per-item colour
+    // approach) - ApplyLegendTextColors below applies each legend item's own text colour, and
+    // ScheduleLegendPatches keeps the reserved top margin correct for however many rows the
+    // (unrotated) legend items actually wrap onto. Not just the initial pass - see
+    // legendPatchObserver's own declaration comment for why this has to be repaint-reactive, not a
+    // single one-shot call tied only to this specific RenderChart invocation.
+    ScheduleLegendPatches();
     ApplySeriesBorders(seriesDefs, series);
 
     // Bar click -> BC (mirrors OnEventDoubleClick's InvokeExtensibilityMethod pattern
@@ -311,24 +514,104 @@ function RenderChart(chartData) {
     });
 }
 
-// Rotates every legend item's <text class="legend-text"> 90deg counter-clockwise so it reads
-// bottom-to-top instead of left-to-right. Deferred one frame past chart construction: dhx.Chart
-// paints its SVG synchronously in practice, but querying immediately after `new dhx.Chart(...)`
-// is fragile if that ever changes, so this waits a frame rather than assuming paint order.
-function RotateLegendLabel() {
+// Applies each legend item's own text colour (codeunit 50609's GetSkillFontColor) to the plain,
+// un-rotated <text class="legend-text"> the library already renders - one legend item per
+// category/bar (data-driven legend, see RenderChart's own `legend.values` config), in the same
+// order lastFontColors was built in. Deferred one frame past chart construction: dhx.Chart paints
+// its SVG synchronously in practice, but querying immediately after `new dhx.Chart(...)` is
+// fragile if that ever changes, so this waits a frame rather than assuming paint order.
+//
+// Previously also rotated each label -90deg here (retired 2026-09-07 - see legendPatchObserver's
+// own comment for why): a plain horizontal legend matching src/dhx/barchart_weekly/wrapper.js's
+// own appearance is simpler and doesn't need the rotated label's on-screen-height-is-the-original-
+// text's-width accounting MeasureLegendTopOverflow used to have to compensate for.
+//
+// onDone (optional) is invoked after the colour pass completes, still inside that same deferred
+// frame - ScheduleLegendPatches uses it to measure/self-correct the legend's reserved top space
+// (see MeasureLegendTopOverflow/CorrectLegendTopOverflowIfNeeded below) once this function's own
+// DOM writes have landed.
+function ApplyLegendTextColors(onDone) {
     requestAnimationFrame(function() {
-        if (!chartContainer) return;
+        if (!chartContainer) { if (onDone) onDone(); return; }
         var legendTexts = chartContainer.querySelectorAll(".legend-text");
         legendTexts.forEach(function(textEl, idx) {
-            textEl.style.transformBox = "fill-box";
-            textEl.style.transformOrigin = "0% 100%";
-            textEl.style.transform = "rotate(-90deg)";
-            // Per-skill legend text colour (codeunit 50609's GetSkillFontColor) - one legend
-            // item per category/bar (data-driven legend, see RenderChart's own `legend.values`
-            // config), in the same order lastFontColors was built in.
             if (lastFontColors[idx]) {
                 textEl.style.fill = lastFontColors[idx];
             }
+        });
+        if (onDone) onDone();
+    });
+}
+
+// Measures how many px the legend's own top edge renders ABOVE the chart's <svg> top edge - i.e.
+// clipped, since the SVG's default overflow behaviour never paints content above its own viewport.
+// Root cause (confirmed by reading suite.js): the legend is painted inside a <g transform=
+// "translate(sizes.left, sizes.top)"> (ComposeLayer.toVDOM, suite.js ~35544-35546), so the
+// legend's local y=0 sits at global y = sizes.top (the reserved top margin, ~50px by default for
+// a "top" legend - Legend.scaleReady, suite.js ~13317). Legend.paint's own positionY (suite.js
+// ~13385-13389) is `-margin - yPadding - figureWidth/2`, where yPadding grows by `itemPadding+2`
+// (22px) every time the row-wrap check (suite.js ~13357) wraps to a new legend row. With enough
+// legend items to wrap even once, positionY comfortably outruns the ~50px reserved band, so the
+// FIRST row's text renders at a global y at or below 0 - clipped - while later rows (pushed
+// further down by their own yPadding) land safely inside the reserved band - exactly the "top row
+// cut off, lower row fine" pattern, same root cause as src/dhx/barchart_weekly/wrapper.js's own
+// legend. Returns 0 (never negative) when nothing is clipped.
+function MeasureLegendTopOverflow() {
+    if (!chartContainer) return 0;
+    var svgEl = chartContainer.querySelector("svg");
+    var legendGroup = chartContainer.querySelector('g[aria-label="Legend"]');
+    if (!svgEl || !legendGroup) return 0;
+    var svgRect = svgEl.getBoundingClientRect();
+    var legendRect = legendGroup.getBoundingClientRect();
+    var overflow = svgRect.top - legendRect.top;
+    return overflow > 0 ? overflow : 0;
+}
+
+// Triggers a corrective re-render with a larger config.legend.size when the legend is clipped -
+// see legendSize's own comment in RenderChart for why bumping size by precisely the measured
+// overflow (plus a small buffer for sub-pixel/font-metric rounding) is mathematically enough to
+// cancel the clip: size only shifts the whole legend down (global), it never changes the legend's
+// own internal layout, so the previously-clipped region moves by exactly as much extra room as we
+// reserve. Self-limiting rather than flag-guarded (same design as src/dhx/barchart_weekly/
+// wrapper.js's own CorrectLegendTopOverflowIfNeeded, and for the same reason: with a persistent
+// repaint-reactive scheduler - see legendPatchObserver's own comment - there is no single "the
+// corrective render" call to flag as exempt, since ANY render, corrective or not, can be repainted
+// again later by dhx.Chart's own internal settle pass): a 1px tolerance (measurement noise) plus a
+// generous size cap (400px) means that once a correction has actually fixed the clip, this becomes
+// a no-op on every later call, including the repaint the correction's own RenderChart call
+// triggers and any genuine later resize.
+function CorrectLegendTopOverflowIfNeeded() {
+    var overflow = MeasureLegendTopOverflow();
+    if (overflow <= 1 || lastLegendSize >= 400) return false;
+    var newSize = lastLegendSize + Math.ceil(overflow) + 4;
+    RenderChart(lastChartData, newSize, true);
+    return true;
+}
+
+// Schedules (de-duplicated - a burst of mutation/resize signals collapses to one pass) a single
+// frame-deferred re-application of ApplyLegendTextColors + the legend top-overflow correction. See
+// legendPatchObserver's own declaration comment for why this has to be repaint-reactive at all
+// (dhx.Chart's internal settle-repaint silently wipes any per-item colour a prior pass applied,
+// and can change how many rows the legend wraps onto, leaving legend.size mismatched against
+// whatever DID end up rendering). The observer is disconnected for the duration of the writes
+// below and reconnected immediately after, so our own DOM writes (colour styles, and - if
+// CorrectLegendTopOverflowIfNeeded fires - a full chart teardown/rebuild) can't re-trigger this
+// same scheduler in a loop; mirrors src/dhx/barchart_weekly/wrapper.js's own
+// SchedulePostRenderPatches exactly.
+function ScheduleLegendPatches() {
+    if (pendingLegendPatchFrame) return;
+    pendingLegendPatchFrame = requestAnimationFrame(function() {
+        pendingLegendPatchFrame = null;
+        if (!chartContainer) return;
+        if (legendPatchObserver) legendPatchObserver.disconnect();
+        ApplyLegendTextColors(function() {
+            var corrected = CorrectLegendTopOverflowIfNeeded();
+            if (legendPatchObserver) legendPatchObserver.observe(chartContainer, { childList: true, subtree: true });
+            // If a correction just fired, its own nested RenderChart call already scheduled
+            // another ScheduleLegendPatches pass (via its own RenderChart tail) to verify/reveal
+            // once that corrected render has ALSO had its colours re-applied - don't reveal a
+            // still-hidden, not-yet-coloured container early.
+            if (!corrected && chartContainer) chartContainer.style.visibility = "";
         });
     });
 }

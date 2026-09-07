@@ -14,10 +14,11 @@ page 50707 "Requested vs Capacity Daily P"
     /// aggregation logic is reimplemented here, only the JSON-assembly loop that page 50681 itself
     /// already does locally (the codeunit does the actual data work in both places).
     ///
-    /// Unlike page 50681 (which defaults to Weekly mode via its WeeklyFlag toggle - a pre-existing
-    /// quirk of that page, left untouched), this part is intentionally Daily-only: no
-    /// WeeklyFlag/SetToWeekly/SetToDaily concept exists here at all, so it always shows a single
-    /// day and matches its "Daily" caption. There is no Resource No. filter and no FactBoxes area,
+    /// Unlike page 50681 (which supports a Weekly mode via its WeeklyFlag toggle, defaulting to
+    /// Daily on open since 2026-09-07 - see that page's own OnOpenPage comment), this part is
+    /// intentionally Daily-only: no WeeklyFlag/SetToWeekly/SetToDaily concept exists here at all,
+    /// so it always shows a single day and matches its "Daily" caption. There is no Resource No.
+    /// filter and no FactBoxes area,
     /// to keep the tile compact.
     /// </summary>
 
@@ -25,36 +26,38 @@ page 50707 "Requested vs Capacity Daily P"
     {
         area(Content)
         {
-            field(PeriodLabelCtrl; PeriodLabelText)
+            // Bare usercontrol - deliberately NOT wrapped in a captioned group()/field() the way
+            // this page used to be (see git history). With this part now living in its own
+            // dedicated 50%-width group() on page 50612 "Planning Role Center" alongside a sibling
+            // group() for the Weekly part, a plain BC field/group in the SAME layout as this
+            // usercontrol was constraining the usercontrol's own rendered width - confirmed live
+            // 2026-09-07 (chart rendered narrow with blank space to its right, while the Period
+            // field/"Requested Hours vs Capacity" caption above it DID span the full column). Making
+            // the usercontrol the page's ONLY content lets it become the sole grid-worthy element so
+            // it can actually stretch to fill the group's width. The period label and section title
+            // that used to render here via BC's own field/group caption are now rendered BY
+            // wrapper.js itself (see RenderChart/UpdateHeader there), fed via the 'periodLabel'/
+            // 'title' keys added to ChartData in RefreshChart below - not part of the DHTMLX chart's
+            // own SVG/legend, just plain HTML positioned above the chart container inside this
+            // add-in's own DOM.
+            usercontrol(DhxBarChart; DHXBarChartAddin_daily)
             {
                 ApplicationArea = All;
-                Caption = 'Period';
-                Editable = false;
-                ToolTip = 'Specifies the currently displayed day.';
-            }
-            group(Filters)
-            {
-                Caption = 'Requested Hours vs Capacity';
 
-                usercontrol(DhxBarChart; DHXBarChartAddin_daily)
-                {
-                    ApplicationArea = All;
+                trigger ControlReady()
+                begin
+                    ChartReady := true;
+                    RefreshChart();
+                end;
 
-                    trigger ControlReady()
-                    begin
-                        ChartReady := true;
-                        RefreshChart();
-                    end;
+                trigger OnDataPointClicked(SkillCode: Text)
+                begin
+                end;
 
-                    trigger OnDataPointClicked(SkillCode: Text)
-                    begin
-                    end;
-
-                    trigger OnShowSegmentData(SegmentId: Text; WholeChart: Boolean)
-                    begin
-                        SkillCapacityAnalysisMgt.ShowSegmentData(SegmentId, WholeChart, ResourceNoFilter, PeriodStartDate, PeriodStartDate);
-                    end;
-                }
+                trigger OnShowSegmentData(SegmentId: Text; WholeChart: Boolean)
+                begin
+                    SkillCapacityAnalysisMgt.ShowSegmentData(SegmentId, WholeChart, ResourceNoFilter, PeriodStartDate, PeriodStartDate);
+                end;
             }
         }
     }
@@ -277,6 +280,16 @@ page 50707 "Requested vs Capacity Daily P"
         ChartData.Add('colors', ColorsArray);
         ChartData.Add('fontColors', FontColorsArray);
         ChartData.Add('barWidth', VisualDefaultSettings.GetDailyBarChartWidth());
+        // Rendered by wrapper.js as plain HTML above the chart container (see UpdateHeader there) -
+        // replaces the BC field(PeriodLabelCtrl)/group(Filters) caption this page used to carry in
+        // its own layout() - see the layout() area's own comment for why those moved out of AL.
+        // Sends the raw date text (FormatFullDayText), NOT PeriodLabelText - wrapper.js's own
+        // UpdateHeader already prefixes this with "Period: " itself, and PeriodLabelText carries
+        // its own "Daily: " prefix (see DailyPeriodLabelLbl), so sending PeriodLabelText here would
+        // render the redundant "Period: Daily: Mon 07 Sep 2026" instead of "Period: Mon 07 Sep
+        // 2026".
+        ChartData.Add('periodLabel', FormatFullDayText(PeriodStartDate));
+        ChartData.Add('title', RequestedVsCapacityTitleLbl);
 
         ChartData.WriteTo(ChartDataJson);
         CurrPage.DhxBarChart.LoadData(ChartDataJson);
@@ -291,6 +304,10 @@ page 50707 "Requested vs Capacity Daily P"
         ChartReady: Boolean;
         PeriodLabelText: Text[80];
         DailyPeriodLabelLbl: Label 'Daily: %1', Comment = '%1 = full date text';
+        // Sent as ChartData's 'title' key in RefreshChart - see the layout() area's own comment for
+        // why this now renders inside wrapper.js's own DOM instead of as this page's group(Filters)
+        // Caption.
+        RequestedVsCapacityTitleLbl: Label 'Requested Hours vs Capacity';
         // Matches page 50681's own independently-declared 'CAPACITY' Label (see codeunit 50608's
         // BuildSkillBuffer doc comment for why this literal is intentionally duplicated rather
         // than shared - keep in sync if it ever changes).

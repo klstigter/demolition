@@ -204,7 +204,13 @@ page 50681 "Requested vs Capacity Daily"
 
     trigger OnOpenPage()
     begin
-        WeeklyFlag := true;
+        // Defaults to Daily (matches this page's own "Daily Requested/Capacity" Caption and the
+        // Planning Role Center's Daily panel, which always shows a single-day period) - previously
+        // opened in Weekly mode instead, a pre-existing quirk that made this page's own "Period"
+        // field show a week range on open while its caption/the role center both said "Daily".
+        // WeeklyFlag := true fixed here 2026-09-07; SetToWeekly/SetToDaily actions still let the
+        // user switch modes freely after open.
+        WeeklyFlag := false;
         SetPeriodToToday();
         RefreshPeriod();
     end;

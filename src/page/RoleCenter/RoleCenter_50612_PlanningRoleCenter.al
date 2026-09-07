@@ -18,10 +18,12 @@ page 50612 "Planning Role Center"
             part(RequestedVsCapacityDaily; "Requested vs Capacity Daily P")
             {
                 ApplicationArea = All;
+                Caption = 'Daily';
             }
             part(RequestedVsCapacityWeekly; "Requested vs Capacity Weekly P")
             {
                 ApplicationArea = All;
+                Caption = 'Weekly';
             }
         }
     }
