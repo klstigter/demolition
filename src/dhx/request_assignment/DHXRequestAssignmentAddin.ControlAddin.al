@@ -49,6 +49,18 @@ controladdin DHXRequestAssignmentAddin
     event OnMoveAssignment(PayloadJsonTxt: Text);
     event OnResizeAssignment(PayloadJsonTxt: Text);
     event OnUnassignDayTaskLine(PayloadJsonTxt: Text);
+    // Raised by the "Open Card" context-menu item on a request row or an assignment bar. LineId is
+    // the dayTaskLine's id ("JobNo|JobTaskNo|DayLineNo", see wrapper.js's findLine /
+    // assignmentLineFromPointerTarget) - unlike the other events above, this is the raw id string,
+    // not a JSON payload, since there's nothing else to carry.
+    event OnOpenDayPlanningCard(LineId: Text);
+    // Raised by the "Open Capacity" context-menu item on a resource's capacity slot background bar.
+    // ResourceId is the Resource No.; StartDateTxt/EndDateTxt are "yyyy-MM-dd" text (see wrapper.js's
+    // dateOnlyKey) taken directly from the board's currently-displayed planning horizon bounds
+    // (allPlanningLines()[0].date .. getGlobalSelectionEndDate()) - the same range shown by the
+    // toolbar's "N of M Day Task Lines in horizon" label / "Select until" date input. No week
+    // resolution happens AL-side anymore; ReqAssign_OpenCapacity just filters by resource + range.
+    event OnOpenCapacity(ResourceId: Text; StartDateTxt: Text; EndDateTxt: Text);
     // Raised by the in-canvas "Reset assignments" button. In the source demo this button calls an
     // undefined function and throws/no-ops; the ported wrapper.js fixes it to discard all
     // unsaved client-side state and ask AL for a fresh SetPlanningData load instead - see page
