@@ -13,7 +13,23 @@ var lastSeriesDefs = [];
 var lastSeries = [];
 var lastDayLabels = [];
 var lastDayIndices = []; // parallel to lastDayLabels - raw 1..7 weekday index per included day (see codeunit 50662's "dayIndices"), used by the right-click "Show Data" handler to recover a real Date.
+var lastChartData = null; // the raw chartData object last passed to RenderChart, stashed so
+// CorrectLegendTopOverflowIfNeeded (see SchedulePostRenderPatches) can trigger a corrective
+// re-render with a larger legend.size without needing to reconstruct chartData's shape from the
+// other already-stashed lastXxx arrays.
+var lastLegendSize = 40;  // the config.legend.size actually used by the most recent RenderChart
+// call - 40 is suite.js's own default reserved top margin when legend.size is left unset (Legend.
+// scaleReady, suite.js ~13317). CorrectLegendTopOverflowIfNeeded reads this to compute how much
+// MORE space is needed rather than assuming the un-corrected default every time.
 var pendingPatchFrame = null;
+var lastRenderedWidth = 0; // chartContainer.clientWidth at the time of the most recent RenderChart
+// call - see the BOOT ResizeObserver's own comment for why this is needed: dhx.Chart's own internal
+// ResizeObserver repaints bars/scales when the container resizes, but does NOT recompute the
+// legend's row-wrap decision against the new width (confirmed live 2026-09-07: BC's role-center
+// flex layout can settle into its FINAL column width - e.g. a 3-column-vs-2-column split - only
+// AFTER this control add-in has already done its first paint at whatever transient width the DOM
+// had at that moment, and the legend keeps wrapping against that stale width forever after,
+// visually bleeding past chartContainer's own right edge into a neighbouring role-center panel).
 var contextMenuEl = null; // the current "Show Data" right-click popup, if one is open (see ShowContextMenu/HideContextMenu)
 var chartMutationObserver = null; // set up once in BOOT; disconnected/reconnected around our own patch writes
 var contextMenuDismissHandlers = null; // {click,contextmenu,scroll,keydown} currently attached to
@@ -63,16 +79,114 @@ var PAIR_INNER_GAP_PX = 2;
 var BAR_WIDTH_PX = 45;
 
 // ============================================================
+// Header (title + period line) - plain HTML rendered above chartContainer, replacing the
+// field(PeriodLabelCtrl)/group(Filters) Caption that page 50708 "Requested vs Capacity Weekly P"
+// used to render via its own AL page layout (see that page's own layout() area comment for the
+// full reasoning: those BC-rendered elements were constraining this control's own width once it
+// stopped being the page's only content). Order is Title -> "Period: <value>" -> (dhx.Chart's own
+// legend, valign:"top", inside chartContainer below this) -> plot - confirmed 2026-09-07.
+//
+// Deliberately styled DISTINCT from BC's own field-caption/FastTab-caption look (an accent-barred
+// title instead of a plain bold line, a single muted "Period: ..." line instead of a stacked
+// grey-caption-over-value pair) - a round-1 version of this header used the stacked
+// caption-over-value BC-field look and the user could not visually tell it apart from an actual
+// BC field, even though it was already a plain DOM element with no BC control wrapping it. Both
+// elements also carry a `data-dhx-header` marker attribute for unambiguous DOM inspection (a real
+// BC field/group would carry BC's own smart-*/control-* wrapper classes/attributes, never this
+// one).
+//
+// This wrapper.js file is SHARED with page 50692 "Requested vs Capacity Weekly" (the live,
+// standalone, PageType=Card version of this chart - see DHXBarChartAddin's own Scripts property) -
+// that page keeps its OWN field(PeriodLabelCtrl)/group(Filters) Caption in its AL layout,
+// untouched, and never sends 'periodLabel'/'title' in its ChartData JSON. UpdateHeader therefore
+// hides headerEl entirely whenever BOTH keys are absent, so this header stays fully inert (no
+// blank label row, no reserved space) on page 50692 - only page 50708 (which now DOES send both
+// keys - see that page's RefreshChart) ever shows it.
+// ============================================================
+function BuildHeader(addin) {
+    var headerEl = document.createElement("div");
+    headerEl.id = "dhx-barchart-headerinfo";
+    headerEl.setAttribute("data-dhx-header", "true");
+    headerEl.style.cssText = "flex:0 0 auto;padding:4px 4px 8px 8px;display:none;border-left:3px solid #2A9D8F;";
+
+    // Title FIRST (top of the header) - accent-barred (via headerEl's own border-left above) and
+    // bold, deliberately not matching BC's own plain group-caption typography.
+    var titleEl = document.createElement("div");
+    titleEl.id = "dhx-barchart-title";
+    titleEl.setAttribute("data-dhx-header", "true");
+    titleEl.style.cssText = "font-size:14px;line-height:18px;font-weight:700;color:#242424;";
+
+    // Period SECOND, directly below the title - a single "Period: <value>" line (no separate
+    // small-caps label row) in a muted, smaller, italic style so it reads as a subtitle, not a BC
+    // field value.
+    var periodEl = document.createElement("div");
+    periodEl.id = "dhx-barchart-period-value";
+    periodEl.setAttribute("data-dhx-header", "true");
+    periodEl.style.cssText = "font-size:12px;line-height:16px;font-style:italic;color:#5f6368;margin-top:2px;";
+
+    headerEl.appendChild(titleEl);
+    headerEl.appendChild(periodEl);
+    addin.appendChild(headerEl);
+}
+
+// Called at the top of every RenderChart - see BuildHeader's own comment for why hiding headerEl
+// entirely (rather than just leaving values blank) is what keeps this a no-op on page 50692, which
+// never sends either key.
+function UpdateHeader(chartData) {
+    var headerEl = document.getElementById("dhx-barchart-headerinfo");
+    if (!headerEl) return;
+
+    var periodLabel = (chartData && chartData.periodLabel) ? String(chartData.periodLabel) : "";
+    var title = (chartData && chartData.title) ? String(chartData.title) : "";
+
+    if (!periodLabel && !title) {
+        headerEl.style.display = "none";
+        return;
+    }
+    headerEl.style.display = "";
+
+    var titleEl = document.getElementById("dhx-barchart-title");
+    if (titleEl) {
+        titleEl.style.display = title ? "" : "none";
+        titleEl.textContent = title;
+    }
+
+    var periodEl = document.getElementById("dhx-barchart-period-value");
+    if (periodEl) {
+        periodEl.style.display = periodLabel ? "" : "none";
+        // Single "Period: <value>" line - PeriodLabelText + Day1/Day7 already arrives as e.g.
+        // "Sep 2026 - wk 37 (Mon 07 - Sun 13)" (see page 50708's own RefreshChart), with no
+        // redundant leading prefix of its own, so a plain "Period: " prefix here reads cleanly.
+        periodEl.textContent = "Period: " + periodLabel;
+    }
+}
+
+// ============================================================
 // BOOT – called by startupScript.js
 // ============================================================
 window.BOOT = function() {
     try {
         var addin = document.getElementById("controlAddIn");
-        addin.style.cssText = "width:100%;height:100%;margin:0;padding:0;";
+        // overflow:hidden on BOTH the add-in host and the chart container is a deliberate hard
+        // boundary: whatever causes the legend (or any future chart element) to compute its own
+        // width wrong, nothing can ever visually bleed past this panel's own box into a
+        // neighbouring role-center panel again - defense-in-depth alongside the real-width
+        // re-render fix below (lastRenderedWidth), not a substitute for it.
+        // display:flex/flex-direction:column (2026-09-07) so headerEl (see BuildHeader) and
+        // chartContainer stack vertically and SHARE this box's fixed height, instead of both
+        // independently claiming height:100% and overlapping - chartContainer's own flex:1 1 auto +
+        // min-height:0 (below) is what lets it shrink to "whatever's left after headerEl" rather
+        // than overflowing.
+        addin.style.cssText = "width:100%;height:100%;margin:0;padding:0;overflow:hidden;display:flex;flex-direction:column;";
+
+        BuildHeader(addin);
 
         chartContainer = document.createElement("div");
         chartContainer.id = "dhx-barchart-container";
-        chartContainer.style.cssText = "width:100%;height:100%;";
+        // flex:1 1 auto + min-height:0 (not height:100%, which would ignore headerEl's own height
+        // and force an overflow now that addin is a flex column) - see addin.style.cssText's own
+        // comment.
+        chartContainer.style.cssText = "width:100%;flex:1 1 auto;min-height:0;overflow:hidden;";
         addin.appendChild(chartContainer);
 
         // ---- Check library ----
@@ -100,12 +214,31 @@ window.BOOT = function() {
             });
             chartMutationObserver.observe(chartContainer, { childList: true, subtree: true });
         }
-        // Kept as a defense-in-depth second signal: a resize that only repositions existing
-        // elements (attribute changes, no node add/remove) wouldn't trip the MutationObserver
-        // above, but would still invalidate the day-group row's cached tick x-positions.
+        // Two-tier resize handling. A resize that only repositions existing elements (attribute
+        // changes, no node add/remove) wouldn't trip the MutationObserver above, but would still
+        // invalidate the day-group row's cached tick x-positions - so ANY resize at minimum re-runs
+        // SchedulePostRenderPatches (defense-in-depth). But a genuine WIDTH change needs more than
+        // that: dhx.Chart's own internal ResizeObserver repaints bars/scales for a resize, but does
+        // NOT recompute the legend's horizontal row-wrap decision against the new width - it keeps
+        // whatever wrap it decided on at construction. Confirmed live 2026-09-07: BC's role-center
+        // flex layout can settle into its FINAL column width only AFTER this control add-in's first
+        // paint (e.g. changing from a 3-column to a 2-column split once the page finishes laying
+        // out), and the legend kept wrapping against that earlier, stale width - legend items ran
+        // off chartContainer's own right edge into the neighbouring panel (the overflow:hidden above
+        // stops the visual bleed, but the legend was still measuring itself wrong). Fix: track the
+        // container width the chart was last actually built against (lastRenderedWidth, set in
+        // RenderChart) and force a real RenderChart rebuild - not just a patch pass - whenever the
+        // container's current width has genuinely moved (a couple of px of tolerance for sub-pixel
+        // layout noise), so the legend's row-wrap math always runs against the CURRENT real width.
         if (typeof ResizeObserver !== "undefined") {
             new ResizeObserver(function() {
-                if (chartInstance) SchedulePostRenderPatches();
+                if (!chartInstance || !chartContainer) return;
+                var currentWidth = chartContainer.clientWidth;
+                if (Math.abs(currentWidth - lastRenderedWidth) > 2) {
+                    RenderChart(lastChartData, lastLegendSize);
+                } else {
+                    SchedulePostRenderPatches();
+                }
             }).observe(chartContainer);
         }
 
@@ -171,8 +304,34 @@ window.BOOT = function() {
 // rebuild (mirrors this project's existing "wipe and rebuild" convention, e.g.
 // BuildResourcePanel in src/dhx/resourceschedule/wrapper.js).
 // ============================================================
-function RenderChart(chartData) {
+function RenderChart(chartData, legendSizeOverride, isCorrectivePass) {
     if (!chartContainer) return;
+
+    UpdateHeader(chartData);
+
+    lastChartData = chartData;
+    // See lastRenderedWidth's own declaration comment and the BOOT ResizeObserver - stashed here,
+    // at the START of every real build, so a later resize can tell whether the container has
+    // ACTUALLY moved since this chart was built (vs. some other DOM mutation with no size change).
+    lastRenderedWidth = chartContainer.clientWidth;
+
+    if (!isCorrectivePass) {
+        // Hidden until SchedulePostRenderPatches' first settled pass confirms the legend actually
+        // fits (or, if not, until the corrective re-render it triggers finishes) - without this, a
+        // container that needs correcting would otherwise flash the clipped first-pass layout
+        // before growing to its corrected size. A corrective pass (isCorrectivePass) is a nested
+        // RenderChart call from within that same still-hidden window, so it must NOT re-hide.
+        chartContainer.style.visibility = "hidden";
+    }
+
+    // See getDefaultMargin/Legend.scaleReady in suite.js (~13250-13268, ~13317): legend.size is
+    // the ONLY thing that controls how much top margin the library reserves for the legend
+    // (sizes.top) - the legend's own local position within that reserved band (Legend.paint's
+    // positionY) is independent of it. CorrectLegendTopOverflowIfNeeded exploits exactly this:
+    // bumping legend.size by the measured overflow shifts the whole legend down by that same
+    // amount, cancelling the clip with no need to replicate the library's own row-wrap math.
+    var legendSize = legendSizeOverride || 40;
+    lastLegendSize = legendSize;
 
     // Reassigned on every call (see this var's own declaration comment) - must happen before
     // `config` is built below (config.barWidth reads it) and before ApplyDayPairSpacing runs
@@ -285,7 +444,13 @@ function RenderChart(chartData) {
                 }).map(function(s) { return s.id; });
             })(),
             halign: "right",
-            valign: "top"
+            valign: "top",
+            // Explicit reserved top margin - see legendSize's own comment above. Left at the
+            // library's own default (40) on a normal first pass; bumped by
+            // CorrectLegendTopOverflowIfNeeded on a corrective re-render when that default wasn't
+            // enough room for however many rows this chart's legend items actually wrap onto (see
+            // MeasureLegendTopOverflow's root-cause comment below).
+            size: legendSize
         }
     };
 
@@ -353,7 +518,57 @@ function SchedulePostRenderPatches() {
         ApplyLegendHitArea();
         RenderDayGroupRow(lastDayLabels);
         if (chartMutationObserver) chartMutationObserver.observe(chartContainer, { childList: true, subtree: true });
+
+        // Legend top-clip self-correction runs LAST (after ApplyLegendHitArea, which can slightly
+        // grow the legend's own bbox with its invisible hit-rects - see that function's own
+        // comment) so the measurement below reflects the legend's truly final DOM shape for this
+        // pass. Safe to run on every repaint (initial load AND later resize-triggered repaints):
+        // the correction is self-limiting (see CorrectLegendTopOverflowIfNeeded's own comment), so
+        // once already corrected it becomes a cheap no-op measurement most passes.
+        var corrected = CorrectLegendTopOverflowIfNeeded();
+        if (!corrected && chartContainer) chartContainer.style.visibility = "";
     });
+}
+
+// Measures how many px the legend's own top edge renders ABOVE the chart's <svg> top edge - i.e.
+// clipped, since the SVG's default overflow behaviour never paints content above its own viewport.
+// Root cause (confirmed by reading suite.js): the legend is painted inside a <g transform=
+// "translate(sizes.left, sizes.top)"> (ComposeLayer.toVDOM, suite.js ~35544-35546), so the
+// legend's local y=0 sits at global y = sizes.top (the reserved top margin, ~50px by default for
+// a "top" legend - Legend.scaleReady, suite.js ~13317). Legend.paint's own positionY (suite.js
+// ~13385-13389) is `-margin - yPadding - figureWidth/2`, where yPadding grows by `itemPadding+2`
+// (22px) every time the row-wrap check (suite.js ~13357) wraps to a new legend row - this chart
+// commonly has enough skill/series legend items to wrap at least once at realistic FactBox widths,
+// so positionY comfortably outruns the ~50px reserved band and the FIRST legend row renders at a
+// global y at or below 0 (clipped), while later rows (pushed further down by their own yPadding)
+// land safely inside the reserved band - exactly the "top row cut off, lower row fine" pattern.
+// Returns 0 (never negative) when nothing is clipped.
+function MeasureLegendTopOverflow() {
+    if (!chartContainer) return 0;
+    var svgEl = chartContainer.querySelector("svg");
+    var legendGroup = chartContainer.querySelector('g[aria-label="Legend"]');
+    if (!svgEl || !legendGroup) return 0;
+    var svgRect = svgEl.getBoundingClientRect();
+    var legendRect = legendGroup.getBoundingClientRect();
+    var overflow = svgRect.top - legendRect.top;
+    return overflow > 0 ? overflow : 0;
+}
+
+// Triggers a corrective re-render with a larger config.legend.size when the legend is clipped -
+// see legendSize's own comment in RenderChart for why bumping size by precisely the measured
+// overflow (plus a small buffer for sub-pixel/font-metric rounding) is mathematically enough to
+// cancel the clip: size only shifts the whole legend down (global), it never changes the legend's
+// own internal layout, so the previously-clipped region moves by exactly as much extra room as we
+// reserve. Self-limiting rather than flag-guarded: a 1px tolerance (measurement noise) plus a
+// generous size cap (400px - far past anything a real legend here needs) means that once a
+// correction has actually fixed the clip, this becomes a no-op on every later call, including the
+// repaint the correction's own RenderChart call triggers and any genuine later resize.
+function CorrectLegendTopOverflowIfNeeded() {
+    var overflow = MeasureLegendTopOverflow();
+    if (overflow <= 1 || lastLegendSize >= 400) return false;
+    var newSize = lastLegendSize + Math.ceil(overflow) + 4;
+    RenderChart(lastChartData, newSize, true);
+    return true;
 }
 
 // Pulls each weekday's 2 bars (Capacity + Requested) tightly together around their own shared
