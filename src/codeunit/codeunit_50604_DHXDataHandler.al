@@ -6545,7 +6545,7 @@ codeunit 50604 "DHX Data Handler"
         // Section 4's now-broadened groups[] tree gets correct per-skill color metadata instead of
         // falling back to a generic default color for a skill only some OTHER Work Order uses.
         RootObj.Add('skills', CPO_BuildSkillsArray(ActiveSkillList));
-        RootObj.Add('resources', CPO_BuildResourcesArray(ActiveSkillList, ResourcePool));
+        RootObj.Add('resources', CPO_BuildResourcesArray(ActiveSkillList, ResourcePool, true));
         // Flat per-resource-per-day hours, matching the reference's own flat "baseCapacity":8 -
         // this WO's own project team's actual Res. Capacity Entry values are not uniformly 8h in
         // every real BC company, but 8h/day is this codebase's standard full-time representative
@@ -6557,6 +6557,7 @@ codeunit 50604 "DHX Data Handler"
         // capped pool "resources[]" already carries - see CPO_BuildExternalFreeArray's own doc
         // comment for why externalFree must reuse it rather than querying company-wide.
         RootObj.Add('externalFree', CPO_BuildExternalFreeArray(ResourcePool, StartDate, EndDate));
+        RootObj.Add('dailyCapacity', CPO_BuildDailyCapacityArray(StartDate, EndDate));
         // OtherSkillList (NOT the broadened ActiveSkillList) - see that List's own doc comment.
         RootObj.Add('groups', CPO_BuildGroupsArray(OtherSkillList, GroupSkill, GroupJobNo, GroupJobTaskNo, GroupDescription));
         RootObj.Add('dayPlanningLines', DayPlanningLinesArr);
@@ -6853,9 +6854,10 @@ codeunit 50604 "DHX Data Handler"
         RootObj.Add('project', ProjectObj);
         RootObj.Add('workOrder', WorkOrderObj);
         RootObj.Add('skills', CPO_BuildSkillsArray(ActiveSkillList));
-        RootObj.Add('resources', CPO_BuildResourcesArray(ActiveSkillList, ResourcePool));
+        RootObj.Add('resources', CPO_BuildResourcesArray(ActiveSkillList, ResourcePool, true));
         RootObj.Add('baseCapacity', 8);
         RootObj.Add('externalFree', CPO_BuildExternalFreeArray(ResourcePool, StartDate, EndDate));
+        RootObj.Add('dailyCapacity', CPO_BuildDailyCapacityArray(StartDate, EndDate));
         // groups[] is the COMPLETE tree skeleton (every group, not just the first page) - see this
         // region's own header comment for why that's safe/cheap; only its LINES (chips) backfill.
         RootObj.Add('groups', CPO_BuildGroupsArray(OtherSkillList, GroupSkill, GroupJobNo, GroupJobTaskNo, GroupDescription));
@@ -6982,9 +6984,13 @@ codeunit 50604 "DHX Data Handler"
             DayPlanningLinesArr.Add(LineTok.AsObject());
 
         RootObj.Add('skills', CPO_BuildSkillsArray(ActiveSkillList));
-        RootObj.Add('resources', CPO_BuildResourcesArray(ActiveSkillList, ResourcePool));
+        // ApplyPerSkillCap=false - see CPO_BuildResourcesArray's own doc comment on that parameter:
+        // this tile never runs the max-flow engine the cap exists to protect, so Section 3's
+        // capacity total must be the real, uncapped company-wide resource pool.
+        RootObj.Add('resources', CPO_BuildResourcesArray(ActiveSkillList, ResourcePool, false));
         RootObj.Add('baseCapacity', 8);
         RootObj.Add('externalFree', CPO_BuildExternalFreeArray(ResourcePool, StartDate, EndDate));
+        RootObj.Add('dailyCapacity', CPO_BuildDailyCapacityArray(StartDate, EndDate));
         RootObj.Add('groups', CPO_BuildGroupsArray(OtherSkillList, GroupSkill, GroupJobNo, GroupJobTaskNo, GroupDescription));
         RootObj.Add('dayPlanningLines', DayPlanningLinesArr);
         // Always empty - there is no single inspected Work Order on this tile, so there is no
@@ -7011,6 +7017,48 @@ codeunit 50604 "DHX Data Handler"
     local procedure CPO_MaxResourcesPerSkill(): Integer
     begin
         exit(15);
+    end;
+
+    /// <summary>
+    /// Builds "dailyCapacity[]" - one entry per calendar day in [StartDate, EndDate], real
+    /// {assignedInternal, assignedExternal, freeInternal, freeExternal} figures read via codeunit
+    /// 50662's own PrepareDailyCapacityBuffer/GetDailyCapacitySplit (see those procedures' own doc
+    /// comments) - the EXACT same computation the Weekly/Daily Insights parts use (true "Res.
+    /// Capacity Entry" data, company-wide, bucketed by the resource's own "Is External" flag), not
+    /// this add-in's own now-retired flat "resources.length * 8h" approximation. Added 2026-09-08
+    /// (bug reported live, flagged "dangerous" - see this add-in's project memory) after the
+    /// approximation was found to render a small fraction of the real total (408h, then 1798h,
+    /// against a real ~2038h for the same day/company). capacityPlanningOverview.js's capParts()
+    /// now reads this array directly instead of computing from "resources[]"/"baseCapacity" -
+    /// those two payload fields are UNCHANGED/still sent, still needed by the max-flow engine
+    /// (evaluateWO/currentPositionShortage, Section 1/2 on page 50722 only) and by capParts()'s own
+    /// fallback when dailyCapacity is absent (defensive only - every CPO_Build*Json* caller below
+    /// now always sends it).
+    /// </summary>
+    local procedure CPO_BuildDailyCapacityArray(StartDate: Date; EndDate: Date): JsonArray
+    var
+        SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
+        DailyCapacityArr: JsonArray;
+        DayObj: JsonObject;
+        CurrDate: Date;
+        AssignedInternal: Decimal;
+        AssignedExternal: Decimal;
+        FreeInternal: Decimal;
+        FreeExternal: Decimal;
+    begin
+        SkillCapacityAnalysisMgt.PrepareDailyCapacityBuffer(StartDate, EndDate);
+        CurrDate := StartDate;
+        while CurrDate <= EndDate do begin
+            SkillCapacityAnalysisMgt.GetDailyCapacitySplit(CurrDate, AssignedInternal, AssignedExternal, FreeInternal, FreeExternal);
+            Clear(DayObj);
+            DayObj.Add('assignedInternal', AssignedInternal);
+            DayObj.Add('assignedExternal', AssignedExternal);
+            DayObj.Add('freeInternal', FreeInternal);
+            DayObj.Add('freeExternal', FreeExternal);
+            DailyCapacityArr.Add(DayObj);
+            CurrDate += 1;
+        end;
+        exit(DailyCapacityArr);
     end;
 
     /// <summary>
@@ -7065,8 +7113,23 @@ codeunit 50604 "DHX Data Handler"
     /// CPO_MaxResourcesPerSkill() new resources per skill (see that procedure's own doc comment)
     /// purely for client-side max-flow performance - a real, deliberate, documented gap, not a
     /// silent approximation.
+    ///
+    /// ApplyPerSkillCap: the cap above exists SOLELY to bound maxFlowDay's O(n^2) cost
+    /// (capacityPlanningOverview.js) - which only ever runs from Section 1's evaluateWO/
+    /// currentPositionShortage and Section 2's renderWorkOrder, both scoped to ONE inspected Work
+    /// Order. Bug found 2026-09-08 (reported live, flagged "dangerous"): the Capacity Planning
+    /// Dashboard (src/dhx/capacity_planning_dashboard) has neither of those - Section 1 was removed
+    /// there entirely and Section 2 never initializes (renderWoScheduler is a no-op), so
+    /// maxFlowDay/evaluateWO/currentPositionShortage are never invoked on that tile - yet this same
+    /// capped "resources[]" array was still being reused there to compute Section 3's plain
+    /// capacity-total arithmetic (capParts() in JS: resources.length * BASE_CAP), silently
+    /// undercounting real company-wide capacity (confirmed live: 46 capped resources -> 368h/day
+    /// shown, against a real company total over 2000h/day per the Weekly/Daily Insights parts,
+    /// which read the true uncapped resource pool via codeunit 50662). Pass true only where the
+    /// max-flow engine genuinely still runs (page 50722's own builders); pass false for the
+    /// Dashboard so Section 3's capacity total is real, not a performance-driven approximation.
     /// </summary>
-    local procedure CPO_BuildResourcesArray(var ActiveSkillList: List of [Code[20]]; var ResourceOrder: List of [Code[20]]): JsonArray
+    local procedure CPO_BuildResourcesArray(var ActiveSkillList: List of [Code[20]]; var ResourceOrder: List of [Code[20]]; ApplyPerSkillCap: Boolean): JsonArray
     var
         ResourceSkill: Record "Resource Skill";
         ResourcesArr: JsonArray;
@@ -7088,7 +7151,7 @@ codeunit 50604 "DHX Data Handler"
                         ResourceOrder.Add(ResourceSkill."No.");
                         CountForSkill += 1;
                     end;
-                until (ResourceSkill.Next() = 0) or (CountForSkill >= CPO_MaxResourcesPerSkill());
+                until (ResourceSkill.Next() = 0) or (ApplyPerSkillCap and (CountForSkill >= CPO_MaxResourcesPerSkill()));
         end;
 
         foreach ResourceNo in ResourceOrder do begin

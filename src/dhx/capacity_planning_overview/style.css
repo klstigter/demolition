@@ -588,9 +588,22 @@
     min-height: 120px;
     overflow-y: auto;
     border-top: 1px solid #d7d7d7;
-    /* Same flex-shrink protection as .cpo-wo-scheduler-host above - #cpo-root's flex column must
-       not squash this section either. */
-    flex: 0 0 auto;
+    /* BUG FOUND 2026-09-08 (reported live): with flex:0 0 auto (this section takes EXACTLY its own
+       JS-computed height - applyCentralTreeHeight's own MIN/MAX_TREE_HEIGHT clamp, up to 420px -
+       and never more), whenever #cpo-root's own height (the controladdin's RequestedHeight) left
+       more room than sections 1-4's own summed heights needed, the leftover showed as blank space
+       below section 4 - most visible with "Expand all" on a company-wide dataset with many rows
+       (the tree's real content is far taller than 420px, so there was plenty of room left to grow
+       into instead of wasting it below the table). flex:1 1 auto makes this the ONE section in
+       #cpo-root's flex column that grows to absorb any leftover vertical space (its own
+       JS-computed height stays the flex-basis/floor, not a ceiling) - more of the tree's real,
+       already-there content becomes directly visible instead of sitting behind a scrollbar with
+       blank space below it. No other section in #cpo-root gained flex-grow, so this stays the
+       sole absorber. Safe alongside section 2/.cpo-wo-scheduler-host (unchanged, still
+       flex:0 0 auto) - that
+       section's own real content is normally much shorter than section 4's, so section 4 growing
+       to fill space is the natural absorber either way. */
+    flex: 1 1 auto;
 }
 
 /* DHTMLX's treetimeline plugin reserves left padding/an expand-arrow slot inside the tree's

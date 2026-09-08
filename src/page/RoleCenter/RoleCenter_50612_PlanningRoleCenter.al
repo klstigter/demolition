@@ -34,7 +34,7 @@ page 50612 "Planning Role Center"
             part(CapacityPlanningDashboard; "Capacity Planning Dashboard")
             {
                 ApplicationArea = All;
-                Caption = 'Capacity Planning';
+                Caption = '';
             }
         }
     }
