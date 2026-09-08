@@ -33,3 +33,4 @@
 - [CPO cross-WO scope fix (2026-09-03)](project_cpo_cross_wo_scope_fix.md) — dayPlanningLines[] now mixes all-WOs via workOrderNo tag; groups[]=other-WOs-only, workOrderSequences[]=inspected-WO-only; required a scoped JS edit too, not just AL
 - [Planning Role Center chart width](project_planning_rolecenter_chart_width.md) — RequestedWidth/MinimumWidth don't affect BC's role-center flex-grid split at all; per-part `group()` wrap does; legend-bleed fix in wrapper.js; unpublished as of 2026-09-07
 - [User now publishes manually](feedback_user_publishes_manually.md) — agent must stop after clean al_compile/al_build, never call al_publish unless explicitly asked again
+- [Tooltip colors centralized in codeunit 50609](project_tooltip_colors_centralized.md) — GetTooltipBackgroundColor/GetTooltipFontColor; full 14-folder src/dhx wiring status + skip reasons (2026-09-08)

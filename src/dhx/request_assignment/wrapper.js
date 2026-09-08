@@ -6708,6 +6708,24 @@ function AppendDayTaskLines(dayTaskLinesJsonTxt) {
 }
 window.AppendDayTaskLines = AppendDayTaskLines;
 
+// AL-callable: SetColors - applies "Daily Optimizer Setup"."Tooltip Background Color"/"Tooltip
+// Font Color" (via codeunit 50609's GetTooltipBackgroundColor/GetTooltipFontColor) to every
+// custom hover-popup shell in style.css (.sequence-drag-tooltip/.assignment-detail-tooltip/
+// .resource-skill-warning-tooltip/.request-detail-tooltip, and their shared shell rule). Scoped
+// to #controlAddIn (all four tooltip divs are nested inside it - see APP_MARKUP/BOOT above), same
+// convention as this add-in's other DOM-scoped custom properties.
+function SetColors(colorsJsonTxt) {
+  try {
+    const colors = JSON.parse(colorsJsonTxt) || {};
+    const root = document.getElementById("controlAddIn");
+    if (!root) return;
+    if (colors.tooltipBg) root.style.setProperty("--tooltip-bg-color", colors.tooltipBg);
+    if (colors.tooltipFont) root.style.setProperty("--tooltip-font-color", colors.tooltipFont);
+  } catch (e) {
+    console.warn("SetColors: invalid colorsJsonTxt", colorsJsonTxt, e);
+  }
+}
+
 // AL-callable. Carries the full payload (resources/dayTaskLines/
 // capacitySlots/skillColors/statusColors/workdays) — called once on
 // ControlReady's response, and again by the Refresh ribbon action and the

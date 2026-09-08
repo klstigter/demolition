@@ -76,6 +76,12 @@ controladdin "DHX Gantt Control 2"
     procedure SetBarFontColor(fontColorHex: Text);
     procedure SetDayOffColors(weekendColorHex: Text; holidayColorHex: Text);
     procedure SetGanttTaskBarDefaults(borderColorHex: Text; progressColorHex: Text; fontColorHex: Text; fontSizePx: Integer; heightPx: Integer);
+    // Hover/tooltip popup colours - codeunit 50609's GetTooltipBackgroundColor/GetTooltipFontColor,
+    // applied to every hover popup this add-in renders: the vendored .gantt_tooltip (task-bar
+    // hover), the custom #bc_DayPlanning_tooltip (resource-marker Day Planning hover), and the
+    // shared #res-filter-tooltip-popup/#gnt-filter-tooltip-popup filter-icon hover popups. Same
+    // convention as SetBarFontColor/SetDayOffColors above.
+    procedure SetTooltipColors(backgroundColorHex: Text; fontColorHex: Text);
     // Companion to OnPollResourcePanelResult above - called right after every resource-panel
     // background task is enqueued (a normal synchronous AL call, not from the completion trigger)
     // so JS knows to (re)start its bounded poll loop instead of polling forever on every page.

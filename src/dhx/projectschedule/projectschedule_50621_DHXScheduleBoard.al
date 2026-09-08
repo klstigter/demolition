@@ -20,6 +20,7 @@ page 50621 "DHX Scheduler (Project)"
                     DayPlanningBarSetup: Record "Task Scheduler Setup";
                     DailyOptimizerSetup: Record "Daily Optimizer Setup";
                     SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
+                    VisualDefaultSettings: Codeunit "Visual Default Settings";
                     startDate: Date;
                     endDate: Date;
                     EarliestPlanningDate: Date;
@@ -82,12 +83,17 @@ page 50621 "DHX Scheduler (Project)"
                     // Envelope/EnvelopeBorder/Heights when the setup record doesn't exist is a
                     // safe no-op per key.
                     SkillCapacityAnalysisMgt.GetCapacitySegmentColors(AssignedColorHex, CapacityColorHex, ExternalBorderColorHex);
-                    ColorsJsonTxt := StrSubstNo('{"envelope":"%1","envelopeBorder":"%2","assigned":"%3","assignedHeight":%4,"requestedHeight":%5}',
+                    // Hover/tooltip popup colours - codeunit 50609's GetTooltipBackgroundColor/
+                    // GetTooltipFontColor directly, applied to .dhtmlXTooltip.tooltip and
+                    // #tsk-filter-tooltip-popup (see wrapper.js's SetBarColors).
+                    ColorsJsonTxt := StrSubstNo('{"envelope":"%1","envelopeBorder":"%2","assigned":"%3","assignedHeight":%4,"requestedHeight":%5,"tooltipBg":"%6","tooltipFont":"%7"}',
                         DailyOptimizerSetup."Envelope Color",
                         DailyOptimizerSetup."Envelope Border Color",
                         AssignedColorHex,
                         DailyOptimizerSetup."Assigned High (%)",
-                        DailyOptimizerSetup."Requested High (%)");
+                        DailyOptimizerSetup."Requested High (%)",
+                        VisualDefaultSettings.GetTooltipBackgroundColor(),
+                        VisualDefaultSettings.GetTooltipFontColor());
                     CurrPage.DhxScheduler.SetBarColors(ColorsJsonTxt);
                     // This scheduler has no separate Capacity bar/event of its own - every bar is
                     // a Day Planning bar and therefore always skill-bearing, so bar text/border

@@ -699,6 +699,18 @@ function SetDayOffColors(weekendColorHex, holidayColorHex) {
     if (holidayColorHex) root.style.setProperty("--dps-holiday-color", holidayColorHex);
 }
 
+// Called from AL (ControlReady) - applies "Daily Optimizer Setup"."Tooltip Background Color"/
+// "Tooltip Font Color" (via codeunit 50609's GetTooltipBackgroundColor/GetTooltipFontColor) to
+// #dpsTooltip's background/text colour (see the matching var(--tooltip-bg-color)/
+// var(--tooltip-font-color) in style.css's .dps-tooltip rule). Scoped to #dps-root (which
+// #dpsTooltip is nested under - see buildLayout above), same convention as SetDayOffColors.
+function SetTooltipColors(backgroundColorHex, fontColorHex) {
+    var root = $id("dps-root");
+    if (!root) return;
+    if (backgroundColorHex) root.style.setProperty("--tooltip-bg-color", backgroundColorHex);
+    if (fontColorHex) root.style.setProperty("--tooltip-font-color", fontColorHex);
+}
+
 function applySections(sections) {
     dps_sections = sections;
     dps_sectionsByKey = {};

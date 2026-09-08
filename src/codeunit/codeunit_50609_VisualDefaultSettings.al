@@ -281,6 +281,58 @@ codeunit 50609 "Visual Default Settings"
     end;
 
     /// <summary>
+    /// Resolves the background colour used by every hover/tooltip popup across the DHX control
+    /// add-ins (src/dhx/*) - the dhtmlx built-in tooltip plugin's ".dhtmlXTooltip.tooltip" shell,
+    /// plus every custom hover-popup div each add-in renders itself (e.g.
+    /// request_assignment's .assignment-detail-tooltip/.request-detail-tooltip/
+    /// .resource-skill-warning-tooltip/.sequence-drag-tooltip, dayplanning_sequence's
+    /// .dps-tooltip, ganttdemo2's #bc_DayPlanning_tooltip and the filter-icon hover popups shared
+    /// by ganttdemo2/projectschedule/resourceschedule/resourceschedule_with_capacity/
+    /// poolresourceschedule, and capacity_planning_overview's .cpo-event-tip/
+    /// .cpo-daily-summary-tip). A single centralised setting so every one of these popups gets a
+    /// consistent white-background/black-text look by default, and can all be recoloured together
+    /// from one place. Overridable via "Daily Optimizer Setup"."Tooltip Background Color" when
+    /// the singleton exists and the field is non-blank, else falls back to
+    /// TooltipBackgroundColorTok. Same safe boolean-context Get() convention as GetBarFontColor
+    /// above, for the same reason.
+    ///
+    /// Deliberately a separate setting from GetBarFontColor/BarFontColorTok above - that getter's
+    /// own doc comment already states it is explicitly NOT used for hover/tooltip text colour.
+    /// </summary>
+    procedure GetTooltipBackgroundColor(): Text
+    var
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+    begin
+        if DailyOptimizerSetup.Get() then
+            if DailyOptimizerSetup."Tooltip Background Color" <> '' then
+                exit(DailyOptimizerSetup."Tooltip Background Color");
+
+        exit(TooltipBackgroundColorTok);
+    end;
+
+    /// <summary>
+    /// Resolves the font/text colour used by every hover/tooltip popup across the DHX control
+    /// add-ins - the counterpart to GetTooltipBackgroundColor above; see that procedure's doc
+    /// comment for the full list of popups this feeds. Overridable via "Daily Optimizer
+    /// Setup"."Tooltip Font Color" when the singleton exists and the field is non-blank, else
+    /// falls back to TooltipFontColorTok. Same safe boolean-context Get() convention as
+    /// GetBarFontColor above, for the same reason.
+    ///
+    /// Deliberately a separate setting from GetBarFontColor/BarFontColorTok above - see
+    /// GetTooltipBackgroundColor's own doc comment.
+    /// </summary>
+    procedure GetTooltipFontColor(): Text
+    var
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+    begin
+        if DailyOptimizerSetup.Get() then
+            if DailyOptimizerSetup."Tooltip Font Color" <> '' then
+                exit(DailyOptimizerSetup."Tooltip Font Color");
+
+        exit(TooltipFontColorTok);
+    end;
+
+    /// <summary>
     /// Public getters for this codeunit's own built-in default colours - exposed only so page
     /// 50654's "Reset to default" action can restore a user's setup override back to these
     /// defaults without duplicating the hex literals on the page. The underlying Tok labels stay
@@ -319,6 +371,16 @@ codeunit 50609 "Visual Default Settings"
     procedure GetDefaultBarFontColor(): Text
     begin
         exit(BarFontColorTok);
+    end;
+
+    procedure GetDefaultTooltipBackgroundColor(): Text
+    begin
+        exit(TooltipBackgroundColorTok);
+    end;
+
+    procedure GetDefaultTooltipFontColor(): Text
+    begin
+        exit(TooltipFontColorTok);
     end;
 
     procedure GetDefaultGanttTaskBarColor(): Text
@@ -652,6 +714,15 @@ codeunit 50609 "Visual Default Settings"
         // comment).
         // Used by: GetBarFontColor above only.
         BarFontColorTok: Label '#000000', Locked = true;
+        // Fallback for GetTooltipBackgroundColor/GetTooltipFontColor above - overridable via
+        // "Daily Optimizer Setup"."Tooltip Background Color"/"Tooltip Font Color". White
+        // background / black text is this setting's own chosen default, matching what
+        // capacity_planning_overview's .cpo-event-tip/.cpo-daily-summary-tip already hardcoded
+        // before this setting centralised it. Deliberately distinct from BarFontColorTok above -
+        // see GetTooltipBackgroundColor's own doc comment for why.
+        // Used by: GetTooltipBackgroundColor/GetTooltipFontColor above only.
+        TooltipBackgroundColorTok: Label '#FFFFFF', Locked = true;
+        TooltipFontColorTok: Label '#000000', Locked = true;
         // Fallback for GetWeekendColor/GetHolidayColor above - overridable via "Daily Optimizer
         // Setup"."Weekend Color"/"Holiday Color". Values match what src/dhx/ganttdemo2/style.css
         // and src/dhx/dayplanning_sequence/style.css already hardcode for .weekend/.holiday, kept

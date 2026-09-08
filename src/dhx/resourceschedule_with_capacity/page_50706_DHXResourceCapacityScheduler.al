@@ -20,6 +20,7 @@ page 50706 "DHX Scheduler - TimeLine"
                     ResSchedSetup: Record "Resource Scheduler Setup";
                     DailyOptimizerSetup: Record "Daily Optimizer Setup";
                     SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
+                    VisualDefaultSettings: Codeunit "Visual Default Settings";
                     TreeJsonTxt: Text;
                     ColorsJsonTxt: Text;
                     AssignedColorHex: Text;
@@ -85,7 +86,11 @@ page 50706 "DHX Scheduler - TimeLine"
                     // SetSkillFontBorderColors below instead (wrapper.js's "--dp-bar-font-color"/
                     // "pts-skill-<token>" rules), never via GetBarFontColor().
                     BarFontColorHex := SkillCapacityAnalysisMgt.GetBarFontColor();
-                    ColorsJsonTxt := StrSubstNo('{"envelope":"%1","envelopeBorder":"%2","assigned":"%3","assignedHeight":%4,"requestedHeight":%5,"capacity":"%6","capacityBorder":"%7","fontColor":"%8"}',
+                    // Hover/tooltip popup colours (dhtmlXTooltip + the filter-icon hover popup) -
+                    // from codeunit 50609 directly (not via SkillCapacityAnalysisMgt/50662's
+                    // forwarding wrappers, which don't cover these two getters) - see wrapper.js's
+                    // SetBarColors for how these are applied.
+                    ColorsJsonTxt := StrSubstNo('{"envelope":"%1","envelopeBorder":"%2","assigned":"%3","assignedHeight":%4,"requestedHeight":%5,"capacity":"%6","capacityBorder":"%7","fontColor":"%8","tooltipBg":"%9","tooltipFont":"%10"}',
                         DailyOptimizerSetup."Envelope Color",
                         DailyOptimizerSetup."Envelope Border Color",
                         AssignedColorHex,
@@ -93,7 +98,9 @@ page 50706 "DHX Scheduler - TimeLine"
                         DailyOptimizerSetup."Requested High (%)",
                         CapacityColorHex,
                         CapacityBorderColorHex,
-                        BarFontColorHex);
+                        BarFontColorHex,
+                        VisualDefaultSettings.GetTooltipBackgroundColor(),
+                        VisualDefaultSettings.GetTooltipFontColor());
                     CurrPage.DhxScheduler.SetBarColors(ColorsJsonTxt);
                     CurrPage.DhxScheduler.SetSkillFontBorderColors(DHXDataHandler.BuildSkillFontBorderColorsJson());
                     PushResourceFilterInfo();

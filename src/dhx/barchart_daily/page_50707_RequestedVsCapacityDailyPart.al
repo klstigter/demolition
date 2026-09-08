@@ -290,6 +290,10 @@ page 50707 "Requested vs Capacity Daily P"
         // 2026".
         ChartData.Add('periodLabel', FormatFullDayText(PeriodStartDate));
         ChartData.Add('title', RequestedVsCapacityTitleLbl);
+        // Hover/tooltip popup colours for dhx.Chart's own built-in hover tooltip - codeunit
+        // 50609's GetTooltipBackgroundColor/GetTooltipFontColor. See wrapper.js's RenderChart.
+        ChartData.Add('tooltipBg', VisualDefaultSettings.GetTooltipBackgroundColor());
+        ChartData.Add('tooltipFont', VisualDefaultSettings.GetTooltipFontColor());
 
         ChartData.WriteTo(ChartDataJson);
         CurrPage.DhxBarChart.LoadData(ChartDataJson);

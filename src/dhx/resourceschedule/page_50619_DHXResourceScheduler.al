@@ -42,6 +42,7 @@ page 50619 "Resource Scheduler - Calendar"
                 trigger ControlReady()
                 var
                     SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
+                    VisualDefaultSettings: Codeunit "Visual Default Settings";
                 begin
                     AnchorDate := Today();
                     if CurrentStartDate <> 0D then
@@ -50,8 +51,12 @@ page 50619 "Resource Scheduler - Calendar"
                     // Text/caption color for every event bar's on-bar label - "Daily Optimizer
                     // Setup"."Bar Font Color" via codeunit 50609's GetBarFontColor (forwarded
                     // through codeunit 50662), same setting as the other scheduler pages. Does
-                    // NOT affect tooltip text.
+                    // NOT affect tooltip text - see SetTooltipColors below for that separate
+                    // setting.
                     CurrPage.DhxScheduler.SetBarFontColor(SkillCapacityAnalysisMgt.GetBarFontColor());
+                    // Hover/tooltip popup background/font colour - codeunit 50609's
+                    // GetTooltipBackgroundColor/GetTooltipFontColor.
+                    CurrPage.DhxScheduler.SetTooltipColors(VisualDefaultSettings.GetTooltipBackgroundColor(), VisualDefaultSettings.GetTooltipFontColor());
                 end;
 
                 trigger OnAfterInit()

@@ -371,12 +371,14 @@ window.BOOT = function() {
         background: #1f6fe0;
     }
     /* Fixed body-level tooltip popup (never clipped by the grid's overflow:hidden) —
-       same styling as the Gantt resource-panel filter tooltip for visual consistency. */
+       same styling as the Gantt resource-panel filter tooltip for visual consistency.
+       Background/font colour sourced from codeunit 50609's GetTooltipBackgroundColor/
+       GetTooltipFontColor, same channel/vars as .dhtmlXTooltip.tooltip in style.css. */
     #tsk-filter-tooltip-popup {
         display: none;
         position: fixed;
-        background: #ffffff;
-        color: #23272A;
+        background: var(--tooltip-bg-color, #ffffff);
+        color: var(--tooltip-font-color, #23272A);
         border: 1px solid #4a6fa5;
         border-radius: 5px;
         padding: 8px 12px;
@@ -1003,6 +1005,11 @@ function SetBarColors(colorsJson) {
         // Text/border colour is per-skill now (see SetSkillFontBorderColors below) - this
         // scheduler has no Capacity bar of its own, so there is no longer any bar here that
         // should read "Daily Optimizer Setup"."Bar Font Color"/GetBarFontColor.
+        // Hover/tooltip popup colours (dhtmlXTooltip + #tsk-filter-tooltip-popup) - set on
+        // document.documentElement rather than "root" (#scheduler_here) since both popups are
+        // appended at document.body level, outside #scheduler_here's own DOM subtree.
+        if (colors.tooltipBg) document.documentElement.style.setProperty("--tooltip-bg-color", colors.tooltipBg);
+        if (colors.tooltipFont) document.documentElement.style.setProperty("--tooltip-font-color", colors.tooltipFont);
     } catch (e) {
         console.warn("SetBarColors: invalid colorsJson", colorsJson, e);
     }

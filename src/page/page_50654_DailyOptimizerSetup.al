@@ -211,6 +211,46 @@ page 50654 "Daily Optimizer Setup"
 
                 }
 
+                group(Tooltip)
+                {
+                    Caption = 'Hover / Tooltip Popup';
+
+                    field("Tooltip Background Color"; Rec."Tooltip Background Color")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Background color of every hover/tooltip popup shown across the scheduler, Gantt chart, and Capacity Planning Overview add-ins. Enter a hex color, e.g. #FFFFFF.';
+
+                        trigger OnAssistEdit()
+                        var
+                            ColorPickerPage: Page "Color Picker Lookup";
+                        begin
+                            ColorPickerPage.SetInitialColor(Rec."Tooltip Background Color");
+                            if ColorPickerPage.RunModal() = Action::OK then begin
+                                Rec."Tooltip Background Color" := ColorPickerPage.GetSelectedColor();
+                                Rec.Modify(true);
+                                CurrPage.Update(false);
+                            end;
+                        end;
+                    }
+                    field("Tooltip Font Color"; Rec."Tooltip Font Color")
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Text color of every hover/tooltip popup shown across the scheduler, Gantt chart, and Capacity Planning Overview add-ins. Enter a hex color, e.g. #000000.';
+
+                        trigger OnAssistEdit()
+                        var
+                            ColorPickerPage: Page "Color Picker Lookup";
+                        begin
+                            ColorPickerPage.SetInitialColor(Rec."Tooltip Font Color");
+                            if ColorPickerPage.RunModal() = Action::OK then begin
+                                Rec."Tooltip Font Color" := ColorPickerPage.GetSelectedColor();
+                                Rec.Modify(true);
+                                CurrPage.Update(false);
+                            end;
+                        end;
+                    }
+                }
+
                 group(Colors)
                 {
                     Caption = 'Bar Colors';
@@ -436,6 +476,8 @@ page 50654 "Daily Optimizer Setup"
                         Rec."External Border Color" := VisualDefaultSettings.GetDefaultExternalBorderColor();
                         Rec."Capacity Border Color" := VisualDefaultSettings.GetDefaultCapacityBorderColor();
                         Rec."Bar Font Color" := VisualDefaultSettings.GetDefaultBarFontColor();
+                        Rec."Tooltip Background Color" := VisualDefaultSettings.GetDefaultTooltipBackgroundColor();
+                        Rec."Tooltip Font Color" := VisualDefaultSettings.GetDefaultTooltipFontColor();
                         Rec."Weekend Color" := VisualDefaultSettings.GetDefaultWeekendColor();
                         Rec."Holiday Color" := VisualDefaultSettings.GetDefaultHolidayColor();
                         Rec."Bar Width (px) - Bar Chart" := VisualDefaultSettings.GetDefaultDailyBarChartWidth();

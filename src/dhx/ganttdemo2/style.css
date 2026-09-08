@@ -105,7 +105,8 @@ html,
 		   this custom property, scoped to the #gantt_here container). Overrides the vendored
 		   dhtmlxgantt.css's own --dhx-gantt-task-color (default #1e2022) rather than editing
 		   that vendored file directly - non-invasive, same approach as the .bc-indent-N border
-		   overrides below. Does NOT affect .gantt_tooltip text (out of scope by design). */
+		   overrides below. Does NOT affect .gantt_tooltip text - see the separate .gantt_tooltip
+		   override below (its own setting, GetTooltipFontColor, not this one). */
 		#gantt_here { --bar-font-color: #000000; }
 		.gantt_task_content {
 			color: var(--bar-font-color) !important;
@@ -220,7 +221,15 @@ html,
 			justify-content: center;
 		}
 		
+		/* Background/font colour sourced from codeunit 50609's GetTooltipBackgroundColor/
+		   GetTooltipFontColor via wrapper.js's SetTooltipColors (document.documentElement custom
+		   properties, since dhtmlx appends this tooltip outside #gantt_here's own DOM subtree).
+		   Overrides the vendored dhtmlxgantt.css theme's own --dhx-gantt-tooltip-background/
+		   --dhx-gantt-tooltip-color (dark bg/light text by default) - the var() fallbacks below
+		   (#ffffff/#000000) only apply before SetTooltipColors has run once. */
 		.gantt_tooltip {
+			background: var(--tooltip-bg-color, #ffffff) !important;
+			color: var(--tooltip-font-color, #000000) !important;
 			font-size: 12px;
 			line-height: 1.4;
 			padding: 8px 10px;

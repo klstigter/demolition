@@ -1304,6 +1304,14 @@ page 50620 "Gantt Demo DHX 2"
             VisualDefaultSettings.GetGanttTaskBarFontSize(),
             VisualDefaultSettings.GetGanttTaskBarHeight());
 
+        // Hover/tooltip popup background/font colour - codeunit 50609's
+        // GetTooltipBackgroundColor/GetTooltipFontColor - applied to the vendored .gantt_tooltip,
+        // the custom #bc_DayPlanning_tooltip, and the filter-icon hover popups. Separate setting
+        // from "Bar Font Color" above (see that field's own doc comment: explicitly not used for
+        // hover/tooltip text). Same call-every-LoadAllData convention as SetBarFontColor/
+        // SetDayOffColors/SetGanttTaskBarDefaults above.
+        CurrPage.DHXGanttControl2.SetTooltipColors(VisualDefaultSettings.GetTooltipBackgroundColor(), VisualDefaultSettings.GetTooltipFontColor());
+
         GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
 
         // Keep the filter-toolbar icon/tooltip (funnel + reset) in sync with the current

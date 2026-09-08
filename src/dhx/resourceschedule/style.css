@@ -21,10 +21,17 @@
     overflow: hidden;
 }
 
-/* ---- Custom tooltip (black background / white text) ---- */
+/* ---- Custom tooltip ----
+   Background/font colour sourced from codeunit 50609 "Visual Default Settings"'s
+   GetTooltipBackgroundColor/GetTooltipFontColor, sent as colors.tooltipBg/colors.tooltipFont by
+   page 50619's ControlReady and applied by wrapper.js's SetBarColors onto
+   document.documentElement (dhtmlXTooltip divs are appended at document.body level, outside any
+   scoped scheduler root). The literal fallbacks below (#000000/#ffffff) only apply before
+   SetBarColors has run once. Secondary divider borders (rgba(255,255,255,0.2)) switched to a
+   dark equivalent to stay legible against the new light default background. */
 .dhtmlXTooltip.tooltip {
-    background: #000000 !important;
-    color: #ffffff !important;
+    background: var(--tooltip-bg-color, #000000) !important;
+    color: var(--tooltip-font-color, #ffffff) !important;
     border: none !important;
 }
 .dhx-tt {
@@ -32,28 +39,28 @@
     font-family: inherit;
     font-size: 12px;
     line-height: 1.5;
-    color: #f0f0f0;
+    color: var(--tooltip-font-color, #f0f0f0);
 }
 .dhx-tt-res {
     font-weight: 700;
     font-size: 13px;
     margin-bottom: 1px;
-    color: #ffffff;
+    color: var(--tooltip-font-color, #ffffff);
 }
 .dhx-tt-date {
-    color: #aaaaaa;
+    color: var(--tooltip-font-color, #aaaaaa);
     font-size: 11px;
     margin-bottom: 6px;
 }
 .dhx-tt-task-line {
     font-size: 12px;
-    color: #ffffff;
+    color: var(--tooltip-font-color, #ffffff);
     margin-bottom: 6px;
     padding-bottom: 6px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.15);
 }
 .dhx-tt-task-line b {
-    color: #cfcfcf;
+    color: var(--tooltip-font-color, #cfcfcf);
 }
 .dhx-tt-table {
     display: grid;
@@ -64,18 +71,18 @@
 .dhx-tt-th {
     font-weight: 700;
     font-size: 11px;
-    color: #aaaaaa;
+    color: var(--tooltip-font-color, #aaaaaa);
     padding-bottom: 3px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.15);
 }
 .dhx-tt-label {
-    color: #cfcfcf;
+    color: var(--tooltip-font-color, #cfcfcf);
     font-weight: 700;
     padding: 1px 0;
 }
 .dhx-tt-val {
     font-weight: 400;
-    color: #ffffff;
+    color: var(--tooltip-font-color, #ffffff);
     padding: 1px 0;
 }
 

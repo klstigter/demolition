@@ -16,10 +16,15 @@ html, body{
     opacity: 0.5;
 }
 
-/* ---- Custom tooltip (black background / white text) ---- */
+/* ---- Custom tooltip ----
+   Background/font colour sourced from codeunit 50609 "Visual Default Settings"'s
+   GetTooltipBackgroundColor/GetTooltipFontColor via wrapper.js's SetTooltipColors
+   (document.documentElement custom properties - .dhtmlXTooltip divs are appended at
+   document.body level, outside any scoped scheduler root). Literal fallbacks below
+   (#000000/#ffffff) only apply before SetTooltipColors has run once. */
 .dhtmlXTooltip.tooltip {
-    background: #000000 !important;
-    color: #ffffff !important;
+    background: var(--tooltip-bg-color, #000000) !important;
+    color: var(--tooltip-font-color, #ffffff) !important;
     border: none !important;
 }
 .dhx-tt {
@@ -27,16 +32,16 @@ html, body{
     font-family: inherit;
     font-size: 12px;
     line-height: 1.5;
-    color: #f0f0f0;
+    color: var(--tooltip-font-color, #f0f0f0);
 }
 .dhx-tt-res {
     font-weight: 700;
     font-size: 13px;
     margin-bottom: 1px;
-    color: #ffffff;
+    color: var(--tooltip-font-color, #ffffff);
 }
 .dhx-tt-date {
-    color: #aaaaaa;
+    color: var(--tooltip-font-color, #aaaaaa);
     font-size: 11px;
     margin-bottom: 6px;
 }
@@ -49,17 +54,17 @@ html, body{
 .dhx-tt-th {
     font-weight: 700;
     font-size: 11px;
-    color: #aaaaaa;
+    color: var(--tooltip-font-color, #aaaaaa);
     padding-bottom: 3px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.15);
 }
 .dhx-tt-label {
-    color: #cfcfcf;
+    color: var(--tooltip-font-color, #cfcfcf);
     font-weight: 700;
     padding: 1px 0;
 }
 .dhx-tt-val {
     font-weight: 400;
-    color: #ffffff;
+    color: var(--tooltip-font-color, #ffffff);
     padding: 1px 0;
 }

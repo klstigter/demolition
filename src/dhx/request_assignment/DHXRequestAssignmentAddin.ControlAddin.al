@@ -27,6 +27,11 @@ controladdin DHXRequestAssignmentAddin
         'src/dhx/request_assignment/style.css';
 
     procedure SetPlanningData(PlanningDataJsonTxt: Text);
+    // Hover/tooltip popup colours - codeunit 50609's GetTooltipBackgroundColor/
+    // GetTooltipFontColor, applied to every custom hover-popup shell in style.css
+    // (.sequence-drag-tooltip/.assignment-detail-tooltip/.resource-skill-warning-tooltip/
+    // .request-detail-tooltip). See wrapper.js's SetColors.
+    procedure SetColors(ColorsJsonTxt: Text);
     // Part B.2/B.3 pagination - appends a background-loaded remainder of "dayTaskLines" (whole
     // sequenceKey groups that didn't fit RefreshPlanningData's first synchronous page) into the
     // already-rendered board in place. See wrapper.js's AppendDayTaskLines: .push()es the parsed

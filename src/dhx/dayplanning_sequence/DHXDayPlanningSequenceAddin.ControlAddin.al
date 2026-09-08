@@ -33,4 +33,8 @@ controladdin DHXDayPlanningSequenceAddin
     procedure RefreshTimeline(sectionsJson: Text; eventsJson: Text; anchorDate: Date; latestDate: Date);
     procedure LoadHolidaysData(holidaysJsonTxt: Text);
     procedure SetDayOffColors(weekendColorHex: Text; holidayColorHex: Text);
+    // Hover/tooltip popup colours - codeunit 50609's GetTooltipBackgroundColor/
+    // GetTooltipFontColor, applied to .dps-tooltip (style.css). Same convention as
+    // SetDayOffColors above.
+    procedure SetTooltipColors(backgroundColorHex: Text; fontColorHex: Text);
 }

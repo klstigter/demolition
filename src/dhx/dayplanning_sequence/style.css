@@ -279,13 +279,18 @@
 }
 
 /* ── Tooltip ───────────────────────────────────────────────── */
+/* Background/font colour sourced from codeunit 50609 "Visual Default Settings"'s
+   GetTooltipBackgroundColor/GetTooltipFontColor via wrapper.js's SetTooltipColors
+   (document.documentElement custom properties). Literal fallbacks below (#fff/#172033) only
+   apply before SetTooltipColors has run once, and match this setting's own built-in defaults
+   (#FFFFFF/#000000) closely enough to be visually identical on first paint. */
 .dps-tooltip {
     position: fixed;
     z-index: 120;
     display: none;
     width: 260px;
-    background: #fff;
-    color: #172033;
+    background: var(--tooltip-bg-color, #fff);
+    color: var(--tooltip-font-color, #172033);
     border: 1px solid #d8dee8;
     border-radius: 10px;
     box-shadow: 0 16px 38px rgba(25, 35, 55, .18);
@@ -313,12 +318,12 @@
 }
 
 .dps-tooltip-label {
-    color: #7b8494;
+    color: var(--tooltip-font-color, #7b8494);
 }
 
 .dps-tooltip-value {
     font-weight: 650;
-    color: #263248;
+    color: var(--tooltip-font-color, #263248);
 }
 
 /* ── Error banner (missing DHTMLX Scheduler build) ───────────── */

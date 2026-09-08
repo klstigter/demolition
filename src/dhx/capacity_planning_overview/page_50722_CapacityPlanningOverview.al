@@ -22,6 +22,7 @@ page 50722 "Capacity Planning Overview"
                 trigger ControlReady()
                 begin
                     EnsureDaysToShow();
+                    SendColors();
                     RefreshData();
                 end;
 
@@ -160,6 +161,26 @@ page 50722 "Capacity Planning Overview"
     begin
         if DaysToShow <= 0 then
             DaysToShow := DefaultDaysToShow;
+    end;
+
+    /// <summary>
+    /// Pushes the hover/tooltip popup's background/font colour into the control add-in via the
+    /// existing SetColors channel (ControlAddin's own SetColors procedure/applyColors JS handler -
+    /// previously a no-op placeholder). Sourced from codeunit 50609 "Visual Default Settings"'s
+    /// GetTooltipBackgroundColor/GetTooltipFontColor so this add-in's .cpo-event-tip/
+    /// .cpo-daily-summary-tip popups (style.css) share the same single overridable setting as
+    /// every other DHX add-in's hover/tooltip popup, instead of the flat hardcoded #fff/dark-grey
+    /// literals style.css used to carry directly.
+    /// </summary>
+    local procedure SendColors()
+    var
+        VisualDefaultSettings: Codeunit "Visual Default Settings";
+        ColorsJsonTxt: Text;
+    begin
+        ColorsJsonTxt := StrSubstNo('{"tooltipBg":"%1","tooltipFont":"%2"}',
+            VisualDefaultSettings.GetTooltipBackgroundColor(),
+            VisualDefaultSettings.GetTooltipFontColor());
+        CurrPage.DhxCpo.SetColors(ColorsJsonTxt);
     end;
 
     /// <summary>

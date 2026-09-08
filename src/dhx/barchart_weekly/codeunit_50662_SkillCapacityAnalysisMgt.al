@@ -386,6 +386,12 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         ChartData.Add('dayIndices', DayIndicesArray);
         ChartData.Add('series', SeriesArray);
         ChartData.Add('barWidth', ColorConstants.GetWeeklyBarChartWidth());
+        // Hover/tooltip popup colours for dhx.Chart's own built-in hover tooltip (shown when
+        // hovering a bar) - codeunit 50609's GetTooltipBackgroundColor/GetTooltipFontColor,
+        // forwarded through this codeunit's own ColorConstants alias. See
+        // src/dhx/barchart_weekly/wrapper.js's RenderChart for how these two keys are applied.
+        ChartData.Add('tooltipBg', ColorConstants.GetTooltipBackgroundColor());
+        ChartData.Add('tooltipFont', ColorConstants.GetTooltipFontColor());
         ChartData.WriteTo(ChartDataJson);
     end;
 

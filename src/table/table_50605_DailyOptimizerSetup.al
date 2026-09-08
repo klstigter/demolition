@@ -153,6 +153,21 @@ table 50605 "Daily Optimizer Setup"
             Caption = 'Gantt Task Bar Height (px)';
             DataClassification = CustomerContent;
         }
+
+        // Hover/tooltip popup colors: applicable to every DHX control add-in's hover/tooltip
+        // popup (dhtmlx built-in tooltip plugin and custom hover-popup divs alike) - see
+        // codeunit 50609 "Visual Default Settings"'s GetTooltipBackgroundColor/GetTooltipFontColor
+        // doc comments for the full list of consumers.
+        field(86; "Tooltip Background Color"; Text[20])
+        {
+            Caption = 'Tooltip Background Color';
+            DataClassification = CustomerContent;
+        }
+        field(87; "Tooltip Font Color"; Text[20])
+        {
+            Caption = 'Tooltip Font Color';
+            DataClassification = CustomerContent;
+        }
     }
 
     keys

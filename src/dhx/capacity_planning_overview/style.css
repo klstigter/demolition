@@ -224,13 +224,20 @@
 }
 
 /* ---------- Event tooltip (section 2 hover) ---------- */
+/* Background/primary text colour source from codeunit 50609 "Visual Default Settings"'s
+   GetTooltipBackgroundColor/GetTooltipFontColor (via page 50722 ControlReady -> SetColors ->
+   applyColors, capacityPlanningOverview.js), applied here as the --cpo-tooltip-bg/
+   --cpo-tooltip-font CSS custom properties. The literal fallbacks below (#fff/#101828) only
+   apply before JS has run once and match the setup's own built-in defaults (#FFFFFF/#000000)
+   closely enough to be visually identical on first paint. */
 
 .cpo-event-tip,
 .cpo-daily-summary-tip {
     display: none;
     position: fixed;
     z-index: 20000;
-    background: #fff;
+    background: var(--cpo-tooltip-bg, #fff);
+    color: var(--cpo-tooltip-font, #101828);
     border: 1px solid #d7d7d7;
     border-radius: 6px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, .15);
@@ -249,7 +256,7 @@
 
 .cpo-tip-main {
     font-size: 12px;
-    color: #101828;
+    color: var(--cpo-tooltip-font, #101828);
 }
 
 .cpo-tip-muted {

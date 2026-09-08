@@ -304,9 +304,33 @@ window.BOOT = function() {
 // rebuild (mirrors this project's existing "wipe and rebuild" convention, e.g.
 // BuildResourcePanel in src/dhx/resourceschedule/wrapper.js).
 // ============================================================
+// Applies "Daily Optimizer Setup"."Tooltip Background Color"/"Tooltip Font Color" (via codeunit
+// 50609's GetTooltipBackgroundColor/GetTooltipFontColor, sent as chartData.tooltipBg/
+// chartData.tooltipFont) to dhx.Chart's own built-in hover tooltip (shown when hovering a bar -
+// suite.js's generic ".dhx_tooltip"/".dhx_tooltip__text" classes, themed dark-grey/white by
+// default via suite.css's --dhx-tooltip-background-dark/--dhx-color-white). This add-in has no
+// dedicated style.css of its own (only suite.css is loaded - see the ControlAddin's
+// StyleSheets), so the override is injected here instead of added to a stylesheet file. Same
+// approach as src/dhx/barchart_daily/wrapper.js's own ApplyTooltipColors. Idempotent - reuses the
+// same <style> element across every RenderChart call instead of appending a new one each time.
+var _tooltipStyleEl = null;
+function ApplyTooltipColors(backgroundColorHex, fontColorHex) {
+    if (!backgroundColorHex && !fontColorHex) return;
+    if (!_tooltipStyleEl) {
+        _tooltipStyleEl = document.createElement("style");
+        document.head.appendChild(_tooltipStyleEl);
+    }
+    var bg = backgroundColorHex || "#ffffff";
+    var font = fontColorHex || "#000000";
+    _tooltipStyleEl.textContent =
+        ".dhx_tooltip{ background-color:" + bg + " !important; }" +
+        ".dhx_tooltip__text{ color:" + font + " !important; }";
+}
+
 function RenderChart(chartData, legendSizeOverride, isCorrectivePass) {
     if (!chartContainer) return;
 
+    ApplyTooltipColors(chartData && chartData.tooltipBg, chartData && chartData.tooltipFont);
     UpdateHeader(chartData);
 
     lastChartData = chartData;
