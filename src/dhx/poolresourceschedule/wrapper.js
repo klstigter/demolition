@@ -323,12 +323,15 @@ window.BOOT = function() {
     #res-collapseall-icon:active {
         background: #1f6fe0;
     }
-    /* Fixed body-level tooltip popup (never clipped by the grid's overflow:hidden) */
+    /* Fixed body-level tooltip popup (never clipped by the grid's overflow:hidden).
+       Background/font colour sourced from codeunit 50609's GetTooltipBackgroundColor/
+       GetTooltipFontColor, same channel/vars as the .dhtmlXTooltip.tooltip rule in style.css - see
+       that rule's own comment. */
     #res-filter-tooltip-popup {
         display: none;
         position: fixed;
-        background: #ffffff;
-        color: #23272A;
+        background: var(--tooltip-bg-color, #ffffff);
+        color: var(--tooltip-font-color, #23272A);
         border: 1px solid #4a6fa5;
         border-radius: 5px;
         padding: 8px 12px;
@@ -1052,6 +1055,11 @@ function SetBarColors(colorsJson) {
         // bar's on-bar label text (Capacity/Vacancy/DayPlanning_0/DayPlanning_1 event types
         // above). Does NOT affect hover/tooltip text.
         if (colors.fontColor) root.style.setProperty("--bar-font-color", colors.fontColor);
+        // Hover/tooltip popup colours - on document.documentElement, not "root", since both
+        // .dhtmlXTooltip and #res-filter-tooltip-popup are appended at document.body level,
+        // outside #scheduler_here's own DOM subtree.
+        if (colors.tooltipBg) document.documentElement.style.setProperty("--tooltip-bg-color", colors.tooltipBg);
+        if (colors.tooltipFont) document.documentElement.style.setProperty("--tooltip-font-color", colors.tooltipFont);
     } catch (e) {
         console.warn("SetBarColors: invalid colorsJson", colorsJson, e);
     }

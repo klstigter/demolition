@@ -44,7 +44,9 @@ window.BOOT = function() {
                    own — prev/next/today/tabs — occupying the top-left corner there). */
                 '.rp-header{display:flex;align-items:center;justify-content:space-between;gap:6px;}' +
                 '#res-filter-toolbar{display:flex;align-items:center;gap:4px;}' +
-                '#res-filter-tooltip-popup{display:none;position:fixed;background:#ffffff;color:#23272A;border:1px solid #4a6fa5;' +
+                /* Background/font colour sourced from codeunit 50609's GetTooltipBackgroundColor/
+                   GetTooltipFontColor, same channel/vars as .dhtmlXTooltip.tooltip in style.css. */
+                '#res-filter-tooltip-popup{display:none;position:fixed;background:var(--tooltip-bg-color, #ffffff);color:var(--tooltip-font-color, #23272A);border:1px solid #4a6fa5;' +
                 'border-radius:5px;padding:8px 12px;font-size:12px;font-weight:normal;white-space:nowrap;z-index:999999;' +
                 'box-shadow:0 3px 10px rgba(0,0,0,.25);min-width:180px;pointer-events:none;}';
             document.head.appendChild(s);
@@ -589,6 +591,18 @@ function SetBarFontColor(fontColorHex) {
     var root = document.getElementById('scheduler_here');
     if (!root) return;
     if (fontColorHex) root.style.setProperty('--bar-font-color', fontColorHex);
+}
+
+// AL-callable: SetTooltipColors - applies "Daily Optimizer Setup"."Tooltip Background Color"/
+// "Tooltip Font Color" (via codeunit 50609's GetTooltipBackgroundColor/GetTooltipFontColor) to
+// the hover/tooltip popups this add-in renders: .dhtmlXTooltip.tooltip (style.css) and
+// #res-filter-tooltip-popup (this file's own injected <style> block). Set on
+// document.documentElement rather than "root" (#scheduler_here) - both popups are appended at
+// document.body level, outside #scheduler_here's own DOM subtree.
+function SetTooltipColors(backgroundColorHex, fontColorHex) {
+    var root = document.documentElement;
+    if (backgroundColorHex) root.style.setProperty('--tooltip-bg-color', backgroundColorHex);
+    if (fontColorHex) root.style.setProperty('--tooltip-font-color', fontColorHex);
 }
 
 // ============================================================

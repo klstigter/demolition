@@ -42,6 +42,9 @@ page 50711 "Day Planning Sequence Part"
                     CurrPage.DhxSequence.LoadData(EventsJsonTxt);
                     PushHolidaysData(EarliestDate, LatestDate);
                     CurrPage.DhxSequence.SetDayOffColors(VisualDefaultSettings.GetWeekendColor(), VisualDefaultSettings.GetHolidayColor());
+                    // Hover/tooltip popup background/font colour - codeunit 50609's
+                    // GetTooltipBackgroundColor/GetTooltipFontColor.
+                    CurrPage.DhxSequence.SetTooltipColors(VisualDefaultSettings.GetTooltipBackgroundColor(), VisualDefaultSettings.GetTooltipFontColor());
                 end;
 
                 /// <summary>

@@ -16,10 +16,16 @@ html, body{
     opacity: 0.5;
 }
 
-/* ---- Custom tooltip (black background / white text, tabular 2-column, no header) ---- */
+/* ---- Custom tooltip (tabular 2-column, no header) ----
+   Background/font colour sourced from codeunit 50609 "Visual Default Settings"'s
+   GetTooltipBackgroundColor/GetTooltipFontColor, sent as colors.tooltipBg/colors.tooltipFont by
+   page 50600's ControlReady and applied by wrapper.js's SetBarColors onto
+   document.documentElement (dhtmlXTooltip divs are appended at document.body level, outside any
+   scoped scheduler root). The literal fallbacks below (#000000/#ffffff) only apply before
+   SetBarColors has run once. */
 .dhtmlXTooltip.tooltip {
-    background: #000000 !important;
-    color: #ffffff !important;
+    background: var(--tooltip-bg-color, #000000) !important;
+    color: var(--tooltip-font-color, #ffffff) !important;
     border: none !important;
 }
 .dhx-tt {
@@ -27,16 +33,16 @@ html, body{
     font-family: inherit;
     font-size: 12px;
     line-height: 1.5;
-    color: #f0f0f0;
+    color: var(--tooltip-font-color, #f0f0f0);
 }
 .dhx-tt-res {
     font-weight: 700;
     font-size: 13px;
     margin-bottom: 1px;
-    color: #ffffff;
+    color: var(--tooltip-font-color, #ffffff);
 }
 .dhx-tt-date {
-    color: #aaaaaa;
+    color: var(--tooltip-font-color, #aaaaaa);
     font-size: 11px;
     margin-bottom: 6px;
 }
@@ -47,12 +53,12 @@ html, body{
     margin-top: 4px;
 }
 .dhx-tt-label {
-    color: #cfcfcf;
+    color: var(--tooltip-font-color, #cfcfcf);
     font-weight: 700;
     padding: 1px 0;
 }
 .dhx-tt-val {
     font-weight: 400;
-    color: #ffffff;
+    color: var(--tooltip-font-color, #ffffff);
     padding: 1px 0;
 }

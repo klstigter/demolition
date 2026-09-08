@@ -2091,7 +2091,20 @@ class CapacityPlanningOverview {
     // ================================================================================
 
     applyColors(json) {
-        // no-op placeholder - color wiring comes in a later step.
+        // Tooltip background/font colour only, for now - the rest of this placeholder's original
+        // scope (bar/segment colours) is still deferred to a later step. Sourced from codeunit
+        // 50609 "Visual Default Settings"'s GetTooltipBackgroundColor/GetTooltipFontColor via
+        // page 50722's ControlReady -> SetColors -> here. Applied to document.documentElement
+        // (rather than this.containerId's own root) because .cpo-event-tip/.cpo-daily-summary-tip
+        // are appended to body-level markup in buildLayout, not nested under a scoped root - a
+        // custom property set there is guaranteed to inherit regardless of where dhtmlx/this
+        // component later (re)parents the tooltip divs. Guarded per-key so a blank/absent value
+        // leaves the CSS var() fallback (#fff/#101828 in style.css, matching this setting's own
+        // #FFFFFF/#000000 built-in defaults) in effect instead of clobbering it.
+        if (!json) return;
+        var root = document.documentElement;
+        if (json.tooltipBg) root.style.setProperty('--cpo-tooltip-bg', json.tooltipBg);
+        if (json.tooltipFont) root.style.setProperty('--cpo-tooltip-font', json.tooltipFont);
     }
 
     showCapacityModal(json) {

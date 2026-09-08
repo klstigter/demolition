@@ -14,7 +14,16 @@ page 50710 "DHX Request Assignment Board"
                 ApplicationArea = All;
 
                 trigger ControlReady()
+                var
+                    VisualDefaultSettings: Codeunit "Visual Default Settings";
+                    ColorsJsonTxt: Text;
                 begin
+                    // Hover/tooltip popup background/font colour - codeunit 50609's
+                    // GetTooltipBackgroundColor/GetTooltipFontColor.
+                    ColorsJsonTxt := StrSubstNo('{"tooltipBg":"%1","tooltipFont":"%2"}',
+                        VisualDefaultSettings.GetTooltipBackgroundColor(),
+                        VisualDefaultSettings.GetTooltipFontColor());
+                    CurrPage.DhxScheduler.SetColors(ColorsJsonTxt);
                     RefreshPlanningData();
                 end;
 

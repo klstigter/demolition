@@ -2005,15 +2005,23 @@ body.pane-resizing {
   border: 2px dotted #d9534f !important;
 }
 
-/* Sequence drag count follows the mouse pointer. */
+/* Sequence drag count follows the mouse pointer.
+   Background/font colour sourced from codeunit 50609 "Visual Default Settings"'s
+   GetTooltipBackgroundColor/GetTooltipFontColor via wrapper.js's SetTooltipColors
+   (document.documentElement custom properties). Literal fallbacks below only apply before
+   SetTooltipColors has run once, and match this setting's own built-in defaults
+   (#FFFFFF/#000000) closely enough to be visually identical on first paint. Every hover-popup
+   shell in this file (.sequence-drag-tooltip, .assignment-detail-tooltip,
+   .resource-skill-warning-tooltip, .request-detail-tooltip, and their shared shell rule near
+   "Make both tooltip shells visually identical") shares this same var pair. */
 .sequence-drag-tooltip {
   position: fixed;
   z-index: 12000;
   padding: 4px 8px;
   border: 1px solid rgba(3, 91, 126, .22);
   border-radius: 6px;
-  background: rgba(255, 255, 255, .97);
-  color: #17394a;
+  background: var(--tooltip-bg-color, rgba(255, 255, 255, .97));
+  color: var(--tooltip-font-color, #17394a);
   font-size: 11px;
   font-weight: 600;
   line-height: 1.2;
@@ -2241,8 +2249,8 @@ body.pane-resizing {
   padding: 7px 8px;
   border: 1px solid #bfd3dc;
   border-radius: 7px;
-  background: rgba(255, 255, 255, .98);
-  color: #17394a;
+  background: var(--tooltip-bg-color, rgba(255, 255, 255, .98));
+  color: var(--tooltip-font-color, #17394a);
   box-shadow: 0 5px 16px rgba(0, 0, 0, .14);
   pointer-events: none;
 }
@@ -2350,8 +2358,8 @@ body.pane-resizing {
   padding: 8px 10px;
   border: 1px solid #bfd3dc;
   border-radius: 7px;
-  background: rgba(255, 255, 255, .99);
-  color: #17394a;
+  background: var(--tooltip-bg-color, rgba(255, 255, 255, .99));
+  color: var(--tooltip-font-color, #17394a);
   box-shadow: 0 5px 16px rgba(0, 0, 0, .14);
   pointer-events: none;
 }
@@ -2447,8 +2455,8 @@ body.pane-resizing {
   padding: 8px 10px;
   border: 1px solid #bfd3dc;
   border-radius: 7px;
-  background: rgba(255, 255, 255, .99);
-  color: #17394a;
+  background: var(--tooltip-bg-color, rgba(255, 255, 255, .99));
+  color: var(--tooltip-font-color, #17394a);
   box-shadow: 0 5px 16px rgba(0, 0, 0, .14);
   pointer-events: none;
 }
@@ -2629,8 +2637,8 @@ body.hierarchy-density-normal #requestScheduler .task-group-cell {
   padding: 8px 10px;
   border: 1px solid #bfd3dc;
   border-radius: 7px;
-  background: rgba(255, 255, 255, .99);
-  color: #17394a;
+  background: var(--tooltip-bg-color, rgba(255, 255, 255, .99));
+  color: var(--tooltip-font-color, #17394a);
   box-shadow: 0 5px 16px rgba(0, 0, 0, .14);
 }
 

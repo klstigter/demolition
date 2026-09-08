@@ -18,6 +18,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
                 trigger ControlReady()
                 var
                     SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
+                    VisualDefaultSettings: Codeunit "Visual Default Settings";
                     startDate: Date;
                     endDate: Date;
                     EarliestPlanningDate: Date;
@@ -55,7 +56,12 @@ page 50600 "DHX Scheduler (Pool Resource)"
                     SkillCapacityAnalysisMgt.GetCapacitySegmentColors(AssignedColorHex, CapacityColorHex, ExternalBorderColorHex);
                     CapacityBorderColorHex := SkillCapacityAnalysisMgt.GetCapacityBorderColor();
                     BarFontColorHex := SkillCapacityAnalysisMgt.GetBarFontColor();
-                    ColorsJsonTxt := StrSubstNo('{"capacity":"%1","capacityBorder":"%2","fontColor":"%3"}', CapacityColorHex, CapacityBorderColorHex, BarFontColorHex);
+                    // Hover/tooltip popup colours - codeunit 50609's GetTooltipBackgroundColor/
+                    // GetTooltipFontColor directly (not via SkillCapacityAnalysisMgt/50662's
+                    // forwarding wrappers, which don't cover these two getters).
+                    ColorsJsonTxt := StrSubstNo('{"capacity":"%1","capacityBorder":"%2","fontColor":"%3","tooltipBg":"%4","tooltipFont":"%5"}',
+                        CapacityColorHex, CapacityBorderColorHex, BarFontColorHex,
+                        VisualDefaultSettings.GetTooltipBackgroundColor(), VisualDefaultSettings.GetTooltipFontColor());
                     CurrPage.DhxScheduler.SetBarColors(ColorsJsonTxt);
                     AnchorDate := startDate;
                     PushResourceFilterInfo(startDate, endDate);

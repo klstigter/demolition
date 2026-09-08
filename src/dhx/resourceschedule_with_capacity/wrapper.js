@@ -195,22 +195,31 @@ window.BOOT = function () {
         }
         #res-collapseall-icon:hover { background: #2f8bfb; }
         #res-collapseall-icon:active { background: #1f6fe0; }
+        /* Background/font colour of both hover popups below come from codeunit 50609 "Visual
+           Default Settings"'s GetTooltipBackgroundColor/GetTooltipFontColor, sent as
+           colors.tooltipBg/colors.tooltipFont by ControlReady's SetBarColors call and applied by
+           SetBarColors below onto document.documentElement (not #scheduler_here - dhtmlXTooltip
+           divs are appended at document.body level, not nested under the scoped scheduler root,
+           so the custom property must live on a common ancestor of both). The literal fallbacks
+           here (#000000/#ffffff for the dhtmlx tooltip, #ffffff/#23272A for the filter popup)
+           only apply before SetBarColors has run once. */
         #res-filter-tooltip-popup {
-            display: none; position: fixed; background: #ffffff; color: #23272A;
+            display: none; position: fixed;
+            background: var(--tooltip-bg-color, #ffffff); color: var(--tooltip-font-color, #23272A);
             border: 1px solid #4a6fa5; border-radius: 5px; padding: 8px 12px; font-size: 12px;
             font-weight: normal; white-space: nowrap; z-index: 999999;
             box-shadow: 0 3px 10px rgba(0,0,0,0.25); min-width: 180px; pointer-events: none;
         }
 
-        /* ── Hover tooltip (dhtmlXTooltip) - black/white, tabular ── */
-        .dhtmlXTooltip.tooltip { background: #000000 !important; color: #ffffff !important; border: none !important; }
-        .dhx-tt { min-width: 220px; font-family: inherit; font-size: 12px; line-height: 1.5; color: #f0f0f0; }
-        .dhx-tt-res { font-weight: 700; font-size: 13px; margin-bottom: 1px; color: #ffffff; }
-        .dhx-tt-date { color: #aaaaaa; font-size: 11px; margin-bottom: 6px; white-space: nowrap; }
+        /* ── Hover tooltip (dhtmlXTooltip) - tabular ── */
+        .dhtmlXTooltip.tooltip { background: var(--tooltip-bg-color, #000000) !important; color: var(--tooltip-font-color, #ffffff) !important; border: none !important; }
+        .dhx-tt { min-width: 220px; font-family: inherit; font-size: 12px; line-height: 1.5; color: var(--tooltip-font-color, #f0f0f0); }
+        .dhx-tt-res { font-weight: 700; font-size: 13px; margin-bottom: 1px; color: var(--tooltip-font-color, #ffffff); }
+        .dhx-tt-date { color: var(--tooltip-font-color, #aaaaaa); font-size: 11px; margin-bottom: 6px; white-space: nowrap; }
         .dhx-tt-table { display: grid; grid-template-columns: 110px 1fr 1fr; gap: 2px 10px; margin-top: 4px; }
-        .dhx-tt-th { font-weight: 700; color: #ffffff; border-bottom: 1px solid #444; padding-bottom: 2px; }
-        .dhx-tt-label { color: #cfcfcf; font-weight: 700; padding: 1px 0; }
-        .dhx-tt-val { font-weight: 400; color: #ffffff; padding: 1px 0; }
+        .dhx-tt-th { font-weight: 700; color: var(--tooltip-font-color, #ffffff); border-bottom: 1px solid #444; padding-bottom: 2px; }
+        .dhx-tt-label { color: var(--tooltip-font-color, #cfcfcf); font-weight: 700; padding: 1px 0; }
+        .dhx-tt-val { font-weight: 400; color: var(--tooltip-font-color, #ffffff); padding: 1px 0; }
         `;
         document.head.appendChild(style);
 
@@ -666,6 +675,13 @@ function SetBarColors(colorsJson) {
         // text/border colour. Does NOT affect hover/tooltip text - that stays on its own
         // separate hardcoded colors.
         if (colors.fontColor) root.style.setProperty("--bar-font-color", colors.fontColor);
+        // Hover/tooltip popup colours (dhtmlXTooltip + #res-filter-tooltip-popup) - set on
+        // document.documentElement rather than "root" (#scheduler_here) since both popups are
+        // appended at document.body level, outside #scheduler_here's own DOM subtree; a custom
+        // property set there wouldn't inherit down to them. See this file's own CSS comment above
+        // the ".dhtmlXTooltip.tooltip" rule for the full explanation.
+        if (colors.tooltipBg) document.documentElement.style.setProperty("--tooltip-bg-color", colors.tooltipBg);
+        if (colors.tooltipFont) document.documentElement.style.setProperty("--tooltip-font-color", colors.tooltipFont);
     } catch (e) {
         console.warn("SetBarColors: invalid colorsJson", colorsJson, e);
     }

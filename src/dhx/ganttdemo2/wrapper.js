@@ -172,16 +172,20 @@ window.BOOT = function() {
       if (document._rmCustomTooltipInstalled) return;
       document._rmCustomTooltipInstalled = true;
 
-      // One-time CSS for the Requested/Assigned detail table rendered inside the dark
-      // #bc_DayPlanning_tooltip container (see _ensureCustomTooltip) — thin light-on-dark grid
-      // lines, small font, numeric columns centered, group headers (Requested/Assigned) spanning
-      // their four sub-columns via colspan.
+      // One-time CSS for the Requested/Assigned detail table rendered inside
+      // #bc_DayPlanning_tooltip (see _ensureCustomTooltip) — thin grid lines, small font, numeric
+      // columns centered, group headers (Requested/Assigned) spanning their four sub-columns via
+      // colspan. Border/header colours below assume the light default background/dark font from
+      // codeunit 50609's GetTooltipBackgroundColor/GetTooltipFontColor (previously a hardcoded
+      // dark #111 container, hence the original light-on-dark rgba(255,255,255,...) values this
+      // replaces) - they don't dynamically re-derive from a customised Tooltip Background Color,
+      // same simplification as .dp-status-tag's own fixed grey/white pill below.
       (function injectDayPlanningTooltipTableCSS() {
         var s = document.createElement("style");
         s.textContent = [
           ".dp-tooltip-table{ border-collapse:collapse; margin-top:6px; font-size:11px; white-space:nowrap; }",
-          ".dp-tooltip-table th,.dp-tooltip-table td{ border:1px solid rgba(255,255,255,0.25); padding:2px 6px; text-align:center; }",
-          ".dp-tooltip-table thead th{ font-weight:600; color:#cfe3ff; background:rgba(255,255,255,0.06); }",
+          ".dp-tooltip-table th,.dp-tooltip-table td{ border:1px solid rgba(0,0,0,0.15); padding:2px 6px; text-align:center; }",
+          ".dp-tooltip-table thead th{ font-weight:600; color:#2a5daa; background:rgba(0,0,0,0.04); }",
           ".dp-tooltip-table td:nth-child(1),.dp-tooltip-table td:nth-child(2),.dp-tooltip-table td:nth-child(4){ text-align:left; }",
           ".dp-tooltip-table .dp-status-tag{ background:#909090; color:#fff; border-radius:3px; padding:0 4px; font-size:10px; }"
         ].join("\n");
@@ -1338,11 +1342,14 @@ window.BOOT = function() {
         /* ── Resource filter info icon ── */
         + ".res-filter-icon { display:inline-block; margin-left:5px; cursor:pointer; font-size:13px; color:#adf; opacity:0.85; vertical-align:middle; }"
         + ".res-filter-icon:hover { opacity:1; }"
-        /* ── Fixed body-level tooltip (never clipped by overflow:hidden) ── */
-        + "#res-filter-tooltip-popup { display:none; position:fixed; background:#1a1a2e; color:#e0e0e0; border:1px solid #4a6fa5; border-radius:5px; padding:8px 12px; font-size:12px; font-weight:normal; white-space:nowrap; z-index:999999; box-shadow:0 3px 10px rgba(0,0,0,0.5); min-width:180px; pointer-events:none; }"
+        /* ── Fixed body-level tooltip (never clipped by overflow:hidden). Background/font colour
+           sourced from codeunit 50609's GetTooltipBackgroundColor/GetTooltipFontColor via
+           SetTooltipColors below (document.documentElement custom properties) - the literal
+           #1a1a2e/#e0e0e0 fallbacks only apply before SetTooltipColors has run once. ── */
+        + "#res-filter-tooltip-popup { display:none; position:fixed; background:var(--tooltip-bg-color, #1a1a2e); color:var(--tooltip-font-color, #e0e0e0); border:1px solid #4a6fa5; border-radius:5px; padding:8px 12px; font-size:12px; font-weight:normal; white-space:nowrap; z-index:999999; box-shadow:0 3px 10px rgba(0,0,0,0.5); min-width:180px; pointer-events:none; }"
         /* ── Main grid Job/Job Task filter icon (in the "Task name" column header, after the collapse/expand-all icon) ── */
         + ".gnt-filter-toolbar-host { display:flex !important; align-items:center; }"
-        + "#gnt-filter-tooltip-popup { display:none; position:fixed; background:#1a1a2e; color:#e0e0e0; border:1px solid #4a6fa5; border-radius:5px; padding:8px 12px; font-size:12px; font-weight:normal; white-space:nowrap; z-index:999999; box-shadow:0 3px 10px rgba(0,0,0,0.5); min-width:180px; pointer-events:none; }";
+        + "#gnt-filter-tooltip-popup { display:none; position:fixed; background:var(--tooltip-bg-color, #1a1a2e); color:var(--tooltip-font-color, #e0e0e0); border:1px solid #4a6fa5; border-radius:5px; padding:8px 12px; font-size:12px; font-weight:normal; white-space:nowrap; z-index:999999; box-shadow:0 3px 10px rgba(0,0,0,0.5); min-width:180px; pointer-events:none; }";
       var s = document.createElement("style");
       s.textContent = css;
       document.head.appendChild(s);
@@ -2780,8 +2787,12 @@ function _ensureCustomTooltip() {
   el.style.overflowX = "auto";
   el.style.padding = "8px 10px";
   el.style.borderRadius = "6px";
-  el.style.background = "#111";
-  el.style.color = "#fff";
+  // Background/font colour sourced from codeunit 50609's GetTooltipBackgroundColor/
+  // GetTooltipFontColor via SetTooltipColors below (document.documentElement custom
+  // properties) - the literal #111/#fff fallbacks only apply before SetTooltipColors has run
+  // once.
+  el.style.background = "var(--tooltip-bg-color, #111)";
+  el.style.color = "var(--tooltip-font-color, #fff)";
   el.style.fontSize = "12px";
   el.style.lineHeight = "1.3";
   el.style.boxShadow = "0 4px 16px rgba(0,0,0,0.35)";
@@ -2990,8 +3001,8 @@ window.SetGanttTaskFilterInfo = SetGanttTaskFilterInfo;
 // AL-callable: SetBarFontColor - applies "Daily Optimizer Setup"."Bar Font Color" (via codeunit
 // 50609's GetBarFontColor) uniformly to every task bar's on-bar label text (.gantt_task_content,
 // see the matching override in style.css). Scoped to the #gantt_here container only, so it can't
-// leak onto anything outside the chart. Does NOT affect .gantt_tooltip text - that stays on its
-// own separate hardcoded colors (out of scope by design).
+// leak onto anything outside the chart. Does NOT affect .gantt_tooltip text - hover/tooltip
+// popups have their own separate setting, see SetTooltipColors below.
 function SetBarFontColor(fontColorHex) {
   var root = document.getElementById("gantt_here");
   if (!root) return;
@@ -3044,6 +3055,21 @@ function SetGanttTaskBarDefaults(borderColorHex, progressColorHex, fontColorHex,
   }
 }
 window.SetGanttTaskBarDefaults = SetGanttTaskBarDefaults;
+
+// AL-callable: SetTooltipColors - applies "Daily Optimizer Setup"."Tooltip Background Color"/
+// "Tooltip Font Color" (via codeunit 50609's GetTooltipBackgroundColor/GetTooltipFontColor) to
+// every hover/tooltip popup this add-in renders: the vendored .gantt_tooltip (style.css),
+// #bc_DayPlanning_tooltip (_ensureCustomTooltip above), and #res-filter-tooltip-popup/
+// #gnt-filter-tooltip-popup (this file's own injected <style> block). Set on
+// document.documentElement rather than #gantt_here - all four of these popups are appended at
+// document.body level (or read inline styles set at that scope), outside #gantt_here's own DOM
+// subtree, so the custom property must live on a common ancestor of all of them.
+function SetTooltipColors(backgroundColorHex, fontColorHex) {
+  var root = document.documentElement;
+  if (backgroundColorHex) root.style.setProperty("--tooltip-bg-color", backgroundColorHex);
+  if (fontColorHex) root.style.setProperty("--tooltip-font-color", fontColorHex);
+}
+window.SetTooltipColors = SetTooltipColors;
 
 function _updateGanttFilterToolbar() {
   try {
