@@ -1382,9 +1382,36 @@ class CapacityPlanningOverview {
     // forward to codeunit 50662) is gone; this section no longer depends on that codeunit at all.
     // ================================================================================
 
-    /// <summary>Per-day {assigned, freeInt, freeExt} capacity breakdown - reference's own "capParts". freeInt = (resource pool size * BASE_CAP) - hours actually assigned that day (any WO); freeExt comes straight from db.externalFree[i].</summary>
+    /// <summary>
+    /// Per-day {assigned, freeInt, freeExt} capacity breakdown - reference's own "capParts".
+    ///
+    /// BUG FOUND 2026-09-08 (reported live, flagged "dangerous"): this used to derive freeInt from
+    /// `resources.length * BASE_CAP` - a flat "headcount x 8h" guess over `db.resources`, which is
+    /// ALSO the max-flow engine's own performance-capped pool (up to 15 resources per skill - see
+    /// codeunit 50604's CPO_BuildResourcesArray) - so this bar's total capacity could read a small
+    /// fraction of the real company total for the same day (confirmed live against the Weekly/Daily
+    /// Insights parts: 408h, then 1798h, against a real ~2038h). Now reads AL's own
+    /// "dailyCapacity[]" (codeunit 604's CPO_BuildDailyCapacityArray, itself a thin call-through to
+    /// codeunit 50662's PrepareDailyCapacityBuffer/GetDailyCapacitySplit) - the EXACT SAME real
+    /// "Res. Capacity Entry"-backed computation the Weekly/Daily parts plot, so this bar's capacity
+    /// total is now byte-identical to theirs for the same day, not a client-side approximation.
+    /// "assigned" here is the day's REAL company-wide assigned hours (Internal+External, from that
+    /// same source) - no longer summed from db.dayPlanningLines (which mixes in every OTHER Work
+    /// Order's demand for section 4's own purposes, a different concept - see this class's own
+    /// header doc comment point 5 - and was never actually restricted to "assigned resource's own
+    /// capacity usage" the way codeunit 50662's Assigned Hours read already correctly is).
+    /// </summary>
     capParts(i) {
         if (i < 0 || i >= this.dates.length || cpoIsWeekend(this.dates[i])) return { assigned: 0, freeInt: 0, freeExt: 0 };
+        const day = (this.db.dailyCapacity && this.db.dailyCapacity[i]) || null;
+        if (day) {
+            return {
+                assigned: (Number(day.assignedInternal) || 0) + (Number(day.assignedExternal) || 0),
+                freeInt: Number(day.freeInternal) || 0,
+                freeExt: Number(day.freeExternal) || 0
+            };
+        }
+        // Defensive fallback only - every CPO_Build*Json* caller now always sends dailyCapacity[].
         const lines = this.db.dayPlanningLines || [];
         let assigned = 0;
         for (let k = 0; k < lines.length; k++) { if (this.assignedDayIndex(lines[k]) === i) assigned += Number(lines[k].assignedHours) || 0; }

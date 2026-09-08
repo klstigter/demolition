@@ -531,6 +531,41 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     end;
 
     /// <summary>
+    /// Public entry point for OTHER add-ins that need this codeunit's own real per-day capacity
+    /// split (Assigned/Free x Internal/External via CalcAssignedSplit/CalcCapacitySplit) without
+    /// duplicating it - added 2026-09-08 for src/dhx/capacity_planning_overview (codeunit 50604's
+    /// CPO_BuildDailyCapacityArray, feeding Section 3's "Hours overview" capacity total). Bug that
+    /// prompted this (reported live, flagged "dangerous"): that add-in's own Section 3 was
+    /// approximating total capacity client-side as `resources.length * 8h` (a flat headcount
+    /// guess, and on top of that scoped to a small per-skill-capped resource subset - see
+    /// CPO_BuildResourcesArray's own doc comment on ApplyPerSkillCap), which could read a small
+    /// fraction of this codeunit's own real, Res.-Capacity-Entry-backed total for the same day/
+    /// company (confirmed live: 408h, later 1798h, against a real ~2038h) - callers wanting a
+    /// number that actually matches the Weekly/Daily Insights parts must go through THIS same
+    /// computation, not re-derive their own. Caller must call PrepareDailyCapacityBuffer once for
+    /// the whole display window before any GetDailyCapacitySplit calls (mirrors this codeunit's
+    /// own BuildDayCapacityChartData(ForRange) doing the same before their own per-day loops).
+    /// </summary>
+    procedure PrepareDailyCapacityBuffer(StartDate: Date; EndDate: Date)
+    begin
+        EnsureDayPlanningBuffer(StartDate, EndDate);
+    end;
+
+    /// <summary>
+    /// Returns ONE day's real Assigned/Free capacity split, Internal vs External by the
+    /// capacity/assignment-holding resource's own "Is External" flag - identical numbers to what
+    /// BuildDayCapacityChartData(ForRange)'s own Capacity bar plots for that day (CalcAssignedSplit
+    /// + CalcCapacitySplit - see those procedures' own doc comments for the full reasoning: true
+    /// "Res. Capacity Entry" data, company-wide, not a flat per-resource-count approximation).
+    /// Caller must have already called PrepareDailyCapacityBuffer for a range covering PlanDate.
+    /// </summary>
+    procedure GetDailyCapacitySplit(PlanDate: Date; var AssignedInternal: Decimal; var AssignedExternal: Decimal; var FreeInternal: Decimal; var FreeExternal: Decimal)
+    begin
+        CalcAssignedSplit(PlanDate, AssignedInternal, AssignedExternal);
+        CalcCapacitySplit(PlanDate, FreeInternal, FreeExternal);
+    end;
+
+    /// <summary>
     /// True if PlanDate's segment values carry ANY nonzero data anywhere - Assigned (internal or
     /// external), free Capacity (internal or external), or any active skill's requested hours
     /// (internal or external) - used by BuildDayCapacityChartData to decide whether that day gets
