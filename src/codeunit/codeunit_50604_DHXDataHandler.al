@@ -6908,6 +6908,94 @@ codeunit 50604 "DHX Data Handler"
     end;
 
     /// <summary>
+    /// Role Center dashboard tile variant (2026-09-04) - page "Capacity Planning Dashboard"
+    /// (controladdin DHXCapacityPlanningDashboardAddin, src/dhx/capacity_planning_dashboard). Same
+    /// payload shape as CPO_BuildPlanningDataJson_Paged, MINUS everything that only exists for a
+    /// single inspected Work Order: no "workOrder"/"project" object, no Pass 1/2
+    /// (workOrderSequences[] is always an empty array - there is no Section 2 on this tile, see
+    /// capacityPlanningDashboard.js's own doc comment for why).
+    ///
+    /// Reuses CPO_ScanOtherWorkOrderGroups/CPO_BuildOtherWorkOrderLinesForGroups UNCHANGED (no
+    /// duplicated logic - explicit instruction) by simply passing blank JobNo/JobTaskNo: both
+    /// procedures' own exclusion check is `(JobNo <> '') and (line's Job/Task = JobNo/JobTaskNo)` -
+    /// with JobNo passed as '', that check is always false, so EVERY row is treated as "not
+    /// excluded" (i.e. included) - exactly the "whole company, nothing excluded" semantics this
+    /// tile needs, with zero new exclusion logic. CPO_BuildOtherWorkOrderLinesJson_ForKeys (the
+    /// background-task companion) already tolerates a blank WorkOrderNo the same way (WorkOrder.Get
+    /// on a blank Code simply fails, leaving JobNo/JobTaskNo blank) - codeunit "CPO BG Other WO
+    /// Data" is reused as-is for this tile's own background task too, no new codeunit needed.
+    /// </summary>
+    procedure CPO_BuildDashboardDataJson_Paged(NumberOfDays: Integer; MaxOtherLines: Integer; var RemainingGroupKeys: Text): Text
+    var
+        RootObj: JsonObject;
+        DayPlanningLinesArr: JsonArray;
+        FirstPageOtherLinesArr: JsonArray;
+        LineTok: JsonToken;
+        ActiveSkillList: List of [Code[20]];
+        OtherSkillList: List of [Code[20]];
+        GroupOrder: List of [Text];
+        GroupSkill: List of [Code[20]];
+        GroupJobNo: List of [Code[20]];
+        GroupJobTaskNo: List of [Code[20]];
+        GroupDescription: List of [Text];
+        GroupLineCount: Dictionary of [Text, Integer];
+        FirstPageGroupKeys: Dictionary of [Text, Boolean];
+        RemainingGroupKeysArr: JsonArray;
+        ResourcePool: List of [Code[20]];
+        EmptyWorkOrderSequencesArr: JsonArray;
+        GroupKeyTxt: Text;
+        RunningTotal: Integer;
+        StartDate: Date;
+        EndDate: Date;
+        OutTxt: Text;
+    begin
+        if NumberOfDays <= 0 then
+            NumberOfDays := 30;
+        StartDate := Today();
+        EndDate := StartDate + NumberOfDays - 1;
+
+        RootObj.Add('daysToShow', NumberOfDays);
+        RootObj.Add('startDate', ReqAssign_FormatIsoDate(StartDate));
+        RootObj.Add('endDate', ReqAssign_FormatIsoDate(EndDate));
+        RootObj.Add('workdays', CPO_BuildDateRangeArray(StartDate, EndDate));
+
+        // Cheap, always-full pre-scan (blank JobNo/JobTaskNo - see this procedure's own doc
+        // comment for why that means "nothing excluded").
+        CPO_ScanOtherWorkOrderGroups('', '', StartDate, EndDate, ActiveSkillList, OtherSkillList,
+            GroupOrder, GroupSkill, GroupJobNo, GroupJobTaskNo, GroupDescription, GroupLineCount);
+
+        RunningTotal := 0;
+        foreach GroupKeyTxt in GroupOrder do
+            if RunningTotal < MaxOtherLines then begin
+                FirstPageGroupKeys.Add(GroupKeyTxt, true);
+                RunningTotal += GroupLineCount.Get(GroupKeyTxt);
+            end else
+                RemainingGroupKeysArr.Add(GroupKeyTxt);
+
+        if RemainingGroupKeysArr.Count() > 0 then
+            RemainingGroupKeysArr.WriteTo(RemainingGroupKeys)
+        else
+            RemainingGroupKeys := '';
+
+        FirstPageOtherLinesArr := CPO_BuildOtherWorkOrderLinesForGroups('', '', '', StartDate, EndDate, FirstPageGroupKeys);
+        foreach LineTok in FirstPageOtherLinesArr do
+            DayPlanningLinesArr.Add(LineTok.AsObject());
+
+        RootObj.Add('skills', CPO_BuildSkillsArray(ActiveSkillList));
+        RootObj.Add('resources', CPO_BuildResourcesArray(ActiveSkillList, ResourcePool));
+        RootObj.Add('baseCapacity', 8);
+        RootObj.Add('externalFree', CPO_BuildExternalFreeArray(ResourcePool, StartDate, EndDate));
+        RootObj.Add('groups', CPO_BuildGroupsArray(OtherSkillList, GroupSkill, GroupJobNo, GroupJobTaskNo, GroupDescription));
+        RootObj.Add('dayPlanningLines', DayPlanningLinesArr);
+        // Always empty - there is no single inspected Work Order on this tile, so there is no
+        // Section 2 to build rows for (see this procedure's own doc comment).
+        RootObj.Add('workOrderSequences', EmptyWorkOrderSequencesArr);
+
+        RootObj.WriteTo(OutTxt);
+        exit(OutTxt);
+    end;
+
+    /// <summary>
     /// Caps the per-skill resource pool fed into the client-side max-flow engine
     /// (capacityPlanningOverview.js's maxFlowDay) - deliberately NOT "every company resource
     /// holding this skill" (this demo company alone was observed seeding 100+ resources for some

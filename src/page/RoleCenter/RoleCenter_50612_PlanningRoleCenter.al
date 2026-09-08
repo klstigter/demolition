@@ -15,6 +15,12 @@ page 50612 "Planning Role Center"
             // {
             //     ApplicationArea = Jobs;
             // }
+            // REVERTED (2026-09-08) - declaring this part BEFORE Daily/Weekly instead of after was
+            // tried and confirmed live to be WORSE, not better: Daily/Weekly's own chart headers
+            // rendered overlapping/misplaced on top of this tile instead of cleanly separating.
+            // Declaration order relative to Daily/Weekly is not the lever that controls row
+            // placement - see DHXCapacityPlanningDashboardAddin.ControlAddin.al's own doc comment
+            // on RequestedWidth/MinimumWidth for what's actually been tried there instead.
             part(RequestedVsCapacityDaily; "Requested vs Capacity Daily P")
             {
                 ApplicationArea = All;
@@ -24,6 +30,11 @@ page 50612 "Planning Role Center"
             {
                 ApplicationArea = All;
                 Caption = 'Weekly';
+            }
+            part(CapacityPlanningDashboard; "Capacity Planning Dashboard")
+            {
+                ApplicationArea = All;
+                Caption = 'Capacity Planning';
             }
         }
     }
