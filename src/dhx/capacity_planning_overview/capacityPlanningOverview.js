@@ -1405,6 +1405,17 @@ class CapacityPlanningOverview {
         // "assigned"/freeInt total, just below, is deliberately NOT filtered this way - a resource
         // assigned to ANOTHER Work Order that day is genuinely unavailable to this one, so that
         // side of the bar was already correctly company-wide before this change.
+        //
+        // BUG FOUND 2026-09-08 (reported live, flagged "dangerous" - Capacity Planning Dashboard,
+        // src/dhx/capacity_planning_dashboard, has no inspected Work Order at all): with
+        // `this.db.workOrder` absent, `woNo` was `undefined`, and `line.workOrderNo !== woNo` is
+        // true for every REAL line (a real Work Order No. string is never `undefined`) - so EVERY
+        // line was excluded and "Requested" rendered a constant 0h for every single day, while
+        // Section 4's tree (correctly company-wide) showed large non-zero demand for those same
+        // days. Only filter by workOrderNo when there IS an inspected Work Order to filter to;
+        // with none, "Requested" should mean the same company-wide total Section 4 already shows
+        // (mirroring Section 4's own `!==` "everything else" logic when no WO is being excluded).
+        const hasInspectedWO = !!(this.db.workOrder && this.db.workOrder.no);
         const woNo = this.db.workOrder && this.db.workOrder.no;
         return this.dates.map(function (d, i) {
             const weekend = cpoIsWeekend(d);
@@ -1413,7 +1424,7 @@ class CapacityPlanningOverview {
             self.skills.forEach(function (sk) { unassignedBySkill[sk] = 0; });
             let assignedRequest = 0, request = 0;
             (self.db.dayPlanningLines || []).forEach(function (line) {
-                if (line.workOrderNo !== woNo) return;
+                if (hasInspectedWO && line.workOrderNo !== woNo) return;
                 if (self.dplDayIndex(line) !== i) return;
                 const req = Number(line.requestedHours) || 0;
                 const ass = Math.min(req, Number(line.assignedHours) || 0);

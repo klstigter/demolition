@@ -1,0 +1,22 @@
+/* Capacity Planning Dashboard (Role Center tile) - dashboard-only overrides, loaded AFTER
+   src/dhx/capacity_planning_overview/style.css in this controladdin's own StyleSheets list so
+   these rules win. Everything else (section 1/3/4 layout, colors, scrollbars) is reused as-is from
+   that shared stylesheet - only what's specific to appearing as a highlighted Role Center tile
+   lives here. */
+
+/* The whole tile reads as yellow-highlighted on the Role Center (explicit user request, matching
+   the reference screenshot) - not just .cpo-top-bar's own existing yellow strip (shared stylesheet,
+   #ffe066), which alone would leave the rest of the tile white/blended into the surrounding
+   Insights section. */
+#cpo-root {
+    background: #ffe066;
+}
+
+/* Section panels get a plain white backing so their own content (bars/tree/chips) stays legible
+   against the tile's yellow surround, instead of every section's own background showing yellow
+   through any transparent gaps. */
+.cpo-wo-summary-host,
+.cpo-capacity-bars,
+.cpo-central-tree-host {
+    background: #fff;
+}
