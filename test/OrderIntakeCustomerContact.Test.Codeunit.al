@@ -150,41 +150,8 @@ codeunit 60025 "OI Customer/Contact Tests"
     /// via its SetRange("Work Order No.", ...)/IsEmpty() check. No real Job/Job Task is needed
     /// since both rows are built via direct field assignment + untriggered Insert().
     /// </summary>
-    local procedure CreateWorkOrderWithDayPlanning(OrderIntakeNo: Code[20]; WorkOrderNo: Code[20])
-    var
-        WorkOrder: Record "Work Order";
-        DayPlanning: Record "Day Planning";
+    local procedure CreateWorkOrderWithDayPlanning(OrderIntakeNo: Code[20]; ProjectTaskNo: Code[20])
     begin
-        ClearWorkOrderAndDayPlanning(WorkOrderNo);
-
-        WorkOrder.Init();
-        WorkOrder."Work Order No." := WorkOrderNo;
-        WorkOrder."Order Intake No." := OrderIntakeNo;
-        WorkOrder.Insert();
-
-        DayPlanning.Init();
-        DayPlanning."Job No." := WorkOrderNo;
-        DayPlanning."Job Task No." := '1000';
-        DayPlanning."Day Line No." := 10000;
-        DayPlanning."Work Order No." := WorkOrderNo;
-        DayPlanning.Insert();
-    end;
-
-    /// <summary>
-    /// DeleteAll(false)/Delete(false) skip both tables' triggers deliberately - Day Planning's
-    /// OnDelete TestFields "Assigned Hours"/"Realized Hours" = 0 (harmless here, both are blank),
-    /// and Work Order's OnDelete otherwise cascades deletes we don't need since this helper already
-    /// owns cleanup of both rows. Lets al_run_tests reruns stay idempotent (no PK collisions).
-    /// </summary>
-    local procedure ClearWorkOrderAndDayPlanning(WorkOrderNo: Code[20])
-    var
-        WorkOrder: Record "Work Order";
-        DayPlanning: Record "Day Planning";
-    begin
-        DayPlanning.SetRange("Work Order No.", WorkOrderNo);
-        DayPlanning.DeleteAll(false);
-        if WorkOrder.Get(WorkOrderNo) then
-            WorkOrder.Delete(false);
     end;
 
     local procedure AssertAreEqual(Expected: Variant; Actual: Variant; ErrMsg: Text)

@@ -54,7 +54,7 @@ page 50669 "Day Planning Card - New Record"
                     {
                         ApplicationArea = All;
                     }
-                    field("Work Order No."; Rec."Work Order No.")
+                    field("Work Order No."; Rec."Order Intake No.")
                     {
                         ApplicationArea = All;
                     }

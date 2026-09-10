@@ -75,13 +75,6 @@ table 50607 "Day Planning Pattern"
             end;
         }
 
-        field(15; "Work Order No."; Code[20])
-        {
-            DataClassification = ToBeClassified;
-            Caption = 'Work Order No.';
-            TableRelation = "Work Order";
-        }
-
         field(20; "Start Date"; Date)
         {
             DataClassification = ToBeClassified;

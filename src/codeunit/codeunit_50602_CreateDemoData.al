@@ -2350,32 +2350,27 @@ codeunit 50602 "Create Demo Data"
                     OrderIntakeNo := 'DOI0003';
             end;
             if JT.Get(JobNo, TaskNos[Idx]) then
-                UpsertWorkOrder(WorkOrderNo, OrderIntakeNo, CustNo, JT.Description, JobNo, TaskNos[Idx]);
+                UpsertWorkOrder(OrderIntakeNo, CustNo, JT.Description, JobNo, TaskNos[Idx]);
         end;
     end;
 
-    local procedure UpsertWorkOrder(WorkOrderNo: Code[20]; OrderIntakeNo: Code[20]; CustNo: Code[20]; Desc: Text[100]; ProjectNo: Code[20]; ProjectTaskNo: Code[20])
+    local procedure UpsertWorkOrder(OrderIntakeNo: Code[20]; CustNo: Code[20]; Desc: Text[100]; ProjectNo: Code[20]; ProjectTaskNo: Code[20])
     var
-        WorkOrder: Record "Work Order";
+        JobTask: Record "Job Task";
     begin
         // Fixed demo code (not NoSeries.GetNextNo()) - idempotent across reruns, same reasoning as
         // every other demo entity in this codeunit. "Work Order NOS" (which No. Series was used)
         // is deliberately left blank since no series was consumed. table_50608's OnInsert trigger
         // only sets audit fields (Created DateTime/By) and testfields "Work Order No." - no
         // destructive field overrides to work around here (unlike Order Intake's OnInsert).
-        if not WorkOrder.Get(WorkOrderNo) then begin
-            WorkOrder.Init();
-            WorkOrder."Work Order No." := WorkOrderNo;
-            WorkOrder.Insert(true);
+        if not JobTask.Get(ProjectNo, ProjectTaskNo) then begin
+            exit;
         end;
-        WorkOrder."Order Intake No." := OrderIntakeNo;
-        WorkOrder.Description := Desc;
-        WorkOrder."Customer No." := CustNo;
-        WorkOrder."Source Type" := WorkOrder."Source Type"::"Order Intake";
-        WorkOrder."Project No." := ProjectNo;
-        WorkOrder."Project Task No." := ProjectTaskNo;
-        WorkOrder.Modify();
-        LogRecord(Database::"Work Order", WorkOrder.RecordId(), WorkOrderNo + ' ' + Desc);
+
+        JobTask.Description := Desc;
+        JobTask.Validate("Sell-to Customer No.", CustNo);
+        JobTask.Modify();
+        LogRecord(Database::"Job Task", JobTask.RecordId(), Desc);
     end;
 
     local procedure CreateWorkOrderLinkedDayPlannings(JobNo: Code[20])
@@ -2475,7 +2470,7 @@ codeunit 50602 "Create Demo Data"
         DP."Data Owner" := "Data Owner Opt."::"TeamLeader";
         DP.Description := 'Work Order ' + WorkOrderNo + ': ' + JT.Description;
         DP.Skill := GetResourceSkill(ResNo);
-        DP."Work Order No." := WorkOrderNo;
+        DP."Order Intake No." := WorkOrderNo;
         if PlanSt <> "Plan Status"::"In Request" then begin
             DP."Assigned Resource No." := ResNo;
             DP."Resource Group No." := ResGrp;
@@ -2558,8 +2553,7 @@ codeunit 50602 "Create Demo Data"
             UpsertJob(Job, JobNo, 'Work Order Demo Data', Customer."No.");
 
         BuildCPODemoTasks(JobNo);
-        UpsertWorkOrder('DWO0011', GetFirstOrderIntakeNo(), Customer."No.",
-            'Electrical & Mechanical Fit-Out', JobNo, '5010');
+        UpsertWorkOrder(GetFirstOrderIntakeNo(), Customer."No.", 'Electrical & Mechanical Fit-Out', JobNo, '5010');
         ClearCPODemoLines('DWO0011');
         CreateCPODemoLines(JobNo);
 
@@ -2613,7 +2607,7 @@ codeunit 50602 "Create Demo Data"
         // Bypasses OnDelete's TestField("Assigned Hours",0)/TestField("Realized Hours",0) guard via
         // Delete(false) - same convention DeleteDemoData() itself already uses - so a re-run can
         // freely wipe and rebuild this one Work Order's own lines regardless of assigned hours.
-        DP.SetRange("Work Order No.", WorkOrderNo);
+        DP.SetRange("Order Intake No.", WorkOrderNo);
         if DP.FindSet(true) then
             repeat
                 DP.Delete(false);
@@ -2784,7 +2778,7 @@ codeunit 50602 "Create Demo Data"
         DP."Plan Status" := CalcPlanStatus(PlanDate);
         DP.Skill := SkillCode;
         DP."Sequence No." := SeqNo;
-        DP."Work Order No." := WorkOrderNo;
+        DP."Order Intake No." := WorkOrderNo;
         DP."Requested Resource No." := ResNo;
         DP."Start Time Requested" := StartT;
         DP."End Time Requested" := StartT + (ReqHours * 3600000);
@@ -2912,7 +2906,7 @@ codeunit 50602 "Create Demo Data"
         // Same Delete(false) TestField-bypass pattern ClearCPODemoLines/DeleteDemoData use, scoped
         // to just this one Work Order's own lines via "Work Order No." so a re-run is idempotent
         // without touching DWO0001-DWO0008 or DWO0011.
-        DP.SetRange("Work Order No.", WorkOrderNo);
+        DP.SetRange("Order Intake No.", WorkOrderNo);
         if DP.FindSet(true) then
             repeat
                 DP.Delete(false);
@@ -2985,7 +2979,7 @@ codeunit 50602 "Create Demo Data"
         DP."Plan Status" := CalcPlanStatus(PlanDate);
         DP.Skill := SkillCode;
         DP."Sequence No." := SeqNo;
-        DP."Work Order No." := WorkOrderNo;
+        DP."Order Intake No." := WorkOrderNo;
         DP."Requested Resource No." := ResNo;
         DP."Start Time Requested" := StartT;
         DP."End Time Requested" := StartT + (ReqHours * 3600000);

@@ -9,12 +9,54 @@ tableextension 50605 "Job Task ext" extends "Job Task"
             ToolTip = 'Specifies the project manager for the project task. The project manager is based on the project manager on the related project planning line.';
             tableRelation = Resource;
         }
+
         field(50505; "Work Hour Template"; Code[20])
         {
             DataClassification = ToBeClassified;
             Caption = 'Work Hour Template';
             TableRelation = "Work-Hour Template";
         }
+
+        #region Transfer from Work Order
+
+        field(50509; "Long Description"; blob)
+        {
+            Caption = 'Long Description';
+            DataClassification = CustomerContent;
+        }
+
+        field(50511; "Deadline Date"; Date) //Transfer from Work Order
+        {
+            Caption = 'Deadline Date';
+            DataClassification = CustomerContent;
+        }
+
+        field(50512; "Placeholder Date"; Date) //Transfer from Work Order
+        {
+            Caption = 'Placeholder Date';
+            DataClassification = CustomerContent;
+        }
+
+        field(50513; Closed; Boolean) //Transfer from Work Order
+        {
+            Caption = 'Closed';
+            DataClassification = CustomerContent;
+        }
+
+        field(50514; "Closed Date"; Date) //Transfer from Work Order
+        {
+            Caption = 'Closed Date';
+            DataClassification = CustomerContent;
+        }
+
+        field(50515; "Closed Reason Code"; Code[20]) //Transfer from Work Order
+        {
+            Caption = 'Closed Reason Code';
+            DataClassification = CustomerContent;
+        }
+
+        #endregion
+
         field(50521; PlannedStartDate; Date)
         {
             DataClassification = ToBeClassified;
@@ -192,6 +234,20 @@ tableextension 50605 "Job Task ext" extends "Job Task"
         {
             FieldClass = FlowField;
             CalcFormula = sum("Day Planning"."Assigned Hours" where("Job No." = field("Job No."), "Job Task No." = field("Job Task No."), "Plan Date" = field("Planning Date Filter")));
+            BlankNumbers = BlankZero;
+            Editable = false;
+        }
+        field(50691; "Total Requested Hours"; Decimal)
+        {
+            FieldClass = FlowField;
+            CalcFormula = sum("Day Planning"."Requested Hours" where("Job No." = field("Job No."), "Job Task No." = field("Job Task No."), "Plan Date" = field("Planning Date Filter")));
+            BlankNumbers = BlankZero;
+            Editable = false;
+        }
+        field(50692; "Total Realized Hours"; Decimal)
+        {
+            FieldClass = FlowField;
+            CalcFormula = sum("Day Planning"."Realized Hours" where("Job No." = field("Job No."), "Job Task No." = field("Job Task No."), "Plan Date" = field("Planning Date Filter")));
             BlankNumbers = BlankZero;
             Editable = false;
         }
@@ -435,5 +491,28 @@ tableextension 50605 "Job Task ext" extends "Job Task"
             CstN := CopyStr(CustNo, 1, 14);
             exit(CstN + '-0001'); //become error if there is record -10, because FindLast record is -9 (not -10), and increament will be -10 which is conflict with existing record.
         end;
+    end;
+
+    procedure SetDescription(pDescBody: Text)
+    var
+        OutStream: OutStream;
+    begin
+        Rec."Long Description".CreateOutStream(OutStream);
+        OutStream.WriteText(pDescBody);
+        Rec.Modify();
+    end;
+
+    procedure GetDescription(): Text
+    var
+        InStream: InStream;
+        DescText: Text;
+    begin
+        DescText := '';
+        Rec.CalcFields("Long Description");
+        if Rec."Long Description".HasValue() then begin
+            Rec."Long Description".CreateInStream(InStream);
+            InStream.ReadText(DescText);
+        end;
+        exit(DescText);
     end;
 }

@@ -590,7 +590,7 @@ codeunit 50613 "GanttChartDataHandler"
     var
         GanttSetup: Record "Gantt Chart Setup";
         DayPlanning: Record "Day Planning";
-        WorkOrder: Record "Work Order";
+        JobTask: Record "Job Task";
         StartDate: Date;
         EndDate: Date;
         JsonArray: JsonArray;
@@ -621,12 +621,12 @@ codeunit 50613 "GanttChartDataHandler"
             DayPlanning.SetFilter("Job Task No.", JobTaskNo);
         DayPlanning.SetRange("Plan Status", DayPlanning."Plan Status"::"In Request");
         DayPlanning.SetRange("Plan Date", 0D);
-        DayPlanning.SetFilter("Work Order No.", '<>%1', '');
+        DayPlanning.SetFilter("Order Intake No.", '<>%1', '');
         if DayPlanning.FindSet() then
             repeat
-                if WorkOrder.Get(DayPlanning."Work Order No.") then
-                    if (WorkOrder."Placeholder Date" >= StartDate) and (WorkOrder."Placeholder Date" <= EndDate) then begin
-                        JsonObject := CreateDayPlanningJsonObjectRequest(DayPlanning, WorkOrder."Placeholder Date");
+                if JobTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
+                    if (JobTask."Placeholder Date" >= StartDate) and (JobTask."Placeholder Date" <= EndDate) then begin
+                        JsonObject := CreateDayPlanningJsonObjectRequest(DayPlanning, JobTask."Placeholder Date");
                         JsonArray.Add(JsonObject);
                     end;
             until DayPlanning.Next() = 0;
@@ -642,7 +642,7 @@ codeunit 50613 "GanttChartDataHandler"
             DayPlanning."Start Time Requested", DayPlanning."End Time Requested", DayPlanning."Assigned Hours",
             DayPlanning."Requested Hours", DayPlanning."Non Working Minutes Assigned", DayPlanning."Non Working Minutes Requested",
             DayPlanning."Assigned Resource No.", DayPlanning."Requested Resource No.", DayPlanning."Vendor No.",
-            DayPlanning."Plan Status", DayPlanning."Work Order No."));
+            DayPlanning."Plan Status", DayPlanning."Order Intake No."));
     end;
 
     /// <summary>
@@ -789,7 +789,7 @@ codeunit 50613 "GanttChartDataHandler"
             JsonObject.Add('vendorNo', 'null');
 
         JsonObject.Add('plan_status', 'Request');
-        JsonObject.Add('work_order_no', DayPlanning."Work Order No.");
+        JsonObject.Add('work_order_no', DayPlanning."Order Intake No.");
     end;
 
     local procedure FormatTime(InputTime: Time) FormattedTime: Text

@@ -153,15 +153,17 @@ table 50604 "Order Intake Header Opt."
 
     trigger OnDelete()
     var
-        Workload: Record "Work Order";
+        ProjectTask: Record "Job Task";
+        OrderIntakeLIne: Record "Order Intake Line";
         MsgLbl: Label 'Cannot delete Order Intake with status Released or Done.';
     begin
         if Status in [Status::Released, Status::Done] then begin
             Message(MsgLbl);
             exit; // Prevent deletion of records that are in use
         end;
-        Workload.SetRange("Order Intake No.", "No.");
-        Workload.DeleteAll(true);
+        OrderIntakeLine.Setrange("Order Intake No.", "No.");
+        if not OrderIntakeLine.IsEmpty() then
+            OrderIntakeLine.DeleteAll(true);
     end;
 
     trigger OnInsert()
@@ -226,23 +228,24 @@ table 50604 "Order Intake Header Opt."
 
     local procedure CheckCanChangeCustomer()
     var
-        WorkOrder: Record "Work Order";
+        OrderIntakeLine: Record "Order Intake Line";
         DayPlanning: Record "Day Planning";
         JobPlanningLine: Record "Job Planning Line";
         CannotChangeCustomerErr: Label 'Cannot change the customer because Day Planning lines and/or Project Planning lines already exist for this order intake. Remove those lines before changing the customer.';
     begin
-        WorkOrder.SetRange("Order Intake No.", "No.");
-        if WorkOrder.FindSet() then
+        OrderIntakeLine.SetRange("Order Intake No.", "No.");
+        if OrderIntakeLine.FindSet() then
             repeat
-                DayPlanning.SetRange("Work Order No.", WorkOrder."Work Order No.");
+                DayPlanning.SetRange("Job No.", OrderIntakeLine."Project No.");
+                Dayplanning.SetRange("Job Task No.", OrderIntakeLine."Project Task No.");
                 if not DayPlanning.IsEmpty() then
                     Error(CannotChangeCustomerErr);
 
-                JobPlanningLine.SetRange("Job No.", WorkOrder."Project No.");
-                JobPlanningLine.SetRange("Job Task No.", WorkOrder."Project Task No.");
+                JobPlanningLine.SetRange("Job No.", OrderIntakeLine."Project No.");
+                JobPlanningLine.SetRange("Job Task No.", OrderIntakeLine."Project Task No.");
                 if not JobPlanningLine.IsEmpty() then
                     Error(CannotChangeCustomerErr);
-            until WorkOrder.Next() = 0;
+            until OrderIntakeLine.Next() = 0;
     end;
 
     procedure SetDescription(pDescBody: Text)

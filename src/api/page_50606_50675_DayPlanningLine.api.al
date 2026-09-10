@@ -91,7 +91,7 @@ page 50675 "DayPlanning Line Opt"
                 {
                     ApplicationArea = All;
                 }
-                field(workOrderNo; Rec."Work Order No.")
+                field(orderIntakeNo; Rec."Order Intake No.")
                 {
                     ApplicationArea = All;
                 }
@@ -171,7 +171,7 @@ page 50675 "DayPlanning Line Opt"
         Rec."Assigned Team Leader" := TempLine."Assigned Team Leader";
         Rec."Requested Leader" := TempLine."Requested Leader";
         Rec."Assigned Leader" := TempLine."Assigned Leader";
-        Rec."Work Order No." := TempLine."Work Order No.";
+        Rec."Order Intake No." := TempLine."Order Intake No.";
         // Validate, applied AFTER "Assigned Resource No." above: the Skill field's own OnValidate
         // cross-checks that the now-assigned resource actually holds this specific skill
         // (SkillRes.Get(Type::Resource, "Assigned Resource No.", Skill)), which is the real

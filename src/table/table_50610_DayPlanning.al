@@ -657,11 +657,11 @@ table 50610 "Day Planning"
             TableRelation = "Work Type";
             Caption = 'Work Type Code';
         }
-        field(55; "Work Order No."; Code[20])
+        field(55; "Order Intake No."; Code[20])
         {
             DataClassification = ToBeClassified;
-            Caption = 'Work Order No.';
-            TableRelation = "Work Order";
+            Caption = 'Order Intake No.';
+            TableRelation = "Order Intake Header Opt.";
         }
         Field(65; "Requested Hours"; Decimal)
         {

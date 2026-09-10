@@ -150,7 +150,7 @@ codeunit 50695 "Day Planning Sequence Mgt."
         NewDayPlanning.Skill := SkillCode;
         NewDayPlanning."Plan Date" := PlanDate;
         NewDayPlanning."Sequence No." := SequenceNo;
-        NewDayPlanning."Work Order No." := WorkOrderNo;
+        NewDayPlanning."Order Intake No." := WorkOrderNo;
         NewDayPlanning."Day Line No." := NewDayPlanning.GetNextDayLineNo(PlanDate, JobNo, JobTaskNo);
 
         if (WorkHourTemplate."Default Start Time" <> 0T) and (WorkHourTemplate."Default End Time" <> 0T) then begin

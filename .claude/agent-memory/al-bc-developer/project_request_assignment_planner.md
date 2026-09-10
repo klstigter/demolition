@@ -32,5 +32,14 @@ New architecturally-significant feature area. AL side built 2026-08-27; two addi
 - Decimal-hours convention (e.g. 8.5 for 08:30) is this feature's own, via local `ReqAssign_TimeToDecimalHours`/`ReqAssign_DecimalHoursToTime` - distinct from the rest of codeunit 50604's ISO-datetime-string helpers (`ToSessionDateTimeTxt`/`ConvertToUserTimeZone`), which this feature does NOT use.
 - `skillColors.backgroundColor` reuses the existing `ColorConstants.GetSkillBarColor` convention (codeunit 50609) - same one `ResolveRequestedColor` already uses. `borderColor`/`textColor` have no existing per-skill convention anywhere (codeunit 50609 only has one *global* `GetBarFontColor` for all bar text) so they're static Label fallbacks (`ReqAssignSkillBorderColorTok`='#5AA6C8', `ReqAssignSkillTextColorTok`='#035B7E'). `statusColors.ok` is likewise a static fallback (`ReqAssignOkStatusBackgroundColorTok`='#DDF2E5'/`ReqAssignOkStatusTextColorTok`='#26613A') - no equivalent named status-colour setting exists yet.
 
+## Known JS bugs fixed 2026-09-10 (see [[project_reqassign_dragdrop_and_peracceptreject_fix]])
+Both whole-sequence (☰ handle) and individual-line drag-and-drop onto the Assignment panel were
+completely broken (two separate JS-only bugs in `wrapper.js`, unrelated to the Work Order table
+removal) until this fix - if drag-drop misbehaves again, read that doc first before assuming a new
+regression. Per-row Accept/Reject buttons in the Assignment panel's resource column were already
+fully implemented (`acceptForResource`/`rejectForResource`, `.resource-accept-btn`/
+`.resource-reject-btn`) but invisible/unreachable until the drag-drop fix let `pendingSequences`
+ever become non-empty.
+
 ## Compiler behavior note (corrects the original task brief)
 `controladdin` `Scripts`/`StyleSheets` file paths ARE validated at `al_compile`/`al_build` time in this environment (confirmed live, 2026-08-27: AL0327 "Missing file 'src/dhx/request_assignment/wrapper.js'" fired while the JS port hadn't landed yet - a real build-blocking error, not a warning). By the time the two additions above were folded in, wrapper.js/style.css/startupScript.js existed on disk (built in parallel) and the error cleared on its own - full `al_build` now produces a real .app. Any future controladdin created ahead of its JS/CSS files will hit the same AL0327 until those files exist - there is no way to stub past this without creating placeholder files.

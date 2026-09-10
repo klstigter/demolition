@@ -3031,7 +3031,19 @@ function createResourceScheduler() {
     scrollable: true,
     smart_rendering: true,
     column_width: 28,
-    dy: 34,
+    // MUST match the CSS-forced row height below (#resourceScheduler
+    // .resource-cell / .dhx_matrix_scell / .dhx_matrix_line all force
+    // height: 48px !important - see the "DHTMLXtempv028 — compact Resource
+    // rows" section in style.css). DHTMLX positions each row at
+    // `index * dy`, independent of the CSS-rendered box height, so a
+    // mismatch here means consecutive rows visually overlap by
+    // (cssHeight - dy) regardless of what's in any one row's cell. That
+    // stale mismatch (dy was 34 while CSS forced 48px) is what made the
+    // per-row Accept/Reject buttons - and, more subtly, capacity/assignment
+    // bars too - bleed 14px into the NEXT resource row. Confirmed live
+    // (2026-09-10) via getBoundingClientRect(): consecutive .resource-cell
+    // rects overlapped by exactly 14px (48 - 34) before this fix.
+    dy: 48,
     event_dy: 18,
     section_autoheight: false,
     fit_events: false,
@@ -5192,8 +5204,10 @@ function resourceFromPointer(clientY, clientX = null) {
     }
   }
 
-  // Reliable fallback: resource Timeline was configured with dy = 52.
-  const rowHeight = 52;
+  // Reliable fallback: resource Timeline's dy (and the CSS-forced
+  // .resource-cell height it must match - see the dy config comment where
+  // the resource Timeline view is created) is 48.
+  const rowHeight = 48;
   const y = clientY - dataRect.top + (data.scrollTop || 0);
   const index = Math.floor(y / rowHeight);
 
@@ -5261,7 +5275,27 @@ function lineIdFromRequestElement(element) {
   if (!element) return null;
   const cls = Array.from(element.classList)
     .find(name => name.startsWith("dtl-"));
-  return cls ? cls.slice(4) : null;
+  if (!cls) return null;
+
+  // Real Day Task Line ids are pipe-separated ("<Job No.>|<Job Task No.>|
+  // <Day Line No.>" - see codeunit 50604's ReqAssign_ region), but "|" isn't
+  // legal in a CSS class name, so sch.templates.event_class sanitizes it
+  // (replacing every non [A-Za-z0-9_-] char with "_") before building this
+  // element's "dtl-..." class. That sanitization is LOSSY - "_" and "|" (and
+  // any other punctuation) collapse to the same character - so naively
+  // slicing "dtl-" off the class name and using the rest AS the id (the old
+  // behavior here) never matched a real dayTaskLines[].id, and findLine()
+  // always returned undefined. Confirmed live (2026-09-10): every individual
+  // (non-whole-sequence) drag silently died right here - pointerdown bailed
+  // out at `if (!line) return;` in the request-bar drag handler below, before
+  // slotPointer was ever set, so the drag never even started. Fix: re-derive
+  // the SAME sanitized class name from each candidate line's real id (the
+  // exact inverse of how event_class built it) and match on that, instead of
+  // trying to un-sanitize the class name itself.
+  const match = dayTaskLines.find(
+    x => `dtl-${String(x.id).replace(/[^a-zA-Z0-9_-]/g, "_")}` === cls
+  );
+  return match ? match.id : null;
 }
 
 function selectedDragGhostText(lines) {
@@ -6165,9 +6199,24 @@ window.BOOT = function BOOT() {
 
     refreshSelectionClasses();
 
+    // MUST re-render here (render: true) - resourceFromPointer() (used on every
+    // pointermove/pointerup for the rest of this drag gesture) maps a screen Y
+    // coordinate to a resource by INDEX into visibleResources(), which starts
+    // returning the skill-filtered list the instant activeSkillFilter changes
+    // below. If the resource rows themselves aren't re-rendered in lockstep
+    // (render: false), the DOM row positions/count (still the old unfiltered
+    // list) and visibleResources() (already filtered) disagree, so the index
+    // lookup silently resolves to the wrong resource or null - every whole-
+    // sequence drop then fails with "Drop on a resource row, not on the
+    // header." even when dropped squarely on a valid, skill-matching resource
+    // row. Confirmed live (2026-09-10): with render: false, dragging a
+    // multi-line sequence (the "N time slots moving" tooltip) onto any
+    // resource row never produced an assignment. The individual-line drag
+    // path a few hundred lines below already uses render: true for the same
+    // reason - this just matches it.
     activateSkillFilter(
       sequenceKey,
-      { render: false }
+      { render: true }
     );
 
     activateSequenceScope(

@@ -43,10 +43,6 @@ page 50639 "Day Planning Pattern"
                 {
                     ToolTip = 'Specifies the value of the Quantity of Lines field.', Comment = '%';
                 }
-                field("Work Order No."; Rec."Work Order No.")
-                {
-                    ToolTip = 'Specifies the value of the Work Order No. field.', Comment = '%';
-                }
                 field("Work-Hour Template"; Rec."Work-Hour Template")
                 {
                     ToolTip = 'Specifies the value of the Work-Hour Template field.', Comment = '%';
@@ -120,7 +116,7 @@ page 50639 "Day Planning Pattern"
     trigger OnNewRecord(BelowxRec: Boolean)
     var
         DailyOptimizerSetup: Record "Daily Optimizer Setup";
-        WorkOrder: Record "Work Order";
+        JobTask: Record "Job Task";
     begin
         if xRec.SkillsRequired = '' then begin // first new record
 
@@ -128,21 +124,17 @@ page 50639 "Day Planning Pattern"
             Rec.Validate("Work-Hour Template", DailyOptimizerSetup."Work hour Template");
             Rec.SkillsRequired := DailyOptimizerSetup."Default Skill";
             Rec."Quantity of Lines" := 1;
-            if WorkOrderNoFilter <> '' then begin
-                WorkOrder.SetFilter("Work Order No.", WorkOrderNoFilter);
-                if WorkOrder.FindFirst() then begin
-                    WorkOrder.CalcFields("Planned Start Date", "Planned End Date");
-                    Rec."Work Order No." := WorkOrder."Work Order No.";
-                    Rec."Start Date" := WorkOrder."Planned Start Date";
-                    Rec."End Date" := WorkOrder."Planned End Date";
-                end;
+
+            if JobTask.Get(Rec."Job No.", Rec."Job Task No.") then begin
+                Rec."Start Date" := JobTask."PlannedStartDate";
+                Rec."End Date" := JobTask."PlannedEndDate";
             end;
+
             if (rec."Start Date" <> 0D) and (rec."End Date" <> 0D) then
                 Rec.Validate("End Time");
         end else begin
             rec."Job No." := xRec."Job No.";
             rec."Job Task No." := xRec."Job Task No.";
-            Rec."Work Order No." := xRec."Work Order No.";
 
             rec.SkillsRequired := xRec.SkillsRequired;
             rec."Work-Hour Template" := xRec."Work-Hour Template";
@@ -172,7 +164,6 @@ page 50639 "Day Planning Pattern"
         rec.FilterGroup(2);
         rec.SetRange("Job No.", JobNo);
         rec.SetRange("Job Task No.", JobTaskNo);
-        rec.SetRange("Work Order No.", WorkOrderNo);
         rec.FilterGroup(0);
     end;
 }

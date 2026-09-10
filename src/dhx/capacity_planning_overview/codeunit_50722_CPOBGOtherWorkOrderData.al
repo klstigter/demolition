@@ -21,7 +21,8 @@ codeunit 50722 "CPO BG Other WO Data"
         DHXDataHandler: Codeunit "DHX Data Handler";
         TaskParameters: Dictionary of [Text, Text];
         Result: Dictionary of [Text, Text];
-        WorkOrderNo: Code[20];
+        JobNo: Code[20];
+        JobTaskNo: Code[20];
         RemainingGroupKeys: Text;
         StartDate: Date;
         EndDate: Date;
@@ -29,13 +30,21 @@ codeunit 50722 "CPO BG Other WO Data"
     begin
         TaskParameters := Page.GetBackgroundParameters();
 
-        WorkOrderNo := CopyStr(GetParam(TaskParameters, 'WorkOrderNo'), 1, MaxStrLen(WorkOrderNo));
+        // 'JobNo'/'JobTaskNo' (Work Order table removal - see this add-in's project memory,
+        // [[project_cpo_cross_wo_scope_fix]]): replaces the old single 'WorkOrderNo' key - Job
+        // Task's primary key is composite, so a single Code[20] can no longer identify "which
+        // one". Both blank (as page 50724 "Capacity Planning Dashboard"'s own enqueue call still
+        // sends - it only ever adds a now-unread 'WorkOrderNo' key, silently defaulting these to
+        // '' via GetParam's own missing-key fallback) means "nothing excluded", matching that
+        // tile's own company-wide semantics unchanged.
+        JobNo := CopyStr(GetParam(TaskParameters, 'JobNo'), 1, MaxStrLen(JobNo));
+        JobTaskNo := CopyStr(GetParam(TaskParameters, 'JobTaskNo'), 1, MaxStrLen(JobTaskNo));
         RemainingGroupKeys := GetParam(TaskParameters, 'RemainingGroupKeys');
         EvaluateDateParam(TaskParameters, 'StartDate', StartDate);
         EvaluateDateParam(TaskParameters, 'EndDate', EndDate);
 
         if RemainingGroupKeys <> '' then
-            OtherWorkOrderDataJson := DHXDataHandler.CPO_BuildOtherWorkOrderLinesJson_ForKeys(WorkOrderNo, StartDate, EndDate, RemainingGroupKeys);
+            OtherWorkOrderDataJson := DHXDataHandler.CPO_BuildOtherWorkOrderLinesJson_ForKeys(JobNo, JobTaskNo, StartDate, EndDate, RemainingGroupKeys);
         // RemainingGroupKeys = '' means nothing was actually pending when this task was enqueued -
         // leave OtherWorkOrderDataJson blank rather than re-building anything.
 

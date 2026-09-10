@@ -27,7 +27,7 @@ page 50676 "Work Order Day Plannings"
                     ApplicationArea = All;
                     Visible = false;
                 }
-                field("Work Order No."; Rec."Work Order No.")
+                field("Work Order No."; Rec."Order Intake No.")
                 {
                     ApplicationArea = All;
                     Visible = false;
@@ -165,15 +165,15 @@ page 50676 "Work Order Day Plannings"
     begin
         // Get the No. from the SubPageLink filter (FilterGroup 4)
         Rec.FilterGroup(4);
-        if Rec.GetFilter("Work Order No.") <> '' then
-            WorkOrderNo := Rec.GetRangeMin("Work Order No.");
+        if Rec.GetFilter("Order Intake No.") <> '' then
+            WorkOrderNo := Rec.GetRangeMin("Order Intake No.");
         Rec.FilterGroup(0);
 
         if WorkOrderNo <> '' then
-            Rec."Work Order No." := WorkOrderNo;
+            Rec."Order Intake No." := WorkOrderNo;
 
-        Rec.Testfield("Work Order No.");
-        WorkOrder.Get(Rec."Work Order No.");
+        Rec.Testfield("Order Intake No.");
+        WorkOrder.Get(Rec."Order Intake No.");
         WorkOrder.TestField("Project No.");
         Rec."Job No." := WorkOrder."Project No.";
         WorkOrder.TestField("Project Task No.");
