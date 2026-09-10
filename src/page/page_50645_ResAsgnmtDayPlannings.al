@@ -59,7 +59,7 @@ page 50645 "Res. Asgmt. Day Plannings"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the plan status of the day task.';
                 }
-                field("Work Order No."; Rec."Work Order No.")
+                field("Work Order No."; Rec."Order Intake No.")
                 {
                     ApplicationArea = All;
                 }

@@ -34,3 +34,4 @@
 - [Planning Role Center chart width](project_planning_rolecenter_chart_width.md) — RequestedWidth/MinimumWidth don't affect BC's role-center flex-grid split at all; per-part `group()` wrap does; legend-bleed fix in wrapper.js; unpublished as of 2026-09-07
 - [User now publishes manually](feedback_user_publishes_manually.md) — agent must stop after clean al_compile/al_build, never call al_publish unless explicitly asked again
 - [Tooltip colors centralized in codeunit 50609](project_tooltip_colors_centralized.md) — GetTooltipBackgroundColor/GetTooltipFontColor; full 14-folder src/dhx wiring status + skip reasons (2026-09-08)
+- [CPO Work Order table removal migration (2026-09-10)](project_cpo_work_order_table_removal_migration.md) — WorkOrderNo split into JobNo/JobTaskNo pair throughout page 50722/codeunit 50722/CPO_ region; JSON 'workOrderNo' field kept, now carries "JobNo|JobTaskNo" composite (option a); SetJobTask has no live caller yet

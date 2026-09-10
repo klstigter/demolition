@@ -45,10 +45,6 @@ page 50702 "DayPlanningPatternApi Opt"
                 {
                     Caption = 'Work-Hour Template';
                 }
-                field(workOrderNo_; Rec."Work Order No.")
-                {
-                    Caption = 'Work Order No.';
-                }
                 field(startDate; Rec."Start Date")
                 {
                     Caption = 'Planned Start Date';

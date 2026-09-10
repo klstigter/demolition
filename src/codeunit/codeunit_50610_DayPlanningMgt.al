@@ -45,6 +45,7 @@ codeunit 50610 "Day Plannings Mgt."
         DayPlannings: Record "Day Planning";
         Resource: Record Resource;
         DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        OrderIntakeLine: Record "Order Intake Line";
         StartDate: Date;
         EndDate: Date;
         NewTaskDate: Date;
@@ -114,7 +115,11 @@ codeunit 50610 "Day Plannings Mgt."
                 DayPlannings."Job No." := DayPlanningPattern."Job No.";
                 DayPlannings."Job Task No." := DayPlanningPattern."Job Task No.";
                 DayPlannings."Pattern Line No." := DayPlanningPattern."Line No.";
-                DayPlannings."Work Order No." := DayPlanningPattern."Work Order No.";
+
+                OrderIntakeLine.SetRange("Project No.", DayPlanningPattern."Job No.");
+                OrderIntakeLine.SetRange("Project Task No.", DayPlanningPattern."Job Task No.");
+                if OrderIntakeLine.FindLast() then
+                    DayPlannings."Order Intake No." := OrderIntakeLine."Order Intake No.";
 
                 // Calculate start and end times for this day
                 if DayPlanningPattern."Start Time" <> 0T then

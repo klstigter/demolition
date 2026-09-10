@@ -111,7 +111,7 @@ page 50622 "Resource Day Plannings"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the team leader for this day planning.';
                 }
-                field("Work Order No."; Rec."Work Order No.")
+                field("Work Order No."; Rec."Order Intake No.")
                 {
                     ApplicationArea = All;
                 }

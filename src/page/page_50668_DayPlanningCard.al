@@ -143,7 +143,7 @@ page 50668 "Day Planning Card Opt"
 
             Group(WorkOrder)
             {
-                field("Work Order No."; Rec."Work Order No.")
+                field("Work Order No."; Rec."Order Intake No.")
                 {
                     ApplicationArea = All;
                 }

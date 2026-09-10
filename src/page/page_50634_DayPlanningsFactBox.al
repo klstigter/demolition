@@ -36,7 +36,7 @@ page 50634 "Day Plannings FactBox"
                 {
                     Caption = 'Data Owner';
                 }
-                field("Work Order No."; Rec."Work Order No.")
+                field("Work Order No."; Rec."Order Intake No.")
                 {
                     ApplicationArea = All;
                 }

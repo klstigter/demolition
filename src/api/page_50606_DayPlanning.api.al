@@ -115,7 +115,7 @@ page 50606 "DayPlanningApi Opt"
                 {
                     ApplicationArea = All;
                 }
-                field(workOrderNo; Rec."Work Order No.")
+                field(orderIntakeNo; Rec."Order Intake No.")
                 {
                     ApplicationArea = All;
                 }

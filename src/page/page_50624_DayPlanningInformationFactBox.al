@@ -72,7 +72,7 @@ page 50624 "Day Planning Info FactBox"
                     Caption = 'Day Line No.';
                     visible = false;
                 }
-                field("Work Order No."; Rec."Work Order No.")
+                field("Work Order No."; Rec."Order Intake No.")
                 {
                     ApplicationArea = All;
                     visible = false;

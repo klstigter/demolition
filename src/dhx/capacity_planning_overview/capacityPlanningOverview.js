@@ -102,16 +102,31 @@ function cpoHoursText(v) {
 ///    they worked before it.
 /// 5. CROSS-WORK-ORDER SCOPE (2026-09-03, explicit user correction - see codeunit 50604's own
 ///    CPO_BuildPlanningDataJson doc comment for the AL-side story): db.dayPlanningLines[] now
-///    mixes the inspected Work Order's own rows with every OTHER Work Order's rows in the same
+///    mixes the inspected Job Task's own rows with every OTHER Job Task's rows in the same
 ///    visible window, each row tagged with a real "workOrderNo". Section 1/2 and section 3's own
-///    "Requested" bar (dailyCapacityRequestData) stay scoped to the inspected Work Order via an
+///    "Requested" bar (dailyCapacityRequestData) stay scoped to the inspected Job Task via an
 ///    explicit `line.workOrderNo === (this.db.workOrder && this.db.workOrder.no)` check; section
 ///    4's own line-matching (skillDaySummary/taskDaySummary/sequenceDayLines) does the OPPOSITE
-///    check (`!==`) since section 4's db.groups[] is now built AL-side from every OTHER Work
-///    Order's demand exclusively - "everything else going on in this window, except the one
+///    check (`!==`) since section 4's db.groups[] is now built AL-side from every OTHER Job
+///    Task's demand exclusively - "everything else going on in this window, except the one
 ///    being inspected". section 3's capParts() "assigned"/freeInt total is deliberately NOT
 ///    workOrderNo-filtered - a resource committed to another WO that day is genuinely unavailable,
 ///    so that side was already correctly company-wide before this change.
+/// 6. JSON-CONTRACT UPDATE (Work Order table removal, AL-side - see codeunit 50604's own
+///    CPO_BuildDayPlanningLineObj doc comment and this add-in's project memory,
+///    [[project_cpo_cross_wo_scope_fix]]): Job Task's own primary key is composite ("Job No." +
+///    "Job Task No."), so AL can no longer hand this file a single real Work Order No. Rather than
+///    rename this field/rework every comparison below (JSON-contract option (b)), AL keeps the
+///    JSON field NAMED "workOrderNo" (both on `db.workOrder.no` and every `dayPlanningLines[]`
+///    entry's own "workOrderNo") but now populates it with a pipe-joined "JobNo|JobTaskNo"
+///    composite string - the SAME idiom this file's own aggregateRequests()/renderCentralTree()
+///    already use for their own group/sequence keys. Every `===`/`!==` equality check below
+///    (dailyCapacityRequestData, workOrderAssignmentState, skillDaySummary/taskDaySummary/
+///    sequenceDayLines) is therefore UNCHANGED - plain string equality on the composite works
+///    exactly like it did on the old single value, so this section's own filtering behavior is
+///    byte-for-byte identical to before. The ONLY place that composite is user-visible is the
+///    title-bar render (applyPlanningData, "Workorder " + this.db.workOrder.no + ...) - reformatted
+///    there to swap the pipe for a friendlier separator, purely cosmetic, no effect on matching.
 /// </summary>
 class CapacityPlanningOverview {
     constructor(containerId) {
@@ -449,11 +464,17 @@ class CapacityPlanningOverview {
 
         const titleEl = document.getElementById('cpo-title');
         if (titleEl) {
-            // The Work Order's OWN description ("Snag List Resolution"), NOT its parent
+            // The Job Task's OWN description ("Snag List Resolution"), NOT its parent
             // Project's description ("Work Order Demo Data") - the previous version read the
             // wrong field.
+            //
+            // this.db.workOrder.no is now a pipe-joined "JobNo|JobTaskNo" composite (Work Order
+            // table removal - see this file's own top-of-file doc comment, point 6) since Job
+            // Task's own key is composite; the pipe is swapped for " / " here purely for display -
+            // every OTHER read of workOrder.no/workOrderNo in this file compares the raw
+            // pipe-joined value unchanged.
             titleEl.textContent = (this.db.workOrder)
-                ? 'Workorder ' + this.db.workOrder.no + (this.db.workOrder.description ? (' | ' + this.db.workOrder.description) : '')
+                ? 'Workorder ' + this.db.workOrder.no.replace('|', ' / ') + (this.db.workOrder.description ? (' | ' + this.db.workOrder.description) : '')
                 : 'Capacity Planning Overview';
         }
 

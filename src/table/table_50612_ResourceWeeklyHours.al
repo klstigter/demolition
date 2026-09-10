@@ -306,7 +306,7 @@ table 50612 "Summary Weekly"
         YearValue: Integer;
         WeekNoValue: Integer;
         TaskDate: Date;
-        WorkOrder: Record "Work Order";
+        ProjectTask: Record "Job Task";
     begin
         Reset();
         DeleteAll();
@@ -321,8 +321,8 @@ table 50612 "Summary Weekly"
         repeat
             TaskDate := DayPlanning."Plan Date";
             if TaskDate = 0D then begin
-                if WorkOrder.Get(DayPlanning."Work Order No.") then
-                    TaskDate := WorkOrder."Placeholder Date";
+                if ProjectTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
+                    TaskDate := ProjectTask."Placeholder Date";
             end;
             if TaskDate = 0D then
                 continue;
@@ -411,7 +411,7 @@ table 50612 "Summary Weekly"
         YearValue: Integer;
         WeekNoValue: Integer;
         TaskDate: Date;
-        WorkOrder: Record "Work Order";
+        ProjectTask: Record "Job Task";
         ContextResourceNo: Code[20];
         ContextHours: Decimal;
     begin
@@ -427,8 +427,8 @@ table 50612 "Summary Weekly"
         repeat
             TaskDate := DayPlanning."Plan Date";
             if TaskDate = 0D then begin
-                if WorkOrder.Get(DayPlanning."Work Order No.") then
-                    TaskDate := WorkOrder."Placeholder Date";
+                if ProjectTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
+                    TaskDate := ProjectTask."Placeholder Date";
             end;
             if TaskDate = 0D then
                 continue;
@@ -548,7 +548,7 @@ table 50612 "Summary Weekly"
         SkillOld: Code[20];
         n: Integer;
     begin
-        DayPlanning.SetLoadFields("Plan Date", "Job No.", "Job Task No.", "Work Order No.",
+        DayPlanning.SetLoadFields("Plan Date", "Job No.", "Job Task No.", "Order Intake No.",
             "Assigned Resource No.", "Requested Resource No.", Skill, "Requested Hours", "Assigned Hours");
 
         TempYearWeek.Reset();

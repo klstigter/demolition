@@ -134,7 +134,8 @@ page 50722 "Capacity Planning Overview"
     end;
 
     var
-        GWorkOrderNo: Code[20];
+        GJobNo: Code[20];
+        GJobTaskNo: Code[20];
         DaysToShow: Integer;
         OtherWorkOrderDataTaskId: Integer; // TaskId of the most recently enqueued other-work-order-data background task; OnPageBackgroundTaskCompleted/Error discard any result whose TaskId doesn't match (superseded by a later reload)
         PendingOtherWorkOrderDataJson: Text; // set by OnPageBackgroundTaskCompleted, delivered into the control add-in by OnPollOtherWorkOrderDataResult (see that trigger's comment for why the split is necessary)
@@ -149,12 +150,21 @@ page 50722 "Capacity Planning Overview"
 
     /// <summary>
     /// Filter-setter-before-RunModal, following the same pattern as "Gantt Demo DHX 2"'s
-    /// SetJobFilter/"DHX Scheduler (Project)"'s SetJobTaskFilter - the launching action on the
-    /// Workorder Card calls this before RunModal(), no bound SourceTable on this page.
+    /// SetJobFilter/"DHX Scheduler (Project)"'s SetJobTaskFilter - the launching action was meant
+    /// to call this before RunModal(), no bound SourceTable on this page.
+    ///
+    /// RENAMED from SetWorkOrderNo(pWorkOrderNo: Code[20]) (Work Order table removal - see this
+    /// add-in's project memory, [[project_cpo_cross_wo_scope_fix]]): Job Task's primary key is
+    /// composite ("Job No." + "Job Task No."), so a single Code[20] can no longer identify "which
+    /// one work order/job task is this page inspecting". ENTRY-POINT NOTE: this procedure currently
+    /// has NO live caller anywhere in the codebase - its only caller was
+    /// src/page/Pag50662.WorkorderCard.al.allowtoremove.txt, already marked for removal - so this
+    /// rename is a signature/correctness fix only, not a behavior change for any live flow.
     /// </summary>
-    procedure SetWorkOrderNo(pWorkOrderNo: Code[20])
+    procedure SetJobTask(pJobNo: Code[20]; pJobTaskNo: Code[20])
     begin
-        GWorkOrderNo := pWorkOrderNo;
+        GJobNo := pJobNo;
+        GJobTaskNo := pJobTaskNo;
     end;
 
     local procedure EnsureDaysToShow()
@@ -209,7 +219,7 @@ page 50722 "Capacity Planning Overview"
         RemainingGroupKeys: Text;
         OtherWorkOrderGroupsPageSize: Integer;
     begin
-        if GWorkOrderNo = '' then
+        if (GJobNo = '') or (GJobTaskNo = '') then
             exit;
 
         // 50 whole Skill+Job No.+Job Task No. groups - the exact figure the user asked for
@@ -218,7 +228,7 @@ page 50722 "Capacity Planning Overview"
         // cut the client-side parse/model-build/DHTMLX-ingest cost for first paint on a
         // company-wide "every other Work Order in this window" dataset that can otherwise be huge.
         OtherWorkOrderGroupsPageSize := 50;
-        PlanningDataJson := DHXDataHandler.CPO_BuildPlanningDataJson_Paged(GWorkOrderNo, DaysToShow, OtherWorkOrderGroupsPageSize, RemainingGroupKeys);
+        PlanningDataJson := DHXDataHandler.CPO_BuildPlanningDataJson_Paged(GJobNo, GJobTaskNo, DaysToShow, OtherWorkOrderGroupsPageSize, RemainingGroupKeys);
         CurrPage.DhxCpo.SetPlanningData(PlanningDataJson);
 
         EnqueueOtherWorkOrderDataBackgroundTask(RemainingGroupKeys);
@@ -277,7 +287,7 @@ page 50722 "Capacity Planning Overview"
         ShiftDays: Integer;
         AnyShiftApplied: Boolean;
     begin
-        if (GWorkOrderNo = '') or (PayloadJsonTxt = '') then
+        if (GJobNo = '') or (GJobTaskNo = '') or (PayloadJsonTxt = '') then
             exit;
         if not PayloadJObj.ReadFrom(PayloadJsonTxt) then
             exit;
@@ -368,7 +378,8 @@ page 50722 "Capacity Planning Overview"
         StartDate := Today();
         EndDate := StartDate + DaysToShow - 1;
 
-        TaskParameters.Add('WorkOrderNo', GWorkOrderNo);
+        TaskParameters.Add('JobNo', GJobNo);
+        TaskParameters.Add('JobTaskNo', GJobTaskNo);
         TaskParameters.Add('StartDate', Format(StartDate, 0, '<Year4>-<Month,2>-<Day,2>'));
         TaskParameters.Add('EndDate', Format(EndDate, 0, '<Year4>-<Month,2>-<Day,2>'));
         TaskParameters.Add('RemainingGroupKeys', RemainingGroupKeys);

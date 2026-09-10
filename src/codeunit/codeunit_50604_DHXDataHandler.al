@@ -6298,9 +6298,9 @@ codeunit 50604 "DHX Data Handler"
     /// (no lines, empty skill/resource/group arrays) rather than erroring, since this runs from a
     /// page trigger with no user-facing error path.
     /// </summary>
-    procedure CPO_BuildPlanningDataJson(WorkOrderNo: Code[20]; NumberOfDays: Integer): Text
+    procedure CPO_BuildPlanningDataJson(JobNo: Code[20]; JobTaskNo: Code[20]; NumberOfDays: Integer): Text
     var
-        WorkOrder: Record "Work Order";
+        JobTask: Record "Job Task";
         Job: Record Job;
         DayPlanning: Record "Day Planning";
         // Company-wide (minus WorkOrderNo), date-bounded query for Pass 3 below - see that pass's
@@ -6356,29 +6356,30 @@ codeunit 50604 "DHX Data Handler"
         CurHours: Decimal;
         StartDate: Date;
         EndDate: Date;
-        JobNo: Code[20];
-        JobTaskNo: Code[20];
-        WorkOrderFound: Boolean;
+        JobTaskFound: Boolean;
         OutTxt: Text;
     begin
-        WorkOrderFound := WorkOrder.Get(WorkOrderNo);
+        // JobNo/JobTaskNo are now the caller-supplied identity pair (Job Task's own composite
+        // primary key - see this region's own header comment for why a single WorkOrderNo can no
+        // longer identify "which one"). 'no' below carries the same pipe-joined composite JS-side
+        // matching now keys on (JSON-contract option (a) - see capacityPlanningOverview.js's own
+        // doc comment on 'workOrderNo'/'workOrder.no').
+        JobTaskFound := (JobNo <> '') and JobTask.Get(JobNo, JobTaskNo);
 
-        if WorkOrderFound then begin
-            JobNo := WorkOrder."Project No.";
-            JobTaskNo := WorkOrder."Project Task No.";
-            WorkOrderObj.Add('no', WorkOrder."Work Order No.");
-            // The Work Order's OWN description (e.g. "Snag List Resolution") - JS's title bar
-            // uses this, NOT the parent Project's description (an earlier version of the JS
-            // wrongly fell back to the project's description, which was misleading - e.g. showing
-            // "Work Order Demo Data" instead of the WO's own text).
-            WorkOrderObj.Add('description', WorkOrder.Description);
+        if JobTaskFound then begin
+            WorkOrderObj.Add('no', JobNo + '|' + JobTaskNo);
+            // The Job Task's OWN description (e.g. "Snag List Resolution") - JS's title bar uses
+            // this, NOT the parent Project's description (an earlier version of the JS wrongly
+            // fell back to the project's description, which was misleading - e.g. showing "Work
+            // Order Demo Data" instead of the Job Task's own text).
+            WorkOrderObj.Add('description', JobTask.Description);
             // Unused by any ported reference function (grepped DHTMLXtempv112-app.js - neither
             // field is read anywhere), kept only as descriptive metadata mirroring the reference's
-            // own mock shape - mapped from this WO's own Planned Start/End Date.
-            WorkOrderObj.Add('notEarlierThan', ReqAssign_FormatIsoDate(WorkOrder."Planned Start Date"));
-            WorkOrderObj.Add('notLaterThan', ReqAssign_FormatIsoDate(WorkOrder."Planned End Date"));
+            // own mock shape - mapped from this Job Task's own Planned Start/End Date.
+            WorkOrderObj.Add('notEarlierThan', ReqAssign_FormatIsoDate(JobTask.PlannedStartDate));
+            WorkOrderObj.Add('notLaterThan', ReqAssign_FormatIsoDate(JobTask.PlannedEndDate));
         end else begin
-            WorkOrderObj.Add('no', WorkOrderNo);
+            WorkOrderObj.Add('no', JobNo + '|' + JobTaskNo);
             WorkOrderObj.Add('description', '');
             WorkOrderObj.Add('notEarlierThan', '');
             WorkOrderObj.Add('notLaterThan', '');
@@ -6404,11 +6405,11 @@ codeunit 50604 "DHX Data Handler"
         RootObj.Add('endDate', ReqAssign_FormatIsoDate(EndDate));
         RootObj.Add('workdays', CPO_BuildDateRangeArray(StartDate, EndDate));
 
-        if WorkOrderFound then begin
+        if JobTaskFound then begin
             DayPlanning.SetLoadFields("Job No.", "Job Task No.", "Day Line No.", Skill, "Sequence No.", Description,
                 "Plan Date", Assigned, "Assigned Resource No.", "Requested Hours", "Assigned Hours",
                 "Start Time Requested", "End Time Requested", "Start Time Assigned", "End Time Assigned",
-                "Work Order No.");
+                "Order Intake No.");
             // Scoped by Job No./Job Task No. (this WO's own "Project No."/"Project Task No."),
             // NOT the "Work Order No." field (2026-09-03 bug fix - see this add-in's project
             // memory): confirmed live on DWO0008 that some of a Work Order's own Day Planning
@@ -6418,20 +6419,18 @@ codeunit 50604 "DHX Data Handler"
             // ever filters by Job No./Job Task No., never by "Work Order No.", so CPO must match
             // that same semantics or it silently drops rows from Section 2 (and Pass 3 below then
             // wrongly re-adds them to Section 4 as if they were some OTHER Work Order's demand).
-            // Falls back to the old "Work Order No." field filter only if this WO has no linked
-            // Job at all (blank Project No.) - without SOME filter here, blank Job No./Job Task
-            // No. would match every unassigned Day Planning line company-wide.
-            if JobNo <> '' then begin
-                DayPlanning.SetRange("Job No.", JobNo);
-                DayPlanning.SetRange("Job Task No.", JobTaskNo);
-            end else
-                DayPlanning.SetRange("Work Order No.", WorkOrderNo);
+            // No more "blank Job No. -> fall back to some other identifier" branch: JobTaskFound
+            // (above) already guarantees JobNo/JobTaskNo resolved a real Job Task record, so both
+            // are always non-blank here - unlike the old single-WorkOrderNo world, there is no
+            // longer any other identifier to fall back to if they were blank.
+            DayPlanning.SetRange("Job No.", JobNo);
+            DayPlanning.SetRange("Job Task No.", JobTaskNo);
 
-            // ---- Pass 1: dayPlanningLines[] (WorkOrderNo's OWN lines) + distinct-key dedup
+            // ---- Pass 1: dayPlanningLines[] (JobNo/JobTaskNo's OWN lines) + distinct-key dedup
             // (skills/sequences - NOT groups, see Pass 3 below for why) ----
             if DayPlanning.FindSet() then
                 repeat
-                    DayPlanningLinesArr.Add(CPO_BuildDayPlanningLineObj(DayPlanning, WorkOrderNo, JobNo, JobTaskNo));
+                    DayPlanningLinesArr.Add(CPO_BuildDayPlanningLineObj(DayPlanning, JobNo, JobTaskNo));
 
                     // A blank Skill is real (unclassified) demand but cannot be placed under any
                     // Skill tree node or matched to a resource pool - excluded from every
@@ -6500,7 +6499,7 @@ codeunit 50604 "DHX Data Handler"
             OtherDayPlanning.SetLoadFields("Job No.", "Job Task No.", "Day Line No.", Skill, "Sequence No.", Description,
                 "Plan Date", Assigned, "Assigned Resource No.", "Requested Hours", "Assigned Hours",
                 "Start Time Requested", "End Time Requested", "Start Time Assigned", "End Time Assigned",
-                "Work Order No.");
+                "Order Intake No.");
             // NOT filtered by "Work Order No." <> WorkOrderNo anymore (2026-09-03 bug fix - see
             // Pass 1's own doc comment above for the full reasoning): that field can be blank on
             // some of WorkOrderNo's OWN Day Planning Sequences, which then wrongly passed this
@@ -6516,7 +6515,7 @@ codeunit 50604 "DHX Data Handler"
                     // Skip this WO's own line (matched by Job No./Job Task No., regardless of its
                     // "Work Order No." field) - already covered by Pass 1 above.
                     if not ((JobNo <> '') and (OtherDayPlanning."Job No." = JobNo) and (OtherDayPlanning."Job Task No." = JobTaskNo)) then begin
-                        DayPlanningLinesArr.Add(CPO_BuildDayPlanningLineObj(OtherDayPlanning, WorkOrderNo, JobNo, JobTaskNo));
+                        DayPlanningLinesArr.Add(CPO_BuildDayPlanningLineObj(OtherDayPlanning, JobNo, JobTaskNo));
 
                         if not ActiveSkillList.Contains(OtherDayPlanning.Skill) then
                             ActiveSkillList.Add(OtherDayPlanning.Skill);
@@ -6660,7 +6659,7 @@ codeunit 50604 "DHX Data Handler"
     /// whatever didn't fit) - both build byte-for-byte identical line JSON for the same row instead
     /// of maintaining two copies of this logic.
     /// </summary>
-    local procedure CPO_BuildOtherWorkOrderLinesForGroups(WorkOrderNo: Code[20]; JobNo: Code[20]; JobTaskNo: Code[20]; StartDate: Date; EndDate: Date; var WantedGroupKeys: Dictionary of [Text, Boolean]): JsonArray
+    local procedure CPO_BuildOtherWorkOrderLinesForGroups(JobNo: Code[20]; JobTaskNo: Code[20]; StartDate: Date; EndDate: Date; var WantedGroupKeys: Dictionary of [Text, Boolean]): JsonArray
     var
         OtherDayPlanning: Record "Day Planning";
         LinesArr: JsonArray;
@@ -6669,7 +6668,7 @@ codeunit 50604 "DHX Data Handler"
         OtherDayPlanning.SetLoadFields("Job No.", "Job Task No.", "Day Line No.", Skill, "Sequence No.", Description,
             "Plan Date", Assigned, "Assigned Resource No.", "Requested Hours", "Assigned Hours",
             "Start Time Requested", "End Time Requested", "Start Time Assigned", "End Time Assigned",
-            "Work Order No.");
+            "Order Intake No.");
         OtherDayPlanning.SetFilter(Skill, '<>%1', '');
         OtherDayPlanning.SetRange("Plan Date", StartDate, EndDate);
         if OtherDayPlanning.FindSet() then
@@ -6677,7 +6676,7 @@ codeunit 50604 "DHX Data Handler"
                 if not ((JobNo <> '') and (OtherDayPlanning."Job No." = JobNo) and (OtherDayPlanning."Job Task No." = JobTaskNo)) then begin
                     GroupKeyTxt := OtherDayPlanning.Skill + '|' + OtherDayPlanning."Job No." + '|' + OtherDayPlanning."Job Task No.";
                     if WantedGroupKeys.ContainsKey(GroupKeyTxt) then
-                        LinesArr.Add(CPO_BuildDayPlanningLineObj(OtherDayPlanning, WorkOrderNo, JobNo, JobTaskNo));
+                        LinesArr.Add(CPO_BuildDayPlanningLineObj(OtherDayPlanning, JobNo, JobTaskNo));
                 end;
             until OtherDayPlanning.Next() = 0;
         exit(LinesArr);
@@ -6693,9 +6692,9 @@ codeunit 50604 "DHX Data Handler"
     /// JobTaskNo" strings, blank '' if nothing remains) is what the caller threads into
     /// CurrPage.EnqueueBackgroundTask(Codeunit::"CPO BG Other WO Data", ...).
     /// </summary>
-    procedure CPO_BuildPlanningDataJson_Paged(WorkOrderNo: Code[20]; NumberOfDays: Integer; MaxOtherLines: Integer; var RemainingGroupKeys: Text): Text
+    procedure CPO_BuildPlanningDataJson_Paged(JobNo: Code[20]; JobTaskNo: Code[20]; NumberOfDays: Integer; MaxOtherLines: Integer; var RemainingGroupKeys: Text): Text
     var
-        WorkOrder: Record "Work Order";
+        JobTask: Record "Job Task";
         Job: Record Job;
         DayPlanning: Record "Day Planning";
         RootObj: JsonObject;
@@ -6732,22 +6731,21 @@ codeunit 50604 "DHX Data Handler"
         RunningTotal: Integer;
         StartDate: Date;
         EndDate: Date;
-        JobNo: Code[20];
-        JobTaskNo: Code[20];
-        WorkOrderFound: Boolean;
+        JobTaskFound: Boolean;
         OutTxt: Text;
     begin
-        WorkOrderFound := WorkOrder.Get(WorkOrderNo);
+        // JobNo/JobTaskNo are the caller-supplied identity pair (Job Task's own composite primary
+        // key). 'no' carries the same pipe-joined composite JS-side matching now keys on
+        // (JSON-contract option (a) - see CPO_BuildDayPlanningLineObj's own doc comment).
+        JobTaskFound := (JobNo <> '') and JobTask.Get(JobNo, JobTaskNo);
 
-        if WorkOrderFound then begin
-            JobNo := WorkOrder."Project No.";
-            JobTaskNo := WorkOrder."Project Task No.";
-            WorkOrderObj.Add('no', WorkOrder."Work Order No.");
-            WorkOrderObj.Add('description', WorkOrder.Description);
-            WorkOrderObj.Add('notEarlierThan', ReqAssign_FormatIsoDate(WorkOrder."Planned Start Date"));
-            WorkOrderObj.Add('notLaterThan', ReqAssign_FormatIsoDate(WorkOrder."Planned End Date"));
+        if JobTaskFound then begin
+            WorkOrderObj.Add('no', JobNo + '|' + JobTaskNo);
+            WorkOrderObj.Add('description', JobTask.Description);
+            WorkOrderObj.Add('notEarlierThan', ReqAssign_FormatIsoDate(JobTask.PlannedStartDate));
+            WorkOrderObj.Add('notLaterThan', ReqAssign_FormatIsoDate(JobTask.PlannedEndDate));
         end else begin
-            WorkOrderObj.Add('no', WorkOrderNo);
+            WorkOrderObj.Add('no', JobNo + '|' + JobTaskNo);
             WorkOrderObj.Add('description', '');
             WorkOrderObj.Add('notEarlierThan', '');
             WorkOrderObj.Add('notLaterThan', '');
@@ -6771,23 +6769,22 @@ codeunit 50604 "DHX Data Handler"
         RootObj.Add('endDate', ReqAssign_FormatIsoDate(EndDate));
         RootObj.Add('workdays', CPO_BuildDateRangeArray(StartDate, EndDate));
 
-        if WorkOrderFound then begin
-            // ---- Pass 1 + Pass 2: WorkOrderNo's OWN lines (section 2/workOrderSequences[]) -
+        if JobTaskFound then begin
+            // ---- Pass 1 + Pass 2: JobNo/JobTaskNo's OWN lines (section 2/workOrderSequences[]) -
             // byte-for-byte identical to CPO_BuildPlanningDataJson's own Pass 1/2, unchanged/
-            // un-paginated (bounded to one Work Order's own lines, never the cost driver). ----
+            // un-paginated (bounded to one Job Task's own lines, never the cost driver). ----
             DayPlanning.SetLoadFields("Job No.", "Job Task No.", "Day Line No.", Skill, "Sequence No.", Description,
                 "Plan Date", Assigned, "Assigned Resource No.", "Requested Hours", "Assigned Hours",
                 "Start Time Requested", "End Time Requested", "Start Time Assigned", "End Time Assigned",
-                "Work Order No.");
-            if JobNo <> '' then begin
-                DayPlanning.SetRange("Job No.", JobNo);
-                DayPlanning.SetRange("Job Task No.", JobTaskNo);
-            end else
-                DayPlanning.SetRange("Work Order No.", WorkOrderNo);
+                "Order Intake No.");
+            // JobTaskFound (above) already guarantees JobNo/JobTaskNo resolved a real Job Task
+            // record, so both are always non-blank here - no other-identifier fallback needed.
+            DayPlanning.SetRange("Job No.", JobNo);
+            DayPlanning.SetRange("Job Task No.", JobTaskNo);
 
             if DayPlanning.FindSet() then
                 repeat
-                    DayPlanningLinesArr.Add(CPO_BuildDayPlanningLineObj(DayPlanning, WorkOrderNo, JobNo, JobTaskNo));
+                    DayPlanningLinesArr.Add(CPO_BuildDayPlanningLineObj(DayPlanning, JobNo, JobTaskNo));
 
                     if DayPlanning.Skill <> '' then begin
                         if not ActiveSkillList.Contains(DayPlanning.Skill) then
@@ -6846,7 +6843,7 @@ codeunit 50604 "DHX Data Handler"
                 RemainingGroupKeys := '';
 
             // ---- Pass 3b: expensive per-line build, ONLY for the first page's groups. ----
-            FirstPageOtherLinesArr := CPO_BuildOtherWorkOrderLinesForGroups(WorkOrderNo, JobNo, JobTaskNo, StartDate, EndDate, FirstPageGroupKeys);
+            FirstPageOtherLinesArr := CPO_BuildOtherWorkOrderLinesForGroups(JobNo, JobTaskNo, StartDate, EndDate, FirstPageGroupKeys);
             foreach LineTok in FirstPageOtherLinesArr do
                 DayPlanningLinesArr.Add(LineTok.AsObject());
         end;
@@ -6879,32 +6876,28 @@ codeunit 50604 "DHX Data Handler"
     /// window and the background session's own. Returns the resulting JSON array already
     /// serialized to Text (what the Page Background Task stashes into its result Dictionary and the
     /// control add-in's AppendOtherWorkOrderData consumes) - '[]' when RemainingGroupKeysJson is
-    /// blank (a no-op call).
+    /// blank (a no-op call). JobNo/JobTaskNo are now passed straight through from the caller's own
+    /// TaskParameters (codeunit "CPO BG Other WO Data"'s OnRun) instead of being re-derived from a
+    /// single Work Order No. via a lookup here - there is no longer a Work Order record to look
+    /// up, and the caller already has the resolved Job No./Job Task No. pair (it's what enqueued
+    /// this background task in the first place).
     /// </summary>
-    procedure CPO_BuildOtherWorkOrderLinesJson_ForKeys(WorkOrderNo: Code[20]; StartDate: Date; EndDate: Date; RemainingGroupKeysJson: Text): Text
+    procedure CPO_BuildOtherWorkOrderLinesJson_ForKeys(JobNo: Code[20]; JobTaskNo: Code[20]; StartDate: Date; EndDate: Date; RemainingGroupKeysJson: Text): Text
     var
-        WorkOrder: Record "Work Order";
         WantedGroupKeys: Dictionary of [Text, Boolean];
         WantedGroupKeysArr: JsonArray;
         KeyTok: JsonToken;
         LinesArr: JsonArray;
-        JobNo: Code[20];
-        JobTaskNo: Code[20];
         OutTxt: Text;
     begin
         if RemainingGroupKeysJson = '' then
             exit('[]');
 
-        if WorkOrder.Get(WorkOrderNo) then begin
-            JobNo := WorkOrder."Project No.";
-            JobTaskNo := WorkOrder."Project Task No.";
-        end;
-
         WantedGroupKeysArr.ReadFrom(RemainingGroupKeysJson);
         foreach KeyTok in WantedGroupKeysArr do
             WantedGroupKeys.Add(KeyTok.AsValue().AsText(), true);
 
-        LinesArr := CPO_BuildOtherWorkOrderLinesForGroups(WorkOrderNo, JobNo, JobTaskNo, StartDate, EndDate, WantedGroupKeys);
+        LinesArr := CPO_BuildOtherWorkOrderLinesForGroups(JobNo, JobTaskNo, StartDate, EndDate, WantedGroupKeys);
         LinesArr.WriteTo(OutTxt);
         exit(OutTxt);
     end;
@@ -6923,9 +6916,12 @@ codeunit 50604 "DHX Data Handler"
     /// with JobNo passed as '', that check is always false, so EVERY row is treated as "not
     /// excluded" (i.e. included) - exactly the "whole company, nothing excluded" semantics this
     /// tile needs, with zero new exclusion logic. CPO_BuildOtherWorkOrderLinesJson_ForKeys (the
-    /// background-task companion) already tolerates a blank WorkOrderNo the same way (WorkOrder.Get
-    /// on a blank Code simply fails, leaving JobNo/JobTaskNo blank) - codeunit "CPO BG Other WO
-    /// Data" is reused as-is for this tile's own background task too, no new codeunit needed.
+    /// background-task companion) now takes JobNo/JobTaskNo directly (Work Order table removal -
+    /// see this add-in's project memory) - codeunit "CPO BG Other WO Data" is reused as-is for this
+    /// tile's own background task too (its own OnRun reads 'JobNo'/'JobTaskNo' TaskParameters keys;
+    /// this tile's own enqueue call in page 50724 still only ever adds a 'WorkOrderNo' key, which
+    /// GetParam's own missing-key fallback silently treats as blank - same "nothing excluded"
+    /// semantics as before, no change needed there), no new codeunit needed.
     /// </summary>
     procedure CPO_BuildDashboardDataJson_Paged(NumberOfDays: Integer; MaxOtherLines: Integer; var RemainingGroupKeys: Text): Text
     var
@@ -6979,7 +6975,7 @@ codeunit 50604 "DHX Data Handler"
         else
             RemainingGroupKeys := '';
 
-        FirstPageOtherLinesArr := CPO_BuildOtherWorkOrderLinesForGroups('', '', '', StartDate, EndDate, FirstPageGroupKeys);
+        FirstPageOtherLinesArr := CPO_BuildOtherWorkOrderLinesForGroups('', '', StartDate, EndDate, FirstPageGroupKeys);
         foreach LineTok in FirstPageOtherLinesArr do
             DayPlanningLinesArr.Add(LineTok.AsObject());
 
@@ -7433,28 +7429,31 @@ codeunit 50604 "DHX Data Handler"
     /// "assignedDate" mirrors "requestDate" when Assigned = true (Day Planning has no separate
     /// assigned-date field of its own - an assignment always lands on the same "Plan Date").
     /// "workOrderNo" (2026-09-03 addition - explicit user correction, see CPO_BuildPlanningDataJson's
-    /// own Pass 3 doc comment) - dayPlanningLines[] now mixes WorkOrderNo's own rows with every
-    /// other Work Order's rows in the same window, so the ported JS needs this real tag to keep
-    /// each section scoped to whichever Work Order it is actually supposed to represent.
+    /// own Pass 3 doc comment) - dayPlanningLines[] now mixes the inspected Job Task's own rows
+    /// with every other Job Task's rows in the same window, so the ported JS needs this real tag to
+    /// keep each section scoped to whichever one it is actually supposed to represent.
+    ///
+    /// JSON-CONTRACT UPDATE (Work Order table removal - see this add-in's project memory,
+    /// [[project_cpo_cross_wo_scope_fix]]): Job Task's primary key is composite ("Job No." + "Job
+    /// Task No."), so a single Code[20] can no longer identify "which one". 'workOrderNo' keeps its
+    /// JSON field NAME (JSON-contract option (a) - smaller/safer diff, capacityPlanningOverview.js's
+    /// own equality checks are untouched) but now carries a pipe-joined "JobNo|JobTaskNo" composite
+    /// string, same idiom this codeunit already uses for GroupKeyTxt/SeqKeyTxt elsewhere. Always
+    /// derived straight from THIS line's own real "Job No."/"Job Task No." fields - unlike the old
+    /// "Work Order No."/"Order Intake No." field this replaced (which could be blank on some of a
+    /// Work Order's own genuine Day Planning Sequences, see this procedure's OLD doc comment before
+    /// this update), Day Planning's own Job No./Job Task No. are its actual identifying/scoping
+    /// fields (Pass 1/3 above already filter by them directly) and are never blank on a real line -
+    /// so no Inspected-match override is needed anymore; InspectedJobNo/InspectedJobTaskNo are kept
+    /// as parameters only for call-site symmetry with Pass 1/Pass 3's own scoping calls above, not
+    /// read in this body.
     /// </summary>
-    local procedure CPO_BuildDayPlanningLineObj(var DayPlanning: Record "Day Planning"; InspectedWorkOrderNo: Code[20]; InspectedJobNo: Code[20]; InspectedJobTaskNo: Code[20]): JsonObject
+    local procedure CPO_BuildDayPlanningLineObj(var DayPlanning: Record "Day Planning"; InspectedJobNo: Code[20]; InspectedJobTaskNo: Code[20]): JsonObject
     var
         LineObj: JsonObject;
-        EffectiveWorkOrderNo: Code[20];
     begin
-        // Normalizes 'workOrderNo' to the INSPECTED Work Order's own No. whenever this line's
-        // Job No./Job Task No. matches it (2026-09-03 bug fix companion to
-        // CPO_BuildPlanningDataJson's Pass 1/Pass 3 rescoping) - the raw "Work Order No." FIELD
-        // can be blank on some of a Work Order's own genuine Day Planning Sequences, which would
-        // otherwise make the ported JS's own workOrderNo-based section 2/3 matching wrongly treat
-        // them as unaffiliated/foreign demand even though AL now correctly includes them as this
-        // WO's own line. Any line that does NOT match (a genuinely other Work Order's line, or one
-        // with no Job/Task at all) keeps its raw field value unchanged.
-        EffectiveWorkOrderNo := DayPlanning."Work Order No.";
-        if (InspectedJobNo <> '') and (DayPlanning."Job No." = InspectedJobNo) and (DayPlanning."Job Task No." = InspectedJobTaskNo) then
-            EffectiveWorkOrderNo := InspectedWorkOrderNo;
         LineObj.Add('id', Format(DayPlanning."Day Line No."));
-        LineObj.Add('workOrderNo', EffectiveWorkOrderNo);
+        LineObj.Add('workOrderNo', DayPlanning."Job No." + '|' + DayPlanning."Job Task No.");
         LineObj.Add('job', DayPlanning."Job No.");
         LineObj.Add('task', DayPlanning."Job Task No.");
         LineObj.Add('description', DayPlanning.Description);

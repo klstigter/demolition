@@ -46,11 +46,6 @@ page 50655 "Order Intake Card"
                     {
                         ShowCaption = false;
 
-                        field(Status; Rec.Status)
-                        {
-                            ApplicationArea = All;
-                        }
-
                         field("Customer No."; Rec."Customer No.")
                         {
                             ApplicationArea = All;
@@ -59,6 +54,11 @@ page 50655 "Order Intake Card"
                             begin
                                 CurrPage.OrderLines.PAGE.SetEditable(Rec."Customer No." <> '');
                             end;
+                        }
+
+                        field(Status; Rec.Status)
+                        {
+                            ApplicationArea = All;
                         }
                     }
 
@@ -105,7 +105,7 @@ page 50655 "Order Intake Card"
                     end;
                 }
             }
-            part(OrderLines; "Work Order Sub")
+            part(OrderLines; "Project Task Sub")
             {
                 ApplicationArea = All;
                 SubPageLink = "Order Intake No." = field("No.");
@@ -115,37 +115,18 @@ page 50655 "Order Intake Card"
 
     actions
     {
-        // area(Processing)
-        // {
-        //     /// <summary>
-        //     /// Opens the "Generate Pre DayPlannings" dialog (page 50657) and, if the
-        //     /// user confirms, invokes codeunit 50613 to insert planning lines into
-        //     /// table 50608 "Order Intake Line Opt." for the current document.
-        //     /// </summary>
-        //     action(GenerateDayPlannings)
-        //     {
-        //         Caption = 'Generate DayPlannings';
-        //         ApplicationArea = All;
-        //         Image = Process;
-        //         ToolTip = 'Opens a dialog to configure scheduling parameters and generate preliminary DayPlanning planning lines for this Order Intake document.';
+        area(Processing)
+        {
 
-        //         trigger OnAction()
-        //         var
+        }
+        area(Promoted)
+        {
+            group(Category_Process)
+            {
+                Caption = 'Actions';
 
-        //         begin
-        //             // Pass document context to the dialog before opening
-
-        //         end;
-        //     }
-        // }
-        // area(Promoted)
-        // {
-        //     group(Category_Process)
-        //     {
-        //         Caption = 'Actions';
-        //         actionref(Action_ref_1; GenerateDayPlannings) { }
-        //     }
-        // }
+            }
+        }
     }
 
     trigger OnAfterGetCurrRecord()

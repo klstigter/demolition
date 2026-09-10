@@ -102,7 +102,7 @@ page 50630 "Day Plannings"
                     StyleExpr = StyleStr;
                     Caption = 'Plan Date';
                 }
-                field("Work Order No."; Rec."Work Order No.")
+                field("Work Order No."; Rec."Order Intake No.")
                 {
                     ApplicationArea = All;
                 }

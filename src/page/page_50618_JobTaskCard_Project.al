@@ -32,6 +32,11 @@ page 50618 "Opti Job Task Card"
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the number of the related project task.';
                 }
+                field("Sell-to Customer No."; Rec."Sell-to Customer No.")
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the number of the customer who will receive the products and be billed by default for the project task.';
+                }
                 field(Description; Rec.Description)
                 {
                     ApplicationArea = Jobs;
@@ -44,13 +49,15 @@ page 50618 "Opti Job Task Card"
                 //     ToolTip = 'Specifies the purpose of the account. Newly created accounts are automatically assigned the Posting account type, but you can change this. Choose the field to select one of the following five options:';
                 //     Enabled = false;
                 // }
-                field("Sell-to Customer No."; Rec."Sell-to Customer No.")
-                {
-                    ApplicationArea = Jobs;
-                    Caption = 'Customer No.';
-                    ToolTip = 'Specifies the number of the customer who will receive the products and be billed by default for the project task.';
-                    Visible = PerTaskBillingFieldsVisible;
-                }
+
+                // field("Sell-to Customer No."; Rec."Sell-to Customer No.")
+                // {
+                //     ApplicationArea = Jobs;
+                //     Caption = 'Customer No.';
+                //     ToolTip = 'Specifies the number of the customer who will receive the products and be billed by default for the project task.';
+                //     Visible = PerTaskBillingFieldsVisible;
+                // }
+
                 field("Sell-to Customer Name"; Rec."Sell-to Customer Name")
                 {
                     ApplicationArea = Jobs;
@@ -516,6 +523,32 @@ page 50618 "Opti Job Task Card"
                 }
 
             }
+            Group(LongDescription)
+            {
+                Caption = 'Long Description';
+                usercontrol(RichTextEditor; DHXRichTextAddin)
+                {
+                    ApplicationArea = All;
+
+                    /// <summary>
+                    /// Fires once when the DHTMLX RichText editor is ready.
+                    /// Load the current record's blob content into the editor.
+                    /// </summary>
+                    trigger ControlReady()
+                    begin
+                        CurrPage.RichTextEditor.SetValue(Rec.GetDescription());
+                    end;
+
+                    /// <summary>
+                    /// Fires ~800 ms after the user stops typing (debounced in JS).
+                    /// Persist the HTML into the blob field on the record.
+                    /// </summary>
+                    trigger OnTextChanged(Html: Text)
+                    begin
+                        Rec.SetDescription(Html);
+                    end;
+                }
+            }
             part(ResourceWeekView; "Resource Week View Part")
             {
                 ApplicationArea = Jobs;
@@ -779,6 +812,26 @@ page 50618 "Opti Job Task Card"
                     ResourcePage.Run();
                 end;
             }
+            action(PrepareInvoiceLines)
+            {
+                ApplicationArea = All;
+                Caption = 'Transfer to planning line';
+                Image = Invoice;
+                ToolTip = 'Creates billable Project Planning Lines, grouped by Skill, from posted Day Planning usage that has not yet been invoiced.';
+                trigger OnAction()
+                var
+                    JobInvoicePrepMgt: Codeunit "Job Planning Lines Prep. Mgt.";
+                    LinesCreated: Integer;
+                    ProcessedCount: Integer;
+                    AlreadyLinkedCount: Integer;
+                    NotPostedCount: Integer;
+                    SkippedOtherCount: Integer;
+                begin
+                    LinesCreated := JobInvoicePrepMgt.PrepareJobPlanningLines(Rec."Job No.", Rec."Job Task No.", ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount);
+                    CurrPage.Update();
+                    Message(JobInvoicePrepMgt.FormatResultMessage(LinesCreated, ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount));
+                end;
+            }
             action("DayPlanningsVisual")
             {
                 ApplicationArea = All;
@@ -805,6 +858,60 @@ page 50618 "Opti Job Task Card"
                     ResourcePage.LoadData(Rec."Job No.", Rec."Job Task No.");
                     ResourcePage.Run();
 
+                end;
+            }
+            action(CapacityPlanningOverviewAct)
+            {
+                ApplicationArea = All;
+                Image = Planning;
+                Caption = 'Capacity Planning Overview';
+                trigger OnAction()
+                var
+                    CPO: Page "Capacity Planning Overview";
+                begin
+                    CPO.SetJobTask(Rec."Job No.", Rec."Job Task No.");
+                    CPO.Run();
+                end;
+            }
+            action(ShowJobLedgerEntries)
+            {
+                ApplicationArea = All;
+                Caption = 'Show Job Ledger Entries';
+                Image = JobLedger;
+                RunObject = Page "Job Ledger Entries";
+                RunPageLink = "Job No." = field("Job No."),
+                              "Job Task No." = field("Job Task No.");
+                RunPageView = sorting("Job No.", "Job Task No.", "Entry Type", "Posting Date")
+                              order(descending);
+                ToolTip = 'View the posted project ledger entries for this project and project task.';
+            }
+            action(ShowSummary)
+            {
+                ApplicationArea = All;
+                Caption = 'Show Summary';
+                Image = ViewDetails;
+                ToolTip = 'View the day planning summary for this project task.';
+                trigger OnAction()
+                var
+                    SummaryPage: Page "Summary View";
+                begin
+                    SummaryPage.LoadDataSet(Rec."Job No.", Rec."Job Task No.");
+                    SummaryPage.SetJobAndJobTaskVisibility(false);
+                    SummaryPage.Run();
+                end;
+            }
+            action(ShowSkillHoursSummary)
+            {
+                ApplicationArea = All;
+                Caption = 'Skill Hours Summary';
+                Image = ResourceGroup;
+                ToolTip = 'View requested hours per skill code, year and week for this project task.';
+                trigger OnAction()
+                var
+                    SkillHoursPage: Page "Skill Hours Summary";
+                begin
+                    SkillHoursPage.LoadContext(Rec."Job No.", Rec."Job Task No.");
+                    SkillHoursPage.Run();
                 end;
             }
             group(ActionGroupFS)
@@ -975,6 +1082,21 @@ page 50618 "Opti Job Task Card"
                 {
                 }
                 actionref(DayPlanningVisual_Promoted; DayPlanningsVisual)
+                {
+                }
+                actionref(PrepareInvoiceLines_Promoted; PrepareInvoiceLines)
+                {
+                }
+                actionref(CapacityPlanningOverviewAct_Promoted; CapacityPlanningOverviewAct)
+                {
+                }
+                actionref(ShowJobLedgerEntries_Promoted; ShowJobLedgerEntries)
+                {
+                }
+                actionref(ShowSummary_Promoted; ShowSummary)
+                {
+                }
+                actionref(ShowSkillHoursSummary_Promoted; ShowSkillHoursSummary)
                 {
                 }
 
