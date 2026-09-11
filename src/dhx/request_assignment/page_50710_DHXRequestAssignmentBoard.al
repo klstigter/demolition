@@ -16,6 +16,7 @@ page 50710 "DHX Request Assignment Board"
                 trigger ControlReady()
                 var
                     VisualDefaultSettings: Codeunit "Visual Default Settings";
+                    DayPlanningSequenceMgt: Codeunit "Day Planning Sequence Mgt.";
                     ColorsJsonTxt: Text;
                 begin
                     // Hover/tooltip popup background/font colour - codeunit 50609's
@@ -24,6 +25,11 @@ page 50710 "DHX Request Assignment Board"
                         VisualDefaultSettings.GetTooltipBackgroundColor(),
                         VisualDefaultSettings.GetTooltipFontColor());
                     CurrPage.DhxScheduler.SetColors(ColorsJsonTxt);
+                    // Work-Hour Templates for the "Modify sequence" panel - reuses codeunit 50695's
+                    // BuildTemplatesJson as-is (same JSON page 50711 sends to its own add-in). A
+                    // one-time load, not part of RefreshPlanningData, since the template list
+                    // itself never changes across a Refresh/Reset reload.
+                    CurrPage.DhxScheduler.SetTemplates(DayPlanningSequenceMgt.BuildTemplatesJson());
                     RefreshPlanningData();
                 end;
 
@@ -73,6 +79,19 @@ page 50710 "DHX Request Assignment Board"
                     DHXDataHandler: Codeunit "DHX Data Handler";
                 begin
                     DHXDataHandler.ReqAssign_UnassignDayTaskLine(PayloadJsonTxt);
+                end;
+
+                trigger OnModifySequence(PayloadJsonTxt: Text)
+                var
+                    DHXDataHandler: Codeunit "DHX Data Handler";
+                begin
+                    DHXDataHandler.ReqAssign_ModifySequence(PayloadJsonTxt);
+                    // RegenerateSequence deletes and reinserts every line in the thread, so a full
+                    // reload (same one ControlReady/Refresh/OnRequestReset all use) is needed here -
+                    // there's no in-place JS patch for "this whole sequence's row/bar set changed",
+                    // matching this app's "regenerate, don't patch" convention already documented on
+                    // page 50711's own OnModifySequence/OnCreateSequence triggers.
+                    RefreshPlanningData();
                 end;
 
                 trigger OnOpenDayPlanningCard(LineId: Text)
