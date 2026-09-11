@@ -33,9 +33,19 @@
     background: var(--tooltip-bg-color, #000000) !important;
     color: var(--tooltip-font-color, #ffffff) !important;
     border: none !important;
+    /* min/max-width (2026-09-11 standard-tooltip unification - see this add-in's project memory) -
+       same band src/dhx/request_assignment/style.css's own shell rules use, so this add-in's
+       single-line tooltip reads at the same size as every other DHX add-in's. Does not affect the
+       shorter "cap_" availability tooltip (.dhx-tt below), which never approaches this min-width. */
+    min-width: 285px;
+    max-width: 390px;
 }
+/* .dhx-tt/-res/-date/-table/-th/-label/-val below are now used ONLY by the synthetic "cap_"
+   availability/capacity tooltip branch (tooltip_text's own isAvailable branch) - the DayPlanning
+   branch was replaced by the standard-tooltip-* rules further down. Capacity is a resource-level
+   slot concept, out of this feature's scope - see the task's own exclusion list. */
 .dhx-tt {
-    min-width: 240px;
+    min-width: 160px;
     font-family: inherit;
     font-size: 12px;
     line-height: 1.5;
@@ -52,19 +62,9 @@
     font-size: 11px;
     margin-bottom: 6px;
 }
-.dhx-tt-task-line {
-    font-size: 12px;
-    color: var(--tooltip-font-color, #ffffff);
-    margin-bottom: 6px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.15);
-}
-.dhx-tt-task-line b {
-    color: var(--tooltip-font-color, #cfcfcf);
-}
 .dhx-tt-table {
     display: grid;
-    grid-template-columns: 50px 1fr 1fr 1fr;
+    grid-template-columns: 50px 1fr;
     gap: 2px 8px;
     margin-top: 4px;
 }
@@ -84,6 +84,84 @@
     font-weight: 400;
     color: var(--tooltip-font-color, #ffffff);
     padding: 1px 0;
+}
+
+/* ---- Standard single-Day-Planning-line tooltip content (2026-09-11, standard-tooltip
+   unification) - ported verbatim from src/dhx/request_assignment/style.css's own "v11/v12/v13 -
+   shared Request / Assignment tooltip standard" rules, the reference every DHX add-in's
+   single-line hover tooltip is being unified against. Shell stays .dhtmlXTooltip.tooltip above. */
+.standard-tooltip-head {
+    display: block;
+    margin-bottom: 7px;
+    padding: 0 2px 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.standard-tooltip-title {
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.standard-tooltip-detail {
+    margin-top: 2px;
+    padding-left: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.35;
+    opacity: 0.75;
+}
+
+.standard-tooltip-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    line-height: 1.35;
+}
+
+.standard-tooltip-table th,
+.standard-tooltip-table td {
+    padding: 5px 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    text-align: left;
+    vertical-align: top;
+}
+
+.standard-tooltip-table thead th {
+    font-weight: 700;
+    opacity: 0.75;
+}
+
+.standard-tooltip-table tbody th {
+    font-weight: 600;
+    white-space: nowrap;
+    opacity: 0.75;
+}
+
+.standard-tooltip-table tr:last-child th,
+.standard-tooltip-table tr:last-child td {
+    border-bottom: 0;
+}
+
+.standard-tooltip-different {
+    color: #ff8a75;
+    font-weight: 700;
+}
+
+.standard-tooltip-context {
+    margin-bottom: 7px;
+    padding: 0 2px 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.standard-tooltip-context-title {
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.standard-tooltip-context-table {
+    margin-top: 4px;
 }
 
 /* ---- Resource panel elements ---- */

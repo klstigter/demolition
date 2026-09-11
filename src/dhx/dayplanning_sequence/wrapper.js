@@ -424,13 +424,67 @@ function showSectionTooltip(section, x, y) {
     positionTooltip(t, x, y);
 }
 
+function dpsPad2(n) {
+    return String(n).padStart(2, "0");
+}
+
+/// <summary>ISO-8601 week number - ported verbatim from src/dhx/request_assignment/wrapper.js's own isoWeekNumber (the reference implementation, see standardTooltipHtml's own doc comment).</summary>
+function dpsIsoWeekNumber(dateValue) {
+    var date = dateValue instanceof Date ? new Date(dateValue) : new Date(dateValue);
+    if (isNaN(date.getTime())) return "";
+    var utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    var day = utcDate.getUTCDay() || 7;
+    utcDate.setUTCDate(utcDate.getUTCDate() + 4 - day);
+    var yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+    return Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7);
+}
+
+/// <summary>
+/// Standard single-Day-Planning-line hover tooltip (2026-09-11, standard-tooltip unification - see
+/// this add-in's project memory) - structure/CSS class names ported from the reference
+/// implementation, src/dhx/request_assignment/wrapper.js's requestTooltipHtml/
+/// assignmentTooltipHtml, so every DHX add-in shows the same "Job and Task" table / Skill+Sqnc+
+/// weekday+date head / Request-vs-Assigned Time+Resource table for a single line. This page is
+/// always scoped to one Job Task (see codeunit 50695's own BuildSectionsAndEventsJson doc comment)
+/// but the Job/Task table is kept anyway per this feature's own instructions - full structural
+/// parity everywhere it's technically possible to populate, not trimmed for being contextually
+/// redundant.
+/// </summary>
+function standardTooltipHtml(ev) {
+    var reqTime = dpsPad2(ev.start_date.getHours()) + ":" + dpsPad2(ev.start_date.getMinutes()) +
+        "–" + dpsPad2(ev.end_date.getHours()) + ":" + dpsPad2(ev.end_date.getMinutes());
+    var assignedTimeKnown = !!(ev.assignedStartTime && ev.assignedEndTime);
+    var assignedTime = assignedTimeKnown ? (ev.assignedStartTime + "–" + ev.assignedEndTime) : "—";
+    var timeDiffers = assignedTimeKnown && assignedTime !== reqTime;
+    var weekday = ev.start_date.toLocaleDateString(undefined, { weekday: "long" });
+    var shortDate = ev.start_date.toLocaleDateString(undefined, { month: "short", day: "2-digit", year: "numeric" });
+
+    return (
+        '<div class="dps-standard-tooltip">' +
+        '<div class="standard-tooltip-context">' +
+            '<div class="standard-tooltip-context-title">Job and Task</div>' +
+            '<table class="standard-tooltip-table standard-tooltip-context-table"><tbody>' +
+                '<tr><th>Job</th><td>' + escapeHtml(ev.job || "—") + '</td><td>' + escapeHtml(ev.jobDescription || "—") + '</td></tr>' +
+                '<tr><th>Task</th><td>' + escapeHtml(ev.task || "—") + '</td><td>' + escapeHtml(ev.taskDescription || "—") + '</td></tr>' +
+            '</tbody></table>' +
+        '</div>' +
+        '<div class="standard-tooltip-head">' +
+            '<div class="standard-tooltip-title">Skill: ' + escapeHtml(ev.skill || "—") + '</div>' +
+            '<div class="standard-tooltip-detail">Sqnc ' + escapeHtml(ev.sequenceNo != null ? ev.sequenceNo : "—") + '</div>' +
+            '<div class="standard-tooltip-detail">' + escapeHtml(weekday) + ' (wk ' + dpsIsoWeekNumber(ev.start_date) + ')</div>' +
+            '<div class="standard-tooltip-detail">' + escapeHtml(shortDate) + '</div>' +
+        '</div>' +
+        '<table class="standard-tooltip-table"><thead><tr><th></th><th>Request</th><th>Assigned</th></tr></thead><tbody>' +
+            '<tr><th>Time</th><td>' + escapeHtml(reqTime) + '</td><td class="' + (timeDiffers ? "standard-tooltip-different" : "") + '">' + escapeHtml(assignedTime) + '</td></tr>' +
+            '<tr><th>Resource</th><td>—</td><td>' + escapeHtml(ev.assignedResourceNo || "—") + '</td></tr>' +
+        '</tbody></table>' +
+        '</div>'
+    );
+}
+
 function showSlotTooltip(ev, x, y) {
     var t = $id("dpsTooltip");
-    t.innerHTML =
-        '<div class="dps-tooltip-head">' + escapeHtml(ev.skill) + '</div>' +
-        '<div class="dps-tooltip-body">' +
-            '<div class="dps-tooltip-row"><div class="dps-tooltip-label">Time</div><div class="dps-tooltip-value">' + escapeHtml(ev.text) + '</div></div>' +
-        '</div>';
+    t.innerHTML = standardTooltipHtml(ev);
     positionTooltip(t, x, y);
 }
 

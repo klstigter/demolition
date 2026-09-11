@@ -134,6 +134,13 @@ codeunit 50604 "DHX Data Handler"
         EnvelopeEndTime: Time;
         SkillColorDict: Dictionary of [Code[20], Text];
         NextSkillPaletteIndex: Integer;
+        // Standard single-Day-Planning-line hover tooltip (2026-09-11, standard-tooltip
+        // unification - see this add-in's project memory) - the parent Job's own Description, for
+        // src/dhx/projectschedule/wrapper.js's tooltip's Job/Task table. TEMPJobTasks (above)
+        // already caches the Job Task record itself per row, so 'taskDescription' is free - only
+        // the Job side needs its own small cache here, same "Get once per distinct code" idiom as
+        // this codeunit's own JobDescCache elsewhere (ReqAssign_/CPO_ regions).
+        JobDescCache: Dictionary of [Code[20], Text];
     begin
         PlanninJsonTxt := '';
         //Marking Job based on Day Plannings within the given date range
@@ -643,6 +650,10 @@ codeunit 50604 "DHX Data Handler"
         IncludedJobsList: List of [Code[20]];
         RunningTotal: Integer;
         JN: Code[20];
+        // Standard single-Day-Planning-line hover tooltip (2026-09-11, standard-tooltip
+        // unification) - same JobDescCache idiom as GetYUnitElementsJSON_Project's own (non-Paged)
+        // doc comment.
+        JobDescCache: Dictionary of [Code[20], Text];
     begin
         PlanninJsonTxt := '';
         RemainingJobFilter := '';
@@ -796,6 +807,19 @@ codeunit 50604 "DHX Data Handler"
                 PlanningObject.Add('requested_hours', DayPlanning."Requested Hours");
                 PlanningObject.Add('skill', DayPlanning.Skill);
                 PlanningObject.Add('requested_color', ResolveRequestedColor(DayPlanning.Skill, SkillColorDict, NextSkillPaletteIndex));
+
+                // Standard single-Day-Planning-line hover tooltip fields (2026-09-11) - see this
+                // procedure's own JobDescCache doc comment above.
+                PlanningObject.Add('job', DayPlanning."Job No.");
+                if not JobDescCache.ContainsKey(DayPlanning."Job No.") then
+                    if Job.Get(DayPlanning."Job No.") then
+                        JobDescCache.Add(DayPlanning."Job No.", Job.Description)
+                    else
+                        JobDescCache.Add(DayPlanning."Job No.", '');
+                PlanningObject.Add('jobDescription', JobDescCache.Get(DayPlanning."Job No."));
+                PlanningObject.Add('task', DayPlanning."Job Task No.");
+                PlanningObject.Add('taskDescription', TEMPJobTasks.Description);
+                PlanningObject.Add('sequenceNo', DayPlanning."Sequence No.");
 
                 PlanningArray.Add(PlanningObject);
                 EventJobNos.Add(DayPlanning."Job No.");
@@ -3435,6 +3459,8 @@ codeunit 50604 "DHX Data Handler"
     procedure ResScheduler_BuildEventsJson(ResourceFilter: Text): Text
     var
         DayPlanning: Record "Day Planning";
+        JobDescCache: Dictionary of [Code[20], Text];
+        JobTaskDescCache: Dictionary of [Text, Text];
         StarDateTimeStr: Text;
         EndDateTimeStr: Text;
         ReqStartDateTimeStr: Text;
@@ -3465,7 +3491,10 @@ codeunit 50604 "DHX Data Handler"
                         DayPlanning.Description,
                         'DayPlanning',
                         ReqStartDateTimeStr,
-                        ReqEndDateTimeStr);
+                        ReqEndDateTimeStr,
+                        DayPlanning,
+                        JobDescCache,
+                        JobTaskDescCache);
                 end;
             until DayPlanning.Next() = 0;
         Clear(JRoot);
@@ -3474,9 +3503,24 @@ codeunit 50604 "DHX Data Handler"
         exit(Result);
     end;
 
-    procedure ResScheduler_AddEvent(var JArray: JsonArray; RecordId: Text; ResourceId: Text; Classname: Text; StartDate: Text; EndDate: Text; EventText: Text; pType: Text; ReqStartDate: Text; ReqEndDate: Text)
+    /// <summary>
+    /// DayPlanningRec/JobDescCache/JobTaskDescCache (2026-09-11 addition, standard-tooltip
+    /// unification - see this add-in's project memory) - 'job'/'jobDescription'/'task'/
+    /// 'taskDescription'/'skill'/'sequenceNo' fields, same naming convention as this codeunit's
+    /// own ReqAssign_/CPO_ regions, so src/dhx/resourceschedule/wrapper.js's tooltip_text can
+    /// render the same Job/Task table every other DHX add-in's single-line tooltip does.
+    /// JobDescCache/JobTaskDescCache are threaded through by the caller (same idiom as
+    /// ReqAssign_BuildDayTaskLineObj's own caches) so the per-Job/Job-Task description lookup
+    /// stays cached across the whole call instead of one Job.Get()/JobTask.Get() per event.
+    /// </summary>
+    procedure ResScheduler_AddEvent(var JArray: JsonArray; RecordId: Text; ResourceId: Text; Classname: Text; StartDate: Text; EndDate: Text; EventText: Text; pType: Text; ReqStartDate: Text; ReqEndDate: Text; DayPlanningRec: Record "Day Planning"; var JobDescCache: Dictionary of [Code[20], Text]; var JobTaskDescCache: Dictionary of [Text, Text])
     var
+        Job: Record Job;
+        JobTask: Record "Job Task";
         JObj: JsonObject;
+        ProjectName: Text;
+        TaskName: Text;
+        TaskCacheKey: Text;
     begin
         Clear(JObj);
         JObj.Add('id', RecordId);
@@ -3490,6 +3534,34 @@ codeunit 50604 "DHX Data Handler"
             JObj.Add('req_start', ReqStartDate);
         if ReqEndDate <> '' then
             JObj.Add('req_end', ReqEndDate);
+
+        // Standard single-Day-Planning-line hover tooltip fields (2026-09-11) - see this
+        // procedure's own doc comment above. Only populated when a real Day Planning row was
+        // passed (DayPlanningRec."Job No." <> '') - defensive, every real caller always passes one.
+        if DayPlanningRec."Job No." <> '' then begin
+            if not JobDescCache.ContainsKey(DayPlanningRec."Job No.") then
+                if Job.Get(DayPlanningRec."Job No.") then
+                    JobDescCache.Add(DayPlanningRec."Job No.", Job.Description)
+                else
+                    JobDescCache.Add(DayPlanningRec."Job No.", '');
+            ProjectName := JobDescCache.Get(DayPlanningRec."Job No.");
+
+            TaskCacheKey := DayPlanningRec."Job No." + '|' + DayPlanningRec."Job Task No.";
+            if not JobTaskDescCache.ContainsKey(TaskCacheKey) then
+                if JobTask.Get(DayPlanningRec."Job No.", DayPlanningRec."Job Task No.") then
+                    JobTaskDescCache.Add(TaskCacheKey, JobTask.Description)
+                else
+                    JobTaskDescCache.Add(TaskCacheKey, '');
+            TaskName := JobTaskDescCache.Get(TaskCacheKey);
+
+            JObj.Add('job', DayPlanningRec."Job No.");
+            JObj.Add('jobDescription', ProjectName);
+            JObj.Add('task', DayPlanningRec."Job Task No.");
+            JObj.Add('taskDescription', TaskName);
+            JObj.Add('skill', DayPlanningRec.Skill);
+            JObj.Add('sequenceNo', DayPlanningRec."Sequence No.");
+        end;
+
         JArray.Add(JObj);
     end;
 
@@ -3677,6 +3749,10 @@ codeunit 50604 "DHX Data Handler"
     procedure ResScheduler_BuildEventsJson(ResourceFilter: Text; StartDate: Date; EndDate: Date; ResourceNameFilter: Text; SkillFilter: Text): Text
     var
         DayPlanning: Record "Day Planning";
+        // Job/Job Task description lookup cache for ResScheduler_AddEvent's 'jobDescription'/
+        // 'taskDescription' fields - see that procedure's own doc comment.
+        JobDescCache: Dictionary of [Code[20], Text];
+        JobTaskDescCache: Dictionary of [Text, Text];
         StarDateTimeStr: Text;
         EndDateTimeStr: Text;
         ReqStartDateTimeStr: Text;
@@ -3712,7 +3788,10 @@ codeunit 50604 "DHX Data Handler"
                             DayPlanning.Description,
                             'DayPlanning',
                             ReqStartDateTimeStr,
-                            ReqEndDateTimeStr);
+                            ReqEndDateTimeStr,
+                            DayPlanning,
+                            JobDescCache,
+                            JobTaskDescCache);
                     end;
                 end;
             until DayPlanning.Next() = 0;
@@ -4572,6 +4651,16 @@ codeunit 50604 "DHX Data Handler"
         EffectiveSkill: Code[20];
         SkillColorDict: Dictionary of [Code[20], Text];
         NextSkillPaletteIndex: Integer;
+        // Standard single-Day-Planning-line hover tooltip (2026-09-11, standard-tooltip
+        // unification - see this add-in's project memory) - 'jobDescription'/'taskDescription',
+        // same JobDescCache/JobTaskDescCache idiom as this codeunit's own ReqAssign_/CPO_ regions.
+        Job: Record Job;
+        JobTask: Record "Job Task";
+        JobDescCache: Dictionary of [Code[20], Text];
+        JobTaskDescCache: Dictionary of [Text, Text];
+        ProjectName: Text;
+        TaskName: Text;
+        TaskCacheKey: Text;
     begin
         DayPlanning.Reset();
         if (StartDate <> 0D) and (EndDate <> 0D) then
@@ -4662,6 +4751,27 @@ codeunit 50604 "DHX Data Handler"
                         JObj.Add('requested_color', ResolveRequestedColor(DayPlanning.Skill, SkillColorDict, NextSkillPaletteIndex));
                         JObj.Add('job_no', DayPlanning."Job No.");
                         JObj.Add('job_task_no', DayPlanning."Job Task No.");
+
+                        // Standard single-Day-Planning-line hover tooltip fields (2026-09-11) -
+                        // see this procedure's own JobDescCache doc comment above.
+                        if not JobDescCache.ContainsKey(DayPlanning."Job No.") then
+                            if Job.Get(DayPlanning."Job No.") then
+                                JobDescCache.Add(DayPlanning."Job No.", Job.Description)
+                            else
+                                JobDescCache.Add(DayPlanning."Job No.", '');
+                        ProjectName := JobDescCache.Get(DayPlanning."Job No.");
+
+                        TaskCacheKey := DayPlanning."Job No." + '|' + DayPlanning."Job Task No.";
+                        if not JobTaskDescCache.ContainsKey(TaskCacheKey) then
+                            if JobTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
+                                JobTaskDescCache.Add(TaskCacheKey, JobTask.Description)
+                            else
+                                JobTaskDescCache.Add(TaskCacheKey, '');
+                        TaskName := JobTaskDescCache.Get(TaskCacheKey);
+
+                        JObj.Add('jobDescription', ProjectName);
+                        JObj.Add('taskDescription', TaskName);
+                        JObj.Add('sequenceNo', DayPlanning."Sequence No.");
                         JArray.Add(JObj);
                     end;
             until DayPlanning.Next() = 0;
@@ -5263,6 +5373,17 @@ codeunit 50604 "DHX Data Handler"
         SectionSuffix: Code[20];
         SkillColorDict: Dictionary of [Code[20], Text];
         NextSkillPaletteIndex: Integer;
+        // Standard single-Day-Planning-line hover tooltip (2026-09-11, standard-tooltip
+        // unification - see this add-in's project memory) - 'jobDescription'/'taskDescription',
+        // same JobDescCache/JobTaskDescCache idiom as SkillResScheduler_BuildDayPlanningJson's own
+        // doc comment / this codeunit's ReqAssign_/CPO_ regions.
+        Job: Record Job;
+        JobTask: Record "Job Task";
+        JobDescCache: Dictionary of [Code[20], Text];
+        JobTaskDescCache: Dictionary of [Text, Text];
+        ProjectName: Text;
+        TaskName: Text;
+        TaskCacheKey: Text;
     begin
         DayPlanning.Reset();
         if (StartDate <> 0D) and (EndDate <> 0D) then
@@ -5343,6 +5464,27 @@ codeunit 50604 "DHX Data Handler"
                         JObj.Add('requested_color', ResolveRequestedColor(DayPlanning.Skill, SkillColorDict, NextSkillPaletteIndex));
                         JObj.Add('job_no', DayPlanning."Job No.");
                         JObj.Add('job_task_no', DayPlanning."Job Task No.");
+
+                        // Standard single-Day-Planning-line hover tooltip fields (2026-09-11) -
+                        // see this procedure's own JobDescCache doc comment above.
+                        if not JobDescCache.ContainsKey(DayPlanning."Job No.") then
+                            if Job.Get(DayPlanning."Job No.") then
+                                JobDescCache.Add(DayPlanning."Job No.", Job.Description)
+                            else
+                                JobDescCache.Add(DayPlanning."Job No.", '');
+                        ProjectName := JobDescCache.Get(DayPlanning."Job No.");
+
+                        TaskCacheKey := DayPlanning."Job No." + '|' + DayPlanning."Job Task No.";
+                        if not JobTaskDescCache.ContainsKey(TaskCacheKey) then
+                            if JobTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
+                                JobTaskDescCache.Add(TaskCacheKey, JobTask.Description)
+                            else
+                                JobTaskDescCache.Add(TaskCacheKey, '');
+                        TaskName := JobTaskDescCache.Get(TaskCacheKey);
+
+                        JObj.Add('jobDescription', ProjectName);
+                        JObj.Add('taskDescription', TaskName);
+                        JObj.Add('sequenceNo', DayPlanning."Sequence No.");
                         JArray.Add(JObj);
                     end;
             until DayPlanning.Next() = 0;
@@ -6401,6 +6543,10 @@ codeunit 50604 "DHX Data Handler"
         // Company-wide (minus WorkOrderNo), date-bounded query for Pass 3 below - see that pass's
         // own doc comment.
         OtherDayPlanning: Record "Day Planning";
+        // Job/Job Task description lookup cache for CPO_BuildDayPlanningLineObj's 'projectName'/
+        // 'taskName' fields - see that procedure's own doc comment.
+        JobDescCache: Dictionary of [Code[20], Text];
+        JobTaskDescCache: Dictionary of [Text, Text];
         RootObj: JsonObject;
         ProjectObj: JsonObject;
         WorkOrderObj: JsonObject;
@@ -6525,7 +6671,7 @@ codeunit 50604 "DHX Data Handler"
             // (skills/sequences - NOT groups, see Pass 3 below for why) ----
             if DayPlanning.FindSet() then
                 repeat
-                    DayPlanningLinesArr.Add(CPO_BuildDayPlanningLineObj(DayPlanning, JobNo, JobTaskNo));
+                    DayPlanningLinesArr.Add(CPO_BuildDayPlanningLineObj(DayPlanning, JobNo, JobTaskNo, JobDescCache, JobTaskDescCache));
 
                     // A blank Skill is real (unclassified) demand but cannot be placed under any
                     // Skill tree node or matched to a resource pool - excluded from every
@@ -6610,7 +6756,7 @@ codeunit 50604 "DHX Data Handler"
                     // Skip this WO's own line (matched by Job No./Job Task No., regardless of its
                     // "Work Order No." field) - already covered by Pass 1 above.
                     if not ((JobNo <> '') and (OtherDayPlanning."Job No." = JobNo) and (OtherDayPlanning."Job Task No." = JobTaskNo)) then begin
-                        DayPlanningLinesArr.Add(CPO_BuildDayPlanningLineObj(OtherDayPlanning, JobNo, JobTaskNo));
+                        DayPlanningLinesArr.Add(CPO_BuildDayPlanningLineObj(OtherDayPlanning, JobNo, JobTaskNo, JobDescCache, JobTaskDescCache));
 
                         if not ActiveSkillList.Contains(OtherDayPlanning.Skill) then
                             ActiveSkillList.Add(OtherDayPlanning.Skill);
@@ -6754,7 +6900,7 @@ codeunit 50604 "DHX Data Handler"
     /// whatever didn't fit) - both build byte-for-byte identical line JSON for the same row instead
     /// of maintaining two copies of this logic.
     /// </summary>
-    local procedure CPO_BuildOtherWorkOrderLinesForGroups(JobNo: Code[20]; JobTaskNo: Code[20]; StartDate: Date; EndDate: Date; var WantedGroupKeys: Dictionary of [Text, Boolean]): JsonArray
+    local procedure CPO_BuildOtherWorkOrderLinesForGroups(JobNo: Code[20]; JobTaskNo: Code[20]; StartDate: Date; EndDate: Date; var WantedGroupKeys: Dictionary of [Text, Boolean]; var JobDescCache: Dictionary of [Code[20], Text]; var JobTaskDescCache: Dictionary of [Text, Text]): JsonArray
     var
         OtherDayPlanning: Record "Day Planning";
         LinesArr: JsonArray;
@@ -6771,7 +6917,7 @@ codeunit 50604 "DHX Data Handler"
                 if not ((JobNo <> '') and (OtherDayPlanning."Job No." = JobNo) and (OtherDayPlanning."Job Task No." = JobTaskNo)) then begin
                     GroupKeyTxt := OtherDayPlanning.Skill + '|' + OtherDayPlanning."Job No." + '|' + OtherDayPlanning."Job Task No.";
                     if WantedGroupKeys.ContainsKey(GroupKeyTxt) then
-                        LinesArr.Add(CPO_BuildDayPlanningLineObj(OtherDayPlanning, JobNo, JobTaskNo));
+                        LinesArr.Add(CPO_BuildDayPlanningLineObj(OtherDayPlanning, JobNo, JobTaskNo, JobDescCache, JobTaskDescCache));
                 end;
             until OtherDayPlanning.Next() = 0;
         exit(LinesArr);
@@ -6792,6 +6938,10 @@ codeunit 50604 "DHX Data Handler"
         JobTask: Record "Job Task";
         Job: Record Job;
         DayPlanning: Record "Day Planning";
+        // Job/Job Task description lookup cache for CPO_BuildDayPlanningLineObj's 'projectName'/
+        // 'taskName' fields - see that procedure's own doc comment.
+        JobDescCache: Dictionary of [Code[20], Text];
+        JobTaskDescCache: Dictionary of [Text, Text];
         RootObj: JsonObject;
         ProjectObj: JsonObject;
         WorkOrderObj: JsonObject;
@@ -6879,7 +7029,7 @@ codeunit 50604 "DHX Data Handler"
 
             if DayPlanning.FindSet() then
                 repeat
-                    DayPlanningLinesArr.Add(CPO_BuildDayPlanningLineObj(DayPlanning, JobNo, JobTaskNo));
+                    DayPlanningLinesArr.Add(CPO_BuildDayPlanningLineObj(DayPlanning, JobNo, JobTaskNo, JobDescCache, JobTaskDescCache));
 
                     if DayPlanning.Skill <> '' then begin
                         if not ActiveSkillList.Contains(DayPlanning.Skill) then
@@ -6938,7 +7088,7 @@ codeunit 50604 "DHX Data Handler"
                 RemainingGroupKeys := '';
 
             // ---- Pass 3b: expensive per-line build, ONLY for the first page's groups. ----
-            FirstPageOtherLinesArr := CPO_BuildOtherWorkOrderLinesForGroups(JobNo, JobTaskNo, StartDate, EndDate, FirstPageGroupKeys);
+            FirstPageOtherLinesArr := CPO_BuildOtherWorkOrderLinesForGroups(JobNo, JobTaskNo, StartDate, EndDate, FirstPageGroupKeys, JobDescCache, JobTaskDescCache);
             foreach LineTok in FirstPageOtherLinesArr do
                 DayPlanningLinesArr.Add(LineTok.AsObject());
         end;
@@ -6980,6 +7130,10 @@ codeunit 50604 "DHX Data Handler"
     procedure CPO_BuildOtherWorkOrderLinesJson_ForKeys(JobNo: Code[20]; JobTaskNo: Code[20]; StartDate: Date; EndDate: Date; RemainingGroupKeysJson: Text): Text
     var
         WantedGroupKeys: Dictionary of [Text, Boolean];
+        // Job/Job Task description lookup cache for CPO_BuildDayPlanningLineObj's 'projectName'/
+        // 'taskName' fields - see that procedure's own doc comment.
+        JobDescCache: Dictionary of [Code[20], Text];
+        JobTaskDescCache: Dictionary of [Text, Text];
         WantedGroupKeysArr: JsonArray;
         KeyTok: JsonToken;
         LinesArr: JsonArray;
@@ -6992,7 +7146,7 @@ codeunit 50604 "DHX Data Handler"
         foreach KeyTok in WantedGroupKeysArr do
             WantedGroupKeys.Add(KeyTok.AsValue().AsText(), true);
 
-        LinesArr := CPO_BuildOtherWorkOrderLinesForGroups(JobNo, JobTaskNo, StartDate, EndDate, WantedGroupKeys);
+        LinesArr := CPO_BuildOtherWorkOrderLinesForGroups(JobNo, JobTaskNo, StartDate, EndDate, WantedGroupKeys, JobDescCache, JobTaskDescCache);
         LinesArr.WriteTo(OutTxt);
         exit(OutTxt);
     end;
@@ -7608,14 +7762,49 @@ codeunit 50604 "DHX Data Handler"
     /// as parameters only for call-site symmetry with Pass 1/Pass 3's own scoping calls above, not
     /// read in this body.
     /// </summary>
-    local procedure CPO_BuildDayPlanningLineObj(var DayPlanning: Record "Day Planning"; InspectedJobNo: Code[20]; InspectedJobTaskNo: Code[20]): JsonObject
+    /// <summary>
+    /// JobDescCache/JobTaskDescCache (2026-09-11 addition, standard-tooltip unification - see this
+    /// add-in's project memory) - 'projectName'/'taskName' (the parent Job's/Job Task's own
+    /// Description, as opposed to this line's own 'description') needed so every DHX add-in's
+    /// single-Day-Planning-line hover tooltip can render the same Job/Task detail table
+    /// src/dhx/request_assignment/wrapper.js's requestTooltipHtml/assignmentTooltipHtml do (that
+    /// add-in's own ReqAssign_BuildDayTaskLineObj already sends these two fields under this exact
+    /// same naming convention - reused here rather than inventing a new one). Threaded through by
+    /// every caller (same idiom as ReqAssign_BuildDayTaskLineObj's own JobDescCache/
+    /// JobTaskDescCache) so the per-Job/Job-Task description lookup stays cached across the whole
+    /// call instead of one Job.Get()/JobTask.Get() per line - this procedure can be called once per
+    /// row over a company-wide, unbounded-Job/Task dayPlanningLines[] volume (Pass 3/Pass 3b above).
+    /// </summary>
+    local procedure CPO_BuildDayPlanningLineObj(var DayPlanning: Record "Day Planning"; InspectedJobNo: Code[20]; InspectedJobTaskNo: Code[20]; var JobDescCache: Dictionary of [Code[20], Text]; var JobTaskDescCache: Dictionary of [Text, Text]): JsonObject
     var
+        Job: Record Job;
+        JobTask: Record "Job Task";
         LineObj: JsonObject;
+        ProjectName: Text;
+        TaskName: Text;
+        TaskCacheKey: Text;
     begin
+        if not JobDescCache.ContainsKey(DayPlanning."Job No.") then
+            if Job.Get(DayPlanning."Job No.") then
+                JobDescCache.Add(DayPlanning."Job No.", Job.Description)
+            else
+                JobDescCache.Add(DayPlanning."Job No.", '');
+        ProjectName := JobDescCache.Get(DayPlanning."Job No.");
+
+        TaskCacheKey := DayPlanning."Job No." + '|' + DayPlanning."Job Task No.";
+        if not JobTaskDescCache.ContainsKey(TaskCacheKey) then
+            if JobTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
+                JobTaskDescCache.Add(TaskCacheKey, JobTask.Description)
+            else
+                JobTaskDescCache.Add(TaskCacheKey, '');
+        TaskName := JobTaskDescCache.Get(TaskCacheKey);
+
         LineObj.Add('id', Format(DayPlanning."Day Line No."));
         LineObj.Add('workOrderNo', DayPlanning."Job No." + '|' + DayPlanning."Job Task No.");
         LineObj.Add('job', DayPlanning."Job No.");
+        LineObj.Add('projectName', ProjectName);
         LineObj.Add('task', DayPlanning."Job Task No.");
+        LineObj.Add('taskName', TaskName);
         LineObj.Add('description', DayPlanning.Description);
         LineObj.Add('sequenceLineNo', DayPlanning."Day Line No.");
         LineObj.Add('requestDate', ReqAssign_FormatIsoDate(DayPlanning."Plan Date"));

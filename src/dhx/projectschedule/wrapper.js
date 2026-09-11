@@ -462,6 +462,17 @@ window.BOOT = function() {
             .replace(/>/g, "&gt;");
     }
 
+    /// <summary>ISO-8601 week number - ported verbatim from src/dhx/request_assignment/wrapper.js's own isoWeekNumber (the reference implementation, see the standard-tooltip tooltip_text's own doc comment).</summary>
+    function isoWeekNumber(dateValue) {
+        var date = dateValue instanceof Date ? new Date(dateValue) : new Date(dateValue);
+        if (isNaN(date.getTime())) return "";
+        var utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        var day = utcDate.getUTCDay() || 7;
+        utcDate.setUTCDate(utcDate.getUTCDate() + 4 - day);
+        var yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+        return Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7);
+    }
+
     function parseHHmmToMinutes(str) {
         if (!str) return null;
         var parts = String(str).split(':');
@@ -530,58 +541,55 @@ window.BOOT = function() {
                '<div class="dp-bar-label">' + label + '</div></div>';
     };
 
-    // Custom tooltip template
+    // Standard single-Day-Planning-line hover tooltip (2026-09-11, standard-tooltip unification -
+    // see this add-in's project memory) - structure/CSS class names ported from the reference
+    // implementation, src/dhx/request_assignment/wrapper.js's requestTooltipHtml/
+    // assignmentTooltipHtml, so every DHX add-in shows the same "Job and Task" table / Skill+Sqnc+
+    // weekday+date head / Request-vs-Assigned Time+Resource table for a single line. Shell stays
+    // DHTMLX's own .dhtmlXTooltip.tooltip (scheduler's tooltip plugin, see style.css) - only the
+    // INNER content markup changes here.
     scheduler.templates.tooltip_text = function(start, end, ev) {
-        var formatDateOnly = scheduler.date.date_to_str("%d-%m-%Y");
-        var formatTimeOnly = scheduler.date.date_to_str("%H:%i");
-        // Parse event ID: "JobNo|JobTaskNo|DayNo|DayLineNo"
-        var dayNo = "";
-        var dayLineNo = "";
-        var jobNo = "";
-        var jobTaskNo = "";
+        var formatDateOnly = scheduler.date.date_to_str("%d %B %Y");
+        // Parse event ID: "JobNo|JobTaskNo|DayNo|DayLineNo|ResNo|ResName" - job/task/jobDescription/
+        // taskDescription/sequenceNo below now come straight from their own real fields
+        // (codeunit 50604's GetYUnitElementsJSON_Project(_Paged) - 2026-09-11 addition) rather than
+        // being parsed out of 'id' the way resno/resname still are here (no equivalent real field
+        // for those two yet - 'id' stays the source for them, unchanged from before).
         var resno = "";
         var resname = "";
-        var vendorname = ev.details || "";
-        
-        if (ev.id) {
-            var parts = String(ev.id).split('|');
-            if (parts.length >= 5) {
-                jobNo = parts[0] || "";
-                jobTaskNo = parts[1] || "";
-                dayNo = parts[2] || "";
-                dayLineNo = parts[3] || "";
-                resno = parts[4] || "";
-                resname = parts[5] || "";
-            }
+        var parts = ev.id ? String(ev.id).split('|') : [];
+        if (parts.length >= 5) {
+            resno = parts[4] || "";
+            resname = parts[5] || "";
         }
-        
-        var assignedStartTime = ev.start_time_assigned || "";
-        var assignedEndTime = ev.end_time_assigned || "";
-        var assignedNonWorkingMin = (ev.non_working_minutes_assigned !== undefined && ev.non_working_minutes_assigned !== null) ? ev.non_working_minutes_assigned : "";
-        var assignedHours = (ev.assigned_hours !== undefined && ev.assigned_hours !== null) ? ev.assigned_hours : "";
-        var reqResNo = ev.requested_resource_no || "";
-        var reqResName = ev.requested_resource_name || "";
-        var reqStartTime = ev.start_time_requested || "";
-        var reqEndTime = ev.end_time_requested || "";
-        var reqNonWorkingMin = (ev.non_working_minutes_requested !== undefined && ev.non_working_minutes_requested !== null) ? ev.non_working_minutes_requested : "";
-        var reqHours = (ev.requested_hours !== undefined && ev.requested_hours !== null) ? ev.requested_hours : "";
 
-        var html = '<div class="dhx-tt">';
-        html += '<div class="dhx-tt-res">DayPlanning: ' + (ev.text || "") + '</div>';
-        html += '<div class="dhx-tt-date">Daylineno: ' + dayLineNo + ' &nbsp;|&nbsp; Date: ' + formatDateOnly(start) + '</div>';
+        var reqTime = (ev.start_time_requested || "—") + "–" + (ev.end_time_requested || "—");
+        var assignedTimeKnown = !!(ev.start_time_assigned || ev.end_time_assigned);
+        var assignedTime = assignedTimeKnown ? ((ev.start_time_assigned || "—") + "–" + (ev.end_time_assigned || "—")) : "—";
+        var timeDiffers = assignedTimeKnown && assignedTime !== reqTime;
 
-        html += '<div class="dhx-tt-table">';
-        html += '<div class="dhx-tt-th"></div><div class="dhx-tt-th">Assigned</div><div class="dhx-tt-th">Requested</div>';
-        html += '<div class="dhx-tt-label">Resource No.</div><div class="dhx-tt-val">' + resno + '</div><div class="dhx-tt-val">' + reqResNo + '</div>';
-        html += '<div class="dhx-tt-label">Resource Name</div><div class="dhx-tt-val">' + resname + '</div><div class="dhx-tt-val">' + reqResName + '</div>';
-        html += '<div class="dhx-tt-label">Start Time</div><div class="dhx-tt-val">' + assignedStartTime + '</div><div class="dhx-tt-val">' + reqStartTime + '</div>';
-        html += '<div class="dhx-tt-label">End Time</div><div class="dhx-tt-val">' + assignedEndTime + '</div><div class="dhx-tt-val">' + reqEndTime + '</div>';
-        html += '<div class="dhx-tt-label">Idle (Minutes)</div><div class="dhx-tt-val">' + assignedNonWorkingMin + '</div><div class="dhx-tt-val">' + reqNonWorkingMin + '</div>';
-        html += '<div class="dhx-tt-label">Hours</div><div class="dhx-tt-val">' + assignedHours + '</div><div class="dhx-tt-val">' + reqHours + '</div>';
-        html += '</div>';
+        var reqResourceLabel = ev.requested_resource_name || ev.requested_resource_no || "—";
+        var assignedResourceLabel = resname || resno || "—";
 
-        html += '</div>';
-        return html;
+        return (
+            '<div class="standard-tooltip-context">' +
+                '<div class="standard-tooltip-context-title">Job and Task</div>' +
+                '<table class="standard-tooltip-table standard-tooltip-context-table"><tbody>' +
+                    '<tr><th>Job</th><td>' + escapeHtml(ev.job || "—") + '</td><td>' + escapeHtml(ev.jobDescription || "—") + '</td></tr>' +
+                    '<tr><th>Task</th><td>' + escapeHtml(ev.task || "—") + '</td><td>' + escapeHtml(ev.taskDescription || "—") + '</td></tr>' +
+                '</tbody></table>' +
+            '</div>' +
+            '<div class="standard-tooltip-head">' +
+                '<div class="standard-tooltip-title">Skill: ' + escapeHtml(ev.skill || "—") + '</div>' +
+                '<div class="standard-tooltip-detail">Sqnc ' + escapeHtml(ev.sequenceNo != null ? ev.sequenceNo : "—") + '</div>' +
+                '<div class="standard-tooltip-detail">' + escapeHtml(scheduler.date.date_to_str("%l")(start)) + ' (wk ' + isoWeekNumber(start) + ')</div>' +
+                '<div class="standard-tooltip-detail">' + escapeHtml(formatDateOnly(start)) + '</div>' +
+            '</div>' +
+            '<table class="standard-tooltip-table"><thead><tr><th></th><th>Request</th><th>Assigned</th></tr></thead><tbody>' +
+                '<tr><th>Time</th><td>' + escapeHtml(reqTime) + '</td><td class="' + (timeDiffers ? "standard-tooltip-different" : "") + '">' + escapeHtml(assignedTime) + '</td></tr>' +
+                '<tr><th>Resource</th><td>' + escapeHtml(reqResourceLabel) + '</td><td>' + escapeHtml(assignedResourceLabel) + '</td></tr>' +
+            '</tbody></table>'
+        );
     };
 
     scheduler.locale.labels.timeline_tab = "Timeline";

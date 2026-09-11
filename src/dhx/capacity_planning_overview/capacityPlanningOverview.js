@@ -42,6 +42,22 @@ function cpoIsoDate(date) {
     return y + '-' + m + '-' + d;
 }
 
+/// <summary>
+/// ISO-8601 week number for the standard single-Day-Planning-line hover tooltip (2026-09-11,
+/// standard-tooltip unification - see this add-in's project memory) - ported verbatim from
+/// src/dhx/request_assignment/wrapper.js's own isoWeekNumber, the reference implementation every
+/// DHX add-in's single-line tooltip is being unified against.
+/// </summary>
+function cpoIsoWeekNumber(dateValue) {
+    const date = dateValue instanceof Date ? new Date(dateValue) : new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return '';
+    const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const day = utcDate.getUTCDay() || 7;
+    utcDate.setUTCDate(utcDate.getUTCDate() + 4 - day);
+    const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+    return Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7);
+}
+
 /// <summary>Reference's own "slug" - CSS-class-safe skill code.</summary>
 function cpoSlug(s) {
     return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -1241,7 +1257,14 @@ class CapacityPlanningOverview {
                     dayIndex: idx,
                     shortageHours: shortageHours,
                     job: seq.job,
+                    // Section 2 is always scoped to the ONE inspected Job Task (db.project/
+                    // db.workOrder are that same Job's/Job Task's own root-level description
+                    // objects, already sent for every payload regardless of section) - reused here
+                    // rather than adding a per-sequence AL field, since every section-2 event shares
+                    // the same job/task by definition. See eventTooltipHtml's own doc comment.
+                    jobDescription: (self.db.project && self.db.project.description) || '',
                     task: seq.task,
+                    taskDescription: (self.db.workOrder && self.db.workOrder.description) || '',
                     lineNo: seq.lineNo,
                     sequenceNo: seq.sequenceNo || '',
                     kind: 'workorder',
@@ -1345,31 +1368,52 @@ class CapacityPlanningOverview {
     // AND section 4's chip cells (see attachTreeChipTooltip below).
     // ================================================================================
 
+    /// <summary>
+    /// Standard single-Day-Planning-line hover tooltip (2026-09-11, standard-tooltip unification -
+    /// see this add-in's project memory) - structure/CSS class names ported from the reference
+    /// implementation, src/dhx/request_assignment/wrapper.js's requestTooltipHtml/
+    /// assignmentTooltipHtml, so every DHX add-in shows the same "Job and Task" table / Skill+Sqnc+
+    /// weekday+date head / Request-vs-Assigned Time+Resource table for a single line, regardless of
+    /// which add-in the user is hovering in. Used for BOTH section 2's real Scheduler events
+    /// (renderWorkOrder) and section 4's chip cells (attachTreeChipTooltip/dplTooltipEvent) - both
+    /// now carry jobDescription/taskDescription (ev.job/.task's own Description, as opposed to
+    /// ev.description which is the Day Planning line's OWN description) so this single function can
+    /// render the full Job/Task table for either source.
+    /// </summary>
     eventTooltipHtml(ev) {
         const weekday = ev.start_date.toLocaleDateString('en-GB', { weekday: 'long' });
         const shortDate = ev.start_date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric', year: 'numeric' });
         const reqTime = String(ev.start_date.getHours()).padStart(2, '0') + ':' + String(ev.start_date.getMinutes()).padStart(2, '0') + '\u2013' + String(ev.end_date.getHours()).padStart(2, '0') + ':' + String(ev.end_date.getMinutes()).padStart(2, '0');
-        const projectLine = ev.job ? ('<div class="cpo-tip-main"><strong>' + cpoEsc(ev.job) + '</strong></div>') : '';
-        const taskLine = ev.task ? ('<div class="cpo-tip-main">' + cpoEsc(ev.task) + (ev.description ? (' \u2014 ' + cpoEsc(ev.description)) : '') + '</div>') : '';
-        const seqLabel = ev.sequenceNo ? ('SeqNo ' + cpoEsc(ev.sequenceNo)) : (ev.lineNo ? ('Sqnc ' + cpoEsc(ev.lineNo)) : (ev.description ? cpoEsc(ev.description) : 'Sequence'));
+        const jobNo = ev.job || '\u2014';
+        const jobDescription = ev.jobDescription || '\u2014';
+        const taskNo = ev.task || '\u2014';
+        const taskDescription = ev.taskDescription || '\u2014';
+        const sequenceNo = (ev.sequenceNo !== undefined && ev.sequenceNo !== null && ev.sequenceNo !== '')
+            ? ev.sequenceNo
+            : (ev.lineNo != null ? ev.lineNo : '\u2014');
+        const assignedTimeKnown = !!(ev.assignedTime && ev.assignedTime !== '\u2014');
+        const timeDiffers = assignedTimeKnown && ev.assignedTime !== reqTime;
         const shortageNote = (ev.kind === 'workorder' && (Number(ev.shortageHours) || 0) > 0)
             ? ('<div class="cpo-tip-capacity-shortage">Capacity shortage: <b>' + cpoHoursText(ev.shortageHours) + '</b></div>')
             : '';
-        return '<div class="cpo-tip-inner">' +
-            '<div class="cpo-tip-section-title">Job and Task</div>' +
-            (projectLine || '<div class="cpo-tip-main"><strong>\u2014</strong></div>') +
-            (taskLine || '<div class="cpo-tip-main">\u2014</div>') +
-            '<div class="cpo-tip-rule"></div>' +
-            '<div class="cpo-tip-section-title">Skill: ' + cpoEsc(ev.skill || 'Planning') + '</div>' +
-            '<div class="cpo-tip-main cpo-tip-muted">' + seqLabel + '</div>' +
-            '<div class="cpo-tip-main">' + cpoEsc(weekday) + '</div>' +
-            '<div class="cpo-tip-main">' + cpoEsc(shortDate) + '</div>' +
+        return '<div class="standard-tooltip-context">' +
+            '<div class="standard-tooltip-context-title">Job and Task</div>' +
+            '<table class="standard-tooltip-table standard-tooltip-context-table"><tbody>' +
+            '<tr><th>Job</th><td>' + cpoEsc(jobNo) + '</td><td>' + cpoEsc(jobDescription) + '</td></tr>' +
+            '<tr><th>Task</th><td>' + cpoEsc(taskNo) + '</td><td>' + cpoEsc(taskDescription) + '</td></tr>' +
+            '</tbody></table>' +
+            '</div>' +
+            '<div class="standard-tooltip-head">' +
+            '<div class="standard-tooltip-title">Skill: ' + cpoEsc(ev.skill || 'Planning') + '</div>' +
+            '<div class="standard-tooltip-detail">Sqnc ' + cpoEsc(sequenceNo) + '</div>' +
+            '<div class="standard-tooltip-detail">' + cpoEsc(weekday) + ' (wk ' + cpoIsoWeekNumber(ev.start_date) + ')</div>' +
+            '<div class="standard-tooltip-detail">' + cpoEsc(shortDate) + '</div>' +
+            '</div>' +
             shortageNote +
-            '<div class="cpo-tip-rule"></div>' +
-            '<table class="cpo-tip-grid"><thead><tr><th></th><th>Assigned</th><th>Request</th><th>Amount</th></tr></thead><tbody>' +
-            '<tr><td>Time</td><td>' + ((ev.assignedTime && ev.assignedTime !== '\u2014') ? cpoEsc(ev.assignedTime) : '<span class="cpo-missing">\u2014</span>') + '</td><td>' + cpoEsc(reqTime) + '</td><td>' + cpoHoursText(ev.requestedHours != null ? ev.requestedHours : (ev.hours || 0)) + '</td></tr>' +
-            '<tr><td>Resource</td><td>' + (ev.assignedResource ? cpoEsc(ev.assignedResource) : '<span class="cpo-missing">\u2014</span>') + '</td><td>\u2014</td><td>\u2014</td></tr>' +
-            '</tbody></table></div>';
+            '<table class="standard-tooltip-table"><thead><tr><th></th><th>Request</th><th>Assigned</th></tr></thead><tbody>' +
+            '<tr><th>Time</th><td>' + cpoEsc(reqTime) + '</td><td class="' + (timeDiffers ? 'standard-tooltip-different' : '') + '">' + (assignedTimeKnown ? cpoEsc(ev.assignedTime) : '<span class="cpo-missing">\u2014</span>') + '</td></tr>' +
+            '<tr><th>Resource</th><td>\u2014</td><td>' + (ev.assignedResource ? cpoEsc(ev.assignedResource) : '<span class="cpo-missing">\u2014</span>') + '</td></tr>' +
+            '</tbody></table>';
     }
 
     attachEventTooltip(schedulerInstance, hostId) {
@@ -1898,6 +1942,10 @@ class CapacityPlanningOverview {
         end.setHours(eParts[0] || 0, eParts[1] || 0, 0, 0);
         return {
             start_date: start, end_date: end, skill: line.requestedSkill, job: line.job, task: line.task, description: line.description,
+            // 'projectName'/'taskName' (2026-09-11 AL addition to CPO_BuildDayPlanningLineObj, same
+            // field-naming convention as this codeunit's own ReqAssign_BuildDayTaskLineObj) - the
+            // parent Job's/Job Task's own Description, for eventTooltipHtml's Job/Task table.
+            jobDescription: line.projectName || '', taskDescription: line.taskName || '',
             sequenceNo: line.sequenceNo || '', lineNo: line.sequenceLineNo, assignedResource: line.assignedResourceNo || '',
             assignedTime: (line.assignedStartTime && line.assignedEndTime) ? (line.assignedStartTime + '\u2013' + line.assignedEndTime) : '\u2014',
             requestedHours: Number(line.requestedHours) || 0, hours: Number(line.requestedHours) || 0, kind: 'dayplanning'

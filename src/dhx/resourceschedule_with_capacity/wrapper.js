@@ -212,7 +212,16 @@ window.BOOT = function () {
         }
 
         /* ── Hover tooltip (dhtmlXTooltip) - tabular ── */
-        .dhtmlXTooltip.tooltip { background: var(--tooltip-bg-color, #000000) !important; color: var(--tooltip-font-color, #ffffff) !important; border: none !important; }
+        /* min/max-width (2026-09-11 standard-tooltip unification - see this add-in's project
+           memory) - same band src/dhx/request_assignment/style.css's own shell rules use, so this
+           add-in's single-line tooltip reads at the same size as every other DHX add-in's. Does
+           not affect the shorter "capacity" tooltip below, which never approaches this min-width. */
+        .dhtmlXTooltip.tooltip { background: var(--tooltip-bg-color, #000000) !important; color: var(--tooltip-font-color, #ffffff) !important; border: none !important; min-width: 285px; max-width: 390px; }
+        /* .dhx-tt/-res/-date/-table/-th/-label/-val below are now used ONLY by the "capacity"
+           tooltip branch (tooltip_text's own ev.type === "capacity" branch) - the DayPlanning
+           branch was replaced by the standard-tooltip-* rules below it. Capacity is a
+           resource-level slot concept, out of this feature's scope - see the task's own
+           exclusion list. */
         .dhx-tt { min-width: 220px; font-family: inherit; font-size: 12px; line-height: 1.5; color: var(--tooltip-font-color, #f0f0f0); }
         .dhx-tt-res { font-weight: 700; font-size: 13px; margin-bottom: 1px; color: var(--tooltip-font-color, #ffffff); }
         .dhx-tt-date { color: var(--tooltip-font-color, #aaaaaa); font-size: 11px; margin-bottom: 6px; white-space: nowrap; }
@@ -220,6 +229,27 @@ window.BOOT = function () {
         .dhx-tt-th { font-weight: 700; color: var(--tooltip-font-color, #ffffff); border-bottom: 1px solid #444; padding-bottom: 2px; }
         .dhx-tt-label { color: var(--tooltip-font-color, #cfcfcf); font-weight: 700; padding: 1px 0; }
         .dhx-tt-val { font-weight: 400; color: var(--tooltip-font-color, #ffffff); padding: 1px 0; }
+
+        /* ---- Standard single-Day-Planning-line tooltip content (2026-09-11, standard-tooltip
+           unification) - ported verbatim from src/dhx/request_assignment/style.css's own "v11/
+           v12/v13 - shared Request / Assignment tooltip standard" rules, the reference every DHX
+           add-in's single-line hover tooltip is being unified against. Shell stays
+           .dhtmlXTooltip.tooltip above. Uses opacity (not the reference's literal grey hex) for
+           secondary text, same technique src/dhx/resourceschedule/style.css uses, since this
+           add-in's tooltip defaults to a dark background/light text (unlike the reference's own
+           light-background shell) and inherits var(--tooltip-font-color) as its base color. ---- */
+        .standard-tooltip-head { display: block; margin-bottom: 7px; padding: 0 2px 6px; border-bottom: 1px solid rgba(255,255,255,0.15); }
+        .standard-tooltip-title { font-size: 12px; font-weight: 700; line-height: 1.35; }
+        .standard-tooltip-detail { margin-top: 2px; padding-left: 12px; font-size: 11px; font-weight: 600; line-height: 1.35; opacity: 0.75; }
+        .standard-tooltip-table { width: 100%; border-collapse: collapse; font-size: 11px; line-height: 1.35; }
+        .standard-tooltip-table th, .standard-tooltip-table td { padding: 5px 6px; border-bottom: 1px solid rgba(255,255,255,0.15); text-align: left; vertical-align: top; }
+        .standard-tooltip-table thead th { font-weight: 700; opacity: 0.75; }
+        .standard-tooltip-table tbody th { font-weight: 600; white-space: nowrap; opacity: 0.75; }
+        .standard-tooltip-table tr:last-child th, .standard-tooltip-table tr:last-child td { border-bottom: 0; }
+        .standard-tooltip-different { color: #ff8a75; font-weight: 700; }
+        .standard-tooltip-context { margin-bottom: 7px; padding: 0 2px 6px; border-bottom: 1px solid rgba(255,255,255,0.15); }
+        .standard-tooltip-context-title { font-size: 11px; font-weight: 700; line-height: 1.35; }
+        .standard-tooltip-context-table { margin-top: 4px; }
         `;
         document.head.appendChild(style);
 
@@ -334,6 +364,12 @@ window.BOOT = function () {
         // Hover tooltip - branches by bar type (adapted from projectschedule's side-by-side
         // Assigned/Requested table for DayPlanning; a simple resource/date/hours block for
         // Capacity, matching poolresourceschedule's capacity tooltip content).
+        // Standard single-Day-Planning-line hover tooltip (2026-09-11, standard-tooltip
+        // unification - see this add-in's project memory) - structure/CSS class names ported from
+        // the reference implementation, src/dhx/request_assignment/wrapper.js's
+        // requestTooltipHtml/assignmentTooltipHtml. The "capacity" branch (a resource-level
+        // capacity-slot concept) is out of this feature's scope - see the task's own exclusion
+        // list - and keeps its own short .dhx-tt table, unchanged.
         scheduler.templates.tooltip_text = function (start, end, ev) {
             var formatDateOnly = scheduler.date.date_to_str("%d-%m-%Y");
             var formatTimeOnly = scheduler.date.date_to_str("%H:%i");
@@ -349,22 +385,30 @@ window.BOOT = function () {
                 return html;
             }
 
-            var html = '<div class="dhx-tt">';
-            html += '<div class="dhx-tt-res">Day Planning: ' + escapeRcHtml(ev.text || "") + '</div>';
-            html += '<div class="dhx-tt-table" style="grid-template-columns:110px 1fr;">';
-            html += '<div class="dhx-tt-label">Date</div><div class="dhx-tt-val">' + formatDateOnly(start) + '</div>';
-            html += '<div class="dhx-tt-label">Job</div><div class="dhx-tt-val">' + escapeRcHtml(ev.job_no || "") + '</div>';
-            html += '<div class="dhx-tt-label">Task</div><div class="dhx-tt-val">' + escapeRcHtml(ev.job_task_no || "") + '</div>';
-            html += '</div>';
-            html += '<div class="dhx-tt-table" style="margin-top:6px;">';
-            html += '<div class="dhx-tt-th"></div><div class="dhx-tt-th">Assigned</div><div class="dhx-tt-th">Requested</div>';
-            html += '<div class="dhx-tt-label">Resource No.</div><div class="dhx-tt-val">' + escapeRcHtml(ev.assigned_resource_no || "") + '</div><div class="dhx-tt-val">' + escapeRcHtml(ev.requested_resource_no || "") + '</div>';
-            html += '<div class="dhx-tt-label">Resource Name</div><div class="dhx-tt-val">' + escapeRcHtml(ev.assigned_resource_name || "") + '</div><div class="dhx-tt-val">' + escapeRcHtml(ev.requested_resource_name || "") + '</div>';
-            html += '<div class="dhx-tt-label">Start Time</div><div class="dhx-tt-val">' + (ev.start_time_assigned || "") + '</div><div class="dhx-tt-val">' + (ev.start_time_requested || "") + '</div>';
-            html += '<div class="dhx-tt-label">End Time</div><div class="dhx-tt-val">' + (ev.end_time_assigned || "") + '</div><div class="dhx-tt-val">' + (ev.end_time_requested || "") + '</div>';
-            html += '<div class="dhx-tt-label">Hours</div><div class="dhx-tt-val">' + (ev.assigned_hours != null ? ev.assigned_hours : "") + '</div><div class="dhx-tt-val">' + (ev.requested_hours != null ? ev.requested_hours : "") + '</div>';
-            html += '</div></div>';
-            return html;
+            var reqTime = (ev.start_time_requested || "—") + "–" + (ev.end_time_requested || "—");
+            var assignedTimeKnown = !!(ev.start_time_assigned || ev.end_time_assigned);
+            var assignedTime = assignedTimeKnown ? ((ev.start_time_assigned || "—") + "–" + (ev.end_time_assigned || "—")) : "—";
+            var timeDiffers = assignedTimeKnown && assignedTime !== reqTime;
+
+            return (
+                '<div class="standard-tooltip-context">' +
+                    '<div class="standard-tooltip-context-title">Job and Task</div>' +
+                    '<table class="standard-tooltip-table standard-tooltip-context-table"><tbody>' +
+                        '<tr><th>Job</th><td>' + escapeRcHtml(ev.job_no || "—") + '</td><td>' + escapeRcHtml(ev.jobDescription || "—") + '</td></tr>' +
+                        '<tr><th>Task</th><td>' + escapeRcHtml(ev.job_task_no || "—") + '</td><td>' + escapeRcHtml(ev.taskDescription || "—") + '</td></tr>' +
+                    '</tbody></table>' +
+                '</div>' +
+                '<div class="standard-tooltip-head">' +
+                    '<div class="standard-tooltip-title">Skill: ' + escapeRcHtml(ev.skill || "—") + '</div>' +
+                    '<div class="standard-tooltip-detail">Sqnc ' + escapeRcHtml(ev.sequenceNo != null ? ev.sequenceNo : "—") + '</div>' +
+                    '<div class="standard-tooltip-detail">' + escapeRcHtml(scheduler.date.date_to_str("%l")(start)) + ' (wk ' + isoWeekNumber(start) + ')</div>' +
+                    '<div class="standard-tooltip-detail">' + escapeRcHtml(scheduler.date.date_to_str("%j %M %Y")(start)) + '</div>' +
+                '</div>' +
+                '<table class="standard-tooltip-table"><thead><tr><th></th><th>Request</th><th>Assigned</th></tr></thead><tbody>' +
+                    '<tr><th>Time</th><td>' + escapeRcHtml(reqTime) + '</td><td class="' + (timeDiffers ? "standard-tooltip-different" : "") + '">' + escapeRcHtml(assignedTime) + '</td></tr>' +
+                    '<tr><th>Resource</th><td>' + escapeRcHtml(ev.requested_resource_name || ev.requested_resource_no || "—") + '</td><td>' + escapeRcHtml(ev.assigned_resource_name || ev.assigned_resource_no || "—") + '</td></tr>' +
+                '</tbody></table>'
+            );
         };
 
         // Double-click an event bar -> AL opens the underlying Day Planning / Capacity record.
@@ -431,6 +475,18 @@ function escapeRcHtml(s) {
     return String(s).replace(/[&<>"]/g, function (c) {
         return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
     });
+}
+
+/// <summary>ISO-8601 week number - ported verbatim from src/dhx/request_assignment/wrapper.js's own isoWeekNumber (the reference implementation, see the standard-tooltip tooltip_text's own doc comment).</summary>
+function isoWeekNumber(dateValue) {
+    if (!dateValue) return "";
+    var date = dateValue instanceof Date ? new Date(dateValue) : new Date(dateValue);
+    if (isNaN(date.getTime())) return "";
+    var utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    var day = utcDate.getUTCDay() || 7;
+    utcDate.setUTCDate(utcDate.getUTCDate() + 4 - day);
+    var yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+    return Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7);
 }
 
 function parseRcHHmm(txt) {
