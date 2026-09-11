@@ -53,6 +53,14 @@ var SERIES_COLOR_PALETTE = ["#2A9D8F", "#E76F51", "#11A3D0", "#E5A910", "#985F99
 var CATEGORY_DELIMITER = "|";       // matches codeunit 50662's CategoryDelimiterTok
 var BOTTOM_TEXT_PADDING = 12;       // matches scales.bottom.textPadding in RenderChart
 var DAY_ROW_HEIGHT = 24;            // px reserved for EACH of the 2 bottom-axis rows
+// DAY_ROW_HEIGHT*2 (48) below is read by RenderChart's scales.bottom.size and MUST stay
+// numerically equal to src/dhx/barchart_daily/wrapper.js's own BOTTOM_SCALE_RESERVED_PX (also
+// 48) - confirmed live via Playwright (2026-09-11) that a chart's "0"-line/bar-baseline
+// vertical position is `containerTop + containerHeight - scales.bottom.size`, independent of
+// legend.size, so keeping this total reserved bottom height equal to Daily's is what keeps the
+// two role-center panels' x-axes aligned, even though only THIS chart actually uses the 2nd row
+// (Mon/Tue/... via RenderDayGroupRow) - Daily reserves the same 48px as blank space under its
+// own single label row instead. See BOTTOM_SCALE_RESERVED_PX's own comment for the full writeup.
 // Matches the native plot area's own gridlines (suite.css: `.grid-line{stroke:var(--dhx-color-
 // gray-100)}`, no explicit stroke-width -> browser default of 1px) rather than a bold black line,
 // so the day-group row's grid reads as part of the same chart instead of a heavier overlay.
