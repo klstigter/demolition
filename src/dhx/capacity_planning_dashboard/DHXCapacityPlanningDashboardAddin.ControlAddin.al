@@ -57,11 +57,6 @@ controladdin DHXCapacityPlanningDashboardAddin
 
     procedure SetPlanningData(PlanningDataJsonTxt: Text);
     procedure SetColors(ColorsJsonTxt: Text);
-    // Page Background Task pagination - same mechanism as page 50722's own (see
-    // capacity_planning_overview's identical procedures' own doc comments for the full design).
-    procedure AppendOtherWorkOrderData(OtherWorkOrderDataJsonTxt: Text);
-    procedure NotifyOtherWorkOrderDataTaskPending();
-    procedure StopOtherWorkOrderDataPolling();
 
     event ControlReady();
     // Declared for parity with the base class's own wiring (inherited, unused code paths only -
@@ -73,5 +68,9 @@ controladdin DHXCapacityPlanningDashboardAddin
     event OnRequestCapacityLookup(FilterJsonTxt: Text);
     event OnSequenceChipClick(PayloadJsonTxt: Text);
     event OnDaysToShowChanged(NumberOfDays: Integer);
-    event OnPollOtherWorkOrderDataResult();
+    // Page Background Task pagination (AppendOtherWorkOrderData/NotifyOtherWorkOrderDataTaskPending/
+    // StopOtherWorkOrderDataPolling procedures + this OnPollOtherWorkOrderDataResult event) was
+    // REMOVED 2026-09-11 - see wrapper.js's own doc comment on why this tile no longer needs it
+    // (Section 4's new SQL-aggregated data is small enough company-wide that it never needs paging).
+    // page 50722's own controladdin (DHXCapacityPlanningOverviewAddin) keeps these unchanged.
 }

@@ -20,3 +20,63 @@
 .cpo-central-tree-host {
     background: #fff;
 }
+
+/* Section 4 flat Skill-only left column (2026-09-11) - the Job/Task drilldown was removed for this
+   tile (see capacityPlanningDashboard.js's buildCentralSections/centralTreeLeftColumnHtml/
+   renderCentralTree overrides), so this tile no longer uses the shared stylesheet's 3-column
+   ".cpo-central-left-header"/".cpo-central-left-grid" (Skill|Job|Task) grid layout for its rows -
+   reusing that 3-column grid with only 1 populated cell would leave dead blank grid space instead
+   of a clean single-column layout. The header row still reuses ".cpo-central-left-header" for its
+   box/border styling (so it visually matches sections 1/3 above it) but is scoped narrower here via
+   the added ".cpo-dash-central-left-header" class to drop the grid-template-columns split. */
+.cpo-dash-central-left-header {
+    display: flex !important;
+    align-items: center;
+}
+
+.cpo-dash-central-left-header span {
+    padding-left: 10px;
+    border-right: 0 !important;
+}
+
+/* Fills the row exactly like the shared stylesheet's own ".cpo-central-left-grid"/
+   ".cpo-sequence-label-full" fix (src/dhx/capacity_planning_overview/style.css, see its own doc
+   comment above "#cpo-central-tree .dhx_matrix_scell") - DHTMLX's treetimeline plugin wraps the
+   column template's returned HTML in a row cell (.dhx_matrix_scell) that does not itself stretch
+   the template's content to the cell's real width, so without position:absolute+inset the label
+   div only sizes to its own content and then gets visually centered inside the wider cell by that
+   wrapper - which is exactly the "skill name looks centered" bug reported live (2026-09-11
+   follow-up). justify-content:flex-start (left-aligning text within the now full-width flex box)
+   is belt-and-suspenders on top of the position fix, not a fix on its own. */
+#cpo-central-tree .cpo-dash-skill-cell {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding-left: 10px;
+    box-sizing: border-box;
+    font-weight: 800;
+    font-size: 12px;
+    color: #3867d6;
+}
+
+/* Section 3's "Totals" header box (.cpo-daily-chart-fixed, rendered by the UNCHANGED inherited
+   base-class renderCapacityBars()) and Section 4's "Skill" tree column (this file's own
+   DASH_TREE_LABEL_WIDTH, capacityPlanningDashboard.js) share one narrower width on this tile only -
+   see DASH_TREE_LABEL_WIDTH's own doc comment for the full reasoning (Skill Code's Code[10] field
+   length + padding) and for why Section 3's copy of this width has to be a CSS override rather than
+   a JS one: renderCapacityBars() is reused byte-identical via super() (see this folder's own
+   capacityPlanningDashboard.js doc comments), and its "Totals" box width is a hardcoded
+   `CapacityPlanningOverview.TREE_LABEL_WIDTH` INLINE style, which only a `!important` external rule
+   can beat - the base-class constant itself is deliberately left untouched since page 50722 still
+   needs the full 360px for its own 3-column Skill/Job/Task grid. Keep this pixel value in sync with
+   DASH_TREE_LABEL_WIDTH by hand - they are two different places by necessity (see above), not by
+   oversight. */
+.cpo-daily-chart-fixed {
+    width: 140px !important;
+    min-width: 140px !important;
+}
