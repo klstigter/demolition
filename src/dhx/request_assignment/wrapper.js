@@ -2157,12 +2157,19 @@ function undoLastAssignment() {
   updateUndoButton();
 }
 
+function requestBarText(line) {
+  const timeText = `${line.requestedStart}:00–${line.requestedStart + line.requestedDuration}:00`;
+  if (!line.assignedResource) return timeText;
+  const resource = findResource(line.assignedResource);
+  return `${timeText} | ${resource?.label ?? line.assignedResource}`;
+}
+
 function requestEvents() {
   return dayTaskLines
     .filter(line => requestLineMatchesFilters(line))
     .map(line => ({
     id: line.id,
-    text: `${line.requestedStart}:00–${line.requestedStart + line.requestedDuration}:00`,
+    text: requestBarText(line),
     start_date: atTime(line.date, line.requestedStart),
     end_date: atTime(line.date, line.requestedStart + line.requestedDuration),
     sequence_id: line.sequenceKey,
@@ -2489,6 +2496,15 @@ function addContextMenuItem({ caption, icon, action }) {
 function showSlotContextMenu(event, targetInfo) {
   event.preventDefault();
   event.stopPropagation();
+
+  // A hover tooltip (request/assignment/resource-skill-warning) can still be showing at the
+  // exact point being right-clicked - it renders on top of the context menu and blocks it
+  // visually/hit-test-wise otherwise, so every context-menu entry point funnels through here to
+  // clear all tooltip kinds before the menu is built.
+  hideRequestTooltip();
+  hideAssignmentDetailTooltip();
+  hideResourceSkillWarningTooltip();
+  hideSequenceDragTooltip();
 
   contextMenuTarget = targetInfo;
   slotContextMenu.replaceChildren();
@@ -4157,21 +4173,14 @@ function assignmentLineFromPointerTarget(target) {
 }
 
 function capacityOverlayAtPoint(clientX, clientY) {
-  const overlays = Array.from(
-    document.querySelectorAll(
-      "#resourceScheduler .capacity-slot-overlay"
-    )
-  );
-
-  return overlays.find(overlay => {
-    const rect = overlay.getBoundingClientRect();
-    return (
-      clientX >= rect.left &&
-      clientX <= rect.right &&
-      clientY >= rect.top &&
-      clientY <= rect.bottom
-    );
-  }) || null;
+  // Native hit-test instead of querySelectorAll + a per-overlay getBoundingClientRect() loop -
+  // the resource pane can render hundreds of capacity-slot overlays at once (many resources x
+  // many workdays), and calling getBoundingClientRect() on each one in turn is a classic
+  // layout-thrashing pattern (this ran on every right-click in the Assignment pane, contributing
+  // to the reported right-click popup lag). elementFromPoint lets the browser's own renderer do
+  // the point-in-rect lookup instead of walking every candidate in JS.
+  const hit = document.elementFromPoint(clientX, clientY);
+  return hit?.closest("#resourceScheduler .capacity-slot-overlay") || null;
 }
 
 function beginAcceptedLeftResize(event, handleOrEventElement) {
@@ -6112,12 +6121,22 @@ window.BOOT = function BOOT() {
       selectedSequenceKey = sequenceKey;
       selectionAnchorId = null;
 
-      activateSkillFilter(sequenceKey, { render: true });
-      activateSequenceScope(sequenceKey, { render: false });
-
+      // Show the menu FIRST. activateSkillFilter(render:true)/activateSequenceScope trigger a
+      // full two-scheduler redraw (renderResources + renderRequest - the same cost a plain
+      // left-click selection pays, see setSingleSelection) which the browser can't paint the
+      // menu around since both would otherwise run synchronously in this one handler - that
+      // redraw was the actual cause of the right-click popup feeling slow to appear. Neither the
+      // menu's own construction nor its actions (unassignSequence/openModifySequencePanel) read
+      // anything activateSkillFilter/activateSequenceScope compute - they only need
+      // selectedSequenceKey, already set above - so the redraw is safe to defer a frame.
       showSlotContextMenu(event, {
         type: "sequence",
         sequenceKey
+      });
+
+      requestAnimationFrame(() => {
+        activateSkillFilter(sequenceKey, { render: true });
+        activateSequenceScope(sequenceKey, { render: false });
       });
       return;
     }
