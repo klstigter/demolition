@@ -32,6 +32,16 @@ controladdin DHXRequestAssignmentAddin
     // (.sequence-drag-tooltip/.assignment-detail-tooltip/.resource-skill-warning-tooltip/
     // .request-detail-tooltip). See wrapper.js's SetColors.
     procedure SetColors(ColorsJsonTxt: Text);
+    // Work-Hour Templates for the "Modify sequence" panel (see OnModifySequence below) - same
+    // codeunit 50695 "Day Planning Sequence Mgt."/BuildTemplatesJson JSON shape page 50711's own
+    // ControlReady sends to DHXDayPlanningSequenceAddin.Init. Called once from page 50710's
+    // ControlReady, separately from SetPlanningData, since the template list doesn't change on a
+    // Refresh/Reset reload the way the planning data does. Skills are NOT loaded this way - every
+    // Day Task Line already carries its own "requiredSkill" (see wrapper.js's sequenceRows), so
+    // there's no need for a separate skills payload the way page 50711 needs one for its "New
+    // sequence" dialog's Skill dropdown (this board's "Modify sequence" panel never lets the user
+    // change skill, only template/dates/excluded-days).
+    procedure SetTemplates(TemplatesJsonTxt: Text);
     // Part B.2/B.3 pagination - appends a background-loaded remainder of "dayTaskLines" (whole
     // sequenceKey groups that didn't fit RefreshPlanningData's first synchronous page) into the
     // already-rendered board in place. See wrapper.js's AppendDayTaskLines: .push()es the parsed
@@ -54,6 +64,13 @@ controladdin DHXRequestAssignmentAddin
     event OnMoveAssignment(PayloadJsonTxt: Text);
     event OnResizeAssignment(PayloadJsonTxt: Text);
     event OnUnassignDayTaskLine(PayloadJsonTxt: Text);
+    // Raised by the "Modify sequence" context-menu item on a Sequences-tree row - payload
+    // { "jobNo", "jobTaskNo", "skill", "sequenceNo", "template", "excludedWeekdays" (CSV),
+    // "startDate", "endDate" }, same shape as page 50711's own OnModifySequence plus jobNo/
+    // jobTaskNo (this board isn't scoped to a single Job/Task the way the Job Task Card is - see
+    // wrapper.js's applySequenceModification). Regenerates the whole sequence thread in place via
+    // codeunit 50695 "Day Planning Sequence Mgt."'s RegenerateSequence (see page 50710's trigger).
+    event OnModifySequence(PayloadJsonTxt: Text);
     // Raised by the "Open Card" context-menu item on a request row or an assignment bar. LineId is
     // the dayTaskLine's id ("JobNo|JobTaskNo|DayLineNo", see wrapper.js's findLine /
     // assignmentLineFromPointerTarget) - unlike the other events above, this is the raw id string,

@@ -6249,6 +6249,101 @@ codeunit 50604 "DHX Data Handler"
     begin
     end;
 
+    /// <summary>
+    /// Commits controladdin event OnModifySequence - "Modify sequence" context-menu item on a
+    /// Sequences-tree row (wrapper.js's showSlotContextMenu, type "sequence"). Payload:
+    /// { "jobNo", "jobTaskNo", "skill", "sequenceNo", "template", "excludedWeekdays" (CSV of ISO
+    /// weekday numbers), "startDate", "endDate" (both "yyyy-MM-dd") } - same shape as page 50711's
+    /// own OnModifySequence trigger, plus jobNo/jobTaskNo: this board spans many Job/Job Task
+    /// combinations at once (unlike the Job Task Card, which is scoped to one Job+Task and reads
+    /// that context off the host page instead), so the payload has to carry them itself.
+    ///
+    /// Reuses codeunit "Day Planning Sequence Mgt." 's RegenerateSequence as-is - the exact same
+    /// "delete the whole thread, reinsert across the date range" batch logic the Job Task Card's
+    /// Day Planning Sequence add-in already uses, not a second copy of it.
+    ///
+    /// "Order Intake No." (table 50610 field 55) is NOT part of the payload - this board has no
+    /// single "current work order" context to stamp onto regenerated lines the way the Job Task
+    /// Card/Workorder Card hosts of codeunit 50695's other callers do. Since RegenerateSequence
+    /// deletes and reinserts every line in the thread, blindly passing blank would silently wipe
+    /// whatever "Order Intake No." those lines already carried - so it's read back off the
+    /// existing rows before they're deleted and passed straight through unchanged.
+    /// </summary>
+    procedure ReqAssign_ModifySequence(PayloadJsonTxt: Text)
+    var
+        DayPlanningSequenceMgt: Codeunit "Day Planning Sequence Mgt.";
+        DayPlanning: Record "Day Planning";
+        PayloadObj: JsonObject;
+        JToken: JsonToken;
+        JobNo: Code[20];
+        JobTaskNo: Code[20];
+        SkillCode: Code[10];
+        SequenceNo: Integer;
+        TemplateCode: Code[20];
+        ExcludedWeekdaysCsv: Text;
+        StartDate: Date;
+        EndDate: Date;
+        OrderIntakeNo: Code[20];
+    begin
+        PayloadObj.ReadFrom(PayloadJsonTxt);
+        if PayloadObj.Get('jobNo', JToken) then
+            JobNo := CopyStr(JToken.AsValue().AsText(), 1, MaxStrLen(JobNo));
+        if PayloadObj.Get('jobTaskNo', JToken) then
+            JobTaskNo := CopyStr(JToken.AsValue().AsText(), 1, MaxStrLen(JobTaskNo));
+        if PayloadObj.Get('skill', JToken) then
+            SkillCode := CopyStr(JToken.AsValue().AsText(), 1, MaxStrLen(SkillCode));
+        if PayloadObj.Get('sequenceNo', JToken) then
+            SequenceNo := JToken.AsValue().AsInteger();
+        if PayloadObj.Get('template', JToken) then
+            TemplateCode := CopyStr(JToken.AsValue().AsText(), 1, MaxStrLen(TemplateCode));
+        if PayloadObj.Get('excludedWeekdays', JToken) then
+            ExcludedWeekdaysCsv := JToken.AsValue().AsText();
+        if PayloadObj.Get('startDate', JToken) then
+            StartDate := ReqAssign_ParseIsoDate(JToken.AsValue().AsText());
+        if PayloadObj.Get('endDate', JToken) then
+            EndDate := ReqAssign_ParseIsoDate(JToken.AsValue().AsText());
+
+        if (JobNo = '') or (JobTaskNo = '') or (SkillCode = '') or (SequenceNo = 0) or (StartDate = 0D) or (EndDate = 0D) then
+            exit;
+
+        DayPlanning.SetRange("Job No.", JobNo);
+        DayPlanning.SetRange("Job Task No.", JobTaskNo);
+        DayPlanning.SetRange(Skill, SkillCode);
+        DayPlanning.SetRange("Sequence No.", SequenceNo);
+        if DayPlanning.FindFirst() then
+            OrderIntakeNo := DayPlanning."Order Intake No.";
+
+        DayPlanningSequenceMgt.RegenerateSequence(JobNo, JobTaskNo, SkillCode, SequenceNo, TemplateCode, StartDate, EndDate, ExcludedWeekdaysCsv, OrderIntakeNo);
+    end;
+
+    /// <summary>
+    /// Parses a "yyyy-MM-dd" text (the format an HTML &lt;input type="date"&gt; always serializes
+    /// to) into a Date without relying on Evaluate's session-region-dependent text parsing - same
+    /// implementation as page 50711 "Day Planning Sequence Part"'s own ParseIsoDate, duplicated
+    /// here rather than shared because that one is a local procedure scoped to the page. Returns
+    /// 0D for anything that doesn't parse cleanly.
+    /// </summary>
+    local procedure ReqAssign_ParseIsoDate(IsoDateTxt: Text): Date
+    var
+        Parts: List of [Text];
+        YearNo: Integer;
+        MonthNo: Integer;
+        DayNo: Integer;
+    begin
+        if IsoDateTxt = '' then
+            exit(0D);
+        Parts := IsoDateTxt.Split('-');
+        if Parts.Count() <> 3 then
+            exit(0D);
+        if not Evaluate(YearNo, Parts.Get(1)) then
+            exit(0D);
+        if not Evaluate(MonthNo, Parts.Get(2)) then
+            exit(0D);
+        if not Evaluate(DayNo, Parts.Get(3)) then
+            exit(0D);
+        exit(DMY2Date(DayNo, MonthNo, YearNo));
+    end;
+
     // ================================================================================
     // "CPO_" region - Capacity Planning Overview (page 50722 "Capacity Planning Overview",
     // controladdin DHXCapacityPlanningOverviewAddin, src/dhx/capacity_planning_overview).

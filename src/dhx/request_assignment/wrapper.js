@@ -125,9 +125,25 @@ let sequenceDragTooltip, assignmentDetailTooltip, requestDetailTooltip;
 let assignmentTimelineScrollbar, assignmentTimelineScrollbarContent;
 let resourceSkillWarningTooltip, slotContextMenu;
 let simplePopupBackdrop, simplePopupText, simplePopupCloseBtn;
+let modifySequenceBackdrop, modifySequenceCloseBtn, modifySequenceCancelBtn, modifySequenceApplyBtn;
+let modifySequenceInfoLabel, modifySequenceTemplateSelect, modifySequenceExcludeGrid;
+let modifySequenceStartInput, modifySequenceEndInput;
 
 let sequenceSkillBehavior = "highlight";
 let hierarchyDensity = "compact";
+
+// "Modify sequence" panel state — templates loaded once via SetTemplates() (see the AL-callable
+// section near the bottom of this file), plus the currently-open sequence row and its in-progress
+// excluded-weekday selection. Ported from src/dhx/dayplanning_sequence/wrapper.js's
+// dps_templates/dps_exclusionsDraft/renderExcludeGrid/activeWeekdaySet (that add-in's "Modify
+// sequence" panel is the reference implementation this board's own version is matched against) —
+// same activeWeekdays "|"-delimited parsing, same toggle-grid behavior, renamed to this file's own
+// naming convention instead of carrying over the "dps" prefix.
+let modifySequenceTemplates = [];
+let modifySequenceKey = null;
+let modifySequenceExclusionsDraft = {};
+
+const MODIFY_SEQUENCE_ISO_WEEKDAYS = [["Mon", 1], ["Tue", 2], ["Wed", 3], ["Thu", 4], ["Fri", 5], ["Sat", 6], ["Sun", 7]];
 
 function addWorkdays(date, amount) {
   const d = new Date(date);
@@ -2487,7 +2503,7 @@ function showSlotContextMenu(event, targetInfo) {
     addContextMenuItem({
       caption: "Modify sequence",
       icon: "modify",
-      action: () => showSimplePopup("Under Construction")
+      action: () => openModifySequencePanel(targetInfo.sequenceKey)
     });
   }
 
@@ -2668,6 +2684,138 @@ function unassignSequence(sequenceKey) {
   updateDecisionButtons();
   updateUndoButton();
   renderAll();
+}
+
+// ---------------------------------------------------------------------------
+// "Modify sequence" panel — invoked from the Sequences-tree row context menu
+// (showSlotContextMenu's type "sequence" branch). Regenerates the whole
+// selected (Job No., Job Task No., Skill, Sequence No.) thread across a new
+// date range/template/excluded-weekday selection, via AL's
+// codeunit 50695 "Day Planning Sequence Mgt." RegenerateSequence — the exact
+// same batch operation the Job Task Card's Day Planning Sequence add-in
+// (src/dhx/dayplanning_sequence/wrapper.js) already uses for its own "Modify
+// sequence" panel, which is the reference this implementation is ported from.
+// Unlike that add-in, this board has no single Job No./Job Task No. page
+// context of its own (it spans every Job/Task/Skill/Sequence combination at
+// once), so the payload carries jobNo/jobTaskNo itself, sourced from the
+// sequence row (sequenceRowsByKey) rather than page-level SetContext state.
+// ---------------------------------------------------------------------------
+
+function modifySequenceActiveWeekdaySet(templateCode) {
+  const tmpl = modifySequenceTemplates.find(t => t.code === templateCode);
+  const allowed = {};
+  if (!tmpl || !tmpl.activeWeekdays) return allowed;
+  tmpl.activeWeekdays.split("|").forEach(w => {
+    const n = parseInt(w, 10);
+    if (!isNaN(n)) allowed[n] = true;
+  });
+  return allowed;
+}
+
+function renderModifySequenceExcludeGrid(templateCode) {
+  const allowed = modifySequenceActiveWeekdaySet(templateCode);
+  const host = modifySequenceExcludeGrid;
+  if (!host) return;
+
+  host.innerHTML = MODIFY_SEQUENCE_ISO_WEEKDAYS.map(([name, wd]) => {
+    const enabled = !!allowed[wd];
+    const excluded = !!modifySequenceExclusionsDraft[wd];
+    return `<button type="button" class="modify-sequence-daytoggle${excluded ? " modify-sequence-excluded" : ""}" data-wd="${wd}"${enabled ? "" : " disabled"}>${name}</button>`;
+  }).join("");
+
+  host.querySelectorAll(".modify-sequence-daytoggle:not(:disabled)").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const wd = Number(btn.dataset.wd);
+      if (modifySequenceExclusionsDraft[wd]) delete modifySequenceExclusionsDraft[wd];
+      else modifySequenceExclusionsDraft[wd] = true;
+      renderModifySequenceExcludeGrid(templateCode);
+    });
+  });
+}
+
+function modifySequenceExcludedWeekdaysCsv() {
+  return Object.keys(modifySequenceExclusionsDraft)
+    .sort((a, b) => a - b)
+    .join(",");
+}
+
+function populateModifySequenceTemplateSelect() {
+  const sel = modifySequenceTemplateSelect;
+  if (!sel) return;
+  sel.innerHTML = modifySequenceTemplates
+    .map(t => `<option value="${escapeAttr(t.code)}">${escapeHtml(t.description || t.code)}</option>`)
+    .join("");
+}
+
+// Minimal HTML-escaping helpers — this file otherwise builds most markup via
+// template literals without a shared escape utility, so small local ones are
+// added here rather than assuming one exists elsewhere.
+function escapeHtml(txt) {
+  return String(txt == null ? "" : txt)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function escapeAttr(txt) {
+  return escapeHtml(txt).replace(/"/g, "&quot;");
+}
+
+function openModifySequencePanel(sequenceKey) {
+  if (!sequenceKey) return;
+  const row = sequenceRowsByKey.get(sequenceKey);
+  if (!row) return;
+
+  const lines = sequenceAllLines(sequenceKey);
+  if (!lines.length) return;
+
+  modifySequenceKey = sequenceKey;
+  modifySequenceExclusionsDraft = {};
+
+  modifySequenceInfoLabel.textContent = `${row.requiredSkill} · Seq ${row.seq} · ${row.taskId} (${row.projectId})`;
+
+  populateModifySequenceTemplateSelect();
+  modifySequenceTemplateSelect.value = ""; // no remembered template — user must (re)confirm, same as the reference panel
+  renderModifySequenceExcludeGrid("");
+
+  modifySequenceStartInput.value = dateOnlyKey(lines[0].date);
+  modifySequenceEndInput.value = dateOnlyKey(lines[lines.length - 1].date);
+
+  modifySequenceBackdrop.hidden = false;
+}
+
+function closeModifySequencePanel() {
+  modifySequenceBackdrop.hidden = true;
+}
+
+function applyModifySequence() {
+  const row = modifySequenceKey ? sequenceRowsByKey.get(modifySequenceKey) : null;
+  if (!row) return;
+
+  const start = modifySequenceStartInput.value;
+  const end = modifySequenceEndInput.value;
+  const templateCode = modifySequenceTemplateSelect.value;
+
+  if (!start || !end || start > end) {
+    showSimplePopup("Start Date must be on or before End Date.");
+    return;
+  }
+  if (!templateCode) {
+    showSimplePopup("Select a Work-Hour Template.");
+    return;
+  }
+
+  const payload = {
+    jobNo: row.projectId,
+    jobTaskNo: row.taskId,
+    skill: row.requiredSkill,
+    sequenceNo: row.seq,
+    template: templateCode,
+    excludedWeekdays: modifySequenceExcludedWeekdaysCsv(),
+    startDate: start,
+    endDate: end
+  };
+
+  closeModifySequencePanel();
+  _showLoading();
+  Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnModifySequence", [JSON.stringify(payload)]);
 }
 
 function isRequestFulfilled(line) {
@@ -5632,6 +5780,38 @@ const APP_MARKUP = `
         <button id="simplePopupCloseBtn" type="button">OK</button>
       </div>
     </div>
+
+    <div id="modifySequenceBackdrop" class="modify-sequence-backdrop" hidden>
+      <div class="modify-sequence-dialog" role="dialog" aria-modal="true" aria-labelledby="modifySequenceTitle">
+        <div class="modify-sequence-head">
+          <div id="modifySequenceTitle" class="modify-sequence-title">Modify sequence</div>
+          <button type="button" class="modify-sequence-close" id="modifySequenceCloseBtn">&times;</button>
+        </div>
+        <div class="modify-sequence-body">
+          <div class="modify-sequence-info" id="modifySequenceInfoLabel"></div>
+          <div class="modify-sequence-field">
+            <label>Work-Hour Template</label>
+            <select id="modifySequenceTemplateSelect"></select>
+          </div>
+          <div class="modify-sequence-field">
+            <label>Exclude days</label>
+            <div class="modify-sequence-exclude-grid" id="modifySequenceExcludeGrid"></div>
+          </div>
+          <div class="modify-sequence-field">
+            <label>Start Date</label>
+            <input type="date" id="modifySequenceStartInput">
+          </div>
+          <div class="modify-sequence-field">
+            <label>End Date</label>
+            <input type="date" id="modifySequenceEndInput">
+          </div>
+        </div>
+        <div class="modify-sequence-actions">
+          <button type="button" id="modifySequenceCancelBtn">Cancel</button>
+          <button type="button" class="modify-sequence-primary" id="modifySequenceApplyBtn">Apply</button>
+        </div>
+      </div>
+    </div>
 `;
 
 let schedulersInitialized = false;
@@ -5761,6 +5941,15 @@ window.BOOT = function BOOT() {
   simplePopupBackdrop = document.getElementById("simplePopupBackdrop");
   simplePopupText = document.getElementById("simplePopupText");
   simplePopupCloseBtn = document.getElementById("simplePopupCloseBtn");
+  modifySequenceBackdrop = document.getElementById("modifySequenceBackdrop");
+  modifySequenceCloseBtn = document.getElementById("modifySequenceCloseBtn");
+  modifySequenceCancelBtn = document.getElementById("modifySequenceCancelBtn");
+  modifySequenceApplyBtn = document.getElementById("modifySequenceApplyBtn");
+  modifySequenceInfoLabel = document.getElementById("modifySequenceInfoLabel");
+  modifySequenceTemplateSelect = document.getElementById("modifySequenceTemplateSelect");
+  modifySequenceExcludeGrid = document.getElementById("modifySequenceExcludeGrid");
+  modifySequenceStartInput = document.getElementById("modifySequenceStartInput");
+  modifySequenceEndInput = document.getElementById("modifySequenceEndInput");
 
   ghost = document.createElement("div");
   ghost.id = "sequenceGhost";
@@ -5824,6 +6013,16 @@ window.BOOT = function BOOT() {
   simplePopupCloseBtn.addEventListener("click", hideSimplePopup);
   simplePopupBackdrop.addEventListener("click", event => {
     if (event.target === simplePopupBackdrop) hideSimplePopup();
+  });
+
+  modifySequenceCloseBtn.addEventListener("click", closeModifySequencePanel);
+  modifySequenceCancelBtn.addEventListener("click", closeModifySequencePanel);
+  modifySequenceApplyBtn.addEventListener("click", applyModifySequence);
+  modifySequenceTemplateSelect.addEventListener("change", () => {
+    renderModifySequenceExcludeGrid(modifySequenceTemplateSelect.value);
+  });
+  modifySequenceBackdrop.addEventListener("click", event => {
+    if (event.target === modifySequenceBackdrop) closeModifySequencePanel();
   });
 
   document.addEventListener("click", event => {
@@ -6772,6 +6971,22 @@ function SetColors(colorsJsonTxt) {
     if (colors.tooltipFont) root.style.setProperty("--tooltip-font-color", colors.tooltipFont);
   } catch (e) {
     console.warn("SetColors: invalid colorsJsonTxt", colorsJsonTxt, e);
+  }
+}
+
+// AL-callable: SetTemplates - Work-Hour Templates for the "Modify sequence" panel (see
+// openModifySequencePanel/applyModifySequence above), called once from page 50710's ControlReady
+// with codeunit 50695 "Day Planning Sequence Mgt."'s BuildTemplatesJson output - same JSON shape
+// (and template list) as the Job Task Card's Day Planning Sequence add-in loads via its own
+// Init(). A one-time load, not part of SetPlanningData/AppendDayTaskLines, since the template list
+// itself never changes across a Refresh/Reset/background-page reload.
+function SetTemplates(templatesJsonTxt) {
+  try {
+    const parsed = JSON.parse(templatesJsonTxt);
+    modifySequenceTemplates = Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.warn("SetTemplates: invalid templatesJsonTxt", templatesJsonTxt, e);
+    modifySequenceTemplates = [];
   }
 }
 
