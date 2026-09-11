@@ -121,7 +121,14 @@ window.BOOT = function() {
             return ev.classname || "";
         };
 
-        // Custom tooltip content: Resource, Date, Capacity times, DayPlanning times
+        // Standard single-Day-Planning-line hover tooltip (2026-09-11, standard-tooltip
+        // unification - see this add-in's project memory) - structure/CSS class names ported from
+        // the reference implementation, src/dhx/request_assignment/wrapper.js's
+        // requestTooltipHtml/assignmentTooltipHtml. Only DayPlanning-type events (ev.id NOT
+        // starting with "cap_") get the full standard structure - the synthetic "cap_"
+        // availability/capacity events are a resource-level capacity-slot concept (out of this
+        // feature's scope, see the task's own exclusion list) and keep a short, separate
+        // Capacity/Start/End table.
         scheduler.templates.tooltip_text = function(start, end, ev) {
             var resId   = String(ev.resource_id || "");
             var resName = resId;
@@ -130,19 +137,7 @@ window.BOOT = function() {
             }
 
             var evDate  = (start instanceof Date) ? start : ToDate(start);
-            var cap     = null;
-            if (evDate) {
-                for (var ci = 0; ci < allCapacity.length; ci++) {
-                    var c = allCapacity[ci];
-                    if (String(c.resource_id) !== resId) continue;
-                    var cs = ToDate(c.start_date);
-                    if (cs && cs.toDateString() === evDate.toDateString()) { cap = c; break; }
-                }
-            }
-
-            var months = ["January","February","March","April","May","June",
-                          "July","August","September","October","November","December"];
-            var dateStr = evDate ? (evDate.getDate() + " " + months[evDate.getMonth()] + " " + evDate.getFullYear()) : "";
+            var isAvailable = String(ev.id).indexOf("cap_") === 0;
 
             function fmt(dt) {
                 var d = (dt instanceof Date) ? dt : ToDate(dt);
@@ -150,29 +145,53 @@ window.BOOT = function() {
                 return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
             }
 
-            var isAvailable = String(ev.id).indexOf("cap_") === 0;
+            if (isAvailable) {
+                var cap = null;
+                if (evDate) {
+                    for (var ci = 0; ci < allCapacity.length; ci++) {
+                        var c = allCapacity[ci];
+                        if (String(c.resource_id) !== resId) continue;
+                        var cs = ToDate(c.start_date);
+                        if (cs && cs.toDateString() === evDate.toDateString()) { cap = c; break; }
+                    }
+                }
+                var months = ["January","February","March","April","May","June",
+                              "July","August","September","October","November","December"];
+                var dateStr = evDate ? (evDate.getDate() + " " + months[evDate.getMonth()] + " " + evDate.getFullYear()) : "";
+                var html = '<div class="dhx-tt">';
+                html += '<div class="dhx-tt-res">' + escapeHtml(resName) + '</div>';
+                html += '<div class="dhx-tt-date">' + escapeHtml(dateStr) + '</div>';
+                html += '<div class="dhx-tt-table">';
+                html += '<div class="dhx-tt-th"></div><div class="dhx-tt-th">Capacity</div>';
+                html += '<div class="dhx-tt-label">Start</div><div class="dhx-tt-val">' + (cap ? fmt(cap.start_date) : '—') + '</div>';
+                html += '<div class="dhx-tt-label">End</div><div class="dhx-tt-val">' + (cap ? fmt(cap.end_date) : '—') + '</div>';
+                html += '</div></div>';
+                return html;
+            }
 
-            var html = '<div class="dhx-tt">';
-            html += '<div class="dhx-tt-res">' + resName + '</div>';
-            html += '<div class="dhx-tt-date">' + dateStr + '</div>';
+            var reqTime = (ev.req_start ? fmt(ev.req_start) : '—') + '–' + (ev.req_end ? fmt(ev.req_end) : '—');
+            var assignedTime = fmt(ev.start_date) + '–' + fmt(ev.end_date);
+            var timeDiffers = (ev.req_start && ev.req_end) && assignedTime !== reqTime;
 
-            if (!isAvailable && ev.text)
-                html += '<div class="dhx-tt-task-line"><b>Task:</b> ' + ev.text + '</div>';
-
-            html += '<div class="dhx-tt-table">';
-            html += '<div class="dhx-tt-th"></div><div class="dhx-tt-th">Capacity</div><div class="dhx-tt-th">Assigned</div><div class="dhx-tt-th">Requested</div>';
-            html += '<div class="dhx-tt-label">Start</div>' +
-                    '<div class="dhx-tt-val">' + (cap ? fmt(cap.start_date) : '—') + '</div>' +
-                    '<div class="dhx-tt-val">' + (isAvailable ? '—' : fmt(ev.start_date)) + '</div>' +
-                    '<div class="dhx-tt-val">' + (isAvailable ? '—' : (ev.req_start ? fmt(ev.req_start) : '—')) + '</div>';
-            html += '<div class="dhx-tt-label">End</div>' +
-                    '<div class="dhx-tt-val">' + (cap ? fmt(cap.end_date) : '—') + '</div>' +
-                    '<div class="dhx-tt-val">' + (isAvailable ? '—' : fmt(ev.end_date)) + '</div>' +
-                    '<div class="dhx-tt-val">' + (isAvailable ? '—' : (ev.req_end ? fmt(ev.req_end) : '—')) + '</div>';
-            html += '</div>';
-
-            html += '</div>';
-            return html;
+            return (
+                '<div class="standard-tooltip-context">' +
+                    '<div class="standard-tooltip-context-title">Job and Task</div>' +
+                    '<table class="standard-tooltip-table standard-tooltip-context-table"><tbody>' +
+                        '<tr><th>Job</th><td>' + escapeHtml(ev.job || "—") + '</td><td>' + escapeHtml(ev.jobDescription || "—") + '</td></tr>' +
+                        '<tr><th>Task</th><td>' + escapeHtml(ev.task || "—") + '</td><td>' + escapeHtml(ev.taskDescription || "—") + '</td></tr>' +
+                    '</tbody></table>' +
+                '</div>' +
+                '<div class="standard-tooltip-head">' +
+                    '<div class="standard-tooltip-title">Skill: ' + escapeHtml(ev.skill || "—") + '</div>' +
+                    '<div class="standard-tooltip-detail">Sqnc ' + escapeHtml(ev.sequenceNo != null ? ev.sequenceNo : "—") + '</div>' +
+                    '<div class="standard-tooltip-detail">' + escapeHtml(evDate ? evDate.toLocaleDateString(undefined, { weekday: "long" }) : "—") + ' (wk ' + isoWeekNumber(evDate) + ')</div>' +
+                    '<div class="standard-tooltip-detail">' + escapeHtml(evDate ? evDate.toLocaleDateString(undefined, { month: "short", day: "2-digit", year: "numeric" }) : "—") + '</div>' +
+                '</div>' +
+                '<table class="standard-tooltip-table"><thead><tr><th></th><th>Request</th><th>Assigned</th></tr></thead><tbody>' +
+                    '<tr><th>Time</th><td>' + escapeHtml(reqTime) + '</td><td class="' + (timeDiffers ? "standard-tooltip-different" : "") + '">' + escapeHtml(assignedTime) + '</td></tr>' +
+                    '<tr><th>Resource</th><td>—</td><td>' + escapeHtml(resName || "—") + '</td></tr>' +
+                '</tbody></table>'
+            );
         };
 
         // Progress overlay: dark background = capacity, white segments = each task,
@@ -541,6 +560,23 @@ function ToDate(val) {
 
 function FmtDateStr(d) {
     return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+}
+
+function escapeHtml(text) {
+    return String(text == null ? "" : text)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/// <summary>ISO-8601 week number - ported verbatim from src/dhx/request_assignment/wrapper.js's own isoWeekNumber (the reference implementation, see tooltip_text's own doc comment).</summary>
+function isoWeekNumber(dateValue) {
+    if (!dateValue) return "";
+    var date = dateValue instanceof Date ? new Date(dateValue) : new Date(dateValue);
+    if (isNaN(date.getTime())) return "";
+    var utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    var day = utcDate.getUTCDay() || 7;
+    utcDate.setUTCDate(utcDate.getUTCDate() + 4 - day);
+    var yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+    return Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7);
 }
 
 // ============================================================

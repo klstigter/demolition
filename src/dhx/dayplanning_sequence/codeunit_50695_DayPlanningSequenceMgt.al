@@ -416,6 +416,8 @@ codeunit 50695 "Day Planning Sequence Mgt."
     var
         DayPlanning: Record "Day Planning";
         SkillCodeRec: Record "Skill Code";
+        Job: Record Job;
+        JobTask: Record "Job Task";
         VisualDefaultSettings: Codeunit "Visual Default Settings";
         SectionsArray: JsonArray;
         EventsArray: JsonArray;
@@ -433,9 +435,28 @@ codeunit 50695 "Day Planning Sequence Mgt."
         RowSkillCode: Code[10];
         RowSequenceNo: Integer;
         PaletteIndex: Integer;
+        // Standard single-Day-Planning-line hover tooltip (2026-09-11, standard-tooltip
+        // unification - see this add-in's project memory) - the Job's/Job Task's own Description,
+        // for the tooltip's Job/Task table (src/dhx/request_assignment/wrapper.js's reference
+        // requestTooltipHtml/assignmentTooltipHtml's own 'projectName'/'taskName' convention).
+        // Looked up ONCE for the whole call (this page is always scoped to one [JobNo, JobTaskNo]
+        // pair, unlike capacity_planning_overview's company-wide dayPlanningLines[] which needs a
+        // per-line cache) - never per DayPlanning line.
+        ProjectName: Text;
+        TaskName: Text;
     begin
         EarliestDate := 0D;
         LatestDate := 0D;
+
+        if Job.Get(JobNo) then
+            ProjectName := Job.Description
+        else
+            ProjectName := '';
+
+        if JobTask.Get(JobNo, JobTaskNo) then
+            TaskName := JobTask.Description
+        else
+            TaskName := '';
 
         // Ascending Plan Date order, so MinDateBySection is fixed on each section's first sighting
         // and MaxDateBySection is simply overwritten every time (last write = latest date) - one
@@ -465,6 +486,22 @@ codeunit 50695 "Day Planning Sequence Mgt."
                 EventObj.Add('end_date', FormatEventDateTime(DayPlanning."Plan Date", DayPlanning."End Time Requested"));
                 EventObj.Add('text', FormatEventBarText(DayPlanning));
                 EventObj.Add('skill', DayPlanning.Skill);
+                // Standard single-Day-Planning-line hover tooltip fields (2026-09-11) - see this
+                // procedure's own ProjectName/TaskName doc comment above.
+                EventObj.Add('job', DayPlanning."Job No.");
+                EventObj.Add('jobDescription', ProjectName);
+                EventObj.Add('task', DayPlanning."Job Task No.");
+                EventObj.Add('taskDescription', TaskName);
+                EventObj.Add('sequenceNo', DayPlanning."Sequence No.");
+                if DayPlanning."Start Time Assigned" <> 0T then
+                    EventObj.Add('assignedStartTime', Format(DayPlanning."Start Time Assigned", 0, '<Hours24,2>:<Minutes,2>'))
+                else
+                    EventObj.Add('assignedStartTime', '');
+                if DayPlanning."End Time Assigned" <> 0T then
+                    EventObj.Add('assignedEndTime', Format(DayPlanning."End Time Assigned", 0, '<Hours24,2>:<Minutes,2>'))
+                else
+                    EventObj.Add('assignedEndTime', '');
+                EventObj.Add('assignedResourceNo', DayPlanning."Assigned Resource No.");
                 EventsArray.Add(EventObj);
             until DayPlanning.Next() = 0;
 

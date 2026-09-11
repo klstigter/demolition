@@ -247,37 +247,97 @@
     pointer-events: none;
 }
 
-.cpo-tip-section-title {
-    font-weight: 700;
-    font-size: 11px;
-    color: #344054;
-    margin-top: 4px;
+/* .cpo-event-tip alone (NOT .cpo-daily-summary-tip, the aggregate day-summary tooltip, which is
+   deliberately excluded from this widening - its own content stays short) needs to fit the
+   standard-tooltip-* Job/Task+Request/Assigned table below, same min/max-width the reference shell
+   (.request-detail-tooltip/.assignment-detail-tooltip) uses. */
+.cpo-event-tip {
+    min-width: 285px;
+    max-width: 390px;
 }
 
-.cpo-tip-main {
+/* ---------- Standard single-Day-Planning-line tooltip (2026-09-11, standard-tooltip unification -
+   see this add-in's project memory) - ported verbatim from src/dhx/request_assignment/style.css's
+   own "v11/v12/v13 - shared Request / Assignment tooltip standard" rules, the reference every DHX
+   add-in's single-line hover tooltip is being unified against. Replaces this file's own former
+   cpo-tip-section-title/cpo-tip-main/cpo-tip-muted/cpo-tip-rule/cpo-tip-grid rules (now dead - no
+   longer referenced by eventTooltipHtml). Shell sizing lives on .cpo-event-tip above; only the
+   INNER content classes are ported here, per this feature's own scope (each add-in keeps its own
+   shell/positioning class). */
+.standard-tooltip-head {
+    display: block;
+    margin-bottom: 7px;
+    padding: 0 2px 6px;
+    border-bottom: 1px solid #e4ecef;
+}
+
+.standard-tooltip-title {
+    color: #035b7e;
     font-size: 12px;
-    color: var(--cpo-tooltip-font, #101828);
+    font-weight: 700;
+    line-height: 1.35;
 }
 
-.cpo-tip-muted {
-    color: #667085;
+.standard-tooltip-detail {
+    margin-top: 2px;
+    padding-left: 12px;
+    color: #647681;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.35;
 }
 
-.cpo-tip-rule {
-    border-top: 1px solid #ececec;
-    margin: 6px 0;
-}
-
-.cpo-tip-grid {
+.standard-tooltip-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 11px;
+    line-height: 1.35;
 }
 
-.cpo-tip-grid th,
-.cpo-tip-grid td {
-    padding: 2px 6px 2px 0;
+.standard-tooltip-table th,
+.standard-tooltip-table td {
+    padding: 5px 6px;
+    border-bottom: 1px solid #e4ecef;
     text-align: left;
+    vertical-align: top;
+}
+
+.standard-tooltip-table thead th {
+    color: #647681;
+    font-weight: 700;
+}
+
+.standard-tooltip-table tbody th {
+    color: #647681;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.standard-tooltip-table tr:last-child th,
+.standard-tooltip-table tr:last-child td {
+    border-bottom: 0;
+}
+
+.standard-tooltip-different {
+    color: #b44232;
+    font-weight: 700;
+}
+
+.standard-tooltip-context {
+    margin-bottom: 7px;
+    padding: 0 2px 6px;
+    border-bottom: 1px solid #e4ecef;
+}
+
+.standard-tooltip-context-title {
+    color: #035b7e;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.standard-tooltip-context-table {
+    margin-top: 4px;
 }
 
 .cpo-missing {

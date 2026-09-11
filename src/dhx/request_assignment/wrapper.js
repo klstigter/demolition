@@ -745,8 +745,20 @@ function requestTooltipHtml(line) {
   return `
     <div class="standard-tooltip-context">
       <div class="standard-tooltip-context-title">Job and Task</div>
-      <div class="standard-tooltip-context-line">${jobNo} — ${jobDescription}</div>
-      <div class="standard-tooltip-context-line">${taskNo} — ${taskDescription}</div>
+      <table class="standard-tooltip-table standard-tooltip-context-table">
+        <tbody>
+          <tr>
+            <th>Job</th>
+            <td>${jobNo}</td>
+            <td>${jobDescription}</td>
+          </tr>
+          <tr>
+            <th>Task</th>
+            <td>${taskNo}</td>
+            <td>${taskDescription}</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <div class="standard-tooltip-head">
@@ -3084,8 +3096,20 @@ function assignmentTooltipHtml(line) {
   return `
     <div class="standard-tooltip-context">
       <div class="standard-tooltip-context-title">Job and Task</div>
-      <div class="standard-tooltip-context-line">${jobNo} — ${jobDescription}</div>
-      <div class="standard-tooltip-context-line">${taskNo} — ${taskDescription}</div>
+      <table class="standard-tooltip-table standard-tooltip-context-table">
+        <tbody>
+          <tr>
+            <th>Job</th>
+            <td>${jobNo}</td>
+            <td>${jobDescription}</td>
+          </tr>
+          <tr>
+            <th>Task</th>
+            <td>${taskNo}</td>
+            <td>${taskDescription}</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <div class="standard-tooltip-head">

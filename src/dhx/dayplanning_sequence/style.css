@@ -288,7 +288,14 @@
     position: fixed;
     z-index: 120;
     display: none;
-    width: 260px;
+    /* min/max-width (not the old fixed 260px) - 2026-09-11 standard-tooltip unification (see this
+       add-in's project memory): showSlotTooltip's standardTooltipHtml (single-bar detail) now needs
+       to fit the same Job/Task+Request/Assigned table src/dhx/request_assignment/style.css's own
+       .request-detail-tooltip/.assignment-detail-tooltip shell sizes for. showSectionTooltip (the
+       row-level aggregate tooltip, out of this feature's scope) shares this same shell/element and
+       is unaffected - its own short content never approaches this min-width anyway. */
+    min-width: 285px;
+    max-width: 390px;
     background: var(--tooltip-bg-color, #fff);
     color: var(--tooltip-font-color, #172033);
     border: 1px solid #d8dee8;
@@ -324,6 +331,96 @@
 .dps-tooltip-value {
     font-weight: 650;
     color: var(--tooltip-font-color, #263248);
+}
+
+/* ── Standard single-Day-Planning-line tooltip (2026-09-11, standard-tooltip unification - see
+   this add-in's project memory) - ported verbatim from src/dhx/request_assignment/style.css's own
+   "v11/v12/v13 - shared Request / Assignment tooltip standard" rules, the reference every DHX
+   add-in's single-line hover tooltip is being unified against. showSlotTooltip's
+   standardTooltipHtml() only - showSectionTooltip (the row-level aggregate tooltip) keeps its own
+   .dps-tooltip-head/-body/-row/-label/-value rules above, untouched. .dps-standard-tooltip supplies
+   the left/right padding .dps-tooltip-head/-body normally provide for the OTHER tooltip - kept
+   scoped here rather than added to .dps-tooltip itself so that shell stays padding-free for
+   showSectionTooltip's own full-bleed head bar. ───────────────────────────────── */
+.dps-standard-tooltip {
+    padding: 8px 10px;
+    font-size: 11px;
+}
+
+.standard-tooltip-head {
+    display: block;
+    margin-bottom: 7px;
+    padding: 0 2px 6px;
+    border-bottom: 1px solid #e4ecef;
+}
+
+.standard-tooltip-title {
+    color: #035b7e;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.standard-tooltip-detail {
+    margin-top: 2px;
+    padding-left: 12px;
+    color: #647681;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.standard-tooltip-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    line-height: 1.35;
+}
+
+.standard-tooltip-table th,
+.standard-tooltip-table td {
+    padding: 5px 6px;
+    border-bottom: 1px solid #e4ecef;
+    text-align: left;
+    vertical-align: top;
+}
+
+.standard-tooltip-table thead th {
+    color: #647681;
+    font-weight: 700;
+}
+
+.standard-tooltip-table tbody th {
+    color: #647681;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.standard-tooltip-table tr:last-child th,
+.standard-tooltip-table tr:last-child td {
+    border-bottom: 0;
+}
+
+.standard-tooltip-different {
+    color: #b44232;
+    font-weight: 700;
+}
+
+.standard-tooltip-context {
+    margin-bottom: 7px;
+    padding: 0 2px 6px;
+    border-bottom: 1px solid #e4ecef;
+}
+
+.standard-tooltip-context-title {
+    color: #035b7e;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.standard-tooltip-context-table {
+    margin-top: 4px;
 }
 
 /* ── Error banner (missing DHTMLX Scheduler build) ───────────── */
