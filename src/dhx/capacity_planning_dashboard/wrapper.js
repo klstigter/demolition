@@ -38,58 +38,11 @@ window.SetColors = function (ColorsJsonTxt) {
     window.__cpoDashboard.applyColors(JSON.parse(ColorsJsonTxt));
 };
 
-// -------------------------------------------------------
-// Page Background Task pagination - identical mechanism/shape to
-// capacity_planning_overview/wrapper.js's own (see that file's doc comment for the full design);
-// on this tile EVERY group is "other" (there is no single inspected Work Order to exclude - see
-// codeunit 50604's CPO_BuildDashboardDataJson_Paged), so this is what delivers the bulk of the
-// dashboard's own data once the first ~50-group synchronous page isn't enough.
-// -------------------------------------------------------
-var _cpoDashOtherWorkOrderDataPollTimer = null;
-var _cpoDashOtherWorkOrderDataPollAttempts = 0;
-var CPO_DASH_OTHER_WORK_ORDER_DATA_POLL_INTERVAL_MS = 500;
-var CPO_DASH_OTHER_WORK_ORDER_DATA_POLL_MAX_ATTEMPTS = 60; // 60 x 500ms = 30s generous ceiling
-
-window.NotifyOtherWorkOrderDataTaskPending = function NotifyOtherWorkOrderDataTaskPending() {
-    try {
-        if (window.__cpoDashboard) window.__cpoDashboard.showBackgroundLoading();
-        if (_cpoDashOtherWorkOrderDataPollTimer) {
-            clearInterval(_cpoDashOtherWorkOrderDataPollTimer);
-            _cpoDashOtherWorkOrderDataPollTimer = null;
-        }
-        _cpoDashOtherWorkOrderDataPollAttempts = 0;
-        _cpoDashOtherWorkOrderDataPollTimer = setInterval(function () {
-            _cpoDashOtherWorkOrderDataPollAttempts++;
-            if (_cpoDashOtherWorkOrderDataPollAttempts > CPO_DASH_OTHER_WORK_ORDER_DATA_POLL_MAX_ATTEMPTS) {
-                clearInterval(_cpoDashOtherWorkOrderDataPollTimer);
-                _cpoDashOtherWorkOrderDataPollTimer = null;
-                if (window.__cpoDashboard) window.__cpoDashboard.hideBackgroundLoading();
-                return;
-            }
-            try {
-                Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnPollOtherWorkOrderDataResult", []);
-            } catch (e) {
-                console.error("OnPollOtherWorkOrderDataResult poll failed:", e);
-            }
-        }, CPO_DASH_OTHER_WORK_ORDER_DATA_POLL_INTERVAL_MS);
-    } catch (e) {
-        console.error("NotifyOtherWorkOrderDataTaskPending failed:", e);
-    }
-};
-
-window.StopOtherWorkOrderDataPolling = function StopOtherWorkOrderDataPolling() {
-    if (_cpoDashOtherWorkOrderDataPollTimer) {
-        clearInterval(_cpoDashOtherWorkOrderDataPollTimer);
-        _cpoDashOtherWorkOrderDataPollTimer = null;
-    }
-    if (window.__cpoDashboard) window.__cpoDashboard.hideBackgroundLoading();
-};
-
-window.AppendOtherWorkOrderData = function AppendOtherWorkOrderData(OtherWorkOrderDataJsonTxt) {
-    try {
-        if (!window.__cpoDashboard) return;
-        window.__cpoDashboard.appendOtherWorkOrderData(JSON.parse(OtherWorkOrderDataJsonTxt));
-    } catch (e) {
-        console.error("AppendOtherWorkOrderData failed:", e);
-    }
-};
+// Page Background Task pagination (NotifyOtherWorkOrderDataTaskPending/
+// StopOtherWorkOrderDataPolling/AppendOtherWorkOrderData + the poll-timer machinery that used to
+// live here) was REMOVED 2026-09-11 - it existed solely to bound the old per-line "groups[]"/
+// "dayPlanningLines[]" build (see codeunit 50604's now-removed CPO_BuildDashboardDataJson_Paged),
+// which the new SQL-aggregated "skillDayHours[]" query (query 50713 "Day Planning Skill Day Hours")
+// makes small enough company-wide that it never needs paging - see capacityPlanningDashboard.js's
+// own header doc comment for the full story. page 50722's own wrapper.js keeps this same mechanism
+// unchanged - that page's own Section 4 drilldown still needs it.

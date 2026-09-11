@@ -6998,46 +6998,131 @@ codeunit 50604 "DHX Data Handler"
     end;
 
     /// <summary>
-    /// Role Center dashboard tile variant (2026-09-04) - page "Capacity Planning Dashboard"
-    /// (controladdin DHXCapacityPlanningDashboardAddin, src/dhx/capacity_planning_dashboard). Same
-    /// payload shape as CPO_BuildPlanningDataJson_Paged, MINUS everything that only exists for a
-    /// single inspected Work Order: no "workOrder"/"project" object, no Pass 1/2
-    /// (workOrderSequences[] is always an empty array - there is no Section 2 on this tile, see
-    /// capacityPlanningDashboard.js's own doc comment for why).
-    ///
-    /// Reuses CPO_ScanOtherWorkOrderGroups/CPO_BuildOtherWorkOrderLinesForGroups UNCHANGED (no
-    /// duplicated logic - explicit instruction) by simply passing blank JobNo/JobTaskNo: both
-    /// procedures' own exclusion check is `(JobNo <> '') and (line's Job/Task = JobNo/JobTaskNo)` -
-    /// with JobNo passed as '', that check is always false, so EVERY row is treated as "not
-    /// excluded" (i.e. included) - exactly the "whole company, nothing excluded" semantics this
-    /// tile needs, with zero new exclusion logic. CPO_BuildOtherWorkOrderLinesJson_ForKeys (the
-    /// background-task companion) now takes JobNo/JobTaskNo directly (Work Order table removal -
-    /// see this add-in's project memory) - codeunit "CPO BG Other WO Data" is reused as-is for this
-    /// tile's own background task too (its own OnRun reads 'JobNo'/'JobTaskNo' TaskParameters keys;
-    /// this tile's own enqueue call in page 50724 still only ever adds a 'WorkOrderNo' key, which
-    /// GetParam's own missing-key fallback silently treats as blank - same "nothing excluded"
-    /// semantics as before, no change needed there), no new codeunit needed.
+    /// Shared query pass for the Capacity Planning Dashboard tile's Section 4 perf fix (2026-09-11)
+    /// - runs query 50713 "Day Planning Skill Day Hours" (Skill + Plan Date grouped, Sum(Requested/
+    /// Assigned Hours) computed in SQL) ONCE and builds BOTH result shapes a caller might need from
+    /// it, so no caller ever pays for a second query execution or a JSON-text round trip just to
+    /// get the other shape:
+    /// - SkillDayHoursArr: {skill, date, requested, assigned} per row - what
+    ///   CPO_BuildDashboardSkillHoursJson returns as-is (Section 4's own lean data).
+    /// - DayPlanningLinesArr: the SAME rows reshaped into the pre-existing "dayPlanningLines[]"
+    ///   field contract (requestDate/requestedSkill/requestedHours/assignedHours) - see
+    ///   CPO_BuildDashboardDataJson's own doc comment for why this is still sent (Section 3's
+    ///   dailyCapacityRequestData(), capacityPlanningOverview.js, was explicitly out of scope to
+    ///   touch and still reads this field).
+    /// ActiveSkillList (distinct skills, first-seen/query-natural order) feeds
+    /// CPO_BuildSkillsArray/CPO_BuildResourcesArray/CPO_BuildExternalFreeArray exactly like the old
+    /// CPO_ScanOtherWorkOrderGroups-derived list did.
     /// </summary>
-    procedure CPO_BuildDashboardDataJson_Paged(NumberOfDays: Integer; MaxOtherLines: Integer; var RemainingGroupKeys: Text): Text
+    local procedure CPO_RunSkillDayHoursQuery(StartDate: Date; EndDate: Date; var ActiveSkillList: List of [Code[20]]; var SkillDayHoursArr: JsonArray; var DayPlanningLinesArr: JsonArray)
+    var
+        SkillDayHoursQry: Query "Day Planning Skill Day Hours";
+        SkillDayObj: JsonObject;
+        LineObj: JsonObject;
+        IsoDate: Text;
+    begin
+        SkillDayHoursQry.SetFilter(SkillFilter, '<>%1', '');
+        SkillDayHoursQry.SetRange(PlanDateFilter, StartDate, EndDate);
+        if SkillDayHoursQry.Open() then begin
+            while SkillDayHoursQry.Read() do begin
+                if not ActiveSkillList.Contains(SkillDayHoursQry.Skill) then
+                    ActiveSkillList.Add(SkillDayHoursQry.Skill);
+
+                IsoDate := ReqAssign_FormatIsoDate(SkillDayHoursQry.PlanDate);
+
+                Clear(SkillDayObj);
+                SkillDayObj.Add('skill', SkillDayHoursQry.Skill);
+                SkillDayObj.Add('date', IsoDate);
+                SkillDayObj.Add('requested', SkillDayHoursQry.RequestedHours);
+                SkillDayObj.Add('assigned', SkillDayHoursQry.AssignedHours);
+                SkillDayHoursArr.Add(SkillDayObj);
+
+                Clear(LineObj);
+                LineObj.Add('requestDate', IsoDate);
+                LineObj.Add('requestedSkill', SkillDayHoursQry.Skill);
+                LineObj.Add('requestedHours', SkillDayHoursQry.RequestedHours);
+                LineObj.Add('assignedHours', SkillDayHoursQry.AssignedHours);
+                DayPlanningLinesArr.Add(LineObj);
+            end;
+            SkillDayHoursQry.Close();
+        end;
+    end;
+
+    /// <summary>
+    /// Section-4-only compact payload for the Capacity Planning Dashboard tile (page 50724) -
+    /// {"skillDayHours": [{"skill":"ELEKTR","date":"2026-09-07","requested":1152,"assigned":700},
+    /// ...], "skills": [{code,color,textColor,border,dark,light}, ...]}. "skills" reuses the
+    /// existing CPO_BuildSkillsArray helper (the SAME one page 50722 uses) so skill colors resolve
+    /// through the same codeunit "Visual Default Settings" palette this whole add-in family already
+    /// uses - no separate/duplicated color logic. Carries no Job/Task/Sequence detail at all - that
+    /// is the whole point of this perf fix, see query 50713's own doc comment.
+    /// </summary>
+    procedure CPO_BuildDashboardSkillHoursJson(StartDate: Date; EndDate: Date): Text
+    var
+        ActiveSkillList: List of [Code[20]];
+        SkillDayHoursArr: JsonArray;
+        UnusedDayPlanningLinesArr: JsonArray;
+        RootObj: JsonObject;
+        OutTxt: Text;
+    begin
+        CPO_RunSkillDayHoursQuery(StartDate, EndDate, ActiveSkillList, SkillDayHoursArr, UnusedDayPlanningLinesArr);
+
+        RootObj.Add('skillDayHours', SkillDayHoursArr);
+        RootObj.Add('skills', CPO_BuildSkillsArray(ActiveSkillList));
+        RootObj.WriteTo(OutTxt);
+        exit(OutTxt);
+    end;
+
+    /// <summary>
+    /// Full Capacity Planning Dashboard payload (page 50724) - REPLACES the now-removed
+    /// CPO_BuildDashboardDataJson_Paged (2026-09-11 Section 4 perf/simplicity fix, explicit user
+    /// request: the dashboard tile's Section 4 Skill/Job/Task drilldown tree with Expand/Exp. to
+    /// Task/Collapse was unnecessary overhead on a company-wide summary tile and slow to load).
+    ///
+    /// No pagination/background task any more - the old pagination existed SOLELY to bound the
+    /// expensive per-line "groups[]"/"dayPlanningLines[]" build (see the old procedure's own header
+    /// comment, removed with it): building a full JSON object per real Day Planning row company-wide
+    /// (Job/Job Task description lookups, time-to-decimal conversions, via CPO_BuildDayPlanningLineObj)
+    /// could be slow/large. This procedure's own dayPlanningLines[]/skillDayHours[] are now built from
+    /// a single SQL-side (Skill, Plan Date) aggregation (query 50713 "Day Planning Skill Day Hours")
+    /// - one row per Skill+Day, not per Day Planning line - so the result set stays tiny (skills x
+    /// days) regardless of company size and never needs bounding.
+    ///
+    /// "groups[]" is no longer sent at all - the dashboard's Section 4 tree is now a flat Skill-only
+    /// list (capacityPlanningDashboard.js's buildCentralSections override reads `this.skills`
+    /// directly, not `this.db.groups`), so there is nothing left that needs it. Skill ORDER/COLORS
+    /// are still preserved without it: `skills[]` is still built by the same shared
+    /// CPO_BuildSkillsArray(ActiveSkillList) helper page 50722 uses, fed by the distinct-skill list
+    /// this procedure's own query pass collects - same color-resolution mechanism as before, just no
+    /// longer paired with a job/task tree structure.
+    ///
+    /// JUDGMENT CALL (flagged, not silently accepted): dayPlanningLines[] is kept in this payload,
+    /// in its ORIGINAL field shape (requestDate/requestedSkill/requestedHours/assignedHours), purely
+    /// because Section 3's own dailyCapacityRequestData() (capacityPlanningOverview.js) still reads
+    /// it for its "Requested" bar's per-skill breakdown, and that function was explicitly out of
+    /// scope to touch. That function only ever SUMS requestedHours/assignedHours per skill+day
+    /// (never reads job/task/sequenceNo/id/workOrderNo on this tile, since there is no inspected
+    /// Work Order to filter by) - one pre-aggregated row per (Skill, Plan Date) therefore produces
+    /// byte-identical "request"/"unassignedBySkill" sums to the old per-line array. The ONE narrow
+    /// exception: that function's "assignedRequest" sums Math.min(requestedHours, assignedHours)
+    /// PER LINE before this change; with one pre-aggregated row per skill+day, that becomes
+    /// Math.min(sum requested, sum assigned) for the whole skill+day instead - these two can only
+    /// differ when some individual Day Planning line is itself over-assigned (Assigned Hours >
+    /// Requested Hours on that one line) while a DIFFERENT line for the same skill+day is
+    /// under-assigned on the same day - a narrow, unusual data condition, and the resulting
+    /// "assignedRequest" figure this produces (the higher, aggregate-capped value) is arguably the
+    /// more correct one for a day-level summary anyway. Section 4 itself does not use
+    /// dayPlanningLines[] at all any more (see skillDaySummary's own doc comment in
+    /// capacityPlanningDashboard.js), so this only affects Section 3's cosmetic per-day figure.
+    /// </summary>
+    procedure CPO_BuildDashboardDataJson(NumberOfDays: Integer): Text
     var
         RootObj: JsonObject;
+        SkillDayHoursArr: JsonArray;
         DayPlanningLinesArr: JsonArray;
-        FirstPageOtherLinesArr: JsonArray;
-        LineTok: JsonToken;
         ActiveSkillList: List of [Code[20]];
-        OtherSkillList: List of [Code[20]];
-        GroupOrder: List of [Text];
-        GroupSkill: List of [Code[20]];
-        GroupJobNo: List of [Code[20]];
-        GroupJobTaskNo: List of [Code[20]];
-        GroupDescription: List of [Text];
-        GroupLineCount: Dictionary of [Text, Integer];
-        FirstPageGroupKeys: Dictionary of [Text, Boolean];
-        RemainingGroupKeysArr: JsonArray;
         ResourcePool: List of [Code[20]];
         EmptyWorkOrderSequencesArr: JsonArray;
-        GroupKeyTxt: Text;
-        RunningTotal: Integer;
         StartDate: Date;
         EndDate: Date;
         OutTxt: Text;
@@ -7052,27 +7137,7 @@ codeunit 50604 "DHX Data Handler"
         RootObj.Add('endDate', ReqAssign_FormatIsoDate(EndDate));
         RootObj.Add('workdays', CPO_BuildDateRangeArray(StartDate, EndDate));
 
-        // Cheap, always-full pre-scan (blank JobNo/JobTaskNo - see this procedure's own doc
-        // comment for why that means "nothing excluded").
-        CPO_ScanOtherWorkOrderGroups('', '', StartDate, EndDate, ActiveSkillList, OtherSkillList,
-            GroupOrder, GroupSkill, GroupJobNo, GroupJobTaskNo, GroupDescription, GroupLineCount);
-
-        RunningTotal := 0;
-        foreach GroupKeyTxt in GroupOrder do
-            if RunningTotal < MaxOtherLines then begin
-                FirstPageGroupKeys.Add(GroupKeyTxt, true);
-                RunningTotal += GroupLineCount.Get(GroupKeyTxt);
-            end else
-                RemainingGroupKeysArr.Add(GroupKeyTxt);
-
-        if RemainingGroupKeysArr.Count() > 0 then
-            RemainingGroupKeysArr.WriteTo(RemainingGroupKeys)
-        else
-            RemainingGroupKeys := '';
-
-        FirstPageOtherLinesArr := CPO_BuildOtherWorkOrderLinesForGroups('', '', StartDate, EndDate, FirstPageGroupKeys);
-        foreach LineTok in FirstPageOtherLinesArr do
-            DayPlanningLinesArr.Add(LineTok.AsObject());
+        CPO_RunSkillDayHoursQuery(StartDate, EndDate, ActiveSkillList, SkillDayHoursArr, DayPlanningLinesArr);
 
         RootObj.Add('skills', CPO_BuildSkillsArray(ActiveSkillList));
         // ApplyPerSkillCap=false - see CPO_BuildResourcesArray's own doc comment on that parameter:
@@ -7082,8 +7147,8 @@ codeunit 50604 "DHX Data Handler"
         RootObj.Add('baseCapacity', 8);
         RootObj.Add('externalFree', CPO_BuildExternalFreeArray(ResourcePool, StartDate, EndDate));
         RootObj.Add('dailyCapacity', CPO_BuildDailyCapacityArray(StartDate, EndDate));
-        RootObj.Add('groups', CPO_BuildGroupsArray(OtherSkillList, GroupSkill, GroupJobNo, GroupJobTaskNo, GroupDescription));
         RootObj.Add('dayPlanningLines', DayPlanningLinesArr);
+        RootObj.Add('skillDayHours', SkillDayHoursArr);
         // Always empty - there is no single inspected Work Order on this tile, so there is no
         // Section 2 to build rows for (see this procedure's own doc comment).
         RootObj.Add('workOrderSequences', EmptyWorkOrderSequencesArr);
