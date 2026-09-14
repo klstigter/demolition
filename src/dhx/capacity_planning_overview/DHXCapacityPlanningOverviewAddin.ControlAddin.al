@@ -78,6 +78,14 @@ controladdin DHXCapacityPlanningOverviewAddin
     // "date":"yyyy-MM-dd"} (job/task blank for a skill-row summary). See codeunit 50604's
     // CPO_OpenDayPlanningList.
     event OnOpenDayPlanningList(PayloadJsonTxt: Text);
+    // Section 3's ("Hours overview" daily Capacity/Requested bars) right-click "Show Data" context
+    // menu (2026-09-14, attachCapacityBarsContextMenu in capacityPlanningOverview.js) - ported from
+    // the same feature already shipped on the Daily/Weekly Insights charts. PayloadJsonTxt shape:
+    // {"segment":"assigned"/"freeInternal"/"freeExternal"/"skill","skill":"...","job":"...",
+    // "task":"...","date":"yyyy-MM-dd"} - see codeunit 50604's CPO_ShowCapacityBarSegment for the
+    // full field-by-field contract. Declared identically on DHXCapacityPlanningDashboardAddin (page
+    // 50724) - both pages share this one JS class.
+    event OnShowCapacityBarSegment(PayloadJsonTxt: Text);
     // JS-owned "Days to show" input (bindDaysToShowInput in capacityPlanningOverview.js) - lives
     // inside this one component per the single-JS-component architecture, not a native AL field.
     event OnDaysToShowChanged(NumberOfDays: Integer);

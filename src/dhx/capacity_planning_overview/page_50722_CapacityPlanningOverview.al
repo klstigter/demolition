@@ -97,6 +97,19 @@ page 50722 "Capacity Planning Overview"
                     DHXDataHandler.CPO_OpenDayPlanningList(PayloadJsonTxt);
                 end;
 
+                /// <summary>
+                /// Section 3's right-click "Show Data" context menu (2026-09-14) - opens the
+                /// underlying "Day Plannings"/"Res. Capacity Entries" records behind whichever bar
+                /// segment/day was clicked. Read-only browse, so no RefreshData() call afterwards -
+                /// same reasoning as OnOpenDayPlanningList above.
+                /// </summary>
+                trigger OnShowCapacityBarSegment(PayloadJsonTxt: Text)
+                var
+                    DHXDataHandler: Codeunit "DHX Data Handler";
+                begin
+                    DHXDataHandler.CPO_ShowCapacityBarSegment(PayloadJsonTxt);
+                end;
+
                 #region Background-loaded remaining other-Work-Order data (Section 4 pagination)
 
                 /// <summary>
