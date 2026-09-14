@@ -1043,7 +1043,12 @@ class CapacityPlanningOverview {
         }
         if (!this.woScheduler) this.woScheduler = Scheduler.getSchedulerInstance();
         const s = this.woScheduler;
-        s.plugins({ timeline: true, tooltip: true });
+        // DHTMLX's native tooltip plugin is deliberately NOT loaded here - this section already
+        // renders its own richer hover tooltip (attachEventTooltip -> #cpo-event-tip, called below),
+        // and loading both at once showed two overlapping tooltip boxes on the same hover (the
+        // plain DHTMLX default alongside the custom one) - see the identical fix on the central
+        // tree's scheduler below.
+        s.plugins({ timeline: true });
         this.configureBaseScheduler(s);
         s.config.drag_move = true;
         s.config.drag_resize = false;
@@ -1809,7 +1814,10 @@ class CapacityPlanningOverview {
         }
         if (!this.centralTreeScheduler) this.centralTreeScheduler = Scheduler.getSchedulerInstance();
         const s = this.centralTreeScheduler;
-        s.plugins({ timeline: true, treetimeline: true, tooltip: true });
+        // tooltip plugin deliberately omitted - see the identical fix + comment on the WO
+        // scheduler above; this section already has its own custom hover tooltip
+        // (attachTreeChipTooltip -> #cpo-event-tip, called below).
+        s.plugins({ timeline: true, treetimeline: true });
         this.configureBaseScheduler(s);
         s.config.drag_move = false;
         s.config.drag_resize = false;
