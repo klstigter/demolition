@@ -6553,6 +6553,13 @@ codeunit 50604 "DHX Data Handler"
     /// scope via Page.RunModal(Page::"Day Plannings", DayPlanning) - same
     /// filter-then-RunModal-with-a-record-variable idiom the Card case above uses with Get instead
     /// of SetRange.
+    ///
+    /// Optional "assigned" (true/false) payload field (2026-09-14 addition, for Section 3's new
+    /// "Show Data" context menu - see CPO_ShowCapacityBarSegment below): when present, adds
+    /// SetRange(Assigned, ...) on top of the skill/job/task/date filters above. Omitted entirely by
+    /// every existing Section 4 caller (attachTreeContextMenu's own payload never sends this key),
+    /// so this is a purely additive, backward-compatible extension - Section 4's own behavior is
+    /// unchanged.
     /// </summary>
     procedure CPO_OpenDayPlanningList(PayloadJsonTxt: Text)
     var
@@ -6567,6 +6574,8 @@ codeunit 50604 "DHX Data Handler"
         PlanYear: Integer;
         PlanMonth: Integer;
         PlanDay: Integer;
+        HasAssignedFilter: Boolean;
+        AssignedFilterValue: Boolean;
     begin
         if PayloadJsonTxt = '' then
             exit;
@@ -6587,6 +6596,10 @@ codeunit 50604 "DHX Data Handler"
                 then
                     PlanDate := DMY2Date(PlanDay, PlanMonth, PlanYear);
         end;
+        if PayloadJObj.Get('assigned', FieldJToken) then begin
+            HasAssignedFilter := true;
+            AssignedFilterValue := FieldJToken.AsValue().AsBoolean();
+        end;
 
         DayPlanning.Reset();
         if SkillCode <> '' then
@@ -6597,8 +6610,125 @@ codeunit 50604 "DHX Data Handler"
             DayPlanning.SetRange("Job Task No.", JobTaskNo);
         if PlanDate <> 0D then
             DayPlanning.SetRange("Plan Date", PlanDate);
+        if HasAssignedFilter then
+            DayPlanning.SetRange(Assigned, AssignedFilterValue);
 
         Page.RunModal(Page::"Day Plannings", DayPlanning);
+    end;
+
+    /// <summary>
+    /// Commits controladdin event OnShowCapacityBarSegment - Section 3's ("Hours overview" daily
+    /// Capacity/Requested bars, capacityPlanningOverview.js's renderCapacityBars/
+    /// dailyCapacityRequestData) right-click "Show Data" context menu (2026-09-14), ported from the
+    /// same feature already shipped on the Daily/Weekly Insights charts (src/dhx/barchart_daily,
+    /// src/dhx/barchart_weekly - see codeunit 50662's ShowSegmentData/Show*Segment procedures for
+    /// the original this is modeled on). Shared verbatim by BOTH page 50722 "Capacity Planning
+    /// Overview" and page 50724 "Capacity Planning Dashboard" (own identically-named trigger on
+    /// each usercontrol) - Section 3 is rendered by one shared JS class
+    /// (capacityPlanningOverview.js), so both pages raise the exact same event/payload shape.
+    ///
+    /// PayloadJsonTxt shape: {"segment":"assigned"/"freeInternal"/"freeExternal"/"skill",
+    /// "skill":"..." (only meaningful for segment="skill"), "job":"...", "task":"..." (only ever
+    /// sent, and only when the page has an inspected Work Order, for a REQUEST-bar segment - see
+    /// dailyCapacityRequestData's own hasInspectedWO doc comment; always blank for the CAPACITY
+    /// bar's own "assigned"/"freeInternal"/"freeExternal" segments, which are company-wide by
+    /// definition on BOTH pages - see capParts()'s own doc comment on why that side is deliberately
+    /// NOT Work-Order-filtered), "date":"yyyy-MM-dd" (the real calendar date behind the clicked day
+    /// column).
+    ///
+    /// "freeInternal"/"freeExternal" are NOT Day Planning data at all - true "Res. Capacity Entry"
+    /// calendar capacity, net of that day's Assigned Hours (see codeunit 50662's CalcCapacitySplit)
+    /// - delegated to that codeunit's own ShowFreeCapacitySegmentForDate (a new, thin public
+    /// wrapper around its existing ShowFreeCapacitySegment/GetFreeCapacityResourcesForDate
+    /// resource-classification logic, addressed by an explicit boolean here instead of matching
+    /// that codeunit's own SegmentId Label text - this add-in's JSON never carries those Label
+    /// strings, since Section 3's bars are no longer built from codeunit 50662's own chart data at
+    /// all, see this region's own architecture-pivot doc comment).
+    ///
+    /// "assigned"/"skill" ARE Day Planning data - re-packaged into CPO_OpenDayPlanningList's own
+    /// payload shape (skill/job/task/date, plus its new optional "assigned" filter above) and
+    /// forwarded there directly (a plain AL call, not a second controladdin round trip) so this
+    /// reuses that procedure's exact filter-building/Page.RunModal logic instead of duplicating it.
+    /// "assigned" maps to Assigned=true with no Skill filter (the Capacity/Request bar's own
+    /// "Assigned" segment is a single combined total, no per-skill breakdown); "skill" maps to
+    /// Assigned=false, Skill = the clicked skill (matching CalcUnassignedSkillRequestedSplit's own
+    /// Assigned=false convention).
+    /// </summary>
+    procedure CPO_ShowCapacityBarSegment(PayloadJsonTxt: Text)
+    var
+        SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
+        PayloadJObj: JsonObject;
+        DrillPayloadJObj: JsonObject;
+        FieldJToken: JsonToken;
+        Segment: Text;
+        SkillCode: Text;
+        JobNo: Text;
+        JobTaskNo: Text;
+        PlanDateTxt: Text;
+        PlanDate: Date;
+        PlanYear: Integer;
+        PlanMonth: Integer;
+        PlanDay: Integer;
+        DrillPayloadJsonTxt: Text;
+    begin
+        if PayloadJsonTxt = '' then
+            exit;
+        if not PayloadJObj.ReadFrom(PayloadJsonTxt) then
+            exit;
+
+        if PayloadJObj.Get('segment', FieldJToken) then
+            Segment := FieldJToken.AsValue().AsText();
+        if PayloadJObj.Get('skill', FieldJToken) then
+            SkillCode := FieldJToken.AsValue().AsText();
+        if PayloadJObj.Get('job', FieldJToken) then
+            JobNo := FieldJToken.AsValue().AsText();
+        if PayloadJObj.Get('task', FieldJToken) then
+            JobTaskNo := FieldJToken.AsValue().AsText();
+        if PayloadJObj.Get('date', FieldJToken) then begin
+            PlanDateTxt := FieldJToken.AsValue().AsText();
+            if StrLen(PlanDateTxt) = 10 then
+                if Evaluate(PlanYear, CopyStr(PlanDateTxt, 1, 4)) and Evaluate(PlanMonth, CopyStr(PlanDateTxt, 6, 2))
+                    and Evaluate(PlanDay, CopyStr(PlanDateTxt, 9, 2))
+                then
+                    PlanDate := DMY2Date(PlanDay, PlanMonth, PlanYear);
+        end;
+
+        if PlanDate = 0D then
+            exit; // malformed/stale click payload - nothing sane to open.
+
+        case Segment of
+            'freeInternal':
+                SkillCapacityAnalysisMgt.ShowFreeCapacitySegmentForDate(false, PlanDate);
+            'freeExternal':
+                SkillCapacityAnalysisMgt.ShowFreeCapacitySegmentForDate(true, PlanDate);
+            'assigned':
+                begin
+                    Clear(DrillPayloadJObj);
+                    DrillPayloadJObj.Add('date', PlanDateTxt);
+                    DrillPayloadJObj.Add('assigned', true);
+                    if JobNo <> '' then
+                        DrillPayloadJObj.Add('job', JobNo);
+                    if JobTaskNo <> '' then
+                        DrillPayloadJObj.Add('task', JobTaskNo);
+                    DrillPayloadJObj.WriteTo(DrillPayloadJsonTxt);
+                    CPO_OpenDayPlanningList(DrillPayloadJsonTxt);
+                end;
+            'skill':
+                begin
+                    if SkillCode = '' then
+                        exit;
+                    Clear(DrillPayloadJObj);
+                    DrillPayloadJObj.Add('date', PlanDateTxt);
+                    DrillPayloadJObj.Add('skill', SkillCode);
+                    DrillPayloadJObj.Add('assigned', false);
+                    if JobNo <> '' then
+                        DrillPayloadJObj.Add('job', JobNo);
+                    if JobTaskNo <> '' then
+                        DrillPayloadJObj.Add('task', JobTaskNo);
+                    DrillPayloadJObj.WriteTo(DrillPayloadJsonTxt);
+                    CPO_OpenDayPlanningList(DrillPayloadJsonTxt);
+                end;
+        end;
     end;
 
     /// <summary>

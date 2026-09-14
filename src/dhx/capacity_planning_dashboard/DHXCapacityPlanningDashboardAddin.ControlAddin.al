@@ -67,6 +67,19 @@ controladdin DHXCapacityPlanningDashboardAddin
     event OnRescheduleWorkOrder(DayShift: Integer; PayloadJsonTxt: Text);
     event OnRequestCapacityLookup(FilterJsonTxt: Text);
     event OnSequenceChipClick(PayloadJsonTxt: Text);
+    // Section 4's flat skill-grid right-click "Show Data" (2026-09-14, capacityPlanningDashboard.js's
+    // treeContextMenuCaption override of the base class's attachTreeContextMenu) - identical payload
+    // shape as page 50722's own OnOpenDayPlanningList ({"skill","job","task","date"}, job/task always
+    // blank here since this tile's cells never carry them - see codeunit 50604's
+    // CPO_OpenDayPlanningList). This tile's cells never produce a chip (no sequence-level leaf rows),
+    // so OnOpenDayPlanningCard is never raised here and is deliberately not declared on this
+    // controladdin.
+    event OnOpenDayPlanningList(PayloadJsonTxt: Text);
+    // Section 3's ("Hours overview" daily Capacity/Requested bars) right-click "Show Data" context
+    // menu (2026-09-14) - identical event/payload shape as page 50722's own
+    // DHXCapacityPlanningOverviewAddin (see that controladdin's own doc comment for the full
+    // contract) - both pages share the one capacityPlanningOverview.js class that renders Section 3.
+    event OnShowCapacityBarSegment(PayloadJsonTxt: Text);
     event OnDaysToShowChanged(NumberOfDays: Integer);
     // Page Background Task pagination (AppendOtherWorkOrderData/NotifyOtherWorkOrderDataTaskPending/
     // StopOtherWorkOrderDataPolling procedures + this OnPollOtherWorkOrderDataResult event) was

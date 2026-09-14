@@ -1266,6 +1266,28 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     end;
 
     /// <summary>
+    /// Public entry point for callers outside this codeunit's own chart-JSON round trip (currently
+    /// codeunit 50604's CPO_ShowCapacityBarSegment, Section 3 of the Capacity Planning Overview/
+    /// Dashboard add-ins, src/dhx/capacity_planning_overview) that need this SAME "Free Capacity"
+    /// drilldown (true "Res. Capacity Entry" calendar capacity, net of that day's Assigned Hours,
+    /// classified Internal/External - see CalcCapacitySplit/GetFreeCapacityResourcesForDate) for
+    /// exactly ONE calendar day, addressed by an explicit ClassifyExternal boolean rather than by
+    /// matching this codeunit's own SegmentId Label text (CapInternalSeriesNameLbl/
+    /// CapExternalSeriesNameLbl are private - and that caller's own JSON payload never carries them
+    /// in the first place, since Section 3's bars are no longer built from this codeunit's own
+    /// chart data - see that add-in's own architecture-pivot doc comment). Delegates straight to
+    /// ShowFreeCapacitySegment with DateFrom = DateTo = PlanDate - no new resource-classification
+    /// logic, so the Weekly/Daily Insights charts and this drilldown can never drift apart.
+    /// </summary>
+    procedure ShowFreeCapacitySegmentForDate(ClassifyExternal: Boolean; PlanDate: Date)
+    begin
+        if ClassifyExternal then
+            ShowFreeCapacitySegment(CapExternalSeriesNameLbl, PlanDate, PlanDate)
+        else
+            ShowFreeCapacitySegment(CapInternalSeriesNameLbl, PlanDate, PlanDate);
+    end;
+
+    /// <summary>
     /// Drilldown for a per-skill segment - the simple case: "Skill" is a plain Day Planning field,
     /// so a direct SetRange suffices (no resource-set resolution needed), matching the existing
     /// drilldown pattern already used by page 50696's DrillDownColumn. Skill segments are only

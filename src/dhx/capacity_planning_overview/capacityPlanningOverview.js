@@ -1596,10 +1596,16 @@ class CapacityPlanningOverview {
         const data = this.dailyCapacityRequestData();
         const maxVal = Math.max(8, ...data.filter(function (x) { return !x.weekend; }).map(function (x) { return Math.max(x.assigned + x.freeInt + x.freeExt, x.request); }));
         const maxBarPx = 82;
-        const seg = function (value, colorHex) {
+        // `segKey` (2026-09-14, "Show Data" context menu) - identifies WHICH segment this div is
+        // ('assigned'/'freeInternal'/'freeExternal'/'skill:<code>'), as a `data-seg` attribute -
+        // needed because a zero-value segment renders NO div at all (unlike the SVG-based Daily/
+        // Weekly charts' <path>s, which always render even at 0 height), so a segment's DOM
+        // position among its stack's siblings cannot reliably be mapped back to which value it
+        // represents. See attachCapacityBarsContextMenu below for how this is read back.
+        const seg = function (value, colorHex, segKey) {
             if (!value || value <= 0) return '';
             const h = Math.max(1, Math.round(value / maxVal * maxBarPx));
-            return '<div class="cpo-daily-chart-segment" style="height:' + h + 'px;background:' + (colorHex || '#ccc') + ';"></div>';
+            return '<div class="cpo-daily-chart-segment" data-seg="' + segKey + '" style="height:' + h + 'px;background:' + (colorHex || '#ccc') + ';"></div>';
         };
 
         const cellsHtml = data.map(function (x) {
@@ -1610,9 +1616,9 @@ class CapacityPlanningOverview {
                     '<div class="cpo-daily-chart-date"><b>' + dayNo + '</b><span>' + dayName + '</span></div>' +
                     '<div class="cpo-daily-chart-off">non-workday</div><div class="cpo-daily-chart-value">\u2014</div></div>';
             }
-            const cStack = seg(x.assigned, '#63aa72') + seg(x.freeInt, '#5f8fd8') + seg(x.freeExt, '#8fb7ee');
-            let rStack = seg(x.assignedRequest, '#63aa72');
-            self.skills.forEach(function (sk) { const meta = self.skillMeta(sk); rStack += seg(x.unassignedBySkill[sk], meta.color); });
+            const cStack = seg(x.assigned, '#63aa72', 'assigned') + seg(x.freeInt, '#5f8fd8', 'freeInternal') + seg(x.freeExt, '#8fb7ee', 'freeExternal');
+            let rStack = seg(x.assignedRequest, '#63aa72', 'assigned');
+            self.skills.forEach(function (sk) { const meta = self.skillMeta(sk); rStack += seg(x.unassignedBySkill[sk], meta.color, 'skill:' + sk); });
             // _bulkAnchorHint (2026-09-04) - cosmetic-only, set by moveWorkOrderToDay's bulk
             // relocate (never by an individual section 2 drag) - once rows have been dragged
             // independently there is no longer one single day every row sits on in general, so this
@@ -1676,6 +1682,101 @@ class CapacityPlanningOverview {
         });
 
         this.bindScrollSync();
+        this.attachCapacityBarsContextMenu();
+    }
+
+    /// <summary>
+    /// Section 3's right-click "Show Data" context menu (2026-09-14) - ports the same feature
+    /// already shipped on the Daily/Weekly Insights charts (src/dhx/barchart_daily,
+    /// src/dhx/barchart_weekly's own ResolveBarSegmentFromEvent/ShowContextMenu) onto Section 3's
+    /// hand-rolled stacked <div> bars (not an SVG chart, so resolution reads the `data-seg`
+    /// attribute `seg()` stamps on each rendered segment - see that helper's own comment - plus the
+    /// segment's own `.cpo-daily-chart-col[data-summary-kind][data-day-index]` ancestor, rather than
+    /// walking SVG <path>/<g> structure).
+    ///
+    /// Reuses the SAME #cpo-tree-context-menu popup element and hideTreeContextMenu/
+    /// addTreeContextMenuItem helpers as attachTreeContextMenu (Section 4's own "Open Day
+    /// Planning(s)" feature, added earlier the same day) - the two are mutually exclusive (a
+    /// right-click lands on either Section 3's bars or Section 4's tree, never both at once), so
+    /// sharing one popup element/helper pair is safe and avoids standing up a second, near-identical
+    /// popup subsystem. Registers its OWN dismiss listeners (click/scroll) rather than relying on
+    /// attachTreeContextMenu's - the two attach functions are called from independent render paths
+    /// (renderCapacityBars vs renderCentralTree) with no guaranteed ordering, and hideTreeContextMenu
+    /// is idempotent, so a small duplication here is safer than a hidden ordering dependency between
+    /// two otherwise-independent features.
+    ///
+    /// A right-click that lands on empty bar-area background (no rendered segment under the cursor -
+    /// e.g. a day whose stack has no segment there at all) resolves to nothing and is left alone,
+    /// same as the Daily/Weekly charts' own behavior for an unresolved click - the browser's native
+    /// context menu still shows there.
+    /// </summary>
+    attachCapacityBarsContextMenu() {
+        if (this._capacityBarsContextMenuBound) return;
+        this._capacityBarsContextMenuBound = true;
+        const host = document.getElementById('cpo-capacity-bars');
+        const menu = document.getElementById('cpo-tree-context-menu');
+        if (!host || !menu) return;
+        const self = this;
+
+        host.addEventListener('contextmenu', function (e) {
+            const segEl = e.target.closest('.cpo-daily-chart-segment');
+            if (!segEl || !segEl.dataset.seg) return;
+            const col = segEl.closest('.cpo-daily-chart-col[data-summary-kind]');
+            if (!col) return;
+            const dayIndex = parseInt(col.dataset.dayIndex, 10);
+            const date = self.dates[dayIndex];
+            if (!date) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+            self.hideTreeContextMenu();
+            menu.innerHTML = '';
+
+            const segKey = segEl.dataset.seg;
+            const isSkill = segKey.indexOf('skill:') === 0;
+            // job/task scoping (2026-09-14 critical scoping fix): the CAPACITY column's own
+            // segments ("assigned"/"freeInternal"/"freeExternal") are company-wide by definition on
+            // BOTH pages (see capParts()'s own doc comment) and must NEVER carry a job/task filter.
+            // The REQUEST column's segments ("assigned"=assignedRequest, "skill:<sk>") mirror
+            // dailyCapacityRequestData's own hasInspectedWO filter - scoped to the inspected Work
+            // Order's Job No./Job Task No. on page 50722 (single-WO page), company-wide (no filter)
+            // on page 50724 (Dashboard tile, no inspected WO) - matching exactly what is plotted in
+            // each context, not always one or the other.
+            const hasInspectedWO = !!(self.db.workOrder && self.db.workOrder.no);
+            let scopeJob = '', scopeTask = '';
+            if (col.dataset.summaryKind === 'request' && hasInspectedWO) {
+                const parts = String(self.db.workOrder.no).split('|');
+                scopeJob = parts[0] || '';
+                scopeTask = parts[1] || '';
+            }
+
+            const payload = {
+                segment: isSkill ? 'skill' : segKey,
+                skill: isSkill ? segKey.slice(6) : '',
+                job: scopeJob,
+                task: scopeTask,
+                date: cpoFormatDateOnly(date)
+            };
+
+            self.addTreeContextMenuItem(menu, 'Show Data', function () {
+                if (typeof Microsoft === 'undefined') return;
+                self.showLoading();
+                Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnShowCapacityBarSegment', [JSON.stringify(payload)]);
+                self.hideLoading();
+            });
+
+            menu.hidden = false;
+            const menuRect = menu.getBoundingClientRect();
+            const maxLeft = Math.max(4, window.innerWidth - menuRect.width - 4);
+            const maxTop = Math.max(4, window.innerHeight - menuRect.height - 4);
+            menu.style.left = Math.min(e.clientX, maxLeft) + 'px';
+            menu.style.top = Math.min(e.clientY, maxTop) + 'px';
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!menu.hidden && !menu.contains(e.target)) self.hideTreeContextMenu();
+        });
+        document.addEventListener('scroll', function () { self.hideTreeContextMenu(); }, true);
     }
 
     // ================================================================================
@@ -2064,6 +2165,16 @@ class CapacityPlanningOverview {
     /// real Day Planning line, never merged/summed) opens that ONE line's CARD directly
     /// (OnOpenDayPlanningCard/CPO_OpenDayPlanningCard).
     /// </summary>
+    /// <summary>
+    /// Caption for attachTreeContextMenu's single menu item - overridable so a subclass (e.g.
+    /// CapacityPlanningDashboard) can present the same underlying action under different wording
+    /// without duplicating attachTreeContextMenu itself. Page 50722's own Section 4 keeps this
+    /// default text unchanged.
+    /// </summary>
+    treeContextMenuCaption() {
+        return 'Open Day Planning(s)';
+    }
+
     attachTreeContextMenu() {
         if (this._treeContextMenuBound) return;
         this._treeContextMenuBound = true;
@@ -2084,7 +2195,7 @@ class CapacityPlanningOverview {
             if (chip) {
                 const line = self.dplLineById(chip.dataset.lineId);
                 if (!line) return;
-                self.addTreeContextMenuItem(menu, 'Open Day Planning(s)', function () {
+                self.addTreeContextMenuItem(menu, self.treeContextMenuCaption(), function () {
                     if (typeof Microsoft === 'undefined') return;
                     self.showLoading();
                     Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnOpenDayPlanningCard', [self.cpoDayPlanningLineId(line)]);
@@ -2103,7 +2214,7 @@ class CapacityPlanningOverview {
                     task: summaryCell.dataset.task || '',
                     date: cpoFormatDateOnly(date)
                 };
-                self.addTreeContextMenuItem(menu, 'Open Day Planning(s)', function () {
+                self.addTreeContextMenuItem(menu, self.treeContextMenuCaption(), function () {
                     if (typeof Microsoft === 'undefined') return;
                     self.showLoading();
                     Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnOpenDayPlanningList', [JSON.stringify(payload)]);

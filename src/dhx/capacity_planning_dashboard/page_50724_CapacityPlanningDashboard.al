@@ -56,6 +56,30 @@ page 50724 "Capacity Planning Dashboard"
                 begin
                     // Stub - same as page 50722's own.
                 end;
+
+                /// <summary>
+                /// Section 4's flat skill-grid right-click "Show Data" (2026-09-14) - same
+                /// delegation as page 50722's own OnOpenDayPlanningList trigger. Read-only browse,
+                /// no RefreshData() call needed afterwards.
+                /// </summary>
+                trigger OnOpenDayPlanningList(PayloadJsonTxt: Text)
+                var
+                    DHXDataHandler: Codeunit "DHX Data Handler";
+                begin
+                    DHXDataHandler.CPO_OpenDayPlanningList(PayloadJsonTxt);
+                end;
+
+                /// <summary>
+                /// Section 3's right-click "Show Data" context menu (2026-09-14) - identical
+                /// trigger/delegation as page 50722's own OnShowCapacityBarSegment. Read-only
+                /// browse, no RefreshData() call needed afterwards.
+                /// </summary>
+                trigger OnShowCapacityBarSegment(PayloadJsonTxt: Text)
+                var
+                    DHXDataHandler: Codeunit "DHX Data Handler";
+                begin
+                    DHXDataHandler.CPO_ShowCapacityBarSegment(PayloadJsonTxt);
+                end;
             }
         }
     }

@@ -122,6 +122,19 @@ class CapacityPlanningDashboard extends CapacityPlanningOverview {
     }
 
     /// <summary>
+    /// Overrides the base class's "Open Day Planning(s)" wording for Section 4's right-click menu
+    /// (attachTreeContextMenu, called from this file's own renderCentralTree override above) - same
+    /// underlying action (OnOpenDayPlanningList, this tile's cells never produce a chip so the card
+    /// branch can't fire here), just presented as "Show Data" to match this tile's own Section 3
+    /// bar-chart context menu (attachCapacityBarsContextMenu) and the neighboring Daily/Weekly
+    /// Insights charts' identical wording. Page 50722's own Section 4 keeps the base class's default
+    /// caption unchanged - explicit instruction not to touch that page's wording.
+    /// </summary>
+    treeContextMenuCaption() {
+        return 'Show Data';
+    }
+
+    /// <summary>
     /// Section 4 tree skeleton - flat Skill-only nodes, no Job/Task/Sequence children (see this
     /// class's own header doc comment). Built from `this.skills` (already the exact distinct-skill,
     /// color-ordered list the base class's own applyPlanningData derives from AL's "skills[]" array
@@ -264,6 +277,15 @@ class CapacityPlanningDashboard extends CapacityPlanningOverview {
 
         s.init('cpo-central-tree', this.dates[0], 'centraltree');
         s.clearAll();
+        // Right-click "Open Day Planning(s)" (base class's attachTreeContextMenu, added for page
+        // 50722's Section 4) - NOT wired automatically here since this whole method is a full
+        // override, not a super() call. Safe to reuse unmodified: this tile's summary cells are the
+        // exact same .cpo-tree-summary-cell markup (data-master-skill + data-day-index, no
+        // data-job/data-task) the base method's "skill" branch already handles - there are no
+        // .cpo-tree-chip elements on this tile (see this method's own doc comment on why
+        // attachTreeChipTooltip is skipped), so only the summary-cell ("open list") branch can ever
+        // fire here, never the single-line card branch.
+        this.attachTreeContextMenu();
         this.bindCentralTreeHeightSync(s);
     }
 
