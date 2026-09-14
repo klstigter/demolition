@@ -67,6 +67,36 @@ page 50722 "Capacity Planning Overview"
                     // filtered to it comes in a later step.
                 end;
 
+                /// <summary>
+                /// Section 4 right-click "Open Day Planning(s)" on a single sequence-row CHIP
+                /// (exactly one real Day Planning line) - opens that one line's Card directly.
+                /// RefreshData() afterwards mirrors page 50710's own OnOpenDayPlanningCard trigger
+                /// (request_assignment) - any edit made in the Card (status, assigned resource/
+                /// times, etc.) should be reflected back into this page's own payload.
+                /// </summary>
+                trigger OnOpenDayPlanningCard(LineIdTxt: Text)
+                var
+                    DHXDataHandler: Codeunit "DHX Data Handler";
+                begin
+                    DHXDataHandler.CPO_OpenDayPlanningCard(LineIdTxt);
+                    RefreshData();
+                end;
+
+                /// <summary>
+                /// Section 4 right-click "Open Day Planning(s)" on a skill-row/detail-row SUMMARY
+                /// cell (an aggregate) - opens page 50630 "Day Plannings" filtered to that cell's
+                /// own Skill(+Job+Task)/Plan Date scope. Read-only browse, so no RefreshData() call
+                /// afterwards is needed (unlike the Card case above) - though a user could still
+                /// edit rows from that list page; kept as a deliberate scope match to the Card case
+                /// only being the one guaranteed-single-record edit path.
+                /// </summary>
+                trigger OnOpenDayPlanningList(PayloadJsonTxt: Text)
+                var
+                    DHXDataHandler: Codeunit "DHX Data Handler";
+                begin
+                    DHXDataHandler.CPO_OpenDayPlanningList(PayloadJsonTxt);
+                end;
+
                 #region Background-loaded remaining other-Work-Order data (Section 4 pagination)
 
                 /// <summary>

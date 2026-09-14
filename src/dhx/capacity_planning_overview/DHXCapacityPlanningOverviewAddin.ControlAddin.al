@@ -66,6 +66,18 @@ controladdin DHXCapacityPlanningOverviewAddin
     event OnRescheduleWorkOrder(DayShift: Integer; PayloadJsonTxt: Text);
     event OnRequestCapacityLookup(FilterJsonTxt: Text);
     event OnSequenceChipClick(PayloadJsonTxt: Text);
+    // Section 4 right-click "Open Day Planning(s)" context menu (additive alongside the left-click
+    // OnSequenceChipClick above - see capacityPlanningOverview.js's attachTreeContextMenu doc
+    // comment). LineIdTxt is the SAME "<Job No.>|<Job Task No.>|<Day Line No.>" composite id/format
+    // request_assignment's own OnOpenDayPlanningCard event already uses (DHXRequestAssignmentAddin.
+    // ControlAddin.al) - raised only for a single sequence-row CHIP (exactly one real Day Planning
+    // line, never a summary aggregate).
+    event OnOpenDayPlanningCard(LineIdTxt: Text);
+    // Raised for a skill-row/detail-row SUMMARY cell (an aggregate, always treated as a "sum" per
+    // this feature's spec) - PayloadJsonTxt shape: {"skill":"...","job":"...","task":"...",
+    // "date":"yyyy-MM-dd"} (job/task blank for a skill-row summary). See codeunit 50604's
+    // CPO_OpenDayPlanningList.
+    event OnOpenDayPlanningList(PayloadJsonTxt: Text);
     // JS-owned "Days to show" input (bindDaysToShowInput in capacityPlanningOverview.js) - lives
     // inside this one component per the single-JS-component architecture, not a native AL field.
     event OnDaysToShowChanged(NumberOfDays: Integer);
