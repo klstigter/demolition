@@ -56,41 +56,86 @@ window.LoadCapacityLookup = function (CapacityLookupJsonTxt) {
 // -------------------------------------------------------
 var _cpoOtherWorkOrderDataPollTimer = null;
 var _cpoOtherWorkOrderDataPollAttempts = 0;
+var _cpoOtherWorkOrderDataPollActive = false;
+var _cpoOtherWorkOrderDataPollInFlight = false;
 var CPO_OTHER_WORK_ORDER_DATA_POLL_INTERVAL_MS = 500;
 var CPO_OTHER_WORK_ORDER_DATA_POLL_MAX_ATTEMPTS = 60; // 60 x 500ms = 30s generous ceiling
 
+// Rewritten from a raw setInterval to a self-rescheduling setTimeout that only fires the next
+// InvokeExtensibilityMethod once the previous one has actually returned (success or error) - a
+// fixed-cadence setInterval that ignores whether the prior round trip completed is the exact
+// "wrong way" pattern Microsoft's control add-in performance guidance calls out as a trigger for
+// the client's "reduced functionality" / unhealthy-add-in warning (see learn.microsoft.com/
+// dynamics365/business-central/dev-itpro/developer/devenv-control-addin-bestpractices). Same fix
+// as src/dhx/request_assignment/wrapper.js's NotifyDayTaskLinesTaskPending.
 window.NotifyOtherWorkOrderDataTaskPending = function NotifyOtherWorkOrderDataTaskPending() {
     try {
         if (window.__cpo) window.__cpo.showBackgroundLoading();
         if (_cpoOtherWorkOrderDataPollTimer) {
-            clearInterval(_cpoOtherWorkOrderDataPollTimer);
+            clearTimeout(_cpoOtherWorkOrderDataPollTimer);
             _cpoOtherWorkOrderDataPollTimer = null;
         }
         _cpoOtherWorkOrderDataPollAttempts = 0;
-        _cpoOtherWorkOrderDataPollTimer = setInterval(function () {
-            _cpoOtherWorkOrderDataPollAttempts++;
-            if (_cpoOtherWorkOrderDataPollAttempts > CPO_OTHER_WORK_ORDER_DATA_POLL_MAX_ATTEMPTS) {
-                clearInterval(_cpoOtherWorkOrderDataPollTimer);
-                _cpoOtherWorkOrderDataPollTimer = null;
-                if (window.__cpo) window.__cpo.hideBackgroundLoading(); // safety net - matches _loadingSafetyTimer's role for the full-page overlay, so a task that never completes doesn't leave the badge stuck forever
-                return;
-            }
-            try {
-                Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnPollOtherWorkOrderDataResult", []);
-            } catch (e) {
-                console.error("OnPollOtherWorkOrderDataResult poll failed:", e);
-            }
-        }, CPO_OTHER_WORK_ORDER_DATA_POLL_INTERVAL_MS);
+        _cpoOtherWorkOrderDataPollActive = true;
+        _scheduleCpoOtherWorkOrderDataPoll();
     } catch (e) {
         console.error("NotifyOtherWorkOrderDataTaskPending failed:", e);
     }
 };
 
+function _scheduleCpoOtherWorkOrderDataPoll() {
+    if (!_cpoOtherWorkOrderDataPollActive) return;
+    _cpoOtherWorkOrderDataPollTimer = setTimeout(_runCpoOtherWorkOrderDataPoll, CPO_OTHER_WORK_ORDER_DATA_POLL_INTERVAL_MS);
+}
+
+function _runCpoOtherWorkOrderDataPoll() {
+    _cpoOtherWorkOrderDataPollTimer = null;
+    if (!_cpoOtherWorkOrderDataPollActive) return;
+
+    _cpoOtherWorkOrderDataPollAttempts++;
+    if (_cpoOtherWorkOrderDataPollAttempts > CPO_OTHER_WORK_ORDER_DATA_POLL_MAX_ATTEMPTS) {
+        _cpoOtherWorkOrderDataPollActive = false; // generous 30s ceiling already elapsed - give up
+        if (window.__cpo) window.__cpo.hideBackgroundLoading(); // safety net - matches _loadingSafetyTimer's role for the full-page overlay, so a task that never completes doesn't leave the badge stuck forever
+        return;
+    }
+    if (_cpoOtherWorkOrderDataPollInFlight) {
+        // Previous round trip hasn't returned yet - reschedule instead of piling another call on
+        // top of it.
+        _scheduleCpoOtherWorkOrderDataPoll();
+        return;
+    }
+
+    _cpoOtherWorkOrderDataPollInFlight = true;
+    var onSettled = function () {
+        _cpoOtherWorkOrderDataPollInFlight = false;
+        _scheduleCpoOtherWorkOrderDataPoll();
+    };
+    try {
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(
+            "OnPollOtherWorkOrderDataResult",
+            [],
+            false,
+            onSettled,
+            function (e) {
+                console.error("OnPollOtherWorkOrderDataResult poll failed:", e);
+                onSettled();
+            }
+        );
+    } catch (e) {
+        console.error("OnPollOtherWorkOrderDataResult poll failed:", e);
+        onSettled();
+    }
+}
+
 // Called by AL (from the OnPollOtherWorkOrderDataResult trigger handler) once a pending result
 // was actually delivered - stops the poll burst early instead of waiting out the full timeout.
+// Setting _cpoOtherWorkOrderDataPollActive false (not just clearing the timer) also blocks the
+// in-flight call's own onSettled callback - which fires after this, from the same round trip -
+// from resurrecting the loop.
 window.StopOtherWorkOrderDataPolling = function StopOtherWorkOrderDataPolling() {
+    _cpoOtherWorkOrderDataPollActive = false;
     if (_cpoOtherWorkOrderDataPollTimer) {
-        clearInterval(_cpoOtherWorkOrderDataPollTimer);
+        clearTimeout(_cpoOtherWorkOrderDataPollTimer);
         _cpoOtherWorkOrderDataPollTimer = null;
     }
     if (window.__cpo) window.__cpo.hideBackgroundLoading();
