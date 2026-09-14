@@ -256,6 +256,45 @@
     max-width: 390px;
 }
 
+/* ---------- Section 4 right-click "Open Day Planning(s)" context menu ----------
+   Ported structurally from src/dhx/request_assignment/style.css's own .slot-context-menu/
+   .context-menu-icon rules (this repo's own established context-menu convention) - cpo- prefixed
+   per this add-in's own naming convention. See capacityPlanningOverview.js's attachTreeContextMenu. */
+.cpo-context-menu {
+    position: fixed;
+    z-index: 20000;
+    min-width: 160px;
+    padding: 4px;
+    border: 1px solid rgba(3, 91, 126, .22);
+    border-radius: 6px;
+    background: var(--cpo-tooltip-bg, #fff);
+    color: var(--cpo-tooltip-font, #101828);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .16);
+}
+
+.cpo-context-menu[hidden] {
+    display: none !important;
+}
+
+.cpo-context-menu button {
+    display: block;
+    width: 100%;
+    min-height: 30px;
+    padding: 5px 10px;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 400;
+    color: inherit;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.cpo-context-menu button:hover {
+    background: rgba(3, 91, 126, .08);
+}
+
 /* ---------- Standard single-Day-Planning-line tooltip (2026-09-11, standard-tooltip unification -
    see this add-in's project memory) - ported verbatim from src/dhx/request_assignment/style.css's
    own "v11/v12/v13 - shared Request / Assignment tooltip standard" rules, the reference every DHX

@@ -183,6 +183,7 @@ class CapacityPlanningOverview {
         this._treeSummaryIndex = null;
         this._scrollLock = false;
         this._treeChipTooltipBound = false;
+        this._treeContextMenuBound = false;
         this._hasUnconfirmedChanges = false;
         this.buildLayout();
     }
@@ -225,6 +226,11 @@ class CapacityPlanningOverview {
             '<div id="cpo-shared-scroll" class="cpo-shared-scroll"><div id="cpo-shared-scroll-inner" class="cpo-shared-scroll-inner"></div></div>' +
             '<div id="cpo-event-tip" class="cpo-event-tip"></div>' +
             '<div id="cpo-daily-summary-tip" class="cpo-daily-summary-tip"></div>' +
+            // Section 4 right-click "Open Day Planning(s)" menu (attachTreeContextMenu) - same
+            // "fixed-position button list, hidden by default" shell as src/dhx/request_assignment/
+            // wrapper.js's #slotContextMenu, just built here since this add-in's whole DOM shell is
+            // JS-rendered rather than a static HTML file.
+            '<div id="cpo-tree-context-menu" class="cpo-context-menu" hidden></div>' +
             '<div id="cpo-loading-overlay" class="cpo-loading-overlay"><span class="cpo-spinner"></span></div>';
 
         if (!host.style.position) host.style.position = 'relative';
@@ -1886,6 +1892,7 @@ class CapacityPlanningOverview {
         s.init('cpo-central-tree', this.dates[0], 'centraltree');
         s.clearAll();
         this.attachTreeChipTooltip();
+        this.attachTreeContextMenu();
         this.bindCentralTreeHeightSync(s);
     }
 
@@ -1998,6 +2005,117 @@ class CapacityPlanningOverview {
                 self.hideLoading();
             }
         });
+    }
+
+    /// <summary>
+    /// Composite Day Planning line id, "&lt;Job No.&gt;|&lt;Job Task No.&gt;|&lt;Day Line No.&gt;" -
+    /// the SAME format/parser (codeunit 50604's ReqAssign_ParseId) request_assignment's own "Open
+    /// Card" context-menu item already uses; CPO_OpenDayPlanningCard delegates straight to
+    /// ReqAssign_OpenDayPlanningCard, so this file builds the identical string rather than
+    /// inventing a second id convention. `line` is whatever dplLineById(...) resolves a chip's
+    /// data-line-id to - it already carries `job`/`task` (CPO_BuildDayPlanningLineObj's own 'job'/
+    /// 'task' fields) and `id` (that line's real Day Line No.).
+    /// </summary>
+    cpoDayPlanningLineId(line) {
+        return [line.job, line.task, line.id].map(function (v) { return v == null ? '' : v; }).join('|');
+    }
+
+    hideTreeContextMenu() {
+        const menu = document.getElementById('cpo-tree-context-menu');
+        if (!menu) return;
+        menu.hidden = true;
+        menu.innerHTML = '';
+    }
+
+    addTreeContextMenuItem(menu, caption, action) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = caption;
+        button.addEventListener('click', function (e) {
+            e.stopPropagation();
+            menu.hidden = true;
+            menu.innerHTML = '';
+            action();
+        });
+        menu.appendChild(button);
+    }
+
+    /// <summary>
+    /// Section 4's right-click "Open Day Planning(s)" context menu - ADDITIVE alongside
+    /// attachTreeChipTooltip's pre-existing left-click chip handler (OnSequenceChipClick, untouched
+    /// by this feature), same "fixed-position button list, positioned at the click point, clamped
+    /// to viewport bounds" pattern as src/dhx/request_assignment/wrapper.js's own
+    /// slotContextMenu/showSlotContextMenu (this repo's own established context-menu convention -
+    /// #cpo-tree-context-menu here plays the same role as that file's #slotContextMenu).
+    ///
+    /// Rule (explicit spec): a right-clicked SUMMARY cell (.cpo-tree-summary-cell - the skill-row/
+    /// detail-row aggregate rendered by centraltree_cell_value's 'skill'/'detail' branches, always
+    /// presented as a "sum" regardless of how many real lines actually compose it) opens a FILTERED
+    /// LIST (page 50630 "Day Plannings", via OnOpenDayPlanningList/CPO_OpenDayPlanningList); a
+    /// right-clicked single CHIP (.cpo-tree-chip - sequenceDayCellHtml renders exactly one chip PER
+    /// real Day Planning line, never merged/summed) opens that ONE line's CARD directly
+    /// (OnOpenDayPlanningCard/CPO_OpenDayPlanningCard).
+    /// </summary>
+    attachTreeContextMenu() {
+        if (this._treeContextMenuBound) return;
+        this._treeContextMenuBound = true;
+        const host = document.getElementById('cpo-central-tree');
+        const menu = document.getElementById('cpo-tree-context-menu');
+        if (!host || !menu) return;
+        const self = this;
+
+        host.addEventListener('contextmenu', function (e) {
+            const chip = e.target.closest('.cpo-tree-chip');
+            const summaryCell = chip ? null : e.target.closest('.cpo-tree-summary-cell');
+            if (!chip && !summaryCell) return;
+            e.preventDefault();
+            e.stopPropagation();
+            self.hideTreeContextMenu();
+            menu.innerHTML = '';
+
+            if (chip) {
+                const line = self.dplLineById(chip.dataset.lineId);
+                if (!line) return;
+                self.addTreeContextMenuItem(menu, 'Open Day Planning(s)', function () {
+                    if (typeof Microsoft === 'undefined') return;
+                    self.showLoading();
+                    Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnOpenDayPlanningCard', [self.cpoDayPlanningLineId(line)]);
+                    self.hideLoading();
+                });
+            } else {
+                const idx = parseInt(summaryCell.dataset.dayIndex, 10);
+                const date = self.dates[idx];
+                if (!date) return;
+                // Skill-row summary cells carry data-master-skill (no data-skill); detail-row
+                // summary cells carry data-skill/data-job/data-task - see centraltree_cell_value's
+                // own 'skill'/'detail' branches above.
+                const payload = {
+                    skill: summaryCell.dataset.masterSkill !== undefined ? summaryCell.dataset.masterSkill : (summaryCell.dataset.skill || ''),
+                    job: summaryCell.dataset.job || '',
+                    task: summaryCell.dataset.task || '',
+                    date: cpoFormatDateOnly(date)
+                };
+                self.addTreeContextMenuItem(menu, 'Open Day Planning(s)', function () {
+                    if (typeof Microsoft === 'undefined') return;
+                    self.showLoading();
+                    Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnOpenDayPlanningList', [JSON.stringify(payload)]);
+                    self.hideLoading();
+                });
+            }
+
+            if (!menu.children.length) return;
+            menu.hidden = false;
+            const menuRect = menu.getBoundingClientRect();
+            const maxLeft = Math.max(4, window.innerWidth - menuRect.width - 4);
+            const maxTop = Math.max(4, window.innerHeight - menuRect.height - 4);
+            menu.style.left = Math.min(e.clientX, maxLeft) + 'px';
+            menu.style.top = Math.min(e.clientY, maxTop) + 'px';
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!menu.hidden && !menu.contains(e.target)) self.hideTreeContextMenu();
+        });
+        document.addEventListener('scroll', function () { self.hideTreeContextMenu(); }, true);
     }
 
     /// <summary>Section 4's container height, proportional to its INITIAL visible row count - unchanged from before this pivot.</summary>

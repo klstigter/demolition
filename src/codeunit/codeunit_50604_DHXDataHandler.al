@@ -6521,6 +6521,87 @@ codeunit 50604 "DHX Data Handler"
     // ================================================================================
 
     /// <summary>
+    /// Commits controladdin event OnOpenDayPlanningCard - section 4's right-click "Open Day
+    /// Planning(s)" context-menu item on a single sequence-row CHIP (exactly one real Day Planning
+    /// line, never a summary aggregate - see capacityPlanningOverview.js's attachTreeContextMenu
+    /// doc comment for the sum-vs-single-chip rule). LineIdTxt reuses the SAME
+    /// "&lt;Job No.&gt;|&lt;Job Task No.&gt;|&lt;Day Line No.&gt;" composite id format/parser as
+    /// ReqAssign_OpenDayPlanningCard (see ReqAssign_ParseId) - a chip's line object already carries
+    /// 'job'/'task' (CPO_BuildDayPlanningLineObj's own fields) and 'id' (that line's real Day Line
+    /// No.), so the JS side builds the identical composite string rather than this add-in inventing
+    /// a second id convention. Delegates straight to ReqAssign_OpenDayPlanningCard - the
+    /// Get-then-RunModal("Day Planning Card Opt") logic is exactly what this needs too.
+    /// </summary>
+    procedure CPO_OpenDayPlanningCard(LineIdTxt: Text)
+    begin
+        ReqAssign_OpenDayPlanningCard(LineIdTxt);
+    end;
+
+    /// <summary>
+    /// Commits controladdin event OnOpenDayPlanningList - section 4's right-click "Open Day
+    /// Planning(s)" context-menu item on a skill-row or detail-row SUMMARY cell (an aggregate of
+    /// one or more real Day Planning lines, always presented as a "sum" per this feature's spec -
+    /// see capacityPlanningOverview.js's attachTreeContextMenu doc comment).
+    /// PayloadJsonTxt shape: {"skill":"...","job":"...","task":"...","date":"yyyy-MM-dd"} - job/
+    /// task are blank for a skill-row summary (company-wide-per-skill aggregate for that day) and
+    /// populated for a detail-row summary (Skill+Job+Task-scoped aggregate for that day); date is
+    /// the real calendar date behind the right-clicked day column (self.dates[idx],
+    /// cpoFormatDateOnly-formatted - same "yyyy-MM-dd" shape as ReqAssign_FormatIsoDate elsewhere in
+    /// this codeunit, parsed here the same explicit Y/M/D-substrings-plus-DMY2Date way
+    /// PersistReschedule's own "fromDate" parsing already does, rather than a locale-sensitive
+    /// Evaluate(Date, ...)). Opens page 50630 "Day Plannings" filtered to exactly the cell's own
+    /// scope via Page.RunModal(Page::"Day Plannings", DayPlanning) - same
+    /// filter-then-RunModal-with-a-record-variable idiom the Card case above uses with Get instead
+    /// of SetRange.
+    /// </summary>
+    procedure CPO_OpenDayPlanningList(PayloadJsonTxt: Text)
+    var
+        DayPlanning: Record "Day Planning";
+        PayloadJObj: JsonObject;
+        FieldJToken: JsonToken;
+        SkillCode: Code[20];
+        JobNo: Code[20];
+        JobTaskNo: Code[20];
+        PlanDateTxt: Text;
+        PlanDate: Date;
+        PlanYear: Integer;
+        PlanMonth: Integer;
+        PlanDay: Integer;
+    begin
+        if PayloadJsonTxt = '' then
+            exit;
+        if not PayloadJObj.ReadFrom(PayloadJsonTxt) then
+            exit;
+
+        if PayloadJObj.Get('skill', FieldJToken) then
+            SkillCode := CopyStr(FieldJToken.AsValue().AsText(), 1, MaxStrLen(SkillCode));
+        if PayloadJObj.Get('job', FieldJToken) then
+            JobNo := CopyStr(FieldJToken.AsValue().AsText(), 1, MaxStrLen(JobNo));
+        if PayloadJObj.Get('task', FieldJToken) then
+            JobTaskNo := CopyStr(FieldJToken.AsValue().AsText(), 1, MaxStrLen(JobTaskNo));
+        if PayloadJObj.Get('date', FieldJToken) then begin
+            PlanDateTxt := FieldJToken.AsValue().AsText();
+            if StrLen(PlanDateTxt) = 10 then
+                if Evaluate(PlanYear, CopyStr(PlanDateTxt, 1, 4)) and Evaluate(PlanMonth, CopyStr(PlanDateTxt, 6, 2))
+                    and Evaluate(PlanDay, CopyStr(PlanDateTxt, 9, 2))
+                then
+                    PlanDate := DMY2Date(PlanDay, PlanMonth, PlanYear);
+        end;
+
+        DayPlanning.Reset();
+        if SkillCode <> '' then
+            DayPlanning.SetRange(Skill, SkillCode);
+        if JobNo <> '' then
+            DayPlanning.SetRange("Job No.", JobNo);
+        if JobTaskNo <> '' then
+            DayPlanning.SetRange("Job Task No.", JobTaskNo);
+        if PlanDate <> 0D then
+            DayPlanning.SetRange("Plan Date", PlanDate);
+
+        Page.RunModal(Page::"Day Plannings", DayPlanning);
+    end;
+
+    /// <summary>
     /// Builds the single combined JSON payload consumed by controladdin
     /// DHXCapacityPlanningOverviewAddin.SetPlanningData for one Work Order - shaped as closely as
     /// possible to the reference prototype's own mock "window.DHTMLXPlannerData" object (see this
