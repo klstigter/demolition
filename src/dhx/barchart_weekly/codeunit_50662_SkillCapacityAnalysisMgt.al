@@ -747,6 +747,42 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         GBufferDateFrom := DateFrom;
         GBufferDateTo := DateTo;
         GBufferLoaded := true;
+
+        EnsureResCapacityBuffer(DateFrom, DateTo);
+    end;
+
+    /// <summary>
+    /// Loads GResCapacityBuf (codeunit-instance-level shared TEMPORARY buffer, same idiom as
+    /// GDayPlanningBuf/EnsureDayPlanningBuffer immediately above) with a copy of DateFrom..DateTo's
+    /// "Res. Capacity Entry" rows if it is not already holding that exact range - so
+    /// CalcCapacitySplit can aggregate purely from this in-memory buffer instead of re-querying the
+    /// physical table once per calendar day (see GResCapacityBuf's own var doc comment for the perf
+    /// history). Called from EnsureDayPlanningBuffer itself (always invoked with the identical
+    /// DateFrom/DateTo every caller here already passes it), so no caller needs a second
+    /// range-tracking call of its own.
+    /// </summary>
+    local procedure EnsureResCapacityBuffer(DateFrom: Date; DateTo: Date)
+    var
+        ResCapacityEntry: Record "Res. Capacity Entry";
+    begin
+        if GResCapBufferLoaded and (GResCapBufferDateFrom = DateFrom) and (GResCapBufferDateTo = DateTo) then
+            exit;
+
+        GResCapacityBuf.Reset();
+        GResCapacityBuf.DeleteAll();
+        ResCapacityEntry.Reset();
+        ResCapacityEntry.SetLoadFields("Resource No.", Date, Capacity);
+        ResCapacityEntry.SetRange(Date, DateFrom, DateTo);
+        if ResCapacityEntry.FindSet() then
+            repeat
+                GResCapacityBuf := ResCapacityEntry;
+                GResCapacityBuf.Insert();
+            until ResCapacityEntry.Next() = 0;
+        GResCapacityBuf.Reset();
+
+        GResCapBufferDateFrom := DateFrom;
+        GResCapBufferDateTo := DateTo;
+        GResCapBufferLoaded := true;
     end;
 
     /// <summary>
@@ -839,12 +875,20 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// deliberately NOT treated as External here - this is an intentional, documented divergence
     /// from the legacy/dead CalcFreeCapacity procedure elsewhere in this codeunit, which still
     /// folds "Is Pool"/"Is Pool Member" into its own External classification for the old
-    /// barchart_daily page it alone serves. Caller must have already ensured GDayPlanningBuf is
-    /// loaded for a range covering PlanDate.
+    /// barchart_daily page it alone serves. Caller must have already ensured GDayPlanningBuf/
+    /// GResCapacityBuf are loaded for a range covering PlanDate (EnsureDayPlanningBuffer loads
+    /// both together - see its own doc comment).
+    ///
+    /// PERF (2026-09-14): reads from the shared GResCapacityBuf in-memory buffer (see
+    /// EnsureResCapacityBuffer) instead of a fresh "Res. Capacity Entry" FindSet filtered to just
+    /// PlanDate - the old per-call physical query meant a caller looping this once per day over an
+    /// N-day window (page 50722's RefreshData path, via PrepareDailyCapacityBuffer/
+    /// GetDailyCapacitySplit) paid N separate company-wide table scans instead of one. Same filter
+    /// semantics (Date = PlanDate, no other criteria) - only the source (buffer vs physical table)
+    /// changed.
     /// </summary>
     local procedure CalcCapacitySplit(PlanDate: Date; var InternalCapacity: Decimal; var ExternalCapacity: Decimal)
     var
-        ResCapacityEntry: Record "Res. Capacity Entry";
         Resource: Record Resource;
         ResourceCapacityTotals: Dictionary of [Code[20], Decimal];
         ResourceAssignedTotals: Dictionary of [Code[20], Decimal];
@@ -857,15 +901,16 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         InternalCapacity := 0;
         ExternalCapacity := 0;
 
-        ResCapacityEntry.SetLoadFields("Resource No.", Capacity);
-        ResCapacityEntry.SetRange(Date, PlanDate);
-        if ResCapacityEntry.FindSet() then
+        GResCapacityBuf.Reset();
+        GResCapacityBuf.SetRange(Date, PlanDate);
+        if GResCapacityBuf.FindSet() then
             repeat
                 CapacityTotal := 0;
-                if ResourceCapacityTotals.ContainsKey(ResCapacityEntry."Resource No.") then
-                    CapacityTotal := ResourceCapacityTotals.Get(ResCapacityEntry."Resource No.");
-                ResourceCapacityTotals.Set(ResCapacityEntry."Resource No.", CapacityTotal + ResCapacityEntry.Capacity);
-            until ResCapacityEntry.Next() = 0;
+                if ResourceCapacityTotals.ContainsKey(GResCapacityBuf."Resource No.") then
+                    CapacityTotal := ResourceCapacityTotals.Get(GResCapacityBuf."Resource No.");
+                ResourceCapacityTotals.Set(GResCapacityBuf."Resource No.", CapacityTotal + GResCapacityBuf.Capacity);
+            until GResCapacityBuf.Next() = 0;
+        GResCapacityBuf.Reset();
 
         if ResourceCapacityTotals.Keys().Count > 0 then begin
             GDayPlanningBuf.Reset();
@@ -1412,6 +1457,18 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         GBufferDateFrom: Date;
         GBufferDateTo: Date;
         GBufferLoaded: Boolean;
+        // Codeunit-instance-level cache for the current period's "Res. Capacity Entry" rows - see
+        // EnsureResCapacityBuffer. Added as a perf fix (2026-09-14, Capacity Planning Overview
+        // slow-load investigation): CalcCapacitySplit used to re-query this table, company-wide,
+        // filtered to a single Date, on EVERY call - with no caching across days, unlike
+        // GDayPlanningBuf's own already-buffered per-range load immediately above. A caller
+        // looping one day at a time over an N-day window (BuildDayCapacityChartDataForRange /
+        // page 50722's own PrepareDailyCapacityBuffer+GetDailyCapacitySplit loop) therefore paid N
+        // separate company-wide physical scans instead of ONE.
+        GResCapacityBuf: Record "Res. Capacity Entry" temporary;
+        GResCapBufferDateFrom: Date;
+        GResCapBufferDateTo: Date;
+        GResCapBufferLoaded: Boolean;
         AssInternalSeriesNameLbl: Label 'Assigned Capacity - Internal';
         AssExternalSeriesNameLbl: Label 'Assigned Capacity - External';
         CapInternalSeriesNameLbl: Label 'Free Capacity - Internal';

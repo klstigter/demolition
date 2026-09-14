@@ -7445,6 +7445,7 @@ codeunit 50604 "DHX Data Handler"
         ResourcesArr: JsonArray;
         ResourceObj: JsonObject;
         SkillsForResourceArr: JsonArray;
+        ResourceHasSkill: Dictionary of [Code[20], Boolean];
         SkillCode: Code[20];
         ResourceNo: Code[20];
         CountForSkill: Integer;
@@ -7464,16 +7465,32 @@ codeunit 50604 "DHX Data Handler"
                 until (ResourceSkill.Next() = 0) or (ApplyPerSkillCap and (CountForSkill >= CPO_MaxResourcesPerSkill()));
         end;
 
+        // PERF (2026-09-14): ONE query per resource (Type+No. only) instead of the old
+        // ActiveSkillList.Count() individual IsEmpty() lookups per resource below - with
+        // ActiveSkillList now potentially spanning every skill demanded company-wide in the visible
+        // window (not just this Work Order's own skills - see this add-in's project memory,
+        // 2026-09-03 cross-WO scope pivot), that old N(resources)*M(skills) shape could mean
+        // hundreds to thousands of individual round trips per RefreshData call. Reads each
+        // resource's FULL "Resource Skill" set once into ResourceHasSkill, then filters/orders
+        // against ActiveSkillList in memory - same result (a resource's genuine membership, not
+        // bounded by the per-skill cap loop above) and the same ActiveSkillList-driven output order
+        // as before, just without the repeated round trips.
         foreach ResourceNo in ResourceOrder do begin
+            Clear(ResourceHasSkill);
+            ResourceSkill.Reset();
+            ResourceSkill.SetLoadFields("Skill Code");
+            ResourceSkill.SetRange(Type, ResourceSkill.Type::Resource);
+            ResourceSkill.SetRange("No.", ResourceNo);
+            if ResourceSkill.FindSet() then
+                repeat
+                    if not ResourceHasSkill.ContainsKey(ResourceSkill."Skill Code") then
+                        ResourceHasSkill.Add(ResourceSkill."Skill Code", true);
+                until ResourceSkill.Next() = 0;
+
             Clear(SkillsForResourceArr);
-            foreach SkillCode in ActiveSkillList do begin
-                ResourceSkill.Reset();
-                ResourceSkill.SetRange(Type, ResourceSkill.Type::Resource);
-                ResourceSkill.SetRange("No.", ResourceNo);
-                ResourceSkill.SetRange("Skill Code", SkillCode);
-                if not ResourceSkill.IsEmpty() then
+            foreach SkillCode in ActiveSkillList do
+                if ResourceHasSkill.ContainsKey(SkillCode) then
                     SkillsForResourceArr.Add(SkillCode);
-            end;
 
             Clear(ResourceObj);
             ResourceObj.Add('name', ResourceNo);
