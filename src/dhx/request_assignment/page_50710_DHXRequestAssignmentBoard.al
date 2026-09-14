@@ -273,12 +273,18 @@ page 50710 "DHX Request Assignment Board"
         if GuiAllowed() then
             Window.Open(LoadingLbl);
 
-        // ~1,200 dayTaskLines (~17% of the measured 7,004-row real dataset) - large enough that the
-        // visible "Sequences" tree and near-term timeline are immediately populated and
-        // interactive, small enough to cut the client-side parse/model-build/DHTMLX-ingest cost for
-        // first paint by roughly 5-6x. See docs/RequestAssignmentBoard-Performance-
-        // PageBackgroundTask-Enhancement.pdf's Verification section for the measured before/after.
-        DayTaskLinesPageSize := 1200;
+        // Originally set to 1,200 (~17% of the measured 7,004-row real dataset) per docs/
+        // RequestAssignmentBoard-Performance-PageBackgroundTask-Enhancement.pdf's Verification
+        // section. Reduced to 400 because boards whose total dayTaskLines only slightly exceed
+        // 1,200 (observed case: 1,209 total lines) were still pushing nearly the whole dataset
+        // through this single synchronous call, leaving almost nothing for the background/poll
+        // path (EnqueueDayTaskLinesBackgroundTask / "ReqAssign BG Day Task Lines" /
+        // OnPollDayTaskLinesResult) to pick up. That large a synchronous JSON build/transfer/parse
+        // is exactly the slow single control-add-in call pattern Microsoft's control add-in
+        // performance guidance warns triggers BC's "reduced functionality" / unhealthy add-in
+        // warning. 400 keeps a meaningful synchronous-payload reduction for boards just above the
+        // old threshold, routing the rest through the background/poll path instead.
+        DayTaskLinesPageSize := 400;
         PlanningDataJson := DHXDataHandler.ReqAssign_BuildPlanningDataJson_Paged(StartDate, EndDate, DayTaskLinesPageSize, RemainingSequenceKeys);
 
         if GuiAllowed() then

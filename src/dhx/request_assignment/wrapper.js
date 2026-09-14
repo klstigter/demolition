@@ -6894,41 +6894,88 @@ window.BOOT = function BOOT() {
 // -------------------------------------------------------
 var _dayTaskLinesPollTimer = null;
 var _dayTaskLinesPollAttempts = 0;
+var _dayTaskLinesPollActive = false;
+var _dayTaskLinesPollInFlight = false;
 var DAY_TASK_LINES_POLL_INTERVAL_MS = 500;
 var DAY_TASK_LINES_POLL_MAX_ATTEMPTS = 60; // 60 x 500ms = 30s generous ceiling
 
+// Rewritten from a raw setInterval to a self-rescheduling setTimeout that only
+// fires the next InvokeExtensibilityMethod once the previous one has actually
+// returned (success or error) — a fixed-cadence setInterval that ignores
+// whether the prior round trip completed is the exact "wrong way" pattern
+// Microsoft's control add-in performance guidance calls out as a trigger for
+// the client's "reduced functionality" / unhealthy-add-in warning
+// (see learn.microsoft.com/dynamics365/business-central/dev-itpro/developer/
+// devenv-control-addin-bestpractices). _dayTaskLinesPollInFlight guards
+// against ever having two OnPollDayTaskLinesResult calls in flight together.
 function NotifyDayTaskLinesTaskPending() {
   try {
     if (_dayTaskLinesPollTimer) {
-      clearInterval(_dayTaskLinesPollTimer);
+      clearTimeout(_dayTaskLinesPollTimer);
       _dayTaskLinesPollTimer = null;
     }
     _dayTaskLinesPollAttempts = 0;
-    _dayTaskLinesPollTimer = setInterval(function () {
-      _dayTaskLinesPollAttempts++;
-      if (_dayTaskLinesPollAttempts > DAY_TASK_LINES_POLL_MAX_ATTEMPTS) {
-        clearInterval(_dayTaskLinesPollTimer);
-        _dayTaskLinesPollTimer = null;
-        return;
-      }
-      try {
-        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnPollDayTaskLinesResult", []);
-      } catch (e) {
-        console.error("OnPollDayTaskLinesResult poll failed:", e);
-      }
-    }, DAY_TASK_LINES_POLL_INTERVAL_MS);
+    _dayTaskLinesPollActive = true;
+    _scheduleDayTaskLinesPoll();
   } catch (e) {
     console.error("NotifyDayTaskLinesTaskPending failed:", e);
   }
 }
 window.NotifyDayTaskLinesTaskPending = NotifyDayTaskLinesTaskPending;
 
+function _scheduleDayTaskLinesPoll() {
+  if (!_dayTaskLinesPollActive) return;
+  _dayTaskLinesPollTimer = setTimeout(_runDayTaskLinesPoll, DAY_TASK_LINES_POLL_INTERVAL_MS);
+}
+
+function _runDayTaskLinesPoll() {
+  _dayTaskLinesPollTimer = null;
+  if (!_dayTaskLinesPollActive) return;
+
+  _dayTaskLinesPollAttempts++;
+  if (_dayTaskLinesPollAttempts > DAY_TASK_LINES_POLL_MAX_ATTEMPTS) {
+    _dayTaskLinesPollActive = false; // generous 30s ceiling already elapsed - give up
+    return;
+  }
+  if (_dayTaskLinesPollInFlight) {
+    // Previous round trip hasn't returned yet - reschedule instead of piling
+    // another call on top of it.
+    _scheduleDayTaskLinesPoll();
+    return;
+  }
+
+  _dayTaskLinesPollInFlight = true;
+  var onSettled = function () {
+    _dayTaskLinesPollInFlight = false;
+    _scheduleDayTaskLinesPoll();
+  };
+  try {
+    Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(
+      "OnPollDayTaskLinesResult",
+      [],
+      false,
+      onSettled,
+      function (e) {
+        console.error("OnPollDayTaskLinesResult poll failed:", e);
+        onSettled();
+      }
+    );
+  } catch (e) {
+    console.error("OnPollDayTaskLinesResult poll failed:", e);
+    onSettled();
+  }
+}
+
 // Called by AL (from the OnPollDayTaskLinesResult trigger handler) once a
 // pending result was actually delivered — stops the poll burst early instead
-// of waiting out the full timeout.
+// of waiting out the full timeout. Setting _dayTaskLinesPollActive false (not
+// just clearing the timer) also blocks the in-flight call's own onSettled
+// callback — which fires after this, from the same round trip — from
+// resurrecting the loop.
 function StopDayTaskLinesPolling() {
+  _dayTaskLinesPollActive = false;
   if (_dayTaskLinesPollTimer) {
-    clearInterval(_dayTaskLinesPollTimer);
+    clearTimeout(_dayTaskLinesPollTimer);
     _dayTaskLinesPollTimer = null;
   }
 }

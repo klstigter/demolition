@@ -703,13 +703,79 @@ window.BOOT = function() {
       if (constraintDate) constraintLines.push(`Constraint Date: ${gantt.templates.date_grid(constraintDate)}`);
       if (task.bcMaxDuration) constraintLines.push(`Max Duration: ${task.bcMaxDuration} days`);
 
+      // "Job and Task" block styled the same as the shared standard-tooltip
+      // convention in src/dhx/request_assignment/wrapper.js/style.css (title +
+      // a real Job/Task table with code + description columns) instead of the
+      // old plain "Job: X / Task: Y" bold text lines.
+      const jobTaskNo = task.bcJobTaskNo || "-";
+      const jobTaskDescription = _stripJobTaskNoPrefix(task.text, task.bcJobTaskNo) || "-";
+      const jobDescription = _findRootAncestorTask(task)?.text || "-";
+
       return `
-        <b>Job: ${task.bcJobNo || "-"}<br/>
-        Task: ${task.bcJobTaskNo || "-"}<br/>
-        Period: ${task.start_date ? gantt.templates.date_grid(task.start_date) : "-"} - ${displayEndDate ? gantt.templates.date_grid(displayEndDate) : "-"}
-        ${constraintLines.length ? "<hr/>" + constraintLines.join("<br/>") : ""}
+        <div class="standard-tooltip-context">
+          <div class="standard-tooltip-context-title">Job and Task</div>
+          <table class="standard-tooltip-table standard-tooltip-context-table">
+            <tbody>
+              <tr>
+                <th>Job</th>
+                <td>${task.bcJobNo || "-"}</td>
+                <td>${jobDescription}</td>
+              </tr>
+              <tr>
+                <th>Task</th>
+                <td>${jobTaskNo}</td>
+                <td>${jobTaskDescription}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <table class="standard-tooltip-table standard-tooltip-context-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Start</th>
+              <th>End</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>Period</th>
+              <td>${task.start_date ? gantt.templates.date_grid(task.start_date) : "-"}</td>
+              <td>${displayEndDate ? gantt.templates.date_grid(displayEndDate) : "-"}</td>
+            </tr>
+          </tbody>
+        </table>
+        ${constraintLines.length ? `<div class="standard-tooltip-detail">${constraintLines.join("<br/>")}</div>` : ""}
       `;
     };
+
+    // Task.text is built AL-side as "<Job Task No.> - <Description>" for posting
+    // tasks (see codeunit 50613's ReqJson 'text' field) - strip that prefix back
+    // off so the tooltip table can show the No. and Description in separate
+    // columns instead of one concatenated string.
+    function _stripJobTaskNoPrefix(text, jobTaskNo) {
+      if (!text) return "";
+      const prefix = jobTaskNo ? jobTaskNo + " - " : null;
+      return prefix && text.indexOf(prefix) === 0 ? text.slice(prefix.length) : text;
+    }
+
+    // Walks up task.parent to the top-level row for this Job (there is no
+    // separate "Job" record/description exposed to this add-in - the top-level
+    // grid row IS the Job, per codeunit 50613's tree) so its own text can stand
+    // in as the Job description, same as page 50710's "Job and Task" table.
+    function _findRootAncestorTask(task) {
+      try {
+        let current = task;
+        let guard = 0;
+        while (current && gantt.isTaskExists(current.parent) && guard < 50) {
+          current = gantt.getTask(current.parent);
+          guard++;
+        }
+        return current || null;
+      } catch (e) {
+        return null;
+      }
+    }
 
 
 
