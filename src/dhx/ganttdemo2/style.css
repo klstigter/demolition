@@ -235,9 +235,64 @@ html,
 			padding: 8px 10px;
 		}
 
-							
+
 	#gantt_here {
 	width: 100%;
 	height: 100%; /* adjust as needed or make it 100% to fill host container */
 	box-sizing: border-box;
+}
+
+/* Shared "Job and Task" tooltip standard, ported from src/dhx/request_assignment/style.css so the
+   Gantt's native hover tooltip (gantt.templates.tooltip_text, see wrapper.js) renders the Job/Task
+   block the same way as the Request/Assignment board's tooltip - see DA1-T147. */
+.standard-tooltip-context {
+	margin-bottom: 7px;
+	padding: 0 2px 6px;
+	border-bottom: 1px solid #e4ecef;
+}
+
+.standard-tooltip-context-title {
+	color: #035b7e;
+	font-size: 11px;
+	font-weight: 700;
+	line-height: 1.35;
+}
+
+.standard-tooltip-context-table {
+	margin-top: 4px;
+}
+
+.standard-tooltip-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 11px;
+	line-height: 1.35;
+}
+
+.standard-tooltip-table th,
+.standard-tooltip-table td {
+	padding: 5px 6px;
+	border-bottom: 1px solid #e4ecef;
+	text-align: left;
+	vertical-align: top;
+}
+
+.standard-tooltip-table tbody th {
+	color: #647681;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.standard-tooltip-table tr:last-child th,
+.standard-tooltip-table tr:last-child td {
+	border-bottom: 0;
+}
+
+.standard-tooltip-detail {
+	margin-top: 2px;
+	padding-left: 2px;
+	color: #647681;
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 1.35;
 }
