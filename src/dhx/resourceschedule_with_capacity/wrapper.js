@@ -243,12 +243,12 @@ window.BOOT = function () {
         .standard-tooltip-detail { margin-top: 2px; padding-left: 12px; font-size: 11px; font-weight: 600; line-height: 1.35; opacity: 0.75; }
         .standard-tooltip-table { width: 100%; border-collapse: collapse; font-size: 11px; line-height: 1.35; }
         .standard-tooltip-table th, .standard-tooltip-table td { padding: 5px 6px; border-bottom: 1px solid rgba(255,255,255,0.15); text-align: left; vertical-align: top; }
-        .standard-tooltip-table thead th { font-weight: 700; opacity: 0.75; }
+        .standard-tooltip-table thead th { font-size: 12px; font-weight: 700; }
         .standard-tooltip-table tbody th { font-weight: 600; white-space: nowrap; opacity: 0.75; }
         .standard-tooltip-table tr:last-child th, .standard-tooltip-table tr:last-child td { border-bottom: 0; }
         .standard-tooltip-different { color: #ff8a75; font-weight: 700; }
         .standard-tooltip-context { margin-bottom: 7px; padding: 0 2px 6px; border-bottom: 1px solid rgba(255,255,255,0.15); }
-        .standard-tooltip-context-title { font-size: 11px; font-weight: 700; line-height: 1.35; }
+        .standard-tooltip-context-title { font-size: 12px; font-weight: 700; line-height: 1.35; }
         .standard-tooltip-context-table { margin-top: 4px; }
         `;
         document.head.appendChild(style);

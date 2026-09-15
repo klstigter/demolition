@@ -342,7 +342,8 @@
 }
 
 .standard-tooltip-table thead th {
-    color: #647681;
+    color: #035b7e;
+    font-size: 12px;
     font-weight: 700;
 }
 
@@ -370,7 +371,7 @@
 
 .standard-tooltip-context-title {
     color: #035b7e;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     line-height: 1.35;
 }
