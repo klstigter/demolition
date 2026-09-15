@@ -575,8 +575,8 @@ window.BOOT = function() {
             '<div class="standard-tooltip-context">' +
                 '<div class="standard-tooltip-context-title">Job and Task</div>' +
                 '<table class="standard-tooltip-table standard-tooltip-context-table"><tbody>' +
-                    '<tr><th>Job</th><td>' + escapeHtml(ev.job || "—") + '</td><td>' + escapeHtml(ev.jobDescription || "—") + '</td></tr>' +
-                    '<tr><th>Task</th><td>' + escapeHtml(ev.task || "—") + '</td><td>' + escapeHtml(ev.taskDescription || "—") + '</td></tr>' +
+                    '<tr><td>' + escapeHtml(ev.job || "—") + '</td><td>' + escapeHtml(ev.jobDescription || "—") + '</td></tr>' +
+                    '<tr><td>' + escapeHtml(ev.task || "—") + '</td><td>' + escapeHtml(ev.taskDescription || "—") + '</td></tr>' +
                 '</tbody></table>' +
             '</div>' +
             '<div class="standard-tooltip-head">' +

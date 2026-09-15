@@ -717,12 +717,10 @@ window.BOOT = function() {
           <table class="standard-tooltip-table standard-tooltip-context-table">
             <tbody>
               <tr>
-                <th>Job</th>
                 <td>${task.bcJobNo || "-"}</td>
                 <td>${jobDescription}</td>
               </tr>
               <tr>
-                <th>Task</th>
                 <td>${jobTaskNo}</td>
                 <td>${jobTaskDescription}</td>
               </tr>

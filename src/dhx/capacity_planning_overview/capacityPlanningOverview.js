@@ -1410,8 +1410,8 @@ class CapacityPlanningOverview {
         return '<div class="standard-tooltip-context">' +
             '<div class="standard-tooltip-context-title">Job and Task</div>' +
             '<table class="standard-tooltip-table standard-tooltip-context-table"><tbody>' +
-            '<tr><th>Job</th><td>' + cpoEsc(jobNo) + '</td><td>' + cpoEsc(jobDescription) + '</td></tr>' +
-            '<tr><th>Task</th><td>' + cpoEsc(taskNo) + '</td><td>' + cpoEsc(taskDescription) + '</td></tr>' +
+            '<tr><td>' + cpoEsc(jobNo) + '</td><td>' + cpoEsc(jobDescription) + '</td></tr>' +
+            '<tr><td>' + cpoEsc(taskNo) + '</td><td>' + cpoEsc(taskDescription) + '</td></tr>' +
             '</tbody></table>' +
             '</div>' +
             '<div class="standard-tooltip-head">' +
