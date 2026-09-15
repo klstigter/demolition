@@ -42,21 +42,32 @@ class CapacityPlanningDashboard extends CapacityPlanningOverview {
         super(containerId);
 
         // BUG FOUND 2026-09-08 (reported live, flagged "dangerous"): Section 1 ("Calculated
-        // conclusion" / "Current position shortage" / the "Hours overview" C/R mini-bars) is the
-        // base class's evaluateWO()/currentPositionShortage() - see those methods' own doc
-        // comments - which measure ONLY the incremental company-wide shortage caused by placing
-        // THIS INSPECTED WORK ORDER'S OWN demand (workOrderSequences[]) on top of everyone else's
-        // baseline. On this tile there is no inspected Work Order - AL always sends an EMPTY
-        // workOrderSequences[] (see codeunit 50604's CPO_BuildDashboardDataJson) - so the
-        // "before" and "after" maxFlowDay() comparison is always identical (adding zero demand),
-        // which makes Section 1 render a CONSTANTLY GREEN "100% / no shortage / 0h" for every
-        // single day, regardless of how much real demand Section 4's tree shows for that same day.
-        // That is a false "all clear" signal on a capacity-planning tool, not a cosmetic glitch -
-        // remove Section 1 entirely from this tile rather than show a number that looks real but
-        // is structurally guaranteed to always say "fine". Does NOT affect page 50722's own
-        // Capacity Planning Overview (the single-Work-Order card page) - that page always has a
-        // real, non-empty workOrderSequences[], so evaluateWO()/currentPositionShortage() there
-        // compute genuine, day-varying results.
+        // conclusion" / "Current position shortage" / the "Hours overview" C/R mini-bars) used to
+        // be the base class's evaluateWO()/currentPositionShortage() (both REMOVED 2026-09-15 - see
+        // excludingWOFlow's own doc comment), which measured ONLY the incremental company-wide
+        // shortage caused by placing THIS INSPECTED WORK ORDER'S OWN demand (workOrderSequences[])
+        // on top of everyone else's baseline. On this tile there is no inspected Work Order - AL
+        // always sends an EMPTY workOrderSequences[] (see codeunit 50604's
+        // CPO_BuildDashboardDataJson) - so that "before"/"after" maxFlowDay() comparison was always
+        // identical (adding zero demand), which made Section 1 render a CONSTANTLY GREEN
+        // "100% / no shortage / 0h" for every single day, regardless of how much real demand
+        // Section 4's tree showed for that same day - a false "all clear" signal on a
+        // capacity-planning tool, not a cosmetic glitch, so Section 1 was removed entirely from
+        // this tile rather than show a number that looked real but was structurally guaranteed to
+        // always say "fine".
+        //
+        // STALE AS OF 2026-09-15: the base class's Section 1 no longer computes a before/after
+        // delta at all - excludingWOFlow() reads maxFlowDay() DIRECTLY against
+        // this._baselineWithoutWO (all day planning excluding the selected Job/Task set), which on
+        // THIS tile is genuinely non-constant and meaningful (selectedWOKeys() is empty here, so
+        // _baselineWithoutWO is simply ALL company-wide demand, unfiltered - the exact same
+        // universe Section 4's flat skill list already summarizes). The specific bug this removal
+        // fixed (a structurally-guaranteed-constant "100%/no shortage") therefore no longer applies
+        // to this tile. Section 1 is STILL removed here, deliberately NOT restored by this pass -
+        // re-enabling it is a separate product decision (would need its own DOM/CSS work, e.g. the
+        // #cpo-wo-summary node this constructor still removes below), out of scope for the JS-only
+        // Section 1 recompute this comment now describes. Flag to the user as a worthwhile
+        // follow-up if a company-wide "Calculated conclusion" row would be useful on this tile.
         const woSummary = document.getElementById('cpo-wo-summary');
         if (woSummary) woSummary.remove();
 

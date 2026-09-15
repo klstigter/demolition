@@ -1934,6 +1934,14 @@ codeunit 50604 "DHX Data Handler"
         DayPlanning."Start Time Assigned" := StartTime;
         DayPlanning."End Time Assigned" := EndTime;
         DayPlanning.Description := Res.Name;
+        // Start/End Time Assigned above are direct field assignments (not Validate()), set AFTER
+        // the "Assigned Resource No." Validate() call already ran its own OnValidate ->
+        // CalculateWorkingHours() side effect - at that point Start/End Time Assigned were still
+        // blank, so that earlier recalculation left "Assigned Hours" at 0. Recalculate explicitly
+        // now that all three inputs (resource, start, end) are actually in place, otherwise this
+        // new row is inserted with real times but a stale/zero Assigned Hours - the exact
+        // "times set, hours not" data-integrity gap this fix closes.
+        DayPlanning.CalculateWorkingHours();
         UpdateEventIdJsonTxt := StrSubstNo(JsonLbl,
                                             old_eventid,
                                             DayPlanning."Job No.",
@@ -2186,6 +2194,12 @@ codeunit 50604 "DHX Data Handler"
         EventJSonObj.Get('text', JToken);
         OldDayPlanning.Description := JToken.AsValue().AsText();
 
+        // Start/End Time Assigned above are direct field assignments (not Validate()), so table
+        // 50610's own OnValidate-triggered recalculation never fires for this drag-reschedule
+        // flow. Without this, "Assigned Hours" is left at whatever it was before the drag while
+        // Start/End Time Assigned move to the new slot - a real, silent case of the same
+        // "times set, hours don't match" data-integrity gap this fix closes elsewhere.
+        OldDayPlanning.CalculateWorkingHours();
         OldDayPlanning.Modify();
 
         if UpdateEventID then
@@ -6628,13 +6642,19 @@ codeunit 50604 "DHX Data Handler"
     /// (capacityPlanningOverview.js), so both pages raise the exact same event/payload shape.
     ///
     /// PayloadJsonTxt shape: {"segment":"assigned"/"freeInternal"/"freeExternal"/"skill",
-    /// "skill":"..." (only meaningful for segment="skill"), "job":"...", "task":"..." (only ever
-    /// sent, and only when the page has an inspected Work Order, for a REQUEST-bar segment - see
-    /// dailyCapacityRequestData's own hasInspectedWO doc comment; always blank for the CAPACITY
-    /// bar's own "assigned"/"freeInternal"/"freeExternal" segments, which are company-wide by
-    /// definition on BOTH pages - see capParts()'s own doc comment on why that side is deliberately
-    /// NOT Work-Order-filtered), "date":"yyyy-MM-dd" (the real calendar date behind the clicked day
-    /// column).
+    /// "skill":"..." (only meaningful for segment="skill"), "job":"...", "task":"..." (2026-09-15:
+    /// the JS side never populates these anymore for a REQUEST-bar segment on EITHER page - see
+    /// capacityPlanningOverview.js's attachCapacityBarsContextMenu doc comment. Section 3's
+    /// "Requested" bar now plots a company-wide-minus-the-inspected-WO universe
+    /// (dailyCapacityRequestData), and AL's SetRange-only "Job No."/"Job Task No." filters below
+    /// (CPO_OpenDayPlanningList) have no way to express "exclude this job/task" - sending the
+    /// inspected WO's own job/task as an INCLUDE filter would open the wrong, opposite record set.
+    /// So these two fields are always blank in practice today; the fields themselves are left in
+    /// the contract/case logic below in case a real exclude-filter is ever added to
+    /// CPO_OpenDayPlanningList. Always blank for the CAPACITY bar's own "assigned"/"freeInternal"/
+    /// "freeExternal" segments too, which are company-wide by definition on BOTH pages - see
+    /// capParts()'s own doc comment on why that side is deliberately NOT Work-Order-filtered),
+    /// "date":"yyyy-MM-dd" (the real calendar date behind the clicked day column).
     ///
     /// "freeInternal"/"freeExternal" are NOT Day Planning data at all - true "Res. Capacity Entry"
     /// calendar capacity, net of that day's Assigned Hours (see codeunit 50662's CalcCapacitySplit)
@@ -6740,7 +6760,7 @@ codeunit 50604 "DHX Data Handler"
     /// the Work Order's own Planned Start/End Date, per the earlier explicit user instruction);
     /// "startDate" doubles as the reference's own implicit workday-offset anchor (offset 1 =
     /// StartDate itself, or the first workday at/after it - see CPO_ComputeWorkdayOffset), which
-    /// is what lets the JS side's ported idxWork()/workOrderExtra() reconstruct each
+    /// is what lets the JS side's ported idxWork()/workOrderExtraCurrent() reconstruct each
     /// workOrderSequences[] occurrence's real calendar date without a separate anchor field.
     /// Safe to call with an unresolvable WorkOrderNo - returns a well-formed, empty-safe payload
     /// (no lines, empty skill/resource/group arrays) rather than erroring, since this runs from a
@@ -6942,9 +6962,10 @@ codeunit 50604 "DHX Data Handler"
             // Every appended line also carries its own real "Work Order No." (see
             // CPO_BuildDayPlanningLineObj's 'workOrderNo') - now that dayPlanningLines[] holds
             // BOTH WorkOrderNo's own lines (Pass 1) and every other WO's lines (this pass), the
-            // ported JS needs that tag to keep section 3's own "Requested" bar scoped to
-            // WorkOrderNo and sections 2/4's own line-matching from ever mixing the two WOs'
-            // rows together on a coincidental Job/Task/Skill/Sequence No. collision - see
+            // ported JS needs that tag to keep section 2's own line-matching from ever mixing the
+            // two WOs' rows together on a coincidental Job/Task/Skill/Sequence No. collision, and
+            // (2026-09-15) to keep BOTH section 3's own "Requested" bar and sections 4's own
+            // line-matching scoped to "everything EXCEPT WorkOrderNo" - see
             // capacityPlanningOverview.js's own doc comments at capParts/dailyCapacityRequestData/
             // workOrderAssignmentState/skillDaySummary/taskDaySummary/sequenceDayLines for the
             // matching JS-side change.
@@ -6990,11 +7011,17 @@ codeunit 50604 "DHX Data Handler"
         RootObj.Add('workOrder', WorkOrderObj);
         // ActiveSkillList is now the UNION of WorkOrderNo's own active skills (Pass 1) and every
         // other Work Order's active skills in this window (Pass 3) - broadening skills[]/
-        // resources[]/externalFree[] this way is safe for WorkOrderNo's own shortage math
-        // (evaluateWO/currentPositionShortage only ever measure a BEFORE/AFTER delta over the
-        // identical resource+skill graph - see this add-in's project memory) and is required so
-        // Section 4's now-broadened groups[] tree gets correct per-skill color metadata instead of
-        // falling back to a generic default color for a skill only some OTHER Work Order uses.
+        // resources[]/externalFree[] this way is safe for WorkOrderNo's own shortage math for TWO
+        // independent reasons, each covering one of the two consumers: Section 2's
+        // currentPositionSkillShortage (unchanged) only ever measures a BEFORE/AFTER delta over the
+        // identical resource+skill graph, so a broader pool cancels out of the subtraction; Section
+        // 1's excludingWOFlow (2026-09-15, no longer a delta - see that JS method's own doc
+        // comment) instead relies on maxFlowDay's own demand-capping property (matched flow per
+        // skill can never exceed that skill's own requested hours, regardless of resource pool
+        // size - see maxFlowDay's own doc comment) - either way, a broader pool cannot inflate
+        // coverage past what real demand justifies. Broadening is required so Section 4's
+        // now-broadened groups[] tree gets correct per-skill color metadata instead of falling back
+        // to a generic default color for a skill only some OTHER Work Order uses.
         RootObj.Add('skills', CPO_BuildSkillsArray(ActiveSkillList));
         RootObj.Add('resources', CPO_BuildResourcesArray(ActiveSkillList, ResourcePool, true));
         // Flat per-resource-per-day hours, matching the reference's own flat "baseCapacity":8 -
@@ -7143,8 +7170,17 @@ codeunit 50604 "DHX Data Handler"
     /// BuildOtherWorkOrderLinesForGroups). RemainingGroupKeys (a JSON array of "Skill|JobNo|
     /// JobTaskNo" strings, blank '' if nothing remains) is what the caller threads into
     /// CurrPage.EnqueueBackgroundTask(Codeunit::"CPO BG Other WO Data", ...).
+    ///
+    /// RequestedHoursTotal/AssignedHoursTotal (2026-09-15, 5th/final title-bar-audit-box design -
+    /// see [[project_cpo_section3_exclude_flip_2026-09-15]]): a CALLER-SUPPLIED FIXED SNAPSHOT,
+    /// written verbatim into the JSON's workOrder.requestedHoursTotal/assignedHoursTotal fields -
+    /// this procedure does NOT compute them itself (it did, from a live "Planning Date Filter"/
+    /// FlowField recompute against StartDate/EndDate, in the now-superseded 4th design). Page
+    /// 50722 passes its own GRequestedHoursTotal/GAssignedHoursTotal (set once via SetJobTask by
+    /// page 50618's ribbon action) through on every RefreshData call, so these two values stay
+    /// constant across this page's own "Days to show"/Reset Position changes by design.
     /// </summary>
-    procedure CPO_BuildPlanningDataJson_Paged(JobNo: Code[20]; JobTaskNo: Code[20]; NumberOfDays: Integer; MaxOtherLines: Integer; var RemainingGroupKeys: Text): Text
+    procedure CPO_BuildPlanningDataJson_Paged(JobNo: Code[20]; JobTaskNo: Code[20]; NumberOfDays: Integer; MaxOtherLines: Integer; var RemainingGroupKeys: Text; RequestedHoursTotal: Decimal; AssignedHoursTotal: Decimal): Text
     var
         JobTask: Record "Job Task";
         Job: Record Job;
@@ -7303,6 +7339,28 @@ codeunit 50604 "DHX Data Handler"
             foreach LineTok in FirstPageOtherLinesArr do
                 DayPlanningLinesArr.Add(LineTok.AsObject());
         end;
+
+        // ---- Title-bar audit-totals box (2026-09-15, FIFTH/FINAL design - see this add-in's
+        // project memory, [[project_cpo_section3_exclude_flip_2026-09-15]], for the full history:
+        // FOUR prior approaches were superseded - two client-side dayPlanningLines[]/
+        // workOrderSequences[] derivations, a server-side plain FindSet loop, and then a
+        // per-refresh FlowField recompute (JobTask.SetRange("Planning Date Filter",...)/
+        // CalcFields, right here in this procedure) that ran fresh on EVERY call/refresh. That 4th
+        // design is now REMOVED: this procedure no longer computes these totals itself at all. The
+        // CALLER (page 50618 "Opti Job Task Card"'s "Capacity Planning Overview" ribbon action)
+        // computes a FIXED SNAPSHOT once, at the moment it opens page 50722 - a 30-day-from-
+        // WorkDate() window, using the same Job Task "Planning Date Filter" FlowFilter/"Total
+        // Requested Hours"/"Total Assigned Hours" FlowFields (tableext 50605) the 4th design used -
+        // and passes the two numbers in as RequestedHoursTotal/AssignedHoursTotal. Page 50722
+        // itself (SetJobTask/RefreshData) simply stores and forwards them unchanged on every
+        // subsequent call, so this box deliberately does NOT change when the user later adjusts
+        // "Days to show" or hits Reset Position inside page 50722 - only re-opening the page from
+        // the Job Task Card recomputes it. Written straight into the JSON under the SAME keys the
+        // JS side already reads (capacityPlanningOverview.js's applyPlanningData -
+        // this.db.workOrder.requestedHoursTotal/assignedHoursTotal), unchanged by this design
+        // switch. ----
+        WorkOrderObj.Add('requestedHoursTotal', RequestedHoursTotal);
+        WorkOrderObj.Add('assignedHoursTotal', AssignedHoursTotal);
 
         RootObj.Add('project', ProjectObj);
         RootObj.Add('workOrder', WorkOrderObj);
@@ -7527,9 +7585,10 @@ codeunit 50604 "DHX Data Handler"
     /// (capacityPlanningOverview.js's maxFlowDay) - deliberately NOT "every company resource
     /// holding this skill" (this demo company alone was observed seeding 100+ resources for some
     /// skills, per this add-in's project memory). maxFlowDay's Edmonds-Karp-style augmenting-path
-    /// search cost scales roughly with (resource count)^2 per day, and it is called from BOTH the
-    /// section-1 cell templates AND evaluateWO/currentPositionShortage's own internal per-day
-    /// loops - an uncapped pool would make the browser hang on this real demo data. 15 is a
+    /// search cost scales roughly with (resource count)^2 per day, and it is called from BOTH
+    /// Section 1's own cell templates (excludingWOFlow, 2026-09-15 - see that method's own doc
+    /// comment) AND Section 2's currentPositionSkillShortage's own internal per-day loops - an
+    /// uncapped pool would make the browser hang on this real demo data. 15 is a
     /// deliberate, PERFORMANCE-driven scoping choice, not a data-completeness compromise: the
     /// max-flow model's achievable coverage is capped by DEMAND, not supply (see this add-in's
     /// project memory for the full reasoning), so a smaller-than-total-but-non-empty resource pool
@@ -7552,8 +7611,9 @@ codeunit 50604 "DHX Data Handler"
     /// against a real ~2038h for the same day/company). capacityPlanningOverview.js's capParts()
     /// now reads this array directly instead of computing from "resources[]"/"baseCapacity" -
     /// those two payload fields are UNCHANGED/still sent, still needed by the max-flow engine
-    /// (evaluateWO/currentPositionShortage, Section 1/2 on page 50722 only) and by capParts()'s own
-    /// fallback when dailyCapacity is absent (defensive only - every CPO_Build*Json* caller below
+    /// (excludingWOFlow/currentPositionSkillShortage, Section 1/2 on page 50722 only) and by
+    /// capParts()'s own fallback when dailyCapacity is absent (defensive only - every
+    /// CPO_Build*Json* caller below
     /// now always sends it).
     /// </summary>
     local procedure CPO_BuildDailyCapacityArray(StartDate: Date; EndDate: Date): JsonArray
@@ -7636,12 +7696,14 @@ codeunit 50604 "DHX Data Handler"
     /// silent approximation.
     ///
     /// ApplyPerSkillCap: the cap above exists SOLELY to bound maxFlowDay's O(n^2) cost
-    /// (capacityPlanningOverview.js) - which only ever runs from Section 1's evaluateWO/
-    /// currentPositionShortage and Section 2's renderWorkOrder, both scoped to ONE inspected Work
-    /// Order. Bug found 2026-09-08 (reported live, flagged "dangerous"): the Capacity Planning
-    /// Dashboard (src/dhx/capacity_planning_dashboard) has neither of those - Section 1 was removed
-    /// there entirely and Section 2 never initializes (renderWoScheduler is a no-op), so
-    /// maxFlowDay/evaluateWO/currentPositionShortage are never invoked on that tile - yet this same
+    /// (capacityPlanningOverview.js) - which only ever runs from Section 1's excludingWOFlow
+    /// (2026-09-15 - see that method's own doc comment; formerly evaluateWO/currentPositionShortage)
+    /// and Section 2's renderWorkOrder/currentPositionSkillShortage, both scoped to ONE inspected
+    /// Work Order. Bug found 2026-09-08 (reported live, flagged "dangerous"): the Capacity Planning
+    /// Dashboard (src/dhx/capacity_planning_dashboard) has neither of those - Section 1's DOM node
+    /// is removed entirely (still true after the 2026-09-15 change - see that class's own
+    /// constructor doc comment) and Section 2 never initializes (renderWoScheduler is a no-op), so
+    /// maxFlowDay/excludingWOFlow/currentPositionSkillShortage are never invoked on that tile - yet this same
     /// capped "resources[]" array was still being reused there to compute Section 3's plain
     /// capacity-total arithmetic (capParts() in JS: resources.length * BASE_CAP), silently
     /// undercounting real company-wide capacity (confirmed live: 46 capped resources -> 368h/day
@@ -7916,8 +7978,9 @@ codeunit 50604 "DHX Data Handler"
     /// though normally exactly one Day Planning line per day). This is the ONE field with no direct
     /// real-BC equivalent (BC has no synthetic anchor-relative workday model of its own) - derived
     /// entirely from the real "Plan Date"/"Requested Hours" values already collected in
-    /// CPO_BuildPlanningDataJson's pass 2, so the ported JS's evaluateWO/idxWork/workOrderExtra
-    /// keep working unchanged even though the underlying source data is real absolute dates.
+    /// CPO_BuildPlanningDataJson's pass 2, so the ported JS's idxWork/workOrderExtraCurrent (Section
+    /// 2's own placement) keep working unchanged even though the underlying source data is real
+    /// absolute dates.
     /// </summary>
     local procedure CPO_BuildWorkOrderSequencesArray(var SeqOrder: List of [Text]; var SeqSkill: List of [Code[20]]; var SeqJobNo: List of [Code[20]]; var SeqJobTaskNo: List of [Code[20]]; var SeqSequenceNo: List of [Integer]; var SeqLineNo: List of [Integer]; var SeqOffsetKeyOrder: List of [Text]; var SeqOffsetHours: Dictionary of [Text, Decimal]): JsonArray
     var

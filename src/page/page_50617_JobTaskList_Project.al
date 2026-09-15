@@ -83,6 +83,11 @@ page 50617 "Job Task List - Project"
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the total number of related day plannings.';
                 }
+                field("Total Requested Hours"; Rec."Total Requested Hours")
+                {
+                    ApplicationArea = Jobs;
+                    ToolTip = 'Specifies the total requested hours from all related day plannings.';
+                }
                 field("Total Assigned Hours"; Rec."Total Assigned Hours")
                 {
                     ApplicationArea = Jobs;

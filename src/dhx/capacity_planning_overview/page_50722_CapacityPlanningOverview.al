@@ -179,6 +179,19 @@ page 50722 "Capacity Planning Overview"
     var
         GJobNo: Code[20];
         GJobTaskNo: Code[20];
+        // Title-bar audit-totals box (5th/final design, 2026-09-15 - see this add-in's project
+        // memory, [[project_cpo_section3_exclude_flip_2026-09-15]]): a FIXED SNAPSHOT computed
+        // ONCE by the caller (Job Task Card, page 50618's "Capacity Planning Overview" ribbon
+        // action) at the moment this page is opened - a 30-day-from-WorkDate() window - and simply
+        // stored/forwarded here. Deliberately NOT recomputed by RefreshData/CPO_
+        // BuildPlanningDataJson_Paged on every subsequent refresh - changing "Days to show" or
+        // hitting Reset Position inside this page does NOT change these numbers anymore. That is
+        // intentional (explicit user design choice: fixed snapshot over live recompute, for
+        // simplicity), not a bug. Both default to 0 when this page is opened without going through
+        // SetJobTask (e.g. no live caller does that today, but a defensive default is still
+        // correct).
+        GRequestedHoursTotal: Decimal;
+        GAssignedHoursTotal: Decimal;
         DaysToShow: Integer;
         OtherWorkOrderDataTaskId: Integer; // TaskId of the most recently enqueued other-work-order-data background task; OnPageBackgroundTaskCompleted/Error discard any result whose TaskId doesn't match (superseded by a later reload)
         PendingOtherWorkOrderDataJson: Text; // set by OnPageBackgroundTaskCompleted, delivered into the control add-in by OnPollOtherWorkOrderDataResult (see that trigger's comment for why the split is necessary)
@@ -199,15 +212,25 @@ page 50722 "Capacity Planning Overview"
     /// RENAMED from SetWorkOrderNo(pWorkOrderNo: Code[20]) (Work Order table removal - see this
     /// add-in's project memory, [[project_cpo_cross_wo_scope_fix]]): Job Task's primary key is
     /// composite ("Job No." + "Job Task No."), so a single Code[20] can no longer identify "which
-    /// one work order/job task is this page inspecting". ENTRY-POINT NOTE: this procedure currently
-    /// has NO live caller anywhere in the codebase - its only caller was
-    /// src/page/Pag50662.WorkorderCard.al.allowtoremove.txt, already marked for removal - so this
-    /// rename is a signature/correctness fix only, not a behavior change for any live flow.
+    /// one work order/job task is this page inspecting". Live caller: page 50618 "Opti Job Task
+    /// Card"'s "Capacity Planning Overview" ribbon action.
+    ///
+    /// pRequestedHours/pAssignedHours (2026-09-15, 5th/final title-bar-audit-box design - see
+    /// [[project_cpo_section3_exclude_flip_2026-09-15]]): a FIXED SNAPSHOT the CALLER computed
+    /// once, at page-open time, over a 30-day-from-WorkDate() window (Job Task's own "Planning
+    /// Date Filter" FlowFilter + "Total Requested Hours"/"Total Assigned Hours" FlowFields,
+    /// tableext 50605). Stored verbatim into GRequestedHoursTotal/GAssignedHoursTotal and forwarded
+    /// to codeunit 50604's CPO_BuildPlanningDataJson_Paged on every RefreshData call unchanged -
+    /// this page/RefreshData never recomputes them itself. Deliberately does NOT update when the
+    /// user later changes "Days to show" or hits Reset Position inside this page - by design, not
+    /// an oversight (this supersedes the 4th design, which recomputed these on every refresh).
     /// </summary>
-    procedure SetJobTask(pJobNo: Code[20]; pJobTaskNo: Code[20])
+    procedure SetJobTask(pJobNo: Code[20]; pJobTaskNo: Code[20]; pRequestedHours: Decimal; pAssignedHours: Decimal)
     begin
         GJobNo := pJobNo;
         GJobTaskNo := pJobTaskNo;
+        GRequestedHoursTotal := pRequestedHours;
+        GAssignedHoursTotal := pAssignedHours;
     end;
 
     local procedure EnsureDaysToShow()
@@ -271,7 +294,11 @@ page 50722 "Capacity Planning Overview"
         // cut the client-side parse/model-build/DHTMLX-ingest cost for first paint on a
         // company-wide "every other Work Order in this window" dataset that can otherwise be huge.
         OtherWorkOrderGroupsPageSize := 50;
-        PlanningDataJson := DHXDataHandler.CPO_BuildPlanningDataJson_Paged(GJobNo, GJobTaskNo, DaysToShow, OtherWorkOrderGroupsPageSize, RemainingGroupKeys);
+        // GRequestedHoursTotal/GAssignedHoursTotal are the caller-supplied FIXED SNAPSHOT (see
+        // SetJobTask's own doc comment) - passed through unchanged on every RefreshData call, never
+        // recomputed here, so the title-bar audit box stays constant across a Days-to-show change
+        // or Reset Position while the rest of the payload still refreshes normally.
+        PlanningDataJson := DHXDataHandler.CPO_BuildPlanningDataJson_Paged(GJobNo, GJobTaskNo, DaysToShow, OtherWorkOrderGroupsPageSize, RemainingGroupKeys, GRequestedHoursTotal, GAssignedHoursTotal);
         CurrPage.DhxCpo.SetPlanningData(PlanningDataJson);
 
         EnqueueOtherWorkOrderDataBackgroundTask(RemainingGroupKeys);
@@ -340,8 +367,15 @@ page 50722 "Capacity Planning Overview"
 
         foreach ShiftJToken in ShiftsJArr do begin
             ShiftJObj := ShiftJToken.AsObject();
-            JobNo := ''; JobTaskNo := ''; SkillCode := ''; SequenceNoInt := 0; ShiftDays := 0;
-            FromDateTxt := ''; FromDate := 0D; ToSequenceNoInt := 0; HasToSequenceNo := false;
+            JobNo := '';
+            JobTaskNo := '';
+            SkillCode := '';
+            SequenceNoInt := 0;
+            ShiftDays := 0;
+            FromDateTxt := '';
+            FromDate := 0D;
+            ToSequenceNoInt := 0;
+            HasToSequenceNo := false;
 
             if ShiftJObj.Get('job', FieldJToken) then
                 JobNo := CopyStr(FieldJToken.AsValue().AsText(), 1, MaxStrLen(JobNo));
