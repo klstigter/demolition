@@ -5,7 +5,21 @@ metadata:
   type: project
 ---
 
-**Correct app IDs for native BC `[Test]` codeunit dependencies** (added to app.json 2026-06-16, no test app/codeunit existed before this). The commonly-circulated GUID list for these has wrong IDs for two of the four — verified against the live Microsoft_*.app NavxManifest.xml after download:
+**STALE AS OF 2026-09-15 — Library Assert/Variable Storage/Any are NOT currently wired into this
+project, don't rely on the GUIDs below without re-checking first.** `app.json`'s `"dependencies"` is
+`[]` (empty) as of 2026-09-15, and a grep of every file under `test\*.al` (10 test codeunits, IDs
+60020-60029 plus the new 60030) found zero uses of a `Library Assert`/`Assert.` pattern anywhere —
+every single test codeunit in this project uses a local `AssertAreEqual(Expected: Variant; Actual:
+Variant; ErrMsg: Text)` / `Format()`-comparison helper instead (see e.g.
+`test\DayPlanningCreation.Test.Codeunit.al`, `test\TaskSchedulerSectionsPerf.Test.Codeunit.al`'s own
+"Assert helpers (this project's established convention... no Library Assert codeunit is used
+anywhere in this test suite)" comment). Whatever wiring this entry originally documented on
+2026-06-16 either never landed or was reverted since — **when writing a new `[Test]` codeunit here,
+default to the local-helper convention, not `Library Assert`,** unless a fresh grep+app.json check
+shows otherwise. The GUIDs below are kept for reference only, in case dependencies are ever
+re-added.
+
+**Correct app IDs for native BC `[Test]` codeunit dependencies** (added to app.json 2026-06-16, no test app/codeunit existed before this — see correction above, this may no longer reflect the live app.json). The commonly-circulated GUID list for these has wrong IDs for two of the four — verified against the live Microsoft_*.app NavxManifest.xml after download:
 
 - Library Assert: `dd0be2ea-f733-4d65-bb34-a28f4624fb14` — correct as commonly documented.
 - Library Variable Storage: `5095f467-0a01-4b99-99d1-9ff1237d286f` — NOT `e7320ebb-08b3-4e1e-8c4b-37ae5bb1f994` (that GUID does not resolve to anything in this BC version's NuGet feed).

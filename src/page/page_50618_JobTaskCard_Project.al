@@ -868,8 +868,29 @@ page 50618 "Opti Job Task Card"
                 trigger OnAction()
                 var
                     CPO: Page "Capacity Planning Overview";
+                    RequestedHours: Decimal;
+                    AssignedHours: Decimal;
                 begin
-                    CPO.SetJobTask(Rec."Job No.", Rec."Job Task No.");
+                    // Title-bar audit-totals box (5th/final design, 2026-09-15 - see Capacity
+                    // Planning Overview's own project memory,
+                    // [[project_cpo_section3_exclude_flip_2026-09-15]]): computed ONCE here, at the
+                    // moment the page is opened, as a FIXED SNAPSHOT - not recomputed on every
+                    // refresh inside page 50722 anymore (that was the superseded 4th design).
+                    // Window is a fixed 30 days from today (Today()), independent of whatever
+                    // "Days to show"/Reset Position the user later does inside page 50722. Reuses
+                    // the same "Planning Date Filter" FlowFilter + "Total Requested Hours"/"Total
+                    // Assigned Hours" FlowFields (tableext 50605) the 4th design already used.
+                    Rec.SetRange("Planning Date Filter", Today(), Today() + 29);
+                    Rec.CalcFields("Total Requested Hours", "Total Assigned Hours");
+                    RequestedHours := Rec."Total Requested Hours";
+                    AssignedHours := Rec."Total Assigned Hours";
+
+                    // TEMP DIAGNOSTIC (remove after confirming) - shows what BC itself computed,
+                    // BEFORE it's handed to the control add-in, for side-by-side comparison against
+                    // the JS-side alert() in wrapper.js's SetPlanningData.
+                    Message('BC computed (Job %1/%2, window %3): Requested=%5 Assigned=%6', Rec."Job No.", Rec."Job Task No.", Rec.getfilter("Planning Date Filter"), Rec.getfilter("Planning Date Filter"), RequestedHours, AssignedHours);
+
+                    CPO.SetJobTask(Rec."Job No.", Rec."Job Task No.", RequestedHours, AssignedHours);
                     CPO.Run();
                 end;
             }

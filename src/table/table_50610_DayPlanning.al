@@ -825,6 +825,7 @@ table 50610 "Day Planning"
         //>>
         key(Rec1; "Job No.", "Job Task No.", "Plan Date", "Day Line No.")
         {
+            SumIndexFields = "Requested Hours", "Assigned Hours";
         }
         key(DateKey; "Plan Date", "Start Time Assigned")
         {

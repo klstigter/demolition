@@ -117,7 +117,8 @@ codeunit 50612 "General Planning Utilities"
             PartType::Realized:
                 ResourceNo := pDayPlanning."Assigned Resource No.";
         end;
-        if ResourceNo = '' then
+        // if PartType = PartType::Requested then do not skip, because we want to check if the requested hours exceed capacity even if no resource is assigned yet
+        if (ResourceNo = '') and (PartType <> PartType::Requested) then
             exit;
         WorkingMinutes := GetWorkingMinutes(pDayPlanning, PartType);
 

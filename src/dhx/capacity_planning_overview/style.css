@@ -27,13 +27,43 @@
 }
 
 .cpo-top-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     font-size: 16px;
     font-weight: 600;
     padding: 8px 12px;
     flex: 1 1 auto;
     min-width: 0;
+}
+
+/* The title's own text run, split out from #cpo-title (2026-09-15, audit-totals box addition) -
+   #cpo-title is now a flex row (title text + the audit box below), so the ellipsis-on-overflow
+   behavior that used to live on #cpo-title itself moves to this inner span instead - a flex
+   container with two children can't itself ellipsize, only a single text-bearing element can. */
+.cpo-title-text {
+    flex: 1 1 auto;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Manual audit cross-check total (2026-09-15, explicit user request) - see
+   capacityPlanningOverview.js's applyPlanningData doc comment on the audit box for the full
+   reasoning. Border/text color reuses the SAME accent blue #2f6fdb already used by
+   .cpo-confirm-btn-pending elsewhere in this file, for visual consistency rather than a new
+   palette entry. Page 50722 (single inspected Work Order) only - never rendered on page 50724
+   (Dashboard), which has no inspected Work Order to total. */
+.cpo-title-audit-box {
+    flex: 0 0 auto;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid #2f6fdb;
+    color: #2f6fdb;
+    background: #eef4ff;
     white-space: nowrap;
 }
 

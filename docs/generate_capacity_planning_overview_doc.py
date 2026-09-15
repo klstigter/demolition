@@ -195,7 +195,7 @@ def cover_page():
         'Codeunit: 50604 "DHX Data Handler" &mdash; region CPO_',
         'Reference prototype: KLAAS/CPO_v131 (DHTMLXtempv112-app.js / DHTMLXtempv112-data.js)',
         'Folder: src\\dhx\\capacity_planning_overview\\',
-        '<b>Document date: 2026-09-04</b> (supersedes the 2026-09-03 revision)',
+        '<b>Document date: 2026-09-15</b> (supersedes the 2026-09-04 revision)',
     ]
     meta = Table([[P(m, 'CPOMeta')] for m in meta_rows], colWidths=[17.4 * cm])
     meta.setStyle(TableStyle([
@@ -209,18 +209,33 @@ def cover_page():
     ]))
 
     revnote = callout(
-        'Revision note (2026-09-04)',
-        'This revision documents a same-day follow-up session on top of the 2026-09-03 cross-work-order-scoping/'
-        'pagination work already described throughout this document: (1) reschedule (Section 2 drag, Section 3 '
-        'click-to-relocate) was redesigned to run <b>entirely client-side, with zero BC round-trips, until the '
-        'user clicks a new "Confirm changes" button</b> &mdash; see &sect;3.1; (2) a processing-indicator (loading '
-        'spinner) UI was added for every action that genuinely takes time &mdash; see &sect;3.2; (3) Section 4\'s '
-        'scrollbar-sync fix (&sect;13.5) had a follow-on bug (&sect;13.7) and a separate, unrelated performance bug '
-        '(&sect;13.8), both fixed; (4) an architectural finding about how InvokeExtensibilityMethod actually behaves '
-        '(&sect;13.9) that explains why several of these fixes work the way they do; (5) Section 4 now opens fully '
-        'collapsed by default (&sect;13.11) after two other performance approaches (DHTMLX Scheduler\'s smart_rendering, '
-        'a full swap to the DHTMLX Gantt library) were tried and measured live, then set aside. Every changed section '
-        'below is marked <b>(2026-09-04)</b> inline; everything else is unchanged from the prior revision.'
+        'Revision note (2026-09-15)',
+        'This revision documents a same-day follow-up session on top of the 2026-09-04 confirm-gated-reschedule work '
+        'already described throughout this document: (1) Section 3\'s own "Requested" demand side (&sect;7) was '
+        '<b>flipped from INCLUDE-only (the inspected Work Order\'s own demand) to EXCLUDE (company-wide, minus the '
+        'inspected Work Order)</b> &mdash; matching Section 4\'s own long-standing direction, so dragging a bar to '
+        'relocate work now shows genuine competing demand from everyone else that day; the "Show Data" drill-down\'s '
+        'own job/task include-filter was removed to match, since it would otherwise open the exact wrong record set '
+        'once the segment itself excludes that job/task; (2) <b>Section 1\'s shortage/coverage engine (&sect;9) was '
+        'replaced outright</b>, not just re-scoped &mdash; the former before/after MARGINAL-delta formula '
+        '(evaluateWO/currentPositionShortage) is gone, replaced by a new excludingWOFlow() that reads the max-flow '
+        'result of the SAME company-wide-minus-this-WO baseline DIRECTLY, with nothing added back in; a direct, '
+        'intended consequence is that Section 1 is now <b>position-independent</b> &mdash; dragging a bar in Section 2 '
+        'no longer changes Section 1\'s own numbers at all; (3) a new title-bar <b>audit-totals box</b> (&sect;4.1) '
+        'gives the user a manual "Requested: X&nbsp;hours | Assigned: Y&nbsp;hours" cross-check total for the '
+        'inspected Work Order, for eyeballing against Section 3\'s per-day bars, sharing a new '
+        'computeWorkOrderTotals() helper with Section 2\'s own rendering so the two can never drift apart; (4) a '
+        'critical verification-methodology finding (&sect;13.12): this add-in\'s background-loaded "other Work '
+        'Order" data can take well over a minute to fully arrive, and a same-day live check that didn\'t wait for '
+        'it undercounted a real total by <b>62&times;</b> (376h measured vs. the true 43,240h) despite passing an '
+        'internal Section-3-vs-Section-4 self-consistency check &mdash; any future verification pass on this '
+        'add-in MUST poll #cpo-bg-loading before trusting a total; (5) a second, equally important finding '
+        '(&sect;13.13), surfaced while building item (3) above: Section 2\'s own rendered chips are a client-side, '
+        'window-relative "reschedule preview" of workOrderSequences[], NOT a literal render of '
+        'dayPlanningLines[]\'s stored Plan Date &mdash; this exact confusion produced two consecutive wrong '
+        'title-box implementations before the correct, shared-array design landed. Every changed section below is '
+        'marked <b>(2026-09-15)</b> inline; everything else, including the 2026-09-04 revision\'s own marked '
+        'changes, is unchanged from the prior revision.'
     )
 
     toc_title = [Spacer(1, 10), P('Table of Contents', 'H2'), Spacer(1, 4)]
@@ -234,6 +249,7 @@ def cover_page():
         ('3.1', 'Confirm-Gated Reschedule <b>(2026-09-04)</b>', 2),
         ('3.2', 'Processing Indicators <b>(2026-09-04)</b>', 2),
         ('4.', 'The JSON Payload Contract (window.DHTMLXPlannerData shape)', 1),
+        ('4.1', 'Title-Bar Audit-Totals Box <b>(NEW, 2026-09-15)</b>', 2),
         ('5.', 'Section 1 &mdash; Stats Header', 1),
         ('6.', 'Section 2 &mdash; Work Order&rsquo;s Own Day Planning Scheduler', 1),
         ('7.', 'Section 3 &mdash; Capacity vs Requested Daily Bars', 1),
@@ -541,6 +557,54 @@ def section_4():
         '  sequenceNo',
         '}',
     ])
+
+    out += h2('4.1', 'Title-Bar Audit-Totals Box <b>(NEW, 2026-09-15)</b>')
+    out += [P(
+        "A small bordered pill (<font face='Courier'>#cpo-title-audit</font>, class "
+        "<font face='Courier'>.cpo-title-audit-box</font>) rendered immediately right of the title text, reading "
+        "<b>\"Requested: N hours | Assigned: N hours\"</b>. Purpose, stated directly by the user: a manual "
+        "cross-check total to compare against Section 3's own per-day bars while eyeballing whether a day's "
+        "numbers reconcile &mdash; \"it is for audit during matching with a day selection in section 3\"."
+    )]
+    out += [P(
+        "Computed entirely client-side (no new AL field, no extra round-trip) from "
+        "<font face='Courier'>this._woEvents</font> &mdash; the LITERAL SAME array "
+        "<font face='Courier'>renderWorkOrder()</font> (&sect;6) just built and handed to DHTMLX for Section 2's "
+        "own bars, stored on the instance for exactly this reuse. A shared method, "
+        "<font face='Courier'>computeWorkOrderTotals()</font>, sums that array's own "
+        "<font face='Courier'>requestedHours</font>/<font face='Courier'>assignedHours</font> fields (per-event "
+        "\"Assigned\" is already <font face='Courier'>Math.round(requestedHours * assignment.pct / 100)</font>, "
+        "computed once inside renderWorkOrder() itself, not re-derived here) &mdash; "
+        "<font face='Courier'>renderTitleAuditBox()</font> then reads that shared total and updates the DOM. This "
+        "is a deliberate reuse-over-duplication design, requested explicitly: \"you must have a common function "
+        "for that, because maybe used by other Add-ins\" &mdash; no add-in elsewhere in this repository had an "
+        "existing equivalent helper to reuse, so this one is new but shared within this class rather than "
+        "inlined in two places."
+    )]
+    out += [P(
+        "<font face='Courier'>renderTitleAuditBox()</font> is called from the END of "
+        "<font face='Courier'>renderWorkOrder()</font> itself &mdash; i.e. on EVERY reposition (the initial "
+        "render via renderWoScheduler, a Section 2 drag, Section 3's click-to-relocate/"
+        "<font face='Courier'>moveWorkOrderToDay</font>), not just the initial server payload, so the box stays "
+        "live as the user interacts &mdash; matching its own stated audit purpose. "
+        "<font face='Courier'>applyPlanningData()</font>'s own title-building code now only rebuilds the title "
+        "TEXT span; the audit box is left entirely to renderWorkOrder()/renderTitleAuditBox(). Rendered ONLY "
+        "when there is an inspected Work Order: guaranteed structurally by renderWorkOrder()'s own pre-existing "
+        "<font face='Courier'>if (!this.woScheduler) return;</font> guard (page 50724/Dashboard's own "
+        "renderWoScheduler override is a no-op and never sets this.woScheduler &mdash; see &sect;8's own "
+        "Dashboard notes) &mdash; no separate check was needed in the new code."
+    )]
+    out += callout(
+        'TWO consecutive wrong fixes, same day &mdash; the real lesson is in &sect;13.13, read it before touching this again',
+        'Both of this box\'s first two implementations summed db.dayPlanningLines[] (first with no date check at '
+        'all, then with a dplDayIndex(line)-in-window check added) &mdash; and BOTH were wrong, because Section '
+        '2\'s own chips are not built from that array\'s literal Plan Date at all. See &sect;13.13 for the full '
+        'story: what Section 2 actually renders from, why a ground-truth OData query on the real stored dates '
+        'was checking the wrong thing entirely, and why any future total meant to match what Section 2 shows '
+        'must read this._woEvents (via computeWorkOrderTotals()), never db.dayPlanningLines[]/'
+        'db.workOrderSequences[] independently.',
+        kind='fix'
+    )
     return out
 
 
@@ -555,8 +619,9 @@ def section_5():
     out += [P(
         "A 2-row synthetic <font face='Courier'>Scheduler.getSchedulerInstance()</font> timeline (NOT a real event "
         "calendar &mdash; it has no real events, only <font face='Courier'>cell_template</font>-rendered HTML per cell). "
-        "The two rows are \"Calculated conclusion\" (% coverage + added shortage hours) and \"Current position shortage\" "
-        "(hours caused specifically by this Work Order's own current schedule position)."
+        "The two rows are \"Calculated conclusion\" (% coverage) and \"Current position shortage\" (raw shortage "
+        "hours) &mdash; <b>as of 2026-09-15, both rows read the SAME underlying number, formatted two ways</b> (see "
+        "the algorithm change below); before that they were two functionally different marginal-delta figures."
     )]
     out += [def_table(
         ['createTimelineView option', 'Value', 'Note'],
@@ -574,20 +639,37 @@ def section_5():
     )]
     out += [P(
         "Data source: nothing from the payload directly &mdash; every cell calls "
-        "<font face='Courier'>this.evaluateWO(dayIndex)</font> / "
-        "<font face='Courier'>this.currentPositionShortage()[dayIndex]</font> LIVE at render time (&sect;9), which "
-        "read <font face='Courier'>this.db.dayPlanningLines</font>, <font face='Courier'>this.db.resources</font>, "
-        "<font face='Courier'>this.db.externalFree</font>, <font face='Courier'>this.db.workOrderSequences</font>. "
-        "There is no AL-precomputed \"statsRows\" array."
+        "<font face='Courier'>this.excludingWOFlow()[dayIndex]</font> LIVE at render time (&sect;9), which reads "
+        "<font face='Courier'>this.db.dayPlanningLines</font>, <font face='Courier'>this.db.resources</font>, "
+        "<font face='Courier'>this.db.externalFree</font>. There is no AL-precomputed \"statsRows\" array. Unlike "
+        "the pre-2026-09-15 design, <font face='Courier'>this.db.workOrderSequences</font> is NOT read here at "
+        "all anymore &mdash; see below."
     )]
     out += callout(
-        'Confirmed unaffected by the 2026-09-04 redesign',
-        'The user explicitly reconfirmed mid-session: "the section 1 always run in JS as data already in JS". True before '
-        'and after &sect;3.1 &mdash; renderWorkOrder() (called by BOTH the drag handler and moveWorkOrderToDay, and by the '
-        'Confirm button\'s eventual real AL response once that trigger does real work) always calls '
-        'woSummaryScheduler.setCurrentView(...) to force this section\'s cell templates to re-read whatever woAnchor is '
-        'current, purely client-side.'
+        'Algorithm replaced, not just re-scoped (2026-09-15, explicit user request)',
+        'Previously (&sect;9\'s original design): evaluateWO(dayIndex)/currentPositionShortage() computed a BEFORE/AFTER '
+        'MARGINAL delta &mdash; add this Work Order\'s own demand on top of everyone else\'s baseline, re-run the '
+        'max-flow model, and report the INCREASE in shortage that addition caused ("how much worse do things get '
+        'because of me"). The user asked for Section 1 to instead report the shortage/coverage of "all day planning '
+        'in the window excluding this project task" DIRECTLY &mdash; not a delta. New method '
+        '<font face="Courier">excludingWOFlow()</font> reads maxFlowDay() against '
+        '<font face="Courier">this._baselineWithoutWO</font> (&sect;9) straight, with nothing added back in. A '
+        'direct, INTENDED consequence: Section 1 is now <b>position-independent</b> &mdash; dragging a bar in '
+        'Section 2 no longer changes Section 1\'s own numbers at all, since a number that excludes this task\'s '
+        'demand by definition cannot depend on where that excluded demand currently sits. '
+        '<font face="Courier">evaluateWO</font>/<font face="Courier">currentPositionShortage</font>/'
+        '<font face="Courier">workOrderExtra(start)</font> were all removed (Section 2\'s own '
+        '<font face="Courier">currentPositionSkillShortage</font>/<font face="Courier">workOrderExtraCurrent</font> '
+        'are UNCHANGED &mdash; still a before/after delta, still used for the per-sequence-row shortage badges in '
+        '&sect;6, since Section 2 genuinely does still care where each occurrence currently sits).',
+        kind='fix'
     )
+    out += [P(
+        "renderWorkOrder() (called by both the drag handler and moveWorkOrderToDay) still calls "
+        "woSummaryScheduler.setCurrentView(...) after every local move, matching the pre-2026-09-15 behavior &mdash; "
+        "harmless now rather than load-bearing, since the cell templates just re-read the same cached, unchanged "
+        "excludingWOFlow() result every time."
+    )]
     return out
 
 
@@ -643,6 +725,15 @@ def section_6():
         'Job Task No. = WorkOrder."Project Task No." instead.',
         kind='fix'
     )
+    out += callout(
+        'Read this before deriving ANY total meant to match this section (&sect;13.13)',
+        'The workday-offset positioning called out just above is not a cosmetic detail &mdash; it means this '
+        'section\'s events, and the events array renderWorkOrder() builds internally '
+        '(this._woEvents, &sect;4.1), are the ONLY authoritative source for "what this section currently shows". '
+        'Re-deriving a same-looking total from dayPlanningLines[]\'s own stored Plan Date (or from '
+        'workOrderSequences[] a second, independent way) produced two consecutive wrong results in the same '
+        'session &mdash; see &sect;13.13 for the full story before building anything new against this section.'
+    )
     out += [P("NOT DHTMLX &mdash; hand-rolled HTML/CSS", 'BodySmall')]
     return out
 
@@ -665,9 +756,9 @@ def section_7():
         ['Data function', 'Reads', 'Produces'],
         [
             ['capParts(dayIndex)', 'dayPlanningLines[] (ALL work orders, unfiltered), resources[].length &times; baseCapacity, externalFree[dayIndex]', '{assigned, freeInt, freeExt} &mdash; the "C" column. Company-wide on purpose.'],
-            ['dailyCapacityRequestData()', 'capParts() + dayPlanningLines[] filtered to line.workOrderNo === inspectedWO', 'One row per visible day: assigned, freeInt, freeExt, request, assignedRequest, unassignedBySkill{}, shortage.'],
+            ['dailyCapacityRequestData()', 'capParts() + dayPlanningLines[] EXCLUDING line.workOrderNo === inspectedWO (flipped 2026-09-15)', 'One row per visible day: assigned, freeInt, freeExt, request, assignedRequest, unassignedBySkill{}, shortage.'],
         ],
-        [4.0 * cm, 6.6 * cm, 6.8 * cm]
+        [4.0 * cm, 7.4 * cm, 6.0 * cm]
     )]
     out += callout(
         'Click-to-relocate drives Section 2 &mdash; updated 2026-09-04',
@@ -678,12 +769,37 @@ def section_7():
         'fired InvokeExtensibilityMethod(\'OnRescheduleWorkOrder\', [dayIndex, ...]) on every click.',
         kind='fix'
     )
-    out += [P(
-        "Why the \"R\" (Requested) side IS work-order-filtered but the \"C\" (Capacity) side is NOT (&sect;11): Section 3 "
-        "answers \"how does this Work Order's own demand sit against the company's real, fully company-wide capacity "
-        "picture\" &mdash; the capacity side was already correct before the cross-WO change; only the demand side needed "
-        "an explicit filter once dayPlanningLines[] started carrying every other Work Order's rows too."
-    )]
+    out += callout(
+        '"R" (Requested) scoping FLIPPED 2026-09-15 &mdash; INCLUDE inspected-WO &rarr; EXCLUDE inspected-WO',
+        'Until this revision, dailyCapacityRequestData() kept ONLY the inspected Work Order\'s own lines '
+        '(line.workOrderNo === inspectedWO), matching &sect;11\'s original table. Explicit user request: the '
+        '"Requested" side should instead show ALL company-wide day planning demand in the window MINUS the '
+        'inspected Work Order\'s own lines (which Sections 1/2 already show) &mdash; i.e. the SAME direction '
+        'Section 4\'s tree (&sect;8) has used since 2026-09-03. Purpose: when the user drags a bar to relocate '
+        'work to a different day, they need to see how much capacity OTHER work has already claimed that day, not '
+        'just re-see their own WO\'s own demand. Live-verified against a real Work Order/Job Task: the old '
+        'INCLUDE-only figure and the new EXCLUDE figure differed by roughly 60&times; on this company\'s real data '
+        '(the inspected task\'s own demand is a small fraction of company-wide demand for the same window) &mdash; '
+        'Section 3\'s new total now matches Section 4\'s own tree total exactly, confirmed via the live rendered '
+        'DOM text on both this page and the Capacity Planning Dashboard tile (page 50724) for the same day. The '
+        '"C" (Capacity) side is UNCHANGED &mdash; already company-wide/unfiltered by design (see &sect;11).',
+        kind='fix'
+    )
+    out += callout(
+        '"Show Data" drill-down fixed to match (same session)',
+        'Right-clicking a Request-column segment used to send the inspected Work Order\'s own Job No./Job Task No. '
+        'as an INCLUDE filter to AL\'s day-planning-list drill-down (CPO_OpenDayPlanningList/'
+        'CPO_ShowCapacityBarSegment, &sect;10) whenever there was an inspected Work Order. Since the segment now '
+        'represents "everything EXCEPT the inspected WO" after the flip above, sending that WO\'s own job/task as '
+        'an INCLUDE filter would open the exact WRONG (opposite) record set. AL has no exclude-filter capability '
+        'for this list today, so the fix is JS-only: the include-filter block was removed entirely &mdash; '
+        'job/task now stay blank for a Request-segment drill-down on BOTH this page and the Dashboard (which '
+        'already always sent blank). Known, accepted minor over-inclusion: "Show Data" on a Request segment now '
+        'opens every matching skill+date Day Planning company-wide, a slight superset of what the segment visually '
+        'represents (it also includes the excluded inspected WO\'s own lines) &mdash; documented inline as a '
+        'deliberate trade-off, not a bug, revisit only if a real AL exclude-filter is ever added.',
+        kind='fix'
+    )
     return out
 
 
@@ -849,19 +965,27 @@ def section_11():
     out += [def_table(
         ['Section', 'Scope', 'Rationale'],
         [
-            ['Section 1 (stats)', 'Inspected WO only', '"This WO\'s own position." Literally IS the inspected WO\'s own schedule.'],
-            ['Section 2 (own scheduler)', 'Inspected WO only', '"This WO\'s own demand."'],
-            ['Section 3 &mdash; "R" (Requested)', 'Inspected WO only', 'A resource committed elsewhere that day is genuinely unavailable &mdash; already correct before this change.'],
-            ['Section 3 &mdash; "C" (Capacity)', 'Company-wide (unfiltered)', '"Everything else going on in this window, for contention/context."'],
-            ['Section 4 (tree)', 'Every OTHER Work Order, ANY Job, same date window', 'Intentionally the opposite of the earlier, narrower behavior ("this WO\'s own tree") &mdash; explicit and permanent.'],
+            ['Section 1 (stats)', 'Baseline EXCLUDES inspected WO <font color="#B8860B">(reframed 2026-09-15)</font>', '&sect;9\'s excludingWOFlow() reads the "everyone else, minus this WO" baseline DIRECTLY (no longer a before/after delta against it) &mdash; same exclude direction as Section 3/4 below, just consumed differently.'],
+            ['Section 2 (own scheduler)', 'Inspected WO only', '"This WO\'s own demand." Unchanged.'],
+            ['Section 3 &mdash; "R" (Requested)', 'Company-wide, EXCLUDING inspected WO <font color="#B8860B">(flipped 2026-09-15)</font>', 'Was "inspected WO only" through 2026-09-14 &mdash; flipped to match Section 4\'s own direction so a drag-relocate shows genuine competing demand from everyone else that day. See &sect;7.'],
+            ['Section 3 &mdash; "C" (Capacity)', 'Company-wide (unfiltered)', '"Everything else going on in this window, for contention/context." Unchanged.'],
+            ['Section 4 (tree)', 'Every OTHER Work Order, ANY Job, same date window', 'Intentionally the opposite of the earlier, narrower behavior ("this WO\'s own tree") &mdash; explicit and permanent. Unchanged.'],
         ],
-        [4.6 * cm, 5.0 * cm, 7.8 * cm]
+        [4.6 * cm, 5.6 * cm, 7.2 * cm]
     )]
     out += [P(
         'Still true and unchanged by the 2026-09-04 confirm-gated redesign: nothing about &sect;3.1 alters WHICH data '
         'each section shows, only WHEN (if ever) a reschedule action tells BC about a change &mdash; Section 4\'s scope '
         'in particular is completely untouched, since it was already never re-rendered by any reschedule path.'
     )]
+    out += callout(
+        'Table revised 2026-09-15',
+        'The Section 1 and Section 3 &ndash; "R" rows above were both revised this session (&sect;5, &sect;7, &sect;13.12) '
+        '&mdash; Section 3\'s own direction is a genuine flip (was include-only, now exclude-only); Section 1\'s "own '
+        'position" framing is retired along with the before/after delta engine it described, replaced by a direct read of '
+        'the same excluding-this-WO baseline Section 3/4 already use. Section 2 and Section 4 are unchanged by this '
+        'revision.'
+    )
     return out
 
 
@@ -951,6 +1075,15 @@ def section_12():
         ],
         [5.4 * cm, 4.6 * cm, 7.4 * cm]
     )]
+    out += callout(
+        'This "provisional until backfill completes" row is exactly &sect;13.12\'s finding',
+        'A verification pass on this add-in (2026-09-15) treated a Section-3-vs-Section-4 self-consistency check as '
+        'proof the numbers were trustworthy, without checking whether the background load in THIS table row had '
+        'actually finished &mdash; both sections read the identical (still-partial) dayPlanningLines[] array, so '
+        'they agreed with each other while both under-counting the true company-wide total by roughly '
+        '62&times;. See &sect;13.12 for the full story and the concrete check (poll #cpo-bg-loading) that would '
+        'have caught it.'
+    )
 
     out += h2('12.5', "The JS-side append &mdash; why it's more than a tree rebuild")
     out += [P(
@@ -998,7 +1131,8 @@ def section_13():
     out += [P(
         'Renumbered 2026-09-04 &mdash; this section\'s entries were previously mislabelled 12.1&ndash;12.6 (reusing '
         '&sect;12\'s numbers, a copy-paste artifact of the original document); they are correctly 13.1&ndash;13.6 below, '
-        'with the current session\'s findings added as 13.7&ndash;13.11.', 'BodySmall'
+        'with that session\'s own findings added as 13.7&ndash;13.11, and this revision\'s findings added as '
+        '13.12&ndash;13.13.', 'BodySmall'
     )]
 
     out += pitfall(1, 'Unterminated CSS comment silently disabled the top bar', [P(
@@ -1183,6 +1317,104 @@ def section_13():
         'in ~2.16s (the &sect;13.8-era cost, now opt-in only), and scrolling to the bottom lands exactly at the true '
         'last row with no blank gap - confirming &sect;13.7\'s scrollbar-sync fix still holds with the new default state.'
     )])
+
+    out += pitfall(12, 'Trusting a total before the background load (&sect;12) actually finishes &mdash; a 62&times; under-count', [P(
+        '<b>New, 2026-09-15.</b> The Section 3 exclude-flip (&sect;7) was first verified live by summing '
+        'dailyCapacityRequestData()\'s own output over the visible 30-day window and comparing it against Section '
+        '4\'s own tree total (&sect;8) &mdash; both read 376h, a perfect match, reported as confirmed. The '
+        'coordinator pushed back: a real live figure the user had separately seen on the Capacity Planning '
+        'Dashboard tile for a single day (3,304h) was far larger than the ENTIRE 30-day total just reported. '
+        'Investigating found the real cause: this add-in\'s "other Work Order" data loads via the &sect;12 Page '
+        'Background Task, and the original check captured db.dayPlanningLines at only 107 lines &mdash; the FIRST '
+        'synchronous page. The true, fully-loaded company-wide total was 6,628 lines, a 62&times; under-count. '
+        'Section 3 and Section 4 agreed with EACH OTHER throughout, because both read the exact same (still '
+        'partial) array &mdash; a self-consistency check that is structurally blind to under-loading.'
+    ), callout(
+        'Why the self-consistency check passed anyway',
+        'Section 3 and Section 4 are two different VIEWS of the identical db.dayPlanningLines array. Comparing them '
+        'against each other only proves they agree on whatever data currently exists client-side &mdash; it proves '
+        'nothing about whether that data is complete. The only way to catch this is to check completeness '
+        'directly, or compare against a source that does NOT share the same (possibly stale) input.'
+    ), callout(
+        'Fix &mdash; the concrete check for any future verification pass',
+        'Poll <font face="Courier">document.getElementById(\'cpo-bg-loading\').style.display</font> (inline style, '
+        'set by showBackgroundLoading()/hideBackgroundLoading() in capacityPlanningOverview.js) before trusting '
+        'any Section 3/4 total on page 50722 specifically (page 50724/Dashboard has no such background task &mdash; '
+        'its one query is synchronous and complete on load). <font face="Courier">\'none\'</font> means the load '
+        'is done, or was never needed (everything fit on the first synchronous page); anything else means '
+        'db.dayPlanningLines &mdash; and everything derived from it &mdash; is still incomplete.',
+        kind='fix'
+    ), callout(
+        'Confirmed live once actually complete',
+        'After the background load finished (6,628 lines), Section 3\'s Wednesday total read 3,304h, Section 4\'s '
+        'tree read the same 3,304h, the inspected Work Order\'s own demand that day was 0h, and 3,304 + 0 = 3,304 '
+        '= the Dashboard\'s own real figure for the same day &mdash; confirmed via the live RENDERED DOM text on '
+        'both pages, not just internal JS state.'
+    ), P(
+        '<b>A separate, reproduced-but-unresolved reliability gap, worth flagging rather than fixing here:</b> the '
+        'background load itself was observed to be genuinely slow (well over a minute in one run) and, in a '
+        'separate run against the identical Work Order/page, appeared to stall indefinitely with a real console '
+        'error logged once (<font face="Courier">OnPollOtherWorkOrderDataResult poll failed: undefined</font>, '
+        'wrapper.js:119) and no further progress observed within a several-minute patience budget. Reproduced '
+        'twice, same day, no AL/JS file in the &sect;12 pagination path was touched by this session &mdash; an '
+        'existing, pre-session intermittent gap in the background-task plumbing, not a regression. A future '
+        'session investigating this add-in\'s performance/reliability should expect to need real patience (or '
+        'several fresh page-open attempts) before the full company-wide dataset is actually available to test '
+        'against.'
+    )])
+
+    out += pitfall(13, 'Section 2\'s chips are NOT a render of dayPlanningLines[]\'s stored Plan Date &mdash; two consecutive wrong fixes came from assuming they were', [P(
+        '<b>New, 2026-09-15 &mdash; read this before touching the title-bar audit box (&sect;4.1), Section 2 '
+        '(&sect;6), or anything else that needs to match "what Section 2 visibly shows" ever again.</b> While '
+        'building &sect;4.1\'s audit-totals box, TWO consecutive fixes were shipped, both wrong, both because of '
+        'the same false assumption: that Section 2\'s rendered chips are a direct visualization of '
+        'db.dayPlanningLines[]\'s own stored "Plan Date" field. They are not.'
+    ), callout(
+        'What Section 2 actually renders from',
+        'renderWorkOrder() (&sect;6) builds its events array from db.workOrderSequences[].workdays[], mapped '
+        'through getOccurrenceDayIndex(seq, wd) &mdash; which places every occurrence RELATIVE TO THE CURRENTLY '
+        'VISIBLE WINDOW\'S OWN START (this.dates[0]), completely independent of whatever real calendar date is '
+        'stored on the underlying Day Planning record. Each event\'s hours come from '
+        'seq.hoursByWorkday[wd] (defaulting to 8 if AL sent none), not from re-reading '
+        'dayPlanningLines[].requestedHours for that date. This is a deliberate, SEPARATE client-side "reschedule '
+        'preview" simulation &mdash; matches this file\'s own drag/moveWorkOrderToDay design (&sect;3.1): no AL '
+        'round-trip, no re-fetch, purely a local repositioning of "day N of this Work Order\'s own schedule" '
+        'starting from wherever the window happens to begin right now.'
+    ), P(
+        '<b>Fix attempt 1</b> (documented in an earlier draft of this section, since corrected): summed '
+        'db.dayPlanningLines[] filtered only by workOrderNo === woNo, no date check at all. Independently '
+        're-verified against a direct OData query on the real Day Planning table and found numerically correct '
+        'as an ALL-TIME total &mdash; but Section 2 doesn\'t show an all-time total, so a live screenshot showing '
+        'many visible chips against a small non-zero audit total looked "impossible".'
+    ), P(
+        '<b>Fix attempt 2:</b> added a dplDayIndex(line)-inside-the-visible-window check on the SAME '
+        'db.dayPlanningLines[] array, reasoning that the box should be window-scoped like Section 3. This '
+        'produced a plausible-looking "0/0" for one real test case (the Work Order\'s only real-dated demand '
+        'happened to fall just before that day\'s visible window) &mdash; but was flagged wrong again '
+        'immediately: a DIFFERENT window (15 Sep&ndash;05 Oct) showed many chips clearly INSIDE the visible '
+        'range while the box still read 0/0, because dayPlanningLines[]\'s literal dates and '
+        'workOrderSequences[]\'s window-relative positions are simply two different concepts that do not need '
+        'to agree, and usually won\'t, for any Work Order whose real schedule doesn\'t happen to start exactly '
+        'on "today".'
+    ), callout(
+        'The actual fix',
+        'renderWorkOrder() now stores its own freshly-built events array on the instance '
+        '(this._woEvents = events) immediately before handing it to DHTMLX. A new shared method, '
+        'computeWorkOrderTotals(), sums requestedHours/assignedHours over THAT array, and renderTitleAuditBox() '
+        'reads it to update the title box &mdash; called from the end of renderWorkOrder() itself, so it '
+        'refreshes on every reposition, not just the initial load. There is now exactly ONE array Section 2 and '
+        'the title box both read; they are structurally incapable of disagreeing, since neither re-derives the '
+        'same-looking number a different way. See &sect;4.1 for the full implementation.',
+        kind='fix'
+    ), P(
+        '<b>The generalizable lesson, worth restating a third time since it took three attempts to land:</b> in '
+        'this add-in, "what date is this occurrence shown on" and "what date is this real Day Planning record '
+        'stored under" are NOT the same question, and a feature that needs to match Section 2\'s own on-screen '
+        'behavior must ask Section 2\'s own question (workOrderSequences[]/getOccurrenceDayIndex, or better, '
+        'Section 2\'s own already-built events array) &mdash; never assume dayPlanningLines[]\'s literal Plan '
+        'Date is an acceptable proxy for it, no matter how reasonable that assumption feels, and no matter how '
+        'convincing an independent ground-truth check of the WRONG array\'s own correctness looks.'
+    )])
     return out
 
 
@@ -1197,7 +1429,7 @@ def section_14():
             ['src\\dhx\\capacity_planning_overview\\page_50722_CapacityPlanningOverview.al', 'Host page 50722'],
             ['src\\dhx\\capacity_planning_overview\\startupScript.js', 'BOOT() call'],
             ['src\\dhx\\capacity_planning_overview\\wrapper.js', 'BOOT/binding shell + loading-overlay safety timer (&sect;3.2)'],
-            ['src\\dhx\\capacity_planning_overview\\capacityPlanningOverview.js', 'The single JS component (~1,850 lines) &mdash; all 4 sections + shortage engine + Confirm-gated reschedule state machine (&sect;3.1) + processing indicators (&sect;3.2) + treeSummaryIndex (&sect;13.8)'],
+            ['src\\dhx\\capacity_planning_overview\\capacityPlanningOverview.js', 'The single JS component &mdash; all 4 sections + shortage engine (excludingWOFlow, &sect;9, replacing evaluateWO/currentPositionShortage) + Confirm-gated reschedule state machine (&sect;3.1) + processing indicators (&sect;3.2) + treeSummaryIndex (&sect;13.8) + title-bar audit-totals box (&sect;4.1)'],
             ['src\\dhx\\capacity_planning_overview\\style.css', 'All layout/heat-map/chip/scrollbar/spinner/Confirm-button CSS'],
             ['src\\codeunit\\codeunit_50604_DHXDataHandler.al', 'Shared data-handler codeunit &mdash; CPO_ region builds the payload'],
             ['src\\dhx\\capacity_planning_overview\\codeunit_50722_CPOBGOtherWorkOrderData.al', 'Page Background Task target &mdash; &sect;12'],
@@ -1216,7 +1448,7 @@ def on_page(c: canvas.Canvas, doc):
     c.saveState()
     c.setFont('Helvetica', 7.5)
     c.setFillColor(colors.HexColor('#9AA5B8'))
-    c.drawString(1.6 * cm, 1.1 * cm, 'Capacity Planning Overview - Technical Document (2026-09-04)')
+    c.drawString(1.6 * cm, 1.1 * cm, 'Capacity Planning Overview - Technical Document (2026-09-15)')
     c.drawRightString(LETTER[0] - 1.6 * cm, 1.1 * cm, f'Page {doc.page}')
     c.restoreState()
 

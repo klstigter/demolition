@@ -19,6 +19,21 @@ report 50600 "RepairData"
 
     trigger OnPreReport()
     begin
+        RepairDayPlanning();
+    end;
 
+    local procedure RepairDayPlanning()
+    var
+        DayPlanning: Record "Day Planning";
+        FixedCount: Integer;
+    begin
+        DayPlanning.Reset();
+        if DayPlanning.findset() then
+            repeat
+                DayPlanning.CalculateWorkingHours();
+                DayPlanning.Modify();
+                FixedCount += 1;
+            until DayPlanning.next() = 0;
+        message('%1 Day Planning records repaired.', FixedCount);
     end;
 }

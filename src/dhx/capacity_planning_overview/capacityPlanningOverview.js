@@ -78,7 +78,10 @@ function cpoHoursText(v) {
 /// numbers) and the user explicitly asked for the real algorithm back - a correctly-implemented
 /// max-flow model's achievable coverage is capped by DEMAND, not supply, so it does not have that
 /// bug even against a broad resource pool. This file is therefore now a NEAR-VERBATIM port of the
-/// reference's own maxFlowDay/evaluateWO/currentPositionShortage/idxWork/workOrderExtra engine and
+/// reference's own maxFlowDay/evaluateWO/currentPositionShortage/idxWork/workOrderExtra engine
+/// (Section 1's evaluateWO/currentPositionShortage pair was later REPLACED 2026-09-15 by
+/// excludingWOFlow - see that method's own doc comment; maxFlowDay/idxWork/workOrderExtraCurrent
+/// remain as originally ported) and
 /// its buildCentralSections/skillDaySummary/taskDaySummary/sequenceDayLines/sequenceDayCellHtml
 /// section-4 tree builder and its capParts/dailyCapacityRequestData section-3 daily-bars builder -
 /// function names/bodies kept as close to the original as reasonably possible for future
@@ -97,17 +100,19 @@ function cpoHoursText(v) {
 ///    create every section) is correspondingly split: buildLayout() runs ONCE (constructor, builds
 ///    the static DOM shell only DHTMLX will not later recreate), everything else re-runs on every
 ///    applyPlanningData() call.
-/// 2. maxFlowDay/evaluateWO/currentPositionShortage are genuinely expensive (Edmonds-Karp-style
-///    augmenting-path search) - the reference's own toy dataset (10 resources, 4 skills) never
-///    needed caching, but real BC data can have far larger resource pools (this codebase's own
-///    project memory notes a demo company seeding 100+ resources for a single skill), and every
-///    section-1 day CELL's class+value template calls evaluateWO(idx)/currentPositionShortage()
-///    with no memoization of its own in the reference. This port adds per-render-pass caching
-///    (this._evalWOCache, this._currentPositionShortageArr/_currentPositionSkillShortageArr,
-///    cleared by applyPlanningData()/resetAnchorDependentCaches()) so DHTMLX's own repeated
-///    template invocations don't re-run the same max-flow computation many times over. AL's own
-///    CPO_MaxResourcesPerSkill cap (15/skill) is the OTHER half of keeping this tractable in a real
-///    browser - see that procedure's own doc comment.
+/// 2. maxFlowDay-based computations are genuinely expensive (Edmonds-Karp-style augmenting-path
+///    search) - the reference's own toy dataset (10 resources, 4 skills) never needed caching, but
+///    real BC data can have far larger resource pools (this codebase's own project memory notes a
+///    demo company seeding 100+ resources for a single skill), and every section-1 day CELL's
+///    class+value template calls excludingWOFlow()[idx] (2026-09-15; formerly
+///    evaluateWO(idx)/currentPositionShortage()[idx]) with no memoization of its own in the
+///    reference. This port adds per-render-pass caching (this._excludingWOFlowArr for section 1,
+///    this._currentPositionSkillShortageArr for section 2's own per-sequence allocation - cleared
+///    by applyPlanningData()/appendOtherWorkOrderData(), the latter also by
+///    resetAnchorDependentCaches() since it alone still depends on occurrence placement) so
+///    DHTMLX's own repeated template invocations don't re-run the same max-flow computation many
+///    times over. AL's own CPO_MaxResourcesPerSkill cap (15/skill) is the OTHER half of keeping
+///    this tractable in a real browser - see that procedure's own doc comment.
 /// 3. Section 4 (the Skill/Job-Task/Sequence tree) legitimately does NOT depend on `woAnchor` at
 ///    all in the reference either (its cells read real calendar dates directly, not anchor-relative
 ///    offsets) - matching the reference exactly, renderCentralTree() runs once per
@@ -116,18 +121,23 @@ function cpoHoursText(v) {
 /// 4. This add-in's own "Days to show" JS-owned input (bindDaysToShowInput) and window-resize
 ///    section-3 realignment (bindResizeRealign) are UNRELATED to this pivot and kept exactly as
 ///    they worked before it.
-/// 5. CROSS-WORK-ORDER SCOPE (2026-09-03, explicit user correction - see codeunit 50604's own
-///    CPO_BuildPlanningDataJson doc comment for the AL-side story): db.dayPlanningLines[] now
-///    mixes the inspected Job Task's own rows with every OTHER Job Task's rows in the same
-///    visible window, each row tagged with a real "workOrderNo". Section 1/2 and section 3's own
-///    "Requested" bar (dailyCapacityRequestData) stay scoped to the inspected Job Task via an
-///    explicit `line.workOrderNo === (this.db.workOrder && this.db.workOrder.no)` check; section
-///    4's own line-matching (skillDaySummary/taskDaySummary/sequenceDayLines) does the OPPOSITE
-///    check (`!==`) since section 4's db.groups[] is now built AL-side from every OTHER Job
-///    Task's demand exclusively - "everything else going on in this window, except the one
-///    being inspected". section 3's capParts() "assigned"/freeInt total is deliberately NOT
-///    workOrderNo-filtered - a resource committed to another WO that day is genuinely unavailable,
-///    so that side was already correctly company-wide before this change.
+/// 5. CROSS-WORK-ORDER SCOPE (2026-09-03, explicit user correction; DIRECTION CORRECTED AGAIN
+///    2026-09-15 - see codeunit 50604's own CPO_BuildPlanningDataJson doc comment for the AL-side
+///    story): db.dayPlanningLines[] mixes the inspected Job Task's own rows with every OTHER Job
+///    Task's rows in the same visible window, each row tagged with a real "workOrderNo". Section
+///    1/2 stay scoped to the inspected Job Task via an explicit `line.workOrderNo ===
+///    (this.db.workOrder && this.db.workOrder.no)` check (unchanged). Section 3's own "Requested"
+///    bar (dailyCapacityRequestData) and section 4's own line-matching
+///    (skillDaySummary/taskDaySummary/sequenceDayLines, via treeSummaryIndex) now BOTH use the
+///    SAME `line.workOrderNo === woNo` -> EXCLUDE check - "everything else going on in this window,
+///    except the one being inspected" - so a drag-relocate in section 3 shows exactly the same
+///    competing-demand universe section 4's tree already shows. (2026-09-03 through 2026-09-14,
+///    section 3 was the OPPOSITE - `!==` INCLUDE-only, kept ONLY the inspected WO's own lines -
+///    superseded 2026-09-15 per explicit user ask: section 3 must show ALL other demand for that
+///    day, company-wide, minus the inspected WO's own lines which Sections 1/2 already cover.)
+///    section 3's capParts() "assigned"/freeInt total is deliberately NOT workOrderNo-filtered - a
+///    resource committed to another WO that day is genuinely unavailable, so that side was already
+///    correctly company-wide before either change.
 /// 6. JSON-CONTRACT UPDATE (Work Order table removal, AL-side - see codeunit 50604's own
 ///    CPO_BuildDayPlanningLineObj doc comment and this add-in's project memory,
 ///    [[project_cpo_cross_wo_scope_fix]]): Job Task's own primary key is composite ("Job No." +
@@ -175,8 +185,15 @@ class CapacityPlanningOverview {
         this.woSummaryScheduler = null;
         this.woScheduler = null;
         this.centralTreeScheduler = null;
-        this._evalWOCache = {};
-        this._currentPositionShortageArr = null;
+        // Section 1's own excluding-this-WO baseline shortage/coverage cache (2026-09-15 - see
+        // excludingWOFlow's own doc comment) - replaces the earlier _evalWOCache/
+        // _currentPositionShortageArr pair (evaluateWO/currentPositionShortage, both removed) that
+        // used to compute a before/after MARGINAL delta instead. Not anchor-dependent (nothing it
+        // reads is affected by where this WO's own occurrences currently sit), so unlike its
+        // predecessor it is NOT cleared by resetAnchorDependentCaches() - only by a fresh
+        // applyPlanningData()/appendOtherWorkOrderData() load, same lifetime as _baselineWithoutWO
+        // itself, which it is directly derived from.
+        this._excludingWOFlowArr = null;
         this._currentPositionSkillShortageArr = null;
         this._baseRequests = null;
         this._baselineWithoutWO = null;
@@ -477,8 +494,7 @@ class CapacityPlanningOverview {
         this._bulkAnchorHint = null; // cosmetic only - see renderCapacityBars' own comment on cpo-wo-anchor-day
         this._hasUnconfirmedChanges = false; // fresh server data - any earlier unconfirmed local moves are moot
 
-        this._evalWOCache = {};
-        this._currentPositionShortageArr = null;
+        this._excludingWOFlowArr = null;
         this._currentPositionSkillShortageArr = null;
         this._baseRequests = this.aggregateRequests();
         this._baselineWithoutWO = this.aggregateOutstandingRequestsWithoutWO();
@@ -495,9 +511,59 @@ class CapacityPlanningOverview {
             // Task's own key is composite; the pipe is swapped for " / " here purely for display -
             // every OTHER read of workOrder.no/workOrderNo in this file compares the raw
             // pipe-joined value unchanged.
-            titleEl.textContent = (this.db.workOrder)
+            const hasWO = !!this.db.workOrder;
+            const titleText = hasWO
                 ? 'Workorder ' + this.db.workOrder.no.replace('|', ' / ') + (this.db.workOrder.description ? (' | ' + this.db.workOrder.description) : '')
                 : 'Capacity Planning Overview';
+
+            // #cpo-title is a small flex row: title text + an optional audit-totals box. Both are
+            // rebuilt here on every applyPlanningData() call (innerHTML='' below wipes whatever was
+            // there before).
+            titleEl.innerHTML = '';
+            const titleTextEl = document.createElement('span');
+            titleTextEl.className = 'cpo-title-text';
+            titleTextEl.textContent = titleText;
+            titleEl.appendChild(titleTextEl);
+
+            // Title-bar audit-totals box (#cpo-title-audit) - "Requested: N hours | Assigned: N
+            // hours" for THIS Work Order's own Day Planning lines, for the user to manually
+            // cross-check against Section 3's per-day bars.
+            //
+            // FIFTH/FINAL design (2026-09-15, explicit final user instruction, after FOUR prior
+            // attempts all failed/were superseded - see this add-in's project memory,
+            // project_cpo_section3_exclude_flip_2026-09-15, for the full history: attempt 1 filtered
+            // db.dayPlanningLines[] by workOrderNo with no date-window check; attempt 2 added a
+            // date-window check to that SAME array; attempt 3 switched to summing renderWorkOrder()'s
+            // own this._woEvents/computeWorkOrderTotals()/renderTitleAuditBox() machinery, a
+            // client-side "reschedule preview" simulation window-relative to this.dates[0], not the
+            // literal stored Plan Date; attempt 4 (server-side) summed via Job Task's "Planning Date
+            // Filter" FlowFilter + tableext 50605's "Total Requested Hours"/"Total Assigned Hours"
+            // FlowFields, but RECOMPUTED FRESH on every single applyPlanningData() payload against
+            // whatever StartDate/EndDate window RefreshData currently had (i.e. it changed when the
+            // user changed "Days to show" or hit Reset Position). This (5th) design keeps the SAME
+            // AL-side FlowFields but moves the computation to a ONE-TIME snapshot: page 50618 "Opti
+            // Job Task Card"'s "Capacity Planning Overview" ribbon action computes it once, over a
+            // fixed 30-day-from-WorkDate() window, and passes it into page 50722 via SetJobTask -
+            // codeunit_50604_DHXDataHandler.al's CPO_BuildPlanningDataJson_Paged now just forwards
+            // that caller-supplied value straight into the JSON, unchanged, on every refresh. This
+            // JS code itself is UNCHANGED by the 4th->5th switch - still a plain, direct read of
+            // this.db.workOrder.requestedHoursTotal/assignedHoursTotal, no client-side derivation,
+            // no dependency on Section 2's own event array. What changed is WHEN the AL side
+            // computes the number, not how this code consumes it.
+            //
+            // DELIBERATE TRADEOFF (accepted by the user for simplicity): since this value is now a
+            // FIXED SNAPSHOT taken at page-open time, it will NOT update at all while this page
+            // stays open - not for an uncommitted Section 2/3 drag before Confirm (as before), and
+            // now also not for a "Days to show" change or Reset Position (new in this 5th design).
+            // Only closing and re-opening this page from the Job Task Card recomputes it.
+            if (hasWO) {
+                const auditEl = document.createElement('span');
+                auditEl.className = 'cpo-title-audit-box';
+                auditEl.id = 'cpo-title-audit';
+                const round1 = function (v) { return Math.round((Number(v) || 0) * 10) / 10; };
+                auditEl.textContent = 'Requested: ' + round1(this.db.workOrder.requestedHoursTotal) + ' hours | Assigned: ' + round1(this.db.workOrder.assignedHoursTotal) + ' hours';
+                titleEl.appendChild(auditEl);
+            }
         }
 
         const daysInput = document.getElementById('cpo-days-to-show-input');
@@ -531,7 +597,7 @@ class CapacityPlanningOverview {
     ///
     /// Unlike request_assignment's much simpler AppendDayTaskLines (which only needs a tree
     /// rebuild - its board just displays rows, it doesn't derive anything FROM them), CPO's
-    /// shortage/coverage engine (maxFlowDay/evaluateWO/currentPositionShortage) and section 3's
+    /// shortage/coverage engine (maxFlowDay/excludingWOFlow/currentPositionSkillShortage) and section 3's
     /// capacity bars are COMPUTED from the full company-wide dayPlanningLines set (capParts()'s
     /// "assigned" sum, aggregateOutstandingRequestsWithoutWO()'s baseline) - so every derived cache
     /// must be invalidated and sections 1/3/4 re-rendered once more of that set arrives. Section 2
@@ -543,6 +609,13 @@ class CapacityPlanningOverview {
     /// CPO_BuildPlanningDataJson_Paged doc comment) - only the LINES (chip-level detail) inside
     /// already-existing groups are what this call backfills, so renderCentralTree() just needs to
     /// re-run against the now-more-complete this.db.dayPlanningLines, no groups[] merge needed.
+    ///
+    /// The title bar's own audit-totals box (2026-09-15 - see applyPlanningData's own doc comment)
+    /// is likewise NOT re-rendered here, for the opposite reason: it sums only THIS WO's own lines
+    /// (workOrderNo === woNo), which are the Pass 1 set - already complete, unpaginated, from the
+    /// very first applyPlanningData() call - and every line this method ever appends is, by AL's
+    /// own Pass 3 query filter, guaranteed to belong to some OTHER Work Order. So the audit box's
+    /// inputs never change here; nothing would be gained by recomputing it.
     /// </summary>
     appendOtherWorkOrderData(rawLines) {
         if (!this.db) return;
@@ -554,8 +627,7 @@ class CapacityPlanningOverview {
 
         // Every cache derived from the (now more complete) dayPlanningLines set is stale -
         // same caches applyPlanningData() itself resets on a full load.
-        this._evalWOCache = {};
-        this._currentPositionShortageArr = null;
+        this._excludingWOFlowArr = null;
         this._currentPositionSkillShortageArr = null;
         this._baseRequests = this.aggregateRequests();
         this._baselineWithoutWO = this.aggregateOutstandingRequestsWithoutWO();
@@ -567,9 +639,15 @@ class CapacityPlanningOverview {
         this.bindScrollSync();
     }
 
-    /// <summary>Clears the two sequence-anchor-dependent caches (NOT this._evalWOCache, which is independent of every sequence's own anchor) - call after any anchor change (a single-row drag, or Section 3's bulk click-to-relocate).</summary>
+    /// <summary>
+    /// Clears the one remaining sequence-anchor-dependent cache (Section 2's own
+    /// currentPositionSkillShortage, which still needs each occurrence's CURRENT placement to
+    /// allocate per-day shortage across sequence rows) - call after any anchor change (a
+    /// single-row drag, or Section 3's bulk click-to-relocate). Section 1's own
+    /// excludingWOFlow()/_excludingWOFlowArr is NOT anchor-dependent (2026-09-15 - see that
+    /// method's own doc comment) and deliberately NOT cleared here anymore.
+    /// </summary>
     resetAnchorDependentCaches() {
-        this._currentPositionShortageArr = null;
         this._currentPositionSkillShortageArr = null;
     }
 
@@ -641,9 +719,11 @@ class CapacityPlanningOverview {
     }
 
     /// <summary>
-    /// "Outstanding demand from every OTHER Job/Task NOT part of this WO's own sequences" - this is
-    /// the baseline every day's max-flow "before" comparison is measured against, so evaluateWO's
-    /// "added shortage" isolates the marginal effect of THIS Work Order's own demand.
+    /// "Outstanding demand from every OTHER Job/Task NOT part of this WO's own sequences" - this
+    /// baseline is what excludingWOFlow() runs maxFlowDay against DIRECTLY (2026-09-15) to report
+    /// Section 1's own shortage/coverage numbers; currentPositionSkillShortage (Section 2) still
+    /// uses it as the "before" side of its own before/after marginal-delta computation, isolating
+    /// the added effect of THIS Work Order's own demand at its current placement.
     /// </summary>
     aggregateOutstandingRequestsWithoutWO() {
         const self = this;
@@ -664,7 +744,10 @@ class CapacityPlanningOverview {
     // ================================================================================
     // The max-flow shortage/coverage engine - near-verbatim port of the reference's maxFlowDay/
     // idxWork/workOrderExtra/evaluateWO/currentPositionShortage/currentPositionSkillShortage
-    // (DHTMLXtempv112-app.js ~L104-197). Source/resource-nodes/skill-nodes/sink flow network,
+    // (DHTMLXtempv112-app.js ~L104-197) - Section 1's own evaluateWO/currentPositionShortage were
+    // later replaced 2026-09-15 by excludingWOFlow, see that method's own doc comment; the rest
+    // (maxFlowDay/idxWork/workOrderExtraCurrent/currentPositionSkillShortage) remain as ported.
+    // Source/resource-nodes/skill-nodes/sink flow network,
     // Edmonds-Karp-style BFS augmenting-path max-flow - same algorithm, same node numbering
     // convention, same edge-capacity rules (resource->skill edges are effectively uncapped at
     // 9999; skill->sink edges carry that day's requested hours for that skill).
@@ -733,15 +816,6 @@ class CapacityPlanningOverview {
         while (i < dates.length && c < wd) { i++; while (i < dates.length && cpoIsWeekend(dates[i])) i++; c++; }
         return i;
     }
-    maxVisibleWOWorkday() {
-        let m = 1;
-        (this.db.workOrderSequences || []).forEach(function (s) { (s.workdays || []).forEach(function (w) { if (w > m) m = w; }); });
-        return m;
-    }
-    validStart(i) {
-        return i >= 0 && i < this.dates.length && !cpoIsWeekend(this.dates[i]) && this.idxWork(i, this.maxVisibleWOWorkday()) < this.dates.length;
-    }
-
     /// <summary>
     /// Stable per-OCCURRENCE identity for occurrenceAnchors (2026-09-04, replacing an earlier
     /// per-SEQUENCE-ROW design) - one sequence row (Skill+Job+Task+SequenceNo) can carry several
@@ -827,27 +901,16 @@ class CapacityPlanningOverview {
         return true;
     }
 
-    /// <summary>Places this Work Order's own workOrderSequences[] demand at candidate anchor `start`, returning a per-day {skill: hours} map - reference's own "workOrderExtra". Still takes ONE uniform `start` for every sequence - only used by evaluateWO's "if the whole WO were placed starting on day X" per-day scan (section 1's "Calculated conclusion" row), a different, unchanged feature from the per-sequence current-position placement below.</summary>
-    workOrderExtra(start) {
-        const self = this;
-        const extra = this.dates.map(function () { const o = {}; self.skills.forEach(function (s) { o[s] = 0; }); return o; });
-        (this.db.workOrderSequences || []).forEach(function (seq) {
-            (seq.workdays || []).forEach(function (wd) {
-                const idx = self.idxWork(start, wd);
-                if (idx < self.dates.length) {
-                    const hrs = (seq.hoursByWorkday && seq.hoursByWorkday[wd] != null) ? Number(seq.hoursByWorkday[wd]) : 8;
-                    extra[idx][seq.skill] = (extra[idx][seq.skill] || 0) + hrs;
-                }
-            });
-        });
-        return extra;
-    }
     /// <summary>
-    /// Per-OCCURRENCE version of workOrderExtra (2026-09-04) - each individual occurrence is placed
-    /// at ITS OWN current day-index (getOccurrenceDayIndex) instead of one shared `start` for the
-    /// whole WO. Used by currentPositionShortage/currentPositionSkillShortage (section 1's "Current
-    /// position shortage" row) and renderWorkOrder (section 2's own bar placement) - both need
-    /// "wherever each occurrence ACTUALLY currently sits", not evaluateWO's uniform hypothetical.
+    /// Per-OCCURRENCE placement of this Work Order's own workOrderSequences[] demand - each
+    /// individual occurrence at ITS OWN current day-index (getOccurrenceDayIndex), returning a
+    /// per-day {skill: hours} map - reference's own "workOrderExtra", kept under its "Current"
+    /// name (2026-09-04) now that the uniform-`start`-anchor variant this used to sit alongside
+    /// (the old "workOrderExtra(start)"/evaluateWO(start) pair, section 1's former "Calculated
+    /// conclusion" hypothetical-placement scan) was removed 2026-09-15 - see excludingWOFlow's own
+    /// doc comment for why. Used by currentPositionSkillShortage (Section 2's own per-day/
+    /// per-sequence shortage allocation) and renderWorkOrder (Section 2's own bar placement) -
+    /// Section 1 no longer uses any WO-placement-dependent calculation at all.
     /// </summary>
     workOrderExtraCurrent() {
         const self = this;
@@ -863,41 +926,48 @@ class CapacityPlanningOverview {
         });
         return extra;
     }
-    /// <summary>Total company-wide added shortage if this WO's own demand were placed starting at day `start`, plus the resulting coverage % - reference's own "evaluateWO". Cached per `start` for the lifetime of the current payload (see this class's own doc comment on caching).</summary>
-    evaluateWO(start) {
-        if (Object.prototype.hasOwnProperty.call(this._evalWOCache, start)) return this._evalWOCache[start];
-        let result;
-        if (!this.validStart(start)) {
-            result = null;
-        } else {
-            const extra = this.workOrderExtra(start);
-            let addedShortage = 0, total = 0;
-            for (let i = 0; i < this.dates.length; i++) {
-                const before = this.maxFlowDay(i, this._baselineWithoutWO[i]);
-                const combined = {};
-                this.skills.forEach((s) => { combined[s] = (this._baselineWithoutWO[i][s] || 0) + (extra[i][s] || 0); });
-                const after = this.maxFlowDay(i, combined);
-                addedShortage += Math.max(0, after.totalShortage - before.totalShortage);
-                total += this.skills.reduce(function (a, s) { return a + (extra[i][s] || 0); }, 0);
-            }
-            result = { coverage: total ? Math.round((total - addedShortage) / total * 100) : 100, addedShortage: addedShortage };
-        }
-        this._evalWOCache[start] = result;
-        return result;
-    }
-    /// <summary>Per-day added shortage caused specifically by this WO's demand at each sequence's CURRENT (independent, 2026-09-04) anchor position - reference's own "currentPositionShortage", now summed from workOrderExtraCurrent() instead of one shared woAnchor. Cached until the next resetAnchorDependentCaches() (any anchor change) or applyPlanningData() call.</summary>
-    currentPositionShortage() {
-        if (this._currentPositionShortageArr) return this._currentPositionShortageArr;
-        const extra = this.workOrderExtraCurrent();
+    /// <summary>
+    /// Per-day max-flow shortage/coverage of ALL day planning in the active window EXCLUDING this
+    /// project task's own demand (2026-09-15, explicit user request/correction) - reads
+    /// maxFlowDay's own result for this._baselineWithoutWO[i] DIRECTLY, with nothing of this WO's
+    /// own demand ever added back in. this._baselineWithoutWO is already built excluding this WO's
+    /// own Job No./Job Task No. (see aggregateOutstandingRequestsWithoutWO's own doc comment) -
+    /// same "company-wide minus the inspected WO" direction Sections 3/4 now use (see this class's
+    /// own header doc comment, point 5) - so no new AL data or exclusion logic was needed here,
+    /// only a different way of consuming the SAME baseline this file already computed.
+    ///
+    /// SUPERSEDES the former evaluateWO(start)/currentPositionShortage() pair (both removed), which
+    /// instead computed a MARGINAL/ADDED-shortage delta: add this WO's own demand (hypothetically
+    /// placed at a candidate `start`, or at each occurrence's actual current position) on top of
+    /// the SAME _baselineWithoutWO, re-run maxFlowDay, and report the INCREASE in totalShortage
+    /// caused by that addition ("how much worse do things get because of me"). The user explicitly
+    /// asked for Section 1 to instead report the shortage/coverage of "all day planning in the
+    /// window excluding this project task" directly - i.e. the baseline's own shortage, full stop,
+    /// not a before/after delta - so this method just stops adding this WO's demand back in.
+    ///
+    /// A direct consequence, called out explicitly since it changes observed UI behavior: the
+    /// result is now POSITION-INDEPENDENT - dragging an occurrence in Section 2 no longer changes
+    /// Section 1's numbers at all (renderWorkOrder() still calls
+    /// woSummaryScheduler.setCurrentView(...) after a drag, which is harmless - the cell templates
+    /// just re-read the same cached, unchanged values). This is the CORRECT and INTENDED
+    /// consequence of "excluding this project task": a number that excludes this task's demand by
+    /// definition cannot depend on where that (excluded) demand currently sits. Cached for the
+    /// lifetime of the current payload (this.db), same as _baselineWithoutWO itself - unlike its
+    /// predecessor, deliberately NOT cleared by resetAnchorDependentCaches() (see that method's own
+    /// doc comment).
+    /// </summary>
+    excludingWOFlow() {
+        if (this._excludingWOFlowArr) return this._excludingWOFlowArr;
         const out = this.dates.map((d, i) => {
             if (cpoIsWeekend(d)) return null;
-            const before = this.maxFlowDay(i, this._baselineWithoutWO[i]);
-            const combined = {};
-            this.skills.forEach((s) => { combined[s] = (this._baselineWithoutWO[i][s] || 0) + (extra[i][s] || 0); });
-            const after = this.maxFlowDay(i, combined);
-            return Math.max(0, after.totalShortage - before.totalShortage);
+            const flow = this.maxFlowDay(i, this._baselineWithoutWO[i]);
+            return {
+                totalRequested: flow.totalRequested,
+                totalShortage: flow.totalShortage,
+                coverage: flow.totalRequested ? Math.round((flow.totalRequested - flow.totalShortage) / flow.totalRequested * 100) : 100
+            };
         });
-        this._currentPositionShortageArr = out;
+        this._excludingWOFlowArr = out;
         return out;
     }
     /// <summary>Same as currentPositionShortage but broken out per skill - reference's own "currentPositionSkillShortage", used by renderWorkOrder() to allocate each day's shortage across the sequence rows actually contributing to it.</summary>
@@ -941,11 +1011,15 @@ class CapacityPlanningOverview {
     }
 
     // ================================================================================
-    // Section 1 - Stats header (2-row synthetic Scheduler timeline, cell_template HTML). Near-
-    // verbatim port of the reference's createWorkOrderSummaryScheduler/
-    // workordersummary_cell_class/_cell_value (DHTMLXtempv112-app.js ~L211-253) - every cell reads
-    // this.evaluateWO(idx)/this.currentPositionShortage()[idx] LIVE at render time instead of a
-    // pre-computed AL "statsRows" array.
+    // Section 1 - Stats header (2-row synthetic Scheduler timeline, cell_template HTML). Originally
+    // a near-verbatim port of the reference's createWorkOrderSummaryScheduler/
+    // workordersummary_cell_class/_cell_value (DHTMLXtempv112-app.js ~L211-253), reading
+    // this.evaluateWO(idx)/this.currentPositionShortage()[idx] (a before/after MARGINAL-shortage
+    // delta) LIVE at render time instead of a pre-computed AL "statsRows" array. 2026-09-15,
+    // explicit user request: both rows now read this.excludingWOFlow()[idx] instead - the DIRECT
+    // shortage/coverage of all day planning in the window EXCLUDING this project task, no
+    // before/after delta - see excludingWOFlow's own doc comment for the full reasoning and its
+    // consequence (the result is now independent of this WO's own placement).
     // ================================================================================
 
     renderWoSummaryScheduler(json) {
@@ -994,30 +1068,36 @@ class CapacityPlanningOverview {
             const idx = self.dayIndex(date);
             if (cpoIsWeekend(date)) return 'cpo-weekend-cell';
             if (section.key === 'fit') {
-                const ev = self.evaluateWO(idx);
+                const ev = self.excludingWOFlow()[idx];
                 if (!ev) return 'cpo-wo-fit-off';
-                return ev.addedShortage === 0 ? 'cpo-wo-fit-good' : (ev.coverage >= 85 ? 'cpo-wo-fit-tight' : 'cpo-wo-fit-bad');
+                return ev.totalShortage === 0 ? 'cpo-wo-fit-good' : (ev.coverage >= 85 ? 'cpo-wo-fit-tight' : 'cpo-wo-fit-bad');
             }
             if (section.key === 'shortage') {
-                const val = self.currentPositionShortage()[idx] || 0;
+                const ev = self.excludingWOFlow()[idx];
+                const val = ev ? ev.totalShortage : 0;
                 const cls = val === 0 ? 'cpo-wo-short-good' : (val <= 8 ? 'cpo-wo-short-small' : 'cpo-wo-short-bad');
                 return cls + ' cpo-wo-summary-divider-cell';
             }
             return '';
         };
+        // Both rows now read the SAME excludingWOFlow() result (2026-09-15 - see that method's own
+        // doc comment) - "fit" shows it as a coverage percentage, "shortage" as raw hours; they are
+        // intentionally two views of one number, not two independent calculations, now that neither
+        // depends on this WO's own demand/placement at all.
         s.templates.workordersummary_cell_value = function (evs, date, section) {
             const idx = self.dayIndex(date);
             if (idx < 0 || idx >= self.dates.length) return '';
             if (section.key === 'fit') {
                 if (cpoIsWeekend(date)) return '<div class="cpo-wo-cell-text"><b>\u2014</b><small>off</small></div>';
-                const ev = self.evaluateWO(idx);
+                const ev = self.excludingWOFlow()[idx];
                 if (!ev) return '<div class="cpo-wo-cell-text"><b>\u2014</b><small>outside</small></div>';
-                return '<div class="cpo-wo-cell-text"><b>' + ev.coverage + '%</b><small>' + (ev.addedShortage ? ('+' + ev.addedShortage + 'h shortage') : 'no shortage') + '</small></div>';
+                return '<div class="cpo-wo-cell-text"><b>' + ev.coverage + '%</b><small>' + (ev.totalShortage ? (ev.totalShortage + 'h shortage') : 'no shortage') + '</small></div>';
             }
             if (section.key === 'shortage') {
                 if (cpoIsWeekend(date)) return '<div class="cpo-wo-cell-text"><b>\u2014</b><small>off</small></div>';
-                const v = self.currentPositionShortage()[idx] || 0;
-                return '<div class="cpo-wo-cell-text"><b>' + v + 'h</b><small>' + (v ? 'caused by WO' : 'no shortage') + '</small></div>';
+                const ev = self.excludingWOFlow()[idx];
+                const v = ev ? ev.totalShortage : 0;
+                return '<div class="cpo-wo-cell-text"><b>' + v + 'h</b><small>' + (v ? 'shortage' : 'no shortage') + '</small></div>';
             }
             return '';
         };
@@ -1226,6 +1306,26 @@ class CapacityPlanningOverview {
     /// anchors/caches) and re-renders section 3 (its "shortage" figure and, cosmetically, its
     /// single-day highlight both depend on this) - section 4 is deliberately NOT touched here (its
     /// own data has no anchor dependency at all, matching the reference).
+    ///
+    /// KNOWN PITFALL, worth over-documenting since it caused two consecutive wrong fixes in one
+    /// session (2026-09-15, see &sect;13.12/13.13 of the technical PDF): the `events` array built
+    /// here is a client-side, WINDOW-RELATIVE "reschedule preview" of db.workOrderSequences[] -
+    /// each occurrence's day-index comes from getOccurrenceDayIndex(seq, wd), which repositions it
+    /// relative to THIS.DATES[0] (the currently visible window's own start), NOT from the literal
+    /// "Plan Date" stored on the real Day Planning record. `hours`/`requestedHours` here come from
+    /// seq.hoursByWorkday[wd] (defaulting to 8 if AL sent none) - again NOT a re-read of
+    /// db.dayPlanningLines[]'s own requestedHours field. This is a SEPARATE data path/concept from
+    /// db.dayPlanningLines[] entirely (matches this file's own drag/moveWorkOrderToDay design: pure
+    /// client-side simulation, no AL round-trip until Confirm) - what Section 2 visibly shows on
+    /// screen is this array, always, regardless of what real calendar date any given occurrence's
+    /// underlying Day Planning row actually carries. The two arrays can legitimately disagree about
+    /// which calendar day an occurrence "is on" - any FUTURE code meant to reconcile against what
+    /// Section 2 visibly renders should be aware of this rather than assuming db.dayPlanningLines[]
+    /// tells the same story. (The title-bar audit-totals box used to read a totals-of-this-array
+    /// helper for exactly this reason - as of 2026-09-15 it no longer does, see
+    /// applyPlanningData()'s own title-block doc comment: it now reads a plain AL-computed field
+    /// instead, by explicit final user design, precisely to get OUT of this array's window-relative
+    /// semantics.)
     /// </summary>
     renderWorkOrder() {
         if (!this.woScheduler) return;
@@ -1500,24 +1600,33 @@ class CapacityPlanningOverview {
     /// <summary>One row per this.dates entry - reference's own "dailyCapacityRequestData", minus the reference's separate fixed-30-column "timelineDates"/outOfData padding concept (this add-in's own "Days to show" window already IS the exact display window, so no separate longer horizon is needed).</summary>
     dailyCapacityRequestData() {
         const self = this;
-        // "Requested" side stays scoped to the INSPECTED Work Order only (2026-09-03 addition -
-        // explicit user correction: "section 3 for DWO0008") - db.dayPlanningLines now ALSO
-        // carries every OTHER Work Order's demand in this same window (added so Section 4's tree
-        // has real data to show), so this filter is what keeps section 3's own "Requested" bar
-        // from silently turning into a company-wide total as a side effect of that. capParts()'s
-        // "assigned"/freeInt total, just below, is deliberately NOT filtered this way - a resource
-        // assigned to ANOTHER Work Order that day is genuinely unavailable to this one, so that
-        // side of the bar was already correctly company-wide before this change.
+        // "Requested" side is now COMPANY-WIDE, EXCLUDING the inspected Work Order's own lines
+        // (2026-09-15 correction - supersedes the 2026-09-03 INCLUDE-only design below). Purpose:
+        // when the user drags a Section 3 bar to relocate work to a different day, they need to
+        // see how much capacity OTHER work has already claimed that day - Sections 1/2 already
+        // show the inspected WO's own demand, so re-showing it here too would double-count it
+        // visually. This now mirrors treeSummaryIndex()'s own exclusion (`line.workOrderNo ===
+        // woNo` -> skip), i.e. Section 3's "Requested" bar and Section 4's tree are now built from
+        // the exact same "everything except the inspected WO" universe - previously Section 3 was
+        // INCLUDE-only (kept ONLY the inspected WO's lines) while Section 4 was EXCLUDE-only (kept
+        // everything BUT the inspected WO's lines), an intentional-at-the-time but now-corrected
+        // asymmetry (see this class's own header doc comment point 5, also updated 2026-09-15).
+        // capParts()'s "assigned"/freeInt total, just below, is deliberately NOT filtered this way
+        // - a resource assigned to ANOTHER Work Order that day is genuinely unavailable to this
+        // one, so that side of the bar was already correctly company-wide before either change.
         //
         // BUG FOUND 2026-09-08 (reported live, flagged "dangerous" - Capacity Planning Dashboard,
         // src/dhx/capacity_planning_dashboard, has no inspected Work Order at all): with
-        // `this.db.workOrder` absent, `woNo` was `undefined`, and `line.workOrderNo !== woNo` is
-        // true for every REAL line (a real Work Order No. string is never `undefined`) - so EVERY
-        // line was excluded and "Requested" rendered a constant 0h for every single day, while
-        // Section 4's tree (correctly company-wide) showed large non-zero demand for those same
-        // days. Only filter by workOrderNo when there IS an inspected Work Order to filter to;
-        // with none, "Requested" should mean the same company-wide total Section 4 already shows
-        // (mirroring Section 4's own `!==` "everything else" logic when no WO is being excluded).
+        // `this.db.workOrder` absent, `woNo` is `undefined`. Back when this filter was INCLUDE-only
+        // (`line.workOrderNo !== woNo`), that made EVERY real line's condition true (a real Work
+        // Order No. string is never `undefined`), so every line was excluded and "Requested"
+        // rendered a constant 0h for every day. This fallback reasoning still matters under the
+        // new EXCLUDE-only direction too: `line.workOrderNo === woNo` is simply always false when
+        // `woNo` is `undefined`, so nothing is ever excluded on the Dashboard page (which has no
+        // inspected WO to exclude) - it stays fully company-wide by construction, no separate
+        // `hasInspectedWO` branch needed for correctness, but the guard is kept below anyway so the
+        // intent (Dashboard = always company-wide) reads explicitly rather than falling out of an
+        // `undefined` comparison accidentally.
         const hasInspectedWO = !!(this.db.workOrder && this.db.workOrder.no);
         const woNo = this.db.workOrder && this.db.workOrder.no;
         return this.dates.map(function (d, i) {
@@ -1527,7 +1636,7 @@ class CapacityPlanningOverview {
             self.skills.forEach(function (sk) { unassignedBySkill[sk] = 0; });
             let assignedRequest = 0, request = 0;
             (self.db.dayPlanningLines || []).forEach(function (line) {
-                if (hasInspectedWO && line.workOrderNo !== woNo) return;
+                if (hasInspectedWO && line.workOrderNo === woNo) return;
                 if (self.dplDayIndex(line) !== i) return;
                 const req = Number(line.requestedHours) || 0;
                 const ass = Math.min(req, Number(line.assignedHours) || 0);
@@ -1734,21 +1843,25 @@ class CapacityPlanningOverview {
 
             const segKey = segEl.dataset.seg;
             const isSkill = segKey.indexOf('skill:') === 0;
-            // job/task scoping (2026-09-14 critical scoping fix): the CAPACITY column's own
-            // segments ("assigned"/"freeInternal"/"freeExternal") are company-wide by definition on
-            // BOTH pages (see capParts()'s own doc comment) and must NEVER carry a job/task filter.
-            // The REQUEST column's segments ("assigned"=assignedRequest, "skill:<sk>") mirror
-            // dailyCapacityRequestData's own hasInspectedWO filter - scoped to the inspected Work
-            // Order's Job No./Job Task No. on page 50722 (single-WO page), company-wide (no filter)
-            // on page 50724 (Dashboard tile, no inspected WO) - matching exactly what is plotted in
-            // each context, not always one or the other.
-            const hasInspectedWO = !!(self.db.workOrder && self.db.workOrder.no);
+            // job/task scoping (2026-09-14 critical scoping fix; REQUEST column corrected again
+            // 2026-09-15): the CAPACITY column's own segments ("assigned"/"freeInternal"/
+            // "freeExternal") are company-wide by definition on BOTH pages (see capParts()'s own
+            // doc comment) and must NEVER carry a job/task filter.
+            // The REQUEST column's segments ("assigned"=assignedRequest, "skill:<sk>") now plot
+            // dailyCapacityRequestData's EXCLUDE-the-inspected-WO universe (company-wide minus the
+            // inspected WO's own lines - see that method's own doc comment) on page 50722, and the
+            // fully company-wide universe (no exclusion, no inspected WO) on page 50724. AL's
+            // "Job No."/"Job Task No." filters on CPO_OpenDayPlanningList only support SetRange
+            // (INCLUDE), not exclude - there is no way to ask AL for "every job/task EXCEPT this
+            // one" today. Sending the inspected WO's job/task as an INCLUDE filter here (the old
+            // 2026-09-14 behavior) would therefore open the exact WRONG (opposite) record set now
+            // that the segment itself excludes that job/task. Safe fix: never send a job/task
+            // filter for the REQUEST column, on either page - "Show Data" opens every matching
+            // skill+date Day Planning company-wide, a slight superset of what the segment actually
+            // represents (it also includes the inspected WO's own lines, which the segment
+            // excludes). Known, accepted minor over-inclusion, not a bug - revisit only if AL ever
+            // grows a real exclude-filter capability for this drill-down.
             let scopeJob = '', scopeTask = '';
-            if (col.dataset.summaryKind === 'request' && hasInspectedWO) {
-                const parts = String(self.db.workOrder.no).split('|');
-                scopeJob = parts[0] || '';
-                scopeTask = parts[1] || '';
-            }
 
             const payload = {
                 segment: isSkill ? 'skill' : segKey,
