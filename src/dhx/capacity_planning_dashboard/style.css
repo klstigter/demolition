@@ -4,16 +4,16 @@
    that shared stylesheet - only what's specific to appearing as a highlighted Role Center tile
    lives here. */
 
-/* The whole tile reads as yellow-highlighted on the Role Center (explicit user request, matching
-   the reference screenshot) - not just .cpo-top-bar's own existing yellow strip (shared stylesheet,
-   #ffe066), which alone would leave the rest of the tile white/blended into the surrounding
+/* The whole tile reads as white-highlighted on the Role Center (explicit user request, matching
+   the reference screenshot) - not just .cpo-top-bar's own existing white strip (shared stylesheet,
+   #fff), which alone would leave the rest of the tile white/blended into the surrounding
    Insights section. */
 #cpo-root {
-    background: #ffe066;
+    background: #fff;
 }
 
 /* Section panels get a plain white backing so their own content (bars/tree/chips) stays legible
-   against the tile's yellow surround, instead of every section's own background showing yellow
+   against the tile's white surround, instead of every section's own background showing white
    through any transparent gaps. */
 .cpo-wo-summary-host,
 .cpo-capacity-bars,
