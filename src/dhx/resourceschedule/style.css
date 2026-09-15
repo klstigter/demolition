@@ -128,8 +128,8 @@
 }
 
 .standard-tooltip-table thead th {
+    font-size: 12px;
     font-weight: 700;
-    opacity: 0.75;
 }
 
 .standard-tooltip-table tbody th {
@@ -155,7 +155,7 @@
 }
 
 .standard-tooltip-context-title {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     line-height: 1.35;
 }
