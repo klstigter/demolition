@@ -748,12 +748,10 @@ function requestTooltipHtml(line) {
       <table class="standard-tooltip-table standard-tooltip-context-table">
         <tbody>
           <tr>
-            <th>Job</th>
             <td>${jobNo}</td>
             <td>${jobDescription}</td>
           </tr>
           <tr>
-            <th>Task</th>
             <td>${taskNo}</td>
             <td>${taskDescription}</td>
           </tr>
@@ -3099,12 +3097,10 @@ function assignmentTooltipHtml(line) {
       <table class="standard-tooltip-table standard-tooltip-context-table">
         <tbody>
           <tr>
-            <th>Job</th>
             <td>${jobNo}</td>
             <td>${jobDescription}</td>
           </tr>
           <tr>
-            <th>Task</th>
             <td>${taskNo}</td>
             <td>${taskDescription}</td>
           </tr>
