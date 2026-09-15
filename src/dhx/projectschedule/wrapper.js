@@ -35,46 +35,95 @@ var _loadingSafetyTimer = null;
 // OnPageBackgroundTaskCompleted - this poll loop is what actually pulls it into the control add-in,
 // via a normal JS-initiated synchronous trigger (OnPollSectionsResult), which AL answers by calling
 // AppendSections itself - from a normal call stack, not the background-task completion - if
-// something is pending. Bounded (not indefinite), exact same 500ms/60-attempt shape as
-// src/dhx/ganttdemo2/wrapper.js's NotifyResourcePanelTaskPending/_resourcePanelPollTimer.
+// something is pending. Bounded (not indefinite), same 500ms/60-attempt ceiling as
+// src/dhx/ganttdemo2/wrapper.js's NotifyResourcePanelTaskPending/_resourcePanelPollTimer, but a
+// self-rescheduling setTimeout (not a raw setInterval) - see the next comment.
 // -------------------------------------------------------
 var _sectionsPollTimer = null;
 var _sectionsPollAttempts = 0;
+var _sectionsPollActive = false;
+var _sectionsPollInFlight = false; // guards against two OnPollSectionsResult calls ever being in flight together
 var SECTIONS_POLL_INTERVAL_MS = 500;
 var SECTIONS_POLL_MAX_ATTEMPTS = 60; // 60 x 500ms = 30s generous ceiling
 
+// Rewritten from a raw setInterval to a self-rescheduling setTimeout that only fires the next
+// InvokeExtensibilityMethod once the previous one has actually returned (success or error) - a
+// fixed-cadence setInterval that ignores whether the prior round trip completed is the exact
+// "wrong way" pattern Microsoft's control add-in performance guidance calls out as a trigger for
+// the client's "reduced functionality" / unhealthy-add-in warning (see learn.microsoft.com/
+// dynamics365/business-central/dev-itpro/developer/devenv-control-addin-bestpractices). Ported 1:1
+// from src/dhx/request_assignment/wrapper.js's NotifyDayTaskLinesTaskPending/
+// _scheduleDayTaskLinesPoll/_runDayTaskLinesPoll - the confirmed fix for the identical symptom on
+// that sibling add-in (page 50710) - renamed to this file's existing Sections*/_sections* naming.
+// _sectionsPollInFlight guards against ever having two OnPollSectionsResult calls in flight
+// together.
 function NotifySectionsTaskPending() {
     try {
         if (_sectionsPollTimer) {
-            clearInterval(_sectionsPollTimer);
+            clearTimeout(_sectionsPollTimer);
             _sectionsPollTimer = null;
         }
         _sectionsPollAttempts = 0;
-        _sectionsPollTimer = setInterval(function () {
-            _sectionsPollAttempts++;
-            if (_sectionsPollAttempts > SECTIONS_POLL_MAX_ATTEMPTS) {
-                clearInterval(_sectionsPollTimer);
-                _sectionsPollTimer = null;
-                return;
-            }
-            try {
-                Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnPollSectionsResult", []);
-            } catch (e) {
-                console.error("OnPollSectionsResult poll failed:", e);
-            }
-        }, SECTIONS_POLL_INTERVAL_MS);
+        _sectionsPollActive = true;
+        _scheduleSectionsPoll();
     } catch (e) {
         console.error("NotifySectionsTaskPending failed:", e);
     }
 }
 window.NotifySectionsTaskPending = NotifySectionsTaskPending;
 
+function _scheduleSectionsPoll() {
+    if (!_sectionsPollActive) return;
+    _sectionsPollTimer = setTimeout(_runSectionsPoll, SECTIONS_POLL_INTERVAL_MS);
+}
+
+function _runSectionsPoll() {
+    _sectionsPollTimer = null;
+    if (!_sectionsPollActive) return;
+
+    _sectionsPollAttempts++;
+    if (_sectionsPollAttempts > SECTIONS_POLL_MAX_ATTEMPTS) {
+        _sectionsPollActive = false; // generous 30s ceiling already elapsed - give up
+        return;
+    }
+    if (_sectionsPollInFlight) {
+        // Previous round trip hasn't returned yet - reschedule instead of piling another call on
+        // top of it.
+        _scheduleSectionsPoll();
+        return;
+    }
+
+    _sectionsPollInFlight = true;
+    var onSettled = function () {
+        _sectionsPollInFlight = false;
+        _scheduleSectionsPoll();
+    };
+    try {
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(
+            "OnPollSectionsResult",
+            [],
+            false,
+            onSettled,
+            function (e) {
+                console.error("OnPollSectionsResult poll failed:", e);
+                onSettled();
+            }
+        );
+    } catch (e) {
+        console.error("OnPollSectionsResult poll failed:", e);
+        onSettled();
+    }
+}
+
 // Called by AL (from the OnPollSectionsResult trigger handler, via AppendSections) once a pending
 // result was actually delivered - stops the poll burst early instead of waiting out the full
-// timeout.
+// timeout. Setting _sectionsPollActive false (not just clearing the timer) also blocks the
+// in-flight call's own onSettled callback - which fires after this, from the same round trip -
+// from resurrecting the loop.
 function StopSectionsPolling() {
+    _sectionsPollActive = false;
     if (_sectionsPollTimer) {
-        clearInterval(_sectionsPollTimer);
+        clearTimeout(_sectionsPollTimer);
         _sectionsPollTimer = null;
     }
 }
