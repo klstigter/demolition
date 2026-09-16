@@ -549,6 +549,12 @@ page 50618 "Opti Job Task Card"
                     end;
                 }
             }
+            part(DayPlanningSequence; "Day Planning Sequence Part")
+            {
+                ApplicationArea = All;
+                Caption = 'Day Planning Sequence';
+            }
+
             part(ResourceWeekView; "Resource Week View Part")
             {
                 ApplicationArea = Jobs;
@@ -646,11 +652,6 @@ page 50618 "Opti Job Task Card"
                         }
                     }
                 }
-            }
-            part(DayPlanningSequence; "Day Planning Sequence Part")
-            {
-                ApplicationArea = All;
-                Caption = 'Day Planning Sequence';
             }
             group(Posting)
             {
