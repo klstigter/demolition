@@ -1406,13 +1406,14 @@ window.BOOT = function() {
         + ".gantt_resource_marker_ok{ background:#21b36c; }"
         + ".gantt_resource_marker_overtime{ background:#e74c3c; }"
         + ".gantt_resource_marker_request{ background:#909090 !important; border:1px solid #666 !important; opacity:0.9; }"
-        /* ── Panel header: black background, white bold font ── */
-        + ".gantt_grid_scale { background:#000 !important; }"
-        + ".gantt_grid_head_cell { color:#fff !important; font-weight:bold !important; border-color:#333 !important; }"
-        + ".gantt_grid_head_cell .gantt_grid_head_add { color:#fff !important; }"
+        /* ── Panel header: standard BC list-header colors (rgb(246,247,248) bg /
+           #666 text, matched live off a standard BC list page's column header row) ── */
+        + ".gantt_grid_scale { background:#f6f7f8 !important; }"
+        + ".gantt_grid_head_cell { color:#666666 !important; font-weight:600 !important; border-color:#e1e1e1 !important; }"
+        + ".gantt_grid_head_cell .gantt_grid_head_add { color:#666666 !important; }"
         /* resource panel header */
-        + ".gantt_resource_grid .gantt_grid_scale { background:#000 !important; }"
-        + ".gantt_resource_grid .gantt_grid_head_cell { color:#fff !important; font-weight:bold !important; border-color:#333 !important; }"
+        + ".gantt_resource_grid .gantt_grid_scale { background:#f6f7f8 !important; }"
+        + ".gantt_resource_grid .gantt_grid_head_cell { color:#666666 !important; font-weight:600 !important; border-color:#e1e1e1 !important; }"
         /* ── Resource filter info icon ── */
         + ".res-filter-icon { display:inline-block; margin-left:5px; cursor:pointer; font-size:13px; color:#adf; opacity:0.85; vertical-align:middle; }"
         + ".res-filter-icon:hover { opacity:1; }"
