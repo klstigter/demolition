@@ -52,60 +52,33 @@ page 50708 "Requested vs Capacity Weekly P"
                 begin
                     SkillCapacityAnalysisMgt.ShowSegmentData(SegmentId, BarType, PeriodStartDate, DayIndex, WholeWeek);
                 end;
-            }
-        }
-    }
 
-    actions
-    {
-        area(Processing)
-        {
-            action(RefreshAction)
-            {
-                ApplicationArea = All;
-                Caption = 'Refresh';
-                Image = Refresh;
-                ToolTip = 'Recalculate the chart for the current week.';
-
-                trigger OnAction()
+                // JS-rendered toolbar replacements for the retired BC RefreshAction/PreviousAction/
+                // TodayAction/NextAction actions (see this page's own former actions() area, and
+                // wrapper.js's BuildToolbar/UpdateToolbar) - BC collapses a CardPart's action bar into
+                // a hidden "..." overflow menu once it's embedded in a Role Center, so those actions
+                // are now buttons rendered directly inside the add-in's own DOM instead (opt-in via
+                // the 'showToolbar' key this page's RefreshChart sends). Each trigger calls the exact
+                // same local procedure(s) the corresponding retired action used to call - only the UI
+                // trigger moved, not the underlying logic.
+                trigger OnRefreshClicked()
                 begin
                     RefreshData();
                 end;
-            }
-            action(PreviousAction)
-            {
-                ApplicationArea = All;
-                Caption = 'Previous';
-                Image = PreviousRecord;
-                ToolTip = 'Move the displayed period back by one week.';
 
-                trigger OnAction()
+                trigger OnPreviousClicked()
                 begin
                     PeriodStartDate := PeriodStartDate - 7;
                     RefreshPeriod();
                 end;
-            }
-            action(TodayAction)
-            {
-                ApplicationArea = All;
-                Caption = 'Today';
-                Image = Calculate;
-                ToolTip = 'Jump to the week that contains today''s date.';
 
-                trigger OnAction()
+                trigger OnTodayClicked()
                 begin
                     SetPeriodToToday();
                     RefreshPeriod();
                 end;
-            }
-            action(NextAction)
-            {
-                ApplicationArea = All;
-                Caption = 'Next';
-                Image = NextRecord;
-                ToolTip = 'Move the displayed period forward by one week.';
 
-                trigger OnAction()
+                trigger OnNextClicked()
                 begin
                     PeriodStartDate := PeriodStartDate + 7;
                     RefreshPeriod();
@@ -184,6 +157,11 @@ page 50708 "Requested vs Capacity Weekly P"
         ChartData.ReadFrom(ChartDataJson);
         ChartData.Add('periodLabel', PeriodLabelText + ' (' + Day1Text + ' - ' + Day7Text + ')');
         ChartData.Add('title', RequestedVsCapacityTitleLbl);
+        // Opt-in flag for wrapper.js's own JS-rendered Refresh/Previous/Today/Next toolbar (see
+        // BuildToolbar/UpdateToolbar there) - sent ONLY by this page's RefreshChart, never by page
+        // 50692's (the standalone Card page sharing this same control add-in/wrapper.js), so the
+        // toolbar stays hidden there. Same opt-in mechanism as 'periodLabel'/'title' above.
+        ChartData.Add('showToolbar', true);
         ChartData.WriteTo(ChartDataJson);
         CurrPage.DhxBarChart.LoadData(ChartDataJson);
     end;

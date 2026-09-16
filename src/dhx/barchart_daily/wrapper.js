@@ -119,18 +119,31 @@ var BOTTOM_SCALE_RESERVED_PX = 48;
 // standalone, PageType=Card version of this chart - see DHXBarChartAddin_daily's own Scripts
 // property) - that page keeps its OWN field(PeriodLabelCtrl)/group(Filters) Caption in its AL
 // layout, untouched, and never sends 'periodLabel'/'title' in its ChartData JSON. UpdateHeader
-// therefore hides headerEl entirely whenever BOTH keys are absent, so this header stays fully
-// inert (no blank label row, no reserved space) on page 50681 - only page 50707 (which now DOES
-// send both keys - see that page's RefreshChart) ever shows it.
+// therefore hides headerEl entirely whenever BOTH keys are absent AND showToolbar is falsy, so
+// this header stays fully inert (no blank row, no reserved space) on page 50681 - only page 50707
+// (which now sends both keys plus showToolbar - see that page's RefreshChart) ever shows it.
+//
+// headerEl is a single flex ROW (2026-09-16, per user request to match one highlighted bar in
+// their mockup screenshot rather than a title/period block stacked above a separate toolbar row):
+// the title+period text sits in its own textColEl column on the left, and BuildToolbar's buttons
+// (see below) are appended directly into headerEl as a second flex child on the right - one row,
+// not two. (The yellow highlight in that mockup was only the user's own screenshot annotation
+// marking which area to change, not a requested background colour - no background is set here.)
 // ============================================================
 function BuildHeader(addin) {
     var headerEl = document.createElement("div");
     headerEl.id = "dhx-barchart-headerinfo";
     headerEl.setAttribute("data-dhx-header", "true");
-    headerEl.style.cssText = "flex:0 0 auto;padding:4px 4px 8px 8px;display:none;border-left:3px solid #2A9D8F;";
+    headerEl.style.cssText = "flex:0 0 auto;display:none;flex-direction:row;align-items:center;" +
+        "justify-content:space-between;gap:8px;padding:6px 8px;border-left:3px solid #2A9D8F;";
 
-    // Title FIRST (top of the header) - accent-barred (via headerEl's own border-left above) and
-    // bold, deliberately not matching BC's own plain group-caption typography.
+    var textColEl = document.createElement("div");
+    textColEl.id = "dhx-barchart-textcol";
+    textColEl.setAttribute("data-dhx-header", "true");
+    textColEl.style.cssText = "display:flex;flex-direction:column;min-width:0;";
+
+    // Title FIRST (top of the column) - bold, deliberately not matching BC's own plain
+    // group-caption typography.
     var titleEl = document.createElement("div");
     titleEl.id = "dhx-barchart-title";
     titleEl.setAttribute("data-dhx-header", "true");
@@ -144,26 +157,101 @@ function BuildHeader(addin) {
     periodEl.setAttribute("data-dhx-header", "true");
     periodEl.style.cssText = "font-size:12px;line-height:16px;font-style:italic;color:#5f6368;margin-top:2px;";
 
-    headerEl.appendChild(titleEl);
-    headerEl.appendChild(periodEl);
+    textColEl.appendChild(titleEl);
+    textColEl.appendChild(periodEl);
+    headerEl.appendChild(textColEl);
+
+    BuildToolbar(headerEl);
+
     addin.appendChild(headerEl);
+}
+
+// ============================================================
+// Toolbar (Refresh/Previous/Today/Next) - plain HTML buttons rendered above chartContainer,
+// replacing the BC action bar (RefreshAction/PreviousAction/TodayAction/NextAction) page 50707
+// "Requested vs Capacity Daily P" used to expose via its own actions() area, now retired: BC
+// collapses a CardPart's action bar into a hidden "..." overflow menu once it's embedded in a
+// Role Center (confirmed via screenshot - the user had to open a dropdown to find these), so
+// rendering them as buttons INSIDE this add-in's own DOM keeps them always visible instead.
+//
+// Same opt-in mechanic as BuildHeader/UpdateHeader above, and for the same reason: this wrapper.js
+// file is SHARED with page 50681 "Requested vs Capacity Daily" (see BuildHeader's own comment),
+// which keeps its OWN BC action bar (never collapsed there - only a CardPart embedded in a Role
+// Center collapses it) and never sends 'showToolbar' in its ChartData JSON. UpdateToolbar therefore
+// hides toolbarEl whenever that key is absent/false, so this toolbar stays fully inert on page
+// 50681 - only page 50707 (which now sends 'showToolbar': true - see that page's RefreshChart) ever
+// shows it. Called by BuildHeader as a child of headerEl (one shared flex row with the title/period
+// text - see BuildHeader's own comment), with its own visibility still driven purely by
+// 'showToolbar', independent of headerEl's periodLabel/title presence check.
+//
+// Each button invokes a new, parameterless control add-in event (OnRefreshClicked/OnPreviousClicked/
+// OnTodayClicked/OnNextClicked) via Microsoft.Dynamics.NAV.InvokeExtensibilityMethod - same
+// call/try-catch pattern as the contextmenu "Show Data" handler in BOOT below. Page 50707's own
+// usercontrol() trigger bodies for these events call the exact same local procedures
+// (RefreshData/RefreshPeriod with PeriodStartDate -+ 1) its now-removed BC actions used to call -
+// only the UI trigger moved, not the underlying round-trip or logic.
+// ============================================================
+function BuildToolbar(parentEl) {
+    var toolbarEl = document.createElement("div");
+    toolbarEl.id = "dhx-barchart-toolbar";
+    toolbarEl.setAttribute("data-dhx-header", "true");
+    toolbarEl.style.cssText = "flex:0 0 auto;display:none;gap:6px;";
+
+    function addButton(id, label, eventName) {
+        var btn = document.createElement("button");
+        btn.id = id;
+        btn.type = "button";
+        btn.textContent = label;
+        btn.style.cssText = "font-size:12px;line-height:16px;padding:3px 10px;" +
+            "border:1px solid #c8c8c8;border-radius:3px;background:#ffffff;color:#242424;cursor:pointer;";
+        btn.addEventListener("click", function() {
+            try {
+                Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(eventName, []);
+            } catch (err) { /* ignore */ }
+        });
+        toolbarEl.appendChild(btn);
+    }
+
+    addButton("dhx-barchart-btn-refresh", "Refresh", "OnRefreshClicked");
+    addButton("dhx-barchart-btn-previous", "◀ Previous", "OnPreviousClicked");
+    addButton("dhx-barchart-btn-today", "Today", "OnTodayClicked");
+    addButton("dhx-barchart-btn-next", "Next ▶", "OnNextClicked");
+
+    parentEl.appendChild(toolbarEl);
+}
+
+// Called at the top of every RenderChart alongside UpdateHeader - shows/hides the toolbar purely
+// off chartData.showToolbar (deliberately NOT tied to UpdateHeader's own periodLabel/title presence
+// check - see BuildToolbar's own comment), so this stays a no-op on page 50681, which never sends
+// any of these keys.
+function UpdateToolbar(chartData) {
+    var toolbarEl = document.getElementById("dhx-barchart-toolbar");
+    if (!toolbarEl) return;
+    toolbarEl.style.display = (chartData && chartData.showToolbar) ? "flex" : "none";
 }
 
 // Called at the top of every RenderChart - see BuildHeader's own comment for why hiding headerEl
 // entirely (rather than just leaving values blank) is what keeps this a no-op on page 50681, which
-// never sends either key.
+// never sends any of periodLabel/title/showToolbar. headerEl is now a single row shared with the
+// toolbar (see BuildHeader's own comment) so its own show/hide also has to account for showToolbar,
+// not just periodLabel/title - otherwise a chart that only ever sent showToolbar (hypothetically)
+// would never reveal the row at all.
 function UpdateHeader(chartData) {
     var headerEl = document.getElementById("dhx-barchart-headerinfo");
     if (!headerEl) return;
 
     var periodLabel = (chartData && chartData.periodLabel) ? String(chartData.periodLabel) : "";
     var title = (chartData && chartData.title) ? String(chartData.title) : "";
+    var showToolbar = !!(chartData && chartData.showToolbar);
 
-    if (!periodLabel && !title) {
+    if (!periodLabel && !title && !showToolbar) {
         headerEl.style.display = "none";
         return;
     }
-    headerEl.style.display = "";
+    headerEl.style.display = "flex";
+
+    var textColEl = document.getElementById("dhx-barchart-textcol");
+    if (textColEl) textColEl.style.display = (periodLabel || title) ? "flex" : "none";
 
     var titleEl = document.getElementById("dhx-barchart-title");
     if (titleEl) {
@@ -199,7 +287,7 @@ window.BOOT = function() {
         // than overflowing.
         addin.style.cssText = "width:100%;height:100%;margin:0;padding:0;overflow:hidden;display:flex;flex-direction:column;";
 
-        BuildHeader(addin);
+        BuildHeader(addin); // also builds the toolbar as headerEl's own child - see BuildHeader's own comment
 
         chartContainer = document.createElement("div");
         chartContainer.id = "dhx-barchart-container";
@@ -376,6 +464,7 @@ function RenderChart(chartData, legendSizeOverride, isCorrectivePass) {
 
     ApplyTooltipColors(chartData && chartData.tooltipBg, chartData && chartData.tooltipFont);
     UpdateHeader(chartData);
+    UpdateToolbar(chartData);
 
     lastChartData = chartData;
     // See lastRenderedWidth's own declaration comment and the BOOT ResizeObserver - stashed here,
