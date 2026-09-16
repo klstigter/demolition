@@ -106,6 +106,10 @@ page 50656 "Project Task Sub"
             action(OpenSpecification)
             {
                 ApplicationArea = All;
+                Caption = 'Open Project Task';
+                Image = ProjectToolsProjectMaintenance;
+                ToolTip = 'Open the project task card for this project task.';
+
                 trigger OnAction()
                 var
                     ProjectTask: Record "Job Task";
