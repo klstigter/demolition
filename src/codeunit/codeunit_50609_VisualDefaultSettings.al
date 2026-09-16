@@ -59,8 +59,8 @@ codeunit 50609 "Visual Default Settings"
         if DailyOptimizerSetup.Get() then begin
             if DailyOptimizerSetup."Assigned Color" <> '' then
                 AssignedColor := DailyOptimizerSetup."Assigned Color";
-            if DailyOptimizerSetup."Unassigned Capacity Color" <> '' then
-                CapacityColor := DailyOptimizerSetup."Unassigned Capacity Color";
+            if DailyOptimizerSetup."Free Capacity Color" <> '' then
+                CapacityColor := DailyOptimizerSetup."Free Capacity Color";
             if DailyOptimizerSetup."External Border Color" <> '' then
                 ExternalBorderColor := DailyOptimizerSetup."External Border Color";
         end;
@@ -83,6 +83,34 @@ codeunit 50609 "Visual Default Settings"
     /// variable that the Capacity event's border already reads (that hook pre-existed this change,
     /// just unfed by AL until now).
     /// </summary>
+    /// <summary>
+    /// Resolves the fill colour used for the Weekly bar chart's Free Capacity - External
+    /// (Mandatory) segment - the portion of free capacity held by resources with
+    /// Resource."Mandatory Schedulling" = true, shown by page 50692's chart via codeunit 50662's
+    /// BuildDayCapacityChartData. Deliberately a standalone getter rather than a 4th out-param on
+    /// GetCapacitySegmentColors/ResolveCapacitySegmentColors above, so the many existing callers of
+    /// that procedure (codeunit 50662's/50608's own forwarding wrappers, and scheduler pages
+    /// 50621/50706/50600) don't need a signature change for a colour none of them use. Overridable
+    /// via "Daily Optimizer Setup"."Free Capacity-Mandatory Color" when the singleton exists and the
+    /// field is non-blank, else falls back to CapacityMandatoryColorTok - which intentionally
+    /// matches CapacityColorTok's hex value, since before this setting existed the Mandatory segment
+    /// already rendered using the same colour as regular Free Capacity (zero visual change out of
+    /// the box). Same safe boolean-context Get() convention as GetCapacityBorderColor below, for the
+    /// same reason.
+    ///
+    /// Used by: codeunit 50662 "Skill Capacity Analysis Mgt." BuildDayCapacityChartData only.
+    /// </summary>
+    procedure GetCapacityMandatoryColor(): Text
+    var
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+    begin
+        if DailyOptimizerSetup.Get() then
+            if DailyOptimizerSetup."Free Capacity-Mandatory Color" <> '' then
+                exit(DailyOptimizerSetup."Free Capacity-Mandatory Color");
+
+        exit(CapacityMandatoryColorTok);
+    end;
+
     procedure GetCapacityBorderColor(): Text
     var
         DailyOptimizerSetup: Record "Daily Optimizer Setup";
@@ -356,6 +384,13 @@ codeunit 50609 "Visual Default Settings"
     procedure GetDefaultCapacityColor(): Text
     begin
         exit(CapacityColorTok);
+    end;
+
+    // Exposed only so page 50654's Reset to default action can restore "Free Capacity-Mandatory
+    // Color" without duplicating the hex literal.
+    procedure GetDefaultCapacityMandatoryColor(): Text
+    begin
+        exit(CapacityMandatoryColorTok);
     end;
 
     procedure GetDefaultExternalBorderColor(): Text
@@ -701,6 +736,11 @@ codeunit 50609 "Visual Default Settings"
         AssColorTok: Label '#548235', Locked = true;
         CapacityColorTok: Label '#2E75B6', Locked = true;
         ExternalBorderColorTok: Label '#FF0000', Locked = true;
+        // Fallback for GetCapacityMandatoryColor above - overridable via "Daily Optimizer
+        // Setup"."Free Capacity-Mandatory Color". Deliberately the same hex value as
+        // CapacityColorTok - see GetCapacityMandatoryColor's doc comment.
+        // Used by: GetCapacityMandatoryColor above only.
+        CapacityMandatoryColorTok: Label '#2E75B6', Locked = true;
         // Fallback for GetCapacityBorderColor above - overridable via "Daily Optimizer
         // Setup"."Capacity Border Color". Matches resourceschedule_with_capacity/wrapper.js's and
         // poolresourceschedule/wrapper.js's own "--cap-color-border" CSS default, kept in sync by

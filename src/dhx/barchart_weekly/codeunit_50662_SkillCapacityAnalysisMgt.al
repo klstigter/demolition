@@ -29,110 +29,12 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// one capacity reference bar/row - never a paired Requested/Capacity bar per category.
     /// </summary>
 
-    /// <summary>
-    /// Builds the Requested Hours (per skill) / Capacity (single aggregate) buffer for the
-    /// supplied filters. DateFromFilter/DateToFilter are optional; blank means "no filter".
-    /// </summary>
-    procedure BuildSkillBuffer(var Buffer: Record "Skill Req. vs Capacity Buffer" temporary; DateFromFilter: Date; DateToFilter: Date)
-    var
-        DayPlanning: Record "Day Planning";
-        DateRc: Record Date;
-        WkDayNo: Integer;
-        BarType: Enum "Day Capacity Chart Bar Type";
-    begin
-        Buffer.Reset();
-        Buffer.DeleteAll();
-        DateRc.setrange("Period Type", DateRc."Period Type"::Date);
-        DateRc.setrange("Period Start", DateFromFilter, DateToFilter);
-        DateRc.findset();
-        repeat
-            this.CalcFiltersDayPlanning(DayPlanning, DateRc."Period Start");
-            WkDayNo := Date2DWY(DateRc."Period Start", 1);
-            repeat
-                dayplanning.setrange(Skill, dayplanning.skill);
-                dayplanning.CalcSums("Requested Hours");
-                insertBufferLine(Buffer, BarType::Requested, dayplanning.skill, WkDayNo, dayplanning."Requested Hours");
-                if dayplanning.FindLast() then;
-                dayplanning.setrange(Skill);
-            until DayPlanning.Next() = 0;
-            this.CalcFreeCapacity(Buffer, DateRc."Period Start");
-        until DateRc.next() = 0;
-        Buffer.Reset();
-        if Buffer.FindFirst() then;
-    end;
-
     local procedure CalcFiltersDayPlanning(var DayPlanning: Record "Day Planning"; DateFilter: Date)
     begin
         DayPlanning.Reset();
         DayPlanning.SetCurrentKey("Plan Date", Skill, "Assigned Resource No.");
         DayPlanning.SetRange(Assigned, false);
         DayPlanning.SetRange("Plan Date", DateFilter);
-    end;
-
-    /// <summary>
-    /// Sums "Res. Capacity Entry".Capacity for the given Resource No. / Date range filters,
-    /// using the same partial-range logic as ApplyDayPlanningFilters. Deliberately has no
-    /// Skill Code parameter - capacity is a resource/date total, not a per-skill figure.
-    /// </summary>
-    local procedure CalcFreeCapacity(var Buffer: Record "Skill Req. vs Capacity Buffer" temporary; DateFilter: Date): Decimal
-    var
-        ResCapacityEntry: Record "Res. Capacity Entry";
-        DayPlan: Record "Day Planning";
-        TempResource: Record Resource temporary;
-        Resource: Record Resource;
-        WkDayNo: Integer;
-        FreeCapacity: Decimal;
-        TotalFreeCapacity: array[2] of Decimal;
-        TotalAssigned: Decimal;
-        BarType: Enum "Day Capacity Chart Bar Type";
-        External: Boolean;
-    begin
-        WkDayNo := Date2DWY(DateFilter, 1);
-        ResCapacityEntry.SetLoadFields("Resource No.");
-        ResCapacityEntry.SetRange(Date, DateFilter);
-        if resCapacityEntry.FindSet() then
-            repeat
-                if Not TempResource.Get(ResCapacityEntry."Resource No.") then begin
-                    TempResource."No." := ResCapacityEntry."Resource No.";
-                    tempResource.Insert();
-                end;
-            until ResCapacityEntry.Next() = 0;
-        DayPlan.SetLoadFields("Plan Date", "Assigned Resource No.", "Assigned Hours", Assigned);
-        DayPlan.SetRange(Assigned, true);
-        dayPlan.SetRange("Plan Date", DateFilter);
-        if dayPlan.FindSet() then
-            repeat
-                if not tempResource.Get(dayPlan."Assigned Resource No.") then begin
-                    tempResource."No." := dayPlan."Assigned Resource No.";
-                    tempResource.Insert();
-                end;
-            until dayPlan.Next() = 0;
-        if tempResource.FindSet() then
-            repeat
-                resource.Get(tempResource."No.");
-                External := resource."Is External" OR Resource."Is Pool" OR Resource."Is Pool Member";
-                tempResource.calcfields("Assigned Hours", "Capacity");
-                FreeCapacity := tempResource."Capacity" - tempResource."Assigned Hours";
-                If FreeCapacity < 0 then
-                    freeCapacity := 0;
-                if FreeCapacity <> 0 then
-                    if External then
-                        TotalFreeCapacity[1] += FreeCapacity
-                    else
-                        TotalFreeCapacity[2] += FreeCapacity;
-                if tempResource."Assigned Hours" <> 0 then
-                    TotalAssigned += tempResource."Assigned Hours";
-            until tempResource.Next() = 0;
-
-        if TotalFreeCapacity[1] <> 0 then
-            InsertBufferLine(Buffer, BarType::Capacity, ExternalSegmentTok, WkDayNo, TotalFreeCapacity[1]);
-        if TotalFreeCapacity[2] <> 0 then
-            InsertBufferLine(Buffer, BarType::Capacity, InternalSegmentTok, WkDayNo, TotalFreeCapacity[2]);
-        if TotalAssigned <> 0 then begin
-            InsertBufferLine(Buffer, BarType::Capacity, 'Assigned', WkDayNo, TotalAssigned);
-            InsertBufferLine(Buffer, BarType::Requested, 'Assigned', WkDayNo, TotalAssigned);
-        end;
-
     end;
 
     local procedure InsertBufferLine(var Buffer: Record "Skill Req. vs Capacity Buffer" temporary; BarType: Enum "Day Capacity Chart Bar Type"; Code: Code[20]; WkdayNo: Integer; Hours: Decimal)
@@ -186,37 +88,41 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// wrapper.js's textTemplate strips the "<Wkd>|" prefix for display), with the weekday name
     /// ALSO carried separately in the top-level "dayLabels" array (one entry per day, same
     /// order) so wrapper.js can render it as its own merged row spanning that day's 2 bars.
-    /// Each category is a stack of series segments, bottom to top: "Assigned Capacity -
-    /// Internal"/"Assigned Capacity - External", then "Free Capacity - Internal"/"Free Capacity -
-    /// External" (Capacity bar only - see CalcCapacitySplit), then one internal/external pair per
-    /// Skill Code that has at least one unassigned (Assigned = false) Day Planning row
-    /// with nonzero Requested Hours somewhere in the period. Every segment is declared as an
+    /// Each category is a stack of series segments, bottom to top: "Assigned Capacity" (a single
+    /// combined series - see below), then "Free Capacity - Internal", then "Free Capacity -
+    /// External (Mandatory)", then "Free Capacity - External" (Capacity bar only - see
+    /// CalcCapacitySplit; the non-mandatory External segment is declared LAST/topmost on purpose -
+    /// see the Mandatory-split note below - so its red border always sits on the bar's outer edge),
+    /// then one internal/external pair per Skill Code
+    /// that has at least one unassigned (Assigned = false) Day Planning row with nonzero Requested
+    /// Hours somewhere in the period. The Free Capacity and skill segments are each declared as an
     /// internal/external SERIES PAIR (an "internal" series with plain fill/no border, then an
     /// "external" series with the same fill colour but a red border, so an external portion is
     /// visually provable at a glance; declared immediately after its own internal half so it
     /// stacks directly on top of it - wrapper.js stacking (suite.js's Stacker.dataReady)
-    /// accumulates each series' baseline from the PREVIOUS series in declaration order). Each of
-    /// the four Assigned/free-capacity series has its own distinct series name, so each renders
-    /// its own legend entry (wrapper.js's legend only collapses series that SHARE a name - see
-    /// its own header comment - which now only happens among the internal/external halves of a
-    /// given skill's segment pair, not here). Which BAR each pair is allowed to actually split on
-    /// differs by segment:
-    ///   - "Assigned Capacity - Internal"/"Assigned Capacity - External": the Capacity bar keeps
-    ///                  the real internal/external split (via CalcAssignedSplit). The Requested
-    ///                  bar deliberately COLLAPSES this to a single plain total - the internal
-    ///                  series gets the combined (internal + external) value, the external series
-    ///                  is always 0 - so the Requested bar's Assigned block never shows a red
-    ///                  border.
-    ///   - "Free Capacity - Internal"/"Free Capacity - External": Capacity-bar-only, unchanged -
-    ///                  see below.
-    ///   - Skill segments: Requested-bar-only, and use the same collapse as Assigned - the
-    ///                  internal series gets the combined (internal + external) value for that
-    ///                  skill/day, the external series is always 0.
-    /// Net effect: the CAPACITY bar always shows its full Internal/External breakdown (both the
-    /// Assigned split and the free-capacity split below); the REQUESTED bar never shows an
-    /// Internal/External distinction anywhere - every segment on it (Assigned, each skill) is a
-    /// single plain-coloured block carrying a combined total, with its paired "external" series
-    /// always 0.
+    /// accumulates each series' baseline from the PREVIOUS series in declaration order). Each
+    /// series has its own distinct series name, so each renders its own legend entry (wrapper.js's
+    /// legend only collapses series that SHARE a name - see its own header comment - which now
+    /// only happens among the internal/external halves of a given skill's segment pair, not here).
+    /// Which BAR each segment is allowed to actually split on differs by segment:
+    ///   - "Assigned Capacity": ALWAYS a single plain-coloured series carrying the combined
+    ///                  (internal + external) total, on BOTH the Capacity and Requested bar - no
+    ///                  Internal/External split, no border, exactly one legend entry. (This is a
+    ///                  deliberate simplification vs. this procedure's own earlier behavior and vs.
+    ///                  its range-generalized twin BuildDayCapacityChartDataForRange, which still
+    ///                  keeps the Capacity bar's real internal/external split - see that
+    ///                  procedure's own doc comment; do not port this change there.)
+    ///   - "Free Capacity - Internal"/"Free Capacity - External"/"Free Capacity - External
+    ///                  (Mandatory)": Capacity-bar-only, unchanged - see below.
+    ///   - Skill segments: Requested-bar-only, and use the same collapse-to-a-combined-total
+    ///                  convention as Assigned - the internal series gets the combined (internal +
+    ///                  external) value for that skill/day, the external series is always 0.
+    /// Net effect: the CAPACITY bar shows Assigned Capacity as one plain block plus its full
+    /// Free Capacity Internal/External breakdown; the REQUESTED bar never shows an Internal/
+    /// External distinction anywhere - every segment on it (Assigned, each skill) is a single
+    /// plain-coloured block carrying a combined total (skill segments still via a paired
+    /// always-0 "external" series for legend/stacking mechanics; Assigned Capacity has no such
+    /// pair at all anymore).
     /// "Free Capacity - Internal"/"Free Capacity - External" are TRUE calendar capacity read
     /// directly from "Res. Capacity Entry" (matching the standard Resource Capacity Matrix page -
     /// see CalcCapacitySplit), net of that same day's Assigned Hours ("free" capacity), split
@@ -227,6 +133,18 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// that day, independent of whatever Day Planning rows happen to exist yet (e.g. a day with
     /// real resource-calendar capacity but no Day Planning assignments yet still shows its full
     /// capacity, not near-zero).
+    /// "Free Capacity - External" is itself further split by the capacity-holding resource's
+    /// "Mandatory Schedulling" flag (2026-09-16, this chart only - see CalcCapacitySplit's own doc
+    /// comment): "Free Capacity - External" keeps carrying only the NON-mandatory portion and its
+    /// existing red border, while a separate "Free Capacity - External (Mandatory)" series carries
+    /// the mandatory portion using its OWN configurable fill colour (Codeunit 50609's
+    /// GetCapacityMandatoryColor, overridable via "Daily Optimizer Setup"."Free Capacity-Mandatory
+    /// Color" - defaults to the same hex as regular Free Capacity today, but independently
+    /// overridable) with NO border (plain, like Internal).
+    /// Both stack on the Capacity bar exactly like the plain Internal/External split did before,
+    /// except "Free Capacity - External (Mandatory)" is declared BEFORE (i.e. stacks below) the
+    /// non-mandatory "Free Capacity - External" series, so the red-bordered non-mandatory segment
+    /// always ends up topmost on the Capacity bar with nothing stacked above it.
     /// Skill segments (both halves) are only ever nonzero on the Requested bar (0 on the Capacity
     /// bar), and per the collapse above, only the internal half is ever actually nonzero there.
     ///
@@ -251,10 +169,10 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         DayLabelsArray: JsonArray;
         DayIndicesArray: JsonArray;
         SeriesArray: JsonArray;
-        AssInternalValues: List of [Decimal];
-        AssExternalValues: List of [Decimal];
+        AssignedValues: List of [Decimal];
         CapInternalValues: List of [Decimal];
         CapExternalValues: List of [Decimal];
+        CapExternalMandatoryValues: List of [Decimal];
         SkillInternalValues: List of [Decimal];
         SkillExternalValues: List of [Decimal];
         ActiveSkillList: List of [Code[20]];
@@ -270,10 +188,12 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         AssExternalD: Decimal;
         CapInternalD: Decimal;
         CapExternalD: Decimal;
+        CapExternalMandatoryD: Decimal;
         SkillPaletteIdx: Integer;
         AssignedColorHex: Text;
         CapacityColorHex: Text;
         ExternalBorderColorHex: Text;
+        CapacityMandatoryColorHex: Text;
         ColorConstants: Codeunit "Visual Default Settings";
     begin
         EnsureDayPlanningBuffer(PeriodStartDate, PeriodStartDate + 6);
@@ -294,16 +214,16 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         Clear(CategoriesArray);
         Clear(DayLabelsArray);
         Clear(DayIndicesArray);
-        Clear(AssInternalValues);
-        Clear(AssExternalValues);
+        Clear(AssignedValues);
         Clear(CapInternalValues);
         Clear(CapExternalValues);
+        Clear(CapExternalMandatoryValues);
         for WeekdayIndex := 1 to 7 do begin
             CurrDate := PeriodStartDate + (WeekdayIndex - 1);
 
-            CalcDaySegments(CurrDate, ActiveSkillList, AssInternalD, AssExternalD, CapInternalD, CapExternalD, OneDaySkillInternalValues, OneDaySkillExternalValues);
+            CalcDaySegments(CurrDate, ActiveSkillList, AssInternalD, AssExternalD, CapInternalD, CapExternalD, CapExternalMandatoryD, OneDaySkillInternalValues, OneDaySkillExternalValues);
 
-            IncludedDay[WeekdayIndex] := DayHasAnyChartData(AssInternalD, AssExternalD, CapInternalD, CapExternalD, ActiveSkillList, OneDaySkillInternalValues, OneDaySkillExternalValues);
+            IncludedDay[WeekdayIndex] := DayHasAnyChartData(AssInternalD, AssExternalD, CapInternalD, CapExternalD, CapExternalMandatoryD, ActiveSkillList, OneDaySkillInternalValues, OneDaySkillExternalValues);
             if not IncludedDay[WeekdayIndex] then
                 continue; // zero everywhere for this day - omit its category pair and every series value entirely.
 
@@ -317,14 +237,13 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
             // round-trip key (FormatWeekdayShort uses "<Weekday Text,3>", which is locale-dependent).
             DayIndicesArray.Add(WeekdayIndex);
 
-            // Capacity bar keeps its own Internal/External split. Requested bar collapses the
-            // Assigned segment to a single plain total - no Internal/External distinction - so
-            // the Internal series carries the combined total and the External series is always 0,
-            // rendering as one plain-coloured block with no red border.
-            AssInternalValues.Add(AssInternalD);
-            AssInternalValues.Add(AssInternalD + AssExternalD);
-            AssExternalValues.Add(AssExternalD);
-            AssExternalValues.Add(0);
+            // Page 50692's Assigned Capacity segment is ALWAYS a single combined (internal +
+            // external) total on BOTH bar positions - no Internal/External split anywhere on this
+            // chart (unlike BuildDayCapacityChartDataForRange's twin, which still keeps the
+            // Capacity-bar split - see that procedure's own doc comment). One series, one legend
+            // entry, plain AssignedColorHex fill, no border.
+            AssignedValues.Add(AssInternalD + AssExternalD);
+            AssignedValues.Add(AssInternalD + AssExternalD);
 
             // Free capacity (Internal/External) is a Capacity-bar-only concept - Capacity bar
             // value, then 0 for the Requested bar position (the mirror image of how skill
@@ -333,6 +252,8 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
             CapInternalValues.Add(0);
             CapExternalValues.Add(CapExternalD);
             CapExternalValues.Add(0);
+            CapExternalMandatoryValues.Add(CapExternalMandatoryD);
+            CapExternalMandatoryValues.Add(0);
 
             // Stash this day's per-skill values (keyed by weekday+skill) so the per-skill series
             // loop below can reuse them instead of recomputing via CalcDaySegments again - AL has
@@ -346,9 +267,10 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         end;
 
         ColorConstants.GetCapacitySegmentColors(AssignedColorHex, CapacityColorHex, ExternalBorderColorHex);
-        AddChartSeries(SeriesArray, AssInternalSeriesNameLbl, AssInternalValues, AssignedColorHex, '', '');
-        AddChartSeries(SeriesArray, AssExternalSeriesNameLbl, AssExternalValues, AssignedColorHex, ExternalBorderColorHex, '');
+        CapacityMandatoryColorHex := ColorConstants.GetCapacityMandatoryColor();
+        AddChartSeries(SeriesArray, AssignedCapacitySeriesNameLbl, AssignedValues, AssignedColorHex, '', '');
         AddChartSeries(SeriesArray, CapInternalSeriesNameLbl, CapInternalValues, CapacityColorHex, '', '');
+        AddChartSeries(SeriesArray, CapExternalMandatorySeriesNameLbl, CapExternalMandatoryValues, CapacityMandatoryColorHex, '', '');
         AddChartSeries(SeriesArray, CapExternalSeriesNameLbl, CapExternalValues, CapacityColorHex, ExternalBorderColorHex, '');
 
         SkillPaletteIdx := 0;
@@ -440,6 +362,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         AssExternalD: Decimal;
         CapInternalD: Decimal;
         CapExternalD: Decimal;
+        DummyCapExternalMandatoryD: Decimal;
         SkillPaletteIdx: Integer;
         AssignedColorHex: Text;
         CapacityColorHex: Text;
@@ -467,9 +390,9 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         DayCount := EndDate - StartDate + 1;
         CurrDate := StartDate;
         for DayIndex := 1 to DayCount do begin
-            CalcDaySegments(CurrDate, ActiveSkillList, AssInternalD, AssExternalD, CapInternalD, CapExternalD, OneDaySkillInternalValues, OneDaySkillExternalValues);
+            CalcDaySegments(CurrDate, ActiveSkillList, AssInternalD, AssExternalD, CapInternalD, CapExternalD, DummyCapExternalMandatoryD, OneDaySkillInternalValues, OneDaySkillExternalValues);
 
-            IsIncluded := DayHasAnyChartData(AssInternalD, AssExternalD, CapInternalD, CapExternalD, ActiveSkillList, OneDaySkillInternalValues, OneDaySkillExternalValues);
+            IsIncluded := DayHasAnyChartData(AssInternalD, AssExternalD, CapInternalD, CapExternalD, DummyCapExternalMandatoryD, ActiveSkillList, OneDaySkillInternalValues, OneDaySkillExternalValues);
             IncludedDay.Add(IsIncluded);
             if IsIncluded then begin
                 CategoriesArray.Add(FormatWeekdayShort(CurrDate) + CategoryDelimiterTok + FreeCapacityCategoryLbl);
@@ -560,23 +483,30 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// Caller must have already called PrepareDailyCapacityBuffer for a range covering PlanDate.
     /// </summary>
     procedure GetDailyCapacitySplit(PlanDate: Date; var AssignedInternal: Decimal; var AssignedExternal: Decimal; var FreeInternal: Decimal; var FreeExternal: Decimal)
+    var
+        FreeExternalMandatory: Decimal;
     begin
         CalcAssignedSplit(PlanDate, AssignedInternal, AssignedExternal);
-        CalcCapacitySplit(PlanDate, FreeInternal, FreeExternal);
+        CalcCapacitySplit(PlanDate, FreeInternal, FreeExternal, FreeExternalMandatory);
+        // Fold the mandatory/non-mandatory split (2026-09-16, page 50692's weekly chart only)
+        // back into the plain External total so CPO/Dashboard's Section 3 totals are unaffected.
+        FreeExternal += FreeExternalMandatory;
     end;
 
     /// <summary>
     /// True if PlanDate's segment values carry ANY nonzero data anywhere - Assigned (internal or
-    /// external), free Capacity (internal or external), or any active skill's requested hours
-    /// (internal or external) - used by BuildDayCapacityChartData to decide whether that day gets
-    /// its own category pair/values at all. Deliberately NOT used by BuildDayCapacityAuditBuffer,
-    /// which always shows all 7 days by design (see its own doc comment).
+    /// external), free Capacity (internal, external, or external-mandatory), or any active
+    /// skill's requested hours (internal or external) - used by BuildDayCapacityChartData to
+    /// decide whether that day gets its own category pair/values at all. A day whose ONLY nonzero
+    /// figure is the mandatory-external free-capacity split is still included, not dropped.
+    /// Deliberately NOT used by BuildDayCapacityAuditBuffer, which always shows all 7 days by
+    /// design (see its own doc comment).
     /// </summary>
-    local procedure DayHasAnyChartData(AssignedInternal: Decimal; AssignedExternal: Decimal; CapacityInternal: Decimal; CapacityExternal: Decimal; var ActiveSkillList: List of [Code[20]]; var SkillInternalValues: Dictionary of [Code[20], Decimal]; var SkillExternalValues: Dictionary of [Code[20], Decimal]): Boolean
+    local procedure DayHasAnyChartData(AssignedInternal: Decimal; AssignedExternal: Decimal; CapacityInternal: Decimal; CapacityExternal: Decimal; CapacityExternalMandatory: Decimal; var ActiveSkillList: List of [Code[20]]; var SkillInternalValues: Dictionary of [Code[20], Decimal]; var SkillExternalValues: Dictionary of [Code[20], Decimal]): Boolean
     var
         SkillCode: Code[20];
     begin
-        if (AssignedInternal <> 0) or (AssignedExternal <> 0) or (CapacityInternal <> 0) or (CapacityExternal <> 0) then
+        if (AssignedInternal <> 0) or (AssignedExternal <> 0) or (CapacityInternal <> 0) or (CapacityExternal <> 0) or (CapacityExternalMandatory <> 0) then
             exit(true);
 
         foreach SkillCode in ActiveSkillList do
@@ -590,13 +520,14 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// Builds a flat audit trail of the "Day Capacity Chart Audit Buffer" - one row per number
     /// that appears anywhere in the stacked chart built by BuildDayCapacityChartData, including
     /// 0-valued rows for the "other" bar type's segments (skills are always 0 on the Capacity
-    /// bar, free Internal/External capacity is always 0 on the Requested bar - they still get a
-    /// row). Skills outside BuildActiveSkillList's result get no rows at all, matching the
-    /// chart's own behavior. Rows are inserted in the same left-to-right order as the chart's
-    /// bars: for each weekday Monday..Sunday, first the Capacity bar's rows ("Assigned" combined
-    /// total, then free "Internal"/"External" capacity, then each active skill's 0-valued pair),
-    /// then the Requested bar's rows ("Assigned" combined total, 0-valued "Internal"/"External",
-    /// then each active skill's own combined total on the first row and 0 on the second) - the
+    /// bar, free Internal/External/External-Mandatory capacity is always 0 on the Requested bar -
+    /// they still get a row). Skills outside BuildActiveSkillList's result get no rows at all,
+    /// matching the chart's own behavior. Rows are inserted in the same left-to-right order as the
+    /// chart's bars: for each weekday Monday..Sunday, first the Capacity bar's rows ("Assigned"
+    /// combined total, then free "Internal"/"External"/"External (Mandatory)" capacity, then each
+    /// active skill's 0-valued pair), then the Requested bar's rows ("Assigned" combined total,
+    /// 0-valued "Internal"/"External"/"External (Mandatory)", then each active skill's own
+    /// combined total on the first row and 0 on the second) - the
     /// Requested bar never carries an Internal/External distinction anywhere, matching the
     /// chart's own collapse (see BuildDayCapacityChartData); "Assigned" was already a single
     /// combined-total row on both bar types before that collapse and stays that way unchanged.
@@ -617,6 +548,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         AssignedExternal: Decimal;
         CapacityInternal: Decimal;
         CapacityExternal: Decimal;
+        CapacityExternalMandatory: Decimal;
         LineNo: Integer;
     begin
         Buffer.Reset();
@@ -630,18 +562,20 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         for WeekdayIndex := 1 to 7 do begin
             CurrDate := PeriodStartDate + (WeekdayIndex - 1);
 
-            CalcDaySegments(CurrDate, ActiveSkillList, AssignedInternal, AssignedExternal, CapacityInternal, CapacityExternal, SkillInternalValues, SkillExternalValues);
+            CalcDaySegments(CurrDate, ActiveSkillList, AssignedInternal, AssignedExternal, CapacityInternal, CapacityExternal, CapacityExternalMandatory, SkillInternalValues, SkillExternalValues);
 
             // Capacity bar: "Assigned" carries the day's combined (internal+external) assigned
-            // hours, "Internal"/"External" carry TRUE free calendar capacity (Res. Capacity Entry
-            // net of Assigned Hours - see CalcCapacitySplit), skills are always 0 (skills never
-            // appear on the Capacity bar).
+            // hours, "Internal"/"External"/"External (Mandatory)" carry TRUE free calendar
+            // capacity (Res. Capacity Entry net of Assigned Hours - see CalcCapacitySplit), skills
+            // are always 0 (skills never appear on the Capacity bar).
             LineNo += 1;
             InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Capacity, AssignedSegmentTok, AssignedInternal + AssignedExternal);
             LineNo += 1;
             InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Capacity, InternalSegmentTok, CapacityInternal);
             LineNo += 1;
             InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Capacity, ExternalSegmentTok, CapacityExternal);
+            LineNo += 1;
+            InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Capacity, ExternalMandatorySegmentTok, CapacityExternalMandatory);
             foreach SkillCode in ActiveSkillList do begin
                 LineNo += 1;
                 InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Capacity, SkillCode, 0);
@@ -660,6 +594,8 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
             InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Requested, InternalSegmentTok, 0);
             LineNo += 1;
             InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Requested, ExternalSegmentTok, 0);
+            LineNo += 1;
+            InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Requested, ExternalMandatorySegmentTok, 0);
             foreach SkillCode in ActiveSkillList do begin
                 LineNo += 1;
                 InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Requested, SkillCode, SkillInternalValues.Get(SkillCode) + SkillExternalValues.Get(SkillCode));
@@ -693,7 +629,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// (see EnsureDayPlanningBuffer) - callers must have already ensured it is loaded for a range
     /// covering PlanDate.
     /// </summary>
-    local procedure CalcDaySegments(PlanDate: Date; var ActiveSkillList: List of [Code[20]]; var AssignedInternal: Decimal; var AssignedExternal: Decimal; var CapacityInternal: Decimal; var CapacityExternal: Decimal; var SkillInternalValues: Dictionary of [Code[20], Decimal]; var SkillExternalValues: Dictionary of [Code[20], Decimal])
+    local procedure CalcDaySegments(PlanDate: Date; var ActiveSkillList: List of [Code[20]]; var AssignedInternal: Decimal; var AssignedExternal: Decimal; var CapacityInternal: Decimal; var CapacityExternal: Decimal; var CapacityExternalMandatory: Decimal; var SkillInternalValues: Dictionary of [Code[20], Decimal]; var SkillExternalValues: Dictionary of [Code[20], Decimal])
     var
         SkillCode: Code[20];
         SkillInternalD: Decimal;
@@ -703,7 +639,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         Clear(SkillExternalValues);
 
         CalcAssignedSplit(PlanDate, AssignedInternal, AssignedExternal);
-        CalcCapacitySplit(PlanDate, CapacityInternal, CapacityExternal);
+        CalcCapacitySplit(PlanDate, CapacityInternal, CapacityExternal, CapacityExternalMandatory);
 
         foreach SkillCode in ActiveSkillList do begin
             CalcUnassignedSkillRequestedSplit(PlanDate, SkillCode, SkillInternalD, SkillExternalD);
@@ -886,8 +822,16 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// GetDailyCapacitySplit) paid N separate company-wide table scans instead of one. Same filter
     /// semantics (Date = PlanDate, no other criteria) - only the source (buffer vs physical table)
     /// changed.
+    ///
+    /// 3-WAY SPLIT (2026-09-16): the External bucket is further divided by the capacity-holding
+    /// resource's own "Mandatory Schedulling" flag (table extension field, unrelated original
+    /// feature reused here purely as a classifier) into ExternalCapacity (non-mandatory) and
+    /// ExternalCapacity_mandatory (mandatory). This 3-way split is only ever surfaced on page
+    /// 50692's weekly chart (BuildDayCapacityChartData) - every other caller of this procedure
+    /// (via CalcDaySegments) adds the mandatory bucket straight back into the plain External total
+    /// before returning, so they see byte-identical numbers to before this change.
     /// </summary>
-    local procedure CalcCapacitySplit(PlanDate: Date; var InternalCapacity: Decimal; var ExternalCapacity: Decimal)
+    local procedure CalcCapacitySplit(PlanDate: Date; var InternalCapacity: Decimal; var ExternalCapacity: Decimal; var ExternalCapacity_mandatory: Decimal)
     var
         Resource: Record Resource;
         ResourceCapacityTotals: Dictionary of [Code[20], Decimal];
@@ -900,6 +844,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     begin
         InternalCapacity := 0;
         ExternalCapacity := 0;
+        ExternalCapacity_mandatory := 0;
 
         GResCapacityBuf.Reset();
         GResCapacityBuf.SetRange(Date, PlanDate);
@@ -938,9 +883,12 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
             if FreeCapacity <> 0 then
                 if Resource.Get(ResourceNo) then begin
                     External := Resource."Is External";
-                    if External then
-                        ExternalCapacity += FreeCapacity
-                    else
+                    if External then begin
+                        if Resource."Mandatory Schedulling" then
+                            ExternalCapacity_mandatory += FreeCapacity
+                        else
+                            ExternalCapacity += FreeCapacity;
+                    end else
                         InternalCapacity += FreeCapacity;
                 end;
         end;
@@ -1013,7 +961,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
 
     /// <summary>
     /// Resolves a chart segment - identified by SegmentId (one of the fixed series-name Labels
-    /// declared below, e.g. AssInternalSeriesNameLbl/CapExternalSeriesNameLbl, or a bare Skill
+    /// declared below, e.g. AssignedCapacitySeriesNameLbl/CapExternalSeriesNameLbl, or a bare Skill
     /// Code for a per-skill series) plus its click origin - back to the real "Day Planning"/
     /// "Res. Capacity Entry" records that number was built from, and opens the matching standard
     /// list page ("Day Plannings"/"Res. Capacity Entries") pre-filtered to exactly that record
@@ -1044,9 +992,9 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         end;
 
         case SegmentId of
-            AssInternalSeriesNameLbl, AssExternalSeriesNameLbl:
+            AssInternalSeriesNameLbl, AssExternalSeriesNameLbl, AssignedCapacitySeriesNameLbl:
                 ShowAssignedCapacitySegment(SegmentId, BarType, DateFrom, DateTo, WholeWeek);
-            CapInternalSeriesNameLbl, CapExternalSeriesNameLbl:
+            CapInternalSeriesNameLbl, CapExternalSeriesNameLbl, CapExternalMandatorySeriesNameLbl:
                 ShowFreeCapacitySegment(SegmentId, DateFrom, DateTo);
             else
                 ShowSkillSegment(SegmentId, DateFrom, DateTo);
@@ -1054,11 +1002,11 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     end;
 
     /// <summary>
-    /// Drilldown for "Assigned Capacity - Internal"/"External". Day Planning has no field storing
-    /// the assigned resource's own "Is External" flag, so the classified resource set is computed
-    /// first (BuildAssignedResourceSet) and then turned into a plain "Assigned Resource No." OR
-    /// filter (BuildCodeOrFilter - same helper/pattern already used by page 50704's own
-    /// Internal/External OnDrillDown) before opening "Day Plannings".
+    /// Drilldown for the Assigned Capacity segment. Day Planning has no field storing the assigned
+    /// resource's own "Is External" flag, so the classified resource set is computed first
+    /// (BuildAssignedResourceSet) and then turned into a plain "Assigned Resource No." OR filter
+    /// (BuildCodeOrFilter - same helper/pattern already used by page 50704's own Internal/External
+    /// OnDrillDown) before opening "Day Plannings".
     ///
     /// Deliberately NOT the Mark()+MarkedOnly()+Page.Run() idiom this drilldown originally used:
     /// confirmed live (via Playwright against the actual BC web client) that Page.Run() invoked
@@ -1070,13 +1018,20 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// resolved to zero rows here even though AnyMarked had been true moments earlier in the same
     /// call - the list opened but was always empty. A plain OR-filter has no such boundary to cross.
     ///
-    /// The Internal/External classification only applies when UseClassification is true - true
-    /// for WholeWeek (legend) clicks and for a click on the CAPACITY bar's own Assigned segment,
-    /// both of which represent this series' real, always-classified identity. A click on the
-    /// REQUESTED bar's Assigned segment is the one exception: per BuildDayCapacityChartData's own
-    /// doc comment, that segment is a deliberately collapsed combined total (the "external" series
-    /// is always 0 there), so its drilldown shows ALL assigned rows for that day regardless of the
-    /// assigned resource's Is External flag - matching what the plotted number actually represents.
+    /// SegmentId = AssignedCapacitySeriesNameLbl is page 50692's own (weekly chart) single combined
+    /// Assigned Capacity series - BuildDayCapacityChartData no longer emits an Internal/External
+    /// split on either bar (see that procedure's own doc comment), so UseClassification is always
+    /// false for this SegmentId regardless of WholeWeek/BarType, and every matching Day Planning
+    /// row opens with no Is External filtering. AssInternalSeriesNameLbl/AssExternalSeriesNameLbl
+    /// are kept here only for any caller still emitting the legacy split (e.g.
+    /// BuildDayCapacityChartDataForRange, currently unused - see its own doc comment); for those,
+    /// the Internal/External classification only applies when UseClassification is true - true for
+    /// WholeWeek (legend) clicks and for a click on the CAPACITY bar's own Assigned segment, both of
+    /// which represent this series' real, always-classified identity. A click on the REQUESTED
+    /// bar's Assigned segment is the one exception: that segment is a deliberately collapsed
+    /// combined total (the "external" series is always 0 there), so its drilldown shows ALL
+    /// assigned rows for that day regardless of the assigned resource's Is External flag - matching
+    /// what the plotted number actually represents.
     /// </summary>
     local procedure ShowAssignedCapacitySegment(SegmentId: Text; BarType: Text; DateFrom: Date; DateTo: Date; WholeWeek: Boolean)
     var
@@ -1087,7 +1042,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         ResourceNoFilterText: Text;
     begin
         ClassifyExternal := (SegmentId = AssExternalSeriesNameLbl);
-        UseClassification := WholeWeek or (BarType = CapacityBarTypeTok);
+        UseClassification := (SegmentId <> AssignedCapacitySeriesNameLbl) and (WholeWeek or (BarType = CapacityBarTypeTok));
 
         BuildAssignedResourceSet(DateFrom, DateTo, ClassifyExternal, not UseClassification, ResourceNoList);
         if ResourceNoList.Count() = 0 then begin
@@ -1164,26 +1119,56 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// still shown, just also a few same-resource/other-day rows that net to 0). For a single-day
     /// bar-segment click DateFrom = DateTo, so the union has exactly one day's terms and this is
     /// precision-identical to the old per-day Mark() loop.
+    ///
+    /// 3-WAY CLASSIFICATION (2026-09-16): SegmentId now maps to one of FOUR classifications (see
+    /// the local Classification option below) rather than a plain external/internal boolean -
+    /// CapExternalSeriesNameLbl narrows to NON-mandatory external resources only (mandatory ones
+    /// now belong to CapExternalMandatorySeriesNameLbl's own segment - see CalcCapacitySplit's own
+    /// doc comment on the 3-way split), and CapExternalMandatorySeriesNameLbl resolves to mandatory
+    /// external resources only. ShowFreeCapacitySegmentForDate below deliberately bypasses this
+    /// SegmentId mapping (it calls ShowFreeCapacitySegmentByClassification directly with
+    /// Classification::ExternalAny) so its own caller (CPO's Section 3, which has no concept of
+    /// "mandatory") keeps seeing External as a whole, unnarrowed, exactly as before this change.
     /// </summary>
     local procedure ShowFreeCapacitySegment(SegmentId: Text; DateFrom: Date; DateTo: Date)
+    var
+        Classification: Option Internal,ExternalAny,ExternalMandatory,ExternalNonMandatory;
+    begin
+        case SegmentId of
+            CapInternalSeriesNameLbl:
+                Classification := Classification::Internal;
+            CapExternalMandatorySeriesNameLbl:
+                Classification := Classification::ExternalMandatory;
+            else // CapExternalSeriesNameLbl
+                Classification := Classification::ExternalNonMandatory;
+        end;
+        ShowFreeCapacitySegmentByClassification(Classification, DateFrom, DateTo);
+    end;
+
+    /// <summary>
+    /// Shared implementation behind ShowFreeCapacitySegment (SegmentId-based, narrows External to
+    /// mandatory/non-mandatory) and ShowFreeCapacitySegmentForDate (plain Internal/External-as-a-
+    /// whole, for the CPO caller that has no "mandatory" concept) - unions the matching resources
+    /// across DateFrom..DateTo (see this procedure's own history/comments above on why a plain
+    /// OR-filter replaced the old Mark()+MarkedOnly()+Page.Run() idiom) and opens "Res. Capacity
+    /// Entries" filtered to them.
+    /// </summary>
+    local procedure ShowFreeCapacitySegmentByClassification(Classification: Option Internal,ExternalAny,ExternalMandatory,ExternalNonMandatory; DateFrom: Date; DateTo: Date)
     var
         ResCapacityEntry: Record "Res. Capacity Entry";
         DateResourceList: List of [Code[20]];
         UnionResourceList: List of [Code[20]];
         SeenResources: Dictionary of [Code[20], Boolean];
-        ClassifyExternal: Boolean;
         CurrDate: Date;
         ResourceNo: Code[20];
         ResourceNoFilterText: Text;
     begin
-        ClassifyExternal := (SegmentId = CapExternalSeriesNameLbl);
-
         EnsureDayPlanningBuffer(DateFrom, DateTo);
 
         CurrDate := DateFrom;
         while CurrDate <= DateTo do begin
             Clear(DateResourceList);
-            GetFreeCapacityResourcesForDate(CurrDate, ClassifyExternal, DateResourceList);
+            GetFreeCapacityResourcesForDate(CurrDate, Classification, DateResourceList);
             foreach ResourceNo in DateResourceList do
                 if not SeenResources.ContainsKey(ResourceNo) then begin
                     SeenResources.Add(ResourceNo, true);
@@ -1207,15 +1192,16 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
 
     /// <summary>
     /// Returns the Resource No.s with nonzero TRUE free capacity (Res. Capacity Entry sum minus
-    /// that day's Day Planning Assigned Hours, floored at 0) on PlanDate whose Resource."Is
-    /// External" matches ClassifyExternal - the same computation as CalcCapacitySplit, but
-    /// collecting the contributing resource numbers instead of summing their totals. Kept as its
-    /// own procedure (deliberately not refactored to share CalcCapacitySplit's body) so this new
-    /// drilldown path cannot accidentally change the chart's own totals. Reads/relies on the
-    /// shared GDayPlanningBuf being already loaded for a range covering PlanDate - caller
-    /// (ShowFreeCapacitySegment) calls EnsureDayPlanningBuffer first.
+    /// that day's Day Planning Assigned Hours, floored at 0) on PlanDate matching Classification
+    /// (Internal / any External / mandatory-External-only / non-mandatory-External-only - see
+    /// ResourceMatchesClassification) - the same computation as CalcCapacitySplit, but collecting
+    /// the contributing resource numbers instead of summing their totals. Kept as its own
+    /// procedure (deliberately not refactored to share CalcCapacitySplit's body) so this drilldown
+    /// path cannot accidentally change the chart's own totals. Reads/relies on the shared
+    /// GDayPlanningBuf being already loaded for a range covering PlanDate - caller
+    /// (ShowFreeCapacitySegmentByClassification) calls EnsureDayPlanningBuffer first.
     /// </summary>
-    local procedure GetFreeCapacityResourcesForDate(PlanDate: Date; ClassifyExternal: Boolean; var ResourceNoList: List of [Code[20]])
+    local procedure GetFreeCapacityResourcesForDate(PlanDate: Date; Classification: Option Internal,ExternalAny,ExternalMandatory,ExternalNonMandatory; var ResourceNoList: List of [Code[20]])
     var
         ResCapacityEntry: Record "Res. Capacity Entry";
         Resource: Record Resource;
@@ -1260,8 +1246,28 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
                 FreeCapacity := 0;
             if FreeCapacity <> 0 then
                 if Resource.Get(ResourceNo) then
-                    if Resource."Is External" = ClassifyExternal then
+                    if ResourceMatchesClassification(Resource, Classification) then
                         ResourceNoList.Add(ResourceNo);
+        end;
+    end;
+
+    /// <summary>
+    /// True if Resource matches Classification (Internal / any External / mandatory-External-only
+    /// / non-mandatory-External-only), keyed off "Is External" plus, for the two External
+    /// sub-classifications, "Mandatory Schedulling" - shared by GetFreeCapacityResourcesForDate so
+    /// its classification logic stays in exactly one place.
+    /// </summary>
+    local procedure ResourceMatchesClassification(var Resource: Record Resource; Classification: Option Internal,ExternalAny,ExternalMandatory,ExternalNonMandatory): Boolean
+    begin
+        case Classification of
+            Classification::Internal:
+                exit(not Resource."Is External");
+            Classification::ExternalAny:
+                exit(Resource."Is External");
+            Classification::ExternalMandatory:
+                exit(Resource."Is External" and Resource."Mandatory Schedulling");
+            Classification::ExternalNonMandatory:
+                exit(Resource."Is External" and not Resource."Mandatory Schedulling");
         end;
     end;
 
@@ -1276,15 +1282,22 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// CapExternalSeriesNameLbl are private - and that caller's own JSON payload never carries them
     /// in the first place, since Section 3's bars are no longer built from this codeunit's own
     /// chart data - see that add-in's own architecture-pivot doc comment). Delegates straight to
-    /// ShowFreeCapacitySegment with DateFrom = DateTo = PlanDate - no new resource-classification
-    /// logic, so the Weekly/Daily Insights charts and this drilldown can never drift apart.
+    /// ShowFreeCapacitySegmentByClassification with DateFrom = DateTo = PlanDate and Classification
+    /// Internal/ExternalAny - deliberately bypassing ShowFreeCapacitySegment's own SegmentId-based
+    /// mandatory/non-mandatory narrowing (2026-09-16, added only for page 50692's own weekly chart
+    /// drilldown - see that procedure's doc comment): CPO's Section 3 has no "mandatory" concept,
+    /// so ClassifyExternal = true must keep resolving to External as a whole (mandatory OR
+    /// non-mandatory), exactly as before that change.
     /// </summary>
     procedure ShowFreeCapacitySegmentForDate(ClassifyExternal: Boolean; PlanDate: Date)
+    var
+        Classification: Option Internal,ExternalAny,ExternalMandatory,ExternalNonMandatory;
     begin
         if ClassifyExternal then
-            ShowFreeCapacitySegment(CapExternalSeriesNameLbl, PlanDate, PlanDate)
+            Classification := Classification::ExternalAny
         else
-            ShowFreeCapacitySegment(CapInternalSeriesNameLbl, PlanDate, PlanDate);
+            Classification := Classification::Internal;
+        ShowFreeCapacitySegmentByClassification(Classification, PlanDate, PlanDate);
     end;
 
     /// <summary>
@@ -1372,6 +1385,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         DayAssignedExternal: Decimal;
         DayCapacityInternal: Decimal;
         DayCapacityExternal: Decimal;
+        DayCapacityExternalMandatory: Decimal;
     begin
         AssignedInternal := 0;
         AssignedExternal := 0;
@@ -1382,11 +1396,15 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
 
         CurrDate := DateFrom;
         while CurrDate <= DateTo do begin
-            CalcDaySegments(CurrDate, ActiveSkillList, DayAssignedInternal, DayAssignedExternal, DayCapacityInternal, DayCapacityExternal, SkillInternalValues, SkillExternalValues);
+            CalcDaySegments(CurrDate, ActiveSkillList, DayAssignedInternal, DayAssignedExternal, DayCapacityInternal, DayCapacityExternal, DayCapacityExternalMandatory, SkillInternalValues, SkillExternalValues);
             AssignedInternal += DayAssignedInternal;
             AssignedExternal += DayAssignedExternal;
             CapacityInternal += DayCapacityInternal;
-            CapacityExternal += DayCapacityExternal;
+            // The mandatory/non-mandatory external split (2026-09-16, page 50692's weekly chart
+            // only) is added straight back into the plain External total here so this procedure's
+            // existing callers (barchart_daily's CAPACITY reference bar + the 3 scheduler pages)
+            // see byte-identical totals to before the split existed.
+            CapacityExternal += DayCapacityExternal + DayCapacityExternalMandatory;
             CurrDate += 1;
         end;
     end;
@@ -1493,14 +1511,17 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         GResCapBufferLoaded: Boolean;
         AssInternalSeriesNameLbl: Label 'Assigned Capacity - Internal';
         AssExternalSeriesNameLbl: Label 'Assigned Capacity - External';
+        AssignedCapacitySeriesNameLbl: Label 'Assigned Capacity';
         CapInternalSeriesNameLbl: Label 'Free Capacity - Internal';
         CapExternalSeriesNameLbl: Label 'Free Capacity - External';
+        CapExternalMandatorySeriesNameLbl: Label 'Free Capacity - External (Mandatory)';
         FreeCapacityCategoryLbl: Label 'Capacity';
         RequestedCategoryLbl: Label 'Requested';
         CategoryDelimiterTok: Label '|', Locked = true;
         AssignedSegmentTok: Label 'Assigned', Locked = true;
         InternalSegmentTok: Label 'Internal', Locked = true;
         ExternalSegmentTok: Label 'External', Locked = true;
+        ExternalMandatorySegmentTok: Label 'External (Mandatory)', Locked = true;
         CapSegmentPrefixLbl: Label 'Cap. ';
         ReqSegmentPrefixLbl: Label 'Req. ';
         NoSkillSegmentLbl: Label '(No Skill)';

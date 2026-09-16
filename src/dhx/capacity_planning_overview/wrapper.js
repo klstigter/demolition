@@ -35,9 +35,9 @@ window.SetPlanningData = function (PlanningDataJsonTxt) {
     const parsed = JSON.parse(PlanningDataJsonTxt);
     // TEMP DIAGNOSTIC (remove after confirming) - raw values AL actually sent, for side-by-side
     // comparison against the BC-side Message() in page 50618's CapacityPlanningOverviewAct.
-    if (parsed.workOrder) {
-        alert('JS received: requestedHoursTotal=' + parsed.workOrder.requestedHoursTotal + ' assignedHoursTotal=' + parsed.workOrder.assignedHoursTotal);
-    }
+    //if (parsed.workOrder) {
+    //    alert('JS received: requestedHoursTotal=' + parsed.workOrder.requestedHoursTotal + ' assignedHoursTotal=' + parsed.workOrder.assignedHoursTotal);
+    //}
     window.__cpo.applyPlanningData(parsed);
 };
 
