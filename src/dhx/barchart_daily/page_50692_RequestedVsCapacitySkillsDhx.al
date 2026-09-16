@@ -291,8 +291,10 @@ page 50681 "Requested vs Capacity Daily"
     // `color`), so there is no fixed-palette grey-collision problem.
     //
     // Every bar is now a true 2-segment stack, no flat single-value series left at all:
-    //   - CAPACITY: Assigned Internal/External + Free Capacity Internal/External (4 series,
-    //     unchanged from the previous round - see AddCapacitySegmentSeries), 0 on every skill row.
+    //   - CAPACITY: Assigned Capacity (ONE combined series, no border - 2026-09-16, matches page
+    //     50692's weekly chart) + Free Capacity Internal, Free Capacity - External (Mandatory,
+    //     no border), Free Capacity - External non-mandatory (red border, declared last so it
+    //     stays topmost - see AddCapacitySegmentSeries) - 4 series total, 0 on every skill row.
     //   - Each SKILL: Requested-Assigned (green, ONE series shared across every skill - see
     //     AddRequestedAssignedSeries) at the bottom, that skill's own Unassigned portion (that
     //     skill's own colour, ONE series PER skill since the colour varies - see
@@ -323,9 +325,9 @@ page 50681 "Requested vs Capacity Daily"
         SeriesArray: JsonArray;
         ColorsArray: JsonArray;
         FontColorsArray: JsonArray;
-        AssInternalValues: JsonArray;
-        AssExternalValues: JsonArray;
+        AssignedValues: JsonArray;
         CapInternalValues: JsonArray;
+        CapExternalMandatoryValues: JsonArray;
         CapExternalValues: JsonArray;
         RequestedAssignedValues: JsonArray;
         SkillUnassignedValues: JsonArray;
@@ -338,8 +340,10 @@ page 50681 "Requested vs Capacity Daily"
         AssignedExternal: Decimal;
         CapacityInternal: Decimal;
         CapacityExternal: Decimal;
+        CapacityExternalMandatory: Decimal;
         AssignedColorHex: Text;
         CapacityColorHex: Text;
+        CapacityMandatoryColorHex: Text;
         ExternalBorderColorHex: Text;
         UnassignedColorHex: Text;
         UnassignedBorderColorHex: Text;
@@ -354,14 +358,15 @@ page 50681 "Requested vs Capacity Daily"
         Clear(CategoriesArray);
         Clear(ColorsArray);
         Clear(FontColorsArray);
-        Clear(AssInternalValues);
-        Clear(AssExternalValues);
+        Clear(AssignedValues);
         Clear(CapInternalValues);
+        Clear(CapExternalMandatoryValues);
         Clear(CapExternalValues);
         Clear(RequestedAssignedValues);
         Clear(SkillCodeList);
 
         SkillCapacityAnalysisMgt.GetCapacitySegmentColors(AssignedColorHex, CapacityColorHex, ExternalBorderColorHex);
+        CapacityMandatoryColorHex := SkillCapacityAnalysisMgt.GetCapacityMandatoryColor();
         SkillCapacityAnalysisMgt.BuildSkillAssignedUnassignedSplit(ResourceNoFilter, PeriodStartDate, CapacityPeriodEndDate, AssignedHoursPerSkill, UnassignedHoursPerSkill);
 
         Buffer.Reset();
@@ -378,7 +383,7 @@ page 50681 "Requested vs Capacity Daily"
                     // (that setting is reserved for the two scheduler-timeline add-ins' actual
                     // Capacity bar/event, not this chart tile's CAPACITY category).
                     FontColorsArray.Add(VisualDefaultSettings.GetDefaultBarFontColor());
-                    SkillCapacityAnalysisMgt.GetCapacityAssignedFreeSplit(PeriodStartDate, CapacityPeriodEndDate, AssignedInternal, AssignedExternal, CapacityInternal, CapacityExternal);
+                    SkillCapacityAnalysisMgt.GetCapacityAssignedFreeSplit(PeriodStartDate, CapacityPeriodEndDate, AssignedInternal, AssignedExternal, CapacityInternal, CapacityExternal, CapacityExternalMandatory);
                     RequestedAssignedValues.Add(0);
                 end else begin
                     RowSkillCode := CopyStr(Buffer."No.", 1, 10);
@@ -390,19 +395,20 @@ page 50681 "Requested vs Capacity Daily"
                     AssignedExternal := 0;
                     CapacityInternal := 0;
                     CapacityExternal := 0;
+                    CapacityExternalMandatory := 0;
                     if AssignedHoursPerSkill.ContainsKey(RowSkillCode) then
                         RequestedAssignedValues.Add(AssignedHoursPerSkill.Get(RowSkillCode))
                     else
                         RequestedAssignedValues.Add(0);
                 end;
 
-                AssInternalValues.Add(AssignedInternal);
-                AssExternalValues.Add(AssignedExternal);
+                AssignedValues.Add(AssignedInternal + AssignedExternal);
                 CapInternalValues.Add(CapacityInternal);
+                CapExternalMandatoryValues.Add(CapacityExternalMandatory);
                 CapExternalValues.Add(CapacityExternal);
             until Buffer.Next() = 0;
 
-        SkillCapacityAnalysisMgt.AddCapacitySegmentSeries(SeriesArray, AssInternalValues, AssExternalValues, CapInternalValues, CapExternalValues, AssignedColorHex, CapacityColorHex, ExternalBorderColorHex);
+        SkillCapacityAnalysisMgt.AddCapacitySegmentSeries(SeriesArray, AssignedValues, CapInternalValues, CapExternalMandatoryValues, CapExternalValues, AssignedColorHex, CapacityColorHex, CapacityMandatoryColorHex, ExternalBorderColorHex);
         SkillCapacityAnalysisMgt.AddRequestedAssignedSeries(SeriesArray, RequestedAssignedValues, AssignedColorHex);
 
         // One Unassigned series per active skill - a second pass over Buffer per skill to build
