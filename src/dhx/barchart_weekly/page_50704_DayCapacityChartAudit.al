@@ -28,11 +28,12 @@ page 50704 "Day Capacity Chart Audit"
     /// this view can never drift from the audit buffer it is built from:
     ///   - Capacity row, per day: "Assigned" = the buffer's own Bar Type=Capacity/Segment=
     ///     Assigned row (already the day's combined Internal+External assigned total).
-    ///     "Requested" = the buffer's Bar Type=Capacity/Segment=Internal + Segment=External rows
-    ///     SUMMED (i.e. the day's free/available capacity total - matches what the old flat
-    ///     buffer already showed under those two segments).
+    ///     "Requested" = the buffer's Bar Type=Capacity/Segment=Internal + Segment=External +
+    ///     Segment=External (Mandatory) rows SUMMED (i.e. the day's free/available capacity
+    ///     total, including mandatory-scheduling resources' free external capacity - matches what
+    ///     the old flat buffer already showed under those segments).
     ///   - Skill row (one per active Skill Code, i.e. every distinct non-Assigned/Internal/
-    ///     External Segment under Bar Type=Requested), per day: "Requested" = the buffer's own
+    ///     External/External (Mandatory) Segment under Bar Type=Requested), per day: "Requested" = the buffer's own
     ///     Bar Type=Requested/Segment=<SkillCode> row (already the day's combined Internal+
     ///     External requested total for that skill - see BuildDayCapacityAuditBuffer's own doc
     ///     comment on why a skill's Internal/External halves share one Segment value). "Assigned"
@@ -169,13 +170,16 @@ page 50704 "Day Capacity Chart Audit"
     /// <summary>
     /// Builds the "Capacity" row: "Assigned" resums the buffer's own Bar Type=Capacity/Segment=
     /// Assigned row, "Requested" resums the buffer's Bar Type=Capacity/Segment=Internal +
-    /// Segment=External rows summed - see this page's own header comment.
+    /// Segment=External + Segment=External (Mandatory) rows summed - see this page's own header
+    /// comment.
     /// </summary>
     local procedure AddCapacityGridRow(var RowsArray: JsonArray; var SourceBuffer: Record "Day Capacity Chart Audit Buf" temporary; var DayList: List of [Date])
     var
         RowObj: JsonObject;
         DaysArray: JsonArray;
         DayObj: JsonObject;
+        AssignedSegmentList: List of [Text];
+        RequestedSegmentList: List of [Text];
         ADate: Date;
         RequestedVal: Decimal;
         AssignedVal: Decimal;
@@ -183,9 +187,16 @@ page 50704 "Day Capacity Chart Audit"
     begin
         Clear(DaysArray);
         GrandTotal := 0;
+
+        AssignedSegmentList.Add(UpperCase(AssignedSegmentTok));
+
+        RequestedSegmentList.Add(UpperCase(InternalSegmentTok));
+        RequestedSegmentList.Add(UpperCase(ExternalSegmentTok));
+        RequestedSegmentList.Add(UpperCase(ExternalMandatorySegmentTok));
+
         foreach ADate in DayList do begin
-            AssignedVal := SumBufferValue(SourceBuffer, ADate, Enum::"Day Capacity Chart Bar Type"::Capacity, UpperCase(AssignedSegmentTok));
-            RequestedVal := SumBufferValue(SourceBuffer, ADate, Enum::"Day Capacity Chart Bar Type"::Capacity, UpperCase(InternalSegmentTok) + '|' + UpperCase(ExternalSegmentTok));
+            AssignedVal := SumBufferValue(SourceBuffer, ADate, Enum::"Day Capacity Chart Bar Type"::Capacity, AssignedSegmentList);
+            RequestedVal := SumBufferValue(SourceBuffer, ADate, Enum::"Day Capacity Chart Bar Type"::Capacity, RequestedSegmentList);
 
             Clear(DayObj);
             DayObj.Add('req', RequestedVal);
@@ -216,14 +227,18 @@ page 50704 "Day Capacity Chart Audit"
         RowObj: JsonObject;
         DaysArray: JsonArray;
         DayObj: JsonObject;
+        SkillSegmentList: List of [Text];
         ADate: Date;
         RequestedVal: Decimal;
         GrandTotal: Decimal;
     begin
         Clear(DaysArray);
         GrandTotal := 0;
+
+        SkillSegmentList.Add(SkillCode);
+
         foreach ADate in DayList do begin
-            RequestedVal := SumBufferValue(SourceBuffer, ADate, Enum::"Day Capacity Chart Bar Type"::Requested, SkillCode);
+            RequestedVal := SumBufferValue(SourceBuffer, ADate, Enum::"Day Capacity Chart Bar Type"::Requested, SkillSegmentList);
 
             Clear(DayObj);
             DayObj.Add('req', RequestedVal);
@@ -243,14 +258,25 @@ page 50704 "Day Capacity Chart Audit"
     end;
 
     /// <summary>
-    /// Sums SourceBuffer.Value for one Day + Bar Type + Segment filter (SegmentFilter may be a
-    /// single Segment value or a '|'-delimited OR filter, e.g. "INTERNAL|EXTERNAL" - Segment is a
-    /// Code field, always stored upper-cased, so callers must UpperCase() their own literal
-    /// tokens before passing them in here, same convention this page's old OnDrillDown already
-    /// used).
+    /// Sums SourceBuffer.Value for one Day + Bar Type + Segment matching ANY of SegmentValues
+    /// (OR'd together). Each value is run through EscapeFilterLiteral before being joined into
+    /// the filter string, so a segment value containing filter-special characters (parentheses,
+    /// &amp;, |, etc. - e.g. "EXTERNAL (MANDATORY)") can never be misparsed as filter syntax,
+    /// regardless of how many values a given caller passes. Segment is a Code field, always
+    /// stored upper-cased, so callers must UpperCase() their own literal tokens before passing
+    /// them in here, same convention this page's old OnDrillDown already used.
     /// </summary>
-    local procedure SumBufferValue(var SourceBuffer: Record "Day Capacity Chart Audit Buf" temporary; ADate: Date; BarType: Enum "Day Capacity Chart Bar Type"; SegmentFilter: Text): Decimal
+    local procedure SumBufferValue(var SourceBuffer: Record "Day Capacity Chart Audit Buf" temporary; ADate: Date; BarType: Enum "Day Capacity Chart Bar Type"; SegmentValues: List of [Text]): Decimal
+    var
+        SegmentFilter: Text;
+        SegmentValue: Text;
     begin
+        foreach SegmentValue in SegmentValues do begin
+            if SegmentFilter <> '' then
+                SegmentFilter += '|';
+            SegmentFilter += EscapeFilterLiteral(SegmentValue);
+        end;
+
         SourceBuffer.Reset();
         SourceBuffer.SetRange(Day, ADate);
         SourceBuffer.SetRange("Bar Type", BarType);
@@ -260,9 +286,19 @@ page 50704 "Day Capacity Chart Audit"
     end;
 
     /// <summary>
+    /// Wraps a literal value in single quotes so the filter parser treats its contents as a
+    /// literal value rather than filter syntax - any special character (parentheses, &amp;, |,
+    /// etc.) inside becomes safe. An embedded single quote must be doubled per AL filter syntax.
+    /// </summary>
+    local procedure EscapeFilterLiteral(Value: Text): Text
+    begin
+        exit('''' + Value.Replace('''', '''''') + '''');
+    end;
+
+    /// <summary>
     /// Reconstructs the same active-Skill-Code set BuildActiveSkillList produced when
     /// BuildDayCapacityAuditBuffer was built, by reading the distinct non-Assigned/Internal/
-    /// External Segment values under Bar Type=Requested - every active skill has at least one
+    /// External/External (Mandatory) Segment values under Bar Type=Requested - every active skill has at least one
     /// such row for every weekday (see BuildDayCapacityAuditBuffer's own doc comment), so the
     /// first occurrence in Line No. order (Monday first) reproduces BuildActiveSkillList's own
     /// order exactly.
@@ -274,7 +310,7 @@ page 50704 "Day Capacity Chart Audit"
         Clear(SkillList);
         SourceBuffer.Reset();
         SourceBuffer.SetRange("Bar Type", Enum::"Day Capacity Chart Bar Type"::Requested);
-        SourceBuffer.SetFilter(Segment, '<>%1&<>%2&<>%3', UpperCase(AssignedSegmentTok), UpperCase(InternalSegmentTok), UpperCase(ExternalSegmentTok));
+        SourceBuffer.SetFilter(Segment, '<>%1&<>%2&<>%3&<>%4', UpperCase(AssignedSegmentTok), UpperCase(InternalSegmentTok), UpperCase(ExternalSegmentTok), UpperCase(ExternalMandatorySegmentTok));
         if SourceBuffer.FindSet() then
             repeat
                 if not SeenSkills.ContainsKey(SourceBuffer.Segment) then begin
@@ -361,6 +397,7 @@ page 50704 "Day Capacity Chart Audit"
         AssignedSegmentTok: Label 'Assigned', Locked = true;
         InternalSegmentTok: Label 'Internal', Locked = true;
         ExternalSegmentTok: Label 'External', Locked = true;
+        ExternalMandatorySegmentTok: Label 'External (Mandatory)', Locked = true;
         CapacityRowIdTok: Label 'CAPACITY', Locked = true;
         CapacityRowLabelLbl: Label 'Capacity';
         CapacityRowTypeTok: Label 'capacity', Locked = true;

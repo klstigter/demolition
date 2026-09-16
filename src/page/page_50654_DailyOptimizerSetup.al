@@ -259,18 +259,35 @@ page 50654 "Daily Optimizer Setup"
                     {
                         Caption = 'Capacity';
 
-                        field("Unassigned Capacity Color"; Rec."Unassigned Capacity Color")
+                        field("Free Capacity Color"; Rec."Free Capacity Color")
                         {
                             ApplicationArea = All;
-                            ToolTip = 'Color of the Unassigned Capacity bar. Enter a hex color, e.g. #7FB3FA.';
+                            ToolTip = 'Color of the Free Capacity bar. Enter a hex color, e.g. #7FB3FA.';
 
                             trigger OnAssistEdit()
                             var
                                 ColorPickerPage: Page "Color Picker Lookup";
                             begin
-                                ColorPickerPage.SetInitialColor(Rec."Unassigned Capacity Color");
+                                ColorPickerPage.SetInitialColor(Rec."Free Capacity Color");
                                 if ColorPickerPage.RunModal() = Action::OK then begin
-                                    Rec."Unassigned Capacity Color" := ColorPickerPage.GetSelectedColor();
+                                    Rec."Free Capacity Color" := ColorPickerPage.GetSelectedColor();
+                                    Rec.Modify(true);
+                                    CurrPage.Update(false);
+                                end;
+                            end;
+                        }
+                        field(FreeCapacityMandatoryColor; Rec."Free Capacity-Mandatory Color")
+                        {
+                            ApplicationArea = All;
+                            ToolTip = 'Color of the Free Capacity (Mandatory) bar. Enter a hex color, e.g. #7FB3FA.';
+
+                            trigger OnAssistEdit()
+                            var
+                                ColorPickerPage: Page "Color Picker Lookup";
+                            begin
+                                ColorPickerPage.SetInitialColor(Rec."Free Capacity-Mandatory Color");
+                                if ColorPickerPage.RunModal() = Action::OK then begin
+                                    Rec."Free Capacity-Mandatory Color" := ColorPickerPage.GetSelectedColor();
                                     Rec.Modify(true);
                                     CurrPage.Update(false);
                                 end;
@@ -472,7 +489,8 @@ page 50654 "Daily Optimizer Setup"
 
                         Rec."Resource Scheduler - List Type" := Rec."Resource Scheduler - List Type"::"By Resource Group";
                         Rec."Assigned Color" := VisualDefaultSettings.GetDefaultAssignedColor();
-                        Rec."Unassigned Capacity Color" := VisualDefaultSettings.GetDefaultCapacityColor();
+                        Rec."Free Capacity Color" := VisualDefaultSettings.GetDefaultCapacityColor();
+                        Rec."Free Capacity-Mandatory Color" := VisualDefaultSettings.GetDefaultCapacityMandatoryColor();
                         Rec."External Border Color" := VisualDefaultSettings.GetDefaultExternalBorderColor();
                         Rec."Capacity Border Color" := VisualDefaultSettings.GetDefaultCapacityBorderColor();
                         Rec."Bar Font Color" := VisualDefaultSettings.GetDefaultBarFontColor();

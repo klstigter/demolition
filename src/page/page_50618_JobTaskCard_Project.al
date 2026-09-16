@@ -888,7 +888,7 @@ page 50618 "Opti Job Task Card"
                     // TEMP DIAGNOSTIC (remove after confirming) - shows what BC itself computed,
                     // BEFORE it's handed to the control add-in, for side-by-side comparison against
                     // the JS-side alert() in wrapper.js's SetPlanningData.
-                    Message('BC computed (Job %1/%2, window %3): Requested=%5 Assigned=%6', Rec."Job No.", Rec."Job Task No.", Rec.getfilter("Planning Date Filter"), Rec.getfilter("Planning Date Filter"), RequestedHours, AssignedHours);
+                    //Message('BC computed (Job %1/%2, window %3): Requested=%5 Assigned=%6', Rec."Job No.", Rec."Job Task No.", Rec.getfilter("Planning Date Filter"), Rec.getfilter("Planning Date Filter"), RequestedHours, AssignedHours);
 
                     CPO.SetJobTask(Rec."Job No.", Rec."Job Task No.", RequestedHours, AssignedHours);
                     CPO.Run();

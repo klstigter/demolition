@@ -60,6 +60,11 @@ table 50605 "Daily Optimizer Setup"
         }
 
         // Bar Colors: applicable to Scheduler Timeline and Bar Chart
+        field(59; "Free Capacity-Mandatory Color"; Text[20])
+        {
+            Caption = 'Free Capacity (Mandatory) Color';
+            DataClassification = CustomerContent;
+        }
         field(60; "Envelope Color"; Text[20])
         {
             Caption = 'Envelope Color';
@@ -85,9 +90,9 @@ table 50605 "Daily Optimizer Setup"
             Caption = 'Requested High (%)';
             DataClassification = CustomerContent;
         }
-        field(65; "Unassigned Capacity Color"; Text[20])
+        field(65; "Free Capacity Color"; Text[20])
         {
-            Caption = 'Unassigned Capacity Color';
+            Caption = 'Free Capacity Color';
             DataClassification = CustomerContent;
         }
         field(66; "External Border Color"; Text[20])
