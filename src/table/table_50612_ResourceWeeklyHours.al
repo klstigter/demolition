@@ -485,6 +485,76 @@ table 50612 "Summary Weekly"
         rec."Total Assigned Hours" += Hours;
         rec."Total Week Hours" += Hours;
     end;
+
+    /// <summary>
+    /// Collapses the current per-"Resource No." buffer built by FillSummary down to one row per
+    /// (Year, "Week No.", "Skill Code") when IncludeResource is false - summing every day/
+    /// Requested/Assigned hours field across all resources within that same Year+Week (a
+    /// collapsed row never mixes hours from different weeks) and blanking "Resource No." on the
+    /// surviving row. The buffer's own PK (which includes "Resource No.") stays valid because
+    /// the blank "Resource No." is unique within each (Year, "Week No.", "Skill Code", "Job
+    /// No.", "Job Task No.") group. IncludeResource = true is a no-op - FillSummary already
+    /// produced the desired per-Resource granularity. Always call FillSummary first: this only
+    /// aggregates whatever the buffer currently holds and cannot restore per-Resource detail
+    /// once collapsed, so page 50638 always reruns FillSummary before this on every toggle of
+    /// its "Show Resource" field rather than trying to un-collapse in place.
+    /// </summary>
+    procedure CollapseByResource(IncludeResource: Boolean)
+    var
+        TempCollapsed: Record "Summary Weekly" temporary;
+    begin
+        if IncludeResource then
+            exit;
+
+        rec.Reset();
+        if rec.FindSet() then
+            repeat
+                if TempCollapsed.Get('', rec."Skill Code", rec."Job No.", rec."Job Task No.", rec.Year, rec."Week No.") then
+                    AddHoursInto(TempCollapsed)
+                else begin
+                    TempCollapsed := rec;
+                    TempCollapsed."Resource No." := '';
+                    TempCollapsed.Insert();
+                end;
+            until rec.Next() = 0;
+
+        rec.Reset();
+        rec.DeleteAll();
+        if TempCollapsed.FindSet() then
+            repeat
+                rec := TempCollapsed;
+                rec.Insert();
+            until TempCollapsed.Next() = 0;
+    end;
+
+    local procedure AddHoursInto(var Target: Record "Summary Weekly")
+    begin
+        Target."Monday Hours" += rec."Monday Hours";
+        Target."Tuesday Hours" += rec."Tuesday Hours";
+        Target."Wednesday Hours" += rec."Wednesday Hours";
+        Target."Thursday Hours" += rec."Thursday Hours";
+        Target."Friday Hours" += rec."Friday Hours";
+        Target."Saturday Hours" += rec."Saturday Hours";
+        Target."Sunday Hours" += rec."Sunday Hours";
+        Target."Total Week Hours" += rec."Total Week Hours";
+        Target."Monday Requested Hours" += rec."Monday Requested Hours";
+        Target."Monday Assigned Hours" += rec."Monday Assigned Hours";
+        Target."Tuesday Requested Hours" += rec."Tuesday Requested Hours";
+        Target."Tuesday Assigned Hours" += rec."Tuesday Assigned Hours";
+        Target."Wednesday Requested Hours" += rec."Wednesday Requested Hours";
+        Target."Wednesday Assigned Hours" += rec."Wednesday Assigned Hours";
+        Target."Thursday Requested Hours" += rec."Thursday Requested Hours";
+        Target."Thursday Assigned Hours" += rec."Thursday Assigned Hours";
+        Target."Friday Requested Hours" += rec."Friday Requested Hours";
+        Target."Friday Assigned Hours" += rec."Friday Assigned Hours";
+        Target."Saturday Requested Hours" += rec."Saturday Requested Hours";
+        Target."Saturday Assigned Hours" += rec."Saturday Assigned Hours";
+        Target."Sunday Requested Hours" += rec."Sunday Requested Hours";
+        Target."Sunday Assigned Hours" += rec."Sunday Assigned Hours";
+        Target."Total Requested Hours" += rec."Total Requested Hours";
+        Target."Total Assigned Hours" += rec."Total Assigned Hours";
+        Target.Modify();
+    end;
     #endregion
     var
         TempDayPlanning: Record "Day Planning" temporary;

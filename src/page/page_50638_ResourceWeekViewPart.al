@@ -35,6 +35,7 @@ page 50638 "Resource Week View Part"
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the resource number.';
+                    Visible = ShowResource;
                 }
                 field("Resource Name"; ResourceName)
                 {
@@ -140,6 +141,34 @@ page 50638 "Resource Week View Part"
     {
         area(Processing)
         {
+            action(ShowResourceOn)
+            {
+                ApplicationArea = All;
+                Caption = 'Show Resource';
+                Image = Resource;
+                Visible = not ShowResource;
+                ToolTip = 'Show hours per resource instead of the current aggregated view (summed across all resources for the same week and skill).';
+
+                trigger OnAction()
+                begin
+                    ShowResource := true;
+                    LoadData();
+                end;
+            }
+            action(ShowResourceOff)
+            {
+                ApplicationArea = All;
+                Caption = 'Hide Resource';
+                Image = Resource;
+                Visible = ShowResource;
+                ToolTip = 'Hide the Resource No. column and sum hours for the same week and skill across all resources into a single line.';
+
+                trigger OnAction()
+                begin
+                    ShowResource := false;
+                    LoadData();
+                end;
+            }
             action(PreviousWeek)
             {
                 ApplicationArea = All;
@@ -304,6 +333,7 @@ page 50638 "Resource Week View Part"
         FridayPair: Text;
         SaturdayPair: Text;
         SundayPair: Text;
+        ShowResource: Boolean;
 
     trigger OnAfterGetRecord()
     var
@@ -333,6 +363,7 @@ page 50638 "Resource Week View Part"
         JobTaskNo := NewJobTaskNo;
         CurrentWeekNo := Date2DWY(Today(), 2);
         CurrentYear := Date2DWY(Today(), 3);
+        ShowResource := false;
         Rec.DeleteAll();
         LoadData();
     end;
@@ -344,6 +375,10 @@ page 50638 "Resource Week View Part"
         Rec.Reset();
         Rec.DeleteAll();
         Rec.FillSummary(JobNo, JobTaskNo);
+        // FillSummary always rebuilds full per-Resource detail from Day Planning, so toggling
+        // "Show Resource" off/on again never loses data - CollapseByResource only ever aggregates
+        // this fresh per-Resource buffer, it's not applied incrementally on top of a prior collapse.
+        Rec.CollapseByResource(ShowResource);
         ApplyWeekFilter();
     end;
 
