@@ -38,16 +38,20 @@ window.BOOT = function () {
             return;
         }
 
-        // mode: "picker" gives the full hue/saturation/alpha picker plus a manual
-        // hex input, rather than "palette" (a fixed swatch grid) - this app's color
-        // fields (Unassigned Capacity Color, Envelope Color, Envelope Border Color,
-        // Assigned Color, Bar Color) all accept arbitrary hex, so the free-entry
-        // picker mode is the right default. transparency: false keeps values to
-        // plain 6-digit hex (#RRGGBB), matching every existing field's documented
-        // format (e.g. "#7FB3FA") - suite.js's own setValue() truncates an 8-digit
-        // value down to 6 when transparency is false, so this is enforced widget-side.
+        // mode: "palette" opens on the fixed swatch grid first (suite.js's own
+        // default) with a "Custom colors" "+" tile; clicking it internally calls
+        // setCurrentMode("picker") to reveal the full hue/saturation/alpha picker
+        // with manual hex entry - and its Apply/Cancel buttons snap back to
+        // "palette" afterwards (see suite.js buttonsClick handler). This app's
+        // color fields (Unassigned Capacity Color, Envelope Color, Envelope Border
+        // Color, Assigned Color, Bar Color) all accept arbitrary hex, so starting
+        // on the palette with a custom-picker escape hatch matches the requested
+        // two-step flow. transparency: false keeps values to plain 6-digit hex
+        // (#RRGGBB), matching every existing field's documented format (e.g.
+        // "#7FB3FA") - suite.js's own setValue() truncates an 8-digit value down
+        // to 6 when transparency is false, so this is enforced widget-side.
         _picker = new dhx.Colorpicker(pickerDiv, {
-            mode: "picker",
+            mode: "palette",
             transparency: false
         });
 
@@ -77,8 +81,23 @@ window.BOOT = function () {
 // current value. Safe to call before a real hex value exists (blank
 // field) - the widget accepts an empty string via clear()-like handling
 // in setValue, and simply shows no active selection.
+//
+// If the incoming value isn't one of the fixed solid swatches (or a gray
+// shade), suite.js's own setValue()/_focusColor() silently files it under
+// "custom colors" instead of rejecting it - there's no public "is this a
+// standard swatch?" check, so we detect that by asking whether the hex
+// landed in getCustomColors() after the call. When it did, the field was
+// already holding a custom pick, so open straight into the full
+// hue/saturation picker (#2) to show it in full rather than as a small
+// swatch tile; CANCEL/SELECT there both fall back to the solid palette
+// (#1) via suite.js's own buttonsClick handler, matching the same
+// back-and-forth already available from a fresh/blank field.
 // ---------------------------------------------------------------
 function SetValue(colorHex) {
     if (!_picker) return;
-    _picker.setValue(colorHex || "");
+    var hex = colorHex || "";
+    _picker.setValue(hex);
+    if (hex && _picker.getCustomColors().indexOf(hex.toUpperCase()) !== -1) {
+        _picker.setCurrentMode("picker");
+    }
 }

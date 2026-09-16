@@ -393,6 +393,20 @@ codeunit 50609 "Visual Default Settings"
         exit(CapacityMandatoryColorTok);
     end;
 
+    // Exposed so table 50605's OnValidate triggers can restore "Envelope Color"/"Envelope Border
+    // Color" when a user clears the field - matches src/dhx/resourceschedule_with_capacity/wrapper.js's
+    // and src/dhx/projectschedule/wrapper.js's own hardcoded "--dp-color-envelope"/
+    // "--dp-color-envelope-border" CSS defaults, which is what a blank value already renders as.
+    procedure GetDefaultEnvelopeColor(): Text
+    begin
+        exit(EnvelopeColorTok);
+    end;
+
+    procedure GetDefaultEnvelopeBorderColor(): Text
+    begin
+        exit(EnvelopeBorderColorTok);
+    end;
+
     procedure GetDefaultExternalBorderColor(): Text
     begin
         exit(ExternalBorderColorTok);
@@ -787,6 +801,14 @@ codeunit 50609 "Visual Default Settings"
         // default task-bar border colour (--dhx-gantt-task-border: 1px solid #3588c5).
         // Used by: GetGanttTaskBarBorderColor above only.
         GanttTaskBarBorderColorTok: Label '#3588c5', Locked = true;
+        // Fallback for GetDefaultEnvelopeColor/GetDefaultEnvelopeBorderColor above - overridable via
+        // "Daily Optimizer Setup"."Envelope Color"/"Envelope Border Color". Match the hardcoded
+        // "--dp-color-envelope"/"--dp-color-envelope-border" CSS defaults already in
+        // resourceschedule_with_capacity/wrapper.js and projectschedule/wrapper.js - what a blank
+        // value already renders as.
+        // Used by: GetDefaultEnvelopeColor/GetDefaultEnvelopeBorderColor above only.
+        EnvelopeColorTok: Label '#1B3A6B', Locked = true;
+        EnvelopeBorderColorTok: Label '#14294D', Locked = true;
         // Synthetic aggregate-row marker used by codeunit 50608's BuildSkillBuffer - must stay
         // text-identical to that codeunit's own CapacitySkillCodeTok.
         // Used by: GetSkillBarColor above only (blank-for-'CAPACITY' guard).
