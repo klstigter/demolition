@@ -124,7 +124,7 @@ page 50710 "DHX Request Assignment Board"
                 /// NotifyDayTaskLinesTaskPending) asking "is a background-task result ready yet?".
                 /// This is a normal synchronous trigger call, unlike OnPageBackgroundTaskCompleted -
                 /// so calling CurrPage.DhxScheduler.* from here is safe (confirmed live via codeunit
-                /// 50713's/50720's identical pattern for the Gantt/Task Scheduler add-ins: it is NOT
+                /// 50713's/50720's identical pattern for the Task Scheduler add-ins: it is NOT
                 /// safe from the background-task completion trigger itself).
                 /// </summary>
                 trigger OnPollDayTaskLinesResult()
@@ -202,7 +202,7 @@ page 50710 "DHX Request Assignment Board"
     /// Fires when a Page Background Task enqueued via EnqueueDayTaskLinesBackgroundTask finishes.
     /// TaskId is compared against DayTaskLinesTaskId (overwritten by every new enqueue) so a
     /// result from a superseded reload is discarded - same TaskId-based staleness check as
-    /// codeunit 50713's Gantt resource-panel flow and page 50621's Task Scheduler sections flow.
+    /// codeunit 50713's resource-panel flow and page 50621's Task Scheduler sections flow.
     /// Unlike those two, this page has no Next/Prev/filter navigation yet (RefreshPlanningData
     /// always rebuilds the same current-week-plus-30-workday window) - so the TaskId check alone
     /// is a sufficient staleness guard here; there is no separate "did the displayed period/filter
@@ -215,7 +215,7 @@ page 50710 "DHX Request Assignment Board"
 
         // NOTE: does NOT call CurrPage.DhxScheduler.* here - confirmed live that BC Server rejects
         // any control add-in callback issued directly from this trigger (see codeunit 50713's/
-        // codeunit 50720's identical comment for the Gantt/Task Scheduler add-ins). Stash into a
+        // codeunit 50720's identical comment for the Task Scheduler add-ins). Stash into a
         // plain AL var instead; OnPollDayTaskLinesResult (JS-initiated, via wrapper.js's bounded
         // poll loop kicked off by NotifyDayTaskLinesTaskPending) is what actually pushes this into
         // the control add-in, from a normal synchronous call stack.
@@ -263,7 +263,7 @@ page 50710 "DHX Request Assignment Board"
         StartDate: Date;
         EndDate: Date;
         Window: Dialog;
-        LoadingLbl: Label 'Loading Gantt data...\n#1######################';
+        LoadingLbl: Label 'Loading Scheduler data...\n#1######################';
         PlanningDataJson: Text;
         RemainingSequenceKeys: Text;
         DayTaskLinesPageSize: Integer;
