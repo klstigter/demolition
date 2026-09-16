@@ -696,12 +696,12 @@ window.BOOT = function() {
       // model - display-only; never apply this adjustment to task.end_date itself.
       const displayEndDate = task.end_date ? gantt.date.add(task.end_date, -1, "day") : null;
 
-      // Constraint lines are only meaningful once a value is set - suppress each line
+      // Constraint rows are only meaningful once a value is set - suppress each row
       // individually rather than showing "-" placeholders for empty ones.
-      const constraintLines = [];
-      if (task.bcConstraintType) constraintLines.push(`Constraint: ${task.bcConstraintType}`);
-      if (constraintDate) constraintLines.push(`Constraint Date: ${gantt.templates.date_grid(constraintDate)}`);
-      if (task.bcMaxDuration) constraintLines.push(`Max Duration: ${task.bcMaxDuration} days`);
+      const constraintRows = [];
+      if (task.bcConstraintType) constraintRows.push(["Constraint", task.bcConstraintType]);
+      if (constraintDate) constraintRows.push(["Constraint Date", gantt.templates.date_grid(constraintDate)]);
+      if (task.bcMaxDuration) constraintRows.push(["Max Duration", `${task.bcMaxDuration} days`]);
 
       // "Job and Task" block styled the same as the shared standard-tooltip
       // convention in src/dhx/request_assignment/wrapper.js/style.css (title +
@@ -743,7 +743,17 @@ window.BOOT = function() {
             </tr>
           </tbody>
         </table>
-        ${constraintLines.length ? `<div class="standard-tooltip-detail">${constraintLines.join("<br/>")}</div>` : ""}
+        ${constraintRows.length ? `
+        <table class="standard-tooltip-table standard-tooltip-constraint-table">
+          <tbody>
+            ${constraintRows.map(([label, value]) => `
+              <tr>
+                <th>${label}</th>
+                <td>${value}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>` : ""}
       `;
     };
 
