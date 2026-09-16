@@ -257,16 +257,22 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
     end;
 
     /// <summary>
-    /// Returns PlanDateFrom..PlanDateTo's Assigned/Free Capacity split, Internal/External, so the
-    /// CAPACITY reference bar can render the same stacked Assigned/Free breakdown as
-    /// src/dhx/barchart_weekly's per-day chart instead of a single flat aggregate. Delegates
-    /// entirely to Codeunit "Skill Capacity Analysis Mgt." (the Weekly chart's own management
-    /// codeunit) - see that codeunit's GetCapacitySplitForRange - rather than reimplementing the
-    /// Internal/External classification here, so the two charts' numbers can never drift apart.
+    /// Returns PlanDateFrom..PlanDateTo's Assigned/Free Capacity split, Internal/External/
+    /// External-Mandatory, so the CAPACITY reference bar can render the same stacked Assigned/Free
+    /// breakdown as src/dhx/barchart_weekly's per-day chart instead of a single flat aggregate.
+    /// Delegates entirely to Codeunit "Skill Capacity Analysis Mgt." (the Weekly chart's own
+    /// management codeunit) - see that codeunit's GetCapacitySplitForRangeWithMandatory - rather
+    /// than reimplementing the Internal/External/Mandatory classification here, so the two charts'
+    /// numbers can never drift apart. CapacityExternalMandatory added 2026-09-16 to mirror the
+    /// weekly chart's own "Free Capacity - External (Mandatory)" segment (see
+    /// AddCapacitySegmentSeries below) - this procedure now calls the un-folded
+    /// GetCapacitySplitForRangeWithMandatory instead of the folded GetCapacitySplitForRange, since
+    /// this Daily chart needs the mandatory portion exposed separately, not merged back into
+    /// CapacityExternal.
     /// </summary>
-    procedure GetCapacityAssignedFreeSplit(PlanDateFrom: Date; PlanDateTo: Date; var AssignedInternal: Decimal; var AssignedExternal: Decimal; var CapacityInternal: Decimal; var CapacityExternal: Decimal)
+    procedure GetCapacityAssignedFreeSplit(PlanDateFrom: Date; PlanDateTo: Date; var AssignedInternal: Decimal; var AssignedExternal: Decimal; var CapacityInternal: Decimal; var CapacityExternal: Decimal; var CapacityExternalMandatory: Decimal)
     begin
-        SkillCapacityAnalysisMgtWeekly.GetCapacitySplitForRange(PlanDateFrom, PlanDateTo, AssignedInternal, AssignedExternal, CapacityInternal, CapacityExternal);
+        SkillCapacityAnalysisMgtWeekly.GetCapacitySplitForRangeWithMandatory(PlanDateFrom, PlanDateTo, AssignedInternal, AssignedExternal, CapacityInternal, CapacityExternal, CapacityExternalMandatory);
     end;
 
     /// <summary>
@@ -285,20 +291,41 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
     end;
 
     /// <summary>
-    /// Appends the CAPACITY bar's 4 stacked segments (Assigned Internal/External, Free Capacity
-    /// Internal/External) to SeriesArray, matching wrapper.js's series JSON contract (name/values/
-    /// color/[border]/stacked - same shape codeunit 50662's own AddChartSeries builds for the
-    /// Weekly chart). Each *Values array must already be index-aligned with the chart's
-    /// CategoriesArray (0 at every non-CAPACITY row, the real split only at the CAPACITY row) -
-    /// see page 50681/50707's own RefreshChart for how those are built. Colours are passed in
-    /// (not re-fetched here) so a caller that also needs them for the CAPACITY row's legend swatch
-    /// (see GetCapacitySegmentColors) only calls that once.
+    /// Returns the fill colour for the "Free Capacity - External (Mandatory)" segment (2026-09-16)
+    /// - see AddCapacitySegmentSeries below. Forwards through Codeunit "Skill Capacity Analysis
+    /// Mgt." (50662) rather than calling codeunit "Visual Default Settings" (50609) directly, same
+    /// convention as GetCapacitySegmentColors above.
     /// </summary>
-    procedure AddCapacitySegmentSeries(var SeriesArray: JsonArray; AssInternalValues: JsonArray; AssExternalValues: JsonArray; CapInternalValues: JsonArray; CapExternalValues: JsonArray; AssignedColor: Text; CapacityColor: Text; ExternalBorderColor: Text)
+    procedure GetCapacityMandatoryColor(): Text
     begin
-        AddSeries(SeriesArray, AssInternalSeriesNameLbl, AssInternalValues, AssignedColor, '');
-        AddSeries(SeriesArray, AssExternalSeriesNameLbl, AssExternalValues, AssignedColor, ExternalBorderColor);
+        exit(SkillCapacityAnalysisMgtWeekly.GetCapacityMandatoryColor());
+    end;
+
+    /// <summary>
+    /// Appends the CAPACITY bar's 4 stacked segments to SeriesArray, matching wrapper.js's series
+    /// JSON contract (name/values/color/[border]/stacked - same shape codeunit 50662's own
+    /// AddChartSeries builds for the Weekly chart). Recomposed 2026-09-16 to match page 50692's
+    /// weekly chart exactly: Assigned Capacity is now ONE combined series (no Internal/External
+    /// split, no border - previously two separate series with the External half carrying a red
+    /// border), and Free Capacity - External is now split into a non-mandatory portion (kept in
+    /// CapExternalValues, ExternalBorderColor) and a "Free Capacity - External (Mandatory)" portion
+    /// (CapExternalMandatoryValues, CapacityMandatoryColor, no border). Stacking order - Assigned,
+    /// then Free Internal, then Free External Mandatory, then Free External non-mandatory declared
+    /// LAST - puts the red-bordered non-mandatory segment on top of the stack with nothing above
+    /// it, same reasoning as codeunit 50662's own BuildDayCapacityChartData: the purpose is for the
+    /// planner to see there is external resource that is not mandatory-scheduled and needs
+    /// attention, hence it must be visible at the top of the bar.
+    /// Each *Values array must already be index-aligned with the chart's CategoriesArray (0 at
+    /// every non-CAPACITY row, the real split only at the CAPACITY row) - see page 50681/50707's
+    /// own RefreshChart for how those are built. Colours are passed in (not re-fetched here) so a
+    /// caller that also needs them for the CAPACITY row's legend swatch (see
+    /// GetCapacitySegmentColors/GetCapacityMandatoryColor) only calls those once.
+    /// </summary>
+    procedure AddCapacitySegmentSeries(var SeriesArray: JsonArray; AssignedValues: JsonArray; CapInternalValues: JsonArray; CapExternalMandatoryValues: JsonArray; CapExternalValues: JsonArray; AssignedColor: Text; CapacityColor: Text; CapacityMandatoryColor: Text; ExternalBorderColor: Text)
+    begin
+        AddSeries(SeriesArray, AssignedCapacitySeriesNameLbl, AssignedValues, AssignedColor, '');
         AddSeries(SeriesArray, CapInternalSeriesNameLbl, CapInternalValues, CapacityColor, '');
+        AddSeries(SeriesArray, CapExternalMandatorySeriesNameLbl, CapExternalMandatoryValues, CapacityMandatoryColor, '');
         AddSeries(SeriesArray, CapExternalSeriesNameLbl, CapExternalValues, CapacityColor, ExternalBorderColor);
     end;
 
@@ -428,15 +455,15 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
         SkillCapacityAnalysisMgtWeekly: Codeunit "Skill Capacity Analysis Mgt.";
         CapacitySkillCodeTok: Label 'CAPACITY', Locked = true;
         CapacityDescriptionTxt: Label 'Capacity';
-        // Must stay text-identical to codeunit 50662's own AssInternalSeriesNameLbl/
-        // AssExternalSeriesNameLbl/CapInternalSeriesNameLbl/CapExternalSeriesNameLbl - see
+        // Must stay text-identical to codeunit 50662's own AssignedCapacitySeriesNameLbl/
+        // CapInternalSeriesNameLbl/CapExternalSeriesNameLbl/CapExternalMandatorySeriesNameLbl - see
         // AddCapacitySegmentSeries's own doc comment for why these aren't fetched from that
         // codeunit directly (only its colour tokens are - series names are cosmetic legend/
         // right-click-menu text, not a "must never drift" numeric value).
-        AssInternalSeriesNameLbl: Label 'Assigned Capacity - Internal';
-        AssExternalSeriesNameLbl: Label 'Assigned Capacity - External';
+        AssignedCapacitySeriesNameLbl: Label 'Assigned Capacity';
         CapInternalSeriesNameLbl: Label 'Free Capacity - Internal';
         CapExternalSeriesNameLbl: Label 'Free Capacity - External';
+        CapExternalMandatorySeriesNameLbl: Label 'Free Capacity - External (Mandatory)';
         // Skill-bar Assigned/Unassigned series names - see AddRequestedAssignedSeries/
         // AddSkillUnassignedSeries's own doc comments for why Assigned is one shared series but
         // Unassigned is one per skill.

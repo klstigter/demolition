@@ -1374,8 +1374,37 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// totals, never a per-skill breakdown (Daily's per-skill bars already have their own, simpler
     /// flat-value source - see codeunit 50608's BuildSkillBuffer). DateFrom = DateTo is the normal
     /// single-day case; a wider range (e.g. Daily's own week-aggregate mode) sums every day in it.
+    /// Thin wrapper over GetCapacitySplitForRangeWithMandatory (2026-09-16) - folds that
+    /// procedure's separate CapacityExternalMandatory out-param straight back into the plain
+    /// CapacityExternal total here, so this procedure's own external behaviour stays byte-identical
+    /// to before the mandatory/non-mandatory split existed. Existing callers (the 3 scheduler pages
+    /// - projectschedule/50621, resourceschedule_with_capacity/50706, poolresourceschedule/50600 -
+    /// plus barchart_daily's own pre-2026-09-16 usage) must keep seeing this folded total; do NOT
+    /// change this procedure's signature or behaviour - add new callers against
+    /// GetCapacitySplitForRangeWithMandatory instead.
     /// </summary>
     procedure GetCapacitySplitForRange(DateFrom: Date; DateTo: Date; var AssignedInternal: Decimal; var AssignedExternal: Decimal; var CapacityInternal: Decimal; var CapacityExternal: Decimal)
+    var
+        CapacityExternalMandatory: Decimal;
+    begin
+        GetCapacitySplitForRangeWithMandatory(DateFrom, DateTo, AssignedInternal, AssignedExternal, CapacityInternal, CapacityExternal, CapacityExternalMandatory);
+        // The mandatory/non-mandatory external split (2026-09-16, page 50692's weekly chart and,
+        // since this session, barchart_daily's own CAPACITY reference bar) is added straight back
+        // into the plain External total here so THIS procedure's remaining callers (the 3
+        // scheduler pages) see byte-identical totals to before the split existed.
+        CapacityExternal += CapacityExternalMandatory;
+    end;
+
+    /// <summary>
+    /// Same computation as GetCapacitySplitForRange above, but keeps the Free Capacity - External
+    /// total split into its non-mandatory and Mandatory Schedulling portions instead of folding
+    /// them back together - added 2026-09-16 so src/dhx/barchart_daily's CAPACITY reference bar can
+    /// show its own "Free Capacity - External (Mandatory)" segment, matching page 50692's weekly
+    /// chart. GetCapacitySplitForRange is now a thin wrapper over this procedure - see its own doc
+    /// comment. Only barchart_daily (via codeunit 50608's GetCapacityAssignedFreeSplit) should call
+    /// this directly; the 3 scheduler pages keep using the folded GetCapacitySplitForRange.
+    /// </summary>
+    procedure GetCapacitySplitForRangeWithMandatory(DateFrom: Date; DateTo: Date; var AssignedInternal: Decimal; var AssignedExternal: Decimal; var CapacityInternal: Decimal; var CapacityExternal: Decimal; var CapacityExternalMandatory: Decimal)
     var
         ActiveSkillList: List of [Code[20]];
         SkillInternalValues: Dictionary of [Code[20], Decimal];
@@ -1391,6 +1420,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         AssignedExternal := 0;
         CapacityInternal := 0;
         CapacityExternal := 0;
+        CapacityExternalMandatory := 0;
 
         EnsureDayPlanningBuffer(DateFrom, DateTo);
 
@@ -1400,11 +1430,8 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
             AssignedInternal += DayAssignedInternal;
             AssignedExternal += DayAssignedExternal;
             CapacityInternal += DayCapacityInternal;
-            // The mandatory/non-mandatory external split (2026-09-16, page 50692's weekly chart
-            // only) is added straight back into the plain External total here so this procedure's
-            // existing callers (barchart_daily's CAPACITY reference bar + the 3 scheduler pages)
-            // see byte-identical totals to before the split existed.
-            CapacityExternal += DayCapacityExternal + DayCapacityExternalMandatory;
+            CapacityExternal += DayCapacityExternal;
+            CapacityExternalMandatory += DayCapacityExternalMandatory;
             CurrDate += 1;
         end;
     end;
@@ -1436,6 +1463,24 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         ColorConstants: Codeunit "Visual Default Settings";
     begin
         exit(ColorConstants.GetCapacityBorderColor());
+    end;
+
+    /// <summary>
+    /// Returns the fill colour for the "Free Capacity - External (Mandatory)" segment (2026-09-16)
+    /// - the mandatory-scheduled portion of Free Capacity - External, split out from the plain
+    /// non-mandatory segment on both this chart (page 50692) and, since this session,
+    /// src/dhx/barchart_daily's own CAPACITY reference bar. Thin forward to codeunit "Visual
+    /// Default Settings" (50609)'s own GetCapacityMandatoryColor, same shape as
+    /// GetCapacitySegmentColors/GetCapacityBorderColor above - added so barchart_daily's codeunit
+    /// 50608 can go through this codeunit for the colour, matching its own documented convention
+    /// of forwarding through 50662 rather than calling 50609 directly (see its own
+    /// GetCapacitySegmentColors forward).
+    /// </summary>
+    procedure GetCapacityMandatoryColor(): Text
+    var
+        ColorConstants: Codeunit "Visual Default Settings";
+    begin
+        exit(ColorConstants.GetCapacityMandatoryColor());
     end;
 
     /// <summary>
