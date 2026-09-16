@@ -33,5 +33,21 @@ controladdin DHXBarChartAddin
     /// </summary>
     event OnShowSegmentData(SegmentId: Text; BarType: Text; DayIndex: Integer; WholeWeek: Boolean);
 
+    /// <summary>
+    /// Fired by wrapper.js's own Refresh/Previous/Today/Next toolbar buttons (see BuildToolbar/
+    /// UpdateToolbar there) - a JS-rendered replacement for the BC RefreshAction/PreviousAction/
+    /// TodayAction/NextAction actions that page 50708 "Requested vs Capacity Weekly P" used to
+    /// expose via its own actions() area, retired because BC collapses a CardPart's action bar
+    /// into a hidden "..." overflow menu once it's embedded in a Role Center. The toolbar itself
+    /// is opt-in per page (chartData.showToolbar, sent only by page 50708's own RefreshChart), so
+    /// these events only ever fire from that page - see wrapper.js's own BuildToolbar comment.
+    /// Parameterless, same round-trip the retired BC actions used (JS trigger -> AL local
+    /// procedure), no data to carry.
+    /// </summary>
+    event OnRefreshClicked();
+    event OnPreviousClicked();
+    event OnTodayClicked();
+    event OnNextClicked();
+
     procedure LoadData(ChartDataJson: Text);
 }
