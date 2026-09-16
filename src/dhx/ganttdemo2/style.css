@@ -296,3 +296,11 @@ html,
 	font-weight: 600;
 	line-height: 1.35;
 }
+
+.standard-tooltip-constraint-table {
+	margin-top: 4px;
+}
+
+.standard-tooltip-constraint-table th {
+	color: #647681;
+}
