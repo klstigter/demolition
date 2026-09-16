@@ -41,9 +41,9 @@ html,
 		}
 
 		/* Collapse/Expand-all toggle icon in the "Task name" grid header
-		   (that header row is forced to a black background elsewhere — see
-		   ".gantt_grid_scale { background:#000 !important; }" below — so this
-		   icon is styled light-on-dark with a bright accent hover.) */
+		   (that header row now uses the standard BC light-grey header background — see
+		   ".gantt_grid_scale { background:#f6f7f8 !important; }" in wrapper.js — so this
+		   icon is styled dark-on-light with a bright accent hover.) */
 		.gantt-collapseall-icon {
 			display: inline-flex;
 			align-items: center;
@@ -55,9 +55,9 @@ html,
 			cursor: pointer;
 			border-radius: 6px;
 			box-sizing: border-box;
-			color: #FFD600;
-			background: rgba(255, 255, 255, 0.12);
-			border: 1px solid rgba(255, 214, 0, 0.55);
+			color: #666666;
+			background: rgba(0, 0, 0, 0.04);
+			border: 1px solid rgba(0, 0, 0, 0.12);
 			transition: background-color .12s ease, border-color .12s ease, color .12s ease, transform .08s ease;
 		}
 		.gantt-collapseall-icon:hover {
@@ -125,18 +125,27 @@ html,
 			font-size: var(--gtb-font-size, 16px) !important;
 		}
 
-			/* EVEN weeks: black background, bold white text */
+			/* Week header row - standard BC list-header colors (rgb(246,247,248) bg / #666 text,
+			   matched live off a standard BC list page's column header row), with a subtly
+			   darker shade on even weeks so the week boundaries stay visible. */
 		.gantt_scale_cell.week-even {
-		background-color: #000000;
-		color: #ffffff;
+		background-color: #eceef0;
+		color: #666666;
 		font-weight: 700;
 		}
 
-		/* ODD weeks: neutral */
 		.gantt_scale_cell.week-odd {
-		background-color: #2b2b2b;
-		color: #ffffff;
+		background-color: #f6f7f8;
+		color: #666666;
 		font-weight: 700;
+		}
+
+			/* Day header row (below the week band) - same standard BC header background as the
+			   week row above, so the two header rows read as one continuous header. Excludes
+			   .weekend/.holiday cells so their existing pink/amber tinting still shows through. */
+		.gantt_scale_cell:not(.week-even):not(.week-odd):not(.weekend):not(.holiday) {
+		background-color: #f6f7f8;
+		color: #666666;
 		}
 
 		.DayPlanning-line{
