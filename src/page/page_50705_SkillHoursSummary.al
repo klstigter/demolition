@@ -157,11 +157,11 @@ page 50705 "Skill Hours Summary"
                     ApplicationArea = All;
                     Caption = 'Previous';
                     Image = PreviousRecord;
-                    ToolTip = 'Move the displayed period back one day.';
+                    ToolTip = 'Move the displayed period back one week.';
 
                     trigger OnAction()
                     begin
-                        PeriodDate := PeriodDate - 1;
+                        PeriodDate := PeriodDate - 7;
                         RefreshPeriod();
                     end;
                 }
@@ -183,11 +183,11 @@ page 50705 "Skill Hours Summary"
                     ApplicationArea = All;
                     Caption = 'Next';
                     Image = NextRecord;
-                    ToolTip = 'Move the displayed period forward one day.';
+                    ToolTip = 'Move the displayed period forward one week.';
 
                     trigger OnAction()
                     begin
-                        PeriodDate := PeriodDate + 1;
+                        PeriodDate := PeriodDate + 7;
                         RefreshPeriod();
                     end;
                 }
@@ -234,10 +234,18 @@ page 50705 "Skill Hours Summary"
     var
         WeekStartDate: Date;
         WeekEndDate: Date;
+        WeekNo: Integer;
+        YearNo: Integer;
+        Day1Text: Text[20];
+        Day7Text: Text[20];
     begin
         WeekStartDate := CalcMonday(PeriodDate);
         WeekEndDate := WeekStartDate + 6;
-        PeriodLabelText := CopyStr(StrSubstNo(DailyPeriodLabelLbl, FormatFullDayText(PeriodDate)), 1, MaxStrLen(PeriodLabelText));
+        WeekNo := Date2DWY(WeekStartDate, 2);
+        YearNo := Date2DWY(WeekStartDate, 3);
+        Day1Text := FormatDayText(WeekStartDate);
+        Day7Text := FormatDayText(WeekEndDate);
+        PeriodLabelText := CopyStr(StrSubstNo(WeeklyPeriodLabelLbl, Format(WeekStartDate, 0, '<Month Text,3>'), YearNo, WeekNo, Day1Text, Day7Text), 1, MaxStrLen(PeriodLabelText));
         BuildSkillHoursGrid(WeekStartDate, WeekEndDate);
         CurrPage.Update(false);
     end;
@@ -255,9 +263,9 @@ page 50705 "Skill Hours Summary"
         exit(ADate - (WeekDayNo - 1));
     end;
 
-    local procedure FormatFullDayText(ADate: Date): Text
+    local procedure FormatDayText(DayDate: Date): Text[20]
     begin
-        exit(Format(ADate, 0, '<Weekday Text,3> <Day,2> <Month Text,3> <Year4>'));
+        exit(StrSubstNo(DayLabelLbl, Format(DayDate, 0, '<Weekday Text,3>'), Format(DayDate, 0, '<Day,2>')));
     end;
 
     /// <summary>
@@ -353,5 +361,6 @@ page 50705 "Skill Hours Summary"
         JobTaskNoFilter: Code[20];
         PeriodDate: Date;
         PeriodLabelText: Text[80];
-        DailyPeriodLabelLbl: Label 'Daily: %1', Comment = '%1 = full date text';
+        WeeklyPeriodLabelLbl: Label 'Weekly: %1 %2 - wk %3 (%4 - %5)', Comment = '%1 = abbreviated month, %2 = year, %3 = ISO week number, %4 = period start day text, %5 = period end day text';
+        DayLabelLbl: Label '%1 %2', Comment = '%1 = abbreviated weekday, %2 = day of month';
 }
