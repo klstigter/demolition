@@ -272,7 +272,10 @@ table 50610 "Day Planning"
             begin
                 if ("Skill" <> '') and ("Assigned Resource No." <> '') then begin
                     if not SkillRes.Get(SkillRes.Type::Resource, "Assigned Resource No.", "Skill") then
-                        Error('Resource %1 does not have skill %2.', "Assigned Resource No.", "Skill");
+                        if GuiAllowed then begin
+                            if not Confirm('Resource %1 does not have skill %2. Do you want to continue anyway?', false, "Assigned Resource No.", "Skill") then
+                                Error('Resource %1 does not have skill %2.', "Assigned Resource No.", "Skill");
+                        end;
                 end;
             end;
         }
@@ -307,7 +310,10 @@ table 50610 "Day Planning"
 
                     "Assigned Leader" := Resource."Is Foreman";
                     "Assigned Team Leader" := Resource."Default Foreman";
-                    Skill := GetFirstSkill("Assigned Resource No.");
+                    if "Skill" = '' then
+                        Skill := GetFirstSkill("Assigned Resource No.")
+                    else
+                        Validate(Skill);
                     CalculateWorkingHours();
                 end else begin
                     validate("Assigned Hours", 0);
