@@ -615,7 +615,9 @@ window.BOOT = function() {
         var reqTime = (ev.start_time_requested || "—") + "–" + (ev.end_time_requested || "—");
         var assignedTimeKnown = !!(ev.start_time_assigned || ev.end_time_assigned);
         var assignedTime = assignedTimeKnown ? ((ev.start_time_assigned || "—") + "–" + (ev.end_time_assigned || "—")) : "—";
-        var timeDiffers = assignedTimeKnown && assignedTime !== reqTime;
+        var timeDiffers = assignedTimeKnown &&
+            (parseHHmmToMinutes(ev.start_time_assigned) !== parseHHmmToMinutes(ev.start_time_requested) ||
+                parseHHmmToMinutes(ev.end_time_assigned) !== parseHHmmToMinutes(ev.end_time_requested));
 
         var reqResourceLabel = ev.requested_resource_name || ev.requested_resource_no || "—";
         var assignedResourceLabel = resname || resno || "—";

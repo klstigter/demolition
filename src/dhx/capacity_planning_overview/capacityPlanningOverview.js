@@ -58,6 +58,29 @@ function cpoIsoWeekNumber(dateValue) {
     return Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7);
 }
 
+/// <summary>
+/// Compares a single "HH:MM–HH:MM" request range against an assigned range for the standard
+/// tooltip's Time row, on parsed hour/minute values rather than raw string equality - two ranges
+/// built from independent sources (a JS Date vs. a server-formatted string) can be the same time
+/// and still fail a plain string compare on formatting differences, or coincidentally match as
+/// text without actually being equal. assignedText may instead be several comma-joined ranges
+/// (workOrderAssignmentState aggregates multiple resources' distinct assigned windows for one
+/// day/sequence) - that can never equal a single request window, so it's always "differs".
+/// </summary>
+function cpoTimeDiffers(reqText, assignedText) {
+    if (!assignedText || assignedText === '—') return false;
+    if (assignedText.indexOf(',') !== -1) return true;
+    const parse = (text) => {
+        // AL's Format(...,'<Hours24,2>') space-pads single-digit hours (" 7:00", not "07:00") -
+        // tolerate that on either side of the dash rather than requiring a digit immediately.
+        const m = /^\s*(\d{1,2}):(\d{2})–\s*(\d{1,2}):(\d{2})\s*$/.exec(text || '');
+        return m ? [Number(m[1]) * 60 + Number(m[2]), Number(m[3]) * 60 + Number(m[4])] : null;
+    };
+    const req = parse(reqText), assigned = parse(assignedText);
+    if (!req || !assigned) return reqText !== assignedText;
+    return req[0] !== assigned[0] || req[1] !== assigned[1];
+}
+
 /// <summary>Reference's own "slug" - CSS-class-safe skill code.</summary>
 function cpoSlug(s) {
     return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -1503,7 +1526,7 @@ class CapacityPlanningOverview {
             ? ev.sequenceNo
             : (ev.lineNo != null ? ev.lineNo : '\u2014');
         const assignedTimeKnown = !!(ev.assignedTime && ev.assignedTime !== '\u2014');
-        const timeDiffers = assignedTimeKnown && ev.assignedTime !== reqTime;
+        const timeDiffers = assignedTimeKnown && cpoTimeDiffers(reqTime, ev.assignedTime);
         const shortageNote = (ev.kind === 'workorder' && (Number(ev.shortageHours) || 0) > 0)
             ? ('<div class="cpo-tip-capacity-shortage">Capacity shortage: <b>' + cpoHoursText(ev.shortageHours) + '</b></div>')
             : '';

@@ -388,7 +388,9 @@ window.BOOT = function () {
             var reqTime = (ev.start_time_requested || "—") + "–" + (ev.end_time_requested || "—");
             var assignedTimeKnown = !!(ev.start_time_assigned || ev.end_time_assigned);
             var assignedTime = assignedTimeKnown ? ((ev.start_time_assigned || "—") + "–" + (ev.end_time_assigned || "—")) : "—";
-            var timeDiffers = assignedTimeKnown && assignedTime !== reqTime;
+            var timeDiffers = assignedTimeKnown &&
+                (parseHHmmToMinutesRc(ev.start_time_assigned) !== parseHHmmToMinutesRc(ev.start_time_requested) ||
+                    parseHHmmToMinutesRc(ev.end_time_assigned) !== parseHHmmToMinutesRc(ev.end_time_requested));
 
             return (
                 '<div class="standard-tooltip-context">' +
@@ -475,6 +477,15 @@ function escapeRcHtml(s) {
     return String(s).replace(/[&<>"]/g, function (c) {
         return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
     });
+}
+
+function parseHHmmToMinutesRc(str) {
+    if (!str) return null;
+    var parts = String(str).split(':');
+    if (parts.length < 2) return null;
+    var h = parseInt(parts[0], 10), m = parseInt(parts[1], 10);
+    if (isNaN(h) || isNaN(m)) return null;
+    return h * 60 + m;
 }
 
 /// <summary>ISO-8601 week number - ported verbatim from src/dhx/request_assignment/wrapper.js's own isoWeekNumber (the reference implementation, see the standard-tooltip tooltip_text's own doc comment).</summary>

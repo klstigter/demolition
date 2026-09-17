@@ -428,6 +428,21 @@ function dpsPad2(n) {
     return String(n).padStart(2, "0");
 }
 
+/// <summary>Parses an "HH:MM" string into minutes-since-midnight, or null if unparseable - used
+/// so the Request-vs-Assigned tooltip comparison is done on numeric values instead of comparing
+/// formatted display strings (a string compare flags a difference on things like a stray
+/// character while missing nothing extra; more importantly here it also risks false positives
+/// from formatting drift between the two independently-built strings even when the underlying
+/// times match).</summary>
+function dpsParseHHMM(text) {
+    if (!text) return null;
+    // AL's Format(...,'<Hours24,2>') space-pads single-digit hours (" 7:00"), not zero-pads -
+    // trim before matching so that doesn't fail the regex and fall through to null.
+    var m = /^(\d{1,2}):(\d{2})$/.exec(String(text).trim());
+    if (!m) return null;
+    return (parseInt(m[1], 10) * 60) + parseInt(m[2], 10);
+}
+
 /// <summary>ISO-8601 week number - ported verbatim from src/dhx/request_assignment/wrapper.js's own isoWeekNumber (the reference implementation, see standardTooltipHtml's own doc comment).</summary>
 function dpsIsoWeekNumber(dateValue) {
     var date = dateValue instanceof Date ? new Date(dateValue) : new Date(dateValue);
@@ -455,7 +470,9 @@ function standardTooltipHtml(ev) {
         "–" + dpsPad2(ev.end_date.getHours()) + ":" + dpsPad2(ev.end_date.getMinutes());
     var assignedTimeKnown = !!(ev.assignedStartTime && ev.assignedEndTime);
     var assignedTime = assignedTimeKnown ? (ev.assignedStartTime + "–" + ev.assignedEndTime) : "—";
-    var timeDiffers = assignedTimeKnown && assignedTime !== reqTime;
+    var timeDiffers = assignedTimeKnown &&
+        (dpsParseHHMM(ev.assignedStartTime) !== (ev.start_date.getHours() * 60 + ev.start_date.getMinutes()) ||
+            dpsParseHHMM(ev.assignedEndTime) !== (ev.end_date.getHours() * 60 + ev.end_date.getMinutes()));
     var weekday = ev.start_date.toLocaleDateString(undefined, { weekday: "long" });
     var shortDate = ev.start_date.toLocaleDateString(undefined, { month: "short", day: "2-digit", year: "numeric" });
 
