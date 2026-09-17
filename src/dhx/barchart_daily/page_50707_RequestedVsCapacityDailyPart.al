@@ -267,11 +267,10 @@ page 50707 "Requested vs Capacity Daily P"
         // render the redundant "Period: Daily: Mon 07 Sep 2026" instead of "Period: Mon 07 Sep
         // 2026".
         ChartData.Add('periodLabel', FormatFullDayText(PeriodStartDate));
-        ChartData.Add('title', RequestedVsCapacityTitleLbl);
         // Opt-in flag for wrapper.js's own JS-rendered Refresh/Previous/Today/Next toolbar (see
         // BuildToolbar/UpdateToolbar there) - sent ONLY by this page's RefreshChart, never by page
         // 50681's (the standalone Card page sharing this same control add-in/wrapper.js), so the
-        // toolbar stays hidden there. Same opt-in mechanism as 'periodLabel'/'title' above.
+        // toolbar stays hidden there. Same opt-in mechanism as 'periodLabel' above.
         ChartData.Add('showToolbar', true);
         // Hover/tooltip popup colours for dhx.Chart's own built-in hover tooltip - codeunit
         // 50609's GetTooltipBackgroundColor/GetTooltipFontColor. See wrapper.js's RenderChart.
@@ -291,10 +290,6 @@ page 50707 "Requested vs Capacity Daily P"
         ChartReady: Boolean;
         PeriodLabelText: Text[80];
         DailyPeriodLabelLbl: Label 'Daily: %1', Comment = '%1 = full date text';
-        // Sent as ChartData's 'title' key in RefreshChart - see the layout() area's own comment for
-        // why this now renders inside wrapper.js's own DOM instead of as this page's group(Filters)
-        // Caption.
-        RequestedVsCapacityTitleLbl: Label 'Requested Hours vs Capacity';
         // Matches page 50681's own independently-declared 'CAPACITY' Label (see codeunit 50608's
         // BuildSkillBuffer doc comment for why this literal is intentionally duplicated rather
         // than shared - keep in sync if it ever changes).
