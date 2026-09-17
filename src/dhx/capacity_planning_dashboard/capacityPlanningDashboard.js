@@ -87,13 +87,15 @@ class CapacityPlanningDashboard extends CapacityPlanningOverview {
 
     /// <summary>
     /// Thin override, not a duplicate - reuses the base class's ENTIRE implementation via super()
-    /// and only corrects the title afterward. Needed because the base class's own applyPlanningData
-    /// unconditionally sets #cpo-title's text based on `this.db.workOrder` (falls back to
-    /// "Capacity Planning Overview" when absent, which it always is on this tile - see this file's
-    /// own class-level doc comment) - EVERY call, including the first one from ControlReady, so a
-    /// one-time constructor-level title change (tried initially) gets silently overwritten the
-    /// moment real data arrives. Fixing it here, once, is simpler than duplicating
-    /// applyPlanningData's ~60-line body just to change one string.
+    /// and only hides the title afterward (2026-09-17, explicit request to remove the "Capacity
+    /// Planning" title text - the tile doesn't need one). Needed because the base class's own
+    /// applyPlanningData unconditionally rebuilds #cpo-title's content based on `this.db.workOrder`
+    /// (falls back to "Capacity Planning Overview" when absent, which it always is on this tile -
+    /// see this file's own class-level doc comment) - EVERY call, including the first one from
+    /// ControlReady, so a one-time constructor-level hide (tried initially) gets silently undone
+    /// the moment real data arrives. #cpo-title is its own flex item inside .cpo-top-bar, a sibling
+    /// of (not a parent of) the "Days to show" input/label and #cpo-bg-loading - hiding just this
+    /// element leaves those untouched.
     /// </summary>
     applyPlanningData(json) {
         // Must be cleared BEFORE super.applyPlanningData() runs, not after - super's own
@@ -105,7 +107,7 @@ class CapacityPlanningDashboard extends CapacityPlanningOverview {
         this._dashSkillDayIndex = null;
         super.applyPlanningData(json);
         const titleEl = document.getElementById('cpo-title');
-        if (titleEl) titleEl.textContent = 'Capacity Planning';
+        if (titleEl) titleEl.style.display = 'none';
     }
 
     /// <summary>
@@ -281,7 +283,11 @@ class CapacityPlanningDashboard extends CapacityPlanningOverview {
             if (!m.requested) return '';
             const meta = self.skillMeta(section.skill);
             const pct = m.requested ? Math.max(0, Math.min(100, m.assigned / m.requested * 100)) : 100;
-            return '<div class="cpo-tree-summary-cell" data-master-skill="' + cpoEsc(section.skill) + '" data-day-index="' + idx + '" style="background:linear-gradient(to right,' + meta.dark + ' 0 ' + pct + '%,' + meta.light + ' ' + pct + '% 100%)"><b>' + m.requested + 'h</b></div>';
+            // Assigned% portion uses the shared "Assigned Color" (meta.assignedColor), not
+            // meta.dark (that skill's own border color) - see the base class's identical fix in
+            // capacityPlanningOverview.js's own centraltree_cell_value, and CPO_BuildSkillsArray's
+            // doc comment (codeunit 50604) for the full root-cause writeup.
+            return '<div class="cpo-tree-summary-cell" data-master-skill="' + cpoEsc(section.skill) + '" data-day-index="' + idx + '" style="background:linear-gradient(to right,' + (meta.assignedColor || meta.dark) + ' 0 ' + pct + '%,' + meta.light + ' ' + pct + '% 100%)"><b>' + m.requested + 'h</b></div>';
         };
         s.templates.event_class = function (a, b, e) { return 'cpo-planner-event cpo-skill-' + cpoSlug(e.skill); };
         s.templates.event_bar_text = function (a, b, e) { return e.hours || ''; };

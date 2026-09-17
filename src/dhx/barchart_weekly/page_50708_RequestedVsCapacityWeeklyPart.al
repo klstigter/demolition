@@ -140,8 +140,8 @@ page 50708 "Requested vs Capacity Weekly P"
 
     // Forwards Codeunit "Skill Capacity Analysis Mgt.".BuildDayCapacityChartData's JSON, same as
     // page 50692's own RefreshChart - no chart JSON is assembled from scratch here - but then
-    // parses it back into a JsonObject to merge in 'periodLabel'/'title' before handing it to
-    // wrapper.js. Those two keys are consumed only by THIS part's own header rendering (see
+    // parses it back into a JsonObject to merge in 'periodLabel' before handing it to
+    // wrapper.js. That key is consumed only by THIS part's own header rendering (see
     // UpdateHeader in wrapper.js, and the layout() area's own comment above for why they moved out
     // of AL) - page 50692 never sends them, so its own native BC Period field/group Caption stays
     // exactly as it was, unaffected by this page's change.
@@ -156,11 +156,10 @@ page 50708 "Requested vs Capacity Weekly P"
         ChartDataJson := SkillCapacityAnalysisMgt.BuildDayCapacityChartData(PeriodStartDate);
         ChartData.ReadFrom(ChartDataJson);
         ChartData.Add('periodLabel', PeriodLabelText + ' (' + Day1Text + ' - ' + Day7Text + ')');
-        ChartData.Add('title', RequestedVsCapacityTitleLbl);
         // Opt-in flag for wrapper.js's own JS-rendered Refresh/Previous/Today/Next toolbar (see
         // BuildToolbar/UpdateToolbar there) - sent ONLY by this page's RefreshChart, never by page
         // 50692's (the standalone Card page sharing this same control add-in/wrapper.js), so the
-        // toolbar stays hidden there. Same opt-in mechanism as 'periodLabel'/'title' above.
+        // toolbar stays hidden there. Same opt-in mechanism as 'periodLabel' above.
         ChartData.Add('showToolbar', true);
         ChartData.WriteTo(ChartDataJson);
         CurrPage.DhxBarChart.LoadData(ChartDataJson);
@@ -175,8 +174,4 @@ page 50708 "Requested vs Capacity Weekly P"
         Day7Text: Text[20];
         PeriodLabelLbl: Label '%1 %2 - wk %3', Comment = '%1 = abbreviated month, %2 = year, %3 = ISO week number';
         DayLabelLbl: Label '%1 %2', Comment = '%1 = abbreviated weekday, %2 = day of month';
-        // Sent as ChartData's 'title' key in RefreshChart - see the layout() area's own comment for
-        // why this now renders inside wrapper.js's own DOM instead of as this page's group(Filters)
-        // Caption.
-        RequestedVsCapacityTitleLbl: Label 'Requested Hours vs Capacity';
 }

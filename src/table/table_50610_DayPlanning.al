@@ -853,16 +853,20 @@ table 50610 "Day Planning"
             if DailyOptimizerSetup."Default Skill" <> '' then
                 Rec.Skill := DailyOptimizerSetup."Default Skill";
         end;
-        if Rec.Skill <> '' then
+        if Rec.Skill <> '' then begin
+            CheckSkillCodeExists(Rec.Skill);
             DayPlanningSequenceMgt.CalcSequence(Rec);
+        end;
     end;
 
     trigger OnModify()
     var
         DayPlanningSequenceMgt: Codeunit "Day Planning Sequence Mgt.";
     begin
-        if Rec.Skill <> '' then
+        if Rec.Skill <> '' then begin
+            CheckSkillCodeExists(Rec.Skill);
             DayPlanningSequenceMgt.CalcSequence(Rec);
+        end;
     end;
 
     trigger OnDelete()
@@ -902,6 +906,20 @@ table 50610 "Day Planning"
         ResSkill.SetRange("No.", ResNo);
         if ResSkill.IsEmpty() then
             Error('Resource %1 does not have a Skill assigned.', ResNo);
+    end;
+
+    // Guards against code paths that write "Skill" via a plain field assignment instead of
+    // Validate(Skill, ...) (e.g. demo-data/seeding routines, the Gantt sequence-regenerate add-in) -
+    // those bypass the field's own TableRelation = "Skill Code" check entirely, since that check
+    // only runs through Validate()/interactive editing, not on a bare assignment. Called from
+    // OnInsert/OnModify so it fires regardless of how Skill was set, as long as the record is
+    // actually inserted/modified with triggers running (Insert(true)/Modify(true)).
+    local procedure CheckSkillCodeExists(SkillCode: Code[20])
+    var
+        SkillCodeRec: Record "Skill Code";
+    begin
+        if not SkillCodeRec.Get(SkillCode) then
+            Error('Skill %1 does not exist in Skill Codes. Add it to the Skill Codes list before using it on a Day Planning line.', SkillCode);
     end;
 
     local procedure GetFirstSkill(ResNo: Code[20]): Code[20]

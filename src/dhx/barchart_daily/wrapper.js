@@ -78,25 +78,27 @@ var pendingLegendPatchFrame = null;
 // "fix" these into matching each other.
 var SERIES_COLOR_PALETTE = ["#2A9D8F", "#E76F51", "#11A3D0", "#E5A910", "#985F99", "#78586F"];
 
-// Explicit reserved bottom-axis height, matching src/dhx/barchart_weekly/wrapper.js's
-// `DAY_ROW_HEIGHT * 2` (24*2=48) - MUST stay numerically equal to that value (kept as a
-// separately-named constant here rather than a shared module, per this repo's convention that
-// the two chart folders stay independent - see project memory on the Daily/Weekly role-center
-// split). Root cause (confirmed live via Playwright, 2026-09-11): the "0"-gridline/bar-baseline
-// y-position within a chart's SVG is `containerTop + containerHeight - scales.bottom.size` -
-// config.legend.size (`sizes.top`) cancels out of that formula entirely, so it is NOT what was
-// misaligning the two charts' x-axes side by side on page 50612, despite both independently
-// landing on the same corrected legend.size (51) at the time of that measurement. The actual
-// cause: this chart's bottom axis is a single native label row and was left at suite.js's own
-// unset-scale default (~20px - see the `scales.bottom` comment below), while barchart_weekly's
-// bottom axis reserves 48px for ITS native label row (C/R) plus its own hand-drawn
-// RenderDayGroupRow (Mon/Tue/...) stacked underneath - a real, structural 28px difference that
-// showed up as the two "0"-lines sitting at different heights in two same-height role-center
-// panels. Explicitly reserving the same 48px here (as blank space below the single CAPACITY/
-// DELIVER/... row, since this chart has no second row to fill it) makes both charts' bar
-// baselines land at the same offset regardless of how many rows either one's OWN content
-// actually needs - see scales.bottom's own `size` usage below.
-var BOTTOM_SCALE_RESERVED_PX = 48;
+// Explicit reserved bottom-axis height. Was 48 (matching src/dhx/barchart_weekly/wrapper.js's
+// own `DAY_ROW_HEIGHT * 2`) back when this axis rendered one horizontal label row - see git
+// history for that reasoning. Bumped to make room for the diagonal (scaleRotate) category labels
+// now that the CAPACITY/CIVIL/DELIVER/... row has grown past what fits horizontally without
+// overlapping (11 categories once the missing skills were added to Skill Codes) - see
+// scales.bottom's own `scaleRotate` comment below for the rotation itself.
+// MUST stay numerically equal to src/dhx/barchart_weekly/wrapper.js's own BOTTOM_SCALE_RESERVED_PX
+// (also 90) - confirmed live via Playwright (2026-09-17) that bumping only THIS chart's reserved
+// bottom height (to fit the rotated labels) without also bumping Weekly's shifted Daily's own
+// "0"-line/bar-baseline up relative to Weekly's, visibly misaligning the two role-center panels'
+// x-axes again - same root cause as this constant's original 48/48 pairing, just re-triggered by
+// a different value. Weekly has no diagonal labels of its own and reserves the extra height as
+// blank space below its existing Mon/Tue row, same convention this chart already used the other
+// way around before the rotation was added.
+var BOTTOM_SCALE_RESERVED_PX = 90;
+
+// Category-label tilt (degrees) for the bottom axis - negative so labels read bottom-left to
+// top-right (ascending, per user's mockup), rather than the more common descending "\" tilt.
+// suite.js's own scale renderer (see bottomText/getClassesForRotateScale) picks the correct
+// text-anchor for us based on this angle's sign, so only the angle itself needs to live here.
+var CATEGORY_LABEL_ROTATE_DEG = -45;
 
 // ============================================================
 // Header (title + period line) - plain HTML rendered above chartContainer, replacing the
@@ -569,7 +571,7 @@ function RenderChart(chartData, legendSizeOverride, isCorrectivePass) {
             // but reserving the SAME total bottom height as barchart_weekly's own (2-row) bottom
             // axis keeps both charts' "0"-line/bar-baseline at the same vertical offset when the
             // two role-center panels are the same height.
-            bottom: { type: "text", text: "category", size: BOTTOM_SCALE_RESERVED_PX },
+            bottom: { type: "text", text: "category", size: BOTTOM_SCALE_RESERVED_PX, scaleRotate: CATEGORY_LABEL_ROTATE_DEG },
             left:   { type: "numeric" }
         },
         // Data-driven legend (one item per category/bar, via suite.js Legend._getData's

@@ -7647,9 +7647,21 @@ codeunit 50604 "DHX Data Handler"
     /// resolved via codeunit 50609's existing GetSkillBarColor/GetSkillBorderColor/GetSkillFontColor
     /// (same PaletteIndex-increments-in-first-encountered-order convention as this codeunit's own
     /// ResolveRequestedColor) - no new color source invented. "dark"/"light" (used by the ported
-    /// JS's gradient-fill chip/bar rendering) reuse the same border/fill pair every OTHER caller in
-    /// this codeunit already treats as the "deep"/"light" tone for a skill, since no separate
-    /// dark/light tint helper exists in codeunit 50609.
+    /// JS's gradient-fill chip/bar rendering, e.g. Section 2's own event heat / tree chips) reuse the
+    /// same border/fill pair every OTHER caller in this codeunit already treats as the "deep"/"light"
+    /// tone for a skill, since no separate dark/light tint helper exists in codeunit 50609.
+    ///
+    /// "assignedColor" (2026-09-17) is a DIFFERENT, deliberately skill-INDEPENDENT field: it is the
+    /// same global "Assigned" green (GetCapacitySegmentColors' AssignedColor, "Daily Optimizer
+    /// Setup"."Assigned Color") the Daily/Weekly Insights bar charts already use for their own
+    /// "Requested - Assigned"/"Assigned Capacity" series - added so Section 4's per-skill/per-day
+    /// summary-cell gradient (capacityPlanningOverview.js's centraltree_cell_value, and
+    /// capacityPlanningDashboard.js's own override) can render its Assigned% portion in that same
+    /// shared color instead of falling back to "dark" (= that skill's own border color, which for a
+    /// skill with a dark/black configured border made the Assigned% portion of that skill's Section 4
+    /// cells render black instead of green - reported live, confirmed against ELEKTR's own black
+    /// "Border Color"). Every skill object gets the SAME value (it is not a per-skill color, unlike
+    /// "dark"), so it is resolved once outside the loop.
     /// </summary>
     local procedure CPO_BuildSkillsArray(var ActiveSkillList: List of [Code[20]]): JsonArray
     var
@@ -7660,7 +7672,12 @@ codeunit 50604 "DHX Data Handler"
         PaletteIndex: Integer;
         FillColorTxt: Text;
         BorderColorTxt: Text;
+        AssignedColorTxt: Text;
+        UnusedCapacityColorTxt: Text;
+        UnusedExternalBorderColorTxt: Text;
     begin
+        ColorConstants.GetCapacitySegmentColors(AssignedColorTxt, UnusedCapacityColorTxt, UnusedExternalBorderColorTxt);
+
         foreach SkillCode in ActiveSkillList do begin
             FillColorTxt := ColorConstants.GetSkillBarColor(CopyStr(SkillCode, 1, 10), PaletteIndex);
             BorderColorTxt := ColorConstants.GetSkillBorderColor(CopyStr(SkillCode, 1, 10), PaletteIndex);
@@ -7672,6 +7689,7 @@ codeunit 50604 "DHX Data Handler"
             SkillObj.Add('border', BorderColorTxt);
             SkillObj.Add('dark', BorderColorTxt);
             SkillObj.Add('light', FillColorTxt);
+            SkillObj.Add('assignedColor', AssignedColorTxt);
             SkillsArr.Add(SkillObj);
             PaletteIndex += 1;
         end;
