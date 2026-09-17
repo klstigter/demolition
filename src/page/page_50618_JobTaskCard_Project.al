@@ -778,23 +778,6 @@ page 50618 "Opti Job Task Card"
                 end;
 
             }
-            action(DayPlanningsCreation)
-            {
-                ApplicationArea = All;
-                Caption = 'Day plannings pattern';
-                Image = HumanResources;
-                ShortCutKey = 'Alt+D';
-                ToolTip = 'View or edit dimensions, such as area, project, or department, that you can assign to sales and purchase documents to distribute costs and analyze transaction history.';
-                trigger OnAction()
-                var
-                    Page: Page "Day Planning Pattern";
-                begin
-                    page.fillbuffer(Rec."Job No.", Rec."Job Task No.", '');
-                    Page.Run();
-                    CurrPage.Update();
-                    CurrPage.ResourceWeekView.Page.Update();
-                end;
-            }
             action(DayPlannings)
             {
                 ApplicationArea = All;
@@ -1098,9 +1081,6 @@ page 50618 "Opti Job Task Card"
                     actionref(GanttChartDHX_PerProject_Promoted; GanttChartDHX_PerProject)
                     {
                     }
-                }
-                actionref(DayPlanningsCreation_Promoted; DayPlanningsCreation)
-                {
                 }
                 actionref(DayPlannings_Promoted; DayPlannings)
                 {

@@ -63,10 +63,6 @@ page 50645 "Res. Asgmt. Day Plannings"
                 {
                     ApplicationArea = All;
                 }
-                field("Pattern Line No."; Rec."Pattern Line No.")
-                {
-                    ApplicationArea = All;
-                }
                 field("Data Owner"; Rec."Data Owner")
                 {
                     Caption = 'Data Owner';
