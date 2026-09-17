@@ -299,39 +299,25 @@ window.BOOT = function() {
       if (document._resGridContextMenuInstalled) return;
       document._resGridContextMenuInstalled = true;
 
-      var menuCss = [
-        "position:fixed",
-        "z-index:99999",
-        "background:#fff",
-        "border:1px solid #ccc",
-        "border-radius:4px",
-        "box-shadow:2px 4px 12px rgba(0,0,0,0.2)",
-        "padding:4px 0",
-        "min-width:170px",
-        "display:none",
-        "font:13px/1.4 sans-serif",
-        "cursor:default"
-      ].join(";");
-
       // ── Resource name menu ──
       var menu = document.createElement("div");
-      menu.style.cssText = menuCss;
+      menu.className = "gantt-ctx-menu";
+      menu.style.display = "none";
       var currentResourceId = "";
 
       // ── DayPlanning marker menu ──
       var markerMenu = document.createElement("div");
-      markerMenu.style.cssText = menuCss;
+      markerMenu.className = "gantt-ctx-menu";
+      markerMenu.style.display = "none";
       var currentMarkerResourceId = "";
       var currentMarkerWorkDate = "";
       var currentMarkerPlanStatus = "";
       var currentMarkerIdList = "";
 
-      function makeItem(parentMenu, label, onClick) {
+      function makeItem(parentMenu, label, icon, onClick) {
         var item = document.createElement("div");
-        item.textContent = label;
-        item.style.cssText = "padding:7px 18px;white-space:nowrap";
-        item.addEventListener("mouseenter", function () { item.style.background = "#e8f0fe"; });
-        item.addEventListener("mouseleave", function () { item.style.background = ""; });
+        item.className = "ctx-item";
+        item.innerHTML = '<span class="ctx-icon">' + icon + '</span>' + label;
         item.addEventListener("mousedown", function (e) {
           e.preventDefault();
           e.stopPropagation();
@@ -341,16 +327,16 @@ window.BOOT = function() {
         parentMenu.appendChild(item);
       }
 
-      makeItem(menu, "Resource Scheduler", function () {
+      makeItem(menu, "Resource Scheduler", "&#x1F4C6;", function () {
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("onOpenResourceScheduler", [
           currentResourceId
         ]);
       });
-      makeItem(menu, "Show Resource Card", function () {
+      makeItem(menu, "Show Resource Card", "&#x1F464;", function () {
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnResourceDblClick", [currentResourceId]);
       });
 
-      makeItem(markerMenu, "Open Day Plannings", function () {
+      makeItem(markerMenu, "Open Day Plannings", "&#x1F4C5;", function () {
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OpenResourceLoadDay", [
           currentMarkerResourceId,
           currentMarkerWorkDate,
@@ -361,11 +347,12 @@ window.BOOT = function() {
 
       // ── Empty resource timeline cell menu ──
       var emptyMenu = document.createElement("div");
-      emptyMenu.style.cssText = menuCss;
+      emptyMenu.className = "gantt-ctx-menu";
+      emptyMenu.style.display = "none";
       var RightClickedResourceId = "";
       var RightClickedWorkDate   = "";
 
-      makeItem(emptyMenu, "Add Day Planning", function () {
+      makeItem(emptyMenu, "Add Day Planning", "&#x2795;", function () {
         if (!RightClickedResourceId || !RightClickedWorkDate) return;
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("onAddDayPlanning", [
           RightClickedResourceId,
@@ -818,25 +805,25 @@ window.BOOT = function() {
     (function injectContextMenuCSS() {
       var s = document.createElement("style");
       s.textContent = [
-        "#gantt-ctx-menu{",
+        ".gantt-ctx-menu{",
         "  position:fixed;z-index:99999;",
         "  background:#fff;border:1px solid #d0d0d0;",
         "  border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.18);",
         "  min-width:170px;padding:4px 0;font:13px/1.4 Segoe UI,sans-serif;",
         "  user-select:none;",
         "}",
-        "#gantt-ctx-menu .ctx-item{",
+        ".gantt-ctx-menu .ctx-item{",
         "  display:flex;align-items:center;gap:10px;",
         "  padding:8px 18px;cursor:pointer;color:#222;",
         "  transition:background .12s;",
         "}",
-        "#gantt-ctx-menu .ctx-item:hover{ background:#f0f4ff; color:#1a56db; }",
-        "#gantt-ctx-menu .ctx-item.ctx-cancel{ color:#888; }",
-        "#gantt-ctx-menu .ctx-item.ctx-cancel:hover{ background:#fafafa; color:#555; }",
-        "#gantt-ctx-menu .ctx-sep{",
+        ".gantt-ctx-menu .ctx-item:hover{ background:#f0f4ff; color:#1a56db; }",
+        ".gantt-ctx-menu .ctx-item.ctx-cancel{ color:#888; }",
+        ".gantt-ctx-menu .ctx-item.ctx-cancel:hover{ background:#fafafa; color:#555; }",
+        ".gantt-ctx-menu .ctx-sep{",
         "  height:1px;background:#eee;margin:4px 0;",
         "}",
-        "#gantt-ctx-menu .ctx-icon{ font-size:15px; width:18px; text-align:center; }"
+        ".gantt-ctx-menu .ctx-icon{ font-size:15px; width:18px; text-align:center; }"
       ].join("\n");
       document.head.appendChild(s);
     })();
@@ -849,6 +836,7 @@ window.BOOT = function() {
 
       var menu = document.createElement("div");
       menu.id = "gantt-ctx-menu";
+      menu.className = "gantt-ctx-menu";
 
       var items = [
         { label: "Summary",              icon: "&#x1F4C4;", cls: "ctx-show-summary" },
@@ -856,7 +844,7 @@ window.BOOT = function() {
         { sep: true },
         { label: "Show Task",            icon: "&#x1F4CB;", cls: "ctx-open-task" },
         { label: "Show DayPlanning",         icon: "&#x1F4C5;", cls: "ctx-open-DayPlanning" },
-        { label: "Show DayPlanning Visual",  icon: "&#x1F4C5;", cls: "ctx-open-DayPlanningvisual" },
+        { label: "Show Task Scheduler",  icon: "&#x1F4C5;", cls: "ctx-open-DayPlanningvisual" },
         { sep: true },
         { label: "Add Filter",           icon: "&#x1F50D;", cls: "ctx-add-filter" },
         { sep: true },
