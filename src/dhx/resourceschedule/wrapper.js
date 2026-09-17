@@ -169,9 +169,16 @@ window.BOOT = function() {
                 return html;
             }
 
+            function minutesOfDay(dt) {
+                var d = (dt instanceof Date) ? dt : ToDate(dt);
+                return d ? (d.getHours() * 60 + d.getMinutes()) : null;
+            }
+
             var reqTime = (ev.req_start ? fmt(ev.req_start) : '—') + '–' + (ev.req_end ? fmt(ev.req_end) : '—');
             var assignedTime = fmt(ev.start_date) + '–' + fmt(ev.end_date);
-            var timeDiffers = (ev.req_start && ev.req_end) && assignedTime !== reqTime;
+            var timeDiffers = (ev.req_start && ev.req_end) &&
+                (minutesOfDay(ev.req_start) !== minutesOfDay(ev.start_date) ||
+                    minutesOfDay(ev.req_end) !== minutesOfDay(ev.end_date));
 
             return (
                 '<div class="standard-tooltip-context">' +
