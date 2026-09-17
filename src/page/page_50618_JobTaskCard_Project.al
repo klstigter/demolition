@@ -837,6 +837,8 @@ page 50618 "Opti Job Task Card"
             {
                 ApplicationArea = All;
                 Image = HumanResources;
+                Caption = 'Task Scheduler';
+
                 trigger OnAction()
                 var
                     DayPlanningScheduler: page "DHX Scheduler (Project)";
