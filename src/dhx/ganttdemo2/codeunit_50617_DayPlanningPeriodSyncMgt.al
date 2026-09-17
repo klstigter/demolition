@@ -73,7 +73,6 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
         DayPlanning: Record "Day Planning";
         JobTask: Record "Job Task";
         DailyOptimizerSetup: Record "Daily Optimizer Setup";
-        DayPlanningPattern: Record "Day Planning Pattern";
         EffectiveWorkHourTemplate: Code[20];
         EntryNo: Integer;
         NewDate: Date;
@@ -102,10 +101,7 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
         // the same original Plan Date. ──────────────────────────────────────────────────
         GetAffectedResources(JobNo, JobTaskNo, OldStart, OldEnd, ResourceList);
         foreach ResourceNo in ResourceList do
-            if FindMatchingDayPlanningPattern(JobNo, JobTaskNo, ResourceNo, DayPlanningPattern) then
-                RedistributeUsingPattern(JobNo, JobTaskNo, ResourceNo, OldStart, OldEnd, NewStart, NewEnd, DayPlanningPattern."Work-Hour Template", RowNewDateMap)
-            else
-                MapRowsUsingNaiveCascade(JobNo, JobTaskNo, ResourceNo, OldStart, OldEnd, NewStart, NewEnd, EffectiveWorkHourTemplate, RowNewDateMap);
+            MapRowsUsingNaiveCascade(JobNo, JobTaskNo, ResourceNo, OldStart, OldEnd, NewStart, NewEnd, EffectiveWorkHourTemplate, RowNewDateMap);
 
         // ── Build the preview buffer for every affected DayPlanning row, using each row's
         // own Day Line No. to look up its redistributed/cascaded final date. ─────────────
@@ -284,21 +280,6 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
     end;
 
     /// <summary>
-    /// Looks up the "Day Planning Pattern" for JobNo/JobTaskNo/ResourceNo (a blank ResourceNo
-    /// matches a skill-based pattern that itself has a blank "Resource No."). Returns false
-    /// when no pattern exists or the match has no "Work-Hour Template" set, in which case the
-    /// caller falls back to the naive offset/clamp cascade for that resource's rows.
-    /// </summary>
-    local procedure FindMatchingDayPlanningPattern(JobNo: Code[20]; JobTaskNo: Code[20]; ResourceNo: Code[20]; var DayPlanningPattern: Record "Day Planning Pattern"): Boolean
-    begin
-        DayPlanningPattern.SetRange("Job No.", JobNo);
-        DayPlanningPattern.SetRange("Job Task No.", JobTaskNo);
-        DayPlanningPattern.SetRange("Resource No.", ResourceNo);
-        DayPlanningPattern.SetFilter("Work-Hour Template", '<>%1', '');
-        exit(DayPlanningPattern.FindFirst());
-    end;
-
-    /// <summary>
     /// Walks every calendar day in RangeStart..RangeEnd and collects the ones that are active
     /// per WorkHourTemplateCode + the mandatory Base Calendar (via "Day Plannings Mgt."'s
     /// IsActiveWorkDay), in chronological order.
@@ -313,67 +294,6 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
             if DayPlanningMgt.IsActiveWorkDay(WorkHourTemplateCode, D) then
                 ActiveDays.Add(D);
             D += 1;
-        end;
-    end;
-
-    /// <summary>
-    /// Redistributes one resource's existing DayPlanning rows (chronological by current Plan
-    /// Date) onto that resource's pattern-derived active days within NewStart..NewEnd
-    /// (chronological), matched 1:1 by position — reusing/moving each row's Plan Date only, the
-    /// row itself (Day Line No.) is never deleted or recreated. If there are more rows than
-    /// active days found within NewStart..NewEnd, the active-day window is extended one day at a
-    /// time past NewEnd (still gated by IsActiveWorkDay) until every row has a target — the Job
-    /// Task's own Planned End Date is what should stretch to cover the overshoot (see
-    /// ExtendJobTaskEndDateIfNeeded), not the DayPlanning rows collapsing to fit inside a fixed
-    /// boundary. The forward search is bounded to a safety limit (~3 years past NewEnd); if that
-    /// limit is hit (e.g. a template with no active weekday at all) the previous "collapse onto
-    /// the last found active day" behavior is used as an absolute last resort so a row is never
-    /// left unmapped or dropped.
-    /// </summary>
-    local procedure RedistributeUsingPattern(JobNo: Code[20]; JobTaskNo: Code[20]; ResourceNo: Code[20]; OldStart: Date; OldEnd: Date; NewStart: Date; NewEnd: Date; WorkHourTemplateCode: Code[20]; var RowNewDateMap: Dictionary of [Integer, Date])
-    var
-        DayPlanning: Record "Day Planning";
-        ActiveDays: List of [Date];
-        RowLineNos: List of [Integer];
-        Idx: Integer;
-        TargetDate: Date;
-        ExtendDate: Date;
-        SafetyLimitDate: Date;
-    begin
-        GetActiveDaysInRange(WorkHourTemplateCode, NewStart, NewEnd, ActiveDays);
-
-        DayPlanning.SetCurrentKey("Plan Date");
-        DayPlanning.SetRange("Job No.", JobNo);
-        DayPlanning.SetRange("Job Task No.", JobTaskNo);
-        DayPlanning.SetRange("Assigned Resource No.", ResourceNo);
-        DayPlanning.SetRange("Plan Date", OldStart, OldEnd);
-        if DayPlanning.FindSet() then
-            repeat
-                RowLineNos.Add(DayPlanning."Day Line No.");
-            until DayPlanning.Next() = 0;
-
-        // More rows than active days found within NewStart..NewEnd: keep extending the search
-        // forward past NewEnd (bounded to a safety limit) instead of collapsing surplus rows
-        // onto the last active day already found.
-        if RowLineNos.Count() > ActiveDays.Count() then begin
-            SafetyLimitDate := NewEnd + 1100; // ~3 years, guards against a template with no active weekday ever
-            ExtendDate := NewEnd + 1;
-            while (ActiveDays.Count() < RowLineNos.Count()) and (ExtendDate <= SafetyLimitDate) do begin
-                if DayPlanningMgt.IsActiveWorkDay(WorkHourTemplateCode, ExtendDate) then
-                    ActiveDays.Add(ExtendDate);
-                ExtendDate += 1;
-            end;
-        end;
-
-        for Idx := 1 to RowLineNos.Count() do begin
-            if ActiveDays.Count() = 0 then
-                TargetDate := NewEnd // extreme edge case: no active day in scope, hard-clamp rather than drop the row
-            else
-                if Idx <= ActiveDays.Count() then
-                    TargetDate := ActiveDays.Get(Idx)
-                else
-                    TargetDate := ActiveDays.Get(ActiveDays.Count()); // safety limit hit: last-resort collapse onto the last one found
-            RowNewDateMap.Add(RowLineNos.Get(Idx), TargetDate);
         end;
     end;
 

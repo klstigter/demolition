@@ -106,10 +106,6 @@ page 50630 "Day Plannings"
                 {
                     ApplicationArea = All;
                 }
-                field("Pattern Line No."; Rec."Pattern Line No.")
-                {
-                    ApplicationArea = All;
-                }
                 field(skill; Rec.skill)
                 {
                     ApplicationArea = All;
@@ -376,8 +372,6 @@ page 50630 "Day Plannings"
         area(Promoted)
         {
             actionref(CopyRequestedToAssigned_Promoted; CopyRequestedToAssigned) { }
-
-            actionref(DayPlanningsCreation_Promoted; DayPlanningsCreation) { }
             actionref(ShowStyleReason_Promoted; ShowStyleReason) { }
             Group(Visuals_Ref)
             {
@@ -403,22 +397,6 @@ page 50630 "Day Plannings"
                 trigger OnAction()
                 begin
                     CurrPage.Update(false);
-                end;
-            }
-            action(DayPlanningsCreation)
-            {
-                ApplicationArea = All;
-                Caption = 'Day plannings pattern';
-                Image = HumanResources;
-                ShortCutKey = 'Alt+D';
-                ToolTip = 'View or edit dimensions, such as area, project, or department, that you can assign to sales and purchase documents to distribute costs and analyze transaction history.';
-                trigger OnAction()
-                var
-                    Page: Page "Day Planning Pattern";
-                begin
-                    page.fillbuffer(Rec."Job No.", Rec."Job Task No.", '');
-                    Page.Run();
-                    CurrPage.Update();
                 end;
             }
             action(CopyRequestedToAssigned)

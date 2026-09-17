@@ -77,11 +77,6 @@ page 50624 "Day Planning Info FactBox"
                     ApplicationArea = All;
                     visible = false;
                 }
-                field("Pattern Line No."; Rec."Pattern Line No.")
-                {
-                    ApplicationArea = All;
-                    visible = false;
-                }
                 field("Total Assigned Hours"; Rec."Total Assigned Hours")
                 {
                     ApplicationArea = All;

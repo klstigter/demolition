@@ -58,10 +58,6 @@ page 50669 "Day Planning Card - New Record"
                     {
                         ApplicationArea = All;
                     }
-                    field("Pattern Line No."; Rec."Pattern Line No.")
-                    {
-                        ApplicationArea = All;
-                    }
                     field(skill; Rec."Skill")
                     {
                         ApplicationArea = All;
