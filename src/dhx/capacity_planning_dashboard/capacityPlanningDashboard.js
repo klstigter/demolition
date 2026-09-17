@@ -283,7 +283,11 @@ class CapacityPlanningDashboard extends CapacityPlanningOverview {
             if (!m.requested) return '';
             const meta = self.skillMeta(section.skill);
             const pct = m.requested ? Math.max(0, Math.min(100, m.assigned / m.requested * 100)) : 100;
-            return '<div class="cpo-tree-summary-cell" data-master-skill="' + cpoEsc(section.skill) + '" data-day-index="' + idx + '" style="background:linear-gradient(to right,' + meta.dark + ' 0 ' + pct + '%,' + meta.light + ' ' + pct + '% 100%)"><b>' + m.requested + 'h</b></div>';
+            // Assigned% portion uses the shared "Assigned Color" (meta.assignedColor), not
+            // meta.dark (that skill's own border color) - see the base class's identical fix in
+            // capacityPlanningOverview.js's own centraltree_cell_value, and CPO_BuildSkillsArray's
+            // doc comment (codeunit 50604) for the full root-cause writeup.
+            return '<div class="cpo-tree-summary-cell" data-master-skill="' + cpoEsc(section.skill) + '" data-day-index="' + idx + '" style="background:linear-gradient(to right,' + (meta.assignedColor || meta.dark) + ' 0 ' + pct + '%,' + meta.light + ' ' + pct + '% 100%)"><b>' + m.requested + 'h</b></div>';
         };
         s.templates.event_class = function (a, b, e) { return 'cpo-planner-event cpo-skill-' + cpoSlug(e.skill); };
         s.templates.event_bar_text = function (a, b, e) { return e.hours || ''; };

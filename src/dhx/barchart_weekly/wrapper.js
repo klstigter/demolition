@@ -52,15 +52,25 @@ var SERIES_COLOR_PALETTE = ["#2A9D8F", "#E76F51", "#11A3D0", "#E5A910", "#985F99
 // geometry math has to agree with the `bottom` scale's own `textPadding`/`size` config below.
 var CATEGORY_DELIMITER = "|";       // matches codeunit 50662's CategoryDelimiterTok
 var BOTTOM_TEXT_PADDING = 12;       // matches scales.bottom.textPadding in RenderChart
-var DAY_ROW_HEIGHT = 24;            // px reserved for EACH of the 2 bottom-axis rows
-// DAY_ROW_HEIGHT*2 (48) below is read by RenderChart's scales.bottom.size and MUST stay
-// numerically equal to src/dhx/barchart_daily/wrapper.js's own BOTTOM_SCALE_RESERVED_PX (also
-// 48) - confirmed live via Playwright (2026-09-11) that a chart's "0"-line/bar-baseline
-// vertical position is `containerTop + containerHeight - scales.bottom.size`, independent of
-// legend.size, so keeping this total reserved bottom height equal to Daily's is what keeps the
-// two role-center panels' x-axes aligned, even though only THIS chart actually uses the 2nd row
-// (Mon/Tue/... via RenderDayGroupRow) - Daily reserves the same 48px as blank space under its
-// own single label row instead. See BOTTOM_SCALE_RESERVED_PX's own comment for the full writeup.
+var DAY_ROW_HEIGHT = 24;            // px height of EACH of the 2 bottom-axis rows this chart
+// actually draws (native "C"/"R" row + RenderDayGroupRow's own hand-drawn Mon/Tue row) - used only
+// for THEIR OWN internal layout math (row2Y etc., derived from the native tick's rendered
+// position, not from this constant directly). Distinct from BOTTOM_SCALE_RESERVED_PX below, which
+// is the TOTAL space reserved on the axis (can be larger than what these 2 rows actually fill).
+//
+// BOTTOM_SCALE_RESERVED_PX is read by RenderChart's scales.bottom.size and MUST stay numerically
+// equal to src/dhx/barchart_daily/wrapper.js's own BOTTOM_SCALE_RESERVED_PX (also 90) - confirmed
+// live via Playwright (2026-09-11, re-confirmed 2026-09-17 after Daily's own value changed) that a
+// chart's "0"-line/bar-baseline vertical position is `containerTop + containerHeight -
+// scales.bottom.size`, independent of legend.size, so keeping this total reserved bottom height
+// equal to Daily's is what keeps the two role-center panels' x-axes aligned. Was 48 (=
+// DAY_ROW_HEIGHT*2, exactly filled by this chart's own 2 rows) until Daily's chart grew a
+// diagonal (scaleRotate) category-label row that needed more room than a flat 48px 1-row axis -
+// bumped here to 90 to match, even though THIS chart's own 2 rows still only need 48 of it; the
+// remaining 42px renders as blank space below the Mon/Tue row, same convention Daily used the
+// other way around before its rotation was added. See BOTTOM_SCALE_RESERVED_PX's own comment in
+// that file for the full writeup.
+var BOTTOM_SCALE_RESERVED_PX = 90;
 // Matches the native plot area's own gridlines (suite.css: `.grid-line{stroke:var(--dhx-color-
 // gray-100)}`, no explicit stroke-width -> browser default of 1px) rather than a bold black line,
 // so the day-group row's grid reads as part of the same chart instead of a heavier overlay.
@@ -526,7 +536,7 @@ function RenderChart(chartData, legendSizeOverride, isCorrectivePass) {
         // default (see suite.js's base Scale class) only ever accounted for a single line.
         scales: {
             bottom: {
-                type: "text", text: "category", textPadding: BOTTOM_TEXT_PADDING, size: DAY_ROW_HEIGHT * 2,
+                type: "text", text: "category", textPadding: BOTTOM_TEXT_PADDING, size: BOTTOM_SCALE_RESERVED_PX,
                 // Single-letter "C"/"R", not the full "Capacity"/"Requested" word: once
                 // ApplyDayPairSpacing (below) pulls a day's 2 bars edge-to-edge tight (see its own
                 // comment - total pair width is just BAR_WIDTH_PX*2 + PAIR_INNER_GAP_PX), the full

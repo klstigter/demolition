@@ -667,7 +667,7 @@ class CapacityPlanningOverview {
 
     /// <summary>Skill metadata lookup (color/textColor/border/dark/light) - reference's own "skillMeta". Falls back to a generic blue if the skill is unknown (defensive - should not happen for any skill AL actually sent).</summary>
     skillMeta(skill) {
-        return this.skillMetaByCode[skill] || (this.db.skills && this.db.skills[0]) || { color: '#8fb7ee', border: '#5f8fd8', dark: '#5f8fd8', light: '#dbe8fb', textColor: '#26344e' };
+        return this.skillMetaByCode[skill] || (this.db.skills && this.db.skills[0]) || { color: '#8fb7ee', border: '#5f8fd8', dark: '#5f8fd8', light: '#dbe8fb', textColor: '#26344e', assignedColor: '#63aa72' };
     }
     /// <summary>Alias kept for readability at call sites that specifically want "the color pair for this skill" rather than the full meta object - same data either way.</summary>
     skillColorFor(skill) { return this.skillMeta(skill); }
@@ -2096,14 +2096,22 @@ class CapacityPlanningOverview {
                 if (!m.requested) return '';
                 const meta = self.skillMeta(section.skill);
                 const pct = m.requested ? Math.max(0, Math.min(100, m.assigned / m.requested * 100)) : 100;
-                return '<div class="cpo-tree-summary-cell" data-master-skill="' + cpoEsc(section.skill) + '" data-day-index="' + idx + '" style="background:linear-gradient(to right,' + meta.dark + ' 0 ' + pct + '%,' + meta.light + ' ' + pct + '% 100%)"><b>' + m.requested + 'h</b></div>';
+                // Assigned% portion uses the shared "Assigned Color" (meta.assignedColor, AL's
+                // Daily Optimizer Setup override - matches the Daily/Weekly Insights charts' own
+                // Assigned green), NOT meta.dark (that skill's own border color) - see
+                // CPO_BuildSkillsArray's own doc comment for why those two used to be conflated
+                // (a skill with a dark/black configured border rendered its Assigned% black
+                // instead of green). Falls back to meta.dark only if an older AL build hasn't been
+                // republished yet and never sent assignedColor.
+                return '<div class="cpo-tree-summary-cell" data-master-skill="' + cpoEsc(section.skill) + '" data-day-index="' + idx + '" style="background:linear-gradient(to right,' + (meta.assignedColor || meta.dark) + ' 0 ' + pct + '%,' + meta.light + ' ' + pct + '% 100%)"><b>' + m.requested + 'h</b></div>';
             }
             if (section.type === 'detail') {
                 const sm = self.taskDaySummary(section, idx);
                 if (!sm.requested) return '';
                 const meta = self.skillMeta(section.skill);
                 const pct = sm.requested ? Math.max(0, Math.min(100, sm.assigned / sm.requested * 100)) : 100;
-                return '<div class="cpo-tree-summary-cell" data-skill="' + cpoEsc(section.skill) + '" data-job="' + cpoEsc(section.job) + '" data-task="' + cpoEsc(section.task) + '" data-day-index="' + idx + '" style="background:linear-gradient(to right,' + meta.dark + ' 0 ' + pct + '%,' + meta.light + ' ' + pct + '% 100%)"><b>' + sm.requested + 'h</b></div>';
+                // Same Assigned-color fix as the 'skill' branch above.
+                return '<div class="cpo-tree-summary-cell" data-skill="' + cpoEsc(section.skill) + '" data-job="' + cpoEsc(section.job) + '" data-task="' + cpoEsc(section.task) + '" data-day-index="' + idx + '" style="background:linear-gradient(to right,' + (meta.assignedColor || meta.dark) + ' 0 ' + pct + '%,' + meta.light + ' ' + pct + '% 100%)"><b>' + sm.requested + 'h</b></div>';
             }
             if (section.type === 'sequence') return self.sequenceDayCellHtml(section, idx);
             return '';
