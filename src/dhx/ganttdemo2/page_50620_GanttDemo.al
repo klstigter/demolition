@@ -623,16 +623,18 @@ page 50620 "Gantt Demo DHX 2"
                 /// OnGanttFilterIconClick above, this applies the right-clicked row's own Job
                 /// No./Job Task No. directly, with no "Task Scheduler Filter" dialog: the user
                 /// already picked the task by right-clicking it, so there is nothing left to ask.
+                /// jobTaskNo may be a "from..to" BC filter-range expression (set by wrapper.js
+                /// when the clicked row is a summary/parent task) so the filter still keeps its
+                /// child tasks in scope instead of matching only the parent row itself.
                 /// </summary>
-                //TODO restore this trigger when the Gantt JS control supports it
-                // trigger OnGanttContextAddFilter(jobNo: Text; jobTaskNo: Text)
-                // begin
-                //     if jobNo = '' then
-                //         exit;
-                //     JobFilter := jobNo;
-                //     JobTaskFilter := jobTaskNo;
-                //     RefreshGantt();
-                // end;
+                trigger OnGanttContextAddFilter(jobNo: Text; jobTaskNo: Text)
+                begin
+                    if jobNo = '' then
+                        exit;
+                    JobFilter := jobNo;
+                    JobTaskFilter := jobTaskNo;
+                    RefreshGantt();
+                end;
 
                 #endregion
             }
