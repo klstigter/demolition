@@ -1720,6 +1720,20 @@ body.pane-resizing {
   color: #496b7b;
 }
 
+.slot-context-menu .ctx-menu-divider {
+  height: 1px;
+  margin: 4px 6px;
+  background: rgba(0, 0, 0, .08);
+}
+
+.slot-context-menu button.ctx-item-cancel {
+  color: #6b7c85;
+}
+
+.slot-context-menu button.ctx-item-cancel .context-menu-icon {
+  color: #8a99a1;
+}
+
 
 /* DHTMLXtempv046 — compact Request Job / Task filters */
 .request-filter-field {
@@ -2176,6 +2190,54 @@ body.pane-resizing {
 
 .sequence-drag-tooltip[hidden] {
   display: none !important;
+}
+
+/* Sequence-row click/right-click filtering indicator — shown while the deferred
+   renderRequest()/renderResources() chain (see wrapper.js's showSequenceFilterIndicator/
+   renderAllYielded) runs across yielded animation frames, so the user gets feedback during
+   that window instead of a frozen tab with no explanation. Small and non-blocking by design
+   (pointer-events: none, fixed top-center of the request pane) - NOT the big
+   #req-loading-overlay modal-style overlay used for the initial full data load, per the same
+   "small overlay" convention as .sequence-drag-tooltip/.resource-skill-warning-tooltip/
+   .request-detail-tooltip above. */
+.sequence-filter-indicator {
+  position: fixed;
+  z-index: 12500;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid rgba(3, 91, 126, .22);
+  border-radius: 999px;
+  background: var(--tooltip-bg-color, rgba(255, 255, 255, .97));
+  color: var(--tooltip-font-color, #17394a);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .18);
+}
+
+.sequence-filter-indicator[hidden] {
+  display: none !important;
+}
+
+.sequence-filter-spinner {
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid rgba(3, 91, 126, .22);
+  border-top-color: #035b7e;
+  animation: sequence-filter-spin 0.7s linear infinite;
+}
+
+@keyframes sequence-filter-spin {
+  to { transform: rotate(360deg); }
 }
 
 

@@ -109,6 +109,33 @@ function rebuildAssignedResourceSkillSets() {
   });
 }
 
+// O(1) lookup for sequenceAllLines()/sequenceLines() — see rebuildDayTaskLinesBySequenceKey().
+// Both used to do a `dayTaskLines.filter(line => line.sequenceKey === sequenceKey)` (plus a
+// `.sort()` in sequenceAllLines' case) on EVERY call. createRequestScheduler()'s "sequence"
+// column template calls sequenceIsAccepted()/sequenceIsPending()/sequenceAllLinesAssigned() -
+// which chain into sequenceLines()/sequenceAllLines() - once PER SEQUENCE ROW, for every
+// sequence row in the tree, on every renderRequest(). That made a Sequence-row click's
+// deferred renderAll() do an O(sequenceCount x dayTaskLines.length) scan (plus a sort per
+// sequence), confirmed live as the dominant contributor to a ~10s single long task with 9101
+// Day Task Lines loaded. Rebuilt only when dayTaskLines itself is rebuilt (see
+// rebuildRequestTree(), called from SetPlanningData/AppendDayTaskLines) - never per render -
+// since in-place field mutations like assignedResource/sequenceAccepted never change a line's
+// sequenceKey, so the bucket membership never goes stale between rebuilds.
+let dayTaskLinesBySequenceKey = new Map();
+
+function rebuildDayTaskLinesBySequenceKey() {
+  dayTaskLinesBySequenceKey = new Map();
+  dayTaskLines.forEach(line => {
+    let bucket = dayTaskLinesBySequenceKey.get(line.sequenceKey);
+    if (!bucket) {
+      bucket = [];
+      dayTaskLinesBySequenceKey.set(line.sequenceKey, bucket);
+    }
+    bucket.push(line);
+  });
+  dayTaskLinesBySequenceKey.forEach(bucket => bucket.sort((a, b) => a.dayIndex - b.dayIndex));
+}
+
 let requestScheduler = null;
 let resourceScheduler = null;
 
@@ -124,6 +151,7 @@ let plannerSplit, requestPane, resourcePane, paneSplitter;
 let sequenceDragTooltip, assignmentDetailTooltip, requestDetailTooltip;
 let assignmentTimelineScrollbar, assignmentTimelineScrollbarContent;
 let resourceSkillWarningTooltip, slotContextMenu;
+let sequenceFilterIndicator, sequenceFilterIndicatorText;
 let simplePopupBackdrop, simplePopupText, simplePopupCloseBtn;
 let modifySequenceBackdrop, modifySequenceCloseBtn, modifySequenceCancelBtn, modifySequenceApplyBtn;
 let modifySequenceInfoLabel, modifySequenceTemplateSelect, modifySequenceExcludeGrid;
@@ -356,9 +384,10 @@ function sameOrBeforeDay(date, endDate) {
 }
 
 function sequenceAllLines(sequenceKey) {
-  return dayTaskLines
-    .filter(line => line.sequenceKey === sequenceKey)
-    .sort((a, b) => a.dayIndex - b.dayIndex);
+  // .slice() keeps the "returns a fresh array" contract callers already rely on (e.g. further
+  // filtering/sorting a result without mutating shared state) while avoiding the O(dayTaskLines)
+  // scan the old .filter()/.sort() pair did on every call - see rebuildDayTaskLinesBySequenceKey().
+  return (dayTaskLinesBySequenceKey.get(sequenceKey) || []).slice();
 }
 
 function sequenceLinesInScope(sequenceKey) {
@@ -495,10 +524,15 @@ function resourceVisibleOnlyByAssignedSkill(resource) {
   if (!resource || !skill) return false;
   if (resourceHasSkill(resource, skill)) return false;
 
-  return dayTaskLines.some(line =>
-    line.assignedResource === resource.key &&
-    requestedSkillForLine(line) === skill
-  );
+  // createResourceScheduler()'s "resource" column template calls this once PER RESOURCE ROW on
+  // every renderResources(), so the old `dayTaskLines.some(...)` here was a genuine
+  // O(resources x dayTaskLines) scan on every render — the second real contributor (alongside
+  // sequenceAllLines(), see rebuildDayTaskLinesBySequenceKey()) to the ~10s freeze confirmed live
+  // with 9101 Day Task Lines loaded. assignedResourceSkillSets already exists and is rebuilt once
+  // per renderResources() via rebuildAssignedResourceSkillSets() (before any row template runs) -
+  // it was already being used by visibleResources() below, just not here. Reusing it turns this
+  // into an O(1) Map/Set lookup per resource.
+  return !!assignedResourceSkillSets.get(resource.key)?.has(skill);
 }
 
 function isoWeekNumber(dateValue) {
@@ -1511,6 +1545,12 @@ function capacityFailureText(lines, resourceId) {
 // and "- Seq 2") render as separate rows here, matching the Day Planning
 // Sequence add-in's own row grouping. `seq` is the real numeric Sequence No.
 function rebuildRequestTree() {
+  // dayTaskLines has just been (re)assigned by the caller (SetPlanningData/AppendDayTaskLines) -
+  // rebuild the sequenceKey index here so it can never go stale relative to the tree it's built
+  // alongside. See rebuildDayTaskLinesBySequenceKey()'s own comment for why this call site (not
+  // every render) is the correct place for it.
+  rebuildDayTaskLinesBySequenceKey();
+
   const rowsByKey = new Map();
 
   allPlanningLines().forEach(line => {
@@ -1862,7 +1902,10 @@ function refreshSelectionClasses() {
 }
 
 function sequenceLines(sequenceKey) {
-  return dayTaskLines.filter(line => line.sequenceKey === sequenceKey);
+  // Same O(1) index as sequenceAllLines() - see rebuildDayTaskLinesBySequenceKey(). Order is now
+  // by dayIndex (previously insertion order) which every caller here treats as order-independent
+  // (equality/every() checks, or building an {id, sequenceAccepted} undo snapshot).
+  return (dayTaskLinesBySequenceKey.get(sequenceKey) || []).slice();
 }
 
 function sequenceIsPending(sequenceKey) {
@@ -2471,6 +2514,17 @@ function contextMenuIconSvg(kind) {
       </svg>`;
   }
 
+  if (kind === "cancel") {
+    return `
+      <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+        <path d="M6 6l12 12M18 6L6 18"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"/>
+      </svg>`;
+  }
+
   return `
     <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
       <rect x="4" y="3" width="16" height="18" rx="2"
@@ -2485,9 +2539,10 @@ function contextMenuIconSvg(kind) {
     </svg>`;
 }
 
-function addContextMenuItem({ caption, icon, action }) {
+function addContextMenuItem({ caption, icon, action, variant }) {
   const button = document.createElement("button");
   button.type = "button";
+  if (variant) button.classList.add(`ctx-item-${variant}`);
   button.innerHTML = `
     <span class="context-menu-icon" aria-hidden="true">
       ${contextMenuIconSvg(icon)}
@@ -2501,6 +2556,12 @@ function addContextMenuItem({ caption, icon, action }) {
   });
 
   slotContextMenu.appendChild(button);
+}
+
+function addContextMenuDivider() {
+  const divider = document.createElement("div");
+  divider.className = "ctx-menu-divider";
+  slotContextMenu.appendChild(divider);
 }
 
 function showSlotContextMenu(event, targetInfo) {
@@ -2564,6 +2625,11 @@ function showSlotContextMenu(event, targetInfo) {
   }
 
   if (!slotContextMenu.children.length) return;
+
+  // Explicit dismiss entry - closing via outside-click already works, but every menu shown here
+  // still gets a visible "Cancel" so the escape hatch is discoverable, not just implicit.
+  addContextMenuDivider();
+  addContextMenuItem({ caption: "Cancel", icon: "cancel", variant: "cancel" });
 
   slotContextMenu.hidden = false;
 
@@ -4622,6 +4688,61 @@ function renderAll() {
   renderResources();
 }
 
+// ---------------------------------------------------------------------------
+// Sequence-row click/right-click filtering: spinner + yielded render chain.
+//
+// Root cause context (see rebuildDayTaskLinesBySequenceKey()/
+// resourceVisibleOnlyByAssignedSkill() above for the actual O(n^2)-class fixes):
+// even after those fixes, renderRequest()+renderResources() still do real work
+// over every Day Task Line/resource/sequence (DHTMLX's own clearAll()/parse()/
+// updateView() included), and calling both back-to-back inside a single
+// requestAnimationFrame callback - as the sequence click handlers used to -
+// is still one synchronous block the browser cannot paint or process input
+// (hover, contextmenu, further clicks) around. Splitting them into separate
+// rAF ticks (below) gives the browser a chance to paint/process input between
+// each phase, and showSequenceFilterIndicator() gives the user something to
+// look at while it does. This does not "chunk" DHTMLX's own parse()/render()
+// internals (opaque library calls, not safely splittable without forking the
+// library) - it chunks at the granularity this file actually controls.
+function showSequenceFilterIndicator(sequenceKey) {
+  if (!sequenceFilterIndicator || !sequenceFilterIndicatorText) return;
+
+  const row = sequenceRowsByKey.get(sequenceKey);
+  const skill = sequenceRequiredSkill(sequenceKey) || row?.requiredSkill || "";
+  // Representative "Plan No." (Day Planning "Day Line No.") - a Sequence spans multiple Day
+  // Task Lines, so there's no single line here; the first line in dayIndex order is used as the
+  // representative value, matching the same line sequenceAllLines()/the row's own state checks
+  // already treat as canonical.
+  const firstLine = sequenceAllLines(sequenceKey)[0];
+
+  sequenceFilterIndicatorText.textContent =
+    `Filtering data based on day planning ${row?.projectId ?? "—"}, ${row?.taskId ?? "—"}, ${firstLine?.id ?? "—"}, ${skill || "—"}`;
+
+  sequenceFilterIndicator.hidden = false;
+}
+
+function hideSequenceFilterIndicator() {
+  if (!sequenceFilterIndicator) return;
+  sequenceFilterIndicator.hidden = true;
+}
+
+// Runs renderRequest() and renderResources() one per animation frame (instead of both
+// synchronously in the same frame/callback) and invokes onDone one frame after the last one
+// finishes, once its own post-render decoration frames (installHorizontalTimelineSync, etc.)
+// have had a chance to queue. Used only by the two sequence-row entry points below - every other
+// renderAll() caller (drag/drop, accept/reject, undo, ...) is unaffected.
+function renderAllYielded(onDone) {
+  requestAnimationFrame(() => {
+    renderRequest();
+    requestAnimationFrame(() => {
+      renderResources();
+      requestAnimationFrame(() => {
+        if (onDone) onDone();
+      });
+    });
+  });
+}
+
 function findLine(id) {
   return dayTaskLines.find(x => x.id === id);
 }
@@ -5801,6 +5922,11 @@ const APP_MARKUP = `
     <div id="requestDetailTooltip" class="request-detail-tooltip" hidden></div>
     <div id="resourceSkillWarningTooltip" class="resource-skill-warning-tooltip" hidden></div>
 
+    <div id="sequenceFilterIndicator" class="sequence-filter-indicator" hidden role="status" aria-live="polite">
+      <span class="sequence-filter-spinner" aria-hidden="true"></span>
+      <span id="sequenceFilterIndicatorText" class="sequence-filter-indicator-text"></span>
+    </div>
+
     <div id="slotContextMenu" class="slot-context-menu" hidden></div>
 
     <div id="simplePopupBackdrop" class="simple-popup-backdrop" hidden>
@@ -5966,6 +6092,8 @@ window.BOOT = function BOOT() {
   assignmentTimelineScrollbar = document.getElementById("assignmentTimelineScrollbar");
   assignmentTimelineScrollbarContent = document.getElementById("assignmentTimelineScrollbarContent");
   resourceSkillWarningTooltip = document.getElementById("resourceSkillWarningTooltip");
+  sequenceFilterIndicator = document.getElementById("sequenceFilterIndicator");
+  sequenceFilterIndicatorText = document.getElementById("sequenceFilterIndicatorText");
   slotContextMenu = document.getElementById("slotContextMenu");
   simplePopupBackdrop = document.getElementById("simplePopupBackdrop");
   simplePopupText = document.getElementById("simplePopupText");
@@ -6032,9 +6160,11 @@ window.BOOT = function BOOT() {
       selectedSequenceKey = sequenceKey;
       selectionAnchorId = null;
 
+      showSequenceFilterIndicator(sequenceKey);
+
       activateSkillFilter(sequenceKey, { render: false });
       activateSequenceScope(sequenceKey, { render: false });
-      requestAnimationFrame(renderAll);
+      renderAllYielded(hideSequenceFilterIndicator);
       refreshSelectionClasses();
     }
   }, true);
@@ -6141,22 +6271,29 @@ window.BOOT = function BOOT() {
       selectedSequenceKey = sequenceKey;
       selectionAnchorId = null;
 
-      // Show the menu FIRST. activateSkillFilter(render:true)/activateSequenceScope trigger a
-      // full two-scheduler redraw (renderResources + renderRequest - the same cost a plain
+      // Show the menu FIRST. activateSkillFilter/activateSequenceScope trigger a full
+      // two-scheduler redraw (renderResources + renderRequest - the same cost a plain
       // left-click selection pays, see setSingleSelection) which the browser can't paint the
       // menu around since both would otherwise run synchronously in this one handler - that
       // redraw was the actual cause of the right-click popup feeling slow to appear. Neither the
       // menu's own construction nor its actions (unassignSequence/openModifySequencePanel) read
       // anything activateSkillFilter/activateSequenceScope compute - they only need
-      // selectedSequenceKey, already set above - so the redraw is safe to defer a frame.
+      // selectedSequenceKey, already set above - so the redraw is safe to defer.
+      //
+      // The redraw itself is further split across its own animation frames (renderAllYielded,
+      // with the "Filtering..." indicator shown throughout) rather than run as the single
+      // synchronous block a plain render:true here used to produce - see renderAllYielded's own
+      // comment for why that single block was still a freeze even with the menu painting first.
       showSlotContextMenu(event, {
         type: "sequence",
         sequenceKey
       });
 
       requestAnimationFrame(() => {
-        activateSkillFilter(sequenceKey, { render: true });
+        showSequenceFilterIndicator(sequenceKey);
+        activateSkillFilter(sequenceKey, { render: false });
         activateSequenceScope(sequenceKey, { render: false });
+        renderAllYielded(hideSequenceFilterIndicator);
       });
       return;
     }
@@ -6377,20 +6514,13 @@ window.BOOT = function BOOT() {
   window.addEventListener("pointerup", finishAssignmentPointerEdit, false);
   window.addEventListener("pointercancel", finishAssignmentPointerEdit, false);
 
-  document.getElementById("requestScheduler").addEventListener("click", event => {
-    const rowCell = event.target.closest(".seq-cell[data-sequence-select]");
-    if (!rowCell || event.target.closest(".seq-drag")) return;
-
-    const sequenceKey = rowCell.dataset.sequenceSelect;
-
-    selectedLineIds.clear();
-    selectedSequenceKey = sequenceKey;
-    selectionAnchorId = null;
-
-    activateSkillFilter(sequenceKey, { render: false });
-    activateSequenceScope(sequenceKey, { render: false });
-    requestAnimationFrame(renderAll);
-  });
+  // NOTE: a near-identical bubble-phase "click" listener for
+  // ".seq-cell[data-sequence-select]" used to live here. It was dead code: the capture-phase
+  // listener above (document.getElementById("requestScheduler").addEventListener("click", ...,
+  // true)) matches the same target and calls event.stopPropagation(), which - since both
+  // listeners are on the same #requestScheduler element - prevents the event from ever reaching
+  // this element's own bubble-phase listeners. Removed rather than kept as unreachable
+  // duplicate logic.
 
   document.addEventListener("pointerdown", event => {
     const handle = event.target.closest(".seq-drag");
