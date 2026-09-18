@@ -9,27 +9,24 @@ codeunit 50694 "Capacity Overview Mgt."
     ///
     /// Row-by-row (period = the caller-supplied PeriodStartDate..PeriodEndDate range):
     ///  1. Total Capacity     - C = SUM("Res. Capacity Entry".Capacity), no resource/skill filter.
-    ///                          Per-skill columns are 0/blank - deliberately not displayed here.
-    ///                          CalcCapacityPerSkill still computes the real per-skill split (each
-    ///                          capacity entry's Capacity divided evenly (divide-by-N) across every
-    ///                          skill the entry's resource holds, via "Resource Skill" - a resource
-    ///                          with no "Resource Skill" rows at all is skipped/ignored entirely,
-    ///                          strictly skill-only per spec, no blank-skill bucket), but that
-    ///                          result feeds ONLY Row 4's "Capacity" calculation below, not this
-    ///                          row's own displayed columns.
+    ///                          Per-skill columns are 0/blank - "Res. Capacity Entry" is not
+    ///                          broken down by skill, so there is no meaningful per-skill split.
     ///  2. Total Request      - C = SUM("Day Planning"."Requested Hours") for all skills.
     ///                          Per-skill columns = same sum filtered to that column's Skill Code.
     ///  3. Assigned Hours     - C = SUM("Day Planning"."Assigned Hours") for all skills.
     ///                          Per-skill columns = same sum filtered to that column's Skill Code.
-    ///  4. Capacity           - Row1(new, per-skill Capacity) - Row2 (per-skill Request),
-    ///                          computed independently per column (C and every per-skill column).
-    ///                          C = TotalCapacity - TotalRequest. Rendered Italic + Red, no bold
-    ///                          (StyleExpr = 'Attention') on page 50696.
+    ///  4. Capacity           - C = TotalCapacity - TotalRequest, same as Row 6 "Surplus".
+    ///                          Per-skill columns are 0/blank, same reasoning as Row 1: capacity
+    ///                          has no real per-skill breakdown, so a synthetic one (e.g. an even
+    ///                          split across a resource's skills) is not shown, since it does not
+    ///                          correspond to any real, drillable record set and can go negative
+    ///                          for reasons unrelated to actual per-skill demand. Rendered
+    ///                          Italic + Red, no bold (StyleExpr = 'Attention') on page 50696.
     ///  5. Request Plan       - Row2 - Row3, computed independently per column, same pattern.
     ///     (not assigned)
-    ///  6. Surplus            - C = Row1(C) - Row2(C) (algebraically equal to Row4(C) - Row5(C)).
-    ///                          Per-skill columns are 0 - out of scope / unchanged, unlike Row1
-    ///                          this row still has no per-skill breakdown.
+    ///  6. Surplus            - C = Row1(C) - Row2(C) (algebraically equal to Row4(C)).
+    ///                          Per-skill columns are 0 - out of scope / unchanged, same as Row 1
+    ///                          and Row 4, no per-skill breakdown.
     /// </summary>
 
     /// <summary>
@@ -70,10 +67,8 @@ codeunit 50694 "Capacity Overview Mgt."
     var
         ColumnCount: Integer;
         ZeroPerColumn: List of [Decimal];
-        CapacityPerColumn: List of [Decimal];
         RequestPerColumn: List of [Decimal];
         AssignedPerColumn: List of [Decimal];
-        CapacityPerSkill: Dictionary of [Code[20], Decimal];
         TotalCapacity: Decimal;
         TotalRequest: Decimal;
         TotalAssigned: Decimal;
@@ -91,16 +86,6 @@ codeunit 50694 "Capacity Overview Mgt."
 
         TotalCapacity := CalcTotalCapacity(PeriodStartDate, PeriodEndDate);
 
-        CalcCapacityPerSkill(PeriodStartDate, PeriodEndDate, CapacityPerSkill);
-        Clear(CapacityPerColumn);
-        for i := 1 to ColumnCount do begin
-            SkillCode := SkillCodeList.Get(i);
-            if CapacityPerSkill.ContainsKey(SkillCode) then
-                CapacityPerColumn.Add(CapacityPerSkill.Get(SkillCode))
-            else
-                CapacityPerColumn.Add(0);
-        end;
-
         TotalRequest := CalcRequestedHours(PeriodStartDate, PeriodEndDate, '');
         Clear(RequestPerColumn);
         for i := 1 to ColumnCount do begin
@@ -115,90 +100,19 @@ codeunit 50694 "Capacity Overview Mgt."
             AssignedPerColumn.Add(CalcAssignedHours(PeriodStartDate, PeriodEndDate, SkillCode));
         end;
 
-        // Per-skill values are deliberately NOT shown here - CapacityPerColumn is calculated for
-        // row 40000's "Capacity" (Free Capacity) subtraction only (see A.3 in this codeunit's own
-        // doc comment); Total Capacity's own per-skill columns stay blank/zero, same as before
-        // CalcCapacityPerSkill existed.
+        // Total Capacity's per-skill columns stay blank/zero - "Res. Capacity Entry" has no real
+        // per-skill breakdown to show.
         InsertRow(Buffer, 10000, TotalCapacityRowLbl, TotalCapacity, ZeroPerColumn, ColumnCount, 'Standard');
         InsertRow(Buffer, 20000, TotalRequestRowLbl, TotalRequest, RequestPerColumn, ColumnCount, 'Standard');
         InsertRow(Buffer, 30000, AssignedHoursRowLbl, TotalAssigned, AssignedPerColumn, ColumnCount, 'Standard');
-        // 'Attention' renders Italic + Red, no bold - per spec (red + italic, not bold).
-        InsertDifferenceRow(Buffer, 40000, FreeCapacityRowLbl, TotalCapacity - TotalRequest, CapacityPerColumn, RequestPerColumn, ColumnCount, 'Attention');
+        // 'Attention' renders Italic + Red, no bold - per spec (red + italic, not bold). Per-skill
+        // columns are blank/zero, same reasoning as row 10000: no real per-skill capacity exists.
+        InsertRow(Buffer, 40000, FreeCapacityRowLbl, TotalCapacity - TotalRequest, ZeroPerColumn, ColumnCount, 'Attention');
         InsertDifferenceRow(Buffer, 50000, RequestPlanRowLbl, TotalRequest - TotalAssigned, RequestPerColumn, AssignedPerColumn, ColumnCount, 'Standard');
         InsertRow(Buffer, 60000, SurplusRowLbl, TotalCapacity - TotalRequest, ZeroPerColumn, ColumnCount, 'Standard');
 
         Buffer.Reset();
         if Buffer.FindFirst() then;
-    end;
-
-    /// <summary>
-    /// Splits every "Res. Capacity Entry" row's Capacity (Date in [PeriodStartDate,
-    /// PeriodEndDate], no other filter) evenly (divide-by-N) across every skill the entry's
-    /// resource holds, via "Resource Skill". Strictly skill-only, per spec: a resource with zero
-    /// "Resource Skill" rows contributes nothing to CapacityPerSkill at all - its capacity is
-    /// simply not counted in any per-skill column (not credited to any blank/"None" bucket - there
-    /// is no such bucket). An in-procedure ResourceSkillCache avoids re-querying "Resource Skill"
-    /// for a resource seen on an earlier entry in the same period.
-    /// </summary>
-    local procedure CalcCapacityPerSkill(PeriodStartDate: Date; PeriodEndDate: Date; var CapacityPerSkill: Dictionary of [Code[20], Decimal])
-    var
-        ResCapacityEntry: Record "Res. Capacity Entry";
-        ResourceSkillCache: Dictionary of [Code[20], List of [Code[20]]];
-        SkillCodesForResource: List of [Code[20]];
-        SplitCapacity: Decimal;
-        SkillCode: Code[20];
-    begin
-        Clear(CapacityPerSkill);
-
-        ResCapacityEntry.Reset();
-        ResCapacityEntry.SetRange(Date, PeriodStartDate, PeriodEndDate);
-        if ResCapacityEntry.FindSet() then
-            repeat
-                SkillCodesForResource := GetResourceSkillCodes(ResCapacityEntry."Resource No.", ResourceSkillCache);
-
-                if SkillCodesForResource.Count() > 0 then begin
-                    SplitCapacity := ResCapacityEntry.Capacity / SkillCodesForResource.Count();
-                    foreach SkillCode in SkillCodesForResource do
-                        AddToDictionary(CapacityPerSkill, SkillCode, SplitCapacity);
-                end;
-            until ResCapacityEntry.Next() = 0;
-    end;
-
-    /// <summary>
-    /// Returns (and caches, in ResourceSkillCache) the list of "Skill Code" values from every
-    /// "Resource Skill" row for ResourceNo (Type is ignored - a Resource No. only ever has one
-    /// Type in practice, per spec).
-    /// </summary>
-    local procedure GetResourceSkillCodes(ResourceNo: Code[20]; var ResourceSkillCache: Dictionary of [Code[20], List of [Code[20]]]) SkillCodesForResource: List of [Code[20]]
-    var
-        ResourceSkill: Record "Resource Skill";
-    begin
-        if ResourceSkillCache.ContainsKey(ResourceNo) then
-            exit(ResourceSkillCache.Get(ResourceNo));
-
-        Clear(SkillCodesForResource);
-        ResourceSkill.Reset();
-        ResourceSkill.SetRange("No.", ResourceNo);
-        if ResourceSkill.FindSet() then
-            repeat
-                SkillCodesForResource.Add(ResourceSkill."Skill Code");
-            until ResourceSkill.Next() = 0;
-
-        ResourceSkillCache.Set(ResourceNo, SkillCodesForResource);
-    end;
-
-    /// <summary>
-    /// Add-or-initialize accumulation helper, mirroring AddToTotals in
-    /// Cod50608.SkillCapacityAnalysisMgtv1.al.
-    /// </summary>
-    local procedure AddToDictionary(var Dict: Dictionary of [Code[20], Decimal]; DictKey: Code[20]; ValueToAdd: Decimal)
-    var
-        CurrentValue: Decimal;
-    begin
-        if Dict.ContainsKey(DictKey) then
-            CurrentValue := Dict.Get(DictKey);
-
-        Dict.Set(DictKey, CurrentValue + ValueToAdd);
     end;
 
     /// <summary>
@@ -280,17 +194,26 @@ codeunit 50694 "Capacity Overview Mgt."
 
     /// <summary>
     /// Inserts a matrix row whose values are the column-wise difference of two prior rows'
-    /// values (used for "Capacity" = Row1(new, per-skill Capacity) - Row2 (Request) and
-    /// "Request Plan (not assigned)" = Row2 - Row3). RowStyle is passed through to InsertRow.
+    /// values (used for "Request Plan (not assigned)" = Row2 (Request) - Row3 (Assigned)).
+    /// The result is floored at zero, both per column and for the total, since "not assigned"
+    /// hours can't be negative. RowStyle is passed through to InsertRow.
     /// </summary>
     local procedure InsertDifferenceRow(var Buffer: Record "Capacity Overview Buffer" temporary; LineNo: Integer; RowDescription: Text; TotalValue: Decimal; MinuendPerColumn: List of [Decimal]; SubtrahendPerColumn: List of [Decimal]; ColumnCount: Integer; RowStyle: Text[30])
     var
         DiffPerColumn: List of [Decimal];
+        Diff: Decimal;
         i: Integer;
     begin
         Clear(DiffPerColumn);
-        for i := 1 to ColumnCount do
-            DiffPerColumn.Add(MinuendPerColumn.Get(i) - SubtrahendPerColumn.Get(i));
+        for i := 1 to ColumnCount do begin
+            Diff := MinuendPerColumn.Get(i) - SubtrahendPerColumn.Get(i);
+            if Diff < 0 then
+                Diff := 0;
+            DiffPerColumn.Add(Diff);
+        end;
+
+        if TotalValue < 0 then
+            TotalValue := 0;
 
         InsertRow(Buffer, LineNo, RowDescription, TotalValue, DiffPerColumn, ColumnCount, RowStyle);
     end;
