@@ -14,6 +14,33 @@ var resourcesStore = null;
 var DayPlanningsStore = null;
 var _isRefreshing = false;
 var _resourceFilterInfo = null; // { job, task, periodFrom, periodTo }
+// Guards EVERY round trip into the resource panel's server-side mechanism - task-bar click
+// ("Show Resources"), the (x) reset button, AND the background-task poll tick - against firing
+// while a previous one is still in flight. Confirmed live: BC's control add-in call bridge for
+// this add-in does NOT block JS execution while an InvokeExtensibilityMethod call is outstanding
+// (two clicks ~150ms apart both fire), and if a second call goes out before the first has come
+// back, the client's call queue gets stuck and EVERY subsequent InvokeExtensibilityMethod call -
+// including unrelated ones - hangs behind it ("Working on it..." that never clears).
+//
+// A single shared boolean, not per-call-site cooldown timers: all three entry points
+// (_ctxShowResources, the reset button, _runResourcePanelPoll) call
+// _resourcePanelInvokeStart() before firing and _resourcePanelInvokeEnd() from their
+// success/error callback (the 5-argument (name, args, silent, onSuccess, onError) form - see
+// request_assignment/wrapper.js's NotifyDayTaskLinesTaskPending for the same proven pattern).
+// That gives a TRUE completion signal instead of a guessed timeout: each of these AL triggers
+// (OnShowResourcesForTask, OnResetResourceFilter, OnPollResourcePanelResult) makes several of its
+// OWN nested AL->JS calls before returning (SetResourcePanelVisibility, SetResourcePanelFilterInfo,
+// NotifyResourcePanelTaskPending, GetResourceFilter, ...), so a fixed cooldown window can't
+// reliably outlast how long any given round trip actually takes.
+var _resourcePanelInvokeInFlight = false;
+function _resourcePanelInvokeStart() {
+  if (_resourcePanelInvokeInFlight) return false;
+  _resourcePanelInvokeInFlight = true;
+  return true;
+}
+function _resourcePanelInvokeEnd() {
+  _resourcePanelInvokeInFlight = false;
+}
 var _ganttTaskFilterInfo = null; // { job, task, periodFrom, periodTo } - main grid Job/Job Task filter (distinct from _resourceFilterInfo above, which drives the resource panel tooltip only)
 var _ganttHolidays = {}; // { "YYYY-MM-DD": "Description", ... } loaded from BC Base Calendar
 var _gtbProgressOverride = ""; // set by SetGanttTaskBarDefaults; "" = keep today's per-task _darkenHex behaviour
@@ -242,7 +269,7 @@ window.BOOT = function() {
           const projectNo = x.jobNo || "";
           const taskNo = x.jobTaskNo || "";
           const status = x.plan_status || "";
-          const wo = x.work_order_no ? `${x.work_order_no}` : "";
+          const skill = x.skill ? `${x.skill}` : "";
           const reqStart = x.requested_start_time || "-";
           const reqEnd = x.requested_end_time || "-";
           const reqIdle = x.requested_idle_minutes || 0;
@@ -255,7 +282,7 @@ window.BOOT = function() {
             <td>${projectNo}</td>
             <td>${taskNo}</td>
             <td>${status}</td>
-            <td>${wo}</td>
+            <td>${skill}</td>
             <td>${reqStart}</td><td>${reqEnd}</td><td>${reqIdle}</td><td>${reqHours}</td>
             <td>${asgStart}</td><td>${asgEnd}</td><td>${asgIdle}</td><td>${asgHours}</td>
           </tr>`;
@@ -268,7 +295,7 @@ window.BOOT = function() {
                 <th rowspan="2">Project No.</th>
                 <th rowspan="2">Task No.</th>
                 <th rowspan="2">Status</th>
-                <th rowspan="2">Work Order</th>
+                <th rowspan="2">Skill</th>
                 <th colspan="4">Requested</th>
                 <th colspan="4">Assigned</th>
               </tr>
@@ -973,6 +1000,7 @@ window.BOOT = function() {
 
     // Show Resources — open resource panel filtered to this task's Day Planning resources
     function _ctxShowResources(id) {
+      if (!_resourcePanelInvokeStart()) return;
       try {
         var fmt = gantt.date.date_to_str("%Y-%m-%d");
         var task = gantt.getTask(id);
@@ -995,9 +1023,19 @@ window.BOOT = function() {
         }, id);
         var childrenJson = JSON.stringify(children);
 
-        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnShowResourcesForTask", [ String(id), childrenJson, periodFrom, periodTo ]);
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(
+          "OnShowResourcesForTask",
+          [ String(id), childrenJson, periodFrom, periodTo ],
+          false,
+          _resourcePanelInvokeEnd,
+          function (e) {
+            console.error("OnShowResourcesForTask failed:", e);
+            _resourcePanelInvokeEnd();
+          }
+        );
       } catch (e) {
         console.error("_ctxShowResources failed:", e);
+        _resourcePanelInvokeEnd();
       }
     }
 
@@ -1516,6 +1554,7 @@ window.BOOT = function() {
     InstallResourceMarkerCustomTooltipsForDayPlannings(); // ✅ install once
     InstallResourceGridDblClick(); // ✅ install once
     InstallResourceGridContextMenu(); // ✅ install once
+    _installGanttFilterToolbarWatcher(); // ✅ install once
 
     // ✅ Update resource panel header tooltip + Request bar overlays after every render
     gantt.attachEvent("onGanttRender", function() {
@@ -2714,41 +2753,92 @@ window.LoadDayPlanningsData = LoadDayPlanningsData;
 // every open Gantt page.
 var _resourcePanelPollTimer = null;
 var _resourcePanelPollAttempts = 0;
-var RESOURCE_PANEL_POLL_INTERVAL_MS = 500;
-var RESOURCE_PANEL_POLL_MAX_ATTEMPTS = 60; // 60 x 500ms = 30s generous ceiling
+var _resourcePanelPollActive = false;
+var RESOURCE_PANEL_POLL_INTERVAL_MS = 1500;
+var RESOURCE_PANEL_POLL_MAX_ATTEMPTS = 20; // 20 x 1500ms = 30s generous ceiling
 
+// Same proven shape as src/dhx/request_assignment/wrapper.js's
+// NotifyDayTaskLinesTaskPending/_runDayTaskLinesPoll (and src/dhx/projectschedule/wrapper.js's
+// NotifySectionsTaskPending) - a self-rescheduling setTimeout that only fires the next
+// InvokeExtensibilityMethod once the previous one has actually returned (success or error),
+// via the 5-argument (name, args, silent, onSuccess, onError) callback form. A fixed-cadence
+// setInterval/setTimeout that fires regardless of whether the prior round trip completed is the
+// exact "wrong way" pattern Microsoft's control add-in performance guidance calls out as a
+// trigger for the client's "reduced functionality" / unhealthy-add-in warning
+// (learn.microsoft.com/dynamics365/business-central/dev-itpro/developer/
+// devenv-control-addin-bestpractices). Gates on the SAME shared _resourcePanelInvokeInFlight flag
+// (declared near _resourceFilterInfo above) as _ctxShowResources and the reset button - not a
+// poll-local flag - because NotifyResourcePanelTaskPending() (re)starting the loop only clears
+// the SCHEDULED timer, not a call that's already in flight, whether that in-flight call is an
+// earlier poll tick, a task-bar click, or the reset button. A poll-local flag alone would let a
+// poll tick collide with an outstanding task-click/reset call and vice versa; only a flag shared
+// across all three entry points prevents every combination of overlap. Confirmed live: that
+// overlap is what wedges BC's control add-in call bridge and produces the "Working on it..."
+// freeze that never clears.
 function NotifyResourcePanelTaskPending() {
   try {
     if (_resourcePanelPollTimer) {
-      clearInterval(_resourcePanelPollTimer);
+      clearTimeout(_resourcePanelPollTimer);
       _resourcePanelPollTimer = null;
     }
     _resourcePanelPollAttempts = 0;
-    _resourcePanelPollTimer = setInterval(function () {
-      _resourcePanelPollAttempts++;
-      if (_resourcePanelPollAttempts > RESOURCE_PANEL_POLL_MAX_ATTEMPTS) {
-        clearInterval(_resourcePanelPollTimer);
-        _resourcePanelPollTimer = null;
-        return;
-      }
-      try {
-        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnPollResourcePanelResult", []);
-      } catch (e) {
-        console.error("OnPollResourcePanelResult poll failed:", e);
-      }
-    }, RESOURCE_PANEL_POLL_INTERVAL_MS);
+    _resourcePanelPollActive = true;
+    _scheduleResourcePanelPoll();
   } catch (e) {
     console.error("NotifyResourcePanelTaskPending failed:", e);
   }
 }
 window.NotifyResourcePanelTaskPending = NotifyResourcePanelTaskPending;
 
+function _scheduleResourcePanelPoll() {
+  if (!_resourcePanelPollActive) return;
+  _resourcePanelPollTimer = setTimeout(_runResourcePanelPoll, RESOURCE_PANEL_POLL_INTERVAL_MS);
+}
+
+function _runResourcePanelPoll() {
+  _resourcePanelPollTimer = null;
+  if (!_resourcePanelPollActive) return;
+
+  _resourcePanelPollAttempts++;
+  if (_resourcePanelPollAttempts > RESOURCE_PANEL_POLL_MAX_ATTEMPTS) {
+    _resourcePanelPollActive = false; // generous 30s ceiling already elapsed - give up
+    return;
+  }
+  if (!_resourcePanelInvokeStart()) {
+    // Some resource-panel round trip (this poll, a task-bar click, or the reset button) is
+    // already in flight - reschedule instead of piling another call on top of it.
+    _scheduleResourcePanelPoll();
+    return;
+  }
+
+  var onSettled = function () {
+    _resourcePanelInvokeEnd();
+    _scheduleResourcePanelPoll();
+  };
+  try {
+    Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(
+      "OnPollResourcePanelResult",
+      [],
+      false,
+      onSettled,
+      function (e) {
+        console.error("OnPollResourcePanelResult poll failed:", e);
+        onSettled();
+      }
+    );
+  } catch (e) {
+    console.error("OnPollResourcePanelResult poll failed:", e);
+    onSettled();
+  }
+}
+
 // Called by AL (from the OnPollResourcePanelResult trigger handler, via the normal
 // LoadResourcesData/LoadDayPlanningsData methods) once a pending result was actually delivered -
 // stops the poll burst early instead of waiting out the full timeout.
 function StopResourcePanelPolling() {
+  _resourcePanelPollActive = false;
   if (_resourcePanelPollTimer) {
-    clearInterval(_resourcePanelPollTimer);
+    clearTimeout(_resourcePanelPollTimer);
     _resourcePanelPollTimer = null;
   }
 }
@@ -3039,8 +3129,18 @@ function _updateResourceHeaderTooltip() {
 
     resetBtn.addEventListener("click", function(e) {
       e.stopPropagation();
+      if (!_resourcePanelInvokeStart()) return;
       popup.style.display = "none";
-      Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnResetResourceFilter", []);
+      Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(
+        "OnResetResourceFilter",
+        [],
+        false,
+        _resourcePanelInvokeEnd,
+        function (e) {
+          console.error("OnResetResourceFilter failed:", e);
+          _resourcePanelInvokeEnd();
+        }
+      );
     });
 
     cell.appendChild(infoBtn);
@@ -3163,6 +3263,50 @@ function SetTooltipColors(backgroundColorHex, fontColorHex) {
   if (fontColorHex) root.style.setProperty("--tooltip-font-color", fontColorHex);
 }
 window.SetTooltipColors = SetTooltipColors;
+
+// The filter buttons/tooltips below are DOM we inject by hand into two different header cells -
+// the main grid's "Task name" column header (.gnt-filter-icon, from _updateGanttFilterToolbar)
+// and the resource panel's header (.res-filter-icon/.res-filter-reset, from
+// _updateResourceHeaderTooltip) - normally kept alive by re-running both on every onGanttRender.
+// Dragging the resizer between the main Gantt and the resource panel (or the grid/timeline
+// splitter, in either panel) re-renders just the affected header through DHTMLX's own layout
+// module - which doesn't fire onGanttRender - wiping our injected buttons out without anything
+// re-adding them (BUG: "move top border of resource panel then filter controls disappear" - this
+// hits both the main grid's funnel icon AND the resource panel's own (i)/(x) icons independently,
+// so both must be checked). Rather than chase every DHTMLX-internal resize code path that can
+// cause this, self-heal: watch both headers for their buttons going missing and re-inject.
+var _filterToolbarWatcherBusy = false;
+function _installGanttFilterToolbarWatcher() {
+  if (document._ganttFilterToolbarWatcherInstalled) return;
+  document._ganttFilterToolbarWatcherInstalled = true;
+  var target = document.getElementById("gantt_here") || document.body;
+  var observer = new MutationObserver(function() {
+    if (_filterToolbarWatcherBusy) return;
+
+    var needsMainToolbar = false;
+    var collapseIcon = document.querySelector(".gantt-collapseall-icon");
+    if (collapseIcon && !collapseIcon.parentElement.querySelector(".gnt-filter-icon")) {
+      needsMainToolbar = true;
+    }
+
+    var needsResourceToolbar = false;
+    if (_resourceFilterInfo) {
+      var resCell = document.querySelector(".resourceGrid_cell .gantt_grid_head_workload")
+              || document.querySelector(".resourceGrid_cell .gantt_grid_scale .gantt_grid_head_cell:last-child");
+      if (resCell && !resCell.querySelector(".res-filter-icon")) {
+        needsResourceToolbar = true;
+      }
+    }
+
+    if (!needsMainToolbar && !needsResourceToolbar) return;
+
+    _filterToolbarWatcherBusy = true;
+    if (needsMainToolbar) _updateGanttFilterToolbar();
+    if (needsResourceToolbar) _updateResourceHeaderTooltip();
+    setTimeout(function() { _filterToolbarWatcherBusy = false; }, 0);
+  });
+  observer.observe(target, { childList: true, subtree: true });
+}
 
 function _updateGanttFilterToolbar() {
   try {
