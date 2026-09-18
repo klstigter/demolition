@@ -192,6 +192,19 @@ window.BOOT = function() {
         document.head.appendChild(s);
       })();
 
+      // Resolves a resource id ("RES-...") to the same "Name (No.)" label shown in the
+      // resource panel's own Name column (RecreateGanttLayout's res-name-cell template),
+      // so the DayPlanning marker tooltip identifies the resource by name, not just its id.
+      function _getResourceLabel(resId) {
+        try {
+          if (window.resourcesStore && window.resourcesStore.exists(resId)) {
+            var item = window.resourcesStore.getItem(resId);
+            return (item && (item.text || item.label)) || resId;
+          }
+        } catch (e) { /* fall through to raw id */ }
+        return resId;
+      }
+
       document.addEventListener("mousemove", function (e) {
         const marker = e.target.closest?.(".gantt_resource_marker");
         if (!marker) return;
@@ -199,6 +212,7 @@ window.BOOT = function() {
         const resId = marker.dataset.resourceId;
         const workDate = marker.dataset.workDate;
         const hoursTxt = (marker.textContent || "").trim();
+        const resLabel = resId ? _getResourceLabel(resId) : resId;
 
         if (!resId || !workDate) {
           _showCustomTooltip(e, `<b>Marker</b><br/>${hoursTxt || "?"}h`);
@@ -219,7 +233,7 @@ window.BOOT = function() {
         if (!matches.length) {
           _showCustomTooltip(
             e,
-            `<b>${resId}</b><br/>Date: ${workDate}<br/>Marker: ${hoursTxt}h<br/><i>No DayPlannings</i>`
+            `<b>${resLabel}</b><br/>Date: ${workDate}<br/>Marker: ${hoursTxt}h<br/><i>No DayPlannings</i>`
           );
           return;
         }
@@ -268,7 +282,7 @@ window.BOOT = function() {
 
         _showCustomTooltip(
           e,
-          `<b>${resId}</b><br/>Date: ${workDate}
+          `<b>${resLabel}</b><br/>Date: ${workDate}
           ${table}${matches.length > 8 ? `<div style="margin-top:4px">…</div>` : ""}`
         );
       }, true);
