@@ -846,7 +846,7 @@ window.BOOT = function() {
         { label: "Show DayPlanning",         icon: "&#x1F4C5;", cls: "ctx-open-DayPlanning" },
         { label: "Show Task Scheduler",  icon: "&#x1F4C5;", cls: "ctx-open-DayPlanningvisual" },
         { sep: true },
-        { label: "Add Filter",           icon: "&#x1F50D;", cls: "ctx-add-filter" },
+        { label: "Add Filter",           icon: '<svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:middle;"><path d="M3 4h18l-7.2 8.6v6.4l-3.6 1.8v-8.2z" fill="#5f6368"/></svg>', cls: "ctx-add-filter" },
         { sep: true },
         { label: "Cancel",               icon: "&#x2715;",  cls: "ctx-cancel" }
       ];
@@ -1032,12 +1032,28 @@ window.BOOT = function() {
     // the user to type a Job No./Job Task No. - OnGanttFilterIconClick), the right-clicked row
     // already IS a specific Job/Job Task, so this applies that row's own bcJobNo/bcJobTaskNo
     // directly, with no dialog in between.
+    // When the right-clicked row is a summary/parent task (e.g. "Work Order Linked Tasks"),
+    // filtering to just its own Job Task No. would hide every child task under it. Instead,
+    // scope the filter to the whole subtree: min..max Job Task No. across the clicked row and
+    // all of its descendants, sent as a BC filter-range expression (JobTaskFilter is applied
+    // via SetFilter, not SetRange, so "1050..1100" works the same as a single exact value).
     function _ctxAddFilter(id) {
       try {
         var task = gantt.getTask(id);
+        var jobTaskNo = (task && task.bcJobTaskNo) || "";
+        if (gantt.hasChild(id)) {
+          var minNo = jobTaskNo, maxNo = jobTaskNo;
+          gantt.eachTask(function(child) {
+            var no = child.bcJobTaskNo || "";
+            if (!no) return;
+            if (minNo === "" || no < minNo) minNo = no;
+            if (maxNo === "" || no > maxNo) maxNo = no;
+          }, id);
+          jobTaskNo = (minNo === maxNo) ? minNo : (minNo + ".." + maxNo);
+        }
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnGanttContextAddFilter", [
           String((task && task.bcJobNo) || ""),
-          String((task && task.bcJobTaskNo) || "")
+          jobTaskNo
         ]);
       } catch (e) {
         console.error("_ctxAddFilter failed:", e);
