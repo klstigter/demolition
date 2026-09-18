@@ -21,6 +21,15 @@ codeunit 50713 "Gantt BG Resource Panel Data"
     // Either LoadResources or LoadDayPlannings (or both) can be requested independently, so a
     // caller that only needs one half (e.g. ShowResourcePanel only wants resources) doesn't pay for
     // building the other.
+    //
+    // 'Default' mode's Day Planning load is additionally CHUNKED: optional 'DayPlanningSkip'/
+    // 'DayPlanningPageSize' parameters (default Skip=0, PageSize=1000 when absent) page through
+    // codeunit 50613's Skip/PageSize GetDayPlanningsAsJson overload instead of fetching everything
+    // in one round trip - see page 50620's EnqueueDefaultResourcePanelReload/
+    // OnPollResourcePanelResult for the chunk-continuation loop that drives repeated calls into
+    // this codeunit. Resources are only ever fetched on chunk 0 (Skip=0) - re-fetching/re-sending
+    // them on every chunk would be redundant payload since the client already has them after the
+    // first chunk. Filtered mode is untouched/unchunked (its scope is naturally small).
     trigger OnRun()
     var
         GanttChartDataHandler: Codeunit "GanttChartDataHandler";
@@ -38,6 +47,12 @@ codeunit 50713 "Gantt BG Resource Panel Data"
         JobFilter: Text;
         JobTaskFilter: Text;
         AnchorDate: Date;
+        DayPlanningSkip: Integer;
+        DayPlanningPageSize: Integer;
+        DayPlanningHasMore: Boolean;
+        DayPlanningChunked: Boolean;
+        SkipText: Text;
+        PageSizeText: Text;
     begin
         TaskParameters := Page.GetBackgroundParameters();
 
@@ -65,16 +80,51 @@ codeunit 50713 "Gantt BG Resource Panel Data"
                     JobTaskFilter := GetParam(TaskParameters, 'JobTaskFilter');
                     EvaluateDateParam(TaskParameters, 'AnchorDate', AnchorDate);
 
-                    if LoadResources then
+                    DayPlanningSkip := 0;
+                    SkipText := GetParam(TaskParameters, 'DayPlanningSkip');
+                    if SkipText <> '' then
+                        Evaluate(DayPlanningSkip, SkipText);
+
+                    DayPlanningPageSize := 1000;
+                    PageSizeText := GetParam(TaskParameters, 'DayPlanningPageSize');
+                    if PageSizeText <> '' then
+                        Evaluate(DayPlanningPageSize, PageSizeText);
+
+                    // Resources only ever go out on chunk 0 - see this trigger's header comment.
+                    if LoadResources and (DayPlanningSkip = 0) then
                         ResourcesJson := GanttChartDataHandler.GetResourcesAsJson();
-                    if LoadDayPlannings then
-                        DayPlanningsJson := GanttChartDataHandler.GetDayPlanningsAsJson(AnchorDate, JobFilter, JobTaskFilter);
+
+                    if LoadDayPlannings then begin
+                        DayPlanningChunked := true;
+                        DayPlanningsJson := GanttChartDataHandler.GetDayPlanningsAsJson(AnchorDate, JobFilter, JobTaskFilter, DayPlanningSkip, DayPlanningPageSize, DayPlanningHasMore);
+                    end;
                 end;
         end;
 
         Result.Add('resourcesJson', ResourcesJson);
         Result.Add('dayPlanningsJson', DayPlanningsJson);
+        if DayPlanningChunked then begin
+            // NOTE: deliberately NOT Format(DayPlanningHasMore) - see BoolToParamText's comment
+            // (AL's default Boolean format is localized "Yes"/"No", not "true"/"false" - this
+            // codebase already got bitten by that once, see page 50620's BoolToParamText comment).
+            Result.Add('dayPlanningsHasMore', BoolToParamText(DayPlanningHasMore));
+            Result.Add('dayPlanningsNextSkip', Format(DayPlanningSkip + DayPlanningPageSize));
+        end;
         Page.SetBackgroundTaskResult(Result);
+    end;
+
+    /// <summary>
+    /// Converts a Boolean to the literal "true"/"false" text this codeunit's own GetParam-based
+    /// flag checks (and page 50620's OnPageBackgroundTaskCompleted, on the receiving end) expect.
+    /// Deliberately not Format() - Format(Boolean) returns the localized "Yes"/"No" caption, not
+    /// "true"/"false". Local copy of page 50620's BoolToParamText (a codeunit can't call a page's
+    /// local procedure).
+    /// </summary>
+    local procedure BoolToParamText(Value: Boolean): Text
+    begin
+        if Value then
+            exit('true');
+        exit('false');
     end;
 
     local procedure GetParam(TaskParameters: Dictionary of [Text, Text]; ParamName: Text): Text

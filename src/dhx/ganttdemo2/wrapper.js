@@ -2132,7 +2132,12 @@ function ClearData(projectJsonTxt) {
     if (window.DayPlanningsByTask) {
       window.DayPlanningsByTask = Object.create(null);
     }
-    
+
+    // Drop any partial chunk-accumulation from an in-progress/abandoned resource-panel Day
+    // Planning load (see LoadDayPlanningsData) - a fresh sequence always starts with
+    // isFirstChunk===true anyway, but there's no reason to hold onto a stale array meanwhile.
+    _resourcePanelDayPlanningsAccumulator = [];
+
     // Clear DayPlannings datastore
     if (DayPlanningsStore && DayPlanningsStore.clearAll) {
       DayPlanningsStore.clearAll();
@@ -2683,13 +2688,26 @@ function LoadResourcesData(resourcesJsonTxt) {
 }
 window.LoadResourcesData = LoadResourcesData;
 
-function LoadDayPlanningsData(DayPlanningsJsonTxt) {
+// Accumulates chunks of a paged Default-mode Day Planning load (see AL page 50620's
+// EnqueueDefaultResourcePanelReload/OnPollResourcePanelResult chunk-continuation loop) so each
+// chunk can be delivered via a full DayPlanningsStore.parse() of everything received SO FAR,
+// rather than trying to use a true incremental per-item add API on the dhtmlx data store. Reset
+// to empty at the start of every new sequence (isFirstChunk===true); appended to on every
+// subsequent chunk. Each re-parse is still visually progressive - it always shows strictly more
+// data than the previous chunk - which is the actual resilience goal (data arrives progressively
+// on a slow connection instead of "nothing until one giant transfer finally completes").
+var _resourcePanelDayPlanningsAccumulator = [];
+
+// isFirstChunk: true (the default/non-chunked case - Filtered-mode loads and Default-mode chunk 0)
+// means REPLACE everything, exactly like the old single-shot behavior. false (Default-mode chunk
+// 1+, see codeunit 50713/page 50620) means APPEND this chunk's items onto what's already loaded,
+// without wiping window.DayPlanningsByTask or the accumulator first.
+function LoadDayPlanningsData(DayPlanningsJsonTxt, isFirstChunk) {
   try {
     if (!DayPlanningsStore) {
       console.warn("LoadDayPlanningsData: DayPlanningsStore not ready yet");
       return;
     }
-
 
     var items = _tryParseJson(DayPlanningsJsonTxt);
     if (!items) return;
@@ -2697,9 +2715,17 @@ function LoadDayPlanningsData(DayPlanningsJsonTxt) {
       items = items.DayPlannings || items.DayPlannings || items.DayPlannings || [];
     }
 
-    // ✅ rebuild indexes every load
-    window.DayPlanningsByTask = Object.create(null);
-    window.requestJobTaskSet = Object.create(null); // task IDs that have ≥1 Request DayPlanning
+    if (isFirstChunk) {
+      _resourcePanelDayPlanningsAccumulator = [];
+      // rebuild indexes from scratch
+      window.DayPlanningsByTask = Object.create(null);
+      window.requestJobTaskSet = Object.create(null); // task IDs that have ≥1 Request DayPlanning
+    } else if (!window.DayPlanningsByTask) {
+      // Defensive: a continuation chunk arriving before any first chunk (shouldn't happen given
+      // the AL-side sequencing) - fall back to fresh indexes rather than throwing on undefined.
+      window.DayPlanningsByTask = Object.create(null);
+      window.requestJobTaskSet = Object.create(null);
+    }
 
     // Key = jobNo + "|" + jobTaskNo  →  matches gantt task.id exactly (pipe separator)
     // (AL DayPlanning.task field uses dash; gantt task.id uses pipe — must use jobNo/jobTaskNo fields)
@@ -2720,9 +2746,13 @@ function LoadDayPlanningsData(DayPlanningsJsonTxt) {
       }
     }
 
-    // Replace all
-    if (DayPlanningsStore.clearAll) DayPlanningsStore.clearAll();
-    DayPlanningsStore.parse(items);
+    // Accumulate this chunk's items and re-parse the FULL accumulated array so far - simpler and
+    // safer than an incremental per-item store API, and still progressive chunk-over-chunk.
+    for (var j = 0; j < items.length; j++) {
+      _resourcePanelDayPlanningsAccumulator.push(items[j]);
+    }
+    if (isFirstChunk && DayPlanningsStore.clearAll) DayPlanningsStore.clearAll();
+    DayPlanningsStore.parse(_resourcePanelDayPlanningsAccumulator);
 
     // addTaskLayer will now find the correct DayPlannings via task.id and render black bars
     if (gantt.$root && !_isRefreshing) {

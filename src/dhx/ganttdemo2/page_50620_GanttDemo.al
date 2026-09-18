@@ -587,10 +587,18 @@ page 50620 "Gantt Demo DHX 2"
                     if PendingResourcesJson <> '' then
                         CurrPage.DHXGanttControl2.LoadResourcesData(PendingResourcesJson);
                     if PendingDayPlanningsJson <> '' then
-                        CurrPage.DHXGanttControl2.LoadDayPlanningsData(PendingDayPlanningsJson);
+                        CurrPage.DHXGanttControl2.LoadDayPlanningsData(PendingDayPlanningsJson, PendingDayPlanningsIsFirstChunk);
                     Clear(PendingResourcesJson);
                     Clear(PendingDayPlanningsJson);
-                    CurrPage.DHXGanttControl2.StopResourcePanelPolling();
+
+                    // Chunked 'Default' Day Planning load (see EnqueueDefaultResourcePanelReload/
+                    // codeunit 50713's 'Default' branch): if there's more to fetch, enqueue the
+                    // next chunk directly instead of stopping the poll - NotifyResourcePanelTaskPending
+                    // is confirmed safe to call from this trigger (unlike OnPageBackgroundTaskCompleted).
+                    if PendingDayPlanningsHasMore then
+                        EnqueueNextDefaultResourcePanelDayPlanningChunk(PendingDayPlanningsNextSkip)
+                    else
+                        CurrPage.DHXGanttControl2.StopResourcePanelPolling();
                 end;
 
                 #region Task Filter Toolbar
@@ -1175,7 +1183,11 @@ page 50620 "Gantt Demo DHX 2"
     begin
         // Frees the slot EnqueueFilteredResourcePanelReload/EnqueueDefaultResourcePanelReload
         // check before starting the NEXT round trip - see ResourcePanelTaskRunning's declaration
-        // for why this must happen unconditionally, before the stale-TaskId check below.
+        // for why this must happen unconditionally, before the stale-TaskId check below. This
+        // clears on EVERY individual chunk's completion (chunked or not) - for a multi-chunk
+        // 'Default' Day Planning sequence, OnPollResourcePanelResult re-arms it to true right
+        // before enqueueing the next chunk, so the sequence as a whole still reads as "busy" to
+        // any interleaving click in between.
         ResourcePanelTaskRunning := false;
 
         if TaskId <> ResourcePanelTaskId then
@@ -1192,6 +1204,16 @@ page 50620 "Gantt Demo DHX 2"
             PendingResourcesJson := Results.Get('resourcesJson');
         if Results.ContainsKey('dayPlanningsJson') then
             PendingDayPlanningsJson := Results.Get('dayPlanningsJson');
+
+        // Chunked 'Default' Day Planning paging metadata (absent for Filtered mode and for
+        // non-chunked/resources-only 'Default' calls) - see codeunit 50713's 'Default' branch.
+        PendingDayPlanningsHasMore := false;
+        if Results.ContainsKey('dayPlanningsHasMore') then
+            PendingDayPlanningsHasMore := Results.Get('dayPlanningsHasMore') = 'true';
+        PendingDayPlanningsNextSkip := 0;
+        if Results.ContainsKey('dayPlanningsNextSkip') then
+            Evaluate(PendingDayPlanningsNextSkip, Results.Get('dayPlanningsNextSkip'));
+
         PendingResultAvailable := true;
     end;
 
@@ -1250,6 +1272,21 @@ page 50620 "Gantt Demo DHX 2"
         PendingResourcesJson: Text; // set by OnPageBackgroundTaskCompleted, delivered into the control add-in by OnPollResourcePanelResult (see that trigger's comment for why the split is necessary)
         PendingDayPlanningsJson: Text;
         PendingResultAvailable: Boolean;
+        // Chunked 'Default'-mode Day Planning paging state (see codeunit 50613's Skip/PageSize
+        // GetDayPlanningsAsJson overload and codeunit 50713's 'Default' branch). Unused/false-ish
+        // for Filtered-mode reloads and for non-chunked resources-only Default reloads.
+        PendingDayPlanningsHasMore: Boolean; // set by OnPageBackgroundTaskCompleted from the just-finished chunk's result; read by OnPollResourcePanelResult to decide whether to enqueue another chunk
+        PendingDayPlanningsNextSkip: Integer; // Skip value for the NEXT chunk, if PendingDayPlanningsHasMore
+        PendingDayPlanningsIsFirstChunk: Boolean; // true for chunk 0 (or any non-chunked Filtered/Default load) so wrapper.js's LoadDayPlanningsData REPLACES; false for chunk 1+ so it APPENDS/merges instead
+        // Scope snapshot for an in-progress Default-mode Day Planning chunk sequence, taken when
+        // chunk 0 is enqueued (EnqueueDefaultResourcePanelReload) and reused by every later chunk
+        // (EnqueueNextDefaultResourcePanelDayPlanningChunk) - so the whole sequence stays on the
+        // SAME Job/Job Task filter and Anchor Date even if the user changes JobFilter/
+        // JobTaskFilter/AnchorDate mid-sequence (those are otherwise live page vars that could
+        // change between chunk N and chunk N+1).
+        ResourcePanelChunkJobFilter: Text;
+        ResourcePanelChunkJobTaskFilter: Text;
+        ResourcePanelChunkAnchorDate: Date;
 
     local procedure ClearResourcePanelFilter()
     begin
@@ -1422,6 +1459,16 @@ page 50620 "Gantt Demo DHX 2"
     end;
 
     /// <summary>
+    /// Records-per-chunk for the paged Default-mode Day Planning load (see codeunit 50613's
+    /// Skip/PageSize GetDayPlanningsAsJson overload). A parameterless procedure rather than a
+    /// literal repeated at each call site.
+    /// </summary>
+    local procedure ResourcePanelDayPlanningChunkPageSize(): Integer
+    begin
+        exit(1000);
+    end;
+
+    /// <summary>
     /// Builds the ';'-delimited "JobNo|JobTaskNo" key list (one entry per Job Task) that the
     /// background codeunit's Filtered mode needs, from the panel's stored scope
     /// (ResourcePanelJobNo/JobTaskNo + ResourcePanelChildTaskIds, populated in
@@ -1472,6 +1519,7 @@ page 50620 "Gantt Demo DHX 2"
         ResourcePanelTaskId := NewTaskId;
         ResourcePanelTaskRunning := true;
         PendingResultAvailable := false; // any earlier not-yet-delivered result is now stale
+        PendingDayPlanningsIsFirstChunk := true; // Filtered mode never chunks - always a full replace
         CurrPage.DHXGanttControl2.NotifyResourcePanelTaskPending(); // (re)start wrapper.js's bounded poll loop - normal synchronous call, safe here
     end;
 
@@ -1481,6 +1529,13 @@ page 50620 "Gantt Demo DHX 2"
     /// 50713 "Gantt BG Resource Panel Data", Default mode. Either half can be requested on its own
     /// (e.g. ShowResourcePanel only wants resources). Returns immediately; a no-op when neither
     /// half is requested.
+    ///
+    /// When pLoadDayPlannings is set, this is CHUNK 0 of a paged Day Planning load (~1000 records
+    /// per chunk - see codeunit 50613's Skip/PageSize GetDayPlanningsAsJson overload): it snapshots
+    /// the current scope (JobFilter/JobTaskFilter/AnchorDate) into ResourcePanelChunk* vars so
+    /// later chunks - enqueued from OnPollResourcePanelResult via
+    /// EnqueueNextDefaultResourcePanelDayPlanningChunk as each one completes - keep using that SAME
+    /// scope even if the user changes JobFilter/JobTaskFilter/AnchorDate mid-sequence.
     /// </summary>
     local procedure EnqueueDefaultResourcePanelReload(pLoadResources: Boolean; pLoadDayPlannings: Boolean)
     var
@@ -1514,10 +1569,55 @@ page 50620 "Gantt Demo DHX 2"
         TaskParameters.Add('JobTaskFilter', JobTaskFilter);
         TaskParameters.Add('AnchorDate', Format(AnchorDate, 0, '<Year4>-<Month,2>-<Day,2>'));
 
+        if pLoadDayPlannings then begin
+            // Chunk 0 (Skip=0) - see this procedure's header comment.
+            TaskParameters.Add('DayPlanningSkip', '0');
+            TaskParameters.Add('DayPlanningPageSize', Format(ResourcePanelDayPlanningChunkPageSize));
+            ResourcePanelChunkJobFilter := JobFilter;
+            ResourcePanelChunkJobTaskFilter := JobTaskFilter;
+            ResourcePanelChunkAnchorDate := AnchorDate;
+        end;
+
         CurrPage.EnqueueBackgroundTask(NewTaskId, Codeunit::"Gantt BG Resource Panel Data", TaskParameters, 30000, PageBackgroundTaskErrorLevel::Warning);
         ResourcePanelTaskId := NewTaskId;
         PendingResultAvailable := false; // any earlier not-yet-delivered result is now stale
+        PendingDayPlanningsIsFirstChunk := true; // chunk 0 (or a non-chunked resources-only call) - REPLACE, not append
         CurrPage.DHXGanttControl2.NotifyResourcePanelTaskPending(); // (re)start wrapper.js's bounded poll loop - normal synchronous call, safe here
+    end;
+
+    /// <summary>
+    /// Enqueues chunk N (N&gt;0, pSkip = N * ResourcePanelDayPlanningChunkPageSize) of an in-progress
+    /// Default-mode Day Planning chunk sequence started by EnqueueDefaultResourcePanelReload, using
+    /// the scope snapshotted into ResourcePanelChunk* at chunk 0. Called from
+    /// OnPollResourcePanelResult once it has delivered a chunk whose result said
+    /// PendingDayPlanningsHasMore. Resources are never re-requested here (LoadResources='false') -
+    /// they only ever go out on chunk 0.
+    /// </summary>
+    local procedure EnqueueNextDefaultResourcePanelDayPlanningChunk(pSkip: Integer)
+    var
+        TaskParameters: Dictionary of [Text, Text];
+        NewTaskId: Integer;
+    begin
+        TaskParameters.Add('Mode', 'Default');
+        TaskParameters.Add('LoadResources', 'false');
+        TaskParameters.Add('LoadDayPlannings', 'true');
+        TaskParameters.Add('JobFilter', ResourcePanelChunkJobFilter);
+        TaskParameters.Add('JobTaskFilter', ResourcePanelChunkJobTaskFilter);
+        TaskParameters.Add('AnchorDate', Format(ResourcePanelChunkAnchorDate, 0, '<Year4>-<Month,2>-<Day,2>'));
+        TaskParameters.Add('DayPlanningSkip', Format(pSkip));
+        TaskParameters.Add('DayPlanningPageSize', Format(ResourcePanelDayPlanningChunkPageSize));
+
+        CurrPage.EnqueueBackgroundTask(NewTaskId, Codeunit::"Gantt BG Resource Panel Data", TaskParameters, 30000, PageBackgroundTaskErrorLevel::Warning);
+        ResourcePanelTaskId := NewTaskId;
+        // Re-arm: OnPageBackgroundTaskCompleted already cleared this to false for the chunk that
+        // just finished, but the multi-chunk sequence as a whole is still in flight - without this,
+        // a task-bar click or the reset button landing between chunks would slip past the guard in
+        // EnqueueFilteredResourcePanelReload/EnqueueDefaultResourcePanelReload and interleave with
+        // this sequence.
+        ResourcePanelTaskRunning := true;
+        PendingResultAvailable := false;
+        PendingDayPlanningsIsFirstChunk := false; // chunk 1+ - wrapper.js APPENDS/merges, doesn't replace
+        CurrPage.DHXGanttControl2.NotifyResourcePanelTaskPending(); // fresh 30s poll budget for this chunk
     end;
 
     local procedure ReloadResourcePanelFromStoredFilter(): Boolean

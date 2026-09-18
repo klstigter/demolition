@@ -635,6 +635,84 @@ codeunit 50613 "GanttChartDataHandler"
         JsonArray.WriteTo(JsonText);
     end;
 
+    /// <summary>
+    /// Paged/chunked variant of GetDayPlanningsAsJson(AnchorDate, JobNo, JobTaskNo), used by
+    /// codeunit 50713 "Gantt BG Resource Panel Data"'s 'Default' mode to break one large Day
+    /// Planning transfer into many small ones (~1000 records each) delivered via repeated
+    /// background tasks, so a slow/unstable connection degrades to "data arrives progressively"
+    /// instead of "nothing shows until one giant round trip finally completes or times out". Not
+    /// used by the Filtered mode (naturally small scope) or by the unchanged 3-arg overload above
+    /// (kept as-is for its existing callers).
+    ///
+    /// Treats the two passes below (main range pass + blank-Plan-Date/Placeholder-Date request
+    /// pass) as ONE continuous virtual sequence for paging: a running index is incremented for
+    /// every candidate record in both passes (a "candidate" being a record that would have
+    /// produced a JSON object in the unpaged output - i.e. for the second pass, only records whose
+    /// Job Task resolves and whose Placeholder Date falls in range), and a record's JSON object is
+    /// only added to this page's output array when its index falls within [Skip, Skip+PageSize).
+    /// HasMore is then just "did the running index go past this page's end".
+    ///
+    /// NOTE: this re-scans both passes from the start on every call (O(total) per page) rather
+    /// than true keyset/cursor pagination (continuing from the last-seen Day Planning key instead
+    /// of a numeric Skip) - acceptable for a first implementation given time constraints, but
+    /// keyset pagination would be more efficient for very large datasets and could be a future
+    /// improvement.
+    /// </summary>
+    procedure GetDayPlanningsAsJson(AnchorDate: date; JobNo: Code[20]; JobTaskNo: Code[20]; Skip: Integer; PageSize: Integer; var HasMore: Boolean) JsonText: Text
+    var
+        GanttSetup: Record "Gantt Chart Setup";
+        DayPlanning: Record "Day Planning";
+        JobTask: Record "Job Task";
+        StartDate: Date;
+        EndDate: Date;
+        JsonArray: JsonArray;
+        JsonObject: JsonObject;
+        RunningIndex: Integer;
+    begin
+        GanttSetup.Get(UserId);
+        GetDateRange(GanttSetup, AnchorDate, StartDate, EndDate);
+        if JobNo <> '' then
+            DayPlanning.SetFilter("Job No.", JobNo);
+        if JobTaskNo <> '' then
+            DayPlanning.SetFilter("Job Task No.", JobTaskNo);
+        if AnchorDate <> 0D then
+            DayPlanning.Setrange("Plan Date", StartDate, EndDate);
+
+        if DayPlanning.FindSet() then
+            repeat
+                if (RunningIndex >= Skip) and (RunningIndex < Skip + PageSize) then begin
+                    JsonObject := CreateDayPlanningJsonObject(DayPlanning);
+                    JsonArray.Add(JsonObject);
+                end;
+                RunningIndex += 1;
+            until DayPlanning.Next() = 0;
+
+        // --- Second pass: Request day plannings with blank Task Date but Work Order Placeholder Date in range ---
+        DayPlanning.Reset();
+        if JobNo <> '' then
+            DayPlanning.SetFilter("Job No.", JobNo);
+        if JobTaskNo <> '' then
+            DayPlanning.SetFilter("Job Task No.", JobTaskNo);
+        DayPlanning.SetRange("Plan Status", DayPlanning."Plan Status"::"In Request");
+        DayPlanning.SetRange("Plan Date", 0D);
+        DayPlanning.SetFilter("Order Intake No.", '<>%1', '');
+        if DayPlanning.FindSet() then
+            repeat
+                if JobTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
+                    if (JobTask."Placeholder Date" >= StartDate) and (JobTask."Placeholder Date" <= EndDate) then begin
+                        if (RunningIndex >= Skip) and (RunningIndex < Skip + PageSize) then begin
+                            JsonObject := CreateDayPlanningJsonObjectRequest(DayPlanning, JobTask."Placeholder Date");
+                            JsonArray.Add(JsonObject);
+                        end;
+                        RunningIndex += 1;
+                    end;
+            until DayPlanning.Next() = 0;
+
+        HasMore := RunningIndex > Skip + PageSize;
+
+        JsonArray.WriteTo(JsonText);
+    end;
+
     local procedure CreateDayPlanningJsonObject(DayPlanning: Record "Day Planning") JsonObject: JsonObject
     begin
         exit(BuildDayPlanningJsonObject(
