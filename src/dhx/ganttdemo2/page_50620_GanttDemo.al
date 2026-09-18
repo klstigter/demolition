@@ -1173,6 +1173,11 @@ page 50620 "Gantt Demo DHX 2"
     /// </summary>
     trigger OnPageBackgroundTaskCompleted(TaskId: Integer; Results: Dictionary of [Text, Text])
     begin
+        // Frees the slot EnqueueFilteredResourcePanelReload/EnqueueDefaultResourcePanelReload
+        // check before starting the NEXT round trip - see ResourcePanelTaskRunning's declaration
+        // for why this must happen unconditionally, before the stale-TaskId check below.
+        ResourcePanelTaskRunning := false;
+
         if TaskId <> ResourcePanelTaskId then
             exit;
 
@@ -1194,6 +1199,8 @@ page 50620 "Gantt Demo DHX 2"
     var
         ResourcePanelLoadErrorNotification: Notification;
     begin
+        ResourcePanelTaskRunning := false; // see OnPageBackgroundTaskCompleted's comment
+
         if TaskId <> ResourcePanelTaskId then
             exit;
 
@@ -1225,6 +1232,21 @@ page 50620 "Gantt Demo DHX 2"
         ResourcePanelFromDate: Date;
         ResourcePanelToDate: Date;
         ResourcePanelTaskId: Integer; // TaskId of the most recently enqueued resource-panel background task; OnPageBackgroundTaskCompleted/Error discard any result whose TaskId doesn't match (superseded by a later reload)
+        // Serializes resource-panel round trips to BC: without this, every task-bar click and
+        // every reset button click enqueued its OWN new Page Background Task (a full read of
+        // Resources/Day Plannings) without waiting for or cancelling whatever previous one was
+        // still running - EnqueueBackgroundTask has no AL-level cancel, so a superseded task just
+        // keeps running server-side to completion with its result silently discarded
+        // (OnPageBackgroundTaskCompleted's TaskId check). Confirmed live: rapid clicking (or, on
+        // this dev sandbox, dozens of automated test cycles) piles up many of these concurrent
+        // full-table reads, degrading the whole environment badly enough that even unrelated
+        // requests (BC's own session ping/health-check) slowed to 10-17 seconds - the actual cause
+        // of the "Working on it..." freezes, not a client-side click race. Set true right after
+        // EnqueueBackgroundTask, cleared in OnPageBackgroundTaskCompleted/Error (the only two
+        // places a background task can finish) - a new reload request arriving while true is
+        // simply dropped (see EnqueueFilteredResourcePanelReload/EnqueueDefaultResourcePanelReload)
+        // rather than piling on top.
+        ResourcePanelTaskRunning: Boolean;
         PendingResourcesJson: Text; // set by OnPageBackgroundTaskCompleted, delivered into the control add-in by OnPollResourcePanelResult (see that trigger's comment for why the split is necessary)
         PendingDayPlanningsJson: Text;
         PendingResultAvailable: Boolean;
@@ -1432,6 +1454,9 @@ page 50620 "Gantt Demo DHX 2"
         NewTaskId: Integer;
         JobTaskKeysText: Text;
     begin
+        if ResourcePanelTaskRunning then
+            exit; // a previous resource-panel round trip is still in flight - drop this one rather than piling on
+
         JobTaskKeysText := BuildResourcePanelJobTaskKeysText();
         if JobTaskKeysText = '' then
             exit;
@@ -1445,6 +1470,7 @@ page 50620 "Gantt Demo DHX 2"
 
         CurrPage.EnqueueBackgroundTask(NewTaskId, Codeunit::"Gantt BG Resource Panel Data", TaskParameters, 30000, PageBackgroundTaskErrorLevel::Warning);
         ResourcePanelTaskId := NewTaskId;
+        ResourcePanelTaskRunning := true;
         PendingResultAvailable := false; // any earlier not-yet-delivered result is now stale
         CurrPage.DHXGanttControl2.NotifyResourcePanelTaskPending(); // (re)start wrapper.js's bounded poll loop - normal synchronous call, safe here
     end;
