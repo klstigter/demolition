@@ -60,7 +60,7 @@ controladdin "DHX Gantt Control 2"
         ShowTaskType: Boolean
     );
     procedure LoadResourcesData(resourcesJsonTxt: Text);
-    procedure LoadDayPlanningsData(DayPlanningsJsonTxt: Text);
+    procedure LoadDayPlanningsData(DayPlanningsJsonTxt: Text; IsFirstChunk: Boolean);
     procedure ClearData();
     procedure RenderGantt(skipTrigger_OnJobTaskUpdated: Boolean);
     procedure GetGanttData();
