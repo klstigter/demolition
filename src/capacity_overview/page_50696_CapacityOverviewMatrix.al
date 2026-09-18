@@ -25,12 +25,11 @@ page 50696 "Capacity Overview Matrix"
     /// time.
     ///
     /// Every value cell (Total + each per-skill column) drills down into the underlying detail
-    /// list for its row - see DrillDownColumn. "Total Capacity" and "Capacity" now DO have a
-    /// per-skill breakdown for their VALUES (codeunit 50694's CalcCapacityPerSkill), but their
-    /// DRILLDOWN is still unfiltered by skill - rows 10000/40000/60000 always open
-    /// "Res. Capacity Entries" filtered by the period only, regardless of which column was
-    /// clicked (a known follow-up gap, not fixed here). Only "Surplus" (60000) still has neither
-    /// a per-skill value breakdown nor a skill-aware drilldown.
+    /// list for its row - see DrillDownColumn. "Total Capacity" (10000), "Capacity" (40000), and
+    /// "Surplus" (60000) have NO per-skill value breakdown - "Res. Capacity Entry" is not tracked
+    /// by skill, so their per-skill columns are always blank/zero (see codeunit 50694) and their
+    /// DRILLDOWN is likewise unfiltered by skill - these rows always open "Res. Capacity Entries"
+    /// filtered by the period only, regardless of which column was clicked.
     ///
     /// Every value field control (Total + Column1..Column20) has StyleExpr = Rec.Style, set by
     /// codeunit 50694's InsertRow/InsertDifferenceRow, so the "Capacity" (Free Capacity) row
