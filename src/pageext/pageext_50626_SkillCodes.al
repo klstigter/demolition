@@ -62,5 +62,14 @@ pageextension 50626 "Skill Codes Opt." extends "Skill Codes"
             }
 
         }
+        addfirst(FactBoxes)
+        {
+            part(SkillColorsPart; "Skill Colors Part")
+            {
+                ApplicationArea = All;
+                Caption = 'Skill Colors';
+                SubPageLink = Code = field(Code);
+            }
+        }
     }
 }

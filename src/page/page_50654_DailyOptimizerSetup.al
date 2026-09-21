@@ -50,21 +50,18 @@ page 50654 "Daily Optimizer Setup"
                         caption = 'Bar Width (px)';
                         ToolTip = 'Specifies the width, in pixels, of each bar on the Requested Hours vs Capacity bar charts (Daily and Weekly). Leave at 0 to use the chart''s default width.';
                     }
-                    field("Bar Font Color"; Rec."Bar Font Color")
+                    usercontrol(CfBarFontColor; DHXColorFieldAddin)
                     {
                         ApplicationArea = All;
-                        ToolTip = 'Color of the text/caption shown on every event bar''s on-bar label (Gantt chart tasks, scheduler timeline bars, and Day Planning bars). Enter a hex color, e.g. #000000.';
 
-                        trigger OnAssistEdit()
-                        var
-                            ColorPickerPage: Page "Color Picker Lookup";
+                        trigger ControlReady()
                         begin
-                            ColorPickerPage.SetInitialColor(Rec."Bar Font Color");
-                            if ColorPickerPage.RunModal() = Action::OK then begin
-                                Rec."Bar Font Color" := ColorPickerPage.GetSelectedColor();
-                                Rec.Modify(true);
-                                CurrPage.Update(false);
-                            end;
+                            ColorFieldReady();
+                        end;
+
+                        trigger OnPickRequested()
+                        begin
+                            PickColor(Rec."Bar Font Color");
                         end;
                     }
                 }
@@ -73,38 +70,32 @@ page 50654 "Daily Optimizer Setup"
                 {
                     Caption = 'Weekend / Day Off';
 
-                    field("Weekend Color"; Rec."Weekend Color")
+                    usercontrol(CfWeekendColor; DHXColorFieldAddin)
                     {
                         ApplicationArea = All;
-                        ToolTip = 'Background color used to shade Saturday/Sunday columns on the Gantt chart and Day Planning Sequence timeline. Enter a hex color, e.g. #ffe0e0.';
 
-                        trigger OnAssistEdit()
-                        var
-                            ColorPickerPage: Page "Color Picker Lookup";
+                        trigger ControlReady()
                         begin
-                            ColorPickerPage.SetInitialColor(Rec."Weekend Color");
-                            if ColorPickerPage.RunModal() = Action::OK then begin
-                                Rec."Weekend Color" := ColorPickerPage.GetSelectedColor();
-                                Rec.Modify(true);
-                                CurrPage.Update(false);
-                            end;
+                            ColorFieldReady();
+                        end;
+
+                        trigger OnPickRequested()
+                        begin
+                            PickColor(Rec."Weekend Color");
                         end;
                     }
-                    field("Holiday Color"; Rec."Holiday Color")
+                    usercontrol(CfHolidayColor; DHXColorFieldAddin)
                     {
                         ApplicationArea = All;
-                        ToolTip = 'Background color used to shade Base Calendar day-off/public-holiday dates on the Gantt chart and Day Planning Sequence timeline. Enter a hex color, e.g. #fff3cd.';
 
-                        trigger OnAssistEdit()
-                        var
-                            ColorPickerPage: Page "Color Picker Lookup";
+                        trigger ControlReady()
                         begin
-                            ColorPickerPage.SetInitialColor(Rec."Holiday Color");
-                            if ColorPickerPage.RunModal() = Action::OK then begin
-                                Rec."Holiday Color" := ColorPickerPage.GetSelectedColor();
-                                Rec.Modify(true);
-                                CurrPage.Update(false);
-                            end;
+                            ColorFieldReady();
+                        end;
+
+                        trigger OnPickRequested()
+                        begin
+                            PickColor(Rec."Holiday Color");
                         end;
                     }
                 }
@@ -113,89 +104,74 @@ page 50654 "Daily Optimizer Setup"
                 {
                     Caption = 'Gantt Task Bar';
 
-                    field("GTB Color (non posting)"; Rec."GTB Color (non posting)")
+                    usercontrol(CfGTBColornonposting; DHXColorFieldAddin)
                     {
                         ApplicationArea = All;
-                        ToolTip = 'Background color of the Gantt chart task bar for non-posting Job Tasks. Enter a hex color, e.g. #7FB3FA.';
 
-                        trigger OnAssistEdit()
-                        var
-                            ColorPickerPage: Page "Color Picker Lookup";
+                        trigger ControlReady()
                         begin
-                            ColorPickerPage.SetInitialColor(Rec."GTB Color (non posting)");
-                            if ColorPickerPage.RunModal() = Action::OK then begin
-                                Rec."GTB Color (non posting)" := ColorPickerPage.GetSelectedColor();
-                                Rec.Modify(true);
-                                CurrPage.Update(false);
-                            end;
+                            ColorFieldReady();
+                        end;
+
+                        trigger OnPickRequested()
+                        begin
+                            PickColor(Rec."GTB Color (non posting)");
                         end;
                     }
-                    field("GTB Color"; Rec."GTB Color")
+                    usercontrol(CfGTBColor; DHXColorFieldAddin)
                     {
                         ApplicationArea = All;
-                        ToolTip = 'Background color of the Gantt chart task bar. Enter a hex color, e.g. #7FB3FA.';
 
-                        trigger OnAssistEdit()
-                        var
-                            ColorPickerPage: Page "Color Picker Lookup";
+                        trigger ControlReady()
                         begin
-                            ColorPickerPage.SetInitialColor(Rec."GTB Color");
-                            if ColorPickerPage.RunModal() = Action::OK then begin
-                                Rec."GTB Color" := ColorPickerPage.GetSelectedColor();
-                                Rec.Modify(true);
-                                CurrPage.Update(false);
-                            end;
+                            ColorFieldReady();
+                        end;
+
+                        trigger OnPickRequested()
+                        begin
+                            PickColor(Rec."GTB Color");
                         end;
                     }
-                    field("GTB Border Color"; Rec."GTB Border Color")
+                    usercontrol(CfGTBBorderColor; DHXColorFieldAddin)
                     {
                         ApplicationArea = All;
-                        ToolTip = 'Border color of the Gantt chart task bar. Enter a hex color, e.g. #14294D.';
 
-                        trigger OnAssistEdit()
-                        var
-                            ColorPickerPage: Page "Color Picker Lookup";
+                        trigger ControlReady()
                         begin
-                            ColorPickerPage.SetInitialColor(Rec."GTB Border Color");
-                            if ColorPickerPage.RunModal() = Action::OK then begin
-                                Rec."GTB Border Color" := ColorPickerPage.GetSelectedColor();
-                                Rec.Modify(true);
-                                CurrPage.Update(false);
-                            end;
+                            ColorFieldReady();
+                        end;
+
+                        trigger OnPickRequested()
+                        begin
+                            PickColor(Rec."GTB Border Color");
                         end;
                     }
-                    field("GTB Progress Color"; Rec."GTB Progress Color")
+                    usercontrol(CfGTBProgressColor; DHXColorFieldAddin)
                     {
                         ApplicationArea = All;
-                        ToolTip = 'Progress color of the Gantt chart task bar. Enter a hex color, e.g. #7FB3FA.';
 
-                        trigger OnAssistEdit()
-                        var
-                            ColorPickerPage: Page "Color Picker Lookup";
+                        trigger ControlReady()
                         begin
-                            ColorPickerPage.SetInitialColor(Rec."GTB Progress Color");
-                            if ColorPickerPage.RunModal() = Action::OK then begin
-                                Rec."GTB Progress Color" := ColorPickerPage.GetSelectedColor();
-                                Rec.Modify(true);
-                                CurrPage.Update(false);
-                            end;
+                            ColorFieldReady();
+                        end;
+
+                        trigger OnPickRequested()
+                        begin
+                            PickColor(Rec."GTB Progress Color");
                         end;
                     }
-                    field("GTB Font Color"; Rec."GTB Font Color")
+                    usercontrol(CfGTBFontColor; DHXColorFieldAddin)
                     {
                         ApplicationArea = All;
-                        ToolTip = 'Font color of the Gantt chart task bar text. Enter a hex color, e.g. #000000.';
 
-                        trigger OnAssistEdit()
-                        var
-                            ColorPickerPage: Page "Color Picker Lookup";
+                        trigger ControlReady()
                         begin
-                            ColorPickerPage.SetInitialColor(Rec."GTB Font Color");
-                            if ColorPickerPage.RunModal() = Action::OK then begin
-                                Rec."GTB Font Color" := ColorPickerPage.GetSelectedColor();
-                                Rec.Modify(true);
-                                CurrPage.Update(false);
-                            end;
+                            ColorFieldReady();
+                        end;
+
+                        trigger OnPickRequested()
+                        begin
+                            PickColor(Rec."GTB Font Color");
                         end;
                     }
                     field("GTB Font Size (px)"; Rec."GTB Font size (px)")
@@ -215,38 +191,32 @@ page 50654 "Daily Optimizer Setup"
                 {
                     Caption = 'Hover / Tooltip Popup';
 
-                    field("Tooltip Background Color"; Rec."Tooltip Background Color")
+                    usercontrol(CfTooltipBackgroundColor; DHXColorFieldAddin)
                     {
                         ApplicationArea = All;
-                        ToolTip = 'Background color of every hover/tooltip popup shown across the scheduler, Gantt chart, and Capacity Planning Overview add-ins. Enter a hex color, e.g. #FFFFFF.';
 
-                        trigger OnAssistEdit()
-                        var
-                            ColorPickerPage: Page "Color Picker Lookup";
+                        trigger ControlReady()
                         begin
-                            ColorPickerPage.SetInitialColor(Rec."Tooltip Background Color");
-                            if ColorPickerPage.RunModal() = Action::OK then begin
-                                Rec."Tooltip Background Color" := ColorPickerPage.GetSelectedColor();
-                                Rec.Modify(true);
-                                CurrPage.Update(false);
-                            end;
+                            ColorFieldReady();
+                        end;
+
+                        trigger OnPickRequested()
+                        begin
+                            PickColor(Rec."Tooltip Background Color");
                         end;
                     }
-                    field("Tooltip Font Color"; Rec."Tooltip Font Color")
+                    usercontrol(CfTooltipFontColor; DHXColorFieldAddin)
                     {
                         ApplicationArea = All;
-                        ToolTip = 'Text color of every hover/tooltip popup shown across the scheduler, Gantt chart, and Capacity Planning Overview add-ins. Enter a hex color, e.g. #000000.';
 
-                        trigger OnAssistEdit()
-                        var
-                            ColorPickerPage: Page "Color Picker Lookup";
+                        trigger ControlReady()
                         begin
-                            ColorPickerPage.SetInitialColor(Rec."Tooltip Font Color");
-                            if ColorPickerPage.RunModal() = Action::OK then begin
-                                Rec."Tooltip Font Color" := ColorPickerPage.GetSelectedColor();
-                                Rec.Modify(true);
-                                CurrPage.Update(false);
-                            end;
+                            ColorFieldReady();
+                        end;
+
+                        trigger OnPickRequested()
+                        begin
+                            PickColor(Rec."Tooltip Font Color");
                         end;
                     }
                 }
@@ -259,72 +229,60 @@ page 50654 "Daily Optimizer Setup"
                     {
                         Caption = 'Capacity';
 
-                        field("Free Capacity Color"; Rec."Free Capacity Color")
+                        usercontrol(CfFreeCapacityColor; DHXColorFieldAddin)
                         {
                             ApplicationArea = All;
-                            ToolTip = 'Color of the Free Capacity bar. Enter a hex color, e.g. #7FB3FA.';
 
-                            trigger OnAssistEdit()
-                            var
-                                ColorPickerPage: Page "Color Picker Lookup";
+                            trigger ControlReady()
                             begin
-                                ColorPickerPage.SetInitialColor(Rec."Free Capacity Color");
-                                if ColorPickerPage.RunModal() = Action::OK then begin
-                                    Rec."Free Capacity Color" := ColorPickerPage.GetSelectedColor();
-                                    Rec.Modify(true);
-                                    CurrPage.Update(false);
-                                end;
+                                ColorFieldReady();
+                            end;
+
+                            trigger OnPickRequested()
+                            begin
+                                PickColor(Rec."Free Capacity Color");
                             end;
                         }
-                        field(FreeCapacityMandatoryColor; Rec."Free Capacity-Mandatory Color")
+                        usercontrol(CfFreeCapacityMandatoryColor; DHXColorFieldAddin)
                         {
                             ApplicationArea = All;
-                            ToolTip = 'Color of the Free Capacity (Mandatory) bar. Enter a hex color, e.g. #7FB3FA.';
 
-                            trigger OnAssistEdit()
-                            var
-                                ColorPickerPage: Page "Color Picker Lookup";
+                            trigger ControlReady()
                             begin
-                                ColorPickerPage.SetInitialColor(Rec."Free Capacity-Mandatory Color");
-                                if ColorPickerPage.RunModal() = Action::OK then begin
-                                    Rec."Free Capacity-Mandatory Color" := ColorPickerPage.GetSelectedColor();
-                                    Rec.Modify(true);
-                                    CurrPage.Update(false);
-                                end;
+                                ColorFieldReady();
+                            end;
+
+                            trigger OnPickRequested()
+                            begin
+                                PickColor(Rec."Free Capacity-Mandatory Color");
                             end;
                         }
-                        field("Capacity Border Color"; Rec."Capacity Border Color")
+                        usercontrol(CfCapacityBorderColor; DHXColorFieldAddin)
                         {
                             ApplicationArea = All;
-                            ToolTip = 'Border color of the Capacity bar/event on the Resource Scheduler timeline (Resource Capacity Scheduler and Resource Scheduler - Timeline pages). Enter a hex color, e.g. #C97F16.';
 
-                            trigger OnAssistEdit()
-                            var
-                                ColorPickerPage: Page "Color Picker Lookup";
+                            trigger ControlReady()
                             begin
-                                ColorPickerPage.SetInitialColor(Rec."Capacity Border Color");
-                                if ColorPickerPage.RunModal() = Action::OK then begin
-                                    Rec."Capacity Border Color" := ColorPickerPage.GetSelectedColor();
-                                    Rec.Modify(true);
-                                    CurrPage.Update(false);
-                                end;
+                                ColorFieldReady();
+                            end;
+
+                            trigger OnPickRequested()
+                            begin
+                                PickColor(Rec."Capacity Border Color");
                             end;
                         }
-                        field("External Border Color"; Rec."External Border Color")
+                        usercontrol(CfExternalBorderColor; DHXColorFieldAddin)
                         {
                             ApplicationArea = All;
-                            ToolTip = 'Border color used on the Requested Hours vs Capacity bar charts (Daily and Weekly) to flag the portion of a bar that goes over capacity. Enter a hex color, e.g. #FF0000.';
 
-                            trigger OnAssistEdit()
-                            var
-                                ColorPickerPage: Page "Color Picker Lookup";
+                            trigger ControlReady()
                             begin
-                                ColorPickerPage.SetInitialColor(Rec."External Border Color");
-                                if ColorPickerPage.RunModal() = Action::OK then begin
-                                    Rec."External Border Color" := ColorPickerPage.GetSelectedColor();
-                                    Rec.Modify(true);
-                                    CurrPage.Update(false);
-                                end;
+                                ColorFieldReady();
+                            end;
+
+                            trigger OnPickRequested()
+                            begin
+                                PickColor(Rec."External Border Color");
                             end;
                         }
                     }
@@ -333,38 +291,32 @@ page 50654 "Daily Optimizer Setup"
                     {
                         Caption = 'Envelope';
 
-                        field("Envelope Color"; Rec."Envelope Color")
+                        usercontrol(CfEnvelopeColor; DHXColorFieldAddin)
                         {
                             ApplicationArea = All;
-                            ToolTip = 'Background color of the full Day Planning bar (visible where neither the Assigned nor Requested strip covers it). Enter a hex color, e.g. #1B3A6B.';
 
-                            trigger OnAssistEdit()
-                            var
-                                ColorPickerPage: Page "Color Picker Lookup";
+                            trigger ControlReady()
                             begin
-                                ColorPickerPage.SetInitialColor(Rec."Envelope Color");
-                                if ColorPickerPage.RunModal() = Action::OK then begin
-                                    Rec."Envelope Color" := ColorPickerPage.GetSelectedColor();
-                                    Rec.Modify(true);
-                                    CurrPage.Update(false);
-                                end;
+                                ColorFieldReady();
+                            end;
+
+                            trigger OnPickRequested()
+                            begin
+                                PickColor(Rec."Envelope Color");
                             end;
                         }
-                        field("Envelope Border Color"; Rec."Envelope Border Color")
+                        usercontrol(CfEnvelopeBorderColor; DHXColorFieldAddin)
                         {
                             ApplicationArea = All;
-                            ToolTip = 'Border color of the full Day Planning bar. Enter a hex color, e.g. #14294D.';
 
-                            trigger OnAssistEdit()
-                            var
-                                ColorPickerPage: Page "Color Picker Lookup";
+                            trigger ControlReady()
                             begin
-                                ColorPickerPage.SetInitialColor(Rec."Envelope Border Color");
-                                if ColorPickerPage.RunModal() = Action::OK then begin
-                                    Rec."Envelope Border Color" := ColorPickerPage.GetSelectedColor();
-                                    Rec.Modify(true);
-                                    CurrPage.Update(false);
-                                end;
+                                ColorFieldReady();
+                            end;
+
+                            trigger OnPickRequested()
+                            begin
+                                PickColor(Rec."Envelope Border Color");
                             end;
                         }
                     }
@@ -376,21 +328,18 @@ page 50654 "Daily Optimizer Setup"
                         {
                             Caption = 'Assigned';
 
-                            field("Assigned Color"; Rec."Assigned Color")
+                            usercontrol(CfAssignedColor; DHXColorFieldAddin)
                             {
                                 ApplicationArea = All;
-                                ToolTip = 'Color of the Assigned time-range strip on the Day Planning bar. Enter a hex color, e.g. #7FB3FA.';
 
-                                trigger OnAssistEdit()
-                                var
-                                    ColorPickerPage: Page "Color Picker Lookup";
+                                trigger ControlReady()
                                 begin
-                                    ColorPickerPage.SetInitialColor(Rec."Assigned Color");
-                                    if ColorPickerPage.RunModal() = Action::OK then begin
-                                        Rec."Assigned Color" := ColorPickerPage.GetSelectedColor();
-                                        Rec.Modify(true);
-                                        CurrPage.Update(false);
-                                    end;
+                                    ColorFieldReady();
+                                end;
+
+                                trigger OnPickRequested()
+                                begin
+                                    PickColor(Rec."Assigned Color");
                                 end;
                             }
                             field("Assigned High (%)"; Rec."Assigned High (%)")
@@ -709,6 +658,52 @@ page 50654 "Daily Optimizer Setup"
         end;
     end;
 
+    trigger OnAfterGetCurrRecord()
+    begin
+        if ColorFieldsReadyCount >= 17 then
+            PushColorFields();
+    end;
+
+    local procedure ColorFieldReady()
+    begin
+        ColorFieldsReadyCount += 1;
+        if ColorFieldsReadyCount = 17 then
+            PushColorFields();
+    end;
+
+    local procedure PushColorFields()
+    begin
+        CurrPage.CfBarFontColor.SetValue('Bar Font Color', Rec."Bar Font Color");
+        CurrPage.CfWeekendColor.SetValue('Weekend Color', Rec."Weekend Color");
+        CurrPage.CfHolidayColor.SetValue('Holiday Color', Rec."Holiday Color");
+        CurrPage.CfGTBColornonposting.SetValue('Gantt Task Bar Color (Non-Posting)', Rec."GTB Color (non posting)");
+        CurrPage.CfGTBColor.SetValue('Gantt Task Bar Color', Rec."GTB Color");
+        CurrPage.CfGTBBorderColor.SetValue('Gantt Task Bar Border Color', Rec."GTB Border Color");
+        CurrPage.CfGTBProgressColor.SetValue('Gantt Task Bar Progress Color', Rec."GTB Progress Color");
+        CurrPage.CfGTBFontColor.SetValue('Gantt Task Bar Font Color', Rec."GTB Font Color");
+        CurrPage.CfTooltipBackgroundColor.SetValue('Tooltip Background Color', Rec."Tooltip Background Color");
+        CurrPage.CfTooltipFontColor.SetValue('Tooltip Font Color', Rec."Tooltip Font Color");
+        CurrPage.CfFreeCapacityColor.SetValue('Free Capacity Color', Rec."Free Capacity Color");
+        CurrPage.CfFreeCapacityMandatoryColor.SetValue('Free Capacity (Mandatory) Color', Rec."Free Capacity-Mandatory Color");
+        CurrPage.CfCapacityBorderColor.SetValue('Capacity Border Color', Rec."Capacity Border Color");
+        CurrPage.CfExternalBorderColor.SetValue('External Border Color', Rec."External Border Color");
+        CurrPage.CfEnvelopeColor.SetValue('Envelope Color', Rec."Envelope Color");
+        CurrPage.CfEnvelopeBorderColor.SetValue('Envelope Border Color', Rec."Envelope Border Color");
+        CurrPage.CfAssignedColor.SetValue('Assigned Color', Rec."Assigned Color");
+    end;
+
+    local procedure PickColor(var ColorValue: Text[20])
     var
-        myInt: Integer;
+        ColorPickerPage: Page "Color Picker Lookup";
+    begin
+        ColorPickerPage.SetInitialColor(ColorValue);
+        if ColorPickerPage.RunModal() = Action::OK then begin
+            ColorValue := CopyStr(ColorPickerPage.GetSelectedColor(), 1, MaxStrLen(ColorValue));
+            Rec.Modify(true);
+            PushColorFields();
+        end;
+    end;
+
+    var
+        ColorFieldsReadyCount: Integer;
 }
