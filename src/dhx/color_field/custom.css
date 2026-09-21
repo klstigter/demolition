@@ -1,0 +1,68 @@
+html, body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+.cf-root {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 32px;
+    box-sizing: border-box;
+    font-family: "Segoe UI", "Segoe UI Web (West European)", -apple-system, sans-serif;
+    font-size: 14px;
+    color: #333;
+}
+
+.cf-label {
+    flex: 0 0 38%;
+    padding-right: 12px;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cf-value {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    height: 28px;
+    cursor: pointer;
+}
+
+.cf-swatch {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    margin-right: 8px;
+    border: 1px solid #b0b0b0;
+    border-radius: 2px;
+    box-sizing: border-box;
+}
+
+.cf-swatch.cf-empty {
+    background: transparent;
+    border-style: dashed;
+}
+
+.cf-hex {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cf-btn {
+    flex: 0 0 auto;
+    padding: 0 8px;
+    color: #106ebe;
+    font-weight: 600;
+}
+
+.cf-value:hover .cf-btn {
+    text-decoration: underline;
+}
