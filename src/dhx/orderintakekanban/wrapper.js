@@ -7,7 +7,6 @@
 // State
 // ============================================================
 var kanbanBoard   = null;   // Kanban board instance
-var kanbanToolbar = null;   // Toolbar instance
 var _kanbanReady  = false;  // True once BOOT() completes successfully
 var _cardValues   = {};     // { [cardId]: { customer, contact } } - last known-good Customer/
                              // Contact per card, used by the "update-card" interceptor below to
@@ -51,11 +50,6 @@ window.BOOT = function () {
         var addIn = document.getElementById("controlAddIn");
         addIn.style.cssText = "width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden;margin:0;padding:0;";
 
-        // Toolbar container
-        var toolbarDiv = document.createElement("div");
-        toolbarDiv.id = "kanban-toolbar";
-        addIn.appendChild(toolbarDiv);
-
         // Board container
         var boardDiv = document.createElement("div");
         boardDiv.id = "kanban-board";
@@ -68,8 +62,7 @@ window.BOOT = function () {
             return;
         }
 
-        var KanbanCtor  = kanban.Kanban;
-        var ToolbarCtor = kanban.Toolbar;
+        var KanbanCtor = kanban.Kanban;
 
         // ---- Default columns – match Status enum values ----
         // Actual data is loaded later via LoadKanbanData() from AL.
@@ -179,17 +172,6 @@ window.BOOT = function () {
             cardShape:   cardShape,
             columnShape: columnShape,
             editorShape: editorShape
-        });
-
-        // ---- Initialise Toolbar ----
-        // Explicit "items" list – library default also includes { type: "addColumn" }
-        // (the "Add new column" "+" button, see qm() in kanban.js) which is omitted
-        // here so no column-add affordance is shown. "addRow" is kept: this board
-        // never configures rows/swimlanes (LoadKanbanData never sends "rows"), so
-        // it is inert and out of scope for this column-structure lock-down.
-        kanbanToolbar = new ToolbarCtor("#kanban-toolbar", {
-            api: kanbanBoard.api,
-            items: ["search", "spacer", "undo", "redo", "sort", "addRow"]
         });
 
         // ---- Card moved (drag & drop) ----
