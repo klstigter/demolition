@@ -122,25 +122,19 @@ page 50707 "Requested vs Capacity Daily P"
     end;
 
     // Same JSON-assembly shape as page 50681's own RefreshChart (see that page's own doc comment
-    // for the full breakdown - kept in sync here deliberately): CAPACITY's 4 stacked
-    // Assigned/Free-Capacity segments (Assigned Capacity combined + Free Internal/External
-    // (Mandatory)/External non-mandatory - 2026-09-16, matches page 50692's weekly chart), plus
-    // every SKILL bar now split into 2 stacked segments - a shared "Requested - Assigned" green series at the
-    // bottom (that skill's Requested Hours with an Assigned Resource) and that skill's own
-    // Unassigned series on top (its own colour, same as its legend swatch), instead of one flat
-    // "Requested Hours" bar. No aggregation happens here for the flat totals; Buffer is already
-    // fully aggregated by BuildSkillBuffer above - only the Assigned/Unassigned split
-    // (BuildSkillAssignedUnassignedSplit) and the CAPACITY split (GetCapacityAssignedFreeSplit)
-    // are computed fresh. This part is always Daily-only (PeriodStartDate is both the range's
-    // start and end - see this page's own doc comment), so both splits are always called for a
-    // single day, never a range.
+    // for the full C/R bar-pair breakdown - kept in sync here deliberately). No aggregation
+    // happens here for the flat totals; Buffer is already fully aggregated by BuildSkillBuffer
+    // above - only the Assigned/Unassigned split (BuildSkillAssignedUnassignedSplit) and each
+    // skill's own resource-scoped Capacity split (GetSkillCapacityAssignedFreeSplit) are computed
+    // fresh. This part is always Daily-only (PeriodStartDate is both the range's start and end -
+    // see this page's own doc comment), so both splits are always called for a single day, never
+    // a range.
     local procedure RefreshChart()
     var
         ChartData: JsonObject;
         CategoriesArray: JsonArray;
+        SkillLabelsArray: JsonArray;
         SeriesArray: JsonArray;
-        ColorsArray: JsonArray;
-        FontColorsArray: JsonArray;
         AssignedValues: JsonArray;
         CapInternalValues: JsonArray;
         CapExternalMandatoryValues: JsonArray;
@@ -163,7 +157,7 @@ page 50707 "Requested vs Capacity Daily P"
         ExternalBorderColorHex: Text;
         UnassignedColorHex: Text;
         UnassignedBorderColorHex: Text;
-        IsCapacityRow: Boolean;
+        UnassignedFontColorHex: Text;
         RowSkillCode: Code[10];
         LoopSkillCode: Code[10];
         RowValue: Decimal;
@@ -172,8 +166,7 @@ page 50707 "Requested vs Capacity Daily P"
             exit;
 
         Clear(CategoriesArray);
-        Clear(ColorsArray);
-        Clear(FontColorsArray);
+        Clear(SkillLabelsArray);
         Clear(AssignedValues);
         Clear(CapInternalValues);
         Clear(CapExternalMandatoryValues);
@@ -188,49 +181,38 @@ page 50707 "Requested vs Capacity Daily P"
         Buffer.Reset();
         if Buffer.FindSet() then
             repeat
-                IsCapacityRow := Buffer."No." = CapacitySkillCodeLbl;
-                CategoriesArray.Add(Buffer."No.");
+                RowSkillCode := CopyStr(Buffer."No.", 1, 10);
+                SkillCodeList.Add(RowSkillCode);
+                SkillLabelsArray.Add(RowSkillCode);
 
-                if IsCapacityRow then begin
-                    ColorsArray.Add(CapacityColorHex);
-                    // CAPACITY is not a skill (blank per GetSkillFontColor/GetSkillBorderColor's
-                    // own convention) - GetDefaultBarFontColor() is codeunit 50609's raw literal
-                    // default, NOT GetBarFontColor()/"Daily Optimizer Setup"."Bar Font Color"
-                    // (that setting is reserved for the two scheduler-timeline add-ins' actual
-                    // Capacity bar/event, not this chart tile's CAPACITY category).
-                    FontColorsArray.Add(VisualDefaultSettings.GetDefaultBarFontColor());
-                    SkillCapacityAnalysisMgt.GetCapacityAssignedFreeSplit(PeriodStartDate, PeriodStartDate, AssignedInternal, AssignedExternal, CapacityInternal, CapacityExternal, CapacityExternalMandatory);
-                    RequestedAssignedValues.Add(0);
-                end else begin
-                    RowSkillCode := CopyStr(Buffer."No.", 1, 10);
-                    SkillCodeList.Add(RowSkillCode);
-                    ColorsArray.Add(SkillCapacityAnalysisMgt.GetSkillBarColor(RowSkillCode, SkillPaletteIndex));
-                    FontColorsArray.Add(VisualDefaultSettings.GetSkillFontColor(RowSkillCode));
-                    SkillPaletteIndex += 1;
-                    AssignedInternal := 0;
-                    AssignedExternal := 0;
-                    CapacityInternal := 0;
-                    CapacityExternal := 0;
-                    CapacityExternalMandatory := 0;
-                    if AssignedHoursPerSkill.ContainsKey(RowSkillCode) then
-                        RequestedAssignedValues.Add(AssignedHoursPerSkill.Get(RowSkillCode))
-                    else
-                        RequestedAssignedValues.Add(0);
-                end;
+                CategoriesArray.Add(RowSkillCode + CategoryDelimiterTok + CapacityCategoryLbl);
+                CategoriesArray.Add(RowSkillCode + CategoryDelimiterTok + RequestedCategoryLbl);
 
+                // "C" slot - this skill's own resource-scoped Capacity split.
+                SkillCapacityAnalysisMgt.GetSkillCapacityAssignedFreeSplit(RowSkillCode, PeriodStartDate, PeriodStartDate, AssignedInternal, AssignedExternal, CapacityInternal, CapacityExternal, CapacityExternalMandatory);
                 AssignedValues.Add(AssignedInternal + AssignedExternal);
                 CapInternalValues.Add(CapacityInternal);
                 CapExternalMandatoryValues.Add(CapacityExternalMandatory);
                 CapExternalValues.Add(CapacityExternal);
+                RequestedAssignedValues.Add(0);
+
+                // "R" slot - unchanged Requested-Assigned/Unassigned skill-demand split.
+                AssignedValues.Add(0);
+                CapInternalValues.Add(0);
+                CapExternalMandatoryValues.Add(0);
+                CapExternalValues.Add(0);
+                if AssignedHoursPerSkill.ContainsKey(RowSkillCode) then
+                    RequestedAssignedValues.Add(AssignedHoursPerSkill.Get(RowSkillCode))
+                else
+                    RequestedAssignedValues.Add(0);
             until Buffer.Next() = 0;
 
         SkillCapacityAnalysisMgt.AddCapacitySegmentSeries(SeriesArray, AssignedValues, CapInternalValues, CapExternalMandatoryValues, CapExternalValues, AssignedColorHex, CapacityColorHex, CapacityMandatoryColorHex, ExternalBorderColorHex);
         SkillCapacityAnalysisMgt.AddRequestedAssignedSeries(SeriesArray, RequestedAssignedValues, AssignedColorHex);
 
-        // One Unassigned series per active skill - see page 50681's own RefreshChart for why this
-        // is a second per-skill pass over Buffer, and why re-walking SkillPaletteIndex from 0 in
-        // the SAME order SkillCodeList was built in reproduces the identical GetSkillBarColor
-        // result as that skill's own ColorsArray/legend entry above.
+        // One Unassigned series per skill - see page 50681's own RefreshChart for why this is a
+        // second per-skill pass over Buffer, and why re-walking SkillPaletteIndex from 0 in the
+        // SAME order SkillCodeList was built in reproduces the identical GetSkillBarColor result.
         SkillPaletteIndex := 0;
         foreach LoopSkillCode in SkillCodeList do begin
             Clear(SkillUnassignedValues);
@@ -244,19 +226,20 @@ page 50707 "Requested vs Capacity Daily P"
                             RowValue := 0;
                     end else
                         RowValue := 0;
-                    SkillUnassignedValues.Add(RowValue);
+                    SkillUnassignedValues.Add(0); // "C" slot - skills never appear on the Capacity bar.
+                    SkillUnassignedValues.Add(RowValue); // "R" slot.
                 until Buffer.Next() = 0;
 
             UnassignedColorHex := SkillCapacityAnalysisMgt.GetSkillBarColor(LoopSkillCode, SkillPaletteIndex);
             UnassignedBorderColorHex := VisualDefaultSettings.GetSkillBorderColor(LoopSkillCode, SkillPaletteIndex);
-            SkillCapacityAnalysisMgt.AddSkillUnassignedSeries(SeriesArray, LoopSkillCode, SkillUnassignedValues, UnassignedColorHex, UnassignedBorderColorHex);
+            UnassignedFontColorHex := VisualDefaultSettings.GetSkillFontColor(LoopSkillCode);
+            SkillCapacityAnalysisMgt.AddSkillUnassignedSeries(SeriesArray, LoopSkillCode, SkillUnassignedValues, UnassignedColorHex, UnassignedBorderColorHex, UnassignedFontColorHex);
             SkillPaletteIndex += 1;
         end;
 
         ChartData.Add('categories', CategoriesArray);
+        ChartData.Add('skillLabels', SkillLabelsArray);
         ChartData.Add('series', SeriesArray);
-        ChartData.Add('colors', ColorsArray);
-        ChartData.Add('fontColors', FontColorsArray);
         ChartData.Add('barWidth', VisualDefaultSettings.GetDailyBarChartWidth());
         // Rendered by wrapper.js as plain HTML above the chart container (see UpdateHeader there) -
         // replaces the BC field(PeriodLabelCtrl)/group(Filters) caption this page used to carry in
@@ -290,8 +273,10 @@ page 50707 "Requested vs Capacity Daily P"
         ChartReady: Boolean;
         PeriodLabelText: Text[80];
         DailyPeriodLabelLbl: Label 'Daily: %1', Comment = '%1 = full date text';
-        // Matches page 50681's own independently-declared 'CAPACITY' Label (see codeunit 50608's
-        // BuildSkillBuffer doc comment for why this literal is intentionally duplicated rather
-        // than shared - keep in sync if it ever changes).
-        CapacitySkillCodeLbl: Label 'CAPACITY', Locked = true;
+        // Matches codeunit 50608's own CategoryDelimiterTok/CapacityCategoryLbl (and page 50681's
+        // own independently-declared copies) text-for-text - keep in sync if it ever changes. See
+        // this procedure's (RefreshChart's) own doc comment for the category-string shape.
+        CategoryDelimiterTok: Label '|', Locked = true;
+        CapacityCategoryLbl: Label 'Capacity';
+        RequestedCategoryLbl: Label 'Requested';
 }

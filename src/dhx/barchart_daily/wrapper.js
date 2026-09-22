@@ -4,43 +4,32 @@
 var chartContainer;         // DOM element reference (readiness flag)
 var chartInstance = null;   // current dhx.Chart instance (recreated on every LoadData)
 
-// Latest render input, kept around so the right-click "Show Data" handler can resolve a clicked
-// bar's <path> index back to the Skill Code (or the synthetic 'CAPACITY' marker) it belongs to -
-// every series here still has exactly one bar (<path>) per category, so a <path>'s index within
-// ITS OWN series group IS the category index directly, regardless of which series the click
-// actually landed on - CAPACITY's own 4 stacked segments, the single shared "Requested - Assigned"
-// series every skill bar's bottom segment belongs to, or one of the per-skill "<Skill> -
-// Unassigned" series (see codeunit 50608's AddCapacitySegmentSeries/AddRequestedAssignedSeries/
-// AddSkillUnassignedSeries). ResolveBarSegmentFromEvent's `.closest('g[aria-label^="chart s"]')`
-// always resolves to the specific group the clicked <path> is actually IN, not merely the first
-// one in the document, so no per-series day/2-style index math is needed here (unlike the live
-// barchart, which stacks 2 bars per weekday and needs a day/2 + even-odd split - see
-// src/dhx/barchart_weekly/wrapper.js's own ResolveBarSegmentFromEvent).
-var lastCategories = [];
-var lastFontColors = []; // stashed by RenderChart for ApplyLegendTextColors' per-item text-colour pass - see fontColors' own declaration comment in RenderChart.
-var contextMenuEl = null; // the current "Show Data" right-click popup, if one is open (see ShowContextMenu/HideContextMenu)
-var contextMenuDismissHandlers = null; // {click,contextmenu,scroll,keydown} currently attached to
-// document for dismissing the open "Show Data" popup, or null if none attached - see ShowContextMenu/
-// HideContextMenu for why this is tracked explicitly instead of relying on {once:true} self-removal.
-
-var seriesBorderObserver = null; // MutationObserver that keeps ApplySeriesBorders' <path> stroke
-// patches in sync with dhx.Chart's OWN repaint passes - see that function's own comment for why a
-// single requestAnimationFrame after construction is not sufficient here. (Named seriesBorderObserver,
-// not barColorObserver, since 2026-08-19: every bar segment now gets its real colour from a true
-// per-series `color` in the chart config itself - see RenderChart's own comment on the `s.color`
-// contract - so the DOM-patch fill-override pass this observer used to ALSO drive was retired as
-// dead weight, leaving only the border-stroke pass.)
-var lastSeriesDefs = []; // stashed by RenderChart for ApplySeriesBorders' border pass - see that var's own comment in src/dhx/barchart_weekly/wrapper.js for the equivalent.
-var lastSeries = [];     // ditto - the series actually handed to dhx.Chart (ids/colors), needed to scope each border to its own `g[aria-label="chart s<N>"]` group.
-
+// Latest render inputs, kept around so a resize-triggered re-application (see
+// SchedulePostRenderPatches) can redraw the post-render patches without needing a fresh LoadData
+// call - dhx.Chart itself repaints on container resize (via suite.js's own internal
+// resizer()/ResizeObserver), which would otherwise silently wipe these patches. Ported 2026-09-22
+// from src/dhx/barchart_weekly/wrapper.js's own state/patch pipeline, alongside the redesign of
+// this chart from one-bar-per-skill (+ a synthetic CAPACITY bar) to a Capacity/Requested ("C"/"R")
+// bar PAIR per skill, grouped the same way Weekly groups a day's own C/R pair - see RenderChart's
+// own comment for the full category/series shape.
+var lastSeriesDefs = [];
+var lastSeries = [];
+var lastSkillLabels = []; // parallel to the skill-pair grouping in "categories" - one entry per
+// skill (in the same order as its C/R pair), used by RenderSkillGroupRow to draw the merged
+// group-header row. Unlike src/dhx/barchart_weekly/wrapper.js's dayLabels/dayIndices pair, Skill
+// Code is already a safe, non-locale-dependent string - see codeunit 50608's own doc comment - so
+// there is no separate round-trip "indices" array here: ResolveBarSegmentFromEvent below resolves
+// a bar click straight to its own category TEXT (which already carries the real Skill Code), not
+// to a positional index that would need translating back.
 var lastChartData = null; // the raw chartData object last passed to RenderChart, stashed so
-// CorrectLegendTopOverflowIfNeeded (see ScheduleLegendPatches) can trigger a corrective re-render
-// with a larger legend.size without the caller needing to keep its own reference around.
+// CorrectLegendTopOverflowIfNeeded (see SchedulePostRenderPatches) can trigger a corrective
+// re-render with a larger legend.size without needing to reconstruct chartData's shape from the
+// other already-stashed lastXxx arrays.
 var lastLegendSize = 40;  // the config.legend.size actually used by the most recent RenderChart
 // call - 40 is suite.js's own default reserved top margin when legend.size is left unset (Legend.
 // scaleReady, suite.js ~13317). CorrectLegendTopOverflowIfNeeded reads this to compute how much
 // MORE space is needed rather than assuming the un-corrected default every time.
-
+var pendingPatchFrame = null;
 var lastRenderedWidth = 0; // chartContainer.clientWidth at the time of the most recent RenderChart
 // call - see the BOOT ResizeObserver's own comment for why this is needed: dhx.Chart's own internal
 // ResizeObserver repaints bars/scales when the container resizes, but does NOT recompute the
@@ -49,22 +38,11 @@ var lastRenderedWidth = 0; // chartContainer.clientWidth at the time of the most
 // AFTER this control add-in has already done its first paint at whatever transient width the DOM
 // had at that moment, and the legend keeps wrapping against that stale width forever after,
 // visually bleeding past chartContainer's own right edge into a neighbouring role-center panel).
-
-var legendPatchObserver = null; // MutationObserver mirroring src/dhx/barchart_weekly/wrapper.js's
-// own repaint-reactive SchedulePostRenderPatches (see that file's BOOT comment for the full
-// reasoning this is ported from). Reapplies ApplyLegendTextColors + the legend top-overflow
-// correction on EVERY dhx.Chart repaint, not just the first construction. This is NOT optional
-// polish: dhx.Chart's own internal ResizeObserver settle pass does a FULL vdom rebuild of the
-// chart's SVG (fresh <text> nodes, no inline style/colour) sometime shortly after construction -
-// confirmed live via Playwright (2026-09-07) that a one-shot rAF tied only to the initial
-// RenderChart call (this file's original design) reliably loses that race: whatever a single
-// post-construction pass applied would get silently wiped by that later repaint, with nothing
-// left to re-apply it - same reasoning ApplySeriesBorders' own seriesBorderObserver already
-// documents for the unrelated border-stroke problem below. (This file previously also rotated
-// each legend label -90deg here - retired 2026-09-07 in favour of a plain horizontal legend
-// matching src/dhx/barchart_weekly/wrapper.js's own appearance; the repaint-reactive machinery
-// stays, since un-rotated legend items can still row-wrap and clip the same way Weekly's do.)
-var pendingLegendPatchFrame = null;
+var contextMenuEl = null; // the current "Show Data" right-click popup, if one is open (see ShowContextMenu/HideContextMenu)
+var chartMutationObserver = null; // set up once in BOOT; disconnected/reconnected around our own patch writes
+var contextMenuDismissHandlers = null; // {click,contextmenu,scroll,keydown} currently attached to
+// document for dismissing the open "Show Data" popup, or null if none attached - see ShowContextMenu/
+// HideContextMenu for why this is tracked explicitly instead of relying on {once:true} self-removal.
 
 // Distinct, fixed colours per series ordinal — DHTMLX Suite's Chart lets us set
 // series.color explicitly (see Chart.setConfig / BaseSeria._setDefaults in suite.js),
@@ -78,27 +56,58 @@ var pendingLegendPatchFrame = null;
 // "fix" these into matching each other.
 var SERIES_COLOR_PALETTE = ["#2A9D8F", "#E76F51", "#11A3D0", "#E5A910", "#985F99", "#78586F"];
 
-// Explicit reserved bottom-axis height. Was 48 (matching src/dhx/barchart_weekly/wrapper.js's
-// own `DAY_ROW_HEIGHT * 2`) back when this axis rendered one horizontal label row - see git
-// history for that reasoning. Bumped to make room for the diagonal (scaleRotate) category labels
-// now that the CAPACITY/CIVIL/DELIVER/... row has grown past what fits horizontally without
-// overlapping (11 categories once the missing skills were added to Skill Codes) - see
-// scales.bottom's own `scaleRotate` comment below for the rotation itself.
-// MUST stay numerically equal to src/dhx/barchart_weekly/wrapper.js's own BOTTOM_SCALE_RESERVED_PX
-// (also 90) - confirmed live via Playwright (2026-09-17) that bumping only THIS chart's reserved
-// bottom height (to fit the rotated labels) without also bumping Weekly's shifted Daily's own
-// "0"-line/bar-baseline up relative to Weekly's, visibly misaligning the two role-center panels'
-// x-axes again - same root cause as this constant's original 48/48 pairing, just re-triggered by
-// a different value. Weekly has no diagonal labels of its own and reserves the extra height as
-// blank space below its existing Mon/Tue row, same convention this chart already used the other
-// way around before the rotation was added.
+// Bottom-axis "skill group" row (see RenderSkillGroupRow) - kept as named constants since the
+// geometry math has to agree with the `bottom` scale's own `textPadding`/`size` config below.
+// Ported 1:1 from src/dhx/barchart_weekly/wrapper.js's own CATEGORY_DELIMITER/BOTTOM_TEXT_PADDING/
+// DAY_ROW_HEIGHT/BOTTOM_SCALE_RESERVED_PX/DAY_GROUP_* constants (renamed "day" -> "skill").
+var CATEGORY_DELIMITER = "|";       // matches codeunit 50608's CategoryDelimiterTok
+var BOTTOM_TEXT_PADDING = 12;       // matches scales.bottom.textPadding in RenderChart
+var SKILL_ROW_HEIGHT = 24;          // px height of EACH of the 2 bottom-axis rows this chart draws
+// (native "C"/"R" row + RenderSkillGroupRow's own hand-drawn Skill Code row).
+//
+// BOTTOM_SCALE_RESERVED_PX MUST stay numerically equal to src/dhx/barchart_weekly/wrapper.js's own
+// BOTTOM_SCALE_RESERVED_PX (also 90, unchanged by this redesign - that file is out of scope) -
+// confirmed live via Playwright (2026-09-11, re-confirmed 2026-09-17) that a chart's "0"-line/
+// bar-baseline vertical position is `containerTop + containerHeight - scales.bottom.size`,
+// independent of legend.size, so keeping this total reserved bottom height equal to Weekly's is
+// what keeps the two role-center panels' x-axes aligned. This chart's own 2 rows (SKILL_ROW_HEIGHT
+// each = 48px) only need half of the reserved 90px - the remaining 42px renders as blank space
+// below the Skill Code row, same "leftover blank space" convention Weekly's own comment documents
+// (previously the other way around, when THIS chart alone needed extra room for rotated labels -
+// see CATEGORY_LABEL_ROTATE_DEG's own retirement note below).
 var BOTTOM_SCALE_RESERVED_PX = 90;
+// Matches the native plot area's own gridlines (suite.css: `.grid-line{stroke:var(--dhx-color-
+// gray-100)}`, no explicit stroke-width -> browser default of 1px) rather than a bold black line,
+// so the skill-group row's grid reads as part of the same chart instead of a heavier overlay.
+var SKILL_GROUP_BORDER_COLOR = "var(--dhx-color-gray-100)";
+var SKILL_GROUP_BORDER_WIDTH = 1;
+// Lighter than SKILL_GROUP_BORDER_COLOR itself (suite.css has no gray shade lighter than gray-100)
+// so the gray-100 divider lines still read against it instead of blending into plain white.
+var SKILL_GROUP_BACKGROUND_COLOR = "#f7f7f7";
 
-// Category-label tilt (degrees) for the bottom axis - negative so labels read bottom-left to
-// top-right (ascending, per user's mockup), rather than the more common descending "\" tilt.
-// suite.js's own scale renderer (see bottomText/getClassesForRotateScale) picks the correct
-// text-anchor for us based on this angle's sign, so only the angle itself needs to live here.
-var CATEGORY_LABEL_ROTATE_DEG = -45;
+// Gap (px) between a skill's own Capacity/Requested bars once pulled tight together - see
+// ApplySkillPairSpacing. Kept small but nonzero so the two bars still read as two distinct shapes
+// instead of visually fusing into one block.
+var PAIR_INNER_GAP_PX = 2;
+// Reassigned on every RenderChart call from AL's "Daily Optimizer Setup"."Bar Width (px) - Bar
+// Chart" (codeunit 50609 "Visual Default Settings"' GetDailyBarChartWidth), falling back to 50 if
+// chartData.barWidth wasn't sent or is falsy (this chart's own historical default - wider than
+// suite.js's own Bar default of 30px, see Bar.prototype._setDefaults). Kept as a module-level
+// variable (not a fixed constant, matching src/dhx/barchart_weekly/wrapper.js's own BAR_WIDTH_PX)
+// because ApplySkillPairSpacing computes bar-center offsets from it and nothing in the rendered
+// DOM exposes barWidth directly to read back.
+var BAR_WIDTH_PX = 50;
+
+// Reinstated 2026-09-22 (explicit user request, live screenshot) after being retired earlier the
+// same session: even sitting in its own horizontal group-header row (RenderSkillGroupRow), up to
+// ~11 Skill Codes read as a cramped, hard-to-scan flat row once bars narrow enough - tilting the
+// label -45deg (same angle/direction the old one-bar-per-skill layout used, see the removed
+// CATEGORY_LABEL_ROTATE_DEG this replaces) reads more cleanly. Applied by hand via an SVG
+// `transform="rotate(...)"` on each label in RenderSkillGroupRow (there is no suite.js native
+// `scaleRotate` option for a hand-drawn row like this one - that config only applies to the
+// library's own scale tick text). Negative so labels read bottom-left to top-right (ascending),
+// matching the old constant's own documented reasoning.
+var SKILL_LABEL_ROTATE_DEG = -45;
 
 // ============================================================
 // Header (title + period line) - plain HTML rendered above chartContainer, replacing the
@@ -308,36 +317,28 @@ window.BOOT = function() {
         // ---- Render an empty chart so the control has something to show immediately ----
         RenderChart({ categories: [], series: [] });
 
-        // See legendPatchObserver's own declaration comment for why this repaint-reactive
-        // reapplication is required, not just a one-shot pass at construction time - ported from
-        // src/dhx/barchart_weekly/wrapper.js's own BOOT, which established this same pattern first.
-        // childList+subtree catches dhx.Chart's internal repaint (a full node teardown/rebuild);
-        // disconnect/reconnect around our OWN writes (see ScheduleLegendPatches) stops that from
-        // re-triggering itself in a loop.
+        // dhx.Chart repaints its whole SVG - discarding every post-render DOM patch applied below
+        // (series borders, the skill-group row, legend swatch borders) - for more reasons than
+        // just a container resize (confirmed live via Playwright: a repaint can follow shortly
+        // after the FIRST successful patch pass with no size change involved, most likely BC's own
+        // factbox/page layout still settling). A MutationObserver watching for the library
+        // replacing its own tick/legend/bar elements is a direct signal of "a repaint just
+        // happened, reapply now" - disconnect/reconnect around our OWN writes below (see
+        // SchedulePostRenderPatches) stops that from re-triggering itself in a loop. Ported 2026-
+        // 09-22 from src/dhx/barchart_weekly/wrapper.js's own BOOT (this file previously used a
+        // narrower, series-borders-only MutationObserver - see git history - now consolidated into
+        // the same single-observer pipeline Weekly already established).
         if (typeof MutationObserver !== "undefined") {
-            legendPatchObserver = new MutationObserver(function() {
-                if (chartInstance) ScheduleLegendPatches();
+            chartMutationObserver = new MutationObserver(function() {
+                if (chartInstance) SchedulePostRenderPatches();
             });
-            legendPatchObserver.observe(chartContainer, { childList: true, subtree: true });
+            chartMutationObserver.observe(chartContainer, { childList: true, subtree: true });
         }
-        // Two-tier resize handling. A resize that only repositions existing elements (attribute
-        // changes, no node add/remove) wouldn't trip the MutationObserver above, but could still
-        // change how many rows the legend wraps onto - so ANY resize at minimum re-runs
-        // ScheduleLegendPatches (defense-in-depth, same reasoning as
-        // src/dhx/barchart_weekly/wrapper.js's own BOOT). But a genuine WIDTH change needs more
-        // than that: dhx.Chart's own internal ResizeObserver repaints bars/scales for a resize, but
-        // does NOT recompute the legend's horizontal row-wrap decision against the new width - it
-        // keeps whatever wrap it decided on at construction. Confirmed live 2026-09-07: BC's
-        // role-center flex layout can settle into its FINAL column width only AFTER this control
-        // add-in's first paint (e.g. changing from a 3-column to a 2-column split once the page
-        // finishes laying out), and the legend kept wrapping against that earlier, stale width -
-        // all 8-ish legend items tried to stay on one row and ran off chartContainer's own right
-        // edge into the neighbouring panel (the overflow:hidden above stops the visual bleed, but
-        // the legend was still measuring itself wrong). Fix: track the container width the chart
-        // was last actually built against (lastRenderedWidth, set in RenderChart) and force a real
-        // RenderChart rebuild - not just a patch pass - whenever the container's current width has
-        // genuinely moved (a couple of px of tolerance for sub-pixel layout noise), so the legend's
-        // row-wrap math always runs against the CURRENT real width.
+        // Two-tier resize handling - see src/dhx/barchart_weekly/wrapper.js's own BOOT comment for
+        // the full reasoning (ported here unchanged): dhx.Chart's internal ResizeObserver repaints
+        // bars/scales on resize but does NOT recompute the legend's row-wrap decision against the
+        // new width, so a genuine width change needs a full RenderChart rebuild, not just a patch
+        // pass.
         if (typeof ResizeObserver !== "undefined") {
             new ResizeObserver(function() {
                 if (!chartInstance || !chartContainer) return;
@@ -345,7 +346,7 @@ window.BOOT = function() {
                 if (Math.abs(currentWidth - lastRenderedWidth) > 2) {
                     RenderChart(lastChartData, lastLegendSize);
                 } else {
-                    ScheduleLegendPatches();
+                    SchedulePostRenderPatches();
                 }
             }).observe(chartContainer);
         }
@@ -355,9 +356,9 @@ window.BOOT = function() {
         // (RenderChart only ever clears/rebuilds its INNER content via innerHTML = "" - see
         // RenderChart's own comment) - a per-render listener would stack duplicates on every
         // refresh. Delegates to ResolveBarSegmentFromEvent/ResolveLegendSegmentFromEvent so a
-        // single handler covers both a single bar AND the legend entry; when neither resolves
-        // (click landed on empty background/axis), the event is left alone so the browser's
-        // native context menu still shows, same as before this feature existed.
+        // single handler covers both a stacked-bar segment AND a legend entry; when neither
+        // resolves (click landed on empty background/axis), the event is left alone so the
+        // browser's native context menu still shows, same as before this feature existed.
         chartContainer.addEventListener("contextmenu", function(e) {
             var barHit = ResolveBarSegmentFromEvent(e);
             if (barHit) {
@@ -380,7 +381,7 @@ window.BOOT = function() {
                     try {
                         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(
                             "OnShowSegmentData",
-                            ["", true]
+                            [legendHit.seriesName, true]
                         );
                     } catch (err) { /* ignore */ }
                 });
@@ -395,43 +396,26 @@ window.BOOT = function() {
 };
 
 // ============================================================
-// Build/replace the vertical bar chart. Grouped (clustered, non-stacked) by default; switches to
-// a stacked layout when any series requests it - true for every category now (see codeunit
-// 50608's AddCapacitySegmentSeries/AddRequestedAssignedSeries/AddSkillUnassignedSeries: the
-// CAPACITY bar's 4 Assigned/Free Capacity segments, and every SKILL bar's own 2-segment
-// Assigned/Unassigned stack) - same opt-in mechanism as src/dhx/barchart_weekly/wrapper.js's own
-// RenderChart.
+// Build/replace the vertical bar chart - stacked, grouped in Capacity/Requested PAIRS per Skill
+// Code (redesigned 2026-09-22, replacing the old one-bar-per-skill + synthetic CAPACITY-bar
+// layout - mirrors src/dhx/barchart_weekly/wrapper.js's own per-day C/R pair shape, grouped by
+// Skill Code here instead of by weekday).
 //
 // chartData shape (see LoadData below):
-//   { categories: ["SKILL1","SKILL2","CAPACITY",...],
-//     series: [ { name: "Requested - Assigned", values: [decimal,...],
-//                 color: "#RRGGBB" (optional, else SERIES_COLOR_PALETTE rotation),
-//                 stacked: true (optional; any series requesting it stacks the whole chart),
-//                 border: "#RRGGBB" (optional outline colour for e.g. an "External" segment) },
-//               { name: "SKILL1 - Unassigned", values: [decimal,...], color: "#RRGGBB" } ],
-//     colors: ["#RRGGBB", "", ...] }  (optional, parallel to categories - purely a legend-swatch
-//                                      colour per category now - see the `data`-row comment below
-//                                      and codeunit 50608's GetSkillBarColor/GetCapacitySegmentColors)
+//   { categories: ["SKILL1|Capacity","SKILL1|Requested","SKILL2|Capacity",...],
+//     skillLabels: ["SKILL1","SKILL2",...],  (one entry per skill, same order as its C/R pair)
+//     series: [ { name: "Assigned Capacity", values: [decimal,...],
+//                 color: "#RRGGBB", stacked: true,
+//                 border: "#RRGGBB" (optional outline colour, e.g. the red "External" segment),
+//                 fontColor: "#RRGGBB" (optional per-skill legend TEXT colour) },
+//               ... ] }
 //
-// Every category is now a true stack of exactly 2 (a SKILL bar: shared Assigned + that skill's
-// own Unassigned) or 4 (the CAPACITY bar: Assigned/Free Capacity Internal/External) series, and
-// every OTHER series carries 0 at any category it doesn't apply to (invisible, zero-height stack
-// segment - same "0 elsewhere" convention codeunit 50662 already documents for its own weekly
-// chart) - so a category's visible bar height is always just the sum of its own real segments,
-// nothing borrowed from a shared flat series the way the old single "Requested Hours" series
-// used to work (retired 2026-08-19 once every bar became a real multi-segment stack).
-//
-// Each built `data` row also carries a `barColor` field - purely a legend-swatch colour now (see
-// the `legend` config below); it no longer drives any bar's actual fill (that now comes straight
-// from each series' own `color` in the chart config - see the `series` mapping below and
-// ApplySeriesBorders' own comment on why the old DOM-patch fill-override pass was retired
-// alongside the flat series it existed to recolour). This drives the legend, which is configured
-// as `legend: { values: { text: "category", color: "barColor" } }` - one item per category/bar
-// rather than per series - so the legend's swatches always match each bar's own representative
-// colour (that skill's own colour, or the CAPACITY bar's Free Capacity blue). See the comments
-// next to that config below, and next to the chartInstance.events.detach("toggleSeries") call,
-// for why the legend is data-driven here and why left-click on a legend item is deliberately a
-// no-op as a result.
+// Every category is a stack: the "Capacity" bar carries the 4 shared Assigned/Free-Capacity
+// segments (nonzero only at that skill's own Capacity slot, 0 elsewhere - see codeunit 50608's
+// AddCapacitySegmentSeries), the "Requested" bar carries the shared "Requested - Assigned" segment
+// plus that skill's own "Unassigned" segment (nonzero only at that skill's own Requested slot, 0
+// elsewhere - AddRequestedAssignedSeries/AddSkillUnassignedSeries) - same "0 elsewhere" stacked-
+// series convention codeunit 50662 already documents for its own weekly chart.
 //
 // The chart is fully torn down and rebuilt on every call rather than mutated in
 // place — dhx.Chart's data/scales/series are cheapest to reason about as a clean
@@ -475,13 +459,11 @@ function RenderChart(chartData, legendSizeOverride, isCorrectivePass) {
     lastRenderedWidth = chartContainer.clientWidth;
 
     if (!isCorrectivePass) {
-        // Hidden until ScheduleLegendPatches' completion callback confirms the legend actually
-        // fits (or, if not, until the corrective re-render it triggers finishes) - without this,
-        // a container that needs correcting would otherwise flash the clipped first-pass layout
-        // for one frame before growing to its corrected size. A corrective pass (isCorrectivePass)
-        // is a nested RenderChart call from within that same still-hidden window, so it must NOT
-        // re-hide (which would just extend the same hidden window, harmlessly, but there's nothing
-        // to hide FROM at that point).
+        // Hidden until SchedulePostRenderPatches' first settled pass confirms the legend actually
+        // fits (or, if not, until the corrective re-render it triggers finishes) - without this, a
+        // container that needs correcting would otherwise flash the clipped first-pass layout
+        // before growing to its corrected size. A corrective pass (isCorrectivePass) is a nested
+        // RenderChart call from within that same still-hidden window, so it must NOT re-hide.
         chartContainer.style.visibility = "hidden";
     }
 
@@ -494,14 +476,15 @@ function RenderChart(chartData, legendSizeOverride, isCorrectivePass) {
     var legendSize = legendSizeOverride || 40;
     lastLegendSize = legendSize;
 
-    var categories = (chartData && Array.isArray(chartData.categories)) ? chartData.categories : [];
-    var seriesDefs  = (chartData && Array.isArray(chartData.series))     ? chartData.series     : [];
-    var barColors   = (chartData && Array.isArray(chartData.colors))    ? chartData.colors     : [];
-    // Per-category legend TEXT colour (codeunit 50609's GetSkillFontColor, one per skill row -
-    // blank/default black for the CAPACITY row - see the AL side's RefreshChart). Applied in
-    // ApplyLegendTextColors below, index-aligned with categories/legend items (both are built in
-    // the same Buffer row order).
-    var fontColors  = (chartData && Array.isArray(chartData.fontColors)) ? chartData.fontColors : [];
+    // Reassigned on every call (see this var's own declaration comment) - must happen before
+    // `config` is built below (config.barWidth reads it) and before ApplySkillPairSpacing runs
+    // (scheduled via SchedulePostRenderPatches further down), since that function derives its
+    // pair-centering math from whatever this module-level variable currently holds.
+    BAR_WIDTH_PX = (chartData && chartData.barWidth) ? chartData.barWidth : 50;
+
+    var categories  = (chartData && Array.isArray(chartData.categories))  ? chartData.categories  : [];
+    var seriesDefs   = (chartData && Array.isArray(chartData.series))     ? chartData.series      : [];
+    var skillLabels  = (chartData && Array.isArray(chartData.skillLabels)) ? chartData.skillLabels : [];
 
     // One data row per category ("id" doubles as the click-handler's row identifier —
     // dhx.Chart's bar click handler fires with (id, seriesValueField), see suite.js
@@ -512,17 +495,12 @@ function RenderChart(chartData, legendSizeOverride, isCorrectivePass) {
             var values = (s && Array.isArray(s.values)) ? s.values : [];
             row["s" + sIdx] = (values[idx] !== undefined && values[idx] !== null) ? values[idx] : 0;
         });
-        // Legend-swatch colour only - see the shape-comment above RenderChart for why this no
-        // longer drives any bar's actual fill.
-        row.barColor = barColors[idx] || SERIES_COLOR_PALETTE[0];
         return row;
     });
 
     // A series carries its own explicit `color` when the caller wants a fixed palette instead
-    // of the generic SERIES_COLOR_PALETTE rotation (e.g. the CAPACITY bar's Assigned/Free Capacity
-    // segments, which must render Weekly's exact green/blue tokens - see codeunit 50608's
-    // AddCapacitySegmentSeries) - same `s.color` contract src/dhx/barchart_weekly/wrapper.js
-    // already uses.
+    // of the generic SERIES_COLOR_PALETTE rotation - see codeunit 50608's AddCapacitySegmentSeries/
+    // AddSkillUnassignedSeries.
     var series = seriesDefs.map(function(s, sIdx) {
         var seriesDef = {
             id:    "s" + sIdx,
@@ -530,19 +508,14 @@ function RenderChart(chartData, legendSizeOverride, isCorrectivePass) {
             label: (s && s.name) ? s.name : ("Series " + (sIdx + 1)),
             color: (s && s.color) ? s.color : SERIES_COLOR_PALETTE[sIdx % SERIES_COLOR_PALETTE.length]
         };
+        // Any series requesting `stacked` switches the whole chart to a stacked layout (suite.js
+        // reads `stacked` per-series - a mixed stacked/unstacked chart is not a shape this chart
+        // needs, so one flag covers all series - see isStacked below).
         if (s && s.stacked) {
             seriesDef.stacked = true;
         }
         return seriesDef;
     });
-    // Any series requesting `stacked` switches the WHOLE chart to a stacked layout (suite.js
-    // reads `stacked` per-series but a mixed stacked/unstacked chart within one config is not a
-    // shape this chart needs) - matches src/dhx/barchart_weekly/wrapper.js's own isStacked flag.
-    // Every category is a genuine multi-segment stack now (a SKILL bar: shared "Requested -
-    // Assigned" + that skill's own "Unassigned"; the CAPACITY bar: its own 4 Assigned/Free
-    // Capacity segments - see codeunit 50608's AddRequestedAssignedSeries/AddSkillUnassignedSeries/
-    // AddCapacitySegmentSeries) - every OTHER series still carries 0 at any category it doesn't
-    // apply to, contributing no visible height there, same "0 elsewhere" convention as before.
     var isStacked = seriesDefs.some(function(s) { return s && s.stacked; });
     if (isStacked) {
         series.forEach(function(s) { s.stacked = true; });
@@ -552,45 +525,64 @@ function RenderChart(chartData, legendSizeOverride, isCorrectivePass) {
         type: "bar",
         data: data,
         series: series,
-        // Wider than suite.js's own Bar default (30px, see Bar.prototype._setDefaults) - with
-        // only a handful of categories per day, 30px left large empty gaps either side of each
-        // bar; widened so bars read as the dominant shape and gaps stay proportionate. Sourced
-        // from AL's "Daily Optimizer Setup"."Bar Width (px) - Bar Chart" (codeunit 50609 "Visual
-        // Default Settings"' GetDailyBarChartWidth), falling back to 50 (matching that codeunit's
-        // own DefaultDailyBarWidthPx) if the setup field wasn't sent or is falsy - same defensive
-        // style as categories/seriesDefs/barColors above.
-        barWidth: (chartData && chartData.barWidth) ? chartData.barWidth : 50,
+        // Kept in sync with BAR_WIDTH_PX (see its own comment) - ApplySkillPairSpacing derives its
+        // pair-centering math from that constant, so this value can't drift from it.
+        barWidth: BAR_WIDTH_PX,
         // NOTE: the "text" scale's category field name comes from `text`, NOT `value`
         // (confirmed by reading suite.js's TextScale._setDefaults: `this.locator =
         // locator(config.text)`). `value` on a scale config is a no-op for the "text"
         // type — using it here previously made every row resolve to the same blank (""),
         // collapsing all categories onto the same x-slot and producing garbled/ghost bars.
+        // For the same reason each category must stay UNIQUE per bar even though only part of
+        // it is shown: TextScale.point() positions a bar by `steps.indexOf(categoryValue)`, so
+        // two bars sharing identical category text would collapse onto the same x-slot.
+        // Categories therefore arrive as "<SkillCode>|Capacity"/"<SkillCode>|Requested"
+        // (CATEGORY_DELIMITER-joined, still unique per bar) and textTemplate below strips the
+        // "<SkillCode>|" prefix so the tick only ever shows a single "C"/"R" letter - the skill
+        // code itself is rendered separately by RenderSkillGroupRow from chartData.skillLabels.
+        //
+        // Bottom axis labels are kept horizontal (no scaleRotate - see CATEGORY_LABEL_ROTATE_DEG's
+        // own retirement note above). size is set to fit both the native "C"/"R" row and
+        // RenderSkillGroupRow's extra skill-code row stacked directly underneath it
+        // (SKILL_ROW_HEIGHT each).
         scales: {
-            // size is explicit (see BOTTOM_SCALE_RESERVED_PX's own comment) rather than left at
-            // the library's own unset-scale default - this chart only ever needs one label row,
-            // but reserving the SAME total bottom height as barchart_weekly's own (2-row) bottom
-            // axis keeps both charts' "0"-line/bar-baseline at the same vertical offset when the
-            // two role-center panels are the same height.
-            bottom: { type: "text", text: "category", size: BOTTOM_SCALE_RESERVED_PX, scaleRotate: CATEGORY_LABEL_ROTATE_DEG },
+            bottom: {
+                type: "text", text: "category", textPadding: BOTTOM_TEXT_PADDING, size: BOTTOM_SCALE_RESERVED_PX,
+                // Single-letter "C"/"R", not the full "Capacity"/"Requested" word: once
+                // ApplySkillPairSpacing (below) pulls a skill's 2 bars edge-to-edge tight (total
+                // pair width is just BAR_WIDTH_PX*2 + PAIR_INNER_GAP_PX), the full words no longer
+                // fit at that width - matches src/dhx/barchart_weekly/wrapper.js's own textTemplate
+                // for the identical reason.
+                textTemplate: function(item) {
+                    var s = String(item);
+                    var i = s.indexOf(CATEGORY_DELIMITER);
+                    var full = i >= 0 ? s.slice(i + 1) : s;
+                    return full.charAt(0);
+                }
+            },
             left:   { type: "numeric" }
         },
-        // Data-driven legend (one item per category/bar, via suite.js Legend._getData's
-        // `config.values` branch - see suite.js ~line 13462) instead of the default series-driven
-        // legend (one item per series). This chart has many series now (each skill's own
-        // Assigned/Unassigned pair, CAPACITY's own 4 segments) - a series-driven legend would show
-        // one swatch per SEGMENT (e.g. two separate "SKILL1 - Unassigned"/"Requested - Assigned"
-        // entries for one bar), not one per bar - `barColor` (see the `data` row above) gives each
-        // bar exactly one representative swatch instead.
+        // Series-driven legend, de-duplicated by label (2026-09-22, replacing the old per-category/
+        // bar "colors"/barColor-driven data legend - a category-driven legend no longer makes
+        // sense once each category is only half a skill's story, its Capacity OR Requested bar).
+        // Matches src/dhx/barchart_weekly/wrapper.js's own `legend.series` config exactly - see
+        // that file's own comment for why de-dup-by-label is needed (this chart currently has no
+        // series sharing a label, but the same convention is kept for consistency/future-proofing).
         legend: {
-            values: { text: "category", color: "barColor" },
+            series: (function() {
+                var seenLabels = {};
+                return series.filter(function(s) {
+                    if (seenLabels[s.label]) return false;
+                    seenLabels[s.label] = true;
+                    return true;
+                }).map(function(s) { return s.id; });
+            })(),
             halign: "right",
             valign: "top",
-            // Explicit reserved top margin - see legendSize's own comment above, and
-            // MeasureLegendTopOverflow's root-cause writeup below. Left at the library's own
-            // default (40) on a normal first pass; bumped by CorrectLegendTopOverflowIfNeeded on a
-            // corrective re-render when that default wasn't enough room for however many rows this
-            // chart's legend items actually wrap onto - same fix as src/dhx/barchart_weekly/
-            // wrapper.js's own legend.size.
+            // Explicit reserved top margin - see legendSize's own comment above. Left at the
+            // library's own default (40) on a normal first pass; bumped by
+            // CorrectLegendTopOverflowIfNeeded on a corrective re-render when that default wasn't
+            // enough room for however many rows this chart's legend items actually wrap onto.
             size: legendSize
         }
     };
@@ -603,50 +595,27 @@ function RenderChart(chartData, legendSizeOverride, isCorrectivePass) {
 
     chartInstance = new dhx.Chart(chartContainer, config);
 
-    // The legend above is now data-driven (one item per category, via legend.values) rather than
-    // series-driven, so the library's own "click a legend item to hide/show" wiring resolves
-    // incorrectly for this chart's shape: Legend's onclick fires the toggleSeries event as
-    // (item.id, config.values) - see suite.js ~line 13287 - and since config.values is a truthy
-    // object, Chart._initEvents' toggleSeries handler (suite.js ~line 13199) always takes its
-    // "pieLike" branch and toggles exactly ONE series ("s0", whichever series that happens to be -
-    // it never looks at which category's legend item was actually clicked (Bar/ScaleSeria's
-    // inherited toggle() - suite.js ~line 5250 - ignores the id argument entirely). That means
-    // clicking any single skill's legend swatch would blank out that one series' segment on EVERY
-    // bar it appears in, and clicking again (any item) brings it back - a confusing bait-and-switch
-    // that has nothing to do with the item that was actually clicked. Rather than try to
-    // reimplement per-category show/hide, left-click on a legend item is deliberately made a no-op
-    // by detaching the chart's own toggleSeries listener entirely. Right-click "Show Data" on the
-    // legend (ResolveLegendSegmentFromEvent) is unaffected - it is wired through our own
-    // contextmenu delegate on chartContainer, not through this event.
-    chartInstance.events.detach("toggleSeries");
-
-    // Stash for the right-click "Show Data" handler (ResolveBarSegmentFromEvent) - see
-    // lastCategories' own declaration comment. Read from here rather than this call's local
-    // `categories` closure so a later click always resolves against whatever is CURRENTLY
-    // rendered, not whatever was rendered when BOOT first ran.
-    lastCategories = categories;
-    lastFontColors = fontColors;
-    // Stash for ApplySeriesBorders - both this call's own first application below AND any later
-    // repaint-triggered re-application (see that function's own MutationObserver) need
-    // seriesDefs/series to know which series carry a `border` colour (the CAPACITY bar's
-    // "External" segments), mirroring src/dhx/barchart_weekly/wrapper.js's lastSeriesDefs/
-    // lastSeries.
+    // Stash for SchedulePostRenderPatches - both this call's own first application below AND
+    // any later resize-triggered re-application (see the ResizeObserver set up in BOOT) read
+    // from these rather than from RenderChart's local closure, since a resize can fire long
+    // after this specific call has returned.
     lastSeriesDefs = seriesDefs;
     lastSeries = series;
+    lastSkillLabels = skillLabels;
+    // Stash for ResolveBarSegmentFromEvent - a later right-click always resolves against whatever
+    // is CURRENTLY rendered, not whatever was rendered when BOOT first ran.
+    lastCategories = categories;
 
-    // Plain horizontal legend (same appearance as src/dhx/barchart_weekly/wrapper.js's own legend
-    // - no rotation, matching that file's own ApplyLegendSwatchBorders-driven per-item colour
-    // approach) - ApplyLegendTextColors below applies each legend item's own text colour, and
-    // ScheduleLegendPatches keeps the reserved top margin correct for however many rows the
-    // (unrotated) legend items actually wrap onto. Not just the initial pass - see
-    // legendPatchObserver's own declaration comment for why this has to be repaint-reactive, not a
-    // single one-shot call tied only to this specific RenderChart invocation.
-    ScheduleLegendPatches();
-    ApplySeriesBorders(seriesDefs, series);
+    // Post-render DOM patches for things dhx.Chart's own config has no option for - see
+    // src/dhx/barchart_weekly/wrapper.js's own RenderChart/SchedulePostRenderPatches comments for
+    // the full reasoning behind each (ApplySeriesBorders/ApplyLegendSwatchBorders/
+    // ApplyLegendHitArea/RenderSkillGroupRow, plus the legend top-overflow self-correction) - all
+    // ported here 2026-09-22 alongside the C/R bar-pair redesign.
+    SchedulePostRenderPatches();
 
     // Bar click -> BC (mirrors OnEventDoubleClick's InvokeExtensibilityMethod pattern
-    // used throughout src/dhx/resourceschedule/wrapper.js). id is the Skill Code we
-    // set as each data row's "id"/"category" above.
+    // used throughout src/dhx/resourceschedule/wrapper.js). id is the category text
+    // ("<SkillCode>|Capacity"/"<SkillCode>|Requested") we set as each data row's "id" above.
     chartInstance.events.on("serieClick", function(id) {
         try {
             Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnDataPointClicked", [String(id)]);
@@ -654,48 +623,45 @@ function RenderChart(chartData, legendSizeOverride, isCorrectivePass) {
     });
 }
 
-// Applies each legend item's own text colour (codeunit 50609's GetSkillFontColor) to the plain,
-// un-rotated <text class="legend-text"> the library already renders - one legend item per
-// category/bar (data-driven legend, see RenderChart's own `legend.values` config), in the same
-// order lastFontColors was built in. Deferred one frame past chart construction: dhx.Chart paints
-// its SVG synchronously in practice, but querying immediately after `new dhx.Chart(...)` is
-// fragile if that ever changes, so this waits a frame rather than assuming paint order.
-//
-// Previously also rotated each label -90deg here (retired 2026-09-07 - see legendPatchObserver's
-// own comment for why): a plain horizontal legend matching src/dhx/barchart_weekly/wrapper.js's
-// own appearance is simpler and doesn't need the rotated label's on-screen-height-is-the-original-
-// text's-width accounting MeasureLegendTopOverflow used to have to compensate for.
-//
-// onDone (optional) is invoked after the colour pass completes, still inside that same deferred
-// frame - ScheduleLegendPatches uses it to measure/self-correct the legend's reserved top space
-// (see MeasureLegendTopOverflow/CorrectLegendTopOverflowIfNeeded below) once this function's own
-// DOM writes have landed.
-function ApplyLegendTextColors(onDone) {
-    requestAnimationFrame(function() {
-        if (!chartContainer) { if (onDone) onDone(); return; }
-        var legendTexts = chartContainer.querySelectorAll(".legend-text");
-        legendTexts.forEach(function(textEl, idx) {
-            if (lastFontColors[idx]) {
-                textEl.style.fill = lastFontColors[idx];
-            }
-        });
-        if (onDone) onDone();
+// Schedules (de-duplicated - a burst of mutation/resize signals collapses to one pass) a single
+// frame-deferred re-application of all post-render patches. Ported 2026-09-22 from
+// src/dhx/barchart_weekly/wrapper.js's own SchedulePostRenderPatches (see that function's own
+// comment for the full requestAnimationFrame-timing reasoning) - replaces this file's previous,
+// narrower ScheduleLegendPatches/seriesBorderObserver pair with the same single consolidated
+// pipeline Weekly already uses.
+function SchedulePostRenderPatches() {
+    if (pendingPatchFrame) return;
+    pendingPatchFrame = requestAnimationFrame(function() {
+        pendingPatchFrame = null;
+        if (!chartContainer) return;
+        if (chartMutationObserver) chartMutationObserver.disconnect();
+        // ApplySkillPairSpacing MUST run before RenderSkillGroupRow - the latter derives its own
+        // layout (skill-name centers, divider positions, background box) from whatever the bottom
+        // axis ticks' CURRENT x positions are, so it needs to see the tightened/pair-shifted
+        // positions, not the native evenly-spaced ones. The other two patches don't care about bar
+        // x position.
+        ApplySkillPairSpacing();
+        ApplySeriesBorders(lastSeriesDefs, lastSeries);
+        ApplyLegendSwatchBorders(lastSeriesDefs, lastSeries);
+        ApplyLegendHitArea();
+        RenderSkillGroupRow(lastSkillLabels);
+        if (chartMutationObserver) chartMutationObserver.observe(chartContainer, { childList: true, subtree: true });
+
+        // Legend top-clip self-correction runs LAST (after ApplyLegendHitArea, which can slightly
+        // grow the legend's own bbox with its invisible hit-rects) so the measurement below
+        // reflects the legend's truly final DOM shape for this pass. Safe to run on every repaint:
+        // the correction is self-limiting, so once already corrected it becomes a cheap no-op
+        // measurement most passes.
+        var corrected = CorrectLegendTopOverflowIfNeeded();
+        if (!corrected && chartContainer) chartContainer.style.visibility = "";
     });
 }
 
 // Measures how many px the legend's own top edge renders ABOVE the chart's <svg> top edge - i.e.
 // clipped, since the SVG's default overflow behaviour never paints content above its own viewport.
-// Root cause (confirmed by reading suite.js): the legend is painted inside a <g transform=
-// "translate(sizes.left, sizes.top)"> (ComposeLayer.toVDOM, suite.js ~35544-35546), so the
-// legend's local y=0 sits at global y = sizes.top (the reserved top margin, ~50px by default for
-// a "top" legend - Legend.scaleReady, suite.js ~13317). Legend.paint's own positionY (suite.js
-// ~13385-13389) is `-margin - yPadding - figureWidth/2`, where yPadding grows by `itemPadding+2`
-// (22px) every time the row-wrap check (suite.js ~13357) wraps to a new legend row. With enough
-// legend items to wrap even once, positionY comfortably outruns the ~50px reserved band, so the
-// FIRST row's text renders at a global y at or below 0 - clipped - while later rows (pushed
-// further down by their own yPadding) land safely inside the reserved band - exactly the "top row
-// cut off, lower row fine" pattern, same root cause as src/dhx/barchart_weekly/wrapper.js's own
-// legend. Returns 0 (never negative) when nothing is clipped.
+// See src/dhx/barchart_weekly/wrapper.js's own MeasureLegendTopOverflow for the full root-cause
+// writeup (identical mechanism, ported unchanged). Returns 0 (never negative) when nothing is
+// clipped.
 function MeasureLegendTopOverflow() {
     if (!chartContainer) return 0;
     var svgEl = chartContainer.querySelector("svg");
@@ -708,18 +674,8 @@ function MeasureLegendTopOverflow() {
 }
 
 // Triggers a corrective re-render with a larger config.legend.size when the legend is clipped -
-// see legendSize's own comment in RenderChart for why bumping size by precisely the measured
-// overflow (plus a small buffer for sub-pixel/font-metric rounding) is mathematically enough to
-// cancel the clip: size only shifts the whole legend down (global), it never changes the legend's
-// own internal layout, so the previously-clipped region moves by exactly as much extra room as we
-// reserve. Self-limiting rather than flag-guarded (same design as src/dhx/barchart_weekly/
-// wrapper.js's own CorrectLegendTopOverflowIfNeeded, and for the same reason: with a persistent
-// repaint-reactive scheduler - see legendPatchObserver's own comment - there is no single "the
-// corrective render" call to flag as exempt, since ANY render, corrective or not, can be repainted
-// again later by dhx.Chart's own internal settle pass): a 1px tolerance (measurement noise) plus a
-// generous size cap (400px) means that once a correction has actually fixed the clip, this becomes
-// a no-op on every later call, including the repaint the correction's own RenderChart call
-// triggers and any genuine later resize.
+// see legendSize's own comment in RenderChart, and src/dhx/barchart_weekly/wrapper.js's own
+// CorrectLegendTopOverflowIfNeeded for the full reasoning (ported unchanged).
 function CorrectLegendTopOverflowIfNeeded() {
     var overflow = MeasureLegendTopOverflow();
     if (overflow <= 1 || lastLegendSize >= 400) return false;
@@ -728,136 +684,186 @@ function CorrectLegendTopOverflowIfNeeded() {
     return true;
 }
 
-// Schedules (de-duplicated - a burst of mutation/resize signals collapses to one pass) a single
-// frame-deferred re-application of ApplyLegendTextColors + the legend top-overflow correction. See
-// legendPatchObserver's own declaration comment for why this has to be repaint-reactive at all
-// (dhx.Chart's internal settle-repaint silently wipes any per-item colour a prior pass applied,
-// and can change how many rows the legend wraps onto, leaving legend.size mismatched against
-// whatever DID end up rendering). The observer is disconnected for the duration of the writes
-// below and reconnected immediately after, so our own DOM writes (colour styles, and - if
-// CorrectLegendTopOverflowIfNeeded fires - a full chart teardown/rebuild) can't re-trigger this
-// same scheduler in a loop; mirrors src/dhx/barchart_weekly/wrapper.js's own
-// SchedulePostRenderPatches exactly.
-function ScheduleLegendPatches() {
-    if (pendingLegendPatchFrame) return;
-    pendingLegendPatchFrame = requestAnimationFrame(function() {
-        pendingLegendPatchFrame = null;
-        if (!chartContainer) return;
-        if (legendPatchObserver) legendPatchObserver.disconnect();
-        ApplyLegendTextColors(function() {
-            var corrected = CorrectLegendTopOverflowIfNeeded();
-            if (legendPatchObserver) legendPatchObserver.observe(chartContainer, { childList: true, subtree: true });
-            // If a correction just fired, its own nested RenderChart call already scheduled
-            // another ScheduleLegendPatches pass (via its own RenderChart tail) to verify/reveal
-            // once that corrected render has ALSO had its colours re-applied - don't reveal a
-            // still-hidden, not-yet-coloured container early.
-            if (!corrected && chartContainer) chartContainer.style.visibility = "";
+// Pulls each skill's 2 bars (Capacity + Requested) tightly together around their own shared
+// pair-center, so they read as one packed side-by-side pair with a clearly larger gap before the
+// next skill's pair - per spec (a standard grouped/clustered bar chart look). Ported 1:1 from
+// src/dhx/barchart_weekly/wrapper.js's own ApplyDayPairSpacing (see that function's own comment for
+// the full reasoning: dhx.Chart's bottom "text" scale has no per-category spacing option, so this
+// is a post-render pixel patch) - renamed "day" -> "skill" only, logic unchanged.
+function ApplySkillPairSpacing() {
+    var axisGroup = chartContainer.querySelector('g[aria-label^="x-axis"]');
+    if (!axisGroup) return;
+
+    // `:scope > text.scale-text` (DIRECT children only) - deliberately NOT a plain descendant
+    // query, for the same reason src/dhx/barchart_weekly/wrapper.js's own ApplyDayPairSpacing uses
+    // it: this runs BEFORE RenderSkillGroupRow, so a previous `.skill-group-row` (nesting its OWN
+    // `text.scale-text` labels one level deeper) must not be counted here.
+    var ticks = axisGroup.querySelectorAll(":scope > text.scale-text");
+    var pairCount = Math.floor(ticks.length / 2);
+    if (pairCount < 1 || ticks.length % 2 !== 0) return; // odd tick count - shape mismatch, bail rather than misdraw
+
+    var half = (BAR_WIDTH_PX + PAIR_INNER_GAP_PX) / 2;
+    var dx = []; // dx[flatCategoryIndex] = pixel shift for that category's bar(s)/tick
+
+    for (var k = 0; k < pairCount; k++) {
+        var xA = parseFloat(ticks[k * 2].getAttribute("x"));
+        var xB = parseFloat(ticks[k * 2 + 1].getAttribute("x"));
+        var center = (xA + xB) / 2;
+        dx[k * 2] = (center - half) - xA;
+        dx[k * 2 + 1] = (center + half) - xB;
+    }
+
+    // Every series shares the same category x-positions when stacked (which all of this chart's
+    // series are) - shift ALL series' bars at a given category index by the SAME dx so the stack
+    // stays visually aligned.
+    var seriesGroups = chartContainer.querySelectorAll('g[aria-label^="chart s"]');
+    seriesGroups.forEach(function(group) {
+        var paths = group.querySelectorAll("path");
+        paths.forEach(function(p, i) {
+            if (dx[i] === undefined) return;
+            p.setAttribute("transform", "translate(" + dx[i] + ",0)");
         });
+    });
+
+    // Shift the native "C"/"R" tick labels to match, so each stays centered under its own
+    // (now-moved) bar. Mutating the SAME <text> elements' x attribute in place (not replacing
+    // them) is what lets RenderSkillGroupRow, which runs right after this, pick up the new
+    // positions just by re-querying the same selector.
+    ticks.forEach(function(t, i) {
+        if (dx[i] === undefined) return;
+        var x = parseFloat(t.getAttribute("x"));
+        t.setAttribute("x", x + dx[i]);
     });
 }
 
-// Applies a CSS stroke to any bordered series' bars with a nonzero value for that category -
-// ported from src/dhx/barchart_weekly/wrapper.js's ApplySeriesBorders (see that function's own
-// comment for the full reasoning: Bar series has no stroke/outline config option, and a
-// zero-value stacked segment still paints a real, if invisible-height, <path> at its baseline, so
-// the stroke is only applied when that category's own value is actually nonzero). Scoped
-// per-series by aria-label rather than by fill colour, since two different series can
-// legitimately share one fill colour (the CAPACITY bar's Assigned Internal/External halves both
-// use the same green).
-//
-// Currently only the CAPACITY bar's "External" segments (Assigned/Free Capacity, codeunit 50608's
-// AddCapacitySegmentSeries) ever request a border - the per-skill Assigned/Unassigned segments
-// (AddRequestedAssignedSeries/AddSkillUnassignedSeries) deliberately do NOT: that red-outline
-// convention is specifically for the Internal/External capacity-SOURCE distinction, not the
-// Assigned/Unassigned fulfillment-STATUS distinction added alongside this function - but this
-// stays fully generic so any future bordered series works with no JS change.
-//
-// This used to be paired with a second "fill override" DOM patch (retired 2026-08-19, once every
-// bar segment - skill Assigned/Unassigned, CAPACITY's 4 segments - got a real per-series `color`
-// in the chart config itself, so no bar was still relying on a flat default series colour that
-// needed overriding after the fact - see RenderChart's own comment on the `s.color` contract and
-// on why the old single "Requested Hours" series was removed entirely). Keeping that DOM patch
-// would now be actively wrong, not just redundant: it always targeted the FIRST
-// `g[aria-label^="chart s"]` group under the old "exactly one series, N categories" chart shape,
-// which no longer holds now that every category has its own dedicated series pair/quad - it would
-// force-repaint whatever series happens to render first with an unrelated category's colour.
-//
-// WHY A SINGLE requestAnimationFrame IS NOT ENOUGH (same root cause originally diagnosed for the
-// retired fill-override pass, fixed here 2026-08-11): suite.js's Chart constructor deliberately
-// paints its FIRST pass at width=0/height=0 ("using zero values ensure that widget will not
-// attempt to render self in the hidden state") and only paints its REAL geometry once its own
-// internal ResizeObserver (see suite.js's `resizer()` helper, mounted as a hidden child of the
-// chart root) reports the container's true size. That second, real-geometry paint is an async
-// signal with no guaranteed ordering against a single requestAnimationFrame scheduled right after
-// `new dhx.Chart(...)`, and when it lands, the library's own vdom patch repaints every <path>
-// fresh - silently wiping out whatever stroke a one-shot rAF had already applied to the earlier,
-// degenerate (width=0) paint.
-//
-// Fix: watch chartContainer for ANY DOM mutation (not just resize) via MutationObserver and
-// reapply the stroke every time one lands, guarded by `applying` so our own style writes don't
-// re-trigger themselves. This stays correct no matter how many repaint passes dhx.Chart performs
-// or what triggers them (initial layout settle, or a later real resize e.g. the user resizing the
-// browser window or the FactBox pane) - not just the very first one.
+// Applies a CSS stroke to every rendered bar <path> of a series that requested a `border`
+// colour AND actually has a nonzero value for that category - ported 1:1 from
+// src/dhx/barchart_weekly/wrapper.js's own ApplySeriesBorders (see that function's own comment for
+// the full reasoning: a zero-value stacked segment still paints as a real, if invisible-height,
+// <path> at its baseline, so stroking it unconditionally would leave a persistent hairline on
+// every bar with no data for that series at all). Currently only the Capacity bar's "External"
+// segment (codeunit 50608's AddCapacitySegmentSeries) requests a border, but this stays fully
+// generic so any future bordered series works with no JS change.
 function ApplySeriesBorders(seriesDefs, series) {
-    if (seriesBorderObserver) {
-        seriesBorderObserver.disconnect();
-        seriesBorderObserver = null;
-    }
+    seriesDefs.forEach(function(s, sIdx) {
+        if (s && s.border && series[sIdx]) {
+            var values = Array.isArray(s.values) ? s.values : [];
+            var paths = chartContainer.querySelectorAll('g[aria-label="chart ' + series[sIdx].id + '"] path');
+            paths.forEach(function(p, pIdx) {
+                if (values[pIdx]) {
+                    p.style.stroke = s.border;
+                    p.style.strokeWidth = "1.5px";
+                }
+            });
+        }
+    });
+}
+
+// Applies the same red-outline convention as ApplySeriesBorders, but to a bordered series' own
+// LEGEND SWATCH, plus each per-skill series' own legend TEXT colour (codeunit 50608's
+// GetSkillFontColor, sent as that series' own "fontColor" - see AddSkillUnassignedSeries) - ported
+// 1:1 from src/dhx/barchart_weekly/wrapper.js's own ApplyLegendSwatchBorders (see that function's
+// own comment for the full suite.js Legend.paint() internals this relies on, and why ownership is
+// re-derived from `series` here via GetLegendOwnerIndexByLabel rather than trusted from the DOM).
+function ApplyLegendSwatchBorders(seriesDefs, series) {
     if (!chartContainer) return;
+    var legendGroup = chartContainer.querySelector('g[aria-label="Legend"]');
+    if (!legendGroup) return;
 
-    var applying = false;
+    var legendOwnerIndexByLabel = GetLegendOwnerIndexByLabel(series);
 
-    function paintBorders() {
-        applying = true;
-        (seriesDefs || []).forEach(function(s, sIdx) {
-            if (s && s.border && series[sIdx]) {
-                var values = Array.isArray(s.values) ? s.values : [];
-                var paths = chartContainer.querySelectorAll('g[aria-label="chart ' + series[sIdx].id + '"] path');
-                paths.forEach(function(p, pIdx) {
-                    if (values[pIdx]) {
-                        p.style.stroke = s.border;
-                        p.style.strokeWidth = "1.5px";
-                    }
-                });
-            }
+    var items = legendGroup.querySelectorAll(".legend-item");
+    items.forEach(function(item) {
+        var textEl = item.querySelector(".legend-text");
+        var swatch = item.querySelector(".figure");
+        if (!textEl || !swatch) return;
+
+        var ownerIdx = legendOwnerIndexByLabel[textEl.textContent];
+        var ownerDef = (ownerIdx !== undefined) ? seriesDefs[ownerIdx] : null;
+
+        if (ownerDef && ownerDef.border) {
+            swatch.style.stroke = ownerDef.border;
+            swatch.style.strokeWidth = "1.5px";
+        } else {
+            swatch.style.stroke = "";
+            swatch.style.strokeWidth = "";
+        }
+
+        if (ownerDef && ownerDef.fontColor) {
+            textEl.style.fill = ownerDef.fontColor;
+        } else {
+            textEl.style.fill = "";
+        }
+    });
+}
+
+// First-occurrence-by-label ownership - MUST mirror RenderChart's own `legend.series` de-dup
+// filter exactly. Ported 1:1 from src/dhx/barchart_weekly/wrapper.js's own
+// GetLegendOwnerIndexByLabel - factored out so the right-click legend resolver below
+// (ResolveLegendSegmentFromEvent) reuses the exact same ownership rule instead of re-deriving a
+// second, potentially-drifting copy of it.
+function GetLegendOwnerIndexByLabel(series) {
+    var seenLabels = {};
+    var ownerIndexByLabel = {};
+    (series || []).forEach(function(s, sIdx) {
+        if (!s || seenLabels[s.label]) return;
+        seenLabels[s.label] = true;
+        ownerIndexByLabel[s.label] = sIdx;
+    });
+    return ownerIndexByLabel;
+}
+
+// Widens each legend entry's actually-clickable area to its FULL bounding box - ported 1:1 from
+// src/dhx/barchart_weekly/wrapper.js's own ApplyLegendHitArea (see that function's own comment for
+// the full live-probe root-cause writeup: the swatch/text glyphs only cover PART of a legend
+// item's own bbox under default SVG hit-testing, so clicks/right-clicks landing in the gaps
+// between them silently fall through).
+function ApplyLegendHitArea() {
+    if (!chartContainer) return;
+    var legendGroup = chartContainer.querySelector('g[aria-label="Legend"]');
+    if (!legendGroup) return;
+
+    var items = legendGroup.querySelectorAll(".legend-item");
+    items.forEach(function(item) {
+        var existing = item.querySelector(".legend-hit-area");
+        if (existing) existing.remove();
+
+        var bbox;
+        try { bbox = item.getBBox(); } catch (e) { return; }
+        if (!bbox || !bbox.width || !bbox.height) return;
+
+        var hitRect = SvgEl("rect", {
+            "class": "legend-hit-area",
+            x: bbox.x, y: bbox.y, width: bbox.width, height: bbox.height,
+            fill: "transparent"
         });
-        applying = false;
-    }
-
-    requestAnimationFrame(paintBorders);
-
-    if (typeof MutationObserver !== "undefined") {
-        seriesBorderObserver = new MutationObserver(function() {
-            if (applying) return;
-            requestAnimationFrame(paintBorders);
-        });
-        seriesBorderObserver.observe(chartContainer, {
-            childList: true,
-            subtree: true
-        });
-    }
+        hitRect.style.pointerEvents = "all";
+        item.insertBefore(hitRect, item.firstChild);
+    });
 }
 
 // ============================================================
-// Right-click "Show Data" - single bar and legend entry
+// Right-click "Show Data" - bar segments and legend entries
 // ============================================================
 
-// Resolves a right-click target to the specific BAR it landed on - i.e. one category (Skill Code,
-// or the synthetic 'CAPACITY' marker) - since every series here still has exactly one bar per
-// category (no per-day stacking, unlike the live barchart - see lastCategories' own declaration
-// comment). Bars paint their <path>s into a `g[aria-label="chart s<N>"]` wrapper per series
-// (suite.js's Bar.paint sets this aria-label from the series' own id - same mechanism the live
-// barchart's wrapper.js relies on); `.closest(...)` always resolves to whichever series group the
-// clicked <path> actually belongs to - the shared "Requested - Assigned" series or one skill's own
-// "Unassigned" series for a click on a SKILL bar, or one of the CAPACITY bar's own 4 stacked
-// Assigned/Free Capacity segments for a click on that bar - in the same left-to-right order as
-// `lastCategories` either way, so the clicked <path>'s index within THAT group IS the category
-// index directly. The returned segmentId is always just the CATEGORY text ("CAPACITY" or a Skill
-// Code), never which specific stacked segment was clicked - codeunit 50608's ShowSegmentData
-// already treats any click on a given bar identically regardless of which of its own segments was
-// clicked, so no finer-grained segment identification is needed here. Returns null when the click
-// did not land on a bar at all (empty background, axis, legend - see ResolveLegendSegmentFromEvent
-// for the legend case).
+// Resolves a right-click target to the specific stacked BAR it landed on - i.e. one category
+// (a Skill Code's own "Capacity" or "Requested" bar), not one specific segment within it, since
+// codeunit 50608's ShowSegmentData already treats any click on a given bar identically regardless
+// of which of its own stacked segments was actually clicked. Bars paint their <path>s into a
+// `g[aria-label="chart s<N>"]` wrapper per series (suite.js's Bar.paint sets this aria-label from
+// the series' own id); `.closest(...)` always resolves to whichever series group the clicked
+// <path> actually belongs to, and every series' own <path> list is index-aligned with `categories`
+// (one <path> per category, always, even a 0-height one - the "0 elsewhere" stacked-series
+// convention) - so the clicked <path>'s index within its OWN group directly indexes into
+// lastCategories, giving back the exact "<SkillCode>|Capacity"/"<SkillCode>|Requested" category
+// text codeunit 50608's ShowSegmentData expects. This is the SAME direct-index lookup this file
+// used before the C/R bar-pair redesign (it already worked correctly for one bar per category);
+// the pair grouping does not change this - it only changes what the resolved category text itself
+// looks like, so no day/2-style even/odd math (as src/dhx/barchart_weekly/wrapper.js's own
+// ResolveBarSegmentFromEvent needs, since ITS AL-side signature takes BarType as a separate
+// parameter) is needed here. Returns null when the click did not land on a bar at all (empty
+// background, axis, legend - see ResolveLegendSegmentFromEvent for the legend case).
+var lastCategories = [];
 function ResolveBarSegmentFromEvent(e) {
     var pathEl = e.target.closest ? e.target.closest("path") : null;
     if (!pathEl) return null;
@@ -871,17 +877,24 @@ function ResolveBarSegmentFromEvent(e) {
     return { segmentId: lastCategories[pIdx] };
 }
 
-// Resolves a right-click target to the LEGEND entry. The legend here is data-driven per
-// CATEGORY, not per series (see RenderChart's own `legend.values` config), so - same as before
-// this chart grew per-skill Assigned/Unassigned segments - there is nothing to identify beyond
-// "the legend was clicked" - the AL side (codeunit 50608's ShowSegmentData) treats a legend click
-// as "every skill bar combined", the closest analog to the live barchart's "whole week instead of
-// one day" broadening (there is no day axis here to broaden along - see that procedure's own doc
-// comment for the full reasoning). Matches the live barchart wrapper.js's `.legend-item` DOM shape.
+// Resolves a right-click target to a LEGEND entry, identified by its rendered label text (same
+// series-driven legend as src/dhx/barchart_weekly/wrapper.js - see that file's own
+// ResolveLegendSegmentFromEvent). Ported here 2026-09-22 to replace this chart's old data-driven
+// (per-category) legend resolver, which only ever returned an empty {} - now that the legend is
+// series-driven, a legend click genuinely identifies ONE series (a Capacity segment, the shared
+// Requested-Assigned series, or one skill's own Unassigned series), which codeunit 50608's
+// ShowSegmentData needs to decide which "whole chart" drilldown to broaden to.
 function ResolveLegendSegmentFromEvent(e) {
     var item = e.target.closest ? e.target.closest(".legend-item") : null;
     if (!item) return null;
-    return {};
+    var textEl = item.querySelector(".legend-text");
+    if (!textEl) return null;
+
+    var ownerIndexByLabel = GetLegendOwnerIndexByLabel(lastSeries);
+    var ownerIdx = ownerIndexByLabel[textEl.textContent];
+    if (ownerIdx === undefined || !lastSeriesDefs[ownerIdx]) return null;
+
+    return { seriesName: lastSeriesDefs[ownerIdx].name };
 }
 
 // Removes both the popup element AND (critically) whatever dismiss-listener set is currently
@@ -891,18 +904,6 @@ function ResolveLegendSegmentFromEvent(e) {
 // regardless of which path triggered the dismissal (menu-item click, outside click, scroll, Escape,
 // or - critically - ShowContextMenu itself calling this again to clear the PREVIOUS menu before
 // opening a new one).
-//
-// Bug fixed here (2026-08-10): the original implementation registered its 4 dismiss listeners with
-// `{once:true}` and never tracked/removed them explicitly. `{once:true}` only self-removes a
-// listener when THAT SPECIFIC event type fires - a rapid run of right-clicks with no intervening
-// left-click/scroll/Escape (exactly "right-click several different bars in a row") leaves every
-// prior invocation's "click"/"scroll"/"keydown" listeners permanently attached to `document` (only
-// "contextmenu" self-cleaned, since each NEW right-click's own contextmenu event bubbles to
-// `document` and fires the previous one) - unbounded growth, one full set per right-click, which is
-// what made the page feel like it was hanging after clicking around for a while. Same root cause
-// and fix as src/dhx/barchart_daily/wrapper.js's HideContextMenu (fixed there first). Explicit tracking +
-// removal in HideContextMenu (called at the START of every ShowContextMenu, not just on dismissal)
-// caps this at exactly one attached set, always.
 function HideContextMenu() {
     if (contextMenuDismissHandlers) {
         document.removeEventListener("click", contextMenuDismissHandlers.click);
@@ -961,6 +962,109 @@ function ShowContextMenu(clientX, clientY, onShowData) {
         document.addEventListener("scroll", handlers.scroll, { capture: true });
         document.addEventListener("keydown", handlers.keydown);
     }, 0);
+}
+
+// Creates an SVG element (SVG needs its own namespace - plain document.createElement won't
+// render inside an <svg>) and applies the given attributes.
+function SvgEl(tag, attrs) {
+    var el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (var key in attrs) {
+        el.setAttribute(key, attrs[key]);
+    }
+    return el;
+}
+
+// Draws the "Skill Code" header row spanning each skill's 2 bars (Capacity + Requested), directly
+// underneath the native "C"/"R" tick labels, plus a grid of borders around both rows - ported 1:1
+// from src/dhx/barchart_weekly/wrapper.js's own RenderDayGroupRow (renamed "day" -> "skill" only,
+// logic unchanged - see that function's own comment for the full reasoning: dhx.Chart's bottom
+// "text" scale has no built-in concept of grouped/multi-level categories, so this row is drawn
+// entirely by hand from the ALREADY-RENDERED tick positions). Idempotent - safe to call again on
+// every repaint (see SchedulePostRenderPatches).
+function RenderSkillGroupRow(skillLabels) {
+    var axisGroup = chartContainer.querySelector('g[aria-label^="x-axis"]');
+    if (!axisGroup) return;
+
+    var existing = axisGroup.querySelector(".skill-group-row");
+    if (existing) existing.remove();
+    var existingBg = axisGroup.querySelector(".skill-group-bg");
+    if (existingBg) existingBg.remove();
+
+    if (!skillLabels || !skillLabels.length) return;
+
+    var ticks = axisGroup.querySelectorAll("text.scale-text");
+    if (ticks.length !== skillLabels.length * 2) return; // shape mismatch - bail rather than misdraw
+
+    var xs = [];
+    for (var t = 0; t < ticks.length; t++) {
+        xs.push(parseFloat(ticks[t].getAttribute("x")));
+    }
+    var tickY = parseFloat(ticks[0].getAttribute("y"));
+    var step = xs[1] - xs[0];
+    if (!step) return; // degenerate layout (e.g. a single category) - nothing sane to draw
+
+    // Reconstruct the bottom axis's own local y=0 line (suite.js's bottom() sets every
+    // tick's y to `height + textPadding`) so the new rows stack directly beneath it in the SAME
+    // local coordinate space as the existing ticks - no need to read any DOM transform/bounding box.
+    var axisY = tickY - BOTTOM_TEXT_PADDING;
+    var row2Y = axisY + SKILL_ROW_HEIGHT + BOTTOM_TEXT_PADDING;
+    var leftEdge = xs[0] - step / 2;
+    var rightEdge = xs[xs.length - 1] + step / 2;
+
+    // The background fill MUST be painted BEHIND the native "C"/"R" tick text (siblings within
+    // axisGroup, already there before this function ever runs) - SVG has no z-index, paint order
+    // is DOM order, so an opaque fill appended normally (last = on top) would silently cover that
+    // text instead of sitting behind it. insertBefore(..., firstChild) is the one line standing
+    // between "background tint" and "row 1 text vanishes".
+    var bgRect = SvgEl("rect", {
+        "class": "skill-group-bg",
+        x: leftEdge, y: axisY, width: rightEdge - leftEdge, height: SKILL_ROW_HEIGHT * 2,
+        fill: SKILL_GROUP_BACKGROUND_COLOR, stroke: SKILL_GROUP_BORDER_COLOR, "stroke-width": SKILL_GROUP_BORDER_WIDTH
+    });
+    axisGroup.insertBefore(bgRect, axisGroup.firstChild);
+
+    // Everything else (row divider, dividers, skill-code text) is unfilled strokes/text that never
+    // covers the native ticks, so it stays appended normally (on top, where it needs to be
+    // visible over the background).
+    var group = SvgEl("g", { "class": "skill-group-row" });
+
+    group.appendChild(SvgEl("line", {
+        x1: leftEdge, x2: rightEdge, y1: axisY + SKILL_ROW_HEIGHT, y2: axisY + SKILL_ROW_HEIGHT,
+        stroke: SKILL_GROUP_BORDER_COLOR, "stroke-width": SKILL_GROUP_BORDER_WIDTH
+    }));
+    // Top row: one divider between every bar (Capacity | Requested | Capacity | ...).
+    for (var k = 0; k < xs.length - 1; k++) {
+        var dividerX = (xs[k] + xs[k + 1]) / 2;
+        group.appendChild(SvgEl("line", {
+            x1: dividerX, x2: dividerX, y1: axisY, y2: axisY + SKILL_ROW_HEIGHT,
+            stroke: SKILL_GROUP_BORDER_COLOR, "stroke-width": SKILL_GROUP_BORDER_WIDTH
+        }));
+    }
+    // Bottom row: one divider between each SKILL pair only (not between a skill's own
+    // Capacity/Requested bars, since those share the same merged skill-code cell).
+    for (var d = 0; d < skillLabels.length - 1; d++) {
+        var pairBoundaryX = (xs[d * 2 + 1] + xs[d * 2 + 2]) / 2;
+        group.appendChild(SvgEl("line", {
+            x1: pairBoundaryX, x2: pairBoundaryX, y1: axisY + SKILL_ROW_HEIGHT, y2: axisY + SKILL_ROW_HEIGHT * 2,
+            stroke: SKILL_GROUP_BORDER_COLOR, "stroke-width": SKILL_GROUP_BORDER_WIDTH
+        }));
+    }
+    // One merged skill-code label per skill, centered over its own pair of bars, tilted
+    // SKILL_LABEL_ROTATE_DEG around that same center point - rotating in place (rather than
+    // anchoring the pivot at an edge) keeps the label's on-screen center close to where a reader's
+    // eye already expects it (still roughly under its own bar pair), rather than shifting the whole
+    // label sideways just because it's now diagonal.
+    for (var i = 0; i < skillLabels.length; i++) {
+        var midX = (xs[i * 2] + xs[i * 2 + 1]) / 2;
+        var skillText = SvgEl("text", {
+            x: midX, y: row2Y, "text-anchor": "middle", "class": "scale-text",
+            transform: "rotate(" + SKILL_LABEL_ROTATE_DEG + " " + midX + " " + row2Y + ")"
+        });
+        skillText.textContent = String(skillLabels[i]);
+        group.appendChild(skillText);
+    }
+
+    axisGroup.appendChild(group);
 }
 
 // ============================================================
