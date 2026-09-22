@@ -23,14 +23,18 @@ controladdin DHXBarChartAddin_daily
     event OnDataPointClicked(SkillCode: Text);
     /// <summary>
     /// Fired by wrapper.js's right-click "Show Data" context menu (see ResolveBarSegmentFromEvent/
-    /// ResolveLegendSegmentFromEvent + the contextmenu listener set up in BOOT). This chart has no
-    /// per-day breakdown and only ever one series ("Requested Hours") - one bar per Skill Code
-    /// plus the synthetic "CAPACITY" aggregate bar (see codeunit 50608's BuildSkillBuffer) - so
-    /// there is no BarType/DayIndex to resolve, unlike the live barchart's 4-parameter event.
-    /// SegmentId is the clicked bar's category text - a bare Skill Code, or the literal 'CAPACITY'
-    /// marker - and is ignored when WholeChart is true. WholeChart is true for a legend-origin
-    /// click (this chart's one legend entry generalizes over every skill bar at once - see
-    /// codeunit 50608's ShowSegmentData doc comment), false for a single-bar click.
+    /// ResolveLegendSegmentFromEvent + the contextmenu listener set up in BOOT). Every Skill Code
+    /// now renders a Capacity/Requested ("C"/"R") bar PAIR (see codeunit 50608's BuildSkillBuffer/
+    /// each page's own RefreshChart) and the legend is series-driven (2026-09-22, matching
+    /// src/dhx/barchart_weekly's own legend) - so this stays a plain 2-parameter event, just with
+    /// a richer SegmentId now:
+    ///   - WholeChart = false (a bar-segment click): SegmentId is that bar's own category text,
+    ///     "&lt;SkillCode&gt;|Capacity" or "&lt;SkillCode&gt;|Requested" - codeunit 50608's
+    ///     ShowSegmentData splits it back apart.
+    ///   - WholeChart = true (a legend-entry click): SegmentId is that series' own name (one of
+    ///     the fixed Capacity segment names, the shared "Requested - Assigned" name, or a
+    ///     per-skill "&lt;Skill&gt; - Unassigned" name) - codeunit 50608's ShowSegmentData
+    ///     resolves which "whole chart" drilldown to broaden to from that name.
     /// </summary>
     event OnShowSegmentData(SegmentId: Text; WholeChart: Boolean);
 

@@ -895,6 +895,188 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     end;
 
     /// <summary>
+    /// Per-skill twin of GetCapacitySplitForRangeWithMandatory below - same Assigned/Free x
+    /// Internal/External/Mandatory computation, scoped to only the resources who hold SkillCode
+    /// via the "Resource Skill" table (Type = Resource, "No." = Resource No., "Skill Code" =
+    /// SkillCode), instead of every resource company-wide. Added 2026-09-22 for
+    /// src/dhx/barchart_daily's per-skill Capacity ("C") bar: per the user's own mockup
+    /// annotation, "the capacity bar is per respective resource (not skill)" - i.e. a skill's own
+    /// C bar shows the SAME 4-segment Assigned/Free-Internal/Free-External-Mandatory/
+    /// Free-External split this codeunit's own week-level Capacity bar shows, just filtered down
+    /// to the resource set holding that skill. A resource holding multiple skills legitimately
+    /// contributes to each of those skills' own totals - expected, not double-counting to avoid
+    /// (each skill's C bar answers "how much capacity do SkillCode-qualified resources have",
+    /// independently of whatever other skills those same resources might also hold).
+    ///
+    /// Reuses the exact same classification rules CalcAssignedSplit/CalcCapacitySplit use ("Is
+    /// External" for Internal/External, "Mandatory Schedulling" for the External split) via their
+    /// own resource-set-filtered twins (CalcAssignedSplitForResourceSet/
+    /// CalcCapacitySplitForResourceSet immediately below) so the two charts can never classify a
+    /// resource differently. Reads from the shared GDayPlanningBuf/GResCapacityBuf temp buffers
+    /// (EnsureDayPlanningBuffer/EnsureResCapacityBuffer) - no per-skill physical "Res. Capacity
+    /// Entry"/"Day Planning" table scan, matching this codeunit's existing perf convention (see
+    /// EnsureDayPlanningBuffer's own doc comment); the Daily chart calls this once per skill per
+    /// render, so a physical scan per skill would multiply the same N-day company-wide read
+    /// N-skills times.
+    /// </summary>
+    procedure GetSkillCapacitySplitForRangeWithMandatory(SkillCode: Code[10]; DateFrom: Date; DateTo: Date; var AssignedInternal: Decimal; var AssignedExternal: Decimal; var CapacityInternal: Decimal; var CapacityExternal: Decimal; var CapacityExternalMandatory: Decimal)
+    var
+        ResourceSet: Dictionary of [Code[20], Boolean];
+        CurrDate: Date;
+        DayAssignedInternal: Decimal;
+        DayAssignedExternal: Decimal;
+        DayCapacityInternal: Decimal;
+        DayCapacityExternal: Decimal;
+        DayCapacityExternalMandatory: Decimal;
+    begin
+        AssignedInternal := 0;
+        AssignedExternal := 0;
+        CapacityInternal := 0;
+        CapacityExternal := 0;
+        CapacityExternalMandatory := 0;
+
+        if DateTo < DateFrom then
+            exit;
+
+        BuildResourceSetForSkill(SkillCode, ResourceSet);
+        if ResourceSet.Keys().Count = 0 then
+            exit; // no resource holds this skill - nothing to sum.
+
+        EnsureDayPlanningBuffer(DateFrom, DateTo);
+
+        CurrDate := DateFrom;
+        while CurrDate <= DateTo do begin
+            CalcAssignedSplitForResourceSet(CurrDate, ResourceSet, DayAssignedInternal, DayAssignedExternal);
+            CalcCapacitySplitForResourceSet(CurrDate, ResourceSet, DayCapacityInternal, DayCapacityExternal, DayCapacityExternalMandatory);
+            AssignedInternal += DayAssignedInternal;
+            AssignedExternal += DayAssignedExternal;
+            CapacityInternal += DayCapacityInternal;
+            CapacityExternal += DayCapacityExternal;
+            CapacityExternalMandatory += DayCapacityExternalMandatory;
+            CurrDate += 1;
+        end;
+    end;
+
+    /// <summary>
+    /// Collects the distinct Resource Nos. registered against SkillCode in "Resource Skill"
+    /// (Type = Resource) - the resource set GetSkillCapacitySplitForRangeWithMandatory scopes its
+    /// Assigned/Free Capacity computation to.
+    /// </summary>
+    local procedure BuildResourceSetForSkill(SkillCode: Code[10]; var ResourceSet: Dictionary of [Code[20], Boolean])
+    var
+        ResourceSkill: Record "Resource Skill";
+    begin
+        Clear(ResourceSet);
+        ResourceSkill.Reset();
+        ResourceSkill.SetRange(Type, ResourceSkill.Type::Resource);
+        ResourceSkill.SetRange("Skill Code", SkillCode);
+        ResourceSkill.SetLoadFields("No.");
+        if ResourceSkill.FindSet() then
+            repeat
+                if not ResourceSet.ContainsKey(ResourceSkill."No.") then
+                    ResourceSet.Add(ResourceSkill."No.", true);
+            until ResourceSkill.Next() = 0;
+    end;
+
+    /// <summary>
+    /// Resource-set-filtered twin of CalcAssignedSplit above - identical logic/classification,
+    /// just skips any "Assigned Resource No." not in ResourceSet.
+    /// </summary>
+    local procedure CalcAssignedSplitForResourceSet(PlanDate: Date; var ResourceSet: Dictionary of [Code[20], Boolean]; var InternalAssigned: Decimal; var ExternalAssigned: Decimal)
+    var
+        Resource: Record Resource;
+    begin
+        InternalAssigned := 0;
+        ExternalAssigned := 0;
+
+        Resource.SetLoadFields("Is External");
+
+        GDayPlanningBuf.Reset();
+        GDayPlanningBuf.SetRange("Plan Date", PlanDate);
+        GDayPlanningBuf.SetRange(Assigned, true);
+        if GDayPlanningBuf.FindSet() then
+            repeat
+                if ResourceSet.ContainsKey(GDayPlanningBuf."Assigned Resource No.") then
+                    if Resource.Get(GDayPlanningBuf."Assigned Resource No.") then begin
+                        if Resource."Is External" then
+                            ExternalAssigned += GDayPlanningBuf."Assigned Hours"
+                        else
+                            InternalAssigned += GDayPlanningBuf."Assigned Hours";
+                    end;
+            until GDayPlanningBuf.Next() = 0;
+        GDayPlanningBuf.Reset();
+    end;
+
+    /// <summary>
+    /// Resource-set-filtered twin of CalcCapacitySplit above - identical logic/classification,
+    /// just skips any "Resource No." not in ResourceSet when accumulating capacity/assigned
+    /// totals.
+    /// </summary>
+    local procedure CalcCapacitySplitForResourceSet(PlanDate: Date; var ResourceSet: Dictionary of [Code[20], Boolean]; var InternalCapacity: Decimal; var ExternalCapacity: Decimal; var ExternalCapacity_mandatory: Decimal)
+    var
+        Resource: Record Resource;
+        ResourceCapacityTotals: Dictionary of [Code[20], Decimal];
+        ResourceAssignedTotals: Dictionary of [Code[20], Decimal];
+        ResourceNo: Code[20];
+        CapacityTotal: Decimal;
+        AssignedTotal: Decimal;
+        FreeCapacity: Decimal;
+    begin
+        InternalCapacity := 0;
+        ExternalCapacity := 0;
+        ExternalCapacity_mandatory := 0;
+
+        GResCapacityBuf.Reset();
+        GResCapacityBuf.SetRange(Date, PlanDate);
+        if GResCapacityBuf.FindSet() then
+            repeat
+                if ResourceSet.ContainsKey(GResCapacityBuf."Resource No.") then begin
+                    CapacityTotal := 0;
+                    if ResourceCapacityTotals.ContainsKey(GResCapacityBuf."Resource No.") then
+                        CapacityTotal := ResourceCapacityTotals.Get(GResCapacityBuf."Resource No.");
+                    ResourceCapacityTotals.Set(GResCapacityBuf."Resource No.", CapacityTotal + GResCapacityBuf.Capacity);
+                end;
+            until GResCapacityBuf.Next() = 0;
+        GResCapacityBuf.Reset();
+
+        if ResourceCapacityTotals.Keys().Count > 0 then begin
+            GDayPlanningBuf.Reset();
+            GDayPlanningBuf.SetRange("Plan Date", PlanDate);
+            GDayPlanningBuf.SetRange(Assigned, true);
+            if GDayPlanningBuf.FindSet() then
+                repeat
+                    if ResourceSet.ContainsKey(GDayPlanningBuf."Assigned Resource No.") then begin
+                        AssignedTotal := 0;
+                        if ResourceAssignedTotals.ContainsKey(GDayPlanningBuf."Assigned Resource No.") then
+                            AssignedTotal := ResourceAssignedTotals.Get(GDayPlanningBuf."Assigned Resource No.");
+                        ResourceAssignedTotals.Set(GDayPlanningBuf."Assigned Resource No.", AssignedTotal + GDayPlanningBuf."Assigned Hours");
+                    end;
+                until GDayPlanningBuf.Next() = 0;
+            GDayPlanningBuf.Reset();
+        end;
+
+        foreach ResourceNo in ResourceCapacityTotals.Keys() do begin
+            CapacityTotal := ResourceCapacityTotals.Get(ResourceNo);
+            AssignedTotal := 0;
+            if ResourceAssignedTotals.ContainsKey(ResourceNo) then
+                AssignedTotal := ResourceAssignedTotals.Get(ResourceNo);
+
+            FreeCapacity := CapacityTotal - AssignedTotal;
+            if FreeCapacity < 0 then
+                FreeCapacity := 0;
+            if FreeCapacity <> 0 then
+                if Resource.Get(ResourceNo) then
+                    if Resource."Is External" then begin
+                        if Resource."Mandatory Schedulling" then
+                            ExternalCapacity_mandatory += FreeCapacity
+                        else
+                            ExternalCapacity += FreeCapacity;
+                    end else
+                        InternalCapacity += FreeCapacity;
+        end;
+    end;
+
+    /// <summary>
     /// Splits "Requested Hours" for unassigned (Assigned = false) Day Planning rows
     /// on PlanDate for the given Skill into Internal / External buckets by the line's OWN
     /// "Requested Resource No." - a preferred/target resource a planner can set on a line before
