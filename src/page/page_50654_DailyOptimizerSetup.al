@@ -63,6 +63,16 @@ page 50654 "Daily Optimizer Setup"
                         begin
                             PickColor(Rec."Bar Font Color");
                         end;
+
+                        trigger OnResetRequested()
+                        begin
+                            ResetColor(Rec."Bar Font Color", VisualDefaultSettings.GetDefaultBarFontColor());
+                        end;
+
+                        trigger OnClearRequested()
+                        begin
+                            ClearColor(Rec."Bar Font Color");
+                        end;
                     }
                 }
 
@@ -83,6 +93,16 @@ page 50654 "Daily Optimizer Setup"
                         begin
                             PickColor(Rec."Weekend Color");
                         end;
+
+                        trigger OnResetRequested()
+                        begin
+                            ResetColor(Rec."Weekend Color", VisualDefaultSettings.GetDefaultWeekendColor());
+                        end;
+
+                        trigger OnClearRequested()
+                        begin
+                            ClearColor(Rec."Weekend Color");
+                        end;
                     }
                     usercontrol(CfHolidayColor; DHXColorFieldAddin)
                     {
@@ -96,6 +116,16 @@ page 50654 "Daily Optimizer Setup"
                         trigger OnPickRequested()
                         begin
                             PickColor(Rec."Holiday Color");
+                        end;
+
+                        trigger OnResetRequested()
+                        begin
+                            ResetColor(Rec."Holiday Color", VisualDefaultSettings.GetDefaultHolidayColor());
+                        end;
+
+                        trigger OnClearRequested()
+                        begin
+                            ClearColor(Rec."Holiday Color");
                         end;
                     }
                 }
@@ -117,6 +147,16 @@ page 50654 "Daily Optimizer Setup"
                         begin
                             PickColor(Rec."GTB Color (non posting)");
                         end;
+
+                        trigger OnResetRequested()
+                        begin
+                            ResetColor(Rec."GTB Color (non posting)", VisualDefaultSettings.GetDefaultGanttTaskBarColorNonPosting());
+                        end;
+
+                        trigger OnClearRequested()
+                        begin
+                            ClearColor(Rec."GTB Color (non posting)");
+                        end;
                     }
                     usercontrol(CfGTBColor; DHXColorFieldAddin)
                     {
@@ -130,6 +170,16 @@ page 50654 "Daily Optimizer Setup"
                         trigger OnPickRequested()
                         begin
                             PickColor(Rec."GTB Color");
+                        end;
+
+                        trigger OnResetRequested()
+                        begin
+                            ResetColor(Rec."GTB Color", VisualDefaultSettings.GetDefaultGanttTaskBarColor());
+                        end;
+
+                        trigger OnClearRequested()
+                        begin
+                            ClearColor(Rec."GTB Color");
                         end;
                     }
                     usercontrol(CfGTBBorderColor; DHXColorFieldAddin)
@@ -145,6 +195,16 @@ page 50654 "Daily Optimizer Setup"
                         begin
                             PickColor(Rec."GTB Border Color");
                         end;
+
+                        trigger OnResetRequested()
+                        begin
+                            ResetColor(Rec."GTB Border Color", VisualDefaultSettings.GetDefaultGanttTaskBarBorderColor());
+                        end;
+
+                        trigger OnClearRequested()
+                        begin
+                            ClearColor(Rec."GTB Border Color");
+                        end;
                     }
                     usercontrol(CfGTBProgressColor; DHXColorFieldAddin)
                     {
@@ -159,6 +219,16 @@ page 50654 "Daily Optimizer Setup"
                         begin
                             PickColor(Rec."GTB Progress Color");
                         end;
+
+                        trigger OnResetRequested()
+                        begin
+                            ResetColor(Rec."GTB Progress Color", VisualDefaultSettings.GetDefaultGanttTaskBarProgressColor());
+                        end;
+
+                        trigger OnClearRequested()
+                        begin
+                            ClearColor(Rec."GTB Progress Color");
+                        end;
                     }
                     usercontrol(CfGTBFontColor; DHXColorFieldAddin)
                     {
@@ -172,6 +242,16 @@ page 50654 "Daily Optimizer Setup"
                         trigger OnPickRequested()
                         begin
                             PickColor(Rec."GTB Font Color");
+                        end;
+
+                        trigger OnResetRequested()
+                        begin
+                            ResetColor(Rec."GTB Font Color", VisualDefaultSettings.GetDefaultGanttTaskBarFontColor());
+                        end;
+
+                        trigger OnClearRequested()
+                        begin
+                            ClearColor(Rec."GTB Font Color");
                         end;
                     }
                     field("GTB Font Size (px)"; Rec."GTB Font size (px)")
@@ -204,6 +284,16 @@ page 50654 "Daily Optimizer Setup"
                         begin
                             PickColor(Rec."Tooltip Background Color");
                         end;
+
+                        trigger OnResetRequested()
+                        begin
+                            ResetColor(Rec."Tooltip Background Color", VisualDefaultSettings.GetDefaultTooltipBackgroundColor());
+                        end;
+
+                        trigger OnClearRequested()
+                        begin
+                            ClearColor(Rec."Tooltip Background Color");
+                        end;
                     }
                     usercontrol(CfTooltipFontColor; DHXColorFieldAddin)
                     {
@@ -217,6 +307,16 @@ page 50654 "Daily Optimizer Setup"
                         trigger OnPickRequested()
                         begin
                             PickColor(Rec."Tooltip Font Color");
+                        end;
+
+                        trigger OnResetRequested()
+                        begin
+                            ResetColor(Rec."Tooltip Font Color", VisualDefaultSettings.GetDefaultTooltipFontColor());
+                        end;
+
+                        trigger OnClearRequested()
+                        begin
+                            ClearColor(Rec."Tooltip Font Color");
                         end;
                     }
                 }
@@ -242,6 +342,16 @@ page 50654 "Daily Optimizer Setup"
                             begin
                                 PickColor(Rec."Free Capacity Color");
                             end;
+
+                            trigger OnResetRequested()
+                            begin
+                                ResetColor(Rec."Free Capacity Color", VisualDefaultSettings.GetDefaultCapacityColor());
+                            end;
+
+                            trigger OnClearRequested()
+                            begin
+                                ClearColor(Rec."Free Capacity Color");
+                            end;
                         }
                         usercontrol(CfFreeCapacityMandatoryColor; DHXColorFieldAddin)
                         {
@@ -255,6 +365,16 @@ page 50654 "Daily Optimizer Setup"
                             trigger OnPickRequested()
                             begin
                                 PickColor(Rec."Free Capacity-Mandatory Color");
+                            end;
+
+                            trigger OnResetRequested()
+                            begin
+                                ResetColor(Rec."Free Capacity-Mandatory Color", VisualDefaultSettings.GetDefaultCapacityMandatoryColor());
+                            end;
+
+                            trigger OnClearRequested()
+                            begin
+                                ClearColor(Rec."Free Capacity-Mandatory Color");
                             end;
                         }
                         usercontrol(CfCapacityBorderColor; DHXColorFieldAddin)
@@ -270,6 +390,16 @@ page 50654 "Daily Optimizer Setup"
                             begin
                                 PickColor(Rec."Capacity Border Color");
                             end;
+
+                            trigger OnResetRequested()
+                            begin
+                                ResetColor(Rec."Capacity Border Color", VisualDefaultSettings.GetDefaultCapacityBorderColor());
+                            end;
+
+                            trigger OnClearRequested()
+                            begin
+                                ClearColor(Rec."Capacity Border Color");
+                            end;
                         }
                         usercontrol(CfExternalBorderColor; DHXColorFieldAddin)
                         {
@@ -283,6 +413,16 @@ page 50654 "Daily Optimizer Setup"
                             trigger OnPickRequested()
                             begin
                                 PickColor(Rec."External Border Color");
+                            end;
+
+                            trigger OnResetRequested()
+                            begin
+                                ResetColor(Rec."External Border Color", VisualDefaultSettings.GetDefaultExternalBorderColor());
+                            end;
+
+                            trigger OnClearRequested()
+                            begin
+                                ClearColor(Rec."External Border Color");
                             end;
                         }
                     }
@@ -304,6 +444,16 @@ page 50654 "Daily Optimizer Setup"
                             begin
                                 PickColor(Rec."Envelope Color");
                             end;
+
+                            trigger OnResetRequested()
+                            begin
+                                ResetColor(Rec."Envelope Color", VisualDefaultSettings.GetDefaultEnvelopeColor());
+                            end;
+
+                            trigger OnClearRequested()
+                            begin
+                                ClearColor(Rec."Envelope Color");
+                            end;
                         }
                         usercontrol(CfEnvelopeBorderColor; DHXColorFieldAddin)
                         {
@@ -317,6 +467,16 @@ page 50654 "Daily Optimizer Setup"
                             trigger OnPickRequested()
                             begin
                                 PickColor(Rec."Envelope Border Color");
+                            end;
+
+                            trigger OnResetRequested()
+                            begin
+                                ResetColor(Rec."Envelope Border Color", VisualDefaultSettings.GetDefaultEnvelopeBorderColor());
+                            end;
+
+                            trigger OnClearRequested()
+                            begin
+                                ClearColor(Rec."Envelope Border Color");
                             end;
                         }
                     }
@@ -340,6 +500,16 @@ page 50654 "Daily Optimizer Setup"
                                 trigger OnPickRequested()
                                 begin
                                     PickColor(Rec."Assigned Color");
+                                end;
+
+                                trigger OnResetRequested()
+                                begin
+                                    ResetColor(Rec."Assigned Color", VisualDefaultSettings.GetDefaultAssignedColor());
+                                end;
+
+                                trigger OnClearRequested()
+                                begin
+                                    ClearColor(Rec."Assigned Color");
                                 end;
                             }
                             field("Assigned High (%)"; Rec."Assigned High (%)")
@@ -704,6 +874,21 @@ page 50654 "Daily Optimizer Setup"
         end;
     end;
 
+    local procedure ResetColor(var ColorValue: Text[20]; DefaultValue: Text)
+    begin
+        ColorValue := CopyStr(DefaultValue, 1, MaxStrLen(ColorValue));
+        Rec.Modify(true);
+        PushColorFields();
+    end;
+
+    local procedure ClearColor(var ColorValue: Text[20])
+    begin
+        ColorValue := '';
+        Rec.Modify(true);
+        PushColorFields();
+    end;
+
     var
         ColorFieldsReadyCount: Integer;
+        VisualDefaultSettings: Codeunit "Visual Default Settings";
 }

@@ -66,3 +66,31 @@ html, body {
 .cf-value:hover .cf-btn {
     text-decoration: underline;
 }
+
+.cf-reset-btn {
+    flex: 0 0 auto;
+    display: inline-flex;
+    margin-left: 6px;
+    width: 16px;
+    height: 16px;
+    color: #106ebe;
+    cursor: pointer;
+}
+
+.cf-reset-btn:hover {
+    color: #004578;
+}
+
+.cf-clear-btn {
+    flex: 0 0 auto;
+    display: inline-flex;
+    margin-left: 6px;
+    width: 16px;
+    height: 16px;
+    color: #605e5c;
+    cursor: pointer;
+}
+
+.cf-clear-btn:hover {
+    color: #201f1e;
+}
