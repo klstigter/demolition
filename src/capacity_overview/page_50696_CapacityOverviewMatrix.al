@@ -25,11 +25,14 @@ page 50696 "Capacity Overview Matrix"
     /// time.
     ///
     /// Every value cell (Total + each per-skill column) drills down into the underlying detail
-    /// list for its row - see DrillDownColumn. "Total Capacity" (10000), "Capacity" (40000), and
-    /// "Surplus" (60000) have NO per-skill value breakdown - "Res. Capacity Entry" is not tracked
-    /// by skill, so their per-skill columns are always blank/zero (see codeunit 50694) and their
-    /// DRILLDOWN is likewise unfiltered by skill - these rows always open "Res. Capacity Entries"
-    /// filtered by the period only, regardless of which column was clicked.
+    /// list for its row - see DrillDownColumn. "Total Capacity" (10000) and "Surplus" (60000)
+    /// have NO per-skill value breakdown - "Res. Capacity Entry" is not tracked by skill, so
+    /// their per-skill columns are always blank/zero (see codeunit 50694) and their DRILLDOWN is
+    /// likewise unfiltered by skill - these rows always open "Res. Capacity Entries" filtered by
+    /// the period only, regardless of which column was clicked. "Capacity" (40000) DOES have a
+    /// real per-skill breakdown (same free-capacity figure as page 50707's Daily dashboard - see
+    /// codeunit 50694's CalcSkillFreeCapacity), but its DRILLDOWN is unchanged and still opens the
+    /// unfiltered "Res. Capacity Entries" list, same as rows 10000/60000.
     ///
     /// Every value field control (Total + Column1..Column20) has StyleExpr = Rec.Style, set by
     /// codeunit 50694's InsertRow/InsertDifferenceRow, so the "Capacity" (Free Capacity) row
@@ -642,9 +645,10 @@ page 50696 "Capacity Overview Matrix"
     ///                              (Total column leaves Skill unfiltered).
     ///  30000 Assigned Hours     -> same as Total Request, plus "Assigned Hours" not equal to 0,
     ///                              since this row is specifically the assigned subset.
-    ///  40000 Capacity           -> "Res. Capacity Entries", Date = period (Capacity is a
-    ///                              capacity-remaining figure; like row 10000, it does not have a
-    ///                              per-skill breakdown to filter by).
+    ///  40000 Capacity           -> "Res. Capacity Entries", Date = period, unfiltered by skill -
+    ///                              although this row's values now DO have a real per-skill
+    ///                              breakdown (codeunit 50694's CalcSkillFreeCapacity), the
+    ///                              drilldown target is unchanged, same as rows 10000/60000.
     ///  50000 Request Plan       -> same as Total Request, plus "Assigned Hours" = 0, since this
     ///       (not assigned)         row is specifically the still-unassigned subset.
     ///  60000 Surplus            -> "Res. Capacity Entries", Date = period, same reasoning as

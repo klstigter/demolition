@@ -1518,7 +1518,7 @@ function setupContextMenu() {
         // Show/hide ShowJobResources only when clicking an event
         menu.querySelector('[data-action="ShowJobResources"]').style.display =
             (target.type === 'event') ? '' : 'none';
-        // Show DayPlanning actions only for events
+        // Show Day Planning actions only for events
         menu.querySelector('[data-action="OpenDayPlanning"]').style.display =
             (target.type === 'event') ? '' : 'none';
         menu.querySelector('[data-action="OpenDayPlanningCard"]').style.display =
