@@ -884,7 +884,7 @@ window.BOOT = function() {
         { label: "Show Job Resources",   icon: "&#x1F465;", cls: "ctx-show-resources" },
         { sep: true },
         { label: "Show Task",            icon: "&#x1F4CB;", cls: "ctx-open-task" },
-        { label: "Show DayPlanning",         icon: "&#x1F4C5;", cls: "ctx-open-DayPlanning" },
+        { label: "Show Day Planning",         icon: "&#x1F4C5;", cls: "ctx-open-DayPlanning" },
         { label: "Show Task Scheduler",  icon: "&#x1F4C5;", cls: "ctx-open-DayPlanningvisual" },
         { sep: true },
         { label: "Add Filter",           icon: '<svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:middle;"><path d="M3 4h18l-7.2 8.6v6.4l-3.6 1.8v-8.2z" fill="#5f6368"/></svg>', cls: "ctx-add-filter" },

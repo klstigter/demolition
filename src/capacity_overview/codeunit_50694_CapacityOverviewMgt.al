@@ -8,20 +8,21 @@ codeunit 50694 "Capacity Overview Mgt."
     /// many generic columns and the matrix subpage (page 50696) only has that many field controls.
     ///
     /// Row-by-row (period = the caller-supplied PeriodStartDate..PeriodEndDate range):
-    ///  1. Total Capacity     - C = SUM("Res. Capacity Entry".Capacity), no resource/skill filter.
-    ///                          Per-skill columns are 0/blank - "Res. Capacity Entry" is not
-    ///                          broken down by skill, so there is no meaningful per-skill split.
+    ///  1. Total Capacity     - C = company-wide Assigned + Free capacity (see
+    ///                          CalcCompanyCapacity), same as the Weekly page's (50692) "Capacity"
+    ///                          row Grand Total. Per-skill columns are 0/blank.
     ///  2. Total Request      - C = SUM("Day Planning"."Requested Hours") for all skills.
     ///                          Per-skill columns = same sum filtered to that column's Skill Code.
     ///  3. Assigned Hours     - C = SUM("Day Planning"."Assigned Hours") for all skills.
     ///                          Per-skill columns = same sum filtered to that column's Skill Code.
-    ///  4. Capacity           - C = TotalCapacity - TotalRequest, same as Row 6 "Surplus".
-    ///                          Per-skill columns are 0/blank, same reasoning as Row 1: capacity
-    ///                          has no real per-skill breakdown, so a synthetic one (e.g. an even
-    ///                          split across a resource's skills) is not shown, since it does not
-    ///                          correspond to any real, drillable record set and can go negative
-    ///                          for reasons unrelated to actual per-skill demand. Rendered
-    ///                          Italic + Red, no bold (StyleExpr = 'Attention') on page 50696.
+    ///  4. Capacity           - Same free-capacity figure as the Daily dashboard (page 50707),
+    ///                          via Codeunit "SkillCapacityAnalysisMgt.v1".
+    ///                          GetSkillCapacityAssignedFreeSplit: per-skill column =
+    ///                          CapacityInternal + CapacityExternal + CapacityExternalMandatory
+    ///                          for that skill over the period; C = company-wide free capacity
+    ///                          (each resource counted once, same as the Weekly page's "Capacity"
+    ///                          row) - see CalcCompanyCapacity. Rendered Italic + Red, no bold
+    ///                          (StyleExpr = 'Attention') on page 50696.
     ///  5. Request Plan       - Row2 - Row3, computed independently per column, same pattern.
     ///     (not assigned)
     ///  6. Surplus            - C = Row1(C) - Row2(C) (algebraically equal to Row4(C)).
@@ -69,9 +70,11 @@ codeunit 50694 "Capacity Overview Mgt."
         ZeroPerColumn: List of [Decimal];
         RequestPerColumn: List of [Decimal];
         AssignedPerColumn: List of [Decimal];
+        FreeCapacityPerColumn: List of [Decimal];
         TotalCapacity: Decimal;
         TotalRequest: Decimal;
         TotalAssigned: Decimal;
+        TotalFreeCapacity: Decimal;
         i: Integer;
         SkillCode: Code[20];
     begin
@@ -84,7 +87,7 @@ codeunit 50694 "Capacity Overview Mgt."
 
         ZeroPerColumn := BuildZeroList(ColumnCount);
 
-        TotalCapacity := CalcTotalCapacity(PeriodStartDate, PeriodEndDate);
+        CalcCompanyCapacity(PeriodStartDate, PeriodEndDate, TotalCapacity, TotalFreeCapacity);
 
         TotalRequest := CalcRequestedHours(PeriodStartDate, PeriodEndDate, '');
         Clear(RequestPerColumn);
@@ -100,34 +103,24 @@ codeunit 50694 "Capacity Overview Mgt."
             AssignedPerColumn.Add(CalcAssignedHours(PeriodStartDate, PeriodEndDate, SkillCode));
         end;
 
-        // Total Capacity's per-skill columns stay blank/zero - "Res. Capacity Entry" has no real
-        // per-skill breakdown to show.
+        Clear(FreeCapacityPerColumn);
+        for i := 1 to ColumnCount do begin
+            SkillCode := SkillCodeList.Get(i);
+            FreeCapacityPerColumn.Add(CalcSkillFreeCapacity(SkillCode, PeriodStartDate, PeriodEndDate));
+        end;
+
+        // Total Capacity's per-skill columns stay blank/zero.
         InsertRow(Buffer, 10000, TotalCapacityRowLbl, TotalCapacity, ZeroPerColumn, ColumnCount, 'Standard');
         InsertRow(Buffer, 20000, TotalRequestRowLbl, TotalRequest, RequestPerColumn, ColumnCount, 'Standard');
         InsertRow(Buffer, 30000, AssignedHoursRowLbl, TotalAssigned, AssignedPerColumn, ColumnCount, 'Standard');
-        // 'Attention' renders Italic + Red, no bold - per spec (red + italic, not bold). Per-skill
-        // columns are blank/zero, same reasoning as row 10000: no real per-skill capacity exists.
-        InsertRow(Buffer, 40000, FreeCapacityRowLbl, TotalCapacity - TotalRequest, ZeroPerColumn, ColumnCount, 'Attention');
+        // 'Attention' renders Italic + Red, no bold - per spec (red + italic, not bold). Same
+        // free-capacity figure as the Daily dashboard (page 50707) - see CalcSkillFreeCapacity.
+        InsertRow(Buffer, 40000, FreeCapacityRowLbl, TotalFreeCapacity, FreeCapacityPerColumn, ColumnCount, 'Attention');
         InsertDifferenceRow(Buffer, 50000, RequestPlanRowLbl, TotalRequest - TotalAssigned, RequestPerColumn, AssignedPerColumn, ColumnCount, 'Standard');
         InsertRow(Buffer, 60000, SurplusRowLbl, TotalCapacity - TotalRequest, ZeroPerColumn, ColumnCount, 'Standard');
 
         Buffer.Reset();
         if Buffer.FindFirst() then;
-    end;
-
-    /// <summary>
-    /// Sums "Res. Capacity Entry".Capacity for the Date range, with no resource filter and no
-    /// skill filter - capacity entries are not broken down by skill (see the codeunit doc
-    /// comment), so this is always the single aggregate figure regardless of column.
-    /// </summary>
-    local procedure CalcTotalCapacity(PeriodStartDate: Date; PeriodEndDate: Date): Decimal
-    var
-        ResCapacityEntry: Record "Res. Capacity Entry";
-    begin
-        ResCapacityEntry.Reset();
-        ResCapacityEntry.SetRange(Date, PeriodStartDate, PeriodEndDate);
-        ResCapacityEntry.CalcSums(Capacity);
-        exit(ResCapacityEntry.Capacity);
     end;
 
     local procedure CalcRequestedHours(PeriodStartDate: Date; PeriodEndDate: Date; SkillCodeFilter: Code[20]): Decimal
@@ -152,6 +145,46 @@ codeunit 50694 "Capacity Overview Mgt."
             DayPlanning.SetRange(Skill, SkillCodeFilter);
         DayPlanning.CalcSums("Assigned Hours");
         exit(DayPlanning."Assigned Hours");
+    end;
+
+    /// <summary>
+    /// Free capacity for one skill over the period, using the same resource-scoped split as the
+    /// Daily dashboard (page 50707): Codeunit "SkillCapacityAnalysisMgt.v1".
+    /// GetSkillCapacityAssignedFreeSplit's CapacityInternal + CapacityExternal +
+    /// CapacityExternalMandatory. SkillCodeList entries are Code[20]; the procedure only accepts
+    /// Code[10], so the code is truncated via CopyStr, same as page 50707's caller.
+    /// </summary>
+    local procedure CalcSkillFreeCapacity(SkillCode: Code[20]; PeriodStartDate: Date; PeriodEndDate: Date): Decimal
+    var
+        SkillCapacityAnalysisMgt: Codeunit "SkillCapacityAnalysisMgt.v1";
+        AssignedInternal: Decimal;
+        AssignedExternal: Decimal;
+        CapacityInternal: Decimal;
+        CapacityExternal: Decimal;
+        CapacityExternalMandatory: Decimal;
+    begin
+        SkillCapacityAnalysisMgt.GetSkillCapacityAssignedFreeSplit(CopyStr(SkillCode, 1, 10), PeriodStartDate, PeriodEndDate, AssignedInternal, AssignedExternal, CapacityInternal, CapacityExternal, CapacityExternalMandatory);
+        exit(CapacityInternal + CapacityExternal + CapacityExternalMandatory);
+    end;
+
+    /// <summary>
+    /// Company-wide capacity for the period - each resource counted once (not summed per skill,
+    /// which would double-count multi-skill resources). Same source as the Weekly page's (50692)
+    /// "Capacity" row: codeunit 50662's GetCapacitySplitForRangeWithMandatory.
+    /// TotalCapacity = Assigned + Free; FreeCapacity = Free only (floored at 0 per resource/day).
+    /// </summary>
+    local procedure CalcCompanyCapacity(PeriodStartDate: Date; PeriodEndDate: Date; var TotalCapacity: Decimal; var FreeCapacity: Decimal)
+    var
+        SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
+        AssignedInternal: Decimal;
+        AssignedExternal: Decimal;
+        CapacityInternal: Decimal;
+        CapacityExternal: Decimal;
+        CapacityExternalMandatory: Decimal;
+    begin
+        SkillCapacityAnalysisMgt.GetCapacitySplitForRangeWithMandatory(PeriodStartDate, PeriodEndDate, AssignedInternal, AssignedExternal, CapacityInternal, CapacityExternal, CapacityExternalMandatory);
+        FreeCapacity := CapacityInternal + CapacityExternal + CapacityExternalMandatory;
+        TotalCapacity := AssignedInternal + AssignedExternal + FreeCapacity;
     end;
 
     local procedure BuildZeroList(ColumnCount: Integer) ZeroList: List of [Decimal]
