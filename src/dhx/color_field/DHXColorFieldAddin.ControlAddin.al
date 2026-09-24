@@ -23,6 +23,12 @@ controladdin DHXColorFieldAddin
     /// <summary>Fired when the user clicks the swatch, the hex text or the "..." button. AL is expected to open the color picker and call SetValue again.</summary>
     event OnPickRequested();
 
+    /// <summary>Fired when the user clicks "Reset to Default". AL is expected to set the field to its default value and call SetValue again.</summary>
+    event OnResetRequested();
+
+    /// <summary>Fired when the user clicks the "x" clear button. AL is expected to clear the field value and call SetValue again.</summary>
+    event OnClearRequested();
+
     /// <summary>Shows the field label, the colored swatch and the hex text. Empty hex shows a hollow swatch and no text.</summary>
     procedure SetValue(CaptionText: Text; ColorHex: Text);
 }
