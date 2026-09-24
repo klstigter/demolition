@@ -304,10 +304,6 @@ table 50610 "Day Planning"
 
                     "Assigned Leader" := Resource."Is Foreman";
                     "Assigned Team Leader" := Resource."Default Foreman";
-                    if "Skill" = '' then
-                        Skill := GetFirstSkill("Assigned Resource No.")
-                    else
-                        Validate(Skill);
                     CalculateWorkingHours();
                 end else begin
                     validate("Assigned Hours", 0);
