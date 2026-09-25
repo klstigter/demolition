@@ -414,6 +414,47 @@
     color: #bbb;
 }
 
+/* Section 4 skill / job-task summary-cell group tooltip (groupTooltipHtml) - wider 4-column table. */
+.cpo-event-tip.cpo-group-tip {
+    min-width: 460px;
+    max-width: 560px;
+}
+
+.cpo-group-tip-totals {
+    margin-bottom: 7px;
+    padding: 0 2px 6px;
+    border-bottom: 1px solid #e4ecef;
+    font-size: 11px;
+    color: #647681;
+}
+
+.cpo-group-tip-totals span {
+    margin-left: 14px;
+}
+
+.cpo-group-tip-block {
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid #e4ecef;
+}
+
+.cpo-group-tip-table thead th {
+    background: #f2f5f7;
+    text-align: center;
+}
+
+.cpo-group-tip-table thead tr:last-child th {
+    color: #647681;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: left;
+}
+
+.cpo-group-tip-table td:last-child,
+.cpo-group-tip-table thead tr:last-child th:last-child {
+    text-align: right;
+}
+
 .cpo-tip-capacity-shortage {
     color: #c62828;
     font-size: 11px;

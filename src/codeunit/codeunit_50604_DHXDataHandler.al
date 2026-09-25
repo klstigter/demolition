@@ -10,6 +10,8 @@ codeunit 50604 "DHX Data Handler"
         // equivalent named status-colour convention exists in codeunit 50609, so kept static.
         ReqAssignOkStatusBackgroundColorTok: Label '#DDF2E5', Locked = true;
         ReqAssignOkStatusTextColorTok: Label '#26613A', Locked = true;
+        // Resource No. -> Name cache for CPO_BuildDayPlanningLineObj's 'assignedResourceName'.
+        CPO_ResourceNameCache: Dictionary of [Code[20], Text];
 
     //     '{' +
     //         '"data": [ ' +
@@ -8088,6 +8090,7 @@ codeunit 50604 "DHX Data Handler"
     var
         Job: Record Job;
         JobTask: Record "Job Task";
+        Resource: Record Resource;
         LineObj: JsonObject;
         ProjectName: Text;
         TaskName: Text;
@@ -8122,6 +8125,14 @@ codeunit 50604 "DHX Data Handler"
         LineObj.Add('requestedHours', DayPlanning."Requested Hours");
         LineObj.Add('requestedSkill', DayPlanning.Skill);
         LineObj.Add('assignedResourceNo', DayPlanning."Assigned Resource No.");
+        if DayPlanning."Assigned Resource No." <> '' then begin
+            if not CPO_ResourceNameCache.ContainsKey(DayPlanning."Assigned Resource No.") then
+                if Resource.Get(DayPlanning."Assigned Resource No.") then
+                    CPO_ResourceNameCache.Add(DayPlanning."Assigned Resource No.", Resource.Name)
+                else
+                    CPO_ResourceNameCache.Add(DayPlanning."Assigned Resource No.", '');
+            LineObj.Add('assignedResourceName', CPO_ResourceNameCache.Get(DayPlanning."Assigned Resource No."));
+        end;
         if DayPlanning.Assigned then
             LineObj.Add('assignedDate', ReqAssign_FormatIsoDate(DayPlanning."Plan Date"))
         else
