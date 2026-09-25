@@ -1544,9 +1544,9 @@ class CapacityPlanningOverview {
             '<div class="standard-tooltip-detail">' + cpoEsc(shortDate) + '</div>' +
             '</div>' +
             shortageNote +
-            '<table class="standard-tooltip-table"><thead><tr><th></th><th>Request</th><th>Assigned</th></tr></thead><tbody>' +
-            '<tr><th>Time</th><td>' + cpoEsc(reqTime) + '</td><td class="' + (timeDiffers ? 'standard-tooltip-different' : '') + '">' + (assignedTimeKnown ? cpoEsc(ev.assignedTime) : '<span class="cpo-missing">\u2014</span>') + '</td></tr>' +
-            '<tr><th>Resource</th><td>\u2014</td><td>' + (ev.assignedResource ? cpoEsc(ev.assignedResource) : '<span class="cpo-missing">\u2014</span>') + '</td></tr>' +
+            '<table class="standard-tooltip-table"><thead><tr><th></th><th>Request</th><th>Assigned</th><th>Amount</th></tr></thead><tbody>' +
+            '<tr><th>Time</th><td>' + cpoEsc(reqTime) + '</td><td class="' + (timeDiffers ? 'standard-tooltip-different' : '') + '">' + (assignedTimeKnown ? cpoEsc(ev.assignedTime) : '<span class="cpo-missing">\u2014</span>') + '</td><td>' + cpoHoursText(ev.hours) + '</td></tr>' +
+            '<tr><th>Resource</th><td>\u2014</td><td>' + (ev.assignedResource ? cpoEsc(ev.assignedResource) : '<span class="cpo-missing">\u2014</span>') + '</td><td>\u2014</td></tr>' +
             '</tbody></table>';
     }
 
@@ -1562,6 +1562,7 @@ class CapacityPlanningOverview {
             let ev = null;
             if (eventId != null) { try { ev = schedulerInstance.getEvent(eventId); } catch (_) { } }
             if (!ev) { tip.style.display = 'none'; return; }
+            tip.classList.remove('cpo-group-tip');
             tip.innerHTML = self.eventTooltipHtml(ev);
             tip.style.display = 'block';
             let x = e.clientX + 12, y = e.clientY + 12;
@@ -2041,7 +2042,7 @@ class CapacityPlanningOverview {
         if (o.type === 'skill') {
             return '<div class="cpo-central-left-grid cpo-skill-left-grid"><span>' + cpoEsc(o.skill || o.label) + '</span><span></span><span></span></div>';
         }
-        return '<div class="cpo-central-left-grid"><span></span><span>' + cpoEsc(o.job) + '</span><span>' + cpoEsc(o.task) + '</span></div>';
+        return '<div class="cpo-central-left-grid cpo-tree-detail-label" data-job="' + cpoEsc(o.job) + '" data-task="' + cpoEsc(o.task) + '"><span></span><span>' + cpoEsc(o.job) + '</span><span>' + cpoEsc(o.task) + '</span></div>';
     }
 
     renderCentralTree(json) {
@@ -2213,6 +2214,105 @@ class CapacityPlanningOverview {
     }
 
     /// <summary>
+    /// Group tooltip for section 4's skill / job-task summary cells (.cpo-tree-summary-cell) - lists
+    /// every Day Planning line behind the cell (same other-WO exclusion as treeSummaryIndex), grouped
+    /// per Job/Task, with Assigned resource/time vs Request time/hours per line.
+    /// </summary>
+    groupTooltipHtml(cell) {
+        const idx = Number(cell.dataset.dayIndex);
+        const skill = cell.dataset.masterSkill || cell.dataset.skill;
+        const job = cell.dataset.masterSkill ? null : cell.dataset.job;
+        const task = cell.dataset.masterSkill ? null : cell.dataset.task;
+        const woNo = this.db.workOrder && this.db.workOrder.no;
+        const lines = (this.db.dayPlanningLines || []).filter((l) =>
+            l.workOrderNo !== woNo && l.requestedSkill === skill && this.dplDayIndex(l) === idx &&
+            (job == null || (l.job === job && l.task === task)));
+        if (!lines.length) return '';
+        lines.sort(function (a, b) {
+            return String(a.job).localeCompare(String(b.job)) || String(a.task).localeCompare(String(b.task)) ||
+                (a.assignedResourceNo ? 1 : 0) - (b.assignedResourceNo ? 1 : 0) ||
+                String(a.requestedStartTime).localeCompare(String(b.requestedStartTime));
+        });
+        let requested = 0, assigned = 0;
+        const groups = [];
+        let cur = null;
+        lines.forEach(function (l) {
+            const req = Number(l.requestedHours) || 0;
+            requested += req; assigned += Math.min(req, Number(l.assignedHours) || 0);
+            if (!cur || cur.job !== l.job || cur.task !== l.task) groups.push(cur = { job: l.job, task: l.task, name: l.taskName || l.projectName || '', lines: [] });
+            cur.lines.push(l);
+        });
+        const missing = '-';
+        const hhmm = function (t) { const p = String(t).split(':'); return p[0].padStart(2, '0') + ':' + (p[1] || '00').padStart(2, '0'); };
+        const d = this.dates[idx];
+        const dateText = d ? d.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' }) : '';
+        return '<div class="standard-tooltip-head">' +
+            '<div class="standard-tooltip-title">' + cpoEsc(skill) + '</div>' +
+            '<div class="standard-tooltip-detail">' + cpoEsc(dateText) + '</div>' +
+            '</div>' +
+            '<div class="cpo-group-tip-totals">Requested <b>' + cpoHoursText(requested) + '</b>' +
+            '<span>Assigned <b>' + cpoHoursText(assigned) + '</b></span>' +
+            '<span class="standard-tooltip-different">Not assigned ' + cpoHoursText(Math.max(0, requested - assigned)) + '</span></div>' +
+            groups.map(function (g) {
+                return '<div class="cpo-group-tip-block">' +
+                    '<div class="standard-tooltip-context-title">' + cpoEsc(g.job) + ' / ' + cpoEsc(g.task) + (g.name ? ' — ' + cpoEsc(g.name) : '') + '</div>' +
+                    '<table class="standard-tooltip-table cpo-group-tip-table"><thead>' +
+                    '<tr><th colspan="2">Assigned</th><th colspan="2">Request</th></tr>' +
+                    '<tr><th>Resource</th><th>Start/end</th><th>Start/end</th><th>Hours</th></tr>' +
+                    '</thead><tbody>' +
+                    g.lines.map(function (l) {
+                        const hasRes = !!l.assignedResourceNo;
+                        const assTime = (l.assignedStartTime && l.assignedEndTime) ? cpoEsc(hhmm(l.assignedStartTime) + ' - ' + hhmm(l.assignedEndTime)) : missing;
+                        const reqTime = (l.requestedStartTime && l.requestedEndTime) ? cpoEsc(hhmm(l.requestedStartTime) + ' - ' + hhmm(l.requestedEndTime)) : missing;
+                        return '<tr><td>' + (hasRes ? cpoEsc(l.assignedResourceName || l.assignedResourceNo) : missing) + '</td><td>' + assTime + '</td><td>' + reqTime + '</td>' +
+                            '<td class="' + (hasRes ? '' : 'standard-tooltip-different') + '">' + cpoHoursText(l.requestedHours) + '</td></tr>';
+                    }).join('') +
+                    '</tbody></table></div>';
+            }).join('');
+    }
+
+    /// <summary>
+    /// Tooltip for section 4's Job/Task row label (.cpo-tree-detail-label) - every other-WO Day
+    /// Planning line of that Job/Task (all skills) on the selected day: today when inside the
+    /// visible window, else the window's first day.
+    /// </summary>
+    jobTaskTooltipHtml(job, task) {
+        let idx = this.dayIndex(new Date());
+        if (idx < 0 || idx >= this.dates.length) idx = 0;
+        const woNo = this.db.workOrder && this.db.workOrder.no;
+        const lines = (this.db.dayPlanningLines || []).filter((l) =>
+            l.workOrderNo !== woNo && l.job === job && l.task === task && this.dplDayIndex(l) === idx);
+        const d = this.dates[idx];
+        const dateText = d ? d.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' }) : '';
+        const head = '<div class="standard-tooltip-head">' +
+            '<div class="standard-tooltip-title">' + cpoEsc(job) + '</div>' +
+            '<div class="standard-tooltip-detail">Selected day: ' + cpoEsc(dateText) + '</div>' +
+            '</div>';
+        if (!lines.length) return head + '<div class="cpo-group-tip-totals">No Day Planning lines on this day.</div>';
+        lines.sort(function (a, b) {
+            return String(a.requestedSkill).localeCompare(String(b.requestedSkill)) ||
+                String(a.requestedStartTime).localeCompare(String(b.requestedStartTime));
+        });
+        const self = this;
+        const hhmm = function (t) { const p = String(t).split(':'); return p[0].padStart(2, '0') + ':' + (p[1] || '00').padStart(2, '0'); };
+        return head +
+            '<table class="standard-tooltip-table cpo-group-tip-table"><thead>' +
+            '<tr><th></th><th colspan="2">Assigned</th><th colspan="2">Request</th></tr>' +
+            '<tr><th>Skill</th><th>Resource No.</th><th>Start/end</th><th>Start/end</th><th>Hours</th></tr>' +
+            '</thead><tbody>' +
+            lines.map(function (l) {
+                const hasRes = !!l.assignedResourceNo;
+                const meta = self.skillMeta(l.requestedSkill);
+                const assTime = (l.assignedStartTime && l.assignedEndTime) ? cpoEsc(hhmm(l.assignedStartTime) + ' - ' + hhmm(l.assignedEndTime)) : '-';
+                const reqTime = (l.requestedStartTime && l.requestedEndTime) ? cpoEsc(hhmm(l.requestedStartTime) + ' - ' + hhmm(l.requestedEndTime)) : '-';
+                return '<tr><td style="color:' + cpoEsc(meta.dark) + ';font-weight:700">' + cpoEsc(l.requestedSkill) + '</td>' +
+                    '<td>' + (hasRes ? cpoEsc(l.assignedResourceName || l.assignedResourceNo) : '-') + '</td><td>' + assTime + '</td><td>' + reqTime + '</td>' +
+                    '<td class="' + (hasRes ? '' : 'standard-tooltip-different') + '">' + cpoHoursText(l.requestedHours) + '</td></tr>';
+            }).join('') +
+            '</tbody></table>';
+    }
+
+    /// <summary>
     /// Reference's shared-tooltip technique for section 4's chips (own mouseover/mouseout/click
     /// handlers on ".cpo-tree-chip", reusing the SAME #cpo-event-tip element/eventTooltipHtml
     /// section 2 already uses) - bound ONCE per centralTreeScheduler instance (idempotent guard,
@@ -2229,10 +2329,20 @@ class CapacityPlanningOverview {
         const self = this;
         host.addEventListener('mousemove', function (e) {
             const chip = e.target.closest('.cpo-tree-chip');
-            if (!chip) { tip.style.display = 'none'; return; }
-            const line = self.dplLineById(chip.dataset.lineId);
-            if (!line) { tip.style.display = 'none'; return; }
-            tip.innerHTML = self.eventTooltipHtml(self.dplTooltipEvent(line));
+            const summary = chip ? null : e.target.closest('.cpo-tree-summary-cell');
+            const jobLabel = (chip || summary) ? null : e.target.closest('.cpo-tree-detail-label');
+            let html = '';
+            if (chip) {
+                const line = self.dplLineById(chip.dataset.lineId);
+                if (line) html = self.eventTooltipHtml(self.dplTooltipEvent(line));
+            } else if (summary) {
+                html = self.groupTooltipHtml(summary);
+            } else if (jobLabel) {
+                html = self.jobTaskTooltipHtml(jobLabel.dataset.job, jobLabel.dataset.task);
+            }
+            if (!html) { tip.style.display = 'none'; return; }
+            tip.classList.toggle('cpo-group-tip', !!(summary || jobLabel));
+            tip.innerHTML = html;
             tip.style.display = 'block';
             let x = e.clientX + 12, y = e.clientY + 12;
             const r = tip.getBoundingClientRect();
