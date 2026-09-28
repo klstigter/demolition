@@ -19,7 +19,29 @@ report 50600 "RepairData"
 
     trigger OnPreReport()
     begin
-        MakeFreeCapacityExternalMandatoryData();
+        RepairDayPlanningAssignedFlag();
+    end;
+
+    local procedure RepairDayPlanningAssignedFlag()
+    var
+        DayPlanning: Record "Day Planning";
+        OldFlag: Boolean;
+        Counter: Integer;
+    begin
+        // Day Plannings inserted via the CreateDayPlannings API were saved with Assigned = false even
+        // when fully assigned (AssignedCheck ran before the times were set). Recompute the flag for
+        // every line; Modify(false) so no other trigger logic runs.
+        DayPlanning.SetLoadFields("Plan Date", "Assigned Resource No.", "Start Time Assigned", "End Time Assigned", "Assigned Hours", Assigned);
+        if DayPlanning.FindSet(true) then
+            repeat
+                OldFlag := DayPlanning.Assigned;
+                DayPlanning.AssignedCheck();
+                if DayPlanning.Assigned <> OldFlag then begin
+                    DayPlanning.Modify(false);
+                    Counter += 1;
+                end;
+            until DayPlanning.Next() = 0;
+        Message('%1 Day Planning line(s) repaired.', Counter);
     end;
 
     local procedure MakeFreeCapacityExternalMandatoryData()
