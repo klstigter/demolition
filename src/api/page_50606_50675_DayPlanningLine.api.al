@@ -91,6 +91,11 @@ page 50675 "DayPlanning Line Opt"
                 {
                     ApplicationArea = All;
                 }
+
+                field(startTimeRealized; Rec."Start Time Realized") { }
+                field(endTimeRealized; Rec."End Time Realized") { }
+                field(realizedHours; Rec."Realized Hours") { }
+
                 field(workedHours; Rec."Worked Hours")
                 {
                     ApplicationArea = All;
