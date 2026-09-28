@@ -220,6 +220,9 @@ page 50675 "DayPlanning Line Opt"
             NewLine.Validate("Skill", DailyOptimizerSetup."Default Skill");
         end;
 
+        // Resource was validated before the times existed, so recompute the Assigned flag now that all fields are set
+        NewLine.AssignedCheck();
+
         JobTask.Get(NewLine."Job No.", NewLine."Job Task No.");
         JobTask.Testfield("Job Task Type", JobTask."Job Task Type"::Posting);
 
