@@ -608,11 +608,12 @@ page 50620 "Gantt Demo DHX 2"
                     FilterDlg: Report "Task Scheduler Filter";
                     NewJobNo: Text;
                     NewJobTaskNo: Text;
+                    DummySkillFilter: Text; // this Gantt page has no Skill-filtering wired to its data - not applied, see report 50608's doc comment
                 begin
-                    FilterDlg.SetFilter(JobFilter, JobTaskFilter);
+                    FilterDlg.SetFilter(JobFilter, JobTaskFilter, DummySkillFilter);
                     FilterDlg.RunModal();
                     if FilterDlg.IsConfirmed() then begin
-                        FilterDlg.GetFilter(NewJobNo, NewJobTaskNo);
+                        FilterDlg.GetFilter(NewJobNo, NewJobTaskNo, DummySkillFilter);
                         JobFilter := NewJobNo;
                         JobTaskFilter := NewJobTaskNo;
                         RefreshGantt();

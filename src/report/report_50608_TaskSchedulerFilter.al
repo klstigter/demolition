@@ -50,16 +50,25 @@
 ///       FilterDlg    : Report "Task Scheduler Filter";
 ///       NewJobNo     : Text;
 ///       NewJobTaskNo : Text;
+///       NewSkill     : Text;
 ///   begin
-///       FilterDlg.SetFilter(jobFilter, JobTaskFilter);
+///       FilterDlg.SetFilter(jobFilter, JobTaskFilter, SkillFilter);
 ///       FilterDlg.RunModal();
 ///       if FilterDlg.IsConfirmed() then begin
-///           FilterDlg.GetFilter(NewJobNo, NewJobTaskNo);
+///           FilterDlg.GetFilter(NewJobNo, NewJobTaskNo, NewSkill);
 ///           jobFilter := NewJobNo;
 ///           JobTaskFilter := NewJobTaskNo;
+///           SkillFilter := NewSkill;
 ///           RefreshSchedule();
 ///       end;
 ///   end;
+///
+/// IMPORTANT (3rd pass - Skill field added): same generic-RecordRef technique as report
+/// 50609 "Resource Scheduler Filter"'s own Skill field (Codeunit 46 has no dedicated
+/// GetSelectionFilterForSkillCode/GetSelectionFilterForSkill wrapper - see that report's
+/// doc comment for the full rationale) - SkillCodeList.SetSelectionFilter(SkillCode), then
+/// GetTable(SkillCode) into a RecordRef and pass that + SkillCode.FieldNo(Code) into
+/// SelectionFilterManagement.GetSelectionFilter(RecordRef, Integer).
 /// </summary>
 report 50608 "Task Scheduler Filter"
 {
@@ -141,6 +150,32 @@ report 50608 "Task Scheduler Filter"
                             exit(false);
                         end;
                     }
+                    field(fldSkill; SkillFilter)
+                    {
+                        ApplicationArea = All;
+                        Caption = 'Skill';
+                        ToolTip = 'Specifies the filter to apply on the Day Planning''s Skill. Standard filter syntax is supported (e.g. wildcards, ranges, OR-lists), or use the lookup to multi-select skill codes.';
+                        TableRelation = "Skill Code";
+
+                        trigger OnLookup(var Text: Text): Boolean
+                        var
+                            SkillCode: Record "Skill Code";
+                            SkillCodeList: Page "Skill Codes";
+                            SelectionFilterManagement: Codeunit SelectionFilterManagement;
+                            RecRef: RecordRef;
+                        begin
+                            SkillCode.SetFilter(Code, SkillFilter);
+                            SkillCodeList.SetTableView(SkillCode);
+                            SkillCodeList.LookupMode(true);
+                            if SkillCodeList.RunModal() = Action::LookupOK then begin
+                                SkillCodeList.SetSelectionFilter(SkillCode);
+                                RecRef.GetTable(SkillCode);
+                                Text := SelectionFilterManagement.GetSelectionFilter(RecRef, SkillCode.FieldNo(Code));
+                                exit(true);
+                            end;
+                            exit(false);
+                        end;
+                    }
                 }
             }
         }
@@ -155,26 +190,29 @@ report 50608 "Task Scheduler Filter"
     var
         JobNoFilter: Text;
         JobTaskNoFilter: Text;
+        SkillFilter: Text;
         Confirmed: Boolean;
 
     /// <summary>
     /// Must be called BEFORE RunModal(). Pre-fills the request page with the caller's
-    /// currently active filter (blank/blank for "show everything").
+    /// currently active filter (blank/blank/blank for "show everything").
     /// </summary>
-    procedure SetFilter(pJobNo: Text; pJobTaskNo: Text)
+    procedure SetFilter(pJobNo: Text; pJobTaskNo: Text; pSkill: Text)
     begin
         JobNoFilter := pJobNo;
         JobTaskNoFilter := pJobTaskNo;
+        SkillFilter := pSkill;
     end;
 
     /// <summary>
     /// Must be called AFTER RunModal(), guarded by IsConfirmed(). Returns the raw
     /// filter text entered by the user for each field.
     /// </summary>
-    procedure GetFilter(var pJobNo: Text; var pJobTaskNo: Text)
+    procedure GetFilter(var pJobNo: Text; var pJobTaskNo: Text; var pSkill: Text)
     begin
         pJobNo := JobNoFilter;
         pJobTaskNo := JobTaskNoFilter;
+        pSkill := SkillFilter;
     end;
 
     /// <summary>

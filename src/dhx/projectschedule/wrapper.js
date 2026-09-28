@@ -1778,7 +1778,7 @@ function _updateTaskFilterToolbar() {
     // Build tooltip content without innerHTML string-building (user-controlled values)
     popup.innerHTML = '';
     var titleEl = document.createElement('b');
-    titleEl.textContent = fi ? 'Filter applied:' : 'Click to filter by Job / Job Task';
+    titleEl.textContent = fi ? 'Filter applied:' : 'Click to filter by Job / Job Task / Skill';
     popup.appendChild(titleEl);
     if (fi) {
         if (fi.job) {
@@ -1788,6 +1788,10 @@ function _updateTaskFilterToolbar() {
         if (fi.task) {
             popup.appendChild(document.createElement('br'));
             popup.appendChild(document.createTextNode('Task = ' + fi.task));
+        }
+        if (fi.skill) {
+            popup.appendChild(document.createElement('br'));
+            popup.appendChild(document.createTextNode('Skill = ' + fi.skill));
         }
         if (fi.periodFrom || fi.periodTo) {
             popup.appendChild(document.createElement('br'));
@@ -1847,18 +1851,19 @@ function _updateTaskFilterToolbar() {
 }
 
 // Called by AL after a filter is applied (dialog closed with OK) or after any
-// schedule refresh, to keep the toolbar/tooltip in sync. jobNo/taskNo both blank
+// schedule refresh, to keep the toolbar/tooltip in sync. jobNo/taskNo/skill all blank
 // means "not filtered" — same convention as SetResourcePanelFilterInfo in
 // src/dhx/ganttdemo2/wrapper.js.
-function SetTaskFilterInfo(jobNo, taskNo, periodFrom, periodTo) {
-    if (!jobNo && !taskNo) {
+function SetTaskFilterInfo(jobNo, taskNo, periodFrom, periodTo, skill) {
+    if (!jobNo && !taskNo && !skill) {
         _taskFilterInfo = null;
     } else {
         _taskFilterInfo = {
             job: jobNo || '',
             task: taskNo || '',
             periodFrom: periodFrom || '',
-            periodTo: periodTo || ''
+            periodTo: periodTo || '',
+            skill: skill || ''
         };
     }
     _updateTaskFilterToolbar();

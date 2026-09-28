@@ -59,7 +59,7 @@ controladdin DHXProjectScheduleAddin
     procedure get_events_not_match_with_section();
     procedure getAllEvents();
     procedure getAllSections();
-    procedure SetTaskFilterInfo(jobNo: Text; taskNo: Text; periodFrom: Text; periodTo: Text);
+    procedure SetTaskFilterInfo(jobNo: Text; taskNo: Text; periodFrom: Text; periodTo: Text; skill: Text);
     // Appends a Page Background Task's remaining sections+events (Part B pagination) into the
     // already-rendered timeline in place - see wrapper.js's AppendSections, modeled on the
     // existing ToggleCollapseExpandAllSections in-place y_unit_original mutation pattern. Never

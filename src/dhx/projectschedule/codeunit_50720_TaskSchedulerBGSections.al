@@ -24,6 +24,7 @@ codeunit 50720 "Task Scheduler BG Sections"
         ResourceFilter: Text;
         JobFilter: Text;
         JobTaskFilter: Text;
+        SkillFilter: Text;
         StartDate: Date;
         EndDate: Date;
         EarliestPlanningDate: Date;
@@ -35,12 +36,13 @@ codeunit 50720 "Task Scheduler BG Sections"
         ResourceFilter := GetParam(TaskParameters, 'ResourceFilter');
         JobFilter := GetParam(TaskParameters, 'JobFilter');
         JobTaskFilter := GetParam(TaskParameters, 'JobTaskFilter');
+        SkillFilter := GetParam(TaskParameters, 'SkillFilter');
         EvaluateDateParam(TaskParameters, 'StartDate', StartDate);
         EvaluateDateParam(TaskParameters, 'EndDate', EndDate);
 
         if JobFilter <> '' then
             SectionsJson := DHXDataHandler.GetYUnitElementsJSON_Project(StartDate, StartDate, EndDate,
-                ResourceFilter, JobFilter, JobTaskFilter, EventsJson, EarliestPlanningDate);
+                ResourceFilter, JobFilter, JobTaskFilter, EventsJson, EarliestPlanningDate, SkillFilter);
         // JobFilter = '' means nothing was actually pending when this task was enqueued - leave
         // both results blank rather than re-building the whole (already-delivered) first page.
 
