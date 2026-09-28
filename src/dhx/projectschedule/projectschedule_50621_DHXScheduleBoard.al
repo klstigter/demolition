@@ -42,7 +42,9 @@ page 50621 "DHX Scheduler (Project)"
                         Window.Open(LoadingLbl);
 
                     //DHXDataHandler.GetOneYearPeriodDates(Today(), startDate, endDate);
-                    DHXDataHandler.GetWeekPeriodDates(Today(), startDate, endDate);
+                    if AnchorDate = 0D then
+                        AnchorDate := Today(); // SetAnchorDate may preset it (e.g. from page 50724's "Show Task Scheduler")
+                    DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
                     if GuiAllowed() then
                         Window.Update(1, 'Day Plannings...');
                     // Loads only the first ~50-row page of sections/events synchronously (see
@@ -694,6 +696,16 @@ page 50621 "DHX Scheduler (Project)"
     begin
         jobFilter := pJobFilter;
         JobTaskFilter := pJobTaskFilter;
+    end;
+
+    procedure SetSkillFilter(pSkillFilter: Text)
+    begin
+        SkillFilter := pSkillFilter;
+    end;
+
+    procedure SetAnchorDate(pAnchorDate: Date)
+    begin
+        AnchorDate := pAnchorDate;
     end;
 
 }
