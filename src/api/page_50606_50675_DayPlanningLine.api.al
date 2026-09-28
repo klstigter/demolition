@@ -59,6 +59,14 @@ page 50675 "DayPlanning Line Opt"
                 {
                     ApplicationArea = All;
                 }
+                field(startTimeRequested; Rec."Start Time Requested")
+                {
+                    Caption = 'Start Time Requested';
+                }
+                field(endTimeRequested; Rec."End Time Requested")
+                {
+                    Caption = 'End Time Requested';
+                }
                 field(startTimeAssigned; Rec."Start Time Assigned")
                 {
                     Caption = 'Start Time Assigned';
