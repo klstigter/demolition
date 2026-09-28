@@ -201,7 +201,7 @@ codeunit 60029 "Task Scheduler Sections Perf"
         EarliestPlanningDate: Date;
     begin
         exit(DHXDataHandler.GetYUnitElementsJSON_Project(WeekMonday, WeekMonday, WeekMonday + 6, '',
-            JobANo + '|' + JobBNo, '', PlanninJsonTxt, EarliestPlanningDate));
+            JobANo + '|' + JobBNo, '', PlanninJsonTxt, EarliestPlanningDate, ''));
     end;
 
     local procedure GetSectionsAndEventsJson(WeekMonday: Date; var SectionsJson: Text; var EventsJson: Text)
@@ -209,7 +209,7 @@ codeunit 60029 "Task Scheduler Sections Perf"
         EarliestPlanningDate: Date;
     begin
         SectionsJson := DHXDataHandler.GetYUnitElementsJSON_Project(WeekMonday, WeekMonday, WeekMonday + 6, '',
-            JobANo + '|' + JobBNo, '', EventsJson, EarliestPlanningDate);
+            JobANo + '|' + JobBNo, '', EventsJson, EarliestPlanningDate, '');
     end;
 
     // ================================================================

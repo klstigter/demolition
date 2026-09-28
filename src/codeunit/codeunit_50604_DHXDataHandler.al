@@ -62,7 +62,7 @@ codeunit 50604 "DHX Data Handler"
     var
         dummyTxt: text;
     begin
-        exit(GetYUnitElementsJSON_Project(AnchorDate, StartDate, EndDate, ResourceFilter, dummyTxt, dummyTxt, PlanninJsonTxt, EarliestPlanningDate));
+        exit(GetYUnitElementsJSON_Project(AnchorDate, StartDate, EndDate, ResourceFilter, dummyTxt, dummyTxt, PlanninJsonTxt, EarliestPlanningDate, dummyTxt));
     end;
 
     procedure GetYUnitElementsJSON_Project(AnchorDate: Date;
@@ -76,7 +76,7 @@ codeunit 50604 "DHX Data Handler"
         dummyTxt: text;
 
     begin
-        exit(GetYUnitElementsJSON_Project(AnchorDate, StartDate, EndDate, dummyTxt, JobFilter, JobTaskFilter, PlanninJsonTxt, EarliestPlanningDate));
+        exit(GetYUnitElementsJSON_Project(AnchorDate, StartDate, EndDate, dummyTxt, JobFilter, JobTaskFilter, PlanninJsonTxt, EarliestPlanningDate, dummyTxt));
     end;
 
     procedure GetYUnitElementsJSON_Project(AnchorDate: Date;
@@ -86,7 +86,8 @@ codeunit 50604 "DHX Data Handler"
                                    JobFilter: Text;
                                    JobTaskFilter: Text;
                                    var PlanninJsonTxt: Text;
-                                   var EarliestPlanningDate: Date): Text
+                                   var EarliestPlanningDate: Date;
+                                   SkillFilter: Text): Text
     var
         JobTasks: Record "Job Task";
         TEMPJobTasks: Record "Job Task" temporary;
@@ -146,7 +147,7 @@ codeunit 50604 "DHX Data Handler"
     begin
         PlanninJsonTxt := '';
         //Marking Job based on Day Plannings within the given date range
-        ApplyProjectSchedulerDayPlanningFilters(DayPlanning, StartDate, EndDate, ResourceFilter, JobFilter, jobTaskFilter);
+        ApplyProjectSchedulerDayPlanningFilters(DayPlanning, StartDate, EndDate, ResourceFilter, JobFilter, jobTaskFilter, SkillFilter);
 
         // Bulk-prefetch every Resource/Vendor referenced by this week's (filtered) Day Plannings
         // in ONE FindSet each, into an in-memory No.->Name dictionary - instead of the old
@@ -157,7 +158,7 @@ codeunit 50604 "DHX Data Handler"
         Clear(VendorNameDict);
         Clear(ResourceNoSet);
         Clear(VendorNoSet);
-        ApplyProjectSchedulerDayPlanningFilters(DayPlanningPrefetch, StartDate, EndDate, ResourceFilter, JobFilter, jobTaskFilter);
+        ApplyProjectSchedulerDayPlanningFilters(DayPlanningPrefetch, StartDate, EndDate, ResourceFilter, JobFilter, jobTaskFilter, SkillFilter);
         if DayPlanningPrefetch.FindSet() then
             repeat
                 if (DayPlanningPrefetch."Assigned Resource No." <> '') and not ResourceNoSet.Contains(DayPlanningPrefetch."Assigned Resource No.") then
@@ -533,10 +534,10 @@ codeunit 50604 "DHX Data Handler"
     end;
 
     // Shared Day Planning filter setup for the Task Scheduler's weekly data window - one place
-    // for the "Plan Date" range + Job/Job Task/Resource filters used by GetYUnitElementsJSON_Project,
-    // its Resource/Vendor bulk-prefetch pass, and GetYUnitElementsJSON_Project_Paged, so the three
-    // never drift out of sync with each other.
-    local procedure ApplyProjectSchedulerDayPlanningFilters(var DayPlanningRec: Record "Day Planning"; StartDate: Date; EndDate: Date; ResourceFilter: Text; JobFilter: Text; JobTaskFilter: Text)
+    // for the "Plan Date" range + Job/Job Task/Resource/Skill filters used by
+    // GetYUnitElementsJSON_Project, its Resource/Vendor bulk-prefetch pass, and
+    // GetYUnitElementsJSON_Project_Paged, so the three never drift out of sync with each other.
+    local procedure ApplyProjectSchedulerDayPlanningFilters(var DayPlanningRec: Record "Day Planning"; StartDate: Date; EndDate: Date; ResourceFilter: Text; JobFilter: Text; JobTaskFilter: Text; SkillFilter: Text)
     begin
         DayPlanningRec.Reset();
         DayPlanningRec.SetCurrentKey("Plan Date", "Start Time Assigned");
@@ -551,6 +552,12 @@ codeunit 50604 "DHX Data Handler"
             DayPlanningRec.SetFilter("Job Task No.", '<>%1', ''); //Exclude blank task Nos
         if ResourceFilter <> '' then
             DayPlanningRec.SetFilter("Assigned Resource No.", ResourceFilter);
+        // Skill is independent of the Job/Resource mutual exclusivity above - works on its own
+        // (Skill set, Job blank) or combined with Job/Job Task. Sections are built from whichever
+        // Day Plannings pass this filter set, so a Skill filter naturally also limits which Job
+        // Tasks get a section (see GetYUnitElementsJSON_Project/_Paged's TEMPJobTasks build loop).
+        if SkillFilter <> '' then
+            DayPlanningRec.SetFilter(Skill, SkillFilter);
     end;
 
     // Joins a list of Code[20] values into a single AL OR-filter ("A|B|C") suitable for
@@ -594,7 +601,8 @@ codeunit 50604 "DHX Data Handler"
                                MaxRows: Integer;
                                var PlanninJsonTxt: Text;
                                var EarliestPlanningDate: Date;
-                               var RemainingJobFilter: Text): Text
+                               var RemainingJobFilter: Text;
+                               SkillFilter: Text): Text
     var
         JobTasks: Record "Job Task";
         TEMPJobTasks: Record "Job Task" temporary;
@@ -662,7 +670,7 @@ codeunit 50604 "DHX Data Handler"
         if MaxRows <= 0 then
             MaxRows := 1; // always render at least the first Job's worth of sections
 
-        ApplyProjectSchedulerDayPlanningFilters(DayPlanning, StartDate, EndDate, ResourceFilter, JobFilter, JobTaskFilter);
+        ApplyProjectSchedulerDayPlanningFilters(DayPlanning, StartDate, EndDate, ResourceFilter, JobFilter, JobTaskFilter, SkillFilter);
 
         // Same bulk Resource/Vendor prefetch as GetYUnitElementsJSON_Project (Part A) - see that
         // procedure's comment for why. Scoped to the FULL filtered period (not just the eventual
@@ -672,7 +680,7 @@ codeunit 50604 "DHX Data Handler"
         Clear(VendorNameDict);
         Clear(ResourceNoSet);
         Clear(VendorNoSet);
-        ApplyProjectSchedulerDayPlanningFilters(DayPlanningPrefetch, StartDate, EndDate, ResourceFilter, JobFilter, JobTaskFilter);
+        ApplyProjectSchedulerDayPlanningFilters(DayPlanningPrefetch, StartDate, EndDate, ResourceFilter, JobFilter, JobTaskFilter, SkillFilter);
         if DayPlanningPrefetch.FindSet() then
             repeat
                 if (DayPlanningPrefetch."Assigned Resource No." <> '') and not ResourceNoSet.Contains(DayPlanningPrefetch."Assigned Resource No.") then

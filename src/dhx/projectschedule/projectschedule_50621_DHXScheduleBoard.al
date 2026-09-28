@@ -103,7 +103,7 @@ page 50621 "DHX Scheduler (Project)"
                     // SetSkillFontBorderColors/event_class for the per-skill application.
                     CurrPage.DhxScheduler.SetSkillFontBorderColors(DHXDataHandler.BuildSkillFontBorderColorsJson());
                     CurrPage.DhxScheduler.LoadData(PlanninJsonTxt);
-                    CurrPage.DhxScheduler.SetTaskFilterInfo(jobFilter, JobTaskFilter, Format(startDate, 0, '<Year4>-<Month,2>-<Day,2>'), Format(endDate, 0, '<Year4>-<Month,2>-<Day,2>'));
+                    CurrPage.DhxScheduler.SetTaskFilterInfo(jobFilter, JobTaskFilter, Format(startDate, 0, '<Year4>-<Month,2>-<Day,2>'), Format(endDate, 0, '<Year4>-<Month,2>-<Day,2>'), SkillFilter);
                     AnchorDate := startDate;
 
                     if GuiAllowed() then
@@ -336,13 +336,15 @@ page 50621 "DHX Scheduler (Project)"
                     FilterDlg: Report "Task Scheduler Filter";
                     NewJobNo: Text;
                     NewJobTaskNo: Text;
+                    NewSkill: Text;
                 begin
-                    FilterDlg.SetFilter(jobFilter, JobTaskFilter);
+                    FilterDlg.SetFilter(jobFilter, JobTaskFilter, SkillFilter);
                     FilterDlg.RunModal();
                     if FilterDlg.IsConfirmed() then begin
-                        FilterDlg.GetFilter(NewJobNo, NewJobTaskNo);
+                        FilterDlg.GetFilter(NewJobNo, NewJobTaskNo, NewSkill);
                         jobFilter := NewJobNo;
                         JobTaskFilter := NewJobTaskNo;
+                        SkillFilter := NewSkill;
                         RefreshSchedule();
                     end;
                 end;
@@ -351,6 +353,7 @@ page 50621 "DHX Scheduler (Project)"
                 begin
                     jobFilter := '';
                     JobTaskFilter := '';
+                    SkillFilter := '';
                     RefreshSchedule();
                 end;
 
@@ -537,7 +540,8 @@ page 50621 "DHX Scheduler (Project)"
         if (BGPendingStartDate <> AnchorDate) or
            (BGPendingResourceFilter <> CurrentEffResourceFilter) or
            (BGPendingJobFilter <> CurrentEffJobFilter) or
-           (BGPendingJobTaskFilter <> CurrentEffJobTaskFilter)
+           (BGPendingJobTaskFilter <> CurrentEffJobTaskFilter) or
+           (BGPendingSkillFilter <> SkillFilter) // Skill is independent of the Job/Resource exclusivity above - always compared as-is
         then
             exit; // stale - the displayed period/filter moved on since this task was enqueued
 
@@ -575,6 +579,7 @@ page 50621 "DHX Scheduler (Project)"
         ResourceFilter: Text;
         jobFilter: Text;
         JobTaskFilter: Text;
+        SkillFilter: Text; // filters Day Planning events by Skill - independent of the jobFilter<>'' vs ResourceFilter mutual exclusivity, works alone or combined with Job/Job Task
         SectionsTaskId: Integer; // TaskId of the most recently enqueued sections background task; OnPageBackgroundTaskCompleted/Error discard any result whose TaskId doesn't match (superseded by a later reload)
         PendingSectionsJson: Text; // set by OnPageBackgroundTaskCompleted, delivered into the control add-in by OnPollSectionsResult (see that trigger's comment for why the split is necessary)
         PendingEventsJson: Text;
@@ -583,6 +588,7 @@ page 50621 "DHX Scheduler (Project)"
         BGPendingResourceFilter: Text;
         BGPendingJobFilter: Text;
         BGPendingJobTaskFilter: Text;
+        BGPendingSkillFilter: Text;
 
     /// <summary>
     /// Shared by ControlReady/RefreshSchedule/OnTimelineNavigate: fetches the first ~50-row page
@@ -613,7 +619,7 @@ page 50621 "DHX Scheduler (Project)"
 
         SectionsPageSize := 50; // user-approved literal first-N-sections pagination size
         ResourceJSONTxt := DHXDataHandlerLocal.GetYUnitElementsJSON_Project_Paged(pStartDate, pStartDate, pEndDate,
-            EffResourceFilter, EffJobFilter, EffJobTaskFilter, SectionsPageSize, PlanninJsonTxt, EarliestPlanningDate, RemainingJobFilter);
+            EffResourceFilter, EffJobFilter, EffJobTaskFilter, SectionsPageSize, PlanninJsonTxt, EarliestPlanningDate, RemainingJobFilter, SkillFilter);
 
         EnqueueSectionsBackgroundTask(pStartDate, pEndDate, EffResourceFilter, EffJobFilter, EffJobTaskFilter, RemainingJobFilter);
     end;
@@ -635,6 +641,7 @@ page 50621 "DHX Scheduler (Project)"
         TaskParameters.Add('ResourceFilter', pResourceFilter);
         TaskParameters.Add('JobFilter', RemainingJobFilter);
         TaskParameters.Add('JobTaskFilter', pJobTaskFilter);
+        TaskParameters.Add('SkillFilter', SkillFilter);
         TaskParameters.Add('StartDate', Format(pStartDate, 0, '<Year4>-<Month,2>-<Day,2>'));
         TaskParameters.Add('EndDate', Format(pEndDate, 0, '<Year4>-<Month,2>-<Day,2>'));
 
@@ -644,6 +651,7 @@ page 50621 "DHX Scheduler (Project)"
         BGPendingResourceFilter := pResourceFilter;
         BGPendingJobFilter := pJobFilter; // the PAGE-level filter scope this task was enqueued for (not RemainingJobFilter) - used for the staleness check in OnPageBackgroundTaskCompleted
         BGPendingJobTaskFilter := pJobTaskFilter;
+        BGPendingSkillFilter := SkillFilter;
         PendingResultAvailable := false; // any earlier not-yet-delivered result is now stale
         CurrPage.DhxScheduler.NotifySectionsTaskPending(); // (re)start wrapper.js's bounded poll loop - normal synchronous call, safe here
     end;
@@ -671,7 +679,7 @@ page 50621 "DHX Scheduler (Project)"
         if GuiAllowed() then
             Window.Update(1, 'Rendering...');
         CurrPage.DhxScheduler.RefreshTimeline(ResourceJSONTxt, EventsJsonTxt, startDate);
-        CurrPage.DhxScheduler.SetTaskFilterInfo(jobFilter, JobTaskFilter, Format(startDate, 0, '<Year4>-<Month,2>-<Day,2>'), Format(endDate, 0, '<Year4>-<Month,2>-<Day,2>'));
+        CurrPage.DhxScheduler.SetTaskFilterInfo(jobFilter, JobTaskFilter, Format(startDate, 0, '<Year4>-<Month,2>-<Day,2>'), Format(endDate, 0, '<Year4>-<Month,2>-<Day,2>'), SkillFilter);
 
         if GuiAllowed() then
             Window.Close();
