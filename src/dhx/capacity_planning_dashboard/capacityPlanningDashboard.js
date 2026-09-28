@@ -144,7 +144,22 @@ class CapacityPlanningDashboard extends CapacityPlanningOverview {
     /// caption unchanged - explicit instruction not to touch that page's wording.
     /// </summary>
     treeContextMenuCaption() {
-        return 'Show Data';
+        return 'Show Day Planning';
+    }
+
+    /// <summary>
+    /// Second Section 4 right-click item - opens page 50621 "DHX Scheduler (Project)" filtered to
+    /// the right-clicked cell's Skill, on the week containing its date (OnOpenTaskScheduler/
+    /// codeunit 50604's CPO_OpenTaskScheduler).
+    /// </summary>
+    addExtraTreeContextMenuItems(menu, payload) {
+        const self = this;
+        this.addTreeContextMenuItem(menu, 'Show Task Scheduler', function () {
+            if (typeof Microsoft === 'undefined') return;
+            self.showLoading();
+            Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnOpenTaskScheduler', [JSON.stringify(payload)]);
+            self.hideLoading();
+        });
     }
 
     /// <summary>

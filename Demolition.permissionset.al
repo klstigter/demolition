@@ -115,6 +115,7 @@ permissionset 50600 Demolition
         codeunit GanttChartDataHandler = X,
         codeunit "General Planning Utilities" = X,
         codeunit "Global Session Var Opt." = X,
+        codeunit "Skip Temp Job Task Insert Opt." = X,
         codeunit "Job Planning Lines Prep. Mgt." = X,
         codeunit "Job Task Indent" = X,
         codeunit "OI Customer/Contact Tests" = X,

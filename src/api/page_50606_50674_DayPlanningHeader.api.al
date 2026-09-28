@@ -34,30 +34,45 @@ page 50674 "DayPlanning Header Opt"
                     Caption = 'Description';
                 }
             }
-            part(DayPlanningLines; "DayPlanning Line Opt")
+            part(dayPlanningLines; "DayPlanning Line Opt")
             {
-                EntityName = 'DayPlanningLine';
-                EntitySetName = 'DayPlanningLines';
+                EntityName = 'dayPlanningLine';
+                EntitySetName = 'dayPlanningLines';
                 SubPageLink = "Job No." = field("Job No."),
                               "Job Task No." = field("Job Task No.");
             }
         }
     }
 
+    trigger OnNewRecord(BelowxRec: Boolean)
+    var
+        GlobalSessionVar: Codeunit "Global Session Var Opt.";
+    begin
+        // BC binds the first nested line once before the header insert (phantom insert) - lines skip while pending
+        GlobalSessionVar.SetHeaderInsertPending(true);
+        GlobalSessionVar.ResetDayPlanningTemp();
+    end;
+
     trigger OnInsertRecord(BelowxRec: Boolean): Boolean
     var
         JobTask: Record "Job Task";
+        GlobalSessionVar: Codeunit "Global Session Var Opt.";
     begin
+        GlobalSessionVar.SetHeaderInsertPending(false);
+
         // Validate the referenced Job Task exists before accepting any day planning lines
         if not JobTask.Get(Rec."Job No.", Rec."Job Task No.") then
             Error('Job Task ''%1 / %2'' does not exist. Create the Job Task in Business Central first.', Rec."Job No.", Rec."Job Task No.");
 
         // Copy real Job Task data into the temp Rec so SubPageLink fields are correct
         Rec.TransferFields(JobTask, false);
+        // Skip Job Task.OnInsert for this temp insert: it writes real Job Task Dimension rows
+        BindSubscription(SkipTempJobTaskInsert);
         exit(true); // insert into temp table so the nested part can resolve its SubPageLink
     end;
 
     var
+        SkipTempJobTaskInsert: Codeunit "Skip Temp Job Task Insert Opt."; // page-level: must stay bound until BC inserts after OnInsertRecord
 
     local procedure GetPostresult(): Text
     var

@@ -10,6 +10,7 @@ codeunit 50601 "Global Session Var Opt."
     var
         JobNo: Code[20];
         DayPlanningTemp: Record "Day Planning" temporary;
+        HeaderInsertPending: Boolean;
 
     procedure SetJobNo(NewJobNo: Code[20])
     begin
@@ -19,6 +20,16 @@ codeunit 50601 "Global Session Var Opt."
     procedure GetJobNo(): Code[20]
     begin
         exit(JobNo);
+    end;
+
+    procedure SetHeaderInsertPending(Pending: Boolean)
+    begin
+        HeaderInsertPending := Pending;
+    end;
+
+    procedure IsHeaderInsertPending(): Boolean
+    begin
+        exit(HeaderInsertPending);
     end;
 
     procedure ResetDayPlanningTemp()

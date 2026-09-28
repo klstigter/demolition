@@ -2429,6 +2429,13 @@ class CapacityPlanningOverview {
         return 'Open Day Planning(s)';
     }
 
+    /// <summary>
+    /// Hook for extra summary-cell menu items after the default one - no-op here (page 50722
+    /// unchanged); CapacityPlanningDashboard overrides it to add "Show Task Scheduler".
+    /// </summary>
+    addExtraTreeContextMenuItems(menu, payload) {
+    }
+
     attachTreeContextMenu() {
         if (this._treeContextMenuBound) return;
         this._treeContextMenuBound = true;
@@ -2474,6 +2481,7 @@ class CapacityPlanningOverview {
                     Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnOpenDayPlanningList', [JSON.stringify(payload)]);
                     self.hideLoading();
                 });
+                self.addExtraTreeContextMenuItems(menu, payload);
             }
 
             if (!menu.children.length) return;

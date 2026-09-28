@@ -70,6 +70,17 @@ page 50724 "Capacity Planning Dashboard"
                 end;
 
                 /// <summary>
+                /// Section 4's right-click "Show Task Scheduler" - opens page 50621 filtered to the
+                /// right-clicked cell's Skill/date.
+                /// </summary>
+                trigger OnOpenTaskScheduler(PayloadJsonTxt: Text)
+                var
+                    DHXDataHandler: Codeunit "DHX Data Handler";
+                begin
+                    DHXDataHandler.CPO_OpenTaskScheduler(PayloadJsonTxt);
+                end;
+
+                /// <summary>
                 /// Section 3's right-click "Show Data" context menu (2026-09-14) - identical
                 /// trigger/delegation as page 50722's own OnShowCapacityBarSegment. Read-only
                 /// browse, no RefreshData() call needed afterwards.

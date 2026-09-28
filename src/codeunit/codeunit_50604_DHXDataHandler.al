@@ -6641,6 +6641,28 @@ codeunit 50604 "DHX Data Handler"
     end;
 
     /// <summary>
+    /// Commits controladdin event OnOpenTaskScheduler - page 50724's Section 4 right-click "Show
+    /// Task Scheduler". Same payload as CPO_OpenDayPlanningList ({"skill","date",...}); opens page
+    /// 50621 "DHX Scheduler (Project)" with its Skill filter preset and on the week of that date.
+    /// </summary>
+    procedure CPO_OpenTaskScheduler(PayloadJsonTxt: Text)
+    var
+        DHXSchedulerProject: Page "DHX Scheduler (Project)";
+        PayloadJObj: JsonObject;
+        FieldJToken: JsonToken;
+        PlanDate: Date;
+    begin
+        if not PayloadJObj.ReadFrom(PayloadJsonTxt) then
+            exit;
+        if PayloadJObj.Get('skill', FieldJToken) then
+            DHXSchedulerProject.SetSkillFilter(FieldJToken.AsValue().AsText());
+        if PayloadJObj.Get('date', FieldJToken) then
+            if Evaluate(PlanDate, FieldJToken.AsValue().AsText(), 9) then
+                DHXSchedulerProject.SetAnchorDate(PlanDate);
+        DHXSchedulerProject.Run();
+    end;
+
+    /// <summary>
     /// Commits controladdin event OnShowCapacityBarSegment - Section 3's ("Hours overview" daily
     /// Capacity/Requested bars, capacityPlanningOverview.js's renderCapacityBars/
     /// dailyCapacityRequestData) right-click "Show Data" context menu (2026-09-14), ported from the
