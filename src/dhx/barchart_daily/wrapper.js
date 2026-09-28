@@ -359,6 +359,10 @@ window.BOOT = function() {
         // single handler covers both a stacked-bar segment AND a legend entry; when neither
         // resolves (click landed on empty background/axis), the event is left alone so the
         // browser's native context menu still shows, same as before this feature existed.
+        // Section-3-style hover summary - registered once, same reasoning as the contextmenu below.
+        chartContainer.addEventListener("mousemove", ShowSummaryTip);
+        chartContainer.addEventListener("mouseleave", HideSummaryTip);
+
         chartContainer.addEventListener("contextmenu", function(e) {
             var barHit = ResolveBarSegmentFromEvent(e);
             if (barHit) {
@@ -445,6 +449,108 @@ function ApplyTooltipColors(backgroundColorHex, fontColorHex) {
         ".dhx_tooltip__text{ color:" + font + " !important; }";
 }
 
+// ============================================================
+// Hover summary tooltip - same look/content as Capacity Planning Overview's Section 3
+// (.cpo-daily-summary-tip / dailyCapacityTooltipHtml / dailyRequestTooltipHtml). Hovering any
+// segment of a C or R bar shows that bar's whole stack: every series that belongs to that bar
+// kind (non-zero somewhere on a same-kind bar), top segment first, plus a total row.
+// ============================================================
+var summaryTipEl = null;
+
+function SummaryHoursText(v) {
+    v = Math.round((Number(v) || 0) * 100) / 100;
+    return v ? v + "h" : "—";
+}
+
+function SummaryEsc(s) {
+    return String(s).replace(/[&<>"]/g, function(c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; });
+}
+
+function SummaryCategoryKind(cat) {
+    var s = String(cat);
+    var i = s.indexOf(CATEGORY_DELIMITER);
+    return i >= 0 ? s.slice(i + 1) : s;
+}
+
+function SummaryDisplayLabel(name) {
+    if (name === "Requested - Assigned" || name === "Assigned Capacity") return "Assigned";
+    return name.replace(/ - Unassigned$/, "");
+}
+
+// Category index of the bar segment under the pointer, or -1. Each series' <g aria-label="chart sN">
+// holds one <path> per category, in category order (see ResolveBarSegmentFromEvent).
+function ResolveHoveredCategoryIndex(e) {
+    var pathEl = e.target.closest ? e.target.closest("path") : null;
+    if (!pathEl) return -1;
+    var group = pathEl.closest('g[aria-label^="chart s"]');
+    if (!group) return -1;
+    return Array.prototype.indexOf.call(group.querySelectorAll("path"), pathEl);
+}
+
+// Summary of the ONE hovered bar (that skill's C or R stack) - only its non-zero segments.
+function BuildSummaryTipHtml(catIdx, title) {
+    var cats = (lastChartData && lastChartData.categories) || [];
+    var kind = SummaryCategoryKind(cats[catIdx]);
+
+    var rows = [], byLabel = {}, total = 0;
+    lastSeriesDefs.forEach(function(s, sIdx) {
+        var values = (s && Array.isArray(s.values)) ? s.values : [];
+        var value = Number(values[catIdx]) || 0;
+        if (value <= 0) return;
+        var label = SummaryDisplayLabel(String(s.name || ""));
+        total += value;
+        if (byLabel[label]) { byLabel[label].value += value; return; }
+        byLabel[label] = {
+            label: label, value: value, border: s.border || "rgba(0,0,0,.15)",
+            color: s.color || SERIES_COLOR_PALETTE[sIdx % SERIES_COLOR_PALETTE.length]
+        };
+        rows.push(byLabel[label]);
+    });
+
+    var isCapacity = kind === "Capacity";
+    return '<div style="font-weight:700;margin-bottom:4px">' + SummaryEsc(title) + ' · ' + (isCapacity ? 'Capacity' : 'Request') + ' summary</div>' +
+        rows.reverse().map(function(r) {
+            return '<div style="display:flex;align-items:center;gap:6px;padding:1px 0">' +
+                '<span style="width:9px;height:9px;border-radius:2px;flex:0 0 auto;background:' + r.color + ';border:1px solid ' + r.border + '"></span>' +
+                '<span style="flex:1">' + SummaryEsc(r.label) + '</span>' +
+                '<span style="font-weight:600">' + SummaryHoursText(r.value) + '</span></div>';
+        }).join('') +
+        '<div style="border-top:1px solid #ececec;margin:4px 0"></div>' +
+        '<div style="display:flex;justify-content:space-between;gap:12px;font-weight:700"><span>Total ' + (isCapacity ? 'capacity' : 'request') + '</span><span>' + SummaryHoursText(total) + '</span></div>';
+}
+
+function HideSummaryTip() {
+    if (summaryTipEl) summaryTipEl.style.display = "none";
+}
+
+function ShowSummaryTip(e) {
+    var catIdx = ResolveHoveredCategoryIndex(e);
+    if (catIdx < 0) { HideSummaryTip(); return; }
+    if (!summaryTipEl) {
+        summaryTipEl = document.createElement("div");
+        summaryTipEl.style.cssText = "display:none;position:fixed;z-index:20000;border:1px solid #d7d7d7;border-radius:6px;" +
+            "box-shadow:0 4px 16px rgba(0,0,0,.15);padding:8px 10px;font-size:11px;max-width:280px;pointer-events:none;" +
+            "font-family:'Segoe UI',sans-serif";
+        document.body.appendChild(summaryTipEl);
+    }
+    summaryTipEl.style.background = (lastChartData && lastChartData.tooltipBg) || "#fff";
+    summaryTipEl.style.color = (lastChartData && lastChartData.tooltipFont) || "#101828";
+    // Title = "<Skill> · <date>" - skill from the C/R pair, date from the header period label minus
+    // its "Daily: " prefix (page 50681 sends no period label, so just the skill there).
+    var title = String(lastSkillLabels[Math.floor(catIdx / 2)] || "");
+    var dateText = String((lastChartData && lastChartData.periodLabel) || "").replace(/^Daily:\s*/, "");
+    if (dateText) title += (title ? " · " : "") + dateText;
+    summaryTipEl.innerHTML = BuildSummaryTipHtml(catIdx, title);
+
+    summaryTipEl.style.display = "block";
+    var x = e.clientX + 12, y = e.clientY + 12;
+    var r = summaryTipEl.getBoundingClientRect();
+    if (x + r.width > window.innerWidth - 8) x = e.clientX - r.width - 12;
+    if (y + r.height > window.innerHeight - 8) y = e.clientY - r.height - 12;
+    summaryTipEl.style.left = Math.max(0, x) + "px";
+    summaryTipEl.style.top = Math.max(0, y) + "px";
+}
+
 function RenderChart(chartData, legendSizeOverride, isCorrectivePass) {
     if (!chartContainer) return;
 
@@ -506,7 +612,10 @@ function RenderChart(chartData, legendSizeOverride, isCorrectivePass) {
             id:    "s" + sIdx,
             value: "s" + sIdx,
             label: (s && s.name) ? s.name : ("Series " + (sIdx + 1)),
-            color: (s && s.color) ? s.color : SERIES_COLOR_PALETTE[sIdx % SERIES_COLOR_PALETTE.length]
+            color: (s && s.color) ? s.color : SERIES_COLOR_PALETTE[sIdx % SERIES_COLOR_PALETTE.length],
+            // Built-in per-segment tooltip off - replaced by the Section-3-style summary tooltip
+            // (see ShowSummaryTip below).
+            tooltip: false
         };
         // Any series requesting `stacked` switches the whole chart to a stacked layout (suite.js
         // reads `stacked` per-series - a mixed stacked/unstacked chart is not a shape this chart
@@ -561,30 +670,10 @@ function RenderChart(chartData, legendSizeOverride, isCorrectivePass) {
                 }
             },
             left:   { type: "numeric" }
-        },
-        // Series-driven legend, de-duplicated by label (2026-09-22, replacing the old per-category/
-        // bar "colors"/barColor-driven data legend - a category-driven legend no longer makes
-        // sense once each category is only half a skill's story, its Capacity OR Requested bar).
-        // Matches src/dhx/barchart_weekly/wrapper.js's own `legend.series` config exactly - see
-        // that file's own comment for why de-dup-by-label is needed (this chart currently has no
-        // series sharing a label, but the same convention is kept for consistency/future-proofing).
-        legend: {
-            series: (function() {
-                var seenLabels = {};
-                return series.filter(function(s) {
-                    if (seenLabels[s.label]) return false;
-                    seenLabels[s.label] = true;
-                    return true;
-                }).map(function(s) { return s.id; });
-            })(),
-            halign: "right",
-            valign: "top",
-            // Explicit reserved top margin - see legendSize's own comment above. Left at the
-            // library's own default (40) on a normal first pass; bumped by
-            // CorrectLegendTopOverflowIfNeeded on a corrective re-render when that default wasn't
-            // enough room for however many rows this chart's legend items actually wrap onto.
-            size: legendSize
         }
+        // No legend (2026-09-28) - the hover summary tooltip (ShowSummaryTip) now names every
+        // segment, same as Capacity Planning Overview's Section 3. The legend-related post-render
+        // patches simply find no legend DOM and no-op.
     };
 
     if (chartInstance) {
