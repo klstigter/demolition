@@ -67,6 +67,10 @@ page 50675 "DayPlanning Line Opt"
                 {
                     Caption = 'End Time Requested';
                 }
+                field(nonWorkingMinutesRequested; Rec."Non Working Minutes Requested")
+                {
+                    Caption = 'Non Working Minutes Requested';
+                }
                 field(startTimeAssigned; Rec."Start Time Assigned")
                 {
                     Caption = 'Start Time Assigned';
@@ -75,7 +79,15 @@ page 50675 "DayPlanning Line Opt"
                 {
                     Caption = 'End Time Assigned';
                 }
+                field(nonWorkingMinutesAssigned; Rec."Non Working Minutes Assigned")
+                {
+                    Caption = 'Non Working Minutes Assigned';
+                }
                 field(requestedHours; Rec."Requested Hours")
+                {
+                    ApplicationArea = All;
+                }
+                field(assignedHours; Rec."Assigned Hours")
                 {
                     ApplicationArea = All;
                 }
