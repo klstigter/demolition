@@ -39,9 +39,13 @@ page 50675 "DayPlanning Line Opt"
                 {
                     Caption = 'Plan Date';
                 }
-                field(no_; Rec."Assigned Resource No.")
+                field(requestedResourceNo; Rec."Requested Resource No.")
                 {
-                    Caption = 'No.';
+                    Caption = 'Requested Resource No.';
+                }
+                field(assignedResourceNo; Rec."Assigned Resource No.")
+                {
+                    Caption = 'Assigned Resource No.';
                 }
                 field(description; Rec.Description)
                 {
