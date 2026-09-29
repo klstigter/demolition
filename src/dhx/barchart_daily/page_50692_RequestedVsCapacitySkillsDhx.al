@@ -237,25 +237,13 @@ page 50681 "Requested vs Capacity Daily"
     end;
 
     local procedure RefreshPeriod()
-    var
-        WeekNo: Integer;
-        YearNo: Integer;
     begin
-        if WeeklyFlag then begin
-            WeekNo := Date2DWY(PeriodStartDate, 2);
-            YearNo := Date2DWY(PeriodStartDate, 3);
-            Day1Text := FormatDayText(PeriodStartDate);
-            Day7Text := FormatDayText(PeriodStartDate + 6);
-            PeriodLabelText := CopyStr(StrSubstNo(WeeklyPeriodLabelLbl, Format(PeriodStartDate, 0, '<Month Text,3>'), YearNo, WeekNo, Day1Text, Day7Text), 1, MaxStrLen(PeriodLabelText));
-        end else
+        if WeeklyFlag then
+            PeriodLabelText := CopyStr(StrSubstNo(WeeklyPeriodLabelLbl, VisualDefaultSettings.FormatWeekPeriodText(PeriodStartDate)), 1, MaxStrLen(PeriodLabelText))
+        else
             PeriodLabelText := CopyStr(StrSubstNo(DailyPeriodLabelLbl, FormatFullDayText(PeriodStartDate)), 1, MaxStrLen(PeriodLabelText));
 
         RefreshData();
-    end;
-
-    local procedure FormatDayText(DayDate: Date): Text[20]
-    begin
-        exit(StrSubstNo(DayLabelLbl, Format(DayDate, 0, '<Weekday Text,3>'), Format(DayDate, 0, '<Day,2>')));
     end;
 
     local procedure FormatFullDayText(ADate: Date): Text
@@ -457,11 +445,8 @@ page 50681 "Requested vs Capacity Daily"
         CapacityPeriodEndDate: Date;
         ChartReady: Boolean;
         PeriodLabelText: Text[80];
-        Day1Text: Text[20];
-        Day7Text: Text[20];
-        WeeklyPeriodLabelLbl: Label 'Weekly: %1 %2 - wk %3 (%4 - %5)', Comment = '%1 = abbreviated month, %2 = year, %3 = ISO week number, %4 = period start day text, %5 = period end day text';
+        WeeklyPeriodLabelLbl: Label 'Weekly: %1', Comment = '%1 = standard week period text, e.g. "wk 39 (Mon, 21 Sep 2026 - Sun, 27 Sep 2026)"';
         DailyPeriodLabelLbl: Label 'Daily: %1', Comment = '%1 = full date text';
-        DayLabelLbl: Label '%1 %2', Comment = '%1 = abbreviated weekday, %2 = day of month';
         // Matches codeunit 50608's own CategoryDelimiterTok/CapacityCategoryLbl (and page 50707's
         // own independently-declared copies) text-for-text - keep in sync if it ever changes. See
         // this procedure's (RefreshChart's) own doc comment for the category-string shape.

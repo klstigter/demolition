@@ -50,23 +50,23 @@ window.BOOT = function () {
             Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnResetRequested", []);
         });
 
-        var clearBtn = document.createElement("span");
-        clearBtn.className = "cf-clear-btn";
-        // Thin "dismiss" cross (BC standard clear/remove look)
-        clearBtn.innerHTML =
-            '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" ' +
-            'stroke-width="1.2" stroke-linecap="round">' +
-            '<path d="M4 4l8 8M12 4l-8 8"/></svg>';
-        clearBtn.title = "Clear";
-        clearBtn.addEventListener("click", function (e) {
-            e.stopPropagation();
-            Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnClearRequested", []);
-        });
+        // var clearBtn = document.createElement("span");
+        // clearBtn.className = "cf-clear-btn";
+        // // Thin "dismiss" cross (BC standard clear/remove look)
+        // clearBtn.innerHTML =
+        //     '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" ' +
+        //     'stroke-width="1.2" stroke-linecap="round">' +
+        //     '<path d="M4 4l8 8M12 4l-8 8"/></svg>';
+        // clearBtn.title = "Clear";
+        // clearBtn.addEventListener("click", function (e) {
+        //     e.stopPropagation();
+        //     Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnClearRequested", []);
+        // });
 
         addIn.appendChild(_labelEl);
         addIn.appendChild(valueEl);
         addIn.appendChild(resetBtn);
-        addIn.appendChild(clearBtn);
+        //addIn.appendChild(clearBtn);
 
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("ControlReady", []);
     } catch (err) {

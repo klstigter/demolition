@@ -507,13 +507,11 @@ window.BOOT = function() {
         unit: "week",
         step: 1,
         format: function (date) {
-          
-          const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-          const MMM = months[date.getMonth()];
-          const week = gantt.date.date_to_str("%W")(date);
-          const year = gantt.date.date_to_str("%Y")(date);
-          
-          return   MMM + " " + year + " - " + "wk " + week;   // e.g. W49 2025
+          // Standard weekly period text (same as codeunit 50609's FormatWeekPeriodText):
+          // "wk 39 (Mon, 21 Sep 2026 - Sun, 27 Sep 2026)"
+          const week = parseInt(gantt.date.date_to_str("%W")(date), 10);
+          const dayFmt = gantt.date.date_to_str("%D, %d %M %Y");
+          return "wk " + week + " (" + dayFmt(date) + " - " + dayFmt(gantt.date.add(date, 6, "day")) + ")";
         },
         css: function (date) {
           const week = parseInt(gantt.date.date_to_str("%W")(date), 10);
@@ -3125,7 +3123,7 @@ function _updateResourceHeaderTooltip() {
     if (fi.job) lines.push("Job = " + _escHtml(fi.job));
     if (fi.task) lines.push("Task = " + _escHtml(fi.task));
     if (fi.periodFrom || fi.periodTo)
-      lines.push("Period: " + _escHtml(fi.periodFrom) + " to " + _escHtml(fi.periodTo));
+      lines.push(" " + _escHtml(fi.periodFrom) + " to " + _escHtml(fi.periodTo));
     popup.innerHTML = lines.join("<br/>");
 
     // (ℹ) Info button — hover shows filter details, no click action
@@ -3381,7 +3379,7 @@ function _updateGanttFilterToolbar() {
       }
       if (fi.periodFrom || fi.periodTo) {
         popup.appendChild(document.createElement("br"));
-        popup.appendChild(document.createTextNode("Period: " + (fi.periodFrom || "") + " to " + (fi.periodTo || "")));
+        popup.appendChild(document.createTextNode(" " + (fi.periodFrom || "") + " to " + (fi.periodTo || "")));
       }
     }
 

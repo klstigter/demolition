@@ -1678,13 +1678,20 @@ class CapacityPlanningOverview {
         });
     }
 
+    /// <summary>Section 3's C/R bar colours - AL's "capacityColors" ("Daily Optimizer Setup" Assigned / Free Capacity / External Border Color, same resolution as the Daily/Weekly Insights charts), with the old hardcoded values only as fallback.</summary>
+    capColors() {
+        const c = this.db.capacityColors || {};
+        return { assigned: c.assigned || '#63aa72', capacity: c.capacity || '#5f8fd8', externalBorder: c.externalBorder || '#FF0000' };
+    }
+
     dailyCapacityTooltipHtml(x) {
+        const cc = this.capColors();
         const total = x.assigned + x.freeInt + x.freeExt;
         const dayLabel = x.date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' });
         return '<div class="cpo-dst-title">' + cpoEsc(dayLabel) + ' \u00b7 Capacity summary</div>' +
-            '<div class="cpo-dst-row"><span class="cpo-dst-swatch" style="background:#8fb7ee"></span><span>Free external</span><span class="cpo-dst-value">' + cpoHoursText(x.freeExt) + '</span></div>' +
-            '<div class="cpo-dst-row"><span class="cpo-dst-swatch" style="background:#5f8fd8"></span><span>Free internal</span><span class="cpo-dst-value">' + cpoHoursText(x.freeInt) + '</span></div>' +
-            '<div class="cpo-dst-row"><span class="cpo-dst-swatch" style="background:#63aa72"></span><span>Assigned</span><span class="cpo-dst-value">' + cpoHoursText(x.assigned) + '</span></div>' +
+            '<div class="cpo-dst-row"><span class="cpo-dst-swatch" style="background:' + cc.capacity + ';border-color:' + cc.externalBorder + '"></span><span>Free external</span><span class="cpo-dst-value">' + cpoHoursText(x.freeExt) + '</span></div>' +
+            '<div class="cpo-dst-row"><span class="cpo-dst-swatch" style="background:' + cc.capacity + '"></span><span>Free internal</span><span class="cpo-dst-value">' + cpoHoursText(x.freeInt) + '</span></div>' +
+            '<div class="cpo-dst-row"><span class="cpo-dst-swatch" style="background:' + cc.assigned + '"></span><span>Assigned</span><span class="cpo-dst-value">' + cpoHoursText(x.assigned) + '</span></div>' +
             '<div class="cpo-dst-rule"></div><div class="cpo-dst-total"><span>Total capacity</span><span>' + cpoHoursText(total) + '</span></div>';
     }
 
@@ -1698,7 +1705,7 @@ class CapacityPlanningOverview {
         });
         const dayLabel = x.date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' });
         return '<div class="cpo-dst-title">' + cpoEsc(dayLabel) + ' \u00b7 Request summary</div>' +
-            '<div class="cpo-dst-row"><span class="cpo-dst-swatch" style="background:#63aa72"></span><span>Assigned</span><span class="cpo-dst-value">' + cpoHoursText(x.assignedRequest) + '</span></div>' +
+            '<div class="cpo-dst-row"><span class="cpo-dst-swatch" style="background:' + self.capColors().assigned + '"></span><span>Assigned</span><span class="cpo-dst-value">' + cpoHoursText(x.assignedRequest) + '</span></div>' +
             rows +
             '<div class="cpo-dst-rule"></div><div class="cpo-dst-total"><span>Total request</span><span>' + cpoHoursText(x.request) + '</span></div>';
     }
@@ -1735,10 +1742,17 @@ class CapacityPlanningOverview {
         // Weekly charts' <path>s, which always render even at 0 height), so a segment's DOM
         // position among its stack's siblings cannot reliably be mapped back to which value it
         // represents. See attachCapacityBarsContextMenu below for how this is read back.
-        const seg = function (value, colorHex, segKey) {
+        // `opacity` fades only the C (Capacity) stack - AL's "capacityBlur" (%), the same "Daily
+        // Optimizer Setup" setting the Daily/Weekly Insights charts' C bars use.
+        // Fill only (color-mix), so the Free-external segment's External Border outline (inset
+        // box-shadow, same red outline the Daily/Weekly charts draw) stays crisp.
+        const cc = this.capColors();
+        const capFillPct = Math.max(0, 100 - (Number(this.db.capacityBlur) || 0));
+        const seg = function (value, colorHex, segKey, fillPct, borderHex) {
             if (!value || value <= 0) return '';
             const h = Math.max(1, Math.round(value / maxVal * maxBarPx));
-            return '<div class="cpo-daily-chart-segment" data-seg="' + segKey + '" style="height:' + h + 'px;background:' + (colorHex || '#ccc') + ';"></div>';
+            const bg = fillPct !== undefined ? 'color-mix(in srgb, ' + (colorHex || '#ccc') + ' ' + fillPct + '%, transparent)' : (colorHex || '#ccc');
+            return '<div class="cpo-daily-chart-segment" data-seg="' + segKey + '" style="height:' + h + 'px;background:' + bg + ';' + (borderHex ? 'box-shadow:inset 0 0 0 1.5px ' + borderHex + ';' : '') + '"></div>';
         };
 
         const cellsHtml = data.map(function (x) {
@@ -1749,8 +1763,8 @@ class CapacityPlanningOverview {
                     '<div class="cpo-daily-chart-date"><b>' + dayNo + '</b><span>' + dayName + '</span></div>' +
                     '<div class="cpo-daily-chart-off">non-workday</div><div class="cpo-daily-chart-value">\u2014</div></div>';
             }
-            const cStack = seg(x.assigned, '#63aa72', 'assigned') + seg(x.freeInt, '#5f8fd8', 'freeInternal') + seg(x.freeExt, '#8fb7ee', 'freeExternal');
-            let rStack = seg(x.assignedRequest, '#63aa72', 'assigned');
+            const cStack = seg(x.assigned, cc.assigned, 'assigned') + seg(x.freeInt, cc.capacity, 'freeInternal', capFillPct) + seg(x.freeExt, cc.capacity, 'freeExternal', capFillPct, cc.externalBorder);
+            let rStack = seg(x.assignedRequest, cc.assigned, 'assigned');
             self.skills.forEach(function (sk) { const meta = self.skillMeta(sk); rStack += seg(x.unassignedBySkill[sk], meta.color, 'skill:' + sk); });
             // _bulkAnchorHint (2026-09-04) - cosmetic-only, set by moveWorkOrderToDay's bulk
             // relocate (never by an individual section 2 drag) - once rows have been dragged

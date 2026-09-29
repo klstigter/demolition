@@ -263,7 +263,7 @@ function UpdateHeader(chartData) {
         // Single "Period: <value>" line - PeriodLabelText + Day1/Day7 already arrives as e.g.
         // "Sep 2026 - wk 37 (Mon 07 - Sun 13)" (see page 50708's own RefreshChart), with no
         // redundant leading prefix of its own, so a plain "Period: " prefix here reads cleanly.
-        periodEl.textContent = "Period: " + periodLabel;
+        periodEl.textContent = " " + periodLabel;
     }
 }
 
@@ -727,6 +727,7 @@ function SchedulePostRenderPatches() {
         // native evenly-spaced ones. The other two patches don't care about bar x position.
         ApplyDayPairSpacing();
         ApplySeriesBorders(lastSeriesDefs, lastSeries);
+        ApplySeriesBlur(lastSeriesDefs, lastSeries);
         ApplyLegendSwatchBorders(lastSeriesDefs, lastSeries);
         ApplyLegendHitArea();
         RenderDayGroupRow(lastDayLabels);
@@ -892,6 +893,28 @@ function ApplySeriesBorders(seriesDefs, series) {
                 if (values[pIdx]) {
                     p.style.stroke = s.border;
                     p.style.strokeWidth = "1.5px";
+                }
+            });
+        }
+    });
+}
+
+// Fades every rendered bar <path> of a series that requested a `blur` strength (%) - only the
+// Capacity ("C") bar's stacked segments ever carry this (codeunit 50662's BuildDayCapacityChartData/
+// BuildDayCapacityChartDataForRange, via "Daily Optimizer Setup"."Capacity Bar Blur Strength").
+// Same matching/zero-value-skip shape as ApplySeriesBorders above, but sets fill-opacity only -
+// never touches `stroke`, so a bordered segment's red External outline (applied separately by
+// ApplySeriesBorders) stays crisp on top of the faded fill. Idempotent - safe to call again on
+// every repaint (see SchedulePostRenderPatches).
+function ApplySeriesBlur(seriesDefs, series) {
+    seriesDefs.forEach(function(s, sIdx) {
+        if (s && s.blur && series[sIdx]) {
+            var values = Array.isArray(s.values) ? s.values : [];
+            var opacity = Math.max(0, 1 - (s.blur / 100));
+            var paths = chartContainer.querySelectorAll('g[aria-label="chart ' + series[sIdx].id + '"] path');
+            paths.forEach(function(p, pIdx) {
+                if (values[pIdx]) {
+                    p.style.fillOpacity = opacity;
                 }
             });
         }
