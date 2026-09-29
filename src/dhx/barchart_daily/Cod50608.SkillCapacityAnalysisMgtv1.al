@@ -376,11 +376,17 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
     /// loops over.
     /// </summary>
     procedure AddCapacitySegmentSeries(var SeriesArray: JsonArray; AssignedValues: JsonArray; CapInternalValues: JsonArray; CapExternalMandatoryValues: JsonArray; CapExternalValues: JsonArray; AssignedColor: Text; CapacityColor: Text; CapacityMandatoryColor: Text; ExternalBorderColor: Text)
+    var
+        ColorConstants: Codeunit "Visual Default Settings";
+        BlurStrength: Integer;
     begin
-        AddSeries(SeriesArray, AssignedCapacitySeriesNameLbl, AssignedValues, AssignedColor, '', '');
-        AddSeries(SeriesArray, CapInternalSeriesNameLbl, CapInternalValues, CapacityColor, '', '');
-        AddSeries(SeriesArray, CapExternalMandatorySeriesNameLbl, CapExternalMandatoryValues, CapacityMandatoryColor, '', '');
-        AddSeries(SeriesArray, CapExternalSeriesNameLbl, CapExternalValues, CapacityColor, ExternalBorderColor, '');
+        // Only the Free Capacity segments get the configurable blur (fill-opacity only, colours
+        // unchanged) - Assigned keeps its setup "Assigned Color" at full strength.
+        BlurStrength := ColorConstants.GetCapacityBarBlurStrength();
+        AddSeries(SeriesArray, AssignedCapacitySeriesNameLbl, AssignedValues, AssignedColor, '', '', 0);
+        AddSeries(SeriesArray, CapInternalSeriesNameLbl, CapInternalValues, CapacityColor, '', '', BlurStrength);
+        AddSeries(SeriesArray, CapExternalMandatorySeriesNameLbl, CapExternalMandatoryValues, CapacityMandatoryColor, '', '', BlurStrength);
+        AddSeries(SeriesArray, CapExternalSeriesNameLbl, CapExternalValues, CapacityColor, ExternalBorderColor, '', BlurStrength);
     end;
 
     /// <summary>
@@ -393,7 +399,7 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
     /// only ever passed for the per-skill Unassigned series below, never for the shared/Capacity
     /// segments (which have no Skill of their own).
     /// </summary>
-    local procedure AddSeries(var SeriesArray: JsonArray; SeriesName: Text; Values: JsonArray; ColorHex: Text; BorderHex: Text; FontColorHex: Text)
+    local procedure AddSeries(var SeriesArray: JsonArray; SeriesName: Text; Values: JsonArray; ColorHex: Text; BorderHex: Text; FontColorHex: Text; BlurStrength: Integer)
     var
         SeriesObj: JsonObject;
     begin
@@ -404,6 +410,8 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
             SeriesObj.Add('border', BorderHex);
         if FontColorHex <> '' then
             SeriesObj.Add('fontColor', FontColorHex);
+        if BlurStrength > 0 then
+            SeriesObj.Add('blur', BlurStrength);
         SeriesObj.Add('stacked', true);
         SeriesArray.Add(SeriesObj);
     end;
@@ -459,7 +467,7 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
     /// </summary>
     procedure AddRequestedAssignedSeries(var SeriesArray: JsonArray; Values: JsonArray; AssignedColor: Text)
     begin
-        AddSeries(SeriesArray, RequestedAssignedSeriesNameLbl, Values, AssignedColor, '', '');
+        AddSeries(SeriesArray, RequestedAssignedSeriesNameLbl, Values, AssignedColor, '', '', 0);
     end;
 
     /// <summary>
@@ -481,7 +489,7 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
     /// </summary>
     procedure AddSkillUnassignedSeries(var SeriesArray: JsonArray; SkillCode: Code[10]; Values: JsonArray; UnassignedColor: Text; BorderColor: Text; FontColorHex: Text)
     begin
-        AddSeries(SeriesArray, StrSubstNo(SkillUnassignedSeriesNameLbl, SkillCode), Values, UnassignedColor, BorderColor, FontColorHex);
+        AddSeries(SeriesArray, StrSubstNo(SkillUnassignedSeriesNameLbl, SkillCode), Values, UnassignedColor, BorderColor, FontColorHex, 0);
     end;
 
     var

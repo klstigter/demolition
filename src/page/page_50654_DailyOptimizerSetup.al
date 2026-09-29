@@ -425,6 +425,12 @@ page 50654 "Daily Optimizer Setup"
                                 ClearColor(Rec."External Border Color");
                             end;
                         }
+                        field("Capacity Bar Blur Strength"; Rec."Capacity Bar Blur Strength")
+                        {
+                            ApplicationArea = All;
+                            Caption = 'Blur Strength (%)';
+                            ToolTip = 'Specifies how much lighter (faded) to render the Capacity bar''s segments on the Daily/Weekly bar charts. 0 = no fade; up to 90.';
+                        }
                     }
 
                     group(Envelope)
@@ -612,6 +618,7 @@ page 50654 "Daily Optimizer Setup"
                         Rec."Free Capacity-Mandatory Color" := VisualDefaultSettings.GetDefaultCapacityMandatoryColor();
                         Rec."External Border Color" := VisualDefaultSettings.GetDefaultExternalBorderColor();
                         Rec."Capacity Border Color" := VisualDefaultSettings.GetDefaultCapacityBorderColor();
+                        Rec."Capacity Bar Blur Strength" := VisualDefaultSettings.GetDefaultCapacityBarBlurStrength();
                         Rec."Bar Font Color" := VisualDefaultSettings.GetDefaultBarFontColor();
                         Rec."Tooltip Background Color" := VisualDefaultSettings.GetDefaultTooltipBackgroundColor();
                         Rec."Tooltip Font Color" := VisualDefaultSettings.GetDefaultTooltipFontColor();

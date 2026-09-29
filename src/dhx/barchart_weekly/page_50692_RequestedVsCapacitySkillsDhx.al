@@ -18,7 +18,7 @@ page 50692 "Requested vs Capacity Weekly"
     {
         area(Content)
         {
-            field(PeriodLabelCtrl; PeriodLabelText + ' (' + Day1Text + ' - ' + Day7Text + ')')
+            field(PeriodLabelCtrl; PeriodLabelText)
             {
                 ApplicationArea = All;
                 Caption = 'Period';
@@ -170,23 +170,11 @@ page 50692 "Requested vs Capacity Weekly"
 
     local procedure RefreshPeriod()
     var
-        WeekNo: Integer;
-        YearNo: Integer;
+        VisualDefaultSettings: Codeunit "Visual Default Settings";
     begin
-        WeekNo := Date2DWY(PeriodStartDate, 2);
-        YearNo := Date2DWY(PeriodStartDate, 3);
-
-        PeriodLabelText := StrSubstNo(PeriodLabelLbl, Format(PeriodStartDate, 0, '<Month Text,3>'), YearNo, WeekNo);
-
-        Day1Text := FormatDayText(PeriodStartDate);
-        Day7Text := FormatDayText(PeriodStartDate + 6);
+        PeriodLabelText := CopyStr(VisualDefaultSettings.FormatWeekPeriodText(PeriodStartDate), 1, MaxStrLen(PeriodLabelText));
 
         RefreshData();
-    end;
-
-    local procedure FormatDayText(DayDate: Date): Text[20]
-    begin
-        exit(StrSubstNo(DayLabelLbl, Format(DayDate, 0, '<Weekday Text,3>'), Format(DayDate, 0, '<Day,2>')));
     end;
 
     local procedure RefreshData()
@@ -235,8 +223,4 @@ page 50692 "Requested vs Capacity Weekly"
         PeriodStartDate: Date;
         ChartReady: Boolean;
         PeriodLabelText: Text[50];
-        Day1Text: Text[20];
-        Day7Text: Text[20];
-        PeriodLabelLbl: Label '%1 %2 - wk %3', Comment = '%1 = abbreviated month, %2 = year, %3 = ISO week number';
-        DayLabelLbl: Label '%1 %2', Comment = '%1 = abbreviated weekday, %2 = day of month';
 }

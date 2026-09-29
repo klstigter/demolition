@@ -234,18 +234,11 @@ page 50705 "Skill Hours Summary"
     var
         WeekStartDate: Date;
         WeekEndDate: Date;
-        WeekNo: Integer;
-        YearNo: Integer;
-        Day1Text: Text[20];
-        Day7Text: Text[20];
+        VisualDefaultSettings: Codeunit "Visual Default Settings";
     begin
         WeekStartDate := CalcMonday(PeriodDate);
         WeekEndDate := WeekStartDate + 6;
-        WeekNo := Date2DWY(WeekStartDate, 2);
-        YearNo := Date2DWY(WeekStartDate, 3);
-        Day1Text := FormatDayText(WeekStartDate);
-        Day7Text := FormatDayText(WeekEndDate);
-        PeriodLabelText := CopyStr(StrSubstNo(WeeklyPeriodLabelLbl, Format(WeekStartDate, 0, '<Month Text,3>'), YearNo, WeekNo, Day1Text, Day7Text), 1, MaxStrLen(PeriodLabelText));
+        PeriodLabelText := CopyStr(StrSubstNo(WeeklyPeriodLabelLbl, VisualDefaultSettings.FormatWeekPeriodText(WeekStartDate)), 1, MaxStrLen(PeriodLabelText));
         BuildSkillHoursGrid(WeekStartDate, WeekEndDate);
         CurrPage.Update(false);
     end;
@@ -261,11 +254,6 @@ page 50705 "Skill Hours Summary"
     begin
         WeekDayNo := Date2DWY(ADate, 1);
         exit(ADate - (WeekDayNo - 1));
-    end;
-
-    local procedure FormatDayText(DayDate: Date): Text[20]
-    begin
-        exit(StrSubstNo(DayLabelLbl, Format(DayDate, 0, '<Weekday Text,3>'), Format(DayDate, 0, '<Day,2>')));
     end;
 
     /// <summary>
@@ -361,6 +349,5 @@ page 50705 "Skill Hours Summary"
         JobTaskNoFilter: Code[20];
         PeriodDate: Date;
         PeriodLabelText: Text[80];
-        WeeklyPeriodLabelLbl: Label 'Weekly: %1 %2 - wk %3 (%4 - %5)', Comment = '%1 = abbreviated month, %2 = year, %3 = ISO week number, %4 = period start day text, %5 = period end day text';
-        DayLabelLbl: Label '%1 %2', Comment = '%1 = abbreviated weekday, %2 = day of month';
+        WeeklyPeriodLabelLbl: Label 'Weekly: %1', Comment = '%1 = standard week period text, e.g. "wk 39 (Mon, 21 Sep 2026 - Sun, 27 Sep 2026)"';
 }

@@ -114,23 +114,11 @@ page 50708 "Requested vs Capacity Weekly P"
 
     local procedure RefreshPeriod()
     var
-        WeekNo: Integer;
-        YearNo: Integer;
+        VisualDefaultSettings: Codeunit "Visual Default Settings";
     begin
-        WeekNo := Date2DWY(PeriodStartDate, 2);
-        YearNo := Date2DWY(PeriodStartDate, 3);
-
-        PeriodLabelText := StrSubstNo(PeriodLabelLbl, Format(PeriodStartDate, 0, '<Month Text,3>'), YearNo, WeekNo);
-
-        Day1Text := FormatDayText(PeriodStartDate);
-        Day7Text := FormatDayText(PeriodStartDate + 6);
+        PeriodLabelText := CopyStr(VisualDefaultSettings.FormatWeekPeriodText(PeriodStartDate), 1, MaxStrLen(PeriodLabelText));
 
         RefreshData();
-    end;
-
-    local procedure FormatDayText(DayDate: Date): Text[20]
-    begin
-        exit(StrSubstNo(DayLabelLbl, Format(DayDate, 0, '<Weekday Text,3>'), Format(DayDate, 0, '<Day,2>')));
     end;
 
     local procedure RefreshData()
@@ -155,7 +143,7 @@ page 50708 "Requested vs Capacity Weekly P"
 
         ChartDataJson := SkillCapacityAnalysisMgt.BuildDayCapacityChartData(PeriodStartDate);
         ChartData.ReadFrom(ChartDataJson);
-        ChartData.Add('periodLabel', PeriodLabelText + ' (' + Day1Text + ' - ' + Day7Text + ')');
+        ChartData.Add('periodLabel', PeriodLabelText);
         // Opt-in flag for wrapper.js's own JS-rendered Refresh/Previous/Today/Next toolbar (see
         // BuildToolbar/UpdateToolbar there) - sent ONLY by this page's RefreshChart, never by page
         // 50692's (the standalone Card page sharing this same control add-in/wrapper.js), so the
@@ -170,8 +158,4 @@ page 50708 "Requested vs Capacity Weekly P"
         PeriodStartDate: Date;
         ChartReady: Boolean;
         PeriodLabelText: Text[50];
-        Day1Text: Text[20];
-        Day7Text: Text[20];
-        PeriodLabelLbl: Label '%1 %2 - wk %3', Comment = '%1 = abbreviated month, %2 = year, %3 = ISO week number';
-        DayLabelLbl: Label '%1 %2', Comment = '%1 = abbreviated weekday, %2 = day of month';
 }

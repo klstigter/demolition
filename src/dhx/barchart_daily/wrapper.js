@@ -276,7 +276,7 @@ function UpdateHeader(chartData) {
         // Single "Period: <value>" line - PeriodLabelText already arrives as e.g. "Daily: Mon 07
         // Sep 2026" (see page 50707's own DailyPeriodLabelLbl), so this is deliberately prefixed
         // with "Period: " rather than repeating/duplicating that "Daily:" wording.
-        periodEl.textContent = "Period: " + periodLabel;
+        periodEl.textContent = " " + periodLabel;
     }
 }
 
@@ -731,6 +731,7 @@ function SchedulePostRenderPatches() {
         // x position.
         ApplySkillPairSpacing();
         ApplySeriesBorders(lastSeriesDefs, lastSeries);
+        ApplySeriesBlur(lastSeriesDefs, lastSeries);
         ApplyLegendSwatchBorders(lastSeriesDefs, lastSeries);
         ApplyLegendHitArea();
         RenderSkillGroupRow(lastSkillLabels);
@@ -842,6 +843,27 @@ function ApplySeriesBorders(seriesDefs, series) {
                 if (values[pIdx]) {
                     p.style.stroke = s.border;
                     p.style.strokeWidth = "1.5px";
+                }
+            });
+        }
+    });
+}
+
+// Fades every rendered bar <path> of a series that requested a `blur` strength (%) - only the
+// Capacity ("C") bar's segments ever carry this (codeunit 50608's AddCapacitySegmentSeries, via
+// "Daily Optimizer Setup"."Capacity Bar Blur Strength"). Same shape as ApplySeriesBorders above
+// (skip zero-value segments so an invisible-height baseline <path> doesn't matter), but sets
+// fill-opacity only - never touches `stroke`, so a bordered segment's red External outline
+// (ApplySeriesBorders, applied separately) stays crisp on top of the faded fill.
+function ApplySeriesBlur(seriesDefs, series) {
+    seriesDefs.forEach(function(s, sIdx) {
+        if (s && s.blur && series[sIdx]) {
+            var values = Array.isArray(s.values) ? s.values : [];
+            var opacity = Math.max(0, 1 - (s.blur / 100));
+            var paths = chartContainer.querySelectorAll('g[aria-label="chart ' + series[sIdx].id + '"] path');
+            paths.forEach(function(p, pIdx) {
+                if (values[pIdx]) {
+                    p.style.fillOpacity = opacity;
                 }
             });
         }

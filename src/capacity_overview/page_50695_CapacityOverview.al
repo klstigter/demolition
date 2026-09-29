@@ -178,35 +178,20 @@ page 50695 "Capacity Overview"
     local procedure RefreshPeriod()
     var
         PeriodEndDate: Date;
-        WeekNo: Integer;
-        YearNo: Integer;
+        VisualDefaultSettings: Codeunit "Visual Default Settings";
     begin
         if WeeklyFlag then
             PeriodEndDate := PeriodStartDate + 6
         else
             PeriodEndDate := PeriodStartDate;
 
-        if WeeklyFlag then begin
-            WeekNo := Date2DWY(PeriodStartDate, 2);
-            YearNo := Date2DWY(PeriodStartDate, 3);
-            Day1Text := FormatDayText(PeriodStartDate);
-            Day2Text := FormatDayText(PeriodStartDate + 1);
-            Day3Text := FormatDayText(PeriodStartDate + 2);
-            Day4Text := FormatDayText(PeriodStartDate + 3);
-            Day5Text := FormatDayText(PeriodStartDate + 4);
-            Day6Text := FormatDayText(PeriodStartDate + 5);
-            Day7Text := FormatDayText(PeriodStartDate + 6);
-            PeriodLabelText := CopyStr(StrSubstNo(WeeklyPeriodLabelLbl, Format(PeriodStartDate, 0, '<Month Text,3>'), YearNo, WeekNo, Day1Text, Day7Text), 1, MaxStrLen(PeriodLabelText));
-        end else
+        if WeeklyFlag then
+            PeriodLabelText := CopyStr(StrSubstNo(WeeklyPeriodLabelLbl, VisualDefaultSettings.FormatWeekPeriodText(PeriodStartDate)), 1, MaxStrLen(PeriodLabelText))
+        else
             PeriodLabelText := CopyStr(StrSubstNo(DailyPeriodLabelLbl, FormatFullDayText(PeriodStartDate)), 1, MaxStrLen(PeriodLabelText));
 
         CapacityOverviewMgt.BuildSkillCodeList(SkillCodeList);
         CurrPage.MatrixPart.Page.LoadPeriod(SkillCodeList, PeriodStartDate, PeriodEndDate);
-    end;
-
-    local procedure FormatDayText(DayDate: Date): Text[20]
-    begin
-        exit(StrSubstNo(DayLabelLbl, Format(DayDate, 0, '<Weekday Text,3>'), Format(DayDate, 0, '<Day,2>')));
     end;
 
     local procedure FormatFullDayText(ADate: Date): Text
@@ -220,14 +205,6 @@ page 50695 "Capacity Overview"
         WeeklyFlag: Boolean;
         PeriodStartDate: Date;
         PeriodLabelText: Text[80];
-        Day1Text: Text[20];
-        Day2Text: Text[20];
-        Day3Text: Text[20];
-        Day4Text: Text[20];
-        Day5Text: Text[20];
-        Day6Text: Text[20];
-        Day7Text: Text[20];
-        WeeklyPeriodLabelLbl: Label 'Weekly: %1 %2 - wk %3 (%4 - %5)', Comment = '%1 = abbreviated month, %2 = year, %3 = ISO week number, %4 = period start day text, %5 = period end day text';
+        WeeklyPeriodLabelLbl: Label 'Weekly: %1', Comment = '%1 = standard week period text, e.g. "wk 39 (Mon, 21 Sep 2026 - Sun, 27 Sep 2026)"';
         DailyPeriodLabelLbl: Label 'Daily: %1', Comment = '%1 = full date text';
-        DayLabelLbl: Label '%1 %2', Comment = '%1 = abbreviated weekday, %2 = day of month';
 }
