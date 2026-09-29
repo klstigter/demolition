@@ -90,7 +90,7 @@ page 50706 "DHX Scheduler - TimeLine"
                     // from codeunit 50609 directly (not via SkillCapacityAnalysisMgt/50662's
                     // forwarding wrappers, which don't cover these two getters) - see wrapper.js's
                     // SetBarColors for how these are applied.
-                    ColorsJsonTxt := StrSubstNo('{"envelope":"%1","envelopeBorder":"%2","assigned":"%3","assignedHeight":%4,"requestedHeight":%5,"capacity":"%6","capacityBorder":"%7","fontColor":"%8","tooltipBg":"%9","tooltipFont":"%10","capacityBlur":%11}',
+                    ColorsJsonTxt := StrSubstNo('{"envelope":"%1","envelopeBorder":"%2","assigned":"%3","assignedHeight":%4,"requestedHeight":%5,"capacity":"%6","capacityBorder":"%7","fontColor":"%8","tooltipBg":"%9","tooltipFont":"%10","capacityBlur":%11,"capacityFontColor":"%12"}',
                         DailyOptimizerSetup."Envelope Color",
                         DailyOptimizerSetup."Envelope Border Color",
                         AssignedColorHex,
@@ -101,7 +101,8 @@ page 50706 "DHX Scheduler - TimeLine"
                         BarFontColorHex,
                         VisualDefaultSettings.GetTooltipBackgroundColor(),
                         VisualDefaultSettings.GetTooltipFontColor(),
-                        VisualDefaultSettings.GetCapacityBarBlurStrength());
+                        VisualDefaultSettings.GetCapacityBarBlurStrength(),
+                        VisualDefaultSettings.GetCapacityFontColor());
                     CurrPage.DhxScheduler.SetBarColors(ColorsJsonTxt);
                     CurrPage.DhxScheduler.SetSkillFontBorderColors(DHXDataHandler.BuildSkillFontBorderColorsJson());
                     PushResourceFilterInfo();

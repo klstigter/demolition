@@ -123,6 +123,26 @@ codeunit 50609 "Visual Default Settings"
     end;
 
     /// <summary>
+    /// Text colour for the Capacity bar/event only - "Daily Optimizer Setup"."Capacity Font Color"
+    /// when set, else CapacityFontColorTok (black). Never used for any other bar type.
+    /// </summary>
+    procedure GetCapacityFontColor(): Text
+    var
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+    begin
+        if DailyOptimizerSetup.Get() then
+            if DailyOptimizerSetup."Capacity Font Color" <> '' then
+                exit(DailyOptimizerSetup."Capacity Font Color");
+
+        exit(CapacityFontColorTok);
+    end;
+
+    procedure GetDefaultCapacityFontColor(): Text
+    begin
+        exit(CapacityFontColorTok);
+    end;
+
+    /// <summary>
     /// Resolves the fill-opacity blur strength (%) applied to every segment of the Capacity ("C")
     /// bar on the Daily/Weekly "Requested Hours vs Capacity" bar charts - a purely visual fade so
     /// the Capacity bar reads as secondary/reference information next to the Requested bar.
@@ -811,6 +831,8 @@ codeunit 50609 "Visual Default Settings"
         // hand for the case where the setup singleton doesn't exist yet.
         // Used by: GetCapacityBorderColor above only.
         CapacityBorderColorTok: Label '#C97F16', Locked = true;
+        // Fallback for GetCapacityFontColor - Capacity bar text only.
+        CapacityFontColorTok: Label '#000000', Locked = true;
         // Fallback for GetBarFontColor above - overridable via "Daily Optimizer Setup"."Bar Font
         // Color". Black is this setting's own chosen default (deliberately superseding whatever
         // per-bar text colour - white on most bars, dark "#3a2600" on the Capacity bar - was

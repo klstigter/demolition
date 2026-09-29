@@ -228,6 +228,7 @@ window.BOOT = function() {
         --cap-color-border: #C97F16;
         --bar-font-color: #000000;
         --cap-fill-pct: 100%;
+        --cap-font-color: #000000;
     }
 
     /* Event styling per type */
@@ -237,7 +238,7 @@ window.BOOT = function() {
     .dhx_event_line.event-capacity,
     .dhx_cal_event.event-capacity .dhx_title,
     .dhx_cal_event.event-capacity .dhx_body {
-        color: var(--bar-font-color) !important;
+        color: var(--cap-font-color) !important;
         font-size: 14px !important;
         background-color: color-mix(in srgb, var(--cap-color) var(--cap-fill-pct), transparent) !important;
         border-color: var(--cap-color-border) !important;
@@ -1054,6 +1055,8 @@ function SetBarColors(colorsJson) {
         // "capacityBlur" (%) - "Daily Optimizer Setup"."Capacity Bar Blur Strength", same fade the
         // Daily/Weekly Insights C bars use. Fades the fill only (border/text stay crisp).
         if (colors.capacityBlur > 0) root.style.setProperty("--cap-fill-pct", (100 - colors.capacityBlur) + "%");
+        // "capacityFontColor" - "Daily Optimizer Setup"."Capacity Font Color", Capacity bar text only.
+        if (colors.capacityFontColor) root.style.setProperty("--cap-font-color", colors.capacityFontColor);
         // "fontColor" is sent by page 50600's ControlReady (via codeunit 50609's
         // GetBarFontColor, "Daily Optimizer Setup"."Bar Font Color") - applies uniformly to every
         // bar's on-bar label text (Capacity/Vacancy/DayPlanning_0/DayPlanning_1 event types

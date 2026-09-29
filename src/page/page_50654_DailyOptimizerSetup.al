@@ -425,6 +425,30 @@ page 50654 "Daily Optimizer Setup"
                                 ClearColor(Rec."External Border Color");
                             end;
                         }
+                        usercontrol(CfCapacityFontColor; DHXColorFieldAddin)
+                        {
+                            ApplicationArea = All;
+
+                            trigger ControlReady()
+                            begin
+                                ColorFieldReady();
+                            end;
+
+                            trigger OnPickRequested()
+                            begin
+                                PickColor(Rec."Capacity Font Color");
+                            end;
+
+                            trigger OnResetRequested()
+                            begin
+                                ResetColor(Rec."Capacity Font Color", VisualDefaultSettings.GetDefaultCapacityFontColor());
+                            end;
+
+                            trigger OnClearRequested()
+                            begin
+                                ClearColor(Rec."Capacity Font Color");
+                            end;
+                        }
                         field("Capacity Bar Blur Strength"; Rec."Capacity Bar Blur Strength")
                         {
                             ApplicationArea = All;
@@ -618,6 +642,7 @@ page 50654 "Daily Optimizer Setup"
                         Rec."Free Capacity-Mandatory Color" := VisualDefaultSettings.GetDefaultCapacityMandatoryColor();
                         Rec."External Border Color" := VisualDefaultSettings.GetDefaultExternalBorderColor();
                         Rec."Capacity Border Color" := VisualDefaultSettings.GetDefaultCapacityBorderColor();
+                        Rec."Capacity Font Color" := VisualDefaultSettings.GetDefaultCapacityFontColor();
                         Rec."Capacity Bar Blur Strength" := VisualDefaultSettings.GetDefaultCapacityBarBlurStrength();
                         Rec."Bar Font Color" := VisualDefaultSettings.GetDefaultBarFontColor();
                         Rec."Tooltip Background Color" := VisualDefaultSettings.GetDefaultTooltipBackgroundColor();
@@ -864,6 +889,7 @@ page 50654 "Daily Optimizer Setup"
         CurrPage.CfFreeCapacityMandatoryColor.SetValue('Free Capacity (Mandatory) Color', Rec."Free Capacity-Mandatory Color");
         CurrPage.CfCapacityBorderColor.SetValue('Capacity Border Color', Rec."Capacity Border Color");
         CurrPage.CfExternalBorderColor.SetValue('External Border Color', Rec."External Border Color");
+        CurrPage.CfCapacityFontColor.SetValue('Capacity Font Color', Rec."Capacity Font Color");
         CurrPage.CfEnvelopeColor.SetValue('Envelope Color', Rec."Envelope Color");
         CurrPage.CfEnvelopeBorderColor.SetValue('Envelope Border Color', Rec."Envelope Border Color");
         CurrPage.CfAssignedColor.SetValue('Assigned Color', Rec."Assigned Color");
