@@ -891,6 +891,9 @@ function ApplySeriesBorders(seriesDefs, series) {
             var paths = chartContainer.querySelectorAll('g[aria-label="chart ' + series[sIdx].id + '"] path');
             paths.forEach(function(p, pIdx) {
                 if (values[pIdx]) {
+                    // DHX draws bars as open paths (no Z), so close it or the bottom edge is never stroked.
+                    var d = p.getAttribute("d");
+                    if (d && !/z\s*$/i.test(d)) p.setAttribute("d", d + " Z");
                     p.style.stroke = s.border;
                     p.style.strokeWidth = "1.5px";
                 }
