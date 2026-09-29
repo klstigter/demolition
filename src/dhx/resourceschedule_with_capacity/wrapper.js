@@ -125,13 +125,13 @@ window.BOOT = function () {
            Optimizer Setup"."Capacity Border Color" (codeunit 50609's GetCapacityBorderColor),
            sent as colors.capacityBorder by ControlReady - this CSS value is only the fallback for
            when that field is blank/the setup singleton doesn't exist yet ── */
-        #scheduler_here { --cap-color: #2E75B6; --cap-color-border: #C97F16; --bar-font-color: #000000; --cap-fill-pct: 100%; }
+        #scheduler_here { --cap-color: #2E75B6; --cap-color-border: #C97F16; --bar-font-color: #000000; --cap-fill-pct: 100%; --cap-font-color: #000000; }
         .dhx_cal_event.event-capacity,
         .dhx_cal_event_line.event-capacity,
         .dhx_event_line.event-capacity {
             background: color-mix(in srgb, var(--cap-color) var(--cap-fill-pct), transparent) !important;
             border: 1px solid var(--cap-color-border) !important;
-            color: var(--bar-font-color) !important;
+            color: var(--cap-font-color) !important;
             font-size: 12px !important;
         }
 
@@ -732,6 +732,8 @@ function SetBarColors(colorsJson) {
         // "capacityBlur" (%) - "Daily Optimizer Setup"."Capacity Bar Blur Strength", same fade the
         // Daily/Weekly Insights C bars use. Fades the fill only (border/text stay crisp).
         if (colors.capacityBlur > 0) root.style.setProperty("--cap-fill-pct", (100 - colors.capacityBlur) + "%");
+        // "capacityFontColor" - "Daily Optimizer Setup"."Capacity Font Color", Capacity bar text only.
+        if (colors.capacityFontColor) root.style.setProperty("--cap-font-color", colors.capacityFontColor);
         // Assigned/Requested split - from Resource Scheduler Setup's "Assigned High (%)"/
         // "Requested High (%)". Left at their CSS default (50%/50%) whenever setup doesn't
         // override them (0/blank).

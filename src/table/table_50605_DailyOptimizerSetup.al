@@ -140,6 +140,16 @@ table 50605 "Daily Optimizer Setup"
                 RestoreColorDefaultOnClear(Rec."Capacity Border Color", xRec."Capacity Border Color", VisualDefaultSettings.GetDefaultCapacityBorderColor());
             end;
         }
+        field(72; "Capacity Font Color"; Text[20])
+        {
+            Caption = 'Capacity Font Color';
+            DataClassification = CustomerContent;
+
+            trigger OnValidate()
+            begin
+                RestoreColorDefaultOnClear(Rec."Capacity Font Color", xRec."Capacity Font Color", VisualDefaultSettings.GetDefaultCapacityFontColor());
+            end;
+        }
         field(71; "Capacity Bar Blur Strength"; Integer)
         {
             Caption = 'Blur Strength (%)';
