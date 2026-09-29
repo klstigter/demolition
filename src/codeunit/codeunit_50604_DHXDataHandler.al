@@ -7538,6 +7538,10 @@ codeunit 50604 "DHX Data Handler"
     /// request: the dashboard tile's Section 4 Skill/Job/Task drilldown tree with Expand/Exp. to
     /// Task/Collapse was unnecessary overhead on a company-wide summary tile and slow to load).
     ///
+    /// StartDate is caller-supplied (page 50724's own PeriodStartDate, the Monday of the week
+    /// being viewed) - 2026-09-29 week-period nav replaced the old free-text "Days to show" input,
+    /// so the window is no longer always anchored on Today().
+    ///
     /// No pagination/background task any more - the old pagination existed SOLELY to bound the
     /// expensive per-line "groups[]"/"dayPlanningLines[]" build (see the old procedure's own header
     /// comment, removed with it): building a full JSON object per real Day Planning row company-wide
@@ -7574,7 +7578,7 @@ codeunit 50604 "DHX Data Handler"
     /// dayPlanningLines[] at all any more (see skillDaySummary's own doc comment in
     /// capacityPlanningDashboard.js), so this only affects Section 3's cosmetic per-day figure.
     /// </summary>
-    procedure CPO_BuildDashboardDataJson(NumberOfDays: Integer): Text
+    procedure CPO_BuildDashboardDataJson(StartDate: Date; NumberOfDays: Integer): Text
     var
         RootObj: JsonObject;
         SkillDayHoursArr: JsonArray;
@@ -7582,13 +7586,11 @@ codeunit 50604 "DHX Data Handler"
         ActiveSkillList: List of [Code[20]];
         ResourcePool: List of [Code[20]];
         EmptyWorkOrderSequencesArr: JsonArray;
-        StartDate: Date;
         EndDate: Date;
         OutTxt: Text;
     begin
         if NumberOfDays <= 0 then
             NumberOfDays := 30;
-        StartDate := Today();
         EndDate := StartDate + NumberOfDays - 1;
 
         RootObj.Add('daysToShow', NumberOfDays);

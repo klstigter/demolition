@@ -1023,6 +1023,13 @@ class CapacityPlanningOverview {
         s.config.details_on_create = false;
         s.config.details_on_dblclick = false;
         s.config.readonly_form = true;
+        // Double-clicking an empty cell would otherwise create a "New event" and open the
+        // standard DHTMLX lightbox - block both (shared by Overview + Dashboard).
+        s.config.dblclick_create = false;
+        if (!s._cpoNoLightbox) {
+            s._cpoNoLightbox = true;
+            s.attachEvent('onBeforeLightbox', function () { return false; });
+        }
         s.config.header = [];
         if (s.xy) s.xy.nav_height = 0;
     }

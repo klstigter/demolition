@@ -83,6 +83,38 @@ class CapacityPlanningDashboard extends CapacityPlanningOverview {
         // wiring becomes moot once the node itself is gone.
         const confirmBtn = document.getElementById('cpo-confirm-btn');
         if (confirmBtn) confirmBtn.remove();
+
+        // This tile is fixed to a one-week window (Mon-Sun) navigated by week - replace the
+        // inherited "Days to show" input with a period label + Refresh/Previous/Today/Next bar
+        // (same buttons/events as the Daily/Weekly bar-chart tiles). AL owns the period state
+        // (page 50724) and pushes the label back via SetPeriodLabel.
+        const daysLabel = document.querySelector('.cpo-days-to-show');
+        if (daysLabel) daysLabel.remove();
+        const topBar = document.querySelector('.cpo-top-bar');
+        if (topBar) {
+            const bar = document.createElement('div');
+            bar.className = 'cpo-dash-period-bar';
+            bar.innerHTML = '<span id="cpo-dash-period-label" class="cpo-dash-period-label"></span>';
+            const self = this;
+            [['Refresh', 'OnRefreshClicked'], ['◀ Previous', 'OnPreviousClicked'], ['Today', 'OnTodayClicked'], ['Next ▶', 'OnNextClicked']].forEach(function (b) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'cpo-dash-period-btn';
+                btn.textContent = b[0];
+                btn.addEventListener('click', function () {
+                    if (typeof Microsoft === 'undefined') return;
+                    self.showLoading();
+                    Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(b[1], []);
+                });
+                bar.appendChild(btn);
+            });
+            topBar.appendChild(bar);
+        }
+    }
+
+    setPeriodLabel(text) {
+        const el = document.getElementById('cpo-dash-period-label');
+        if (el) el.textContent = text || '';
     }
 
     /// <summary>
@@ -108,6 +140,10 @@ class CapacityPlanningDashboard extends CapacityPlanningOverview {
         super.applyPlanningData(json);
         const titleEl = document.getElementById('cpo-title');
         if (titleEl) titleEl.style.display = 'none';
+        // Every load is a (new) week - start the horizontal scroll at its Monday.
+        this.liveHorizontalOwners().forEach(function (o) { o.scrollLeft = 0; });
+        const bar = document.getElementById('cpo-shared-scroll');
+        if (bar) bar.scrollLeft = 0;
     }
 
     /// <summary>
