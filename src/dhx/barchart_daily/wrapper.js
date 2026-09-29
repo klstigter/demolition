@@ -105,8 +105,8 @@ var BAR_WIDTH_PX = 50;
 // CATEGORY_LABEL_ROTATE_DEG this replaces) reads more cleanly. Applied by hand via an SVG
 // `transform="rotate(...)"` on each label in RenderSkillGroupRow (there is no suite.js native
 // `scaleRotate` option for a hand-drawn row like this one - that config only applies to the
-// library's own scale tick text). Negative so labels read bottom-left to top-right (ascending),
-// matching the old constant's own documented reasoning.
+// library's own scale tick text). Negative so labels read bottom-left to top-right (ascending);
+// each label is end-anchored just below the "C"/"R" row so it hangs down-left from there.
 var SKILL_LABEL_ROTATE_DEG = -45;
 
 // ============================================================
@@ -1121,9 +1121,10 @@ function RenderSkillGroupRow(skillLabels) {
     // tick's y to `height + textPadding`) so the new rows stack directly beneath it in the SAME
     // local coordinate space as the existing ticks - no need to read any DOM transform/bounding box.
     var axisY = tickY - BOTTOM_TEXT_PADDING;
-    var row2Y = axisY + SKILL_ROW_HEIGHT + BOTTOM_TEXT_PADDING;
     var leftEdge = xs[0] - step / 2;
     var rightEdge = xs[xs.length - 1] + step / 2;
+    // Skill Code row fills the rest of the reserved bottom area so the diagonal labels fit inside it.
+    var skillRowHeight = BOTTOM_SCALE_RESERVED_PX - SKILL_ROW_HEIGHT - 4;
 
     // The background fill MUST be painted BEHIND the native "C"/"R" tick text (siblings within
     // axisGroup, already there before this function ever runs) - SVG has no z-index, paint order
@@ -1132,7 +1133,7 @@ function RenderSkillGroupRow(skillLabels) {
     // between "background tint" and "row 1 text vanishes".
     var bgRect = SvgEl("rect", {
         "class": "skill-group-bg",
-        x: leftEdge, y: axisY, width: rightEdge - leftEdge, height: SKILL_ROW_HEIGHT * 2,
+        x: leftEdge, y: axisY, width: rightEdge - leftEdge, height: SKILL_ROW_HEIGHT + skillRowHeight,
         fill: SKILL_GROUP_BACKGROUND_COLOR, stroke: SKILL_GROUP_BORDER_COLOR, "stroke-width": SKILL_GROUP_BORDER_WIDTH
     });
     axisGroup.insertBefore(bgRect, axisGroup.firstChild);
@@ -1154,25 +1155,16 @@ function RenderSkillGroupRow(skillLabels) {
             stroke: SKILL_GROUP_BORDER_COLOR, "stroke-width": SKILL_GROUP_BORDER_WIDTH
         }));
     }
-    // Bottom row: one divider between each SKILL pair only (not between a skill's own
-    // Capacity/Requested bars, since those share the same merged skill-code cell).
-    for (var d = 0; d < skillLabels.length - 1; d++) {
-        var pairBoundaryX = (xs[d * 2 + 1] + xs[d * 2 + 2]) / 2;
-        group.appendChild(SvgEl("line", {
-            x1: pairBoundaryX, x2: pairBoundaryX, y1: axisY + SKILL_ROW_HEIGHT, y2: axisY + SKILL_ROW_HEIGHT * 2,
-            stroke: SKILL_GROUP_BORDER_COLOR, "stroke-width": SKILL_GROUP_BORDER_WIDTH
-        }));
-    }
-    // One merged skill-code label per skill, centered over its own pair of bars, tilted
-    // SKILL_LABEL_ROTATE_DEG around that same center point - rotating in place (rather than
-    // anchoring the pivot at an edge) keeps the label's on-screen center close to where a reader's
-    // eye already expects it (still roughly under its own bar pair), rather than shifting the whole
-    // label sideways just because it's now diagonal.
+    // Bottom row: no pair dividers - the diagonal labels would cross them.
+    // One skill-code label per skill, tilted SKILL_LABEL_ROTATE_DEG with its END pinned under the
+    // pair's "R" cell, a little below the row divider - the text hangs from top-right down to
+    // bottom-left inside the Skill Code row and never touches the "C"/"R" row above.
+    var labelTopY = axisY + SKILL_ROW_HEIGHT + 12;
     for (var i = 0; i < skillLabels.length; i++) {
-        var midX = (xs[i * 2] + xs[i * 2 + 1]) / 2;
+        var pivotX = xs[i * 2 + 1];
         var skillText = SvgEl("text", {
-            x: midX, y: row2Y, "text-anchor": "middle", "class": "scale-text",
-            transform: "rotate(" + SKILL_LABEL_ROTATE_DEG + " " + midX + " " + row2Y + ")"
+            x: pivotX, y: labelTopY, "text-anchor": "end", "dominant-baseline": "middle", "class": "scale-text",
+            transform: "rotate(" + SKILL_LABEL_ROTATE_DEG + " " + pivotX + " " + labelTopY + ")"
         });
         skillText.textContent = String(skillLabels[i]);
         group.appendChild(skillText);
