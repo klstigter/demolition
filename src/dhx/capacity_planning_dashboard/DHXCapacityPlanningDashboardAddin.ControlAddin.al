@@ -26,7 +26,9 @@ controladdin DHXCapacityPlanningDashboardAddin
     // alone. These values only affect the add-in's own sizing WITHIN whatever cell width the
     // client's grid assigns it.
     RequestedWidth = 1600;
-    MinimumWidth = 700;
+    // Kept small so the iframe never grows past its Role Center cell into the neighbouring part
+    // (700 overflowed into "Daily" at 1367-1921px viewports) - the day columns scroll instead.
+    MinimumWidth = 300;
     HorizontalStretch = true;
     HorizontalShrink = true;
 
@@ -57,6 +59,7 @@ controladdin DHXCapacityPlanningDashboardAddin
 
     procedure SetPlanningData(PlanningDataJsonTxt: Text);
     procedure SetColors(ColorsJsonTxt: Text);
+    procedure SetPeriodLabel(PeriodLabelTxt: Text);
 
     event ControlReady();
     // Declared for parity with the base class's own wiring (inherited, unused code paths only -
@@ -83,7 +86,13 @@ controladdin DHXCapacityPlanningDashboardAddin
     // DHXCapacityPlanningOverviewAddin (see that controladdin's own doc comment for the full
     // contract) - both pages share the one capacityPlanningOverview.js class that renders Section 3.
     event OnShowCapacityBarSegment(PayloadJsonTxt: Text);
-    event OnDaysToShowChanged(NumberOfDays: Integer);
+    // Week-period bar (replaces the old free-text "Days to show" input/OnDaysToShowChanged) - raised
+    // by the four nav buttons; all parameterless, page 50724 tracks the current week itself
+    // (PeriodStartDate) and re-sends the label via SetPeriodLabel after each RefreshData.
+    event OnRefreshClicked();
+    event OnPreviousClicked();
+    event OnTodayClicked();
+    event OnNextClicked();
     // Page Background Task pagination (AppendOtherWorkOrderData/NotifyOtherWorkOrderDataTaskPending/
     // StopOtherWorkOrderDataPolling procedures + this OnPollOtherWorkOrderDataResult event) was
     // REMOVED 2026-09-11 - see wrapper.js's own doc comment on why this tile no longer needs it

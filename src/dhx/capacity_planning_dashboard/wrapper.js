@@ -38,6 +38,10 @@ window.SetColors = function (ColorsJsonTxt) {
     window.__cpoDashboard.applyColors(JSON.parse(ColorsJsonTxt));
 };
 
+window.SetPeriodLabel = function (PeriodLabelTxt) {
+    window.__cpoDashboard.setPeriodLabel(PeriodLabelTxt);
+};
+
 // Page Background Task pagination (NotifyOtherWorkOrderDataTaskPending/
 // StopOtherWorkOrderDataPolling/AppendOtherWorkOrderData + the poll-timer machinery that used to
 // live here) was REMOVED 2026-09-11 - it existed solely to bound the old per-line "groups[]"/

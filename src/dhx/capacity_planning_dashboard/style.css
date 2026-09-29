@@ -80,3 +80,41 @@
     width: 140px !important;
     min-width: 140px !important;
 }
+
+/* Shared horizontal scrollbar starts under the day columns - same 140px label width as above
+   (shared stylesheet's 360px is page 50722's wider Skill/Job/Task column). */
+.cpo-shared-scroll {
+    margin-left: 140px;
+}
+
+/* Week period bar (replaces the inherited "Days to show" input) - label left, buttons right,
+   same button look as the Daily/Weekly bar-chart tiles' toolbar. */
+.cpo-dash-period-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 4px 0;
+}
+
+.cpo-dash-period-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 12px;
+    line-height: 16px;
+    font-style: italic;
+    color: #5f6368;
+}
+
+.cpo-dash-period-btn {
+    font-size: 12px;
+    line-height: 16px;
+    padding: 3px 10px;
+    border: 1px solid #c8c8c8;
+    border-radius: 3px;
+    background: #fff;
+    color: #242424;
+    cursor: pointer;
+}

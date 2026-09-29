@@ -20,18 +20,33 @@ page 50724 "Capacity Planning Dashboard"
 
                 trigger ControlReady()
                 begin
-                    EnsureDaysToShow();
+                    SetPeriodToCurrentWeek();
                     SendColors();
                     RefreshData();
                 end;
 
-                // JS-owned "Days to show" input, inherited unchanged from the base component - see
-                // page 50722's own identical trigger doc comment.
-                trigger OnDaysToShowChanged(NumberOfDays: Integer)
+                // Week-period bar (replaces the old free-text "Days to show" input) - all four
+                // parameterless, PeriodStartDate (the week's Monday) is tracked here in AL.
+                trigger OnRefreshClicked()
                 begin
-                    if NumberOfDays <= 0 then
-                        NumberOfDays := DefaultDaysToShow;
-                    DaysToShow := NumberOfDays;
+                    RefreshData();
+                end;
+
+                trigger OnPreviousClicked()
+                begin
+                    PeriodStartDate := PeriodStartDate - 7;
+                    RefreshData();
+                end;
+
+                trigger OnTodayClicked()
+                begin
+                    SetPeriodToCurrentWeek();
+                    RefreshData();
+                end;
+
+                trigger OnNextClicked()
+                begin
+                    PeriodStartDate := PeriodStartDate + 7;
                     RefreshData();
                 end;
 
@@ -96,17 +111,11 @@ page 50724 "Capacity Planning Dashboard"
     }
 
     var
-        DaysToShow: Integer;
+        PeriodStartDate: Date;
 
-    local procedure DefaultDaysToShow(): Integer
+    local procedure SetPeriodToCurrentWeek()
     begin
-        exit(30);
-    end;
-
-    local procedure EnsureDaysToShow()
-    begin
-        if DaysToShow <= 0 then
-            DaysToShow := DefaultDaysToShow;
+        PeriodStartDate := CalcDate('<-CW>', Today());
     end;
 
     /// <summary>Same tooltip-color channel as page 50722's own SendColors - see that procedure's own doc comment.</summary>
@@ -124,7 +133,9 @@ page 50724 "Capacity Planning Dashboard"
     /// <summary>
     /// Rebuild-and-push routine - builds the real payload via codeunit 50604's new
     /// CPO_BuildDashboardDataJson (2026-09-11 Section 4 perf/simplicity fix - see that procedure's
-    /// own doc comment) and pushes it via SetPlanningData in one synchronous call.
+    /// own doc comment) and pushes it via SetPlanningData in one synchronous call, then updates the
+    /// week-period bar's label via SetPeriodLabel (2026-09-29 - replaces the old free-text "Days to
+    /// show" input).
     ///
     /// No background-task pagination any more (this used to also call
     /// EnqueueOtherWorkOrderDataBackgroundTask against codeunit "CPO BG Other WO Data", now
@@ -142,9 +153,11 @@ page 50724 "Capacity Planning Dashboard"
     local procedure RefreshData()
     var
         DHXDataHandler: Codeunit "DHX Data Handler";
+        VisualDefaultSettings: Codeunit "Visual Default Settings";
         PlanningDataJson: Text;
     begin
-        PlanningDataJson := DHXDataHandler.CPO_BuildDashboardDataJson(DaysToShow);
+        PlanningDataJson := DHXDataHandler.CPO_BuildDashboardDataJson(PeriodStartDate, 7);
         CurrPage.DhxCpoDash.SetPlanningData(PlanningDataJson);
+        CurrPage.DhxCpoDash.SetPeriodLabel(VisualDefaultSettings.FormatWeekPeriodText(PeriodStartDate));
     end;
 }
