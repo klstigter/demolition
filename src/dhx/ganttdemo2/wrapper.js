@@ -524,6 +524,11 @@ window.BOOT = function() {
         format: function (date) {
           return gantt.date.date_to_str("%D %d")(date); // Mon 01 Dec
           //return gantt.date.date_to_str("%D %d %M")(date); // Mon 01 Dec
+        },
+        css: function (date) {
+          // same background as the week band above
+          const week = parseInt(gantt.date.date_to_str("%W")(date), 10);
+          return "day-cell " + ((week % 2 === 0) ? "week-even" : "week-odd");
         }
       }
     ];

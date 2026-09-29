@@ -148,6 +148,13 @@ html,
 		color: #666666;
 		}
 
+			/* Day header row (2nd scale line) - takes the week band's week-even/odd background,
+			   but with a smaller, non-bold font. */
+		.gantt_scale_cell.day-cell {
+		font-size: 11px;
+		font-weight: 400;
+		}
+
 		.DayPlanning-line{
 		position:absolute;
 		background:#3b82f6;
