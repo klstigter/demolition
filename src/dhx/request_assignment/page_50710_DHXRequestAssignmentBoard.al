@@ -102,6 +102,14 @@ page 50710 "DHX Request Assignment Board"
                     RefreshPlanningData();
                 end;
 
+                trigger OnOpenResourceCard(ResourceId: Text)
+                var
+                    Resource: Record Resource;
+                begin
+                    if Resource.Get(CopyStr(ResourceId, 1, MaxStrLen(Resource."No."))) then
+                        Page.Run(Page::"Resource Card", Resource);
+                end;
+
                 trigger OnOpenCapacity(ResourceId: Text; StartDateTxt: Text; EndDateTxt: Text)
                 var
                     DHXDataHandler: Codeunit "DHX Data Handler";

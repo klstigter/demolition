@@ -76,6 +76,9 @@ controladdin DHXRequestAssignmentAddin
     // assignmentLineFromPointerTarget) - unlike the other events above, this is the raw id string,
     // not a JSON payload, since there's nothing else to carry.
     event OnOpenDayPlanningCard(LineId: Text);
+    // Raised by a single click on a resource name in the Assignment panel's left list.
+    // ResourceId is the Resource No.
+    event OnOpenResourceCard(ResourceId: Text);
     // Raised by the "Open Capacity" context-menu item on a resource's capacity slot background bar.
     // ResourceId is the Resource No.; StartDateTxt/EndDateTxt are "yyyy-MM-dd" text (see wrapper.js's
     // dateOnlyKey) taken directly from the board's currently-displayed planning horizon bounds

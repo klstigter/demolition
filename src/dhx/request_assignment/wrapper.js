@@ -6122,7 +6122,7 @@ window.BOOT = function BOOT() {
     if (!resourceTarget) return;
 
     event.stopPropagation();
-    showSimplePopup("Under Construction");
+    Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnOpenResourceCard", [resourceTarget.dataset.resourceClick]);
   }, true);
 
   document.getElementById("requestScheduler").addEventListener("click", event => {
