@@ -161,6 +161,8 @@ page 50707 "Requested vs Capacity Daily P"
         RowSkillCode: Code[10];
         LoopSkillCode: Code[10];
         RowValue: Decimal;
+        SkillPointColors: JsonArray;
+        CapSlotPaletteIndex: Integer;
     begin
         if not ChartReady then
             exit;
@@ -173,6 +175,8 @@ page 50707 "Requested vs Capacity Daily P"
         Clear(CapExternalValues);
         Clear(RequestedAssignedValues);
         Clear(SkillCodeList);
+        Clear(SkillPointColors);
+        CapSlotPaletteIndex := 0;
 
         SkillCapacityAnalysisMgt.GetCapacitySegmentColors(AssignedColorHex, CapacityColorHex, ExternalBorderColorHex);
         CapacityMandatoryColorHex := SkillCapacityAnalysisMgt.GetCapacityMandatoryColor();
@@ -184,6 +188,10 @@ page 50707 "Requested vs Capacity Daily P"
                 RowSkillCode := CopyStr(Buffer."No.", 1, 10);
                 SkillCodeList.Add(RowSkillCode);
                 SkillLabelsArray.Add(RowSkillCode);
+                // Free-capacity segments use this skill's own colour ('' at the "R" slot).
+                SkillPointColors.Add(SkillCapacityAnalysisMgt.GetSkillBarColor(RowSkillCode, CapSlotPaletteIndex));
+                SkillPointColors.Add('');
+                CapSlotPaletteIndex += 1;
 
                 CategoriesArray.Add(RowSkillCode + CategoryDelimiterTok + CapacityCategoryLbl);
                 CategoriesArray.Add(RowSkillCode + CategoryDelimiterTok + RequestedCategoryLbl);
@@ -207,7 +215,7 @@ page 50707 "Requested vs Capacity Daily P"
                     RequestedAssignedValues.Add(0);
             until Buffer.Next() = 0;
 
-        SkillCapacityAnalysisMgt.AddCapacitySegmentSeries(SeriesArray, AssignedValues, CapInternalValues, CapExternalMandatoryValues, CapExternalValues, AssignedColorHex, CapacityColorHex, CapacityMandatoryColorHex, ExternalBorderColorHex);
+        SkillCapacityAnalysisMgt.AddCapacitySegmentSeries(SeriesArray, AssignedValues, CapInternalValues, CapExternalMandatoryValues, CapExternalValues, AssignedColorHex, CapacityColorHex, CapacityMandatoryColorHex, ExternalBorderColorHex, SkillPointColors);
         SkillCapacityAnalysisMgt.AddRequestedAssignedSeries(SeriesArray, RequestedAssignedValues, AssignedColorHex);
 
         // One Unassigned series per skill - see page 50681's own RefreshChart for why this is a
