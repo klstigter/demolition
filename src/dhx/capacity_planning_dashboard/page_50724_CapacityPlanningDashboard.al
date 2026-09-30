@@ -95,6 +95,28 @@ page 50724 "Capacity Planning Dashboard"
                     DHXDataHandler.CPO_OpenTaskScheduler(PayloadJsonTxt);
                 end;
 
+                /// <summary>Section 4 cell hover tooltip - loads that cell's Day Planning lines on demand.</summary>
+                trigger OnRequestCellTooltip(PayloadJsonTxt: Text)
+                var
+                    DHXDataHandler: Codeunit "DHX Data Handler";
+                    PayloadJObj: JsonObject;
+                    LinesJArr: JsonArray;
+                    ResultJObj: JsonObject;
+                    FieldJToken: JsonToken;
+                    ResultTxt: Text;
+                begin
+                    if not PayloadJObj.ReadFrom(PayloadJsonTxt) then
+                        exit;
+                    LinesJArr.ReadFrom(DHXDataHandler.CPO_BuildSkillDayLinesJson(PayloadJsonTxt));
+                    if PayloadJObj.Get('skill', FieldJToken) then
+                        ResultJObj.Add('skill', FieldJToken.AsValue().AsText());
+                    if PayloadJObj.Get('date', FieldJToken) then
+                        ResultJObj.Add('date', FieldJToken.AsValue().AsText());
+                    ResultJObj.Add('lines', LinesJArr);
+                    ResultJObj.WriteTo(ResultTxt);
+                    CurrPage.DhxCpoDash.SetCellTooltipData(ResultTxt);
+                end;
+
                 /// <summary>
                 /// Section 3's right-click "Show Data" context menu (2026-09-14) - identical
                 /// trigger/delegation as page 50722's own OnShowCapacityBarSegment. Read-only

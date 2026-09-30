@@ -137,6 +137,7 @@ class CapacityPlanningDashboard extends CapacityPlanningOverview {
         // combination present before disappears in the new data - a stale entry would never get
         // overwritten, only new keys would be added on top of it).
         this._dashSkillDayIndex = null;
+        this._cellTipCache = {};
         super.applyPlanningData(json);
         const titleEl = document.getElementById('cpo-title');
         if (titleEl) titleEl.style.display = 'none';
@@ -354,7 +355,70 @@ class CapacityPlanningDashboard extends CapacityPlanningOverview {
         // attachTreeChipTooltip is skipped), so only the summary-cell ("open list") branch can ever
         // fire here, never the single-line card branch.
         this.attachTreeContextMenu();
+        this.attachCellTooltip();
         this.bindCentralTreeHeightSync(s);
+    }
+
+    /// <summary>
+    /// Hover tooltip on Section 4's skill x day cells - same #cpo-event-tip element and
+    /// groupTooltipHtmlFromLines rendering page 50722 uses, but the cell's Day Planning lines are
+    /// loaded on demand from AL (OnRequestCellTooltip / SetCellTooltipData) and cached, because this
+    /// tile only carries aggregated skillDayHours[]. Bound once.
+    /// </summary>
+    attachCellTooltip() {
+        if (this._cellTooltipBound) return;
+        this._cellTooltipBound = true;
+        const tip = document.getElementById('cpo-event-tip');
+        const host = document.getElementById('cpo-central-tree');
+        if (!tip || !host) return;
+        const self = this;
+        this._cellTipCache = {};
+        this._cellTipHoverKey = '';
+        host.addEventListener('mousemove', function (e) {
+            self._cellTipMouse = { x: e.clientX, y: e.clientY };
+            const cell = e.target.closest('.cpo-tree-summary-cell');
+            if (!cell) { self._cellTipHoverKey = ''; tip.style.display = 'none'; return; }
+            const idx = Number(cell.dataset.dayIndex);
+            const skill = cell.dataset.masterSkill;
+            const d = self.dates[idx];
+            if (!d) return;
+            const iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            const key = skill + '|' + iso;
+            self._cellTipHoverKey = key;
+            if (self._cellTipCache[key]) {
+                self.showCellTip(self._cellTipCache[key], skill, idx);
+            } else if (!self._cellTipPending || self._cellTipPending !== key) {
+                self._cellTipPending = key;
+                Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnRequestCellTooltip', [JSON.stringify({ skill: skill, date: iso })]);
+            }
+        });
+        host.addEventListener('mouseleave', function () { self._cellTipHoverKey = ''; tip.style.display = 'none'; });
+    }
+
+    applyCellTooltipData(data) {
+        const key = data.skill + '|' + data.date;
+        this._cellTipCache[key] = data.lines || [];
+        if (this._cellTipPending === key) this._cellTipPending = '';
+        if (this._cellTipHoverKey !== key) return;
+        const idx = this.dates.findIndex(function (d) {
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') === data.date;
+        });
+        this.showCellTip(this._cellTipCache[key], data.skill, idx);
+    }
+
+    showCellTip(lines, skill, idx) {
+        const tip = document.getElementById('cpo-event-tip');
+        const m = this._cellTipMouse;
+        const html = this.groupTooltipHtmlFromLines(lines.slice(), skill, idx);
+        if (!tip || !m || !html) return;
+        tip.classList.add('cpo-group-tip');
+        tip.innerHTML = html;
+        tip.style.display = 'block';
+        let x = m.x + 12, y = m.y + 12;
+        const r = tip.getBoundingClientRect();
+        if (x + r.width > window.innerWidth - 8) x = m.x - r.width - 12;
+        if (y + r.height > window.innerHeight - 8) y = m.y - r.height - 12;
+        tip.style.left = x + 'px'; tip.style.top = y + 'px';
     }
 
     /// <summary>
