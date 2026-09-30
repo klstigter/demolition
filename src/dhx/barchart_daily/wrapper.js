@@ -866,6 +866,10 @@ function ApplySeriesBlur(seriesDefs, series) {
             var paths = chartContainer.querySelectorAll('g[aria-label="chart ' + series[sIdx].id + '"] path');
             paths.forEach(function(p, pIdx) {
                 if (values[pIdx]) {
+                    // Optional per-category colour (free-capacity segments use the skill's colour).
+                    if (s.pointColors && s.pointColors[pIdx]) {
+                        p.style.fill = s.pointColors[pIdx];
+                    }
                     p.style.fillOpacity = opacity;
                 }
             });
