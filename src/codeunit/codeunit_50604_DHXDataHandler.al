@@ -8214,6 +8214,44 @@ codeunit 50604 "DHX Data Handler"
     end;
 
     /// <summary>
+    /// On-demand hover-tooltip data for the Capacity Planning Dashboard's Section 4 skill x day
+    /// cells - every Day Planning line of one Skill on one date, same line shape (via
+    /// CPO_BuildDayPlanningLineObj) as page 50722's dayPlanningLines[], so the shared JS
+    /// groupTooltipHtml renders it unchanged. Payload: {"skill","date"(yyyy-MM-dd)}.
+    /// </summary>
+    procedure CPO_BuildSkillDayLinesJson(PayloadJsonTxt: Text): Text
+    var
+        DayPlanning: Record "Day Planning";
+        PayloadJObj: JsonObject;
+        FieldJToken: JsonToken;
+        JobDescCache: Dictionary of [Code[20], Text];
+        JobTaskDescCache: Dictionary of [Text, Text];
+        LinesArr: JsonArray;
+        SkillCode: Code[20];
+        PlanDate: Date;
+        OutTxt: Text;
+    begin
+        if PayloadJObj.ReadFrom(PayloadJsonTxt) then begin
+            if PayloadJObj.Get('skill', FieldJToken) then
+                SkillCode := CopyStr(FieldJToken.AsValue().AsText(), 1, MaxStrLen(SkillCode));
+            if PayloadJObj.Get('date', FieldJToken) then
+                Evaluate(PlanDate, FieldJToken.AsValue().AsText(), 9);
+        end;
+
+        if (SkillCode <> '') and (PlanDate <> 0D) then begin
+            DayPlanning.SetRange(Skill, SkillCode);
+            DayPlanning.SetRange("Plan Date", PlanDate);
+            if DayPlanning.FindSet() then
+                repeat
+                    LinesArr.Add(CPO_BuildDayPlanningLineObj(DayPlanning, '', '', JobDescCache, JobTaskDescCache));
+                until DayPlanning.Next() = 0;
+        end;
+
+        LinesArr.WriteTo(OutTxt);
+        exit(OutTxt);
+    end;
+
+    /// <summary>
     /// Every calendar day from StartDate to EndDate inclusive, as "yyyy-MM-dd" ISO strings, in
     /// order - deliberately NOT the Mon-Fri-only convention ReqAssign_BuildWorkdayIndexMap uses,
     /// since this feature's visible window must be a contiguous date range (weekends included)

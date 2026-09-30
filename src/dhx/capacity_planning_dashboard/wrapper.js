@@ -38,7 +38,11 @@ window.SetColors = function (ColorsJsonTxt) {
     window.__cpoDashboard.applyColors(JSON.parse(ColorsJsonTxt));
 };
 
-window.SetPeriodLabel = function (PeriodLabelTxt) {
+window.SetCellTooltipData = function (DataJsonTxt) {
+    window.__cpoDashboard.applyCellTooltipData(JSON.parse(DataJsonTxt));
+};
+
+window.SetPeriodLabel =function (PeriodLabelTxt) {
     window.__cpoDashboard.setPeriodLabel(PeriodLabelTxt);
 };
 

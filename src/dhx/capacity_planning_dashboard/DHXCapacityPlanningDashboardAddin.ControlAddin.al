@@ -60,6 +60,10 @@ controladdin DHXCapacityPlanningDashboardAddin
     procedure SetPlanningData(PlanningDataJsonTxt: Text);
     procedure SetColors(ColorsJsonTxt: Text);
     procedure SetPeriodLabel(PeriodLabelTxt: Text);
+    // Section 4 cell hover tooltip: JS raises OnRequestCellTooltip({"skill","date"}), AL answers
+    // with SetCellTooltipData({"skill","date","lines":[...]}).
+    procedure SetCellTooltipData(DataJsonTxt: Text);
+    event OnRequestCellTooltip(PayloadJsonTxt: Text);
 
     event ControlReady();
     // Declared for parity with the base class's own wiring (inherited, unused code paths only -

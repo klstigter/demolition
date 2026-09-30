@@ -2248,6 +2248,11 @@ class CapacityPlanningOverview {
         const lines = (this.db.dayPlanningLines || []).filter((l) =>
             l.workOrderNo !== woNo && l.requestedSkill === skill && this.dplDayIndex(l) === idx &&
             (job == null || (l.job === job && l.task === task)));
+        return this.groupTooltipHtmlFromLines(lines, skill, idx);
+    }
+
+    /// <summary>Renders the group tooltip body for an already-selected set of Day Planning lines (shared with the Dashboard tile, which loads them on demand).</summary>
+    groupTooltipHtmlFromLines(lines, skill, idx) {
         if (!lines.length) return '';
         lines.sort(function (a, b) {
             return String(a.job).localeCompare(String(b.job)) || String(a.task).localeCompare(String(b.task)) ||
