@@ -314,9 +314,17 @@ window.BOOT = function () {
         // Progress-split segment renderer for Day Planning bars (adapted verbatim from
         // projectschedule's wrapper.js event_bar_text/segmentHtml). Capacity bars just get
         // the plain escaped label (default look, distinct orange background from CSS above).
+        // "<Skill> | <Name>" -> "<Skill> <H:mm>-<H:mm> | <Name>" (time right after the Skill).
+        function insertRcBarTime(text, start, end) {
+            function hm(d) { return d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+            var parts = String(text == null ? '' : text).split(' | ');
+            parts[0] += ' ' + hm(start) + '-' + hm(end);
+            return parts.join(' | ');
+        }
+
         scheduler.templates.event_bar_text = function (start, end, ev) {
-            var label = escapeRcHtml(ev.text);
-            if (ev.type !== "DayPlanning") return label;
+            if (ev.type !== "DayPlanning") return escapeRcHtml(ev.text);
+            var label = escapeRcHtml(insertRcBarTime(ev.text, start, end));
 
             var totalMin = (end - start) / 60000;
             if (!(totalMin > 0)) {

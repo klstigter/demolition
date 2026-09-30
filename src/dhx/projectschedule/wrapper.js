@@ -531,6 +531,14 @@ window.BOOT = function() {
         return h * 60 + m;
     }
 
+    // "<Skill> | <Name>" -> "<Skill> <H:mm>-<H:mm> | <Name>" (time right after the Skill).
+    function insertBarTime(text, start, end) {
+        function hm(d) { return d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+        var parts = String(text == null ? '' : text).split(' | ');
+        parts[0] += ' ' + hm(start) + '-' + hm(end);
+        return parts.join(' | ');
+    }
+
     // A time value is "valid" only when both its Start and End are set (<> 0T on the AL
     // side, which serializes to a non-empty "HH:mm" string; missing/zero comes through blank).
     //
@@ -545,7 +553,7 @@ window.BOOT = function() {
     //  - Neither valid                                       -> no strip, plain envelope + label.
     scheduler.templates.event_bar_text = function(start, end, ev) {
         var totalMin = (end - start) / 60000;
-        var label = escapeHtml(ev.text);
+        var label = escapeHtml(insertBarTime(ev.text, start, end));
         if (!(totalMin > 0)) {
             return '<div class="dp-bar-wrap"><div class="dp-bar-label">' + label + '</div></div>';
         }

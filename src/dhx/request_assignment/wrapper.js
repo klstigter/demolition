@@ -2210,6 +2210,14 @@ function undoLastAssignment() {
   updateUndoButton();
 }
 
+// "<Skill> <H:mm>-<H:mm> · <task>/<seq>" label for assignment (single Day Planning) bars, from the bar's live
+// start/end so it stays correct while dragging/resizing.
+function assignmentBarLabel(start, end, event) {
+  if (!event.skillLabel) return event.text ?? "";
+  const hm = d => `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
+  return `${event.skillLabel} ${hm(start)}-${hm(end)}${event.text.slice(event.skillLabel.length)}`;
+}
+
 function requestBarText(line) {
   const timeText = `${line.requestedStart}:00–${line.requestedStart + line.requestedDuration}:00`;
   if (!line.assignedResource) return timeText;
@@ -2293,6 +2301,7 @@ function assignmentEvents() {
       return {
         id: `ASG-${line.id}`,
         text: `${line.requiredSkill || sequenceRequiredSkill(line.sequence_id) || "—"} · ${line.taskId}/${line.seq}`,
+        skillLabel: line.requiredSkill || sequenceRequiredSkill(line.sequence_id) || "—",
         start_date: atTime(line.date, line.assignedStart),
         end_date: atTime(line.date, line.assignedStart + line.assignedDuration),
         resource_id: line.assignedResource,
@@ -3371,11 +3380,11 @@ function createResourceScheduler() {
       ? `<span class="assignment-left-resize-handle" title="Drag to change start time"></span>`
       : "";
 
-    return `${handle}<span class="assignment-label">${event.text ?? ""}</span>`;
+    return `${handle}<span class="assignment-label">${assignmentBarLabel(start, end, event)}</span>`;
   };
 
   sch.templates.event_bar_text = function(start, end, event) {
-    return event.text;
+    return assignmentBarLabel(start, end, event);
   };
 
   sch.templates.event_class = (function(originalEventClass) {
