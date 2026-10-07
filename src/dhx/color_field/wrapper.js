@@ -74,6 +74,12 @@ window.BOOT = function () {
     }
 };
 
+// AL-callable: sets the hover tooltip on the whole control (label, swatch and hex text).
+function SetTooltip(tooltipText) {
+    var root = document.getElementById("controlAddIn");
+    if (root) root.title = tooltipText || "";
+}
+
 function SetValue(captionText, colorHex) {
     if (!_labelEl) return;
     var hex = colorHex || "";

@@ -874,6 +874,8 @@ page 50654 "Daily Optimizer Setup"
     end;
 
     local procedure PushColorFields()
+    var
+        GTBProgressColorTooltipLbl: Label 'Progress colour: blank means the Gantt darkens each task''s own fill colour. If someone sets a colour, it applies to every bar.';
     begin
         CurrPage.CfBarFontColor.SetValue('Bar Font Color', Rec."Bar Font Color");
         CurrPage.CfWeekendColor.SetValue('Weekend Color', Rec."Weekend Color");
@@ -881,6 +883,7 @@ page 50654 "Daily Optimizer Setup"
         CurrPage.CfGTBColornonposting.SetValue('Gantt Task Bar Color (Non-Posting)', Rec."GTB Color (non posting)");
         CurrPage.CfGTBColor.SetValue('Gantt Task Bar Color', Rec."GTB Color");
         CurrPage.CfGTBBorderColor.SetValue('Gantt Task Bar Border Color', Rec."GTB Border Color");
+        CurrPage.CfGTBProgressColor.SetTooltip(GTBProgressColorTooltipLbl);
         CurrPage.CfGTBProgressColor.SetValue('Gantt Task Bar Progress Color', Rec."GTB Progress Color");
         CurrPage.CfGTBFontColor.SetValue('Gantt Task Bar Font Color', Rec."GTB Font Color");
         CurrPage.CfTooltipBackgroundColor.SetValue('Tooltip Background Color', Rec."Tooltip Background Color");
