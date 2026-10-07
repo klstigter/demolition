@@ -283,28 +283,25 @@ codeunit 50609 "Visual Default Settings"
 
     /// <summary>
     /// Resolves the progress-fill colour used for every Gantt task bar's completed-portion overlay
-    /// (ganttdemo2). Deliberately returns blank when unset, unlike every other GetGanttTaskBarXxx
-    /// getter above - a blank result tells wrapper.js's onTaskLoading handler to keep computing each
-    /// task's progress colour dynamically (darkening that task's own fill colour by 60%, see
-    /// _darkenHex) rather than freezing every task's progress colour to one fixed hex. Overridable
-    /// via "Daily Optimizer Setup"."GTB Progress Color" when the singleton exists and the field is
-    /// non-blank.
+    /// (ganttdemo2). Deliberately returns blank when unset - a blank result tells wrapper.js's
+    /// onTaskLoading handler to keep computing each task's progress colour dynamically (darkening
+    /// that task's own fill colour by 60%, see _darkenHex) rather than freezing every task to one
+    /// fixed hex. Overridable via "Daily Optimizer Setup"."GTB Progress Color" when non-blank.
     /// </summary>
     procedure GetGanttTaskBarProgressColor(): Text
     var
         DailyOptimizerSetup: Record "Daily Optimizer Setup";
     begin
         if DailyOptimizerSetup.Get() then
-            exit(DailyOptimizerSetup."GTB Progress Color");
+            if DailyOptimizerSetup."GTB Progress Color" <> '' then
+                exit(DailyOptimizerSetup."GTB Progress Color");
         exit('');
     end;
 
     /// <summary>
     /// Resolves the on-bar label text colour for every Gantt task bar (ganttdemo2). Overridable via
     /// "Daily Optimizer Setup"."GTB Font Color" when the singleton exists and the field is
-    /// non-blank, else falls back to GetBarFontColor() (the same global "Bar Font Color" setting
-    /// used by every other scheduler/chart bar) - so an unconfigured "GTB Font Color" keeps
-    /// following future "Bar Font Color" changes rather than freezing to a separate default.
+    /// non-blank, else falls back to GanttTaskBarFontColorTok.
     /// </summary>
     procedure GetGanttTaskBarFontColor(): Text
     var
@@ -313,7 +310,7 @@ codeunit 50609 "Visual Default Settings"
         if DailyOptimizerSetup.Get() then
             if DailyOptimizerSetup."GTB Font Color" <> '' then
                 exit(DailyOptimizerSetup."GTB Font Color");
-        exit(GetBarFontColor());
+        exit(GanttTaskBarFontColorTok);
     end;
 
     /// <summary>
@@ -508,20 +505,14 @@ codeunit 50609 "Visual Default Settings"
 
     procedure GetDefaultGanttTaskBarProgressColor(): Text
     begin
-        // Deliberately blank, unlike every other GetDefaultXxx in this codeunit: this field's
-        // "default" behaviour is dynamic (wrapper.js darkens each task's own fill colour by 60%
-        // per task, not a single fixed hex), so there is no literal default colour to restore -
-        // Reset-to-default must clear this field back to blank, not freeze in some colour.
+        // Deliberately blank: default is each task's own fill colour darkened 60% (wrapper.js
+        // _darkenHex), so there is no single fixed hex to restore.
         exit('');
     end;
 
     procedure GetDefaultGanttTaskBarFontColor(): Text
     begin
-        // Deliberately blank, same reasoning as GetDefaultGanttTaskBarProgressColor above: this
-        // field's default behaviour is to inherit "Bar Font Color" (see GetGanttTaskBarFontColor),
-        // which is itself already overridable - freezing a snapshot here would stop it from
-        // following future "Bar Font Color" changes.
-        exit('');
+        exit(GanttTaskBarFontColorTok);
     end;
 
     procedure GetDefaultGanttTaskBarFontSize(): Integer
@@ -873,6 +864,8 @@ codeunit 50609 "Visual Default Settings"
         // default task-bar border colour (--dhx-gantt-task-border: 1px solid #3588c5).
         // Used by: GetGanttTaskBarBorderColor above only.
         GanttTaskBarBorderColorTok: Label '#3588c5', Locked = true;
+        // Fallback for GetGanttTaskBarFontColor - black, same as BarFontColorTok.
+        GanttTaskBarFontColorTok: Label '#000000', Locked = true;
         // Fallback for GetDefaultEnvelopeColor/GetDefaultEnvelopeBorderColor above - overridable via
         // "Daily Optimizer Setup"."Envelope Color"/"Envelope Border Color". Match the hardcoded
         // "--dp-color-envelope"/"--dp-color-envelope-border" CSS defaults already in
