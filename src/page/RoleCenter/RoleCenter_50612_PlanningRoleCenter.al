@@ -312,6 +312,26 @@ page 50612 "Planning Role Center"
                     ToolTip = 'Manage item prices for work orders. Prices are applied automatically based on customer, date, and quantity.';
                 }
             }
+
+            group("Integration")
+            {
+                Caption = 'Integration';
+
+                action("API Record Exposed")
+                {
+                    Caption = 'API Record Exposed';
+                    Image = Setup;
+                    ApplicationArea = All;
+                    RunObject = page "API Record Exposed Opti";
+                }
+                action("Update and Delete Log")
+                {
+                    Caption = 'Update and Delete Log';
+                    Image = Setup;
+                    ApplicationArea = All;
+                    RunObject = page "Update and Delete Log List";
+                }
+            }
         }
     }
 }

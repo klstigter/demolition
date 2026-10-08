@@ -8,11 +8,54 @@ table 50607 "Update and Delete Log Opti"
         field(1; "Entry No."; Integer)
         {
             DataClassification = ToBeClassified;
+            AutoIncrement = true;
         }
-        field(10; "Table ID"; Integer)
+        field(5; Action; enum "Update and Delete Log Action")
         {
             DataClassification = ToBeClassified;
         }
+        field(10; "Record SystemId"; Guid)
+        {
+            DataClassification = ToBeClassified;
+        }
+        field(18; EntitySetName; Text[100])
+        {
+            DataClassification = ToBeClassified;
+        }
+        field(20; "Table No."; Integer)
+        {
+            DataClassification = ToBeClassified;
+        }
+        field(21; "Field No."; Integer)
+        {
+            DataClassification = ToBeClassified;
+        }
+        field(30; "Old Value"; Text[100])
+        {
+            DataClassification = ToBeClassified;
+        }
+        field(31; "New Value"; Text[100])
+        {
+            DataClassification = ToBeClassified;
+        }
+        field(40; "Modified At"; DateTime)
+        {
+            DataClassification = ToBeClassified;
+        }
+        field(50; "Synchronized At"; DateTime)
+        {
+            DataClassification = ToBeClassified;
+        }
+        field(60; Status; enum "Update and Delete Log Status")
+        {
+            DataClassification = ToBeClassified;
+        }
+        field(70; "API Field Name"; Text[150])
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'API Field Name';
+        }
+
     }
 
     keys
@@ -45,13 +88,6 @@ table 50607 "Update and Delete Log Opti"
 
     trigger OnRename()
     begin
-    end;
-
-    procedure GetNextEntryNo(): Integer
-    begin
-        if not Rec.FindLast() then
-            exit(1);
-        exit(Rec."Entry No." + 1);
     end;
 
 }

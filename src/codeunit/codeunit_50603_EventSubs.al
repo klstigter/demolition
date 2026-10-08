@@ -60,7 +60,6 @@ codeunit 50603 "EventSubs"
     begin
         if (JobJournalLine."Opt. DayPlanning Date" = 0D) or (JobJournalLine."Opt. DayPlanning Line No." = 0) then
             exit;
-
         if not DayPlanning.Get(
             JobJournalLine."Job No.",
             JobJournalLine."Job Task No.",
@@ -135,4 +134,5 @@ codeunit 50603 "EventSubs"
                 Res.ModifyAll("Is Pool Member", true);
         end;
     end;
+
 }

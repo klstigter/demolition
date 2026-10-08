@@ -1,4 +1,4 @@
-codeunit 50605 "TrustedCircle Integration"
+codeunit 50605 "API Record Exposed Mgt."
 {
     trigger OnRun()
     begin
@@ -7,104 +7,139 @@ codeunit 50605 "TrustedCircle Integration"
     var
         DailyOptimizerSetup: Record "Daily Optimizer Setup";
 
-
-    /*
-    Each outcome now writes a distinct description to the log:
-
-    Scenario	    Description in log
-    Network error	Test Connection: Network error. Could not reach the endpoint URL.
-    401 / 403	    Test Connection: Authentication failed. HTTP 401 - Bearer Token is invalid or expired.
-    404	            Test Connection: Successful. HTTP 404 - Server is reachable, but the base URL has no root route. This is expected.
-    2xx / other	    Test Connection: Successful. HTTP 200.
-
-    */
-    procedure TestConnection()
+    local procedure GetApiFieldName(APIPageNo: Integer;
+                                    TableNo: Integer;
+                                    FieldNo: Integer;
+                                    var ControlName: Text): Boolean
     var
-        Client: HttpClient;
-        Response: HttpResponseMessage;
-        ResponseBody: Text;
-        EndpointURL: Text;
+        PageControlField: Record "Page Control Field";
     begin
-        DailyOptimizerSetup.Get();
-        DailyOptimizerSetup.TestField("TrustedCircle Bearer Token");
-        DailyOptimizerSetup.TestField("TrustedCircle API Base URL");
-
-        EndpointURL := DailyOptimizerSetup."TrustedCircle API Base URL";
-
-        Client.DefaultRequestHeaders().Add('Authorization', 'Bearer ' + DailyOptimizerSetup."TrustedCircle Bearer Token");
-
-        if not Client.Get(EndpointURL, Response) then begin
-            LogActivity('GET', EndpointURL, '', '', 0, 'Test Connection: Network error. Could not reach the endpoint URL.');
-            Error('Connection failed. Check network connectivity or the endpoint URL.');
-        end;
-
-        Response.Content.ReadAs(ResponseBody);
-
-        case Response.HttpStatusCode() of
-            401, 403:
-                begin
-                    LogActivity('GET', EndpointURL, '', ResponseBody, Response.HttpStatusCode(),
-                        StrSubstNo('Test Connection: Authentication failed. HTTP %1 - Bearer Token is invalid or expired.', Response.HttpStatusCode()));
-                    Error('Authentication failed. Check the Bearer Token. HTTP %1', Response.HttpStatusCode());
-                end;
-            404:
-                begin
-                    LogActivity('GET', EndpointURL, '', ResponseBody, Response.HttpStatusCode(),
-                        'Test Connection: Successful. HTTP 404 - Server is reachable, but the base URL has no root route. This is expected.');
-                    Message('Connection successful. HTTP %1', Response.HttpStatusCode());
-                end;
-            else begin
-                LogActivity('GET', EndpointURL, '', ResponseBody, Response.HttpStatusCode(),
-                    StrSubstNo('Test Connection: Successful. HTTP %1.', Response.HttpStatusCode()));
-                Message('Connection successful. HTTP %1', Response.HttpStatusCode());
-            end;
-        end;
+        PageControlField.SetRange(PageNo, APIPageNo);
+        PageControlField.SetRange(TableNo, TableNo);
+        PageControlField.SetRange(FieldNo, FieldNo);
+        if not PageControlField.FindFirst() then
+            exit(false);
+        ControlName := PageControlField.ControlName;
+        exit(true);
     end;
 
-    local procedure LogActivity(Method: Text; EndpointURL: Text; RequestBody: Text; ResponseBody: Text; StatusCode: Integer; Desc: Text)
+    [InherentPermissions(PermissionObjectType::TableData, Database::"API Record Exposed Opti", 'R')]
+    [InherentPermissions(PermissionObjectType::TableData, Database::"Update and Delete Log Opti", 'RI')]
+    procedure ModifiedFieldLog(OldRec: Variant;
+                               NewRec: Variant;
+                               TableID: Integer)
     var
-        LogEntry: Record "TrustedCircle API Log";
-        OutStr: OutStream;
+        OldRecRef: RecordRef;
+        NewRecRef: RecordRef;
+        OldFldRef: FieldRef;
+        NewFldRef: FieldRef;
+        APIRecordExposed: Record "API Record Exposed Opti";
+        PageMetadata: Record "Page Metadata";
+        ControlName: Text;
+        i: Integer;
     begin
-        LogEntry.Init();
-        LogEntry."Entry No." := GetNextLogEntryNo();
-        LogEntry.Description := CopyStr(Desc, 1, MaxStrLen(LogEntry.Description));
-        LogEntry."Endpoint URL" := CopyStr(EndpointURL, 1, MaxStrLen(LogEntry."Endpoint URL"));
-        LogEntry."Response Code" := StatusCode;
-        LogEntry."Created At" := CurrentDateTime();
-        case UpperCase(Method) of
-            'GET':
-                LogEntry.Method := LogEntry.Method::GET;
-            'POST':
-                LogEntry.Method := LogEntry.Method::POST;
-            'PUT':
-                LogEntry.Method := LogEntry.Method::PUT;
-            'PATCH':
-                LogEntry.Method := LogEntry.Method::PATCH;
-            'DELETE':
-                LogEntry.Method := LogEntry.Method::DELETE;
-            'HEAD':
-                LogEntry.Method := LogEntry.Method::HEAD;
-            else
-                LogEntry.Method := LogEntry.Method::OPTIONS;
-        end;
+        OldRecRef.GetTable(OldRec);
+        NewRecRef.GetTable(NewRec);
+        if NewRecRef.IsTemporary() then
+            exit;
 
-        LogEntry."Request Payload".CreateOutStream(OutStr);
-        OutStr.WriteText(RequestBody);
-
-        Clear(OutStr);
-        LogEntry."Response Payload".CreateOutStream(OutStr);
-        OutStr.WriteText(ResponseBody);
-
-        LogEntry.Insert();
+        APIRecordExposed.SetRange("Table ID", TableID);
+        if APIRecordExposed.FindSet() then
+            repeat
+                // A missing API page must never fail the user's save; skip it.
+                if PageMetadata.Get(APIRecordExposed."API Page No.") then
+                    for i := 1 to NewRecRef.FieldCount() do begin
+                        NewFldRef := NewRecRef.FieldIndex(i);
+                        if NewFldRef.Class() = FieldClass::Normal then begin
+                            OldFldRef := OldRecRef.Field(NewFldRef.Number());
+                            if Format(OldFldRef.Value()) <> Format(NewFldRef.Value()) then
+                                if GetApiFieldName(APIRecordExposed."API Page No.", TableID, NewFldRef.Number(), ControlName) then
+                                    InsertLog(NewRecRef, PageMetadata.EntitySetName, ControlName, "Update and Delete Log Action"::Modify, NewFldRef.Number(), Format(OldFldRef.Value()), Format(NewFldRef.Value()));
+                        end;
+                    end;
+            until APIRecordExposed.Next() = 0;
     end;
 
-    local procedure GetNextLogEntryNo(): Integer
-    var
-        LogEntry: Record "TrustedCircle API Log";
+    [InherentPermissions(PermissionObjectType::TableData, Database::"API Record Exposed Opti", 'R')]
+    [InherentPermissions(PermissionObjectType::TableData, Database::"Update and Delete Log Opti", 'RI')]
+    procedure DeletedRecordLog(RecRef: RecordRef)
     begin
-        if LogEntry.FindLast() then
-            exit(LogEntry."Entry No." + 1);
-        exit(1);
+        if RecRef.IsTemporary() then
+            exit;
+        LogRecordLevelChange(RecRef, "Update and Delete Log Action"::Delete, '', '');
+    end;
+
+    [InherentPermissions(PermissionObjectType::TableData, Database::"API Record Exposed Opti", 'R')]
+    [InherentPermissions(PermissionObjectType::TableData, Database::"Update and Delete Log Opti", 'RI')]
+    procedure RenamedRecordLog(RecRef: RecordRef;
+                               xRecRef: RecordRef)
+    var
+        APIRecordExposed: Record "API Record Exposed Opti";
+        PageMetadata: Record "Page Metadata";
+        KeyRef: KeyRef;
+        FldRef: FieldRef;
+        xFldRef: FieldRef;
+        ControlName: Text;
+        i: Integer;
+    begin
+        if RecRef.IsTemporary() then
+            exit;
+
+        // One row per primary-key field (a single-field key gives one row, a composite key gives n),
+        // so every Rename row has the same shape: that field's API name (blank when not exposed),
+        // its field number and its old/new value.
+        KeyRef := RecRef.KeyIndex(1); // primary key
+        APIRecordExposed.SetRange("Table ID", RecRef.Number());
+        if APIRecordExposed.FindSet() then
+            repeat
+                if PageMetadata.Get(APIRecordExposed."API Page No.") then
+                    for i := 1 to KeyRef.FieldCount() do begin
+                        FldRef := KeyRef.FieldIndex(i);
+                        xFldRef := xRecRef.Field(FldRef.Number());
+                        if not GetApiFieldName(APIRecordExposed."API Page No.", RecRef.Number(), FldRef.Number(), ControlName) then
+                            ControlName := '';
+                        InsertLog(RecRef, PageMetadata.EntitySetName, ControlName, "Update and Delete Log Action"::Rename, FldRef.Number(), Format(xFldRef.Value()), Format(FldRef.Value()));
+                    end;
+            until APIRecordExposed.Next() = 0;
+    end;
+
+    local procedure LogRecordLevelChange(RecRef: RecordRef;
+                                         LogAction: Enum "Update and Delete Log Action";
+                                         OldValue: Text;
+                                         NewValue: Text)
+    var
+        APIRecordExposed: Record "API Record Exposed Opti";
+        PageMetadata: Record "Page Metadata";
+    begin
+        APIRecordExposed.SetRange("Table ID", RecRef.Number());
+        if APIRecordExposed.FindSet() then
+            repeat
+                if PageMetadata.Get(APIRecordExposed."API Page No.") then
+                    InsertLog(RecRef, PageMetadata.EntitySetName, '', LogAction, 0, OldValue, NewValue);
+            until APIRecordExposed.Next() = 0;
+    end;
+
+    local procedure InsertLog(RecRef: RecordRef;
+                              EntitySetName: Text;
+                              FieldName: Text;
+                              LogAction: Enum "Update and Delete Log Action";
+                              FieldNo: Integer;
+                              OldValue: Text;
+                              NewValue: Text)
+    var
+        UpdateAndDeleteLog: Record "Update and Delete Log Opti";
+    begin
+        UpdateAndDeleteLog.Init();
+        UpdateAndDeleteLog.Action := LogAction;
+        UpdateAndDeleteLog."Record SystemId" := RecRef.Field(RecRef.SystemIdNo()).Value();
+        UpdateAndDeleteLog.EntitySetName := CopyStr(EntitySetName, 1, MaxStrLen(UpdateAndDeleteLog.EntitySetName));
+        UpdateAndDeleteLog."API Field Name" := CopyStr(FieldName, 1, MaxStrLen(UpdateAndDeleteLog."API Field Name"));
+        UpdateAndDeleteLog."Table No." := RecRef.Number();
+        UpdateAndDeleteLog."Field No." := FieldNo;
+        UpdateAndDeleteLog."Old Value" := CopyStr(OldValue, 1, MaxStrLen(UpdateAndDeleteLog."Old Value"));
+        UpdateAndDeleteLog."New Value" := CopyStr(NewValue, 1, MaxStrLen(UpdateAndDeleteLog."New Value"));
+        UpdateAndDeleteLog."Modified At" := CurrentDateTime();
+        UpdateAndDeleteLog.Status := UpdateAndDeleteLog.Status::Pending;
+        UpdateAndDeleteLog.Insert();
     end;
 }
