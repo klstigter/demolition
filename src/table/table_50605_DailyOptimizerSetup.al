@@ -38,14 +38,6 @@ table 50605 "Daily Optimizer Setup"
             Caption = 'Default Skill';
             TableRelation = "Skill Code";
         }
-        field(40; "TrustedCircle API Base URL"; Text[250])
-        {
-            Caption = 'API Base URL';
-        }
-        field(41; "TrustedCircle Bearer Token"; Text[250])
-        {
-            Caption = 'Bearer Token';
-        }
         field(50; "Resource Scheduler - List Type"; Option)
         {
             Caption = 'Resource Scheduler - List Type';
@@ -296,22 +288,18 @@ table 50605 "Daily Optimizer Setup"
 
     trigger OnInsert()
     begin
-
     end;
 
     trigger OnModify()
     begin
-
     end;
 
     trigger OnDelete()
     begin
-
     end;
 
     trigger OnRename()
     begin
-
     end;
 
     /// <summary>

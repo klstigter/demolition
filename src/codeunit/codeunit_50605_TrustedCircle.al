@@ -1,4 +1,4 @@
-codeunit 50605 "TrustedCircle Integration"
+codeunit 50605 "API Record Exposed Mgt."
 {
     trigger OnRun()
     begin
@@ -7,104 +7,58 @@ codeunit 50605 "TrustedCircle Integration"
     var
         DailyOptimizerSetup: Record "Daily Optimizer Setup";
 
-
-    /*
-    Each outcome now writes a distinct description to the log:
-
-    Scenario	    Description in log
-    Network error	Test Connection: Network error. Could not reach the endpoint URL.
-    401 / 403	    Test Connection: Authentication failed. HTTP 401 - Bearer Token is invalid or expired.
-    404	            Test Connection: Successful. HTTP 404 - Server is reachable, but the base URL has no root route. This is expected.
-    2xx / other	    Test Connection: Successful. HTTP 200.
-
-    */
-    procedure TestConnection()
+    local procedure IsFieldExposedOnApiPage(APIPageNo: Integer;
+                                      TableNo: Integer;
+                                      FieldNo: Integer): Boolean
     var
-        Client: HttpClient;
-        Response: HttpResponseMessage;
-        ResponseBody: Text;
-        EndpointURL: Text;
+        PageControlField: Record "Page Control Field";
     begin
-        DailyOptimizerSetup.Get();
-        DailyOptimizerSetup.TestField("TrustedCircle Bearer Token");
-        DailyOptimizerSetup.TestField("TrustedCircle API Base URL");
-
-        EndpointURL := DailyOptimizerSetup."TrustedCircle API Base URL";
-
-        Client.DefaultRequestHeaders().Add('Authorization', 'Bearer ' + DailyOptimizerSetup."TrustedCircle Bearer Token");
-
-        if not Client.Get(EndpointURL, Response) then begin
-            LogActivity('GET', EndpointURL, '', '', 0, 'Test Connection: Network error. Could not reach the endpoint URL.');
-            Error('Connection failed. Check network connectivity or the endpoint URL.');
-        end;
-
-        Response.Content.ReadAs(ResponseBody);
-
-        case Response.HttpStatusCode() of
-            401, 403:
-                begin
-                    LogActivity('GET', EndpointURL, '', ResponseBody, Response.HttpStatusCode(),
-                        StrSubstNo('Test Connection: Authentication failed. HTTP %1 - Bearer Token is invalid or expired.', Response.HttpStatusCode()));
-                    Error('Authentication failed. Check the Bearer Token. HTTP %1', Response.HttpStatusCode());
-                end;
-            404:
-                begin
-                    LogActivity('GET', EndpointURL, '', ResponseBody, Response.HttpStatusCode(),
-                        'Test Connection: Successful. HTTP 404 - Server is reachable, but the base URL has no root route. This is expected.');
-                    Message('Connection successful. HTTP %1', Response.HttpStatusCode());
-                end;
-            else begin
-                LogActivity('GET', EndpointURL, '', ResponseBody, Response.HttpStatusCode(),
-                    StrSubstNo('Test Connection: Successful. HTTP %1.', Response.HttpStatusCode()));
-                Message('Connection successful. HTTP %1', Response.HttpStatusCode());
-            end;
-        end;
+        PageControlField.SetRange(PageNo, APIPageNo);
+        PageControlField.SetRange(TableNo, TableNo);
+        PageControlField.SetRange(FieldNo, FieldNo);
+        exit(not PageControlField.IsEmpty());
     end;
 
-    local procedure LogActivity(Method: Text; EndpointURL: Text; RequestBody: Text; ResponseBody: Text; StatusCode: Integer; Desc: Text)
+    procedure ModifiedFieldLog(OldRec: Variant;
+                               NewRec: Variant;
+                               TableID: Integer)
     var
-        LogEntry: Record "TrustedCircle API Log";
-        OutStr: OutStream;
+        OldRecRef: RecordRef;
+        NewRecRef: RecordRef;
+        OldFldRef: FieldRef;
+        NewFldRef: FieldRef;
+        APIRecordExposed: Record "API Record Exposed Opti";
+        PageMetadata: Record "Page Metadata";
+        UpdateAndDeleteLog: Record "Update and Delete Log Opti";
+        i: Integer;
     begin
-        LogEntry.Init();
-        LogEntry."Entry No." := GetNextLogEntryNo();
-        LogEntry.Description := CopyStr(Desc, 1, MaxStrLen(LogEntry.Description));
-        LogEntry."Endpoint URL" := CopyStr(EndpointURL, 1, MaxStrLen(LogEntry."Endpoint URL"));
-        LogEntry."Response Code" := StatusCode;
-        LogEntry."Created At" := CurrentDateTime();
-        case UpperCase(Method) of
-            'GET':
-                LogEntry.Method := LogEntry.Method::GET;
-            'POST':
-                LogEntry.Method := LogEntry.Method::POST;
-            'PUT':
-                LogEntry.Method := LogEntry.Method::PUT;
-            'PATCH':
-                LogEntry.Method := LogEntry.Method::PATCH;
-            'DELETE':
-                LogEntry.Method := LogEntry.Method::DELETE;
-            'HEAD':
-                LogEntry.Method := LogEntry.Method::HEAD;
-            else
-                LogEntry.Method := LogEntry.Method::OPTIONS;
-        end;
+        OldRecRef.GetTable(OldRec);
+        NewRecRef.GetTable(NewRec);
 
-        LogEntry."Request Payload".CreateOutStream(OutStr);
-        OutStr.WriteText(RequestBody);
-
-        Clear(OutStr);
-        LogEntry."Response Payload".CreateOutStream(OutStr);
-        OutStr.WriteText(ResponseBody);
-
-        LogEntry.Insert();
-    end;
-
-    local procedure GetNextLogEntryNo(): Integer
-    var
-        LogEntry: Record "TrustedCircle API Log";
-    begin
-        if LogEntry.FindLast() then
-            exit(LogEntry."Entry No." + 1);
-        exit(1);
+        APIRecordExposed.SetRange("Table ID", TableID);
+        if APIRecordExposed.FindSet() then
+            repeat
+                PageMetadata.Get(APIRecordExposed."API Page No.");
+                for i := 1 to NewRecRef.FieldCount() do begin
+                    NewFldRef := NewRecRef.FieldIndex(i);
+                    if NewFldRef.Class() = FieldClass::Normal then begin
+                        OldFldRef := OldRecRef.Field(NewFldRef.Number());
+                        if Format(OldFldRef.Value()) <> Format(NewFldRef.Value()) then
+                            if IsFieldExposedOnApiPage(APIRecordExposed."API Page No.", TableID, NewFldRef.Number()) then begin
+                                UpdateAndDeleteLog.Init();
+                                UpdateAndDeleteLog."Entry No." := UpdateAndDeleteLog.GetNextEntryNo();
+                                UpdateAndDeleteLog."Record SystemId" := NewRecRef.Field(NewRecRef.SystemIdNo()).Value();
+                                UpdateAndDeleteLog.EntitySetName := CopyStr(PageMetadata.EntitySetName, 1, MaxStrLen(UpdateAndDeleteLog.EntitySetName));
+                                UpdateAndDeleteLog."Table No." := TableID;
+                                UpdateAndDeleteLog."Field No." := NewFldRef.Number();
+                                UpdateAndDeleteLog."Old Value" := CopyStr(Format(OldFldRef.Value()), 1, MaxStrLen(UpdateAndDeleteLog."Old Value"));
+                                UpdateAndDeleteLog."New Value" := CopyStr(Format(NewFldRef.Value()), 1, MaxStrLen(UpdateAndDeleteLog."New Value"));
+                                UpdateAndDeleteLog."Modified At" := CurrentDateTime();
+                                UpdateAndDeleteLog.Status := UpdateAndDeleteLog.Status::Pending;
+                                UpdateAndDeleteLog.Insert();
+                            end;
+                    end;
+                end;
+            until APIRecordExposed.Next() = 0;
     end;
 }

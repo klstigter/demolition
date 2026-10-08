@@ -9,10 +9,43 @@ table 50607 "Update and Delete Log Opti"
         {
             DataClassification = ToBeClassified;
         }
-        field(10; "Table ID"; Integer)
+        field(10; "Record SystemId"; Guid)
         {
             DataClassification = ToBeClassified;
         }
+        field(18; EntitySetName; Text[100])
+        {
+            DataClassification = ToBeClassified;
+        }
+        field(20; "Table No."; Integer)
+        {
+            DataClassification = ToBeClassified;
+        }
+        field(21; "Field No."; Integer)
+        {
+            DataClassification = ToBeClassified;
+        }
+        field(30; "Old Value"; Text[100])
+        {
+            DataClassification = ToBeClassified;
+        }
+        field(31; "New Value"; Text[100])
+        {
+            DataClassification = ToBeClassified;
+        }
+        field(40; "Modified At"; DateTime)
+        {
+            DataClassification = ToBeClassified;
+        }
+        field(50; "Synchronized At"; DateTime)
+        {
+            DataClassification = ToBeClassified;
+        }
+        field(60; Status; enum "Update and Delete Log Status")
+        {
+            DataClassification = ToBeClassified;
+        }
+
     }
 
     keys

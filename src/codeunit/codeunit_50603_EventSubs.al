@@ -60,7 +60,6 @@ codeunit 50603 "EventSubs"
     begin
         if (JobJournalLine."Opt. DayPlanning Date" = 0D) or (JobJournalLine."Opt. DayPlanning Line No." = 0) then
             exit;
-
         if not DayPlanning.Get(
             JobJournalLine."Job No.",
             JobJournalLine."Job Task No.",
@@ -135,4 +134,17 @@ codeunit 50603 "EventSubs"
                 Res.ModifyAll("Is Pool Member", true);
         end;
     end;
+
+    #region Subscription for API Record Exposed Opti
+
+    [EventSubscriber(ObjectType::Table, Database::Job, OnAfterModifyEvent, '', false, false)]
+    local procedure Table_Job_OnAfterModifyEvent(RunTrigger: Boolean; var Rec: Record Job; xRec: Record Job)
+    var
+        APIRecordExposed: Codeunit "API Record Exposed Mgt.";
+    begin
+        APIRecordExposed.ModifiedFieldLog(xRec, Rec, Database::Job);
+    end;
+
+    #endregion
+
 }

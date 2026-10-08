@@ -573,19 +573,6 @@ page 50654 "Daily Optimizer Setup"
                     ApplicationArea = All;
                 }
             }
-            group(TrustedCircle)
-            {
-                Caption = 'TrustedCircle Integration';
-
-                field("TrustedCircle API Base URL"; Rec."TrustedCircle API Base URL")
-                {
-                    ApplicationArea = ALL;
-                }
-                field("TrustedCircle Bearer Token"; Rec."TrustedCircle Bearer Token")
-                {
-                    ApplicationArea = ALL;
-                }
-            }
         }
     }
 
@@ -704,35 +691,6 @@ page 50654 "Daily Optimizer Setup"
                     end;
                 }
             }
-
-            group(TrustedCircleActions)
-            {
-                action(TestUpdateProduct)
-                {
-                    ApplicationArea = All;
-                    Caption = 'Test API Connection';
-                    Image = TestDatabase;
-
-                    trigger OnAction()
-                    var
-                        ti: Codeunit "TrustedCircle Integration";
-                    begin
-                        ti.TestConnection();
-                    end;
-                }
-                action(TrustedCircleAPILog)
-                {
-                    ApplicationArea = All;
-                    Caption = 'API Log';
-                    ToolTip = 'View the log of all TrustedCircle API requests and responses.';
-                    Image = Log;
-
-                    trigger OnAction()
-                    begin
-                        PAGE.Run(Page::"TrustedCircle API Log");
-                    end;
-                }
-            }
             group(Tests)
             {
                 Caption = 'Tests';
@@ -833,12 +791,6 @@ page 50654 "Daily Optimizer Setup"
                 actionref(DeleteDemoData_ref; DeleteDemoData) { }
                 actionref(DemoDataLog_ref; DemoDataLog) { }
                 actionref(DeleteIncorrectDayPlanning_ref; DeleteIncorrectDayPlanning) { }
-            }
-            group(TrustedCirclePromoted)
-            {
-                Caption = 'TrustedCircle';
-                actionref(TestUpdateProduct_ref; TestUpdateProduct) { }
-                actionref(TrustedCircleAPILog_ref; TrustedCircleAPILog) { }
             }
             group(Category_Tests)
             {
