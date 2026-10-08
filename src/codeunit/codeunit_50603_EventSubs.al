@@ -135,16 +135,4 @@ codeunit 50603 "EventSubs"
         end;
     end;
 
-    #region Subscription for API Record Exposed Opti
-
-    [EventSubscriber(ObjectType::Table, Database::Job, OnAfterModifyEvent, '', false, false)]
-    local procedure Table_Job_OnAfterModifyEvent(RunTrigger: Boolean; var Rec: Record Job; xRec: Record Job)
-    var
-        APIRecordExposed: Codeunit "API Record Exposed Mgt.";
-    begin
-        APIRecordExposed.ModifiedFieldLog(xRec, Rec, Database::Job);
-    end;
-
-    #endregion
-
 }

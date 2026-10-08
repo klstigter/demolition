@@ -20,7 +20,15 @@ page 50726 "Update and Delete Log List"
                 {
                     ApplicationArea = All;
                 }
+                field(Action; Rec.Action)
+                {
+                    ApplicationArea = All;
+                }
                 field(Status; Rec.Status)
+                {
+                    ApplicationArea = All;
+                }
+                field("API Field Name"; Rec."API Field Name")
                 {
                     ApplicationArea = All;
                 }

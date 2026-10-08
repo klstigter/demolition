@@ -8,6 +8,11 @@ table 50607 "Update and Delete Log Opti"
         field(1; "Entry No."; Integer)
         {
             DataClassification = ToBeClassified;
+            AutoIncrement = true;
+        }
+        field(5; Action; enum "Update and Delete Log Action")
+        {
+            DataClassification = ToBeClassified;
         }
         field(10; "Record SystemId"; Guid)
         {
@@ -45,6 +50,11 @@ table 50607 "Update and Delete Log Opti"
         {
             DataClassification = ToBeClassified;
         }
+        field(70; "API Field Name"; Text[150])
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'API Field Name';
+        }
 
     }
 
@@ -78,13 +88,6 @@ table 50607 "Update and Delete Log Opti"
 
     trigger OnRename()
     begin
-    end;
-
-    procedure GetNextEntryNo(): Integer
-    begin
-        if not Rec.FindLast() then
-            exit(1);
-        exit(Rec."Entry No." + 1);
     end;
 
 }
