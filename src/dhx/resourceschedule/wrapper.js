@@ -122,9 +122,8 @@ window.BOOT = function() {
             // Day Planning bars: per-skill colours (ev.color/textColor/borderColor, resolved in AL from
             // the Skill Code setup) are applied via the "rs-skill-<token>" rule block that
             // ApplyEventSkillColors injects - same technique as resourceschedule_with_capacity.
-            if (ev.skill && ev.color) cls += " rs-skill-" + safeCssToken(ev.skill);
-            // Requested-only lines (nobody assigned yet) - see style.css .rs-requested.
-            if (ev.requested) cls += " rs-requested";
+            if (ev.assigned && ev.color) cls += " rs-assigned";
+            else if (ev.skill && ev.color) cls += " rs-skill-" + safeCssToken(ev.skill);
             return cls;
         };
 
@@ -664,7 +663,16 @@ function ApplyEventSkillColors() {
     var seen = {};
     var css = "";
     allEvents.forEach(function(ev) {
-        if (!ev.skill || !ev.color) return;
+        if (ev.assigned && ev.color && !seen["__assigned"]) {
+            // "Daily Optimizer Setup"."Assigned Color" (AL: ResScheduler_AddEvent) - one colour for all.
+            seen["__assigned"] = true;
+            css += ".dhx_cal_event.rs-assigned{--dhx-scheduler-event-background:" + ev.color +
+                ";--dhx-scheduler-event-color:" + (ev.textColor || "#000000") +
+                ";background:" + ev.color + ";color:" + (ev.textColor || "#000000") +
+                ";border:1px solid " + (ev.borderColor || ev.color) + " !important;}\n" +
+                ".dhx_cal_event.rs-assigned .dhx_body{background:" + ev.color + ";color:" + (ev.textColor || "#000000") + ";}\n";
+        }
+        if (ev.assigned || !ev.skill || !ev.color) return;
         var token = safeCssToken(ev.skill);
         if (seen[token]) return;
         seen[token] = true;
