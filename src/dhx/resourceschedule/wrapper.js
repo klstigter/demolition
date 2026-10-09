@@ -669,7 +669,7 @@ function ApplyEventSkillColors() {
             css += ".dhx_cal_event.rs-assigned{--dhx-scheduler-event-background:" + ev.color +
                 ";--dhx-scheduler-event-color:" + (ev.textColor || "#000000") +
                 ";background:" + ev.color + ";color:" + (ev.textColor || "#000000") +
-                ";border:1px solid " + (ev.borderColor || ev.color) + " !important;}\n" +
+                ";border:1px solid " + (ev.borderColor || ev.color) + " !important;z-index:5;}\n" +
                 ".dhx_cal_event.rs-assigned .dhx_body{background:" + ev.color + ";color:" + (ev.textColor || "#000000") + ";}\n";
         }
         if (ev.assigned || !ev.skill || !ev.color) return;
