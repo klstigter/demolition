@@ -349,13 +349,6 @@ page 50619 "Resource Scheduler - Calendar"
         exit(DHXHandler.ResScheduler_BuildCapacityJson(ResourceFilter, StartDate, EndDate, ResourceNameFilter, SkillFilter));
     end;
 
-    local procedure GetResourceColor(pResourceNo: Code[20]; pColorType: Text): Text
-    var
-        DHXHandler: Codeunit "DHX Data Handler";
-    begin
-        exit(DHXHandler.ResScheduler_GetResourceColor(pResourceNo, pColorType));
-    end;
-
     procedure SetResourceFilter(pResourceFilter: Text)
     begin
         ResourceFilter := pResourceFilter;

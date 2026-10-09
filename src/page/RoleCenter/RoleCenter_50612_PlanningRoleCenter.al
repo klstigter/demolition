@@ -282,13 +282,6 @@ page 50612 "Planning Role Center"
                         RunObject = page "Order Intake Kanban Setup";
                     }
                 }
-                action("Resource Color")
-                {
-                    Caption = 'Resource Color';
-                    Image = Setup;
-                    ApplicationArea = All;
-                    RunObject = page "Resource Scheduler Color opt";
-                }
                 action("Projejct Type")
                 {
                     Caption = 'Project Type';
@@ -308,7 +301,7 @@ page 50612 "Planning Role Center"
                     Caption = 'Work Order Item Pricing';
                     Image = SalesPrices;
                     ApplicationArea = All;
-                    RunObject = page "Sales Prices";
+                    RunObject = page "Sales Price Lists";
                     ToolTip = 'Manage item prices for work orders. Prices are applied automatically based on customer, date, and quantity.';
                 }
             }

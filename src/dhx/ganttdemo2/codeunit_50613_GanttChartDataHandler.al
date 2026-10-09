@@ -181,14 +181,12 @@ codeunit 50613 "GanttChartDataHandler"
 
     local procedure CreateJobTaskJsonObject(JobTask: Record "Job Task") JsonObject: JsonObject
     var
-        Color: record "Planning Color Opt.";
         VisualDefaultSettings: Codeunit "Visual Default Settings";
         ColorTxt: Text;
         StartDateText: Text;
         StartEndText: Text;
         ConstraintDateText: Text;
         SchedulingTypeText: Text;
-        Codevar: Code[20];
         GanttDuration: Integer;
         EffectiveStartDate: Date;
         EffectiveEndDate: Date;
@@ -242,9 +240,9 @@ codeunit 50613 "GanttChartDataHandler"
         JsonObject.Add('bcMaxDuration', JobTask."Max Duration");
 
         JsonObject.Add('progress', JobTask."Progress" / 100); // Convert percentage to a value between 0 and 1
-
-        // Starting seed colour for every task bar, before the task-type/per-task overrides below
-        // run - "Daily Optimizer Setup"."GTB Color" via codeunit 50609's GetGanttTaskBarColor for
+        // Colour for every task bar:
+        // Starting seed colour for every task bar, (sole source)
+        // "Daily Optimizer Setup"."GTB Color" via codeunit 50609's GetGanttTaskBarColor for
         // Posting Job Tasks, or "Daily Optimizer Setup"."GTB Color (non posting)" via that
         // codeunit's GetGanttTaskBarColorNonPosting for every other Job Task Type, each falling
         // back to that codeunit's own built-in default when unset. The progressColor (darker
@@ -254,15 +252,6 @@ codeunit 50613 "GanttChartDataHandler"
             ColorTxt := VisualDefaultSettings.GetGanttTaskBarColor()
         else
             ColorTxt := VisualDefaultSettings.GetGanttTaskBarColorNonPosting();
-        // Check setting color for project task type.
-        if evaluate(Codevar, Format(JobTask."Job Task Type")) then
-            if Color.Get(Color.Type::"Project Task Type", Codevar, '', '') then
-                if Color.Task <> '' then
-                    ColorTxt := Color.Task;
-        // setting color on Task is mandatory.
-        if Color.Get(Color.Type::Task, JobTask."Job Task No.", JobTask."Job No.") then
-            if Color.Task <> '' then
-                ColorTxt := Color.Task;
 
         JsonObject.Add('color', ColorTxt);
 

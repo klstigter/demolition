@@ -118,7 +118,12 @@ window.BOOT = function() {
         });
 
         scheduler.templates.event_class = function(start, end, ev) {
-            return ev.classname || "";
+            var cls = ev.classname || "";
+            // Day Planning bars: per-skill colours (ev.color/textColor/borderColor, resolved in AL from
+            // the Skill Code setup) are applied via the "rs-skill-<token>" rule block that
+            // ApplyEventSkillColors injects - same technique as resourceschedule_with_capacity.
+            if (ev.skill && ev.color) cls += " rs-skill-" + safeCssToken(ev.skill);
+            return cls;
         };
 
         // Standard single-Day-Planning-line hover tooltip (2026-09-11, standard-tooltip
@@ -388,6 +393,7 @@ function ToggleCollapseExpandAllResources() {
 // ============================================================
 function RefreshSchedulerEvents() {
     if (typeof scheduler === "undefined") return;
+    ApplyCapacityColor();
     scheduler.clearAll();
 
     var filtered = showDayPlanning ? allEvents.filter(function(ev) {
@@ -525,7 +531,7 @@ function LoadCapacity(capacityJson) {
 
 // ============================================================
 // AL-callable: LoadData(eventsJson)
-//   eventsJson – JSON string: { data: [ { id, resource_id, classname,
+//   eventsJson – JSON string: { data: [ { id, resource_id, classname, color, textColor, borderColor,
 //                                         start_date, end_date, text }, … ] }
 // ============================================================
 function LoadData(eventsJson) {
@@ -542,6 +548,7 @@ function LoadData(eventsJson) {
                 allEvents = parsed;
             }
         }
+        ApplyEventSkillColors();
         RefreshSchedulerEvents();
     } catch (e) {
         console.error("LoadData error:", e);
@@ -600,6 +607,7 @@ function ReloadData(eventsJson, capacityJson) {
                       : Array.isArray(parsedEv)      ? parsedEv
                       : allEvents;
         }
+        ApplyEventSkillColors();
         var parsedCap = ParseJsonTxt(capacityJson);
         if (parsedCap) {
             allCapacity = Array.isArray(parsedCap.data) ? parsedCap.data
@@ -625,11 +633,58 @@ function SetShowCapacity(pShow) {
     RefreshSchedulerEvents();
 }
 
+function safeCssToken(txt) {
+    return String(txt == null ? "" : txt).replace(/[^a-zA-Z0-9_-]/g, "_");
+}
+
+// Free-capacity block colour: "Daily Optimizer Setup"."Free Capacity Color" (AL: codeunit 50609
+// GetCapacitySegmentColors via ResScheduler_BuildCapacityJson), same value for every capacity block.
+function ApplyCapacityColor() {
+    var color = "";
+    for (var i = 0; i < allCapacity.length; i++) {
+        if (allCapacity[i] && allCapacity[i].color) { color = allCapacity[i].color; break; }
+    }
+    var styleEl = document.getElementById("rs-capacity-color");
+    if (!styleEl) {
+        styleEl = document.createElement("style");
+        styleEl.id = "rs-capacity-color";
+        document.head.appendChild(styleEl);
+    }
+    styleEl.textContent = color
+        ? ".dhx_cal_event.cap-available{--dhx-scheduler-event-background:" + color + ";background:" + color + ";}"
+        : "";
+}
+
+// Injects one CSS rule per distinct skill found in allEvents, keyed to the "rs-skill-<token>" class
+// event_class adds. Colours come from each event's own color/textColor/borderColor (AL: codeunit 50609
+// GetSkillBarColor/GetSkillFontColor/GetSkillBorderColor via ResScheduler_AddEvent).
+function ApplyEventSkillColors() {
+    var seen = {};
+    var css = "";
+    allEvents.forEach(function(ev) {
+        if (!ev.skill || !ev.color) return;
+        var token = safeCssToken(ev.skill);
+        if (seen[token]) return;
+        seen[token] = true;
+        css += ".dhx_cal_event.rs-skill-" + token + "{--dhx-scheduler-event-background:" + ev.color +
+            ";--dhx-scheduler-event-color:" + (ev.textColor || "#000000") +
+            ";background:" + ev.color + ";color:" + (ev.textColor || "#000000") +
+            ";border:1px solid " + (ev.borderColor || ev.color) + " !important;}\n" +
+            ".dhx_cal_event.rs-skill-" + token + " .dhx_body{background:" + ev.color + ";color:" + (ev.textColor || "#000000") + ";}\n";
+    });
+    var styleEl = document.getElementById("rs-skill-colors");
+    if (!styleEl) {
+        styleEl = document.createElement("style");
+        styleEl.id = "rs-skill-colors";
+        document.head.appendChild(styleEl);
+    }
+    styleEl.textContent = css;
+}
+
 // AL-callable: SetBarFontColor - applies "Daily Optimizer Setup"."Bar Font Color" (via codeunit
 // 50609's GetBarFontColor) uniformly to every event bar's on-bar label text. Sets --bar-font-color
-// on the #scheduler_here container; style.css's per-colour-variant classes (.blue/.violet/etc.)
-// each read it via var(--bar-font-color, <original default>), so this one call overrides every
-// variant's own --dhx-scheduler-event-color at once. Does NOT affect tooltip text.
+// on the #scheduler_here container; used by the capacity block (Day Planning bars use their skill's own font colour).
+// Does NOT affect tooltip text.
 function SetBarFontColor(fontColorHex) {
     var root = document.getElementById('scheduler_here');
     if (!root) return;

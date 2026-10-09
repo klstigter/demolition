@@ -1,3 +1,4 @@
+// API Integeration for Exposing API Pages
 enum 50625 "Update and Delete Log Action"
 {
     Extensible = true;

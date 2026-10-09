@@ -1,3 +1,4 @@
+// API Integeration for Exposing API Pages
 page 50639 "API Record Exposed Opti"
 {
     PageType = List;

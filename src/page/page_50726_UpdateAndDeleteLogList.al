@@ -1,3 +1,4 @@
+// API Integeration for Exposing API Pages
 page 50726 "Update and Delete Log List"
 {
     PageType = List;

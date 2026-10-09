@@ -649,48 +649,6 @@ page 50654 "Daily Optimizer Setup"
                     end;
                 }
             }
-            group(Color)
-            {
-                Caption = 'Color Setup';
-
-                action(ResourceSchedulerColor)
-                {
-                    ApplicationArea = All;
-                    Caption = 'Resource Scheduler Color';
-                    ToolTip = 'Set up colors for Resource Scheduler based on resources, day plannings, and capacity.';
-                    Image = ResourcePlanning;
-
-                    trigger OnAction()
-                    begin
-                        PAGE.Run(Page::"Resource Scheduler Color opt");
-                    end;
-                }
-
-                action(TaskColor)
-                {
-                    ApplicationArea = All;
-                    Caption = 'Task Color';
-                    ToolTip = 'Set up colors for tasks based on job and task.';
-                    Image = TaskQualityMeasure;
-
-                    trigger OnAction()
-                    begin
-                        PAGE.Run(Page::"Task Color Opt.");
-                    end;
-                }
-                action(ProjectTaskTypeColor)
-                {
-                    ApplicationArea = All;
-                    Caption = 'Project Task Type Color';
-                    ToolTip = 'Set up colors for project task types.';
-                    Image = TaskList;
-
-                    trigger OnAction()
-                    begin
-                        PAGE.Run(Page::"Project Type Color Opt.");
-                    end;
-                }
-            }
             group(Tests)
             {
                 Caption = 'Tests';
@@ -780,9 +738,6 @@ page 50654 "Daily Optimizer Setup"
             {
                 Caption = 'Actions';
                 actionref(ResetToDefault_ref; ResetToDefault) { }
-                actionref(ResourceSchedulerColor_ref; ResourceSchedulerColor) { }
-                actionref(TaskColor_ref; TaskColor) { }
-                actionref(ProjectTaskTypeColor_ref; ProjectTaskTypeColor) { }
             }
             group(Category_DemoData)
             {
