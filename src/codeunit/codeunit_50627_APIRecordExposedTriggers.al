@@ -1,3 +1,4 @@
+// API Integeration for Exposing API Pages
 codeunit 50627 "API Record Exposed Triggers"
 {
     // Table triggers are enabled only for tables registered in "API Record Exposed Opti".

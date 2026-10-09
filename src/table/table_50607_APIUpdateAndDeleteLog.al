@@ -1,3 +1,4 @@
+// API Integeration for Exposing API Pages
 table 50607 "Update and Delete Log Opti"
 {
     DataClassification = ToBeClassified;

@@ -1,3 +1,4 @@
+// API Integeration for Exposing API Pages
 page 50727 "UpdateAndDeleteLogApi Opt"
 {
     PageType = API;

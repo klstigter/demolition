@@ -1,3 +1,4 @@
+// API Integeration for Exposing API Pages
 table 50614 "API Record Exposed Opti"
 {
     DataClassification = ToBeClassified;

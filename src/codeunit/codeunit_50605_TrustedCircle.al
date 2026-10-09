@@ -1,3 +1,4 @@
+// API Integeration for Exposing API Pages
 codeunit 50605 "API Record Exposed Mgt."
 {
     trigger OnRun()
