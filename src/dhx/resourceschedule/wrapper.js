@@ -123,6 +123,8 @@ window.BOOT = function() {
             // the Skill Code setup) are applied via the "rs-skill-<token>" rule block that
             // ApplyEventSkillColors injects - same technique as resourceschedule_with_capacity.
             if (ev.skill && ev.color) cls += " rs-skill-" + safeCssToken(ev.skill);
+            // Requested-only lines (nobody assigned yet) - see style.css .rs-requested.
+            if (ev.requested) cls += " rs-requested";
             return cls;
         };
 

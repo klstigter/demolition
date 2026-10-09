@@ -3519,7 +3519,7 @@ codeunit 50604 "DHX Data Handler"
                         ReqEndDateTimeStr,
                         DayPlanning,
                         JobDescCache,
-                        JobTaskDescCache);
+                        JobTaskDescCache, false);
                 end;
             until DayPlanning.Next() = 0;
         Clear(JRoot);
@@ -3538,7 +3538,7 @@ codeunit 50604 "DHX Data Handler"
     /// ReqAssign_BuildDayTaskLineObj's own caches) so the per-Job/Job-Task description lookup
     /// stays cached across the whole call instead of one Job.Get()/JobTask.Get() per event.
     /// </summary>
-    procedure ResScheduler_AddEvent(var JArray: JsonArray; RecordId: Text; ResourceId: Text; var SkillColorDict: Dictionary of [Code[20], Text]; var NextSkillPaletteIndex: Integer; StartDate: Text; EndDate: Text; EventText: Text; pType: Text; ReqStartDate: Text; ReqEndDate: Text; DayPlanningRec: Record "Day Planning"; var JobDescCache: Dictionary of [Code[20], Text]; var JobTaskDescCache: Dictionary of [Text, Text])
+    procedure ResScheduler_AddEvent(var JArray: JsonArray; RecordId: Text; ResourceId: Text; var SkillColorDict: Dictionary of [Code[20], Text]; var NextSkillPaletteIndex: Integer; StartDate: Text; EndDate: Text; EventText: Text; pType: Text; ReqStartDate: Text; ReqEndDate: Text; DayPlanningRec: Record "Day Planning"; var JobDescCache: Dictionary of [Code[20], Text]; var JobTaskDescCache: Dictionary of [Text, Text]; pRequested: Boolean)
     var
         Job: Record Job;
         JobTask: Record "Job Task";
@@ -3555,6 +3555,8 @@ codeunit 50604 "DHX Data Handler"
         JObj.Add('end_date', EndDate);
         JObj.Add('text', EventText);
         JObj.Add('type', pType);
+        if pRequested then
+            JObj.Add('requested', true);
         if ReqStartDate <> '' then
             JObj.Add('req_start', ReqStartDate);
         if ReqEndDate <> '' then
@@ -3809,10 +3811,48 @@ codeunit 50604 "DHX Data Handler"
                             ReqEndDateTimeStr,
                             DayPlanning,
                             JobDescCache,
-                            JobTaskDescCache);
+                            JobTaskDescCache, false);
                     end;
                 end;
             until DayPlanning.Next() = 0;
+
+        // Requested lines nobody is assigned to yet: drawn on the Requested Resource's row with the
+        // requested times (flagged 'requested' so the add-in can style them differently).
+        DayPlanning.Reset();
+        if (StartDate <> 0D) and (EndDate <> 0D) then
+            DayPlanning.SetRange("Plan Date", StartDate, EndDate);
+        DayPlanning.SetRange(Assigned, false);
+        DayPlanning.SetRange("Assigned Resource No.", '');
+        if ResourceFilter <> '' then
+            DayPlanning.SetFilter("Requested Resource No.", ResourceFilter)
+        else
+            DayPlanning.SetFilter("Requested Resource No.", '<>%1', '');
+        if DayPlanning.FindSet() then
+            repeat
+                if ResourceMatchesNameFilter(DayPlanning."Requested Resource No.", ResourceNameFilter) and
+                   ResourceMatchesSkillFilter(DayPlanning."Requested Resource No.", SkillFilter)
+                then begin
+                    GetReqStartEndTxt(DayPlanning, ReqStartDateTimeStr, ReqEndDateTimeStr);
+                    if (ReqStartDateTimeStr <> '') and (ReqEndDateTimeStr <> '') then
+                        ResScheduler_AddEvent(
+                            JArray,
+                            Format(DayPlanning.RecordId),
+                            DayPlanning."Requested Resource No.",
+                            SkillColorDict,
+                            NextSkillPaletteIndex,
+                            ReqStartDateTimeStr,
+                            ReqEndDateTimeStr,
+                            DayPlanning.Description,
+                            'DayPlanning',
+                            ReqStartDateTimeStr,
+                            ReqEndDateTimeStr,
+                            DayPlanning,
+                            JobDescCache,
+                            JobTaskDescCache,
+                            true);
+                end;
+            until DayPlanning.Next() = 0;
+
         Clear(JRoot);
         JRoot.Add('data', JArray);
         JRoot.WriteTo(Result);
