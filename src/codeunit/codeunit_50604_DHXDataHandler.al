@@ -3519,7 +3519,8 @@ codeunit 50604 "DHX Data Handler"
                         ReqEndDateTimeStr,
                         DayPlanning,
                         JobDescCache,
-                        JobTaskDescCache);
+                        JobTaskDescCache,
+                        true);
                 end;
             until DayPlanning.Next() = 0;
         Clear(JRoot);
@@ -3538,11 +3539,14 @@ codeunit 50604 "DHX Data Handler"
     /// ReqAssign_BuildDayTaskLineObj's own caches) so the per-Job/Job-Task description lookup
     /// stays cached across the whole call instead of one Job.Get()/JobTask.Get() per event.
     /// </summary>
-    procedure ResScheduler_AddEvent(var JArray: JsonArray; RecordId: Text; ResourceId: Text; var SkillColorDict: Dictionary of [Code[20], Text]; var NextSkillPaletteIndex: Integer; StartDate: Text; EndDate: Text; EventText: Text; pType: Text; ReqStartDate: Text; ReqEndDate: Text; DayPlanningRec: Record "Day Planning"; var JobDescCache: Dictionary of [Code[20], Text]; var JobTaskDescCache: Dictionary of [Text, Text])
+    procedure ResScheduler_AddEvent(var JArray: JsonArray; RecordId: Text; ResourceId: Text; var SkillColorDict: Dictionary of [Code[20], Text]; var NextSkillPaletteIndex: Integer; StartDate: Text; EndDate: Text; EventText: Text; pType: Text; ReqStartDate: Text; ReqEndDate: Text; DayPlanningRec: Record "Day Planning"; var JobDescCache: Dictionary of [Code[20], Text]; var JobTaskDescCache: Dictionary of [Text, Text]; pAssigned: Boolean)
     var
         Job: Record Job;
         JobTask: Record "Job Task";
         ColorConstants: Codeunit "Visual Default Settings";
+        AssignedColor: Text;
+        CapacityColor: Text;
+        ExternalBorderColor: Text;
         JObj: JsonObject;
         ProjectName: Text;
         TaskName: Text;
@@ -3586,15 +3590,22 @@ codeunit 50604 "DHX Data Handler"
             JObj.Add('skill', DayPlanningRec.Skill);
             JObj.Add('sequenceNo', DayPlanningRec."Sequence No.");
 
-            // Per-skill bar colours from the Skill Code setup (codeunit 50609), same source as the
-            // 'requested_color' logic elsewhere in this codeunit. Border uses the skill's palette
-            // position (its insertion index in SkillColorDict) so an unconfigured skill's border
-            // fallback matches its fill.
-            if DayPlanningRec.Skill <> '' then begin
-                JObj.Add('color', ResolveRequestedColor(DayPlanningRec.Skill, SkillColorDict, NextSkillPaletteIndex));
-                JObj.Add('textColor', ColorConstants.GetSkillFontColor(CopyStr(DayPlanningRec.Skill, 1, 10)));
-                JObj.Add('borderColor', ColorConstants.GetSkillBorderColor(CopyStr(DayPlanningRec.Skill, 1, 10), SkillColorDict.Keys.IndexOf(DayPlanningRec.Skill) - 1));
-            end;
+            // Assigned lines use "Daily Optimizer Setup"."Assigned Color" (codeunit 50609), requested
+            // lines the per-skill colours from the Skill Code setup - same rule as the Timeline scheduler.
+            // For skill colours the border uses the skill's palette position (its insertion index in
+            // SkillColorDict) so an unconfigured skill's border fallback matches its fill.
+            if pAssigned then begin
+                ColorConstants.GetCapacitySegmentColors(AssignedColor, CapacityColor, ExternalBorderColor);
+                JObj.Add('assigned', true);
+                JObj.Add('color', AssignedColor);
+                JObj.Add('textColor', ColorConstants.GetBarFontColor());
+                JObj.Add('borderColor', AssignedColor);
+            end else
+                if DayPlanningRec.Skill <> '' then begin
+                    JObj.Add('color', ResolveRequestedColor(DayPlanningRec.Skill, SkillColorDict, NextSkillPaletteIndex));
+                    JObj.Add('textColor', ColorConstants.GetSkillFontColor(CopyStr(DayPlanningRec.Skill, 1, 10)));
+                    JObj.Add('borderColor', ColorConstants.GetSkillBorderColor(CopyStr(DayPlanningRec.Skill, 1, 10), SkillColorDict.Keys.IndexOf(DayPlanningRec.Skill) - 1));
+                end;
         end;
 
         JArray.Add(JObj);
@@ -3779,39 +3790,54 @@ codeunit 50604 "DHX Data Handler"
         Result: Text;
         SkillColorDict: Dictionary of [Code[20], Text];
         NextSkillPaletteIndex: Integer;
+        RowResourceNo: Code[20];
+        IsAssigned: Boolean;
     begin
+        // Same rule as the Timeline scheduler (ResGroupResScheduler_BuildDayPlanningJson): every
+        // Day Planning line in range, on its Assigned Resource's row, or on the Requested
+        // Resource's row while nobody is assigned. Assigned lines are drawn at the assigned times in
+        // the "Assigned Color" of the Daily Optimizer Setup, requested lines at the requested times
+        // in their Skill Code colour.
         DayPlanning.Reset();
         if (StartDate <> 0D) and (EndDate <> 0D) then
             DayPlanning.SetRange("Plan Date", StartDate, EndDate);
-        if ResourceFilter <> '' then
-            DayPlanning.SetFilter("Assigned Resource No.", ResourceFilter)
-        else
-            DayPlanning.SetRange(Assigned, true);
         if DayPlanning.FindSet() then
             repeat
-                if ResourceMatchesNameFilter(DayPlanning."Assigned Resource No.", ResourceNameFilter) and
-                   ResourceMatchesSkillFilter(DayPlanning."Assigned Resource No.", SkillFilter)
-                then begin
-                    GetStartEndTxt(DayPlanning, StarDateTimeStr, EndDateTimeStr);
-                    if (StarDateTimeStr <> '') and (EndDateTimeStr <> '') then begin
+                IsAssigned := DayPlanning."Assigned Resource No." <> '';
+                if IsAssigned then
+                    RowResourceNo := DayPlanning."Assigned Resource No."
+                else
+                    RowResourceNo := DayPlanning."Requested Resource No.";
+                if RowResourceNo <> '' then
+                    if ((ResourceFilter = '') or ResourceMatchesNoFilter(RowResourceNo, ResourceFilter)) and
+                       ResourceMatchesNameFilter(RowResourceNo, ResourceNameFilter) and
+                       ResourceMatchesSkillFilter(RowResourceNo, SkillFilter)
+                    then begin
                         GetReqStartEndTxt(DayPlanning, ReqStartDateTimeStr, ReqEndDateTimeStr);
-                        ResScheduler_AddEvent(
-                            JArray,
-                            Format(DayPlanning.RecordId),
-                            DayPlanning."Assigned Resource No.",
-                            SkillColorDict,
-                        NextSkillPaletteIndex,
-                            StarDateTimeStr,
-                            EndDateTimeStr,
-                            DayPlanning.Description,
-                            'DayPlanning',
-                            ReqStartDateTimeStr,
-                            ReqEndDateTimeStr,
-                            DayPlanning,
-                            JobDescCache,
-                            JobTaskDescCache);
+                        if IsAssigned then
+                            GetStartEndTxt(DayPlanning, StarDateTimeStr, EndDateTimeStr)
+                        else begin
+                            StarDateTimeStr := ReqStartDateTimeStr;
+                            EndDateTimeStr := ReqEndDateTimeStr;
+                        end;
+                        if (StarDateTimeStr <> '') and (EndDateTimeStr <> '') then
+                            ResScheduler_AddEvent(
+                                JArray,
+                                Format(DayPlanning.RecordId),
+                                RowResourceNo,
+                                SkillColorDict,
+                                NextSkillPaletteIndex,
+                                StarDateTimeStr,
+                                EndDateTimeStr,
+                                DayPlanning.Description,
+                                'DayPlanning',
+                                ReqStartDateTimeStr,
+                                ReqEndDateTimeStr,
+                                DayPlanning,
+                                JobDescCache,
+                                JobTaskDescCache,
+                                IsAssigned);
                     end;
-                end;
             until DayPlanning.Next() = 0;
         Clear(JRoot);
         JRoot.Add('data', JArray);
