@@ -3492,7 +3492,8 @@ codeunit 50604 "DHX Data Handler"
         JArray: JsonArray;
         JRoot: JsonObject;
         Result: Text;
-        eventColor: Text;
+        SkillColorDict: Dictionary of [Code[20], Text];
+        NextSkillPaletteIndex: Integer;
     begin
         DayPlanning.Reset();
         if ResourceFilter <> '' then
@@ -3503,13 +3504,13 @@ codeunit 50604 "DHX Data Handler"
             repeat
                 GetStartEndTxt(DayPlanning, StarDateTimeStr, EndDateTimeStr);
                 if (StarDateTimeStr <> '') and (EndDateTimeStr <> '') then begin
-                    eventColor := ResScheduler_GetResourceColor(DayPlanning."Assigned Resource No.", 'DayPlanning');
                     GetReqStartEndTxt(DayPlanning, ReqStartDateTimeStr, ReqEndDateTimeStr);
                     ResScheduler_AddEvent(
                         JArray,
                         Format(DayPlanning.RecordId),
                         DayPlanning."Assigned Resource No.",
-                        eventColor,
+                        SkillColorDict,
+                        NextSkillPaletteIndex,
                         StarDateTimeStr,
                         EndDateTimeStr,
                         DayPlanning.Description,
@@ -3537,10 +3538,11 @@ codeunit 50604 "DHX Data Handler"
     /// ReqAssign_BuildDayTaskLineObj's own caches) so the per-Job/Job-Task description lookup
     /// stays cached across the whole call instead of one Job.Get()/JobTask.Get() per event.
     /// </summary>
-    procedure ResScheduler_AddEvent(var JArray: JsonArray; RecordId: Text; ResourceId: Text; Classname: Text; StartDate: Text; EndDate: Text; EventText: Text; pType: Text; ReqStartDate: Text; ReqEndDate: Text; DayPlanningRec: Record "Day Planning"; var JobDescCache: Dictionary of [Code[20], Text]; var JobTaskDescCache: Dictionary of [Text, Text])
+    procedure ResScheduler_AddEvent(var JArray: JsonArray; RecordId: Text; ResourceId: Text; var SkillColorDict: Dictionary of [Code[20], Text]; var NextSkillPaletteIndex: Integer; StartDate: Text; EndDate: Text; EventText: Text; pType: Text; ReqStartDate: Text; ReqEndDate: Text; DayPlanningRec: Record "Day Planning"; var JobDescCache: Dictionary of [Code[20], Text]; var JobTaskDescCache: Dictionary of [Text, Text])
     var
         Job: Record Job;
         JobTask: Record "Job Task";
+        ColorConstants: Codeunit "Visual Default Settings";
         JObj: JsonObject;
         ProjectName: Text;
         TaskName: Text;
@@ -3549,7 +3551,6 @@ codeunit 50604 "DHX Data Handler"
         Clear(JObj);
         JObj.Add('id', RecordId);
         JObj.Add('resource_id', ResourceId);
-        JObj.Add('classname', Classname);
         JObj.Add('start_date', StartDate);
         JObj.Add('end_date', EndDate);
         JObj.Add('text', EventText);
@@ -3584,6 +3585,16 @@ codeunit 50604 "DHX Data Handler"
             JObj.Add('taskDescription', TaskName);
             JObj.Add('skill', DayPlanningRec.Skill);
             JObj.Add('sequenceNo', DayPlanningRec."Sequence No.");
+
+            // Per-skill bar colours from the Skill Code setup (codeunit 50609), same source as the
+            // 'requested_color' logic elsewhere in this codeunit. Border uses the skill's palette
+            // position (its insertion index in SkillColorDict) so an unconfigured skill's border
+            // fallback matches its fill.
+            if DayPlanningRec.Skill <> '' then begin
+                JObj.Add('color', ResolveRequestedColor(DayPlanningRec.Skill, SkillColorDict, NextSkillPaletteIndex));
+                JObj.Add('textColor', ColorConstants.GetSkillFontColor(CopyStr(DayPlanningRec.Skill, 1, 10)));
+                JObj.Add('borderColor', ColorConstants.GetSkillBorderColor(CopyStr(DayPlanningRec.Skill, 1, 10), SkillColorDict.Keys.IndexOf(DayPlanningRec.Skill) - 1));
+            end;
         end;
 
         JArray.Add(JObj);
@@ -3603,6 +3614,10 @@ codeunit 50604 "DHX Data Handler"
 
     procedure ResScheduler_BuildCapacityJson(ResourceFilter: Text): Text
     var
+        ColorConstants: Codeunit "Visual Default Settings";
+        AssignedColor: Text;
+        CapacityColor: Text;
+        ExternalBorderColor: Text;
         ResCap: Record "Res. Capacity Entry";
         TempResCap: Record "Res. Capacity Entry" temporary;
         WeekMonday: Date;
@@ -3619,6 +3634,8 @@ codeunit 50604 "DHX Data Handler"
         AggStartTime: Time;
         AggCapacity: Decimal;
     begin
+        // Free-capacity colour comes from "Daily Optimizer Setup" (codeunit 50609), not per resource.
+        ColorConstants.GetCapacitySegmentColors(AssignedColor, CapacityColor, ExternalBorderColor);
         DayOfWeek := Date2DWY(Today(), 1);
         WeekMonday := Today() - (DayOfWeek - 1);
         WeekFriday := CalcDate('<+4D>', WeekMonday);
@@ -3651,7 +3668,7 @@ codeunit 50604 "DHX Data Handler"
                             JObj.Add('resource_id', LastResNo);
                             JObj.Add('start_date', StartDateTimeStr);
                             JObj.Add('end_date', EndDateTimeStr);
-                            JObj.Add('classname', ResScheduler_GetResourceColor(LastResNo, 'capacity'));
+                            JObj.Add('color', CapacityColor);
                             JObj.Add('type', 'capacity');
                             JArray.Add(JObj);
                         end;
@@ -3682,7 +3699,7 @@ codeunit 50604 "DHX Data Handler"
                 JObj.Add('resource_id', LastResNo);
                 JObj.Add('start_date', StartDateTimeStr);
                 JObj.Add('end_date', EndDateTimeStr);
-                JObj.Add('classname', ResScheduler_GetResourceColor(LastResNo, 'capacity'));
+                JObj.Add('color', CapacityColor);
                 JObj.Add('type', 'capacity');
                 JArray.Add(JObj);
             end;
@@ -3740,30 +3757,6 @@ codeunit 50604 "DHX Data Handler"
         exit(not ResourceSkill.IsEmpty());
     end;
 
-    procedure ResScheduler_GetResourceColor(pResourceNo: Code[20]; pColorType: Text): Text
-    var
-        ResColor: Record "Planning Color Opt.";
-        ColorConstants: Codeunit "Visual Default Settings";
-        ColorHash: Integer;
-        i: Integer;
-        ColorValue: Text;
-    begin
-        if ResColor.Get(ResColor.Type::"Resource Scheduler", pResourceNo, '', '') then begin
-            case pColorType of
-                'DayPlanning':
-                    ColorValue := ResColor."Day Planning";
-                'capacity':
-                    ColorValue := ResColor."Capacity";
-            end;
-            if ColorValue <> '' then
-                exit(ColorValue);
-        end;
-        ColorHash := 0;
-        for i := 1 to StrLen(pResourceNo) do
-            ColorHash += pResourceNo[i];
-        exit(ColorConstants.GetResourceSchedulerFallbackColor(ColorHash));
-    end;
-
     // =========================================================
     // Date-range overloads – load only data for the visible period.
     // Called when the scheduler view changes (Today/Prev/Next/
@@ -3784,7 +3777,8 @@ codeunit 50604 "DHX Data Handler"
         JArray: JsonArray;
         JRoot: JsonObject;
         Result: Text;
-        eventColor: Text;
+        SkillColorDict: Dictionary of [Code[20], Text];
+        NextSkillPaletteIndex: Integer;
     begin
         DayPlanning.Reset();
         if (StartDate <> 0D) and (EndDate <> 0D) then
@@ -3800,13 +3794,13 @@ codeunit 50604 "DHX Data Handler"
                 then begin
                     GetStartEndTxt(DayPlanning, StarDateTimeStr, EndDateTimeStr);
                     if (StarDateTimeStr <> '') and (EndDateTimeStr <> '') then begin
-                        eventColor := ResScheduler_GetResourceColor(DayPlanning."Assigned Resource No.", 'DayPlanning');
                         GetReqStartEndTxt(DayPlanning, ReqStartDateTimeStr, ReqEndDateTimeStr);
                         ResScheduler_AddEvent(
                             JArray,
                             Format(DayPlanning.RecordId),
                             DayPlanning."Assigned Resource No.",
-                            eventColor,
+                            SkillColorDict,
+                        NextSkillPaletteIndex,
                             StarDateTimeStr,
                             EndDateTimeStr,
                             DayPlanning.Description,
@@ -3827,6 +3821,10 @@ codeunit 50604 "DHX Data Handler"
 
     procedure ResScheduler_BuildCapacityJson(ResourceFilter: Text; StartDate: Date; EndDate: Date; ResourceNameFilter: Text; SkillFilter: Text): Text
     var
+        ColorConstants: Codeunit "Visual Default Settings";
+        AssignedColor: Text;
+        CapacityColor: Text;
+        ExternalBorderColor: Text;
         ResCap: Record "Res. Capacity Entry";
         TempResCap: Record "Res. Capacity Entry" temporary;
         JArray: JsonArray;
@@ -3840,6 +3838,8 @@ codeunit 50604 "DHX Data Handler"
         AggStartTime: Time;
         AggCapacity: Decimal;
     begin
+        // Free-capacity colour comes from "Daily Optimizer Setup" (codeunit 50609), not per resource.
+        ColorConstants.GetCapacitySegmentColors(AssignedColor, CapacityColor, ExternalBorderColor);
         ResCap.Reset();
         ResCap.SetCurrentKey("Resource No.", "Date");
         if (StartDate <> 0D) and (EndDate <> 0D) then
@@ -3874,7 +3874,7 @@ codeunit 50604 "DHX Data Handler"
                                 JObj.Add('resource_id', LastResNo);
                                 JObj.Add('start_date', StartDateTimeStr);
                                 JObj.Add('end_date', EndDateTimeStr);
-                                JObj.Add('classname', ResScheduler_GetResourceColor(LastResNo, 'capacity'));
+                                JObj.Add('color', CapacityColor);
                                 JObj.Add('type', 'capacity');
                                 JArray.Add(JObj);
                             end;
@@ -3902,7 +3902,7 @@ codeunit 50604 "DHX Data Handler"
                 JObj.Add('resource_id', LastResNo);
                 JObj.Add('start_date', StartDateTimeStr);
                 JObj.Add('end_date', EndDateTimeStr);
-                JObj.Add('classname', ResScheduler_GetResourceColor(LastResNo, 'capacity'));
+                JObj.Add('color', CapacityColor);
                 JObj.Add('type', 'capacity');
                 JArray.Add(JObj);
             end;
@@ -4421,8 +4421,8 @@ codeunit 50604 "DHX Data Handler"
     /// Aggregated Capacity events (one bar per Resource/Date, summed Capacity, earliest Start
     /// Time - same aggregation as ResScheduler_BuildCapacityJson) but always tagged with a
     /// fixed classname/type so the bar renders in the dedicated "Capacity" color regardless of
-    /// which resource it belongs to (ResScheduler_GetResourceColor's per-resource hash color
-    /// does not satisfy the "3 distinct, clearly different colors" requirement here). Res.
+    /// which resource it belongs to (a per-resource colour
+    /// would not satisfy the "3 distinct, clearly different colors" requirement here). Res.
     /// Capacity Entry has no Skill field of its own, so SkillFilter is applied per-row against
     /// each resource's combined skill set (Resource Skill registrations UNION Day-Planning-
     /// observed skills - built once up front via SkillResScheduler_BuildCombinedSkillLookup, same
