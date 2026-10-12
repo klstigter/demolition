@@ -1859,6 +1859,11 @@ class CapacityPlanningOverview {
     /// same as the Daily/Weekly charts' own behavior for an unresolved click - the browser's native
     /// context menu still shows there.
     /// </summary>
+    /// <summary>Caption of the Section 3 bar right-click item; kind = 'capacity' (C bar) or 'request' (R bar). Overridable - page 50724 renames it.</summary>
+    capacityBarMenuCaption(kind) {
+        return 'Show Data';
+    }
+
     attachCapacityBarsContextMenu() {
         if (this._capacityBarsContextMenuBound) return;
         this._capacityBarsContextMenuBound = true;
@@ -1911,7 +1916,7 @@ class CapacityPlanningOverview {
                 date: cpoFormatDateOnly(date)
             };
 
-            self.addTreeContextMenuItem(menu, 'Show Data', function () {
+            self.addTreeContextMenuItem(menu, self.capacityBarMenuCaption(col.dataset.summaryKind), function () {
                 if (typeof Microsoft === 'undefined') return;
                 self.showLoading();
                 Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnShowCapacityBarSegment', [JSON.stringify(payload)]);

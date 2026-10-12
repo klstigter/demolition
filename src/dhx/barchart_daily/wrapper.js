@@ -374,7 +374,7 @@ window.BOOT = function() {
                             [barHit.segmentId, false]
                         );
                     } catch (err) { /* ignore */ }
-                });
+                }, barHit.segmentId.slice(-9) === "|Capacity" ? "Show Capacity" : "Show Day Planning");
                 return;
             }
 
@@ -388,7 +388,7 @@ window.BOOT = function() {
                             [legendHit.seriesName, true]
                         );
                     } catch (err) { /* ignore */ }
-                });
+                }, /Capacity/.test(legendHit.seriesName) ? "Show Capacity" : "Show Day Planning");
             }
         });
 
@@ -1064,7 +1064,7 @@ function HideContextMenu() {
 // scrolls anywhere else or presses Escape. Dismiss listeners are registered on a deferred
 // setTimeout(...,0) so the SAME right-click that opened the menu doesn't immediately close it again
 // via event bubbling to `document`.
-function ShowContextMenu(clientX, clientY, onShowData) {
+function ShowContextMenu(clientX, clientY, onShowData, caption) {
     HideContextMenu(); // always clears any previous menu AND its dismiss-listener set first - see HideContextMenu's own comment for why this is the actual fix, not just cosmetic cleanup
 
     contextMenuEl = document.createElement("div");
@@ -1076,7 +1076,7 @@ function ShowContextMenu(clientX, clientY, onShowData) {
         "left:" + clientX + "px;top:" + clientY + "px;";
 
     var item = document.createElement("div");
-    item.textContent = "Show Data";
+    item.textContent = caption || "Show Data";
     item.style.cssText = "padding:6px 14px;cursor:pointer;color:#222;";
     item.addEventListener("mouseenter", function() { item.style.background = "#f0f0f0"; });
     item.addEventListener("mouseleave", function() { item.style.background = "transparent"; });

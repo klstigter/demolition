@@ -6621,6 +6621,7 @@ codeunit 50604 "DHX Data Handler"
         JobTaskNo: Code[20];
         PlanDateTxt: Text;
         PlanDate: Date;
+        PlanDateTo: Date;
         PlanYear: Integer;
         PlanMonth: Integer;
         PlanDay: Integer;
@@ -6650,6 +6651,8 @@ codeunit 50604 "DHX Data Handler"
             HasAssignedFilter := true;
             AssignedFilterValue := FieldJToken.AsValue().AsBoolean();
         end;
+        if PayloadJObj.Get('dateTo', FieldJToken) then
+            if Evaluate(PlanDateTo, FieldJToken.AsValue().AsText(), 9) then;
 
         DayPlanning.Reset();
         if SkillCode <> '' then
@@ -6659,11 +6662,57 @@ codeunit 50604 "DHX Data Handler"
         if JobTaskNo <> '' then
             DayPlanning.SetRange("Job Task No.", JobTaskNo);
         if PlanDate <> 0D then
-            DayPlanning.SetRange("Plan Date", PlanDate);
+            if PlanDateTo >= PlanDate then
+                DayPlanning.SetRange("Plan Date", PlanDate, PlanDateTo)
+            else
+                DayPlanning.SetRange("Plan Date", PlanDate);
         if HasAssignedFilter then
             DayPlanning.SetRange(Assigned, AssignedFilterValue);
 
         Page.RunModal(Page::"Day Plannings", DayPlanning);
+    end;
+
+    /// <summary>Skill label right-click "Day Planning": Day Plannings for the skill over the week (date..dateTo).</summary>
+    procedure CPO_OpenSkillDayPlanning(PayloadJsonTxt: Text)
+    begin
+        CPO_OpenDayPlanningList(PayloadJsonTxt);
+    end;
+
+    /// <summary>Skill label right-click "Resource": Resource List of resources having the skill; single match opens the Resource Card.</summary>
+    procedure CPO_OpenSkillResourceCard(PayloadJsonTxt: Text)
+    var
+        ResourceSkill: Record "Resource Skill";
+        Resource: Record Resource;
+        PayloadJObj: JsonObject;
+        FieldJToken: JsonToken;
+        SkillCode: Code[20];
+        NoFilter: Text;
+        Cnt: Integer;
+    begin
+        if not PayloadJObj.ReadFrom(PayloadJsonTxt) then
+            exit;
+        if not PayloadJObj.Get('skill', FieldJToken) then
+            exit;
+        SkillCode := CopyStr(FieldJToken.AsValue().AsText(), 1, MaxStrLen(SkillCode));
+
+        ResourceSkill.SetRange(Type, ResourceSkill.Type::Resource);
+        ResourceSkill.SetRange("Skill Code", SkillCode);
+        if ResourceSkill.FindSet() then
+            repeat
+                if NoFilter <> '' then
+                    NoFilter += '|';
+                NoFilter += ResourceSkill."No.";
+                Cnt += 1;
+            until ResourceSkill.Next() = 0;
+        if Cnt = 0 then
+            exit;
+
+        Resource.SetFilter("No.", NoFilter);
+        if Cnt = 1 then begin
+            Resource.FindFirst();
+            Page.RunModal(Page::"Resource Card", Resource);
+        end else
+            Page.RunModal(Page::"Resource List", Resource);
     end;
 
     /// <summary>

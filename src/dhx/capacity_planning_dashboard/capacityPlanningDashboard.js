@@ -180,8 +180,49 @@ class CapacityPlanningDashboard extends CapacityPlanningOverview {
     /// Insights charts' identical wording. Page 50722's own Section 4 keeps the base class's default
     /// caption unchanged - explicit instruction not to touch that page's wording.
     /// </summary>
+    capacityBarMenuCaption(kind) {
+        return kind === 'capacity' ? 'Show Capacity' : 'Show Day Planning';
+    }
+
     treeContextMenuCaption() {
         return 'Show Day Planning';
+    }
+
+    /// <summary>
+    /// Right-click on a Skill label (left column of Section 4): "Show Resources" (resources
+    /// having that skill) and "Show Day Planning" (that skill's Day Plannings for the whole week
+    /// currently shown). Reuses the shared #cpo-tree-context-menu element; bound once on the host.
+    /// </summary>
+    attachSkillLabelContextMenu() {
+        if (this._skillLabelMenuBound) return;
+        this._skillLabelMenuBound = true;
+        const host = document.getElementById('cpo-central-tree');
+        const menu = document.getElementById('cpo-tree-context-menu');
+        if (!host || !menu) return;
+        const self = this;
+        host.addEventListener('contextmenu', function (e) {
+            const label = e.target.closest('.cpo-dash-skill-cell');
+            if (!label) return;
+            const skill = label.textContent.trim();
+            if (!skill || !self.dates.length) return;
+            e.preventDefault();
+            e.stopPropagation();
+            self.hideTreeContextMenu();
+            menu.innerHTML = '';
+            const payload = { skill: skill, date: cpoFormatDateOnly(self.dates[0]), dateTo: cpoFormatDateOnly(self.dates[self.dates.length - 1]) };
+            const raise = function (eventName) {
+                if (typeof Microsoft === 'undefined') return;
+                self.showLoading();
+                Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(eventName, [JSON.stringify(payload)]);
+                self.hideLoading();
+            };
+            self.addTreeContextMenuItem(menu, 'Show Resources', function () { raise('OnShowSkillResourceCard'); });
+            self.addTreeContextMenuItem(menu, 'Show Day Planning', function () { raise('OnShowSkillDayPlanning'); });
+            menu.hidden = false;
+            const r = menu.getBoundingClientRect();
+            menu.style.left = Math.min(e.clientX, Math.max(4, window.innerWidth - r.width - 4)) + 'px';
+            menu.style.top = Math.min(e.clientY, Math.max(4, window.innerHeight - r.height - 4)) + 'px';
+        });
     }
 
     /// <summary>
@@ -355,6 +396,7 @@ class CapacityPlanningDashboard extends CapacityPlanningOverview {
         // attachTreeChipTooltip is skipped), so only the summary-cell ("open list") branch can ever
         // fire here, never the single-line card branch.
         this.attachTreeContextMenu();
+        this.attachSkillLabelContextMenu();
         this.attachCellTooltip();
         this.bindCentralTreeHeightSync(s);
     }
