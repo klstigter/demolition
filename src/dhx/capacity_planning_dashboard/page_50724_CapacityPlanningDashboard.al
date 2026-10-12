@@ -95,6 +95,20 @@ page 50724 "Capacity Planning Dashboard"
                     DHXDataHandler.CPO_OpenTaskScheduler(PayloadJsonTxt);
                 end;
 
+                trigger OnShowSkillResourceCard(PayloadJsonTxt: Text)
+                var
+                    DHXDataHandler: Codeunit "DHX Data Handler";
+                begin
+                    DHXDataHandler.CPO_OpenSkillResourceCard(PayloadJsonTxt);
+                end;
+
+                trigger OnShowSkillDayPlanning(PayloadJsonTxt: Text)
+                var
+                    DHXDataHandler: Codeunit "DHX Data Handler";
+                begin
+                    DHXDataHandler.CPO_OpenSkillDayPlanning(PayloadJsonTxt);
+                end;
+
                 /// <summary>Section 4 cell hover tooltip - loads that cell's Day Planning lines on demand.</summary>
                 trigger OnRequestCellTooltip(PayloadJsonTxt: Text)
                 var
