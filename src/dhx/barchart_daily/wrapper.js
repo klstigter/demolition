@@ -852,9 +852,36 @@ function ApplySeriesBorders(seriesDefs, series) {
     });
 }
 
-// Fades the Capacity ("C") bar segments (fixed `blur` of 75% set in codeunit 50608's
-// AddCapacitySegmentSeries) and paints each segment in its per-category `pointColors` colour.
-// Sets fill-opacity only - never touches `stroke`, so the External red outline stays crisp.
+// Paints the Capacity ("C") bar segments as a checkerboard of the segment's colour (per-category
+// `pointColors`, else the series colour) and a light tint of it (opacity = 1 - `blur`/100, blur set
+// in codeunit 50608's AddCapacitySegmentSeries). Never touches `stroke`, so the External red
+// outline stays crisp.
+function EnsureCheckerPattern(path, color, lightOpacity) {
+    var svg = path.ownerSVGElement;
+    var ns = 'http://www.w3.org/2000/svg';
+    var id = 'chk-' + color.replace(/[^0-9a-zA-Z]/g, '');
+    if (!svg.querySelector('#' + id)) {
+        var defs = svg.querySelector('defs') || svg.insertBefore(document.createElementNS(ns, 'defs'), svg.firstChild);
+        var pat = document.createElementNS(ns, 'pattern');
+        pat.setAttribute('id', id);
+        pat.setAttribute('width', 8);
+        pat.setAttribute('height', 8);
+        pat.setAttribute('patternUnits', 'userSpaceOnUse');
+        [[0, 0, lightOpacity], [4, 0, 1], [0, 4, 1], [4, 4, lightOpacity]].forEach(function(t) {
+            var r = document.createElementNS(ns, 'rect');
+            r.setAttribute('x', t[0]);
+            r.setAttribute('y', t[1]);
+            r.setAttribute('width', 4);
+            r.setAttribute('height', 4);
+            r.setAttribute('fill', color);
+            r.setAttribute('fill-opacity', t[2]);
+            pat.appendChild(r);
+        });
+        defs.appendChild(pat);
+    }
+    return id;
+}
+
 function ApplySeriesBlur(seriesDefs, series) {
     seriesDefs.forEach(function(s, sIdx) {
         if (s && s.blur && series[sIdx]) {
@@ -863,10 +890,8 @@ function ApplySeriesBlur(seriesDefs, series) {
             var paths = chartContainer.querySelectorAll('g[aria-label="chart ' + series[sIdx].id + '"] path');
             paths.forEach(function(p, pIdx) {
                 if (values[pIdx]) {
-                    if (s.pointColors && s.pointColors[pIdx]) {
-                        p.style.fill = s.pointColors[pIdx];
-                    }
-                    p.style.fillOpacity = opacity;
+                    var color = (s.pointColors && s.pointColors[pIdx]) || s.color;
+                    p.style.fill = 'url(#' + EnsureCheckerPattern(p, color, opacity) + ')';
                 }
             });
         }

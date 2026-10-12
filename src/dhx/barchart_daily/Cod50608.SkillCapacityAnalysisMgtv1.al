@@ -57,7 +57,6 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
         Buffer.DeleteAll();
 
         ApplyDayPlanningFilters(DayPlanning, ResourceNoFilter, DateFromFilter, DateToFilter, SkillCodeFilter);
-
         if DayPlanning.FindSet() then
             repeat
                 // Requested Hours belong to the skill recorded on the line itself.
@@ -101,10 +100,8 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
     begin
         DayPlanning.Reset();
         DayPlanning.SetCurrentKey("Plan Date", "Assigned Resource No.", "Start Time Assigned");
-
         if ResourceNoFilter <> '' then
             DayPlanning.SetRange("Assigned Resource No.", ResourceNoFilter);
-
         case true of
             (DateFromFilter <> 0D) and (DateToFilter <> 0D):
                 DayPlanning.SetRange("Plan Date", DateFromFilter, DateToFilter);
@@ -113,7 +110,6 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
             DateToFilter <> 0D:
                 DayPlanning.SetFilter("Plan Date", '<=%1', DateToFilter);
         end;
-
         if SkillCodeFilter <> '' then
             DayPlanning.SetRange(Skill, SkillCodeFilter);
     end;
@@ -135,7 +131,6 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
     begin
         if SkillCode = '' then
             exit;
-
         if Totals.ContainsKey(SkillCode) then
             CurrentValue := Totals.Get(SkillCode);
 
@@ -213,7 +208,6 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
         SkillCodeText := CopyStr(SegmentId, 1, DelimPos - 1);
         SkillCode := CopyStr(SkillCodeText, 1, MaxStrLen(SkillCode));
         BarTypeText := CopyStr(SegmentId, DelimPos + 1);
-
         if BarTypeText = CapacityCategoryLbl then
             ShowSkillCapacitySegment(SkillCode, ResourceNoFilter, DateFromFilter, DateToFilter)
         else
@@ -272,7 +266,6 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
                 else
                     ResourceNoFilterText += '|' + ResourceSkill."No.";
             until ResourceSkill.Next() = 0;
-
         if ResourceNoFilterText = '' then begin
             Message(NoMatchingDataMsg);
             exit;
@@ -382,7 +375,7 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
         // Free Capacity segments are painted in each skill's own colour (SkillPointColors, one
         // entry per category, '' at "R" slots) at a hardcoded ~0.25 fill-opacity (blur 75%) -
         // Assigned keeps its setup "Assigned Color" at full strength.
-        BlurStrength := 75;
+        BlurStrength := 85;
         AddSeries(SeriesArray, AssignedCapacitySeriesNameLbl, AssignedValues, AssignedColor, '', '', 0, EmptyPointColors);
         AddSeries(SeriesArray, CapInternalSeriesNameLbl, CapInternalValues, CapacityColor, '', '', BlurStrength, SkillPointColors);
         AddSeries(SeriesArray, CapExternalMandatorySeriesNameLbl, CapExternalMandatoryValues, CapacityMandatoryColor, '', '', BlurStrength, SkillPointColors);
