@@ -5795,16 +5795,17 @@ codeunit 50604 "DHX Data Handler"
         DayPlanning: Record "Day Planning";
         JobDescCache: Dictionary of [Code[20], Text];
         JobTaskDescCache: Dictionary of [Text, Text];
+        ResourceNameCache: Dictionary of [Code[20], Text];
         LinesArr: JsonArray;
         SequenceKeyTxt: Text;
     begin
         DayPlanning.SetRange("Plan Date", StartDate, EndDate);
         DayPlanning.SetLoadFields("Job No.", "Job Task No.", "Day Line No.", "Plan Date", Skill,
             "Start Time Requested", "End Time Requested", "Start Time Assigned", "End Time Assigned",
-            "Assigned Resource No.", "Sequence No.");
+            "Assigned Resource No.", "Sequence No.", "Requested Resource No.");
         if DayPlanning.FindSet() then
             repeat
-                LinesArr.Add(ReqAssign_BuildDayTaskLineObj(DayPlanning, JobDescCache, JobTaskDescCache, WorkdayIndexMap, SequenceKeyTxt));
+                LinesArr.Add(ReqAssign_BuildDayTaskLineObj(DayPlanning, JobDescCache, JobTaskDescCache, ResourceNameCache, WorkdayIndexMap, SequenceKeyTxt));
             until DayPlanning.Next() = 0;
         exit(LinesArr);
     end;
@@ -5820,10 +5821,12 @@ codeunit 50604 "DHX Data Handler"
     /// line's own SequenceKeyTxt via var parameter - every paginating caller needs it for
     /// whole-sequence grouping/filtering; ReqAssign_BuildDayTaskLinesJson itself just discards it.
     /// </summary>
-    local procedure ReqAssign_BuildDayTaskLineObj(var DayPlanning: Record "Day Planning"; var JobDescCache: Dictionary of [Code[20], Text]; var JobTaskDescCache: Dictionary of [Text, Text]; var WorkdayIndexMap: Dictionary of [Date, Integer]; var SequenceKeyTxt: Text): JsonObject
+    local procedure ReqAssign_BuildDayTaskLineObj(var DayPlanning: Record "Day Planning"; var JobDescCache: Dictionary of [Code[20], Text]; var JobTaskDescCache: Dictionary of [Text, Text]; var ResourceNameCache: Dictionary of [Code[20], Text]; var WorkdayIndexMap: Dictionary of [Date, Integer]; var SequenceKeyTxt: Text): JsonObject
     var
         Job: Record Job;
         JobTask: Record "Job Task";
+        Resource: Record Resource;
+        ReqResName: Text;
         LineObj: JsonObject;
         ProjectName: Text;
         TaskName: Text;
@@ -5888,6 +5891,16 @@ codeunit 50604 "DHX Data Handler"
         if not WorkdayIndexMap.Get(DayPlanning."Plan Date", DayIndex) then
             DayIndex := -1;
 
+        ReqResName := '';
+        if DayPlanning."Requested Resource No." <> '' then begin
+            if not ResourceNameCache.ContainsKey(DayPlanning."Requested Resource No.") then
+                if Resource.Get(DayPlanning."Requested Resource No.") then
+                    ResourceNameCache.Add(DayPlanning."Requested Resource No.", Resource.Name)
+                else
+                    ResourceNameCache.Add(DayPlanning."Requested Resource No.", '');
+            ReqResName := ResourceNameCache.Get(DayPlanning."Requested Resource No.");
+        end;
+
         LineObj.Add('id', IdTxt);
         LineObj.Add('projectId', DayPlanning."Job No.");
         LineObj.Add('projectName', ProjectName);
@@ -5903,6 +5916,8 @@ codeunit 50604 "DHX Data Handler"
         LineObj.Add('assignedStart', AssignedStart);
         LineObj.Add('assignedDuration', AssignedDuration);
         LineObj.Add('assignedResource', DayPlanning."Assigned Resource No.");
+        LineObj.Add('requestedResource', DayPlanning."Requested Resource No.");
+        LineObj.Add('requestedResourceName', ReqResName);
         LineObj.Add('sequenceAccepted', false);
         exit(LineObj);
     end;
@@ -5929,6 +5944,7 @@ codeunit 50604 "DHX Data Handler"
         DayPlanning: Record "Day Planning";
         JobDescCache: Dictionary of [Code[20], Text];
         JobTaskDescCache: Dictionary of [Text, Text];
+        ResourceNameCache: Dictionary of [Code[20], Text];
         SequenceKeyOrder: List of [Text];
         SeenKeys: Dictionary of [Text, Boolean];
         KeyLineCount: Dictionary of [Text, Integer];
@@ -5976,12 +5992,12 @@ codeunit 50604 "DHX Data Handler"
         // Pass 2: build each first-page line's full JSON via the shared per-line builder.
         DayPlanning.SetLoadFields("Job No.", "Job Task No.", "Day Line No.", "Plan Date", Skill,
             "Start Time Requested", "End Time Requested", "Start Time Assigned", "End Time Assigned",
-            "Assigned Resource No.", "Sequence No.");
+            "Assigned Resource No.", "Sequence No.", "Requested Resource No.");
         if DayPlanning.FindSet() then
             repeat
                 SequenceKeyTxt := DayPlanning."Job No." + '|' + DayPlanning."Job Task No." + '|' + DayPlanning.Skill + '|' + Format(DayPlanning."Sequence No.");
                 if FirstPageKeys.ContainsKey(SequenceKeyTxt) then
-                    FirstPageLinesArr.Add(ReqAssign_BuildDayTaskLineObj(DayPlanning, JobDescCache, JobTaskDescCache, WorkdayIndexMap, SequenceKeyTxt));
+                    FirstPageLinesArr.Add(ReqAssign_BuildDayTaskLineObj(DayPlanning, JobDescCache, JobTaskDescCache, ResourceNameCache, WorkdayIndexMap, SequenceKeyTxt));
             until DayPlanning.Next() = 0;
     end;
 
@@ -6006,6 +6022,7 @@ codeunit 50604 "DHX Data Handler"
         DayPlanning: Record "Day Planning";
         JobDescCache: Dictionary of [Code[20], Text];
         JobTaskDescCache: Dictionary of [Text, Text];
+        ResourceNameCache: Dictionary of [Code[20], Text];
         WorkdayIndexMap: Dictionary of [Date, Integer];
         WorkdaysArr: JsonArray;
         WantedKeys: Dictionary of [Text, Boolean];
@@ -6027,12 +6044,12 @@ codeunit 50604 "DHX Data Handler"
         DayPlanning.SetRange("Plan Date", StartDate, EndDate);
         DayPlanning.SetLoadFields("Job No.", "Job Task No.", "Day Line No.", "Plan Date", Skill,
             "Start Time Requested", "End Time Requested", "Start Time Assigned", "End Time Assigned",
-            "Assigned Resource No.", "Sequence No.");
+            "Assigned Resource No.", "Sequence No.", "Requested Resource No.");
         if DayPlanning.FindSet() then
             repeat
                 SequenceKeyTxt := DayPlanning."Job No." + '|' + DayPlanning."Job Task No." + '|' + DayPlanning.Skill + '|' + Format(DayPlanning."Sequence No.");
                 if WantedKeys.ContainsKey(SequenceKeyTxt) then
-                    LinesArr.Add(ReqAssign_BuildDayTaskLineObj(DayPlanning, JobDescCache, JobTaskDescCache, WorkdayIndexMap, SequenceKeyTxt));
+                    LinesArr.Add(ReqAssign_BuildDayTaskLineObj(DayPlanning, JobDescCache, JobTaskDescCache, ResourceNameCache, WorkdayIndexMap, SequenceKeyTxt));
             until DayPlanning.Next() = 0;
 
         LinesArr.WriteTo(OutTxt);

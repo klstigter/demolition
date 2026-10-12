@@ -531,12 +531,14 @@ window.BOOT = function() {
         return h * 60 + m;
     }
 
-    // "<Skill> | <Name>" -> "<Skill> <H:mm>-<H:mm> | <Name>" (time right after the Skill).
-    function insertBarTime(text, start, end) {
-        function hm(d) { return d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
-        var parts = String(text == null ? '' : text).split(' | ');
-        parts[0] += ' ' + hm(start) + '-' + hm(end);
-        return parts.join(' | ');
+    // Bar label: "<Skill> | <Resource Name>" - Assigned resource's name wins (it is the 6th
+    // part of the event id), else the Requested resource's name; just "<Skill>" when neither.
+    // (Replaces the old "<Skill> <H:mm>-<H:mm> | <Name>" - the time is drawn by the strips.)
+    function barLabelText(ev) {
+        var skill = String(ev.text == null ? '' : ev.text).split(' | ')[0];
+        var idParts = ev.id ? String(ev.id).split('|') : [];
+        var name = (idParts.length >= 6 && idParts[5]) || ev.requested_resource_name || '';
+        return name ? skill + ' | ' + name : skill;
     }
 
     // A time value is "valid" only when both its Start and End are set (<> 0T on the AL
@@ -553,7 +555,7 @@ window.BOOT = function() {
     //  - Neither valid                                       -> no strip, plain envelope + label.
     scheduler.templates.event_bar_text = function(start, end, ev) {
         var totalMin = (end - start) / 60000;
-        var label = escapeHtml(insertBarTime(ev.text, start, end));
+        var label = escapeHtml(barLabelText(ev));
         if (!(totalMin > 0)) {
             return '<div class="dp-bar-wrap"><div class="dp-bar-label">' + label + '</div></div>';
         }

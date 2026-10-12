@@ -2220,7 +2220,10 @@ function assignmentBarLabel(start, end, event) {
 
 function requestBarText(line) {
   const timeText = `${line.requestedStart}:00–${line.requestedStart + line.requestedDuration}:00`;
-  if (!line.assignedResource) return timeText;
+  // Assigned -> Assigned Resource's Name; otherwise the Requested Resource's Name (if any).
+  if (!line.assignedResource) {
+    return line.requestedResourceName ? `${timeText} | ${line.requestedResourceName}` : timeText;
+  }
   const resource = findResource(line.assignedResource);
   return `${timeText} | ${resource?.label ?? line.assignedResource}`;
 }
