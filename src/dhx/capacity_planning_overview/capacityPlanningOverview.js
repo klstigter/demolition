@@ -1993,6 +1993,7 @@ class CapacityPlanningOverview {
         const bySkillDay = {};
         const byTaskDay = {};
         const bySeqDay = {};
+        const linesBySkillDay = {}, linesByJobTaskDay = {};
         (this.db.dayPlanningLines || []).forEach((line) => {
             if (line.workOrderNo === woNo) return;
             const idx = this.dplDayIndex(line);
@@ -2000,6 +2001,9 @@ class CapacityPlanningOverview {
             const assigned = Math.min(req, Number(line.assignedHours) || 0);
 
             const skillKey = line.requestedSkill + '|' + idx;
+            (linesBySkillDay[skillKey] || (linesBySkillDay[skillKey] = [])).push(line);
+            const jtKey = line.job + '|' + line.task + '|' + idx;
+            (linesByJobTaskDay[jtKey] || (linesByJobTaskDay[jtKey] = [])).push(line);
             const sAgg = bySkillDay[skillKey] || (bySkillDay[skillKey] = { requested: 0, assigned: 0 });
             sAgg.requested += req; sAgg.assigned += assigned;
 
@@ -2010,7 +2014,7 @@ class CapacityPlanningOverview {
             const seqKey = taskKey + '|' + (line.sequenceNo == null ? '' : line.sequenceNo);
             (bySeqDay[seqKey] || (bySeqDay[seqKey] = [])).push(line);
         });
-        this._treeSummaryIndex = { bySkillDay: bySkillDay, byTaskDay: byTaskDay, bySeqDay: bySeqDay };
+        this._treeSummaryIndex = { bySkillDay: bySkillDay, byTaskDay: byTaskDay, bySeqDay: bySeqDay, linesBySkillDay: linesBySkillDay, linesByJobTaskDay: linesByJobTaskDay };
         return this._treeSummaryIndex;
     }
 
@@ -2239,10 +2243,9 @@ class CapacityPlanningOverview {
         const skill = cell.dataset.masterSkill || cell.dataset.skill;
         const job = cell.dataset.masterSkill ? null : cell.dataset.job;
         const task = cell.dataset.masterSkill ? null : cell.dataset.task;
-        const woNo = this.db.workOrder && this.db.workOrder.no;
-        const lines = (this.db.dayPlanningLines || []).filter((l) =>
-            l.workOrderNo !== woNo && l.requestedSkill === skill && this.dplDayIndex(l) === idx &&
-            (job == null || (l.job === job && l.task === task)));
+        // Pre-indexed (treeSummaryIndex already excludes the current WO) - no full scan per hover.
+        const lines = (this.treeSummaryIndex().linesBySkillDay[skill + '|' + idx] || []).filter((l) =>
+            job == null || (l.job === job && l.task === task));
         return this.groupTooltipHtmlFromLines(lines, skill, idx);
     }
 
@@ -2300,9 +2303,7 @@ class CapacityPlanningOverview {
     jobTaskTooltipHtml(job, task) {
         let idx = this.dayIndex(new Date());
         if (idx < 0 || idx >= this.dates.length) idx = 0;
-        const woNo = this.db.workOrder && this.db.workOrder.no;
-        const lines = (this.db.dayPlanningLines || []).filter((l) =>
-            l.workOrderNo !== woNo && l.job === job && l.task === task && this.dplDayIndex(l) === idx);
+        const lines = (this.treeSummaryIndex().linesByJobTaskDay[job + '|' + task + '|' + idx] || []).slice();
         const d = this.dates[idx];
         const dateText = d ? d.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' }) : '';
         const head = '<div class="standard-tooltip-head">' +
@@ -2348,30 +2349,67 @@ class CapacityPlanningOverview {
         const host = document.getElementById('cpo-central-tree');
         if (!tip || !host) return;
         const self = this;
-        host.addEventListener('mousemove', function (e) {
+        // Perf: the tooltip HTML (filter + sort of ALL Day Planning lines) used to be rebuilt on every
+        // mousemove pixel, so sliding across cells queued up seconds of work and the tooltip lagged
+        // far behind the cursor. Now: rebuild only when the hovered element changes, memoise per
+        // element key, and coalesce moves to one per animation frame.
+        let lastTarget = null, lastHasTip = false, pending = null, raf = 0, cacheLines = null;
+        const cache = new Map();
+        const place = function (cx, cy) {
+            let x = cx + 12, y = cy + 12;
+            const r = tip.getBoundingClientRect();
+            if (x + r.width > window.innerWidth - 8) x = cx - r.width - 12;
+            if (y + r.height > window.innerHeight - 8) y = cy - r.height - 12;
+            tip.style.left = x + 'px'; tip.style.top = y + 'px';
+        };
+        const process = function () {
+            raf = 0;
+            const e = pending; pending = null;
+            if (!e) return;
             const chip = e.target.closest('.cpo-tree-chip');
             const summary = chip ? null : e.target.closest('.cpo-tree-summary-cell');
             const jobLabel = (chip || summary) ? null : e.target.closest('.cpo-tree-detail-label');
-            let html = '';
-            if (chip) {
-                const line = self.dplLineById(chip.dataset.lineId);
-                if (line) html = self.eventTooltipHtml(self.dplTooltipEvent(line));
-            } else if (summary) {
-                html = self.groupTooltipHtml(summary);
-            } else if (jobLabel) {
-                html = self.jobTaskTooltipHtml(jobLabel.dataset.job, jobLabel.dataset.task);
+            const target = chip || summary || jobLabel;
+            if (target && target === lastTarget) {
+                if (lastHasTip) place(e.clientX, e.clientY);
+                return;
             }
+            lastTarget = target;
+            let html = '';
+            if (target) {
+                if (cacheLines !== self.db.dayPlanningLines) { cache.clear(); cacheLines = self.db.dayPlanningLines; }
+                const d = target.dataset;
+                const key = chip ? 'c|' + d.lineId
+                    : summary ? 's|' + d.dayIndex + '|' + (d.masterSkill || '') + '|' + (d.skill || '') + '|' + (d.job || '') + '|' + (d.task || '')
+                    : 'j|' + d.job + '|' + d.task;
+                html = cache.get(key);
+                if (html === undefined) {
+                    if (chip) {
+                        const line = self.dplLineById(d.lineId);
+                        html = line ? self.eventTooltipHtml(self.dplTooltipEvent(line)) : '';
+                    } else if (summary) {
+                        html = self.groupTooltipHtml(summary);
+                    } else {
+                        html = self.jobTaskTooltipHtml(d.job, d.task);
+                    }
+                    cache.set(key, html);
+                }
+            }
+            lastHasTip = !!html;
             if (!html) { tip.style.display = 'none'; return; }
-            tip.classList.toggle('cpo-group-tip', !!(summary || jobLabel));
+            tip.classList.toggle('cpo-group-tip', !chip);
             tip.innerHTML = html;
             tip.style.display = 'block';
-            let x = e.clientX + 12, y = e.clientY + 12;
-            const r = tip.getBoundingClientRect();
-            if (x + r.width > window.innerWidth - 8) x = e.clientX - r.width - 12;
-            if (y + r.height > window.innerHeight - 8) y = e.clientY - r.height - 12;
-            tip.style.left = x + 'px'; tip.style.top = y + 'px';
+            place(e.clientX, e.clientY);
+        };
+        host.addEventListener('mousemove', function (e) {
+            pending = e;
+            if (!raf) raf = requestAnimationFrame(process);
         });
-        host.addEventListener('mouseleave', function () { tip.style.display = 'none'; });
+        host.addEventListener('mouseleave', function () {
+            pending = null; lastTarget = null; lastHasTip = false;
+            tip.style.display = 'none';
+        });
         host.addEventListener('click', function (e) {
             const chip = e.target.closest('.cpo-tree-chip');
             if (!chip) return;

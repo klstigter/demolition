@@ -791,6 +791,17 @@
     padding-left: 0 !important;
 }
 
+/* PERF (2026-10-12): the tree renders EVERY row/cell (~50k DOM nodes, ~32k px tall) inside a
+   ~336px scroll host, so each hover (tooltip show/move) made the browser lay out + hit-test the
+   whole thing - 12 Oct -> 14 Oct took ~3s per cell (measured live via Playwright on NL_Test).
+   content-visibility:auto skips layout/paint for off-screen rows/cells; measured ~0.3s after. */
+#cpo-central-tree .dhx_matrix_line,
+#cpo-central-tree .dhx_matrix_scell,
+#cpo-central-tree .dhx_matrix_cell {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 32px;
+}
+
 #cpo-central-tree .cpo-central-left-grid,
 #cpo-central-tree .cpo-sequence-label-full {
     position: absolute !important;
