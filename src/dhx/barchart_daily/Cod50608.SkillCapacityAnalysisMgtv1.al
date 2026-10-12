@@ -380,9 +380,9 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
         BlurStrength: Integer;
     begin
         // Free Capacity segments are painted in each skill's own colour (SkillPointColors, one
-        // entry per category, '' at "R" slots) at a hardcoded ~0.38 fill-opacity (blur 62%) -
+        // entry per category, '' at "R" slots) at a hardcoded ~0.25 fill-opacity (blur 75%) -
         // Assigned keeps its setup "Assigned Color" at full strength.
-        BlurStrength := 62;
+        BlurStrength := 75;
         AddSeries(SeriesArray, AssignedCapacitySeriesNameLbl, AssignedValues, AssignedColor, '', '', 0, EmptyPointColors);
         AddSeries(SeriesArray, CapInternalSeriesNameLbl, CapInternalValues, CapacityColor, '', '', BlurStrength, SkillPointColors);
         AddSeries(SeriesArray, CapExternalMandatorySeriesNameLbl, CapExternalMandatoryValues, CapacityMandatoryColor, '', '', BlurStrength, SkillPointColors);

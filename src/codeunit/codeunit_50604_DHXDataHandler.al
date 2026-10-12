@@ -7094,7 +7094,6 @@ codeunit 50604 "DHX Data Handler"
         // comment for why externalFree must reuse it rather than querying company-wide.
         RootObj.Add('externalFree', CPO_BuildExternalFreeArray(ResourcePool, StartDate, EndDate));
         RootObj.Add('dailyCapacity', CPO_BuildDailyCapacityArray(StartDate, EndDate));
-        RootObj.Add('capacityBlur', CPO_GetCapacityBlur());
         RootObj.Add('capacityColors', CPO_BuildCapacityColors());
         // OtherSkillList (NOT the broadened ActiveSkillList) - see that List's own doc comment.
         RootObj.Add('groups', CPO_BuildGroupsArray(OtherSkillList, GroupSkill, GroupJobNo, GroupJobTaskNo, GroupDescription));
@@ -7429,7 +7428,6 @@ codeunit 50604 "DHX Data Handler"
         RootObj.Add('baseCapacity', 8);
         RootObj.Add('externalFree', CPO_BuildExternalFreeArray(ResourcePool, StartDate, EndDate));
         RootObj.Add('dailyCapacity', CPO_BuildDailyCapacityArray(StartDate, EndDate));
-        RootObj.Add('capacityBlur', CPO_GetCapacityBlur());
         RootObj.Add('capacityColors', CPO_BuildCapacityColors());
         // groups[] is the COMPLETE tree skeleton (every group, not just the first page) - see this
         // region's own header comment for why that's safe/cheap; only its LINES (chips) backfill.
@@ -7634,7 +7632,6 @@ codeunit 50604 "DHX Data Handler"
         RootObj.Add('baseCapacity', 8);
         RootObj.Add('externalFree', CPO_BuildExternalFreeArray(ResourcePool, StartDate, EndDate));
         RootObj.Add('dailyCapacity', CPO_BuildDailyCapacityArray(StartDate, EndDate));
-        RootObj.Add('capacityBlur', CPO_GetCapacityBlur());
         RootObj.Add('capacityColors', CPO_BuildCapacityColors());
         RootObj.Add('dayPlanningLines', DayPlanningLinesArr);
         RootObj.Add('skillDayHours', SkillDayHoursArr);
@@ -7760,17 +7757,6 @@ codeunit 50604 "DHX Data Handler"
             PaletteIndex += 1;
         end;
         exit(SkillsArr);
-    end;
-
-    /// <summary>
-    /// "capacityBlur" - Section 3's C-bar fade strength (%), same "Daily Optimizer Setup"."Capacity
-    /// Bar Blur Strength" setting the Daily/Weekly Insights charts use.
-    /// </summary>
-    local procedure CPO_GetCapacityBlur(): Integer
-    var
-        ColorConstants: Codeunit "Visual Default Settings";
-    begin
-        exit(ColorConstants.GetCapacityBarBlurStrength());
     end;
 
     /// <summary>

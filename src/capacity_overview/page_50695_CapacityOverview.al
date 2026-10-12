@@ -190,7 +190,7 @@ page 50695 "Capacity Overview"
         else
             PeriodLabelText := CopyStr(StrSubstNo(DailyPeriodLabelLbl, FormatFullDayText(PeriodStartDate)), 1, MaxStrLen(PeriodLabelText));
 
-        CapacityOverviewMgt.BuildSkillCodeList(SkillCodeList);
+        CapacityOverviewMgt.BuildSkillCodeList(SkillCodeList, PeriodStartDate, PeriodEndDate);
         CurrPage.MatrixPart.Page.LoadPeriod(SkillCodeList, PeriodStartDate, PeriodEndDate);
     end;
 

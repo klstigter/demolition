@@ -25,6 +25,14 @@ codeunit 50694 "Capacity Overview Mgt."
     ///                          (StyleExpr = 'Attention') on page 50696.
     ///  5. Request Plan       - Row2 - Row3, computed independently per column, same pattern.
     ///     (not assigned)
+    ///  (No skill) column     - always the LAST column (sentinel GetNoSkillCode() appended by
+    ///                          BuildSkillCodeList, captioned "(No skill)" by page 50696). Request /
+    ///                          Assigned = Day Planning rows with Skill = '' (explicit SetRange, not
+    ///                          "no filter"); Capacity = free capacity of resources with Res.
+    ///                          Capacity Entries but no Resource Skill record (codeunit 50662
+    ///                          GetNoSkillCapacitySplitForRangeWithMandatory). Total Capacity /
+    ///                          Surplus stay 0 like every other skill column. Together with the skill
+    ///                          columns this closes the gap to the Total column.
     ///  6. Surplus            - C = Row1(C) - Row2(C) (algebraically equal to Row4(C)).
     ///                          Per-skill columns are 0 - out of scope / unchanged, same as Row 1
     ///                          and Row 4, no per-skill breakdown.
@@ -32,21 +40,54 @@ codeunit 50694 "Capacity Overview Mgt."
 
     /// <summary>
     /// Returns the ordered list of EVERY Skill Code record (one entry per code, in "Skill Code"
-    /// table order) - deliberately NOT capped at GetMaxMatrixColumns() here. The card page passes
+    /// table order), then every distinct non-blank Day Planning "Skill" value within
+    /// PeriodStartDate..PeriodEndDate that is NOT a Skill Code record (single pass, dictionary
+    /// dedupe), then the "(No skill)" sentinel last - deliberately NOT capped at
+    /// GetMaxMatrixColumns() here. Such extra skills show their own value as caption and use the
+    /// normal Resource Skill-based capacity path. The card page passes
     /// this full list to the matrix subpage (page 50696), which slices out a window of at most
     /// GetMaxMatrixColumns() codes at a time and pages through the rest via its
     /// Previous/Next Set/Column actions when there are more skills than fit in one window.
     /// </summary>
-    procedure BuildSkillCodeList(var SkillCodeList: List of [Code[20]])
+    procedure BuildSkillCodeList(var SkillCodeList: List of [Code[20]]; PeriodStartDate: Date; PeriodEndDate: Date)
     var
         SkillCode: Record "Skill Code";
+        DayPlanning: Record "Day Planning";
+        Seen: Dictionary of [Code[20], Boolean];
+        PlanSkill: Code[20];
     begin
         Clear(SkillCodeList);
         SkillCode.Reset();
         if SkillCode.FindSet() then
             repeat
                 SkillCodeList.Add(SkillCode.Code);
+                Seen.Add(SkillCode.Code, true);
             until SkillCode.Next() = 0;
+
+        DayPlanning.Reset();
+        DayPlanning.SetCurrentKey(Skill);
+        DayPlanning.SetRange("Plan Date", PeriodStartDate, PeriodEndDate);
+        DayPlanning.SetFilter(Skill, '<>%1', '');
+        DayPlanning.SetLoadFields(Skill);
+        if DayPlanning.FindSet() then
+            repeat
+                PlanSkill := DayPlanning.Skill;
+                if not Seen.ContainsKey(PlanSkill) then begin
+                    Seen.Add(PlanSkill, true);
+                    SkillCodeList.Add(PlanSkill);
+                end;
+            until DayPlanning.Next() = 0;
+
+        SkillCodeList.Add(GetNoSkillCode());
+    end;
+
+    /// <summary>
+    /// Reserved sentinel entry (always the LAST entry of BuildSkillCodeList) standing for the
+    /// "(No skill)" column; the matrix page shows it with the caption "(No skill)".
+    /// </summary>
+    procedure GetNoSkillCode(): Code[20]
+    begin
+        exit('<NOSKILL>');
     end;
 
     /// <summary>
@@ -129,8 +170,11 @@ codeunit 50694 "Capacity Overview Mgt."
     begin
         DayPlanning.Reset();
         DayPlanning.SetRange("Plan Date", PeriodStartDate, PeriodEndDate);
-        if SkillCodeFilter <> '' then
-            DayPlanning.SetRange(Skill, SkillCodeFilter);
+        if SkillCodeFilter = GetNoSkillCode() then
+            DayPlanning.SetRange(Skill, '')
+        else
+            if SkillCodeFilter <> '' then
+                DayPlanning.SetRange(Skill, SkillCodeFilter);
         DayPlanning.CalcSums("Requested Hours");
         exit(DayPlanning."Requested Hours");
     end;
@@ -141,8 +185,11 @@ codeunit 50694 "Capacity Overview Mgt."
     begin
         DayPlanning.Reset();
         DayPlanning.SetRange("Plan Date", PeriodStartDate, PeriodEndDate);
-        if SkillCodeFilter <> '' then
-            DayPlanning.SetRange(Skill, SkillCodeFilter);
+        if SkillCodeFilter = GetNoSkillCode() then
+            DayPlanning.SetRange(Skill, '')
+        else
+            if SkillCodeFilter <> '' then
+                DayPlanning.SetRange(Skill, SkillCodeFilter);
         DayPlanning.CalcSums("Assigned Hours");
         exit(DayPlanning."Assigned Hours");
     end;
@@ -157,12 +204,17 @@ codeunit 50694 "Capacity Overview Mgt."
     local procedure CalcSkillFreeCapacity(SkillCode: Code[20]; PeriodStartDate: Date; PeriodEndDate: Date): Decimal
     var
         SkillCapacityAnalysisMgt: Codeunit "SkillCapacityAnalysisMgt.v1";
+        CompanyCapacityMgt: Codeunit "Skill Capacity Analysis Mgt.";
         AssignedInternal: Decimal;
         AssignedExternal: Decimal;
         CapacityInternal: Decimal;
         CapacityExternal: Decimal;
         CapacityExternalMandatory: Decimal;
     begin
+        if SkillCode = GetNoSkillCode() then begin
+            CompanyCapacityMgt.GetNoSkillCapacitySplitForRangeWithMandatory(PeriodStartDate, PeriodEndDate, AssignedInternal, AssignedExternal, CapacityInternal, CapacityExternal, CapacityExternalMandatory);
+            exit(CapacityInternal + CapacityExternal + CapacityExternalMandatory);
+        end;
         SkillCapacityAnalysisMgt.GetSkillCapacityAssignedFreeSplit(CopyStr(SkillCode, 1, 10), PeriodStartDate, PeriodEndDate, AssignedInternal, AssignedExternal, CapacityInternal, CapacityExternal, CapacityExternalMandatory);
         exit(CapacityInternal + CapacityExternal + CapacityExternalMandatory);
     end;

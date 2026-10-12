@@ -143,26 +143,6 @@ codeunit 50609 "Visual Default Settings"
     end;
 
     /// <summary>
-    /// Resolves the fill-opacity blur strength (%) applied to every segment of the Capacity ("C")
-    /// bar on the Daily/Weekly "Requested Hours vs Capacity" bar charts - a purely visual fade so
-    /// the Capacity bar reads as secondary/reference information next to the Requested bar.
-    /// Overridable via "Daily Optimizer Setup"."Capacity Bar Blur Strength" when the singleton
-    /// exists and the value is greater than 0, else falls back to
-    /// DefaultCapacityBarBlurStrengthPct. Same safe boolean-context Get() convention as
-    /// GetCapacityBorderColor above, for the same reason.
-    /// </summary>
-    procedure GetCapacityBarBlurStrength(): Integer
-    var
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
-    begin
-        if DailyOptimizerSetup.Get() then
-            if DailyOptimizerSetup."Capacity Bar Blur Strength" > 0 then
-                exit(DailyOptimizerSetup."Capacity Bar Blur Strength");
-
-        exit(DefaultCapacityBarBlurStrengthPct());
-    end;
-
-    /// <summary>
     /// Resolves the text/caption colour used on every event bar's on-bar label across the Gantt
     /// chart (ganttdemo2), the scheduler timeline pages (resourceschedule, resourceschedule_with_
     /// capacity, poolresourceschedule, projectschedule), and the Day Planning bar's label
@@ -468,11 +448,6 @@ codeunit 50609 "Visual Default Settings"
         exit(CapacityBorderColorTok);
     end;
 
-    procedure GetDefaultCapacityBarBlurStrength(): Integer
-    begin
-        exit(DefaultCapacityBarBlurStrengthPct());
-    end;
-
     procedure GetDefaultBarFontColor(): Text
     begin
         exit(BarFontColorTok);
@@ -604,16 +579,6 @@ codeunit 50609 "Visual Default Settings"
     local procedure DefaultWeeklyBarWidthPx(): Integer
     begin
         exit(60);
-    end;
-
-    /// <summary>
-    /// Named default fill-opacity blur strength (%) for the Capacity ("C") bar's segments on the
-    /// Daily/Weekly bar charts - see GetCapacityBarBlurStrength. Same local-procedure-as-named-
-    /// constant idiom as DefaultDailyBarWidthPx/DefaultWeeklyBarWidthPx above.
-    /// </summary>
-    local procedure DefaultCapacityBarBlurStrengthPct(): Integer
-    begin
-        exit(40);
     end;
 
     /// <summary>

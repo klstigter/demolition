@@ -513,9 +513,11 @@ page 50696 "Capacity Overview Matrix"
             ColumnCount := MaxColumns;
 
         for i := 1 to MaxColumns do begin
-            if i <= ColumnCount then
-                NewCaption := SkillCodeList.Get(i)
-            else
+            if i <= ColumnCount then begin
+                NewCaption := SkillCodeList.Get(i);
+                if SkillCodeList.Get(i) = CapacityOverviewMgt.GetNoSkillCode() then
+                    NewCaption := NoSkillCaptionLbl;
+            end else
                 NewCaption := '';
             SetColumn(i, NewCaption, i <= ColumnCount);
         end;
@@ -637,6 +639,9 @@ page 50696 "Capacity Overview Matrix"
     /// 1..20 is a per-skill column, resolved back to its Skill Code via CurrSkillCodeList (out of
     /// range / not-visible columns are ignored defensively).
     ///
+    /// The "(No skill)" sentinel column opens Day Plannings with Skill = '' for rows 20000/30000/
+    /// 50000; capacity rows are unchanged.
+    ///
     /// Row-to-list mapping (Rec."Line No." matches codeunit 50694's InsertRow calls):
     ///  10000 Total Capacity     -> "Res. Capacity Entries", Date = period. No skill filter exists
     ///                              on capacity entries, so per-skill columns open the same list
@@ -664,6 +669,24 @@ page 50696 "Capacity Overview Matrix"
             if ColumnNo > CurrSkillCodeList.Count() then
                 exit;
             SkillCodeFilter := CurrSkillCodeList.Get(ColumnNo);
+        end;
+
+        // "(No skill)" column: Skill = '' filter (SetRange with '' is an explicit blank match).
+        if Rec."Line No." in [20000, 30000, 50000] then begin
+            DayPlanning.Reset();
+            DayPlanning.SetRange("Plan Date", CurrPeriodStartDate, CurrPeriodEndDate);
+            if SkillCodeFilter = CapacityOverviewMgt.GetNoSkillCode() then begin
+                DayPlanning.SetRange(Skill, '');
+                SkillCodeFilter := '';
+                case Rec."Line No." of
+                    30000:
+                        DayPlanning.SetRange(Assigned, true);
+                    50000:
+                        DayPlanning.SetRange(Assigned, false);
+                end;
+                Page.Run(Page::"Day Plannings", DayPlanning);
+                exit;
+            end;
         end;
 
         case Rec."Line No." of
@@ -703,6 +726,7 @@ page 50696 "Capacity Overview Matrix"
     end;
 
     var
+        NoSkillCaptionLbl: Label '(No skill)';
         CapacityOverviewMgt: Codeunit "Capacity Overview Mgt.";
         FullSkillCodeList: List of [Code[20]];
         CurrSkillCodeList: List of [Code[20]];
