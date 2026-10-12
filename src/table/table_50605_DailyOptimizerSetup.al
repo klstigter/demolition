@@ -146,6 +146,9 @@ table 50605 "Daily Optimizer Setup"
         {
             Caption = 'Blur Strength (%)';
             DataClassification = CustomerContent;
+            ObsoleteState = Pending;
+            ObsoleteReason = 'Capacity bar blur removed; capacity bars render in the configured colour as-is.';
+            ObsoleteTag = '28.0';
             MinValue = 0;
             MaxValue = 90;
         }

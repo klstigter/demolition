@@ -1749,16 +1749,11 @@ class CapacityPlanningOverview {
         // Weekly charts' <path>s, which always render even at 0 height), so a segment's DOM
         // position among its stack's siblings cannot reliably be mapped back to which value it
         // represents. See attachCapacityBarsContextMenu below for how this is read back.
-        // `opacity` fades only the C (Capacity) stack - AL's "capacityBlur" (%), the same "Daily
-        // Optimizer Setup" setting the Daily/Weekly Insights charts' C bars use.
-        // Fill only (color-mix), so the Free-external segment's External Border outline (inset
-        // box-shadow, same red outline the Daily/Weekly charts draw) stays crisp.
         const cc = this.capColors();
-        const capFillPct = Math.max(0, 100 - (Number(this.db.capacityBlur) || 0));
-        const seg = function (value, colorHex, segKey, fillPct, borderHex) {
+        const seg = function (value, colorHex, segKey, borderHex) {
             if (!value || value <= 0) return '';
             const h = Math.max(1, Math.round(value / maxVal * maxBarPx));
-            const bg = fillPct !== undefined ? 'color-mix(in srgb, ' + (colorHex || '#ccc') + ' ' + fillPct + '%, transparent)' : (colorHex || '#ccc');
+            const bg = colorHex || '#ccc';
             return '<div class="cpo-daily-chart-segment" data-seg="' + segKey + '" style="height:' + h + 'px;background:' + bg + ';' + (borderHex ? 'box-shadow:inset 0 0 0 1.5px ' + borderHex + ';' : '') + '"></div>';
         };
 
@@ -1770,7 +1765,7 @@ class CapacityPlanningOverview {
                     '<div class="cpo-daily-chart-date"><b>' + dayNo + '</b><span>' + dayName + '</span></div>' +
                     '<div class="cpo-daily-chart-off">non-workday</div><div class="cpo-daily-chart-value">\u2014</div></div>';
             }
-            const cStack = seg(x.assigned, cc.assigned, 'assigned') + seg(x.freeInt, cc.capacity, 'freeInternal', capFillPct) + seg(x.freeExt, cc.capacity, 'freeExternal', capFillPct, cc.externalBorder);
+            const cStack = seg(x.assigned, cc.assigned, 'assigned') + seg(x.freeInt, cc.capacity, 'freeInternal') + seg(x.freeExt, cc.capacity, 'freeExternal', cc.externalBorder);
             let rStack = seg(x.assignedRequest, cc.assigned, 'assigned');
             self.skills.forEach(function (sk) { const meta = self.skillMeta(sk); rStack += seg(x.unassignedBySkill[sk], meta.color, 'skill:' + sk); });
             // _bulkAnchorHint (2026-09-04) - cosmetic-only, set by moveWorkOrderToDay's bulk

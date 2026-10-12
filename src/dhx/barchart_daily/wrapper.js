@@ -852,12 +852,9 @@ function ApplySeriesBorders(seriesDefs, series) {
     });
 }
 
-// Fades every rendered bar <path> of a series that requested a `blur` strength (%) - only the
-// Capacity ("C") bar's segments ever carry this (codeunit 50608's AddCapacitySegmentSeries, via
-// "Daily Optimizer Setup"."Capacity Bar Blur Strength"). Same shape as ApplySeriesBorders above
-// (skip zero-value segments so an invisible-height baseline <path> doesn't matter), but sets
-// fill-opacity only - never touches `stroke`, so a bordered segment's red External outline
-// (ApplySeriesBorders, applied separately) stays crisp on top of the faded fill.
+// Fades the Capacity ("C") bar segments (fixed `blur` of 75% set in codeunit 50608's
+// AddCapacitySegmentSeries) and paints each segment in its per-category `pointColors` colour.
+// Sets fill-opacity only - never touches `stroke`, so the External red outline stays crisp.
 function ApplySeriesBlur(seriesDefs, series) {
     seriesDefs.forEach(function(s, sIdx) {
         if (s && s.blur && series[sIdx]) {
@@ -866,7 +863,6 @@ function ApplySeriesBlur(seriesDefs, series) {
             var paths = chartContainer.querySelectorAll('g[aria-label="chart ' + series[sIdx].id + '"] path');
             paths.forEach(function(p, pIdx) {
                 if (values[pIdx]) {
-                    // Optional per-category colour (free-capacity segments use the skill's colour).
                     if (s.pointColors && s.pointColors[pIdx]) {
                         p.style.fill = s.pointColors[pIdx];
                     }

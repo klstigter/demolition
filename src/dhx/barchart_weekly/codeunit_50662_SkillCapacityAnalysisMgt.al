@@ -195,7 +195,6 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         ExternalBorderColorHex: Text;
         CapacityMandatoryColorHex: Text;
         ColorConstants: Codeunit "Visual Default Settings";
-        BlurStrength: Integer;
     begin
         EnsureDayPlanningBuffer(PeriodStartDate, PeriodStartDate + 6);
 
@@ -269,14 +268,10 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
 
         ColorConstants.GetCapacitySegmentColors(AssignedColorHex, CapacityColorHex, ExternalBorderColorHex);
         CapacityMandatoryColorHex := ColorConstants.GetCapacityMandatoryColor();
-        // Only the Free Capacity segments get the configurable blur (fill-opacity only, colours
-        // unchanged). "Assigned Capacity" (plotted on BOTH bars) and the per-skill Requested-bar
-        // series below stay at full strength.
-        BlurStrength := ColorConstants.GetCapacityBarBlurStrength();
-        AddChartSeries(SeriesArray, AssignedCapacitySeriesNameLbl, AssignedValues, AssignedColorHex, '', '', 0);
-        AddChartSeries(SeriesArray, CapInternalSeriesNameLbl, CapInternalValues, CapacityColorHex, '', '', BlurStrength);
-        AddChartSeries(SeriesArray, CapExternalMandatorySeriesNameLbl, CapExternalMandatoryValues, CapacityMandatoryColorHex, '', '', BlurStrength);
-        AddChartSeries(SeriesArray, CapExternalSeriesNameLbl, CapExternalValues, CapacityColorHex, ExternalBorderColorHex, '', BlurStrength);
+        AddChartSeries(SeriesArray, AssignedCapacitySeriesNameLbl, AssignedValues, AssignedColorHex, '', '');
+        AddChartSeries(SeriesArray, CapInternalSeriesNameLbl, CapInternalValues, CapacityColorHex, '', '');
+        AddChartSeries(SeriesArray, CapExternalMandatorySeriesNameLbl, CapExternalMandatoryValues, CapacityMandatoryColorHex, '', '');
+        AddChartSeries(SeriesArray, CapExternalSeriesNameLbl, CapExternalValues, CapacityColorHex, ExternalBorderColorHex, '');
 
         SkillPaletteIdx := 0;
         foreach SkillCode in ActiveSkillList do begin
@@ -303,8 +298,8 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
             // legend swatch border/text colour resolve from here. SkillExternalValues stays
             // 0 everywhere by design (see above), so its own border (unchanged, ExternalBorderColorHex)
             // never actually paints and it never owns a legend slot.
-            AddChartSeries(SeriesArray, SkillCode, SkillInternalValues, GetSkillSeriesColor(SkillCode, SkillPaletteIdx), GetSkillSeriesBorderColor(SkillCode, SkillPaletteIdx), GetSkillSeriesFontColor(SkillCode), 0);
-            AddChartSeries(SeriesArray, SkillCode, SkillExternalValues, GetSkillSeriesColor(SkillCode, SkillPaletteIdx), ExternalBorderColorHex, '', 0);
+            AddChartSeries(SeriesArray, SkillCode, SkillInternalValues, GetSkillSeriesColor(SkillCode, SkillPaletteIdx), GetSkillSeriesBorderColor(SkillCode, SkillPaletteIdx), GetSkillSeriesFontColor(SkillCode));
+            AddChartSeries(SeriesArray, SkillCode, SkillExternalValues, GetSkillSeriesColor(SkillCode, SkillPaletteIdx), ExternalBorderColorHex, '');
             SkillPaletteIdx += 1;
         end;
 
@@ -373,7 +368,6 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         CapacityColorHex: Text;
         ExternalBorderColorHex: Text;
         ColorConstants: Codeunit "Visual Default Settings";
-        BlurStrength: Integer;
         IsIncluded: Boolean;
     begin
         Clear(ChartDataJson);
@@ -426,12 +420,10 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         end;
 
         ColorConstants.GetCapacitySegmentColors(AssignedColorHex, CapacityColorHex, ExternalBorderColorHex);
-        // Free Capacity segments only get the blur - see BuildDayCapacityChartData's matching comment.
-        BlurStrength := ColorConstants.GetCapacityBarBlurStrength();
-        AddChartSeries(SeriesArray, AssInternalSeriesNameLbl, AssInternalValues, AssignedColorHex, '', '', 0);
-        AddChartSeries(SeriesArray, AssExternalSeriesNameLbl, AssExternalValues, AssignedColorHex, ExternalBorderColorHex, '', 0);
-        AddChartSeries(SeriesArray, CapInternalSeriesNameLbl, CapInternalValues, CapacityColorHex, '', '', BlurStrength);
-        AddChartSeries(SeriesArray, CapExternalSeriesNameLbl, CapExternalValues, CapacityColorHex, ExternalBorderColorHex, '', BlurStrength);
+        AddChartSeries(SeriesArray, AssInternalSeriesNameLbl, AssInternalValues, AssignedColorHex, '', '');
+        AddChartSeries(SeriesArray, AssExternalSeriesNameLbl, AssExternalValues, AssignedColorHex, ExternalBorderColorHex, '');
+        AddChartSeries(SeriesArray, CapInternalSeriesNameLbl, CapInternalValues, CapacityColorHex, '', '');
+        AddChartSeries(SeriesArray, CapExternalSeriesNameLbl, CapExternalValues, CapacityColorHex, ExternalBorderColorHex, '');
 
         SkillPaletteIdx := 0;
         foreach SkillCode in ActiveSkillList do begin
@@ -448,8 +440,8 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
                 SkillExternalValues.Add(0);
                 SkillExternalValues.Add(0);
             end;
-            AddChartSeries(SeriesArray, SkillCode, SkillInternalValues, GetSkillSeriesColor(SkillCode, SkillPaletteIdx), GetSkillSeriesBorderColor(SkillCode, SkillPaletteIdx), GetSkillSeriesFontColor(SkillCode), 0);
-            AddChartSeries(SeriesArray, SkillCode, SkillExternalValues, GetSkillSeriesColor(SkillCode, SkillPaletteIdx), ExternalBorderColorHex, '', 0);
+            AddChartSeries(SeriesArray, SkillCode, SkillInternalValues, GetSkillSeriesColor(SkillCode, SkillPaletteIdx), GetSkillSeriesBorderColor(SkillCode, SkillPaletteIdx), GetSkillSeriesFontColor(SkillCode));
+            AddChartSeries(SeriesArray, SkillCode, SkillExternalValues, GetSkillSeriesColor(SkillCode, SkillPaletteIdx), ExternalBorderColorHex, '');
             SkillPaletteIdx += 1;
         end;
 
@@ -951,6 +943,63 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
             exit; // no resource holds this skill - nothing to sum.
 
         EnsureDayPlanningBuffer(DateFrom, DateTo);
+
+        CurrDate := DateFrom;
+        while CurrDate <= DateTo do begin
+            CalcAssignedSplitForResourceSet(CurrDate, ResourceSet, DayAssignedInternal, DayAssignedExternal);
+            CalcCapacitySplitForResourceSet(CurrDate, ResourceSet, DayCapacityInternal, DayCapacityExternal, DayCapacityExternalMandatory);
+            AssignedInternal += DayAssignedInternal;
+            AssignedExternal += DayAssignedExternal;
+            CapacityInternal += DayCapacityInternal;
+            CapacityExternal += DayCapacityExternal;
+            CapacityExternalMandatory += DayCapacityExternalMandatory;
+            CurrDate += 1;
+        end;
+    end;
+
+    /// <summary>
+    /// Twin of GetSkillCapacitySplitForRangeWithMandatory for the Capacity Overview's "(No skill)"
+    /// column: the resource set is every resource that has a Res. Capacity Entry in DateFrom..DateTo
+    /// but NO "Resource Skill" record (Type = Resource) - i.e. the capacity no per-skill column
+    /// counts. Same split/classification via the ForResourceSet helpers.
+    /// </summary>
+    procedure GetNoSkillCapacitySplitForRangeWithMandatory(DateFrom: Date; DateTo: Date; var AssignedInternal: Decimal; var AssignedExternal: Decimal; var CapacityInternal: Decimal; var CapacityExternal: Decimal; var CapacityExternalMandatory: Decimal)
+    var
+        ResourceSkill: Record "Resource Skill";
+        ResourceSet: Dictionary of [Code[20], Boolean];
+        CurrDate: Date;
+        DayAssignedInternal: Decimal;
+        DayAssignedExternal: Decimal;
+        DayCapacityInternal: Decimal;
+        DayCapacityExternal: Decimal;
+        DayCapacityExternalMandatory: Decimal;
+    begin
+        AssignedInternal := 0;
+        AssignedExternal := 0;
+        CapacityInternal := 0;
+        CapacityExternal := 0;
+        CapacityExternalMandatory := 0;
+
+        if DateTo < DateFrom then
+            exit;
+
+        EnsureDayPlanningBuffer(DateFrom, DateTo);
+
+        GResCapacityBuf.Reset();
+        GResCapacityBuf.SetRange(Date, DateFrom, DateTo);
+        if GResCapacityBuf.FindSet() then
+            repeat
+                if not ResourceSet.ContainsKey(GResCapacityBuf."Resource No.") then begin
+                    ResourceSkill.SetRange(Type, ResourceSkill.Type::Resource);
+                    ResourceSkill.SetRange("No.", GResCapacityBuf."Resource No.");
+                    if ResourceSkill.IsEmpty() then
+                        ResourceSet.Add(GResCapacityBuf."Resource No.", true);
+                end;
+            until GResCapacityBuf.Next() = 0;
+        GResCapacityBuf.Reset();
+
+        if ResourceSet.Keys().Count = 0 then
+            exit;
 
         CurrDate := DateFrom;
         while CurrDate <= DateTo do begin
@@ -1697,7 +1746,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// swatch) - only ever passed for the per-skill series below, never for the shared Assigned/
     /// Capacity segments (which have no Skill of their own).
     /// </summary>
-    local procedure AddChartSeries(var SeriesArray: JsonArray; SeriesName: Text; Values: List of [Decimal]; ColorHex: Text; BorderHex: Text; FontColorHex: Text; BlurStrength: Integer)
+    local procedure AddChartSeries(var SeriesArray: JsonArray; SeriesName: Text; Values: List of [Decimal]; ColorHex: Text; BorderHex: Text; FontColorHex: Text)
     var
         SeriesObj: JsonObject;
         ValuesArray: JsonArray;
@@ -1714,8 +1763,6 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
             SeriesObj.Add('border', BorderHex);
         if FontColorHex <> '' then
             SeriesObj.Add('fontColor', FontColorHex);
-        if BlurStrength > 0 then
-            SeriesObj.Add('blur', BlurStrength);
         SeriesObj.Add('stacked', true);
 
         SeriesArray.Add(SeriesObj);

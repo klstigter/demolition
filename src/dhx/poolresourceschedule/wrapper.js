@@ -227,7 +227,6 @@ window.BOOT = function() {
         --cap-color: #2E75B6;
         --cap-color-border: #C97F16;
         --bar-font-color: #000000;
-        --cap-fill-pct: 100%;
         --cap-font-color: #000000;
     }
 
@@ -240,7 +239,7 @@ window.BOOT = function() {
     .dhx_cal_event.event-capacity .dhx_body {
         color: var(--cap-font-color) !important;
         font-size: 14px !important;
-        background-color: color-mix(in srgb, var(--cap-color) var(--cap-fill-pct), transparent) !important;
+        background-color: var(--cap-color) !important;
         border-color: var(--cap-color-border) !important;
     }
 
@@ -1052,9 +1051,6 @@ function SetBarColors(colorsJson) {
         if (!root) return;
         if (colors.capacity) root.style.setProperty("--cap-color", colors.capacity);
         if (colors.capacityBorder) root.style.setProperty("--cap-color-border", colors.capacityBorder);
-        // "capacityBlur" (%) - "Daily Optimizer Setup"."Capacity Bar Blur Strength", same fade the
-        // Daily/Weekly Insights C bars use. Fades the fill only (border/text stay crisp).
-        if (colors.capacityBlur > 0) root.style.setProperty("--cap-fill-pct", (100 - colors.capacityBlur) + "%");
         // "capacityFontColor" - "Daily Optimizer Setup"."Capacity Font Color", Capacity bar text only.
         if (colors.capacityFontColor) root.style.setProperty("--cap-font-color", colors.capacityFontColor);
         // "fontColor" is sent by page 50600's ControlReady (via codeunit 50609's
