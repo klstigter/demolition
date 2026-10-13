@@ -1,12 +1,13 @@
 report 50600 "RepairData"
 {
-    Permissions = tabledata "Day Planning" = rim,
+    Permissions = tabledata "Day Planning" = rimd,
                   tabledata "Res. Capacity Entry" = rimd,
                   tabledata Resource = rim,
                   tabledata Vendor = r,
                   tabledata "Resource Skill" = rim,
                   tabledata "Skill Code" = r,
-                  tabledata "Job Task" = rim;
+                  tabledata "Job Task" = rimd,
+                  tabledata Job = rimd;
     UsageCategory = Administration;
     ApplicationArea = All;
     Caption = 'Repair Data';
@@ -19,7 +20,34 @@ report 50600 "RepairData"
 
     trigger OnPreReport()
     begin
-        RepairDayPlanningAssignedFlag();
+        DeleteBlankNoJob();
+    end;
+
+    local procedure DeleteBlankNoJob()
+    var
+        Job: Record Job;
+        JobTask: Record "Job Task";
+        DayPlanning: Record "Day Planning";
+        JobCount: Integer;
+        TaskCount: Integer;
+        PlanningCount: Integer;
+    begin
+        // The standard Job OnDelete check filters Purchase Line by Job No. = '' and so matches every
+        // purchase line without a project, blocking the delete. Remove the blank-No. job, its tasks
+        // and its day plannings with Delete(false) so no trigger runs.
+        DayPlanning.SetRange("Job No.", '');
+        PlanningCount := DayPlanning.Count();
+        DayPlanning.DeleteAll(false);
+
+        JobTask.SetRange("Job No.", '');
+        TaskCount := JobTask.Count();
+        JobTask.DeleteAll(false);
+
+        Job.SetRange("No.", '');
+        JobCount := Job.Count();
+        Job.DeleteAll(false);
+
+        Message('Deleted %1 job(s), %2 job task(s), %3 day planning(s) with blank Job No.', JobCount, TaskCount, PlanningCount);
     end;
 
     local procedure RepairDayPlanningAssignedFlag()
