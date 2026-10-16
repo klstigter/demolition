@@ -174,6 +174,7 @@ page 50675 "DayPlanning Line Opt"
 
         // Build the real record in a separate variable - leave the page Rec (framework state) untouched
         NewLine.Init();
+        NewLine.SystemId := TempLine.SystemId; // keep the client-supplied systemId (InsertWithSystemId below)
         NewLine."Job No." := TempLine."Job No.";
         NewLine."Job Task No." := TempLine."Job Task No.";
         if TempLine."Day Line No." <> 0 then
@@ -229,7 +230,7 @@ page 50675 "DayPlanning Line Opt"
         JobTask.Get(NewLine."Job No.", NewLine."Job Task No.");
         JobTask.Testfield("Job Task Type", JobTask."Job Task Type"::Posting);
 
-        NewLine.Insert(true);
+        NewLine.Insert(true, not IsNullGuid(TempLine.SystemId));
 
         GlobalSessionVar.SetDayPlanningTemp(NewLine); // stash the inserted line in a global temp table for retrieval by the parent header API
 
