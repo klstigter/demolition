@@ -165,6 +165,9 @@ page 50675 "DayPlanning Line Opt"
         if GlobalSessionVar.IsHeaderInsertPending() then
             exit(false); // phantom pre-header bind of the first line - the real deep-insert pass follows
 
+        TempLine.TestField("Job No.");
+        TempLine.TestField("Job Task No.");
+
         // Line must belong to the header's Job / Job Task (SubPageLink filters on Rec)
         if (TempLine."Job No." <> Rec.GetFilter("Job No.")) or (TempLine."Job Task No." <> Rec.GetFilter("Job Task No.")) then
             Error(HeaderMismatchErr, TempLine."Job No.", TempLine."Job Task No.", Rec.GetFilter("Job No."), Rec.GetFilter("Job Task No."));

@@ -78,10 +78,16 @@ page 50731 "JobTaskBatch Line Opt"
         }
     }
 
+    trigger OnNewRecord(BelowxRec: Boolean)
+    begin
+        Rec."Job Task No." := AutoKeyTok; // the API framework rejects a blank key before OnInsertRecord; replaced there when still untouched
+    end;
+
     trigger OnInsertRecord(BelowxRec: Boolean): Boolean
     var
         NewTask: Record "Job Task";
         GlobalSessionVar: Codeunit "Global Session Var Opt.";
+        APIKeyMgt: Codeunit "API Key Mgt Opt.";
         InJobNo: Code[20];
         InTaskNo: Code[20];
         InTaskType: Enum "Job Task Type";
@@ -116,10 +122,10 @@ page 50731 "JobTaskBatch Line Opt"
 
         if InJobNo = '' then
             Error(MandatoryFieldErr, 'jobNo_');
-        if InTaskNo = '' then
-            Error(MandatoryFieldErr, 'jobTaskNo_');
         if InDescription = '' then
             Error(MandatoryFieldErr, 'description');
+        if InTaskNo = AutoKeyTok then
+            InTaskNo := APIKeyMgt.GetNextJobTaskNo(InJobNo); // previous lines of this POST are already inserted below
 
         NewTask.Init();
         NewTask."Job No." := InJobNo;
@@ -147,9 +153,12 @@ page 50731 "JobTaskBatch Line Opt"
             NewTask.Validate("Bill-to Customer No.", InBillTo);
         NewTask.Modify(true);
 
+        Rec."Job Task No." := NewTask."Job Task No."; // reflect the generated key in the POST response
+
         exit(false); // BC must NOT insert again
     end;
 
     var
+        AutoKeyTok: Label '#AUTO#', Locked = true;
         MandatoryFieldErr: Label 'The field "%1" is mandatory and must have a value in every jobTaskRecords line.', Comment = '%1 = JSON field name';
 }

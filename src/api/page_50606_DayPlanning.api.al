@@ -134,4 +134,21 @@ page 50606 "DayPlanningApi Opt"
             }
         }
     }
+
+    trigger OnNewRecord(BelowxRec: Boolean)
+    begin
+        Rec."Day Line No." := -1; // the API framework rejects a zero key before OnInsertRecord; replaced there when still untouched
+    end;
+
+    trigger OnInsertRecord(BelowxRec: Boolean): Boolean
+    var
+        APIKeyMgt: Codeunit "API Key Mgt Opt.";
+    begin
+        if Rec."Day Line No." = -1 then begin
+            Rec.TestField("Job No.");
+            Rec.TestField("Job Task No.");
+            Rec."Day Line No." := APIKeyMgt.GetNextDayLineNo(Rec."Job No.", Rec."Job Task No.");
+        end;
+        exit(true);
+    end;
 }

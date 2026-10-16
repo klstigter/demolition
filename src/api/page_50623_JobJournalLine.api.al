@@ -188,6 +188,8 @@ page 50623 "Job Journal Line API Opt."
     begin
         // Step 1: snapshot ALL incoming API data FIRST, before Rec is touched
         TempLine.Copy(Rec);
+        TempLine.TestField("Journal Template Name");
+        TempLine.TestField("Journal Batch Name");
 
         Evaluate(GuidVar, DayPlanningSystemId);
         DayPlanning.GetBySystemId(GuidVar);

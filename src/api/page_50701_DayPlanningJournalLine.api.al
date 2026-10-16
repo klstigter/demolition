@@ -80,4 +80,12 @@ page 50701 "DayPlanningJournalLineApi Opt"
             }
         }
     }
+
+    trigger OnInsertRecord(BelowxRec: Boolean): Boolean
+    begin
+        Rec.TestField("Template Name");
+        Rec.TestField("Batch Name");
+        Rec.TestField("DayPlanning Line No.");
+        exit(true);
+    end;
 }

@@ -48,4 +48,18 @@ page 50700 "RegisterAbsenceApi Opt"
             }
         }
     }
+
+    trigger OnNewRecord(BelowxRec: Boolean)
+    begin
+        Rec."Line No." := -1; // the API framework rejects a zero key before OnInsertRecord; replaced there when still untouched
+    end;
+
+    trigger OnInsertRecord(BelowxRec: Boolean): Boolean
+    var
+        APIKeyMgt: Codeunit "API Key Mgt Opt.";
+    begin
+        if Rec."Line No." = -1 then
+            Rec."Line No." := APIKeyMgt.GetNextAbsenceLineNo();
+        exit(true);
+    end;
 }

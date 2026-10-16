@@ -85,6 +85,7 @@ permissionset 50600 Demolition
         report "Resource Scheduler Filter" = X,
         report "Set Capacity opt." = X,
         report "Task Scheduler Filter" = X,
+        codeunit "API Key Mgt Opt." = X,
         codeunit "Capacity Overview Mgt." = X,
         codeunit "CPO BG Other WO Data" = X,
         codeunit "CPO Title Box FlowField Tests" = X,
