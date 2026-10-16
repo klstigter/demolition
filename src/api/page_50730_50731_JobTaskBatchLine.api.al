@@ -86,6 +86,7 @@ page 50731 "JobTaskBatch Line Opt"
     trigger OnInsertRecord(BelowxRec: Boolean): Boolean
     var
         NewTask: Record "Job Task";
+        ResultLine: JsonObject;
         GlobalSessionVar: Codeunit "Global Session Var Opt.";
         APIKeyMgt: Codeunit "API Key Mgt Opt.";
         InSystemId: Guid;
@@ -157,6 +158,13 @@ page 50731 "JobTaskBatch Line Opt"
         NewTask.Modify(true);
 
         Rec."Job Task No." := NewTask."Job Task No."; // reflect the generated key in the POST response
+
+        Clear(ResultLine);
+        ResultLine.Add('systemId', NewTask.SystemId);
+        ResultLine.Add('jobNo', NewTask."Job No.");
+        ResultLine.Add('jobTaskNo', NewTask."Job Task No.");
+        ResultLine.Add('description', NewTask.Description);
+        GlobalSessionVar.AddPostResult(ResultLine);
 
         exit(false); // BC must NOT insert again
     end;

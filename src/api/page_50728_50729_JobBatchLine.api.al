@@ -57,6 +57,7 @@ page 50729 "JobBatch Line Opt"
     trigger OnInsertRecord(BelowxRec: Boolean): Boolean
     var
         NewJob: Record Job;
+        ResultLine: JsonObject;
         GlobalSessionVar: Codeunit "Global Session Var Opt.";
         InSystemId: Guid;
         InNo: Code[20];
@@ -104,6 +105,12 @@ page 50729 "JobBatch Line Opt"
         NewJob.Modify(true);
 
         Rec."No." := NewJob."No."; // reflect the No. Series generated key in the POST response
+
+        Clear(ResultLine);
+        ResultLine.Add('systemId', NewJob.SystemId);
+        ResultLine.Add('no', NewJob."No.");
+        ResultLine.Add('description', NewJob.Description);
+        GlobalSessionVar.AddPostResult(ResultLine);
 
         exit(false); // BC must NOT insert again
     end;

@@ -11,6 +11,27 @@ codeunit 50601 "Global Session Var Opt."
         JobNo: Code[20];
         DayPlanningTemp: Record "Day Planning" temporary;
         HeaderInsertPending: Boolean;
+        PostResults: JsonArray;
+
+    procedure ResetPostResults()
+    begin
+        Clear(PostResults);
+    end;
+
+    procedure AddPostResult(ResultLine: JsonObject)
+    begin
+        PostResults.Add(ResultLine);
+    end;
+
+    procedure GetPostResultsText(ArrayName: Text): Text
+    var
+        ResultJson: JsonObject;
+        ResultText: Text;
+    begin
+        ResultJson.Add(ArrayName, PostResults);
+        ResultJson.WriteTo(ResultText);
+        exit(ResultText);
+    end;
 
     procedure SetJobNo(NewJobNo: Code[20])
     begin
