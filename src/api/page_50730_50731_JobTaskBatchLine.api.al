@@ -86,8 +86,10 @@ page 50731 "JobTaskBatch Line Opt"
     trigger OnInsertRecord(BelowxRec: Boolean): Boolean
     var
         NewTask: Record "Job Task";
+        ResultLine: JsonObject;
         GlobalSessionVar: Codeunit "Global Session Var Opt.";
         APIKeyMgt: Codeunit "API Key Mgt Opt.";
+        InSystemId: Guid;
         InJobNo: Code[20];
         InTaskNo: Code[20];
         InTaskType: Enum "Job Task Type";
@@ -103,6 +105,7 @@ page 50731 "JobTaskBatch Line Opt"
         InBillTo: Code[20];
     begin
         // Snapshot incoming API data first, before Rec is touched
+        InSystemId := Rec.SystemId;
         InJobNo := Rec."Job No.";
         InTaskNo := Rec."Job Task No.";
         InTaskType := Rec."Job Task Type";
@@ -128,9 +131,10 @@ page 50731 "JobTaskBatch Line Opt"
             InTaskNo := APIKeyMgt.GetNextJobTaskNo(InJobNo); // previous lines of this POST are already inserted below
 
         NewTask.Init();
+        NewTask.SystemId := InSystemId; // keep the client-supplied systemId (InsertWithSystemId below)
         NewTask."Job No." := InJobNo;
         NewTask."Job Task No." := InTaskNo;
-        NewTask.Insert(true);
+        NewTask.Insert(true, not IsNullGuid(InSystemId));
         NewTask.Validate("Job Task Type", InTaskType);
         NewTask.Validate(Description, InDescription);
         if InProjectManager <> '' then
@@ -154,6 +158,13 @@ page 50731 "JobTaskBatch Line Opt"
         NewTask.Modify(true);
 
         Rec."Job Task No." := NewTask."Job Task No."; // reflect the generated key in the POST response
+
+        Clear(ResultLine);
+        ResultLine.Add('systemId', NewTask.SystemId);
+        ResultLine.Add('jobNo', NewTask."Job No.");
+        ResultLine.Add('jobTaskNo', NewTask."Job Task No.");
+        ResultLine.Add('description', NewTask.Description);
+        GlobalSessionVar.AddPostResult(ResultLine);
 
         exit(false); // BC must NOT insert again
     end;

@@ -57,7 +57,9 @@ page 50729 "JobBatch Line Opt"
     trigger OnInsertRecord(BelowxRec: Boolean): Boolean
     var
         NewJob: Record Job;
+        ResultLine: JsonObject;
         GlobalSessionVar: Codeunit "Global Session Var Opt.";
+        InSystemId: Guid;
         InNo: Code[20];
         InDescription: Text[100];
         InProjectType: Code[20];
@@ -67,6 +69,7 @@ page 50729 "JobBatch Line Opt"
         InBillTo: Code[20];
     begin
         // Snapshot incoming API data first, before Rec is touched
+        InSystemId := Rec.SystemId;
         InNo := Rec."No.";
         InDescription := Rec.Description;
         InProjectType := Rec."Project Type";
@@ -85,8 +88,9 @@ page 50729 "JobBatch Line Opt"
             Error(MandatoryFieldErr, 'billtoCustomerNo');
 
         NewJob.Init();
+        NewJob.SystemId := InSystemId; // keep the client-supplied systemId (InsertWithSystemId below)
         NewJob."No." := InNo;
-        NewJob.Insert(true);
+        NewJob.Insert(true, not IsNullGuid(InSystemId));
         if InDescription <> '' then
             NewJob.Validate(Description, InDescription);
         if InProjectType <> '' then
@@ -101,6 +105,12 @@ page 50729 "JobBatch Line Opt"
         NewJob.Modify(true);
 
         Rec."No." := NewJob."No."; // reflect the No. Series generated key in the POST response
+
+        Clear(ResultLine);
+        ResultLine.Add('systemId', NewJob.SystemId);
+        ResultLine.Add('no', NewJob."No.");
+        ResultLine.Add('description', NewJob.Description);
+        GlobalSessionVar.AddPostResult(ResultLine);
 
         exit(false); // BC must NOT insert again
     end;
