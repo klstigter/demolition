@@ -84,4 +84,23 @@ page 50605 "JobTaskApi Opt"
             }
         }
     }
+
+    trigger OnNewRecord(BelowxRec: Boolean)
+    begin
+        Rec."Job Task No." := AutoKeyTok; // the API framework rejects a blank key before OnInsertRecord; replaced there when still untouched
+    end;
+
+    trigger OnInsertRecord(BelowxRec: Boolean): Boolean
+    var
+        APIKeyMgt: Codeunit "API Key Mgt Opt.";
+    begin
+        if Rec."Job Task No." = AutoKeyTok then begin
+            Rec.TestField("Job No.");
+            Rec."Job Task No." := APIKeyMgt.GetNextJobTaskNo(Rec."Job No.");
+        end;
+        exit(true);
+    end;
+
+    var
+        AutoKeyTok: Label '#AUTO#', Locked = true;
 }

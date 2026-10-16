@@ -80,6 +80,12 @@ page 50603 "JobApi Opt"
         exit(EmptyGuid);
     end;
 
+    trigger OnInsertRecord(BelowxRec: Boolean): Boolean
+    begin
+        Rec.TestField("Bill-to Customer No."); // mandatory: every Job Task of this Job requires a Bill-to customer
+        exit(true);
+    end;
+
     local procedure GetPersonResponsibleId(): Guid
     var
         Res: Record Resource;

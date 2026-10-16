@@ -41,4 +41,11 @@ page 50672 "ResourceSkillApi Opt"
             }
         }
     }
+
+    trigger OnInsertRecord(BelowxRec: Boolean): Boolean
+    begin
+        Rec.TestField("No.");
+        Rec.TestField("Skill Code");
+        exit(true);
+    end;
 }

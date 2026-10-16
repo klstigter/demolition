@@ -78,10 +78,11 @@ page 50729 "JobBatch Line Opt"
         if GlobalSessionVar.IsHeaderInsertPending() then
             exit(false); // phantom pre-header bind of the first line - the real deep-insert pass follows
 
-        if InNo = '' then
-            Error(MandatoryFieldErr, 'no_');
         if InDescription = '' then
             Error(MandatoryFieldErr, 'description');
+
+        if InBillTo = '' then
+            Error(MandatoryFieldErr, 'billtoCustomerNo');
 
         NewJob.Init();
         NewJob."No." := InNo;
@@ -98,6 +99,8 @@ page 50729 "JobBatch Line Opt"
         if InBillTo <> '' then
             NewJob.Validate("Bill-to Customer No.", InBillTo);
         NewJob.Modify(true);
+
+        Rec."No." := NewJob."No."; // reflect the No. Series generated key in the POST response
 
         exit(false); // BC must NOT insert again
     end;
