@@ -355,6 +355,8 @@ window.BOOT = function() {
         user-select: none;
     }
     #dhx-ctx-menu.hidden { display: none; }
+    /* Any scheduler tooltip is suppressed while the right-click menu is open (class toggled in showMenu/hideMenu) */
+    body.dhx-ctx-open .dhtmlXTooltip { display: none !important; }
     .dhx-ctx-item {
         display: flex;
         align-items: center;
@@ -1548,15 +1550,27 @@ function setupContextMenu() {
 
         menu.className = '';
         // Keep inside viewport
-        var menuW = 200, menuH = 180;
-        var left = (x + menuW > window.innerWidth)  ? window.innerWidth  - menuW - 4 : x;
-        var top  = (y + menuH > window.innerHeight) ? window.innerHeight - menuH - 4 : y;
+        // Measure the real (visible) size, cap height to the viewport (scrolls if needed), then clamp.
+        menu.style.maxHeight = (window.innerHeight - 8) + 'px';
+        menu.style.overflowY = 'auto';
+        var menuW = menu.offsetWidth, menuH = menu.offsetHeight;
+        var left = Math.max(4, Math.min(x, window.innerWidth  - menuW - 4));
+        var top  = Math.max(4, Math.min(y, window.innerHeight - menuH - 4));
         menu.style.left = left + 'px';
         menu.style.top  = top  + 'px';
+        document.body.classList.add('dhx-ctx-open');
+        hideSchedulerTooltip();
     }
+
+    function hideSchedulerTooltip() {
+        try { if (scheduler.dhtmlXTooltip) scheduler.dhtmlXTooltip.hide(); } catch (e) {}
+    }
+    menu.addEventListener('mouseenter', hideSchedulerTooltip);
+    menu.addEventListener('mousemove',  hideSchedulerTooltip);
 
     function hideMenu() {
         menu.className = 'hidden';
+        document.body.classList.remove('dhx-ctx-open');
         _ctxTarget = null;
     }
 
