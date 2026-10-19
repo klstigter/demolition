@@ -1273,6 +1273,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     local procedure ShowAssignedCapacitySegment(SegmentId: Text; BarType: Text; DateFrom: Date; DateTo: Date; WholeWeek: Boolean)
     var
         DayPlanning: Record "Day Planning";
+        ResCapacityEntry: Record "Res. Capacity Entry";
         ResourceNoList: List of [Code[20]];
         ClassifyExternal: Boolean;
         UseClassification: Boolean;
@@ -1288,6 +1289,16 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         end;
 
         ResourceNoFilterText := BuildCodeOrFilter(ResourceNoList);
+
+        // The Capacity bar's Assigned segment is a slice of capacity ("Show Capacity" menu), so
+        // open Res. Capacity Entries like the Free Capacity segments do, not Day Plannings.
+        if (not WholeWeek) and (BarType = CapacityBarTypeTok) then begin
+            ResCapacityEntry.Reset();
+            ResCapacityEntry.SetRange(Date, DateFrom, DateTo);
+            ResCapacityEntry.SetFilter("Resource No.", ResourceNoFilterText);
+            Page.Run(Page::"Res. Capacity Entries", ResCapacityEntry);
+            exit;
+        end;
 
         DayPlanning.Reset();
         DayPlanning.SetRange("Plan Date", DateFrom, DateTo);
