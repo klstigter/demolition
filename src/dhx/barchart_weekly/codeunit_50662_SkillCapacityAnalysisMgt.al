@@ -307,7 +307,6 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         ChartData.Add('dayLabels', DayLabelsArray);
         ChartData.Add('dayIndices', DayIndicesArray);
         ChartData.Add('series', SeriesArray);
-        ChartData.Add('barWidth', ColorConstants.GetWeeklyBarChartWidth());
         // Hover/tooltip popup colours for dhx.Chart's own built-in hover tooltip (shown when
         // hovering a bar) - codeunit 50609's GetTooltipBackgroundColor/GetTooltipFontColor,
         // forwarded through this codeunit's own ColorConstants alias. See
@@ -449,7 +448,6 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         ChartData.Add('dayLabels', DayLabelsArray);
         ChartData.Add('dayIndices', DayIndicesArray);
         ChartData.Add('series', SeriesArray);
-        ChartData.Add('barWidth', ColorConstants.GetWeeklyBarChartWidth());
         ChartData.WriteTo(ChartDataJson);
     end;
 

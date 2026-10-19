@@ -501,90 +501,9 @@ codeunit 50609 "Visual Default Settings"
     end;
 
     /// <summary>
-    /// Public getter for the Daily chart's own built-in default bar width - same purpose as
-    /// GetDefaultAssignedColor/etc. above (lets page 50654's "Reset to default" restore a concrete
-    /// value without re-hardcoding the literal), but deliberately NOT 0: the "Bar Width (px) - Bar
-    /// Chart" field is shared by both the Daily and Weekly charts, and 0 has its own distinct
-    /// meaning ("use each chart's own built-in default" - see ResolveBarChartWidth) rather than
-    /// meaning "unset". Resetting to this Daily-specific default is a deliberate choice - it also
-    /// makes the Weekly chart render at this same width instead of its own DefaultWeeklyBarWidthPx,
-    /// since the field is shared; confirmed as the desired Reset-to-default behaviour.
-    /// </summary>
-    procedure GetDefaultDailyBarChartWidth(): Integer
-    begin
-        exit(DefaultDailyBarWidthPx());
-    end;
-
-    /// <summary>
-    /// Resolves the bar width (in pixels) to use for the Daily "Requested Hours vs Capacity" bar
-    /// chart - page 50681 "Requested vs Capacity Daily" and page 50707 "Requested vs Capacity Daily
-    /// P" (each builds its own ChartData JSON inline) - from "Daily Optimizer
-    /// Setup"."Bar Width (px) - Bar Chart", falling back to DefaultDailyBarWidthPx when the
-    /// singleton doesn't exist yet or the field is 0/blank. Thin wrapper over ResolveBarChartWidth
-    /// so neither caller needs to know/pass this chart's own default - matches
-    /// GetWeeklyBarChartWidth's shape for the Weekly chart's own default.
-    /// </summary>
-    procedure GetDailyBarChartWidth(): Integer
-    begin
-        exit(ResolveBarChartWidth(DefaultDailyBarWidthPx()));
-    end;
-
-    /// <summary>
-    /// Resolves the bar width (in pixels) to use for the Weekly "Requested Hours vs Capacity" bar
-    /// chart - codeunit 50662 "Skill Capacity Analysis Mgt."'s BuildDayCapacityChartData, the single
-    /// shared JSON builder for both page 50692 "Requested vs Capacity Weekly" and page 50708
-    /// "Requested vs Capacity Weekly P" - from "Daily Optimizer Setup"."Bar Width (px) - Bar Chart",
-    /// falling back to DefaultWeeklyBarWidthPx when the singleton doesn't exist yet or the field is
-    /// 0/blank. Thin wrapper over ResolveBarChartWidth, mirroring GetDailyBarChartWidth.
-    /// </summary>
-    procedure GetWeeklyBarChartWidth(): Integer
-    begin
-        exit(ResolveBarChartWidth(DefaultWeeklyBarWidthPx()));
-    end;
-
-    /// <summary>
-    /// Shared Get()-with-fallback logic behind GetDailyBarChartWidth/GetWeeklyBarChartWidth. Same
-    /// safe boolean-context Get() convention as ResolveCapacitySegmentColors above, for the same
-    /// reason: the singleton row is only ever created lazily via page 50654's OnOpenPage, so a bare
-    /// Get() can throw.
-    /// </summary>
-    local procedure ResolveBarChartWidth(DefaultWidth: Integer): Integer
-    var
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
-    begin
-        if DailyOptimizerSetup.Get() then
-            if DailyOptimizerSetup."Bar Width (px) - Bar Chart" <> 0 then
-                exit(DailyOptimizerSetup."Bar Width (px) - Bar Chart");
-
-        exit(DefaultWidth);
-    end;
-
-    /// <summary>
-    /// Named default bar width (px) for the Daily chart - matches that chart's own wrapper.js
-    /// pre-existing hardcoded default (src/dhx/barchart_daily/wrapper.js's RenderChart,
-    /// `barWidth: 50`). A local procedure rather than a var-section constant: AL's var section only
-    /// supports an inline initializer for Label (see AssColorTok/CapacityColorTok above, used there
-    /// for text/hex constants) - this is the equivalent named-constant idiom for a plain Integer.
-    /// </summary>
-    local procedure DefaultDailyBarWidthPx(): Integer
-    begin
-        exit(60);
-    end;
-
-    /// <summary>
-    /// Named default bar width (px) for the Weekly chart - matches that chart's own wrapper.js
-    /// pre-existing hardcoded default (src/dhx/barchart_weekly/wrapper.js's BAR_WIDTH_PX). Same
-    /// local-procedure-as-named-constant idiom as DefaultDailyBarWidthPx above.
-    /// </summary>
-    local procedure DefaultWeeklyBarWidthPx(): Integer
-    begin
-        exit(60);
-    end;
-
-    /// <summary>
     /// Named default on-bar label font size (px) for every Gantt task bar (ganttdemo2) - matches
     /// the vendored dhtmlxgantt.css theme's own default (--dhx-gantt-regular-font-size: 16px). Same
-    /// local-procedure-as-named-constant idiom as DefaultDailyBarWidthPx/DefaultWeeklyBarWidthPx
+    /// local-procedure-as-named-constant idiom as the other named-constant helpers
     /// above.
     /// </summary>
     local procedure DefaultGanttTaskBarFontSizePx(): Integer
@@ -596,7 +515,7 @@ codeunit 50609 "Visual Default Settings"
     /// Named default bar height (px) for every Gantt task bar (ganttdemo2) - matches
     /// src/dhx/ganttdemo2/wrapper.js's own pre-existing hardcoded fallback
     /// (`gantt.config.task_height = gantt.config.task_height || 13`). Same
-    /// local-procedure-as-named-constant idiom as DefaultDailyBarWidthPx/DefaultWeeklyBarWidthPx
+    /// local-procedure-as-named-constant idiom as the other named-constant helpers
     /// above.
     /// </summary>
     local procedure DefaultGanttTaskBarHeightPx(): Integer

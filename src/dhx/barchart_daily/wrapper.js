@@ -89,14 +89,12 @@ var SKILL_GROUP_BACKGROUND_COLOR = "#f7f7f7";
 // ApplySkillPairSpacing. Kept small but nonzero so the two bars still read as two distinct shapes
 // instead of visually fusing into one block.
 var PAIR_INNER_GAP_PX = 2;
-// Reassigned on every RenderChart call from AL's "Daily Optimizer Setup"."Bar Width (px) - Bar
-// Chart" (codeunit 50609 "Visual Default Settings"' GetDailyBarChartWidth), falling back to 50 if
-// chartData.barWidth wasn't sent or is falsy (this chart's own historical default - wider than
-// suite.js's own Bar default of 30px, see Bar.prototype._setDefaults). Kept as a module-level
-// variable (not a fixed constant, matching src/dhx/barchart_weekly/wrapper.js's own BAR_WIDTH_PX)
-// because ApplySkillPairSpacing computes bar-center offsets from it and nothing in the rendered
-// DOM exposes barWidth directly to read back.
-var BAR_WIDTH_PX = 50;
+// Current bar width (px). No setup field: ApplySkillPairSpacing derives the real value from the
+// rendered category slot width (plot width / category count) and, when it differs from this, sets
+// it and re-renders once. Starts at suite.js's own Bar default (30) as the first-pass estimate.
+var BAR_WIDTH_PX = 30;
+// Padding (px) removed from each bar's half-pair slot so neighbouring pairs read as separate.
+var BAR_SLOT_PADDING_PX = 8;
 
 // Reinstated 2026-09-22 (explicit user request, live screenshot) after being retired earlier the
 // same session: even sitting in its own horizontal group-header row (RenderSkillGroupRow), up to
@@ -582,11 +580,6 @@ function RenderChart(chartData, legendSizeOverride, isCorrectivePass) {
     var legendSize = legendSizeOverride || 40;
     lastLegendSize = legendSize;
 
-    // Reassigned on every call (see this var's own declaration comment) - must happen before
-    // `config` is built below (config.barWidth reads it) and before ApplySkillPairSpacing runs
-    // (scheduled via SchedulePostRenderPatches further down), since that function derives its
-    // pair-centering math from whatever this module-level variable currently holds.
-    BAR_WIDTH_PX = (chartData && chartData.barWidth) ? chartData.barWidth : 50;
 
     var categories  = (chartData && Array.isArray(chartData.categories))  ? chartData.categories  : [];
     var seriesDefs   = (chartData && Array.isArray(chartData.series))     ? chartData.series      : [];
@@ -635,7 +628,7 @@ function RenderChart(chartData, legendSizeOverride, isCorrectivePass) {
         data: data,
         series: series,
         // Kept in sync with BAR_WIDTH_PX (see its own comment) - ApplySkillPairSpacing derives its
-        // pair-centering math from that constant, so this value can't drift from it.
+        // pair-centering math from it and updates it from the slot width.
         barWidth: BAR_WIDTH_PX,
         // NOTE: the "text" scale's category field name comes from `text`, NOT `value`
         // (confirmed by reading suite.js's TextScale._setDefaults: `this.locator =
@@ -729,7 +722,11 @@ function SchedulePostRenderPatches() {
         // axis ticks' CURRENT x positions are, so it needs to see the tightened/pair-shifted
         // positions, not the native evenly-spaced ones. The other two patches don't care about bar
         // x position.
-        ApplySkillPairSpacing();
+        if (ApplySkillPairSpacing()) {
+            // Bar width changed -> RenderChart already rebuilt the chart and scheduled its own pass.
+            if (chartMutationObserver) chartMutationObserver.observe(chartContainer, { childList: true, subtree: true });
+            return;
+        }
         ApplySeriesBorders(lastSeriesDefs, lastSeries);
         ApplySeriesBlur(lastSeriesDefs, lastSeries);
         ApplyLegendSwatchBorders(lastSeriesDefs, lastSeries);
@@ -782,7 +779,7 @@ function CorrectLegendTopOverflowIfNeeded() {
 // is a post-render pixel patch) - renamed "day" -> "skill" only, logic unchanged.
 function ApplySkillPairSpacing() {
     var axisGroup = chartContainer.querySelector('g[aria-label^="x-axis"]');
-    if (!axisGroup) return;
+    if (!axisGroup) return false;
 
     // `:scope > text.scale-text` (DIRECT children only) - deliberately NOT a plain descendant
     // query, for the same reason src/dhx/barchart_weekly/wrapper.js's own ApplyDayPairSpacing uses
@@ -790,7 +787,20 @@ function ApplySkillPairSpacing() {
     // `text.scale-text` labels one level deeper) must not be counted here.
     var ticks = axisGroup.querySelectorAll(":scope > text.scale-text");
     var pairCount = Math.floor(ticks.length / 2);
-    if (pairCount < 1 || ticks.length % 2 !== 0) return; // odd tick count - shape mismatch, bail rather than misdraw
+    if (pairCount < 1 || ticks.length % 2 !== 0) return false; // odd tick count - shape mismatch, bail rather than misdraw
+
+    if (ticks[0].getAttribute("data-pair-shifted")) return false; // already patched - tick spacing no longer equals slot width
+
+    // Bar width from the same scale as the ticks: tick spacing = one category slot (plot width /
+    // category count); each bar takes one slot minus padding, so bars, C/R labels and skill names
+    // all scale together on resize. Re-render once if the width in use differs.
+    var slotWidth = Math.abs(parseFloat(ticks[1].getAttribute("x")) - parseFloat(ticks[0].getAttribute("x")));
+    var desiredBarWidth = Math.max(4, Math.floor(slotWidth - BAR_SLOT_PADDING_PX));
+    if (slotWidth > 0 && Math.abs(desiredBarWidth - BAR_WIDTH_PX) > 1 && lastChartData) {
+        BAR_WIDTH_PX = desiredBarWidth;
+        RenderChart(lastChartData, lastLegendSize, true);
+        return true;
+    }
 
     var half = (BAR_WIDTH_PX + PAIR_INNER_GAP_PX) / 2;
     var dx = []; // dx[flatCategoryIndex] = pixel shift for that category's bar(s)/tick
@@ -823,7 +833,18 @@ function ApplySkillPairSpacing() {
         if (dx[i] === undefined) return;
         var x = parseFloat(t.getAttribute("x"));
         t.setAttribute("x", x + dx[i]);
+        t.setAttribute("data-pair-shifted", "1");
     });
+
+    // The native vertical gridlines sit on each bar's centre, but the axis dividers (see
+    // RenderSkillGroupRow) sit on the slot boundaries - shift the gridlines half a slot so the
+    // plot's vertical lines continue the axis separators instead of cutting through the bars.
+    chartContainer.querySelectorAll("path.grid-line").forEach(function(g) {
+        if (/^\s*M\s*[-\d.]+\s+0\s*V/i.test(g.getAttribute("d") || "")) {
+            g.setAttribute("transform", "translate(" + (slotWidth / 2) + ",0)");
+        }
+    });
+    return false;
 }
 
 // Applies a CSS stroke to every rendered bar <path> of a series that requested a `border`
@@ -1181,18 +1202,26 @@ function RenderSkillGroupRow(skillLabels) {
         }));
     }
     // Bottom row: no pair dividers - the diagonal labels would cross them.
-    // One skill-code label per skill, tilted SKILL_LABEL_ROTATE_DEG with its END pinned under the
-    // pair's "R" cell, a little below the row divider - the text hangs from top-right down to
-    // bottom-left inside the Skill Code row and never touches the "C"/"R" row above.
-    var labelTopY = axisY + SKILL_ROW_HEIGHT + 12;
+    // One skill-code label per skill, centred under its C/R pair. Horizontal when the name fits the
+    // pair, always tilted SKILL_LABEL_ROTATE_DEG (end pinned at the pair centre) and truncated
+    // with an ellipsis to fit the Skill Code row height.
+    var labelTopY = axisY + SKILL_ROW_HEIGHT + 30;
+    var maxTiltedLen = (skillRowHeight - 26) / Math.sin(Math.abs(SKILL_LABEL_ROTATE_DEG) * Math.PI / 180);
     for (var i = 0; i < skillLabels.length; i++) {
-        var pivotX = xs[i * 2 + 1];
+        var centerX = (xs[i * 2] + xs[i * 2 + 1]) / 2;
+        var fullText = String(skillLabels[i]);
         var skillText = SvgEl("text", {
-            x: pivotX, y: labelTopY, "text-anchor": "end", "dominant-baseline": "middle", "class": "scale-text",
-            transform: "rotate(" + SKILL_LABEL_ROTATE_DEG + " " + pivotX + " " + labelTopY + ")"
+            x: centerX, y: labelTopY, "text-anchor": "middle", "dominant-baseline": "middle", "class": "scale-text"
         });
-        skillText.textContent = String(skillLabels[i]);
+        skillText.textContent = fullText;
         group.appendChild(skillText);
+        var textLen = skillText.getComputedTextLength ? skillText.getComputedTextLength() : 0;
+        skillText.setAttribute("text-anchor", "end");
+        skillText.setAttribute("transform", "rotate(" + SKILL_LABEL_ROTATE_DEG + " " + centerX + " " + labelTopY + ")");
+        if (textLen > maxTiltedLen) {
+            var keep = Math.max(1, Math.floor(fullText.length * maxTiltedLen / textLen) - 1);
+            skillText.textContent = fullText.slice(0, keep) + "…";
+        }
     }
 
     axisGroup.appendChild(group);

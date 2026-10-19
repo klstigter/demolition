@@ -432,7 +432,6 @@ page 50681 "Requested vs Capacity Daily"
         ChartData.Add('categories', CategoriesArray);
         ChartData.Add('skillLabels', SkillLabelsArray);
         ChartData.Add('series', SeriesArray);
-        ChartData.Add('barWidth', VisualDefaultSettings.GetDailyBarChartWidth());
         // Hover/tooltip popup colours for dhx.Chart's own built-in hover tooltip (shown when
         // hovering a bar) - codeunit 50609's GetTooltipBackgroundColor/GetTooltipFontColor. See
         // wrapper.js's RenderChart for how these two keys are applied.

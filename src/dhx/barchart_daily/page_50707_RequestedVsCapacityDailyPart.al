@@ -248,7 +248,6 @@ page 50707 "Requested vs Capacity Daily P"
         ChartData.Add('categories', CategoriesArray);
         ChartData.Add('skillLabels', SkillLabelsArray);
         ChartData.Add('series', SeriesArray);
-        ChartData.Add('barWidth', VisualDefaultSettings.GetDailyBarChartWidth());
         // Rendered by wrapper.js as plain HTML above the chart container (see UpdateHeader there) -
         // replaces the BC field(PeriodLabelCtrl)/group(Filters) caption this page used to carry in
         // its own layout() - see the layout() area's own comment for why those moved out of AL.

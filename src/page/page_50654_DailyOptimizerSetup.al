@@ -44,12 +44,6 @@ page 50654 "Daily Optimizer Setup"
                 {
                     Caption = 'Requested/Capacity';
 
-                    field("Bar Width (px) - Bar Chart"; Rec."Bar Width (px) - Bar Chart")
-                    {
-                        ApplicationArea = All;
-                        caption = 'Bar Width (px)';
-                        ToolTip = 'Specifies the width, in pixels, of each bar on the Requested Hours vs Capacity bar charts (Daily and Weekly). Leave at 0 to use the chart''s default width.';
-                    }
                     usercontrol(CfBarFontColor; DHXColorFieldAddin)
                     {
                         ApplicationArea = All;
@@ -589,7 +583,7 @@ page 50654 "Daily Optimizer Setup"
                     var
                         CreateDemoData: Codeunit "Create Demo Data";
                         VisualDefaultSettings: Codeunit "Visual Default Settings";
-                        ConfirmLbl: Label 'This will reset all Daily Optimizer Setup values - calendar/work hour template/default skill/number series, colors, and bar width - back to their built-in defaults, overwriting any customizations.\\Continue?';
+                        ConfirmLbl: Label 'This will reset all Daily Optimizer Setup values - calendar/work hour template/default skill/number series, and colors - back to their built-in defaults, overwriting any customizations.\\Continue?';
                     begin
                         if not Confirm(ConfirmLbl, false) then
                             exit;
@@ -629,7 +623,6 @@ page 50654 "Daily Optimizer Setup"
                         Rec."Tooltip Font Color" := VisualDefaultSettings.GetDefaultTooltipFontColor();
                         Rec."Weekend Color" := VisualDefaultSettings.GetDefaultWeekendColor();
                         Rec."Holiday Color" := VisualDefaultSettings.GetDefaultHolidayColor();
-                        Rec."Bar Width (px) - Bar Chart" := VisualDefaultSettings.GetDefaultDailyBarChartWidth();
                         Rec."GTB Color" := VisualDefaultSettings.GetDefaultGanttTaskBarColor();
                         Rec."GTB Color (non posting)" := VisualDefaultSettings.GetDefaultGanttTaskBarColorNonPosting();
                         Rec."GTB Border Color" := VisualDefaultSettings.GetDefaultGanttTaskBarBorderColor();

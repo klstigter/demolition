@@ -84,17 +84,12 @@ var DAY_GROUP_BACKGROUND_COLOR = "#f7f7f7";
 // ApplyDayPairSpacing. Kept small but nonzero so the two bars still read as two distinct shapes
 // instead of visually fusing into one block.
 var PAIR_INNER_GAP_PX = 2;
-// Wider than suite.js's own Bar default (`Bar.prototype._setDefaults`: `barWidth: 30`) - RenderChart
-// below passes this explicitly as `config.barWidth` so the two stay in sync; kept as a named
-// module-level variable (not a fixed constant) because ApplyDayPairSpacing computes bar-center
-// offsets from it and nothing in the rendered DOM exposes barWidth directly to read back. No longer
-// a fixed sync-with-the-library-default value: RenderChart reassigns this on every call from AL's
-// "Daily Optimizer Setup"."Bar Width (px) - Bar Chart" (codeunit 50609 "Visual Default Settings"'
-// GetWeeklyBarChartWidth), falling back to 45 (matching that codeunit's own DefaultWeeklyBarWidthPx)
-// if chartData.barWidth wasn't sent or is falsy - so this always holds the live width for whatever
-// was most recently rendered, which ApplyDayPairSpacing (run right after, via
-// SchedulePostRenderPatches) then reads back unchanged.
-var BAR_WIDTH_PX = 45;
+// Current bar width (px). No setup field: ApplyDayPairSpacing derives the real value from the
+// rendered category slot width (plot width / category count) and, when it differs from this, sets
+// it and re-renders once. Starts at suite.js's own Bar default (30) as the first-pass estimate.
+var BAR_WIDTH_PX = 30;
+// Padding (px) removed from each bar's half-pair slot so neighbouring pairs read as separate.
+var BAR_SLOT_PADDING_PX = 8;
 
 // ============================================================
 // Header (title + period line) - plain HTML rendered above chartContainer, replacing the
@@ -565,11 +560,6 @@ function RenderChart(chartData, legendSizeOverride, isCorrectivePass) {
     var legendSize = legendSizeOverride || 40;
     lastLegendSize = legendSize;
 
-    // Reassigned on every call (see this var's own declaration comment) - must happen before
-    // `config` is built below (config.barWidth reads it) and before ApplyDayPairSpacing runs
-    // (scheduled via SchedulePostRenderPatches further down), since that function derives its
-    // pair-centering math from whatever this module-level variable currently holds.
-    BAR_WIDTH_PX = (chartData && chartData.barWidth) ? chartData.barWidth : 45;
 
     var categories = (chartData && Array.isArray(chartData.categories)) ? chartData.categories : [];
     var seriesDefs  = (chartData && Array.isArray(chartData.series))     ? chartData.series     : [];
@@ -725,7 +715,11 @@ function SchedulePostRenderPatches() {
         // (day-name centers, divider positions, background box) from whatever the bottom axis ticks'
         // CURRENT x positions are, so it needs to see the tightened/pair-shifted positions, not the
         // native evenly-spaced ones. The other two patches don't care about bar x position.
-        ApplyDayPairSpacing();
+        if (ApplyDayPairSpacing()) {
+            // Bar width changed -> RenderChart already rebuilt the chart and scheduled its own pass.
+            if (chartMutationObserver) chartMutationObserver.observe(chartContainer, { childList: true, subtree: true });
+            return;
+        }
         ApplySeriesBorders(lastSeriesDefs, lastSeries);
         ApplyLegendSwatchBorders(lastSeriesDefs, lastSeries);
         ApplyLegendHitArea();
@@ -808,7 +802,7 @@ function CorrectLegendTopOverflowIfNeeded() {
 // a fresh native baseline before shifting it.
 function ApplyDayPairSpacing() {
     var axisGroup = chartContainer.querySelector('g[aria-label^="x-axis"]');
-    if (!axisGroup) return;
+    if (!axisGroup) return false;
 
     // `:scope > text.scale-text` (DIRECT children only) - deliberately NOT a plain descendant
     // query. This function runs BEFORE RenderDayGroupRow in SchedulePostRenderPatches, so on any
@@ -818,7 +812,19 @@ function ApplyDayPairSpacing() {
     // children only is exactly what the native per-bar ticks always are, regardless of timing.
     var ticks = axisGroup.querySelectorAll(":scope > text.scale-text");
     var pairCount = Math.floor(ticks.length / 2);
-    if (pairCount < 1 || ticks.length % 2 !== 0) return; // odd tick count - shape mismatch, bail rather than misdraw (mirrors RenderDayGroupRow's own guard)
+    if (pairCount < 1 || ticks.length % 2 !== 0) return false; // odd tick count - shape mismatch, bail rather than misdraw (mirrors RenderDayGroupRow's own guard)
+    if (ticks[0].getAttribute("data-pair-shifted")) return false; // already patched - tick spacing no longer equals slot width
+
+    // Bar width from the same scale as the ticks: tick spacing = one category slot (plot width /
+    // category count); each bar takes one slot minus padding, so bars, C/R labels and day names
+    // all scale together on resize. Re-render once if the width in use differs.
+    var slotWidth = Math.abs(parseFloat(ticks[1].getAttribute("x")) - parseFloat(ticks[0].getAttribute("x")));
+    var desiredBarWidth = Math.max(4, Math.floor(slotWidth - BAR_SLOT_PADDING_PX));
+    if (slotWidth > 0 && Math.abs(desiredBarWidth - BAR_WIDTH_PX) > 1 && lastChartData) {
+        BAR_WIDTH_PX = desiredBarWidth;
+        RenderChart(lastChartData, lastLegendSize, true);
+        return true;
+    }
 
     var half = (BAR_WIDTH_PX + PAIR_INNER_GAP_PX) / 2;
     var dx = []; // dx[flatCategoryIndex] = pixel shift for that category's bar(s)/tick
@@ -853,7 +859,17 @@ function ApplyDayPairSpacing() {
         if (dx[i] === undefined) return;
         var x = parseFloat(t.getAttribute("x"));
         t.setAttribute("x", x + dx[i]);
+        t.setAttribute("data-pair-shifted", "1");
     });
+
+    // The native vertical gridlines sit on each bar's centre; shift them half a slot onto the slot
+    // boundaries so they separate the bars (and match the axis dividers) instead of cutting through them.
+    chartContainer.querySelectorAll("path.grid-line").forEach(function(g) {
+        if (/^\s*M\s*[-\d.]+\s+0\s*V/i.test(g.getAttribute("d") || "")) {
+            g.setAttribute("transform", "translate(" + (slotWidth / 2) + ",0)");
+        }
+    });
+    return false;
 }
 
 // Applies a CSS stroke to every rendered bar <path> of a series that requested a `border`
@@ -1267,8 +1283,17 @@ function RenderDayGroupRow(dayLabels) {
     for (var i = 0; i < dayLabels.length; i++) {
         var midX = (xs[i * 2] + xs[i * 2 + 1]) / 2;
         var dayText = SvgEl("text", { x: midX, y: row2Y, "text-anchor": "middle", "class": "scale-text" });
-        dayText.textContent = String(dayLabels[i]);
+        var fullText = String(dayLabels[i]);
+        dayText.textContent = fullText;
         group.appendChild(dayText);
+        // Truncate with an ellipsis when the name is wider than its pair slot (no room to rotate
+        // in the fixed-height row).
+        var textLen = dayText.getComputedTextLength ? dayText.getComputedTextLength() : 0;
+        var pairSlotWidth = step * 2 - 4;
+        if (textLen > pairSlotWidth) {
+            var keep = Math.max(1, Math.floor(fullText.length * pairSlotWidth / textLen) - 1);
+            dayText.textContent = fullText.slice(0, keep) + "…";
+        }
     }
 
     axisGroup.appendChild(group);
