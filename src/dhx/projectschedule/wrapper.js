@@ -608,7 +608,7 @@ window.BOOT = function() {
     // DHTMLX's own .dhtmlXTooltip.tooltip (scheduler's tooltip plugin, see style.css) - only the
     // INNER content markup changes here.
     scheduler.templates.tooltip_text = function(start, end, ev) {
-        var formatDateOnly = scheduler.date.date_to_str("%d %B %Y");
+        var formatDateOnly = scheduler.date.date_to_str("%d %M %Y");
         // Parse event ID: "JobNo|JobTaskNo|DayNo|DayLineNo|ResNo|ResName" - job/task/jobDescription/
         // taskDescription/sequenceNo below now come straight from their own real fields
         // (codeunit 50604's GetYUnitElementsJSON_Project(_Paged) - 2026-09-11 addition) rather than
