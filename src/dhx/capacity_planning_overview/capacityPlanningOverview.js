@@ -1712,9 +1712,11 @@ class CapacityPlanningOverview {
         });
         const dayLabel = x.date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' });
         return '<div class="cpo-dst-title">' + cpoEsc(dayLabel) + ' \u00b7 Request summary</div>' +
-            '<div class="cpo-dst-row"><span class="cpo-dst-swatch" style="background:' + self.capColors().assigned + '"></span><span>Assigned</span><span class="cpo-dst-value">' + cpoHoursText(x.assignedRequest) + '</span></div>' +
             rows +
-            '<div class="cpo-dst-rule"></div><div class="cpo-dst-total"><span>Total request</span><span>' + cpoHoursText(x.request) + '</span></div>';
+            '<div class="cpo-dst-total"><span>Total request</span><span>' + cpoHoursText(x.request - x.assignedRequest) + '</span></div>' +
+            '<div class="cpo-dst-rule" style="border-top:3px solid #333"></div>' +
+            '<div class="cpo-dst-title">Assigned Summary</div>' +
+            '<div class="cpo-dst-row"><span class="cpo-dst-swatch" style="background:' + self.capColors().assigned + '"></span><span>Assigned</span><span class="cpo-dst-value">' + cpoHoursText(x.assignedRequest) + '</span></div>';
     }
 
     positionDailySummaryTip(tip, e) {

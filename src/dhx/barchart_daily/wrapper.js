@@ -506,15 +506,25 @@ function BuildSummaryTipHtml(catIdx, title) {
     });
 
     var isCapacity = kind === "Capacity";
-    return '<div style="font-weight:700;margin-bottom:4px">' + SummaryEsc(title) + ' · ' + (isCapacity ? 'Capacity' : 'Request') + ' summary</div>' +
-        rows.reverse().map(function(r) {
-            return '<div style="display:flex;align-items:center;gap:6px;padding:1px 0">' +
-                '<span style="width:9px;height:9px;border-radius:2px;flex:0 0 auto;background:' + r.color + ';border:1px solid ' + r.border + '"></span>' +
-                '<span style="flex:1">' + SummaryEsc(r.label) + '</span>' +
-                '<span style="font-weight:600">' + SummaryHoursText(r.value) + '</span></div>';
-        }).join('') +
-        '<div style="border-top:1px solid #ececec;margin:4px 0"></div>' +
-        '<div style="display:flex;justify-content:space-between;gap:12px;font-weight:700"><span>Total ' + (isCapacity ? 'capacity' : 'request') + '</span><span>' + SummaryHoursText(total) + '</span></div>';
+    var titleHtml = function(t) { return '<div style="font-weight:700;margin-bottom:4px">' + SummaryEsc(t) + '</div>'; };
+    var rowHtml = function(r) {
+        return '<div style="display:flex;align-items:center;gap:6px;padding:1px 0">' +
+            '<span style="width:9px;height:9px;border-radius:2px;flex:0 0 auto;background:' + r.color + ';border:1px solid ' + r.border + '"></span>' +
+            '<span style="flex:1">' + SummaryEsc(r.label) + '</span>' +
+            '<span style="font-weight:600">' + SummaryHoursText(r.value) + '</span></div>';
+    };
+    if (isCapacity) {
+        return titleHtml(title + ' · Capacity summary') + rows.reverse().map(rowHtml).join('') +
+            '<div style="border-top:1px solid #ececec;margin:4px 0"></div>' +
+            '<div style="display:flex;justify-content:space-between;gap:12px;font-weight:700"><span>Total capacity</span><span>' + SummaryHoursText(total) + '</span></div>';
+    }
+    // Request bar: 2 sections - requested (unassigned per skill + total) and assigned.
+    var assigned = rows.filter(function(r) { return r.label === "Assigned"; });
+    var requested = rows.filter(function(r) { return r.label !== "Assigned"; });
+    var requestedTotal = requested.reduce(function(a, r) { return a + r.value; }, 0);
+    return titleHtml(title + ' · Request summary') + requested.reverse().map(rowHtml).join('') +
+        '<div style="display:flex;justify-content:space-between;gap:12px;font-weight:700"><span>Total request</span><span>' + SummaryHoursText(requestedTotal) + '</span></div>' +
+        (assigned.length ? '<div style="border-top:3px solid #333;margin:4px 0"></div>' + titleHtml('Assigned Summary') + assigned.map(rowHtml).join('') : '');
 }
 
 function HideSummaryTip() {
