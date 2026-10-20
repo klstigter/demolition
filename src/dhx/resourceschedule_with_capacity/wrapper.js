@@ -384,7 +384,8 @@ window.BOOT = function () {
             if (ev.type === "capacity") {
                 var html = '<div class="dhx-tt">';
                 html += '<div class="dhx-tt-table" style="grid-template-columns:110px 1fr;">';
-                html += '<div class="dhx-tt-label">Capacity</div><div class="dhx-tt-val">' + escapeRcHtml(ev.resource_id || "") + '</div>';
+                html += '<div class="dhx-tt-label">Resource No.</div><div class="dhx-tt-val">' + escapeRcHtml(ev.resource_id || "") + '</div>';
+                html += '<div class="dhx-tt-label">Skill</div><div class="dhx-tt-val">' + escapeRcHtml(ev.skills || "") + '</div>';
                 html += '<div class="dhx-tt-label">Date</div><div class="dhx-tt-val">' + formatDateOnly(start) + '</div>';
                 html += '<div class="dhx-tt-label">Capacity (h)</div><div class="dhx-tt-val">' + (ev.hours != null ? ev.hours : '') + '</div>';
                 html += '<div class="dhx-tt-label">Start Time</div><div class="dhx-tt-val">' + formatTimeOnly(start) + '</div>';

@@ -53,6 +53,15 @@ page 50708 "Requested vs Capacity Weekly P"
                     SkillCapacityAnalysisMgt.ShowSegmentData(SegmentId, BarType, PeriodStartDate, DayIndex, WholeWeek);
                 end;
 
+                trigger OnOpenScheduler(Target: Text; SkillCode: Text; DayIndex: Integer)
+                var
+                    DHXDataHandler: Codeunit "DHX Data Handler";
+                begin
+                    if (DayIndex < 1) or (DayIndex > 7) then
+                        exit;
+                    DHXDataHandler.CPO_OpenSchedulerFromChart(Target, SkillCode, PeriodStartDate + (DayIndex - 1));
+                end;
+
                 // JS-rendered toolbar replacements for the retired BC RefreshAction/PreviousAction/
                 // TodayAction/NextAction actions (see this page's own former actions() area, and
                 // wrapper.js's BuildToolbar/UpdateToolbar) - BC collapses a CardPart's action bar into
