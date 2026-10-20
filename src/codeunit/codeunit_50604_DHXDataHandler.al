@@ -4372,7 +4372,15 @@ codeunit 50604 "DHX Data Handler"
         JObj: JsonObject;
         SkillVal: Code[20];
         AnyEmitted: Boolean;
+        SkillsTxt: Text;
     begin
+        // All the resource's skills, " | "-joined, for the capacity-bar tooltip's "Skill" row.
+        foreach SkillVal in ResSkills do begin
+            if SkillsTxt <> '' then
+                SkillsTxt += ' | ';
+            SkillsTxt += SkillVal;
+        end;
+
         foreach SkillVal in ResSkills do begin
             if SkillFilter <> '' then begin
                 TempSkillFilterCheck.Reset();
@@ -4395,6 +4403,7 @@ codeunit 50604 "DHX Data Handler"
             JObj.Add('classname', 'event-capacity');
             JObj.Add('type', 'capacity');
             JObj.Add('hours', Hours);
+            JObj.Add('skills', SkillsTxt);
             JArray.Add(JObj);
             AnyEmitted := true;
         end;
@@ -5277,7 +5286,7 @@ codeunit 50604 "DHX Data Handler"
     /// resource belongs to exactly one Resource Group (no SkillFilter-style branch list to
     /// iterate/duplicate onto).
     /// </summary>
-    local procedure ResGroupResScheduler_EmitCapacityEvent(var JArray: JsonArray; ResNo: Code[20]; CapDate: Date; StartTxt: Text; EndTxt: Text; Hours: Decimal)
+    local procedure ResGroupResScheduler_EmitCapacityEvent(var JArray: JsonArray; ResNo: Code[20]; CapDate: Date; StartTxt: Text; EndTxt: Text; Hours: Decimal; var SkillsCache: Dictionary of [Code[20], Text])
     var
         JObj: JsonObject;
         SectionSuffix: Code[20];
@@ -5293,7 +5302,32 @@ codeunit 50604 "DHX Data Handler"
         JObj.Add('classname', 'event-capacity');
         JObj.Add('type', 'capacity');
         JObj.Add('hours', Hours);
+        JObj.Add('skills', GetResourceSkillsTxtCached(ResNo, SkillsCache));
         JArray.Add(JObj);
+    end;
+
+    /// <summary>
+    /// The resource's registered skills (Resource Skill table), " | "-joined, for the
+    /// capacity-bar tooltip "Skill" row. SkillsCache is per-call (caller's local) so each
+    /// resource is queried once, not once per capacity event.
+    /// </summary>
+    procedure GetResourceSkillsTxtCached(ResNo: Code[20]; var SkillsCache: Dictionary of [Code[20], Text]): Text
+    var
+        ResourceSkill: Record "Resource Skill";
+        SkillsTxt: Text;
+    begin
+        if SkillsCache.ContainsKey(ResNo) then
+            exit(SkillsCache.Get(ResNo));
+        ResourceSkill.SetRange(Type, ResourceSkill.Type::Resource);
+        ResourceSkill.SetRange("No.", ResNo);
+        if ResourceSkill.FindSet() then
+            repeat
+                if SkillsTxt <> '' then
+                    SkillsTxt += ' | ';
+                SkillsTxt += ResourceSkill."Skill Code";
+            until ResourceSkill.Next() = 0;
+        SkillsCache.Add(ResNo, SkillsTxt);
+        exit(SkillsTxt);
     end;
 
     /// <summary>
@@ -5325,6 +5359,7 @@ codeunit 50604 "DHX Data Handler"
         LastDate: Date;
         AggStartTime: Time;
         AggCapacity: Decimal;
+        SkillsCache: Dictionary of [Code[20], Text];
     begin
         ResCap.Reset();
         ResCap.SetCurrentKey("Resource No.", "Date");
@@ -5351,7 +5386,7 @@ codeunit 50604 "DHX Data Handler"
                             TempResCap."Start Time" := AggStartTime;
                             GetStartEndTxt(TempResCap, AggCapacity, StartDateTimeStr, EndDateTimeStr);
                             if (StartDateTimeStr <> '') and (EndDateTimeStr <> '') then
-                                ResGroupResScheduler_EmitCapacityEvent(JArray, LastResNo, LastDate, StartDateTimeStr, EndDateTimeStr, AggCapacity);
+                                ResGroupResScheduler_EmitCapacityEvent(JArray, LastResNo, LastDate, StartDateTimeStr, EndDateTimeStr, AggCapacity, SkillsCache);
                         end;
                         LastResNo := ResCap."Resource No.";
                         LastDate := ResCap."Date";
@@ -5372,7 +5407,7 @@ codeunit 50604 "DHX Data Handler"
             TempResCap."Start Time" := AggStartTime;
             GetStartEndTxt(TempResCap, AggCapacity, StartDateTimeStr, EndDateTimeStr);
             if (StartDateTimeStr <> '') and (EndDateTimeStr <> '') then
-                ResGroupResScheduler_EmitCapacityEvent(JArray, LastResNo, LastDate, StartDateTimeStr, EndDateTimeStr, AggCapacity);
+                ResGroupResScheduler_EmitCapacityEvent(JArray, LastResNo, LastDate, StartDateTimeStr, EndDateTimeStr, AggCapacity, SkillsCache);
         end;
 
         Clear(JRoot);
