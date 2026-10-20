@@ -35,7 +35,9 @@ page 50706 "DHX Scheduler - TimeLine"
                     if GuiAllowed() then
                         Window.Open(LoadingLbl);
 
-                    DHXDataHandler.GetWeekPeriodDates(Today(), AnchorDate, DummyEndDate);
+                    if AnchorDate = 0D then
+                        AnchorDate := Today(); // SetAnchorDate may preset it
+                    DHXDataHandler.GetWeekPeriodDates(AnchorDate, AnchorDate, DummyEndDate);
                     if IsResourceGroupMode() then
                         TreeJsonTxt := DHXDataHandler.ResGroupResScheduler_BuildTreeJson(ResourceFilter, SkillFilter)
                     else
@@ -567,6 +569,11 @@ page 50706 "DHX Scheduler - TimeLine"
     begin
         SkillFilter := SkillCodeVal;
         ResourceFilter := '';
+    end;
+
+    procedure SetAnchorDate(NewAnchorDate: Date)
+    begin
+        AnchorDate := NewAnchorDate;
     end;
 
     local procedure RefreshSchedule()

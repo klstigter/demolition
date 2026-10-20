@@ -1925,6 +1925,7 @@ class CapacityPlanningOverview {
                 Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnShowCapacityBarSegment', [JSON.stringify(payload)]);
                 self.hideLoading();
             });
+            self.addExtraCapacityBarMenuItems(menu, payload, col.dataset.summaryKind);
 
             menu.hidden = false;
             const menuRect = menu.getBoundingClientRect();
@@ -1938,6 +1939,10 @@ class CapacityPlanningOverview {
             if (!menu.hidden && !menu.contains(e.target)) self.hideTreeContextMenu();
         });
         document.addEventListener('scroll', function () { self.hideTreeContextMenu(); }, true);
+    }
+
+    /// <summary>Hook for extra Section 3 bar menu items - no-op here; CapacityPlanningDashboard overrides it.</summary>
+    addExtraCapacityBarMenuItems(menu, payload, kind) {
     }
 
     // ================================================================================

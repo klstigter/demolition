@@ -22,6 +22,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
                     startDate: Date;
                     endDate: Date;
                     EarliestPlanningDate: Date;
+                    AnchorPreset: Boolean;
                     PlanninJsonTxt: Text;
                     ResourceJSONTxt: Text;
                     ColorsJsonTxt: Text;
@@ -37,8 +38,13 @@ page 50600 "DHX Scheduler (Pool Resource)"
                         Window.Open(LoadingLbl);
 
                     //DHXDataHandler.GetOneYearPeriodDates(Today(), startDate, endDate);
-                    DHXDataHandler.GetWeekPeriodDates(Today(), startDate, endDate);
+                    AnchorPreset := AnchorDate <> 0D;
+                    if AnchorDate = 0D then
+                        AnchorDate := Today(); // SetAnchorDate may preset it
+                    DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
                     ResourceJSONTxt := DHXDataHandler.GetYUnitElementsJSON_Pool(Today(), startDate, endDate, false, PlanninJsonTxt, EarliestPlanningDate, ResourceFilter, ResourceNameFilter, SkillFilter);
+                    if AnchorPreset then
+                        EarliestPlanningDate := startDate; // open the timeline on the week the caller asked for
 
                     if GuiAllowed() then
                         Window.Update(1, 'Rendering...');
@@ -446,6 +452,16 @@ page 50600 "DHX Scheduler (Pool Resource)"
         ResourceFilter: Text;
         ResourceNameFilter: Text;
         SkillFilter: Text;
+
+    procedure SetSkillFilter(NewSkillFilter: Text)
+    begin
+        SkillFilter := NewSkillFilter;
+    end;
+
+    procedure SetAnchorDate(NewAnchorDate: Date)
+    begin
+        AnchorDate := NewAnchorDate;
+    end;
 
     local procedure RefreshSchedule()
     var
