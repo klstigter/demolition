@@ -1113,6 +1113,7 @@ codeunit 50604 "DHX Data Handler"
 
         ResNo: Code[20];
         VenNo: Code[20];
+        CapSkillsCache: Dictionary of [Code[20], Text];
         section_id: Text;
         New_section_id: Text;
         StartDateTxt: Text;
@@ -1141,6 +1142,9 @@ codeunit 50604 "DHX Data Handler"
                         PlanningObject.Add('start_date', StartDateTxt);
                         PlanningObject.Add('end_date', EndDateTxt);
                         PlanningObject.Add('text', 'capacity');
+                        PlanningObject.Add('resource_id', ResCap."Resource No.");
+                        PlanningObject.Add('skills', GetResourceSkillsTxtCached(ResCap."Resource No.", CapSkillsCache));
+                        PlanningObject.Add('hours', ResCapQry.Capacity);
                         if WithDayPlanning then begin
                             New_section_id := GetVendorNoFromDayPlanning(StartDate, EndDate, ResCap."Resource No."); //move into seciton id with DayPlanning source no. and posibility has a vendor
                             if New_section_id = '' then begin
@@ -1351,6 +1355,7 @@ codeunit 50604 "DHX Data Handler"
 
         ResNo: Code[20];
         PoolNo: Code[20];
+        CapSkillsCache: Dictionary of [Code[20], Text];
         section_id: Text;
         New_section_id: Text;
         StartDateTxt: Text;
@@ -1377,6 +1382,9 @@ codeunit 50604 "DHX Data Handler"
                 PlanningObject.Add('start_date', StartDateTxt);
                 PlanningObject.Add('end_date', EndDateTxt);
                 PlanningObject.Add('text', 'capacity');
+                PlanningObject.Add('resource_id', ResCap."Resource No.");
+                PlanningObject.Add('skills', GetResourceSkillsTxtCached(ResCap."Resource No.", CapSkillsCache));
+                PlanningObject.Add('hours', ResCapQry.Capacity);
                 // Day Planning path disabled for now — Capacity-only page 50600 always passes WithDayPlanning = false. Restore by uncommenting + re-enabling the page's Show/Hide Day Planning actions.
                 /*
                 if WithDayPlanning then begin
