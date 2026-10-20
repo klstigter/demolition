@@ -53,9 +53,9 @@ codeunit 50605 "API Record Exposed Mgt."
                         NewFldRef := NewRecRef.FieldIndex(i);
                         if NewFldRef.Class() = FieldClass::Normal then begin
                             OldFldRef := OldRecRef.Field(NewFldRef.Number());
-                            if Format(OldFldRef.Value()) <> Format(NewFldRef.Value()) then
+                            if FormatValue(OldFldRef) <> FormatValue(NewFldRef) then
                                 if GetApiFieldName(APIRecordExposed."API Page No.", TableID, NewFldRef.Number(), ControlName) then
-                                    InsertLog(NewRecRef, PageMetadata.EntitySetName, ControlName, "Update and Delete Log Action"::Modify, NewFldRef.Number(), Format(OldFldRef.Value()), Format(NewFldRef.Value()));
+                                    InsertLog(NewRecRef, PageMetadata.EntitySetName, ControlName, "Update and Delete Log Action"::Modify, NewFldRef.Number(), FormatValue(OldFldRef), FormatValue(NewFldRef));
                         end;
                     end;
             until APIRecordExposed.Next() = 0;
@@ -99,9 +99,17 @@ codeunit 50605 "API Record Exposed Mgt."
                         xFldRef := xRecRef.Field(FldRef.Number());
                         if not GetApiFieldName(APIRecordExposed."API Page No.", RecRef.Number(), FldRef.Number(), ControlName) then
                             ControlName := '';
-                        InsertLog(RecRef, PageMetadata.EntitySetName, ControlName, "Update and Delete Log Action"::Rename, FldRef.Number(), Format(xFldRef.Value()), Format(FldRef.Value()));
+                        InsertLog(RecRef, PageMetadata.EntitySetName, ControlName, "Update and Delete Log Action"::Rename, FldRef.Number(), FormatValue(xFldRef), FormatValue(FldRef));
                     end;
             until APIRecordExposed.Next() = 0;
+    end;
+
+    // DateTime values are logged as ISO 8601 UTC (e.g. 2026-10-20T08:00:00.000Z), matching what the API pages expose.
+    local procedure FormatValue(FldRef: FieldRef): Text
+    begin
+        if FldRef.Type() = FieldType::DateTime then
+            exit(Format(FldRef.Value(), 0, 9));
+        exit(Format(FldRef.Value()));
     end;
 
     local procedure LogRecordLevelChange(RecRef: RecordRef;
