@@ -499,17 +499,22 @@ function BuildSummaryTipHtml(catIdx, title) {
             '<span style="font-weight:600">' + SummaryHoursText(r.value) + '</span></div>';
     };
     if (isCapacity) {
-        return titleHtml(title + ' · Capacity summary') + rows.reverse().map(rowHtml).join('') +
+        // Free capacity rows + their own total, then the Assigned row at the bottom.
+        var capAssigned = rows.filter(function(r) { return r.label === "Assigned"; });
+        var capFree = rows.filter(function(r) { return r.label !== "Assigned"; });
+        var freeTotal = capFree.reduce(function(a, r) { return a + r.value; }, 0);
+        return titleHtml(title) + capFree.reverse().map(rowHtml).join('') +
             '<div style="border-top:1px solid #ececec;margin:4px 0"></div>' +
-            '<div style="display:flex;justify-content:space-between;gap:12px;font-weight:700"><span>Total capacity</span><span>' + SummaryHoursText(total) + '</span></div>';
+            '<div style="display:flex;justify-content:space-between;gap:12px;font-weight:700"><span style="flex:1;text-align:right">Total Free Capacity</span><span>' + SummaryHoursText(freeTotal) + '</span></div>' +
+            (capAssigned.length ? '<div style="border-top:1px solid #ececec;margin:4px 0"></div>' + capAssigned.map(rowHtml).join('') : '');
     }
     // Request bar: 2 sections - requested (unassigned per skill + total) and assigned.
     var assigned = rows.filter(function(r) { return r.label === "Assigned"; });
     var requested = rows.filter(function(r) { return r.label !== "Assigned"; });
     var requestedTotal = requested.reduce(function(a, r) { return a + r.value; }, 0);
-    return titleHtml(title + ' · Request summary') + requested.reverse().map(rowHtml).join('') +
-        '<div style="display:flex;justify-content:space-between;gap:12px;font-weight:700"><span>Total request</span><span>' + SummaryHoursText(requestedTotal) + '</span></div>' +
-        (assigned.length ? '<div style="border-top:3px solid #333;margin:4px 0"></div>' + titleHtml('Assigned Summary') + assigned.map(rowHtml).join('') : '');
+    return titleHtml(title) + requested.reverse().map(rowHtml).join('') +
+        '<div style="display:flex;justify-content:space-between;gap:12px;font-weight:700"><span style="flex:1;text-align:right">Total open request</span><span>' + SummaryHoursText(requestedTotal) + '</span></div>' +
+        (assigned.length ? '<div style="border-top:1px solid #ececec;margin:4px 0"></div>' + assigned.map(rowHtml).join('') : '');
 }
 
 function HideSummaryTip() {
@@ -528,7 +533,20 @@ function ShowSummaryTip(e) {
     }
     summaryTipEl.style.background = (lastChartData && lastChartData.tooltipBg) || "#fff";
     summaryTipEl.style.color = (lastChartData && lastChartData.tooltipFont) || "#101828";
-    summaryTipEl.innerHTML = BuildSummaryTipHtml(catIdx, lastDayLabels[Math.floor(catIdx / 2)] || "");
+    // Title = "<Weekday> <date>" - the date is derived from the first date in the header period label
+    // (the Monday, e.g. "wk 43 (Mon, 19 Oct 2026 - ...)") + the day's 1..7 weekday index. Pages that
+    // send no period label (50692) keep just the weekday.
+    var dayPos = Math.floor(catIdx / 2);
+    var title = lastDayLabels[dayPos] || "";
+    var m = String((lastChartData && lastChartData.periodLabel) || "").match(/(\d{1,2})\s+([A-Za-z]{3})\w*\s+(\d{4})/);
+    if (m && lastDayIndices[dayPos]) {
+        var d = new Date(m[1] + " " + m[2] + " " + m[3] + " 12:00");
+        if (!isNaN(d)) {
+            d.setDate(d.getDate() + Number(lastDayIndices[dayPos]) - 1);
+            title += " " + d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+        }
+    }
+    summaryTipEl.innerHTML = BuildSummaryTipHtml(catIdx, title);
 
     summaryTipEl.style.display = "block";
     var x = e.clientX + 12, y = e.clientY + 12;

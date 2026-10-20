@@ -1693,13 +1693,13 @@ class CapacityPlanningOverview {
 
     dailyCapacityTooltipHtml(x) {
         const cc = this.capColors();
-        const total = x.assigned + x.freeInt + x.freeExt;
-        const dayLabel = x.date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' });
-        return '<div class="cpo-dst-title">' + cpoEsc(dayLabel) + ' \u00b7 Capacity summary</div>' +
+        const dayLabel = x.date.toLocaleDateString('en-GB', { weekday: 'short' }) + ' ' + x.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        return '<div class="cpo-dst-title">' + cpoEsc(dayLabel) + '</div>' +
             '<div class="cpo-dst-row"><span class="cpo-dst-swatch" style="background:' + cc.capacity + ';border-color:' + cc.externalBorder + '"></span><span>Free external</span><span class="cpo-dst-value">' + cpoHoursText(x.freeExt) + '</span></div>' +
             '<div class="cpo-dst-row"><span class="cpo-dst-swatch" style="background:' + cc.capacity + '"></span><span>Free internal</span><span class="cpo-dst-value">' + cpoHoursText(x.freeInt) + '</span></div>' +
-            '<div class="cpo-dst-row"><span class="cpo-dst-swatch" style="background:' + cc.assigned + '"></span><span>Assigned</span><span class="cpo-dst-value">' + cpoHoursText(x.assigned) + '</span></div>' +
-            '<div class="cpo-dst-rule"></div><div class="cpo-dst-total"><span>Total capacity</span><span>' + cpoHoursText(total) + '</span></div>';
+            '<div class="cpo-dst-rule"></div><div class="cpo-dst-total" style="gap:12px"><span style="flex:1;text-align:right">Total Free Capacity</span><span>' + cpoHoursText(x.freeInt + x.freeExt) + '</span></div>' +
+            '<div class="cpo-dst-rule" style="border-top:1px solid #ececec"></div>' +
+            '<div class="cpo-dst-row"><span class="cpo-dst-swatch" style="background:' + cc.assigned + '"></span><span>Assigned</span><span class="cpo-dst-value">' + cpoHoursText(x.assigned) + '</span></div>';
     }
 
     dailyRequestTooltipHtml(x) {
@@ -1708,14 +1708,14 @@ class CapacityPlanningOverview {
         this.skills.slice().reverse().forEach(function (sk) {
             const meta = self.skillMeta(sk);
             const value = x.unassignedBySkill[sk] || 0;
+            if (value <= 0) return;
             rows += '<div class="cpo-dst-row"><span class="cpo-dst-swatch" style="background:' + meta.color + ';border-color:' + meta.border + '"></span><span>' + cpoEsc(sk) + '</span><span class="cpo-dst-value">' + cpoHoursText(value) + '</span></div>';
         });
-        const dayLabel = x.date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' });
-        return '<div class="cpo-dst-title">' + cpoEsc(dayLabel) + ' \u00b7 Request summary</div>' +
+        const dayLabel = x.date.toLocaleDateString('en-GB', { weekday: 'short' }) + ' ' + x.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        return '<div class="cpo-dst-title">' + cpoEsc(dayLabel) + '</div>' +
             rows +
-            '<div class="cpo-dst-total"><span>Total request</span><span>' + cpoHoursText(x.request - x.assignedRequest) + '</span></div>' +
-            '<div class="cpo-dst-rule" style="border-top:3px solid #333"></div>' +
-            '<div class="cpo-dst-title">Assigned Summary</div>' +
+            '<div class="cpo-dst-total" style="gap:12px"><span style="flex:1;text-align:right">Total open request</span><span>' + cpoHoursText(x.request - x.assignedRequest) + '</span></div>' +
+            '<div class="cpo-dst-rule" style="border-top:1px solid #ececec"></div>' +
             '<div class="cpo-dst-row"><span class="cpo-dst-swatch" style="background:' + self.capColors().assigned + '"></span><span>Assigned</span><span class="cpo-dst-value">' + cpoHoursText(x.assignedRequest) + '</span></div>';
     }
 
