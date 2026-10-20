@@ -21,10 +21,8 @@ codeunit 60022 "Summary View Pair Cols Tests"
     begin
         TestJobNo := 'SVPCT-JOB';
         TestJobTaskNo := '1000';
-
         if IsInitialized then
             exit;
-
         if not Job.Get(TestJobNo) then begin
             Job.Init();
             Job."No." := TestJobNo;
@@ -194,7 +192,7 @@ codeunit 60022 "Summary View Pair Cols Tests"
         SummaryWeekly.SetRange("Resource No.", '');
         SummaryWeekly.SetRange("Job No.", TestJobNo);
         SummaryWeekly.SetRange("Job Task No.", TestJobTaskNo);
-        AssertIsTrue(SummaryWeekly.FindFirst(), 'Expected to find the unassigned Summary Weekly row.');
+        AssertIsTrue(SummaryWeekly.FindFirst(), 'Expected to find the unassigned Weekly row.');
 
         AssertAreEqual(5, SummaryWeekly."Tuesday Requested Hours", 'Tuesday Requested Hours should equal the open demand''s Requested Hours.');
         AssertAreEqual(0, SummaryWeekly."Tuesday Assigned Hours", 'Tuesday Assigned Hours should remain zero for unassigned demand.');

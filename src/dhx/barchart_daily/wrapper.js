@@ -521,17 +521,20 @@ function BuildSummaryTipHtml(catIdx, title) {
             '<span style="font-weight:600">' + SummaryHoursText(r.value) + '</span></div>';
     };
     if (isCapacity) {
-        return titleHtml(title + ' · Capacity summary') + rows.reverse().map(rowHtml).join('') +
+        // Free capacity rows + their own total, then the Assigned row at the bottom.
+        var capAssigned = rows.filter(function(r) { return r.label === "Assigned"; });
+        var capFree = rows.filter(function(r) { return r.label !== "Assigned"; });
+        var freeTotal = capFree.reduce(function(a, r) { return a + r.value; }, 0);
+        return titleHtml(title) + capFree.reverse().map(rowHtml).join('') +
             '<div style="border-top:1px solid #ececec;margin:4px 0"></div>' +
-            '<div style="display:flex;justify-content:space-between;gap:12px;font-weight:700"><span>Total capacity</span><span>' + SummaryHoursText(total) + '</span></div>';
+            '<div style="display:flex;justify-content:space-between;gap:12px;font-weight:700"><span style="flex:1;text-align:right">Total Free Capacity</span><span>' + SummaryHoursText(freeTotal) + '</span></div>' +
+            (capAssigned.length ? '<div style="border-top:1px solid #ececec;margin:4px 0"></div>' + capAssigned.map(rowHtml).join('') : '');
     }
     // Request bar: 2 sections - requested (unassigned per skill + total) and assigned.
     var assigned = rows.filter(function(r) { return r.label === "Assigned"; });
     var requested = rows.filter(function(r) { return r.label !== "Assigned"; });
-    var requestedTotal = requested.reduce(function(a, r) { return a + r.value; }, 0);
-    return titleHtml(title + ' · Request summary') + requested.reverse().map(rowHtml).join('') +
-        '<div style="display:flex;justify-content:space-between;gap:12px;font-weight:700"><span>Total request</span><span>' + SummaryHoursText(requestedTotal) + '</span></div>' +
-        (assigned.length ? '<div style="border-top:3px solid #333;margin:4px 0"></div>' + titleHtml('Assigned Summary') + assigned.map(rowHtml).join('') : '');
+    return titleHtml(title) + requested.reverse().map(rowHtml).join('') +
+        (assigned.length ? '<div style="border-top:1px solid #ececec;margin:4px 0"></div>' + assigned.map(rowHtml).join('') : '');
 }
 
 function HideSummaryTip() {
@@ -552,9 +555,9 @@ function ShowSummaryTip(e) {
     summaryTipEl.style.color = (lastChartData && lastChartData.tooltipFont) || "#101828";
     // Title = "<Skill> · <date>" - skill from the C/R pair, date from the header period label minus
     // its "Daily: " prefix (page 50681 sends no period label, so just the skill there).
-    var title = String(lastSkillLabels[Math.floor(catIdx / 2)] || "");
-    var dateText = String((lastChartData && lastChartData.periodLabel) || "").replace(/^Daily:\s*/, "");
-    if (dateText) title += (title ? " · " : "") + dateText;
+    // Daily is already per skill (the skill is in the chart's own label), so the title is the date only.
+    var title = String((lastChartData && lastChartData.periodLabel) || "").replace(/^Daily:\s*/, "");
+    if (!title) title = String(lastSkillLabels[Math.floor(catIdx / 2)] || "");
     summaryTipEl.innerHTML = BuildSummaryTipHtml(catIdx, title);
 
     summaryTipEl.style.display = "block";
