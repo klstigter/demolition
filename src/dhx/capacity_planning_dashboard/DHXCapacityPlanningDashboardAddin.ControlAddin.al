@@ -85,6 +85,10 @@ controladdin DHXCapacityPlanningDashboardAddin
     // Section 4's second right-click item "Show Task Scheduler" - same payload as
     // OnOpenDayPlanningList; opens page 50621 filtered by skill/date (CPO_OpenTaskScheduler).
     event OnOpenTaskScheduler(PayloadJsonTxt: Text);
+    // "Show Resource Scheduler" / "Show Capacity Scheduler" right-click items (Section 3 bars and
+    // Section 4 cells) - payload {"skill","date"} of the right-clicked source, like OnOpenTaskScheduler.
+    event OnOpenResourceScheduler(PayloadJsonTxt: Text);
+    event OnOpenCapacityScheduler(PayloadJsonTxt: Text);
     // Skill label right-click: payload {"skill","date","dateTo"} (week shown).
     event OnShowSkillResourceCard(PayloadJsonTxt: Text);
     event OnShowSkillDayPlanning(PayloadJsonTxt: Text);

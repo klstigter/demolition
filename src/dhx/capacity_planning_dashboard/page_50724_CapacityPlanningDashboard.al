@@ -95,6 +95,20 @@ page 50724 "Capacity Planning Dashboard"
                     DHXDataHandler.CPO_OpenTaskScheduler(PayloadJsonTxt);
                 end;
 
+                trigger OnOpenResourceScheduler(PayloadJsonTxt: Text)
+                var
+                    DHXDataHandler: Codeunit "DHX Data Handler";
+                begin
+                    DHXDataHandler.CPO_OpenResourceScheduler(PayloadJsonTxt);
+                end;
+
+                trigger OnOpenCapacityScheduler(PayloadJsonTxt: Text)
+                var
+                    DHXDataHandler: Codeunit "DHX Data Handler";
+                begin
+                    DHXDataHandler.CPO_OpenCapacityScheduler(PayloadJsonTxt);
+                end;
+
                 trigger OnShowSkillResourceCard(PayloadJsonTxt: Text)
                 var
                     DHXDataHandler: Codeunit "DHX Data Handler";

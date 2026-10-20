@@ -239,6 +239,33 @@ class CapacityPlanningDashboard extends CapacityPlanningOverview {
             Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnOpenTaskScheduler', [JSON.stringify(payload)]);
             self.hideLoading();
         });
+        this.addSchedulerMenuItems(menu, payload);
+    }
+
+    /// <summary>Section 3 R (request) bar popup only: after the base item - Task, Resource, Capacity schedulers (clicked bar's skill + date). C bar popup is left as the base.</summary>
+    addExtraCapacityBarMenuItems(menu, payload, kind) {
+        if (kind !== 'request') return;
+        const self = this;
+        this.addTreeContextMenuItem(menu, 'Show Task Scheduler', function () {
+            if (typeof Microsoft === 'undefined') return;
+            self.showLoading();
+            Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnOpenTaskScheduler', [JSON.stringify(payload)]);
+            self.hideLoading();
+        });
+        this.addSchedulerMenuItems(menu, payload);
+    }
+
+    /// <summary>"Show Resource Scheduler" / "Show Capacity Scheduler" - carry the clicked source's skill + date.</summary>
+    addSchedulerMenuItems(menu, payload) {
+        const self = this;
+        const raise = function (eventName) {
+            if (typeof Microsoft === 'undefined') return;
+            self.showLoading();
+            Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(eventName, [JSON.stringify(payload)]);
+            self.hideLoading();
+        };
+        this.addTreeContextMenuItem(menu, 'Show Resource Scheduler', function () { raise('OnOpenResourceScheduler'); });
+        this.addTreeContextMenuItem(menu, 'Show Capacity Scheduler', function () { raise('OnOpenCapacityScheduler'); });
     }
 
     /// <summary>

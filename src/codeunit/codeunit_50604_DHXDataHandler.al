@@ -6754,6 +6754,42 @@ codeunit 50604 "DHX Data Handler"
         DHXSchedulerProject.Run();
     end;
 
+    /// <summary>Page 50724 right-click "Show Resource Scheduler" - opens page 50706 with the payload's skill filter and week of its date.</summary>
+    procedure CPO_OpenResourceScheduler(PayloadJsonTxt: Text)
+    var
+        DHXResourceCapacityScheduler: Page "DHX Scheduler - TimeLine";
+        PayloadJObj: JsonObject;
+        FieldJToken: JsonToken;
+        PlanDate: Date;
+    begin
+        if not PayloadJObj.ReadFrom(PayloadJsonTxt) then
+            exit;
+        if PayloadJObj.Get('skill', FieldJToken) then
+            DHXResourceCapacityScheduler.OpenSkillFiltered(CopyStr(FieldJToken.AsValue().AsText(), 1, 20));
+        if PayloadJObj.Get('date', FieldJToken) then
+            if Evaluate(PlanDate, FieldJToken.AsValue().AsText(), 9) then
+                DHXResourceCapacityScheduler.SetAnchorDate(PlanDate);
+        DHXResourceCapacityScheduler.Run();
+    end;
+
+    /// <summary>Page 50724 right-click "Show Capacity Scheduler" - opens page 50600 with the payload's skill filter and week of its date.</summary>
+    procedure CPO_OpenCapacityScheduler(PayloadJsonTxt: Text)
+    var
+        DHXPoolScheduler: Page "DHX Scheduler (Pool Resource)";
+        PayloadJObj: JsonObject;
+        FieldJToken: JsonToken;
+        PlanDate: Date;
+    begin
+        if not PayloadJObj.ReadFrom(PayloadJsonTxt) then
+            exit;
+        if PayloadJObj.Get('skill', FieldJToken) then
+            DHXPoolScheduler.SetSkillFilter(FieldJToken.AsValue().AsText());
+        if PayloadJObj.Get('date', FieldJToken) then
+            if Evaluate(PlanDate, FieldJToken.AsValue().AsText(), 9) then
+                DHXPoolScheduler.SetAnchorDate(PlanDate);
+        DHXPoolScheduler.Run();
+    end;
+
     /// <summary>
     /// Commits controladdin event OnShowCapacityBarSegment - Section 3's ("Hours overview" daily
     /// Capacity/Requested bars, capacityPlanningOverview.js's renderCapacityBars/
