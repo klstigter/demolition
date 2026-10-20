@@ -366,7 +366,10 @@ window.BOOT = function() {
                             [barHit.seriesName, barHit.barType, barHit.dayIndex, false]
                         );
                     } catch (err) { /* ignore */ }
-                }, barHit.barType === "Capacity" ? "Show Capacity" : "Show Day Planning");
+                }, barHit.barType === "Capacity" ? "Show Capacity" : "Show Day Planning",
+                // R (Requested) bar only, and only on the Role Center part (it sends showToolbar).
+                (barHit.barType === "Requested" && lastChartData && lastChartData.showToolbar)
+                    ? BuildSchedulerMenuItems(barHit.seriesName, barHit.dayIndex) : null);
                 return;
             }
 
@@ -1158,6 +1161,24 @@ function ResolveLegendSegmentFromEvent(e) {
 // set per right-click, which is what made the page feel like it was hanging after clicking around
 // for a while. Explicit tracking + removal in HideContextMenu (called at the START of every
 // ShowContextMenu, not just on dismissal) caps this at exactly one attached set, always.
+// Extra R-bar popup items - each raises OnOpenScheduler(target, skillCode, dayIndex); the AL side
+// (page 50708) resolves the date and reuses codeunit 50604's CPO_Open* procedures. skillCode here
+// is the clicked series name - AL treats it as a skill only if it is a real Skill Code.
+function BuildSchedulerMenuItems(skillCode, dayIndex) {
+    var raise = function(target) {
+        return function() {
+            try {
+                Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnOpenScheduler", [target, skillCode, dayIndex]);
+            } catch (err) { /* ignore */ }
+        };
+    };
+    return [
+        { caption: "Show Task Scheduler", handler: raise("Task") },
+        { caption: "Show Resource Scheduler", handler: raise("Resource") },
+        { caption: "Show Capacity Scheduler", handler: raise("Capacity") }
+    ];
+}
+
 function HideContextMenu() {
     if (contextMenuDismissHandlers) {
         document.removeEventListener("click", contextMenuDismissHandlers.click);
@@ -1179,7 +1200,7 @@ function HideContextMenu() {
 // scrolls anywhere else or presses Escape. Dismiss listeners are registered on a deferred
 // setTimeout(...,0) so the SAME right-click that opened the menu doesn't immediately close it again
 // via event bubbling to `document`.
-function ShowContextMenu(clientX, clientY, onShowData, caption) {
+function ShowContextMenu(clientX, clientY, onShowData, caption, extraItems) {
     HideContextMenu(); // always clears any previous menu AND its dismiss-listener set first - see HideContextMenu's own comment for why this is the actual fix, not just cosmetic cleanup
 
     contextMenuEl = document.createElement("div");
@@ -1190,17 +1211,21 @@ function ShowContextMenu(clientX, clientY, onShowData, caption) {
         "font-family:inherit;font-size:13px;" +
         "left:" + clientX + "px;top:" + clientY + "px;";
 
-    var item = document.createElement("div");
-    item.textContent = caption || "Show Data";
-    item.style.cssText = "padding:6px 14px;cursor:pointer;color:#222;";
-    item.addEventListener("mouseenter", function() { item.style.background = "#f0f0f0"; });
-    item.addEventListener("mouseleave", function() { item.style.background = "transparent"; });
-    item.addEventListener("click", function(evt) {
-        evt.stopPropagation();
-        HideContextMenu();
-        onShowData();
-    });
-    contextMenuEl.appendChild(item);
+    var addItem = function(text, handler) {
+        var item = document.createElement("div");
+        item.textContent = text;
+        item.style.cssText = "padding:6px 14px;cursor:pointer;color:#222;";
+        item.addEventListener("mouseenter", function() { item.style.background = "#f0f0f0"; });
+        item.addEventListener("mouseleave", function() { item.style.background = "transparent"; });
+        item.addEventListener("click", function(evt) {
+            evt.stopPropagation();
+            HideContextMenu();
+            handler();
+        });
+        contextMenuEl.appendChild(item);
+    };
+    addItem(caption || "Show Data", onShowData);
+    (extraItems || []).forEach(function(x) { addItem(x.caption, x.handler); });
     document.body.appendChild(contextMenuEl);
 
     setTimeout(function() {

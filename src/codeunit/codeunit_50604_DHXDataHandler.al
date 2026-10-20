@@ -6789,6 +6789,32 @@ codeunit 50604 "DHX Data Handler"
         DHXSchedulerProject.Run();
     end;
 
+    /// <summary>
+    /// Daily/Weekly Role Center chart (pages 50707/50708) R-bar right-click "Show Task/Resource/Capacity Scheduler".
+    /// Target = Task/Resource/Capacity. SkillCode is applied only when it is a real Skill Code (a non-skill R segment
+    /// such as "Assigned Capacity" opens unfiltered). Builds the same {skill,date} payload page 50724 sends and reuses CPO_Open*.
+    /// </summary>
+    procedure CPO_OpenSchedulerFromChart(Target: Text; SkillCode: Text; PlanDate: Date)
+    var
+        SkillCodeRec: Record "Skill Code";
+        PayloadJObj: JsonObject;
+        PayloadJsonTxt: Text;
+    begin
+        if (SkillCode <> '') and (StrLen(SkillCode) <= MaxStrLen(SkillCodeRec.Code)) then
+            if SkillCodeRec.Get(CopyStr(SkillCode, 1, MaxStrLen(SkillCodeRec.Code))) then
+                PayloadJObj.Add('skill', SkillCodeRec.Code);
+        PayloadJObj.Add('date', Format(PlanDate, 0, 9));
+        PayloadJObj.WriteTo(PayloadJsonTxt);
+        case Target of
+            'Task':
+                CPO_OpenTaskScheduler(PayloadJsonTxt);
+            'Resource':
+                CPO_OpenResourceScheduler(PayloadJsonTxt);
+            'Capacity':
+                CPO_OpenCapacityScheduler(PayloadJsonTxt);
+        end;
+    end;
+
     /// <summary>Page 50724 right-click "Show Resource Scheduler" - opens page 50706 with the payload's skill filter and week of its date.</summary>
     procedure CPO_OpenResourceScheduler(PayloadJsonTxt: Text)
     var

@@ -33,6 +33,9 @@ controladdin DHXBarChartAddin
     /// </summary>
     event OnShowSegmentData(SegmentId: Text; BarType: Text; DayIndex: Integer; WholeWeek: Boolean);
 
+    /// <summary>R-bar right-click "Show Task/Resource/Capacity Scheduler" (page 50708 only). Target = Task/Resource/Capacity; SkillCode is the clicked series name; DayIndex 1..7.</summary>
+    event OnOpenScheduler(Target: Text; SkillCode: Text; DayIndex: Integer);
+
     /// <summary>
     /// Fired by wrapper.js's own Refresh/Previous/Today/Next toolbar buttons (see BuildToolbar/
     /// UpdateToolbar there) - a JS-rendered replacement for the BC RefreshAction/PreviousAction/
