@@ -196,6 +196,7 @@ class CapacityPlanningDashboard extends CapacityPlanningOverview {
     attachSkillLabelContextMenu() {
         if (this._skillLabelMenuBound) return;
         this._skillLabelMenuBound = true;
+        this.bindTipsHiddenWhileMenuOpen();
         const host = document.getElementById('cpo-central-tree');
         const menu = document.getElementById('cpo-tree-context-menu');
         if (!host || !menu) return;
@@ -451,15 +452,17 @@ class CapacityPlanningDashboard extends CapacityPlanningOverview {
     showCellTip(lines, skill, idx) {
         const tip = document.getElementById('cpo-event-tip');
         const m = this._cellTipMouse;
-        const html = this.groupTooltipHtmlFromLines(lines.slice(), skill, idx);
+        const html = this.groupTooltipStatsHtmlFromLines(lines.slice(), skill, idx);
         if (!tip || !m || !html) return;
-        tip.classList.add('cpo-group-tip');
+        tip.classList.remove('cpo-group-tip');
+        tip.classList.add('cpo-stats-tip');
         tip.innerHTML = html;
         tip.style.display = 'block';
         let x = m.x + 12, y = m.y + 12;
         const r = tip.getBoundingClientRect();
         if (x + r.width > window.innerWidth - 8) x = m.x - r.width - 12;
         if (y + r.height > window.innerHeight - 8) y = m.y - r.height - 12;
+        x = Math.max(4, x); y = Math.max(4, y);
         tip.style.left = x + 'px'; tip.style.top = y + 'px';
     }
 

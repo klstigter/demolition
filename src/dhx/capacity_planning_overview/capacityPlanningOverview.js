@@ -1869,6 +1869,7 @@ class CapacityPlanningOverview {
     attachCapacityBarsContextMenu() {
         if (this._capacityBarsContextMenuBound) return;
         this._capacityBarsContextMenuBound = true;
+        this.bindTipsHiddenWhileMenuOpen();
         const host = document.getElementById('cpo-capacity-bars');
         const menu = document.getElementById('cpo-tree-context-menu');
         if (!host || !menu) return;
@@ -2302,6 +2303,35 @@ class CapacityPlanningOverview {
             }).join('');
     }
 
+    /// <summary>Statistic-style group tooltip (counts and hour totals instead of the per-line list) - used by the Role Center Workload Pressure tile.</summary>
+    groupTooltipStatsHtmlFromLines(lines, skill, idx) {
+        if (!lines.length) return '';
+        let requested = 0, assigned = 0;
+        const resources = new Set(), tasks = new Set(), jobs = new Set();
+        lines.forEach(function (l) {
+            const req = Number(l.requestedHours) || 0;
+            requested += req; assigned += Math.min(req, Number(l.assignedHours) || 0);
+            if (l.assignedResourceNo) resources.add(l.assignedResourceNo);
+            jobs.add(l.job);
+            tasks.add(l.job + '|' + l.task);
+        });
+        const d = this.dates[idx];
+        const dateText = d ? d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+        let no = 0;
+        const row = function (label, value) { return '<tr><td>' + (++no) + '</td><td>' + label + '</td><td style="text-align:right">' + value + '</td></tr>'; };
+        return '<div class="standard-tooltip-head" style="border-top:1px solid currentColor;border-bottom:1px solid currentColor;padding:4px 0;margin-bottom:6px">' +
+            '<div class="standard-tooltip-title">Skill: ' + cpoEsc(skill) + '</div>' +
+            '<div class="standard-tooltip-detail">Date: ' + cpoEsc(dateText) + '</div></div>' +
+            '<table class="standard-tooltip-table"><thead><tr><th>No.</th><th>Statistic</th><th style="text-align:right">Number</th></tr></thead><tbody>' +
+            row('Number of Day Planning', lines.length) +
+            row('Number of Resources', resources.size) +
+            row('Requested Hours', (Math.round(requested * 10) / 10) + 'h') +
+            row('Assigned Hours', (Math.round(assigned * 10) / 10) + 'h') +
+            row('Number of Task', tasks.size) +
+            row('Number of Jobs', jobs.size) +
+            '</tbody></table>';
+    }
+
     /// <summary>
     /// Tooltip for section 4's Job/Task row label (.cpo-tree-detail-label) - every other-WO Day
     /// Planning line of that Job/Task (all skills) on the selected day: today when inside the
@@ -2449,7 +2479,29 @@ class CapacityPlanningOverview {
         return [line.job, line.task, line.id].map(function (v) { return v == null ? '' : v; }).join('|');
     }
 
+    /// Hides every hover tooltip while the right-click context menu is open: hides them when the
+    /// menu is requested (capture-phase contextmenu) and swallows mousemove (capture-phase) while
+    /// the menu is visible so the tooltip handlers can't re-show them on top of the menu. Bound once.
+    bindTipsHiddenWhileMenuOpen() {
+        if (this._tipsHiddenBound) return;
+        this._tipsHiddenBound = true;
+        const hideTips = function () {
+            ['cpo-event-tip', 'cpo-daily-summary-tip'].forEach(function (id) {
+                const t = document.getElementById(id);
+                if (t) t.style.display = 'none';
+            });
+        };
+        document.addEventListener('contextmenu', hideTips, true);
+        document.addEventListener('mousemove', function (e) {
+            const menu = document.getElementById('cpo-tree-context-menu');
+            if (!menu || menu.hidden) return;
+            hideTips();
+            e.stopPropagation();
+        }, true);
+    }
+
     hideTreeContextMenu() {
+        this.bindTipsHiddenWhileMenuOpen();
         const menu = document.getElementById('cpo-tree-context-menu');
         if (!menu) return;
         menu.hidden = true;
@@ -2505,6 +2557,7 @@ class CapacityPlanningOverview {
     attachTreeContextMenu() {
         if (this._treeContextMenuBound) return;
         this._treeContextMenuBound = true;
+        this.bindTipsHiddenWhileMenuOpen();
         const host = document.getElementById('cpo-central-tree');
         const menu = document.getElementById('cpo-tree-context-menu');
         if (!host || !menu) return;
