@@ -8,6 +8,14 @@
         "C:\\Users\\Ahmad\\OneDrive\\x\\PROJECT\\STRONG\\demolition"
       ]
     },
+    "al-lsp": {
+      "command": "python",
+      "args": [
+        "-I",
+        ".claude/al_lsp_mcp.py",
+        "C:\\Users\\Ahmad\\OneDrive\\x\\PROJECT\\STRONG\\demolition"
+      ]
+    },
     "NL_Test": {
       "type": "http",
       "url": "https://mcp.businesscentral.dynamics.com",

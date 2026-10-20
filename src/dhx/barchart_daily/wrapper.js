@@ -500,7 +500,8 @@ function BuildSummaryTipHtml(catIdx, title) {
         if (byLabel[label]) { byLabel[label].value += value; return; }
         byLabel[label] = {
             label: label, value: value, border: s.border || "rgba(0,0,0,.15)",
-            color: s.color || SERIES_COLOR_PALETTE[sIdx % SERIES_COLOR_PALETTE.length]
+            color: (s.pointColors && s.pointColors[catIdx]) || s.color || SERIES_COLOR_PALETTE[sIdx % SERIES_COLOR_PALETTE.length],
+            blur: Number(s.blur) || 0
         };
         rows.push(byLabel[label]);
     });
@@ -508,8 +509,14 @@ function BuildSummaryTipHtml(catIdx, title) {
     var isCapacity = kind === "Capacity";
     var titleHtml = function(t) { return '<div style="font-weight:700;margin-bottom:4px">' + SummaryEsc(t) + '</div>'; };
     var rowHtml = function(r) {
+        // Blurred (free capacity) segments: same checkerboard as the bar (see EnsureCheckerPattern).
+        var fill = 'background:' + r.color;
+        if (r.blur) {
+            var light = 'color-mix(in srgb,' + r.color + ' ' + Math.max(0, 100 - r.blur) + '%,transparent)';
+            fill = 'background:conic-gradient(' + r.color + ' 25%,' + light + ' 0 50%,' + r.color + ' 0 75%,' + light + ' 0) 0 0/6px 6px';
+        }
         return '<div style="display:flex;align-items:center;gap:6px;padding:1px 0">' +
-            '<span style="width:9px;height:9px;border-radius:2px;flex:0 0 auto;background:' + r.color + ';border:1px solid ' + r.border + '"></span>' +
+            '<span style="width:11px;height:11px;border-radius:2px;flex:0 0 auto;' + fill + ';border:1px solid ' + r.border + '"></span>' +
             '<span style="flex:1">' + SummaryEsc(r.label) + '</span>' +
             '<span style="font-weight:600">' + SummaryHoursText(r.value) + '</span></div>';
     };
