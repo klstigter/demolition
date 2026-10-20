@@ -300,8 +300,8 @@ window.BOOT = function() {
                 <th colspan="4">Assigned</th>
               </tr>
               <tr>
-                <th>Start</th><th>End</th><th>Idle (minutes)</th><th>Hours</th>
-                <th>Start</th><th>End</th><th>Idle (minutes)</th><th>Hours</th>
+                <th>Start</th><th>End</th><th>Idle</th><th>Hours</th>
+                <th>Start</th><th>End</th><th>Idle</th><th>Hours</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
