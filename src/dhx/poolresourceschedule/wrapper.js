@@ -418,14 +418,21 @@ window.BOOT = function() {
 
         var html = "";
         if (ev.type === "capacity") {
-            html = '<div class="dhx-tt">';
-            html += '<div class="dhx-tt-res">Capacity: ' + (ev.text || "") + '</div>';
-            html += '<div class="dhx-tt-date">' + formatDateOnly(start) + '</div>';
-            html += '<div class="dhx-tt-table">';
-            html += '<div class="dhx-tt-label">Start Time:</div><div class="dhx-tt-val">' + formatTimeOnly(start) + '</div>';
-            html += '<div class="dhx-tt-label">End Time:</div><div class="dhx-tt-val">' + formatTimeOnly(end) + '</div>';
-            html += '<div class="dhx-tt-label">Capacity entry no.:</div><div class="dhx-tt-val">' + (ev.id || "") + '</div>';
-            html += '</div></div>';
+            // Shared capacity tooltip layout (identical in poolresourceschedule and resourceschedule_with_capacity).
+            var resName = lookupPoolSectionLabel(ev.section_id);
+            var resTitle = (ev.resource_id || "") + (resName ? " - " + resName : "");
+            html =
+                '<div class="cap-tt">' +
+                    '<div class="cap-tt-cap">Resource</div>' +
+                    '<div class="cap-tt-title">' + poolEscHtml(resTitle) + '</div>' +
+                    '<div class="cap-tt-line"><span class="cap-tt-lbl">Skill: </span>' + poolEscHtml(ev.skills || "—") + '</div>' +
+                    '<div class="cap-tt-line cap-tt-ind">' + poolEscHtml(scheduler.date.date_to_str("%l")(start)) + ' (wk ' + poolIsoWeekNumber(start) + ')</div>' +
+                    '<div class="cap-tt-line cap-tt-ind">' + poolEscHtml(scheduler.date.date_to_str("%j %M %Y")(start)) + '</div>' +
+                    '<table class="cap-tt-table"><thead><tr><th></th><th>Start</th><th>End</th><th>Hours</th></tr></thead><tbody>' +
+                        '<tr><th>Time</th><td>' + formatTimeOnly(start) + '</td><td>' + formatTimeOnly(end) + '</td><td>' + (ev.hours != null ? ev.hours : '') + '</td></tr>' +
+                    '</tbody></table>' +
+                '</div>';
+
         } else if (ev.type === "DayPlanning_0" || ev.type === "DayPlanning_1" || ev.type === "vacancy") {
             html = '<div class="dhx-tt">';
             html += '<div class="dhx-tt-res">DayPlanning: ' + (ev.text || "") + '</div>';
@@ -860,6 +867,36 @@ function setupCollapseAllToggle() {
     });
 
     root.appendChild(btn);
+}
+
+function poolEscHtml(v) {
+    return String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function poolIsoWeekNumber(dateValue) {
+    var date = new Date(dateValue);
+    if (isNaN(date.getTime())) return "";
+    var utc = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    var day = utc.getUTCDay() || 7;
+    utc.setUTCDate(utc.getUTCDate() + 4 - day);
+    var yearStart = new Date(Date.UTC(utc.getUTCFullYear(), 0, 1));
+    return Math.ceil((((utc - yearStart) / 86400000) + 1) / 7);
+}
+
+// Display label (resource name) of a timeline section by key, searched recursively in the tree.
+function lookupPoolSectionLabel(key) {
+    var tl = scheduler.matrix && scheduler.matrix.timeline;
+    if (!tl || !key) return "";
+    function find(list) {
+        if (!Array.isArray(list)) return "";
+        for (var i = 0; i < list.length; i++) {
+            if (String(list[i].key) === String(key)) return list[i].label || "";
+            var r = find(list[i].children);
+            if (r) return r;
+        }
+        return "";
+    }
+    return find(tl.y_unit_original) || find(tl.y_unit);
 }
 
 function _renderCollapseAllIcon(btn) {

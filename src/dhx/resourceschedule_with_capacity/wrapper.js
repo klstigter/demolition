@@ -250,6 +250,20 @@ window.BOOT = function () {
         .standard-tooltip-context { margin-bottom: 7px; padding: 0 2px 6px; border-bottom: 1px solid rgba(255,255,255,0.15); }
         .standard-tooltip-context-title { color: #035b7e; font-size: 12px; font-weight: 700; line-height: 1.35; }
         .standard-tooltip-context-table { margin-top: 4px; }
+        .cap-tt { font-size: 12px; line-height: 1.4; min-width: 220px; }
+        .cap-tt * { font-size: inherit; }
+        .cap-tt-cap, .cap-tt-lbl, .cap-tt-table thead th { color: #4a90d9; font-weight: 700; }
+        .cap-tt-title { font-weight: 700; margin-bottom: 2px; }
+        .cap-tt-line { margin-top: 2px; font-weight: 600; }
+        .cap-tt-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+        .cap-tt-table th, .cap-tt-table td { padding: 4px 6px; text-align: left; font-weight: 400; }
+        .cap-tt-table tbody th { font-weight: 700; }
+        .cap-tt, .cap-tt > div, .cap-tt-lbl { margin-left: 0; padding-left: 0; text-indent: 0; text-align: left; display: block; box-sizing: border-box; }
+        .cap-tt > div.cap-tt-title, .cap-tt > div.cap-tt-ind { padding-left: 31px; font-weight: 400; }
+        .cap-tt > div.cap-tt-line { margin-top: 2px; }
+        .cap-tt-lbl { display: inline; }
+        .cap-tt-table { margin-left: 0 !important; text-indent: 0 !important; }
+        .cap-tt-table th:first-child, .cap-tt-table td:first-child { padding-left: 0 !important; }
         `;
         document.head.appendChild(style);
 
@@ -382,16 +396,21 @@ window.BOOT = function () {
             var formatDateOnly = scheduler.date.date_to_str("%d-%m-%Y");
             var formatTimeOnly = scheduler.date.date_to_str("%H:%i");
             if (ev.type === "capacity") {
-                var html = '<div class="dhx-tt">';
-                html += '<div class="dhx-tt-table" style="grid-template-columns:110px 1fr;">';
-                html += '<div class="dhx-tt-label">Resource No.</div><div class="dhx-tt-val">' + escapeRcHtml(ev.resource_id || "") + '</div>';
-                html += '<div class="dhx-tt-label">Skill</div><div class="dhx-tt-val">' + escapeRcHtml(ev.skills || "") + '</div>';
-                html += '<div class="dhx-tt-label">Date</div><div class="dhx-tt-val">' + formatDateOnly(start) + '</div>';
-                html += '<div class="dhx-tt-label">Capacity (h)</div><div class="dhx-tt-val">' + (ev.hours != null ? ev.hours : '') + '</div>';
-                html += '<div class="dhx-tt-label">Start Time</div><div class="dhx-tt-val">' + formatTimeOnly(start) + '</div>';
-                html += '<div class="dhx-tt-label">End Time</div><div class="dhx-tt-val">' + formatTimeOnly(end) + '</div>';
-                html += '</div></div>';
-                return html;
+                // Shared capacity tooltip layout (identical in poolresourceschedule and resourceschedule_with_capacity).
+                var resName = lookupRcSectionLabel(ev.section_id);
+                var resTitle = (ev.resource_id || "") + (resName ? " - " + resName : "");
+                return (
+                    '<div class="cap-tt">' +
+                        '<div class="cap-tt-cap">Resource</div>' +
+                        '<div class="cap-tt-title">' + escapeRcHtml(resTitle) + '</div>' +
+                        '<div class="cap-tt-line"><span class="cap-tt-lbl">Skill: </span>' + escapeRcHtml(ev.skills || "—") + '</div>' +
+                        '<div class="cap-tt-line cap-tt-ind">' + escapeRcHtml(scheduler.date.date_to_str("%l")(start)) + ' (wk ' + isoWeekNumber(start) + ')</div>' +
+                        '<div class="cap-tt-line cap-tt-ind">' + escapeRcHtml(scheduler.date.date_to_str("%j %M %Y")(start)) + '</div>' +
+                        '<table class="cap-tt-table"><thead><tr><th></th><th>Start</th><th>End</th><th>Hours</th></tr></thead><tbody>' +
+                            '<tr><th>Time</th><td>' + formatTimeOnly(start) + '</td><td>' + formatTimeOnly(end) + '</td><td>' + (ev.hours != null ? ev.hours : '') + '</td></tr>' +
+                        '</tbody></table>' +
+                    '</div>'
+                    );
             }
 
             var reqTime = (ev.start_time_requested || "—") + "–" + (ev.end_time_requested || "—");
@@ -507,6 +526,22 @@ function isoWeekNumber(dateValue) {
     utcDate.setUTCDate(utcDate.getUTCDate() + 4 - day);
     var yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
     return Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7);
+}
+
+/// <summary>Display label (resource name) of a timeline section by its key, searched recursively in the tree's original y_unit.</summary>
+function lookupRcSectionLabel(key) {
+    var tl = scheduler.matrix && scheduler.matrix.timeline;
+    if (!tl || !key) return "";
+    function find(list) {
+        if (!Array.isArray(list)) return "";
+        for (var i = 0; i < list.length; i++) {
+            if (String(list[i].key) === String(key)) return list[i].label || "";
+            var r = find(list[i].children);
+            if (r) return r;
+        }
+        return "";
+    }
+    return find(tl.y_unit_original) || find(tl.y_unit);
 }
 
 function parseRcHHmm(txt) {
