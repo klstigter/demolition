@@ -1152,6 +1152,10 @@ function ShowContextMenu(clientX, clientY, onShowData, caption, extraItems) {
     addItem(caption || "Show Data", onShowData);
     (extraItems || []).forEach(function(x) { addItem(x.caption, x.handler); });
     document.body.appendChild(contextMenuEl);
+    // Keep the (now longer) popup inside the add-in iframe - otherwise items near the right/bottom edge are clipped and unclickable.
+    var mr = contextMenuEl.getBoundingClientRect();
+    contextMenuEl.style.left = Math.max(4, Math.min(clientX, window.innerWidth - mr.width - 4)) + "px";
+    contextMenuEl.style.top = Math.max(4, Math.min(clientY, window.innerHeight - mr.height - 4)) + "px";
 
     setTimeout(function() {
         var handlers = {
