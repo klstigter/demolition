@@ -2497,6 +2497,9 @@ class CapacityPlanningOverview {
             });
         };
         document.addEventListener('contextmenu', hideTips, true);
+        // Suppress the browser's default context menu everywhere in the add-in; the custom menu
+        // handlers still run (they only need their own preventDefault for stopPropagation flow).
+        document.addEventListener('contextmenu', function (e) { e.preventDefault(); }, true);
         document.addEventListener('mousemove', function (e) {
             const menu = document.getElementById('cpo-tree-context-menu');
             if (!menu || menu.hidden) return;
