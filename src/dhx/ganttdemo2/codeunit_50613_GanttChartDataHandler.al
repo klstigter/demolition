@@ -75,8 +75,8 @@ codeunit 50613 "GanttChartDataHandler"
             JobTaskByPlanned.SetFilter("Job No.", JobNoFilter);
         if pJobTaskFilter <> '' then
             JobTaskByPlanned.SetFilter("Job Task No.", pJobTaskFilter);
-        JobTaskByPlanned.SetFilter("PlannedStartDate", '<=%1', EndDate);
-        JobTaskByPlanned.SetFilter("PlannedEndDate", '>=%1', StartDate);
+        JobTaskByPlanned.SetFilter(VisualBarStartDate, '<=%1', EndDate);
+        JobTaskByPlanned.SetFilter(VisualBarEndDate, '>=%1', StartDate);
 
         // Cursor 2: tasks whose persisted constraint-derived period ("Constraint Calc. - Start/End
         // Date", kept up to date by UpdateConstraintCalcDates in tableext 50605) overlaps the
@@ -170,9 +170,9 @@ codeunit 50613 "GanttChartDataHandler"
     /// </summary>
     local procedure GetEffectivePeriod(JobTask: Record "Job Task"; var EffectiveStartDate: Date; var EffectiveEndDate: Date)
     begin
-        if (JobTask.PlannedStartDate <> 0D) and (JobTask.PlannedEndDate <> 0D) then begin
-            EffectiveStartDate := JobTask.PlannedStartDate;
-            EffectiveEndDate := JobTask.PlannedEndDate;
+        if (JobTask.VisualBarStartDate <> 0D) and (JobTask.VisualBarEndDate <> 0D) then begin
+            EffectiveStartDate := JobTask.VisualBarStartDate;
+            EffectiveEndDate := JobTask.VisualBarEndDate;
         end else begin
             EffectiveStartDate := JobTask."Constraint Calc. - Start Date";
             EffectiveEndDate := JobTask."Constraint Calc. - End Date";

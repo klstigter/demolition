@@ -57,48 +57,48 @@ tableextension 50605 "Job Task ext" extends "Job Task"
 
         #endregion
 
-        field(50521; PlannedStartDate; Date)
+        field(50521; VisualBarStartDate; Date)
         {
             DataClassification = ToBeClassified;
-            Caption = 'Planned Start Date';
+            Caption = 'Visual Bar Start Date';
             ToolTip = 'Specifies the start date for the project task. The date is based on the date on the related project planning line.';
             trigger OnValidate()
             begin
                 CalculateDuration();
                 // Deliberately NOT wired to DayPlanningPeriodSyncMgt.HandleJobTaskPeriodChange here.
-                // "Planned Start Date"/"Planned End Date" are Editable = false on page 50618 "Opti
+                // "Visual Bar Start Date"/"Visual Bar End Date" are Editable = false on page 50618 "Opti
                 // Job Task Card" — the only user-facing way to change them from the Card is the
-                // AssistEdit action, which runs report 50601 "Job Task Planned Date Updater". That
+                // AssistEdit action, which runs report 50601 "Job Task Visual Bar Date Updater". That
                 // report already calls DayPlanningPeriodSyncMgt.ShowPreview() itself on OnPostReport
                 // and assigns the new dates via direct field assignment (not Validate()), so the
                 // Job Task Card period-change path is already fully wired without this trigger.
                 // Re-enabling this call would ALSO fire for the two other call sites that DO call
-                // .Validate(PlannedEndDate/PlannedStartDate, ...) directly: codeunit_50602_CreateDemoData
+                // .Validate(VisualBarEndDate/VisualBarStartDate, ...) directly: codeunit_50602_CreateDemoData
                 // (bulk/unattended demo data generation) and codeunit_50610_DayPlanningMgt's own
                 // CreateDayPlanning (pattern-driven Job Task end-date sync, called right after the
                 // Day Planning lines it derives dates from were just generated) — both would then
                 // unexpectedly pop up the blocking preview dialog for what are internal housekeeping
                 // updates, not a user-initiated period change. Leave commented out.
-                // if not DayPlanningPeriodSyncMgt.HandleJobTaskPeriodChange(Rec, xRec.PlannedStartDate, xRec.PlannedEndDate, true) then begin
-                //     Rec.PlannedStartDate := xRec.PlannedStartDate;
+                // if not DayPlanningPeriodSyncMgt.HandleJobTaskPeriodChange(Rec, xRec.VisualBarStartDate, xRec.PlannedEndDate, true) then begin
+                //     Rec.VisualBarStartDate := xRec.VisualBarStartDate;
                 //     Rec.Duration := xRec.Duration;
                 // end;
             end;
         }
-        field(50522; PlannedEndDate; Date)
+        field(50522; VisualBarEndDate; Date)
         {
             DataClassification = ToBeClassified;
-            Caption = 'Planned End Date';
+            Caption = 'Visual Bar End Date';
             ToolTip = 'Specifies the end date for the project task. The date is based on the date on the related project planning line.';
             trigger OnValidate()
             begin
                 CalculateDuration();
-                // See the matching comment on PlannedStartDate's OnValidate above — same reasoning.
-                // if not DayPlanningPeriodSyncMgt.HandleJobTaskPeriodChange(Rec, xRec.PlannedStartDate, xRec.PlannedEndDate, true) then begin
-                //     Rec.PlannedEndDate := xRec.PlannedEndDate;
+                // See the matching comment on VisualBarStartDate's OnValidate above — same reasoning.
+                // if not DayPlanningPeriodSyncMgt.HandleJobTaskPeriodChange(Rec, xRec.VisualBarStartDate, xRec.VisualBarEndDate, true) then begin
+                //     Rec.VisualBarEndDate := xRec.VisualBarEndDate;
                 //     Rec.Duration := xRec.Duration;
                 //     if GuiAllowed then
-                //         Message('Period change was cancelled. Planned Start and End Date reverted to %1 - %2', Rec.PlannedStartDate, Rec.PlannedEndDate);
+                //         Message('Period change was cancelled. Visual Bar Start and End Date reverted to %1 - %2', Rec.VisualBarStartDate, Rec.VisualBarEndDate);
                 // end;
             end;
         }
@@ -146,12 +146,12 @@ tableextension 50605 "Job Task ext" extends "Job Task"
                 durationTxt: Text;
                 durationLbl: Label '<%1D>';
             begin
-                if (PlannedStartDate <> 0D) and (Duration >= 1) then begin
+                if (VisualBarStartDate <> 0D) and (Duration >= 1) then begin
                     if Duration = 1 then
-                        PlannedEndDate := PlannedStartDate
+                        VisualBarEndDate := VisualBarStartDate
                     else begin
                         durationTxt := StrSubstNo(durationLbl, Duration - 1);
-                        PlannedEndDate := CalcDate(durationTxt, PlannedStartDate);
+                        VisualBarEndDate := CalcDate(durationTxt, VisualBarStartDate);
                     end;
                 end else
                     Duration := 0;
@@ -302,15 +302,15 @@ tableextension 50605 "Job Task ext" extends "Job Task"
     /// </summary>
     procedure CalculateDuration()
     begin
-        if ("PlannedStartDate" = 0D) or ("PlannedEndDate" = 0D) then begin
+        if (VisualBarStartDate = 0D) or (VisualBarEndDate = 0D) then begin
             rec.Duration := 0;
             exit;
         end;
 
-        if PlannedEndDate < PlannedStartDate then
+        if VisualBarEndDate < VisualBarStartDate then
             error('Planned End Date cannot be before Planned Start Date!');
 
-        rec.Duration := "PlannedEndDate" - "PlannedStartDate" + 1;
+        rec.Duration := VisualBarEndDate - VisualBarStartDate + 1;
 
         if rec.Duration < 0 then
             error('Duration cannot be negative!');
@@ -367,11 +367,11 @@ tableextension 50605 "Job Task ext" extends "Job Task"
         DayPlanningMgt.GetDateRange(Rec."Job No.", Rec."Job Task No.", MinDayPlanningDate, MaxDayPlanningDate);
         JobStartDate := 0D;
         JobEndDate := DMY2Date(31, 12, 2999);
-        if ("PlannedStartDate" <> 0D) then begin
-            JobStartDate := "PlannedStartDate";
+        if (VisualBarStartDate <> 0D) then begin
+            JobStartDate := VisualBarStartDate;
         end;
-        if ("PlannedEndDate" <> 0D) then begin
-            JobEndDate := "PlannedEndDate";
+        if (VisualBarEndDate <> 0D) then begin
+            JobEndDate := VisualBarEndDate;
         end;
         if HasOverlap(JobStartDate, JobEndDate) then
             error(Err01Lbl);
@@ -405,16 +405,16 @@ tableextension 50605 "Job Task ext" extends "Job Task"
         DTend := CreateDateTime(DMY2Date(31, 12, 2999), Time);
 
         if TryCreateDayLines then
-            if (rec."PlannedStartDate" = 0D) or (rec."Start Time" = 0T)
-                        or (rec."PlannedEndDate" = 0D) or (rec."End Time" = 0T) then
+            if (rec.VisualBarStartDate = 0D) or (rec."Start Time" = 0T)
+                        or (rec.VisualBarEndDate = 0D) or (rec."End Time" = 0T) then
                 error('Start and End Planning Date and Time must be set to create Day Lines!');
 
-        if ("PlannedStartDate" <> 0D) and ("Start Time" <> 0T) then begin
-            DT := "PlannedStartDate";
+        if (VisualBarStartDate <> 0D) and ("Start Time" <> 0T) then begin
+            DT := VisualBarStartDate;
             DTstart := CreateDateTime(DT, "Start Time");
         end;
-        if ("PlannedEndDate" <> 0D) and ("End Time" <> 0T) then begin
-            DT := "PlannedEndDate";
+        if (VisualBarEndDate <> 0D) and ("End Time" <> 0T) then begin
+            DT := VisualBarEndDate;
             DTend := CreateDateTime(DT, "End Time");
         end;
         if DTstart > DTend then
@@ -439,34 +439,34 @@ tableextension 50605 "Job Task ext" extends "Job Task"
             end;
         end else
             CheckOverlap(false);
-        if TryCreateDayLines or (FieldNo("PlannedStartDate") = CurrFieldNo) then begin
-            if (Job."Starting Date" <> 0D) and (Rec."PlannedStartDate" < job."Starting Date") then begin
+        if TryCreateDayLines or (FieldNo(VisualBarStartDate) = CurrFieldNo) then begin
+            if (Job."Starting Date" <> 0D) and (Rec.VisualBarStartDate < job."Starting Date") then begin
                 if TryCreateDayLines then
                     error('Start Planning Date cannot be earlier than Job Starting Date %1', job."Starting Date");
-                Rec."PlannedStartDate" := job."Starting Date";
+                Rec.VisualBarStartDate := job."Starting Date";
                 if GuiAllowed then
                     Message('Start Planning Date adjusted to Job Starting Date limit.');
             end;
-            if (job."Starting Date" <> 0D) and (job."Ending Date" < Rec."PlannedStartDate") then begin
+            if (job."Starting Date" <> 0D) and (job."Ending Date" < Rec.VisualBarStartDate) then begin
                 if TryCreateDayLines then
                     error('Start Planning Date cannot be later than Job Ending Date %1', job."Ending Date");
-                Rec."PlannedStartDate" := job."Ending Date";
+                Rec.VisualBarStartDate := job."Ending Date";
                 if GuiAllowed then
                     Message('Start Planning Date adjusted to Job Ending Date limit.');
             end;
         end;
-        if TryCreateDayLines or (FieldNo("PlannedEndDate") = CurrFieldNo) then begin
-            if (job."Ending Date" <> 0D) and (Rec."PlannedEndDate" > job."Ending Date") then begin
+        if TryCreateDayLines or (FieldNo(VisualBarEndDate) = CurrFieldNo) then begin
+            if (job."Ending Date" <> 0D) and (Rec.VisualBarEndDate > job."Ending Date") then begin
                 if TryCreateDayLines then
                     error('End Planning Date cannot be later than Job Ending Date %1', job."Ending Date");
-                Rec."PlannedEndDate" := job."Ending Date";
+                Rec.VisualBarEndDate := job."Ending Date";
                 if GuiAllowed then
                     Message('End Planning Date adjusted to Job Ending Date limit.');
             end;
-            if (job."Ending Date" <> 0D) and (job."Starting Date" > Rec."PlannedEndDate") then begin
+            if (job."Ending Date" <> 0D) and (job."Starting Date" > Rec.VisualBarEndDate) then begin
                 if TryCreateDayLines then
                     error('End Planning Date cannot be earlier than Job Starting Date %1', job."Starting Date");
-                Rec."PlannedEndDate" := job."Starting Date";
+                Rec.VisualBarEndDate := job."Starting Date";
                 if GuiAllowed then
                     Message('End Planning Date adjusted to Job Starting Date limit.');
             end;

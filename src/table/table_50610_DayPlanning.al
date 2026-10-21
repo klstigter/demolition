@@ -1027,9 +1027,9 @@ table 50610 "Day Planning"
             LastPlanningDate := job."Ending Date";
         end else begin
             JobTask.get("Job No.", "Job Task No.");
-            JobTask.SetLoadFields("PlannedStartDate", "PlannedEndDate");
-            FirstPlanningDate := JobTask.PlannedStartDate;
-            LastPlanningDate := JobTask.PlannedEndDate;
+            JobTask.SetLoadFields(VisualBarStartDate, VisualBarEndDate);
+            FirstPlanningDate := JobTask.VisualBarStartDate;
+            LastPlanningDate := JobTask.VisualBarEndDate;
         end;
 
         // check the first and last planning dates for the given first and last dates
@@ -1056,9 +1056,9 @@ table 50610 "Day Planning"
         JobTask.get("Job No.", "Job Task No.");
 
         // Planned Start/End Date both set - original hard boundary check, unchanged.
-        if (JobTask.PlannedStartDate <> 0D) and (JobTask.PlannedEndDate <> 0D) then begin
-            if ("Plan Date" < JobTask.PlannedStartDate) or ("Plan Date" > JobTask.PlannedEndDate) then
-                Error(ErrLbl, "Plan Date", JobTask.PlannedStartDate, JobTask.PlannedEndDate);
+        if (JobTask.VisualBarStartDate <> 0D) and (JobTask.VisualBarEndDate <> 0D) then begin
+            if ("Plan Date" < JobTask.VisualBarStartDate) or ("Plan Date" > JobTask.VisualBarEndDate) then
+                Error(ErrLbl, "Plan Date", JobTask.VisualBarStartDate, JobTask.VisualBarEndDate);
             exit;
         end;
 
@@ -1071,14 +1071,14 @@ table 50610 "Day Planning"
         if (JobTask."Constraint Calc. - Start Date" <> 0D) and (JobTask."Constraint Calc. - End Date" <> 0D) and
            ("Plan Date" >= JobTask."Constraint Calc. - Start Date") and ("Plan Date" <= JobTask."Constraint Calc. - End Date")
         then begin
-            JobTask.PlannedStartDate := "Plan Date";
-            JobTask.PlannedEndDate := "Plan Date";
+            JobTask.VisualBarStartDate := "Plan Date";
+            JobTask.VisualBarEndDate := "Plan Date";
             JobTask.CalculateDuration();
             JobTask.Modify();
             exit;
         end;
 
-        Error(ErrLbl, "Plan Date", JobTask.PlannedStartDate, JobTask.PlannedEndDate);
+        Error(ErrLbl, "Plan Date", JobTask.VisualBarStartDate, JobTask.VisualBarEndDate);
     end;
 
     procedure CopyRequestedToAssigned()

@@ -48,7 +48,11 @@ page 50668 "Day Planning Card Opt"
                 {
                     ApplicationArea = All;
                 }
-                field("Day No."; Rec."Day No.")
+                field(sequence; Rec."Sequence No.")
+                {
+                    ApplicationArea = All;
+                }
+                field("task date fixation"; Rec."Task Date Fixation")
                 {
                     ApplicationArea = All;
                 }

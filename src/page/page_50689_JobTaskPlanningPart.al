@@ -25,7 +25,7 @@ page 50689 "Job Task Planning Part"
                         ApplicationArea = Jobs;
                         ToolTip = 'Specifies the work hour template for the project task. The work hour template is based on the work hour template on the related project planning line.';
                     }
-                    field("Planned Start Date"; Rec.PlannedStartDate)
+                    field("Planned Start Date"; Rec.VisualBarStartDate)
                     {
                         ApplicationArea = All;
                         Editable = false; //use assist edit to change the value
@@ -39,7 +39,7 @@ page 50689 "Job Task Planning Part"
                             PlannedDateUpdater.RunModal();
                         end;
                     }
-                    field("Planned End Date"; Rec.PlannedEndDate)
+                    field("Planned End Date"; Rec.VisualBarEndDate)
                     {
                         ApplicationArea = All;
                         Editable = false; //use assist edit to change the value

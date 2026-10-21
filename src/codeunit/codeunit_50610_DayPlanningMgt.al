@@ -26,10 +26,10 @@ codeunit 50610 "Day Plannings Mgt."
     begin
         if TaskDate = 0D then
             exit;
-        if (JobTask.PlannedStartDate = 0D) or (TaskDate < JobTask.PlannedStartDate) then
-            JobTask.PlannedStartDate := TaskDate;
-        if (JobTask.PlannedEndDate = 0D) or (TaskDate > JobTask.PlannedEndDate) then
-            JobTask.Validate(PlannedEndDate, TaskDate);
+        if (JobTask.VisualBarStartDate = 0D) or (TaskDate < JobTask.VisualBarStartDate) then
+            JobTask.VisualBarStartDate := TaskDate;
+        if (JobTask.VisualBarEndDate = 0D) or (TaskDate > JobTask.VisualBarEndDate) then
+            JobTask.Validate(VisualBarEndDate, TaskDate);
         JobTask.Modify();
     end;
 

@@ -32,8 +32,8 @@ codeunit 50615 "Gantt Update Data"
             exit(false);
 
         // Capture old dates before any changes
-        OldStartDate := JobTask.PlannedStartDate;
-        OldEndDate := JobTask.PlannedEndDate;
+        OldStartDate := JobTask.VisualBarStartDate;
+        OldEndDate := JobTask.VisualBarEndDate;
 
         foreach JsonKey in JsonObject.Keys do begin
             JsonObject.Get(JsonKey, JsonToken);
@@ -62,14 +62,14 @@ codeunit 50615 "Gantt Update Data"
                     'start_date':
                         begin
                             d := JsonValue.AsDate();
-                            if d <> JobTask."PlannedStartDate" then
-                                JobTask."PlannedStartDate" := d;
+                            if d <> JobTask.VisualBarStartDate then
+                                JobTask.VisualBarStartDate := d;
                         end;
                     'end_date':
                         begin
                             d := CalcDate('<-1D>', JsonValue.AsDate());
-                            if d <> JobTask."PlannedEndDate" then
-                                JobTask."PlannedEndDate" := d;
+                            if d <> JobTask.VisualBarEndDate then
+                                JobTask.VisualBarEndDate := d;
                         end;
                     'duration':
                         begin
@@ -91,8 +91,8 @@ codeunit 50615 "Gantt Update Data"
         // Read new dates from the in-memory JobTask BEFORE any Modify call.
         // JobTask.Modify() is deferred: it only happens when the user confirms (or
         // immediately when no DayPlanning records are affected).
-        NewStartDate := JobTask.PlannedStartDate;
-        NewEndDate := JobTask.PlannedEndDate;
+        NewStartDate := JobTask.VisualBarStartDate;
+        NewEndDate := JobTask.VisualBarEndDate;
 
         // The requested new end date must never land on a non-working day (holiday/weekend):
         // snap it forward to the next active workday before it's used anywhere downstream
@@ -102,7 +102,7 @@ codeunit 50615 "Gantt Update Data"
         // already-existing boundary that wasn't part of this operation.
         if (NewEndDate <> 0D) and (NewEndDate <> OldEndDate) then begin
             NewEndDate := DayPlanningPeriodSyncMgt.SnapForwardToWorkDay(JobTask, NewEndDate);
-            JobTask.PlannedEndDate := NewEndDate;
+            JobTask.VisualBarEndDate := NewEndDate;
             JobTask.CalculateDuration();
         end;
 
@@ -121,12 +121,12 @@ codeunit 50615 "Gantt Update Data"
                 // which would silently re-introduce the very out-of-scope DayPlanning rows the
                 // extension was there to prevent.
                 JobTask.Get(JobTask."Job No.", JobTask."Job Task No.");
-                if (JobTask.PlannedStartDate <> NewStartDate) or (JobTask.PlannedEndDate < NewEndDate) then begin
-                    if JobTask.PlannedStartDate <> NewStartDate then
-                        JobTask.PlannedStartDate := NewStartDate;
-                    if JobTask.PlannedEndDate < NewEndDate then
-                        JobTask.PlannedEndDate := NewEndDate;
-                    JobTask.Duration := JobTask.PlannedEndDate - JobTask.PlannedStartDate + 1;
+                if (JobTask.VisualBarStartDate <> NewStartDate) or (JobTask.VisualBarEndDate < NewEndDate) then begin
+                    if JobTask.VisualBarStartDate <> NewStartDate then
+                        JobTask.VisualBarStartDate := NewStartDate;
+                    if JobTask.VisualBarEndDate < NewEndDate then
+                        JobTask.VisualBarEndDate := NewEndDate;
+                    JobTask.Duration := JobTask.VisualBarEndDate - JobTask.VisualBarStartDate + 1;
                     JobTask.Modify();
                 end;
             end else begin
@@ -180,14 +180,14 @@ codeunit 50615 "Gantt Update Data"
                     'start_date':
                         begin
                             D := JsonValue.AsDate();
-                            if D <> JobTask.PlannedStartDate then
-                                JobTask.PlannedStartDate := D;
+                            if D <> JobTask.VisualBarStartDate then
+                                JobTask.VisualBarStartDate := D;
                         end;
                     'end_date':
                         begin
                             D := CalcDate('<-1D>', JsonValue.AsDate());
-                            if D <> JobTask.PlannedEndDate then
-                                JobTask.PlannedEndDate := D;
+                            if D <> JobTask.VisualBarEndDate then
+                                JobTask.VisualBarEndDate := D;
                         end;
                 end;
         end;
@@ -198,12 +198,12 @@ codeunit 50615 "Gantt Update Data"
         // Planning row's Plan Date outside that period, it would become silently orphaned
         // - stranded outside the task's own planned period with no record of it. Refuse to
         // save in that case instead of leaving Day Planning data inconsistent.
-        if (JobTask.PlannedStartDate <> 0D) and (JobTask.PlannedEndDate <> 0D) then begin
+        if (JobTask.VisualBarStartDate <> 0D) and (JobTask.VisualBarEndDate <> 0D) then begin
             DayPlanning.SetRange("Job No.", JobTask."Job No.");
             DayPlanning.SetRange("Job Task No.", JobTask."Job Task No.");
-            DayPlanning.SetFilter("Plan Date", '<%1|>%2', JobTask.PlannedStartDate, JobTask.PlannedEndDate);
+            DayPlanning.SetFilter("Plan Date", '<%1|>%2', JobTask.VisualBarStartDate, JobTask.VisualBarEndDate);
             if DayPlanning.FindFirst() then
-                Error(DayPlanningOutOfRangeErr, JobTask.PlannedStartDate, JobTask.PlannedEndDate, DayPlanning."Plan Date");
+                Error(DayPlanningOutOfRangeErr, JobTask.VisualBarStartDate, JobTask.VisualBarEndDate, DayPlanning."Plan Date");
         end;
 
         JobTask.CalculateDuration();

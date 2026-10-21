@@ -203,12 +203,12 @@ codeunit 50695 "Day Planning Sequence Mgt."
         if not JobTask.Get(JobNo, JobTaskNo) then
             exit;
 
-        if (JobTask.PlannedStartDate = 0D) or (RangeStart < JobTask.PlannedStartDate) then begin
-            JobTask.PlannedStartDate := RangeStart;
+        if (JobTask.VisualBarStartDate = 0D) or (RangeStart < JobTask.VisualBarStartDate) then begin
+            JobTask.VisualBarStartDate := RangeStart;
             Changed := true;
         end;
-        if (JobTask.PlannedEndDate = 0D) or (RangeEnd > JobTask.PlannedEndDate) then begin
-            JobTask.PlannedEndDate := RangeEnd;
+        if (JobTask.VisualBarEndDate = 0D) or (RangeEnd > JobTask.VisualBarEndDate) then begin
+            JobTask.VisualBarEndDate := RangeEnd;
             Changed := true;
         end;
 

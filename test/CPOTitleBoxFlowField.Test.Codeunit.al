@@ -52,8 +52,8 @@ codeunit 60030 "CPO Title Box FlowField Tests"
         // Validate("Plan Date", ...) (see InsertDayPlanningDirect below), but kept for consistency
         // with this project's established test convention (test\DayPlanningCreation.Test.Codeunit.al)
         // in case a future edit here ever does start validating dates.
-        JobTask.PlannedStartDate := 0D;
-        JobTask.PlannedEndDate := 0D;
+        JobTask.VisualBarStartDate := 0D;
+        JobTask.VisualBarEndDate := 0D;
         JobTask.Modify();
 
         IsInitialized := true;

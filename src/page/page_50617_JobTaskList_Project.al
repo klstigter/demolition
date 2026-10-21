@@ -58,7 +58,7 @@ page 50617 "Job Task List - Project"
                     Caption = 'Project Manager';
                     ToolTip = 'Specifies the project manager for the project task. The project manager is based on the project manager on the related project planning line.';
                 }
-                field(PlannedStartDate; Rec.PlannedStartDate)
+                field(PlannedStartDate; Rec.VisualBarStartDate)
                 {
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the date when the project task is planned to start.';
@@ -68,7 +68,7 @@ page 50617 "Job Task List - Project"
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the duration of the project task in days.';
                 }
-                field(PlannedEndDate; Rec.PlannedEndDate)
+                field(PlannedEndDate; Rec.VisualBarEndDate)
                 {
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the date when the project task is planned to end.';

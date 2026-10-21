@@ -203,12 +203,12 @@ page 50620 "Gantt Demo DHX 2"
                     if (JobNo <> '') and (JobTaskNo <> '') then begin
                         JobTask.Get(JobNo, JobTaskNo);
                         case true of
-                            (JobTask.PlannedStartDate <> 0D) and (JobTask.PlannedEndDate <> 0D):
-                                DayPlanning.SetRange("Plan Date", JobTask.PlannedStartDate, JobTask.PlannedEndDate);
-                            (JobTask.PlannedStartDate = 0D) and (JobTask.PlannedEndDate <> 0D):
-                                DayPlanning.Setfilter("Plan Date", '..%1', JobTask.PlannedEndDate);
-                            (JobTask.PlannedStartDate <> 0D) and (JobTask.PlannedEndDate = 0D):
-                                DayPlanning.Setfilter("Plan Date", '%1..', JobTask.PlannedStartDate);
+                            (JobTask.VisualBarStartDate <> 0D) and (JobTask.VisualBarEndDate <> 0D):
+                                DayPlanning.SetRange("Plan Date", JobTask.VisualBarStartDate, JobTask.VisualBarEndDate);
+                            (JobTask.VisualBarStartDate = 0D) and (JobTask.VisualBarEndDate <> 0D):
+                                DayPlanning.Setfilter("Plan Date", '..%1', JobTask.VisualBarEndDate);
+                            (JobTask.VisualBarStartDate <> 0D) and (JobTask.VisualBarEndDate = 0D):
+                                DayPlanning.Setfilter("Plan Date", '%1..', JobTask.VisualBarStartDate);
                         end;
 
                     end;
@@ -896,8 +896,8 @@ page 50620 "Gantt Demo DHX 2"
                     DT2: Date;
                 begin
                     GanttChartDataHandler.GetDateRange(Setup, AnchorDate, DT1, DT2);
-                    jobTask.SetFilter(PlannedStartDate, '<=%1', DT2);
-                    jobTask.SetFilter(PlannedEndDate, '>=%1', DT1);
+                    jobTask.SetFilter(VisualBarStartDate, '<=%1', DT2);
+                    jobTask.SetFilter(VisualBarEndDate, '>=%1', DT1);
                     jobTask.SetFilter("Job Task Type", '<>%1&<>%2',
                         jobTask."Job Task Type"::"End-Total",
                         jobTask."Job Task Type"::Total);
@@ -1639,12 +1639,12 @@ page 50620 "Gantt Demo DHX 2"
         // re-derive the range from the Job Task's current Planned Start/End Date instead, and
         // persist it back into the native vars (not just pushed to JS) so the NEXT reload
         // (e.g. a plain Refresh Data click) also uses the fresh period deterministically.
-        ResourcePanelFromDate := JobTask.PlannedStartDate;
-        ResourcePanelToDate := JobTask.PlannedEndDate;
+        ResourcePanelFromDate := JobTask.VisualBarStartDate;
+        ResourcePanelToDate := JobTask.VisualBarEndDate;
 
         CurrPage.DHXGanttControl2.SetResourcePanelFilterInfo(ResourcePanelJobNo, ResourcePanelJobTaskNo,
-            Format(JobTask.PlannedStartDate, 0, '<Year4>-<Month,2>-<Day,2>'),
-            Format(JobTask.PlannedEndDate, 0, '<Year4>-<Month,2>-<Day,2>'));
+            Format(JobTask.VisualBarStartDate, 0, '<Year4>-<Month,2>-<Day,2>'),
+            Format(JobTask.VisualBarEndDate, 0, '<Year4>-<Month,2>-<Day,2>'));
         CurrPage.DHXGanttControl2.GetResourceFilter();
 
         // Re-marking each child task is no longer needed here - ResourcePanelChildTaskIds (the
@@ -1652,7 +1652,7 @@ page 50620 "Gantt Demo DHX 2"
         // as plain "JobNo|JobTaskNo" keys, exactly what BuildResourcePanelJobTaskKeysText needs;
         // Record marks wouldn't survive into the background task's separate session anyway.
         // Enqueue only - returns immediately, OnPageBackgroundTaskCompleted applies the result.
-        EnqueueFilteredResourcePanelReload(JobTask.PlannedStartDate, JobTask.PlannedEndDate);
+        EnqueueFilteredResourcePanelReload(JobTask.VisualBarStartDate, JobTask.VisualBarEndDate);
         exit(true);
     end;
 
@@ -1747,8 +1747,8 @@ page 50620 "Gantt Demo DHX 2"
             StartDateTxt := JsonToken.AsValue().AsText();
             if StartDateTxt <> '' then begin
                 StartDate := ParseDate(StartDateTxt);
-                if JobTask.PlannedStartDate <> StartDate then
-                    JobTask.PlannedStartDate := StartDate;
+                if JobTask.VisualBarStartDate <> StartDate then
+                    JobTask.VisualBarStartDate := StartDate;
             end;
         end;
 
@@ -1757,8 +1757,8 @@ page 50620 "Gantt Demo DHX 2"
             EndDateTxt := JsonToken.AsValue().AsText();
             if EndDateTxt <> '' then begin
                 EndDate := ParseDate(EndDateTxt);
-                if JobTask.PlannedEndDate <> EndDate then
-                    JobTask.PlannedEndDate := EndDate;
+                if JobTask.VisualBarEndDate <> EndDate then
+                    JobTask.VisualBarEndDate := EndDate;
             end;
         end;
 

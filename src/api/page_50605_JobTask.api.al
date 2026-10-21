@@ -41,11 +41,11 @@ page 50605 "JobTaskApi Opt"
                 {
                     Caption = 'Project Manager';
                 }
-                field(plannedStartDate; Rec.PlannedStartDate)
+                field(plannedStartDate; Rec.VisualBarStartDate)
                 {
                     Caption = 'Planned Start Date';
                 }
-                field(plannedEndDate; Rec.PlannedEndDate)
+                field(plannedEndDate; Rec.VisualBarEndDate)
                 {
                     Caption = 'Planned End Date';
                 }

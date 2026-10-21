@@ -95,12 +95,12 @@ page 50640 "Opti Job Task Lines Subform"
                     Caption = 'Project Manager';
                     ToolTip = 'Specifies the project manager for the project task. The project manager is based on the project manager on the related project planning line.';
                 }
-                field(PlannedStartDate; Rec.PlannedStartDate)
+                field(PlannedStartDate; Rec.VisualBarStartDate)
                 {
                     ApplicationArea = Basic, Suite, Jobs;
                     ToolTip = 'Specifies the planned start date for the project task. The date is based on the date on the related project planning line.';
                 }
-                field(PlannedEndDate; Rec.PlannedEndDate)
+                field(PlannedEndDate; Rec.VisualBarEndDate)
                 {
                     ApplicationArea = Basic, Suite, Jobs;
                     ToolTip = 'Specifies the planned end date for the project task. The date is based on the date on the related project planning line.';

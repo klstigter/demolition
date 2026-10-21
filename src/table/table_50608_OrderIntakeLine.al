@@ -45,13 +45,13 @@ table 50608 "Order Intake Line"
         {
             Caption = 'Planned Start Date';
             FieldClass = FlowField;
-            CalcFormula = lookup("Job Task"."PlannedStartDate" where("Job No." = field("Project No."), "Job Task No." = FIELD("Project Task No.")));
+            CalcFormula = lookup("Job Task".VisualBarStartDate where("Job No." = field("Project No."), "Job Task No." = FIELD("Project Task No.")));
         }
         field(201; "Planned End Date"; Date)
         {
             Caption = 'Planned End Date';
             FieldClass = FlowField;
-            CalcFormula = lookup("Job Task"."PlannedEndDate" where("Job No." = field("Project No."), "Job Task No." = FIELD("Project Task No.")));
+            CalcFormula = lookup("Job Task".VisualBarEndDate where("Job No." = field("Project No."), "Job Task No." = FIELD("Project Task No.")));
         }
 
     }

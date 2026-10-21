@@ -761,8 +761,8 @@ codeunit 50602 "Create Demo Data"
     begin
         JT."Job Task No." := TaskNo;
         JT.Description := Desc;
-        JT."PlannedStartDate" := StartDate;
-        JT.Validate("PlannedEndDate", EndDate);
+        JT.VisualBarStartDate := StartDate;
+        JT.Validate(VisualBarEndDate, EndDate);
         JT.Duration := EndDate - StartDate;  // Gantt bar width reads Duration, not PlannedEndDate
         JT."Job Task Type" := TaskType;
         // Progress (%) only applies to actual Posting rows, not Total/Begin-Total/End-Total
@@ -1980,8 +1980,8 @@ codeunit 50602 "Create Demo Data"
         WeekHasDP: Boolean;
         FirstWorkingDayOfWeek: Date;
     begin
-        TaskStart := JT."PlannedStartDate";
-        TaskEnd := JT."PlannedEndDate";
+        TaskStart := JT.VisualBarStartDate;
+        TaskEnd := JT.VisualBarEndDate;
         if TaskStart = 0D then TaskStart := gStartDate;
         if TaskEnd = 0D then TaskEnd := gEndDate;
         if TaskEnd > gEndDate then TaskEnd := gEndDate;
@@ -2430,12 +2430,12 @@ codeunit 50602 "Create Demo Data"
                 // JOB001-003 leader on an overlapping early date) - on the rare cap collision this
                 // slot is just silently skipped, same behavior as BuildDayPlanningsForTask's own
                 // per-line cap check, no "weekly guarantee" fallback needed here.
-                if TryReserveResourceDaySlot(ResNo, JT."PlannedStartDate") then
-                    InsertWorkOrderDayPlanning(JT, ResNo, JT."PlannedStartDate", Hours, WorkOrderNo);
+                if TryReserveResourceDaySlot(ResNo, JT.VisualBarStartDate) then
+                    InsertWorkOrderDayPlanning(JT, ResNo, JT.VisualBarStartDate, Hours, WorkOrderNo);
             end else
                 // 2-3 day span group: PlannedStartDate is snapped, but the span may still cross a
                 // non-working day in between (e.g. a DEMOCAL holiday) - skip those explicitly.
-                for DT := JT."PlannedStartDate" to JT."PlannedEndDate" do
+                for DT := JT.VisualBarStartDate to JT.VisualBarEndDate do
                     if IsWorkingDay(DT) and TryReserveResourceDaySlot(ResNo, DT) then
                         InsertWorkOrderDayPlanning(JT, ResNo, DT, 8, WorkOrderNo);
         end;
@@ -2869,8 +2869,8 @@ codeunit 50602 "Create Demo Data"
         // days for 1090/1100) rather than a fixed offset from Today()/gStartDate - gives enough
         // working days for a handful of Sequence Nos per skill to spread out over, while staying
         // near the dates other parts of the app already expect for this specific Work Order.
-        WindowStart := CalcDate('-2D', JT."PlannedStartDate");
-        WindowEnd := CalcDate('+5D', JT."PlannedEndDate");
+        WindowStart := CalcDate('-2D', JT.VisualBarStartDate);
+        WindowEnd := CalcDate('+5D', JT.VisualBarEndDate);
         Clear(WorkingDays);
         DT := WindowStart;
         while DT <= WindowEnd do begin

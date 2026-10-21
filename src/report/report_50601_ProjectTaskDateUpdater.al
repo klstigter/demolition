@@ -89,17 +89,17 @@ report 50601 "Job Task Planned Date Updater"
         DayPlanningPeriodSyncMgt: Codeunit "DayPlanning Period Sync Mgt.";
     begin
         // popup page editor:
-        if (ProjectTask.PlannedStartDate <> PlannedStartDate) or (ProjectTask.PlannedEndDate <> PlannedEndDate) then
+        if (ProjectTask.VisualBarStartDate <> PlannedStartDate) or (ProjectTask.VisualBarEndDate <> PlannedEndDate) then
             if DayPlanningPeriodSyncMgt.ShowPreview(ProjectTask,
                                                 ProjectTask."Job No.",
                                                 ProjectTask."Job Task No.",
-                                                ProjectTask.PlannedStartDate,
-                                                ProjectTask.PlannedEndDate,
+                                                ProjectTask.VisualBarStartDate,
+                                                ProjectTask.VisualBarEndDate,
                                                 PlannedStartDate,
                                                 PlannedEndDate) then begin
 
-                ProjectTask.PlannedStartDate := PlannedStartDate;
-                ProjectTask.PlannedEndDate := PlannedEndDate;
+                ProjectTask.VisualBarStartDate := PlannedStartDate;
+                ProjectTask.VisualBarEndDate := PlannedEndDate;
                 ProjectTask.Duration := Duration;
                 ProjectTask.Modify();
             end;
@@ -114,8 +114,8 @@ report 50601 "Job Task Planned Date Updater"
     procedure SetPlannedDates(var JobTask: Record "Job Task")
     begin
         ProjectTask := JobTask;
-        PlannedStartDate := JobTask.PlannedStartDate;
-        PlannedEndDate := JobTask.PlannedEndDate;
+        PlannedStartDate := JobTask.VisualBarStartDate;
+        PlannedEndDate := JobTask.VisualBarEndDate;
         Duration := JobTask.Duration;
     end;
 

@@ -42,11 +42,11 @@ page 50731 "JobTaskBatch Line Opt"
                 {
                     Caption = 'Project Manager';
                 }
-                field(plannedStartDate; Rec.PlannedStartDate)
+                field(plannedStartDate; Rec.VisualBarStartDate)
                 {
                     Caption = 'Planned Start Date';
                 }
-                field(plannedEndDate; Rec.PlannedEndDate)
+                field(plannedEndDate; Rec.VisualBarEndDate)
                 {
                     Caption = 'Planned End Date';
                 }
@@ -111,8 +111,8 @@ page 50731 "JobTaskBatch Line Opt"
         InTaskType := Rec."Job Task Type";
         InDescription := Rec.Description;
         InProjectManager := Rec."Project Manager";
-        InStart := Rec.PlannedStartDate;
-        InEnd := Rec.PlannedEndDate;
+        InStart := Rec.VisualBarStartDate;
+        InEnd := Rec.VisualBarEndDate;
         InAddress := Rec."Sell-to Address";
         InAddress2 := Rec."Sell-to Address 2";
         InCity := Rec."Sell-to City";
@@ -140,9 +140,9 @@ page 50731 "JobTaskBatch Line Opt"
         if InProjectManager <> '' then
             NewTask.Validate("Project Manager", InProjectManager);
         if InStart <> 0D then
-            NewTask.Validate(PlannedStartDate, InStart);
+            NewTask.Validate(VisualBarStartDate, InStart);
         if InEnd <> 0D then
-            NewTask.Validate(PlannedEndDate, InEnd);
+            NewTask.Validate(VisualBarEndDate, InEnd);
         if InAddress <> '' then
             NewTask.Validate("Sell-to Address", InAddress);
         if InAddress2 <> '' then

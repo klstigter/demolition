@@ -493,8 +493,8 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
         MaxNewDate: Date;
     begin
         MaxNewDate := GetMaxNewTaskDate(TempPreviewBuffer);
-        if (MaxNewDate <> 0D) and (MaxNewDate > JobTask.PlannedEndDate) then begin
-            JobTask.PlannedEndDate := MaxNewDate;
+        if (MaxNewDate <> 0D) and (MaxNewDate > JobTask.VisualBarEndDate) then begin
+            JobTask.VisualBarEndDate := MaxNewDate;
             JobTask.CalculateDuration();
         end;
     end;
@@ -551,7 +551,7 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
         TempPreviewBuffer: Record "DayPlanning Sync PreviewBuff" temporary;
         PreviewPage: Page "DayPlanning PeriodSyncPreview";
     begin
-        if not CalculateChanges(JobTask."Job No.", JobTask."Job Task No.", OldStart, OldEnd, JobTask.PlannedStartDate, JobTask.PlannedEndDate, TempPreviewBuffer) then begin
+        if not CalculateChanges(JobTask."Job No.", JobTask."Job Task No.", OldStart, OldEnd, JobTask.VisualBarStartDate, JobTask.VisualBarEndDate, TempPreviewBuffer) then begin
             if not SkipJobTaskModify then
                 JobTask.Modify(true);
             exit(true);

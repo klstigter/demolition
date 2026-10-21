@@ -1639,24 +1639,24 @@ codeunit 50604 "DHX Data Handler"
         StartDateTxt := '';
         EndDateTxt := '';
         case true of
-            (JobPlaningLine."PlannedStartDate" <> 0D) and (JobPlaningLine."Start Time" <> 0T):
-                StartDateTxt := Format(JobPlaningLine."PlannedStartDate", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(JobPlaningLine."Start Time");
-            (JobPlaningLine."PlannedStartDate" <> 0D) and (JobPlaningLine."Start Time" = 0T):
-                StartDateTxt := Format(JobPlaningLine."PlannedStartDate", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
-            (JobPlaningLine."PlannedStartDate" = 0D) and (JobPlaningLine."Start Time" <> 0T),
-            (JobPlaningLine."PlannedStartDate" = 0D) and (JobPlaningLine."Start Time" = 0T):
+            (JobPlaningLine.VisualBarStartDate <> 0D) and (JobPlaningLine."Start Time" <> 0T):
+                StartDateTxt := Format(JobPlaningLine.VisualBarStartDate, 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(JobPlaningLine."Start Time");
+            (JobPlaningLine.VisualBarStartDate <> 0D) and (JobPlaningLine."Start Time" = 0T):
+                StartDateTxt := Format(JobPlaningLine.VisualBarStartDate, 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
+            (JobPlaningLine.VisualBarStartDate = 0D) and (JobPlaningLine."Start Time" <> 0T),
+            (JobPlaningLine.VisualBarStartDate = 0D) and (JobPlaningLine."Start Time" = 0T):
                 StartDateTxt := '';
         end;
 
         case true of
-            (JobPlaningLine."PlannedEndDate" = 0D) and (JobPlaningLine."End Time" <> 0T):
-                EndDateTxt := Format(JobPlaningLine."PlannedStartDate", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(JobPlaningLine."End Time");
-            (JobPlaningLine."PlannedEndDate" <> 0D) and (JobPlaningLine."End Time" <> 0T):
-                EndDateTxt := Format(JobPlaningLine."PlannedEndDate", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(JobPlaningLine."End Time");
-            (JobPlaningLine."PlannedEndDate" = 0D) and (JobPlaningLine."End Time" = 0T):
-                EndDateTxt := Format(JobPlaningLine."PlannedStartDate", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
-            (JobPlaningLine."PlannedEndDate" <> 0D) and (JobPlaningLine."End Time" = 0T):
-                EndDateTxt := Format(JobPlaningLine."PlannedEndDate", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
+            (JobPlaningLine.VisualBarEndDate = 0D) and (JobPlaningLine."End Time" <> 0T):
+                EndDateTxt := Format(JobPlaningLine.VisualBarStartDate, 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(JobPlaningLine."End Time");
+            (JobPlaningLine.VisualBarEndDate <> 0D) and (JobPlaningLine."End Time" <> 0T):
+                EndDateTxt := Format(JobPlaningLine.VisualBarEndDate, 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(JobPlaningLine."End Time");
+            (JobPlaningLine.VisualBarEndDate = 0D) and (JobPlaningLine."End Time" = 0T):
+                EndDateTxt := Format(JobPlaningLine.VisualBarStartDate, 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
+            (JobPlaningLine.VisualBarEndDate <> 0D) and (JobPlaningLine."End Time" = 0T):
+                EndDateTxt := Format(JobPlaningLine.VisualBarEndDate, 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
         end;
     end;
 
@@ -7077,8 +7077,8 @@ codeunit 50604 "DHX Data Handler"
             // Unused by any ported reference function (grepped DHTMLXtempv112-app.js - neither
             // field is read anywhere), kept only as descriptive metadata mirroring the reference's
             // own mock shape - mapped from this Job Task's own Planned Start/End Date.
-            WorkOrderObj.Add('notEarlierThan', ReqAssign_FormatIsoDate(JobTask.PlannedStartDate));
-            WorkOrderObj.Add('notLaterThan', ReqAssign_FormatIsoDate(JobTask.PlannedEndDate));
+            WorkOrderObj.Add('notEarlierThan', ReqAssign_FormatIsoDate(JobTask.VisualBarStartDate));
+            WorkOrderObj.Add('notLaterThan', ReqAssign_FormatIsoDate(JobTask.VisualBarEndDate));
         end else begin
             WorkOrderObj.Add('no', JobNo + '|' + JobTaskNo);
             WorkOrderObj.Add('description', '');
@@ -7464,8 +7464,8 @@ codeunit 50604 "DHX Data Handler"
         if JobTaskFound then begin
             WorkOrderObj.Add('no', JobNo + '|' + JobTaskNo);
             WorkOrderObj.Add('description', JobTask.Description);
-            WorkOrderObj.Add('notEarlierThan', ReqAssign_FormatIsoDate(JobTask.PlannedStartDate));
-            WorkOrderObj.Add('notLaterThan', ReqAssign_FormatIsoDate(JobTask.PlannedEndDate));
+            WorkOrderObj.Add('notEarlierThan', ReqAssign_FormatIsoDate(JobTask.VisualBarStartDate));
+            WorkOrderObj.Add('notLaterThan', ReqAssign_FormatIsoDate(JobTask.VisualBarEndDate));
         end else begin
             WorkOrderObj.Add('no', JobNo + '|' + JobTaskNo);
             WorkOrderObj.Add('description', '');

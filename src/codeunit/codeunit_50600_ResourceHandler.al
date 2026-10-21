@@ -48,18 +48,18 @@ codeunit 50600 "Resource DayPilot Handler"
             //DT := CreateDateTime(_Date, _Time);
             JobTask.Reset();
             DT := CalcDate('<-1W>', _Date);
-            JobTask.SetFilter("PlannedStartDate", '>=%1', DT);
+            JobTask.SetFilter(VisualBarStartDate, '>=%1', DT);
             DT := CalcDate('<2W>', _Date);
-            JobTask.SetFilter("PlannedEndDate", '<=%1', DT);
+            JobTask.SetFilter(VisualBarEndDate, '<=%1', DT);
             if JobTask.findset then
                 repeat
                     Clear(EventObj);
                     EventObj.Add('id', JobTask."Job No." + '|' + JobTask."Job Task No.");
                     EventObj.Add('text', JobTask.Description);
-                    EventObj.Add('start', CreateDateTime(JobTask.PlannedStartDate, JobTask."Start Time"));
-                    DT := JobTask."PlannedStartDate";
-                    if JobTask."PlannedEndDate" <> 0D then
-                        DT := JobTask."PlannedEndDate";
+                    EventObj.Add('start', CreateDateTime(JobTask.VisualBarStartDate, JobTask."Start Time"));
+                    DT := JobTask.VisualBarStartDate;
+                    if JobTask.VisualBarEndDate <> 0D then
+                        DT := JobTask.VisualBarEndDate;
                     EventObj.Add('end', CreateDateTime(DT, JobTask."End Time"));
                     //TODO Source No
                     //EventObj.Add('resource', JobPlaningLine."No.");
