@@ -2328,12 +2328,12 @@ class CapacityPlanningOverview {
             '<div class="standard-tooltip-title">Skill: ' + cpoEsc(skill) + '</div>' +
             '<div class="standard-tooltip-detail">Date: ' + cpoEsc(dateText) + '</div></div>' +
             '<table class="standard-tooltip-table"><thead><tr><th>No.</th><th>Statistic</th><th style="text-align:right">Number</th></tr></thead><tbody>' +
+            row('Number of Jobs', jobs.size) +
+            row('Number of Task', tasks.size) +            
+            row('Assigned Hours', (Math.round(assigned * 10) / 10) + 'h') +
+            row('Requested Hours', (Math.round(requested * 10) / 10) + 'h') +
             row('Number of Day Planning', lines.length) +
             row('Number of Resources', resources.size) +
-            row('Requested Hours', (Math.round(requested * 10) / 10) + 'h') +
-            row('Assigned Hours', (Math.round(assigned * 10) / 10) + 'h') +
-            row('Number of Task', tasks.size) +
-            row('Number of Jobs', jobs.size) +
             '</tbody></table>';
     }
 
@@ -2497,6 +2497,9 @@ class CapacityPlanningOverview {
             });
         };
         document.addEventListener('contextmenu', hideTips, true);
+        // Suppress the browser's default context menu everywhere in the add-in; the custom menu
+        // handlers still run (they only need their own preventDefault for stopPropagation flow).
+        document.addEventListener('contextmenu', function (e) { e.preventDefault(); }, true);
         document.addEventListener('mousemove', function (e) {
             const menu = document.getElementById('cpo-tree-context-menu');
             if (!menu || menu.hidden) return;
