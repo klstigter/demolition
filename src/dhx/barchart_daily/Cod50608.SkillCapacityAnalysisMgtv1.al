@@ -42,7 +42,6 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
     procedure BuildSkillBuffer(var Buffer: Record "Skill Req. vs Capacity Buffer" temporary; ResourceNoFilter: Code[20]; DateFromFilter: Date; DateToFilter: Date; SkillCodeFilter: Code[10])
     var
         DayPlanning: Record "Day Planning";
-        SkillCodeRec: Record "Skill Code";
         RequestedHoursPerSkill: Dictionary of [Code[10], Decimal];
         AssignedHoursPerSkill: Dictionary of [Code[10], Decimal];
         UnassignedHoursPerSkill: Dictionary of [Code[10], Decimal];
@@ -68,17 +67,9 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
         // pass, matching this procedure's own single-pass/Dictionary convention.
         BuildSkillAssignedUnassignedSplit(ResourceNoFilter, DateFromFilter, DateToFilter, AssignedHoursPerSkill, UnassignedHoursPerSkill);
 
-        // One row per "Skill Code" MASTER record - not per skill actually found on a Day
-        // Planning line - so every configured skill shows (at 0 if it has no matching lines)
-        // instead of silently disappearing. Matches codeunit 50694's BuildSkillCodeList on the
-        // Capacity Overview page. SkillCodeFilter (when set) narrows this to a single master
-        // record, same as it always narrowed ApplyDayPlanningFilters above.
-        SkillCodeRec.Reset();
-        if SkillCodeFilter <> '' then
-            SkillCodeRec.SetRange(Code, SkillCodeFilter);
-        if SkillCodeRec.FindSet() then
-            repeat
-                SkillCode := CopyStr(SkillCodeRec.Code, 1, MaxStrLen(SkillCode));
+        // Derived from the distinct non-blank Skill values on Day Planning (dictionary keys
+        // above), NOT the Skill Code master - skills missing from the master still get a row.
+        foreach SkillCode in RequestedHoursPerSkill.Keys() do begin
                 // Same per-skill-resource-set capacity split the chart's own "C" bar uses
                 // (GetSkillCapacityAssignedFreeSplit forwards to codeunit 50662's shared
                 // GDayPlanningBuf/GResCapacityBuf temp buffers, already loaded for this exact date
@@ -90,7 +81,7 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
                     AssignedInternal + AssignedExternal,
                     CapacityInternal + CapacityExternal + CapacityExternalMandatory,
                     GetTotal(AssignedHoursPerSkill, SkillCode));
-            until SkillCodeRec.Next() = 0;
+        end;
 
         Buffer.Reset();
         if Buffer.FindFirst() then;
