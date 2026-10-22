@@ -136,16 +136,6 @@ table 50605 "Daily Optimizer Setup"
                 RestoreColorDefaultOnClear(Rec."Capacity Font Color", xRec."Capacity Font Color", VisualDefaultSettings.GetDefaultCapacityFontColor());
             end;
         }
-        field(71; "Capacity Bar Blur Strength"; Integer)
-        {
-            Caption = 'Blur Strength (%)';
-            DataClassification = CustomerContent;
-            ObsoleteState = Pending;
-            ObsoleteReason = 'Capacity bar blur removed; capacity bars render in the configured colour as-is.';
-            ObsoleteTag = '28.0';
-            MinValue = 0;
-            MaxValue = 90;
-        }
         field(68; "Bar Font Color"; Text[20])
         {
             Caption = 'Bar Font Color';

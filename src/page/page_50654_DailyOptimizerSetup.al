@@ -715,6 +715,18 @@ page 50654 "Daily Optimizer Setup"
                         CODEUNIT.Run(Codeunit::"Delete Incorrect Day Planning");
                     end;
                 }
+                action(ExportDemoData)
+                {
+                    ApplicationArea = All;
+                    Caption = 'Export Demo Data';
+                    ToolTip = 'Export the Daily Optimizer Setup to an XML file.';
+                    Image = ExportFile;
+
+                    trigger OnAction()
+                    begin
+                        XMLPORT.Run(XMLPORT::DemoData, false, false);
+                    end;
+                }
             }
         }
 
@@ -732,6 +744,7 @@ page 50654 "Daily Optimizer Setup"
                 actionref(DeleteDemoData_ref; DeleteDemoData) { }
                 actionref(DemoDataLog_ref; DemoDataLog) { }
                 actionref(DeleteIncorrectDayPlanning_ref; DeleteIncorrectDayPlanning) { }
+                actionref(ExportDemoData_ref; ExportDemoData) { }
             }
             group(Category_Tests)
             {
