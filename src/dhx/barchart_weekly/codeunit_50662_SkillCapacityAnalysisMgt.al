@@ -732,28 +732,23 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// </summary>
     local procedure BuildActiveSkillList(var ActiveSkillList: List of [Code[20]])
     var
-        SkillTotals: Dictionary of [Code[20], Decimal];
-        SkillCode: Code[20];
-        CurrentValue: Decimal;
+        Seen: Dictionary of [Code[20], Boolean];
     begin
         Clear(ActiveSkillList);
 
+        // Every distinct non-blank Skill present on any Day Planning row in the period (assigned
+        // or not) - same set Capacity Overview's Workload Pressure uses; no Skill Code master
+        // dependency.
         GDayPlanningBuf.Reset();
-        GDayPlanningBuf.SetRange(Assigned, false);
+        GDayPlanningBuf.SetFilter(Skill, '<>%1', '');
         if GDayPlanningBuf.FindSet() then
             repeat
-                if GDayPlanningBuf.Skill <> '' then begin
-                    CurrentValue := 0;
-                    if SkillTotals.ContainsKey(GDayPlanningBuf.Skill) then
-                        CurrentValue := SkillTotals.Get(GDayPlanningBuf.Skill);
-                    SkillTotals.Set(GDayPlanningBuf.Skill, CurrentValue + GDayPlanningBuf."Requested Hours");
+                if not Seen.ContainsKey(GDayPlanningBuf.Skill) then begin
+                    Seen.Add(GDayPlanningBuf.Skill, true);
+                    ActiveSkillList.Add(GDayPlanningBuf.Skill);
                 end;
             until GDayPlanningBuf.Next() = 0;
         GDayPlanningBuf.Reset();
-
-        foreach SkillCode in SkillTotals.Keys() do
-            if SkillTotals.Get(SkillCode) <> 0 then
-                ActiveSkillList.Add(SkillCode);
     end;
 
     /// <summary>
