@@ -73,8 +73,8 @@ tableextension 50605 "Job Task ext" extends "Job Task"
                 // and assigns the new dates via direct field assignment (not Validate()), so the
                 // Job Task Card period-change path is already fully wired without this trigger.
                 // Re-enabling this call would ALSO fire for the two other call sites that DO call
-                // .Validate(VisualBarEndDate/VisualBarStartDate, ...) directly: codeunit_50602_CreateDemoData
-                // (bulk/unattended demo data generation) and codeunit_50610_DayPlanningMgt's own
+                // .Validate(VisualBarEndDate/VisualBarStartDate, ...) directly: the former demo data generator
+                // (bulk/unattended generation) and codeunit_50610_DayPlanningMgt's own
                 // CreateDayPlanning (pattern-driven Job Task end-date sync, called right after the
                 // Day Planning lines it derives dates from were just generated) — both would then
                 // unexpectedly pop up the blocking preview dialog for what are internal housekeeping
