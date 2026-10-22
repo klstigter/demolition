@@ -1712,7 +1712,7 @@ class CapacityPlanningOverview {
             rows += '<div class="cpo-dst-row"><span class="cpo-dst-swatch" style="background:' + meta.color + ';border-color:' + meta.border + '"></span><span>' + cpoEsc(sk) + '</span><span class="cpo-dst-value">' + cpoHoursText(value) + '</span></div>';
         });
         const dayLabel = x.date.toLocaleDateString('en-GB', { weekday: 'short' }) + ' ' + x.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-        return '<div class="cpo-dst-title">' + cpoEsc(dayLabel) + '</div>' +
+        return '<div class="cpo-dst-title cpo-dst-title-total"><span>' + cpoEsc(dayLabel) + '</span><span>' + cpoHoursText(x.request) + '</span></div>' +
             rows +
             '<div class="cpo-dst-total" style="gap:12px"><span style="flex:1;text-align:right">Total open request</span><span>' + cpoHoursText(x.request - x.assignedRequest) + '</span></div>' +
             '<div class="cpo-dst-rule" style="border-top:1px solid #ececec"></div>' +
@@ -1783,7 +1783,7 @@ class CapacityPlanningOverview {
                 '<div class="cpo-daily-chart-col" data-summary-kind="capacity" data-day-index="' + x.dayIndex + '"><div class="cpo-daily-chart-label">C</div><div class="cpo-daily-chart-bar-area"><div class="cpo-daily-chart-stack">' + cStack + '</div></div></div>' +
                 '<div class="cpo-daily-chart-col" data-summary-kind="request" data-day-index="' + x.dayIndex + '"><div class="cpo-daily-chart-label">R</div><div class="cpo-daily-chart-bar-area"><div class="cpo-daily-chart-stack">' + rStack + '</div></div></div>' +
                 '</div>' +
-                '<div class="cpo-daily-chart-value">' + (x.assigned + x.freeInt + x.freeExt) + 'h&nbsp;&nbsp;' + x.request + 'h</div>' +
+                '<div class="cpo-daily-chart-value" style="display:flex"><span style="flex:1"></span><span style="flex:1">' + x.request + 'h</span></div>' +
                 '</div>';
         }).join('');
 
