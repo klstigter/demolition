@@ -47,6 +47,15 @@ page 50692 "Requested vs Capacity Weekly"
                     begin
                         SkillCapacityAnalysisMgt.ShowSegmentData(SegmentId, BarType, PeriodStartDate, DayIndex, WholeWeek);
                     end;
+
+                    trigger OnOpenScheduler(Target: Text; SkillCode: Text; DayIndex: Integer)
+                    var
+                        DHXDataHandler: Codeunit "DHX Data Handler";
+                    begin
+                        if (DayIndex < 1) or (DayIndex > 7) then
+                            exit;
+                        DHXDataHandler.CPO_OpenSchedulerFromChart(Target, SkillCode, PeriodStartDate + (DayIndex - 1));
+                    end;
                 }
             }
         }
