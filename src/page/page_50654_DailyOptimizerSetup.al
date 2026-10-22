@@ -581,34 +581,12 @@ page 50654 "Daily Optimizer Setup"
 
                     trigger OnAction()
                     var
-                        CreateDemoData: Codeunit "Create Demo Data";
                         VisualDefaultSettings: Codeunit "Visual Default Settings";
-                        ConfirmLbl: Label 'This will reset all Daily Optimizer Setup values - calendar/work hour template/default skill/number series, and colors - back to their built-in defaults, overwriting any customizations.\\Continue?';
+                        ConfirmLbl: Label 'This will reset the Daily Optimizer Setup list type and colors back to their built-in defaults, overwriting any customizations.\\Continue?';
                     begin
                         if not Confirm(ConfirmLbl, false) then
                             exit;
 
-                        // Initialize() MUST run first - CreateDailyOptimizerSetupDefault() calls
-                        // CreateDemoCalendar()/CreateDemoCalendarChanges() internally, which do date
-                        // math (CalcDate) against gStartDate/gEndDate. Those globals are only
-                        // populated by Initialize() (normally called once at the top of the full
-                        // OnRun() demo-data run) - calling CreateDailyOptimizerSetupDefault() on its
-                        // own from this action without it left gStartDate at its default 0D,
-                        // producing "You cannot base a date calculation on an undefined date."
-                        // Initialize() has no destructive side effects of its own (just computes the
-                        // demo date window and resumes gLogEntryNo from the last log entry), so it's
-                        // safe to call standalone here - matches how external repair reports (see
-                        // report_50600_RepairDayPlanningResourceGroup.al) already call it before
-                        // reusing CreateDemoCalendar() outside a full run.
-                        //
-                        // CreateDailyOptimizerSetupDefault() owns Base Calendar/Work hour
-                        // Template/Default Skill/Order Intake Nos/Work Order Nos - it ensures the
-                        // referenced master data exists and does its own Get()/Insert()/Modify()
-                        // against the singleton. Called first, then Rec is re-fetched so the
-                        // color/width/list-type fields below are applied on top of its result in
-                        // one final Modify - avoids two competing Modify calls on the same record.
-                        CreateDemoData.Initialize();
-                        CreateDemoData.CreateDailyOptimizerSetupDefault();
                         Rec.Get();
 
                         Rec."Resource Scheduler - List Type" := Rec."Resource Scheduler - List Type"::"By Resource Group";
@@ -667,42 +645,6 @@ page 50654 "Daily Optimizer Setup"
             {
                 Caption = 'Demo Data';
 
-                action(CreateDemoData)
-                {
-                    ApplicationArea = All;
-                    Caption = 'Create Demo Data';
-                    ToolTip = 'Delete existing demo data and recreate it fresh for all three demo jobs.';
-                    Image = Setup;
-
-                    trigger OnAction()
-                    begin
-                        CODEUNIT.Run(Codeunit::"Create Demo Data");
-                    end;
-                }
-                action(DeleteDemoData)
-                {
-                    ApplicationArea = All;
-                    Caption = 'Delete Demo Data';
-                    ToolTip = 'Delete only the records that were created by the demo data run. User-created data is not affected.';
-                    Image = Delete;
-
-                    trigger OnAction()
-                    begin
-                        CODEUNIT.Run(Codeunit::"Delete Demo Data");
-                    end;
-                }
-                action(DemoDataLog)
-                {
-                    ApplicationArea = All;
-                    Caption = 'Demo Data Log';
-                    ToolTip = 'View the log of all records created by the demo data run.';
-                    Image = Log;
-
-                    trigger OnAction()
-                    begin
-                        PAGE.Run(Page::"Demo Data Log");
-                    end;
-                }
                 action(DeleteIncorrectDayPlanning)
                 {
                     ApplicationArea = All;
@@ -727,6 +669,14 @@ page 50654 "Daily Optimizer Setup"
                         XMLPORT.Run(XMLPORT::DemoData, false, false);
                     end;
                 }
+                action(DemoScenarios)
+                {
+                    ApplicationArea = All;
+                    Caption = 'Demo Scenarios';
+                    ToolTip = 'Open the list of demo data scenarios.';
+                    Image = List;
+                    RunObject = page "Demo Data Scenarios";
+                }
             }
         }
 
@@ -740,11 +690,9 @@ page 50654 "Daily Optimizer Setup"
             group(Category_DemoData)
             {
                 Caption = 'Demo Data';
-                actionref(CreateDemoData_ref; CreateDemoData) { }
-                actionref(DeleteDemoData_ref; DeleteDemoData) { }
-                actionref(DemoDataLog_ref; DemoDataLog) { }
                 actionref(DeleteIncorrectDayPlanning_ref; DeleteIncorrectDayPlanning) { }
                 actionref(ExportDemoData_ref; ExportDemoData) { }
+                actionref(DemoScenarios_ref; DemoScenarios) { }
             }
             group(Category_Tests)
             {
