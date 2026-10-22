@@ -497,6 +497,12 @@
     margin-bottom: 4px;
 }
 
+.cpo-dst-title-total {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
 .cpo-dst-row {
     display: flex;
     align-items: center;
