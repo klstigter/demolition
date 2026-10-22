@@ -40,6 +40,7 @@ var lastRenderedWidth = 0; // chartContainer.clientWidth at the time of the most
 // visually bleeding past chartContainer's own right edge into a neighbouring role-center panel).
 var contextMenuEl = null; // the current "Show Data" right-click popup, if one is open (see ShowContextMenu/HideContextMenu)
 var chartMutationObserver = null; // set up once in BOOT; disconnected/reconnected around our own patch writes
+var contextMenuCat = -1; // hovered category index the open context menu belongs to; hovering another bar closes it
 var contextMenuDismissHandlers = null; // {click,contextmenu,scroll,keydown} currently attached to
 // document for dismissing the open "Show Data" popup, or null if none attached - see ShowContextMenu/
 // HideContextMenu for why this is tracked explicitly instead of relying on {once:true} self-removal.
@@ -362,6 +363,7 @@ window.BOOT = function() {
         chartContainer.addEventListener("mouseleave", HideSummaryTip);
 
         chartContainer.addEventListener("contextmenu", function(e) {
+            contextMenuCat = ResolveHoveredCategoryIndex(e);
             var barHit = ResolveBarSegmentFromEvent(e);
             if (barHit) {
                 e.preventDefault();
@@ -373,8 +375,8 @@ window.BOOT = function() {
                         );
                     } catch (err) { /* ignore */ }
                 }, barHit.segmentId.slice(-9) === "|Capacity" ? "Show Capacity" : "Show Day Planning",
-                // R (Requested) bar only, and only on the Role Center part (it sends showToolbar).
-                (barHit.segmentId.slice(-10) === "|Requested" && lastChartData && lastChartData.showToolbar)
+                // R (Requested) bar only (Role Center parts and the full visual pages).
+                (barHit.segmentId.slice(-10) === "|Requested")
                     ? BuildSchedulerMenuItems(barHit.segmentId.slice(0, -10), 0) : null);
                 return;
             }
@@ -547,6 +549,7 @@ function HideSummaryTip() {
 function ShowSummaryTip(e) {
     var catIdx = ResolveHoveredCategoryIndex(e);
     if (catIdx < 0) { HideSummaryTip(); return; }
+    if (contextMenuEl && catIdx !== contextMenuCat) HideContextMenu(); // cursor moved to another bar: close the right-click popup
     if (!summaryTipEl) {
         summaryTipEl = document.createElement("div");
         summaryTipEl.style.cssText = "display:none;position:fixed;z-index:20000;border:1px solid #d7d7d7;border-radius:6px;" +

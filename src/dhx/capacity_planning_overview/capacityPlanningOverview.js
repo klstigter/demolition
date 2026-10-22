@@ -2500,9 +2500,18 @@ class CapacityPlanningOverview {
         // Suppress the browser's default context menu everywhere in the add-in; the custom menu
         // handlers still run (they only need their own preventDefault for stopPropagation flow).
         document.addEventListener('contextmenu', function (e) { e.preventDefault(); }, true);
+        // Element (bar / cell / chip) the open menu was requested on; hovering a different one closes the menu.
+        const anchorSel = '.cpo-tree-summary-cell, .cpo-dash-skill-cell, .cpo-tree-chip, .cpo-daily-chart-col, .dhx_cal_event';
+        const self = this;
+        let anchor = null;
+        document.addEventListener('contextmenu', function (e) {
+            anchor = e.target.closest(anchorSel) || e.target;
+        }, true);
         document.addEventListener('mousemove', function (e) {
             const menu = document.getElementById('cpo-tree-context-menu');
             if (!menu || menu.hidden) return;
+            if (menu.contains(e.target)) return;
+            if ((e.target.closest(anchorSel) || e.target) !== anchor) { self.hideTreeContextMenu(); return; }
             hideTips();
             e.stopPropagation();
         }, true);

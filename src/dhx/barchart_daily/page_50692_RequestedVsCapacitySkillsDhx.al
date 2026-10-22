@@ -62,6 +62,13 @@ page 50681 "Requested vs Capacity Daily"
                         else
                             SkillCapacityAnalysisMgt.ShowSegmentData(SegmentId, WholeChart, ResourceNoFilter, PeriodStartDate, PeriodStartDate);
                     end;
+
+                    trigger OnOpenScheduler(Target: Text; SkillCode: Text; DayIndex: Integer)
+                    var
+                        DHXDataHandler: Codeunit "DHX Data Handler";
+                    begin
+                        DHXDataHandler.CPO_OpenSchedulerFromChart(Target, SkillCode, PeriodStartDate);
+                    end;
                 }
             }
         }
