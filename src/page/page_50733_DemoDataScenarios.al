@@ -46,6 +46,12 @@ page 50733 "Demo Data Scenarios"
                     Editable = false;
                     ToolTip = 'Specifies when the scenario was last applied.';
                 }
+                field("Applied Type"; Rec."Applied Type")
+                {
+                    ApplicationArea = All;
+                    Editable = false;
+                    ToolTip = 'Specifies the option that was used when the scenario was last applied.';
+                }
             }
         }
     }
@@ -113,6 +119,7 @@ page 50733 "Demo Data Scenarios"
                     if ApplyReport.WasApplied() then begin
                         Rec.Get(Rec."Entry No.");
                         Rec.Applied := CurrentDateTime();
+                        Rec."Applied Type" := ApplyReport.GetAppliedType();
                         Rec.Modify();
                         CurrPage.Update(false);
                     end;

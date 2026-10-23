@@ -12,8 +12,10 @@ xmlport 50734 DemoData
         {
             textelement(MasterData)
             {
+                MinOccurs = Zero;
                 textelement(Calendar)
                 {
+                    MinOccurs = Zero;
                     tableelement(BaseCalendar; "Base Calendar")
                     {
                         SourceTableView = where("Code" = const('BASIS'));
@@ -48,6 +50,7 @@ xmlport 50734 DemoData
                 }
                 textelement(WorkHour)
                 {
+                    MinOccurs = Zero;
                     tableelement(WorkHourTemplate; "Work-Hour Template")
                     {
                         SourceTableView = where("Code" = const('BASIS'));
@@ -72,6 +75,7 @@ xmlport 50734 DemoData
                 }
                 textelement(Skills)
                 {
+                    MinOccurs = Zero;
                     tableelement(SkillCode; "Skill Code")
                     {
                         fieldelement(Code; SkillCode.Code) { FieldValidate = No; }
@@ -93,6 +97,7 @@ xmlport 50734 DemoData
                 }
                 textelement(Numbering)
                 {
+                    MinOccurs = Zero;
                     tableelement("NoSeries"; "No. Series")
                     {
                         sourcetableview = where("Code" = filter('OI|WO'));
@@ -136,6 +141,7 @@ xmlport 50734 DemoData
                 }
                 textelement(ProjectTypes)
                 {
+                    MinOccurs = Zero;
                     tableelement(ProjectType; "Project Type Opt.")
                     {
                         fieldelement(Code; ProjectType.Code) { FieldValidate = No; }
@@ -150,6 +156,7 @@ xmlport 50734 DemoData
                 }
                 textelement(ResourceGroups)
                 {
+                    MinOccurs = Zero;
                     tableelement(ResourceGroup; "Resource Group")
                     {
                         fieldelement(No; ResourceGroup."No.") { FieldValidate = No; }
@@ -164,6 +171,7 @@ xmlport 50734 DemoData
                 }
                 textelement(UoMs)
                 {
+                    MinOccurs = Zero;
                     tableelement(UnitOfMeasure; "Unit of Measure")
                     {
                         fieldelement(Code; UnitOfMeasure.Code) { FieldValidate = No; }
@@ -180,6 +188,7 @@ xmlport 50734 DemoData
                 }
                 textelement(GenProd)
                 {
+                    MinOccurs = Zero;
                     tableelement(GenProductPostingGroup; "Gen. Product Posting Group")
                     {
                         fieldelement(Code; GenProductPostingGroup.Code) { FieldValidate = No; }
@@ -199,6 +208,7 @@ xmlport 50734 DemoData
                 }
                 textelement(VATProd)
                 {
+                    MinOccurs = Zero;
                     tableelement(VATProductPostingGroup; "VAT Product Posting Group")
                     {
                         fieldelement(Code; VATProductPostingGroup.Code) { FieldValidate = No; }
@@ -213,6 +223,7 @@ xmlport 50734 DemoData
                 }
                 textelement(Customers)
                 {
+                    MinOccurs = Zero;
                     tableelement(Customer; Customer)
                     {
                         fieldelement(No; Customer."No.") { FieldValidate = No; }
@@ -320,6 +331,7 @@ xmlport 50734 DemoData
                 }
                 textelement(Vendors)
                 {
+                    MinOccurs = Zero;
                     tableelement(Vendor; Vendor)
                     {
                         fieldelement(No; Vendor."No.") { FieldValidate = No; }
@@ -411,6 +423,7 @@ xmlport 50734 DemoData
                 }
                 textelement(Resources)
                 {
+                    MinOccurs = Zero;
                     tableelement(Resource; Resource)
                     {
                         fieldelement(No; Resource."No.") { FieldValidate = No; }
@@ -499,6 +512,7 @@ xmlport 50734 DemoData
             }
             tableelement(DailyOptimizerSetup; "Daily Optimizer Setup")
             {
+                MinOccurs = Zero;
                 fieldelement(WorkHourTemplate; DailyOptimizerSetup."Work hour Template") { FieldValidate = No; }
                 fieldelement(BaseCalendar; DailyOptimizerSetup."Base Calendar") { FieldValidate = No; }
                 fieldelement(OrderIntakeNos; DailyOptimizerSetup."Order Intake Nos") { FieldValidate = No; }
@@ -534,8 +548,192 @@ xmlport 50734 DemoData
                     currXMLport.Skip();
                 end;
             }
+            textelement(Jobs)
+            {
+                MinOccurs = Zero;
+                tableelement(Job; Job)
+                {
+                    fieldelement(No; Job."No.") { FieldValidate = No; }
+                    fieldelement(SearchDescription; Job."Search Description") { FieldValidate = No; }
+                    fieldelement(Description; Job.Description) { FieldValidate = No; }
+                    fieldelement(Description2; Job."Description 2") { FieldValidate = No; }
+                    fieldelement(BillToCustomerNo; Job."Bill-to Customer No.") { FieldValidate = No; }
+                    fieldelement(CreationDate; Job."Creation Date") { FieldValidate = No; }
+                    fieldelement(StartingDate; Job."Starting Date") { FieldValidate = No; }
+                    fieldelement(EndingDate; Job."Ending Date") { FieldValidate = No; }
+                    fieldelement(Status; Job.Status) { FieldValidate = No; }
+                    fieldelement(PersonResponsible; Job."Person Responsible") { FieldValidate = No; }
+                    fieldelement(GlobalDimension1Code; Job."Global Dimension 1 Code") { FieldValidate = No; }
+                    fieldelement(GlobalDimension2Code; Job."Global Dimension 2 Code") { FieldValidate = No; }
+                    fieldelement(JobPostingGroup; Job."Job Posting Group") { FieldValidate = No; }
+                    fieldelement(Blocked; Job.Blocked) { FieldValidate = No; }
+                    fieldelement(LastDateModified; Job."Last Date Modified") { FieldValidate = No; }
+                    fieldelement(CustomerDiscGroup; Job."Customer Disc. Group") { FieldValidate = No; }
+                    fieldelement(CustomerPriceGroup; Job."Customer Price Group") { FieldValidate = No; }
+                    fieldelement(LocationCode; Job."Location Code") { FieldValidate = No; }
+                    fieldelement(BinCode; Job."Bin Code") { FieldValidate = No; }
+                    fieldelement(LanguageCode; Job."Language Code") { FieldValidate = No; }
+                    fieldelement(BillToName; Job."Bill-to Name") { FieldValidate = No; }
+                    fieldelement(BillToAddress; Job."Bill-to Address") { FieldValidate = No; }
+                    fieldelement(BillToAddress2; Job."Bill-to Address 2") { FieldValidate = No; }
+                    fieldelement(BillToCity; Job."Bill-to City") { FieldValidate = No; }
+                    fieldelement(BillToCounty; Job."Bill-to County") { FieldValidate = No; }
+                    fieldelement(BillToPostCode; Job."Bill-to Post Code") { FieldValidate = No; }
+                    fieldelement(NoSeries; Job."No. Series") { FieldValidate = No; }
+                    fieldelement(BillToCountryRegionCode; Job."Bill-to Country/Region Code") { FieldValidate = No; }
+                    fieldelement(BillToName2; Job."Bill-to Name 2") { FieldValidate = No; }
+                    fieldelement(TaskBillingMethod; Job."Task Billing Method") { FieldValidate = No; }
+                    fieldelement(Reserve; Job.Reserve) { FieldValidate = No; }
+                    fieldelement(ShipToPhoneNo; Job."Ship-to Phone No.") { FieldValidate = No; }
+                    fieldelement(WIPMethod; Job."WIP Method") { FieldValidate = No; }
+                    fieldelement(CurrencyCode; Job."Currency Code") { FieldValidate = No; }
+                    fieldelement(BillToContactNo; Job."Bill-to Contact No.") { FieldValidate = No; }
+                    fieldelement(BillToContact; Job."Bill-to Contact") { FieldValidate = No; }
+                    fieldelement(InvoiceCurrencyCode; Job."Invoice Currency Code") { FieldValidate = No; }
+                    fieldelement(ExchCalculationCost; Job."Exch. Calculation (Cost)") { FieldValidate = No; }
+                    fieldelement(ExchCalculationPrice; Job."Exch. Calculation (Price)") { FieldValidate = No; }
+                    fieldelement(AllowScheduleContractLines; Job."Allow Schedule/Contract Lines") { FieldValidate = No; }
+                    fieldelement(Complete; Job.Complete) { FieldValidate = No; }
+                    fieldelement(NextInvoiceDate; Job."Next Invoice Date") { FieldValidate = No; }
+                    fieldelement(ApplyUsageLink; Job."Apply Usage Link") { FieldValidate = No; }
+                    fieldelement(WIPPostingMethod; Job."WIP Posting Method") { FieldValidate = No; }
+                    fieldelement(ProjectManager; Job."Project Manager") { FieldValidate = No; }
+                    fieldelement(SellToCustomerNo; Job."Sell-to Customer No.") { FieldValidate = No; }
+                    fieldelement(SellToCustomerName; Job."Sell-to Customer Name") { FieldValidate = No; }
+                    fieldelement(SellToCustomerName2; Job."Sell-to Customer Name 2") { FieldValidate = No; }
+                    fieldelement(SellToAddress; Job."Sell-to Address") { FieldValidate = No; }
+                    fieldelement(SellToAddress2; Job."Sell-to Address 2") { FieldValidate = No; }
+                    fieldelement(SellToCity; Job."Sell-to City") { FieldValidate = No; }
+                    fieldelement(SellToContact; Job."Sell-to Contact") { FieldValidate = No; }
+                    fieldelement(SellToPostCode; Job."Sell-to Post Code") { FieldValidate = No; }
+                    fieldelement(SellToCounty; Job."Sell-to County") { FieldValidate = No; }
+                    fieldelement(SellToCountryRegionCode; Job."Sell-to Country/Region Code") { FieldValidate = No; }
+                    fieldelement(SellToPhoneNo; Job."Sell-to Phone No.") { FieldValidate = No; }
+                    fieldelement(SellToEMail; Job."Sell-to E-Mail") { FieldValidate = No; }
+                    fieldelement(SellToContactNo; Job."Sell-to Contact No.") { FieldValidate = No; }
+                    fieldelement(ShipToCode; Job."Ship-to Code") { FieldValidate = No; }
+                    fieldelement(ShipToName; Job."Ship-to Name") { FieldValidate = No; }
+                    fieldelement(ShipToName2; Job."Ship-to Name 2") { FieldValidate = No; }
+                    fieldelement(ShipToAddress; Job."Ship-to Address") { FieldValidate = No; }
+                    fieldelement(ShipToAddress2; Job."Ship-to Address 2") { FieldValidate = No; }
+                    fieldelement(ShipToCity; Job."Ship-to City") { FieldValidate = No; }
+                    fieldelement(ShipToContact; Job."Ship-to Contact") { FieldValidate = No; }
+                    fieldelement(ShipToPostCode; Job."Ship-to Post Code") { FieldValidate = No; }
+                    fieldelement(ShipToCounty; Job."Ship-to County") { FieldValidate = No; }
+                    fieldelement(ShipToCountryRegionCode; Job."Ship-to Country/Region Code") { FieldValidate = No; }
+                    fieldelement(ExternalDocumentNo; Job."External Document No.") { FieldValidate = No; }
+                    fieldelement(PaymentMethodCode; Job."Payment Method Code") { FieldValidate = No; }
+                    fieldelement(PaymentTermsCode; Job."Payment Terms Code") { FieldValidate = No; }
+                    fieldelement(YourReference; Job."Your Reference") { FieldValidate = No; }
+                    fieldelement(PriceCalculationMethod; Job."Price Calculation Method") { FieldValidate = No; }
+                    fieldelement(CostCalculationMethod; Job."Cost Calculation Method") { FieldValidate = No; }
+                    fieldelement(JobViewType; Job."Job View Type") { FieldValidate = No; }
+                    fieldelement(NonActive; Job."Non Active") { FieldValidate = No; }
+                    fieldelement(ProjectType; Job."Project Type") { FieldValidate = No; }
+
+                    tableelement(JobTask; "Job Task")
+                    {
+                        LinkTable = Job;
+                        LinkFields = "Job No." = field("No.");
+
+                        fieldelement(JobTaskNo; JobTask."Job Task No.") { FieldValidate = No; }
+                        fieldelement(Description; JobTask.Description) { FieldValidate = No; }
+                        fieldelement(JobTaskType; JobTask."Job Task Type") { FieldValidate = No; }
+                        fieldelement(WIPTotal; JobTask."WIP-Total") { FieldValidate = No; }
+                        fieldelement(JobPostingGroup; JobTask."Job Posting Group") { FieldValidate = No; }
+                        fieldelement(WIPMethod; JobTask."WIP Method") { FieldValidate = No; }
+                        fieldelement(Totaling; JobTask.Totaling) { FieldValidate = No; }
+                        fieldelement(NewPage; JobTask."New Page") { FieldValidate = No; }
+                        fieldelement(NoOfBlankLines; JobTask."No. of Blank Lines") { FieldValidate = No; }
+                        fieldelement(Indentation; JobTask.Indentation) { FieldValidate = No; }
+                        fieldelement(LocationCode; JobTask."Location Code") { FieldValidate = No; }
+                        fieldelement(BinCode; JobTask."Bin Code") { FieldValidate = No; }
+                        fieldelement(LanguageCode; JobTask."Language Code") { FieldValidate = No; }
+                        fieldelement(GlobalDimension1Code; JobTask."Global Dimension 1 Code") { FieldValidate = No; }
+                        fieldelement(GlobalDimension2Code; JobTask."Global Dimension 2 Code") { FieldValidate = No; }
+                        fieldelement(StartDate; JobTask."Start Date") { FieldValidate = No; }
+                        fieldelement(EndDate; JobTask."End Date") { FieldValidate = No; }
+                        fieldelement(BillToCustomerNo; JobTask."Bill-to Customer No.") { FieldValidate = No; }
+                        fieldelement(BillToName; JobTask."Bill-to Name") { FieldValidate = No; }
+                        fieldelement(BillToAddress; JobTask."Bill-to Address") { FieldValidate = No; }
+                        fieldelement(BillToAddress2; JobTask."Bill-to Address 2") { FieldValidate = No; }
+                        fieldelement(BillToCity; JobTask."Bill-to City") { FieldValidate = No; }
+                        fieldelement(BillToCounty; JobTask."Bill-to County") { FieldValidate = No; }
+                        fieldelement(BillToPostCode; JobTask."Bill-to Post Code") { FieldValidate = No; }
+                        fieldelement(BillToCountryRegionCode; JobTask."Bill-to Country/Region Code") { FieldValidate = No; }
+                        fieldelement(BillToName2; JobTask."Bill-to Name 2") { FieldValidate = No; }
+                        fieldelement(BillToContactNo; JobTask."Bill-to Contact No.") { FieldValidate = No; }
+                        fieldelement(BillToContact; JobTask."Bill-to Contact") { FieldValidate = No; }
+                        fieldelement(SellToCustomerNo; JobTask."Sell-to Customer No.") { FieldValidate = No; }
+                        fieldelement(SellToCustomerName; JobTask."Sell-to Customer Name") { FieldValidate = No; }
+                        fieldelement(SellToCustomerName2; JobTask."Sell-to Customer Name 2") { FieldValidate = No; }
+                        fieldelement(SellToAddress; JobTask."Sell-to Address") { FieldValidate = No; }
+                        fieldelement(SellToAddress2; JobTask."Sell-to Address 2") { FieldValidate = No; }
+                        fieldelement(SellToCity; JobTask."Sell-to City") { FieldValidate = No; }
+                        fieldelement(SellToContact; JobTask."Sell-to Contact") { FieldValidate = No; }
+                        fieldelement(SellToPostCode; JobTask."Sell-to Post Code") { FieldValidate = No; }
+                        fieldelement(SellToCounty; JobTask."Sell-to County") { FieldValidate = No; }
+                        fieldelement(SellToCountryRegionCode; JobTask."Sell-to Country/Region Code") { FieldValidate = No; }
+                        fieldelement(SellToContactNo; JobTask."Sell-to Contact No.") { FieldValidate = No; }
+                        fieldelement(ShipToCode; JobTask."Ship-to Code") { FieldValidate = No; }
+                        fieldelement(ShipToName; JobTask."Ship-to Name") { FieldValidate = No; }
+                        fieldelement(ShipToName2; JobTask."Ship-to Name 2") { FieldValidate = No; }
+                        fieldelement(ShipToAddress; JobTask."Ship-to Address") { FieldValidate = No; }
+                        fieldelement(ShipToAddress2; JobTask."Ship-to Address 2") { FieldValidate = No; }
+                        fieldelement(ShipToCity; JobTask."Ship-to City") { FieldValidate = No; }
+                        fieldelement(ShipToContact; JobTask."Ship-to Contact") { FieldValidate = No; }
+                        fieldelement(ShipToPostCode; JobTask."Ship-to Post Code") { FieldValidate = No; }
+                        fieldelement(ShipToCounty; JobTask."Ship-to County") { FieldValidate = No; }
+                        fieldelement(ShipToCountryRegionCode; JobTask."Ship-to Country/Region Code") { FieldValidate = No; }
+                        fieldelement(ExternalDocumentNo; JobTask."External Document No.") { FieldValidate = No; }
+                        fieldelement(PaymentMethodCode; JobTask."Payment Method Code") { FieldValidate = No; }
+                        fieldelement(PaymentTermsCode; JobTask."Payment Terms Code") { FieldValidate = No; }
+                        fieldelement(YourReference; JobTask."Your Reference") { FieldValidate = No; }
+                        fieldelement(PriceCalculationMethod; JobTask."Price Calculation Method") { FieldValidate = No; }
+                        fieldelement(InvoiceCurrencyCode; JobTask."Invoice Currency Code") { FieldValidate = No; }
+                        fieldelement(ProjectManager; JobTask."Project Manager") { FieldValidate = No; }
+                        fieldelement(WorkHourTemplate; JobTask."Work Hour Template") { FieldValidate = No; }
+                        fieldelement(DeadlineDate; JobTask."Deadline Date") { FieldValidate = No; }
+                        fieldelement(PlaceholderDate; JobTask."Placeholder Date") { FieldValidate = No; }
+                        fieldelement(Closed; JobTask.Closed) { FieldValidate = No; }
+                        fieldelement(ClosedDate; JobTask."Closed Date") { FieldValidate = No; }
+                        fieldelement(ClosedReasonCode; JobTask."Closed Reason Code") { FieldValidate = No; }
+                        fieldelement(VisualBarStartDate; JobTask.VisualBarStartDate) { FieldValidate = No; }
+                        fieldelement(VisualBarEndDate; JobTask.VisualBarEndDate) { FieldValidate = No; }
+                        fieldelement(StartTime; JobTask."Start Time") { FieldValidate = No; }
+                        fieldelement(EndTime; JobTask."End Time") { FieldValidate = No; }
+                        fieldelement(SchedulingType; JobTask."Scheduling Type") { FieldValidate = No; }
+                        fieldelement(EstimatedHours; JobTask."Estimated Hours") { FieldValidate = No; }
+                        fieldelement(Duration; JobTask.Duration) { FieldValidate = No; }
+                        fieldelement(Progress; JobTask.Progress) { FieldValidate = No; }
+                        fieldelement(NonActive; JobTask."Non Active") { FieldValidate = No; }
+                        fieldelement(ConstraintType; JobTask."Constraint Type") { FieldValidate = No; }
+                        fieldelement(ConstraintDate; JobTask."Constraint Date") { FieldValidate = No; }
+                        fieldelement(MaxDuration; JobTask."Max Duration") { FieldValidate = No; }
+                        fieldelement(ConstraintCalcStartDate; JobTask."Constraint Calc. - Start Date") { FieldValidate = No; }
+                        fieldelement(ConstraintCalcEndDate; JobTask."Constraint Calc. - End Date") { FieldValidate = No; }
+                        fieldelement(Depth; JobTask.Depth) { FieldValidate = No; }
+                        fieldelement(IsBoor; JobTask.IsBoor) { FieldValidate = No; }
+
+                        trigger OnBeforeInsertRecord()
+                        begin
+                            // Job No. is the link field: set from the parent, not read from the XML.
+                            JobTask."Job No." := Job."No.";
+                            UpsertRecord(JobTask);
+                            currXMLport.Skip();
+                        end;
+                    }
+
+                    trigger OnBeforeInsertRecord()
+                    begin
+                        UpsertRecord(Job);
+                        currXMLport.Skip();
+                    end;
+                }
+            }
             textelement(DayPlannings)
             {
+                MinOccurs = Zero;
                 tableelement(DayPlanning; "Day Planning")
                 {
                     UseTemporary = true;
@@ -579,6 +777,7 @@ xmlport 50734 DemoData
             }
             textelement(Capacities)
             {
+                MinOccurs = Zero;
                 tableelement(Capacity; "Res. Capacity Entry")
                 {
                     UseTemporary = true;
@@ -609,18 +808,35 @@ xmlport 50734 DemoData
     }
 
     var
-        PeriodStart: Date;
-        PeriodEnd: Date;
+        ScanOnly: Boolean;
+        MinDate: Date;
+        MaxDate: Date;
         ImportedDayPlannings: Integer;
         ImportedCapacities: Integer;
         ImpErrTable: List of [Text];
         ImpErrKey: List of [Text];
         ImpErrText: List of [Text];
 
-    procedure SetOptions(NewStartDate: Date; NewEndDate: Date)
+    // Scan only: collect the date range of the Day Planning / Capacity rows without importing anything.
+    procedure SetScanOnly()
     begin
-        PeriodStart := NewStartDate;
-        PeriodEnd := NewEndDate;
+        ScanOnly := true;
+    end;
+
+    procedure GetDateRange(var StartDate: Date; var EndDate: Date)
+    begin
+        StartDate := MinDate;
+        EndDate := MaxDate;
+    end;
+
+    local procedure TrackDate(TestDate: Date)
+    begin
+        if TestDate = 0D then
+            exit;
+        if (MinDate = 0D) or (TestDate < MinDate) then
+            MinDate := TestDate;
+        if TestDate > MaxDate then
+            MaxDate := TestDate;
     end;
 
     procedure GetImportedDayPlannings(): Integer
@@ -639,6 +855,8 @@ xmlport 50734 DemoData
     var
         RecRef: RecordRef;
     begin
+        if ScanOnly then
+            exit;
         if TryUpsert(Imported) then
             exit;
         RecRef.GetTable(Imported);
@@ -740,7 +958,8 @@ xmlport 50734 DemoData
 
     local procedure ProcessDayPlanning()
     begin
-        if IsOutsidePeriod(DayPlanning."Plan Date") then
+        TrackDate(DayPlanning."Plan Date");
+        if ScanOnly then
             exit;
         if TryUpsertDayPlanning() then
             ImportedDayPlannings += 1
@@ -764,7 +983,8 @@ xmlport 50734 DemoData
 
     local procedure ProcessCapacity()
     begin
-        if IsOutsidePeriod(Capacity.Date) then
+        TrackDate(Capacity.Date);
+        if ScanOnly then
             exit;
         if TryUpsertCapacity() then
             ImportedCapacities += 1
@@ -808,14 +1028,5 @@ xmlport 50734 DemoData
         ErrTables := ImpErrTable;
         ErrKeys := ImpErrKey;
         ErrTexts := ImpErrText;
-    end;
-
-    local procedure IsOutsidePeriod(TestDate: Date): Boolean
-    begin
-        if (PeriodStart <> 0D) and (TestDate < PeriodStart) then
-            exit(true);
-        if (PeriodEnd <> 0D) and (TestDate > PeriodEnd) then
-            exit(true);
-        exit(false);
     end;
 }
