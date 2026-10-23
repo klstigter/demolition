@@ -1678,6 +1678,8 @@ class CapacityPlanningOverview {
             const total = cp.assigned + cp.freeInt + cp.freeExt;
             return {
                 date: d, dayIndex: i, weekend: weekend,
+                // A weekend only shows as "non-workday" when it carries no data; weekend work is still charted.
+                offDay: weekend && total + request === 0,
                 assigned: cp.assigned, freeInt: cp.freeInt, freeExt: cp.freeExt,
                 request: request, assignedRequest: assignedRequest, unassignedBySkill: unassignedBySkill,
                 shortage: Math.max(0, request - total)
@@ -1743,7 +1745,7 @@ class CapacityPlanningOverview {
 
         const self = this;
         const data = this.dailyCapacityRequestData();
-        const maxVal = Math.max(8, ...data.filter(function (x) { return !x.weekend; }).map(function (x) { return Math.max(x.assigned + x.freeInt + x.freeExt, x.request); }));
+        const maxVal = Math.max(8, ...data.filter(function (x) { return !x.offDay; }).map(function (x) { return Math.max(x.assigned + x.freeInt + x.freeExt, x.request); }));
         const maxBarPx = 82;
         // `segKey` (2026-09-14, "Show Data" context menu) - identifies WHICH segment this div is
         // ('assigned'/'freeInternal'/'freeExternal'/'skill:<code>'), as a `data-seg` attribute -
@@ -1762,7 +1764,7 @@ class CapacityPlanningOverview {
         const cellsHtml = data.map(function (x) {
             const dayNo = x.date.getDate();
             const dayName = x.date.toLocaleDateString('en-GB', { weekday: 'short' });
-            if (x.weekend) {
+            if (x.offDay) {
                 return '<div class="cpo-daily-chart-day cpo-weekend" data-day-index="' + x.dayIndex + '" style="width:' + columnWidth + 'px;min-width:' + columnWidth + 'px;">' +
                     '<div class="cpo-daily-chart-date"><b>' + dayNo + '</b><span>' + dayName + '</span></div>' +
                     '<div class="cpo-daily-chart-off">non-workday</div><div class="cpo-daily-chart-value">\u2014</div></div>';
@@ -2147,7 +2149,8 @@ class CapacityPlanningOverview {
         s.templates.centraltree_cell_value = function (evs, date, section) {
             if (!section || section.key === 'nodata') return '';
             const idx = self.dayIndex(date);
-            if (idx < 0 || idx >= self.dates.length || cpoIsWeekend(date)) return '';
+            // Weekend cells render too: they are simply empty unless a Day Planning line sits on that day.
+            if (idx < 0 || idx >= self.dates.length) return '';
             if (section.type === 'skill') {
                 const m = self.skillDaySummary(section.skill, idx);
                 if (!m.requested) return '';

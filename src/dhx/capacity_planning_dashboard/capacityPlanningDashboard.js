@@ -399,7 +399,8 @@ class CapacityPlanningDashboard extends CapacityPlanningOverview {
         s.templates.centraltree_cell_value = function (evs, date, section) {
             if (!section || section.key === 'nodata') return '';
             const idx = self.dayIndex(date);
-            if (idx < 0 || idx >= self.dates.length || cpoIsWeekend(date)) return '';
+            // Weekend cells render too: empty unless a Day Planning line sits on that day.
+            if (idx < 0 || idx >= self.dates.length) return '';
             const m = self.skillDaySummary(section.skill, idx);
             if (!m.requested) return '';
             const meta = self.skillMeta(section.skill);
