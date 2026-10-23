@@ -10,22 +10,6 @@ report 50662 "Apply Demo Data Scenario"
         {
             area(Content)
             {
-                group(Period)
-                {
-                    Caption = 'Period';
-                    field(StartDateCtrl; StartDate)
-                    {
-                        ApplicationArea = All;
-                        Caption = 'Start Date';
-                        ToolTip = 'Specifies the first date of the period to delete and import.';
-                    }
-                    field(EndDateCtrl; EndDate)
-                    {
-                        ApplicationArea = All;
-                        Caption = 'End Date';
-                        ToolTip = 'Specifies the last date of the period to delete and import.';
-                    }
-                }
                 group(DataOptions)
                 {
                     Caption = 'Data Options';
@@ -39,17 +23,6 @@ report 50662 "Apply Demo Data Scenario"
                 }
             }
         }
-
-        trigger OnOpenPage()
-        begin
-            if StartDate = 0D then begin
-                if Scenario."Date" <> 0D then
-                    StartDate := Scenario."Date"
-                else
-                    StartDate := WorkDate();
-                EndDate := CalcDate('<+2M-1D>', StartDate);
-            end;
-        end;
     }
 
     var
@@ -76,7 +49,6 @@ report 50662 "Apply Demo Data Scenario"
         ErrorLbl: Label 'Error message';
         SheetNameLbl: Label 'Delete errors';
         ExcelMsg: Label '%1 delete error(s) occurred. An Excel file with the details was downloaded.';
-        PeriodErr: Label 'Start Date and End Date must be filled in and Start Date must not be after End Date.';
         ConfirmDeleteLbl: Label 'This will DELETE existing resources, day plannings and capacity (day plannings and capacity within the period) before importing the scenario. This cannot be undone.\\Continue?';
         NoXmlErr: Label 'The scenario has no XML demo data.';
         DoneMsg: Label 'Demo data scenario applied.\Resources deleted: %1 (skipped, could not be deleted: %2)\Day plannings deleted: %3\Capacity entries deleted: %4\Day plannings imported: %5\Capacity entries imported: %6\Delete errors: %7\Import errors: %8';
@@ -91,9 +63,15 @@ report 50662 "Apply Demo Data Scenario"
         exit(Applied);
     end;
 
+    procedure GetAppliedType(): Integer
+    begin
+        exit(DataOption + 1);
+    end;
+
     trigger OnPreReport()
     var
         DemoDataXmlPort: XmlPort DemoData;
+        ScanXmlPort: XmlPort DemoData;
         InStr: InStream;
         ImpTables: List of [Text];
         ImpKeys: List of [Text];
@@ -101,10 +79,15 @@ report 50662 "Apply Demo Data Scenario"
         i: Integer;
     begin
         Applied := false;
-        if (StartDate = 0D) or (EndDate = 0D) or (StartDate > EndDate) then
-            Error(PeriodErr);
         if not Scenario.HasXml() then
             Error(NoXmlErr);
+
+        // Pass 1: find the date range of the scenario data, used as the delete scope.
+        Scenario.GetXmlStream(InStr);
+        ScanXmlPort.SetSource(InStr);
+        ScanXmlPort.SetScanOnly();
+        ScanXmlPort.Import();
+        ScanXmlPort.GetDateRange(StartDate, EndDate);
 
         if DataOption = DataOption::"Delete Existing Data and replace with scenario data" then begin
             if not Confirm(ConfirmDeleteLbl, false) then
@@ -114,7 +97,6 @@ report 50662 "Apply Demo Data Scenario"
 
         Scenario.GetXmlStream(InStr);
         DemoDataXmlPort.SetSource(InStr);
-        DemoDataXmlPort.SetOptions(StartDate, EndDate);
         DemoDataXmlPort.Import();
         ImportedDayPlannings := DemoDataXmlPort.GetImportedDayPlannings();
         ImportedCapacities := DemoDataXmlPort.GetImportedCapacities();

@@ -40,6 +40,13 @@ table 50704 "Demo Data Scenarios Opt"
             Caption = 'Applied';
             DataClassification = CustomerContent;
         }
+        field(50; "Applied Type"; Option)
+        {
+            Caption = 'Applied Type';
+            DataClassification = CustomerContent;
+            OptionMembers = " ","Delete Existing Data and replace with scenario data","Merge into existing data";
+            OptionCaption = ' ,Delete Existing Data and replace with scenario data,Merge into existing data';
+        }
     }
 
     keys
