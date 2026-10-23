@@ -40,6 +40,11 @@ table 50704 "Demo Data Scenarios Opt"
             Caption = 'Applied';
             DataClassification = CustomerContent;
         }
+        field(60; "XML File Name"; Text[250])
+        {
+            Caption = 'XML File Name';
+            DataClassification = CustomerContent;
+        }
         field(50; "Applied Type"; Option)
         {
             Caption = 'Applied Type';
@@ -59,6 +64,7 @@ table 50704 "Demo Data Scenarios Opt"
 
     var
         DescriptionRequiredErr: Label 'Description must be filled in.';
+        AppliedDeleteErr: Label 'This scenario has already been applied and cannot be deleted.';
 
     trigger OnInsert()
     var
@@ -72,6 +78,12 @@ table 50704 "Demo Data Scenarios Opt"
                 Rec."Entry No." := Scenario."Entry No." + 1
             else
                 Rec."Entry No." := 1;
+    end;
+
+    trigger OnDelete()
+    begin
+        if Rec.Applied <> 0DT then
+            Error(AppliedDeleteErr);
     end;
 
     trigger OnModify()

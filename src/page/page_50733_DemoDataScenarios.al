@@ -40,6 +40,12 @@ page 50733 "Demo Data Scenarios"
                     Editable = false;
                     ToolTip = 'Specifies whether XML demo data has been uploaded for this scenario.';
                 }
+                field("XML File Name"; Rec."XML File Name")
+                {
+                    ApplicationArea = All;
+                    Editable = false;
+                    ToolTip = 'Specifies the name of the uploaded XML file.';
+                }
                 field(Applied; Rec.Applied)
                 {
                     ApplicationArea = All;
@@ -74,8 +80,11 @@ page 50733 "Demo Data Scenarios"
                 begin
                     if Rec."Entry No." = 0 then
                         exit;
+                    if Rec.Applied <> 0DT then
+                        Error(AlreadyAppliedErr);
                     if UploadIntoStream(UploadLbl, '', 'XML Files (*.xml)|*.xml', FileName, InStr) then begin
                         Rec.SetXmlFromStream(InStr);
+                        Rec."XML File Name" := CopyStr(FileName, 1, MaxStrLen(Rec."XML File Name"));
                         Rec.Modify(true);
                         HasXmlData := Rec.HasXml();
                         CurrPage.Update(false);
@@ -97,7 +106,9 @@ page 50733 "Demo Data Scenarios"
                     if not Rec.HasXml() then
                         Error(NoXmlErr);
                     Rec.GetXmlStream(InStr);
-                    FileName := StrSubstNo('DemoData_%1.xml', Rec."Entry No.");
+                    FileName := Rec."XML File Name";
+                    if FileName = '' then
+                        FileName := StrSubstNo('DemoData_%1.xml', Rec."Entry No.");
                     DownloadFromStream(InStr, '', '', '', FileName);
                 end;
             }
@@ -112,6 +123,8 @@ page 50733 "Demo Data Scenarios"
                 var
                     ApplyReport: Report "Apply Demo Data Scenario";
                 begin
+                    if Rec.Applied <> 0DT then
+                        Error(ApplyAgainErr);
                     if not Rec.HasXml() then
                         Error(NoXmlErr);
                     ApplyReport.SetScenario(Rec."Entry No.");
@@ -141,10 +154,17 @@ page 50733 "Demo Data Scenarios"
     var
         HasXmlData: Boolean;
         UploadLbl: Label 'Upload demo data XML';
+        AlreadyAppliedErr: Label 'This scenario has already been applied, so its XML data cannot be changed. Create a new scenario instead.';
+        ApplyAgainErr: Label 'This scenario has already been applied and cannot be applied again. Create a new scenario instead.';
         NoXmlErr: Label 'This scenario has no XML demo data. Use Upload XML first.';
 
     trigger OnAfterGetRecord()
     begin
         HasXmlData := Rec.HasXml();
+    end;
+
+    trigger OnNewRecord(BelowxRec: Boolean)
+    begin
+        HasXmlData := false;
     end;
 }
