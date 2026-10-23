@@ -1188,6 +1188,7 @@ function HideContextMenu() {
         document.removeEventListener("contextmenu", contextMenuDismissHandlers.contextmenu);
         document.removeEventListener("scroll", contextMenuDismissHandlers.scroll, { capture: true });
         document.removeEventListener("keydown", contextMenuDismissHandlers.keydown);
+        document.removeEventListener("mousemove", contextMenuDismissHandlers.mousemove);
         contextMenuDismissHandlers = null;
     }
     if (contextMenuEl && contextMenuEl.parentNode) {
@@ -1240,13 +1241,20 @@ function ShowContextMenu(clientX, clientY, onShowData, caption, extraItems) {
             click: function() { HideContextMenu(); },
             contextmenu: function() { HideContextMenu(); },
             scroll: function() { HideContextMenu(); },
-            keydown: function(evt) { if (evt.key === "Escape") HideContextMenu(); }
+            keydown: function(evt) { if (evt.key === "Escape") HideContextMenu(); },
+            // cursor left the popup: close it immediately (2px slack so the opening click point on its corner doesn't count as outside)
+            mousemove: function(evt) {
+                if (!contextMenuEl) return;
+                var r = contextMenuEl.getBoundingClientRect();
+                if (evt.clientX < r.left - 2 || evt.clientX > r.right + 2 || evt.clientY < r.top - 2 || evt.clientY > r.bottom + 2) HideContextMenu();
+            }
         };
         contextMenuDismissHandlers = handlers;
         document.addEventListener("click", handlers.click);
         document.addEventListener("contextmenu", handlers.contextmenu);
         document.addEventListener("scroll", handlers.scroll, { capture: true });
         document.addEventListener("keydown", handlers.keydown);
+        document.addEventListener("mousemove", handlers.mousemove);
     }, 0);
 }
 
