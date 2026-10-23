@@ -66,6 +66,18 @@ page 50733 "Demo Data Scenarios"
     {
         area(Processing)
         {
+            action(ExportDemoData)
+            {
+                ApplicationArea = All;
+                Caption = 'Export Existing Data';
+                ToolTip = 'Export the current existing data to an XML file.';
+                Image = ExportFile;
+
+                trigger OnAction()
+                begin
+                    Report.Run(Report::"Export Existing Data");
+                end;
+            }
             action(UploadXml)
             {
                 ApplicationArea = All;
@@ -91,26 +103,70 @@ page 50733 "Demo Data Scenarios"
                     end;
                 end;
             }
-            action(DownloadXml)
+            action(UploadExcel)
             {
                 ApplicationArea = All;
-                Caption = 'Download XML';
-                ToolTip = 'Download the XML demo data of this scenario.';
-                Image = Export;
+                Caption = 'Upload From Excel and Convert to XML';
+                ToolTip = 'Upload an Excel demo data file into this scenario and convert it to XML, replacing any existing data.';
+                Image = Excel;
 
                 trigger OnAction()
                 var
+                    DemoDataExcelExport: Codeunit "Demo Data Excel Export";
                     InStr: InStream;
                     FileName: Text;
                 begin
-                    if not Rec.HasXml() then
-                        Error(NoXmlErr);
-                    Rec.GetXmlStream(InStr);
-                    FileName := Rec."XML File Name";
-                    if FileName = '' then
-                        FileName := StrSubstNo('DemoData_%1.xml', Rec."Entry No.");
-                    DownloadFromStream(InStr, '', '', '', FileName);
+                    if Rec."Entry No." = 0 then
+                        exit;
+                    if Rec.Applied <> 0DT then
+                        Error(AlreadyAppliedErr);
+                    if UploadIntoStream(UploadExcelLbl, '', 'Excel Files (*.xlsx)|*.xlsx', FileName, InStr) then begin
+                        DemoDataExcelExport.ConvertExcelToXml(Rec, InStr, FileName);
+                        HasXmlData := Rec.HasXml();
+                        CurrPage.Update(false);
+                    end;
                 end;
+            }
+            group(Download)
+            {
+                Caption = 'Download';
+                Image = Download;
+
+                action(DownloadXml)
+                {
+                    ApplicationArea = All;
+                    Caption = 'Download XML';
+                    ToolTip = 'Download the XML demo data of this scenario.';
+                    Image = Export;
+
+                    trigger OnAction()
+                    var
+                        InStr: InStream;
+                        FileName: Text;
+                    begin
+                        if not Rec.HasXml() then
+                            Error(NoXmlErr);
+                        Rec.GetXmlStream(InStr);
+                        FileName := Rec."XML File Name";
+                        if FileName = '' then
+                            FileName := StrSubstNo('DemoData_%1.xml', Rec."Entry No.");
+                        DownloadFromStream(InStr, '', '', '', FileName);
+                    end;
+                }
+                action(DownloadExcel)
+                {
+                    ApplicationArea = All;
+                    Caption = 'Download as Excel';
+                    ToolTip = 'Download the demo data of this scenario as an Excel workbook: a summary sheet plus one sheet per table in the XML.';
+                    Image = ExportToExcel;
+
+                    trigger OnAction()
+                    var
+                        DemoDataExcelExport: Codeunit "Demo Data Excel Export";
+                    begin
+                        DemoDataExcelExport.DownloadAsExcel(Rec);
+                    end;
+                }
             }
             action(ApplyDemoData)
             {
@@ -144,8 +200,20 @@ page 50733 "Demo Data Scenarios"
             group(Category_Process)
             {
                 Caption = 'Process';
-                actionref(UploadXml_ref; UploadXml) { }
-                actionref(DownloadXml_ref; DownloadXml) { }
+                actionref(ExportDemoData_ref; ExportDemoData) { }
+                group(Upload_Promoted)
+                {
+                    Caption = 'Upload';
+
+                    actionref(UploadXml_ref; UploadXml) { }
+                    actionref(UploadExcel_ref; UploadExcel) { }
+                }
+                group(Download_Promoted)
+                {
+                    Caption = 'Download';
+                    actionref(DownloadXml_ref; DownloadXml) { }
+                    actionref(DownloadExcel_ref; DownloadExcel) { }
+                }
                 actionref(ApplyDemoData_ref; ApplyDemoData) { }
             }
         }
@@ -154,6 +222,7 @@ page 50733 "Demo Data Scenarios"
     var
         HasXmlData: Boolean;
         UploadLbl: Label 'Upload demo data XML';
+        UploadExcelLbl: Label 'Upload demo data Excel file';
         AlreadyAppliedErr: Label 'This scenario has already been applied, so its XML data cannot be changed. Create a new scenario instead.';
         ApplyAgainErr: Label 'This scenario has already been applied and cannot be applied again. Create a new scenario instead.';
         NoXmlErr: Label 'This scenario has no XML demo data. Use Upload XML first.';

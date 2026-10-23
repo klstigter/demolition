@@ -25,6 +25,7 @@ xmlport 50734 DemoData
 
                         tableelement(BaseCalendarChange; "Base Calendar Change")
                         {
+                            MinOccurs = Zero;
                             LinkTable = BaseCalendar;
                             LinkFields = "Base Calendar Code" = field(Code);
 
@@ -111,6 +112,7 @@ xmlport 50734 DemoData
 
                         tableelement("NoSeriesLine"; "No. Series Line")
                         {
+                            MinOccurs = Zero;
                             LinkTable = NoSeries;
                             LinkFields = "Series Code" = field(Code);
 
@@ -483,8 +485,10 @@ xmlport 50734 DemoData
 
                         textelement(ResourceSkills)
                         {
+                            MinOccurs = Zero;
                             tableelement(ResourceSkill; "Resource Skill")
                             {
+                                MinOccurs = Zero;
                                 LinkTable = Resource;
                                 LinkFields = "No." = field("No.");
                                 SourceTableView = where(Type = const(Resource));
@@ -633,6 +637,7 @@ xmlport 50734 DemoData
 
                     tableelement(JobTask; "Job Task")
                     {
+                        MinOccurs = Zero;
                         LinkTable = Job;
                         LinkFields = "Job No." = field("No.");
 
@@ -761,11 +766,9 @@ xmlport 50734 DemoData
                     fieldelement(Assigned; DayPlanning.Assigned) { FieldValidate = No; }
 
                     trigger OnPreXmlItem()
-                    var
-                        DemoScenarioMgt: Codeunit "Demo Data Scenario Mgt.";
                     begin
                         if not currXMLport.Import() then
-                            DemoScenarioMgt.GetHardcodedDayPlannings(DayPlanning);
+                            LoadDayPlannings();
                     end;
 
                     trigger OnBeforeInsertRecord()
@@ -790,11 +793,9 @@ xmlport 50734 DemoData
                     fieldelement(ResourceGroupNo; Capacity."Resource Group No.") { FieldValidate = No; }
 
                     trigger OnPreXmlItem()
-                    var
-                        DemoScenarioMgt: Codeunit "Demo Data Scenario Mgt.";
                     begin
                         if not currXMLport.Import() then
-                            DemoScenarioMgt.GetHardcodedCapacities(Capacity);
+                            LoadCapacities();
                     end;
 
                     trigger OnBeforeInsertRecord()
@@ -809,6 +810,8 @@ xmlport 50734 DemoData
 
     var
         ScanOnly: Boolean;
+        ExportStart: Date;
+        ExportEnd: Date;
         MinDate: Date;
         MaxDate: Date;
         ImportedDayPlannings: Integer;
@@ -816,6 +819,45 @@ xmlport 50734 DemoData
         ImpErrTable: List of [Text];
         ImpErrKey: List of [Text];
         ImpErrText: List of [Text];
+
+    // Export: limit the exported Day Plannings and Capacity entries to this period (blank = no limit).
+    procedure SetExportPeriod(NewStartDate: Date; NewEndDate: Date)
+    begin
+        ExportStart := NewStartDate;
+        ExportEnd := NewEndDate;
+        if (NewStartDate <> 0D) and (NewEndDate = 0D) then
+            ExportEnd := DMY2Date(31, 12, 9999);
+    end;
+
+    local procedure LoadDayPlannings()
+    var
+        RealDayPlanning: Record "Day Planning";
+    begin
+        DayPlanning.Reset();
+        DayPlanning.DeleteAll();
+        if (ExportStart <> 0D) or (ExportEnd <> 0D) then
+            RealDayPlanning.SetRange("Plan Date", ExportStart, ExportEnd);
+        if RealDayPlanning.FindSet() then
+            repeat
+                DayPlanning := RealDayPlanning;
+                DayPlanning.Insert(false);
+            until RealDayPlanning.Next() = 0;
+    end;
+
+    local procedure LoadCapacities()
+    var
+        RealCapacity: Record "Res. Capacity Entry";
+    begin
+        Capacity.Reset();
+        Capacity.DeleteAll();
+        if (ExportStart <> 0D) or (ExportEnd <> 0D) then
+            RealCapacity.SetRange(Date, ExportStart, ExportEnd);
+        if RealCapacity.FindSet() then
+            repeat
+                Capacity := RealCapacity;
+                Capacity.Insert(false);
+            until RealCapacity.Next() = 0;
+    end;
 
     // Scan only: collect the date range of the Day Planning / Capacity rows without importing anything.
     procedure SetScanOnly()
