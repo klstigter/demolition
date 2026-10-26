@@ -420,6 +420,16 @@ window.BOOT = function() {
       document.body.appendChild(markerMenu);
       document.body.appendChild(emptyMenu);
 
+      // Same mechanism as barchart_weekly/daily: close the open menu as soon as the cursor moves
+      // outside it (2px slack so the opening right-click point on its corner doesn't count as outside)
+      document.addEventListener("mousemove", function (e) {
+        [menu, markerMenu, emptyMenu].forEach(function (m) {
+          if (m.style.display === "none") return;
+          var r = m.getBoundingClientRect();
+          if (e.clientX < r.left - 2 || e.clientX > r.right + 2 || e.clientY < r.top - 2 || e.clientY > r.bottom + 2) m.style.display = "none";
+        });
+      });
+
       // Right-click on a resource name cell, a DayPlanning marker, or an empty timeline cell
       document.addEventListener("contextmenu", function (e) {
         var resCell    = e.target.closest(".res-name-cell");
@@ -440,6 +450,7 @@ window.BOOT = function() {
         e.preventDefault();
         e.stopPropagation();
         hideMenus();
+        _hideAllTooltips();
 
         if (markerCell) {
           currentMarkerResourceId  = markerCell.dataset.resourceId  || "";
@@ -876,6 +887,7 @@ window.BOOT = function() {
     window._ganttCtxTaskId = null;
     function _showContextMenu(x, y, taskId) {
       _hideContextMenu();
+      _hideAllTooltips();
       window._ganttCtxTaskId = taskId;
 
       var menu = document.createElement("div");
@@ -939,6 +951,14 @@ window.BOOT = function() {
       var menu = document.getElementById("gantt-ctx-menu");
       if (menu && !menu.contains(e.target)) _hideContextMenu();
     }, true);
+
+    // Close as soon as the cursor moves outside the menu (same mechanism as barchart_weekly/daily)
+    document.addEventListener("mousemove", function(e) {
+      var menu = document.getElementById("gantt-ctx-menu");
+      if (!menu) return;
+      var r = menu.getBoundingClientRect();
+      if (e.clientX < r.left - 2 || e.clientX > r.right + 2 || e.clientY < r.top - 2 || e.clientY > r.bottom + 2) _hideContextMenu();
+    });
 
     // Close on scroll / Escape
     document.addEventListener("keydown", function(e) {
@@ -3048,6 +3068,13 @@ function _showCustomTooltip(e, html) {
 function _hideCustomTooltip() {
   const tip = document.getElementById("bc_DayPlanning_tooltip");
   if (tip) tip.style.display = "none";
+}
+
+// Close every hover tooltip (custom marker/link tooltip + native gantt task tooltip) - called when a
+// right-click context menu opens so the two don't overlap.
+function _hideAllTooltips() {
+  _hideCustomTooltip();
+  try { gantt.ext.tooltips.tooltip.hide(); } catch (_) {}
 }
 
 function GetGanttData() {

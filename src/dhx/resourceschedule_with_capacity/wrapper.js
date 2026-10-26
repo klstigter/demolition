@@ -1142,6 +1142,7 @@ function setupContextMenu() {
         var top = (y + menuH > window.innerHeight) ? window.innerHeight - menuH - 4 : y;
         menu.style.left = left + 'px';
         menu.style.top = top + 'px';
+        try { if (scheduler.dhtmlXTooltip) scheduler.dhtmlXTooltip.hide(); } catch (e) {} // right-click closes the hover tooltip
     }
 
     function hideMenu() {
@@ -1167,6 +1168,12 @@ function setupContextMenu() {
 
     document.addEventListener('click', function (e) { if (!menu.contains(e.target)) hideMenu(); });
     document.addEventListener('scroll', hideMenu, true);
+    // Same mechanism as barchart_weekly/daily: close as soon as the cursor moves outside the menu (2px slack)
+    document.addEventListener('mousemove', function (e) {
+        if (menu.className === 'hidden') return;
+        var r = menu.getBoundingClientRect();
+        if (e.clientX < r.left - 2 || e.clientX > r.right + 2 || e.clientY < r.top - 2 || e.clientY > r.bottom + 2) hideMenu();
+    });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hideMenu(); });
 
     root.addEventListener('contextmenu', function (e) {
