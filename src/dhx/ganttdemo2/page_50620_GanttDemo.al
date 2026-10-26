@@ -21,7 +21,6 @@ page 50620 "Gantt Demo DHX 2"
                 begin
                     setup.EnsureUserRecord();
                     setup.get(UserId);
-
                 end;
 
                 trigger ControlReady()
@@ -195,7 +194,6 @@ page 50620 "Gantt Demo DHX 2"
                         JobNo := CopyStr(EventIDList.Get(1), 1, MaxStrLen(JobNo));
                         JobTaskNo := CopyStr(EventIDList.Get(2), 1, MaxStrLen(JobTaskNo));
                     end;
-
                     if JobNo <> '' then
                         DayPlanning.SetRange("Job No.", JobNo);
                     if JobTaskNo <> '' then
@@ -210,7 +208,6 @@ page 50620 "Gantt Demo DHX 2"
                             (JobTask.VisualBarStartDate <> 0D) and (JobTask.VisualBarEndDate = 0D):
                                 DayPlanning.Setfilter("Plan Date", '%1..', JobTask.VisualBarStartDate);
                         end;
-
                     end;
                     Page.Run(Page::"Day Plannings", DayPlanning);
                 end;
@@ -239,7 +236,6 @@ page 50620 "Gantt Demo DHX 2"
                         JobNo := CopyStr(EventIDList.Get(1), 1, MaxStrLen(JobNo));
                         JobTaskNo := CopyStr(EventIDList.Get(2), 1, MaxStrLen(JobTaskNo));
                     end;
-
                     if JobNo <> '' then
                         DayPlanning.SetRange("Job No.", JobNo);
                     if JobTaskNo <> '' then
@@ -352,11 +348,13 @@ page 50620 "Gantt Demo DHX 2"
                                 end;
                             end;
                         foreach IdText in JobNos do begin
-                            if JobNoFilter <> '' then JobNoFilter += '|';
+                            if JobNoFilter <> '' then
+                                JobNoFilter += '|';
                             JobNoFilter += IdText;
                         end;
                         foreach IdText in JobTaskNos do begin
-                            if JobTaskNoFilter <> '' then JobTaskNoFilter += '|';
+                            if JobTaskNoFilter <> '' then
+                                JobTaskNoFilter += '|';
                             JobTaskNoFilter += IdText;
                         end;
                     end;
@@ -367,8 +365,9 @@ page 50620 "Gantt Demo DHX 2"
                     DayPlanning.Reset();
                     if JobNoFilter <> '' then
                         DayPlanning.SetFilter("Job No.", JobNoFilter)
-                    else if JobFilter <> '' then
-                        DayPlanning.SetFilter("Job No.", JobFilter);
+                    else
+                        if JobFilter <> '' then
+                            DayPlanning.SetFilter("Job No.", JobFilter);
                     if JobTaskNoFilter <> '' then
                         DayPlanning.SetFilter("Job Task No.", JobTaskNoFilter);
                     Evaluate(WorkDt, pTaskDate);
@@ -412,7 +411,8 @@ page 50620 "Gantt Demo DHX 2"
                     Resource: Record Resource;
                     ResourceCode: Code[20];
                 begin
-                    if not resourceId.StartsWith('RES-') then exit;
+                    if not resourceId.StartsWith('RES-') then
+                        exit;
                     ResourceCode := CopyStr(resourceId, 5, MaxStrLen(ResourceCode));
                     if Resource.Get(ResourceCode) then
                         Page.Run(Page::"Resource Card", Resource);
@@ -488,7 +488,6 @@ page 50620 "Gantt Demo DHX 2"
                         DayPlanning.TestField("Job No.");
                         DayPlanning.TestField("Job Task No.");
                         DayPlanning.TestField("Plan Date");
-
                         if DayPlanning."Plan Status" = DayPlanning."Plan Status"::"In Progress" then begin
                             DayPlanning.TestField("Assigned Resource No.");
                             DayPlanning.TestField("Assigned Hours");
@@ -538,7 +537,6 @@ page 50620 "Gantt Demo DHX 2"
                         WeekStart := CalcDate('<1W>', WeekStart);
                         WeekEnd := CalcDate('<1W>', WeekEnd);
                     end;
-
                     if WeekStartDate.Count() = 0 then begin
                         Message('No weeks found in the current Gantt period (%1 – %2).', GanttStart, GanttEnd);
                         exit;
@@ -836,7 +834,6 @@ page 50620 "Gantt Demo DHX 2"
                     PanelToDate: Date;
                 begin
                     GanttChartDataHandler.GetDateRange(Setup, AnchorDate, DT1, DT2);
-
                     if (CurrentResourcePanelFilterJsonString <> '') and
                        PanelJson.ReadFrom(CurrentResourcePanelFilterJsonString) then begin
                         if PanelJson.Get('job', PanelToken) then
@@ -847,10 +844,11 @@ page 50620 "Gantt Demo DHX 2"
                             Evaluate(PanelFromDate, PanelToken.AsValue().AsText());
                         if PanelJson.Get('periodTo', PanelToken) then
                             Evaluate(PanelToDate, PanelToken.AsValue().AsText());
-
                         if (PanelJobNo <> '') and (PanelTaskNo <> '') then begin
-                            if PanelFromDate <> 0D then DT1 := PanelFromDate;
-                            if PanelToDate <> 0D then DT2 := PanelToDate;
+                            if PanelFromDate <> 0D then
+                                DT1 := PanelFromDate;
+                            if PanelToDate <> 0D then
+                                DT2 := PanelToDate;
                             DayPlanning.SetRange("Plan Date", DT1, DT2);
                             DayPlanning.SetFilter("Job No.", PanelJobNo);
                             DayPlanning.SetFilter("Job Task No.", PanelTaskNo);
@@ -1176,7 +1174,15 @@ page 50620 "Gantt Demo DHX 2"
     trigger OnOpenPage()
     begin
         OptiSetup.Get();
-        Setup.Get(UserId);
+        if not Setup.Get(UserId) then begin
+            Setup.Init();
+            Setup."User ID" := UserId;
+            Setup."Date Range Type" := Setup."Date Range Type"::Calculated;
+            Evaluate(Setup."From Data Formula", 'WD1-1W');
+            Evaluate(Setup."To Data Formula", 'WD7+4W');
+            Setup.Insert();
+        end;
+
         AnchorDate := Today();
         ResourcePanelFlag := true;
         ShowPreviousNext := not (Setup."Date Range Type" = Setup."Date Range Type"::"Date Range");
@@ -1199,7 +1205,6 @@ page 50620 "Gantt Demo DHX 2"
         // before enqueueing the next chunk, so the sequence as a whole still reads as "busy" to
         // any interleaving click in between.
         ResourcePanelTaskRunning := false;
-
         if TaskId <> ResourcePanelTaskId then
             exit;
 
@@ -1451,7 +1456,6 @@ page 50620 "Gantt Demo DHX 2"
         if ResourcePanelFlag then
             CurrPage.DHXGanttControl2.SetResourcePanelVisibility(true);
         CurrPage.DHXGanttControl2.RenderGantt(false);
-
         if GuiAllowed() then
             Window.Close();
     end;
@@ -1555,7 +1559,6 @@ page 50620 "Gantt Demo DHX 2"
     begin
         if not (pLoadResources or pLoadDayPlannings) then
             exit;
-
         if pLoadDayPlannings then begin
             // Preserve the original LoadDayPlanningData fallback: default to the Gantt Chart
             // Setup's own "Job No. Filter" when no page-level JobFilter is active yet, and persist
@@ -1578,7 +1581,6 @@ page 50620 "Gantt Demo DHX 2"
         TaskParameters.Add('JobFilter', JobFilter);
         TaskParameters.Add('JobTaskFilter', JobTaskFilter);
         TaskParameters.Add('AnchorDate', Format(AnchorDate, 0, '<Year4>-<Month,2>-<Day,2>'));
-
         if pLoadDayPlannings then begin
             // Chunk 0 (Skip=0) - see this procedure's header comment.
             TaskParameters.Add('DayPlanningSkip', '0');
@@ -1639,7 +1641,6 @@ page 50620 "Gantt Demo DHX 2"
         // declaration and in LoadAllData for why that JSON string is unreliable here.
         if (ResourcePanelJobNo = '') or (ResourcePanelJobTaskNo = '') then
             exit(false);
-
         if not JobTask.Get(ResourcePanelJobNo, ResourcePanelJobTaskNo) then
             exit(false);
 
@@ -1737,7 +1738,6 @@ page 50620 "Gantt Demo DHX 2"
             JobTaskNo := CopyStr(JsonToken.AsValue().AsText().Split('|').Get(2), 1, MaxStrLen(JobTaskNo));
         end else
             Error('id. missing in JSON');
-
         if not JobTask.Get(JobNo, JobTaskNo) then
             exit;
 
@@ -1810,10 +1810,12 @@ page 50620 "Gantt Demo DHX 2"
         Parts := DateText.Split('-');
         if Parts.Count <> 3 then
             exit(0D);
-
-        if not Evaluate(Year, Parts.Get(1)) then exit(0D);
-        if not Evaluate(Month, Parts.Get(2)) then exit(0D);
-        if not Evaluate(Day, Parts.Get(3)) then exit(0D);
+        if not Evaluate(Year, Parts.Get(1)) then
+            exit(0D);
+        if not Evaluate(Month, Parts.Get(2)) then
+            exit(0D);
+        if not Evaluate(Day, Parts.Get(3)) then
+            exit(0D);
 
         ParsedDate := DMY2Date(Day, Month, Year);
     end;

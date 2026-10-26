@@ -34,7 +34,7 @@ table 50620 "Gantt Chart Setup"
         }
         field(19; "To Data Formula"; DateFormula)
         {
-            Caption = 'From Date Formula';
+            Caption = 'To Date Formula';
         }
 
         field(20; "From Date"; Date)
