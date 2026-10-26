@@ -325,6 +325,7 @@ page 50620 "Gantt Demo DHX 2"
                 trigger OpenResourceLoadDay(ResourceId: Text; pTaskDate: Text; pPlanStatus: Text; pIdList: Text)
                 var
                     DayPlanning: Record "Day Planning";
+                    BarRecords: Record "Day Planning";
                     WorkDt: Date;
                     Tp: array[2] of text;
                     IdList: List of [Text];
@@ -342,6 +343,8 @@ page 50620 "Gantt Demo DHX 2"
                             if Evaluate(SysId, IdText) then begin
                                 DayPlanning.Reset();
                                 if DayPlanning.GetBySystemId(SysId) then begin
+                                    BarRecords := DayPlanning;
+                                    BarRecords.Mark(true);
                                     if not JobNos.Contains(DayPlanning."Job No.") then
                                         JobNos.Add(DayPlanning."Job No.");
                                     if not JobTaskNos.Contains(DayPlanning."Job Task No.") then
@@ -380,6 +383,12 @@ page 50620 "Gantt Demo DHX 2"
                             DayPlanning.SetRange("Assigned Resource No.", tp[2]);
                         if tp[1] = 'VEN-' then
                             DayPlanning.SetRange("Vendor No.", tp[2]);
+                    end;
+                    // Marked set = exactly the records behind the event bar (idList)
+                    BarRecords.MarkedOnly(true);
+                    if not BarRecords.IsEmpty() then begin
+                        Page.RunModal(Page::"Day Plannings", BarRecords);
+                        exit;
                     end;
                     Page.RunModal(Page::"Day Plannings", DayPlanning);
                     RefreshGantt();
