@@ -740,14 +740,8 @@ page 50620 "Gantt Demo DHX 2"
 
                 trigger OnAction()
                 begin
-                    Page.Run(Page::"Gantt Chart Setup");
-                    setup.get(UserId);
-                    CurrPage.DHXGanttControl2.SetColumnVisibility(
-                     Setup."Show Start Date",
-                     Setup."Show Duration",
-                     Setup."Show Task Type");
-                    CurrPage.DHXGanttControl2.LoadProject(Setup."From Date", Setup."To Date");
-                    CurrPage.Update(false); // reapply settings after close
+                    Page.RunModal(Page::"Gantt Chart Setup");
+                    RefreshGantt(); // reload with the saved settings
                 end;
             }
             action(Undo)
@@ -1180,6 +1174,9 @@ page 50620 "Gantt Demo DHX 2"
             Setup."Date Range Type" := Setup."Date Range Type"::Calculated;
             Evaluate(Setup."From Data Formula", 'WD1-1W');
             Evaluate(Setup."To Data Formula", 'WD7+4W');
+            Setup."Load Job Tasks" := true;
+            Setup."Load Resources" := true;
+            Setup."Load Day Plannings" := true;
             Setup.Insert();
         end;
 
