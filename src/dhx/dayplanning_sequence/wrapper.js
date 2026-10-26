@@ -197,9 +197,10 @@ function buildDom(host) {
 function configureScheduler() {
     scheduler.plugins({ timeline: true });
 
-    scheduler.config.drag_create = false;  // no ad-hoc bar creation by drag; new bars only via
-                                            // "New sequence" (GenerateSequence) or "Modify
-                                            // sequence" (RegenerateSequence) batch operations
+    scheduler.config.drag_create = true;   // drag on a row's empty cells creates one Day Planning line
+                                            // for that row's Skill/Sequence No. (onEventAdded below)
+    scheduler.config.dblclick_create = false; // creation is drag-only; the default double-click-on-empty-cell
+                                               // create would make a bar with a temp id that has no "|" parts
     scheduler.config.drag_move = true;
     scheduler.config.drag_resize = true;
     scheduler.config.details_on_create = false;
@@ -245,8 +246,6 @@ function configureScheduler() {
         return event.text || "";
     };
 
-    scheduler.attachEvent("onBeforeLightbox", function () { return false; });
-
     scheduler.attachEvent("onEventChanged", function (id, ev) {
         if (dps_isRefreshing) return true;
 
@@ -269,6 +268,65 @@ function configureScheduler() {
         return true;
     });
 
+    // At the end of a drag-create this DHTMLX build calls showLightbox (not onEventAdded) for the
+    // new bar - same as src/dhx/projectschedule - so onBeforeLightbox is the interception point.
+    scheduler.attachEvent("onEventCreated", function (id) {
+        var ev = scheduler.getEvent(id);
+        if (ev) ev._isNewForLightbox = true;
+        return true;
+    });
+
+    scheduler.attachEvent("onBeforeLightbox", function (id) {
+        var ev = scheduler.getEvent(id);
+        if (ev && ev._isNewForLightbox) {
+            delete ev._isNewForLightbox;
+            dpsHandleNewBar(id, ev);
+        }
+        return false;
+    });
+
+    function dpsHandleNewBar(id, ev) {
+        if (dps_isRefreshing) return true;
+
+        var sameDay = ev.start_date.getFullYear() === ev.end_date.getFullYear() &&
+            ev.start_date.getMonth() === ev.end_date.getMonth() &&
+            ev.start_date.getDate() === ev.end_date.getDate();
+        if (!sameDay) {
+            alert("Start time and end time must be on the same day.");
+            dps_isRefreshing = true;
+            scheduler.deleteEvent(id);
+            dps_isRefreshing = false;
+            return true;
+        }
+
+        var keyParts = String(ev.section_id).split("|");
+        var section = dps_sectionsByKey[ev.section_id] || {};
+        var hours = (ev.end_date - ev.start_date) / 3600000;
+        var msg = "Create a new Day Planning?\n\n" +
+            "Job: " + (keyParts[0] || "—") + "\n" +
+            "Task: " + (keyParts[1] || "—") + "\n" +
+            "Skill: " + (keyParts[2] || section.skill || "—") + "\n" +
+            "Sequence No.: " + (keyParts[3] || "—") + "\n" +
+            "Date: " + ev.start_date.toLocaleDateString(undefined, { weekday: "long", day: "2-digit", month: "short", year: "numeric" }) + "\n" +
+            "Time: " + dpsPad2(ev.start_date.getHours()) + ":" + dpsPad2(ev.start_date.getMinutes()) +
+            "–" + dpsPad2(ev.end_date.getHours()) + ":" + dpsPad2(ev.end_date.getMinutes()) +
+            " (" + (Math.round(hours * 100) / 100) + " h)";
+        if (!confirm(msg)) {
+            dps_isRefreshing = true;
+            scheduler.deleteEvent(id);
+            dps_isRefreshing = false;
+            return true;
+        }
+
+        var eventData = {
+            start_date: ev.start_date,
+            end_date: ev.end_date,
+            section_id: ev.section_id
+        };
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnEventCreated", [JSON.stringify(eventData)]);
+        return true;
+    }
+
     scheduler.attachEvent("onEventDeleted", function (id) {
         if (dps_isRefreshing) return true;
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnEventDeleted", [String(id)]);
@@ -276,6 +334,7 @@ function configureScheduler() {
     });
 
     scheduler.attachEvent("onDblClick", function (id, e) {
+        if (String(id).indexOf("|") < 0) return false; // not yet saved (temp id) - nothing to open
         var ev = scheduler.getEvent(id);
         var payload = ev ? {
             id: id,
@@ -493,7 +552,7 @@ function standardTooltipHtml(ev) {
         '</div>' +
         '<table class="standard-tooltip-table"><thead><tr><th></th><th>Request</th><th>Assigned</th></tr></thead><tbody>' +
             '<tr><th>Time</th><td>' + escapeHtml(reqTime) + '</td><td class="' + (timeDiffers ? "standard-tooltip-different" : "") + '">' + escapeHtml(assignedTime) + '</td></tr>' +
-            '<tr><th>Resource</th><td>—</td><td>' + escapeHtml(ev.assignedResourceNo || "—") + '</td></tr>' +
+            '<tr><th>Resource</th><td>' + escapeHtml(ev.requestedResourceNo || "—") + '</td><td>' + escapeHtml(ev.assignedResourceNo || "—") + '</td></tr>' +
         '</tbody></table>' +
         '</div>'
     );
