@@ -25,6 +25,7 @@ controladdin DHXDayPlanningSequenceAddin
     event OnCreateSequence(payloadJson: Text);
     event OnModifySequence(payloadJson: Text);
     event OnEventChanged(eventId: Text; eventData: Text);
+    event OnEventCreated(eventData: Text);
     event OnEventDeleted(eventId: Text);
     event OnEventDblClick(eventId: Text; eventData: Text);
 

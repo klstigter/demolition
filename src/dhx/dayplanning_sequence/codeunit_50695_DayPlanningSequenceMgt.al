@@ -366,6 +366,59 @@ codeunit 50695 "Day Planning Sequence Mgt."
     end;
 
     /// <summary>
+    /// Creates one Day Planning line from a bar the user dragged on an empty timeline cell. The
+    /// row (section_id) supplies Skill + Sequence No.; Job/Task/Work Order come from the host page.
+    /// No resource is set (same as sequence-generated lines), so Requested Hours is computed
+    /// directly - see InsertSequenceLine.
+    /// </summary>
+    procedure CreateEventFromJson(JobNo: Code[20]; JobTaskNo: Code[20]; WorkOrderNo: Code[20]; EventDataJson: Text)
+    var
+        DayPlanning: Record "Day Planning";
+        DHXDataHandler: Codeunit "DHX Data Handler";
+        EventJObj: JsonObject;
+        JToken: JsonToken;
+        SectionJobNo: Code[20];
+        SectionTaskNo: Code[20];
+        SkillCode: Code[10];
+        SequenceNo: Integer;
+        UtcDateTime: DateTime;
+        StartDateTime: DateTime;
+        EndDateTime: DateTime;
+    begin
+        EventJObj.ReadFrom(EventDataJson);
+        if not EventJObj.Get('section_id', JToken) then
+            exit;
+        ParseSectionId(JToken.AsValue().AsText(), SectionJobNo, SectionTaskNo, SkillCode, SequenceNo);
+
+        if not EventJObj.Get('start_date', JToken) then
+            exit;
+        if not Evaluate(UtcDateTime, JToken.AsValue().AsText()) then
+            exit;
+        StartDateTime := DHXDataHandler.ConvertToUserTimeZone(UtcDateTime);
+
+        if not EventJObj.Get('end_date', JToken) then
+            exit;
+        if not Evaluate(UtcDateTime, JToken.AsValue().AsText()) then
+            exit;
+        EndDateTime := DHXDataHandler.ConvertToUserTimeZone(UtcDateTime);
+
+        DayPlanning.Init();
+        DayPlanning."Job No." := JobNo;
+        DayPlanning."Job Task No." := JobTaskNo;
+        DayPlanning.Skill := SkillCode;
+        DayPlanning."Sequence No." := SequenceNo;
+        DayPlanning."Plan Date" := DT2Date(StartDateTime);
+        DayPlanning."Order Intake No." := WorkOrderNo;
+        DayPlanning."Day Line No." := DayPlanning.GetNextDayLineNo(DayPlanning."Plan Date", JobNo, JobTaskNo);
+        DayPlanning."Start Time Requested" := DT2Time(StartDateTime);
+        DayPlanning."End Time Requested" := DT2Time(EndDateTime);
+        DayPlanning."Requested Hours" := (DT2Time(EndDateTime) - DT2Time(StartDateTime)) / 3600000;
+        DayPlanning.Insert(true);
+
+        ExtendJobTaskPlannedPeriod(JobNo, JobTaskNo, DayPlanning."Plan Date", DayPlanning."Plan Date");
+    end;
+
+    /// <summary>
     /// Deletes the single Day Planning line identified by eventId. Respects the table's OnDelete
     /// guard as-is (errors if Assigned/Realized Hours are non-zero) - not suppressed here.
     /// </summary>
@@ -502,6 +555,7 @@ codeunit 50695 "Day Planning Sequence Mgt."
                 else
                     EventObj.Add('assignedEndTime', '');
                 EventObj.Add('assignedResourceNo', DayPlanning."Assigned Resource No.");
+                EventObj.Add('requestedResourceNo', DayPlanning."Requested Resource No.");
                 EventsArray.Add(EventObj);
             until DayPlanning.Next() = 0;
 

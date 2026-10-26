@@ -134,6 +134,13 @@ page 50711 "Day Planning Sequence Part"
                     RefreshTimeline();
                 end;
 
+                trigger OnEventCreated(eventData: Text)
+                begin
+                    DayPlanningSequenceMgt.CreateEventFromJson(JobNo, JobTaskNo, WorkOrderNo, eventData);
+                    RefreshTimeline();
+                    CurrPage.Update(false); // may widen the host Job Task's planned period
+                end;
+
                 trigger OnEventDeleted(eventId: Text)
                 begin
                     DayPlanningSequenceMgt.DeleteEventById(eventId);

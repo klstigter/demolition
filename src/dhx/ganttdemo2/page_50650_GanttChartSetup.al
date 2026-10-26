@@ -107,7 +107,6 @@ page 50650 "Gantt Chart Setup"
     trigger OnAfterGetCurrRecord()
     begin
         SetDateRangeVisibility();
-        CurrPage.Update();
     end;
 
     var
