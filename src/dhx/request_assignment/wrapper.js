@@ -6202,6 +6202,15 @@ window.BOOT = function BOOT() {
     }
   });
 
+  // Same mechanism as barchart_weekly/daily: close as soon as the cursor moves outside the menu (2px slack)
+  document.addEventListener("mousemove", event => {
+    if (slotContextMenu.hidden) return;
+    const r = slotContextMenu.getBoundingClientRect();
+    if (event.clientX < r.left - 2 || event.clientX > r.right + 2 || event.clientY < r.top - 2 || event.clientY > r.bottom + 2) {
+      hideSlotContextMenu();
+    }
+  });
+
   window.addEventListener("blur", hideSlotContextMenu);
   window.addEventListener("resize", hideSlotContextMenu);
 
