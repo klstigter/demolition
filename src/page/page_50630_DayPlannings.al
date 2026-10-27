@@ -85,6 +85,12 @@ page 50630 "Day Plannings"
                     ToolTip = 'Specifies the day number in the sequence.';
                     Caption = 'Day No.';
                 }
+                field("Sequence No."; Rec."Sequence No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the sequence number for this day task.';
+                    StyleExpr = StyleStr;
+                }
                 field("Plan Status"; Rec."Plan Status")
                 {
                     ApplicationArea = All;
@@ -149,7 +155,7 @@ page 50630 "Day Plannings"
                     ToolTip = 'Specifies the end time for this day.';
                     StyleExpr = StyleStr;
                 }
-                field("Non Working Minutes"; Rec."Non Working Minutes Assigned")
+                field("Non Working Minutes Assigned"; Rec."Non Working Minutes Assigned")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the non-working minutes within the task period.';
@@ -167,7 +173,6 @@ page 50630 "Day Plannings"
                         DayPlanning: Page "Day Plannings";
                         DayPlanningRec: Record "Day Planning";
                     begin
-
                         if rec."Assigned Resource No." = '' then
                             exit;
                         DayPlanningRec.setrange("Assigned Resource No.", Rec."Assigned Resource No.");
@@ -206,6 +211,12 @@ page 50630 "Day Plannings"
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the end time for this day task.';
+                    StyleExpr = StyleStr;
+                }
+                field("Non Working Minutes Requested"; Rec."Non Working Minutes Requested")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the non-working minutes within the task period.';
                     StyleExpr = StyleStr;
                 }
                 field("Requested Hours"; Rec."Requested Hours")
@@ -533,7 +544,6 @@ page 50630 "Day Plannings"
             Rec."Assigned Resource No." := GetResourceNoFilterText();
         if not ShowSkill then
             Rec.Skill := GetSkillFilterText();
-
     end;
 
     trigger OnInsertRecord(BelowxRec: Boolean): Boolean
@@ -602,7 +612,6 @@ page 50630 "Day Plannings"
             rec.CalcFields("Total Assigned Hours");
             TotAssignedHours := Rec."Total Assigned Hours";
         end;
-
     end;
 
     procedure SetColumsVisible(pShowJob: Boolean; pShowJobTask: Boolean; pShowResource: Boolean; pShowSkill: Boolean; pShowPlanStatus: Boolean);
