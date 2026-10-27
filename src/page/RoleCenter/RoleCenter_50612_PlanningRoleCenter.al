@@ -155,13 +155,13 @@ page 50612 "Planning Role Center"
                 action("VisualPlanning5b")
                 {
                     ApplicationArea = All;
-                    Caption = 'Resources Scheduler (Time-Line)';
+                    Caption = 'Resource Scheduler';
                     RunObject = page "DHX Scheduler - TimeLine";
                 }
                 action("VisualPlanning5")
                 {
                     ApplicationArea = All;
-                    Caption = 'Resources Scheduler (Week/Calendar)';
+                    Caption = 'Resource Calendar';
                     RunObject = page "Resource Scheduler - Calendar";
                 }
                 action("VisualPlanning6")
