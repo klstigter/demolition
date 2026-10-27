@@ -368,7 +368,7 @@ window.BOOT = function() {
         parentMenu.appendChild(item);
       }
 
-      makeItem(menu, "Resource Scheduler", "&#x1F4C6;", function () {
+      makeItem(menu, "Resource Calendar", "&#x1F4C6;", function () {
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("onOpenResourceScheduler", [
           currentResourceId
         ]);

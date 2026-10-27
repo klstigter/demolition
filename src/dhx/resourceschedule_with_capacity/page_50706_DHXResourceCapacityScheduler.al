@@ -3,7 +3,7 @@ page 50706 "DHX Scheduler - TimeLine"
     PageType = Card;
     ApplicationArea = All;
     UsageCategory = Tasks;
-    Caption = 'Resource Scheduler - Timeline';
+    Caption = 'Resource Scheduler';
 
     layout
     {

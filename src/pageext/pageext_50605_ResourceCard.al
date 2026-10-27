@@ -131,6 +131,7 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
             action("Resource Scheduler")
             {
                 ApplicationArea = All;
+                Caption = 'Resource Calendar';
                 trigger OnAction()
                 var
                     ResScheduler: page "Resource Scheduler - Calendar";

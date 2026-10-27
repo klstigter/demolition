@@ -1508,7 +1508,7 @@ function setupContextMenu() {
             '<span class="dhx-ctx-icon">&#128248;</span>Open Job Task Scheduler</div>' +
         '<div class="dhx-ctx-separator"></div>' +
         '<div class="dhx-ctx-item" data-action="OpenResSchedulerTimeline">' +
-            '<span class="dhx-ctx-icon">&#128101;</span>Open Resource Scheduler (Timeline)</div>' +
+            '<span class="dhx-ctx-icon">&#128101;</span>Open Resource Scheduler</div>' +
         '<div class="dhx-ctx-separator"></div>' +
         '<div class="dhx-ctx-item" data-action="OpenResourceSchedulerAssigned">' +
             '<span class="dhx-ctx-icon">&#128101;</span>Open Resource Scheduler (assigned)</div>' +        

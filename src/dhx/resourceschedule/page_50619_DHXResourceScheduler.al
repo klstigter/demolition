@@ -3,7 +3,7 @@ page 50619 "Resource Scheduler - Calendar"
     PageType = Card;
     ApplicationArea = All;
     UsageCategory = Tasks;
-    Caption = 'Resource Scheduler - Week/Calendar';
+    Caption = 'Resource Calendar';
 
     layout
     {
