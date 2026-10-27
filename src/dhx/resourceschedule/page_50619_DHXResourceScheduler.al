@@ -1,6 +1,6 @@
 page 50619 "Resource Scheduler - Calendar"
 {
-    PageType = Card;
+    PageType = List;
     ApplicationArea = All;
     UsageCategory = Tasks;
     Caption = 'Resource Calendar';
@@ -303,12 +303,9 @@ page 50619 "Resource Scheduler - Calendar"
         }
         area(Promoted)
         {
-            group(Category_Process)
-            {
-                actionref("Set Capacity Opt actionref"; "Set Capacity Opt") { }
-                actionref(Category_Process_01; "Resource Capacities") { }
-                actionref(Category_Process_02; "Scheduler Resfresh") { }
-            }
+            actionref("Set Capacity Opt actionref"; "Set Capacity Opt") { }
+            actionref(Category_Process_01; "Resource Capacities") { }
+            actionref(Category_Process_02; "Scheduler Resfresh") { }
         }
     }
 

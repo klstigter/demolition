@@ -1,6 +1,6 @@
 page 50681 "Requested vs Capacity Daily"
 {
-    PageType = Card;
+    PageType = List;
     ApplicationArea = All;
     UsageCategory = ReportsAndAnalysis;
     Caption = 'Daily Requested/Capacity';
@@ -183,29 +183,12 @@ page 50681 "Requested vs Capacity Daily"
         }
         area(Promoted)
         {
-            group(Category_Process)
-            {
-                Caption = 'Process';
-
-                actionref(RefreshAction_Promoted; RefreshAction)
-                {
-                }
-                actionref(PreviousAction_Promoted; PreviousAction)
-                {
-                }
-                actionref(TodayAction_Promoted; TodayAction)
-                {
-                }
-                actionref(NextAction_Promoted; NextAction)
-                {
-                }
-                actionref(SetToWeekly_Promoted; SetToWeekly)
-                {
-                }
-                actionref(SetToDaily_Promoted; SetToDaily)
-                {
-                }
-            }
+            actionref(RefreshAction_Promoted; RefreshAction) { }
+            actionref(PreviousAction_Promoted; PreviousAction) { }
+            actionref(TodayAction_Promoted; TodayAction) { }
+            actionref(NextAction_Promoted; NextAction) { }
+            actionref(SetToWeekly_Promoted; SetToWeekly) { }
+            actionref(SetToDaily_Promoted; SetToDaily) { }
         }
     }
 
