@@ -33,6 +33,7 @@ controladdin DHXResourceCapacityScheduleAddin
     event OnGetAllSections(EventIdsJsonTxt: Text);
     event OnEventContextMenu(eventId: Text; action: Text; payloadJson: Text);
     event OnSectionContextMenu(sectionId: Text; action: Text; payloadJson: Text);
+    event OnSectionHover(sectionId: Text);
     event OnFilterIconClick();
     event OnClearResourceFilter();
 
@@ -50,5 +51,6 @@ controladdin DHXResourceCapacityScheduleAddin
     procedure get_events_not_match_with_section();
     procedure getAllEvents();
     procedure getAllSections();
+    procedure SetSectionStats(sectionId: Text; statsJson: Text);
     procedure SetResourceFilterInfo(resNo: Text; resName: Text; periodFrom: Text; periodTo: Text; skillFilter: Text);
 }
