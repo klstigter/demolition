@@ -393,6 +393,25 @@ page 50620 "Gantt Demo DHX 2"
                     RefreshGantt();
                 end;
 
+                trigger OpenSequences(pIdList: Text)
+                var
+                    DayPlanning: Record "Day Planning";
+                    SequencePage: Page "Day Planning Sequence";
+                    IdText: Text;
+                    SysId: Guid;
+                begin
+                    // Open page 50712 on the Job Task of the first Day Planning behind the event bar (idList)
+                    if pIdList = '' then
+                        exit;
+                    foreach IdText in pIdList.Split('|') do
+                        if Evaluate(SysId, IdText) then
+                            if DayPlanning.GetBySystemId(SysId) then begin
+                                SequencePage.SetContext(DayPlanning."Job No.", DayPlanning."Job Task No.", '');
+                                SequencePage.Run();
+                                exit;
+                            end;
+                end;
+
                 trigger OnLinkCreated(linkData: Text)
                 begin
                     // Fired from dhtmlx when user draws a new dependency arrow

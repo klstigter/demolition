@@ -385,6 +385,9 @@ window.BOOT = function() {
           currentMarkerIdList
         ]);
       });
+      makeItem(markerMenu, "Open Sequences", "&#x1F4CB;", function () {
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OpenSequences", [currentMarkerIdList]);
+      });
 
       // ── Empty resource timeline cell menu ──
       var emptyMenu = document.createElement("div");

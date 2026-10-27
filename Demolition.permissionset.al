@@ -150,6 +150,7 @@ permissionset 50600 Demolition
         page "Day Planning Card Opt" = X,
         page "Day Planning Info FactBox" = X,
         page "Day Planning Journal" = X,
+        page "Day Planning Sequence" = X,
         page "Day Planning Sequence Part" = X,
         page "Day Plannings" = X,
         page "Day Plannings FactBox" = X,
