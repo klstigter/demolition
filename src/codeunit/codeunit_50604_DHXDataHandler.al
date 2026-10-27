@@ -4221,6 +4221,85 @@ codeunit 50604 "DHX Data Handler"
     end;
 
     /// <summary>
+    /// Hover-tooltip stats for one Resource leaf row of the Resource Scheduler (page 50706):
+    /// JSON {skills[],count,requested,assigned,capacity} (skills = all the resource's registered
+    /// Resource Skill entries, not just this row's). Same row-placement rule as
+    /// SkillResScheduler_BuildDayPlanningJson (Assigned Resource, else Requested Resource) and the
+    /// same Requested/Assigned Hours fields as the bars; capacity is the resource's Res. Capacity
+    /// Entry sum over the period. In Resource Group mode the "skill" slot carries the group label
+    /// and Day Planning is not narrowed by skill (the row is the whole resource).
+    /// </summary>
+    procedure ResScheduler_BuildSectionStatsJson(SectionId: Text; GroupMode: Boolean; JobNoFilter: Text; JobTaskNoFilter: Text; StartDate: Date; EndDate: Date): Text
+    var
+        DayPlanning: Record "Day Planning";
+        ResCap: Record "Res. Capacity Entry";
+        ResourceSkill: Record "Resource Skill";
+        Parts: List of [Text];
+        JRoot: JsonObject;
+        SkillsArr: JsonArray;
+        Result: Text;
+        ResNo: Code[20];
+        RowKey: Code[20];
+        Pass: Integer;
+        Cnt: Integer;
+        Requested: Decimal;
+        Assigned: Decimal;
+        Capacity: Decimal;
+    begin
+        ResNo := SkillResScheduler_ExtractResourceNo(SectionId);
+        Parts := SectionId.Split('|');
+        if Parts.Count() >= 2 then
+            RowKey := CopyStr(Parts.Get(2), 1, MaxStrLen(RowKey));
+
+        // Pass 1 = rows assigned to the resource, pass 2 = unassigned rows requested for it.
+        for Pass := 1 to 2 do begin
+            DayPlanning.Reset();
+            DayPlanning.SetRange("Plan Date", StartDate, EndDate);
+            if not GroupMode then
+                if RowKey = '~NOSKILL~' then
+                    DayPlanning.SetRange(Skill, '')
+                else
+                    DayPlanning.SetRange(Skill, RowKey);
+            if JobNoFilter <> '' then
+                DayPlanning.SetFilter("Job No.", JobNoFilter);
+            if JobTaskNoFilter <> '' then
+                DayPlanning.SetFilter("Job Task No.", JobTaskNoFilter);
+            if Pass = 1 then
+                DayPlanning.SetRange("Assigned Resource No.", ResNo)
+            else begin
+                DayPlanning.SetRange("Assigned Resource No.", '');
+                DayPlanning.SetRange("Requested Resource No.", ResNo);
+            end;
+            if DayPlanning.FindSet() then
+                repeat
+                    Cnt += 1;
+                    Requested += DayPlanning."Requested Hours";
+                    Assigned += DayPlanning."Assigned Hours";
+                until DayPlanning.Next() = 0;
+        end;
+
+        ResCap.SetRange("Resource No.", ResNo);
+        ResCap.SetRange("Date", StartDate, EndDate);
+        ResCap.CalcSums(Capacity);
+        Capacity := ResCap.Capacity;
+
+        ResourceSkill.SetRange(Type, ResourceSkill.Type::Resource);
+        ResourceSkill.SetRange("No.", ResNo);
+        if ResourceSkill.FindSet() then
+            repeat
+                SkillsArr.Add(ResolveSkillLabel(ResourceSkill."Skill Code"));
+            until ResourceSkill.Next() = 0;
+
+        JRoot.Add('skills', SkillsArr);
+        JRoot.Add('count', Cnt);
+        JRoot.Add('requested', Round(Requested, 0.01));
+        JRoot.Add('assigned', Round(Assigned, 0.01));
+        JRoot.Add('capacity', Round(Capacity, 0.01));
+        JRoot.WriteTo(Result);
+        exit(Result);
+    end;
+
+    /// <summary>
     /// Builds the left-panel tree: one top-level node per Skill Code, with the resources
     /// registered for that skill as leaf children - a resource registered for multiple skills
     /// appears once per skill branch. Resources with no skill assigned are grouped under a

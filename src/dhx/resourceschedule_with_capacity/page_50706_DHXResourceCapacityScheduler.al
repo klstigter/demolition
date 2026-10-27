@@ -155,6 +155,17 @@ page 50706 "DHX Scheduler - TimeLine"
                         DHXDataHandler.SkillResScheduler_OpenDayPlanningByEventId(eventId);
                 end;
 
+                trigger OnSectionHover(sectionId: Text)
+                var
+                    startDate: Date;
+                    endDate: Date;
+                begin
+                    // Resource leaf rows only (wrapper.js already skips SKILL|/GROUP| folder rows).
+                    DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
+                    CurrPage.DhxScheduler.SetSectionStats(sectionId,
+                        DHXDataHandler.ResScheduler_BuildSectionStatsJson(sectionId, IsResourceGroupMode(), JobFilter, JobTaskFilter, startDate, endDate));
+                end;
+
                 #endregion Section double click / Event double click
 
                 #region Timeline Navigate

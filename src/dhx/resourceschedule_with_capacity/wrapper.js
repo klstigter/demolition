@@ -203,13 +203,17 @@ window.BOOT = function () {
            so the custom property must live on a common ancestor of both). The literal fallbacks
            here (#000000/#ffffff for the dhtmlx tooltip, #ffffff/#23272A for the filter popup)
            only apply before SetBarColors has run once. */
-        #res-filter-tooltip-popup {
+        #res-filter-tooltip-popup, #res-section-tooltip-popup {
             display: none; position: fixed;
             background: var(--tooltip-bg-color, #ffffff); color: var(--tooltip-font-color, #23272A);
             border: 1px solid #4a6fa5; border-radius: 5px; padding: 8px 12px; font-size: 12px;
             font-weight: normal; white-space: nowrap; z-index: 999999;
             box-shadow: 0 3px 10px rgba(0,0,0,0.25); min-width: 180px; pointer-events: none;
         }
+        #res-section-tooltip-popup { padding: 4px 8px; }
+        #res-section-tooltip-popup .standard-tooltip-table th,
+        #res-section-tooltip-popup .standard-tooltip-table td { border-bottom: 1px solid rgba(128,128,128,0.35); }
+        #res-section-tooltip-popup .standard-tooltip-table td { text-align: right; font-weight: 600; }
 
         /* ── Hover tooltip (dhtmlXTooltip) - tabular ── */
         /* min/max-width (2026-09-11 standard-tooltip unification - see this add-in's project
@@ -697,6 +701,7 @@ function SetHideNoEventResources(pHide) {
 // ============================================================
 function Init(elementsJson, EarliestPlanningDate) {
     _showResLoading();
+    _sectionStats = {};
     var parsed = ParseRcJsonTxt(elementsJson);
     var sections = RcArrayFrom(parsed);
     if (sections.length === 0) sections = [{ key: "nodata", label: "No Data" }];
@@ -713,6 +718,7 @@ function Init(elementsJson, EarliestPlanningDate) {
     setupCollapseAllToggle();
     setupFilterToolbar();
     setupContextMenu();
+    setupSectionHoverTooltip();
 
     Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnAfterInit", []);
 }
@@ -721,6 +727,7 @@ function Init(elementsJson, EarliestPlanningDate) {
 // AL-callable: LoadData(eventsJson) - Day Planning events
 // ============================================================
 function LoadData(eventsJson) {
+    _sectionStats = {};
     try {
         allDayPlanningEvents = RcArrayFrom(ParseRcJsonTxt(eventsJson));
         RefreshEvents();
@@ -736,6 +743,7 @@ function LoadData(eventsJson) {
 // AL-callable: LoadCapacity(capacityJson) - Capacity events
 // ============================================================
 function LoadCapacity(capacityJson) {
+    _sectionStats = {};
     try {
         allCapacityEvents = RcArrayFrom(ParseRcJsonTxt(capacityJson));
         RefreshEvents();
@@ -879,6 +887,7 @@ function SetShowCapacity(pShow) {
 // ============================================================
 function RefreshTimeline(resourcesJson, eventsJson, capacityJson, dateAnchor) {
     _showResLoading();
+    _sectionStats = {};
     try {
         var sections = RcArrayFrom(ParseRcJsonTxt(resourcesJson));
         var onlyNoData = false;
@@ -1198,6 +1207,78 @@ function setupContextMenu() {
 
         hideMenu();
     });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Resource row hover tooltip - stats computed in AL (OnSectionHover -> SetSectionStats),
+// cached per section id until the next Init/LoadData/LoadCapacity/RefreshTimeline.
+// ═══════════════════════════════════════════════════════════════
+var _sectionStats = {};
+var _hoverSectionId = '';
+
+function _fmtHours(n) { return String(Math.round((Number(n) || 0) * 100) / 100); }
+
+function _hideSectionTooltip() {
+    _hoverSectionId = '';
+    var popup = document.getElementById('res-section-tooltip-popup');
+    if (popup) popup.style.display = 'none';
+}
+
+function _showSectionTooltip(sectionId, e) {
+    var s = _sectionStats[sectionId];
+    var popup = document.getElementById('res-section-tooltip-popup');
+    if (!s || !popup) return;
+    var rows = (s.skills || []).map(function (sk) { return ['Skill', sk]; }).concat([
+        ['Total Day Plannings', s.count],
+        ['Requested Hours', _fmtHours(s.requested)],
+        ['Assigned Hours', _fmtHours(s.assigned)],
+        ['Capacity Hours', _fmtHours(s.capacity)]
+    ]);
+    popup.innerHTML = '<table class="standard-tooltip-table"><thead><tr><th>Statistic</th><th>Value</th></tr></thead><tbody>' +
+        rows.map(function (r) { return '<tr><th>' + escapeRcHtml(r[0]) + '</th><td>' + escapeRcHtml(r[1]) + '</td></tr>'; }).join('') +
+        '</tbody></table>';
+    popup.style.display = 'block';
+    var left = e.clientX + 12, top = e.clientY + 12;
+    if (left + popup.offsetWidth > window.innerWidth) left = e.clientX - popup.offsetWidth - 12;
+    if (top + popup.offsetHeight > window.innerHeight) top = e.clientY - popup.offsetHeight - 12;
+    popup.style.left = left + 'px';
+    popup.style.top = top + 'px';
+}
+
+// AL-callable: stores the stats for a row and shows them if the mouse is still on that row.
+function SetSectionStats(sectionId, statsJson) {
+    _sectionStats[sectionId] = ParseRcJsonTxt(statsJson);
+    if (_hoverSectionId === sectionId && _lastHoverEvent) _showSectionTooltip(sectionId, _lastHoverEvent);
+}
+var _lastHoverEvent = null;
+
+function setupSectionHoverTooltip() {
+    var root = document.getElementById('scheduler_here');
+    if (!root || root._hoverWired) return;
+    root._hoverWired = true;
+
+    var popup = document.createElement('div');
+    popup.id = 'res-section-tooltip-popup';
+    document.body.appendChild(popup);
+
+    root.addEventListener('mousemove', function (e) {
+        var row = e.target.closest('.dhx_timeline_label_row') || e.target.closest('[data-row-id]');
+        var id = row ? (row.getAttribute('data-row-id') || '') : '';
+        if (!id || id.indexOf('SKILL|') === 0 || id.indexOf('GROUP|') === 0) { _hideSectionTooltip(); return; }
+        _lastHoverEvent = { clientX: e.clientX, clientY: e.clientY };
+        if (id !== _hoverSectionId) {
+            _hoverSectionId = id;
+            if (!_sectionStats[id]) {
+                popup.style.display = 'none';
+                Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnSectionHover', [id]);
+                return;
+            }
+        }
+        if (_sectionStats[id]) _showSectionTooltip(id, _lastHoverEvent);
+    });
+    root.addEventListener('mouseleave', _hideSectionTooltip);
+    root.addEventListener('contextmenu', _hideSectionTooltip, true);
+    document.addEventListener('scroll', _hideSectionTooltip, true);
 }
 
 // ═══════════════════════════════════════════════════════════════
