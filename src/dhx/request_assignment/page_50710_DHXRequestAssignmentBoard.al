@@ -1,6 +1,6 @@
 page 50710 "DHX Request Assignment Board"
 {
-    PageType = Card; //userControlHost;
+    PageType = List; //userControlHost;
     ApplicationArea = All;
     UsageCategory = Tasks;
     Caption = 'Request and Assignment Board';

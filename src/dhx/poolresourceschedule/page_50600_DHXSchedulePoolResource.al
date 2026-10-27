@@ -1,6 +1,6 @@
 page 50600 "DHX Scheduler (Pool Resource)"
 {
-    PageType = Card; //userControlHost;
+    PageType = List; //userControlHost;
     ApplicationArea = All;
     UsageCategory = Tasks;
     Caption = 'Resource Capacity Scheduler';
@@ -431,17 +431,12 @@ page 50600 "DHX Scheduler (Pool Resource)"
 
         area(Promoted)
         {
-            group(Category_Process)
-            {
-                Caption = 'Date Navigation', Comment = 'Record list will filtered based on date';
-
-                actionref("Prev_filter"; PreviousAct) { }
-                actionref("Today_filter"; Todayact) { }
-                actionref("Next_filter"; Nextact) { }
-                actionref("Refresh_filter"; Refresh) { }
-                actionref("Show_DayPlanning"; ShowDayPlanning) { Visible = false; }
-                actionref("Hide_DayPlanning"; HideDayPlanning) { Visible = false; }
-            }
+            actionref("Prev_filter"; PreviousAct) { }
+            actionref("Today_filter"; Todayact) { }
+            actionref("Next_filter"; Nextact) { }
+            actionref("Refresh_filter"; Refresh) { }
+            actionref("Show_DayPlanning"; ShowDayPlanning) { Visible = false; }
+            actionref("Hide_DayPlanning"; HideDayPlanning) { Visible = false; }
         }
     }
 

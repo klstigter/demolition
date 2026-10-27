@@ -84,12 +84,7 @@ page 50630 "Day Plannings"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the day number in the sequence.';
                     Caption = 'Day No.';
-                }
-                field("Sequence No."; Rec."Sequence No.")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the sequence number for this day task.';
-                    StyleExpr = StyleStr;
+                    visible = false;
                 }
                 field("Plan Status"; Rec."Plan Status")
                 {
@@ -119,8 +114,12 @@ page 50630 "Day Plannings"
                     StyleExpr = StyleStr;
                     Visible = ShowSkill;
                 }
-
-
+                field("Sequence No."; Rec."Sequence No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the sequence number for this day task.';
+                    StyleExpr = StyleStr;
+                }
                 field("Assigned Pool Resource No."; Rec."Assigned Pool Resource No.")
                 {
                     ApplicationArea = All;

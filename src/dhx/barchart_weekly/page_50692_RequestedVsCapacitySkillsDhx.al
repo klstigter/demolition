@@ -1,6 +1,6 @@
 page 50692 "Requested vs Capacity Weekly"
 {
-    PageType = Card;
+    PageType = List;
     ApplicationArea = All;
     UsageCategory = ReportsAndAnalysis;
     Caption = 'Weekly Requested/Capacity';
@@ -133,23 +133,10 @@ page 50692 "Requested vs Capacity Weekly"
         }
         area(Promoted)
         {
-            group(Category_Process)
-            {
-                Caption = 'Process';
-
-                actionref(RefreshAction_Promoted; RefreshAction)
-                {
-                }
-                actionref(PreviousAction_Promoted; PreviousAction)
-                {
-                }
-                actionref(TodayAction_Promoted; TodayAction)
-                {
-                }
-                actionref(NextAction_Promoted; NextAction)
-                {
-                }
-            }
+            actionref(RefreshAction_Promoted; RefreshAction) { }
+            actionref(PreviousAction_Promoted; PreviousAction) { }
+            actionref(TodayAction_Promoted; TodayAction) { }
+            actionref(NextAction_Promoted; NextAction) { }
         }
     }
 

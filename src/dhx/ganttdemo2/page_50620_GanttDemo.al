@@ -1,6 +1,6 @@
 page 50620 "Gantt Demo DHX 2"
 {
-    PageType = Card;
+    PageType = List;
     ApplicationArea = All;
     UsageCategory = Administration;
     Caption = 'Gantt Demo';
@@ -1116,20 +1116,16 @@ page 50620 "Gantt Demo DHX 2"
 
         area(Promoted)
         {
-            group(Category_Process)
-            {
-                Caption = 'Actions';
-                actionref(GanttSettings_ref; GanttSettings) { }
-                actionref("UodoPromoted"; Undo) { }
-                actionref("RedoPromoted"; Redo) { }
-                actionref("AddMarkerPromoted"; AddMarker) { }
-                actionref(TestClearDataRef; TestClearData) { }
-                actionref("RefreshDataPromoted"; RefreshData) { }
-                actionref("Prev_filter"; PreviousAct) { }
-                actionref("Today_filter"; Todayact) { }
-                actionref("Next_filter"; Nextact) { }
-
-            }
+            // Direct actionrefs (outside a group) render as flat buttons on a List page's action bar
+            actionref(GanttSettings_ref; GanttSettings) { }
+            actionref("UodoPromoted"; Undo) { }
+            actionref("RedoPromoted"; Redo) { }
+            actionref("AddMarkerPromoted"; AddMarker) { }
+            actionref(TestClearDataRef; TestClearData) { }
+            actionref("RefreshDataPromoted"; RefreshData) { }
+            actionref("Prev_filter"; PreviousAct) { }
+            actionref("Today_filter"; Todayact) { }
+            actionref("Next_filter"; Nextact) { }
             group(Category_Category4)
             {
                 Caption = 'Export';

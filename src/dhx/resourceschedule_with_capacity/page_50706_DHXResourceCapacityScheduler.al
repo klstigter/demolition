@@ -1,6 +1,6 @@
 page 50706 "DHX Scheduler - TimeLine"
 {
-    PageType = Card;
+    PageType = List;
     ApplicationArea = All;
     UsageCategory = Tasks;
     Caption = 'Resource Scheduler';
@@ -516,22 +516,17 @@ page 50706 "DHX Scheduler - TimeLine"
 
         area(Promoted)
         {
-            group(Category_Process)
-            {
-                Caption = 'Date Navigation';
-
-                actionref("Prev_promoted"; PreviousAct) { }
-                actionref("Today_promoted"; TodayAct) { }
-                actionref("Next_promoted"; NextAct) { }
-                actionref("Refresh_promoted"; Refresh) { }
-                actionref("DateLookup_promoted"; DateLookup) { }
-                actionref("ShowCapacity_promoted"; ShowCapacityAct) { }
-                actionref("HideCapacity_promoted"; HideCapacityAct) { }
-                actionref("ShowDayPlanning_promoted"; ShowDayPlanningAct) { }
-                actionref("HideDayPlanning_promoted"; HideDayPlanningAct) { }
-                actionref("HideNoEventResources_promoted"; HideNoEventResourcesAct) { }
-                actionref("ShowNoEventResources_promoted"; ShowNoEventResourcesAct) { }
-            }
+            actionref("Prev_promoted"; PreviousAct) { }
+            actionref("Today_promoted"; TodayAct) { }
+            actionref("Next_promoted"; NextAct) { }
+            actionref("Refresh_promoted"; Refresh) { }
+            actionref("DateLookup_promoted"; DateLookup) { }
+            actionref("ShowCapacity_promoted"; ShowCapacityAct) { }
+            actionref("HideCapacity_promoted"; HideCapacityAct) { }
+            actionref("ShowDayPlanning_promoted"; ShowDayPlanningAct) { }
+            actionref("HideDayPlanning_promoted"; HideDayPlanningAct) { }
+            actionref("HideNoEventResources_promoted"; HideNoEventResourcesAct) { }
+            actionref("ShowNoEventResources_promoted"; ShowNoEventResourcesAct) { }
         }
     }
 

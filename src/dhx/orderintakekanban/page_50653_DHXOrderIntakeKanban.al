@@ -1,6 +1,6 @@
 page 50653 "DHX Order Intake Kanban"
 {
-    PageType = Card;
+    PageType = List;
     ApplicationArea = All;
     UsageCategory = Tasks;
     Caption = 'Order Intake Kanban Board';
