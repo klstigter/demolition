@@ -92,6 +92,7 @@ page 50620 "Gantt Demo DHX 2"
                 trigger OnShowResourcesForTask(taskId: Text; childrenJson: Text; periodFrom: Text; periodTo: Text)
                 var
                     JobTask: Record "Job Task";
+                    GanttChartDataHandler: Codeunit "GanttChartDataHandler";
                     EventIDList: List of [Text];
                     JobNo: Code[20];
                     JobTaskNo: Code[20];
@@ -136,11 +137,9 @@ page 50620 "Gantt Demo DHX 2"
                                 end;
                             end;
 
-                    // Parse period dates (format: YYYY-MM-DD from JS)
-                    if periodFrom <> '' then
-                        Evaluate(FromDate, periodFrom);
-                    if periodTo <> '' then
-                        Evaluate(ToDate, periodTo);
+                    // Period = the Gantt's currently displayed view period (periodFrom/periodTo
+                    // from JS, the task's own bar dates, are intentionally ignored)
+                    GanttChartDataHandler.GetDateRange(Setup, AnchorDate, FromDate, ToDate);
 
                     // Show the resource panel
                     ResourcePanelFlag := true;
@@ -1452,6 +1451,10 @@ page 50620 "Gantt Demo DHX 2"
         // confirmed live to sometimes not have landed yet by the time this procedure runs, leaving
         // that string blank/stale and silently emptying the resource panel on Refresh Data.
         if (ResourcePanelJobNo <> '') and (ResourcePanelJobTaskNo <> '') then begin
+            // Panel period follows the displayed view period (changes on Previous/Today/Next)
+            ResourcePanelFromDate := StartDate;
+            ResourcePanelToDate := EndDate;
+            CurrPage.DHXGanttControl2.SetResourcePanelFilterInfo(ResourcePanelJobNo, ResourcePanelJobTaskNo, Format(ResourcePanelFromDate, 0, '<Year4>-<Month,2>-<Day,2>'), Format(ResourcePanelToDate, 0, '<Year4>-<Month,2>-<Day,2>'));
             if GuiAllowed() then
                 Window.Update(1, 'Resources && Day Plannings (loading in background)...');
             EnqueueFilteredResourcePanelReload(ResourcePanelFromDate, ResourcePanelToDate);
@@ -1647,6 +1650,7 @@ page 50620 "Gantt Demo DHX 2"
     local procedure ReloadResourcePanelFromStoredFilter(): Boolean
     var
         JobTask: Record "Job Task";
+        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
     begin
         // Read from the native AL vars (set synchronously in OnShowResourcesForTask), not from
         // CurrentResourcePanelFilterJsonString - see the comment on ResourcePanelJobNo's
@@ -1661,12 +1665,11 @@ page 50620 "Gantt Demo DHX 2"
         // re-derive the range from the Job Task's current Planned Start/End Date instead, and
         // persist it back into the native vars (not just pushed to JS) so the NEXT reload
         // (e.g. a plain Refresh Data click) also uses the fresh period deterministically.
-        ResourcePanelFromDate := JobTask.VisualBarStartDate;
-        ResourcePanelToDate := JobTask.VisualBarEndDate;
+        GanttChartDataHandler.GetDateRange(Setup, AnchorDate, ResourcePanelFromDate, ResourcePanelToDate);
 
         CurrPage.DHXGanttControl2.SetResourcePanelFilterInfo(ResourcePanelJobNo, ResourcePanelJobTaskNo,
-            Format(JobTask.VisualBarStartDate, 0, '<Year4>-<Month,2>-<Day,2>'),
-            Format(JobTask.VisualBarEndDate, 0, '<Year4>-<Month,2>-<Day,2>'));
+            Format(ResourcePanelFromDate, 0, '<Year4>-<Month,2>-<Day,2>'),
+            Format(ResourcePanelToDate, 0, '<Year4>-<Month,2>-<Day,2>'));
         CurrPage.DHXGanttControl2.GetResourceFilter();
 
         // Re-marking each child task is no longer needed here - ResourcePanelChildTaskIds (the
@@ -1674,7 +1677,7 @@ page 50620 "Gantt Demo DHX 2"
         // as plain "JobNo|JobTaskNo" keys, exactly what BuildResourcePanelJobTaskKeysText needs;
         // Record marks wouldn't survive into the background task's separate session anyway.
         // Enqueue only - returns immediately, OnPageBackgroundTaskCompleted applies the result.
-        EnqueueFilteredResourcePanelReload(JobTask.VisualBarStartDate, JobTask.VisualBarEndDate);
+        EnqueueFilteredResourcePanelReload(ResourcePanelFromDate, ResourcePanelToDate);
         exit(true);
     end;
 
@@ -1841,11 +1844,8 @@ page 50620 "Gantt Demo DHX 2"
             Direction::Backward:
                 Case Setup."Date Range Type" of
                     Setup."Date Range Type"::Weekly:
-                        // Step must match GetDateRange's Weekly-branch window width (anchor's own
-                        // week + <5W> more, in codeunit 50613) - not one week wider. Was <-6W>,
-                        // which overshot the window by a full week: e.g. a window anchored in wk 32
-                        // (spanning wk 32..37) would jump Previous to wk 25 instead of wk 26,
-                        // silently skipping wk 26 - the mirror image of the Forward bug below.
+                        // Step = GetDateRange's Weekly window width (anchor's own week + <4W>
+                        // more = 5 weeks, in codeunit 50613), so windows tile with no gap/overlap
                         NewAnchorDate := CalcDate('<-5W>', AnchorDate);
                     Setup."Date Range Type"::Calculated:
                         begin
@@ -1856,15 +1856,7 @@ page 50620 "Gantt Demo DHX 2"
             Direction::Forward:
                 Case Setup."Date Range Type" of
                     Setup."Date Range Type"::Weekly:
-                        // Step must match GetDateRange's Weekly-branch window width (anchor's own
-                        // week + <5W> more, in codeunit 50613) - not one week wider. Was <6W>: a
-                        // window anchored in wk 32 spans wk 32..37, so the next window must be
-                        // reachable by a <5W> step to land back on wk 37 (deliberately re-showing
-                        // the boundary week so a task whose Planned End Date falls in it - e.g. one
-                        // ending exactly on the new window's first day - is never silently dropped
-                        // from the task list). <6W> jumped straight to wk 38, skipping wk 37 in the
-                        // task-filter query (GetJobTasksAsJson's PlannedEndDate >= StartDate) even
-                        // though the header still looked plausible.
+                        // Step = GetDateRange's Weekly window width (5 weeks), see Backward above
                         NewAnchorDate := CalcDate('<5W>', AnchorDate);
                     Setup."Date Range Type"::Calculated:
                         begin
