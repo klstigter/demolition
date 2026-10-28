@@ -384,11 +384,10 @@ page 50620 "Gantt Demo DHX 2"
                     end;
                     // Marked set = exactly the records behind the event bar (idList)
                     BarRecords.MarkedOnly(true);
-                    if not BarRecords.IsEmpty() then begin
-                        Page.RunModal(Page::"Day Plannings", BarRecords);
-                        exit;
-                    end;
-                    Page.RunModal(Page::"Day Plannings", DayPlanning);
+                    if not BarRecords.IsEmpty() then
+                        Page.RunModal(Page::"Day Plannings", BarRecords)
+                    else
+                        Page.RunModal(Page::"Day Plannings", DayPlanning);
                     RefreshGantt();
                 end;
 
