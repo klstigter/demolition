@@ -1186,8 +1186,8 @@ page 50620 "Gantt Demo DHX 2"
             Setup.Init();
             Setup."User ID" := UserId;
             Setup."Date Range Type" := Setup."Date Range Type"::Calculated;
-            Evaluate(Setup."From Data Formula", 'WD1-1W');
-            Evaluate(Setup."To Data Formula", 'WD7+4W');
+            Evaluate(Setup."From Data Formula", '-CW');
+            Evaluate(Setup."To Data Formula", 'CW+4W');
             Setup."Load Job Tasks" := true;
             Setup."Load Resources" := true;
             Setup."Load Day Plannings" := true;
