@@ -30,6 +30,7 @@ controladdin "DHX Gantt Control 2"
     event OnShowResourcesForTask(taskId: Text; childrenJson: Text; periodFrom: Text; periodTo: Text);
     event OnShowSummaryForTask(taskId: Text; childrenJson: Text; periodFrom: Text; periodTo: Text);
     event OnResourceDblClick(resourceId: Text);
+    event OnResourceHover(resourceId: Text);
     event onOpenResourceScheduler(resourceId: Text);
     event OnResetResourceFilter();
     event onAddDayPlanning(resourceId: Text; taskDate: Text);
@@ -49,6 +50,7 @@ controladdin "DHX Gantt Control 2"
     // shape every other CurrPage.DHXGanttControl2.* call in this file already uses successfully.
     event OnPollResourcePanelResult();
 
+    procedure SetResourceStats(resourceId: Text; statsJson: Text);
     procedure LoadProject(projectstartdate: date; projectenddate: date);
     procedure Undo();
     procedure Redo();
