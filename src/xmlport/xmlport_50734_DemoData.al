@@ -805,6 +805,47 @@ xmlport 50734 DemoData
                     end;
                 }
             }
+            textelement(OrderIntakes)
+            {
+                MinOccurs = Zero;
+                tableelement(OrderIntake; "Order Intake Header Opt.")
+                {
+                    fieldelement(No; OrderIntake."No.") { FieldValidate = No; }
+                    fieldelement(OrderDate; OrderIntake."Order Date") { FieldValidate = No; }
+                    fieldelement(CustomerNo; OrderIntake."Customer No.") { FieldValidate = No; }
+                    fieldelement(CustomerName; OrderIntake."Customer Name") { FieldValidate = No; }
+                    fieldelement(ContactNo; OrderIntake."Contact No.") { FieldValidate = No; }
+                    fieldelement(ShortDescription; OrderIntake."Short Description") { FieldValidate = No; }
+                    fieldelement(Status; OrderIntake.Status) { FieldValidate = No; }
+                    fieldelement(NoSeries; OrderIntake."No. Series") { FieldValidate = No; }
+
+                    tableelement(OrderIntakeLine; "Order Intake Line")
+                    {
+                        MinOccurs = Zero;
+                        LinkTable = OrderIntake;
+                        LinkFields = "Order Intake No." = field("No.");
+
+                        fieldelement(LineNo; OrderIntakeLine."Line No.") { FieldValidate = No; }
+                        fieldelement(Description; OrderIntakeLine.Description) { FieldValidate = No; }
+                        fieldelement(ProjectNo; OrderIntakeLine."Project No.") { FieldValidate = No; }
+                        fieldelement(ProjectTaskNo; OrderIntakeLine."Project Task No.") { FieldValidate = No; }
+
+                        trigger OnBeforeInsertRecord()
+                        begin
+                            // Order Intake No. is the link field: set from the parent, not read from the XML.
+                            OrderIntakeLine."Order Intake No." := OrderIntake."No.";
+                            UpsertRecord(OrderIntakeLine);
+                            currXMLport.Skip();
+                        end;
+                    }
+
+                    trigger OnBeforeInsertRecord()
+                    begin
+                        UpsertRecord(OrderIntake);
+                        currXMLport.Skip();
+                    end;
+                }
+            }
         }
     }
 
@@ -1021,6 +1062,36 @@ xmlport 50734 DemoData
             RealDayPlanning := DayPlanning;
             RealDayPlanning.Insert(false);
         end;
+        EnsureCapacity(DayPlanning."Assigned Resource No.", DayPlanning."Plan Date", DayPlanning."Assigned Hours");
+        EnsureCapacity(DayPlanning."Requested Resource No.", DayPlanning."Plan Date", DayPlanning."Requested Hours");
+    end;
+
+    // Makes sure the Resource has a capacity entry on the Day Planning date (created only if missing;
+    // the Capacities section, when present, still overwrites it with the real values).
+    local procedure EnsureCapacity(ResourceNo: Code[20]; CapacityDate: Date; Hours: Decimal)
+    var
+        Resource: Record Resource;
+        RealCap: Record "Res. Capacity Entry";
+        LastCap: Record "Res. Capacity Entry";
+    begin
+        if (ResourceNo = '') or (CapacityDate = 0D) then
+            exit;
+        RealCap.SetRange("Resource No.", ResourceNo);
+        RealCap.SetRange(Date, CapacityDate);
+        if not RealCap.IsEmpty() then
+            exit;
+        if not Resource.Get(ResourceNo) then
+            exit;
+        RealCap.Init();
+        RealCap."Resource No." := ResourceNo;
+        RealCap."Resource Group No." := Resource."Resource Group No.";
+        RealCap.Date := CapacityDate;
+        RealCap.Capacity := Hours;
+        if LastCap.FindLast() then
+            RealCap."Entry No." := LastCap."Entry No." + 1
+        else
+            RealCap."Entry No." := 1;
+        RealCap.Insert(false);
     end;
 
     local procedure ProcessCapacity()
