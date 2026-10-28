@@ -336,6 +336,60 @@ window.BOOT = function() {
       }, true);
     }
 
+    // Resource-name hover tooltip (same Statistic/Value table as the Resource Scheduler). Stats are
+    // computed in AL (OnResourceHover -> SetResourceStats) for the Gantt's displayed period, cached
+    // per resource for 30s so moving between rows doesn't hammer the server.
+    function InstallResourceNameHoverTooltip() {
+      if (document._resNameHoverInstalled) return;
+      document._resNameHoverInstalled = true;
+
+      var hoverRid = "";
+      var lastMouse = null;
+      var cache = {}; // rid -> { t, stats }
+      var esc = function (v) {
+        return String(v).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; });
+      };
+      var fmt = function (n) { return String(Math.round((Number(n) || 0) * 100) / 100); };
+
+      function show(rid) {
+        var c = cache[rid];
+        if (!c || !lastMouse) return;
+        var s = c.stats;
+        var rows = (s.skills || []).map(function (sk) { return ["Skill", sk]; }).concat([
+          ["Total Day Plannings", s.count],
+          ["Requested Hours", fmt(s.requested)],
+          ["Assigned Hours", fmt(s.assigned)],
+          ["Capacity Hours", fmt(s.capacity)]
+        ]);
+        _showCustomTooltip(lastMouse,
+          '<table class="standard-tooltip-table"><thead><tr><th>Statistic</th><th>Value</th></tr></thead><tbody>' +
+          rows.map(function (r) { return "<tr><th>" + esc(r[0]) + "</th><td>" + esc(r[1]) + "</td></tr>"; }).join("") +
+          "</tbody></table>");
+      }
+
+      // AL-callable (SetResourceStats): store the stats and show them if the mouse is still on that row.
+      window.SetResourceStats = function (resourceId, statsJson) {
+        try { cache[resourceId] = { t: Date.now(), stats: JSON.parse(statsJson) }; } catch (_) { return; }
+        if (hoverRid === resourceId) show(resourceId);
+      };
+
+      document.addEventListener("mousemove", function (e) {
+        var cell = e.target.closest && e.target.closest(".res-name-cell");
+        var rid = cell ? (cell.getAttribute("data-rid") || "") : "";
+        if (!rid || rid === "RES-") { if (hoverRid) { hoverRid = ""; _hideCustomTooltip(); } return; }
+        lastMouse = { clientX: e.clientX, clientY: e.clientY };
+        var c = cache[rid];
+        if (c && Date.now() - c.t < 30000) { hoverRid = rid; show(rid); return; }
+        if (rid !== hoverRid) {
+          hoverRid = rid;
+          _hideCustomTooltip();
+          Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnResourceHover", [rid]);
+        }
+      });
+      document.addEventListener("mouseleave", function () { hoverRid = ""; _hideCustomTooltip(); });
+      document.addEventListener("contextmenu", function () { hoverRid = ""; _hideCustomTooltip(); }, true);
+    }
+
     function InstallResourceGridContextMenu() {
       if (document._resGridContextMenuInstalled) return;
       document._resGridContextMenuInstalled = true;
@@ -1579,6 +1633,7 @@ window.BOOT = function() {
     //InstallDayPlanningEvents(); // ✅ install once //ah: the function is hide, see on top lines
     InstallResourceMarkerCustomTooltipsForDayPlannings(); // ✅ install once
     InstallResourceGridDblClick(); // ✅ install once
+    InstallResourceNameHoverTooltip(); // ✅ install once
     InstallResourceGridContextMenu(); // ✅ install once
     _installGanttFilterToolbarWatcher(); // ✅ install once
 

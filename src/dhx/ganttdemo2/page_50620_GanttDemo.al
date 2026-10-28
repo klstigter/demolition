@@ -436,6 +436,22 @@ page 50620 "Gantt Demo DHX 2"
                         Page.Run(Page::"Resource Card", Resource);
                 end;
 
+                trigger OnResourceHover(resourceId: Text)
+                var
+                    GanttChartDataHandler: Codeunit "GanttChartDataHandler";
+                    DHXDataHandler: Codeunit "DHX Data Handler";
+                    StartDate: Date;
+                    EndDate: Date;
+                begin
+                    // Resource Panel row hover: stats over the Gantt's displayed range, whole
+                    // resource (GroupMode=true -> no skill narrowing).
+                    if (resourceId = '') or (resourceId = 'RES-') or not resourceId.StartsWith('RES-') then
+                        exit;
+                    GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
+                    CurrPage.DHXGanttControl2.SetResourceStats(resourceId,
+                        DHXDataHandler.ResScheduler_BuildSectionStatsJson(CopyStr(resourceId, 5), true, '', '', StartDate, EndDate));
+                end;
+
                 trigger onAddDayPlanning(resourceId: Text; TaskDate: Text)
                 var
                     DayPlanning: Record "Day Planning";
