@@ -20,8 +20,8 @@ codeunit 50613 "GanttChartDataHandler"
             GanttSetup."Date Range Type"::Weekly:
                 begin
                     DHXDataHandler.GetWeekPeriodDates(AchorDate, StartDate, EndDate);
-                    // x 5 weeks
-                    EndDate := Calcdate('<5W>', EndDate);
+                    // anchor week + 4 more = 5 weeks
+                    EndDate := Calcdate('<4W>', EndDate);
                 end;
             GanttSetup."Date Range Type"::Calculated:
                 begin
