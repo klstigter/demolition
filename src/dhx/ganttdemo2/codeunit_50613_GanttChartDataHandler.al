@@ -376,7 +376,6 @@ codeunit 50613 "GanttChartDataHandler"
     var
         DayPlanningByJobTaskQry: Query "Day Planning By Job Task";
         Resource: Record Resource;
-        PlanStatusHelper: Enum "Plan Status";
         JsonArray: JsonArray;
         JsonObject: JsonObject;
         ResourceNos: List of [Code[20]];
@@ -400,10 +399,10 @@ codeunit 50613 "GanttChartDataHandler"
         if DayPlanningByJobTaskQry.Open() then begin
             while DayPlanningByJobTaskQry.Read() do
                 if PairSet.Contains(DayPlanningByJobTaskQry.JobNo + '|' + DayPlanningByJobTaskQry.JobTaskNo) then begin
-                    if DayPlanningByJobTaskQry.PlanStatus = PlanStatusHelper::"In Request" then
-                        RowResourceNo := DayPlanningByJobTaskQry.RequestedResourceNo
+                    if DayPlanningByJobTaskQry.AssignedResourceNo <> '' then
+                        RowResourceNo := DayPlanningByJobTaskQry.AssignedResourceNo
                     else
-                        RowResourceNo := DayPlanningByJobTaskQry.AssignedResourceNo;
+                        RowResourceNo := DayPlanningByJobTaskQry.RequestedResourceNo;
                     if (RowResourceNo <> '') and (not ResourceNos.Contains(RowResourceNo)) then
                         ResourceNos.Add(RowResourceNo);
                 end;
@@ -766,7 +765,7 @@ codeunit 50613 "GanttChartDataHandler"
         JsonObject.Add('start_time', FormatTime(StartTimeAssignedValue));
         JsonObject.Add('end_time', FormatTime(EndTimeAssignedValue));
 
-        if AssignedResourceNoValue <> '' then
+        if AssignedHoursValue <> 0 then
             JsonObject.Add('hours', AssignedHoursValue)
         else
             JsonObject.Add('hours', RequestedHoursValue);
@@ -837,7 +836,10 @@ codeunit 50613 "GanttChartDataHandler"
         EndTimeText := FormatTime(DayPlanning."End Time Assigned");
         JsonObject.Add('end_time', EndTimeText);
 
-        JsonObject.Add('hours', DayPlanning."Requested Hours");
+        if DayPlanning."Assigned Hours" <> 0 then
+            JsonObject.Add('hours', DayPlanning."Assigned Hours")
+        else
+            JsonObject.Add('hours', DayPlanning."Requested Hours");
 
         JsonObject.Add('requested_start_time', FormatTime(DayPlanning."Start Time Requested"));
         JsonObject.Add('requested_end_time', FormatTime(DayPlanning."End Time Requested"));
