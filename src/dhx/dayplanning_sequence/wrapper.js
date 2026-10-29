@@ -15,7 +15,9 @@
 // ============================================================================
 
 var dps_currentTimelineSpanDays = 0;  // days currently applied to the timeline view's x_size; 0 = not yet configured
-var dps_scheduler_ready = false;   // true once scheduler.init() has run
+var dps_showContext = false;       // true only when hosted by standalone page 50712: Project No./Task No. columns + "Filter applied" icon (the card part hides both)
+var dps_filterInfo = null;         // {job, task, skill, resource} filter expressions last pushed by AL (SetFilterInfo)
+var dps_scheduler_ready = false; // true once scheduler.init() has run
 var dps_isRefreshing = false;      // guard: true while a full AL-driven reload is being applied,
                                     // so onEventChanged/onEventDeleted fired by that reload's own
                                     // scheduler.parse()/clearAll() churn don't re-raise events to AL
@@ -140,6 +142,7 @@ function buildDom(host) {
     root.id = "dps-root";
     root.innerHTML =
         '<div id="dps-toolbar">' +
+            '<span id="dpsFilterSlot"></span>' +
             '<button type="button" class="dps-btn" id="dpsModifyBtn">Modify sequence</button>' +
             '<button type="button" class="dps-btn dps-primary" id="dpsNewBtn">New sequence</button>' +
         '</div>' +
@@ -233,11 +236,6 @@ function configureScheduler() {
     };
     scheduler.templates.timeline_second_scalex_class = function (date) {
         return dpsDayOffClass(date, "-scale");
-    };
-
-    scheduler.templates.timeline_scale_label = function (key, label, section) {
-        var sectionKey = (section && section.key) || key;
-        return '<div class="dps-row-label" data-section-key="' + escapeHtmlAttr(sectionKey) + '">' + escapeHtml(label) + '</div>';
     };
 
     scheduler.templates.event_class = function (start, end, event) {
@@ -357,11 +355,25 @@ function configureScheduler() {
 // earliest/latest Plan Date span is known (see resizeTimelineSpan) - configureScheduler() itself
 // only knows a placeholder 31-day span at BOOT time, before any AL data has loaded yet.
 // -------------------------------------------------------
+function dpsRowLabel(key, label, section) {
+    var sectionKey = (section && section.key) || key;
+    return '<div class="dps-row-label" data-section-key="' + escapeHtmlAttr(sectionKey) + '">' + escapeHtml(label) + '</div>';
+}
+
+function dpsTextCell(value) {
+    return '<div class="dps-row-text">' + escapeHtml(value) + '</div>';
+}
+
 function buildTimelineViewConfig(spanDays) {
     return {
         name: "timeline",
         render: "bar",
-        dx: 190,
+        dx: dps_showContext ? 340 : 190,
+        columns: dps_showContext ? [
+            { label: "Project No.", width: 70, template: function (obj) { return dpsTextCell(obj.jobNo); } },
+            { label: "Task No.", width: 100, template: function (obj) { return dpsTextCell(obj.jobTaskNo); } },
+            { label: "Skill - Seq", width: 170, template: function (obj) { return dpsRowLabel(obj.key, obj.label, obj); } }
+        ] : undefined,
 
         x_unit: "hour",
         x_step: 2,
@@ -404,7 +416,8 @@ function buildTimelineViewConfig(spanDays) {
 // -------------------------------------------------------
 function resizeTimelineSpan(earliestDateValue, latestDateValue) {
     var MIN_SPAN_DAYS = 31;
-    var BUFFER_DAYS = 7;
+    // A Period To filter pins the end exactly (no buffer), so the last day shown is the filtered one.
+    var BUFFER_DAYS = (dps_filterInfo && dps_filterInfo.periodTo) ? 0 : 7;
     var MS_PER_DAY = 24 * 60 * 60 * 1000;
 
     var start = toDateOrNull(earliestDateValue);
@@ -422,8 +435,10 @@ function resizeTimelineSpan(earliestDateValue, latestDateValue) {
     applyDayScaleWeekTemplate();
 }
 
-// createTimelineView resets templates.timeline_second_scale_date on every call, so this must be re-applied after each one.
+// createTimelineView resets templates.timeline_second_scale_date and timeline_scale_label on every call, so this must be re-applied after each one.
+// With columns (dps_showContext) the library's own scale_label renders them (our column templates call dpsRowLabel), so it is left alone.
 function applyDayScaleWeekTemplate() {
+    if (!dps_showContext) scheduler.templates.timeline_scale_label = dpsRowLabel;
     var dayScaleDate = scheduler.date.date_to_str("%D %d %M");
     scheduler.templates.timeline_second_scale_date = function (date) {
         return "(wk " + dpsIsoWeekNumber(date) + ") " + dayScaleDate(date);
@@ -750,7 +765,15 @@ function isoDateOnly(d) {
 // -------------------------------------------------------
 // AL-callable procedures (Init / LoadData / RefreshTimeline)
 // -------------------------------------------------------
-function Init(sectionsJson, skillsJson, templatesJson, earliestDate, latestDate) {
+// Called from AL before Init by the standalone page 50712 only; rebuilds the view so the extra columns apply.
+function SetShowContext(show) {
+    dps_showContext = !!show;
+    if (!dps_scheduler_ready) return;
+    scheduler.createTimelineView(buildTimelineViewConfig(dps_currentTimelineSpanDays));
+    applyDayScaleWeekTemplate();
+}
+
+function Init(sectionsJson,skillsJson, templatesJson, earliestDate, latestDate) {
     try {
         applySections(ParseJSonTxt(sectionsJson) || []);
         dps_skills = ParseJSonTxt(skillsJson) || [];
@@ -872,11 +895,73 @@ function applySections(sections) {
     }
     styleEl.textContent = css;
 
-    var mapped = sections.map(function (s) { return { key: s.key, label: s.label }; });
+    var mapped = sections.map(function (s) { return { key: s.key, label: s.label, jobNo: s.jobNo, jobTaskNo: s.jobTaskNo }; });
     scheduler.updateCollection("sections", mapped);
 
     if (dps_selectedSectionKey && !dps_sectionsByKey[dps_selectedSectionKey]) {
         dps_selectedSectionKey = null;
+    }
+
+    updateFilterIndicator();
+}
+
+// Called from AL (page 50712 only) with the active filter expressions, after each data push.
+function SetFilterInfo(jobFilter, jobTaskFilter, skillFilter, resourceFilter, periodFrom, periodTo) {
+    dps_filterInfo = { job: jobFilter, task: jobTaskFilter, skill: skillFilter, resource: resourceFilter, periodFrom: periodFrom, periodTo: periodTo };
+    updateFilterIndicator();
+}
+
+// Standard funnel filter button (same look/text as the Gantt / resource panels): hover shows the
+// "Filter applied:" lines (+ period of the loaded sections), click raises OnFilterIconClick so AL
+// opens the Job/Task/Skill/Resource filter dialog; the red X raises OnClearFilter (clears every filter, so all Day Planning lines are shown).
+// Standalone page 50712 only (dps_showContext) - the card part stays scoped to its own task.
+function updateFilterIndicator() {
+    var slot = $id("dpsFilterSlot");
+    if (!slot) return;
+    slot.innerHTML = "";
+    if (!dps_showContext) return;
+
+    var fi = dps_filterInfo || {};
+    var lines = [];
+    if (fi.job) lines.push("Job = " + escapeHtml(fi.job));
+    if (fi.task) lines.push("Task = " + escapeHtml(fi.task));
+    if (fi.skill) lines.push("Skill = " + escapeHtml(fi.skill));
+    if (fi.resource) lines.push("Resource = " + escapeHtml(fi.resource));
+    // Period line: the filtered period when one is set, else the span of the loaded data
+    var from = fi.periodFrom || dps_sections.map(function (s) { return s.minDate; }).sort()[0];
+    var to = fi.periodTo || dps_sections.map(function (s) { return s.maxDate; }).sort().pop();
+    if (lines.length && from && to) lines.push(escapeHtml(from) + " to " + escapeHtml(to));
+    else if (fi.periodFrom || fi.periodTo) lines.push("Period = " + escapeHtml(fi.periodFrom || "...") + " to " + escapeHtml(fi.periodTo || "..."));
+    var tipHtml = lines.length
+        ? "<b>Filter applied:</b><br/>" + lines.join("<br/>")
+        : "Click to filter by Job / Job Task / Skill / Resource";
+
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "dps-filter-icon";
+    btn.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12"><path d="M3 4h18l-7.2 8.6v6.4l-3.6 1.8v-8.2z" fill="#fff"/></svg>';
+    btn.addEventListener("mouseenter", function (e) {
+        var t = $id("dpsTooltip");
+        t.innerHTML = '<div class="dps-standard-tooltip">' + tipHtml + '</div>';
+        positionTooltip(t, e.clientX, e.clientY);
+    });
+    btn.addEventListener("mouseleave", hideTooltip);
+    btn.addEventListener("click", function () {
+        hideTooltip();
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnFilterIconClick", []);
+    });
+    slot.appendChild(btn);
+
+    if (lines.length) {
+        var reset = document.createElement("button");
+        reset.type = "button";
+        reset.className = "dps-filter-reset";
+        reset.title = "Click to Reset Filter";
+        reset.textContent = "✕";
+        reset.addEventListener("click", function () {
+            Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnClearFilter", []);
+        });
+        slot.appendChild(reset);
     }
 }
 

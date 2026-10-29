@@ -14,24 +14,24 @@ page 50712 "Day Planning Sequence"
     {
         area(Content)
         {
-            group(General)
-            {
-                Caption = 'General';
-                field(ProjectNo; JobNo)
-                {
-                    ApplicationArea = All;
-                    Caption = 'Project No.';
-                    Editable = false;
-                    ToolTip = 'Specifies the project (job) the sequences belong to.';
-                }
-                field(ProjectTaskNo; JobTaskNo)
-                {
-                    ApplicationArea = All;
-                    Caption = 'Project Task No.';
-                    Editable = false;
-                    ToolTip = 'Specifies the project task the sequences belong to.';
-                }
-            }
+            // group(General)
+            // {
+            //     Caption = 'General';
+            //     field(ProjectNo; JobNo)
+            //     {
+            //         ApplicationArea = All;
+            //         Caption = 'Project No.';
+            //         Editable = false;
+            //         ToolTip = 'Specifies the project (job) the sequences belong to.';
+            //     }
+            //     field(ProjectTaskNo; JobTaskNo)
+            //     {
+            //         ApplicationArea = All;
+            //         Caption = 'Project Task No.';
+            //         Editable = false;
+            //         ToolTip = 'Specifies the project task the sequences belong to.';
+            //     }
+            // }
             usercontrol(DhxSequence; DHXDayPlanningSequenceAddin)
             {
                 ApplicationArea = All;
@@ -46,13 +46,15 @@ page 50712 "Day Planning Sequence"
                     LatestDate: Date;
                 begin
                     ControlIsReady := true;
+                    CurrPage.DhxSequence.SetShowContext(true);
                     if (JobNo = '') or (JobTaskNo = '') then
                         exit;
 
-                    DayPlanningSequenceMgt.BuildSectionsAndEventsJson(JobNo, JobTaskNo, SectionsJsonTxt, EventsJsonTxt, EarliestDate, LatestDate);
+                    DayPlanningSequenceMgt.BuildSectionsAndEventsJson(JobFilter, JobTaskFilter, SkillFilter, ResourceFilter, PeriodFrom, PeriodTo, SectionsJsonTxt, EventsJsonTxt, EarliestDate, LatestDate);
                     SkillsJsonTxt := DayPlanningSequenceMgt.BuildSkillsJson();
                     TemplatesJsonTxt := DayPlanningSequenceMgt.BuildTemplatesJson();
 
+                    PushFilterInfo(); // before Init: the add-in sizes the span from the period end
                     CurrPage.DhxSequence.Init(SectionsJsonTxt, SkillsJsonTxt, TemplatesJsonTxt, EarliestDate, LatestDate);
                     CurrPage.DhxSequence.LoadData(EventsJsonTxt);
                     PushHolidaysData(EarliestDate, LatestDate);
@@ -60,6 +62,49 @@ page 50712 "Day Planning Sequence"
                     // Hover/tooltip popup background/font colour - codeunit 50609's
                     // GetTooltipBackgroundColor/GetTooltipFontColor.
                     CurrPage.DhxSequence.SetTooltipColors(VisualDefaultSettings.GetTooltipBackgroundColor(), VisualDefaultSettings.GetTooltipFontColor());
+                    PushFilterInfo();
+                end;
+
+                /// <summary>
+                /// Filter icon clicked: opens report 50610 prefilled with the active filters; on OK
+                /// stores them and refreshes the timeline.
+                /// </summary>
+                trigger OnFilterIconClick()
+                var
+                    FilterDlg: Report "Day Planning Sequence Filter";
+                    NewJobFilter: Text;
+                    NewJobTaskFilter: Text;
+                    NewSkillFilter: Text;
+                    NewResourceFilter: Text;
+                    NewPeriodFrom: Date;
+                    NewPeriodTo: Date;
+                begin
+                    FilterDlg.SetFilter(JobFilter, JobTaskFilter, SkillFilter, ResourceFilter, PeriodFrom, PeriodTo);
+                    FilterDlg.RunModal();
+                    if not FilterDlg.IsConfirmed() then
+                        exit;
+                    FilterDlg.GetFilter(NewJobFilter, NewJobTaskFilter, NewSkillFilter, NewResourceFilter, NewPeriodFrom, NewPeriodTo);
+                    JobFilter := NewJobFilter;
+                    JobTaskFilter := NewJobTaskFilter;
+                    SkillFilter := NewSkillFilter;
+                    ResourceFilter := NewResourceFilter;
+                    PeriodFrom := NewPeriodFrom;
+                    PeriodTo := NewPeriodTo;
+                    RefreshTimeline();
+                end;
+
+                /// <summary>
+                /// Clears all four filters and the period so the timeline shows every Day Planning line that has a Skill.
+                /// </summary>
+                trigger OnClearFilter()
+                begin
+                    JobFilter := '';
+                    JobTaskFilter := '';
+                    SkillFilter := '';
+                    ResourceFilter := '';
+                    PeriodFrom := 0D;
+                    PeriodTo := 0D;
+                    RefreshTimeline();
                 end;
 
                 /// <summary>
@@ -89,7 +134,6 @@ page 50712 "Day Planning Sequence"
                         StartDate := ParseIsoDate(JToken.AsValue().AsText());
                     if PayloadJObj.Get('endDate', JToken) then
                         EndDate := ParseIsoDate(JToken.AsValue().AsText());
-
                     if (SkillCode = '') or (StartDate = 0D) or (EndDate = 0D) then
                         exit;
 
@@ -131,7 +175,6 @@ page 50712 "Day Planning Sequence"
                         StartDate := ParseIsoDate(JToken.AsValue().AsText());
                     if PayloadJObj.Get('endDate', JToken) then
                         EndDate := ParseIsoDate(JToken.AsValue().AsText());
-
                     if (SkillCode = '') or (SequenceNo = 0) or (StartDate = 0D) or (EndDate = 0D) then
                         exit;
 
@@ -177,6 +220,12 @@ page 50712 "Day Planning Sequence"
         JobNo: Code[20];
         JobTaskNo: Code[20];
         WorkOrderNo: Code[20];
+        JobFilter: Text;
+        JobTaskFilter: Text;
+        SkillFilter: Text;
+        ResourceFilter: Text;
+        PeriodFrom: Date;
+        PeriodTo: Date;
         ControlIsReady: Boolean;
 
     /// <summary>
@@ -197,8 +246,22 @@ page 50712 "Day Planning Sequence"
         JobNo := NewJobNo;
         JobTaskNo := NewJobTaskNo;
         WorkOrderNo := NewWorkOrderNo;
+        JobFilter := NewJobNo;
+        JobTaskFilter := NewJobTaskNo;
+        SkillFilter := '';
+        ResourceFilter := '';
         if ControlIsReady then
             RefreshTimeline();
+    end;
+
+    /// <summary>
+    /// Plan Date range the timeline is limited to (either end may be 0D = open). Does not refresh:
+    /// callers must call this BEFORE SetContext, which does the (re)load. SetContext never resets it.
+    /// </summary>
+    procedure SetPeriod(NewFrom: Date; NewTo: Date)
+    begin
+        PeriodFrom := NewFrom;
+        PeriodTo := NewTo;
     end;
 
     local procedure RefreshTimeline()
@@ -213,9 +276,23 @@ page 50712 "Day Planning Sequence"
         if (JobNo = '') or (JobTaskNo = '') then
             exit;
 
-        DayPlanningSequenceMgt.BuildSectionsAndEventsJson(JobNo, JobTaskNo, SectionsJsonTxt, EventsJsonTxt, EarliestDate, LatestDate);
+        DayPlanningSequenceMgt.BuildSectionsAndEventsJson(JobFilter, JobTaskFilter, SkillFilter, ResourceFilter, PeriodFrom, PeriodTo, SectionsJsonTxt, EventsJsonTxt, EarliestDate, LatestDate);
+        PushFilterInfo(); // before RefreshTimeline: the add-in sizes the span from the period end
         CurrPage.DhxSequence.RefreshTimeline(SectionsJsonTxt, EventsJsonTxt, EarliestDate, LatestDate);
         PushHolidaysData(EarliestDate, LatestDate);
+    end;
+
+    local procedure PushFilterInfo()
+    begin
+        CurrPage.DhxSequence.SetFilterInfo(JobFilter, JobTaskFilter, SkillFilter, ResourceFilter,
+            FormatIsoDate(PeriodFrom), FormatIsoDate(PeriodTo));
+    end;
+
+    local procedure FormatIsoDate(D: Date): Text
+    begin
+        if D = 0D then
+            exit('');
+        exit(Format(D, 0, '<Year4>-<Month,2>-<Day,2>'));
     end;
 
     /// <summary>

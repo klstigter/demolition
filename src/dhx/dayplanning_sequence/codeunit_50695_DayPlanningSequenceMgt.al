@@ -466,6 +466,18 @@ codeunit 50695 "Day Planning Sequence Mgt."
     /// actual data range, instead of a fixed window that can silently cut off real data.
     /// </summary>
     procedure BuildSectionsAndEventsJson(JobNo: Code[20]; JobTaskNo: Code[20]; var SectionsJson: Text; var EventsJson: Text; var EarliestDate: Date; var LatestDate: Date)
+    begin
+        BuildSectionsAndEventsJson(JobNo, JobTaskNo, '', '', 0D, 0D, SectionsJson, EventsJson, EarliestDate, LatestDate);
+    end;
+
+    /// <summary>
+    /// Filter-text overload used by the standalone page 50712: each filter is standard BC filter
+    /// syntax and is ignored when blank; PeriodFrom/PeriodTo bound Plan Date (either may be 0D) (all-blank = every Day Planning line with a Skill). The
+    /// Resource filter matches when "Assigned Resource No." OR "Requested Resource No." fits.
+    /// Job/Task descriptions for the event tooltips are looked up per line through a small
+    /// Dictionary cache, since several Jobs/Tasks can be in view.
+    /// </summary>
+    procedure BuildSectionsAndEventsJson(JobFilter: Text; JobTaskFilter: Text; SkillFilter: Text; ResourceFilter: Text; PeriodFrom: Date; PeriodTo: Date; var SectionsJson: Text; var EventsJson: Text; var EarliestDate: Date; var LatestDate: Date)
     var
         DayPlanning: Record "Day Planning";
         SkillCodeRec: Record "Skill Code";
@@ -479,8 +491,11 @@ codeunit 50695 "Day Planning Sequence Mgt."
         SeenSectionKeys: List of [Text];
         MinDateBySection: Dictionary of [Text, Date];
         MaxDateBySection: Dictionary of [Text, Date];
+        JobNameCache: Dictionary of [Text, Text];
+        TaskNameCache: Dictionary of [Text, Text];
         SectionKey: Text;
         LoopSectionKey: Text;
+        TaskCacheKey: Text;
         SkillDescription: Text[100];
         BarColorHex: Text;
         RowJobNo: Code[20];
@@ -488,38 +503,55 @@ codeunit 50695 "Day Planning Sequence Mgt."
         RowSkillCode: Code[10];
         RowSequenceNo: Integer;
         PaletteIndex: Integer;
-        // Standard single-Day-Planning-line hover tooltip (2026-09-11, standard-tooltip
-        // unification - see this add-in's project memory) - the Job's/Job Task's own Description,
-        // for the tooltip's Job/Task table (src/dhx/request_assignment/wrapper.js's reference
-        // requestTooltipHtml/assignmentTooltipHtml's own 'projectName'/'taskName' convention).
-        // Looked up ONCE for the whole call (this page is always scoped to one [JobNo, JobTaskNo]
-        // pair, unlike capacity_planning_overview's company-wide dayPlanningLines[] which needs a
-        // per-line cache) - never per DayPlanning line.
         ProjectName: Text;
         TaskName: Text;
     begin
         EarliestDate := 0D;
         LatestDate := 0D;
 
-        if Job.Get(JobNo) then
-            ProjectName := Job.Description
-        else
-            ProjectName := '';
-
-        if JobTask.Get(JobNo, JobTaskNo) then
-            TaskName := JobTask.Description
-        else
-            TaskName := '';
-
         // Ascending Plan Date order, so MinDateBySection is fixed on each section's first sighting
         // and MaxDateBySection is simply overwritten every time (last write = latest date) - one
         // pass, no separate aggregate query needed for the Modify-panel Start/End Date prefill.
-        DayPlanning.SetRange("Job No.", JobNo);
-        DayPlanning.SetRange("Job Task No.", JobTaskNo);
-        DayPlanning.SetFilter(Skill, '<>%1', '');
+        if JobFilter <> '' then
+            DayPlanning.SetFilter("Job No.", JobFilter);
+        if JobTaskFilter <> '' then
+            DayPlanning.SetFilter("Job Task No.", JobTaskFilter);
+        if SkillFilter <> '' then
+            DayPlanning.SetFilter(Skill, SkillFilter)
+        else
+            DayPlanning.SetFilter(Skill, '<>%1', '');
+        if (PeriodFrom <> 0D) or (PeriodTo <> 0D) then
+            if PeriodTo = 0D then
+                DayPlanning.SetFilter("Plan Date", '%1..', PeriodFrom)
+            else
+                DayPlanning.SetRange("Plan Date", PeriodFrom, PeriodTo); // From = 0D gives ..To
+        if ResourceFilter <> '' then begin
+            // OR across two fields: mark the matches of each pass, then show marked lines only.
+            DayPlanning.SetFilter("Assigned Resource No.", ResourceFilter);
+            MarkDayPlanningMatches(DayPlanning);
+            DayPlanning.SetRange("Assigned Resource No.");
+            DayPlanning.SetFilter("Requested Resource No.", ResourceFilter);
+            MarkDayPlanningMatches(DayPlanning);
+            DayPlanning.SetRange("Requested Resource No.");
+            DayPlanning.MarkedOnly(true);
+        end;
         DayPlanning.SetCurrentKey("Job No.", "Job Task No.", "Plan Date", "Day Line No.");
         if DayPlanning.FindSet() then
             repeat
+                if not JobNameCache.Get(DayPlanning."Job No.", ProjectName) then begin
+                    ProjectName := '';
+                    if Job.Get(DayPlanning."Job No.") then
+                        ProjectName := Job.Description;
+                    JobNameCache.Add(DayPlanning."Job No.", ProjectName);
+                end;
+                TaskCacheKey := DayPlanning."Job No." + '|' + DayPlanning."Job Task No.";
+                if not TaskNameCache.Get(TaskCacheKey, TaskName) then begin
+                    TaskName := '';
+                    if JobTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
+                        TaskName := JobTask.Description;
+                    TaskNameCache.Add(TaskCacheKey, TaskName);
+                end;
+
                 if (EarliestDate = 0D) or (DayPlanning."Plan Date" < EarliestDate) then
                     EarliestDate := DayPlanning."Plan Date";
                 if DayPlanning."Plan Date" > LatestDate then
@@ -586,8 +618,22 @@ codeunit 50695 "Day Planning Sequence Mgt."
             SectionsArray.Add(SectionObj);
         end;
 
+        // A period filter drives the displayed timeline span, even where the edge days have no lines.
+        if PeriodFrom <> 0D then
+            EarliestDate := PeriodFrom;
+        if PeriodTo <> 0D then
+            LatestDate := PeriodTo;
+
         SectionsArray.WriteTo(SectionsJson);
         EventsArray.WriteTo(EventsJson);
+    end;
+
+    local procedure MarkDayPlanningMatches(var DayPlanning: Record "Day Planning")
+    begin
+        if DayPlanning.FindSet() then
+            repeat
+                DayPlanning.Mark(true);
+            until DayPlanning.Next() = 0;
     end;
 
     procedure BuildSkillsJson(): Text

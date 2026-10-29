@@ -20,6 +20,40 @@
     border-bottom: 1px solid #d9dee7;
 }
 
+#dpsFilterSlot {
+    margin-right: auto;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.dps-filter-icon,
+.dps-filter-reset {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.dps-filter-icon {
+    background: #1a73e8;
+}
+
+.dps-filter-reset {
+    background: #c0392b;
+}
+
 .dps-btn {
     border: 1px solid #cbd3df;
     background: #fff;
@@ -217,9 +251,18 @@
 .dhx_matrix_scell {
     background: #fff !important;
     border-right: 1px solid #dfe4eb !important;
-    width: 190px !important;
-    max-width: 190px !important;
     box-sizing: border-box !important;
+}
+
+.dps-row-text {
+    display: flex;
+    align-items: center;
+    height: 30px;
+    padding: 0 8px;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .dps-row-label {
