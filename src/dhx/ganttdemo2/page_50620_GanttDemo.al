@@ -737,8 +737,12 @@ page 50620 "Gantt Demo DHX 2"
                     instream: InStream;
                     outstream: OutStream;
                     va: variant;
+                    JobFilterUsed: Text;
                 begin
-                    JsonTxt := GanttChartDataHandler.GetResourcesAsJson();
+                    JobFilterUsed := setup."Job No. Filter";
+                    if JobFilter <> '' then
+                        JobFilterUsed := JobFilter; // override with global filter if set
+                    JsonTxt := GanttChartDataHandler.GetResourcesAsJson(AnchorDate, JobFilterUsed, '');
                     tempblob.CreateOutStream(outstream);
                     outstream.WriteText(JsonTxt);
                     tempblob.CreateInStream(instream);

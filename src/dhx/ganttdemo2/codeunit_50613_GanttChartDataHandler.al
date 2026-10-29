@@ -306,6 +306,84 @@ codeunit 50613 "GanttChartDataHandler"
         JsonArray.WriteTo(JsonText);
     end;
 
+    // Returns only resources used by the Day Plannings GetDayPlanningsAsJson(AnchorDate, JobNo, JobTaskNo)
+    // would load (same period + filters, same two passes, same Assigned-else-Requested rule as GetResourceId).
+    procedure GetResourcesAsJson(AnchorDate: Date; JobNo: Code[20]; JobTaskNo: Code[20]) JsonText: Text
+    var
+        GanttSetup: Record "Gantt Chart Setup";
+        DayPlanning: Record "Day Planning";
+        JobTask: Record "Job Task";
+        Resource: Record Resource;
+        UsedResourcesQuery: Query "Day Planning Used Resources";
+        UsedResources: Dictionary of [Code[20], Boolean];
+        ResourceNo: Code[20];
+        StartDate: Date;
+        EndDate: Date;
+        JsonArray: JsonArray;
+        JsonObject: JsonObject;
+    begin
+        GanttSetup.Get(UserId);
+        GetDateRange(GanttSetup, AnchorDate, StartDate, EndDate);
+
+        if JobNo <> '' then
+            UsedResourcesQuery.SetFilter(JobNoFilter, JobNo);
+        if JobTaskNo <> '' then
+            UsedResourcesQuery.SetFilter(JobTaskNoFilter, JobTaskNo);
+        if AnchorDate <> 0D then
+            UsedResourcesQuery.SetRange(PlanDateFilter, StartDate, EndDate);
+        if UsedResourcesQuery.Open() then
+            while UsedResourcesQuery.Read() do begin
+                ResourceNo := UsedResourcesQuery.AssignedResourceNo;
+                if ResourceNo = '' then
+                    ResourceNo := UsedResourcesQuery.RequestedResourceNo;
+                if ResourceNo <> '' then
+                    if not UsedResources.ContainsKey(ResourceNo) then
+                        UsedResources.Add(ResourceNo, true);
+            end;
+        UsedResourcesQuery.Close();
+
+        DayPlanning.SetLoadFields("Assigned Resource No.", "Requested Resource No.", "Job No.", "Job Task No.", "Plan Date", "Plan Status", "Order Intake No.");
+        if JobNo <> '' then
+            DayPlanning.SetFilter("Job No.", JobNo);
+        if JobTaskNo <> '' then
+            DayPlanning.SetFilter("Job Task No.", JobTaskNo);
+        DayPlanning.SetRange("Plan Status", DayPlanning."Plan Status"::"In Request");
+        DayPlanning.SetRange("Plan Date", 0D);
+        DayPlanning.SetFilter("Order Intake No.", '<>%1', '');
+        if DayPlanning.FindSet() then
+            repeat
+                if JobTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
+                    if (JobTask."Placeholder Date" >= StartDate) and (JobTask."Placeholder Date" <= EndDate) then
+                        AddUsedResource(UsedResources, DayPlanning);
+            until DayPlanning.Next() = 0;
+
+        GetEmptyResourceAsJson(JsonArray);
+        Resource.SetLoadFields("No.", Name);
+        if Resource.FindSet() then
+            repeat
+                if UsedResources.ContainsKey(Resource."No.") then begin
+                    JsonObject.Add('key', 'RES-' + Resource."No.");
+                    JsonObject.Add('label', Resource.Name + ' (' + Resource."No." + ')');
+                    JsonArray.Add(JsonObject);
+                    Clear(JsonObject);
+                end;
+            until Resource.Next() = 0;
+
+        JsonArray.WriteTo(JsonText);
+    end;
+
+    local procedure AddUsedResource(var UsedResources: Dictionary of [Code[20], Boolean]; DayPlanning: Record "Day Planning")
+    var
+        ResourceNo: Code[20];
+    begin
+        ResourceNo := DayPlanning."Assigned Resource No.";
+        if ResourceNo = '' then
+            ResourceNo := DayPlanning."Requested Resource No.";
+        if ResourceNo <> '' then
+            if not UsedResources.ContainsKey(ResourceNo) then
+                UsedResources.Add(ResourceNo, true);
+    end;
+
     // Returns only resources assigned to the given Job Task via Day Plannings.
     // Falls back to all resources if no Day Planning assignments exist.
     /// <summary>
