@@ -81,6 +81,7 @@ permissionset 50600 Demolition
         report DayPlanning = X,
         report "DayPlanning Selection" = X,
         report "Job Planning Line Usage Detail" = X,
+        report "Day Planning Sequence Filter" = X,
         report "Job Task Planned Date Updater" = X,
         report "Prepare Proj. Planning Lines" = X,
         report RepairData = X,

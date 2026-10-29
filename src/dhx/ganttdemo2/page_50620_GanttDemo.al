@@ -394,9 +394,12 @@ page 50620 "Gantt Demo DHX 2"
                 trigger OpenSequences(pIdList: Text)
                 var
                     DayPlanning: Record "Day Planning";
+                    GanttChartDataHandler: Codeunit "GanttChartDataHandler";
                     SequencePage: Page "Day Planning Sequence";
                     IdText: Text;
                     SysId: Guid;
+                    PeriodStart: Date;
+                    PeriodEnd: Date;
                 begin
                     // Open page 50712 on the Job Task of the first Day Planning behind the event bar (idList)
                     if pIdList = '' then
@@ -404,6 +407,10 @@ page 50620 "Gantt Demo DHX 2"
                     foreach IdText in pIdList.Split('|') do
                         if Evaluate(SysId, IdText) then
                             if DayPlanning.GetBySystemId(SysId) then begin
+                                // Sequence page follows the Gantt's displayed view period (same range
+                                // the resource panel / OnResourceHover use). Must precede SetContext.
+                                GanttChartDataHandler.GetDateRange(Setup, AnchorDate, PeriodStart, PeriodEnd);
+                                SequencePage.SetPeriod(PeriodStart, PeriodEnd);
                                 SequencePage.SetContext(DayPlanning."Job No.", DayPlanning."Job Task No.", '');
                                 SequencePage.Run();
                                 exit;
