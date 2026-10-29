@@ -225,6 +225,7 @@ permissionset 50600 Demolition
         query "Capacity Per Day Per Resource" = X,
         query "Day Planning By Job Task" = X,
         query "Day Planning Skill Day Hours" = X,
+        query "Day Planning Used Resources" = X,
         query "Resource List Sections" = X,
         query "Unique Days in Day Plannings" = X,
         query "Unique Group in Capacity" = X,

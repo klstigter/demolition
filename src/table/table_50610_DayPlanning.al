@@ -1110,6 +1110,9 @@ table 50610 "Day Planning"
             if Rec."Assigned Team Leader" = '' then
                 Rec."Assigned Team Leader" := Rec."Requested Team Leader";
 
+        if Rec."Plan Status" = Rec."Plan Status"::"In Request" then
+            Rec."Plan Status" := Rec."Plan Status"::"In Progress"; // shown as Assigned (green) in the Gantt
+
         Rec.Modify();
     end;
 

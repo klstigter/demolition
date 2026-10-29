@@ -92,7 +92,7 @@ codeunit 50713 "Gantt BG Resource Panel Data"
 
                     // Resources only ever go out on chunk 0 - see this trigger's header comment.
                     if LoadResources and (DayPlanningSkip = 0) then
-                        ResourcesJson := GanttChartDataHandler.GetResourcesAsJson();
+                        ResourcesJson := GanttChartDataHandler.GetResourcesAsJson(AnchorDate, JobFilter, JobTaskFilter);
 
                     if LoadDayPlannings then begin
                         DayPlanningChunked := true;
