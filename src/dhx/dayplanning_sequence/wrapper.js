@@ -217,6 +217,7 @@ function configureScheduler() {
 
     dps_currentTimelineSpanDays = 31;
     scheduler.createTimelineView(buildTimelineViewConfig(dps_currentTimelineSpanDays));
+    applyDayScaleWeekTemplate();
 
     // Keep only the working-time cells 06-18, per spec's compact timeline window.
     scheduler.ignore_timeline = function (date) {
@@ -418,6 +419,15 @@ function resizeTimelineSpan(earliestDateValue, latestDateValue) {
     if (spanDays === dps_currentTimelineSpanDays) return;
     dps_currentTimelineSpanDays = spanDays;
     scheduler.createTimelineView(buildTimelineViewConfig(spanDays));
+    applyDayScaleWeekTemplate();
+}
+
+// createTimelineView resets templates.timeline_second_scale_date on every call, so this must be re-applied after each one.
+function applyDayScaleWeekTemplate() {
+    var dayScaleDate = scheduler.date.date_to_str("%D %d %M");
+    scheduler.templates.timeline_second_scale_date = function (date) {
+        return "(wk " + dpsIsoWeekNumber(date) + ") " + dayScaleDate(date);
+    };
 }
 
 function toDateOrNull(v) {
