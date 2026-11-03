@@ -492,8 +492,6 @@ codeunit 50613 "GanttChartDataHandler"
         if ResourceNos.Count() = 0 then begin
             GetEmptyResourceAsJson(JsonArray);
             JsonArray.WriteTo(JsonText);
-            if GuiAllowed then
-                Message('No resources assigned to this task. Showing empty resource list. Click "Show/Hide Resource Panel" to view all resources.');
             exit;
         end;
 
@@ -711,20 +709,13 @@ codeunit 50613 "GanttChartDataHandler"
     /// (kept as-is for its existing callers).
     ///
     /// Treats the two passes below (main range pass + blank-Plan-Date/Placeholder-Date request
-    /// pass) as ONE continuous virtual sequence for paging: a running index is incremented for
-    /// every candidate record in both passes (a "candidate" being a record that would have
-    /// produced a JSON object in the unpaged output - i.e. for the second pass, only records whose
-    /// Job Task resolves and whose Placeholder Date falls in range), and a record's JSON object is
-    /// only added to this page's output array when its index falls within [Skip, Skip+PageSize).
-    /// HasMore is then just "did the running index go past this page's end".
+    /// pass) as ONE continuous sequence for paging. HasMore is true when a further candidate record
+    /// exists beyond this page.
     ///
-    /// NOTE: this re-scans both passes from the start on every call (O(total) per page) rather
-    /// than true keyset/cursor pagination (continuing from the last-seen Day Planning key instead
-    /// of a numeric Skip) - acceptable for a first implementation given time constraints, but
-    /// keyset pagination would be more efficient for very large datasets and could be a future
-    /// improvement.
+    /// Paging is keyset-based (Cursor/NextCursor = last emitted primary key + pass), so each chunk
+    /// resumes where the previous one ended instead of re-scanning from the start.
     /// </summary>
-    procedure GetDayPlanningsAsJson(AnchorDate: date; JobNo: Code[20]; JobTaskNo: Code[20]; Skip: Integer; PageSize: Integer; var HasMore: Boolean) JsonText: Text
+    procedure GetDayPlanningsAsJson(AnchorDate: date; JobNo: Code[20]; JobTaskNo: Code[20]; Cursor: Text; PageSize: Integer; var HasMore: Boolean; var NextCursor: Text) JsonText: Text
     var
         GanttSetup: Record "Gantt Chart Setup";
         DayPlanning: Record "Day Planning";
@@ -733,25 +724,46 @@ codeunit 50613 "GanttChartDataHandler"
         EndDate: Date;
         JsonArray: JsonArray;
         JsonObject: JsonObject;
-        RunningIndex: Integer;
+        Parts: List of [Text];
+        Pass: Integer;
+        Found: Boolean;
+        Emitted: Integer;
     begin
+        // Keyset paging: Cursor = '<pass>|<Job No.>|<Job Task No.>|<Day Line No.>' of the last
+        // record emitted by the previous chunk ('' = start). Each chunk resumes right after that
+        // primary key (Find('>') honours the filters), so no rows are re-scanned per chunk.
+        Pass := 1;
+        if Cursor <> '' then begin
+            Parts := Cursor.Split('|');
+            Evaluate(Pass, Parts.Get(1));
+        end;
+        NextCursor := '';
+        HasMore := false;
         GanttSetup.Get(UserId);
         GetDateRange(GanttSetup, AnchorDate, StartDate, EndDate);
-        if JobNo <> '' then
-            DayPlanning.SetFilter("Job No.", JobNo);
-        if JobTaskNo <> '' then
-            DayPlanning.SetFilter("Job Task No.", JobTaskNo);
-        if AnchorDate <> 0D then
-            DayPlanning.Setrange("Plan Date", StartDate, EndDate);
 
-        if DayPlanning.FindSet() then
-            repeat
-                if (RunningIndex >= Skip) and (RunningIndex < Skip + PageSize) then begin
-                    JsonObject := CreateDayPlanningJsonObject(DayPlanning);
-                    JsonArray.Add(JsonObject);
+        if Pass = 1 then begin
+            if JobNo <> '' then
+                DayPlanning.SetFilter("Job No.", JobNo);
+            if JobTaskNo <> '' then
+                DayPlanning.SetFilter("Job Task No.", JobTaskNo);
+            if AnchorDate <> 0D then
+                DayPlanning.Setrange("Plan Date", StartDate, EndDate);
+            Found := PositionAfterCursor(DayPlanning, Cursor, Parts, 1);
+            while Found do begin
+                if Emitted >= PageSize then begin
+                    HasMore := true;
+                    JsonArray.WriteTo(JsonText);
+                    exit;
                 end;
-                RunningIndex += 1;
-            until DayPlanning.Next() = 0;
+                JsonObject := CreateDayPlanningJsonObject(DayPlanning);
+                JsonArray.Add(JsonObject);
+                Emitted += 1;
+                NextCursor := Format(1) + '|' + DayPlanning."Job No." + '|' + DayPlanning."Job Task No." + '|' + Format(DayPlanning."Day Line No.");
+                Found := DayPlanning.Next() <> 0;
+            end;
+            Cursor := ''; // pass 1 exhausted - start pass 2 from its beginning
+        end;
 
         // --- Second pass: Request day plannings with blank Task Date but Work Order Placeholder Date in range ---
         DayPlanning.Reset();
@@ -762,21 +774,126 @@ codeunit 50613 "GanttChartDataHandler"
         DayPlanning.SetRange("Plan Status", DayPlanning."Plan Status"::"In Request");
         DayPlanning.SetRange("Plan Date", 0D);
         DayPlanning.SetFilter("Order Intake No.", '<>%1', '');
-        if DayPlanning.FindSet() then
-            repeat
-                if JobTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
-                    if (JobTask."Placeholder Date" >= StartDate) and (JobTask."Placeholder Date" <= EndDate) then begin
-                        if (RunningIndex >= Skip) and (RunningIndex < Skip + PageSize) then begin
-                            JsonObject := CreateDayPlanningJsonObjectRequest(DayPlanning, JobTask."Placeholder Date");
-                            JsonArray.Add(JsonObject);
-                        end;
-                        RunningIndex += 1;
+        Found := PositionAfterCursor(DayPlanning, Cursor, Parts, 2);
+        while Found do begin
+            if JobTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
+                if (JobTask."Placeholder Date" >= StartDate) and (JobTask."Placeholder Date" <= EndDate) then begin
+                    if Emitted >= PageSize then begin
+                        HasMore := true;
+                        JsonArray.WriteTo(JsonText);
+                    exit;
                     end;
-            until DayPlanning.Next() = 0;
-
-        HasMore := RunningIndex > Skip + PageSize;
+                    JsonObject := CreateDayPlanningJsonObjectRequest(DayPlanning, JobTask."Placeholder Date");
+                    JsonArray.Add(JsonObject);
+                    Emitted += 1;
+                    NextCursor := Format(2) + '|' + DayPlanning."Job No." + '|' + DayPlanning."Job Task No." + '|' + Format(DayPlanning."Day Line No.");
+                end;
+            Found := DayPlanning.Next() <> 0;
+        end;
 
         JsonArray.WriteTo(JsonText);
+    end;
+
+    /// <summary>
+    /// Incremental counterpart of GetDayPlanningsAsJson for the unfiltered resource panel: returns
+    /// only the Day Plannings in the same scope that were inserted/modified after Since, plus the
+    /// Resource entries they reference. Returns false when the change can't be expressed as
+    /// inserts/modifies only (a delete, or a record moved in/out of the period/scope - detected by
+    /// the count not adding up: BeforeCount + created = AfterCount), so the caller reloads fully.
+    /// </summary>
+    procedure GetChangedDayPlanningsAsJson(AnchorDate: Date; JobNo: Code[20]; JobTaskNo: Code[20]; Since: DateTime; BeforeCount: Integer; AfterCount: Integer; var ChangedJson: Text; var ResourcesJson: Text): Boolean
+    var
+        GanttSetup: Record "Gantt Chart Setup";
+        DayPlanning: Record "Day Planning";
+        JobTask: Record "Job Task";
+        Resource: Record Resource;
+        StartDate: Date;
+        EndDate: Date;
+        ChangedArray: JsonArray;
+        ResourcesArray: JsonArray;
+        JsonObject: JsonObject;
+        ResourceNos: List of [Code[20]];
+        ResourceNo: Code[20];
+        Created: Integer;
+        Pass: Integer;
+        Include: Boolean;
+    begin
+        GanttSetup.Get(UserId);
+        GetDateRange(GanttSetup, AnchorDate, StartDate, EndDate);
+        for Pass := 1 to 2 do begin
+            DayPlanning.Reset();
+            if JobNo <> '' then
+                DayPlanning.SetFilter("Job No.", JobNo);
+            if JobTaskNo <> '' then
+                DayPlanning.SetFilter("Job Task No.", JobTaskNo);
+            if Pass = 1 then begin
+                if AnchorDate <> 0D then
+                    DayPlanning.SetRange("Plan Date", StartDate, EndDate);
+            end else begin
+                DayPlanning.SetRange("Plan Status", DayPlanning."Plan Status"::"In Request");
+                DayPlanning.SetRange("Plan Date", 0D);
+                DayPlanning.SetFilter("Order Intake No.", '<>%1', '');
+            end;
+            DayPlanning.SetFilter(SystemModifiedAt, '>%1', Since);
+            if DayPlanning.FindSet() then
+                repeat
+                    Include := true;
+                    if Pass = 2 then begin
+                        Include := false;
+                        if JobTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
+                            Include := (JobTask."Placeholder Date" >= StartDate) and (JobTask."Placeholder Date" <= EndDate);
+                    end;
+                    if Include then begin
+                        if DayPlanning.SystemCreatedAt > Since then
+                            Created += 1;
+                        if Pass = 1 then
+                            JsonObject := CreateDayPlanningJsonObject(DayPlanning)
+                        else
+                            JsonObject := CreateDayPlanningJsonObjectRequest(DayPlanning, JobTask."Placeholder Date");
+                        ChangedArray.Add(JsonObject);
+                        ResourceNo := DayPlanning."Assigned Resource No.";
+                        if ResourceNo = '' then
+                            ResourceNo := DayPlanning."Requested Resource No.";
+                        if (ResourceNo <> '') and not ResourceNos.Contains(ResourceNo) then
+                            ResourceNos.Add(ResourceNo);
+                    end;
+                until DayPlanning.Next() = 0;
+        end;
+
+        if BeforeCount + Created <> AfterCount then
+            exit(false);
+
+        foreach ResourceNo in ResourceNos do
+            if Resource.Get(ResourceNo) then begin
+                Clear(JsonObject);
+                JsonObject.Add('key', 'RES-' + Resource."No.");
+                JsonObject.Add('label', Resource.Name + ' (' + Resource."No." + ')');
+                ResourcesArray.Add(JsonObject);
+            end;
+
+        ChangedArray.WriteTo(ChangedJson);
+        ResourcesArray.WriteTo(ResourcesJson);
+        exit(true);
+    end;
+
+    // Positions DayPlanning on the first record (under its current filters) after the cursor's key
+    // when the cursor belongs to this pass, otherwise on the first record.
+    local procedure PositionAfterCursor(var DayPlanning: Record "Day Planning"; Cursor: Text; Parts: List of [Text]; ForPass: Integer): Boolean
+    var
+        CursorPass: Integer;
+        LineNo: Integer;
+    begin
+        if Cursor <> '' then begin
+            Evaluate(CursorPass, Parts.Get(1));
+            if CursorPass = ForPass then begin
+                DayPlanning."Job No." := CopyStr(Parts.Get(2), 1, MaxStrLen(DayPlanning."Job No."));
+                DayPlanning."Job Task No." := CopyStr(Parts.Get(3), 1, MaxStrLen(DayPlanning."Job Task No."));
+                Evaluate(LineNo, Parts.Get(4));
+                DayPlanning."Day Line No." := LineNo;
+                exit(DayPlanning.Find('>'));
+            end;
+        end;
+        exit(DayPlanning.Find('-'));
     end;
 
     local procedure CreateDayPlanningJsonObject(DayPlanning: Record "Day Planning") JsonObject: JsonObject

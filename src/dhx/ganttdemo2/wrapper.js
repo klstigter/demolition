@@ -2220,11 +2220,6 @@ function ClearData(projectJsonTxt) {
       window.DayPlanningsByTask = Object.create(null);
     }
 
-    // Drop any partial chunk-accumulation from an in-progress/abandoned resource-panel Day
-    // Planning load (see LoadDayPlanningsData) - a fresh sequence always starts with
-    // isFirstChunk===true anyway, but there's no reason to hold onto a stale array meanwhile.
-    _resourcePanelDayPlanningsAccumulator = [];
-
     // Clear DayPlannings datastore
     if (DayPlanningsStore && DayPlanningsStore.clearAll) {
       DayPlanningsStore.clearAll();
@@ -2775,21 +2770,11 @@ function LoadResourcesData(resourcesJsonTxt) {
 }
 window.LoadResourcesData = LoadResourcesData;
 
-// Accumulates chunks of a paged Default-mode Day Planning load (see AL page 50620's
-// EnqueueDefaultResourcePanelReload/OnPollResourcePanelResult chunk-continuation loop) so each
-// chunk can be delivered via a full DayPlanningsStore.parse() of everything received SO FAR,
-// rather than trying to use a true incremental per-item add API on the dhtmlx data store. Reset
-// to empty at the start of every new sequence (isFirstChunk===true); appended to on every
-// subsequent chunk. Each re-parse is still visually progressive - it always shows strictly more
-// data than the previous chunk - which is the actual resilience goal (data arrives progressively
-// on a slow connection instead of "nothing until one giant transfer finally completes").
-var _resourcePanelDayPlanningsAccumulator = [];
-
 // isFirstChunk: true (the default/non-chunked case - Filtered-mode loads and Default-mode chunk 0)
 // means REPLACE everything, exactly like the old single-shot behavior. false (Default-mode chunk
 // 1+, see codeunit 50713/page 50620) means APPEND this chunk's items onto what's already loaded,
 // without wiping window.DayPlanningsByTask or the accumulator first.
-function LoadDayPlanningsData(DayPlanningsJsonTxt, isFirstChunk) {
+function LoadDayPlanningsData(DayPlanningsJsonTxt, isFirstChunk, hasMore) {
   try {
     if (!DayPlanningsStore) {
       console.warn("LoadDayPlanningsData: DayPlanningsStore not ready yet");
@@ -2803,7 +2788,6 @@ function LoadDayPlanningsData(DayPlanningsJsonTxt, isFirstChunk) {
     }
 
     if (isFirstChunk) {
-      _resourcePanelDayPlanningsAccumulator = [];
       // rebuild indexes from scratch
       window.DayPlanningsByTask = Object.create(null);
       window.requestJobTaskSet = Object.create(null); // task IDs that have ≥1 Request DayPlanning
@@ -2833,13 +2817,13 @@ function LoadDayPlanningsData(DayPlanningsJsonTxt, isFirstChunk) {
       }
     }
 
-    // Accumulate this chunk's items and re-parse the FULL accumulated array so far - simpler and
-    // safer than an incremental per-item store API, and still progressive chunk-over-chunk.
-    for (var j = 0; j < items.length; j++) {
-      _resourcePanelDayPlanningsAccumulator.push(items[j]);
-    }
+    // Parse ONLY this chunk: the store keeps what earlier chunks put there (parse() doesn't clear,
+    // and skips ids it already holds), so every record is processed exactly once.
     if (isFirstChunk && DayPlanningsStore.clearAll) DayPlanningsStore.clearAll();
-    DayPlanningsStore.parse(_resourcePanelDayPlanningsAccumulator);
+    DayPlanningsStore.parse(items);
+
+    // More chunks pending -> defer the (expensive) full render to the last chunk.
+    if (hasMore) return;
 
     // addTaskLayer will now find the correct DayPlannings via task.id and render black bars
     if (gantt.$root && !_isRefreshing) {
@@ -2872,6 +2856,7 @@ var _resourcePanelPollTimer = null;
 var _resourcePanelPollAttempts = 0;
 var _resourcePanelPollActive = false;
 var RESOURCE_PANEL_POLL_INTERVAL_MS = 1500;
+var RESOURCE_PANEL_POLL_FIRST_MS = 400;
 var RESOURCE_PANEL_POLL_MAX_ATTEMPTS = 20; // 20 x 1500ms = 30s generous ceiling
 
 // Same proven shape as src/dhx/request_assignment/wrapper.js's
@@ -2909,7 +2894,10 @@ window.NotifyResourcePanelTaskPending = NotifyResourcePanelTaskPending;
 
 function _scheduleResourcePanelPoll() {
   if (!_resourcePanelPollActive) return;
-  _resourcePanelPollTimer = setTimeout(_runResourcePanelPoll, RESOURCE_PANEL_POLL_INTERVAL_MS);
+  // First tick of a burst fires early (the background task usually finishes fast, so the next
+  // chunk isn't left idling a full interval); later ticks keep the normal cadence.
+  _resourcePanelPollTimer = setTimeout(_runResourcePanelPoll,
+    _resourcePanelPollAttempts === 0 ? RESOURCE_PANEL_POLL_FIRST_MS : RESOURCE_PANEL_POLL_INTERVAL_MS);
 }
 
 function _runResourcePanelPoll() {
@@ -2999,6 +2987,72 @@ function UpsertDayPlanning(DayPlanningJsonTxt, upsertIfMissing = true) {
   }
 }
 window.UpsertDayPlanning = UpsertDayPlanning;
+
+// Incremental update after a Day Planning sub page closes: patches only the inserted/modified
+// Day Plannings (and adds any Resource rows they reference that are not in the panel yet), keeps
+// the DayPlanningsByTask / requestJobTaskSet indexes in sync, and renders ONCE - instead of
+// re-sending and re-parsing the whole panel.
+function ApplyDayPlanningChanges(changedJsonTxt, resourcesJsonTxt) {
+  try {
+    var changed = _tryParseJson(changedJsonTxt) || [];
+    var resources = _tryParseJson(resourcesJsonTxt) || [];
+    if (!DayPlanningsStore) return;
+
+    if (resourcesStore) {
+      for (var r = 0; r < resources.length; r++) {
+        var rid = resources[r].key || resources[r].id;
+        if (rid && !resourcesStore.getItem(rid)) resourcesStore.addItem(resources[r]);
+      }
+    }
+
+    var byTask = window.DayPlanningsByTask || (window.DayPlanningsByTask = Object.create(null));
+    var reqSet = window.requestJobTaskSet || (window.requestJobTaskSet = Object.create(null));
+    var touched = Object.create(null);
+
+    for (var i = 0; i < changed.length; i++) {
+      var x = changed[i];
+      var id = x.id;
+      if (!id) continue;
+      var newTask = (x.jobNo || "") + "|" + (x.jobTaskNo || "");
+      var current = DayPlanningsStore.getItem(id);
+      if (current) {
+        var oldTask = (current.jobNo || "") + "|" + (current.jobTaskNo || "");
+        var list = byTask[oldTask];
+        if (list) {
+          var at = list.indexOf(current);
+          if (at >= 0) list.splice(at, 1);
+        }
+        touched[oldTask] = true;
+        for (var k in x) {
+          if (Object.prototype.hasOwnProperty.call(x, k)) current[k] = x[k];
+        }
+        DayPlanningsStore.updateItem(id, current);
+        x = current;
+      } else {
+        DayPlanningsStore.addItem(x);
+        x = DayPlanningsStore.getItem(id) || x;
+      }
+      (byTask[newTask] || (byTask[newTask] = [])).push(x);
+      touched[newTask] = true;
+    }
+
+    for (var t in touched) {
+      var items = byTask[t] || [];
+      var hasReq = false;
+      for (var j = 0; j < items.length; j++) {
+        if (items[j].plan_status === "Request") { hasReq = true; break; }
+      }
+      if (hasReq) reqSet[t] = true; else delete reqSet[t];
+    }
+
+    if (resourcesStore && resourcesStore.refresh) resourcesStore.refresh();
+    if (DayPlanningsStore.refresh) DayPlanningsStore.refresh();
+    if (gantt.$root) gantt.render();
+  } catch (e) {
+    console.error("ApplyDayPlanningChanges failed:", e);
+  }
+}
+window.ApplyDayPlanningChanges = ApplyDayPlanningChanges;
 
 function DeleteDayPlanning(DayPlanningId) {
   try {
