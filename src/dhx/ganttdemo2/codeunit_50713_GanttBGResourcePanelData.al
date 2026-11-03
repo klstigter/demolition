@@ -22,12 +22,12 @@ codeunit 50713 "Gantt BG Resource Panel Data"
     // caller that only needs one half (e.g. ShowResourcePanel only wants resources) doesn't pay for
     // building the other.
     //
-    // 'Default' mode's Day Planning load is additionally CHUNKED: optional 'DayPlanningSkip'/
-    // 'DayPlanningPageSize' parameters (default Skip=0, PageSize=1000 when absent) page through
+    // 'Default' mode's Day Planning load is additionally CHUNKED: optional 'DayPlanningCursor'/
+    // 'DayPlanningPageSize' parameters (default empty cursor = start, PageSize=5000 when absent) page through
     // codeunit 50613's Skip/PageSize GetDayPlanningsAsJson overload instead of fetching everything
     // in one round trip - see page 50620's EnqueueDefaultResourcePanelReload/
     // OnPollResourcePanelResult for the chunk-continuation loop that drives repeated calls into
-    // this codeunit. Resources are only ever fetched on chunk 0 (Skip=0) - re-fetching/re-sending
+    // this codeunit. Resources are only ever fetched on chunk 0 (empty cursor) - re-fetching/re-sending
     // them on every chunk would be redundant payload since the client already has them after the
     // first chunk. Filtered mode is untouched/unchunked (its scope is naturally small).
     trigger OnRun()
@@ -47,11 +47,11 @@ codeunit 50713 "Gantt BG Resource Panel Data"
         JobFilter: Text;
         JobTaskFilter: Text;
         AnchorDate: Date;
-        DayPlanningSkip: Integer;
+        DayPlanningCursor: Text;
+        NextCursor: Text;
         DayPlanningPageSize: Integer;
         DayPlanningHasMore: Boolean;
         DayPlanningChunked: Boolean;
-        SkipText: Text;
         PageSizeText: Text;
     begin
         TaskParameters := Page.GetBackgroundParameters();
@@ -80,23 +80,20 @@ codeunit 50713 "Gantt BG Resource Panel Data"
                     JobTaskFilter := GetParam(TaskParameters, 'JobTaskFilter');
                     EvaluateDateParam(TaskParameters, 'AnchorDate', AnchorDate);
 
-                    DayPlanningSkip := 0;
-                    SkipText := GetParam(TaskParameters, 'DayPlanningSkip');
-                    if SkipText <> '' then
-                        Evaluate(DayPlanningSkip, SkipText);
+                    DayPlanningCursor := GetParam(TaskParameters, 'DayPlanningCursor');
 
-                    DayPlanningPageSize := 1000;
+                    DayPlanningPageSize := 5000;
                     PageSizeText := GetParam(TaskParameters, 'DayPlanningPageSize');
                     if PageSizeText <> '' then
                         Evaluate(DayPlanningPageSize, PageSizeText);
 
                     // Resources only ever go out on chunk 0 - see this trigger's header comment.
-                    if LoadResources and (DayPlanningSkip = 0) then
+                    if LoadResources and (DayPlanningCursor = '') then
                         ResourcesJson := GanttChartDataHandler.GetResourcesAsJson(AnchorDate, JobFilter, JobTaskFilter);
 
                     if LoadDayPlannings then begin
                         DayPlanningChunked := true;
-                        DayPlanningsJson := GanttChartDataHandler.GetDayPlanningsAsJson(AnchorDate, JobFilter, JobTaskFilter, DayPlanningSkip, DayPlanningPageSize, DayPlanningHasMore);
+                        DayPlanningsJson := GanttChartDataHandler.GetDayPlanningsAsJson(AnchorDate, JobFilter, JobTaskFilter, DayPlanningCursor, DayPlanningPageSize, DayPlanningHasMore, NextCursor);
                     end;
                 end;
         end;
@@ -108,7 +105,7 @@ codeunit 50713 "Gantt BG Resource Panel Data"
             // (AL's default Boolean format is localized "Yes"/"No", not "true"/"false" - this
             // codebase already got bitten by that once, see page 50620's BoolToParamText comment).
             Result.Add('dayPlanningsHasMore', BoolToParamText(DayPlanningHasMore));
-            Result.Add('dayPlanningsNextSkip', Format(DayPlanningSkip + DayPlanningPageSize));
+            Result.Add('dayPlanningsNextCursor', NextCursor);
         end;
         Page.SetBackgroundTaskResult(Result);
     end;

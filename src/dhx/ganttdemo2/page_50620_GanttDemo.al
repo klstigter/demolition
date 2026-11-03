@@ -329,7 +329,10 @@ page 50620 "Gantt Demo DHX 2"
                     JobTaskNos: List of [Text];
                     JobNoFilter: Text;
                     JobTaskNoFilter: Text;
+                    BeforeCount: Integer;
+                    BeforeMax: DateTime;
                 begin
+                    GetDayPlanningFingerprint(BeforeCount, BeforeMax);
                     // Step 1: build Job No. and Job Task No. filter strings from pIdList
                     if pIdList <> '' then begin
                         IdList := pIdList.Split('|');
@@ -381,7 +384,7 @@ page 50620 "Gantt Demo DHX 2"
                     end;
                     DayPlanning.FilterGroup(0);
                     Page.RunModal(Page::"Day Plannings", DayPlanning);
-                    RefreshGantt();
+                    RefreshResourcePanelIfChanged(BeforeCount, BeforeMax);
                 end;
 
                 trigger OpenSequences(pIdList: Text)
@@ -399,7 +402,10 @@ page 50620 "Gantt Demo DHX 2"
                     SameDay: Record "Day Planning";
                     ResourceNo: Code[20];
                     PlanDate: Date;
+                    BeforeCount: Integer;
+                    BeforeMax: DateTime;
                 begin
+                    GetDayPlanningFingerprint(BeforeCount, BeforeMax);
                     // Open page 50712 on the Job Task of the first Day Planning behind the event bar (idList);
                     // the sequence rows of ALL Day Plannings in idList are highlighted.
                     if pIdList = '' then
@@ -435,7 +441,8 @@ page 50620 "Gantt Demo DHX 2"
                     end;
                     if FirstFound then begin
                         SequencePage.SetHighlightedSections(HighlightKeys);
-                        SequencePage.Run();
+                        SequencePage.RunModal();
+                        RefreshResourcePanelIfChanged(BeforeCount, BeforeMax);
                     end;
                 end;
 
@@ -656,7 +663,7 @@ page 50620 "Gantt Demo DHX 2"
                     if PendingResourcesJson <> '' then
                         CurrPage.DHXGanttControl2.LoadResourcesData(PendingResourcesJson);
                     if PendingDayPlanningsJson <> '' then
-                        CurrPage.DHXGanttControl2.LoadDayPlanningsData(PendingDayPlanningsJson, PendingDayPlanningsIsFirstChunk);
+                        CurrPage.DHXGanttControl2.LoadDayPlanningsData(PendingDayPlanningsJson, PendingDayPlanningsIsFirstChunk, PendingDayPlanningsHasMore);
                     Clear(PendingResourcesJson);
                     Clear(PendingDayPlanningsJson);
 
@@ -665,7 +672,7 @@ page 50620 "Gantt Demo DHX 2"
                     // next chunk directly instead of stopping the poll - NotifyResourcePanelTaskPending
                     // is confirmed safe to call from this trigger (unlike OnPageBackgroundTaskCompleted).
                     if PendingDayPlanningsHasMore then
-                        EnqueueNextDefaultResourcePanelDayPlanningChunk(PendingDayPlanningsNextSkip)
+                        EnqueueNextDefaultResourcePanelDayPlanningChunk(PendingDayPlanningsNextCursor)
                     else
                         CurrPage.DHXGanttControl2.StopResourcePanelPolling();
                 end;
@@ -1274,6 +1281,7 @@ page 50620 "Gantt Demo DHX 2"
         // result in plain AL vars instead; the OnPollResourcePanelResult trigger (JS-initiated,
         // via wrapper.js's bounded poll loop kicked off by NotifyResourcePanelTaskPending) is what
         // actually pushes this into the control add-in, from a normal synchronous call stack.
+        if Results.ContainsKey('dbg') then
         if Results.ContainsKey('resourcesJson') then
             PendingResourcesJson := Results.Get('resourcesJson');
         if Results.ContainsKey('dayPlanningsJson') then
@@ -1284,9 +1292,9 @@ page 50620 "Gantt Demo DHX 2"
         PendingDayPlanningsHasMore := false;
         if Results.ContainsKey('dayPlanningsHasMore') then
             PendingDayPlanningsHasMore := Results.Get('dayPlanningsHasMore') = 'true';
-        PendingDayPlanningsNextSkip := 0;
-        if Results.ContainsKey('dayPlanningsNextSkip') then
-            Evaluate(PendingDayPlanningsNextSkip, Results.Get('dayPlanningsNextSkip'));
+        PendingDayPlanningsNextCursor := '';
+        if Results.ContainsKey('dayPlanningsNextCursor') then
+            PendingDayPlanningsNextCursor := Results.Get('dayPlanningsNextCursor');
 
         PendingResultAvailable := true;
     end;
@@ -1350,7 +1358,7 @@ page 50620 "Gantt Demo DHX 2"
         // GetDayPlanningsAsJson overload and codeunit 50713's 'Default' branch). Unused/false-ish
         // for Filtered-mode reloads and for non-chunked resources-only Default reloads.
         PendingDayPlanningsHasMore: Boolean; // set by OnPageBackgroundTaskCompleted from the just-finished chunk's result; read by OnPollResourcePanelResult to decide whether to enqueue another chunk
-        PendingDayPlanningsNextSkip: Integer; // Skip value for the NEXT chunk, if PendingDayPlanningsHasMore
+        PendingDayPlanningsNextCursor: Text; // keyset cursor for the NEXT chunk, if PendingDayPlanningsHasMore
         PendingDayPlanningsIsFirstChunk: Boolean; // true for chunk 0 (or any non-chunked Filtered/Default load) so wrapper.js's LoadDayPlanningsData REPLACES; false for chunk 1+ so it APPENDS/merges instead
         // Scope snapshot for an in-progress Default-mode Day Planning chunk sequence, taken when
         // chunk 0 is enqueued (EnqueueDefaultResourcePanelReload) and reused by every later chunk
@@ -1542,7 +1550,7 @@ page 50620 "Gantt Demo DHX 2"
     /// </summary>
     local procedure ResourcePanelDayPlanningChunkPageSize(): Integer
     begin
-        exit(1000);
+        exit(5000);
     end;
 
     /// <summary>
@@ -1574,8 +1582,8 @@ page 50620 "Gantt Demo DHX 2"
     /// </summary>
     local procedure EnqueueFilteredResourcePanelReload(pFromDate: Date; pToDate: Date)
     var
-        TaskParameters: Dictionary of [Text, Text];
-        NewTaskId: Integer;
+        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
+        JobTaskKeys: List of [Text];
         JobTaskKeysText: Text;
     begin
         if ResourcePanelTaskRunning then
@@ -1585,19 +1593,13 @@ page 50620 "Gantt Demo DHX 2"
         if JobTaskKeysText = '' then
             exit;
 
-        TaskParameters.Add('Mode', 'Filtered');
-        TaskParameters.Add('LoadResources', 'true');
-        TaskParameters.Add('LoadDayPlannings', 'true');
-        TaskParameters.Add('JobTaskKeys', JobTaskKeysText);
-        TaskParameters.Add('FromDate', Format(pFromDate, 0, '<Year4>-<Month,2>-<Day,2>'));
-        TaskParameters.Add('ToDate', Format(pToDate, 0, '<Year4>-<Month,2>-<Day,2>'));
-
-        CurrPage.EnqueueBackgroundTask(NewTaskId, Codeunit::"Gantt BG Resource Panel Data", TaskParameters, 30000, PageBackgroundTaskErrorLevel::Warning);
-        ResourcePanelTaskId := NewTaskId;
-        ResourcePanelTaskRunning := true;
-        PendingResultAvailable := false; // any earlier not-yet-delivered result is now stale
-        PendingDayPlanningsIsFirstChunk := true; // Filtered mode never chunks - always a full replace
-        CurrPage.DHXGanttControl2.NotifyResourcePanelTaskPending(); // (re)start wrapper.js's bounded poll loop - normal synchronous call, safe here
+        // Scope is naturally small, so build it right here: a Page Background Task costs far more
+        // in session start-up + poll latency (~0.8s measured) than the query itself (~0.1s).
+        JobTaskKeys := JobTaskKeysText.Split(';');
+        ResourcePanelTaskId := 0; // any in-flight background result is now stale - its TaskId no longer matches
+        PendingResultAvailable := false;
+        CurrPage.DHXGanttControl2.LoadResourcesData(GanttChartDataHandler.GetResourcesByJobTaskAsJson(JobTaskKeys, pFromDate, pToDate));
+        CurrPage.DHXGanttControl2.LoadDayPlanningsData(GanttChartDataHandler.GetDayPlanningsByJobTaskAsJson(JobTaskKeys, pFromDate, pToDate), true, false);
     end;
 
     /// <summary>
@@ -1617,8 +1619,12 @@ page 50620 "Gantt Demo DHX 2"
     local procedure EnqueueDefaultResourcePanelReload(pLoadResources: Boolean; pLoadDayPlannings: Boolean)
     var
         TaskParameters: Dictionary of [Text, Text];
+        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
         NewTaskId: Integer;
         JobFilterUsed: Text;
+        DayPlanningsJson: Text;
+        NextCursor: Text;
+        HasMore: Boolean;
     begin
         if not (pLoadResources or pLoadDayPlannings) then
             exit;
@@ -1635,6 +1641,23 @@ page 50620 "Gantt Demo DHX 2"
                     JobFilter := JobFilterUsed;
         end;
 
+        if pLoadDayPlannings then begin
+            // Chunk 0 is built synchronously (no background-task start-up/poll latency); only the
+            // remaining chunks, if any, go through the background task.
+            ResourcePanelChunkJobFilter := JobFilter;
+            ResourcePanelChunkJobTaskFilter := JobTaskFilter;
+            ResourcePanelChunkAnchorDate := AnchorDate;
+            ResourcePanelTaskId := 0; // any in-flight background result is now stale
+            PendingResultAvailable := false;
+            if pLoadResources then
+                CurrPage.DHXGanttControl2.LoadResourcesData(GanttChartDataHandler.GetResourcesAsJson(AnchorDate, JobFilter, JobTaskFilter));
+            DayPlanningsJson := GanttChartDataHandler.GetDayPlanningsAsJson(AnchorDate, JobFilter, JobTaskFilter, '', ResourcePanelDayPlanningChunkPageSize(), HasMore, NextCursor);
+            CurrPage.DHXGanttControl2.LoadDayPlanningsData(DayPlanningsJson, true, HasMore);
+            if HasMore then
+                EnqueueNextDefaultResourcePanelDayPlanningChunk(NextCursor);
+            exit;
+        end;
+
         TaskParameters.Add('Mode', 'Default');
         // NOTE: deliberately NOT Format(pLoadResources) - AL's default Boolean format is
         // localized "Yes"/"No" (confirmed live: codeunit 50713's `= 'true'` comparison silently
@@ -1646,7 +1669,6 @@ page 50620 "Gantt Demo DHX 2"
         TaskParameters.Add('AnchorDate', Format(AnchorDate, 0, '<Year4>-<Month,2>-<Day,2>'));
         if pLoadDayPlannings then begin
             // Chunk 0 (Skip=0) - see this procedure's header comment.
-            TaskParameters.Add('DayPlanningSkip', '0');
             TaskParameters.Add('DayPlanningPageSize', Format(ResourcePanelDayPlanningChunkPageSize));
             ResourcePanelChunkJobFilter := JobFilter;
             ResourcePanelChunkJobTaskFilter := JobTaskFilter;
@@ -1668,7 +1690,7 @@ page 50620 "Gantt Demo DHX 2"
     /// PendingDayPlanningsHasMore. Resources are never re-requested here (LoadResources='false') -
     /// they only ever go out on chunk 0.
     /// </summary>
-    local procedure EnqueueNextDefaultResourcePanelDayPlanningChunk(pSkip: Integer)
+    local procedure EnqueueNextDefaultResourcePanelDayPlanningChunk(pCursor: Text)
     var
         TaskParameters: Dictionary of [Text, Text];
         NewTaskId: Integer;
@@ -1679,7 +1701,7 @@ page 50620 "Gantt Demo DHX 2"
         TaskParameters.Add('JobFilter', ResourcePanelChunkJobFilter);
         TaskParameters.Add('JobTaskFilter', ResourcePanelChunkJobTaskFilter);
         TaskParameters.Add('AnchorDate', Format(ResourcePanelChunkAnchorDate, 0, '<Year4>-<Month,2>-<Day,2>'));
-        TaskParameters.Add('DayPlanningSkip', Format(pSkip));
+        TaskParameters.Add('DayPlanningCursor', pCursor);
         TaskParameters.Add('DayPlanningPageSize', Format(ResourcePanelDayPlanningChunkPageSize));
 
         CurrPage.EnqueueBackgroundTask(NewTaskId, Codeunit::"Gantt BG Resource Panel Data", TaskParameters, 30000, PageBackgroundTaskErrorLevel::Warning);
@@ -1751,6 +1773,71 @@ page 50620 "Gantt Demo DHX 2"
     local procedure LoadDayPlanningData()
     begin
         EnqueueDefaultResourcePanelReload(false, true);
+    end;
+
+    /// <summary>
+    /// Cheap change marker for the Day Plannings in the visible period (plus undated requests):
+    /// record count + latest SystemModifiedAt. Count catches deletes, SystemModifiedAt catches
+    /// inserts/modifies. Compared before/after a sub page (Day Plannings / Sequences) is run.
+    /// </summary>
+    local procedure GetDayPlanningFingerprint(var Cnt: Integer; var MaxModified: DateTime)
+    var
+        DayPlanning: Record "Day Planning";
+        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
+        StartDate: Date;
+        EndDate: Date;
+        Pass: Integer;
+    begin
+        Cnt := 0;
+        MaxModified := 0DT;
+        GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
+        for Pass := 1 to 2 do begin
+            DayPlanning.Reset();
+            DayPlanning.SetLoadFields(SystemModifiedAt);
+            if JobFilter <> '' then
+                DayPlanning.SetFilter("Job No.", JobFilter);
+            if JobTaskFilter <> '' then
+                DayPlanning.SetFilter("Job Task No.", JobTaskFilter);
+            if Pass = 1 then
+                DayPlanning.SetRange("Plan Date", StartDate, EndDate)
+            else
+                DayPlanning.SetRange("Plan Date", 0D);
+            if DayPlanning.FindSet() then
+                repeat
+                    Cnt += 1;
+                    if DayPlanning.SystemModifiedAt > MaxModified then
+                        MaxModified := DayPlanning.SystemModifiedAt;
+                until DayPlanning.Next() = 0;
+        end;
+    end;
+
+    /// <summary>
+    /// After a Day Planning sub page closes: do nothing when the data is unchanged. When only
+    /// records were inserted/modified in the unfiltered ('Default') panel, push just those records
+    /// into the add-in (ApplyDayPlanningChanges) - no background task, no full re-send. Anything
+    /// else (deletes, records moved in/out of the period, a task-scoped panel, a chunk load still
+    /// running) falls back to reloading the whole resource panel (async) - never the tasks/links.
+    /// </summary>
+    local procedure RefreshResourcePanelIfChanged(BeforeCount: Integer; BeforeMax: DateTime)
+    var
+        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
+        AfterCount: Integer;
+        AfterMax: DateTime;
+        ChangedJson: Text;
+        ResourcesJson: Text;
+    begin
+        if not ResourcePanelFlag then
+            exit;
+        GetDayPlanningFingerprint(AfterCount, AfterMax);
+        if (AfterCount = BeforeCount) and (AfterMax = BeforeMax) then
+            exit;
+        if (ResourcePanelJobNo = '') and not ResourcePanelTaskRunning then
+            if GanttChartDataHandler.GetChangedDayPlanningsAsJson(AnchorDate, JobFilter, JobTaskFilter, BeforeMax, BeforeCount, AfterCount, ChangedJson, ResourcesJson) then begin
+                CurrPage.DHXGanttControl2.ApplyDayPlanningChanges(ChangedJson, ResourcesJson);
+                exit;
+            end;
+        if not ReloadResourcePanelFromStoredFilter() then
+            EnqueueDefaultResourcePanelReload(true, true);
     end;
 
     local procedure LoadLinkData()
