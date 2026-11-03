@@ -790,6 +790,27 @@ function SetHighlightedSections(keysJson) {
     dps_highlightKeys = {};
     (ParseJSonTxt(keysJson) || []).forEach(function (k) { dps_highlightKeys[k] = true; });
     if (dps_scheduler_ready) scheduler.render();
+    dpsApplyRowHighlight();
+}
+
+// The library's row/cell class templates do not reach the data rows here, so tag the row elements
+// (.dhx_matrix_line[data-section-id]) directly - now and whenever the timeline re-renders/scrolls.
+var dps_hlObserver = null;
+function dpsApplyRowHighlight() {
+    var root = $id("dps_scheduler_here");
+    if (!root) return;
+    if (!dps_hlObserver) {
+        dps_hlObserver = new MutationObserver(function () { dpsTagRows(root); });
+        dps_hlObserver.observe(root, { childList: true, subtree: true });
+    }
+    dpsTagRows(root);
+}
+function dpsTagRows(root) {
+    var lines = root.querySelectorAll(".dhx_matrix_line[data-section-id]");
+    for (var i = 0; i < lines.length; i++) {
+        var on = !!dps_highlightKeys[lines[i].getAttribute("data-section-id")];
+        if (lines[i].classList.contains("dps-hl-row") !== on) lines[i].classList.toggle("dps-hl-row", on);
+    }
 }
 
 function Init(sectionsJson,skillsJson, templatesJson, earliestDate, latestDate) {

@@ -320,7 +320,6 @@ page 50620 "Gantt Demo DHX 2"
                 trigger OpenResourceLoadDay(ResourceId: Text; pTaskDate: Text; pPlanStatus: Text; pIdList: Text)
                 var
                     DayPlanning: Record "Day Planning";
-                    BarRecords: Record "Day Planning";
                     WorkDt: Date;
                     Tp: array[2] of text;
                     IdList: List of [Text];
@@ -338,8 +337,6 @@ page 50620 "Gantt Demo DHX 2"
                             if Evaluate(SysId, IdText) then begin
                                 DayPlanning.Reset();
                                 if DayPlanning.GetBySystemId(SysId) then begin
-                                    BarRecords := DayPlanning;
-                                    BarRecords.Mark(true);
                                     if not JobNos.Contains(DayPlanning."Job No.") then
                                         JobNos.Add(DayPlanning."Job No.");
                                     if not JobTaskNos.Contains(DayPlanning."Job Task No.") then
@@ -383,24 +380,6 @@ page 50620 "Gantt Demo DHX 2"
                         DayPlanning.SetRange("Requested Pool Resource No.", tp[2]);
                     end;
                     DayPlanning.FilterGroup(0);
-                    // if pPlanStatus = 'Request' then begin
-                    //     if tp[1] = 'RES-' then
-                    //         DayPlanning.SetRange("Requested Resource No.", tp[2]);
-                    //     if tp[1] = 'VEN-' then
-                    //         DayPlanning.SetRange("Vendor No.", tp[2]);
-                    // end else begin
-                    //     if tp[1] = 'RES-' then
-                    //         DayPlanning.SetRange("Assigned Resource No.", tp[2]);
-                    //     if tp[1] = 'VEN-' then
-                    //         DayPlanning.SetRange("Vendor No.", tp[2]);
-                    // end;
-
-
-                    // Marked set = exactly the records behind the event bar (idList)
-                    //BarRecords.MarkedOnly(true);
-                    //if not BarRecords.IsEmpty() then
-                    //    Page.RunModal(Page::"Day Plannings", BarRecords)
-                    //else
                     Page.RunModal(Page::"Day Plannings", DayPlanning);
                     RefreshGantt();
                 end;
@@ -417,6 +396,9 @@ page 50620 "Gantt Demo DHX 2"
                     SequenceMgt: Codeunit "Day Planning Sequence Mgt.";
                     HighlightKeys: JsonArray;
                     FirstFound: Boolean;
+                    SameDay: Record "Day Planning";
+                    ResourceNo: Code[20];
+                    PlanDate: Date;
                 begin
                     // Open page 50712 on the Job Task of the first Day Planning behind the event bar (idList);
                     // the sequence rows of ALL Day Plannings in idList are highlighted.
@@ -432,9 +414,25 @@ page 50620 "Gantt Demo DHX 2"
                                     SequencePage.SetPeriod(PeriodStart, PeriodEnd);
                                     SequencePage.SetContext(DayPlanning."Job No.", DayPlanning."Job Task No.", '');
                                     FirstFound := true;
+                                    ResourceNo := DayPlanning."Assigned Resource No.";
+                                    if ResourceNo = '' then
+                                        ResourceNo := DayPlanning."Requested Resource No.";
+                                    PlanDate := DayPlanning."Plan Date";
                                 end;
                                 HighlightKeys.Add(SequenceMgt.BuildSectionId(DayPlanning."Job No.", DayPlanning."Job Task No.", DayPlanning.Skill, DayPlanning."Sequence No."));
                             end;
+                    if FirstFound and (ResourceNo <> '') then begin
+                        // Also highlight the sibling Request/Assigned lines of the same resource and day (the other marker).
+                        SameDay.SetRange("Job No.", DayPlanning."Job No.");
+                        SameDay.SetRange("Job Task No.", DayPlanning."Job Task No.");
+                        SameDay.SetRange("Plan Date", PlanDate);
+                        SameDay.SetFilter(Skill, '<>%1', '');
+                        if SameDay.FindSet() then
+                            repeat
+                                if (SameDay."Assigned Resource No." = ResourceNo) or (SameDay."Requested Resource No." = ResourceNo) then
+                                    HighlightKeys.Add(SequenceMgt.BuildSectionId(SameDay."Job No.", SameDay."Job Task No.", SameDay.Skill, SameDay."Sequence No."));
+                            until SameDay.Next() = 0;
+                    end;
                     if FirstFound then begin
                         SequencePage.SetHighlightedSections(HighlightKeys);
                         SequencePage.Run();
