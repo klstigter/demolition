@@ -917,6 +917,7 @@ window.BOOT = function() {
     (function injectContextMenuCSS() {
       var s = document.createElement("style");
       s.textContent = [
+        "body.gantt-ctx-open .gantt_tooltip, body.gantt-ctx-open #bc_DayPlanning_tooltip{ display:none !important; }",
         ".gantt-ctx-menu{",
         "  position:fixed;z-index:99999;",
         "  background:#fff;border:1px solid #d0d0d0;",
@@ -945,6 +946,7 @@ window.BOOT = function() {
     function _showContextMenu(x, y, taskId) {
       _hideContextMenu();
       _hideAllTooltips();
+      document.body.classList.add("gantt-ctx-open");
       window._ganttCtxTaskId = taskId;
 
       var menu = document.createElement("div");
@@ -1000,6 +1002,7 @@ window.BOOT = function() {
     function _hideContextMenu() {
       var old = document.getElementById("gantt-ctx-menu");
       if (old) old.parentNode.removeChild(old);
+      document.body.classList.remove("gantt-ctx-open");
       window._ganttCtxTaskId = null;
     }
 

@@ -844,6 +844,8 @@ table 50610 "Day Planning"
         DailyOptimizerSetup: record "Daily Optimizer Setup";
         DayPlanningSequenceMgt: Codeunit "Day Planning Sequence Mgt.";
     begin
+        if Rec."Assigned Hours" <> 0 then
+            Rec."Plan Status" := Rec."Plan Status"::"In Progress";
         if Rec.Skill = '' then begin
             DailyOptimizerSetup.Get();
             if DailyOptimizerSetup."Default Skill" <> '' then
@@ -859,6 +861,8 @@ table 50610 "Day Planning"
     var
         DayPlanningSequenceMgt: Codeunit "Day Planning Sequence Mgt.";
     begin
+        if (xRec."Assigned Hours" = 0) and (Rec."Assigned Hours" <> 0) then
+            Rec."Plan Status" := Rec."Plan Status"::"In Progress";
         if Rec.Skill <> '' then begin
             CheckSkillCodeExists(Rec.Skill);
             DayPlanningSequenceMgt.CalcSequence(Rec);
