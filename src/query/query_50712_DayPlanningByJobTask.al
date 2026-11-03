@@ -37,6 +37,7 @@ query 50712 "Day Planning By Job Task"
             column(PlanStatus; "Plan Status") { }
             column(WorkOrderNo; "Order Intake No.") { }
             column(Skill; Skill) { }
+            column(SequenceNo; "Sequence No.") { }
         }
     }
 }

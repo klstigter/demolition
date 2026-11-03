@@ -228,8 +228,13 @@ function configureScheduler() {
         return hour < 6 || hour >= 18;
     };
 
-    scheduler.templates.timeline_cell_class = function (evs, date) {
-        return dpsDayOffClass(date, "-cell");
+    // Row-level class as a second route to the same shading (see .dps-hl-row in style.css).
+    scheduler.templates.timeline_row_class = function (section) {
+        return dpsHlClass(section && section.key).replace("dps-hl", "dps-hl-row");
+    };
+    scheduler.templates.timeline_cell_class = function (evs, date, section) {
+        var key = (section && section.key) || section;
+        return dpsDayOffClass(date, "-cell") + dpsHlClass(key);
     };
     scheduler.templates.timeline_scalex_class = function (date) {
         return dpsDayOffClass(date, "-scale");
@@ -357,11 +362,17 @@ function configureScheduler() {
 // -------------------------------------------------------
 function dpsRowLabel(key, label, section) {
     var sectionKey = (section && section.key) || key;
-    return '<div class="dps-row-label" data-section-key="' + escapeHtmlAttr(sectionKey) + '">' + escapeHtml(label) + '</div>';
+    return '<div class="dps-row-label' + dpsHlClass(sectionKey) + '" data-section-key="' + escapeHtmlAttr(sectionKey) + '">' + escapeHtml(label) + '</div>';
 }
 
-function dpsTextCell(value) {
-    return '<div class="dps-row-text">' + escapeHtml(value) + '</div>';
+function dpsTextCell(value, section) {
+    return '<div class="dps-row-text' + dpsHlClass(section && section.key) + '">' + escapeHtml(value) + '</div>';
+}
+
+// Rows (sections) holding the Day Planning lines the page was opened for - see SetHighlightedSections.
+var dps_highlightKeys = {};
+function dpsHlClass(sectionKey) {
+    return dps_highlightKeys[sectionKey] ? " dps-hl" : "";
 }
 
 function buildTimelineViewConfig(spanDays) {
@@ -370,8 +381,8 @@ function buildTimelineViewConfig(spanDays) {
         render: "bar",
         dx: dps_showContext ? 340 : 190,
         columns: dps_showContext ? [
-            { label: "Project No.", width: 70, template: function (obj) { return dpsTextCell(obj.jobNo); } },
-            { label: "Task No.", width: 100, template: function (obj) { return dpsTextCell(obj.jobTaskNo); } },
+            { label: "Project No.", width: 70, template: function (obj) { return dpsTextCell(obj.jobNo, obj); } },
+            { label: "Task No.", width: 100, template: function (obj) { return dpsTextCell(obj.jobTaskNo, obj); } },
             { label: "Skill - Seq", width: 170, template: function (obj) { return dpsRowLabel(obj.key, obj.label, obj); } }
         ] : undefined,
 
@@ -771,6 +782,14 @@ function SetShowContext(show) {
     if (!dps_scheduler_ready) return;
     scheduler.createTimelineView(buildTimelineViewConfig(dps_currentTimelineSpanDays));
     applyDayScaleWeekTemplate();
+}
+
+// Called from AL (page 50712) with a JSON array of section keys to shade light yellow. Call
+// before Init/RefreshTimeline so the next render picks it up.
+function SetHighlightedSections(keysJson) {
+    dps_highlightKeys = {};
+    (ParseJSonTxt(keysJson) || []).forEach(function (k) { dps_highlightKeys[k] = true; });
+    if (dps_scheduler_ready) scheduler.render();
 }
 
 function Init(sectionsJson,skillsJson, templatesJson, earliestDate, latestDate) {

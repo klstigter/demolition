@@ -400,21 +400,31 @@ page 50620 "Gantt Demo DHX 2"
                     SysId: Guid;
                     PeriodStart: Date;
                     PeriodEnd: Date;
+                    SequenceMgt: Codeunit "Day Planning Sequence Mgt.";
+                    HighlightKeys: JsonArray;
+                    FirstFound: Boolean;
                 begin
-                    // Open page 50712 on the Job Task of the first Day Planning behind the event bar (idList)
+                    // Open page 50712 on the Job Task of the first Day Planning behind the event bar (idList);
+                    // the sequence rows of ALL Day Plannings in idList are highlighted.
                     if pIdList = '' then
                         exit;
                     foreach IdText in pIdList.Split('|') do
                         if Evaluate(SysId, IdText) then
                             if DayPlanning.GetBySystemId(SysId) then begin
-                                // Sequence page follows the Gantt's displayed view period (same range
-                                // the resource panel / OnResourceHover use). Must precede SetContext.
-                                GanttChartDataHandler.GetDateRange(Setup, AnchorDate, PeriodStart, PeriodEnd);
-                                SequencePage.SetPeriod(PeriodStart, PeriodEnd);
-                                SequencePage.SetContext(DayPlanning."Job No.", DayPlanning."Job Task No.", '');
-                                SequencePage.Run();
-                                exit;
+                                if not FirstFound then begin
+                                    // Sequence page follows the Gantt's displayed view period (same range
+                                    // the resource panel / OnResourceHover use). Must precede SetContext.
+                                    GanttChartDataHandler.GetDateRange(Setup, AnchorDate, PeriodStart, PeriodEnd);
+                                    SequencePage.SetPeriod(PeriodStart, PeriodEnd);
+                                    SequencePage.SetContext(DayPlanning."Job No.", DayPlanning."Job Task No.", '');
+                                    FirstFound := true;
+                                end;
+                                HighlightKeys.Add(SequenceMgt.BuildSectionId(DayPlanning."Job No.", DayPlanning."Job Task No.", DayPlanning.Skill, DayPlanning."Sequence No."));
                             end;
+                    if FirstFound then begin
+                        SequencePage.SetHighlightedSections(HighlightKeys);
+                        SequencePage.Run();
+                    end;
                 end;
 
                 trigger OnLinkCreated(linkData: Text)
