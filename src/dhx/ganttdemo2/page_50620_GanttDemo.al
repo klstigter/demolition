@@ -371,23 +371,37 @@ page 50620 "Gantt Demo DHX 2"
                         DayPlanning.SetFilter("Job Task No.", JobTaskNoFilter);
                     Evaluate(WorkDt, pTaskDate);
                     DayPlanning.SetRange("Plan Date", WorkDt);
-                    if pPlanStatus = 'Request' then begin
-                        if tp[1] = 'RES-' then
-                            DayPlanning.SetRange("Requested Resource No.", tp[2]);
-                        if tp[1] = 'VEN-' then
-                            DayPlanning.SetRange("Vendor No.", tp[2]);
-                    end else begin
-                        if tp[1] = 'RES-' then
-                            DayPlanning.SetRange("Assigned Resource No.", tp[2]);
-                        if tp[1] = 'VEN-' then
-                            DayPlanning.SetRange("Vendor No.", tp[2]);
+
+                    // Cross-column filters (OR)
+                    DayPlanning.FilterGroup(-1);
+                    if tp[1] = 'RES-' then begin
+                        DayPlanning.SetRange("Assigned Resource No.", tp[2]);
+                        DayPlanning.SetRange("Requested Resource No.", tp[2]);
                     end;
+                    if tp[1] = 'VEN-' then begin
+                        DayPlanning.SetRange("Assigned Pool Resource No.", tp[2]);
+                        DayPlanning.SetRange("Requested Pool Resource No.", tp[2]);
+                    end;
+                    DayPlanning.FilterGroup(0);
+                    // if pPlanStatus = 'Request' then begin
+                    //     if tp[1] = 'RES-' then
+                    //         DayPlanning.SetRange("Requested Resource No.", tp[2]);
+                    //     if tp[1] = 'VEN-' then
+                    //         DayPlanning.SetRange("Vendor No.", tp[2]);
+                    // end else begin
+                    //     if tp[1] = 'RES-' then
+                    //         DayPlanning.SetRange("Assigned Resource No.", tp[2]);
+                    //     if tp[1] = 'VEN-' then
+                    //         DayPlanning.SetRange("Vendor No.", tp[2]);
+                    // end;
+
+
                     // Marked set = exactly the records behind the event bar (idList)
-                    BarRecords.MarkedOnly(true);
-                    if not BarRecords.IsEmpty() then
-                        Page.RunModal(Page::"Day Plannings", BarRecords)
-                    else
-                        Page.RunModal(Page::"Day Plannings", DayPlanning);
+                    //BarRecords.MarkedOnly(true);
+                    //if not BarRecords.IsEmpty() then
+                    //    Page.RunModal(Page::"Day Plannings", BarRecords)
+                    //else
+                    Page.RunModal(Page::"Day Plannings", DayPlanning);
                     RefreshGantt();
                 end;
 
