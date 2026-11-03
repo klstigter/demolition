@@ -55,6 +55,7 @@ page 50712 "Day Planning Sequence"
                     TemplatesJsonTxt := DayPlanningSequenceMgt.BuildTemplatesJson();
 
                     PushFilterInfo(); // before Init: the add-in sizes the span from the period end
+                    CurrPage.DhxSequence.SetHighlightedSections(HighlightKeysJson);
                     CurrPage.DhxSequence.Init(SectionsJsonTxt, SkillsJsonTxt, TemplatesJsonTxt, EarliestDate, LatestDate);
                     CurrPage.DhxSequence.LoadData(EventsJsonTxt);
                     PushHolidaysData(EarliestDate, LatestDate);
@@ -227,6 +228,16 @@ page 50712 "Day Planning Sequence"
         PeriodFrom: Date;
         PeriodTo: Date;
         ControlIsReady: Boolean;
+        HighlightKeysJson: Text;
+
+    /// <summary>
+    /// Section keys (rows) to shade light yellow - the sequence rows holding the Day Planning lines
+    /// the page was opened for. Call BEFORE SetContext, like SetPeriod.
+    /// </summary>
+    procedure SetHighlightedSections(SectionKeys: JsonArray)
+    begin
+        SectionKeys.WriteTo(HighlightKeysJson);
+    end;
 
     /// <summary>
     /// Pushes Job No./Job Task No. context from the host card page, plus an optional Work Order
@@ -278,6 +289,7 @@ page 50712 "Day Planning Sequence"
 
         DayPlanningSequenceMgt.BuildSectionsAndEventsJson(JobFilter, JobTaskFilter, SkillFilter, ResourceFilter, PeriodFrom, PeriodTo, SectionsJsonTxt, EventsJsonTxt, EarliestDate, LatestDate);
         PushFilterInfo(); // before RefreshTimeline: the add-in sizes the span from the period end
+        CurrPage.DhxSequence.SetHighlightedSections(HighlightKeysJson);
         CurrPage.DhxSequence.RefreshTimeline(SectionsJsonTxt, EventsJsonTxt, EarliestDate, LatestDate);
         PushHolidaysData(EarliestDate, LatestDate);
     end;

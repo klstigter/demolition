@@ -282,6 +282,15 @@
     background: #f7f9fc;
 }
 
+/* Row of a selected Day Planning (Gantt > Open Sequences): light yellow across label + cells. */
+.dps-row-label.dps-hl,
+.dps-row-text.dps-hl,
+.dhx_matrix_cell.dps-hl,
+.dps-hl-row,
+.dps-hl-row .dhx_matrix_cell {
+    background: #ffff99 !important;
+}
+
 /* Same colors as the Gantt add-in (src/dhx/ganttdemo2/style.css): light red for Sat/Sun,
    light amber for Base Calendar day-off/holiday exceptions - both driven by the same
    Codeunit "GanttChartDataHandler".GetHolidaysAsJson data source, so a date reads identically

@@ -436,7 +436,7 @@ codeunit 50613 "GanttChartDataHandler"
                         DayPlanningByJobTaskQry.AssignedHours, DayPlanningByJobTaskQry.RequestedHours, DayPlanningByJobTaskQry.NonWorkingMinutesAssigned,
                         DayPlanningByJobTaskQry.NonWorkingMinutesRequested, DayPlanningByJobTaskQry.AssignedResourceNo, DayPlanningByJobTaskQry.RequestedResourceNo,
                         DayPlanningByJobTaskQry.VendorNo, DayPlanningByJobTaskQry.PlanStatus, DayPlanningByJobTaskQry.WorkOrderNo,
-                        DayPlanningByJobTaskQry.Skill));
+                        DayPlanningByJobTaskQry.Skill, DayPlanningByJobTaskQry.SequenceNo));
             DayPlanningByJobTaskQry.Close();
         end;
 
@@ -787,7 +787,7 @@ codeunit 50613 "GanttChartDataHandler"
             DayPlanning."Start Time Requested", DayPlanning."End Time Requested", DayPlanning."Assigned Hours",
             DayPlanning."Requested Hours", DayPlanning."Non Working Minutes Assigned", DayPlanning."Non Working Minutes Requested",
             DayPlanning."Assigned Resource No.", DayPlanning."Requested Resource No.", DayPlanning."Vendor No.",
-            DayPlanning."Plan Status", DayPlanning."Order Intake No.", DayPlanning."Skill"));
+            DayPlanning."Plan Status", DayPlanning."Order Intake No.", DayPlanning."Skill", DayPlanning."Sequence No."));
     end;
 
     /// <summary>
@@ -817,7 +817,8 @@ codeunit 50613 "GanttChartDataHandler"
         VendorNoValue: Code[20];
         PlanStatusValue: Enum "Plan Status";
         WorkOrderNoValue: Code[20];
-        SkillValue: Code[20]) JsonObject: JsonObject
+        SkillValue: Code[20];
+        SequenceNoValue: Integer) JsonObject: JsonObject
     var
         WorkDateText: Text;
         ResourceId: Text;
@@ -888,6 +889,7 @@ codeunit 50613 "GanttChartDataHandler"
         JsonObject.Add('plan_status', PlanStatusText);
         JsonObject.Add('work_order_no', WorkOrderNoValue);
         JsonObject.Add('skill', SkillValue);
+        JsonObject.Add('sequence_no', SequenceNoValue);
     end;
 
     local procedure CreateDayPlanningJsonObjectRequest(DayPlanning: Record "Day Planning"; PlaceholderDate: Date) JsonObject: JsonObject
@@ -941,6 +943,7 @@ codeunit 50613 "GanttChartDataHandler"
         JsonObject.Add('plan_status', 'Request');
         JsonObject.Add('work_order_no', DayPlanning."Order Intake No.");
         JsonObject.Add('skill', DayPlanning."Skill");
+        JsonObject.Add('sequence_no', DayPlanning."Sequence No.");
     end;
 
     local procedure FormatTime(InputTime: Time) FormattedTime: Text

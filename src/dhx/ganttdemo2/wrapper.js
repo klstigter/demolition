@@ -270,6 +270,7 @@ window.BOOT = function() {
           const taskNo = x.jobTaskNo || "";
           const status = x.plan_status || "";
           const skill = x.skill ? `${x.skill}` : "";
+          const seq = x.sequence_no || "";
           const reqStart = x.requested_start_time || "-";
           const reqEnd = x.requested_end_time || "-";
           const reqIdle = x.requested_idle_minutes || 0;
@@ -283,6 +284,7 @@ window.BOOT = function() {
             <td>${taskNo}</td>
             <td>${status}</td>
             <td>${skill}</td>
+            <td>${seq}</td>
             <td>${reqStart}</td><td>${reqEnd}</td><td>${reqIdle}</td><td>${reqHours}</td>
             <td>${asgStart}</td><td>${asgEnd}</td><td>${asgIdle}</td><td>${asgHours}</td>
           </tr>`;
@@ -296,6 +298,7 @@ window.BOOT = function() {
                 <th rowspan="2">Task No.</th>
                 <th rowspan="2">Status</th>
                 <th rowspan="2">Skill</th>
+                <th rowspan="2">Seq</th>
                 <th colspan="4">Requested</th>
                 <th colspan="4">Assigned</th>
               </tr>

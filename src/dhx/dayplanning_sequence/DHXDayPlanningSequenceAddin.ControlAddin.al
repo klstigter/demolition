@@ -34,6 +34,8 @@ controladdin DHXDayPlanningSequenceAddin
     procedure Init(sectionsJson: Text; skillsJson: Text; templatesJson: Text; earliestDate: Date; latestDate: Date);
     // Standalone page 50712 only: shows Project No./Task No. columns and the "Filter applied" icon.
     procedure SetShowContext(show: Boolean);
+    // Standalone page 50712 only: JSON array of section keys (rows) to shade light yellow.
+    procedure SetHighlightedSections(keysJson: Text);
     procedure LoadData(eventsJson: Text);
     procedure RefreshTimeline(sectionsJson: Text; eventsJson: Text; anchorDate: Date; latestDate: Date);
     procedure LoadHolidaysData(holidaysJsonTxt: Text);
