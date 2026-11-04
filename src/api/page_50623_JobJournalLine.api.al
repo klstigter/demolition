@@ -268,8 +268,8 @@ page 50623 "Job Journal Line API Opt."
             Rec.Insert(true);
 
         // If this is the last line, post the entire batch in one run
-        //if TriggerPost then
-        //    PostBatchInline(Rec."Journal Template Name", Rec."Journal Batch Name");
+        if TriggerPost then
+            PostBatchInline(Rec."Journal Template Name", Rec."Journal Batch Name");
 
         // BC must NOT insert again
         exit(false);
