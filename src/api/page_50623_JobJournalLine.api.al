@@ -212,7 +212,6 @@ page 50623 "Job Journal Line API Opt."
             Clear(Rec);
             Rec."Journal Template Name" := TempLine."Journal Template Name";
             Rec."Journal Batch Name" := TempLine."Journal Batch Name";
-
             if TempLine."Line No." <> 0 then
                 NextLineNo := TempLine."Line No."
             else begin
@@ -263,15 +262,14 @@ page 50623 "Job Journal Line API Opt."
         Rec.TestField("Job Task No.");
         Rec.TestField(Quantity);
         Rec.TestField("Unit of Measure Code");
-
         if ModifyRec then
             Rec.Modify()
         else
             Rec.Insert(true);
 
         // If this is the last line, post the entire batch in one run
-        if TriggerPost then
-            PostBatchInline(Rec."Journal Template Name", Rec."Journal Batch Name");
+        //if TriggerPost then
+        //    PostBatchInline(Rec."Journal Template Name", Rec."Journal Batch Name");
 
         // BC must NOT insert again
         exit(false);
