@@ -69,6 +69,11 @@ table 50660 "DayPlanning Journal Line"
             Caption = 'Invoice Resource No.';
             DataClassification = ToBeClassified;
         }
+        field(24; "Approved Project Manager"; Code[50])
+        {
+            Caption = 'Approved Project Manager';
+            DataClassification = ToBeClassified;
+        }
         field(30; "Global Dimension 1 Code"; Code[20])
         {
             CaptionClass = '1,1,1';

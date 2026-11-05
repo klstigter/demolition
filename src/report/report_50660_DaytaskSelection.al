@@ -46,6 +46,7 @@ report 50660 "DayPlanning Selection"
                 Skill.Get(DayPlanningJnlLine.Skill);
                 Skill.TestField("Invoice Resource No.");
                 DayPlanningJnlLine."Invoice Resource No." := Skill."Invoice Resource No.";
+                DayPlanningJnlLine."Approved Project Manager" := DayPlanning."Approved Project Manager";
                 FillDimensions(DayPlanningJnlLine, DayPlanning);
                 DayPlanningJnlLine.Insert(true);
                 LinesInserted += 1;

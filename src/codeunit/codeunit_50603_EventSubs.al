@@ -36,6 +36,7 @@ codeunit 50603 "EventSubs"
         JobLedgerEntry."Opt. DayPlanning Line No." := JobJournalLine."Opt. DayPlanning Line No.";
         JobLedgerEntry.Skill := JobJournalLine.Skill;
         JobLedgerEntry."Invoice Resource No." := JobJournalLine."Invoice Resource No.";
+        JobLedgerEntry."Approved Project Manager" := JobJournalLine."Approved Project Manager";
 
         // ── Res. Ledger Entry (Resource lines only) ───────────────────────────
         // "Ledger Entry No." on the job entry = Entry No. of the already-inserted
@@ -45,6 +46,9 @@ codeunit 50603 "EventSubs"
             if ResLedgEntry.Get(JobLedgerEntry."Ledger Entry No.") then begin
                 ResLedgEntry."Opt. DayPlanning Date" := JobJournalLine."Opt. DayPlanning Date";
                 ResLedgEntry."Opt. DayPlanning Line No." := JobJournalLine."Opt. DayPlanning Line No.";
+                ResLedgEntry.Skill := JobJournalLine.Skill;
+                ResLedgEntry."Invoice Resource No." := JobJournalLine."Invoice Resource No.";
+                ResLedgEntry."Approved Project Manager" := JobJournalLine."Approved Project Manager";
                 ResLedgEntry.Modify();
             end;
     end;

@@ -34,6 +34,13 @@ pageextension 50622 "Opt. Job Ledger Entries" extends "Job Ledger Entries"
                 ToolTip = 'Specifies the Invoice Resource No. that was linked to the originating Project Journal line.';
                 Editable = false;
             }
+            field("Opt. Approved Project Manager"; Rec."Approved Project Manager")
+            {
+                ApplicationArea = All;
+                Caption = 'Approved Project Manager';
+                ToolTip = 'Specifies the Approved Project Manager that was linked to the originating Project Journal line.';
+                Editable = false;
+            }
             field(WorkTypeCode; Rec."Work Type Code")
             {
                 ApplicationArea = All;

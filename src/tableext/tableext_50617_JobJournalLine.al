@@ -45,5 +45,10 @@ tableextension 50617 "Opt. Job Journal Line" extends "Job Journal Line"
             Caption = 'Invoice Resource No.';
             DataClassification = ToBeClassified;
         }
+        field(50622; "Approved Project Manager"; Code[50])
+        {
+            Caption = 'Approved Project Manager';
+            DataClassification = ToBeClassified;
+        }
     }
 }
