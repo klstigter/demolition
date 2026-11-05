@@ -39,6 +39,7 @@ page 50711 "Day Planning Sequence Part"
                     TemplatesJsonTxt := DayPlanningSequenceMgt.BuildTemplatesJson();
 
                     CurrPage.DhxSequence.Init(SectionsJsonTxt, SkillsJsonTxt, TemplatesJsonTxt, EarliestDate, LatestDate);
+                    PushNewSequenceDefaults();
                     CurrPage.DhxSequence.LoadData(EventsJsonTxt);
                     PushHolidaysData(EarliestDate, LatestDate);
                     CurrPage.DhxSequence.SetDayOffColors(VisualDefaultSettings.GetWeekendColor(), VisualDefaultSettings.GetHolidayColor());
@@ -201,6 +202,25 @@ page 50711 "Day Planning Sequence Part"
         DayPlanningSequenceMgt.BuildSectionsAndEventsJson(JobNo, JobTaskNo, SectionsJsonTxt, EventsJsonTxt, EarliestDate, LatestDate);
         CurrPage.DhxSequence.RefreshTimeline(SectionsJsonTxt, EventsJsonTxt, EarliestDate, LatestDate);
         PushHolidaysData(EarliestDate, LatestDate);
+        PushNewSequenceDefaults();
+    end;
+
+    /// <summary>
+    /// "New sequence" defaults: Skill = Daily Optimizer Setup."Default Skill"; Work-Hour Template =
+    /// Job Task."Work Hour Template", else Daily Optimizer Setup."Work hour Template".
+    /// </summary>
+    local procedure PushNewSequenceDefaults()
+    var
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        JobTask: Record "Job Task";
+        TemplateCode: Code[20];
+    begin
+        if DailyOptimizerSetup.Get() then;
+        if JobTask.Get(JobNo, JobTaskNo) then
+            TemplateCode := JobTask."Work Hour Template";
+        if TemplateCode = '' then
+            TemplateCode := DailyOptimizerSetup."Work hour Template";
+        CurrPage.DhxSequence.SetNewSequenceDefaults(DailyOptimizerSetup."Default Skill", TemplateCode);
     end;
 
     /// <summary>

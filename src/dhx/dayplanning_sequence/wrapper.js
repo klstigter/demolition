@@ -178,8 +178,8 @@ function buildDom(host) {
                     '<div class="dps-field"><label>Skill</label><select id="dpsEventSkill"></select></div>' +
                     '<div class="dps-field"><label>Work-Hour Template</label><select id="dpsEventTemplate"></select></div>' +
                     '<div class="dps-field"><label>Exclude days</label><div class="dps-exclude-grid" id="dpsEventExcludeDays"></div></div>' +
-                    '<div class="dps-field"><label>Start Date</label><input type="date" id="dpsEventStartDate"></div>' +
-                    '<div class="dps-field"><label>End Date</label><input type="date" id="dpsEventEndDate"></div>' +
+                    '<div class="dps-field"><label>Start Date</label><input type="date" lang="en-GB" id="dpsEventStartDate"></div>' +
+                    '<div class="dps-field"><label>End Date</label><input type="date" lang="en-GB" id="dpsEventEndDate"></div>' +
                 '</div>' +
                 '<div class="dps-status" id="dpsCreateStatus"></div>' +
                 '<div class="dps-panelactions">' +
@@ -630,6 +630,7 @@ function wireToolbarAndPanels() {
     $id("dpsCreateLines").onclick = createLines;
     $id("dpsEventTemplate").onchange = function () {
         renderExcludeGrid("dpsEventExcludeDays", dps_eventExclusionsDraft, $id("dpsEventTemplate").value);
+        fillDatesFromTemplate($id("dpsEventTemplate").value, false);
     };
 
     document.addEventListener("keydown", function (e) {
@@ -730,15 +731,15 @@ function applySequence() {
 function openLinesDialog() {
     populateSelect("dpsEventSkill", dps_skills, "Select skill...");
     populateSelect("dpsEventTemplate", dps_templates, "Select template...");
-    $id("dpsEventSkill").value = "";
-    $id("dpsEventTemplate").value = "";
+    $id("dpsEventSkill").value = dps_defaultSkill;
+    $id("dpsEventTemplate").value = dps_defaultTemplate;
+    // value only sticks if the option exists; fall back to the placeholder
+    if ($id("dpsEventSkill").value !== dps_defaultSkill) $id("dpsEventSkill").value = "";
+    if ($id("dpsEventTemplate").value !== dps_defaultTemplate) $id("dpsEventTemplate").value = "";
     dps_eventExclusionsDraft = {};
-    renderExcludeGrid("dpsEventExcludeDays", dps_eventExclusionsDraft, "");
+    renderExcludeGrid("dpsEventExcludeDays", dps_eventExclusionsDraft, $id("dpsEventTemplate").value);
 
-    var tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    $id("dpsEventStartDate").value = isoDateOnly(tomorrow);
-    $id("dpsEventEndDate").value = "";
+    fillDatesFromTemplate($id("dpsEventTemplate").value, true);
 
     $id("dpsCreateStatus").textContent = "";
     $id("dpsLinesDialog").classList.add("dps-open");
@@ -767,6 +768,25 @@ function createLines() {
     $id("dpsCreateStatus").textContent = "Creating...";
     _showDpsLoading();
     Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnCreateSequence", [JSON.stringify(payload)]);
+}
+// Start = today; End = the Nth active day counting from today, N = number of active weekdays
+// (Mon..Sun) in the template. Blank template: clears both (force) or leaves them untouched.
+function fillDatesFromTemplate(templateCode, force) {
+    if (!templateCode) {
+        if (force) { $id("dpsEventStartDate").value = ""; $id("dpsEventEndDate").value = ""; }
+        return;
+    }
+    if (!force && $id("dpsEventStartDate").value) return;
+    var active = activeWeekdaySet(templateCode);
+    var n = Object.keys(active).length;
+    var d = new Date();
+    $id("dpsEventStartDate").value = isoDateOnly(d);
+    var counted = 0;
+    while (n > 0) {
+        if (active[d.getDay() || 7]) { counted++; if (counted === n) break; }
+        d.setDate(d.getDate() + 1);
+    }
+    $id("dpsEventEndDate").value = isoDateOnly(d);
 }
 function isoDateOnly(d) {
     var y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, "0"), day = String(d.getDate()).padStart(2, "0");
@@ -811,6 +831,13 @@ function dpsTagRows(root) {
         var on = !!dps_highlightKeys[lines[i].getAttribute("data-section-id")];
         if (lines[i].classList.contains("dps-hl-row") !== on) lines[i].classList.toggle("dps-hl-row", on);
     }
+}
+
+var dps_defaultSkill = "";
+var dps_defaultTemplate = "";
+function SetNewSequenceDefaults(skillCode, templateCode) {
+    dps_defaultSkill = skillCode || "";
+    dps_defaultTemplate = templateCode || "";
 }
 
 function Init(sectionsJson,skillsJson, templatesJson, earliestDate, latestDate) {
