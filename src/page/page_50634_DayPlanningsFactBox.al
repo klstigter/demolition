@@ -36,22 +36,6 @@ page 50634 "Day Plannings FactBox"
                 {
                     Caption = 'Data Owner';
                 }
-                field("Project Manager Status"; Rec."Project Manager Status")
-                {
-                    ApplicationArea = All;
-                }
-                field("Planner Status"; Rec."Planner Status")
-                {
-                    ApplicationArea = All;
-                }
-                field("Vendor Status"; Rec."Vendor Status")
-                {
-                    ApplicationArea = All;
-                }
-                field("Approved Project Manager"; Rec."Approved Project Manager")
-                {
-                    ApplicationArea = All;
-                }
                 field("Work Order No."; Rec."Order Intake No.")
                 {
                     ApplicationArea = All;
@@ -87,6 +71,22 @@ page 50634 "Day Plannings FactBox"
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the assigned team leader for this day task.';
+                }
+                field("Project Manager Status"; Rec."Project Manager Status")
+                {
+                    ApplicationArea = All;
+                }
+                field("Planner Status"; Rec."Planner Status")
+                {
+                    ApplicationArea = All;
+                }
+                field("Vendor Status"; Rec."Vendor Status")
+                {
+                    ApplicationArea = All;
+                }
+                field("Approved Project Manager"; Rec."Approved Project Manager")
+                {
+                    ApplicationArea = All;
                 }
 
             }

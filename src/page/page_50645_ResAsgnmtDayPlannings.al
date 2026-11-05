@@ -67,22 +67,6 @@ page 50645 "Res. Asgmt. Day Plannings"
                 {
                     Caption = 'Data Owner';
                 }
-                field("Project Manager Status"; Rec."Project Manager Status")
-                {
-                    ApplicationArea = All;
-                }
-                field("Planner Status"; Rec."Planner Status")
-                {
-                    ApplicationArea = All;
-                }
-                field("Vendor Status"; Rec."Vendor Status")
-                {
-                    ApplicationArea = All;
-                }
-                field("Approved Project Manager"; Rec."Approved Project Manager")
-                {
-                    ApplicationArea = All;
-                }
                 field(Skill; Rec.Skill)
                 {
                     ApplicationArea = All;
@@ -222,6 +206,23 @@ page 50645 "Res. Asgmt. Day Plannings"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the assigned team leader for this day task.';
                 }
+                field("Project Manager Status"; Rec."Project Manager Status")
+                {
+                    ApplicationArea = All;
+                }
+                field("Planner Status"; Rec."Planner Status")
+                {
+                    ApplicationArea = All;
+                }
+                field("Vendor Status"; Rec."Vendor Status")
+                {
+                    ApplicationArea = All;
+                }
+                field("Approved Project Manager"; Rec."Approved Project Manager")
+                {
+                    ApplicationArea = All;
+                }
+
             }
         }
     }
