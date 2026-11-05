@@ -2582,7 +2582,7 @@ var renderResourceLine = function (resource, timeline) {
         );
         if (dtDate === dayStr) {
           dtCount++;
-          if (dt.plan_status !== "Request" && dt.id) cellIdList.push(dt.id);
+          if (dt.id) cellIdList.push(dt.id);
         }
       }
     }
