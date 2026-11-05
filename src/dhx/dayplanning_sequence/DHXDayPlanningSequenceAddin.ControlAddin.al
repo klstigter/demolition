@@ -36,6 +36,8 @@ controladdin DHXDayPlanningSequenceAddin
     procedure SetShowContext(show: Boolean);
     // Standalone page 50712 only: JSON array of section keys (rows) to shade light yellow.
     procedure SetHighlightedSections(keysJson: Text);
+    // Default Skill / Work-Hour Template pre-selected when "New sequence" opens (part 50711).
+    procedure SetNewSequenceDefaults(skillCode: Text; templateCode: Text);
     procedure LoadData(eventsJson: Text);
     procedure RefreshTimeline(sectionsJson: Text; eventsJson: Text; anchorDate: Date; latestDate: Date);
     procedure LoadHolidaysData(holidaysJsonTxt: Text);
