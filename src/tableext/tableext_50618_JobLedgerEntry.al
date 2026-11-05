@@ -27,5 +27,10 @@ tableextension 50618 "Opt. Job Ledger Entry" extends "Job Ledger Entry"
             Caption = 'Invoice Resource No.';
             DataClassification = ToBeClassified;
         }
+        field(50622; "Approved Project Manager"; Code[50])
+        {
+            Caption = 'Approved Project Manager';
+            DataClassification = ToBeClassified;
+        }
     }
 }

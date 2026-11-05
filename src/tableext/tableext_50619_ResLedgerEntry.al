@@ -20,5 +20,20 @@ tableextension 50619 "Opt. Res. Ledger Entry" extends "Res. Ledger Entry"
             DataClassification = CustomerContent;
             Editable = false;
         }
+        field(50620; Skill; Code[10])
+        {
+            DataClassification = ToBeClassified;
+            tableRelation = "Skill Code";
+        }
+        field(50621; "Invoice Resource No."; Code[20])
+        {
+            Caption = 'Invoice Resource No.';
+            DataClassification = ToBeClassified;
+        }
+        field(50622; "Approved Project Manager"; Code[50])
+        {
+            Caption = 'Approved Project Manager';
+            DataClassification = ToBeClassified;
+        }
     }
 }

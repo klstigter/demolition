@@ -101,6 +101,7 @@ codeunit 50660 "DayPlanning Journal Post"
             Skill.Get(JobJnlLine.Skill);
             Skill.TestField("Invoice Resource No.");
             JobJnlLine."Invoice Resource No." := Skill."Invoice Resource No.";
+            JobJnlLine."Approved Project Manager" := DayPlanningJnlLine."Approved Project Manager";
             JobJnlLine.Insert(true);
             NextLineNo += 10000;
         until DayPlanningJnlLine.Next() = 0;

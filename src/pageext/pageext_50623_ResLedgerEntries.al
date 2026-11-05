@@ -21,6 +21,27 @@ pageextension 50623 "Opt. Res. Ledger Entries" extends "Resource Ledger Entries"
                 ToolTip = 'Specifies the Day Planning line number that was linked to the originating Project Journal line (Resource type only).';
                 Editable = false;
             }
+            field("Opt. Skill"; Rec.Skill)
+            {
+                ApplicationArea = All;
+                Caption = 'Skill';
+                ToolTip = 'Specifies the Skill linked to the originating Project Journal line.';
+                Editable = false;
+            }
+            field("Opt. Invoice Resource No."; Rec."Invoice Resource No.")
+            {
+                ApplicationArea = All;
+                Caption = 'Invoice Resource No.';
+                ToolTip = 'Specifies the Invoice Resource No. linked to the originating Project Journal line.';
+                Editable = false;
+            }
+            field("Opt. Approved Project Manager"; Rec."Approved Project Manager")
+            {
+                ApplicationArea = All;
+                Caption = 'Approved Project Manager';
+                ToolTip = 'Specifies the Approved Project Manager linked to the originating Project Journal line.';
+                Editable = false;
+            }
         }
     }
 }
