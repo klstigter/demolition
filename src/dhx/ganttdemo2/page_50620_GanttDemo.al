@@ -329,6 +329,7 @@ page 50620 "Gantt Demo DHX 2"
                     JobTaskNos: List of [Text];
                     JobNoFilter: Text;
                     JobTaskNoFilter: Text;
+                    SysIdFilter: Text;
                     BeforeCount: Integer;
                     BeforeMax: DateTime;
                 begin
@@ -358,7 +359,25 @@ page 50620 "Gantt Demo DHX 2"
                         end;
                     end;
 
-                    // Step 2: apply all filters (date, resource, plan status, job/task from idList)
+                    // Step 2: if the marker supplied its record ids, show exactly those records
+                    // (same set the record count indicator counted).
+                    if pIdList <> '' then begin
+                        foreach IdText in IdList do
+                            if Evaluate(SysId, IdText) then begin
+                                if SysIdFilter <> '' then
+                                    SysIdFilter += '|';
+                                SysIdFilter += Format(SysId);
+                            end;
+                        if SysIdFilter <> '' then begin
+                            DayPlanning.Reset();
+                            DayPlanning.SetFilter(SystemId, SysIdFilter);
+                            Page.RunModal(Page::"Day Plannings", DayPlanning);
+                            RefreshResourcePanelIfChanged(BeforeCount, BeforeMax);
+                            exit;
+                        end;
+                    end;
+
+                    // Fallback (no id list): filter by date, resource, job/task
                     tp[1] := CopyStr(ResourceId, 1, 4);
                     tp[2] := CopyStr(ResourceId, 5);
                     DayPlanning.Reset();
