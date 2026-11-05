@@ -46,18 +46,22 @@ page 50668 "Day Planning Card Opt"
                     field("Project Manager Status"; Rec."Project Manager Status")
                     {
                         ApplicationArea = All;
+                        Visible = false;
                     }
                     field("Planner Status"; Rec."Planner Status")
                     {
                         ApplicationArea = All;
+                        Visible = false;
                     }
                     field("Vendor Status"; Rec."Vendor Status")
                     {
                         ApplicationArea = All;
+                        Visible = false;
                     }
                     field("Approved Project Manager"; Rec."Approved Project Manager")
                     {
                         ApplicationArea = All;
+                        Visible = false;
                     }
                 }
                 field(DaylineNo; Rec."Day Line No.")

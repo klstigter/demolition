@@ -34,22 +34,6 @@ page 50624 "Day Planning Info FactBox"
                     Caption = 'Data Owner';
                     ApplicationArea = All;
                 }
-                field("Project Manager Status"; Rec."Project Manager Status")
-                {
-                    ApplicationArea = All;
-                }
-                field("Planner Status"; Rec."Planner Status")
-                {
-                    ApplicationArea = All;
-                }
-                field("Vendor Status"; Rec."Vendor Status")
-                {
-                    ApplicationArea = All;
-                }
-                field("Approved Project Manager"; Rec."Approved Project Manager")
-                {
-                    ApplicationArea = All;
-                }
                 field("Assigned Resource No."; Rec."Assigned Resource No.")
                 {
                     ApplicationArea = All;
@@ -97,6 +81,22 @@ page 50624 "Day Planning Info FactBox"
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the value of the Total Requested Hours field.', Comment = '%';
+                }
+                field("Project Manager Status"; Rec."Project Manager Status")
+                {
+                    ApplicationArea = All;
+                }
+                field("Planner Status"; Rec."Planner Status")
+                {
+                    ApplicationArea = All;
+                }
+                field("Vendor Status"; Rec."Vendor Status")
+                {
+                    ApplicationArea = All;
+                }
+                field("Approved Project Manager"; Rec."Approved Project Manager")
+                {
+                    ApplicationArea = All;
                 }
             }
             group(JobInformation)
