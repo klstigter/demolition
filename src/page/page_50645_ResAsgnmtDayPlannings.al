@@ -67,6 +67,22 @@ page 50645 "Res. Asgmt. Day Plannings"
                 {
                     Caption = 'Data Owner';
                 }
+                field("Project Manager Status"; Rec."Project Manager Status")
+                {
+                    ApplicationArea = All;
+                }
+                field("Planner Status"; Rec."Planner Status")
+                {
+                    ApplicationArea = All;
+                }
+                field("Vendor Status"; Rec."Vendor Status")
+                {
+                    ApplicationArea = All;
+                }
+                field("Approved Project Manager"; Rec."Approved Project Manager")
+                {
+                    ApplicationArea = All;
+                }
                 field(Skill; Rec.Skill)
                 {
                     ApplicationArea = All;
@@ -254,13 +270,13 @@ page 50645 "Res. Asgmt. Day Plannings"
             Rec.SetRange("Plan Date", ForceToSpecificDate)
         else
             if (DateFrom <> 0D) and (DateTo <> 0D) then
-            Rec.SetRange("Plan Date", DateFrom, DateTo)
+                Rec.SetRange("Plan Date", DateFrom, DateTo)
             else
                 if DateFrom <> 0D then
-                Rec.SetFilter("Plan Date", '%1..', DateFrom)
+                    Rec.SetFilter("Plan Date", '%1..', DateFrom)
                 else
                     if DateTo <> 0D then
-                    Rec.SetRange("Plan Date", 0D, DateTo);
+                        Rec.SetRange("Plan Date", 0D, DateTo);
 
         Rec.FilterGroup(0);
 

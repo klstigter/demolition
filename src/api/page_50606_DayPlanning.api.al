@@ -53,6 +53,22 @@ page 50606 "DayPlanningApi Opt"
                 {
                     ApplicationArea = All;
                 }
+                field(projectManagerStatus; Rec."Project Manager Status")
+                {
+                    ApplicationArea = All;
+                }
+                field(plannerStatus; Rec."Planner Status")
+                {
+                    ApplicationArea = All;
+                }
+                field(vendorStatus; Rec."Vendor Status")
+                {
+                    ApplicationArea = All;
+                }
+                field(approvedProjectManager; Rec."Approved Project Manager")
+                {
+                    ApplicationArea = All;
+                }
                 field(startTimeRequested; Rec."Start Time Requested")
                 {
                     Caption = 'Start Time Assigned';

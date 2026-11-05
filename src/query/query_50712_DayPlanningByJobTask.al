@@ -35,6 +35,10 @@ query 50712 "Day Planning By Job Task"
             column(RequestedResourceNo; "Requested Resource No.") { }
             column(VendorNo; "Vendor No.") { }
             column(PlanStatus; "Plan Status") { }
+            column(ProjectManagerStatus; "Project Manager Status") { }
+            column(PlannerStatus; "Planner Status") { }
+            column(VendorStatus; "Vendor Status") { }
+            column(ApprovedProjectManager; "Approved Project Manager") { }
             column(WorkOrderNo; "Order Intake No.") { }
             column(Skill; Skill) { }
             column(SequenceNo; "Sequence No.") { }

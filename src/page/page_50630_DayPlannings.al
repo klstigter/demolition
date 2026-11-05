@@ -96,6 +96,22 @@ page 50630 "Day Plannings"
                 {
                     Caption = 'Data Owner';
                 }
+                field("Project Manager Status"; Rec."Project Manager Status")
+                {
+                    ApplicationArea = All;
+                }
+                field("Planner Status"; Rec."Planner Status")
+                {
+                    ApplicationArea = All;
+                }
+                field("Vendor Status"; Rec."Vendor Status")
+                {
+                    ApplicationArea = All;
+                }
+                field("Approved Project Manager"; Rec."Approved Project Manager")
+                {
+                    ApplicationArea = All;
+                }
                 field("Task Date"; Rec."Plan Date")
                 {
                     ApplicationArea = All;
