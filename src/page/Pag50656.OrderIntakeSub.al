@@ -140,14 +140,11 @@ page 50656 "Project Task Sub"
     }
 
     trigger OnNewRecord(BelowxRec: Boolean)
-    var
-        OrderIntak: Record "Order Intake Header opt.";
-        NoSeries: Codeunit "No. Series";
     begin
+        // No Customer No. check here: the card makes this part non-editable until a customer is set,
+        // and the blank row is also created when the header is first saved (Customer No. still empty).
         rec.FilterGroup(4);
-        rec."Order Intake No." := rec.GetFilter("Order Intake No.");
-        OrderIntak.Get(rec."Order Intake No.");
-        OrderIntak.TestField("Customer No.");
+        rec."Order Intake No." := CopyStr(rec.GetFilter("Order Intake No."), 1, MaxStrLen(rec."Order Intake No."));
         rec.FilterGroup(0);
     end;
 
