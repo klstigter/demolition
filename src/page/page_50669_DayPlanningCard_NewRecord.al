@@ -81,7 +81,7 @@ page 50669 "Day Planning Card - New Record"
                     {
                         ApplicationArea = All;
                     }
-                    field("Non Working Minutes Requested"; Rec."Non Working Minutes Requested")
+                    field("Non Working Minutes Requested"; Rec."Idle Minutes Requested")
                     {
                         ApplicationArea = All;
                     }
@@ -106,7 +106,7 @@ page 50669 "Day Planning Card - New Record"
                     {
                         ApplicationArea = All;
                     }
-                    field("Non Working Minutes Assigned"; Rec."Non Working Minutes Assigned")
+                    field("Non Working Minutes Assigned"; Rec."Idle Minutes Assigned")
                     {
                         ApplicationArea = All;
                     }

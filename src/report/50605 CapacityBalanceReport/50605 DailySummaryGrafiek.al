@@ -56,8 +56,7 @@ report 50605 "Daily Capacity Balance Report"
                                     ResourceNo := DayPlanning."Assigned Resource No.";
                                     StartTm := dayplanning."Start Time Requested";
                                     EndTim := dayplanning."End Time Requested";
-                                    NonWorkingMinutes := DayPlanning."Non Working Minutes Assigned";
-
+                                    NonWorkingMinutes := DayPlanning."Idle Minutes Assigned";
                                     if not Resource.Get(DayPlanning."Assigned Resource No.") then
                                         clear(Resource);
                                 end;
@@ -68,8 +67,7 @@ report 50605 "Daily Capacity Balance Report"
                                     ResourceNo := DayPlanning."Requested Resource No.";
                                     StartTm := dayplanning."Start Time Requested";
                                     EndTim := dayplanning."End Time Requested";
-                                    NonWorkingMinutes := DayPlanning."Non Working Minutes Assigned";
-
+                                    NonWorkingMinutes := DayPlanning."Idle Minutes Assigned";
                                     if not Resource.Get(DayPlanning."Requested Resource No.") then
                                         clear(Resource);
                                 end;
@@ -95,7 +93,6 @@ report 50605 "Daily Capacity Balance Report"
                                 SortResourceGroupSqnc := 1;
                             end;
                         end;
-
                     end;
 
 
@@ -104,7 +101,6 @@ report 50605 "Daily Capacity Balance Report"
                 trigger OnAfterGetRecord()
                 var
                 begin
-
                 end;
 
             }
@@ -145,7 +141,6 @@ report 50605 "Daily Capacity Balance Report"
 
     trigger OnPreReport()
     begin
-
     end;
 
     var

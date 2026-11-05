@@ -130,7 +130,7 @@ page 50645 "Res. Asgmt. Day Plannings"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the end time for this day task.';
                 }
-                field("Non Working Minutes"; Rec."Non Working Minutes Assigned")
+                field("Non Working Minutes"; Rec."Idle Minutes Assigned")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the non-working minutes within the task period.';
@@ -252,12 +252,15 @@ page 50645 "Res. Asgmt. Day Plannings"
         Rec.SetRange("Plan Date");
         if ForceToSpecificDate <> 0D then
             Rec.SetRange("Plan Date", ForceToSpecificDate)
-        else if (DateFrom <> 0D) and (DateTo <> 0D) then
+        else
+            if (DateFrom <> 0D) and (DateTo <> 0D) then
             Rec.SetRange("Plan Date", DateFrom, DateTo)
-        else if DateFrom <> 0D then
-            Rec.SetFilter("Plan Date", '%1..', DateFrom)
-        else if DateTo <> 0D then
-            Rec.SetRange("Plan Date", 0D, DateTo);
+            else
+                if DateFrom <> 0D then
+                Rec.SetFilter("Plan Date", '%1..', DateFrom)
+                else
+                    if DateTo <> 0D then
+                    Rec.SetRange("Plan Date", 0D, DateTo);
 
         Rec.FilterGroup(0);
 
@@ -278,21 +281,26 @@ page 50645 "Res. Asgmt. Day Plannings"
         Parts := '';
         if JobNo <> '' then
             Parts += 'Project: ' + JobNo;
-
         if ForceToSpecificDate <> 0D then begin
-            if Parts <> '' then Parts += '  |  ';
+            if Parts <> '' then
+                Parts += '  |  ';
             Parts += 'Specific Date: ' + Format(ForceToSpecificDate);
         end else begin
             if (DateFrom <> 0D) and (DateTo <> 0D) then begin
-                if Parts <> '' then Parts += '  |  ';
+                if Parts <> '' then
+                    Parts += '  |  ';
                 Parts += 'Date: ' + Format(DateFrom) + ' .. ' + Format(DateTo);
-            end else if DateFrom <> 0D then begin
-                if Parts <> '' then Parts += '  |  ';
-                Parts += 'Date: ' + Format(DateFrom) + '..';
-            end else if DateTo <> 0D then begin
-                if Parts <> '' then Parts += '  |  ';
-                Parts += 'Date: ..' + Format(DateTo);
-            end;
+            end else
+                if DateFrom <> 0D then begin
+                    if Parts <> '' then
+                        Parts += '  |  ';
+                    Parts += 'Date: ' + Format(DateFrom) + '..';
+                end else
+                    if DateTo <> 0D then begin
+                        if Parts <> '' then
+                            Parts += '  |  ';
+                        Parts += 'Date: ..' + Format(DateTo);
+                    end;
         end;
         FilterDescription := Parts;
     end;

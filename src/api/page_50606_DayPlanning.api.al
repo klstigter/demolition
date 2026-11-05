@@ -61,7 +61,7 @@ page 50606 "DayPlanningApi Opt"
                 {
                     Caption = 'End Time Assigned';
                 }
-                field(nonWorkingMinutesRequested; Rec."Non Working Minutes Requested") { }
+                field(nonWorkingMinutesRequested; Rec."Idle Minutes Requested") { }
                 field(startTimeAssigned; Rec."Start Time Assigned")
                 {
                     Caption = 'Start Time Assigned';
@@ -70,7 +70,7 @@ page 50606 "DayPlanningApi Opt"
                 {
                     Caption = 'End Time Assigned';
                 }
-                field(nonWorkingMinutesAssigned; Rec."Non Working Minutes Assigned") { }
+                field(nonWorkingMinutesAssigned; Rec."Idle Minutes Assigned") { }
                 field(startTimeRealized; Rec."Start Time Realized")
                 {
                     Caption = 'Start Time Assigned';

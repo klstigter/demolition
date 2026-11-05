@@ -67,7 +67,7 @@ page 50675 "DayPlanning Line Opt"
                 {
                     Caption = 'End Time Requested';
                 }
-                field(nonWorkingMinutesRequested; Rec."Non Working Minutes Requested")
+                field(nonWorkingMinutesRequested; Rec."Idle Minutes Requested")
                 {
                     Caption = 'Non Working Minutes Requested';
                 }
@@ -79,7 +79,7 @@ page 50675 "DayPlanning Line Opt"
                 {
                     Caption = 'End Time Assigned';
                 }
-                field(nonWorkingMinutesAssigned; Rec."Non Working Minutes Assigned")
+                field(nonWorkingMinutesAssigned; Rec."Idle Minutes Assigned")
                 {
                     Caption = 'Non Working Minutes Assigned';
                 }

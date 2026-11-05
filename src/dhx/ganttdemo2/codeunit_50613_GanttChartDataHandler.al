@@ -92,7 +92,6 @@ codeunit 50613 "GanttChartDataHandler"
 
         HasPlannedRow := JobTaskByPlanned.FindSet();
         HasConstraintRow := JobTaskByConstraint.FindSet();
-
         while HasPlannedRow or HasConstraintRow do begin
             // Merge-join: both cursors are already ordered by primary key, so at each step take
             // whichever current row sorts first. A row satisfying BOTH filters (valid Planned
@@ -101,14 +100,15 @@ codeunit 50613 "GanttChartDataHandler"
             if HasPlannedRow and HasConstraintRow then
                 KeyCompare := CompareJobTaskKey(JobTaskByPlanned, JobTaskByConstraint)
             else
-                if HasPlannedRow then KeyCompare := -1 else KeyCompare := 1;
+                if HasPlannedRow then
+                    KeyCompare := -1 else
+                    KeyCompare := 1;
 
             FromConstraintRow := KeyCompare > 0;
             if FromConstraintRow then
                 JobTask := JobTaskByConstraint
             else
                 JobTask := JobTaskByPlanned;
-
             if OldJobNo <> JobTask."Job No." then begin
                 OldJobNo := JobTask."Job No.";
                 clear(ParentJobTaskId);
@@ -132,7 +132,6 @@ codeunit 50613 "GanttChartDataHandler"
                 JsonObject := CreateJobTaskJsonObject(JobTask);
                 JsonArray.Add(JsonObject);
             end;
-
             if KeyCompare = 0 then begin
                 HasPlannedRow := JobTaskByPlanned.Next() <> 0;
                 HasConstraintRow := JobTaskByConstraint.Next() <> 0;
@@ -152,10 +151,14 @@ codeunit 50613 "GanttChartDataHandler"
     /// </summary>
     local procedure CompareJobTaskKey(A: Record "Job Task"; B: Record "Job Task") Result: Integer
     begin
-        if A."Job No." < B."Job No." then exit(-1);
-        if A."Job No." > B."Job No." then exit(1);
-        if A."Job Task No." < B."Job Task No." then exit(-1);
-        if A."Job Task No." > B."Job Task No." then exit(1);
+        if A."Job No." < B."Job No." then
+            exit(-1);
+        if A."Job No." > B."Job No." then
+            exit(1);
+        if A."Job Task No." < B."Job Task No." then
+            exit(-1);
+        if A."Job Task No." > B."Job Task No." then
+            exit(1);
         exit(0);
     end;
 
@@ -262,7 +265,6 @@ codeunit 50613 "GanttChartDataHandler"
             JsonObject.Add('open', true); // tell DHTMLX to render this parent row expanded
         end;
         JsonObject.Add('parent', ParentJobTaskId[JobTask.Indentation + 1]);
-
     end;
 
     local procedure FormatDate(InputDate: Date) FormattedDate: Text
@@ -324,7 +326,6 @@ codeunit 50613 "GanttChartDataHandler"
     begin
         GanttSetup.Get(UserId);
         GetDateRange(GanttSetup, AnchorDate, StartDate, EndDate);
-
         if JobNo <> '' then
             UsedResourcesQuery.SetFilter(JobNoFilter, JobNo);
         if JobTaskNo <> '' then
@@ -421,7 +422,6 @@ codeunit 50613 "GanttChartDataHandler"
         DayPlanningByJobTaskQry.SetFilter(JobNoFilter, JobNoFilterText);
         DayPlanningByJobTaskQry.SetFilter(JobTaskNoFilter, JobTaskNoFilterText);
         ApplyPlanDateFilter(DayPlanningByJobTaskQry, FromDate, ToDate);
-
         if DayPlanningByJobTaskQry.Open() then begin
             while DayPlanningByJobTaskQry.Read() do
                 // The two OR-lists above are independent (all distinct Job Nos | all distinct Job
@@ -473,7 +473,6 @@ codeunit 50613 "GanttChartDataHandler"
         DayPlanningByJobTaskQry.SetFilter(JobNoFilter, JobNoFilterText);
         DayPlanningByJobTaskQry.SetFilter(JobTaskNoFilter, JobTaskNoFilterText);
         ApplyPlanDateFilter(DayPlanningByJobTaskQry, FromDate, ToDate);
-
         if DayPlanningByJobTaskQry.Open() then begin
             while DayPlanningByJobTaskQry.Read() do
                 if PairSet.Contains(DayPlanningByJobTaskQry.JobNo + '|' + DayPlanningByJobTaskQry.JobTaskNo) then begin
@@ -537,7 +536,6 @@ codeunit 50613 "GanttChartDataHandler"
                 end;
             end;
         end;
-
         foreach KeyText in DistinctJobNos do begin
             if JobNoFilterText <> '' then
                 JobNoFilterText += '|';
@@ -671,7 +669,6 @@ codeunit 50613 "GanttChartDataHandler"
             DayPlanning.SetFilter("Job Task No.", JobTaskNo);
         if AnchorDate <> 0D then
             DayPlanning.Setrange("Plan Date", StartDate, EndDate);
-
         if DayPlanning.FindSet() then
             repeat
                 JsonObject := CreateDayPlanningJsonObject(DayPlanning);
@@ -741,7 +738,6 @@ codeunit 50613 "GanttChartDataHandler"
         HasMore := false;
         GanttSetup.Get(UserId);
         GetDateRange(GanttSetup, AnchorDate, StartDate, EndDate);
-
         if Pass = 1 then begin
             if JobNo <> '' then
                 DayPlanning.SetFilter("Job No.", JobNo);
@@ -781,7 +777,7 @@ codeunit 50613 "GanttChartDataHandler"
                     if Emitted >= PageSize then begin
                         HasMore := true;
                         JsonArray.WriteTo(JsonText);
-                    exit;
+                        exit;
                     end;
                     JsonObject := CreateDayPlanningJsonObjectRequest(DayPlanning, JobTask."Placeholder Date");
                     JsonArray.Add(JsonObject);
@@ -859,10 +855,8 @@ codeunit 50613 "GanttChartDataHandler"
                     end;
                 until DayPlanning.Next() = 0;
         end;
-
         if BeforeCount + Created <> AfterCount then
             exit(false);
-
         foreach ResourceNo in ResourceNos do
             if Resource.Get(ResourceNo) then begin
                 Clear(JsonObject);
@@ -902,7 +896,7 @@ codeunit 50613 "GanttChartDataHandler"
             DayPlanning.SystemId, DayPlanning."Job No.", DayPlanning."Job Task No.", DayPlanning."Plan Date",
             DayPlanning."Day Line No.", DayPlanning."Start Time Assigned", DayPlanning."End Time Assigned",
             DayPlanning."Start Time Requested", DayPlanning."End Time Requested", DayPlanning."Assigned Hours",
-            DayPlanning."Requested Hours", DayPlanning."Non Working Minutes Assigned", DayPlanning."Non Working Minutes Requested",
+            DayPlanning."Requested Hours", DayPlanning."Idle Minutes Assigned", DayPlanning."Idle Minutes Requested",
             DayPlanning."Assigned Resource No.", DayPlanning."Requested Resource No.", DayPlanning."Vendor No.",
             DayPlanning."Plan Status", DayPlanning."Order Intake No.", DayPlanning."Skill", DayPlanning."Sequence No."));
     end;
@@ -960,7 +954,6 @@ codeunit 50613 "GanttChartDataHandler"
 
         JsonObject.Add('start_time', FormatTime(StartTimeAssignedValue));
         JsonObject.Add('end_time', FormatTime(EndTimeAssignedValue));
-
         if AssignedHoursValue <> 0 then
             JsonObject.Add('hours', AssignedHoursValue)
         else
@@ -984,7 +977,6 @@ codeunit 50613 "GanttChartDataHandler"
         JsonObject.Add('resource_id', ResourceId);
 
         JsonObject.Add('type', 'Resource');
-
         if VendorNoValue <> '' then
             JsonObject.Add('vendorNo', VendorNoValue)
         else
@@ -1032,7 +1024,6 @@ codeunit 50613 "GanttChartDataHandler"
 
         EndTimeText := FormatTime(DayPlanning."End Time Assigned");
         JsonObject.Add('end_time', EndTimeText);
-
         if DayPlanning."Assigned Hours" <> 0 then
             JsonObject.Add('hours', DayPlanning."Assigned Hours")
         else
@@ -1040,18 +1031,17 @@ codeunit 50613 "GanttChartDataHandler"
 
         JsonObject.Add('requested_start_time', FormatTime(DayPlanning."Start Time Requested"));
         JsonObject.Add('requested_end_time', FormatTime(DayPlanning."End Time Requested"));
-        JsonObject.Add('requested_idle_minutes', DayPlanning."Non Working Minutes Requested");
+        JsonObject.Add('requested_idle_minutes', DayPlanning."Idle Minutes Requested");
         JsonObject.Add('requested_hours', DayPlanning."Requested Hours");
         JsonObject.Add('assigned_start_time', FormatTime(DayPlanning."Start Time Assigned"));
         JsonObject.Add('assigned_end_time', FormatTime(DayPlanning."End Time Assigned"));
-        JsonObject.Add('assigned_idle_minutes', DayPlanning."Non Working Minutes Assigned");
+        JsonObject.Add('assigned_idle_minutes', DayPlanning."Idle Minutes Assigned");
         JsonObject.Add('assigned_hours', DayPlanning."Assigned Hours");
 
         ResourceId := GetResourceId(DayPlanning."Assigned Resource No.", DayPlanning."Requested Resource No.");
         JsonObject.Add('resource_id', ResourceId);
 
         JsonObject.Add('type', 'Resource');
-
         if DayPlanning."Vendor No." <> '' then
             JsonObject.Add('vendorNo', DayPlanning."Vendor No.")
         else

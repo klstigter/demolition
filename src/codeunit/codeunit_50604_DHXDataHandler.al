@@ -2,7 +2,6 @@ codeunit 50604 "DHX Data Handler"
 {
     trigger OnRun()
     begin
-
     end;
 
     var
@@ -217,7 +216,6 @@ codeunit 50604 "DHX Data Handler"
                 // start/end of day, same convention as GetStartEndTxt(DayPlanning...) below.
                 HasAssigned := (DayPlanning."Start Time Assigned" <> 0T) or (DayPlanning."End Time Assigned" <> 0T);
                 HasRequested := (DayPlanning."Start Time Requested" <> 0T) or (DayPlanning."End Time Requested" <> 0T);
-
                 if HasAssigned then begin
                     if DayPlanning."Start Time Assigned" <> 0T then
                         AssignedStartTime := DayPlanning."Start Time Assigned"
@@ -228,7 +226,6 @@ codeunit 50604 "DHX Data Handler"
                     else
                         AssignedEndTime := 235959T;
                 end;
-
                 if HasRequested then begin
                     if DayPlanning."Start Time Requested" <> 0T then
                         RequestedStartTime := DayPlanning."Start Time Requested"
@@ -239,7 +236,6 @@ codeunit 50604 "DHX Data Handler"
                     else
                         RequestedEndTime := 235959T;
                 end;
-
                 if HasAssigned and HasRequested then begin
                     if AssignedStartTime < RequestedStartTime then
                         EnvelopeStartTime := AssignedStartTime
@@ -249,18 +245,20 @@ codeunit 50604 "DHX Data Handler"
                         EnvelopeEndTime := AssignedEndTime
                     else
                         EnvelopeEndTime := RequestedEndTime;
-                end else if HasAssigned then begin
-                    EnvelopeStartTime := AssignedStartTime;
-                    EnvelopeEndTime := AssignedEndTime;
-                end else if HasRequested then begin
-                    EnvelopeStartTime := RequestedStartTime;
-                    EnvelopeEndTime := RequestedEndTime;
-                end else begin
-                    // Neither side has data: fall back to the whole day so a Day Planning
-                    // with no times at all still renders as an all-day bar.
-                    EnvelopeStartTime := 000000T;
-                    EnvelopeEndTime := 235959T;
-                end;
+                end else
+                    if HasAssigned then begin
+                        EnvelopeStartTime := AssignedStartTime;
+                        EnvelopeEndTime := AssignedEndTime;
+                    end else
+                        if HasRequested then begin
+                            EnvelopeStartTime := RequestedStartTime;
+                            EnvelopeEndTime := RequestedEndTime;
+                        end else begin
+                            // Neither side has data: fall back to the whole day so a Day Planning
+                            // with no times at all still renders as an all-day bar.
+                            EnvelopeStartTime := 000000T;
+                            EnvelopeEndTime := 235959T;
+                        end;
 
                 StartDateTxt := ToSessionDateTimeTxt(DayPlanning."Plan Date", EnvelopeStartTime);
                 EndDateTxt := ToSessionDateTimeTxt(DayPlanning."Plan Date", EnvelopeEndTime);
@@ -296,7 +294,7 @@ codeunit 50604 "DHX Data Handler"
                 // , DayPlanning."Job No.", Jobs.Description
                 // , DayPlanning."Job Task No.", JobTasks.Description));
 
-                PlanningObject.Add('non_working_minutes_assigned', DayPlanning."Non Working Minutes Assigned");
+                PlanningObject.Add('non_working_minutes_assigned', DayPlanning."Idle Minutes Assigned");
                 PlanningObject.Add('assigned_hours', DayPlanning."Assigned Hours");
                 PlanningObject.Add('requested_resource_no', DayPlanning."Requested Resource No.");
                 PlanningObject.Add('requested_resource_name', ReqResName);
@@ -316,7 +314,7 @@ codeunit 50604 "DHX Data Handler"
                     PlanningObject.Add('end_time_requested', Format(DayPlanning."End Time Requested", 0, '<Hours24,2>:<Minutes,2>'))
                 else
                     PlanningObject.Add('end_time_requested', '');
-                PlanningObject.Add('non_working_minutes_requested', DayPlanning."Non Working Minutes Requested");
+                PlanningObject.Add('non_working_minutes_requested', DayPlanning."Idle Minutes Requested");
                 PlanningObject.Add('requested_hours', DayPlanning."Requested Hours");
                 PlanningObject.Add('skill', DayPlanning.Skill);
                 PlanningObject.Add('requested_color', ResolveRequestedColor(DayPlanning.Skill, SkillColorDict, NextSkillPaletteIndex));
@@ -328,7 +326,6 @@ codeunit 50604 "DHX Data Handler"
             // the last write's result is ever read, but this cuts an O(n) redundant
             // re-serialization down to one write.
             PlanningArray.WriteTo(PlanninJsonTxt);
-
             if AnchorDate = 0D then begin
                 WeekTemp.Reset();
                 WeekTemp.SetCurrentKey("Column 1 Amt.", "Column 2 Amt.");
@@ -345,7 +342,6 @@ codeunit 50604 "DHX Data Handler"
         // indentation > 0, walk up the real Job Task table and insert every missing
         // Begin-Total / Heading ancestor so the Y-axis tree mirrors Page 1 structure.
         AddAncestorsToTemp(TEMPJobTasks);
-
         if TEMPJobTasks.FindSet() then begin
             Clear(DataArray);
             CurrentJobNo := '';
@@ -387,32 +383,32 @@ codeunit 50604 "DHX Data Handler"
                     StackArr[StackDepth].Add(StackObj[StackDepth]);
                     StackDepth -= 1;
                 end;
-
                 if TEMPJobTasks."Job Task Type" = TEMPJobTasks."Job Task Type"::Posting then begin
                     // Leaf: add directly to the active level's children array
                     Clear(TaskLeaf);
                     TaskLeaf.Add('key', TEMPJobTasks."Job No." + '|' + TEMPJobTasks."Job Task No.");
                     TaskLeaf.Add('label', StrSubstNo('%1 - %2', TEMPJobTasks."Job Task No.", TEMPJobTasks.Description));
                     StackArr[StackDepth + 1].Add(TaskLeaf);
-                end else if (TEMPJobTasks."Job Task Type" = TEMPJobTasks."Job Task Type"::"End-Total") or
-                            (TEMPJobTasks."Job Task Type" = TEMPJobTasks."Job Task Type"::Total) then begin
-                    // End-Total and Total are accounting markers — not visual nodes, skip them
-                end else begin
-                    // Heading / Begin-Total: push a new nesting level onto the stack
-                    // Use a local variable (HeadingNode) instead of clearing the array element directly,
-                    // because Clear() on JsonObject array elements is unreliable in BC AL.
-                    if StackDepth < 49 then begin
-                        StackDepth += 1;
-                        Clear(HeadingNode);
-                        HeadingNode.Add('key', TEMPJobTasks."Job No." + '|' + TEMPJobTasks."Job Task No.");
-                        HeadingNode.Add('label', StrSubstNo('%1 - %2', TEMPJobTasks."Job Task No.", TEMPJobTasks.Description));
-                        HeadingNode.Add('open', true);
-                        StackObj[StackDepth] := HeadingNode;
-                        Clear(FreshArr);
-                        StackArr[StackDepth + 1] := FreshArr;
-                        StackIndent[StackDepth] := TEMPJobTasks.Indentation;
+                end else
+                    if (TEMPJobTasks."Job Task Type" = TEMPJobTasks."Job Task Type"::"End-Total") or
+                       (TEMPJobTasks."Job Task Type" = TEMPJobTasks."Job Task Type"::Total) then begin
+                        // End-Total and Total are accounting markers — not visual nodes, skip them
+                    end else begin
+                        // Heading / Begin-Total: push a new nesting level onto the stack
+                        // Use a local variable (HeadingNode) instead of clearing the array element directly,
+                        // because Clear() on JsonObject array elements is unreliable in BC AL.
+                        if StackDepth < 49 then begin
+                            StackDepth += 1;
+                            Clear(HeadingNode);
+                            HeadingNode.Add('key', TEMPJobTasks."Job No." + '|' + TEMPJobTasks."Job Task No.");
+                            HeadingNode.Add('label', StrSubstNo('%1 - %2', TEMPJobTasks."Job Task No.", TEMPJobTasks.Description));
+                            HeadingNode.Add('open', true);
+                            StackObj[StackDepth] := HeadingNode;
+                            Clear(FreshArr);
+                            StackArr[StackDepth + 1] := FreshArr;
+                            StackIndent[StackDepth] := TEMPJobTasks.Indentation;
+                        end;
                     end;
-                end;
             until TEMPJobTasks.Next() = 0;
             // Flush the last job
             if CurrentJobNo <> '' then begin
@@ -477,7 +473,6 @@ codeunit 50604 "DHX Data Handler"
                 if not DistinctJobNos.Contains(TEMPJobTasks."Job No.") then
                     DistinctJobNos.Add(TEMPJobTasks."Job No.");
             until TEMPJobTasks.Next() = 0;
-
         foreach JobNo in DistinctJobNos do begin
             AllJobTasksForJob.Reset();
             AllJobTasksForJob.DeleteAll();
@@ -517,7 +512,6 @@ codeunit 50604 "DHX Data Handler"
                 repeat
                     ToProcess.Add(TouchedSnapshot."Job Task No.");
                 until TouchedSnapshot.Next() = 0;
-
             foreach StartKey in ToProcess do begin
                 CurrentKey := StartKey;
                 while ParentOfMap.Get(CurrentKey, ParentKey) do begin
@@ -706,7 +700,6 @@ codeunit 50604 "DHX Data Handler"
                     VendorNameDict.Add(VendorPrefetch."No.", VendorPrefetch.Name);
                 until VendorPrefetch.Next() = 0;
         end;
-
         if DayPlanning.FindSet() then begin
             repeat
                 if not TEMPJobTasks.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then begin
@@ -724,13 +717,11 @@ codeunit 50604 "DHX Data Handler"
                 ReqResName := '';
                 if DayPlanning."Requested Resource No." <> '' then
                     ResourceNameDict.Get(DayPlanning."Requested Resource No.", ReqResName);
-
                 if AnchorDate = 0D then
                     CountToWeekNumber(DayPlanning."Plan Date", WeekTemp);
 
                 HasAssigned := (DayPlanning."Start Time Assigned" <> 0T) or (DayPlanning."End Time Assigned" <> 0T);
                 HasRequested := (DayPlanning."Start Time Requested" <> 0T) or (DayPlanning."End Time Requested" <> 0T);
-
                 if HasAssigned then begin
                     if DayPlanning."Start Time Assigned" <> 0T then
                         AssignedStartTime := DayPlanning."Start Time Assigned"
@@ -741,7 +732,6 @@ codeunit 50604 "DHX Data Handler"
                     else
                         AssignedEndTime := 235959T;
                 end;
-
                 if HasRequested then begin
                     if DayPlanning."Start Time Requested" <> 0T then
                         RequestedStartTime := DayPlanning."Start Time Requested"
@@ -752,7 +742,6 @@ codeunit 50604 "DHX Data Handler"
                     else
                         RequestedEndTime := 235959T;
                 end;
-
                 if HasAssigned and HasRequested then begin
                     if AssignedStartTime < RequestedStartTime then
                         EnvelopeStartTime := AssignedStartTime
@@ -762,16 +751,18 @@ codeunit 50604 "DHX Data Handler"
                         EnvelopeEndTime := AssignedEndTime
                     else
                         EnvelopeEndTime := RequestedEndTime;
-                end else if HasAssigned then begin
-                    EnvelopeStartTime := AssignedStartTime;
-                    EnvelopeEndTime := AssignedEndTime;
-                end else if HasRequested then begin
-                    EnvelopeStartTime := RequestedStartTime;
-                    EnvelopeEndTime := RequestedEndTime;
-                end else begin
-                    EnvelopeStartTime := 000000T;
-                    EnvelopeEndTime := 235959T;
-                end;
+                end else
+                    if HasAssigned then begin
+                        EnvelopeStartTime := AssignedStartTime;
+                        EnvelopeEndTime := AssignedEndTime;
+                    end else
+                        if HasRequested then begin
+                            EnvelopeStartTime := RequestedStartTime;
+                            EnvelopeEndTime := RequestedEndTime;
+                        end else begin
+                            EnvelopeStartTime := 000000T;
+                            EnvelopeEndTime := 235959T;
+                        end;
 
                 StartDateTxt := ToSessionDateTimeTxt(DayPlanning."Plan Date", EnvelopeStartTime);
                 EndDateTxt := ToSessionDateTimeTxt(DayPlanning."Plan Date", EnvelopeEndTime);
@@ -793,7 +784,7 @@ codeunit 50604 "DHX Data Handler"
                     VendorNameDict.Get(DayPlanning."Vendor No.", VenName);
                 PlanningObject.Add('details', VenName);
 
-                PlanningObject.Add('non_working_minutes_assigned', DayPlanning."Non Working Minutes Assigned");
+                PlanningObject.Add('non_working_minutes_assigned', DayPlanning."Idle Minutes Assigned");
                 PlanningObject.Add('assigned_hours', DayPlanning."Assigned Hours");
                 PlanningObject.Add('requested_resource_no', DayPlanning."Requested Resource No.");
                 PlanningObject.Add('requested_resource_name', ReqResName);
@@ -813,7 +804,7 @@ codeunit 50604 "DHX Data Handler"
                     PlanningObject.Add('end_time_requested', Format(DayPlanning."End Time Requested", 0, '<Hours24,2>:<Minutes,2>'))
                 else
                     PlanningObject.Add('end_time_requested', '');
-                PlanningObject.Add('non_working_minutes_requested', DayPlanning."Non Working Minutes Requested");
+                PlanningObject.Add('non_working_minutes_requested', DayPlanning."Idle Minutes Requested");
                 PlanningObject.Add('requested_hours', DayPlanning."Requested Hours");
                 PlanningObject.Add('skill', DayPlanning.Skill);
                 PlanningObject.Add('requested_color', ResolveRequestedColor(DayPlanning.Skill, SkillColorDict, NextSkillPaletteIndex));
@@ -834,7 +825,6 @@ codeunit 50604 "DHX Data Handler"
                 PlanningArray.Add(PlanningObject);
                 EventJobNos.Add(DayPlanning."Job No.");
             until DayPlanning.Next() = 0;
-
             if AnchorDate = 0D then begin
                 WeekTemp.Reset();
                 WeekTemp.SetCurrentKey("Column 1 Amt.", "Column 2 Amt.");
@@ -892,7 +882,6 @@ codeunit 50604 "DHX Data Handler"
             TEMPJobTasks.SetFilter("Job No.", BuildCodeOrFilter(IncludedJobsList))
         else
             TEMPJobTasks.SetFilter("Job No.", '');
-
         if TEMPJobTasks.FindSet() then begin
             Clear(DataArray);
             CurrentJobNo := '';
@@ -920,7 +909,6 @@ codeunit 50604 "DHX Data Handler"
                         JobObject.Add('label', CurrentJobNo);
                     JobObject.Add('open', true);
                 end;
-
                 while StackDepth > 0 do begin
                     if StackIndent[StackDepth] < TEMPJobTasks.Indentation then
                         break;
@@ -928,28 +916,28 @@ codeunit 50604 "DHX Data Handler"
                     StackArr[StackDepth].Add(StackObj[StackDepth]);
                     StackDepth -= 1;
                 end;
-
                 if TEMPJobTasks."Job Task Type" = TEMPJobTasks."Job Task Type"::Posting then begin
                     Clear(TaskLeaf);
                     TaskLeaf.Add('key', TEMPJobTasks."Job No." + '|' + TEMPJobTasks."Job Task No.");
                     TaskLeaf.Add('label', StrSubstNo('%1 - %2', TEMPJobTasks."Job Task No.", TEMPJobTasks.Description));
                     StackArr[StackDepth + 1].Add(TaskLeaf);
-                end else if (TEMPJobTasks."Job Task Type" = TEMPJobTasks."Job Task Type"::"End-Total") or
-                            (TEMPJobTasks."Job Task Type" = TEMPJobTasks."Job Task Type"::Total) then begin
-                    // skip closing markers
-                end else begin
-                    if StackDepth < 49 then begin
-                        StackDepth += 1;
-                        Clear(HeadingNode);
-                        HeadingNode.Add('key', TEMPJobTasks."Job No." + '|' + TEMPJobTasks."Job Task No.");
-                        HeadingNode.Add('label', StrSubstNo('%1 - %2', TEMPJobTasks."Job Task No.", TEMPJobTasks.Description));
-                        HeadingNode.Add('open', true);
-                        StackObj[StackDepth] := HeadingNode;
-                        Clear(FreshArr);
-                        StackArr[StackDepth + 1] := FreshArr;
-                        StackIndent[StackDepth] := TEMPJobTasks.Indentation;
+                end else
+                    if (TEMPJobTasks."Job Task Type" = TEMPJobTasks."Job Task Type"::"End-Total") or
+                       (TEMPJobTasks."Job Task Type" = TEMPJobTasks."Job Task Type"::Total) then begin
+                        // skip closing markers
+                    end else begin
+                        if StackDepth < 49 then begin
+                            StackDepth += 1;
+                            Clear(HeadingNode);
+                            HeadingNode.Add('key', TEMPJobTasks."Job No." + '|' + TEMPJobTasks."Job Task No.");
+                            HeadingNode.Add('label', StrSubstNo('%1 - %2', TEMPJobTasks."Job Task No.", TEMPJobTasks.Description));
+                            HeadingNode.Add('open', true);
+                            StackObj[StackDepth] := HeadingNode;
+                            Clear(FreshArr);
+                            StackArr[StackDepth + 1] := FreshArr;
+                            StackIndent[StackDepth] := TEMPJobTasks.Indentation;
+                        end;
                     end;
-                end;
             until TEMPJobTasks.Next() = 0;
             if CurrentJobNo <> '' then begin
                 while StackDepth > 0 do begin
@@ -1163,7 +1151,6 @@ codeunit 50604 "DHX Data Handler"
                         PlanningObject.Add('color', '#D9F0F2');
 
                         PlanningArray.Add(PlanningObject);
-
                         if AnchorDate = 0D then
                             CountToWeekNumber(ResCap."Date", WeekTemp);
                     end;
@@ -1213,9 +1200,7 @@ codeunit 50604 "DHX Data Handler"
                             PlanningArray.Add(PlanningObject);
                         until DayPlanning.next = 0;
                 end;
-
             until DateRec.Next() = 0;
-
         if AnchorDate = 0D then begin
             WeekTemp.Reset();
             WeekTemp.SetCurrentKey("Column 1 Amt.", "Column 2 Amt.");
@@ -1241,7 +1226,6 @@ codeunit 50604 "DHX Data Handler"
                 GroupResObject.Add('category', 'Group');
                 GroupResObject.Add('open', true);
                 Clear(GroupChildrenArray);
-
                 if WithDayPlanning then begin
                     // 2. Internal / Vendor
                     GetUniqueVendorsFromDayPlannings(TempVendor, TempResGroup."No.", StartDate, EndDate);
@@ -1275,7 +1259,6 @@ codeunit 50604 "DHX Data Handler"
                                     InternalExternalChildrenArray.Add(ResourceObject);
                                 until ResourceTemp.Next() = 0;
                             InternalExternalObject.Add('children', InternalExternalChildrenArray);
-
                         until TempVendor.Next() = 0;
                     GroupResObject.Add('children', GroupChildrenArray);
                     DataArray.Add(GroupResObject);
@@ -1307,7 +1290,6 @@ codeunit 50604 "DHX Data Handler"
                                 until ResourceTemp.Next() = 0;
                                 InternalExternalObject.Add('children', InternalExternalChildrenArray);
                             end;
-
                         until TempVen.Next() = 0;
                     GroupResObject.Add('children', GroupChildrenArray);
                     DataArray.Add(GroupResObject);
@@ -1417,7 +1399,6 @@ codeunit 50604 "DHX Data Handler"
                 PlanningObject.Add('color', '#D9F0F2');
 
                 PlanningArray.Add(PlanningObject);
-
                 if AnchorDate = 0D then
                     CountToWeekNumber(ResCap."Date", WeekTemp);
             end;
@@ -1573,7 +1554,6 @@ codeunit 50604 "DHX Data Handler"
                                 ResourceObject.Add('category', 'Resource');
                                 InternalExternalChildrenArray.Add(ResourceObject);
                             until ResourceTemp.Next() = 0;
-
                         if InternalExternalChildrenArray.Count > 0 then begin
                             // 2. Vendor/Pool node
                             Clear(InternalExternalObject);
@@ -1590,9 +1570,7 @@ codeunit 50604 "DHX Data Handler"
                             InternalExternalObject.Add('children', InternalExternalChildrenArray);
                             GroupChildrenArray.Add(InternalExternalObject);
                         end;
-
                     until TempPool.Next() = 0;
-
                 if GroupChildrenArray.Count > 0 then begin
                     GroupResObject.Add('children', GroupChildrenArray);
                     DataArray.Add(GroupResObject);
@@ -1647,7 +1625,6 @@ codeunit 50604 "DHX Data Handler"
             (JobPlaningLine.VisualBarStartDate = 0D) and (JobPlaningLine."Start Time" = 0T):
                 StartDateTxt := '';
         end;
-
         case true of
             (JobPlaningLine.VisualBarEndDate = 0D) and (JobPlaningLine."End Time" <> 0T):
                 EndDateTxt := Format(JobPlaningLine.VisualBarStartDate, 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(JobPlaningLine."End Time");
@@ -1669,7 +1646,6 @@ codeunit 50604 "DHX Data Handler"
         EndDateTxt := '';
         if DayPlanning."Plan Date" = 0D then
             exit;
-
         case true of
             (DayPlanning."Start Time Assigned" <> 0T) and (DayPlanning."End Time Assigned" <> 0T):
                 begin
@@ -2219,7 +2195,6 @@ codeunit 50604 "DHX Data Handler"
         // "times set, hours don't match" data-integrity gap this fix closes elsewhere.
         OldDayPlanning.CalculateWorkingHours();
         OldDayPlanning.Modify();
-
         if UpdateEventID then
             UpdateEventID(OldDayPlanning_forUpdate, NewDayPlanning_forUpdate);
     end;
@@ -2299,7 +2274,6 @@ codeunit 50604 "DHX Data Handler"
         JobTaskNo := CopyStr(SectionParts.Get(2), 1, MaxStrLen(JobTaskNo));
         if (JobNo = '') or (JobTaskNo = '') then
             exit;
-
         if not Evaluate(_DateTime, StartDateIso) then
             exit;
         _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
@@ -2325,7 +2299,6 @@ codeunit 50604 "DHX Data Handler"
         end;
         NewDayPlanning.Insert(true);
         Commit();
-
         if Page.RunModal(Page::"Day Planning Card Opt", NewDayPlanning) <> Action::LookupOK then
             if NewDayPlanning.Get(JobNo, JobTaskNo, NewDayLineNo) then
                 NewDayPlanning.Delete(true);
@@ -2925,7 +2898,6 @@ codeunit 50604 "DHX Data Handler"
                     TempRes.Insert();
                 end;
             until DayPlannings.Next() = 0;
-
     end;
 
     procedure GetUniqueResFromCapacity(var TempRes: record "Resource" temporary;
@@ -3035,7 +3007,6 @@ codeunit 50604 "DHX Data Handler"
                     TempRes.Insert();
                 end;
             until DayPlannings.Next() = 0;
-
     end;
 
     procedure GetUniqueResFromCapacity_Pool(var TempRes: record "Resource" temporary;
@@ -3085,7 +3056,6 @@ codeunit 50604 "DHX Data Handler"
                         PoolNo := ResListQry.Pool_Resource_No_;
                     TempRes."Pool Resource No." := PoolNo;
                     if TempRes.Insert() then;
-
                     if PoolNo = '' then
                         PoolNo := TempRes."No.";
                     if Not TempPoolRes.Get(PoolNo) then begin
@@ -3122,7 +3092,6 @@ codeunit 50604 "DHX Data Handler"
                         PoolNo := ResListQry.Pool_Resource_No_;
                     TempRes."Pool Resource No." := PoolNo;
                     if TempRes.Insert() then;
-
                     if PoolNo = '' then
                         PoolNo := TempRes."No.";
                     if Not TempPoolRes.Get(PoolNo) then begin
@@ -3189,7 +3158,6 @@ codeunit 50604 "DHX Data Handler"
                     TempResGroup.Insert();
                 end;
             until MandatoryRes.Next() = 0;
-
         if WithDayPlanning then begin
             UniqueDayPlanningResGroupQry.SetRange(TaskDateFilter, StartDate, EndDate);
             if UniqueDayPlanningResGroupQry.Open() then begin
@@ -3277,13 +3245,11 @@ codeunit 50604 "DHX Data Handler"
                     end;
                 end;
             until TempVen.Next() = 0;
-
         if not TempRecord.Get('') then begin
             TempRecord.Init();
             TempRecord."Currency Code" := '';
             TempRecord.Insert();
         end;
-
     end;
 
     procedure GetUniquePoolFromDayPlannings(var TempResource: record "Resource" temporary;
@@ -3441,7 +3407,6 @@ codeunit 50604 "DHX Data Handler"
                             TempResource.Insert();
                         end;
                     until TempRes.Next() = 0;
-
             until TempPool.Next() = 0;
 
         // if not TempRecord.Get('') then begin
@@ -3671,7 +3636,6 @@ codeunit 50604 "DHX Data Handler"
         LastDate := 0D;
         AggStartTime := 0T;
         AggCapacity := 0;
-
         if ResCap.FindSet() then
             repeat
                 if (ResCap."Resource No." <> LastResNo) or (ResCap."Date" <> LastDate) then begin
@@ -3887,7 +3851,6 @@ codeunit 50604 "DHX Data Handler"
         LastDate := 0D;
         AggStartTime := 0T;
         AggCapacity := 0;
-
         if ResCap.FindSet() then
             repeat
                 // Rows for a resource that fails the Name/Skill filter are skipped entirely, as
@@ -3924,7 +3887,6 @@ codeunit 50604 "DHX Data Handler"
                                 AggStartTime := ResCap."Start Time";
                     end;
             until ResCap.Next() = 0;
-
         if (LastResNo <> '') and (AggCapacity > 0) then begin
             TempResCap.Init();
             TempResCap."Resource No." := LastResNo;
@@ -4352,7 +4314,6 @@ codeunit 50604 "DHX Data Handler"
         // resource only appears on because of Day Planning data (see the " (*)" convention noted
         // below in the leaf-building block).
         SkillResScheduler_BuildCombinedSkillLookup(CombinedSkills, ResourceHasAny, UnusedResourceSkillsMap, RegisteredSkills, StartDate, EndDate);
-
         if SkillFilter = '' then begin
             Res.Reset();
             if ResourceFilter <> '' then
@@ -4399,7 +4360,6 @@ codeunit 50604 "DHX Data Handler"
                                 ChildrenArray.Add(ResObj);
                             end;
                     until Res.Next() = 0;
-
                 if ChildrenArray.Count() > 0 then begin
                     Clear(SkillObj);
                     SkillObj.Add('key', 'SKILL|' + SkillCode.Code);
@@ -4467,7 +4427,6 @@ codeunit 50604 "DHX Data Handler"
                 SkillsTxt += ' | ';
             SkillsTxt += SkillVal;
         end;
-
         foreach SkillVal in ResSkills do begin
             if SkillFilter <> '' then begin
                 TempSkillFilterCheck.Reset();
@@ -4494,7 +4453,6 @@ codeunit 50604 "DHX Data Handler"
             JArray.Add(JObj);
             AnyEmitted := true;
         end;
-
         if (not AnyEmitted) and (SkillFilter = '') then begin
             Clear(JObj);
             JObj.Add('id', 'CAP|' + ResNo + '|' + Format(CapDate, 0, '<Year4><Month,2><Day,2>') + '|~NOSKILL~');
@@ -4599,7 +4557,6 @@ codeunit 50604 "DHX Data Handler"
         LastDate := 0D;
         AggStartTime := 0T;
         AggCapacity := 0;
-
         if ResCap.FindSet() then
             repeat
                 if ResourceSkillsMap.ContainsKey(ResCap."Resource No.") then
@@ -4629,7 +4586,6 @@ codeunit 50604 "DHX Data Handler"
                                 AggStartTime := ResCap."Start Time";
                     end;
             until ResCap.Next() = 0;
-
         if (LastResNo <> '') and (AggCapacity > 0) then begin
             TempResCap.Init();
             TempResCap."Resource No." := LastResNo;
@@ -4703,7 +4659,6 @@ codeunit 50604 "DHX Data Handler"
             ResNameForText := AssignedResName
         else
             ResNameForText := RequestedResName;
-
         if (SkillLabel <> '') and (ResNameForText <> '') then
             exit(SkillLabel + ' | ' + ResNameForText);
         if SkillLabel <> '' then
@@ -4731,18 +4686,15 @@ codeunit 50604 "DHX Data Handler"
         JobTaskDescription: Text;
     begin
         SkillLabel := ResolveSkillLabel(DayPlanning.Skill);
-
         if (DayPlanning."Job No." <> '') and (DayPlanning."Job Task No." <> '') then
             if JobTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
                 JobTaskDescription := JobTask.Description;
-
         if (SkillLabel <> '') and (JobTaskDescription <> '') then
             exit(SkillLabel + ' | ' + JobTaskDescription);
         if SkillLabel <> '' then
             exit(SkillLabel);
         if JobTaskDescription <> '' then
             exit(JobTaskDescription);
-
         if DayPlanning.Description <> '' then
             exit(DayPlanning.Description);
         if AssignedResName <> '' then
@@ -5310,7 +5262,6 @@ codeunit 50604 "DHX Data Handler"
                         TempNoGroupResource.Insert();
                     end;
             until Res.Next() = 0;
-
         if TempNoGroupResource.FindSet() then begin
             Clear(ChildrenArray);
             repeat
@@ -5348,7 +5299,6 @@ codeunit 50604 "DHX Data Handler"
                             ChildrenArray.Add(ResObj);
                         end;
                     until Res.Next() = 0;
-
                 if ChildrenArray.Count() > 0 then begin
                     Clear(GroupObj);
                     GroupObj.Add('key', 'GROUP|' + ResGroup."No.");
@@ -5461,7 +5411,6 @@ codeunit 50604 "DHX Data Handler"
         LastDate := 0D;
         AggStartTime := 0T;
         AggCapacity := 0;
-
         if ResCap.FindSet() then
             repeat
                 if ResourceMatchesSkillFilter(ResCap."Resource No.", SkillFilter) then
@@ -5486,7 +5435,6 @@ codeunit 50604 "DHX Data Handler"
                                 AggStartTime := ResCap."Start Time";
                     end;
             until ResCap.Next() = 0;
-
         if (LastResNo <> '') and (AggCapacity > 0) then begin
             TempResCap.Init();
             TempResCap."Resource No." := LastResNo;
@@ -5985,31 +5933,26 @@ codeunit 50604 "DHX Data Handler"
         // under "...|0" until report 50600 "RepairData"'s
         // RepairSequenceNoOnAllDayPlannings is run.
         SequenceKeyTxt := DayPlanning."Job No." + '|' + DayPlanning."Job Task No." + '|' + DayPlanning.Skill + '|' + Format(DayPlanning."Sequence No.");
-
         if DayPlanning."Start Time Requested" <> 0T then
             ReqStart := ReqAssign_TimeToDecimalHours(DayPlanning."Start Time Requested")
         else
             ReqStart := 0;
-
         if (DayPlanning."Start Time Requested" <> 0T) and (DayPlanning."End Time Requested" <> 0T) then begin
             ReqDuration := ReqAssign_TimeToDecimalHours(DayPlanning."End Time Requested") - ReqStart;
             if ReqDuration < 0 then
                 ReqDuration := 0;
         end else
             ReqDuration := 0;
-
         if DayPlanning."Start Time Assigned" <> 0T then
             AssignedStart := ReqAssign_TimeToDecimalHours(DayPlanning."Start Time Assigned")
         else
             AssignedStart := ReqStart;
-
         if (DayPlanning."Start Time Assigned" <> 0T) and (DayPlanning."End Time Assigned" <> 0T) then begin
             AssignedDuration := ReqAssign_TimeToDecimalHours(DayPlanning."End Time Assigned") - AssignedStart;
             if AssignedDuration < 0 then
                 AssignedDuration := 0;
         end else
             AssignedDuration := ReqDuration;
-
         if not WorkdayIndexMap.Get(DayPlanning."Plan Date", DayIndex) then
             DayIndex := -1;
 
@@ -6105,7 +6048,6 @@ codeunit 50604 "DHX Data Handler"
                 RunningTotal += KeyLineCount.Get(SequenceKeyTxt);
             end else
                 RemainingKeysArr.Add(SequenceKeyTxt);
-
         if RemainingKeysArr.Count() > 0 then
             RemainingKeysArr.WriteTo(RemainingSequenceKeys)
         else
@@ -6402,7 +6344,6 @@ codeunit 50604 "DHX Data Handler"
         StartHour := JToken.AsValue().AsDecimal();
         PayloadObj.Get('durationHours', JToken);
         DurationHours := JToken.AsValue().AsDecimal();
-
         if not DayPlanning.Get(JobNo, JobTaskNo, DayLineNo) then
             exit;
         ReqAssign_ApplyAssignment(DayPlanning, ResourceId, true, StartHour, DurationHours);
@@ -6441,7 +6382,6 @@ codeunit 50604 "DHX Data Handler"
         StartHour := JToken.AsValue().AsDecimal();
         PayloadObj.Get('durationHours', JToken);
         DurationHours := JToken.AsValue().AsDecimal();
-
         if not DayPlanning.Get(JobNo, JobTaskNo, DayLineNo) then
             exit;
         ReqAssign_ApplyAssignment(DayPlanning, '', false, StartHour, DurationHours);
@@ -6463,7 +6403,6 @@ codeunit 50604 "DHX Data Handler"
         PayloadObj.ReadFrom(PayloadJsonTxt);
         PayloadObj.Get('id', JToken);
         ReqAssign_ParseId(JToken.AsValue().AsText(), JobNo, JobTaskNo, DayLineNo);
-
         if not DayPlanning.Get(JobNo, JobTaskNo, DayLineNo) then
             exit;
         DayPlanning.Validate("Assigned Resource No.", '');
@@ -6553,7 +6492,6 @@ codeunit 50604 "DHX Data Handler"
         ResourceId := JToken.AsValue().AsText();
         PayloadObj.Get('lines', JToken);
         LinesArr := JToken.AsArray();
-
         for i := 0 to LinesArr.Count() - 1 do begin
             LinesArr.Get(i, LineTok);
             LineObj := LineTok.AsObject();
@@ -6563,7 +6501,6 @@ codeunit 50604 "DHX Data Handler"
             StartHour := JToken.AsValue().AsDecimal();
             LineObj.Get('durationHours', JToken);
             DurationHours := JToken.AsValue().AsDecimal();
-
             if DayPlanning.Get(JobNo, JobTaskNo, DayLineNo) then
                 ReqAssign_ApplyAssignment(DayPlanning, ResourceId, true, StartHour, DurationHours);
         end;
@@ -6633,7 +6570,6 @@ codeunit 50604 "DHX Data Handler"
             StartDate := ReqAssign_ParseIsoDate(JToken.AsValue().AsText());
         if PayloadObj.Get('endDate', JToken) then
             EndDate := ReqAssign_ParseIsoDate(JToken.AsValue().AsText());
-
         if (JobNo = '') or (JobTaskNo = '') or (SkillCode = '') or (SequenceNo = 0) or (StartDate = 0D) or (EndDate = 0D) then
             exit;
 
@@ -6771,7 +6707,6 @@ codeunit 50604 "DHX Data Handler"
             exit;
         if not PayloadJObj.ReadFrom(PayloadJsonTxt) then
             exit;
-
         if PayloadJObj.Get('skill', FieldJToken) then
             SkillCode := CopyStr(FieldJToken.AsValue().AsText(), 1, MaxStrLen(SkillCode));
         if PayloadJObj.Get('job', FieldJToken) then
@@ -7003,7 +6938,6 @@ codeunit 50604 "DHX Data Handler"
             exit;
         if not PayloadJObj.ReadFrom(PayloadJsonTxt) then
             exit;
-
         if PayloadJObj.Get('segment', FieldJToken) then
             Segment := FieldJToken.AsValue().AsText();
         if PayloadJObj.Get('skill', FieldJToken) then
@@ -7020,7 +6954,6 @@ codeunit 50604 "DHX Data Handler"
                 then
                     PlanDate := DMY2Date(PlanDay, PlanMonth, PlanYear);
         end;
-
         if PlanDate = 0D then
             exit; // malformed/stale click payload - nothing sane to open.
 
@@ -7145,7 +7078,6 @@ codeunit 50604 "DHX Data Handler"
         // matching now keys on (JSON-contract option (a) - see capacityPlanningOverview.js's own
         // doc comment on 'workOrderNo'/'workOrder.no').
         JobTaskFound := (JobNo <> '') and JobTask.Get(JobNo, JobTaskNo);
-
         if JobTaskFound then begin
             WorkOrderObj.Add('no', JobNo + '|' + JobTaskNo);
             // The Job Task's OWN description (e.g. "Snag List Resolution") - JS's title bar uses
@@ -7164,7 +7096,6 @@ codeunit 50604 "DHX Data Handler"
             WorkOrderObj.Add('notEarlierThan', '');
             WorkOrderObj.Add('notLaterThan', '');
         end;
-
         if (JobNo <> '') and Job.Get(JobNo) then begin
             ProjectObj.Add('no', JobNo);
             ProjectObj.Add('description', Job.Description);
@@ -7172,7 +7103,6 @@ codeunit 50604 "DHX Data Handler"
             ProjectObj.Add('no', JobNo);
             ProjectObj.Add('description', '');
         end;
-
         if NumberOfDays <= 0 then
             NumberOfDays := 30;
         StartDate := Today();
@@ -7184,7 +7114,6 @@ codeunit 50604 "DHX Data Handler"
         RootObj.Add('startDate', ReqAssign_FormatIsoDate(StartDate));
         RootObj.Add('endDate', ReqAssign_FormatIsoDate(EndDate));
         RootObj.Add('workdays', CPO_BuildDateRangeArray(StartDate, EndDate));
-
         if JobTaskFound then begin
             DayPlanning.SetLoadFields("Job No.", "Job Task No.", "Day Line No.", Skill, "Sequence No.", Description,
                 "Plan Date", Assigned, "Assigned Resource No.", "Requested Hours", "Assigned Hours",
@@ -7297,7 +7226,6 @@ codeunit 50604 "DHX Data Handler"
                     // "Work Order No." field) - already covered by Pass 1 above.
                     if not ((JobNo <> '') and (OtherDayPlanning."Job No." = JobNo) and (OtherDayPlanning."Job Task No." = JobTaskNo)) then begin
                         DayPlanningLinesArr.Add(CPO_BuildDayPlanningLineObj(OtherDayPlanning, JobNo, JobTaskNo, JobDescCache, JobTaskDescCache));
-
                         if not ActiveSkillList.Contains(OtherDayPlanning.Skill) then
                             ActiveSkillList.Add(OtherDayPlanning.Skill);
                         if not OtherSkillList.Contains(OtherDayPlanning.Skill) then
@@ -7539,7 +7467,6 @@ codeunit 50604 "DHX Data Handler"
         // key). 'no' carries the same pipe-joined composite JS-side matching now keys on
         // (JSON-contract option (a) - see CPO_BuildDayPlanningLineObj's own doc comment).
         JobTaskFound := (JobNo <> '') and JobTask.Get(JobNo, JobTaskNo);
-
         if JobTaskFound then begin
             WorkOrderObj.Add('no', JobNo + '|' + JobTaskNo);
             WorkOrderObj.Add('description', JobTask.Description);
@@ -7551,7 +7478,6 @@ codeunit 50604 "DHX Data Handler"
             WorkOrderObj.Add('notEarlierThan', '');
             WorkOrderObj.Add('notLaterThan', '');
         end;
-
         if (JobNo <> '') and Job.Get(JobNo) then begin
             ProjectObj.Add('no', JobNo);
             ProjectObj.Add('description', Job.Description);
@@ -7559,7 +7485,6 @@ codeunit 50604 "DHX Data Handler"
             ProjectObj.Add('no', JobNo);
             ProjectObj.Add('description', '');
         end;
-
         if NumberOfDays <= 0 then
             NumberOfDays := 30;
         StartDate := Today();
@@ -7569,7 +7494,6 @@ codeunit 50604 "DHX Data Handler"
         RootObj.Add('startDate', ReqAssign_FormatIsoDate(StartDate));
         RootObj.Add('endDate', ReqAssign_FormatIsoDate(EndDate));
         RootObj.Add('workdays', CPO_BuildDateRangeArray(StartDate, EndDate));
-
         if JobTaskFound then begin
             // ---- Pass 1 + Pass 2: JobNo/JobTaskNo's OWN lines (section 2/workOrderSequences[]) -
             // byte-for-byte identical to CPO_BuildPlanningDataJson's own Pass 1/2, unchanged/
@@ -7582,11 +7506,9 @@ codeunit 50604 "DHX Data Handler"
             // record, so both are always non-blank here - no other-identifier fallback needed.
             DayPlanning.SetRange("Job No.", JobNo);
             DayPlanning.SetRange("Job Task No.", JobTaskNo);
-
             if DayPlanning.FindSet() then
                 repeat
                     DayPlanningLinesArr.Add(CPO_BuildDayPlanningLineObj(DayPlanning, JobNo, JobTaskNo, JobDescCache, JobTaskDescCache));
-
                     if DayPlanning.Skill <> '' then begin
                         if not ActiveSkillList.Contains(DayPlanning.Skill) then
                             ActiveSkillList.Add(DayPlanning.Skill);
@@ -7602,7 +7524,6 @@ codeunit 50604 "DHX Data Handler"
                         end;
                     end;
                 until DayPlanning.Next() = 0;
-
             if DayPlanning.FindSet() then
                 repeat
                     if DayPlanning.Skill <> '' then begin
@@ -7637,7 +7558,6 @@ codeunit 50604 "DHX Data Handler"
                     RunningTotal += GroupLineCount.Get(GroupKeyTxt);
                 end else
                     RemainingGroupKeysArr.Add(GroupKeyTxt);
-
             if RemainingGroupKeysArr.Count() > 0 then
                 RemainingGroupKeysArr.WriteTo(RemainingGroupKeys)
             else
@@ -7990,7 +7910,6 @@ codeunit 50604 "DHX Data Handler"
         UnusedExternalBorderColorTxt: Text;
     begin
         ColorConstants.GetCapacitySegmentColors(AssignedColorTxt, UnusedCapacityColorTxt, UnusedExternalBorderColorTxt);
-
         foreach SkillCode in ActiveSkillList do begin
             FillColorTxt := ColorConstants.GetSkillBarColor(CopyStr(SkillCode, 1, 10), PaletteIndex);
             BorderColorTxt := ColorConstants.GetSkillBorderColor(CopyStr(SkillCode, 1, 10), PaletteIndex);
@@ -8265,7 +8184,6 @@ codeunit 50604 "DHX Data Handler"
         EffectiveAnchor := AnchorDate;
         while Date2DWY(EffectiveAnchor, 1) in [6, 7] do
             EffectiveAnchor += 1;
-
         if TargetDate < EffectiveAnchor then
             exit(0);
 
@@ -8499,7 +8417,6 @@ codeunit 50604 "DHX Data Handler"
             if PayloadJObj.Get('date', FieldJToken) then
                 Evaluate(PlanDate, FieldJToken.AsValue().AsText(), 9);
         end;
-
         if (SkillCode <> '') and (PlanDate <> 0D) then begin
             DayPlanning.SetRange(Skill, SkillCode);
             DayPlanning.SetRange("Plan Date", PlanDate);

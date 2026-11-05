@@ -36,7 +36,6 @@ codeunit 50695 "Day Planning Sequence Mgt."
         OtherDayPlanning.SetRange(Skill, DayPlanning.Skill);
         OtherDayPlanning.SetRange("Plan Date", DayPlanning."Plan Date");
         OtherDayPlanning.SetFilter("Day Line No.", '<>%1', DayPlanning."Day Line No.");
-
         if DayPlanning."Sequence No." <> 0 then begin
             OtherDayPlanning.SetRange("Sequence No.", DayPlanning."Sequence No.");
             if OtherDayPlanning.IsEmpty() then
@@ -70,7 +69,6 @@ codeunit 50695 "Day Planning Sequence Mgt."
         ActualMaxDate: Date;
     begin
         SequenceNo := FindFreeSequenceNoForRange(JobNo, JobTaskNo, SkillCode, StartDate, EndDate);
-
         if WorkHourTemplateCode <> '' then
             WorkHourTemplate.Get(WorkHourTemplateCode);
 
@@ -119,7 +117,6 @@ codeunit 50695 "Day Planning Sequence Mgt."
             repeat
                 DayPlanning.Delete(true);
             until DayPlanning.Next() = 0;
-
         if WorkHourTemplateCode <> '' then
             WorkHourTemplate.Get(WorkHourTemplateCode);
 
@@ -152,7 +149,6 @@ codeunit 50695 "Day Planning Sequence Mgt."
         NewDayPlanning."Sequence No." := SequenceNo;
         NewDayPlanning."Order Intake No." := WorkOrderNo;
         NewDayPlanning."Day Line No." := NewDayPlanning.GetNextDayLineNo(PlanDate, JobNo, JobTaskNo);
-
         if (WorkHourTemplate."Default Start Time" <> 0T) and (WorkHourTemplate."Default End Time" <> 0T) then begin
             DefaultStartTimeTok := WorkHourTemplate."Default Start Time";
             DefaultEndTimeTok := WorkHourTemplate."Default End Time";
@@ -163,7 +159,7 @@ codeunit 50695 "Day Planning Sequence Mgt."
 
         NewDayPlanning."Start Time Requested" := DefaultStartTimeTok;
         NewDayPlanning."End Time Requested" := DefaultEndTimeTok;
-        NewDayPlanning."Non Working Minutes Requested" := WorkHourTemplate."Non Working Minutes";
+        NewDayPlanning."Idle Minutes Requested" := WorkHourTemplate."Non Working Minutes";
         // "Requested Hours" is NOT simply (End-Start-NonWorking): table 50610's own
         // CalculateRequestedWorkingHours() routes through
         // "General Planning Utilities".DayPlanningFulFillment, which exits early (leaving the
@@ -202,7 +198,6 @@ codeunit 50695 "Day Planning Sequence Mgt."
             exit;
         if not JobTask.Get(JobNo, JobTaskNo) then
             exit;
-
         if (JobTask.VisualBarStartDate = 0D) or (RangeStart < JobTask.VisualBarStartDate) then begin
             JobTask.VisualBarStartDate := RangeStart;
             Changed := true;
@@ -211,7 +206,6 @@ codeunit 50695 "Day Planning Sequence Mgt."
             JobTask.VisualBarEndDate := RangeEnd;
             Changed := true;
         end;
-
         if Changed then begin
             JobTask.CalculateDuration();
             JobTask.Modify(true);
@@ -336,7 +330,6 @@ codeunit 50695 "Day Planning Sequence Mgt."
             exit;
 
         EventJObj.ReadFrom(EventDataJson);
-
         if EventJObj.Get('section_id', JToken) then begin
             NewSectionId := JToken.AsValue().AsText();
             ParseSectionId(NewSectionId, JobNo, JobTaskNo, NewSkillCode, NewSequenceNo);
@@ -354,7 +347,6 @@ codeunit 50695 "Day Planning Sequence Mgt."
                 DayPlanning.Validate("Plan Date", DT2Date(LocalDateTime));
                 DayPlanning."Start Time Requested" := DT2Time(LocalDateTime);
             end;
-
         if EventJObj.Get('end_date', JToken) then
             if Evaluate(UtcDateTime, JToken.AsValue().AsText()) then begin
                 LocalDateTime := DHXDataHandler.ConvertToUserTimeZone(UtcDateTime);
@@ -389,13 +381,11 @@ codeunit 50695 "Day Planning Sequence Mgt."
         if not EventJObj.Get('section_id', JToken) then
             exit;
         ParseSectionId(JToken.AsValue().AsText(), SectionJobNo, SectionTaskNo, SkillCode, SequenceNo);
-
         if not EventJObj.Get('start_date', JToken) then
             exit;
         if not Evaluate(UtcDateTime, JToken.AsValue().AsText()) then
             exit;
         StartDateTime := DHXDataHandler.ConvertToUserTimeZone(UtcDateTime);
-
         if not EventJObj.Get('end_date', JToken) then
             exit;
         if not Evaluate(UtcDateTime, JToken.AsValue().AsText()) then
@@ -551,7 +541,6 @@ codeunit 50695 "Day Planning Sequence Mgt."
                         TaskName := JobTask.Description;
                     TaskNameCache.Add(TaskCacheKey, TaskName);
                 end;
-
                 if (EarliestDate = 0D) or (DayPlanning."Plan Date" < EarliestDate) then
                     EarliestDate := DayPlanning."Plan Date";
                 if DayPlanning."Plan Date" > LatestDate then
@@ -590,10 +579,8 @@ codeunit 50695 "Day Planning Sequence Mgt."
                 EventObj.Add('requestedResourceNo', DayPlanning."Requested Resource No.");
                 EventsArray.Add(EventObj);
             until DayPlanning.Next() = 0;
-
         foreach LoopSectionKey in SeenSectionKeys do begin
             ParseSectionId(LoopSectionKey, RowJobNo, RowJobTaskNo, RowSkillCode, RowSequenceNo);
-
             if SkillCodeRec.Get(RowSkillCode) then
                 SkillDescription := SkillCodeRec.Description
             else

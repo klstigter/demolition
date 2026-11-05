@@ -755,13 +755,13 @@ xmlport 50734 DemoData
                     fieldelement(RequestedPoolResourceNo; DayPlanning."Requested Pool Resource No.") { FieldValidate = No; }
                     fieldelement(StartTimeRequested; DayPlanning."Start Time Requested") { FieldValidate = No; }
                     fieldelement(EndTimeRequested; DayPlanning."End Time Requested") { FieldValidate = No; }
-                    fieldelement(NonWorkingMinutesRequested; DayPlanning."Non Working Minutes Requested") { FieldValidate = No; }
+                    fieldelement(NonWorkingMinutesRequested; DayPlanning."Idle Minutes Requested") { FieldValidate = No; }
                     fieldelement(RequestedHours; DayPlanning."Requested Hours") { FieldValidate = No; }
                     fieldelement(AssignedResourceNo; DayPlanning."Assigned Resource No.") { FieldValidate = No; }
                     fieldelement(AssignedPoolResourceNo; DayPlanning."Assigned Pool Resource No.") { FieldValidate = No; }
                     fieldelement(StartTimeAssigned; DayPlanning."Start Time Assigned") { FieldValidate = No; }
                     fieldelement(EndTimeAssigned; DayPlanning."End Time Assigned") { FieldValidate = No; }
-                    fieldelement(NonWorkingMinutesAssigned; DayPlanning."Non Working Minutes Assigned") { FieldValidate = No; }
+                    fieldelement(NonWorkingMinutesAssigned; DayPlanning."Idle Minutes Assigned") { FieldValidate = No; }
                     fieldelement(AssignedHours; DayPlanning."Assigned Hours") { FieldValidate = No; }
                     fieldelement(Assigned; DayPlanning.Assigned) { FieldValidate = No; }
 
