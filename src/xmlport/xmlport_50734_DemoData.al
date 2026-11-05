@@ -747,6 +747,10 @@ xmlport 50734 DemoData
                     fieldelement(DayLineNo; DayPlanning."Day Line No.") { FieldValidate = No; }
                     fieldelement(PlanDate; DayPlanning."Plan Date") { FieldValidate = No; }
                     fieldelement(PlanStatus; DayPlanning."Plan Status") { FieldValidate = No; }
+                    fieldelement(ProjectManagerStatus; DayPlanning."Project Manager Status") { FieldValidate = No; }
+                    fieldelement(PlannerStatus; DayPlanning."Planner Status") { FieldValidate = No; }
+                    fieldelement(VendorStatus; DayPlanning."Vendor Status") { FieldValidate = No; }
+                    fieldelement(ApprovedProjectManager; DayPlanning."Approved Project Manager") { FieldValidate = No; }
                     fieldelement(Skill; DayPlanning.Skill) { FieldValidate = No; }
                     fieldelement(SequenceNo; DayPlanning."Sequence No.") { FieldValidate = No; }
                     fieldelement(Description; DayPlanning.Description) { FieldValidate = No; }

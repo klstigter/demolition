@@ -36,6 +36,22 @@ page 50622 "Resource Day Plannings"
                 {
                     Caption = 'Data Owner';
                 }
+                field("Project Manager Status"; Rec."Project Manager Status")
+                {
+                    ApplicationArea = All;
+                }
+                field("Planner Status"; Rec."Planner Status")
+                {
+                    ApplicationArea = All;
+                }
+                field("Vendor Status"; Rec."Vendor Status")
+                {
+                    ApplicationArea = All;
+                }
+                field("Approved Project Manager"; Rec."Approved Project Manager")
+                {
+                    ApplicationArea = All;
+                }
                 field("Vendor No."; Rec."Vendor No.")
                 {
                     ApplicationArea = All;
@@ -154,7 +170,6 @@ page 50622 "Resource Day Plannings"
 
         Rec."Plan Date" := NewDate;
         Rec."Day Line No." := DayLineNo;
-
         if ResourceNo <> '' then begin
             // No Skill field/column exists on this subpage. Validate the resource first (its own
             // OnValidate auto-fills Skill with the resource's first skill) - only fall back to

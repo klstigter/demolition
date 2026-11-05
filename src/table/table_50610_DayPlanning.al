@@ -89,11 +89,6 @@ table 50610 "Day Planning"
             DataClassification = ToBeClassified;
             Caption = 'Sequence No.';
         }
-        field(5; "Plan Status"; Enum "Plan Status")
-        {
-            DataClassification = ToBeClassified;
-            Caption = 'Plan Status';
-        }
         field(11; "Start Time Assigned"; Time)
         {
             DataClassification = ToBeClassified;
@@ -802,6 +797,39 @@ table 50610 "Day Planning"
         {
             DataClassification = ToBeClassified;
             Caption = 'Resource Entry No.';
+        }
+
+        field(160; "Approved Project Manager"; Code[50])
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Approved Project Manager';
+        }
+
+        // **** control Plan Status
+        /*
+        Project Manager Status (none, requested, submitted, rejected, approved)
+        Planner Status (none, submitted, pending, rejected)
+        Vendor Status (none, requested, approved, rejected)
+        */
+        field(5; "Plan Status"; Enum "Plan Status")
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Plan Status';
+        }
+        field(200; "Project Manager Status"; Enum "Project Manager Status")
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Project Manager Status';
+        }
+        field(201; "Planner Status"; Enum "Planner Status")
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Planner Status';
+        }
+        field(202; "Vendor Status"; Enum "Vendor Status")
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Vendor Status';
         }
 
     }
