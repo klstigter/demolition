@@ -29,8 +29,8 @@ query 50712 "Day Planning By Job Task"
             column(EndTimeRequested; "End Time Requested") { }
             column(AssignedHours; "Assigned Hours") { }
             column(RequestedHours; "Requested Hours") { }
-            column(NonWorkingMinutesAssigned; "Non Working Minutes Assigned") { }
-            column(NonWorkingMinutesRequested; "Non Working Minutes Requested") { }
+            column(NonWorkingMinutesAssigned; "Idle Minutes Assigned") { }
+            column(NonWorkingMinutesRequested; "Idle Minutes Requested") { }
             column(AssignedResourceNo; "Assigned Resource No.") { }
             column(RequestedResourceNo; "Requested Resource No.") { }
             column(VendorNo; "Vendor No.") { }

@@ -527,7 +527,7 @@ page 50620 "Gantt Demo DHX 2"
                     DayPlanning."Plan Status" := DayPlanning."Plan Status"::"In Request";
                     if OptiSetup."Work hour Template" <> '' then begin
                         WorkHourTemplate.Get(OptiSetup."Work hour Template");
-                        DayPlanning."Non Working Minutes Assigned" := WorkHourTemplate."Non Working Minutes";
+                        DayPlanning."Idle Minutes Assigned" := WorkHourTemplate."Non Working Minutes";
                         DayPlanning.Validate("Start Time Requested", WorkHourTemplate."Default Start Time");
                         DayPlanning.Validate("End Time Requested", WorkHourTemplate."Default End Time");
                         DayPlanning."Requested Hours" := WorkHourTemplate."Working Hours";
@@ -1282,8 +1282,8 @@ page 50620 "Gantt Demo DHX 2"
         // via wrapper.js's bounded poll loop kicked off by NotifyResourcePanelTaskPending) is what
         // actually pushes this into the control add-in, from a normal synchronous call stack.
         if Results.ContainsKey('dbg') then
-        if Results.ContainsKey('resourcesJson') then
-            PendingResourcesJson := Results.Get('resourcesJson');
+            if Results.ContainsKey('resourcesJson') then
+                PendingResourcesJson := Results.Get('resourcesJson');
         if Results.ContainsKey('dayPlanningsJson') then
             PendingDayPlanningsJson := Results.Get('dayPlanningsJson');
 
@@ -1640,7 +1640,6 @@ page 50620 "Gantt Demo DHX 2"
                 if JobFilterUsed <> '' then
                     JobFilter := JobFilterUsed;
         end;
-
         if pLoadDayPlannings then begin
             // Chunk 0 is built synchronously (no background-task start-up/poll latency); only the
             // remaining chunks, if any, go through the background task.

@@ -154,7 +154,7 @@ page 50630 "Day Plannings"
                     ToolTip = 'Specifies the end time for this day.';
                     StyleExpr = StyleStr;
                 }
-                field("Non Working Minutes Assigned"; Rec."Non Working Minutes Assigned")
+                field("Non Working Minutes Assigned"; Rec."Idle Minutes Assigned")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the non-working minutes within the task period.';
@@ -212,7 +212,7 @@ page 50630 "Day Plannings"
                     ToolTip = 'Specifies the end time for this day task.';
                     StyleExpr = StyleStr;
                 }
-                field("Non Working Minutes Requested"; Rec."Non Working Minutes Requested")
+                field("Non Working Minutes Requested"; Rec."Idle Minutes Requested")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the non-working minutes within the task period.';

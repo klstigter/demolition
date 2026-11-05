@@ -117,12 +117,13 @@ codeunit 50612 "General Planning Utilities"
             PartType::Realized:
                 ResourceNo := pDayPlanning."Assigned Resource No.";
         end;
-        // if PartType = PartType::Requested then do not skip, because we want to check if the requested hours exceed capacity even if no resource is assigned yet
-        if (ResourceNo = '') and (PartType <> PartType::Requested) then
-            exit;
+        // Hours depend only on start/end and non working minutes, never on the resource no.
         WorkingMinutes := GetWorkingMinutes(pDayPlanning, PartType);
 
         CalculatedHours += WorkingMinutes / 60;
+        // Without a resource there is no capacity to compare against (Requested keeps the check, see below)
+        if (ResourceNo = '') and (PartType <> PartType::Requested) then
+            exit(false);
         // Find Capacity Entry per DayPlanning Date and Resource No.
         pDayPlanning.CalcFields(Capacity);
         Capacity := pDayPlanning.Capacity;
@@ -143,14 +144,14 @@ codeunit 50612 "General Planning Utilities"
                 begin
                     EndTime := DayPlanning."End Time Requested";
                     StarTime := DayPlanning."Start Time Requested";
-                    NonWorkingMinutes := DayPlanning."Non Working Minutes Requested";
+                    NonWorkingMinutes := DayPlanning."Idle Minutes Requested";
                 end;
             PartType::Assigned,
             PartType::Realized:
                 begin
                     EndTime := DayPlanning."End Time Assigned";
                     StarTime := DayPlanning."Start Time Assigned";
-                    NonWorkingMinutes := DayPlanning."Non Working Minutes Assigned";
+                    NonWorkingMinutes := DayPlanning."Idle Minutes Assigned";
                 end;
         end;
         WorkingMinutes := (EndTime - StarTime) div 60000;

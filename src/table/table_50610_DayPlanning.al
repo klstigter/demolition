@@ -279,7 +279,8 @@ table 50610 "Day Planning"
         {
             DataClassification = ToBeClassified;
             Caption = 'Assigned Resource No.';
-            TableRelation = if ("Assigned Pool Resource No." = const('')) Resource where(Blocked = const(false))
+            TableRelation =
+            if ("Assigned Pool Resource No." = const('')) Resource where(Blocked = const(false))
             else
             Resource where(Blocked = const(false), "Pool Resource No." = field("Assigned Pool Resource No."));
 
@@ -293,7 +294,6 @@ table 50610 "Day Planning"
                     "Resource Group No." := Resource."Resource Group No.";
                     if Resource."Vendor No." <> '' then
                         "Vendor No." := Resource."Vendor No.";
-
                     if Resource."Is Pool" or Resource."Is Pool Member" then begin
                         if Resource."Is Pool" then
                             "Assigned Pool Resource No." := Resource."No.";
@@ -306,7 +306,7 @@ table 50610 "Day Planning"
                     "Assigned Team Leader" := Resource."Default Foreman";
                     CalculateWorkingHours();
                 end else begin
-                    validate("Assigned Hours", 0);
+                    CalculateWorkingHours();
                     if "Assigned Pool Resource No." <> '' then
                         "Assigned Resource No." := "Assigned Pool Resource No.";
                 end;
@@ -358,7 +358,6 @@ table 50610 "Day Planning"
                     Validate("Assigned Resource No.", Resource."No.");
                     Description := Resource.Name;
                 end;
-
             end;
         }
         field(22; Description; Text[100])
@@ -592,7 +591,8 @@ table 50610 "Day Planning"
         {
             DataClassification = ToBeClassified;
             Caption = 'Requested Resource No.';
-            TableRelation = if ("Requested Pool Resource No." = const('')) Resource where(Blocked = const(false))
+            TableRelation =
+            if ("Requested Pool Resource No." = const('')) Resource where(Blocked = const(false))
             else
             Resource where(Blocked = const(false), "Pool Resource No." = field("Requested Pool Resource No."));
 
@@ -606,7 +606,6 @@ table 50610 "Day Planning"
                     "Resource Group No." := Resource."Resource Group No.";
                     if Resource."Vendor No." <> '' then
                         "Vendor No." := Resource."Vendor No.";
-
                     if Resource."Is Pool" or Resource."Is Pool Member" then begin
                         if Resource."Is Pool" then
                             "Requested Pool Resource No." := Resource."No.";
@@ -622,7 +621,7 @@ table 50610 "Day Planning"
                         Skill := GetFirstSkill("Assigned Resource No.");
                     CalculateWorkingHours();
                 end else begin
-                    Validate("Requested Hours", 0);
+                    CalculateWorkingHours();
                     if "Requested Pool Resource No." <> '' then
                         "Requested Resource No." := "Requested Pool Resource No.";
                 end;
@@ -685,10 +684,10 @@ table 50610 "Day Planning"
                 AssignedCheck();
             end;
         }
-        field(81; "Non Working Minutes Assigned"; Integer)
+        field(81; "Idle Minutes Assigned"; Integer)
         {
             DataClassification = CustomerContent;
-            Caption = 'Non Working Minutes Assigned';
+            Caption = 'Idle Minutes Assigned';
             BlankZero = true;
             trigger OnValidate()
             begin
@@ -696,10 +695,10 @@ table 50610 "Day Planning"
             end;
 
         }
-        field(82; "Non Working Minutes Requested"; Integer)
+        field(82; "Idle Minutes Requested"; Integer)
         {
             DataClassification = CustomerContent;
-            Caption = 'Non Working Minutes Requested';
+            Caption = 'Idle Minutes Requested';
             BlankZero = true;
             trigger OnValidate()
             begin
@@ -968,7 +967,7 @@ table 50610 "Day Planning"
         // If either time is not set, clear both hours fields
         if ("Start Time Assigned" = 0T) or ("End Time Assigned" = 0T) then begin
             "Assigned Hours" := 0;
-            "Non Working Minutes Assigned" := 0;
+            "Idle Minutes Assigned" := 0;
             exit;
         end;
 
@@ -1091,13 +1090,12 @@ table 50610 "Day Planning"
             Rec.Validate("Assigned Resource No.", Rec."Requested Resource No.");
         if Rec."Assigned Pool Resource No." = '' then
             Rec."Assigned Pool Resource No." := Rec."Requested Pool Resource No.";
-
         if rec."Requested Hours" <> 0 then
             if Rec."Assigned Hours" = 0 then
                 Rec."Assigned Hours" := Rec."Requested Hours";
-        if rec."Non Working Minutes Requested" <> 0 then
-            if Rec."Non Working Minutes Assigned" = 0 then
-                Rec."Non Working Minutes Assigned" := Rec."Non Working Minutes Requested";
+        if rec."Idle Minutes Requested" <> 0 then
+            if Rec."Idle Minutes Assigned" = 0 then
+                Rec."Idle Minutes Assigned" := Rec."Idle Minutes Requested";
         if rec."Start Time Requested" <> 0T then
             if Rec."Start Time Assigned" = 0T then
                 Rec."Start Time Assigned" := Rec."Start Time Requested";
@@ -1109,11 +1107,9 @@ table 50610 "Day Planning"
         if rec."Requested Leader" then
             if not Rec."Assigned Leader" then
                 Rec."Assigned Leader" := Rec."Requested Leader";
-
         if rec."Requested Team Leader" <> '' then
             if Rec."Assigned Team Leader" = '' then
                 Rec."Assigned Team Leader" := Rec."Requested Team Leader";
-
         if Rec."Plan Status" = Rec."Plan Status"::"In Request" then
             Rec."Plan Status" := Rec."Plan Status"::"In Progress"; // shown as Assigned (green) in the Gantt
 

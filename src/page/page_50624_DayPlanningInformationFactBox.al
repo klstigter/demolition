@@ -176,7 +176,7 @@ page 50624 "Day Planning Info FactBox"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the end time for this day task.';
                 }
-                field("Non Working Minutes"; Rec."Non Working Minutes Requested")
+                field("Non Working Minutes"; Rec."Idle Minutes Requested")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the value of the Non Working Minutes Requested field.', Comment = '%';
@@ -216,6 +216,5 @@ page 50624 "Day Planning Info FactBox"
         JobTaskDescription := '';
         if JobTask.Get(Rec."Job No.", Rec."Job Task No.") then
             JobTaskDescription := JobTask.Description;
-
     end;
 }

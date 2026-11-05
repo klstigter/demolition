@@ -20,24 +20,33 @@ report 50600 "RepairData"
 
     trigger OnPreReport()
     begin
-        RepairAssignedPlanStatus();
+        RecalculateDayPlanningHours();
     end;
 
-    local procedure RepairAssignedPlanStatus()
+    local procedure RecalculateDayPlanningHours()
     var
         DayPlanning: Record "Day Planning";
+        OldRequested: Decimal;
+        OldAssigned: Decimal;
+        OldRealized: Decimal;
         Counter: Integer;
     begin
-        // Day Plannings with Assigned Hours <> 0 must be "In Progress". Modify(false) so no trigger runs.
-        DayPlanning.SetFilter("Assigned Hours", '<>0');
-        DayPlanning.SetFilter("Plan Status", '<>%1', DayPlanning."Plan Status"::"In Progress");
+        // Hours depend only on start/end times and Non Working Minutes. Modify(false) so no trigger runs.
         if DayPlanning.FindSet(true) then
             repeat
-                DayPlanning."Plan Status" := DayPlanning."Plan Status"::"In Progress";
-                DayPlanning.Modify(false);
-                Counter += 1;
+                OldRequested := DayPlanning."Requested Hours";
+                OldAssigned := DayPlanning."Assigned Hours";
+                OldRealized := DayPlanning."Realized Hours";
+                DayPlanning.CalculateWorkingHours();
+                if (OldRequested <> DayPlanning."Requested Hours") or
+                   (OldAssigned <> DayPlanning."Assigned Hours") or
+                   (OldRealized <> DayPlanning."Realized Hours")
+                then begin
+                    DayPlanning.Modify(false);
+                    Counter += 1;
+                end;
             until DayPlanning.Next() = 0;
-        Message('%1 Day Planning line(s) set to In Progress.', Counter);
+        Message('%1 Day Planning line(s) recalculated.', Counter);
     end;
 
 
