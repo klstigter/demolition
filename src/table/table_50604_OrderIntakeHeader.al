@@ -255,7 +255,17 @@ table 50604 "Order Intake Header Opt."
         Clear(Rec.Description);
         Rec.Description.CreateOutStream(OutStream);
         OutStream.WriteText(pDescBody);
-        Rec.Modify();
+        if ExistsInDb() then
+            Rec.Modify(); // new unsaved record: blob is saved by the page's own insert
+    end;
+
+    local procedure ExistsInDb(): Boolean
+    var
+        OrderIntake: Record "Order Intake Header Opt.";
+    begin
+        if Rec."No." = '' then
+            exit(false);
+        exit(OrderIntake.Get(Rec."No."));
     end;
 
     procedure GetDescription(): Text
@@ -264,6 +274,8 @@ table 50604 "Order Intake Header Opt."
         DescText: Text;
     begin
         DescText := '';
+        if not ExistsInDb() then
+            exit(DescText);
         Rec.CalcFields(Description);
         if Rec.Description.HasValue() then begin
             Rec.Description.CreateInStream(InStream);

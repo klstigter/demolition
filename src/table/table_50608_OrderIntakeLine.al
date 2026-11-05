@@ -76,6 +76,14 @@ table 50608 "Order Intake Line"
     }
 
 
+    trigger OnInsert()
+    var
+        OrderIntakeHeader: Record "Order Intake Header Opt.";
+    begin
+        OrderIntakeHeader.Get("Order Intake No.");
+        OrderIntakeHeader.TestField("Customer No.");
+    end;
+
     trigger OnDelete()
     var
         JobTask: Record "Job Task";
