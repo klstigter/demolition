@@ -6,8 +6,8 @@ tableextension 50605 "Job Task ext" extends "Job Task"
         {
             DataClassification = ToBeClassified;
             Caption = 'Project Manager';
-            ToolTip = 'Specifies the project manager for the project task. The project manager is based on the project manager on the related project planning line.';
-            tableRelation = Resource;
+            ToolTip = 'Specifies the person who is assigned to manage the project task.';
+            tableRelation = "User Setup";
         }
 
         field(50505; "Work Hour Template"; Code[20])
@@ -306,12 +306,10 @@ tableextension 50605 "Job Task ext" extends "Job Task"
             rec.Duration := 0;
             exit;
         end;
-
         if VisualBarEndDate < VisualBarStartDate then
             error('Planned End Date cannot be before Planned Start Date!');
 
         rec.Duration := VisualBarEndDate - VisualBarStartDate + 1;
-
         if rec.Duration < 0 then
             error('Duration cannot be negative!');
     end;
@@ -330,10 +328,8 @@ tableextension 50605 "Job Task ext" extends "Job Task"
     begin
         Rec."Constraint Calc. - Start Date" := 0D;
         Rec."Constraint Calc. - End Date" := 0D;
-
         if (Rec."Constraint Date" = 0D) or (Rec."Max Duration" <= 0) then
             exit;
-
         case Rec."Constraint Type" of
             Rec."Constraint Type"::ALAP,
             Rec."Constraint Type"::FNET,
@@ -403,12 +399,10 @@ tableextension 50605 "Job Task ext" extends "Job Task"
     begin
         DTstart := 0DT;
         DTend := CreateDateTime(DMY2Date(31, 12, 2999), Time);
-
         if TryCreateDayLines then
             if (rec.VisualBarStartDate = 0D) or (rec."Start Time" = 0T)
                         or (rec.VisualBarEndDate = 0D) or (rec."End Time" = 0T) then
                 error('Start and End Planning Date and Time must be set to create Day Lines!');
-
         if (VisualBarStartDate <> 0D) and ("Start Time" <> 0T) then begin
             DT := VisualBarStartDate;
             DTstart := CreateDateTime(DT, "Start Time");
@@ -431,7 +425,6 @@ tableextension 50605 "Job Task ext" extends "Job Task"
     var
     begin
         GetJob();
-
         IF TryCreateDayLines THEN begin
             IF CheckOverlap(TryCreateDayLines) then begin
                 StartEndLimitations(false); //try to fix
