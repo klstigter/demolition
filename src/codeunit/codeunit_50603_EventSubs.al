@@ -37,7 +37,10 @@ codeunit 50603 "EventSubs"
         JobLedgerEntry.Skill := JobJournalLine.Skill;
         JobLedgerEntry."Invoice Resource No." := JobJournalLine."Invoice Resource No.";
         JobLedgerEntry."Approved Project Manager" := JobJournalLine."Approved Project Manager";
-
+        if JobLedgerEntry."Opt. DayPlanning Line No." <> 0 then begin
+            JobLedgerEntry.TestField(Skill);
+            JobLedgerEntry.TestField("Invoice Resource No.");
+        end;
         // ── Res. Ledger Entry (Resource lines only) ───────────────────────────
         // "Ledger Entry No." on the job entry = Entry No. of the already-inserted
         // Res. Ledger Entry. Modify it before the job entry is committed.
@@ -49,6 +52,10 @@ codeunit 50603 "EventSubs"
                 ResLedgEntry.Skill := JobJournalLine.Skill;
                 ResLedgEntry."Invoice Resource No." := JobJournalLine."Invoice Resource No.";
                 ResLedgEntry."Approved Project Manager" := JobJournalLine."Approved Project Manager";
+                if ResLedgEntry."Opt. DayPlanning Line No." <> 0 then begin
+                    ResLedgEntry.TestField(Skill);
+                    ResLedgEntry.TestField("Invoice Resource No.");
+                end;
                 ResLedgEntry.Modify();
             end;
     end;
