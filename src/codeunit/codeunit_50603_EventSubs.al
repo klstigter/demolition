@@ -37,10 +37,6 @@ codeunit 50603 "EventSubs"
         JobLedgerEntry.Skill := JobJournalLine.Skill;
         JobLedgerEntry."Invoice Resource No." := JobJournalLine."Invoice Resource No.";
         JobLedgerEntry."Approved Project Manager" := JobJournalLine."Approved Project Manager";
-        if JobLedgerEntry."Opt. DayPlanning Line No." <> 0 then begin
-            JobLedgerEntry.TestField(Skill);
-            JobLedgerEntry.TestField("Invoice Resource No.");
-        end;
         // ── Res. Ledger Entry (Resource lines only) ───────────────────────────
         // "Ledger Entry No." on the job entry = Entry No. of the already-inserted
         // Res. Ledger Entry. Modify it before the job entry is committed.
@@ -52,12 +48,21 @@ codeunit 50603 "EventSubs"
                 ResLedgEntry.Skill := JobJournalLine.Skill;
                 ResLedgEntry."Invoice Resource No." := JobJournalLine."Invoice Resource No.";
                 ResLedgEntry."Approved Project Manager" := JobJournalLine."Approved Project Manager";
-                if ResLedgEntry."Opt. DayPlanning Line No." <> 0 then begin
-                    ResLedgEntry.TestField(Skill);
-                    ResLedgEntry.TestField("Invoice Resource No.");
-                end;
                 ResLedgEntry.Modify();
             end;
+    end;
+
+    // Day Planning lines must carry Skill and Invoice Resource No. before posting.
+    // Validated in the standard check codeunit (1011) rather than during insert, so the
+    // error is raised before any ledger entry is written. The same journal line values are
+    // copied to both the Job Ledger Entry and the Res. Ledger Entry, so one check covers both.
+    [EventSubscriber(ObjectType::Codeunit, Codeunit::"Job Jnl.-Check Line", 'OnAfterRunCheck', '', false, false)]
+    local procedure CheckDayPlanningFieldsOnAfterRunCheck(var JobJnlLine: Record "Job Journal Line")
+    begin
+        if JobJnlLine."Opt. DayPlanning Line No." <> 0 then begin
+            JobJnlLine.TestField(Skill);
+            JobJnlLine.TestField("Invoice Resource No.");
+        end;
     end;
 
     // ─────────────────────────────────────────────────────────────────────────
