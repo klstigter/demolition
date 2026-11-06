@@ -40,10 +40,12 @@ table 50610 "Day Planning"
             DataClassification = ToBeClassified;
             TableRelation = Job;
             Caption = 'Job No.';
+            NotBlank = true;
         }
         field(4; "Job Task No."; Code[20])
         {
             DataClassification = ToBeClassified;
+            NotBlank = true;
             TableRelation = "Job Task"."Job Task No." where("Job No." = field("Job No."));
             Caption = 'Job Task No.';
         }
@@ -870,7 +872,10 @@ table 50610 "Day Planning"
     var
         DailyOptimizerSetup: record "Daily Optimizer Setup";
         DayPlanningSequenceMgt: Codeunit "Day Planning Sequence Mgt.";
+        PrimaryKeyRequiredErr: Label 'Job No., Job Task No. and Day Line No. must have a value.';
     begin
+        if (Rec."Job No." = '') or (Rec."Job Task No." = '') or (Rec."Day Line No." = 0) then
+            Error(PrimaryKeyRequiredErr);
         if Rec."Assigned Hours" <> 0 then
             Rec."Plan Status" := Rec."Plan Status"::"In Progress";
         if Rec.Skill = '' then begin
