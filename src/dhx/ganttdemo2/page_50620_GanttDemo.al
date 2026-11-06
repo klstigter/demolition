@@ -711,6 +711,7 @@ page 50620 "Gantt Demo DHX 2"
                         FilterDlg.GetFilter(NewJobNo, NewJobTaskNo, DummySkillFilter);
                         JobFilter := NewJobNo;
                         JobTaskFilter := NewJobTaskNo;
+                        ClearResourcePanelFilter();
                         RefreshGantt();
                     end;
                 end;
@@ -719,6 +720,7 @@ page 50620 "Gantt Demo DHX 2"
                 begin
                     JobFilter := '';
                     JobTaskFilter := '';
+                    ClearResourcePanelFilter();
                     RefreshGantt();
                 end;
 
@@ -737,6 +739,7 @@ page 50620 "Gantt Demo DHX 2"
                         exit;
                     JobFilter := jobNo;
                     JobTaskFilter := jobTaskNo;
+                    ClearResourcePanelFilter(); // drop any "Show Job Resources" scope so the panel follows the task filter
                     RefreshGantt();
                 end;
 
@@ -1014,6 +1017,7 @@ page 50620 "Gantt Demo DHX 2"
                     ResourcePanelFlag := true;
                     CurrPage.DHXGanttControl2.SetResourcePanelVisibility(true);
                     ClearResourcePanelFilter(); // clear any existing filter context when manually showing the panel, to avoid confusion
+                    ShowTaskFilterOnResourcePanel(); // default load follows the task filter -> show its indicator too
                     EnqueueDefaultResourcePanelReload(true, true);
                 end;
             }
@@ -1400,6 +1404,25 @@ page 50620 "Gantt Demo DHX 2"
         CurrPage.DHXGanttControl2.ClearResourceFilter();
     end;
 
+    /// <summary>
+    /// Default-mode resource panel data follows the task-list Job/Job Task filter, so mirror it as
+    /// the panel's filter indicator (or clear the indicator when no task filter is active).
+    /// </summary>
+    local procedure ShowTaskFilterOnResourcePanel()
+    var
+        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
+        StartDate: Date;
+        EndDate: Date;
+    begin
+        if (JobFilter = '') and (JobTaskFilter = '') then begin
+            CurrPage.DHXGanttControl2.ClearResourceFilter();
+            exit;
+        end;
+        Setup.Get(UserId);
+        GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
+        CurrPage.DHXGanttControl2.SetResourcePanelFilterInfo(JobFilter, JobTaskFilter, Format(StartDate, 0, '<Year4>-<Month,2>-<Day,2>'), Format(EndDate, 0, '<Year4>-<Month,2>-<Day,2>'));
+    end;
+
     [TryFunction]
     local procedure TryValidateRequestedResourceNo(var DayPlanning: Record "Day Planning"; ResourceCode: Code[20])
     begin
@@ -1535,6 +1558,9 @@ page 50620 "Gantt Demo DHX 2"
             EnqueueFilteredResourcePanelReload(ResourcePanelFromDate, ResourcePanelToDate);
         end else
             if ResourcePanelFlag then begin
+                // Default mode follows the task-list Job/Job Task filter, so show the same
+                // indicator in the resource panel header (or clear it when no task filter).
+                ShowTaskFilterOnResourcePanel();
                 if GuiAllowed() then
                     Window.Update(1, 'Resources && Day Plannings (loading in background)...');
                 EnqueueDefaultResourcePanelReload(Setup."Load Resources", Setup."Load Day Plannings");
