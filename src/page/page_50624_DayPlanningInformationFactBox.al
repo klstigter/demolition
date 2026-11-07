@@ -18,53 +18,6 @@ page 50624 "Day Planning Info FactBox"
                     Caption = 'Day No.';
                     visible = false;
                 }
-                field("Task Date"; Rec."Plan Date")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the task date.';
-                    Caption = 'Plan Date';
-                }
-                field("Plan Status"; Rec."Plan Status")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the plan status of the day planning.';
-                }
-                field("Data Owner"; Rec."Data Owner")
-                {
-                    Caption = 'Data Owner';
-                    ApplicationArea = All;
-                }
-                field("Assigned Resource No."; Rec."Assigned Resource No.")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the request number.';
-                    Caption = 'Assigned Resource No.';
-                    trigger OnDrillDown()
-                    var
-                        Resource: Record Resource;
-                        ResourceCard: Page "Resource Card";
-                    begin
-                        Resource.Get(Rec."Assigned Resource No.");
-                        ResourceCard.SetRecord(Resource);
-                        ResourceCard.RunModal();
-                    end;
-                }
-                Field("Assigned Pool Resource No."; Rec."Assigned Pool Resource No.")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the pool resource number.';
-                    Caption = 'Assigned Pool Resource No.';
-                    trigger OnDrillDown()
-                    var
-                        Resource: Record Resource;
-                        ResourceCard: Page "Resource Card";
-                    begin
-                        Resource.Get(Rec."Assigned Resource No.");
-                        ResourceCard.SetRecord(Resource);
-                        ResourceCard.RunModal();
-                    end;
-                }
-
                 field(DayLineNo; Rec."Day Line No.")
                 {
                     ApplicationArea = All;
@@ -77,10 +30,21 @@ page 50624 "Day Planning Info FactBox"
                     ApplicationArea = All;
                     visible = false;
                 }
-                field("Total Assigned Hours"; Rec."Total Assigned Hours")
+                field("Task Date"; Rec."Plan Date")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the value of the Total Requested Hours field.', Comment = '%';
+                    ToolTip = 'Specifies the task date.';
+                    Caption = 'Plan Date';
+                }
+                field("Data Owner"; Rec."Data Owner")
+                {
+                    Caption = 'Data Owner';
+                    ApplicationArea = All;
+                }
+                field("Plan Status"; Rec."Plan Status")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the plan status of the day planning.';
                 }
                 field("Project Manager Status"; Rec."Project Manager Status")
                 {
@@ -98,6 +62,7 @@ page 50624 "Day Planning Info FactBox"
                 {
                     ApplicationArea = All;
                 }
+
             }
             group(JobInformation)
             {
@@ -149,6 +114,70 @@ page 50624 "Day Planning Info FactBox"
                     Editable = false;
                 }
             }
+            Group(Assigned)
+            {
+                field("Assigned Resource No."; Rec."Assigned Resource No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the assigned number.';
+                    Caption = 'Assigned Resource No.';
+                    trigger OnDrillDown()
+                    var
+                        Resource: Record Resource;
+                        ResourceCard: Page "Resource Card";
+                    begin
+                        Resource.Get(Rec."Assigned Resource No.");
+                        ResourceCard.SetRecord(Resource);
+                        ResourceCard.RunModal();
+                    end;
+                }
+                Field("Assigned Pool Resource No."; Rec."Assigned Pool Resource No.")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the assigned pool resource number.';
+                    Caption = 'Assigned Pool Resource No.';
+                    trigger OnDrillDown()
+                    var
+                        Resource: Record Resource;
+                        ResourceCard: Page "Resource Card";
+                    begin
+                        Resource.Get(Rec."Assigned Resource No.");
+                        ResourceCard.SetRecord(Resource);
+                        ResourceCard.RunModal();
+                    end;
+                }
+
+
+                field("Assigned Start Time"; Rec."Start Time Assigned")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the Assigned start time for this day task.';
+                }
+                field("Assigned End Time"; Rec."End Time Assigned")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the Assigned end time for this day task.';
+                }
+                field("Assigned Non Working Minutes"; Rec."Idle Minutes Assigned")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the value of the Non Working Minutes Assigned field.', Comment = '%';
+                }
+
+                field("Assigned Hours"; Rec."Assigned Hours")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the Assigned hours for this day task.';
+                }
+
+                field("Total Assigned Hours"; Rec."Total Assigned Hours")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the value of the Total Assigned Hours field for this day and this requested resource no.', Comment = '%';
+                }
+
+            }
+
             group(Requested)
             {
                 Caption = 'Request';
@@ -206,7 +235,7 @@ page 50624 "Day Planning Info FactBox"
                 field("Total Hours"; Rec."Total Requested Hours")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the value of the Total Requested Hours field.', Comment = '%';
+                    ToolTip = 'Specifies the value of the Total Requested Hours field for this day and requested resource no.', Comment = '%';
                 }
             }
 
