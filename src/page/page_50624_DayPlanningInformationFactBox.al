@@ -99,7 +99,7 @@ page 50624 "Day Planning Info FactBox"
                     trigger OnDrillDown()
                     var
                         JobTask: Record "Job Task";
-                        JobCard: Page "Job Task Card";
+                        JobCard: Page "Opti Job Task Card";
                     begin
                         JobTask.Get(Rec."Job No.", Rec."Job Task No.");
                         JobCard.SetRecord(JobTask);
