@@ -28,7 +28,7 @@ pageextension 50606 "ResourceCapacityMatrix opt" extends "Resource Capacity Matr
 
                 trigger OnAction()
                 var
-                    ResScheduler: page "Resource Scheduler - Calendar";
+                    ResScheduler: page "Resource Calendar";
                 begin
                     ResScheduler.SetResourceFilter(Rec."No.");
                     ResScheduler.RunModal();

@@ -123,15 +123,28 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
                                 "No." = field("No.");
                 ToolTip = 'View the assignment of skills to the resource. You can use skill codes to allocate skilled resources to service items or items that need special skills for servicing.';
             }
-            action("Resource Scheduler")
+            action("Resource Calender")
             {
                 ApplicationArea = All;
                 Caption = 'Resource Calendar';
                 trigger OnAction()
                 var
-                    ResScheduler: page "Resource Scheduler - Calendar";
+                    ResScheduler: page "Resource Calendar";
                 begin
                     ResScheduler.SetResourceFilter(Rec."No.");
+                    ResScheduler.RunModal();
+                end;
+            }
+            action("Resource Scheduler")
+            {
+                ApplicationArea = All;
+                Caption = 'Resource Scheduler';
+                trigger OnAction()
+                var
+                    ResScheduler: page "Resource Scheduler - TimeLine";
+                begin
+                    //TODO SetFilter
+                    //ResScheduler.SetResourceFilter(Rec."No.");
                     ResScheduler.RunModal();
                 end;
             }
@@ -196,11 +209,19 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
         addafter(CreateTimeSheets_Promoted)
         {
             actionref("S&kills_Promoted_custom"; "S&kills_Custom") { }
-            actionref("Day Plannings (Visual) actionref"; "Resource Scheduler") { }
             actionref("DayPlanningRef"; DayPlanning) { }
             actionref("Set Capacity Opt actionref"; "Set Capacity Opt") { }
             actionref("Absence actionref"; "Absence") { }
             actionref("Resource Capacity actionref"; "Resource &Capacity") { }
+            Group(Visuals_Ref)
+            {
+                Caption = 'Resource (Visuals)';
+                ShowAs = SplitButton;
+                Image = Planning;
+                actionref("Calendar (Visual) actionref"; "Resource Calender") { }
+                actionref("Scheduler (Visual) actionref"; "Resource Scheduler") { }
+            }
+
         }
     }
 

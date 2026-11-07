@@ -274,7 +274,7 @@ page 50638 "Resource Week View Part"
                 Image = Capacities;
                 trigger OnAction()
                 var
-                    ResScheduler: page "Resource Scheduler - Calendar";
+                    ResScheduler: page "Resource Calendar";
                 begin
                     rec.testfield("Resource No.");
                     ResScheduler.SetResourceFilter(Rec."Resource No.");

@@ -55,7 +55,7 @@ pageextension 50603 "Opt ResourceList" extends "Resource List"
                 ApplicationArea = All;
                 trigger OnAction()
                 var
-                    ResScheduler: page "Resource Scheduler - Calendar";
+                    ResScheduler: page "Resource Calendar";
                 begin
                     ResScheduler.SetResourceFilter(GetSelectionFilter());
                     ResScheduler.RunModal();
@@ -117,7 +117,7 @@ pageextension 50603 "Opt ResourceList" extends "Resource List"
                 Caption = 'Resource Calendar';
                 trigger OnAction()
                 var
-                    ResScheduler: page "Resource Scheduler - Calendar";
+                    ResScheduler: page "Resource Calendar";
                 begin
                     ResScheduler.SetResourceFilter(Rec."No.");
                     ResScheduler.RunModal();

@@ -1,4 +1,4 @@
-page 50706 "DHX Scheduler - TimeLine"
+page 50706 "Resource Scheduler - TimeLine"
 {
     PageType = List;
     ApplicationArea = All;

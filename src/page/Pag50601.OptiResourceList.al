@@ -372,7 +372,7 @@ page 50601 "Opti Resource List"
                     ApplicationArea = All;
                     trigger OnAction()
                     var
-                        ResScheduler: page "Resource Scheduler - Calendar";
+                        ResScheduler: page "Resource Calendar";
                     begin
                         ResScheduler.SetResourceFilter(GetSelectionFilter());
                         ResScheduler.RunModal();

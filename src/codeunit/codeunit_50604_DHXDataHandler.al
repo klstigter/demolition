@@ -2417,7 +2417,7 @@ codeunit 50604 "DHX Data Handler"
     procedure OpenResourceSchedulerAssigned(eventId: Text)
     var
         DayPlanning: Record "Day Planning";
-        ResScheduler: Page "Resource Scheduler - Calendar";
+        ResScheduler: Page "Resource Calendar";
         EventIDList: List of [Text];
         JobNo: Code[20];
         TaskNo: Code[20];
@@ -2453,7 +2453,7 @@ codeunit 50604 "DHX Data Handler"
     procedure OpenResSchedulerTimeline(eventId: Text)
     var
         DayPlanning: Record "Day Planning";
-        ResCapacityScheduler: Page "DHX Scheduler - TimeLine";
+        ResCapacityScheduler: Page "Resource Scheduler - TimeLine";
         EventIDList: List of [Text];
         JobNo: Code[20];
         TaskNo: Code[20];
@@ -2483,7 +2483,7 @@ codeunit 50604 "DHX Data Handler"
     procedure OpenResourceSchedulerRequested(eventId: Text)
     var
         DayPlanning: Record "Day Planning";
-        ResScheduler: Page "Resource Scheduler - Calendar";
+        ResScheduler: Page "Resource Calendar";
         EventIDList: List of [Text];
         JobNo: Code[20];
         TaskNo: Code[20];
@@ -6840,7 +6840,7 @@ codeunit 50604 "DHX Data Handler"
     /// <summary>Page 50724 right-click "Show Resource Scheduler" - opens page 50706 with the payload's skill filter and week of its date.</summary>
     procedure CPO_OpenResourceScheduler(PayloadJsonTxt: Text)
     var
-        DHXResourceCapacityScheduler: Page "DHX Scheduler - TimeLine";
+        DHXResourceCapacityScheduler: Page "Resource Scheduler - TimeLine";
         PayloadJObj: JsonObject;
         FieldJToken: JsonToken;
         PlanDate: Date;

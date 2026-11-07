@@ -1,4 +1,4 @@
-page 50619 "Resource Scheduler - Calendar"
+page 50619 "Resource Calendar"
 {
     PageType = List;
     ApplicationArea = All;

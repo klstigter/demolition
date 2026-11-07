@@ -404,8 +404,9 @@ page 50630 "Day Plannings"
                 Caption = 'Planning';
                 ShowAs = SplitButton;
                 Image = Planning;
-                actionref("Schedule (Visual) actionref"; "Schedule (Visual)") { }
-                actionref("DayPlannings (Visual) actionref"; "DayPlannings (Visual)") { }
+                actionref("Calender (Visual) actionref"; "Resource Calender (Visual)") { }
+                actionref("Scheduler (Visual) actionref"; "Resource Scheduler (Visual)") { }
+                actionref("DayPlannings (Visual) actionref"; "Task Scheduler (Visual)") { }
                 actionref("Capacity actionref"; "Capacity (Visual)") { }
             }
         }
@@ -463,23 +464,42 @@ page 50630 "Day Plannings"
                     Message(Descr);
                 end;
             }
-            action("Schedule (Visual)")
+            action("Resource Calender (Visual)")
             {
                 ApplicationArea = All;
                 trigger OnAction()
                 var
-                    ResScheduler: page "Resource Scheduler - Calendar";
+                    ResCalender: page "Resource Calendar";
                     ResourceNo: code[20];
                 begin
                     if rec."Assigned Resource No." <> '' then
                         ResourceNo := rec."Assigned Resource No."
                     else
                         ResourceNo := rec."Requested Resource No.";
-                    ResScheduler.SetResourceFilter(ResourceNo);
+                    ResCalender.SetResourceFilter(ResourceNo);
+                    ResCalender.RunModal();
+                end;
+            }
+            action("Resource Scheduler (Visual)")
+            {
+                ApplicationArea = All;
+                trigger OnAction()
+                var
+                    ResScheduler: page "Resource Scheduler - TimeLine";
+                    ResourceNo: code[20];
+                begin
+                    if rec."Assigned Resource No." <> '' then
+                        ResourceNo := rec."Assigned Resource No."
+                    else
+                        ResourceNo := rec."Requested Resource No.";
+
+                    //TODO: Setfilter
+                    //ResScheduler.SetResourceFilter(ResourceNo);
                     ResScheduler.RunModal();
                 end;
             }
-            action("DayPlannings (Visual)")
+
+            action("Task Scheduler (Visual)")
             {
                 ApplicationArea = All;
                 trigger OnAction()
