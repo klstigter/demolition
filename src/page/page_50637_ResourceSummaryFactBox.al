@@ -4,11 +4,12 @@ page 50637 "Resource Summary FactBox"
     SourceTable = "Resource DayPlanning Summary";
     SourceTableTemporary = true;
     Caption = 'Resource Summary';
-    Editable = false;
+    Editable = true;
     InsertAllowed = false;
     DeleteAllowed = false;
     ModifyAllowed = false;
     ShowFilter = false;
+
 
     layout
     {
@@ -21,6 +22,18 @@ page 50637 "Resource Summary FactBox"
                     ApplicationArea = All;
                     Caption = 'Resource';
                     ToolTip = 'Specifies the resource name.';
+                    trigger OnDrillDown()
+                    var
+                        ResourceCard: Page "Resource Card";
+                        resource: record Resource;
+                    begin
+                        if rec."Resource No." = '' then
+                            error('Field %1 must have a value', rec."Resource No.");
+                        resource.get(rec."Resource No.");
+                        ResourceCard.SetRecord(resource);
+                        ResourceCard.Run();
+                    end;
+
                 }
                 field("Total Hours"; Rec."Total Hours")
                 {
@@ -28,6 +41,21 @@ page 50637 "Resource Summary FactBox"
                     Caption = 'Total Hours';
                     ToolTip = 'Specifies the total hours for this resource.';
                     Style = Strong;
+                    trigger OnDrillDown()
+                    var
+                        DayPlanning: Page "Day Plannings";
+                        DayPlanningRec: Record "Day Planning";
+                    begin
+                        if rec."Job No." <> '' then
+                            DayPlanningRec.setfilter("Job No.", Rec."Job No.");
+                        if rec."Job Task No." <> '' then
+                            DayPlanningRec.setfilter("Job Task No.", Rec."Job Task No.");
+                        if rec."Resource No." <> '' then
+                            DayPlanningRec.SetFilter("Assigned Resource No.", rec."Resource No.");
+                        DayPlanning.SetTableView(DayPlanningRec);
+                        DayPlanning.Run();
+
+                    end;
                 }
             }
         }
@@ -37,12 +65,12 @@ page 50637 "Resource Summary FactBox"
     {
         area(Processing)
         {
-            action(ViewDetails)
+            action(ViewdayplanningLines)
             {
                 ApplicationArea = All;
-                Caption = 'View Details';
+                Caption = 'Day Planning Lines';
                 Image = View;
-                ToolTip = 'View detailed resource usage information.';
+                ToolTip = 'View all Day Planning Lines.';
 
                 trigger OnAction()
                 var
@@ -50,16 +78,15 @@ page 50637 "Resource Summary FactBox"
                     DayPlanningRec: Record "Day Planning";
                 begin
                     if rec."Job No." <> '' then
-                        DayPlanningRec."Job No." := Rec."Job No.";
+                        DayPlanningRec.setfilter("Job No.", Rec."Job No.");
                     if rec."Job Task No." <> '' then
-                        DayPlanningRec."Job Task No." := Rec."Job Task No.";
-                    if rec."Resource No." <> '' then
-                        DayPlanningRec."Assigned Resource No." := Rec."Resource No.";
-                    DayPlanning.SetRecord(DayPlanningRec);
-                    DayPlanning.RunModal();
+                        DayPlanningRec.setfilter("Job Task No.", Rec."Job Task No.");
+                    DayPlanning.SetTableView(DayPlanningRec);
+                    DayPlanning.Run();
 
                 end;
             }
+
             action(Refresh)
             {
                 ApplicationArea = All;

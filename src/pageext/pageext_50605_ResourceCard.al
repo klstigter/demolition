@@ -95,12 +95,7 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
                 Caption = 'Resource Skills';
                 SubPageLink = Type = const(Resource), "No." = field("No.");
             }
-            part(DayPlanningsFactbox; "Day Plannings FactBox")
-            {
-                ApplicationArea = All;
-                Caption = 'Day Plannings';
-                SubPageLink = "Assigned Resource No." = field("No.");
-            }
+
         }
     }
 
