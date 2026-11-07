@@ -90,6 +90,7 @@ table 50610 "Day Planning"
         {
             DataClassification = ToBeClassified;
             Caption = 'Sequence No.';
+            NotBlank = true;
         }
         field(11; "Start Time Assigned"; Time)
         {
@@ -256,6 +257,7 @@ table 50610 "Day Planning"
         {
             Caption = 'Skill';
             TableRelation = "Skill Code";
+            NotBlank = true;
 
             trigger OnValidate()
             var
