@@ -138,6 +138,10 @@ page 50623 "Job Journal Line API Opt."
                 {
                     Caption = 'Gen. Prod. Posting Group';
                 }
+                field(approvedProjectManager; Rec."Approved Project Manager")
+                {
+                    Caption = 'Approved Project Manager';
+                }
                 field(workTypeCode; Rec."Work Type Code")
                 {
                     Caption = 'Work Type Code';

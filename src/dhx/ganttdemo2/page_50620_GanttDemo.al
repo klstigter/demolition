@@ -419,6 +419,9 @@ page 50620 "Gantt Demo DHX 2"
                     HighlightKeys: JsonArray;
                     FirstFound: Boolean;
                     SameDay: Record "Day Planning";
+                    ScopeJobFilter: Text;
+                    ScopeJobTaskFilter: Text;
+                    ScopeSkillFilter: Text;
                     ResourceNo: Code[20];
                     PlanDate: Date;
                     BeforeCount: Integer;
@@ -438,6 +441,8 @@ page 50620 "Gantt Demo DHX 2"
                                     GanttChartDataHandler.GetDateRange(Setup, AnchorDate, PeriodStart, PeriodEnd);
                                     SequencePage.SetPeriod(PeriodStart, PeriodEnd);
                                     SequencePage.SetContext(DayPlanning."Job No.", DayPlanning."Job Task No.", '');
+                                    GetResourcePanelScopeFilters(ScopeJobFilter, ScopeJobTaskFilter, ScopeSkillFilter);
+                                    SequencePage.SetScopeFilters(ScopeJobFilter, ScopeJobTaskFilter, ScopeSkillFilter);
                                     FirstFound := true;
                                     ResourceNo := DayPlanning."Assigned Resource No.";
                                     if ResourceNo = '' then
@@ -460,6 +465,7 @@ page 50620 "Gantt Demo DHX 2"
                     end;
                     if FirstFound then begin
                         SequencePage.SetHighlightedSections(HighlightKeys);
+                        SequencePage.SetShowHighlightedOnly(); // only the related (yellow) rows, not the whole filtered scope
                         SequencePage.RunModal();
                         RefreshResourcePanelIfChanged(BeforeCount, BeforeMax);
                     end;
@@ -1397,6 +1403,45 @@ page 50620 "Gantt Demo DHX 2"
         ResourcePanelChunkJobTaskFilter: Text;
         ResourcePanelChunkSkillFilter: Text;
         ResourcePanelChunkAnchorDate: Date;
+
+    /// <summary>
+    /// The Job/Job Task/Skill scope the resource panel is currently showing: the "Show Job
+    /// Resources" task + children when active, otherwise the task-list filter.
+    /// </summary>
+    local procedure GetResourcePanelScopeFilters(var pJobFilter: Text; var pJobTaskFilter: Text; var pSkillFilter: Text)
+    var
+        TaskKey: Text;
+        KeyParts: List of [Text];
+        Keys: List of [Text];
+    begin
+        pJobFilter := '';
+        pJobTaskFilter := '';
+        pSkillFilter := '';
+        if (ResourcePanelJobNo <> '') and (ResourcePanelJobTaskNo <> '') then begin
+            Keys.Add(ResourcePanelJobNo + '|' + ResourcePanelJobTaskNo);
+            foreach TaskKey in ResourcePanelChildTaskIds do
+                Keys.Add(TaskKey);
+            foreach TaskKey in Keys do begin
+                KeyParts := TaskKey.Split('|');
+                if KeyParts.Count() >= 2 then begin
+                    if not StrSubstNo('|%1|', pJobFilter).Contains(StrSubstNo('|%1|', KeyParts.Get(1))) then begin
+                        if pJobFilter <> '' then
+                            pJobFilter += '|';
+                        pJobFilter += KeyParts.Get(1);
+                    end;
+                    if not StrSubstNo('|%1|', pJobTaskFilter).Contains(StrSubstNo('|%1|', KeyParts.Get(2))) then begin
+                        if pJobTaskFilter <> '' then
+                            pJobTaskFilter += '|';
+                        pJobTaskFilter += KeyParts.Get(2);
+                    end;
+                end;
+            end;
+            exit;
+        end;
+        pJobFilter := JobFilter;
+        pJobTaskFilter := JobTaskFilter;
+        pSkillFilter := SkillFilter;
+    end;
 
     local procedure ClearResourcePanelFilter()
     begin
