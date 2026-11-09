@@ -322,6 +322,9 @@ page 50621 "DHX Scheduler (Project)"
                     case action of
                         'OpenTask':
                             DHXDataHandler.OpenJobTaskCard(sectionId);
+                        'NewEvent':
+                            if DHXDataHandler.NewDayPlanningFromSection(sectionId, AnchorDate) then
+                                RefreshSchedule();
                         'ShowMessage1':
                             Message('message 1 from scheduller');
                         'ShowMessage2':

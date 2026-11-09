@@ -2255,8 +2255,6 @@ codeunit 50604 "DHX Data Handler"
     /// </summary>
     procedure DragCreateDayPlanningCard(SectionId: Text; StartDateIso: Text; EndDateIso: Text)
     var
-        NewDayPlanning: Record "Day Planning";
-        LastDayPlanning: Record "Day Planning";
         SectionParts: List of [Text];
         JobNo: Code[20];
         JobTaskNo: Code[20];
@@ -2265,7 +2263,7 @@ codeunit 50604 "DHX Data Handler"
         _DateTimeUserZone: DateTime;
         _EndDateTime: DateTime;
         _EndDateTimeUserZone: DateTime;
-        NewDayLineNo: Integer;
+        EndTime: Time;
     begin
         SectionParts := SectionId.Split('|');
         if SectionParts.Count() < 2 then
@@ -2279,6 +2277,59 @@ codeunit 50604 "DHX Data Handler"
         _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
         PlanDate := DT2Date(_DateTimeUserZone);
 
+        EndTime := 0T;
+        if (EndDateIso <> '') and Evaluate(_EndDateTime, EndDateIso) then begin
+            _EndDateTimeUserZone := ConvertToUserTimeZone(_EndDateTime);
+            EndTime := DT2Time(_EndDateTimeUserZone);
+        end;
+        CreateDayPlanningCard(JobNo, JobTaskNo, PlanDate, DT2Time(_DateTimeUserZone), EndTime, '');
+    end;
+
+    /// <summary>
+    /// Task Scheduler section context menu "New Event": opens a new Day Planning Card on the clicked
+    /// Job Task. Skill = Daily Optimizer Setup's Default Skill, else the user picks one.
+    /// Returns false when nothing was created (invalid section or skill popup cancelled).
+    /// </summary>
+    procedure NewDayPlanningFromSection(SectionId: Text; DefaultDate: Date): Boolean
+    var
+        SectionParts: List of [Text];
+        JobNo: Code[20];
+        JobTaskNo: Code[20];
+        SkillCode: Record "Skill Code";
+        SkillCodes: Page "Skill Codes";
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        SkillNo: Code[20];
+    begin
+        SectionParts := SectionId.Split('|');
+        if SectionParts.Count() < 2 then
+            exit(false);
+        JobNo := CopyStr(SectionParts.Get(1), 1, MaxStrLen(JobNo));
+        JobTaskNo := CopyStr(SectionParts.Get(2), 1, MaxStrLen(JobTaskNo));
+        if (JobNo = '') or (JobTaskNo = '') then
+            exit(false);
+        // Skill is mandatory on a Day Planning: use Daily Optimizer Setup's Default Skill,
+        // ask the user only when none is configured
+        if DailyOptimizerSetup.Get() then
+            SkillNo := DailyOptimizerSetup."Default Skill";
+        if SkillNo = '' then begin
+            SkillCodes.LookupMode(true);
+            if SkillCodes.RunModal() <> Action::LookupOK then
+                exit(false);
+            SkillCodes.GetRecord(SkillCode);
+            SkillNo := SkillCode.Code;
+        end;
+        if DefaultDate = 0D then
+            DefaultDate := Today();
+        CreateDayPlanningCard(JobNo, JobTaskNo, DefaultDate, 080000T, 0T, SkillNo);
+        exit(true);
+    end;
+
+    local procedure CreateDayPlanningCard(JobNo: Code[20]; JobTaskNo: Code[20]; PlanDate: Date; StartTime: Time; EndTime: Time; SkillNo: Code[20])
+    var
+        NewDayPlanning: Record "Day Planning";
+        LastDayPlanning: Record "Day Planning";
+        NewDayLineNo: Integer;
+    begin
         LastDayPlanning.Reset();
         LastDayPlanning.SetRange("Job No.", JobNo);
         LastDayPlanning.SetRange("Job Task No.", JobTaskNo);
@@ -2292,11 +2343,10 @@ codeunit 50604 "DHX Data Handler"
         NewDayPlanning."Job Task No." := JobTaskNo;
         NewDayPlanning."Day Line No." := NewDayLineNo;
         NewDayPlanning."Plan Date" := PlanDate;
-        NewDayPlanning."Start Time Requested" := DT2Time(_DateTimeUserZone);
-        if (EndDateIso <> '') and Evaluate(_EndDateTime, EndDateIso) then begin
-            _EndDateTimeUserZone := ConvertToUserTimeZone(_EndDateTime);
-            NewDayPlanning."End Time Requested" := DT2Time(_EndDateTimeUserZone);
-        end;
+        NewDayPlanning.Skill := SkillNo;
+        NewDayPlanning."Start Time Requested" := StartTime;
+        if EndTime <> 0T then
+            NewDayPlanning."End Time Requested" := EndTime;
         NewDayPlanning.Insert(true);
         Commit();
         if Page.RunModal(Page::"Day Planning Card Opt", NewDayPlanning) <> Action::LookupOK then
