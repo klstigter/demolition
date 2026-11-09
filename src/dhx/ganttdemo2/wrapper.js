@@ -3298,31 +3298,7 @@ function _updateResourceHeaderTooltip() {
       popup.style.display = "none";
     });
 
-    // (✕) Reset button — hover shows "Click to Reset Filter", click resets
-    var resetBtn = document.createElement("button");
-    resetBtn.className = "res-filter-reset";
-    resetBtn.title = "Click to Reset Filter";
-    resetBtn.textContent = "\u2715"; // ✕
-    resetBtn.style.cssText = "background:#c0392b;border:none;border-radius:50%;width:20px;height:20px;line-height:20px;text-align:center;padding:0;margin-left:4px;cursor:pointer;font-size:13px;font-weight:700;color:#fff;vertical-align:middle;display:inline-block;";
-
-    resetBtn.addEventListener("click", function(e) {
-      e.stopPropagation();
-      if (!_resourcePanelInvokeStart()) return;
-      popup.style.display = "none";
-      Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(
-        "OnResetResourceFilter",
-        [],
-        false,
-        _resourcePanelInvokeEnd,
-        function (e) {
-          console.error("OnResetResourceFilter failed:", e);
-          _resourcePanelInvokeEnd();
-        }
-      );
-    });
-
     cell.appendChild(infoBtn);
-    cell.appendChild(resetBtn);
   } catch (e) {
     console.error("_updateResourceHeaderTooltip failed:", e);
   }
