@@ -733,23 +733,32 @@ page 50620 "Gantt Demo DHX 2"
                 end;
 
                 /// <summary>
-                /// Fired by the task list's right-click "Add Filter" menu item - unlike
-                /// OnGanttFilterIconClick above, this applies the right-clicked row's own Job
-                /// No./Job Task No. directly, with no "Task Scheduler Filter" dialog: the user
-                /// already picked the task by right-clicking it, so there is nothing left to ask.
-                /// jobTaskNo may be a "from..to" BC filter-range expression (set by wrapper.js
-                /// when the clicked row is a summary/parent task) so the filter still keeps its
-                /// child tasks in scope instead of matching only the parent row itself.
+                /// Fired by the task list's right-click "Add Filter" menu item - opens the same
+                /// "Task Scheduler Filter" dialog as OnGanttFilterIconClick, but pre-filled with
+                /// the right-clicked row's Job No./Job Task No. (Skill left empty) so the user
+                /// can review/adjust before applying. jobTaskNo may be a "from..to" BC
+                /// filter-range expression (set by wrapper.js when the clicked row is a
+                /// summary/parent task) so the filter still keeps its child tasks in scope.
                 /// </summary>
                 trigger OnGanttContextAddFilter(jobNo: Text; jobTaskNo: Text)
+                var
+                    FilterDlg: Report "Task Scheduler Filter";
+                    NewJobNo: Text;
+                    NewJobTaskNo: Text;
+                    NewSkill: Text;
                 begin
                     if jobNo = '' then
                         exit;
-                    JobFilter := jobNo;
-                    JobTaskFilter := jobTaskNo;
-                    SkillFilter := '';
-                    ClearResourcePanelFilter(); // drop any "Show Job Resources" scope so the panel follows the task filter
-                    RefreshGantt();
+                    FilterDlg.SetFilter(jobNo, jobTaskNo, '');
+                    FilterDlg.RunModal();
+                    if FilterDlg.IsConfirmed() then begin
+                        FilterDlg.GetFilter(NewJobNo, NewJobTaskNo, NewSkill);
+                        JobFilter := NewJobNo;
+                        JobTaskFilter := NewJobTaskNo;
+                        SkillFilter := NewSkill;
+                        ClearResourcePanelFilter(); // drop any "Show Job Resources" scope so the panel follows the task filter
+                        RefreshGantt();
+                    end;
                 end;
 
                 #endregion
