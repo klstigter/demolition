@@ -37,6 +37,7 @@ page 50689 "Job Task Planning Part"
                         begin
                             PlannedDateUpdater.SetPlannedDates(Rec);
                             PlannedDateUpdater.RunModal();
+                            Rec.Get(Rec."Job No.", Rec."Job Task No.");
                         end;
                     }
                     field("Planned End Date"; Rec.VisualBarEndDate)
