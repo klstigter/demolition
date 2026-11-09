@@ -820,12 +820,10 @@ window.BOOT = function() {
             <tbody>
               <tr>
                 <td>${task.bcJobNo || "-"}</td>
-                <td>-</td>
                 <td>${jobDescription}</td>
               </tr>
               <tr>
                 <td>${jobTaskNo || "-"}</td>
-                <td>-</td>
                 <td>${jobTaskDescription}</td>
               </tr>
             </tbody>
