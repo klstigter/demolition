@@ -589,6 +589,7 @@ page 50618 "Opti Job Task Card"
                         begin
                             PlannedDateUpdater.SetPlannedDates(Rec);
                             PlannedDateUpdater.RunModal();
+                            Rec.Get(Rec."Job No.", Rec."Job Task No.");
                         end;
                     }
                     field("Planned End Date"; Rec.VisualBarEndDate)

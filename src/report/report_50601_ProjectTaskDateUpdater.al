@@ -98,6 +98,9 @@ report 50601 "Job Task Planned Date Updater"
                                                 PlannedStartDate,
                                                 PlannedEndDate) then begin
 
+                // Apply Changes in the preview already modified the Job Task in the database;
+                // re-read it so Modify() doesn't hit a stale-record error.
+                ProjectTask.Get(ProjectTask."Job No.", ProjectTask."Job Task No.");
                 ProjectTask.VisualBarStartDate := PlannedStartDate;
                 ProjectTask.VisualBarEndDate := PlannedEndDate;
                 ProjectTask.Duration := Duration;
