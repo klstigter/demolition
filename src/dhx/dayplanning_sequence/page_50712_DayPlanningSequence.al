@@ -85,6 +85,7 @@ page 50712 "Day Planning Sequence"
                     if not FilterDlg.IsConfirmed() then
                         exit;
                     FilterDlg.GetFilter(NewJobFilter, NewJobTaskFilter, NewSkillFilter, NewResourceFilter, NewPeriodFrom, NewPeriodTo);
+                    DayPlanningSequenceMgt.SetOnlySections('');
                     JobFilter := NewJobFilter;
                     JobTaskFilter := NewJobTaskFilter;
                     SkillFilter := NewSkillFilter;
@@ -99,6 +100,7 @@ page 50712 "Day Planning Sequence"
                 /// </summary>
                 trigger OnClearFilter()
                 begin
+                    DayPlanningSequenceMgt.SetOnlySections('');
                     JobFilter := '';
                     JobTaskFilter := '';
                     SkillFilter := '';
@@ -240,6 +242,16 @@ page 50712 "Day Planning Sequence"
     end;
 
     /// <summary>
+    /// Shows ONLY the sequence rows given to SetHighlightedSections (call after it). The filter
+    /// icon / clear (red x) lifts the restriction again.
+    /// </summary>
+    procedure SetShowHighlightedOnly()
+    begin
+        DayPlanningSequenceMgt.SetOnlySections(HighlightKeysJson);
+        HighlightKeysJson := '[]'; // every shown row is a related one - no yellow shading needed
+    end;
+
+    /// <summary>
     /// Pushes Job No./Job Task No. context from the host card page, plus an optional Work Order
     /// No. to stamp onto newly-created/regenerated lines (table 50610 field 55). Blank is valid
     /// and expected when hosted from the Job Task card (page_50618_JobTaskCard_Project.al) - a
@@ -261,6 +273,21 @@ page 50712 "Day Planning Sequence"
         JobTaskFilter := NewJobTaskNo;
         SkillFilter := '';
         ResourceFilter := '';
+        if ControlIsReady then
+            RefreshTimeline();
+    end;
+
+    /// <summary>
+    /// Overrides the Job/Job Task/Skill filters SetContext just set (single task) with a wider scope,
+    /// e.g. the Gantt resource panel's filter. Blank args clear that filter. Call AFTER SetContext, before
+    /// the page is run (the control isn't ready yet, so no refresh is needed here).
+    /// </summary>
+    procedure SetScopeFilters(NewJobFilter: Text; NewJobTaskFilter: Text; NewSkillFilter: Text)
+    begin
+        // Blank means "no restriction" (must clear what SetContext set to the single task)
+        JobFilter := NewJobFilter;
+        JobTaskFilter := NewJobTaskFilter;
+        SkillFilter := NewSkillFilter;
         if ControlIsReady then
             RefreshTimeline();
     end;

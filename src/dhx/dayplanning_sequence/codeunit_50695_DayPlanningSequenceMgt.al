@@ -8,6 +8,9 @@
 /// </summary>
 codeunit 50695 "Day Planning Sequence Mgt."
 {
+    var
+        OnlySectionKeys: List of [Text];
+
     /// <summary>
     /// Ensures DayPlanning."Sequence No." is a small ordinal (1, 2, 3, ...) that no OTHER Day
     /// Planning line for the same [Job No., Job Task No., Skill, Plan Date] already holds. Called
@@ -528,6 +531,7 @@ codeunit 50695 "Day Planning Sequence Mgt."
         DayPlanning.SetCurrentKey("Job No.", "Job Task No.", "Plan Date", "Day Line No.");
         if DayPlanning.FindSet() then
             repeat
+              if (OnlySectionKeys.Count() = 0) or OnlySectionKeys.Contains(BuildSectionId(DayPlanning."Job No.", DayPlanning."Job Task No.", DayPlanning.Skill, DayPlanning."Sequence No.")) then begin
                 if not JobNameCache.Get(DayPlanning."Job No.", ProjectName) then begin
                     ProjectName := '';
                     if Job.Get(DayPlanning."Job No.") then
@@ -578,6 +582,7 @@ codeunit 50695 "Day Planning Sequence Mgt."
                 EventObj.Add('assignedResourceNo', DayPlanning."Assigned Resource No.");
                 EventObj.Add('requestedResourceNo', DayPlanning."Requested Resource No.");
                 EventsArray.Add(EventObj);
+              end;
             until DayPlanning.Next() = 0;
         foreach LoopSectionKey in SeenSectionKeys do begin
             ParseSectionId(LoopSectionKey, RowJobNo, RowJobTaskNo, RowSkillCode, RowSequenceNo);
@@ -613,6 +618,24 @@ codeunit 50695 "Day Planning Sequence Mgt."
 
         SectionsArray.WriteTo(SectionsJson);
         EventsArray.WriteTo(EventsJson);
+    end;
+
+    /// <summary>
+    /// Restricts BuildSectionsAndEventsJson to the given section keys (JSON array text of
+    /// BuildSectionId keys). Blank/'[]' removes the restriction.
+    /// </summary>
+    procedure SetOnlySections(KeysJson: Text)
+    var
+        KeysArray: JsonArray;
+        KeyToken: JsonToken;
+    begin
+        Clear(OnlySectionKeys);
+        if KeysJson = '' then
+            exit;
+        if not KeysArray.ReadFrom(KeysJson) then
+            exit;
+        foreach KeyToken in KeysArray do
+            OnlySectionKeys.Add(KeyToken.AsValue().AsText());
     end;
 
     local procedure MarkDayPlanningMatches(var DayPlanning: Record "Day Planning")
