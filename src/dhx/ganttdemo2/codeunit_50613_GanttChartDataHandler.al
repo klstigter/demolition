@@ -3,6 +3,13 @@ codeunit 50613 "GanttChartDataHandler"
     var
         GenUtils: Codeunit "General Planning Utilities";
         ParentJobTaskId: array[10] of Text;
+        SkillFilterText: Text;
+
+    /// <summary>Optional Skill filter applied to every Day Planning read (and the task list) of this instance.</summary>
+    procedure SetSkillFilter(pSkillFilter: Text)
+    begin
+        SkillFilterText := pSkillFilter;
+    end;
 
     procedure GetDateRange(GanttSetup: Record "Gantt Chart Setup";
                            AchorDate: Date;
@@ -61,6 +68,9 @@ codeunit 50613 "GanttChartDataHandler"
         HasConstraintRow: Boolean;
         KeyCompare: Integer;
         FromConstraintRow: Boolean;
+        SkillDayPlanning: Record "Day Planning";
+        SkillTaskKeys: List of [Text];
+        SkillTaskKey: Text;
     begin
         GanttSetup.Get(UserId);
         JobNoFilter := GanttSetup."Job No. Filter";
@@ -90,6 +100,23 @@ codeunit 50613 "GanttChartDataHandler"
         JobTaskByConstraint.SetFilter("Constraint Calc. - Start Date", '<=%1', EndDate);
         JobTaskByConstraint.SetFilter("Constraint Calc. - End Date", '>=%1', StartDate);
 
+        // Skill filter: Job Task has no skill field, so keep only Posting tasks that have at least
+        // one Day Planning with that Skill (non-posting parent rows stay so the tree is not orphaned).
+        if SkillFilterText <> '' then begin
+            SkillDayPlanning.SetLoadFields("Job No.", "Job Task No.", Skill);
+            if JobNoFilter <> '' then
+                SkillDayPlanning.SetFilter("Job No.", JobNoFilter);
+            if pJobTaskFilter <> '' then
+                SkillDayPlanning.SetFilter("Job Task No.", pJobTaskFilter);
+            SkillDayPlanning.SetFilter(Skill, SkillFilterText);
+            if SkillDayPlanning.FindSet() then
+                repeat
+                    SkillTaskKey := SkillDayPlanning."Job No." + '|' + SkillDayPlanning."Job Task No.";
+                    if not SkillTaskKeys.Contains(SkillTaskKey) then
+                        SkillTaskKeys.Add(SkillTaskKey);
+                until SkillDayPlanning.Next() = 0;
+        end;
+
         HasPlannedRow := JobTaskByPlanned.FindSet();
         HasConstraintRow := JobTaskByConstraint.FindSet();
         while HasPlannedRow or HasConstraintRow do begin
@@ -115,6 +142,8 @@ codeunit 50613 "GanttChartDataHandler"
             end;
             Skip := (JobTask."Job Task Type" = JobTask."Job Task Type"::"End-Total") or
                  (JobTask."Job Task Type" = JobTask."Job Task Type"::"Total");
+            if (not Skip) and (SkillFilterText <> '') and (JobTask."Job Task Type" = JobTask."Job Task Type"::Posting) then
+                Skip := not SkillTaskKeys.Contains(JobTask."Job No." + '|' + JobTask."Job Task No.");
             if not Skip then begin
                 // GetEffectivePeriod is now a plain field pick (no date math - see below), so this
                 // re-check is cheap. Still needed: a row can have BOTH complete-but-out-of-window
@@ -330,6 +359,8 @@ codeunit 50613 "GanttChartDataHandler"
             UsedResourcesQuery.SetFilter(JobNoFilter, JobNo);
         if JobTaskNo <> '' then
             UsedResourcesQuery.SetFilter(JobTaskNoFilter, JobTaskNo);
+        if SkillFilterText <> '' then
+            UsedResourcesQuery.SetFilter(SkillFilter, SkillFilterText);
         if AnchorDate <> 0D then
             UsedResourcesQuery.SetRange(PlanDateFilter, StartDate, EndDate);
         if UsedResourcesQuery.Open() then
@@ -348,6 +379,8 @@ codeunit 50613 "GanttChartDataHandler"
             DayPlanning.SetFilter("Job No.", JobNo);
         if JobTaskNo <> '' then
             DayPlanning.SetFilter("Job Task No.", JobTaskNo);
+        if SkillFilterText <> '' then
+            DayPlanning.SetFilter(Skill, SkillFilterText);
         DayPlanning.SetRange("Plan Status", DayPlanning."Plan Status"::"In Request");
         DayPlanning.SetRange("Plan Date", 0D);
         DayPlanning.SetFilter("Order Intake No.", '<>%1', '');
@@ -669,6 +702,8 @@ codeunit 50613 "GanttChartDataHandler"
             DayPlanning.SetFilter("Job Task No.", JobTaskNo);
         if AnchorDate <> 0D then
             DayPlanning.Setrange("Plan Date", StartDate, EndDate);
+        if SkillFilterText <> '' then
+            DayPlanning.SetFilter(Skill, SkillFilterText);
         if DayPlanning.FindSet() then
             repeat
                 JsonObject := CreateDayPlanningJsonObject(DayPlanning);
@@ -681,6 +716,8 @@ codeunit 50613 "GanttChartDataHandler"
             DayPlanning.SetFilter("Job No.", JobNo);
         if JobTaskNo <> '' then
             DayPlanning.SetFilter("Job Task No.", JobTaskNo);
+        if SkillFilterText <> '' then
+            DayPlanning.SetFilter(Skill, SkillFilterText);
         DayPlanning.SetRange("Plan Status", DayPlanning."Plan Status"::"In Request");
         DayPlanning.SetRange("Plan Date", 0D);
         DayPlanning.SetFilter("Order Intake No.", '<>%1', '');
@@ -745,7 +782,9 @@ codeunit 50613 "GanttChartDataHandler"
                 DayPlanning.SetFilter("Job Task No.", JobTaskNo);
             if AnchorDate <> 0D then
                 DayPlanning.Setrange("Plan Date", StartDate, EndDate);
-            Found := PositionAfterCursor(DayPlanning, Cursor, Parts, 1);
+            if SkillFilterText <> '' then
+                DayPlanning.SetFilter(Skill, SkillFilterText);
+            Found :=PositionAfterCursor(DayPlanning, Cursor, Parts, 1);
             while Found do begin
                 if Emitted >= PageSize then begin
                     HasMore := true;
@@ -767,6 +806,8 @@ codeunit 50613 "GanttChartDataHandler"
             DayPlanning.SetFilter("Job No.", JobNo);
         if JobTaskNo <> '' then
             DayPlanning.SetFilter("Job Task No.", JobTaskNo);
+        if SkillFilterText <> '' then
+            DayPlanning.SetFilter(Skill, SkillFilterText);
         DayPlanning.SetRange("Plan Status", DayPlanning."Plan Status"::"In Request");
         DayPlanning.SetRange("Plan Date", 0D);
         DayPlanning.SetFilter("Order Intake No.", '<>%1', '');
@@ -822,6 +863,8 @@ codeunit 50613 "GanttChartDataHandler"
                 DayPlanning.SetFilter("Job No.", JobNo);
             if JobTaskNo <> '' then
                 DayPlanning.SetFilter("Job Task No.", JobTaskNo);
+            if SkillFilterText <> '' then
+                DayPlanning.SetFilter(Skill, SkillFilterText);
             if Pass = 1 then begin
                 if AnchorDate <> 0D then
                     DayPlanning.SetRange("Plan Date", StartDate, EndDate);

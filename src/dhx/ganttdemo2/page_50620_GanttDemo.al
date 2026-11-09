@@ -159,7 +159,7 @@ page 50620 "Gantt Demo DHX 2"
                     ResourcePanelToDate := ToDate;
 
                     // Pass filter context for the header tooltip (display only from here on)
-                    CurrPage.DHXGanttControl2.SetResourcePanelFilterInfo(JobNo, JobTaskNo, Format(FromDate, 0, '<Year4>-<Month,2>-<Day,2>'), Format(ToDate, 0, '<Year4>-<Month,2>-<Day,2>'));
+                    CurrPage.DHXGanttControl2.SetResourcePanelFilterInfo(JobNo, JobTaskNo, Format(FromDate, 0, '<Year4>-<Month,2>-<Day,2>'), Format(ToDate, 0, '<Year4>-<Month,2>-<Day,2>'), '');
 
                     // Load resources and day plannings filtered to this task (and its children) -
                     // async via a Page Background Task; returns immediately, and
@@ -703,14 +703,15 @@ page 50620 "Gantt Demo DHX 2"
                     FilterDlg: Report "Task Scheduler Filter";
                     NewJobNo: Text;
                     NewJobTaskNo: Text;
-                    DummySkillFilter: Text; // this Gantt page has no Skill-filtering wired to its data - not applied, see report 50608's doc comment
+                    NewSkill: Text;
                 begin
-                    FilterDlg.SetFilter(JobFilter, JobTaskFilter, DummySkillFilter);
+                    FilterDlg.SetFilter(JobFilter, JobTaskFilter, SkillFilter);
                     FilterDlg.RunModal();
                     if FilterDlg.IsConfirmed() then begin
-                        FilterDlg.GetFilter(NewJobNo, NewJobTaskNo, DummySkillFilter);
+                        FilterDlg.GetFilter(NewJobNo, NewJobTaskNo, NewSkill);
                         JobFilter := NewJobNo;
                         JobTaskFilter := NewJobTaskNo;
+                        SkillFilter := NewSkill;
                         ClearResourcePanelFilter();
                         RefreshGantt();
                     end;
@@ -720,6 +721,7 @@ page 50620 "Gantt Demo DHX 2"
                 begin
                     JobFilter := '';
                     JobTaskFilter := '';
+                    SkillFilter := '';
                     ClearResourcePanelFilter();
                     RefreshGantt();
                 end;
@@ -739,6 +741,7 @@ page 50620 "Gantt Demo DHX 2"
                         exit;
                     JobFilter := jobNo;
                     JobTaskFilter := jobTaskNo;
+                    SkillFilter := '';
                     ClearResourcePanelFilter(); // drop any "Show Job Resources" scope so the panel follows the task filter
                     RefreshGantt();
                 end;
@@ -1351,6 +1354,7 @@ page 50620 "Gantt Demo DHX 2"
         ResourcePanelFlag: Boolean;
         JobFilter: Text;
         JobTaskFilter: Text;
+        SkillFilter: Text;
         CurrentResourcePanelFilterJsonString: Text;
         PreviewCancelled: Boolean;
         ResourcePanelChildTaskIds: List of [Text]; // each entry "JobNo|JobTaskNo", populated in OnShowResourcesForTask; read by BuildResourcePanelJobTaskKeysText to build the background task's JobTaskKeys parameter
@@ -1391,6 +1395,7 @@ page 50620 "Gantt Demo DHX 2"
         // change between chunk N and chunk N+1).
         ResourcePanelChunkJobFilter: Text;
         ResourcePanelChunkJobTaskFilter: Text;
+        ResourcePanelChunkSkillFilter: Text;
         ResourcePanelChunkAnchorDate: Date;
 
     local procedure ClearResourcePanelFilter()
@@ -1414,13 +1419,13 @@ page 50620 "Gantt Demo DHX 2"
         StartDate: Date;
         EndDate: Date;
     begin
-        if (JobFilter = '') and (JobTaskFilter = '') then begin
+        if (JobFilter = '') and (JobTaskFilter = '') and (SkillFilter = '') then begin
             CurrPage.DHXGanttControl2.ClearResourceFilter();
             exit;
         end;
         Setup.Get(UserId);
         GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
-        CurrPage.DHXGanttControl2.SetResourcePanelFilterInfo(JobFilter, JobTaskFilter, Format(StartDate, 0, '<Year4>-<Month,2>-<Day,2>'), Format(EndDate, 0, '<Year4>-<Month,2>-<Day,2>'));
+        CurrPage.DHXGanttControl2.SetResourcePanelFilterInfo(JobFilter, JobTaskFilter, Format(StartDate, 0, '<Year4>-<Month,2>-<Day,2>'), Format(EndDate, 0, '<Year4>-<Month,2>-<Day,2>'), SkillFilter);
     end;
 
     [TryFunction]
@@ -1445,6 +1450,7 @@ page 50620 "Gantt Demo DHX 2"
     begin
         JobFilter := pJobFilter;
         JobTaskFilter := pJobTaskFilter;
+        SkillFilter := '';
     end;
 
     local procedure LoadAllData()
@@ -1505,7 +1511,7 @@ page 50620 "Gantt Demo DHX 2"
         // changes (OnGanttFilterIconClick/OnGanttClearTaskFilter) as well as the external
         // SetJobFilter/SetJobTaskFilter entry points (their callers invoke Gantt.RunModal()/Run()
         // right after, which lands on OnOpenPage -> ControlReady -> LoadAllData).
-        CurrPage.DHXGanttControl2.SetGanttTaskFilterInfo(JobFilter, JobTaskFilter, Format(StartDate, 0, '<Year4>-<Month,2>-<Day,2>'), Format(EndDate, 0, '<Year4>-<Month,2>-<Day,2>'));
+        CurrPage.DHXGanttControl2.SetGanttTaskFilterInfo(JobFilter, JobTaskFilter, Format(StartDate, 0, '<Year4>-<Month,2>-<Day,2>'), Format(EndDate, 0, '<Year4>-<Month,2>-<Day,2>'), SkillFilter);
 
         // Set project range first
         CurrPage.DHXGanttControl2.LoadProject(StartDate, EndDate);
@@ -1552,7 +1558,7 @@ page 50620 "Gantt Demo DHX 2"
             // Panel period follows the displayed view period (changes on Previous/Today/Next)
             ResourcePanelFromDate := StartDate;
             ResourcePanelToDate := EndDate;
-            CurrPage.DHXGanttControl2.SetResourcePanelFilterInfo(ResourcePanelJobNo, ResourcePanelJobTaskNo, Format(ResourcePanelFromDate, 0, '<Year4>-<Month,2>-<Day,2>'), Format(ResourcePanelToDate, 0, '<Year4>-<Month,2>-<Day,2>'));
+            CurrPage.DHXGanttControl2.SetResourcePanelFilterInfo(ResourcePanelJobNo, ResourcePanelJobTaskNo, Format(ResourcePanelFromDate, 0, '<Year4>-<Month,2>-<Day,2>'), Format(ResourcePanelToDate, 0, '<Year4>-<Month,2>-<Day,2>'), '');
             if GuiAllowed() then
                 Window.Update(1, 'Resources && Day Plannings (loading in background)...');
             EnqueueFilteredResourcePanelReload(ResourcePanelFromDate, ResourcePanelToDate);
@@ -1690,9 +1696,11 @@ page 50620 "Gantt Demo DHX 2"
             // remaining chunks, if any, go through the background task.
             ResourcePanelChunkJobFilter := JobFilter;
             ResourcePanelChunkJobTaskFilter := JobTaskFilter;
+            ResourcePanelChunkSkillFilter := SkillFilter;
             ResourcePanelChunkAnchorDate := AnchorDate;
             ResourcePanelTaskId := 0; // any in-flight background result is now stale
             PendingResultAvailable := false;
+            GanttChartDataHandler.SetSkillFilter(SkillFilter);
             if pLoadResources then
                 CurrPage.DHXGanttControl2.LoadResourcesData(GanttChartDataHandler.GetResourcesAsJson(AnchorDate, JobFilter, JobTaskFilter));
             DayPlanningsJson := GanttChartDataHandler.GetDayPlanningsAsJson(AnchorDate, JobFilter, JobTaskFilter, '', ResourcePanelDayPlanningChunkPageSize(), HasMore, NextCursor);
@@ -1710,12 +1718,14 @@ page 50620 "Gantt Demo DHX 2"
         TaskParameters.Add('LoadDayPlannings', BoolToParamText(pLoadDayPlannings));
         TaskParameters.Add('JobFilter', JobFilter);
         TaskParameters.Add('JobTaskFilter', JobTaskFilter);
+        TaskParameters.Add('SkillFilter', SkillFilter);
         TaskParameters.Add('AnchorDate', Format(AnchorDate, 0, '<Year4>-<Month,2>-<Day,2>'));
         if pLoadDayPlannings then begin
             // Chunk 0 (Skip=0) - see this procedure's header comment.
             TaskParameters.Add('DayPlanningPageSize', Format(ResourcePanelDayPlanningChunkPageSize));
             ResourcePanelChunkJobFilter := JobFilter;
             ResourcePanelChunkJobTaskFilter := JobTaskFilter;
+            ResourcePanelChunkSkillFilter := SkillFilter;
             ResourcePanelChunkAnchorDate := AnchorDate;
         end;
 
@@ -1744,6 +1754,7 @@ page 50620 "Gantt Demo DHX 2"
         TaskParameters.Add('LoadDayPlannings', 'true');
         TaskParameters.Add('JobFilter', ResourcePanelChunkJobFilter);
         TaskParameters.Add('JobTaskFilter', ResourcePanelChunkJobTaskFilter);
+        TaskParameters.Add('SkillFilter', ResourcePanelChunkSkillFilter);
         TaskParameters.Add('AnchorDate', Format(ResourcePanelChunkAnchorDate, 0, '<Year4>-<Month,2>-<Day,2>'));
         TaskParameters.Add('DayPlanningCursor', pCursor);
         TaskParameters.Add('DayPlanningPageSize', Format(ResourcePanelDayPlanningChunkPageSize));
@@ -1783,7 +1794,7 @@ page 50620 "Gantt Demo DHX 2"
 
         CurrPage.DHXGanttControl2.SetResourcePanelFilterInfo(ResourcePanelJobNo, ResourcePanelJobTaskNo,
             Format(ResourcePanelFromDate, 0, '<Year4>-<Month,2>-<Day,2>'),
-            Format(ResourcePanelToDate, 0, '<Year4>-<Month,2>-<Day,2>'));
+            Format(ResourcePanelToDate, 0, '<Year4>-<Month,2>-<Day,2>'), '');
         CurrPage.DHXGanttControl2.GetResourceFilter();
 
         // Re-marking each child task is no longer needed here - ResourcePanelChildTaskIds (the
@@ -1800,6 +1811,7 @@ page 50620 "Gantt Demo DHX 2"
         GanttChartDataHandler: Codeunit "GanttChartDataHandler";
         JsonTxtTasks: Text;
     begin
+        GanttChartDataHandler.SetSkillFilter(SkillFilter);
         JsonTxtTasks := GanttChartDataHandler.GetJobTasksAsJson(AnchorDate, JobFilter, JobTaskFilter);
         if JsonTxtTasks <> '' then begin
             CurrPage.DHXGanttControl2.LoadProjectData(JsonTxtTasks);
@@ -1842,6 +1854,8 @@ page 50620 "Gantt Demo DHX 2"
                 DayPlanning.SetFilter("Job No.", JobFilter);
             if JobTaskFilter <> '' then
                 DayPlanning.SetFilter("Job Task No.", JobTaskFilter);
+            if SkillFilter <> '' then
+                DayPlanning.SetFilter(Skill, SkillFilter);
             if Pass = 1 then
                 DayPlanning.SetRange("Plan Date", StartDate, EndDate)
             else
@@ -1875,6 +1889,7 @@ page 50620 "Gantt Demo DHX 2"
         GetDayPlanningFingerprint(AfterCount, AfterMax);
         if (AfterCount = BeforeCount) and (AfterMax = BeforeMax) then
             exit;
+        GanttChartDataHandler.SetSkillFilter(SkillFilter);
         if (ResourcePanelJobNo = '') and not ResourcePanelTaskRunning then
             if GanttChartDataHandler.GetChangedDayPlanningsAsJson(AnchorDate, JobFilter, JobTaskFilter, BeforeMax, BeforeCount, AfterCount, ChangedJson, ResourcesJson) then begin
                 CurrPage.DHXGanttControl2.ApplyDayPlanningChanges(ChangedJson, ResourcesJson);

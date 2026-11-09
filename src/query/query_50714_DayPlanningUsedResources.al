@@ -13,6 +13,7 @@ query 50714 "Day Planning Used Resources"
             filter(JobNoFilter; "Job No.") { }
             filter(JobTaskNoFilter; "Job Task No.") { }
             filter(PlanDateFilter; "Plan Date") { }
+            filter(SkillFilter; Skill) { }
 
             column(AssignedResourceNo; "Assigned Resource No.") { }
             column(RequestedResourceNo; "Requested Resource No.") { }

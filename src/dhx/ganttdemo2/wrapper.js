@@ -3218,9 +3218,10 @@ function SetResourcePanelVisibility(resource_toggle) {
 // Resource Panel Filter Info (AL -> JS)
 // Called by BC to store the filter context shown in tooltip
 // -------------------------------------------------------
-function SetResourcePanelFilterInfo(jobNo, taskNo, periodFrom, periodTo) {  _resourceFilterInfo = {
+function SetResourcePanelFilterInfo(jobNo, taskNo, periodFrom, periodTo, skill) {  _resourceFilterInfo = {
     job: jobNo || "",
     task: taskNo || "",
+    skill: skill || "",
     periodFrom: periodFrom || "",
     periodTo: periodTo || ""
   };
@@ -3272,6 +3273,7 @@ function _updateResourceHeaderTooltip() {
     var lines = ["<b>Filter applied:</b>"];
     if (fi.job) lines.push("Job = " + _escHtml(fi.job));
     if (fi.task) lines.push("Task = " + _escHtml(fi.task));
+    if (fi.skill) lines.push("Skill = " + _escHtml(fi.skill));
     if (fi.periodFrom || fi.periodTo)
       lines.push(" " + _escHtml(fi.periodFrom) + " to " + _escHtml(fi.periodTo));
     popup.innerHTML = lines.join("<br/>");
@@ -3330,13 +3332,14 @@ function _positionResFilterTooltip(e) {
 // appears next to it. Mirrors the wiring added for the Task Scheduler page
 // (src/dhx/projectschedule/wrapper.js: setupFilterToolbar/SetTaskFilterInfo).
 // -------------------------------------------------------
-function SetGanttTaskFilterInfo(jobNo, taskNo, periodFrom, periodTo) {
-  if (!jobNo && !taskNo) {
+function SetGanttTaskFilterInfo(jobNo, taskNo, periodFrom, periodTo, skill) {
+  if (!jobNo && !taskNo && !skill) {
     _ganttTaskFilterInfo = null;
   } else {
     _ganttTaskFilterInfo = {
       job: jobNo || "",
       task: taskNo || "",
+      skill: skill || "",
       periodFrom: periodFrom || "",
       periodTo: periodTo || ""
     };
@@ -3502,6 +3505,10 @@ function _updateGanttFilterToolbar() {
       if (fi.task) {
         popup.appendChild(document.createElement("br"));
         popup.appendChild(document.createTextNode("Task = " + fi.task));
+      }
+      if (fi.skill) {
+        popup.appendChild(document.createElement("br"));
+        popup.appendChild(document.createTextNode("Skill = " + fi.skill));
       }
       if (fi.periodFrom || fi.periodTo) {
         popup.appendChild(document.createElement("br"));

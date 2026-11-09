@@ -78,6 +78,7 @@ codeunit 50713 "Gantt BG Resource Panel Data"
                 begin
                     JobFilter := GetParam(TaskParameters, 'JobFilter');
                     JobTaskFilter := GetParam(TaskParameters, 'JobTaskFilter');
+                    GanttChartDataHandler.SetSkillFilter(GetParam(TaskParameters, 'SkillFilter'));
                     EvaluateDateParam(TaskParameters, 'AnchorDate', AnchorDate);
 
                     DayPlanningCursor := GetParam(TaskParameters, 'DayPlanningCursor');

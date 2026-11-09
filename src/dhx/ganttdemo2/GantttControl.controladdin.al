@@ -69,14 +69,14 @@ controladdin "DHX Gantt Control 2"
     procedure RenderGantt(skipTrigger_OnJobTaskUpdated: Boolean);
     procedure GetGanttData();
     procedure SetResourcePanelVisibility(resource_toggle: Boolean);
-    procedure SetResourcePanelFilterInfo(jobNo: Text; taskNo: Text; periodFrom: Text; periodTo: Text);
+    procedure SetResourcePanelFilterInfo(jobNo: Text; taskNo: Text; periodFrom: Text; periodTo: Text; skill: Text);
     procedure ClearResourceFilter();
     procedure UpsertLink(linkJsonTxt: Text);
     procedure DeleteLink(linkId: Text);
     procedure LoadLinksData(linksJsonTxt: Text);
     procedure LoadHolidaysData(holidaysJsonTxt: Text);
     procedure GetResourceFilter();
-    procedure SetGanttTaskFilterInfo(jobNo: Text; taskNo: Text; periodFrom: Text; periodTo: Text);
+    procedure SetGanttTaskFilterInfo(jobNo: Text; taskNo: Text; periodFrom: Text; periodTo: Text; skill: Text);
     procedure SetBarFontColor(fontColorHex: Text);
     procedure SetDayOffColors(weekendColorHex: Text; holidayColorHex: Text);
     procedure SetGanttTaskBarDefaults(borderColorHex: Text; progressColorHex: Text; fontColorHex: Text; fontSizePx: Integer; heightPx: Integer);
