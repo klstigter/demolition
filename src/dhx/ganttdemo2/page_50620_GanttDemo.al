@@ -45,11 +45,16 @@ page 50620 "Gantt Demo DHX 2"
                     EventIDList: List of [Text];
                     JobNo: Code[20];
                     TaskNo: Code[20];
+                    BeforeCount: Integer;
+                    BeforeMax: DateTime;
                 begin
                     EventIDList := eventId.Split('|');
                     JobNo := EventIDList.Get(1);
                     TaskNo := EventIDList.Get(2);
-                    PageHandler.OpenJobTaskCard(JobNo, TaskNo);
+                    // Modal so we regain control on close and can sync Day Plannings created on the card (New Sequence)
+                    GetDayPlanningFingerprint(BeforeCount, BeforeMax);
+                    PageHandler.OpenJobTaskCardModal(JobNo, TaskNo);
+                    RefreshResourcePanelIfChanged(BeforeCount, BeforeMax);
                     // Get the latest data after possible changes in day plannings
                     if PossibleChanges then begin
                         if DHXDataHandler.GetEventDataFromEventId(eventId, newEventData) then
