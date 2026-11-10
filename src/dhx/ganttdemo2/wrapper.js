@@ -358,15 +358,21 @@ window.BOOT = function() {
         var c = cache[rid];
         if (!c || !lastMouse) return;
         var s = c.stats;
-        var rows = (s.skills || []).map(function (sk) { return ["Skill", sk]; }).concat([
-          ["Total Day Plannings", s.count],
-          ["Requested Hours", fmt(s.requested)],
-          ["Assigned Hours", fmt(s.assigned)],
-          ["Capacity Hours", fmt(s.capacity)]
-        ]);
+        var colors = s.skillColors || [];
+        var rows = [["Resource Code", s.resCode || rid.replace(/^RES-/, "")]]
+          .concat((s.skills || []).map(function (sk, i) { return ["Skill", sk, colors[i]]; }))
+          .concat([
+            ["Total Day Plannings", s.count],
+            ["Requested Hours", fmt(s.requested)],
+            ["Assigned Hours", fmt(s.assigned)],
+            ["Capacity Hours", fmt(s.capacity)]
+          ]);
         _showCustomTooltip(lastMouse,
           '<table class="standard-tooltip-table"><thead><tr><th>Statistic</th><th>Value</th></tr></thead><tbody>' +
-          rows.map(function (r) { return "<tr><th>" + esc(r[0]) + "</th><td>" + esc(r[1]) + "</td></tr>"; }).join("") +
+          rows.map(function (r) {
+            var td = r[2] ? '<td class="skill-cell" style="--skill-bg:' + esc(r[2]) + '">' : "<td>";
+            return "<tr><th>" + esc(r[0]) + "</th>" + td + esc(r[1]) + "</td></tr>";
+          }).join("") +
           "</tbody></table>");
       }
 

@@ -299,6 +299,11 @@ html,
 	white-space: nowrap;
 }
 
+/* Resource hover tooltip: skill value cell takes the skill colour (set inline as --skill-bg) */
+.standard-tooltip-table td.skill-cell {
+	background: var(--skill-bg, transparent);
+}
+
 .standard-tooltip-table tr:last-child th,
 .standard-tooltip-table tr:last-child td {
 	border-bottom: 0;
