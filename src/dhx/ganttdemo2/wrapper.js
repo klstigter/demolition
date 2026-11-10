@@ -354,6 +354,18 @@ window.BOOT = function() {
       };
       var fmt = function (n) { return String(Math.round((Number(n) || 0) * 100) / 100); };
 
+      // Readable text colour (black/white) for a CSS background, by WCAG relative luminance.
+      function contrastText(bg) {
+        var el = document.createElement("span");
+        el.style.color = bg;
+        document.body.appendChild(el);
+        var m = getComputedStyle(el).color.match(/[\d.]+/g) || [];
+        document.body.removeChild(el);
+        var lin = function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+        var L = 0.2126 * lin(+m[0]) + 0.7152 * lin(+m[1]) + 0.0722 * lin(+m[2]);
+        return L > 0.179 ? "#000" : "#fff";
+      }
+
       function show(rid) {
         var c = cache[rid];
         if (!c || !lastMouse) return;
@@ -370,7 +382,7 @@ window.BOOT = function() {
         _showCustomTooltip(lastMouse,
           '<table class="standard-tooltip-table"><thead><tr><th>Statistic</th><th>Value</th></tr></thead><tbody>' +
           rows.map(function (r) {
-            var td = r[2] ? '<td class="skill-cell" style="--skill-bg:' + esc(r[2]) + '">' : "<td>";
+            var td = r[2] ? '<td class="skill-cell" style="--skill-bg:' + esc(r[2]) + ";--skill-fg:" + contrastText(r[2]) + '">' : "<td>";
             return "<tr><th>" + esc(r[0]) + "</th>" + td + esc(r[1]) + "</td></tr>";
           }).join("") +
           "</tbody></table>");
