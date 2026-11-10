@@ -65,6 +65,10 @@ controladdin "DHX Gantt Control 2"
     procedure LoadResourcesData(resourcesJsonTxt: Text);
     procedure LoadDayPlanningsData(DayPlanningsJsonTxt: Text; IsFirstChunk: Boolean; HasMore: Boolean);
     procedure ApplyDayPlanningChanges(changedJsonTxt: Text; resourcesJsonTxt: Text);
+    // Real daily capacity per listed resource (flat [{r,d,h}] array) for the resource-panel cell
+    // colour. replaceAll=true on full loads (call BEFORE LoadResourcesData/LoadDayPlanningsData so it
+    // is in place for the render), false to merge the given resources in (incremental patch).
+    procedure LoadResourceCapacity(capacityJsonTxt: Text; replaceAll: Boolean);
     procedure ClearData();
     procedure RenderGantt(skipTrigger_OnJobTaskUpdated: Boolean);
     procedure GetGanttData();

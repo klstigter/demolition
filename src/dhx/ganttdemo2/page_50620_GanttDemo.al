@@ -327,86 +327,35 @@ page 50620 "Gantt Demo DHX 2"
                     DayPlanning: Record "Day Planning";
                     WorkDt: Date;
                     Tp: array[2] of text;
-                    IdList: List of [Text];
                     IdText: Text;
                     SysId: Guid;
-                    JobNos: List of [Text];
-                    JobTaskNos: List of [Text];
-                    JobNoFilter: Text;
-                    JobTaskNoFilter: Text;
                     SysIdFilter: Text;
                     BeforeCount: Integer;
                     BeforeMax: DateTime;
                 begin
                     GetDayPlanningFingerprint(BeforeCount, BeforeMax);
-                    // Step 1: build Job No. and Job Task No. filter strings from pIdList
-                    if pIdList <> '' then begin
-                        IdList := pIdList.Split('|');
-                        foreach IdText in IdList do
-                            if Evaluate(SysId, IdText) then begin
-                                DayPlanning.Reset();
-                                if DayPlanning.GetBySystemId(SysId) then begin
-                                    if not JobNos.Contains(DayPlanning."Job No.") then
-                                        JobNos.Add(DayPlanning."Job No.");
-                                    if not JobTaskNos.Contains(DayPlanning."Job Task No.") then
-                                        JobTaskNos.Add(DayPlanning."Job Task No.");
-                                end;
-                            end;
-                        foreach IdText in JobNos do begin
-                            if JobNoFilter <> '' then
-                                JobNoFilter += '|';
-                            JobNoFilter += IdText;
+                    // The marker supplies the ids of exactly the Day Plannings its record counter counted
+                    // (all of the resource on that date) -> show exactly those records.
+                    foreach IdText in pIdList.Split('|') do
+                        if Evaluate(SysId, IdText) then begin
+                            if SysIdFilter <> '' then
+                                SysIdFilter += '|';
+                            SysIdFilter += Format(SysId);
                         end;
-                        foreach IdText in JobTaskNos do begin
-                            if JobTaskNoFilter <> '' then
-                                JobTaskNoFilter += '|';
-                            JobTaskNoFilter += IdText;
-                        end;
-                    end;
-
-                    // Step 2: if the marker supplied its record ids, show exactly those records
-                    // (same set the record count indicator counted).
-                    if pIdList <> '' then begin
-                        foreach IdText in IdList do
-                            if Evaluate(SysId, IdText) then begin
-                                if SysIdFilter <> '' then
-                                    SysIdFilter += '|';
-                                SysIdFilter += Format(SysId);
-                            end;
-                        if SysIdFilter <> '' then begin
-                            DayPlanning.Reset();
-                            DayPlanning.SetFilter(SystemId, SysIdFilter);
-                            Page.RunModal(Page::"Day Plannings", DayPlanning);
-                            RefreshResourcePanelIfChanged(BeforeCount, BeforeMax);
-                            exit;
-                        end;
-                    end;
-
-                    // Fallback (no id list): filter by date, resource, job/task
-                    tp[1] := CopyStr(ResourceId, 1, 4);
-                    tp[2] := CopyStr(ResourceId, 5);
                     DayPlanning.Reset();
-                    if JobNoFilter <> '' then
-                        DayPlanning.SetFilter("Job No.", JobNoFilter)
-                    else
-                        if JobFilter <> '' then
-                            DayPlanning.SetFilter("Job No.", JobFilter);
-                    if JobTaskNoFilter <> '' then
-                        DayPlanning.SetFilter("Job Task No.", JobTaskNoFilter);
-                    Evaluate(WorkDt, pTaskDate);
-                    DayPlanning.SetRange("Plan Date", WorkDt);
-
-                    // Cross-column filters (OR)
-                    DayPlanning.FilterGroup(-1);
-                    if tp[1] = 'RES-' then begin
-                        DayPlanning.SetRange("Assigned Resource No.", tp[2]);
-                        DayPlanning.SetRange("Requested Resource No.", tp[2]);
+                    if SysIdFilter <> '' then
+                        DayPlanning.SetFilter(SystemId, SysIdFilter)
+                    else begin
+                        // Fallback (no id list): date + resource, no job/task/skill filter
+                        tp[1] := CopyStr(ResourceId, 1, 4);
+                        tp[2] := CopyStr(ResourceId, 5);
+                        Evaluate(WorkDt, pTaskDate);
+                        DayPlanning.SetRange("Plan Date", WorkDt);
+                        if tp[1] = 'RES-' then
+                            DayPlanning.SetRange("Assigned Resource No.", tp[2]);
+                        if tp[1] = 'VEN-' then
+                            DayPlanning.SetRange("Assigned Pool Resource No.", tp[2]);
                     end;
-                    if tp[1] = 'VEN-' then begin
-                        DayPlanning.SetRange("Assigned Pool Resource No.", tp[2]);
-                        DayPlanning.SetRange("Requested Pool Resource No.", tp[2]);
-                    end;
-                    DayPlanning.FilterGroup(0);
                     Page.RunModal(Page::"Day Plannings", DayPlanning);
                     RefreshResourcePanelIfChanged(BeforeCount, BeforeMax);
                 end;
@@ -1708,6 +1657,7 @@ page 50620 "Gantt Demo DHX 2"
         JobTaskKeys := JobTaskKeysText.Split(';');
         ResourcePanelTaskId := 0; // any in-flight background result is now stale - its TaskId no longer matches
         PendingResultAvailable := false;
+        CurrPage.DHXGanttControl2.LoadResourceCapacity(GanttChartDataHandler.GetResourceCapacityByJobTaskAsJson(JobTaskKeys, pFromDate, pToDate), true); // before the render
         CurrPage.DHXGanttControl2.LoadResourcesData(GanttChartDataHandler.GetResourcesByJobTaskAsJson(JobTaskKeys, pFromDate, pToDate));
         CurrPage.DHXGanttControl2.LoadDayPlanningsData(GanttChartDataHandler.GetDayPlanningsByJobTaskAsJson(JobTaskKeys, pFromDate, pToDate), true, false);
     end;
@@ -1760,6 +1710,8 @@ page 50620 "Gantt Demo DHX 2"
             ResourcePanelTaskId := 0; // any in-flight background result is now stale
             PendingResultAvailable := false;
             GanttChartDataHandler.SetSkillFilter(SkillFilter);
+            // Capacity first: the render happens on the last Day Planning chunk, later chunks reuse it.
+            CurrPage.DHXGanttControl2.LoadResourceCapacity(GanttChartDataHandler.GetResourceCapacityAsJson(AnchorDate, JobFilter, JobTaskFilter), true);
             if pLoadResources then
                 CurrPage.DHXGanttControl2.LoadResourcesData(GanttChartDataHandler.GetResourcesAsJson(AnchorDate, JobFilter, JobTaskFilter));
             DayPlanningsJson := GanttChartDataHandler.GetDayPlanningsAsJson(AnchorDate, JobFilter, JobTaskFilter, '', ResourcePanelDayPlanningChunkPageSize(), HasMore, NextCursor);
@@ -1897,37 +1849,18 @@ page 50620 "Gantt Demo DHX 2"
     /// </summary>
     local procedure GetDayPlanningFingerprint(var Cnt: Integer; var MaxModified: DateTime)
     var
-        DayPlanning: Record "Day Planning";
         GanttChartDataHandler: Codeunit "GanttChartDataHandler";
-        StartDate: Date;
-        EndDate: Date;
-        Pass: Integer;
+        JobTaskKeys: List of [Text];
     begin
-        Cnt := 0;
-        MaxModified := 0DT;
-        GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
-        for Pass := 1 to 2 do begin
-            DayPlanning.Reset();
-            DayPlanning.SetLoadFields(SystemModifiedAt);
-            if JobFilter <> '' then
-                DayPlanning.SetFilter("Job No.", JobFilter);
-            if JobTaskFilter <> '' then
-                DayPlanning.SetFilter("Job Task No.", JobTaskFilter);
-            if SkillFilter <> '' then
-                DayPlanning.SetFilter(Skill, SkillFilter);
-            if Pass = 1 then
-                DayPlanning.SetRange("Plan Date", StartDate, EndDate)
-            else
-                DayPlanning.SetRange("Plan Date", 0D);
-            if DayPlanning.FindSet() then
-                repeat
-                    Cnt += 1;
-                    if DayPlanning.SystemModifiedAt > MaxModified then
-                        MaxModified := DayPlanning.SystemModifiedAt;
-                until DayPlanning.Next() = 0;
-        end;
+        // Covers exactly what the resource panel shows: the listed resources' Day Plannings in the
+        // period (any Job/Task/Skill) - task-scoped panel or Default panel.
+        GanttChartDataHandler.SetSkillFilter(SkillFilter);
+        if ResourcePanelJobNo <> '' then begin
+            JobTaskKeys := BuildResourcePanelJobTaskKeysText().Split(';');
+            GanttChartDataHandler.GetDayPlanningFingerprintByJobTask(JobTaskKeys, ResourcePanelFromDate, ResourcePanelToDate, Cnt, MaxModified);
+        end else
+            GanttChartDataHandler.GetDayPlanningFingerprint(AnchorDate, JobFilter, JobTaskFilter, Cnt, MaxModified);
     end;
-
     /// <summary>
     /// After a Day Planning sub page closes: do nothing when the data is unchanged. When only
     /// records were inserted/modified in the unfiltered ('Default') panel, push just those records
@@ -1942,6 +1875,7 @@ page 50620 "Gantt Demo DHX 2"
         AfterMax: DateTime;
         ChangedJson: Text;
         ResourcesJson: Text;
+        CapacityJson: Text;
     begin
         if not ResourcePanelFlag then
             exit;
@@ -1950,7 +1884,8 @@ page 50620 "Gantt Demo DHX 2"
             exit;
         GanttChartDataHandler.SetSkillFilter(SkillFilter);
         if (ResourcePanelJobNo = '') and not ResourcePanelTaskRunning then
-            if GanttChartDataHandler.GetChangedDayPlanningsAsJson(AnchorDate, JobFilter, JobTaskFilter, BeforeMax, BeforeCount, AfterCount, ChangedJson, ResourcesJson) then begin
+            if GanttChartDataHandler.GetChangedDayPlanningsAsJson(AnchorDate, JobFilter, JobTaskFilter, BeforeMax, BeforeCount, AfterCount, ChangedJson, ResourcesJson, CapacityJson) then begin
+                CurrPage.DHXGanttControl2.LoadResourceCapacity(CapacityJson, false);
                 CurrPage.DHXGanttControl2.ApplyDayPlanningChanges(ChangedJson, ResourcesJson);
                 exit;
             end;

@@ -1757,6 +1757,7 @@ function RecreateGanttLayout(showResourcePanel) {
               for (var i = 0; i < allDayPlannings.length; i++) {
                 var dt = allDayPlannings[i];
                 if (String(dt.resource_id || "") === String(r.id || "")) {
+                  if (dt.in_filter === false) continue; // drawn but outside the active Job/Task/Skill filter: 0 hours
                   total += Number(dt.hours || 0);
                 }
               }
@@ -2511,9 +2512,33 @@ function LoadLinksData(linksJsonTxt) {
   }
 }
 
+// Real daily capacity per resource ({ "RES-<No>": { "yyyy-mm-dd": hours } }), sent by AL BEFORE the
+// render that draws the cells. replaceAll=true: full load; false: merge the given resources only.
+// A resource/day without an entry has capacity 0 (see renderResourceLine).
+var _resCapacity = Object.create(null);
+function LoadResourceCapacity(capacityJsonTxt, replaceAll) {
+  try {
+    var items = _tryParseJson(capacityJsonTxt) || [];
+    var fresh = Object.create(null);
+    for (var i = 0; i < items.length; i++) {
+      var c = items[i];
+      (fresh[c.r] || (fresh[c.r] = Object.create(null)))[c.d] = Number(c.h) || 0;
+    }
+    if (replaceAll) {
+      _resCapacity = fresh;
+    } else {
+      for (var r in fresh) _resCapacity[r] = fresh[r];
+    }
+  } catch (e) {
+    console.error("LoadResourceCapacity failed:", e);
+  }
+}
+window.LoadResourceCapacity = LoadResourceCapacity;
+
 function calculateResourceLoad(resource, scale) {
   var step = scale.unit; // day
   var timegrid = {};
+  var timegridAll = {};
   var all = DayPlanningsStore ? DayPlanningsStore.getItems() : [];
 
   for (var i = 0; i < all.length; i++) {
@@ -2532,15 +2557,16 @@ function calculateResourceLoad(resource, scale) {
     var ts = dayStart.valueOf();
 
     // IMPORTANT: hours must be a number
-    var h = Number(dt.hours || 0);
+    var h = dt.in_filter === false ? 0 : Number(dt.hours || 0); // outside the active filter: drawn, 0 hours
     timegrid[ts] = (timegrid[ts] || 0) + h;
+    timegridAll[ts] = (timegridAll[ts] || 0) + Number(dt.hours || 0); // colour (overtime) follows ALL hours of the day
   }
 
   var out = [];
   for (var ts2 in timegrid) {
     var start = new Date(+ts2);
     var end = gantt.date.add(start, 1, step);
-    out.push({ start_date: start, end_date: end, value: timegrid[ts2] });
+    out.push({ start_date: start, end_date: end, value: timegrid[ts2], total: timegridAll[ts2] });
   }
   return out;
 }
@@ -2572,7 +2598,11 @@ var renderResourceLine = function (resource, timeline) {
     var day = timetable[i];
     var sizes = timeline.getItemPosition(resource, day.start_date, day.end_date);
     var cell = document.createElement("div");
-    cell.className = (day.value <= 8) ? "gantt_resource_marker gantt_resource_marker_ok" : "gantt_resource_marker gantt_resource_marker_overtime";
+    var dayStr = gantt.date.date_to_str("%Y-%m-%d")(day.start_date);
+    // Capacity of this resource on this day (no entry = 0, so any planned hours is red); the
+    // "- NONE -" row (id "RES-") has no capacity and keeps the old fixed 8h threshold.
+    var dayCapacity = (String(resource.id || "") === "RES-") ? 8 : (((_resCapacity[resource.id] || {})[dayStr]) || 0);
+    cell.className = (day.value <= dayCapacity) ?"gantt_resource_marker gantt_resource_marker_ok" : "gantt_resource_marker gantt_resource_marker_overtime";
     cell.style.cssText = [
       "left:" + sizes.left + "px",
       "width:" + sizes.width + "px",
@@ -2587,7 +2617,6 @@ var renderResourceLine = function (resource, timeline) {
     ].join(";");
 
     // Count DayPlannings for this resource on this day
-    var dayStr = gantt.date.date_to_str("%Y-%m-%d")(day.start_date);
     var dtCount = 0;
     var cellIdList = [];
     if (DayPlanningsStore) {
@@ -2599,7 +2628,7 @@ var renderResourceLine = function (resource, timeline) {
           _toGanttDate(dt.work_date) || new Date(dt.work_date)
         );
         if (dtDate === dayStr) {
-          dtCount++;
+          dtCount++; // badge counts all Day Plannings of the resource + date (hours follow the filter)
           if (dt.id) cellIdList.push(dt.id);
         }
       }
@@ -2621,7 +2650,8 @@ var renderResourceLine = function (resource, timeline) {
         "font-size:10px",
         "font-weight:700",
         "line-height:1",
-        "background:rgba(0,0,0,0.25)",
+        // counter colour follows ALL hours of the day vs the day capacity: over -> red, else the usual dark tint
+        "background:" + (day.total > dayCapacity ? "#c0392b" : "rgba(0,0,0,0.25)"),
         "color:#fff",
         "border-radius:8px",
         "padding:1px 4px",
@@ -2680,7 +2710,8 @@ var renderResourceLine = function (resource, timeline) {
     if (!rsizes || rsizes.width <= 0) continue;
 
     var reqItems = requestDateMap[rdateStr];
-    var reqHours = reqItems.reduce(function(s, x) { return s + (Number(x.hours) || 0); }, 0);
+    var reqHours = reqItems.reduce(function(s, x) { return s + (x.in_filter === false ? 0 : (Number(x.hours) || 0)); }, 0);
+    var reqInFilterCount = reqItems.length; // badge counts all (hours above follow the filter)
 
     var reqCell = document.createElement("div");
     reqCell.className = "gantt_resource_marker gantt_resource_marker_request";
@@ -2701,9 +2732,9 @@ var renderResourceLine = function (resource, timeline) {
     reqCell.appendChild(reqHoursSpan);
 
     // Badge: show count of Request tasks when more than 1 (same mechanism as planned cells)
-    if (reqItems.length > 1) {
+    if (reqInFilterCount > 1) {
       var reqBadge = document.createElement("span");
-      reqBadge.textContent = reqItems.length;
+      reqBadge.textContent = reqInFilterCount;
       reqBadge.style.cssText = [
         "position:absolute",
         "top:2px",
@@ -3041,6 +3072,7 @@ function ApplyDayPlanningChanges(changedJsonTxt, resourcesJsonTxt) {
           if (at >= 0) list.splice(at, 1);
         }
         touched[oldTask] = true;
+        if (!Object.prototype.hasOwnProperty.call(x, "in_filter")) delete current.in_filter; // flag omitted = in filter
         for (var k in x) {
           if (Object.prototype.hasOwnProperty.call(x, k)) current[k] = x[k];
         }
