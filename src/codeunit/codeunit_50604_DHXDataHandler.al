@@ -4249,6 +4249,9 @@ codeunit 50604 "DHX Data Handler"
         Parts: List of [Text];
         JRoot: JsonObject;
         SkillsArr: JsonArray;
+        SkillColorsArr: JsonArray;
+        SkillColorDict: Dictionary of [Code[20], Text];
+        NextPaletteIndex: Integer;
         Result: Text;
         ResNo: Code[20];
         RowKey: Code[20];
@@ -4299,10 +4302,15 @@ codeunit 50604 "DHX Data Handler"
         ResourceSkill.SetRange("No.", ResNo);
         if ResourceSkill.FindSet() then
             repeat
+            begin
                 SkillsArr.Add(ResolveSkillLabel(ResourceSkill."Skill Code"));
-            until ResourceSkill.Next() = 0;
+                // Same colour the Day Planning bars use (Skill Code setup / palette fallback); parallel to 'skills'
+                SkillColorsArr.Add(ResolveRequestedColor(ResourceSkill."Skill Code", SkillColorDict, NextPaletteIndex));
+            end until ResourceSkill.Next() = 0;
 
+        JRoot.Add('resCode', ResNo);
         JRoot.Add('skills', SkillsArr);
+        JRoot.Add('skillColors', SkillColorsArr);
         JRoot.Add('count', Cnt);
         JRoot.Add('requested', Round(Requested, 0.01));
         JRoot.Add('assigned', Round(Assigned, 0.01));
