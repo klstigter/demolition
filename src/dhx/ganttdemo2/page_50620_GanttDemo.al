@@ -475,12 +475,8 @@ page 50620 "Gantt Demo DHX 2"
                     Prefix: Text[4];
                     ResourceCode: Code[20];
                     IsTemp: Boolean;
-                    FilterJson: JsonObject;
-                    FilterToken: JsonToken;
                     FilterJobNo: Code[20];
                     FilterJobTaskNo: Code[20];
-                    FilterFromDate: Date;
-                    FilterToDate: Date;
                 begin
                     Evaluate(WorkDt, TaskDate); // expects YYYY-MM-DD
                     Prefix := CopyStr(resourceId, 1, 4);
@@ -511,21 +507,22 @@ page 50620 "Gantt Demo DHX 2"
                         DayPlanning.Validate("End Time Requested", WorkHourTemplate."Default End Time");
                         DayPlanning."Requested Hours" := WorkHourTemplate."Working Hours";
                     end;
-                    if CurrentResourcePanelFilterJsonString <> '' then
-                        if FilterJson.ReadFrom(CurrentResourcePanelFilterJsonString) then begin
-                            // Extract filter fields stored by SetResourcePanelFilterInfo: { job, task, periodFrom, periodTo }
-                            if FilterJson.Get('job', FilterToken) then
-                                FilterJobNo := CopyStr(FilterToken.AsValue().AsText(), 1, MaxStrLen(FilterJobNo));
-                            if FilterJson.Get('task', FilterToken) then
-                                FilterJobTaskNo := CopyStr(FilterToken.AsValue().AsText(), 1, MaxStrLen(FilterJobTaskNo));
-                            if FilterJson.Get('periodFrom', FilterToken) then
-                                Evaluate(FilterFromDate, FilterToken.AsValue().AsText());
-                            if FilterJson.Get('periodTo', FilterToken) then
-                                Evaluate(FilterToDate, FilterToken.AsValue().AsText());
-
-                            DayPlanning.Validate("Job No.", FilterJobNo);
-                            DayPlanning.Validate("Job Task No.", FilterJobTaskNo);
-                        end;
+                    // Default Job/Task from the applied filter: task-click mode uses the synchronous
+                    // ResourcePanel* vars, default mode uses the task-list JobFilter/JobTaskFilter
+                    // (only when they are a single code, not a filter expression).
+                    if ResourcePanelJobNo <> '' then begin
+                        FilterJobNo := ResourcePanelJobNo;
+                        FilterJobTaskNo := ResourcePanelJobTaskNo;
+                    end else begin
+                        if (JobFilter <> '') and (DelChr(JobFilter, '=', '|&<>=@*.') = JobFilter) then
+                            FilterJobNo := CopyStr(JobFilter, 1, MaxStrLen(FilterJobNo));
+                        if (JobTaskFilter <> '') and (DelChr(JobTaskFilter, '=', '|&<>=@*.') = JobTaskFilter) then
+                            FilterJobTaskNo := CopyStr(JobTaskFilter, 1, MaxStrLen(FilterJobTaskNo));
+                    end;
+                    if FilterJobNo <> '' then
+                        DayPlanning.Validate("Job No.", FilterJobNo);
+                    if FilterJobTaskNo <> '' then
+                        DayPlanning.Validate("Job Task No.", FilterJobTaskNo);
 
                     DayPlanning.CalculateWorkingHours();
                     Clear(DayPlanningCard);
