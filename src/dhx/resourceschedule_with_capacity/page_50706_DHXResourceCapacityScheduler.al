@@ -577,6 +577,14 @@ page 50706 "Resource Scheduler - TimeLine"
         ResourceFilter := '';
     end;
 
+    /// <summary>Filters the scheduler to a single Resource No. only (no Skill filter).</summary>
+    procedure SetResourceNoFilter(ResNo: Code[20])
+    begin
+        ResourceFilter := ResNo;
+        ResourceNameFilter := '';
+        SkillFilter := '';
+    end;
+
     procedure SetAnchorDate(NewAnchorDate: Date)
     begin
         AnchorDate := NewAnchorDate;

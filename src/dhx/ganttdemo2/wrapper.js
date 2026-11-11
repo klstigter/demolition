@@ -444,6 +444,11 @@ window.BOOT = function() {
       }
 
       makeItem(menu, "Resource Calendar", "&#x1F4C6;", function () {
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("onOpenResourceCalendar", [
+          currentResourceId
+        ]);
+      });
+      makeItem(menu, "Resource Scheduler", "&#x1F4C6;", function () {
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("onOpenResourceScheduler", [
           currentResourceId
         ]);
