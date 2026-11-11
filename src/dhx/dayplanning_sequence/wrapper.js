@@ -519,6 +519,12 @@ function showSectionTooltip(section, x, y) {
     positionTooltip(t, x, y);
 }
 
+/// <summary>Single-line tooltip number cell: em-dash when the value is missing, otherwise rounded to 2 decimals + unit.</summary>
+function ttNum(v, unit) {
+    if (v === undefined || v === null || v === "") return "\u2014";
+    return (Math.round(Number(v) * 100) / 100) + unit;
+}
+
 function dpsPad2(n) {
     return String(n).padStart(2, "0");
 }
@@ -585,9 +591,12 @@ function standardTooltipHtml(ev) {
             '<div class="standard-tooltip-detail">Sqnc ' + escapeHtml(ev.sequenceNo != null ? ev.sequenceNo : "—") + '</div>' +
             '<div class="standard-tooltip-detail">' + escapeHtml(weekday) + ' (wk ' + dpsIsoWeekNumber(ev.start_date) + ')</div>' +
             '<div class="standard-tooltip-detail">' + escapeHtml(shortDate) + '</div>' +
+            '<div class="standard-tooltip-detail">Status: ' + escapeHtml(ev.planStatus || "—") + '</div>' +
         '</div>' +
         '<table class="standard-tooltip-table"><thead><tr><th></th><th>Request</th><th>Assigned</th></tr></thead><tbody>' +
             '<tr><th>Time</th><td>' + escapeHtml(reqTime) + '</td><td class="' + (timeDiffers ? "standard-tooltip-different" : "") + '">' + escapeHtml(assignedTime) + '</td></tr>' +
+            '<tr><th>Hours</th><td>' + escapeHtml(ttNum(ev.requestedHours, " h")) + '</td><td>' + escapeHtml(ttNum(ev.assignedHours, " h")) + '</td></tr>' +
+            '<tr><th>Idle</th><td>' + escapeHtml(ttNum(ev.requestedIdleMinutes, " min")) + '</td><td>' + escapeHtml(ttNum(ev.assignedIdleMinutes, " min")) + '</td></tr>' +
             '<tr><th>Resource</th><td>' + escapeHtml(ev.requestedResourceNo || "—") + '</td><td>' + escapeHtml(ev.assignedResourceNo || "—") + '</td></tr>' +
         '</tbody></table>' +
         '</div>'

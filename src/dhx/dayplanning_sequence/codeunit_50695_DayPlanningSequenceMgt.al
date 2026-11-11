@@ -581,6 +581,11 @@ codeunit 50695 "Day Planning Sequence Mgt."
                     EventObj.Add('assignedEndTime', '');
                 EventObj.Add('assignedResourceNo', DayPlanning."Assigned Resource No.");
                 EventObj.Add('requestedResourceNo', DayPlanning."Requested Resource No.");
+                EventObj.Add('planStatus', Format(DayPlanning."Plan Status"));
+                EventObj.Add('requestedHours', DayPlanning."Requested Hours");
+                EventObj.Add('assignedHours', DayPlanning."Assigned Hours");
+                EventObj.Add('requestedIdleMinutes', DayPlanning."Idle Minutes Requested");
+                EventObj.Add('assignedIdleMinutes', DayPlanning."Idle Minutes Assigned");
                 EventsArray.Add(EventObj);
               end;
             until DayPlanning.Next() = 0;

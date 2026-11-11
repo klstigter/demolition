@@ -724,6 +724,12 @@ function formatPlannerTimeRange(start, duration) {
   );
 }
 
+/// <summary>Single-line tooltip number cell: em-dash when the value is missing, otherwise rounded to 2 decimals + unit.</summary>
+function ttNum(v, unit) {
+    if (v === undefined || v === null || v === "") return "\u2014";
+    return (Math.round(Number(v) * 100) / 100) + unit;
+}
+
 function requestTooltipHtml(line) {
   if (!line) return "";
 
@@ -798,6 +804,7 @@ function requestTooltipHtml(line) {
       <div class="standard-tooltip-detail">Sqnc ${sequenceNo}</div>
       <div class="standard-tooltip-detail">${new Date(line.date).toLocaleDateString(undefined, { weekday: "long" })} (wk ${isoWeekNumber(line.date)})</div>
       <div class="standard-tooltip-detail">${new Date(line.date).toLocaleDateString(undefined, { month: "short", day: "2-digit", year: "numeric" })}</div>
+      <div class="standard-tooltip-detail">Status: ${line.planStatus || "—"}</div>
     </div>
 
     <table class="standard-tooltip-table">
@@ -813,6 +820,16 @@ function requestTooltipHtml(line) {
           <th>Time</th>
           <td>${requestedTime}</td>
           <td class="${timeChanged ? "standard-tooltip-different" : ""}">${assignedTime}</td>
+        </tr>
+        <tr>
+          <th>Hours</th>
+          <td>${ttNum(line.requestedHours, " h")}</td>
+          <td>${ttNum(line.assignedHours, " h")}</td>
+        </tr>
+        <tr>
+          <th>Idle</th>
+          <td>${ttNum(line.requestedIdleMinutes, " min")}</td>
+          <td>${ttNum(line.assignedIdleMinutes, " min")}</td>
         </tr>
         <tr>
           <th>Resource</th>
@@ -3191,6 +3208,7 @@ function assignmentTooltipHtml(line) {
       <div class="standard-tooltip-detail">Sqnc ${sequenceNo}</div>
       <div class="standard-tooltip-detail">${new Date(line.date).toLocaleDateString(undefined, { weekday: "long" })} (wk ${isoWeekNumber(line.date)})</div>
       <div class="standard-tooltip-detail">${new Date(line.date).toLocaleDateString(undefined, { month: "short", day: "2-digit", year: "numeric" })}</div>
+      <div class="standard-tooltip-detail">Status: ${line.planStatus || "—"}</div>
     </div>
 
     <table class="standard-tooltip-table">
@@ -3208,6 +3226,16 @@ function assignmentTooltipHtml(line) {
           <td class="${timeDiffers ? "standard-tooltip-different" : ""}">
             ${formatPlannerTime(assignedStart)}–${formatPlannerTime(assignedEnd)}
           </td>
+        </tr>
+        <tr>
+          <th>Hours</th>
+          <td>${ttNum(line.requestedHours, " h")}</td>
+          <td>${ttNum(line.assignedHours, " h")}</td>
+        </tr>
+        <tr>
+          <th>Idle</th>
+          <td>${ttNum(line.requestedIdleMinutes, " min")}</td>
+          <td>${ttNum(line.assignedIdleMinutes, " min")}</td>
         </tr>
         <tr>
           <th>Resource</th>
