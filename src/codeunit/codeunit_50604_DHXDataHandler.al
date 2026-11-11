@@ -3984,6 +3984,7 @@ codeunit 50604 "DHX Data Handler"
 
     procedure OpenJobTaskCard(sectionId: Text)
     var
+        Job: Record Job;
         JobTask: Record "Job Task";
         EventIdParts: List of [Text];
         JobNo: Code[20];
@@ -3991,6 +3992,12 @@ codeunit 50604 "DHX Data Handler"
     begin
         EventIdParts := sectionId.Split('|');
         JobNo := EventIdParts.Get(1);
+        // A Job heading row has a key of just the Job No. (no Job Task part) - open the Job Card.
+        if EventIdParts.Count() < 2 then begin
+            Job.Get(JobNo);
+            PAGE.Run(PAGE::"Job Card", Job);
+            exit;
+        end;
         TaskNo := EventIdParts.Get(2);
         JobTask.Get(JobNo, TaskNo);
         PAGE.Run(PAGE::"Opti Job Task Card", JobTask);
