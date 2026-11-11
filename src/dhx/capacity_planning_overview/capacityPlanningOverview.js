@@ -91,6 +91,11 @@ function cpoHoursText(v) {
     return Number(v) > 0 ? (Math.round(Number(v) * 10) / 10) + 'h' : '\u2014';
 }
 
+/// <summary>Idle minutes cell: em-dash when the value is missing, otherwise "N min".</summary>
+function cpoIdleText(v) {
+    return (v === undefined || v === null || v === '') ? '\u2014' : (Number(v) || 0) + ' min';
+}
+
 /// <summary>
 /// This add-in's version of the reference prototype's DHTMLXtempv112-app.js (C:\Users\Ahmad\
 /// OneDrive\x\PROJECT\KLAAS\CPO_v131). PORTED PER AN EXPLICIT ARCHITECTURE-REVERSAL DECISION
@@ -1549,10 +1554,13 @@ class CapacityPlanningOverview {
             '<div class="standard-tooltip-detail">Sqnc ' + cpoEsc(sequenceNo) + '</div>' +
             '<div class="standard-tooltip-detail">' + cpoEsc(weekday) + ' (wk ' + cpoIsoWeekNumber(ev.start_date) + ')</div>' +
             '<div class="standard-tooltip-detail">' + cpoEsc(shortDate) + '</div>' +
+            '<div class="standard-tooltip-detail">Status: ' + cpoEsc(ev.planStatus || '\u2014') + '</div>' +
             '</div>' +
             shortageNote +
             '<table class="standard-tooltip-table"><thead><tr><th></th><th>Request</th><th>Assigned</th><th>Amount</th></tr></thead><tbody>' +
             '<tr><th>Time</th><td>' + cpoEsc(reqTime) + '</td><td class="' + (timeDiffers ? 'standard-tooltip-different' : '') + '">' + (assignedTimeKnown ? cpoEsc(ev.assignedTime) : '<span class="cpo-missing">\u2014</span>') + '</td><td>' + cpoHoursText(ev.hours) + '</td></tr>' +
+            '<tr><th>Hours</th><td>' + cpoHoursText(ev.requestedHours) + '</td><td>' + cpoHoursText(ev.assignedHours) + '</td><td>\u2014</td></tr>' +
+            '<tr><th>Idle</th><td>' + cpoIdleText(ev.requestedIdleMinutes) + '</td><td>' + cpoIdleText(ev.assignedIdleMinutes) + '</td><td>\u2014</td></tr>' +
             '<tr><th>Resource</th><td>\u2014</td><td>' + (ev.assignedResource ? cpoEsc(ev.assignedResource) : '<span class="cpo-missing">\u2014</span>') + '</td><td>\u2014</td></tr>' +
             '</tbody></table>';
     }
@@ -2245,7 +2253,8 @@ class CapacityPlanningOverview {
             jobDescription: line.projectName || '', taskDescription: line.taskName || '',
             sequenceNo: line.sequenceNo || '', lineNo: line.sequenceLineNo, assignedResource: line.assignedResourceNo || '',
             assignedTime: (line.assignedStartTime && line.assignedEndTime) ? (line.assignedStartTime + '\u2013' + line.assignedEndTime) : '\u2014',
-            requestedHours: Number(line.requestedHours) || 0, hours: Number(line.requestedHours) || 0, kind: 'dayplanning'
+            requestedHours: Number(line.requestedHours) || 0, assignedHours: Number(line.assignedHours) || 0, hours: Number(line.requestedHours) || 0, kind: 'dayplanning',
+            planStatus: line.planStatus || '', requestedIdleMinutes: line.requestedIdleMinutes, assignedIdleMinutes: line.assignedIdleMinutes
         };
     }
 

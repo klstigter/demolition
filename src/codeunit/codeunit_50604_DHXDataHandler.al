@@ -316,6 +316,7 @@ codeunit 50604 "DHX Data Handler"
                     PlanningObject.Add('end_time_requested', '');
                 PlanningObject.Add('non_working_minutes_requested', DayPlanning."Idle Minutes Requested");
                 PlanningObject.Add('requested_hours', DayPlanning."Requested Hours");
+                PlanningObject.Add('plan_status', Format(DayPlanning."Plan Status"));
                 PlanningObject.Add('skill', DayPlanning.Skill);
                 PlanningObject.Add('requested_color', ResolveRequestedColor(DayPlanning.Skill, SkillColorDict, NextSkillPaletteIndex));
 
@@ -806,6 +807,7 @@ codeunit 50604 "DHX Data Handler"
                     PlanningObject.Add('end_time_requested', '');
                 PlanningObject.Add('non_working_minutes_requested', DayPlanning."Idle Minutes Requested");
                 PlanningObject.Add('requested_hours', DayPlanning."Requested Hours");
+                PlanningObject.Add('plan_status', Format(DayPlanning."Plan Status"));
                 PlanningObject.Add('skill', DayPlanning.Skill);
                 PlanningObject.Add('requested_color', ResolveRequestedColor(DayPlanning.Skill, SkillColorDict, NextSkillPaletteIndex));
 
@@ -3612,6 +3614,11 @@ codeunit 50604 "DHX Data Handler"
             JObj.Add('taskDescription', TaskName);
             JObj.Add('skill', DayPlanningRec.Skill);
             JObj.Add('sequenceNo', DayPlanningRec."Sequence No.");
+            JObj.Add('plan_status', Format(DayPlanningRec."Plan Status"));
+            JObj.Add('requested_hours', DayPlanningRec."Requested Hours");
+            JObj.Add('assigned_hours', DayPlanningRec."Assigned Hours");
+            JObj.Add('non_working_minutes_requested', DayPlanningRec."Idle Minutes Requested");
+            JObj.Add('non_working_minutes_assigned', DayPlanningRec."Idle Minutes Assigned");
 
             // Assigned lines use "Daily Optimizer Setup"."Assigned Color" (codeunit 50609), requested
             // lines the per-skill colours from the Skill Code setup - same rule as the Timeline scheduler.
@@ -4903,6 +4910,9 @@ codeunit 50604 "DHX Data Handler"
                         JObj.Add('requested_resource_no', DayPlanning."Requested Resource No.");
                         JObj.Add('requested_resource_name', RequestedResName);
                         JObj.Add('requested_hours', DayPlanning."Requested Hours");
+                        JObj.Add('plan_status', Format(DayPlanning."Plan Status"));
+                        JObj.Add('non_working_minutes_requested', DayPlanning."Idle Minutes Requested");
+                        JObj.Add('non_working_minutes_assigned', DayPlanning."Idle Minutes Assigned");
                         JObj.Add('skill', DayPlanning.Skill);
                         JObj.Add('requested_color', ResolveRequestedColor(DayPlanning.Skill, SkillColorDict, NextSkillPaletteIndex));
                         JObj.Add('job_no', DayPlanning."Job No.");
@@ -5638,6 +5648,9 @@ codeunit 50604 "DHX Data Handler"
                         JObj.Add('requested_resource_no', DayPlanning."Requested Resource No.");
                         JObj.Add('requested_resource_name', RequestedResName);
                         JObj.Add('requested_hours', DayPlanning."Requested Hours");
+                        JObj.Add('plan_status', Format(DayPlanning."Plan Status"));
+                        JObj.Add('non_working_minutes_requested', DayPlanning."Idle Minutes Requested");
+                        JObj.Add('non_working_minutes_assigned', DayPlanning."Idle Minutes Assigned");
                         JObj.Add('skill', DayPlanning.Skill);
                         JObj.Add('requested_color', ResolveRequestedColor(DayPlanning.Skill, SkillColorDict, NextSkillPaletteIndex));
                         JObj.Add('job_no', DayPlanning."Job No.");
@@ -6041,6 +6054,11 @@ codeunit 50604 "DHX Data Handler"
         LineObj.Add('assignedResource', DayPlanning."Assigned Resource No.");
         LineObj.Add('requestedResource', DayPlanning."Requested Resource No.");
         LineObj.Add('requestedResourceName', ReqResName);
+        LineObj.Add('planStatus', Format(DayPlanning."Plan Status"));
+        LineObj.Add('requestedHours', DayPlanning."Requested Hours");
+        LineObj.Add('assignedHours', DayPlanning."Assigned Hours");
+        LineObj.Add('requestedIdleMinutes', DayPlanning."Idle Minutes Requested");
+        LineObj.Add('assignedIdleMinutes', DayPlanning."Idle Minutes Assigned");
         LineObj.Add('sequenceAccepted', false);
         exit(LineObj);
     end;
@@ -8447,6 +8465,9 @@ codeunit 50604 "DHX Data Handler"
         LineObj.Add('assignedStartTime', CPO_FormatTimeHHMM(DayPlanning."Start Time Assigned"));
         LineObj.Add('assignedEndTime', CPO_FormatTimeHHMM(DayPlanning."End Time Assigned"));
         LineObj.Add('assignedHours', DayPlanning."Assigned Hours");
+        LineObj.Add('planStatus', Format(DayPlanning."Plan Status"));
+        LineObj.Add('requestedIdleMinutes', DayPlanning."Idle Minutes Requested");
+        LineObj.Add('assignedIdleMinutes', DayPlanning."Idle Minutes Assigned");
         LineObj.Add('sequenceNo', DayPlanning."Sequence No.");
         exit(LineObj);
     end;

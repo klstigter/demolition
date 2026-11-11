@@ -609,6 +609,12 @@ window.BOOT = function() {
     // weekday+date head / Request-vs-Assigned Time+Resource table for a single line. Shell stays
     // DHTMLX's own .dhtmlXTooltip.tooltip (scheduler's tooltip plugin, see style.css) - only the
     // INNER content markup changes here.
+/// <summary>Single-line tooltip number cell: em-dash when the value is missing, otherwise rounded to 2 decimals + unit.</summary>
+    function ttNum(v, unit) {
+        if (v === undefined || v === null || v === "") return "\u2014";
+        return (Math.round(Number(v) * 100) / 100) + unit;
+    }
+    
     scheduler.templates.tooltip_text = function(start, end, ev) {
         var formatDateOnly = scheduler.date.date_to_str("%d %M %Y");
         // Parse event ID: "JobNo|JobTaskNo|DayNo|DayLineNo|ResNo|ResName" - job/task/jobDescription/
@@ -647,9 +653,12 @@ window.BOOT = function() {
                 '<div class="standard-tooltip-detail">Sqnc ' + escapeHtml(ev.sequenceNo != null ? ev.sequenceNo : "—") + '</div>' +
                 '<div class="standard-tooltip-detail">' + escapeHtml(scheduler.date.date_to_str("%l")(start)) + ' (wk ' + isoWeekNumber(start) + ')</div>' +
                 '<div class="standard-tooltip-detail">' + escapeHtml(formatDateOnly(start)) + '</div>' +
+                '<div class="standard-tooltip-detail">Status: ' + escapeHtml(ev.plan_status || "—") + '</div>' +
             '</div>' +
             '<table class="standard-tooltip-table"><thead><tr><th></th><th>Request</th><th>Assigned</th></tr></thead><tbody>' +
                 '<tr><th>Time</th><td>' + escapeHtml(reqTime) + '</td><td class="' + (timeDiffers ? "standard-tooltip-different" : "") + '">' + escapeHtml(assignedTime) + '</td></tr>' +
+                '<tr><th>Hours</th><td>' + escapeHtml(ttNum(ev.requested_hours, " h")) + '</td><td>' + escapeHtml(ttNum(ev.assigned_hours, " h")) + '</td></tr>' +
+                '<tr><th>Idle</th><td>' + escapeHtml(ttNum(ev.non_working_minutes_requested, " min")) + '</td><td>' + escapeHtml(ttNum(ev.non_working_minutes_assigned, " min")) + '</td></tr>' +
                 '<tr><th>Resource</th><td>' + escapeHtml(reqResourceLabel) + '</td><td>' + escapeHtml(assignedResourceLabel) + '</td></tr>' +
             '</tbody></table>'
         );

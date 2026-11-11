@@ -396,6 +396,12 @@ window.BOOT = function () {
         // requestTooltipHtml/assignmentTooltipHtml. The "capacity" branch (a resource-level
         // capacity-slot concept) is out of this feature's scope - see the task's own exclusion
         // list - and keeps its own short .dhx-tt table, unchanged.
+/// <summary>Single-line tooltip number cell: em-dash when the value is missing, otherwise rounded to 2 decimals + unit.</summary>
+        function ttNum(v, unit) {
+            if (v === undefined || v === null || v === "") return "\u2014";
+            return (Math.round(Number(v) * 100) / 100) + unit;
+        }
+        
         scheduler.templates.tooltip_text = function (start, end, ev) {
             var formatDateOnly = scheduler.date.date_to_str("%d-%m-%Y");
             var formatTimeOnly = scheduler.date.date_to_str("%H:%i");
@@ -437,9 +443,12 @@ window.BOOT = function () {
                     '<div class="standard-tooltip-detail">Sqnc ' + escapeRcHtml(ev.sequenceNo != null ? ev.sequenceNo : "—") + '</div>' +
                     '<div class="standard-tooltip-detail">' + escapeRcHtml(scheduler.date.date_to_str("%l")(start)) + ' (wk ' + isoWeekNumber(start) + ')</div>' +
                     '<div class="standard-tooltip-detail">' + escapeRcHtml(scheduler.date.date_to_str("%j %M %Y")(start)) + '</div>' +
+                    '<div class="standard-tooltip-detail">Status: ' + escapeRcHtml(ev.plan_status || "—") + '</div>' +
                 '</div>' +
                 '<table class="standard-tooltip-table"><thead><tr><th></th><th>Request</th><th>Assigned</th></tr></thead><tbody>' +
                     '<tr><th>Time</th><td>' + escapeRcHtml(reqTime) + '</td><td class="' + (timeDiffers ? "standard-tooltip-different" : "") + '">' + escapeRcHtml(assignedTime) + '</td></tr>' +
+                    '<tr><th>Hours</th><td>' + escapeRcHtml(ttNum(ev.requested_hours, " h")) + '</td><td>' + escapeRcHtml(ttNum(ev.assigned_hours, " h")) + '</td></tr>' +
+                    '<tr><th>Idle</th><td>' + escapeRcHtml(ttNum(ev.non_working_minutes_requested, " min")) + '</td><td>' + escapeRcHtml(ttNum(ev.non_working_minutes_assigned, " min")) + '</td></tr>' +
                     '<tr><th>Resource</th><td>' + escapeRcHtml(ev.requested_resource_name || ev.requested_resource_no || "—") + '</td><td>' + escapeRcHtml(ev.assigned_resource_name || ev.assigned_resource_no || "—") + '</td></tr>' +
                 '</tbody></table>'
             );
