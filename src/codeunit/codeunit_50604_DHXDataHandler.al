@@ -2528,6 +2528,21 @@ codeunit 50604 "DHX Data Handler"
     end;
 
     /// <summary>
+    /// Opens the Resource Scheduler - TimeLine (page 50706) filtered to the given Resource No.
+    /// only (no Skill filter), anchored to AnchorDate. Used by the Gantt resource-panel
+    /// right-click "Resource Scheduler" item.
+    /// </summary>
+    procedure OpenResSchedulerTimelineForResource(ResNo: Code[20]; AnchorDate: Date)
+    var
+        ResCapacityScheduler: Page "Resource Scheduler - TimeLine";
+    begin
+        ResCapacityScheduler.SetResourceNoFilter(ResNo);
+        if AnchorDate <> 0D then
+            ResCapacityScheduler.SetAnchorDate(AnchorDate);
+        ResCapacityScheduler.RunModal();
+    end;
+
+    /// <summary>
     /// Opens the DHX Resource Scheduler filtered to the Requested Resource No. of the day
     /// planning line linked to the given event ID (format: JobNo|JobTaskNo|DayNo|DayLineNo|ResNo|ResName).
     /// Used by the right-click context menu "Open Resource Scheduler (Requested)" on an event.

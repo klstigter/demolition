@@ -547,7 +547,7 @@ page 50620 "Gantt Demo DHX 2"
                     RefreshGantt();
                 end;
 
-                trigger onOpenResourceScheduler(resourceId: Text)
+                trigger onOpenResourceCalendar(resourceId: Text)
                 var
                     ResScheduler: page "Resource Calendar";
                     DHXDataHandler: Codeunit "DHX Data Handler";
@@ -599,12 +599,57 @@ page 50620 "Gantt Demo DHX 2"
                     end;
 
                     // Standard BC popup for option selection (returns 0 on cancel)
-                    Selection := StrMenu(OptionString, 1, 'Select a week to open the Resource Scheduler');
+                    Selection := StrMenu(OptionString, 1, 'Select a week to open the Resource Calendar');
                     if Selection = 0 then
                         exit;
 
                     ResScheduler.SetResourceFilter(ResNo, WeekStartDate.Get(Selection), WeekEndDate.Get(Selection));
                     ResScheduler.Run();
+                end;
+
+                trigger onOpenResourceScheduler(resourceId: Text)
+                var
+                    DHXDataHandler: Codeunit "DHX Data Handler";
+                    ResNo: Code[20];
+                    GanttStart: Date;
+                    GanttEnd: Date;
+                    WeekStart: Date;
+                    WeekEnd: Date;
+                    WeekStartDate: List of [Date];
+                    OptionString: Text;
+                    Selection: Integer;
+                    WeekIdx: Integer;
+                begin
+                    // resourceId format "TYPE-ID", e.g. RES-1234
+                    if StrPos(resourceId, '-') = 0 then begin
+                        Message('Invalid resource ID format: %1, resource ID should be in the format "TYPE-ID", ex. RES-1234', resourceId);
+                        exit;
+                    end;
+                    Evaluate(ResNo, resourceId.Split('-').Get(2));
+
+                    GanttChartDataHandler.GetDateRange(Setup, AnchorDate, GanttStart, GanttEnd);
+                    DHXDataHandler.GetWeekPeriodDates(GanttStart, WeekStart, WeekEnd);
+                    while WeekStart <= GanttEnd do begin
+                        WeekStartDate.Add(WeekStart);
+                        if OptionString <> '' then
+                            OptionString += ',';
+                        OptionString += StrSubstNo('W%1: %2 – %3',
+                            Format(Date2DWY(WeekStart, 2), 0, '<Integer,2>'),
+                            Format(WeekStart, 0, '<Day,2>-<Month,2>-<Year4>'),
+                            Format(WeekEnd, 0, '<Day,2>-<Month,2>-<Year4>'));
+                        WeekStart := CalcDate('<1W>', WeekStart);
+                        WeekEnd := CalcDate('<1W>', WeekEnd);
+                    end;
+                    if WeekStartDate.Count() = 0 then begin
+                        Message('No weeks found in the current Gantt period (%1 – %2).', GanttStart, GanttEnd);
+                        exit;
+                    end;
+
+                    Selection := StrMenu(OptionString, 1, 'Select a week to open the Resource Scheduler');
+                    if Selection = 0 then
+                        exit;
+
+                    DHXDataHandler.OpenResSchedulerTimelineForResource(ResNo, WeekStartDate.Get(Selection));
                 end;
 
                 trigger OnResetResourceFilter()

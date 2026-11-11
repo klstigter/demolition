@@ -31,6 +31,7 @@ controladdin "DHX Gantt Control 2"
     event OnShowSummaryForTask(taskId: Text; childrenJson: Text; periodFrom: Text; periodTo: Text);
     event OnResourceDblClick(resourceId: Text);
     event OnResourceHover(resourceId: Text);
+    event onOpenResourceCalendar(resourceId: Text);
     event onOpenResourceScheduler(resourceId: Text);
     event OnResetResourceFilter();
     event onAddDayPlanning(resourceId: Text; taskDate: Text);
