@@ -2669,7 +2669,7 @@ var renderResourceLine = function (resource, timeline) {
         "left:0",
         "right:0",
         "height:6px",
-        "background:#000000",
+        "background:#ff0000",
         "border-radius:0 0 3px 3px",
         "pointer-events:none"
       ].join(";");
