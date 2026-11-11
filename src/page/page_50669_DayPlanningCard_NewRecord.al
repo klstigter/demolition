@@ -185,7 +185,7 @@ page 50669 "Day Planning Card - New Record"
     procedure SetNewRecordToSave(DayPlanning: Record "Day Planning")
     begin
         Rec := DayPlanning;
-        Rec.Insert(true);
+        Rec.Insert(false); // temp buffer only: skip OnInsert (PK check fires when no Job/Task filter is set); real Insert(true) happens in the caller
         JobNo := Rec."Job No.";
         JobTaskNo := Rec."Job Task No.";
     end;
