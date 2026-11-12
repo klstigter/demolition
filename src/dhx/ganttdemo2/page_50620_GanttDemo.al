@@ -62,6 +62,18 @@ page 50620 "Gantt Demo DHX 2"
                     end;
                 end;
 
+                trigger onAddTask(jobNo: Text; jobTaskNo: Text)
+                var
+                    GanttChartDataHandler: Codeunit "GanttChartDataHandler";
+                    PeriodStart: Date;
+                    PeriodEnd: Date;
+                begin
+                    // New task's visual bar = first week of the displayed Gantt period
+                    GanttChartDataHandler.GetDateRange(Setup, AnchorDate, PeriodStart, PeriodEnd);
+                    if PageHandler.OpenNewJobTaskCardModal(CopyStr(jobNo, 1, 20), CopyStr(jobTaskNo, 1, 20), PeriodStart, PeriodStart + 6) then
+                        LoadAllData();
+                end;
+
                 trigger OnShowSummaryForTask(taskId: Text; childrenJson: Text; periodFrom: Text; periodTo: Text)
                 var
                     SummaryPage: Page "Summary View";

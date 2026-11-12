@@ -19,6 +19,7 @@ controladdin "DHX Gantt Control 2"
 
     event ControlReady();
     event OnAfterInit();
+    event onAddTask(jobNo: Text; jobTaskNo: Text);
     event onTaskDblClick(eventId: Text; eventData: Text);
     event onOpenDayPlanning(taskId: Text; eventData: Text);
     event onOpenDayPlanningVisual(taskId: Text; eventData: Text);
