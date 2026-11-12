@@ -1350,6 +1350,22 @@ window.BOOT = function() {
       return false; // keep blocking lightbox if you want
     });
 
+    // "+" in the grid: open BC's Opti Job Task Card on a new Job Task instead of the DHTMLX lightbox.
+    // Returning false from onTaskCreated cancels the add, so no task is created client-side;
+    // BC reloads the data after the card is saved.
+    gantt.attachEvent("onTaskCreated", function (task) {
+      try {
+        var p = task.parent && gantt.isTaskExists(task.parent) ? gantt.getTask(task.parent) : null;
+        // Job No. follows the row whose "+" was clicked (its bcJobNo, else the "JobNo|TaskNo" id)
+        var jobNo = (p && (p.bcJobNo || String(p.id).split("|")[0])) || "";
+        var taskNo = (p && (p.bcJobTaskNo || String(p.id).split("|")[1])) || "";
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("onAddTask", [String(jobNo), String(taskNo)]);
+      } catch (e) {
+        console.error("onAddTask failed:", e);
+      }
+      return false;
+    });
+
     // -------- EVENTS (BC callback) --------
     // _dragInProgress is true from the moment onAfterTaskDrag fires until a
     // short timeout clears it. This suppresses ALL onAfterTaskUpdate calls
