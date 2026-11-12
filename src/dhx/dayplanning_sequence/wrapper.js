@@ -951,6 +951,13 @@ function SetTooltipColors(backgroundColorHex, fontColorHex) {
 }
 
 function applySections(sections) {
+    // Left list order: Job, Task, then Skill, then Sequence No. (AL sends them in first-date order).
+    sections = sections.slice().sort(function (a, b) {
+        return String(a.jobNo || "").localeCompare(String(b.jobNo || "")) ||
+            String(a.jobTaskNo || "").localeCompare(String(b.jobTaskNo || "")) ||
+            String(a.skill || "").localeCompare(String(b.skill || "")) ||
+            (Number(a.sequenceNo) || 0) - (Number(b.sequenceNo) || 0);
+    });
     dps_sections = sections;
     dps_sectionsByKey = {};
 
