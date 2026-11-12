@@ -1460,64 +1460,38 @@ function applyTimelineStartHour(dateObj) {
 function InstallSequenceRowOrdering() {
     if (scheduler._seqRowOrderInstalled) return;
     scheduler._seqRowOrderInstalled = true;
-    var origRender = scheduler.render_timeline_event;
-    scheduler.render_timeline_event = function (ev, append) {
-        var html = origRender.apply(this, arguments);
-        return (!append && ev._seqBand && typeof html === "string") ? ev._seqBand + html : html;
-    };
     var orig = scheduler._timeline_calculate_event_positions;
     scheduler._timeline_calculate_event_positions = function (evs) {
         orig.apply(this, arguments);
         if (!evs || !evs.length || this.render == "cell") return;
         var seqOf = function (ev) { var n = Number(ev.sequenceNo); return ev.sequenceNo == null || isNaN(n) ? 1e9 : n; };
-        var groups = {}, keys = [];
+        // Order: Skill (alphabetical) first, then Sequence No. inside each skill. Each (skill, sequence) pair
+        // is one block of rows, so it keeps the same rows across all days of the period.
+        var bySkill = {}, skills = [];
         evs.forEach(function (ev) {
-            var k = seqOf(ev);
-            if (!groups[k]) { groups[k] = []; keys.push(k); }
-            groups[k].push(ev);
+            var sk = String(ev.skill || "");
+            if (!bySkill[sk]) { bySkill[sk] = {}; skills.push(sk); }
+            var q = seqOf(ev);
+            (bySkill[sk][q] = bySkill[sk][q] || []).push(ev);
         });
-        keys.sort(function (a, b) { return a - b; });
+        skills.sort(function (x, y) { return x.localeCompare(y); });
         var offset = 0, tallest = null;
-        var blocks = [];
-        keys.forEach(function (k) {
-            var blockStart = offset, blockFirst = null;
-            // Within one sequence: one block of rows per skill (alphabetical), so a skill keeps its row across days.
-            var bySkill = {}, skills = [];
-            groups[k].forEach(function (ev) {
-                var sk = String(ev.skill || "");
-                if (!bySkill[sk]) { bySkill[sk] = []; skills.push(sk); }
-                bySkill[sk].push(ev);
-            });
-            skills.sort(function (a, b) { return a.localeCompare(b); });
-            skills.forEach(function (sk) {
+        skills.forEach(function (sk) {
+            Object.keys(bySkill[sk]).map(Number).sort(function (x, y) { return x - y; }).forEach(function (q) {
                 var lanes = [];
-                bySkill[sk].sort(function (a, b) { return a.start_date - b.start_date; }).forEach(function (ev) {
+                bySkill[sk][q].sort(function (x, y) { return x.start_date - y.start_date; }).forEach(function (ev) {
                     var lane = lanes.findIndex(function (end) { return end <= ev.start_date.valueOf(); });
                     if (lane < 0) lane = lanes.length;
                     lanes[lane] = ev.end_date.valueOf();
                     ev._sorder = offset + lane;
                     ev._inner = ev._sorder > 0;
-                    ev._seqBand = null;
-                    if (!blockFirst) blockFirst = ev;
                     if (!tallest || ev._sorder > tallest._sorder) tallest = ev;
                 });
                 offset += lanes.length;
             });
-            blocks.push({ first: blockFirst, start: blockStart, rows: offset - blockStart });
         });
         evs.forEach(function (ev) { ev._count = offset; });
-        // More than one sequence in this row: shade every 2nd sequence's block light blue.
-        if (blocks.length > 1) {
-            evs.forEach(function (ev) { ev._count = offset; });
-            var h = this.getEventHeight(blocks[0].first);
-            blocks.forEach(function (b, i) {
-                if (i % 2 === 1 && b.first) {
-                    var top = 1 + b.start * (h - 1);
-                    b.first._seqBand = "<div style='position:absolute;left:0;width:100%;pointer-events:none;background:rgba(173,216,230,0.35);top:" +
-                        top + "px;height:" + (b.rows * (h - 1) + 1) + "px;'></div>";
-                }
-            });
-        }
+        evs.forEach(function (ev) { ev._count = offset; });
         if (tallest) scheduler.render_timeline_event.call(this, tallest, false); // refresh row height
     };
 }
