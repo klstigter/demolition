@@ -63,6 +63,15 @@ codeunit 50605 "API Record Exposed Mgt."
 
     [InherentPermissions(PermissionObjectType::TableData, Database::"API Record Exposed Opti", 'R')]
     [InherentPermissions(PermissionObjectType::TableData, Database::"Update and Delete Log Opti", 'RI')]
+    procedure InsertedRecordLog(RecRef: RecordRef)
+    begin
+        if RecRef.IsTemporary() then
+            exit;
+        LogRecordLevelChange(RecRef, "Update and Delete Log Action"::Insert, '', '');
+    end;
+
+    [InherentPermissions(PermissionObjectType::TableData, Database::"API Record Exposed Opti", 'R')]
+    [InherentPermissions(PermissionObjectType::TableData, Database::"Update and Delete Log Opti", 'RI')]
     procedure DeletedRecordLog(RecRef: RecordRef)
     begin
         if RecRef.IsTemporary() then

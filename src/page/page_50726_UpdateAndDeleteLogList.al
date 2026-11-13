@@ -6,9 +6,9 @@ page 50726 "Update and Delete Log List"
     UsageCategory = Lists;
     SourceTable = "Update and Delete Log Opti";
     Caption = 'Update and Delete Log';
-    Editable = false;
     InsertAllowed = false;
     ModifyAllowed = false;
+    DeleteAllowed = true;
     SourceTableView = sorting("Entry No.") order(descending);
 
     layout
