@@ -46,6 +46,11 @@ page 50727 "UpdateAndDeleteLogApi Opt"
                     Caption = 'Entity Set Name';
                     Editable = false;
                 }
+                field(tableNo; Rec."Table No.")
+                {
+                    Caption = 'Table No.';
+                    Editable = false;
+                }
                 field(fieldName; Rec."API Field Name")
                 {
                     Caption = 'Field Name';

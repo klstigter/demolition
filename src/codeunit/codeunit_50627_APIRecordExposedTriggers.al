@@ -24,7 +24,7 @@ codeunit 50627 "API Record Exposed Triggers"
             TableTriggerMask := (TableTriggerMask div 16) * 16 + 14 + (TableTriggerMask mod 2);
     end;
 
-    // Insert and Rename stay off here: inserts are never logged and Rename is logged through the global event.
+    // Rename stays off here: it is logged through the global event.
     [EventSubscriber(ObjectType::Codeunit, Codeunit::GlobalTriggerManagement, 'OnAfterGetDatabaseTableTriggerSetup', '', false, false)]
     [InherentPermissions(PermissionObjectType::TableData, Database::"API Record Exposed Opti", 'R')]
     local procedure EnableDatabaseTriggers(TableId: Integer; var OnDatabaseInsert: Boolean; var OnDatabaseModify: Boolean; var OnDatabaseDelete: Boolean; var OnDatabaseRename: Boolean)
@@ -33,9 +33,20 @@ codeunit 50627 "API Record Exposed Triggers"
     begin
         APIRecordExposed.SetRange("Table ID", TableId);
         if not APIRecordExposed.IsEmpty() then begin
+            OnDatabaseInsert := true;
             OnDatabaseModify := true;
             OnDatabaseDelete := true;
         end;
+    end;
+
+    [EventSubscriber(ObjectType::Codeunit, Codeunit::GlobalTriggerManagement, 'OnAfterOnDatabaseInsert', '', false, false)]
+    local procedure LogInsert(RecRef: RecordRef)
+    var
+        APIRecordExposedMgt: Codeunit "API Record Exposed Mgt.";
+    begin
+        if IsThirdPartyCall() then
+            exit;
+        APIRecordExposedMgt.InsertedRecordLog(RecRef);
     end;
 
     // The after-modify event has no xRec, so keep the stored version before it is overwritten.

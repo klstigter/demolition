@@ -85,6 +85,7 @@ table 50607 "Update and Delete Log Opti"
 
     trigger OnDelete()
     begin
+        testfield(Status, Status::Synchronized);
     end;
 
     trigger OnRename()
