@@ -68,4 +68,32 @@ page 50726 "Update and Delete Log List"
             }
         }
     }
+
+    actions
+    {
+        area(Navigation)
+        {
+            action(WebhookSubscriber)
+            {
+                Caption = 'Webhook Subscriber';
+                ToolTip = 'Open the webhook subscription table (API Webhook Subscription) in Business Central';
+                ApplicationArea = All;
+                Image = Link;
+
+                trigger OnAction()
+                begin
+                    Hyperlink(WebhookSubscriberUrlTxt);
+                end;
+            }
+        }
+        area(Promoted)
+        {
+            actionref(WebhookSubscriber_Promoted; WebhookSubscriber)
+            {
+            }
+        }
+    }
+
+    var
+        WebhookSubscriberUrlTxt: Label 'https://businesscentral.dynamics.com/a60762e1-df10-4e4b-8f44-174c51589110/NL_Test?table=2000000095', Locked = true;
 }
