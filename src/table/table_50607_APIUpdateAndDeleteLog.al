@@ -81,6 +81,11 @@ table 50607 "Update and Delete Log Opti"
 
     trigger OnModify()
     begin
+        if Status <> xRec.Status then
+            if Status = Status::Synchronized then
+                "Synchronized At" := CurrentDateTime()
+            else
+                "Synchronized At" := 0DT;
     end;
 
     trigger OnDelete()
