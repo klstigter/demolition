@@ -129,6 +129,30 @@ page 50711 "Day Planning Sequence Part"
                     CurrPage.Update(false);
                 end;
 
+                trigger OnExecuteSequence(PayloadJson: Text)
+                begin
+                    if (JobNo = '') or (JobTaskNo = '') then
+                        exit;
+                    DayPlanningSequenceMgt.ExecuteSequenceSelection(PayloadJson, JobNo, JobTaskNo);
+                    CurrPage.DhxSequence.SequenceExecuted();
+                    RefreshTimeline();
+                    CurrPage.Update(false);
+                end;
+
+                trigger OnLookupSequenceResource()
+                var
+                    Resource: Record Resource;
+                    ResourceList: Page "Resource List";
+                begin
+                    Resource.SetRange(Blocked, false);
+                    ResourceList.SetTableView(Resource);
+                    ResourceList.LookupMode(true);
+                    if ResourceList.RunModal() = Action::LookupOK then begin
+                        ResourceList.GetRecord(Resource);
+                        CurrPage.DhxSequence.SetSequenceResource(Resource."No.");
+                    end;
+                end;
+
                 trigger OnEventChanged(eventId: Text; eventData: Text)
                 begin
                     DayPlanningSequenceMgt.UpdateEventFromJson(eventId, eventData);

@@ -73,10 +73,14 @@
 #dps-stage {
     position: relative;
     height: calc(100% - 40px);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
 }
 
 #dps-scheduler-card {
-    height: 100%;
+    flex: 1 1 0;
+    min-height: 145px;
     background: #fff;
     border: 1px solid #d9dee7;
     overflow: hidden;
@@ -88,27 +92,43 @@
     height: 100%;
 }
 
-/* ── Modify sequence side panel ───────────────────────────── */
+/* Sequence editor below the overview. */
 .dps-sidepanel {
-    position: absolute;
-    left: 10px;
-    top: 10px;
-    bottom: 10px;
-    width: 300px;
-    z-index: 60;
+    display: none;
+    flex: 0 0 auto;
     background: #fff;
     border: 1px solid #d9dee7;
-    border-radius: 8px;
-    box-shadow: 0 14px 38px rgba(25, 35, 55, .2);
-    transform: translateX(calc(-100% - 22px));
-    transition: transform .18s ease;
-    display: flex;
-    flex-direction: column;
     overflow: hidden;
 }
 
 .dps-sidepanel.dps-open {
-    transform: translateX(0);
+    display: flex;
+    flex-direction: column;
+}
+
+.dps-sidepanel .dps-panelhead,
+.dps-sidepanel .dps-panelactions {
+    flex-shrink: 0;
+}
+
+.dps-sidepanel .dps-panelbody {
+    overflow: visible;
+}
+
+#dpsLinesDialog .dps-panelbody {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+}
+
+#dpsLinesDialog .dps-panelactions {
+    justify-content: flex-end;
+}
+
+#dpsLinesDialog .dps-panelactions .dps-btn {
+    flex: none;
+    width: 144px;
 }
 
 .dps-panelhead {
@@ -219,30 +239,6 @@
     color: #637084;
 }
 
-/* ── New sequence modal dialog ────────────────────────────── */
-.dps-dialog-backdrop {
-    position: absolute;
-    inset: 0;
-    background: rgba(20, 28, 42, .28);
-    z-index: 100;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 18px;
-}
-
-.dps-dialog-backdrop.dps-open {
-    display: flex;
-}
-
-.dps-dialog {
-    width: min(400px, 100%);
-    background: #fff;
-    border-radius: 8px;
-    border: 1px solid #d9dee7;
-    box-shadow: 0 18px 55px rgba(0, 0, 0, .22);
-}
-
 /* ── Row label + timeline geometry (mirrors the demo's compact 2h-cell timeline) ── */
 .dhx_cal_navline {
     display: none !important;
@@ -301,19 +297,7 @@
     background: var(--dps-weekend-color, #ffe0e0) !important;
 }
 
-.dhx_scale_bar.weekend-scale,
-.dhx_cal_header .weekend-scale,
-.dhx_second_scale_bar.weekend-scale {
-    background: var(--dps-weekend-color, #ffe0e0) !important;
-}
-
 .dhx_matrix_cell.holiday-cell {
-    background: var(--dps-holiday-color, #fff3cd) !important;
-}
-
-.dhx_scale_bar.holiday-scale,
-.dhx_cal_header .holiday-scale,
-.dhx_second_scale_bar.holiday-scale {
     background: var(--dps-holiday-color, #fff3cd) !important;
 }
 
@@ -579,4 +563,534 @@
 #dps_scheduler_here .dhx_cal_data::-webkit-scrollbar-thumb:hover,
 #dps_scheduler_here .dhx_matrix_data::-webkit-scrollbar-thumb:hover {
     background: #9aa5b8;
+}
+
+/* Date range selection in the Modify sequence panel. */
+#dpsSequencePanel [hidden] {
+    display: none;
+}
+
+.dps-range-timeline {
+    display: flex;
+    overflow-x: scroll;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    scrollbar-color: #8793a3 #e7ecf2;
+}
+
+.dps-picker-calendar {
+    display: grid;
+    flex: none;
+    grid-auto-columns: 20px;
+}
+
+.dps-range-month-title {
+    padding: 6px 8px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    border-bottom: 1px solid #cbd5e1;
+    border-right: 1px solid #aab6c6;
+}
+
+.dps-range-day {
+    box-sizing: border-box;
+    width: 20px;
+    height: 39px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    border: 0;
+    border-right: 1px solid #e1e7ef;
+    background: #fff;
+    color: #26364a;
+    cursor: pointer;
+}
+
+.dps-range-day[aria-pressed="true"] {
+    background: #dce9ff;
+    box-shadow: inset 0 2px #2457d6, inset 0 -2px #2457d6;
+}
+
+.dps-range-day:hover,
+.dps-range-day:focus-visible {
+    outline: 2px solid #2457d6;
+    outline-offset: -2px;
+}
+
+.dps-range-date-number {
+    font-size: 10px;
+    line-height: 13px;
+}
+
+.dps-range-slot {
+    width: 13px;
+    height: 7px;
+    border-radius: 2px;
+}
+
+.dps-range-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+}
+
+#dpsRangeHint {
+    font-size: 12px;
+    margin: 5px 0 8px;
+}
+
+.dps-date-modes {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-top: 8px;
+}
+
+.dps-date-modes .dps-btn[aria-pressed="true"] {
+    background: #dce9ff;
+    border-color: #2457d6;
+    color: #183f9e;
+}
+
+.dps-range-day.dps-range-preview {
+    outline: 1px dashed #2457d6;
+    outline-offset: -2px;
+    background: #edf4ff;
+}
+
+.dps-range-day.dps-range-preview[aria-pressed="true"] {
+    background: #dce9ff;
+}
+
+#dpsDateCount {
+    font-size: 12px;
+}
+
+#dpsSequencePanel .dps-date-modes .dps-btn,
+#dpsSequencePanel .dps-panelactions .dps-btn {
+    box-sizing: border-box;
+    width: 144px;
+    min-height: 30px;
+    flex: none;
+}
+
+#dpsSequencePanel .dps-panelactions {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+#dpsSequencePanel .dps-date-modes {
+    flex-wrap: wrap;
+}
+
+.dps-date-selector {
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    margin-top: 8px;
+}
+
+.dps-date-selector .dps-range-timeline {
+    border: 0;
+    border-radius: 0 0 6px 6px;
+}
+
+.dps-timeline-extensions {
+    display: grid;
+    grid-template-columns: minmax(0, 144px) minmax(0, 1fr) minmax(0, 144px);
+    align-items: center;
+    gap: 8px;
+    padding: 6px;
+    border-bottom: 1px solid #cbd5e1;
+    background: #f7f9fc;
+}
+
+.dps-timeline-extensions #dpsRangeHint {
+    margin: 0;
+    text-align: center;
+}
+
+/* Match the Gantt calendar palette while keeping the selected dates blue. */
+.dps-range-day.dps-week-start {
+    border-left: 1px solid #8290a3;
+}
+
+.dps-range-day .dps-range-date-number {
+    width: 100%;
+    text-align: center;
+    background: #fff;
+    color: #555;
+}
+
+.dps-range-day.dps-week-odd .dps-range-date-number {
+    background: #ece8e2;
+}
+
+.dps-range-day.weekend-picker:not([aria-pressed="true"]):not(.dps-range-preview) {
+    background: var(--dps-weekend-color, #ffe0e0);
+}
+
+.dps-range-day.holiday-picker:not([aria-pressed="true"]):not(.dps-range-preview) {
+    background: var(--dps-holiday-color, #fff3cd);
+}
+
+
+.dps-range-day.dps-range-preview:not(.dps-date-frozen) {
+    background: #edf4ff;
+    box-shadow: none;
+}
+
+.dps-range-day.dps-date-frozen {
+    background: #dce9ff;
+}
+
+.dps-picker-header-fields {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 6px;
+    background: #f7f9fc;
+    border-bottom: 1px solid #cbd5e1;
+}
+
+.dps-picker-header-fields .dps-range-fields {
+    margin: 0;
+    grid-template-columns: repeat(2, minmax(100px, 150px));
+}
+
+.dps-picker-header-fields .dps-field {
+    margin: 0;
+}
+
+.dps-range-weekdays {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    min-width: 0;
+    margin: 0;
+    padding: 4px 8px 6px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 12px;
+}
+
+.dps-range-weekdays label {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+}
+
+.dps-timeline-extensions {
+    grid-template-columns: auto minmax(0, 1fr);
+}
+
+.dps-add-month {
+    flex: none;
+    align-self: flex-end;
+    margin: 5px;
+    white-space: nowrap;
+}
+
+.dps-picker-day-cell {
+    position: relative;
+    display: flex;
+}
+
+.dps-picker-slot-markers {
+    position: absolute;
+    inset: 17px 2px 2px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    overflow-y: auto;
+    pointer-events: none;
+}
+
+.dps-picker-slot-markers .dps-range-slot {
+    flex: 0 0 7px;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.dps-picker-slot-markers .dps-slot-draft {
+    outline: 1px dashed #183f9e;
+}
+
+.dps-picker-slot-markers .dps-slot-saved {
+    box-shadow: inset 0 0 0 2px #183f9e;
+}
+
+.dps-picker-slot-markers .dps-range-slot:focus-visible {
+    outline: 2px solid #183f9e;
+}
+
+.dps-range-day.dps-selection-removal,
+.dps-picker-slot-markers .dps-range-slot.dps-selection-removal {
+    outline: 1px dashed #b42318;
+    outline-offset: -1px;
+    box-shadow: none;
+}
+
+.dps-range-day.dps-range-start,
+.dps-range-day.dps-range-end {
+    outline: 2px solid #2457d6;
+}
+
+.dps-sequence-options {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 8px 14px;
+}
+
+#dpsWeekPattern {
+    border-collapse: collapse;
+    margin-top: 8px;
+}
+
+#dpsWeekPattern th,
+#dpsWeekPattern td {
+    text-align: left;
+    padding: 3px 8px 3px 0;
+}
+
+#dpsWeekPattern input[type="number"] {
+    width: 7em;
+}
+
+.dps-range-day.dps-template-skips {
+    opacity: .55;
+}
+
+#dpsWeekPatternDetails {
+    margin-top: 10px;
+}
+
+#dpsWeekPatternDetails summary {
+    width: fit-content;
+    cursor: pointer;
+}
+
+#dpsWeekPattern th {
+    font-weight: normal;
+}
+
+#dpsRangeTimeline .dps-range-day.dps-hover-date {
+    background: #dce9ff;
+    box-shadow: inset 0 2px #2457d6, inset 0 -2px #2457d6;
+}
+
+.dps-picker-slot-markers .dps-range-slot.dps-hover-slot {
+    outline: 2px solid #2457d6;
+    box-shadow: 0 0 0 3px #dce9ff;
+}
+
+.dps-execute-status {
+    margin: 4px 12px;
+    text-align: right;
+    font-size: 12px;
+}
+
+.dps-execute-status:empty {
+    display: none;
+}
+
+#dpsRangeTimeline .dps-range-day.dps-date-frozen {
+    box-shadow: inset 0 2px #2457d6, inset 0 -2px #2457d6;
+}
+
+#dpsRangeTimeline .dps-range-day.dps-selection-removal {
+    box-shadow: none;
+}
+
+.dps-picker-slot-markers .dps-hidden-slot {
+    opacity: .55;
+    pointer-events: none;
+}
+
+#dpsLinesDialog [hidden] {
+    display: none;
+}
+
+#dpsRangeTimeline .dps-range-day.dps-occupied-pick {
+    outline: 2px dashed #9a6700;
+    outline-offset: -2px;
+}
+
+#dpsSequencePanel .dps-sequence-options {
+    align-items: flex-start;
+}
+
+#dpsOperationGrid {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+#dpsOperationGrid th,
+#dpsOperationGrid td {
+    border: 1px solid #ccd6e5;
+    padding: 3px 8px;
+    font-weight: normal;
+    text-align: left;
+}
+
+#dpsOperationGrid thead th {
+    background: #f4f7fa;
+}
+
+#dpsOperationGrid .dps-operation-cell {
+    padding: 0;
+    background: #fff5cf;
+}
+
+.dps-operation-cell label {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 24px;
+    cursor: pointer;
+}
+
+.dps-operation-cell label:has(input:checked) {
+    background: #ffdf80;
+}
+
+#dpsRangeTimeline .dps-range-day.dps-saved-date {
+    background: #edf4ff;
+}
+
+#dpsRangeTimeline .dps-range-day.dps-saved-date-start {
+    border-left: 2px solid #2457d6;
+}
+
+#dpsOperationGrid table {
+    border-collapse: collapse;
+}
+
+.dps-resource-lookup {
+    position: relative;
+}
+
+#dpsResourceField #dpsResourceNo {
+    box-sizing: border-box;
+    min-height: 30px;
+    padding-right: 36px;
+}
+
+#dpsResourceField #dpsLookupResource {
+    position: absolute;
+    inset: 1px 1px 1px auto;
+    width: 30px;
+    padding: 0;
+    border: 0;
+    border-left: 1px solid #ccd6e5;
+    border-radius: 0 4px 4px 0;
+}
+
+.dps-sequence-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px 16px;
+    margin-bottom: 6px;
+}
+
+.dps-sequence-heading {
+    display: grid;
+    gap: 6px;
+}
+
+#dpsClosePanel {
+    margin: 0 0 0 auto;
+}
+
+#dpsSequencePanel .dps-selection-footer {
+    align-items: center;
+    flex-wrap: wrap;
+    row-gap: 6px;
+}
+
+#dpsDateSelection {
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    min-width: 0;
+    margin-right: auto;
+}
+
+#dpsDateSelection .dps-execute-status {
+    margin: 0 0 0 auto;
+}
+
+#dps_scheduler_here .dhx_second_scale_bar .dps-day-label {
+    position: absolute;
+    inset: 50% 0 0;
+    display: grid;
+    place-items: center;
+    line-height: 1;
+}
+
+.dps-overview-week-host {
+    position: relative;
+}
+
+.dps-overview-weeks {
+    position: absolute;
+    inset: 0 0 50%;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.dps-overview-weeks .dps-week-band {
+    position: absolute;
+    inset-block: 0;
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    border-left: 1px solid #ccd6e5;
+    background: #fff;
+    color: #26374c;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.dps-week-band-odd,
+.dps-overview-weeks .dps-week-band-odd,
+#dps_scheduler_here .dhx_scale_bar.dps-week-band-odd {
+    background: #ece8e2;
+}
+
+.dps-picker-week-title {
+    border-right: 1px solid #ccd6e5;
+    height: 16px;
+    line-height: 16px;
+    text-align: center;
+    font-size: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    border-bottom: 1px solid #cbd5e1;
+}
+
+.dps-sequence-options #dpsRangeHint {
+    min-width: 0;
+    max-width: 230px;
+    margin: 0;
+}
+
+#dpsOperationGrid table[aria-label="Add and Delete options"] .dps-operation-cell {
+    min-width: 32px;
 }

@@ -138,6 +138,199 @@ codeunit 50695 "Day Planning Sequence Mgt."
         ExtendJobTaskPlannedPeriod(JobNo, JobTaskNo, ActualMinDate, ActualMaxDate);
     end;
 
+    procedure ExecuteSequenceSelection(PayloadJson: Text; ContextJobNo: Code[20]; ContextJobTaskNo: Code[20])
+    var
+        DayPlanning: Record "Day Planning";
+        Payload: JsonObject;
+        Pattern: JsonObject;
+        Lines: JsonObject;
+        Token: JsonToken;
+        JobNo: Code[20];
+        JobTaskNo: Code[20];
+        SkillCode: Code[10];
+        ActionName: Text;
+        EventId: Text;
+        EventIds: List of [Text];
+        LineJobNo: Code[20];
+        LineJobTaskNo: Code[20];
+        ResourceNo: Code[20];
+        SequenceNo: Integer;
+        DayLineNo: Integer;
+        AssignedSide: Boolean;
+        ExpectedDate: Date;
+    begin
+        if not Payload.ReadFrom(PayloadJson) then
+            Error('The Sequence selection is invalid.');
+        ParseSectionId(SequenceSelectionValue(Payload, 'section').AsText(), JobNo, JobTaskNo, SkillCode, SequenceNo);
+        if (JobNo = '') or (JobTaskNo = '') or (SkillCode = '') or (SequenceNo <= 0) then
+            Error('Select a Sequence.');
+        if ((ContextJobNo <> '') and (ContextJobNo <> JobNo)) or
+           ((ContextJobTaskNo <> '') and (ContextJobTaskNo <> JobTaskNo))
+        then
+            Error('The selected Sequence is outside this Project Task.');
+
+        ActionName := SequenceSelectionValue(Payload, 'action').AsText();
+        DayPlanning.LockTable();
+        DayPlanning.SetRange("Job No.", JobNo);
+        DayPlanning.SetRange("Job Task No.", JobTaskNo);
+        DayPlanning.SetRange(Skill, SkillCode);
+        DayPlanning.SetRange("Sequence No.", SequenceNo);
+        if not DayPlanning.FindFirst() then
+            Error('The selected Sequence no longer exists.');
+
+        if ActionName = 'add' then begin
+            AddSelectedSequenceDates(DayPlanning, Payload);
+            exit;
+        end;
+
+        if not (ActionName in ['times', 'resource', 'delete']) then
+            Error('Select a valid Sequence action.');
+        AssignedSide := SequenceSelectionValue(Payload, 'assigned').AsBoolean();
+        if ActionName = 'times' then begin
+            Payload.Get('pattern', Token);
+            Pattern := Token.AsObject();
+        end;
+        if ActionName = 'resource' then begin
+            ResourceNo := CopyStr(SequenceSelectionValue(Payload, 'resource').AsText(), 1, MaxStrLen(ResourceNo));
+            if ResourceNo = '' then
+                Error('Select a Resource.');
+        end;
+        Payload.Get('lines', Token);
+        Lines := Token.AsObject();
+        EventIds := Lines.Keys();
+        if EventIds.Count() = 0 then
+            Error('Select at least one existing Time Slot.');
+
+        foreach EventId in EventIds do begin
+            ParseEventId(EventId, LineJobNo, LineJobTaskNo, DayLineNo);
+            if (LineJobNo <> JobNo) or (LineJobTaskNo <> JobTaskNo) then
+                Error('A selected line is outside the Sequence.');
+            if not DayPlanning.Get(JobNo, JobTaskNo, DayLineNo) then
+                Error('A selected Day Planning line no longer exists.');
+            if not Evaluate(ExpectedDate, SequenceSelectionValue(Lines, EventId).AsText(), 9) then
+                Error('A selected date is invalid.');
+            if (DayPlanning.Skill <> SkillCode) or (DayPlanning."Sequence No." <> SequenceNo) or
+               (DayPlanning."Plan Date" <> ExpectedDate)
+            then
+                Error('A selected Day Planning line has moved. Refresh the Sequence and select again.');
+
+            case ActionName of
+                'delete':
+                    DayPlanning.Delete(true);
+                'times':
+                    UpdateSelectedSequenceTimes(DayPlanning, AssignedSide, Pattern);
+                'resource':
+                    UpdateSelectedSequenceResource(DayPlanning, AssignedSide, ResourceNo);
+            end;
+        end;
+    end;
+
+    local procedure AddSelectedSequenceDates(var SequenceLine: Record "Day Planning"; Payload: JsonObject)
+    var
+        ExistingLine: Record "Day Planning";
+        WorkHourTemplate: Record "Work-Hour Template";
+        DayPlanningMgt: Codeunit "Day Plannings Mgt.";
+        DateToken: JsonToken;
+        DatesToken: JsonToken;
+        SelectedDates: JsonArray;
+        TemplateCode: Code[20];
+        PlanDate: Date;
+        FirstDate: Date;
+        LastDate: Date;
+    begin
+        TemplateCode := CopyStr(SequenceSelectionValue(Payload, 'template').AsText(), 1, MaxStrLen(TemplateCode));
+        if TemplateCode = '' then
+            Error('Select a Work-Hour Template.');
+        WorkHourTemplate.Get(TemplateCode);
+        Payload.Get('dates', DatesToken);
+        SelectedDates := DatesToken.AsArray();
+        ExistingLine.CopyFilters(SequenceLine);
+        foreach DateToken in SelectedDates do begin
+            if not Evaluate(PlanDate, DateToken.AsValue().AsText(), 9) then
+                Error('A selected date is invalid.');
+            ExistingLine.SetRange("Plan Date", PlanDate);
+            if (PlanDate >= Today()) and ExistingLine.IsEmpty() and DayPlanningMgt.IsActiveWorkDay(WorkHourTemplate.Code, PlanDate) then begin
+                InsertSequenceLine(SequenceLine."Job No.", SequenceLine."Job Task No.", SequenceLine.Skill,
+                    SequenceLine."Sequence No.", WorkHourTemplate, PlanDate, SequenceLine."Order Intake No.");
+                if (FirstDate = 0D) or (PlanDate < FirstDate) then
+                    FirstDate := PlanDate;
+                if PlanDate > LastDate then
+                    LastDate := PlanDate;
+            end;
+        end;
+        if FirstDate = 0D then
+            Error('No selected date is empty and eligible for this Work-Hour Template and calendar.');
+        ExtendJobTaskPlannedPeriod(SequenceLine."Job No.", SequenceLine."Job Task No.", FirstDate, LastDate);
+    end;
+
+    local procedure UpdateSelectedSequenceTimes(var DayPlanning: Record "Day Planning"; AssignedSide: Boolean; Pattern: JsonObject)
+    var
+        DayPattern: JsonObject;
+        Token: JsonToken;
+        StartTime: Time;
+        EndTime: Time;
+        IdleMinutes: Integer;
+    begin
+        if not Pattern.Get(Format(Date2DWY(DayPlanning."Plan Date", 1), 0, 9), Token) then
+            Error('Enter a week pattern for every selected weekday.');
+        DayPattern := Token.AsObject();
+        if not Evaluate(StartTime, SequenceSelectionValue(DayPattern, 'start').AsText(), 9) then
+            Error('The start time is invalid.');
+        if not Evaluate(EndTime, SequenceSelectionValue(DayPattern, 'end').AsText(), 9) then
+            Error('The end time is invalid.');
+        IdleMinutes := SequenceSelectionValue(DayPattern, 'idle').AsInteger();
+        if (StartTime = 0T) or (EndTime <= StartTime) or (IdleMinutes < 0) or
+           (IdleMinutes >= ((EndTime - StartTime) div 60000))
+        then
+            Error('Enter start and end times with idle minutes shorter than the Time Slot.');
+
+        if AssignedSide then begin
+            DayPlanning."Start Time Assigned" := StartTime;
+            DayPlanning."End Time Assigned" := EndTime;
+            DayPlanning.Validate("Idle Minutes Assigned", IdleMinutes);
+            DayPlanning.AssignedCheck();
+        end else begin
+            DayPlanning."Start Time Requested" := StartTime;
+            DayPlanning."End Time Requested" := EndTime;
+            DayPlanning.Validate("Idle Minutes Requested", IdleMinutes);
+        end;
+        DayPlanning.Modify(true);
+    end;
+
+    local procedure UpdateSelectedSequenceResource(var DayPlanning: Record "Day Planning"; AssignedSide: Boolean; ResourceNo: Code[20])
+    var
+        Resource: Record Resource;
+        ResourceSkill: Record "Resource Skill";
+        SequenceSkill: Code[20];
+    begin
+        Resource.Get(ResourceNo);
+        Resource.TestField(Blocked, false);
+        SequenceSkill := DayPlanning.Skill;
+        ResourceSkill.SetRange(Type, ResourceSkill.Type::Resource);
+        ResourceSkill.SetRange("No.", ResourceNo);
+        ResourceSkill.SetRange("Skill Code", SequenceSkill);
+        if ResourceSkill.IsEmpty() then
+            Message('Resource %1 does not have Sequence skill %2.', ResourceNo, SequenceSkill);
+
+        // Resource validation already sets or clears the pool based on the selected Resource.
+        if AssignedSide then
+            DayPlanning.Validate("Assigned Resource No.", ResourceNo)
+        else begin
+            DayPlanning.Validate("Requested Resource No.", ResourceNo);
+            DayPlanning.Skill := SequenceSkill;
+        end;
+        DayPlanning.Modify(true);
+    end;
+
+    local procedure SequenceSelectionValue(Payload: JsonObject; PropertyName: Text): JsonValue
+    var
+        Token: JsonToken;
+    begin
+        if not Payload.Get(PropertyName, Token) then
+            Error('The Sequence selection is missing %1.', PropertyName);
+        exit(Token.AsValue());
+    end;
+
     local procedure InsertSequenceLine(JobNo: Code[20]; JobTaskNo: Code[20]; SkillCode: Code[10]; SequenceNo: Integer; WorkHourTemplate: Record "Work-Hour Template"; PlanDate: Date; WorkOrderNo: Code[20])
     var
         NewDayPlanning: Record "Day Planning";
@@ -531,63 +724,63 @@ codeunit 50695 "Day Planning Sequence Mgt."
         DayPlanning.SetCurrentKey("Job No.", "Job Task No.", "Plan Date", "Day Line No.");
         if DayPlanning.FindSet() then
             repeat
-              if (OnlySectionKeys.Count() = 0) or OnlySectionKeys.Contains(BuildSectionId(DayPlanning."Job No.", DayPlanning."Job Task No.", DayPlanning.Skill, DayPlanning."Sequence No.")) then begin
-                if not JobNameCache.Get(DayPlanning."Job No.", ProjectName) then begin
-                    ProjectName := '';
-                    if Job.Get(DayPlanning."Job No.") then
-                        ProjectName := Job.Description;
-                    JobNameCache.Add(DayPlanning."Job No.", ProjectName);
-                end;
-                TaskCacheKey := DayPlanning."Job No." + '|' + DayPlanning."Job Task No.";
-                if not TaskNameCache.Get(TaskCacheKey, TaskName) then begin
-                    TaskName := '';
-                    if JobTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
-                        TaskName := JobTask.Description;
-                    TaskNameCache.Add(TaskCacheKey, TaskName);
-                end;
-                if (EarliestDate = 0D) or (DayPlanning."Plan Date" < EarliestDate) then
-                    EarliestDate := DayPlanning."Plan Date";
-                if DayPlanning."Plan Date" > LatestDate then
-                    LatestDate := DayPlanning."Plan Date";
+                if (OnlySectionKeys.Count() = 0) or OnlySectionKeys.Contains(BuildSectionId(DayPlanning."Job No.", DayPlanning."Job Task No.", DayPlanning.Skill, DayPlanning."Sequence No.")) then begin
+                    if not JobNameCache.Get(DayPlanning."Job No.", ProjectName) then begin
+                        ProjectName := '';
+                        if Job.Get(DayPlanning."Job No.") then
+                            ProjectName := Job.Description;
+                        JobNameCache.Add(DayPlanning."Job No.", ProjectName);
+                    end;
+                    TaskCacheKey := DayPlanning."Job No." + '|' + DayPlanning."Job Task No.";
+                    if not TaskNameCache.Get(TaskCacheKey, TaskName) then begin
+                        TaskName := '';
+                        if JobTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
+                            TaskName := JobTask.Description;
+                        TaskNameCache.Add(TaskCacheKey, TaskName);
+                    end;
+                    if (EarliestDate = 0D) or (DayPlanning."Plan Date" < EarliestDate) then
+                        EarliestDate := DayPlanning."Plan Date";
+                    if DayPlanning."Plan Date" > LatestDate then
+                        LatestDate := DayPlanning."Plan Date";
 
-                SectionKey := BuildSectionId(DayPlanning."Job No.", DayPlanning."Job Task No.", DayPlanning.Skill, DayPlanning."Sequence No.");
-                if not SeenSectionKeys.Contains(SectionKey) then begin
-                    SeenSectionKeys.Add(SectionKey);
-                    MinDateBySection.Add(SectionKey, DayPlanning."Plan Date");
-                end;
-                MaxDateBySection.Set(SectionKey, DayPlanning."Plan Date");
+                    SectionKey := BuildSectionId(DayPlanning."Job No.", DayPlanning."Job Task No.", DayPlanning.Skill, DayPlanning."Sequence No.");
+                    if not SeenSectionKeys.Contains(SectionKey) then begin
+                        SeenSectionKeys.Add(SectionKey);
+                        MinDateBySection.Add(SectionKey, DayPlanning."Plan Date");
+                    end;
+                    MaxDateBySection.Set(SectionKey, DayPlanning."Plan Date");
 
-                Clear(EventObj);
-                EventObj.Add('id', BuildEventId(DayPlanning."Job No.", DayPlanning."Job Task No.", DayPlanning."Day Line No."));
-                EventObj.Add('section_id', SectionKey);
-                EventObj.Add('start_date', FormatEventDateTime(DayPlanning."Plan Date", DayPlanning."Start Time Requested"));
-                EventObj.Add('end_date', FormatEventDateTime(DayPlanning."Plan Date", DayPlanning."End Time Requested"));
-                EventObj.Add('text', FormatEventBarText(DayPlanning));
-                EventObj.Add('skill', DayPlanning.Skill);
-                // Standard single-Day-Planning-line hover tooltip fields (2026-09-11) - see this
-                // procedure's own ProjectName/TaskName doc comment above.
-                EventObj.Add('job', DayPlanning."Job No.");
-                EventObj.Add('jobDescription', ProjectName);
-                EventObj.Add('task', DayPlanning."Job Task No.");
-                EventObj.Add('taskDescription', TaskName);
-                EventObj.Add('sequenceNo', DayPlanning."Sequence No.");
-                if DayPlanning."Start Time Assigned" <> 0T then
-                    EventObj.Add('assignedStartTime', Format(DayPlanning."Start Time Assigned", 0, '<Hours24,2>:<Minutes,2>'))
-                else
-                    EventObj.Add('assignedStartTime', '');
-                if DayPlanning."End Time Assigned" <> 0T then
-                    EventObj.Add('assignedEndTime', Format(DayPlanning."End Time Assigned", 0, '<Hours24,2>:<Minutes,2>'))
-                else
-                    EventObj.Add('assignedEndTime', '');
-                EventObj.Add('assignedResourceNo', DayPlanning."Assigned Resource No.");
-                EventObj.Add('requestedResourceNo', DayPlanning."Requested Resource No.");
-                EventObj.Add('planStatus', Format(DayPlanning."Plan Status"));
-                EventObj.Add('requestedHours', DayPlanning."Requested Hours");
-                EventObj.Add('assignedHours', DayPlanning."Assigned Hours");
-                EventObj.Add('requestedIdleMinutes', DayPlanning."Idle Minutes Requested");
-                EventObj.Add('assignedIdleMinutes', DayPlanning."Idle Minutes Assigned");
-                EventsArray.Add(EventObj);
-              end;
+                    Clear(EventObj);
+                    EventObj.Add('id', BuildEventId(DayPlanning."Job No.", DayPlanning."Job Task No.", DayPlanning."Day Line No."));
+                    EventObj.Add('section_id', SectionKey);
+                    EventObj.Add('start_date', FormatEventDateTime(DayPlanning."Plan Date", DayPlanning."Start Time Requested"));
+                    EventObj.Add('end_date', FormatEventDateTime(DayPlanning."Plan Date", DayPlanning."End Time Requested"));
+                    EventObj.Add('text', FormatEventBarText(DayPlanning));
+                    EventObj.Add('skill', DayPlanning.Skill);
+                    // Standard single-Day-Planning-line hover tooltip fields (2026-09-11) - see this
+                    // procedure's own ProjectName/TaskName doc comment above.
+                    EventObj.Add('job', DayPlanning."Job No.");
+                    EventObj.Add('jobDescription', ProjectName);
+                    EventObj.Add('task', DayPlanning."Job Task No.");
+                    EventObj.Add('taskDescription', TaskName);
+                    EventObj.Add('sequenceNo', DayPlanning."Sequence No.");
+                    if DayPlanning."Start Time Assigned" <> 0T then
+                        EventObj.Add('assignedStartTime', Format(DayPlanning."Start Time Assigned", 0, '<Hours24,2>:<Minutes,2>'))
+                    else
+                        EventObj.Add('assignedStartTime', '');
+                    if DayPlanning."End Time Assigned" <> 0T then
+                        EventObj.Add('assignedEndTime', Format(DayPlanning."End Time Assigned", 0, '<Hours24,2>:<Minutes,2>'))
+                    else
+                        EventObj.Add('assignedEndTime', '');
+                    EventObj.Add('assignedResourceNo', DayPlanning."Assigned Resource No.");
+                    EventObj.Add('requestedResourceNo', DayPlanning."Requested Resource No.");
+                    EventObj.Add('planStatus', Format(DayPlanning."Plan Status"));
+                    EventObj.Add('requestedHours', DayPlanning."Requested Hours");
+                    EventObj.Add('assignedHours', DayPlanning."Assigned Hours");
+                    EventObj.Add('requestedIdleMinutes', DayPlanning."Idle Minutes Requested");
+                    EventObj.Add('assignedIdleMinutes', DayPlanning."Idle Minutes Assigned");
+                    EventsArray.Add(EventObj);
+                end;
             until DayPlanning.Next() = 0;
         foreach LoopSectionKey in SeenSectionKeys do begin
             ParseSectionId(LoopSectionKey, RowJobNo, RowJobTaskNo, RowSkillCode, RowSequenceNo);
@@ -609,6 +802,7 @@ codeunit 50695 "Day Planning Sequence Mgt."
             SectionObj.Add('fontColor', VisualDefaultSettings.GetSkillFontColor(RowSkillCode));
             SectionObj.Add('borderColor', VisualDefaultSettings.GetSkillBorderColor(RowSkillCode, PaletteIndex));
             PaletteIndex += 1;
+            SectionObj.Add('weekPattern', BuildSequenceWeekPattern(RowJobNo, RowJobTaskNo, RowSkillCode, RowSequenceNo));
             SectionObj.Add('label', StrSubstNo('%1 - Seq %2', SkillDescription, RowSequenceNo));
             SectionObj.Add('minDate', Format(MinDateBySection.Get(LoopSectionKey), 0, '<Year4>-<Month,2>-<Day,2>'));
             SectionObj.Add('maxDate', Format(MaxDateBySection.Get(LoopSectionKey), 0, '<Year4>-<Month,2>-<Day,2>'));
@@ -696,6 +890,52 @@ codeunit 50695 "Day Planning Sequence Mgt."
             until WorkHourTemplate.Next() = 0;
         TemplatesArray.WriteTo(ResultTxt);
         exit(ResultTxt);
+    end;
+
+    local procedure BuildSequenceWeekPattern(JobNo: Code[20]; JobTaskNo: Code[20]; SkillCode: Code[10]; SequenceNo: Integer): JsonObject
+    var
+        DayPlanning: Record "Day Planning";
+        Requested: JsonObject;
+        Assigned: JsonObject;
+        WeekPattern: JsonObject;
+        OccupiedDates: JsonArray;
+        LastDate: Date;
+        Weekday: Text;
+    begin
+        DayPlanning.SetRange("Job No.", JobNo);
+        DayPlanning.SetRange("Job Task No.", JobTaskNo);
+        DayPlanning.SetRange(Skill, SkillCode);
+        DayPlanning.SetRange("Sequence No.", SequenceNo);
+        DayPlanning.SetFilter("Plan Date", '<>%1', 0D);
+        DayPlanning.SetCurrentKey("Job No.", "Job Task No.", "Plan Date", "Day Line No.");
+        if DayPlanning.FindSet() then
+            repeat
+                if DayPlanning."Plan Date" <> LastDate then begin
+                    LastDate := DayPlanning."Plan Date";
+                    OccupiedDates.Add(Format(LastDate, 0, 9));
+                end;
+                Weekday := Format(Date2DWY(DayPlanning."Plan Date", 1), 0, 9);
+                AddSequenceWeekday(Requested, Weekday, DayPlanning."Start Time Requested",
+                    DayPlanning."End Time Requested", DayPlanning."Idle Minutes Requested");
+                AddSequenceWeekday(Assigned, Weekday, DayPlanning."Start Time Assigned",
+                    DayPlanning."End Time Assigned", DayPlanning."Idle Minutes Assigned");
+            until (DayPlanning.Next() = 0);
+        WeekPattern.Add('occupiedDates', OccupiedDates);
+        WeekPattern.Add('requested', Requested);
+        WeekPattern.Add('assigned', Assigned);
+        exit(WeekPattern);
+    end;
+
+    local procedure AddSequenceWeekday(var Pattern: JsonObject; Weekday: Text; StartTime: Time; EndTime: Time; IdleMinutes: Integer)
+    var
+        Times: JsonArray;
+    begin
+        if (StartTime = 0T) or (EndTime = 0T) or Pattern.Contains(Weekday) then
+            exit;
+        Times.Add(Format(StartTime, 0, '<Hours24,2>:<Minutes,2>:<Seconds,2>'));
+        Times.Add(Format(EndTime, 0, '<Hours24,2>:<Minutes,2>:<Seconds,2>'));
+        Times.Add(Format(IdleMinutes, 0, 9));
+        Pattern.Add(Weekday, Times);
     end;
 
     local procedure FormatEventDateTime(PlanDate: Date; PlanTime: Time): Text

@@ -56,7 +56,7 @@ page 50712 "Day Planning Sequence"
 
                     PushFilterInfo(); // before Init: the add-in sizes the span from the period end
                     CurrPage.DhxSequence.SetHighlightedSections(HighlightKeysJson);
-                    CurrPage.DhxSequence.Init(SectionsJsonTxt, SkillsJsonTxt, TemplatesJsonTxt, EarliestDate, LatestDate);
+                    CurrPage.DhxSequence.Init(SectionsJsonTxt, SkillsJsonTxt, TemplatesJsonTxt, EarliestDate, TimelineEndDate(EarliestDate, LatestDate));
                     CurrPage.DhxSequence.LoadData(EventsJsonTxt);
                     PushHolidaysData(EarliestDate, LatestDate);
                     CurrPage.DhxSequence.SetDayOffColors(VisualDefaultSettings.GetWeekendColor(), VisualDefaultSettings.GetHolidayColor());
@@ -189,6 +189,27 @@ page 50712 "Day Planning Sequence"
                     CurrPage.Update(false);
                 end;
 
+                trigger OnExecuteSequence(PayloadJson: Text)
+                begin
+                    DayPlanningSequenceMgt.ExecuteSequenceSelection(PayloadJson, '', '');
+                    RefreshTimeline();
+                    CurrPage.DhxSequence.SequenceExecuted();
+                end;
+
+                trigger OnLookupSequenceResource()
+                var
+                    Resource: Record Resource;
+                    ResourceList: Page "Resource List";
+                begin
+                    Resource.SetRange(Blocked, false);
+                    ResourceList.SetTableView(Resource);
+                    ResourceList.LookupMode(true);
+                    if ResourceList.RunModal() = Action::LookupOK then begin
+                        ResourceList.GetRecord(Resource);
+                        CurrPage.DhxSequence.SetSequenceResource(Resource."No.");
+                    end;
+                end;
+
                 trigger OnEventChanged(eventId: Text; eventData: Text)
                 begin
                     DayPlanningSequenceMgt.UpdateEventFromJson(eventId, eventData);
@@ -292,14 +313,25 @@ page 50712 "Day Planning Sequence"
             RefreshTimeline();
     end;
 
-    /// <summary>
-    /// Plan Date range the timeline is limited to (either end may be 0D = open). Does not refresh:
-    /// callers must call this BEFORE SetContext, which does the (re)load. SetContext never resets it.
-    /// </summary>
+    // Preserve the calling contract. The Gantt period does not filter this overview.
     procedure SetPeriod(NewFrom: Date; NewTo: Date)
     begin
-        PeriodFrom := NewFrom;
-        PeriodTo := NewTo;
+    end;
+
+    local procedure TimelineEndDate(EarliestDate: Date; LatestDate: Date): Date
+    var
+        LastVisibleDate: Date;
+    begin
+        if (EarliestDate = 0D) or (LatestDate = 0D) then
+            exit(LatestDate);
+
+        LastVisibleDate := CalcDate('<+12M>', EarliestDate) - 1;
+        // The existing wrapper adds seven display days unless the user sets a Period To.
+        if PeriodTo = 0D then
+            LastVisibleDate -= 7;
+        if LatestDate > LastVisibleDate then
+            exit(LastVisibleDate);
+        exit(LatestDate);
     end;
 
     local procedure RefreshTimeline()
@@ -317,7 +349,7 @@ page 50712 "Day Planning Sequence"
         DayPlanningSequenceMgt.BuildSectionsAndEventsJson(JobFilter, JobTaskFilter, SkillFilter, ResourceFilter, PeriodFrom, PeriodTo, SectionsJsonTxt, EventsJsonTxt, EarliestDate, LatestDate);
         PushFilterInfo(); // before RefreshTimeline: the add-in sizes the span from the period end
         CurrPage.DhxSequence.SetHighlightedSections(HighlightKeysJson);
-        CurrPage.DhxSequence.RefreshTimeline(SectionsJsonTxt, EventsJsonTxt, EarliestDate, LatestDate);
+        CurrPage.DhxSequence.RefreshTimeline(SectionsJsonTxt, EventsJsonTxt, EarliestDate, TimelineEndDate(EarliestDate, LatestDate));
         PushHolidaysData(EarliestDate, LatestDate);
     end;
 

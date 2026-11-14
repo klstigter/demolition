@@ -24,6 +24,8 @@ controladdin DHXDayPlanningSequenceAddin
     event ControlReady();
     event OnCreateSequence(payloadJson: Text);
     event OnModifySequence(payloadJson: Text);
+    event OnExecuteSequence(PayloadJson: Text);
+    event OnLookupSequenceResource();
     event OnEventChanged(eventId: Text; eventData: Text);
     event OnEventCreated(eventData: Text);
     event OnEventDeleted(eventId: Text);
@@ -31,6 +33,8 @@ controladdin DHXDayPlanningSequenceAddin
     event OnFilterIconClick();
     event OnClearFilter();
 
+    procedure SetSequenceResource(ResourceNo: Code[20]);
+    procedure SequenceExecuted();
     procedure Init(sectionsJson: Text; skillsJson: Text; templatesJson: Text; earliestDate: Date; latestDate: Date);
     // Standalone page 50712 only: shows Project No./Task No. columns and the "Filter applied" icon.
     procedure SetShowContext(show: Boolean);
