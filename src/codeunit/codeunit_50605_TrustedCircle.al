@@ -64,10 +64,40 @@ codeunit 50605 "API Record Exposed Mgt."
     [InherentPermissions(PermissionObjectType::TableData, Database::"API Record Exposed Opti", 'R')]
     [InherentPermissions(PermissionObjectType::TableData, Database::"Update and Delete Log Opti", 'RI')]
     procedure InsertedRecordLog(RecRef: RecordRef)
+    var
+        APIRecordExposed: Record "API Record Exposed Opti";
+        PageMetadata: Record "Page Metadata";
+        KeyRef: KeyRef;
+        FldRef: FieldRef;
+        KeyJson: JsonObject;
+        ControlName: Text;
+        NewValue: Text;
+        i: Integer;
     begin
         if RecRef.IsTemporary() then
             exit;
-        LogRecordLevelChange(RecRef, "Update and Delete Log Action"::Insert, '', '');
+
+        // New Value = the key value (single-field primary key) or a JSON object of API field name -> value (composite key)
+        KeyRef := RecRef.KeyIndex(1);
+        APIRecordExposed.SetRange("Table ID", RecRef.Number());
+        if APIRecordExposed.FindSet() then
+            repeat
+                if PageMetadata.Get(APIRecordExposed."API Page No.") then begin
+                    if KeyRef.FieldCount() = 1 then
+                        NewValue := FormatValue(KeyRef.FieldIndex(1))
+                    else begin
+                        Clear(KeyJson);
+                        for i := 1 to KeyRef.FieldCount() do begin
+                            FldRef := KeyRef.FieldIndex(i);
+                            if not GetApiFieldName(APIRecordExposed."API Page No.", RecRef.Number(), FldRef.Number(), ControlName) then
+                                ControlName := FldRef.Name();
+                            KeyJson.Add(ControlName, FormatValue(FldRef));
+                        end;
+                        KeyJson.WriteTo(NewValue);
+                    end;
+                    InsertLog(RecRef, PageMetadata.EntitySetName, '', "Update and Delete Log Action"::Insert, 0, '', NewValue);
+                end;
+            until APIRecordExposed.Next() = 0;
     end;
 
     [InherentPermissions(PermissionObjectType::TableData, Database::"API Record Exposed Opti", 'R')]
