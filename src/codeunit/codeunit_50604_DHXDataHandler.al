@@ -1320,6 +1320,7 @@ codeunit 50604 "DHX Data Handler"
     var
         ResCap: Record "Res. Capacity Entry";
         PoolRes: Record Resource;
+        ResGroup: Record "Resource Group";
         WeekTemp: record "Aging Band Buffer" temporary;
         TempResGroup: record "Resource Group" temporary;
         TempPoolRes: record "Aging Band Buffer" temporary;
@@ -1355,7 +1356,7 @@ codeunit 50604 "DHX Data Handler"
         //Add Events of Capacity for the whole period in a single query pass (was: one query open/close per calendar day).
         ResCapQry.SetRange(Date_filter, StartDate, EndDate);
         if ResourceFilter <> '' then
-            ResCapQry.SetRange(Resource_No__Filter, ResourceFilter);
+            ResCapQry.SetFilter(Resource_No__Filter, ResourceFilter);
         if ResCapQry.Open() then begin
             while ResCapQry.Read() do begin
                 ResCap.Get(ResCapQry.Entry_No);
@@ -1481,6 +1482,23 @@ codeunit 50604 "DHX Data Handler"
         //DownloadResourceTempToExcel(ResourceTemp); // For testing purposes
 
         GetUniqueResGroupFromCapacity(TempResGroup, WithDayPlanning, StartDate, EndDate);
+        if ResourceFilter <> '' then begin
+            // resources matched by an explicit filter must show even without capacity, so their groups are needed too
+            PoolRes.Reset();
+            PoolRes.SetFilter("No.", ResourceFilter);
+            if PoolRes.FindSet() then
+                repeat
+                    if not TempResGroup.Get(PoolRes."Resource Group No.") then begin
+                        TempResGroup.Init();
+                        TempResGroup."No." := PoolRes."Resource Group No.";
+                        if ResGroup.Get(PoolRes."Resource Group No.") then
+                            TempResGroup.Name := ResGroup.Name
+                        else
+                            TempResGroup.Name := 'No Group';
+                        TempResGroup.Insert();
+                    end;
+                until PoolRes.Next() = 0;
+        end;
         if TempResGroup.FindSet() then begin
             Clear(DataArray);
             repeat
@@ -1571,7 +1589,16 @@ codeunit 50604 "DHX Data Handler"
                             InternalExternalObject.Add('open', true);
                             InternalExternalObject.Add('children', InternalExternalChildrenArray);
                             GroupChildrenArray.Add(InternalExternalObject);
-                        end;
+                        end else
+                            if (TempPool."Pool Resource No." = '') and ResourceTemp.Get(TempPool."No.") then begin
+                                // Resource without a pool: no children, so render it as a leaf row. Key matches the
+                                // capacity events' section_id (group|resource|<blank pool>).
+                                Clear(InternalExternalObject);
+                                InternalExternalObject.Add('key', TempResGroup."No." + '|' + TempPool."No." + '|');
+                                InternalExternalObject.Add('category', 'Resource');
+                                InternalExternalObject.Add('label', TempPool.Name);
+                                GroupChildrenArray.Add(InternalExternalObject);
+                            end;
                     until TempPool.Next() = 0;
                 if GroupChildrenArray.Count > 0 then begin
                     GroupResObject.Add('children', GroupChildrenArray);
@@ -3086,6 +3113,7 @@ codeunit 50604 "DHX Data Handler"
                                        SkillFilter: Text)
     var
         Res: record Resource;
+        PoolRes: record Resource;
         ResListQry: Query "Resource List Sections";
         ResNo: Code[20];
         PoolNo: Code[20];
@@ -3173,6 +3201,38 @@ codeunit 50604 "DHX Data Handler"
                 end;
             end;
             ResListQry.Close();
+        end;
+
+        // Pass 3 - an explicit Resource No. filter always shows the matching resources, even with no capacity in range
+        if ResourceFilter <> '' then begin
+            Res.Reset();
+            Res.SetFilter("No.", ResourceFilter);
+            Res.SetRange("Resource Group No.", ResGroupNo);
+            if Res.FindSet() then
+                repeat
+                    if not TempRes.Get(Res."No.") then
+                        if ResourceMatchesNameFilter(Res."No.", ResourceNameFilter) and
+                           ResourceMatchesSkillFilter(Res."No.", SkillFilter)
+                        then begin
+                            TempRes.Init();
+                            TempRes."No." := Res."No.";
+                            TempRes.Name := Res.Name;
+                            TempRes."Pool Resource No." := Res."Pool Resource No.";
+                            TempRes.Insert();
+                            PoolNo := Res."Pool Resource No.";
+                            if PoolNo = '' then
+                                PoolNo := Res."No.";
+                            if not TempPoolRes.Get(PoolNo) then begin
+                                TempPoolRes.Init();
+                                TempPoolRes."No." := PoolNo;
+                                if PoolRes.Get(PoolNo) then begin
+                                    TempPoolRes.Name := PoolRes.Name;
+                                    TempPoolRes."Pool Resource No." := PoolRes."Pool Resource No.";
+                                end;
+                                TempPoolRes.Insert();
+                            end;
+                        end;
+                until Res.Next() = 0;
         end;
     end;
 
@@ -3790,7 +3850,10 @@ codeunit 50604 "DHX Data Handler"
     begin
         if ResourceFilter = '' then
             exit(true);
+        // Same field: SetFilter would replace SetRange in the same filter group, so pin the resource in group 2.
+        Res.FilterGroup(2);
         Res.SetRange("No.", pResourceNo);
+        Res.FilterGroup(0);
         Res.SetFilter("No.", ResourceFilter);
         exit(not Res.IsEmpty());
     end;

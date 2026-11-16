@@ -448,6 +448,11 @@ page 50600 "DHX Scheduler (Pool Resource)"
         ResourceNameFilter: Text;
         SkillFilter: Text;
 
+    procedure SetResourceFilter(NewResourceFilter: Text)
+    begin
+        ResourceFilter := NewResourceFilter;
+    end;
+
     procedure SetSkillFilter(NewSkillFilter: Text)
     begin
         SkillFilter := NewSkillFilter;
