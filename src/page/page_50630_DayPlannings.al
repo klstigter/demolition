@@ -470,13 +470,8 @@ page 50630 "Day Plannings"
                 trigger OnAction()
                 var
                     ResCalender: page "Resource Calendar";
-                    ResourceNo: code[20];
                 begin
-                    if rec."Assigned Resource No." <> '' then
-                        ResourceNo := rec."Assigned Resource No."
-                    else
-                        ResourceNo := rec."Requested Resource No.";
-                    ResCalender.SetResourceFilter(ResourceNo);
+                    ResCalender.SetResourceFilter(this.GetResourceFilter());
                     ResCalender.RunModal();
                 end;
             }
@@ -486,15 +481,8 @@ page 50630 "Day Plannings"
                 trigger OnAction()
                 var
                     ResScheduler: page "Resource Scheduler - TimeLine";
-                    ResourceNo: code[20];
                 begin
-                    if rec."Assigned Resource No." <> '' then
-                        ResourceNo := rec."Assigned Resource No."
-                    else
-                        ResourceNo := rec."Requested Resource No.";
-
-                    //TODO: Setfilter
-                    //ResScheduler.SetResourceFilter(ResourceNo);
+                    ResScheduler.SetResourceNoFilter(this.GetResourceFilter());
                     ResScheduler.RunModal();
                 end;
             }
@@ -505,13 +493,8 @@ page 50630 "Day Plannings"
                 trigger OnAction()
                 var
                     DayPlanningScheduler: page "DHX Scheduler (Project)";
-                    ResourceNo: code[20];
                 begin
-                    if rec."Assigned Resource No." <> '' then
-                        ResourceNo := rec."Assigned Resource No."
-                    else
-                        ResourceNo := rec."Requested Resource No.";
-                    DayPlanningScheduler.SetResourceFilter(ResourceNo);
+                    DayPlanningScheduler.SetJobTaskFilter(Rec."Job No.", Rec."Job Task No.");
                     DayPlanningScheduler.RunModal();
                 end;
             }
@@ -522,13 +505,26 @@ page 50630 "Day Plannings"
                 var
                     ResScheduler: page "DHX Scheduler (Pool Resource)";
                 begin
-                    //ResScheduler.SetResourceFilter(Rec."No.");
+                    ResScheduler.SetResourceFilter(this.GetResourceFilter());
                     ResScheduler.RunModal();
                 end;
             }
 
         }
     }
+
+    local procedure GetResourceFilter() ResFilter: Text
+    begin
+        if Rec."Assigned Resource No." <> '' then
+            ResFilter := Rec."Assigned Resource No.";
+        if Rec."Requested Resource No." <> '' then
+            if ResFilter = '' then
+                ResFilter := Rec."Requested Resource No."
+            else
+                if Rec."Requested Resource No." <> Rec."Assigned Resource No." then
+                    ResFilter += '|' + Rec."Requested Resource No.";
+    end;
+
     var
         StyleOpt: option None,Standard,StandardAccent,Strong,StrongAccent,Attention,AttentionAccent,Favorable,Unfavorable,Ambiguous,Subordinate;
         StyleStr: text;
