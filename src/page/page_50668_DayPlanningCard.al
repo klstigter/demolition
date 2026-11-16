@@ -22,11 +22,19 @@ page 50668 "Day Planning Card Opt"
                     {
                         ApplicationArea = All;
                     }
+                }
+                Group(SequenceGroup)
+                {
+                    Caption = 'Sequence';
+
                     field(skill; Rec."Skill")
                     {
                         ApplicationArea = All;
                     }
-
+                    field(sequence; Rec."Sequence No.")
+                    {
+                        ApplicationArea = All;
+                    }
                 }
                 Group(Planning)
                 {
@@ -64,11 +72,8 @@ page 50668 "Day Planning Card Opt"
                         Visible = false;
                     }
                 }
+
                 field(DaylineNo; Rec."Day Line No.")
-                {
-                    ApplicationArea = All;
-                }
-                field(sequence; Rec."Sequence No.")
                 {
                     ApplicationArea = All;
                 }
