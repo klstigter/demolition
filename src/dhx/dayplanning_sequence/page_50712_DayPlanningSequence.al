@@ -64,6 +64,10 @@ page 50712 "Day Planning Sequence"
                     // GetTooltipBackgroundColor/GetTooltipFontColor.
                     CurrPage.DhxSequence.SetTooltipColors(VisualDefaultSettings.GetTooltipBackgroundColor(), VisualDefaultSettings.GetTooltipFontColor());
                     PushFilterInfo();
+                    if HasNewSequenceDefaults then
+                        CurrPage.DhxSequence.SetNewSequenceDefaults(DefaultSkillCode, DefaultTemplateCode);
+                    if OpenNewSequenceOnStart then
+                        CurrPage.DhxSequence.OpenNewSequence(JobNo, JobTaskNo);
                 end;
 
                 /// <summary>
@@ -139,6 +143,13 @@ page 50712 "Day Planning Sequence"
                         EndDate := ParseIsoDate(JToken.AsValue().AsText());
                     if (SkillCode = '') or (StartDate = 0D) or (EndDate = 0D) then
                         exit;
+                    // Project/Task chosen in the dialog (assist-edit) win over the page context
+                    if PayloadJObj.Get('jobNo', JToken) then
+                        if JToken.AsValue().AsText() <> '' then
+                            JobNo := CopyStr(JToken.AsValue().AsText(), 1, MaxStrLen(JobNo));
+                    if PayloadJObj.Get('jobTaskNo', JToken) then
+                        if JToken.AsValue().AsText() <> '' then
+                            JobTaskNo := CopyStr(JToken.AsValue().AsText(), 1, MaxStrLen(JobTaskNo));
 
                     DayPlanningSequenceMgt.GenerateSequence(JobNo, JobTaskNo, SkillCode, TemplateCode, StartDate, EndDate, ExcludedWeekdaysCsv, WorkOrderNo);
                     RefreshTimeline();
@@ -194,6 +205,42 @@ page 50712 "Day Planning Sequence"
                     DayPlanningSequenceMgt.ExecuteSequenceSelection(PayloadJson, '', '');
                     RefreshTimeline();
                     CurrPage.DhxSequence.SequenceExecuted();
+                end;
+
+                /// <summary>
+                /// "New sequence" Project No./Task No. assist-edit. Project: Job list limited to the Job
+                /// filter (if any). Task: Job Task list of the Project No. in the dialog, limited to the
+                /// Job Task filter (if any). Picking a different Project clears the Task.
+                /// </summary>
+                trigger OnLookupNewSequenceContext(isTask: Boolean; projectNo: Text)
+                var
+                    Job: Record Job;
+                    JobTask: Record "Job Task";
+                    JobList: Page "Job List";
+                    JobTaskList: Page "Job Task List";
+                begin
+                    if not isTask then begin
+                        if JobFilter <> '' then
+                            Job.SetFilter("No.", JobFilter);
+                        JobList.SetTableView(Job);
+                        JobList.LookupMode(true);
+                        if JobList.RunModal() = Action::LookupOK then begin
+                            JobList.GetRecord(Job);
+                            if Job."No." = projectNo then
+                                exit;
+                            CurrPage.DhxSequence.SetNewSequenceContext(Job."No.", '');
+                        end;
+                    end else begin
+                        JobTask.SetRange("Job No.", projectNo);
+                        if JobTaskFilter <> '' then
+                            JobTask.SetFilter("Job Task No.", JobTaskFilter);
+                        JobTaskList.SetTableView(JobTask);
+                        JobTaskList.LookupMode(true);
+                        if JobTaskList.RunModal() = Action::LookupOK then begin
+                            JobTaskList.GetRecord(JobTask);
+                            CurrPage.DhxSequence.SetNewSequenceContext(JobTask."Job No.", JobTask."Job Task No.");
+                        end;
+                    end;
                 end;
 
                 trigger OnLookupSequenceResource()
@@ -252,6 +299,31 @@ page 50712 "Day Planning Sequence"
         PeriodTo: Date;
         ControlIsReady: Boolean;
         HighlightKeysJson: Text;
+        DefaultSkillCode: Text;
+        DefaultTemplateCode: Text;
+        HasNewSequenceDefaults: Boolean;
+        OpenNewSequenceOnStart: Boolean;
+
+    /// <summary>
+    /// Opens the "New sequence" dialog as soon as the page is ready (Job/Task from SetContext). Call before RunModal.
+    /// </summary>
+    procedure SetOpenNewSequenceOnStart()
+    begin
+        OpenNewSequenceOnStart := true;
+    end;
+
+    /// <summary>
+    /// Optional "New sequence" dialog defaults, pushed to the add-in in ControlReady. Call before RunModal.
+    /// When never called, nothing is pushed (behaviour unchanged).
+    /// </summary>
+    procedure SetSequenceDefaults(SkillCode: Text; TemplateCode: Text)
+    begin
+        DefaultSkillCode := SkillCode;
+        DefaultTemplateCode := TemplateCode;
+        HasNewSequenceDefaults := true;
+        if ControlIsReady then
+            CurrPage.DhxSequence.SetNewSequenceDefaults(DefaultSkillCode, DefaultTemplateCode);
+    end;
 
     /// <summary>
     /// Section keys (rows) to shade light yellow - the sequence rows holding the Day Planning lines

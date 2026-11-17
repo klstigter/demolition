@@ -1602,7 +1602,10 @@ function SequenceExecuted() {
 }
 
 // ---- New sequence dialog ----
+// Called from AL (page 50712) after the Project/Task assist-edit lookup returns.
 function SetNewSequenceContext(projectNo, taskNo) {
+    dps_ctxJobNo = projectNo || "";
+    dps_ctxJobTaskNo = taskNo || "";
     $id("dpsNewProject").value = projectNo;
     $id("dpsNewTask").value = taskNo;
     $id("dpsPickTask").disabled = !projectNo;
@@ -1613,7 +1616,8 @@ function openLinesDialog() {
     $id("dpsNewTaskField").hidden = !dps_showContext;
     if (dps_showContext) {
         var section = dps_sectionsByKey[dps_selectedSectionKey];
-        SetNewSequenceContext(section ? section.jobNo : "", section ? section.jobTaskNo : "");
+        // no selected row (e.g. empty timeline): fall back to the context AL opened the page with
+        SetNewSequenceContext(section ? section.jobNo : dps_ctxJobNo, section ? section.jobTaskNo : dps_ctxJobTaskNo);
     }
     populateSelect("dpsEventSkill", dps_skills, "Select skill...");
     populateSelect("dpsEventTemplate", dps_templates, "Select template...");
@@ -1722,6 +1726,16 @@ function dpsTagRows(root) {
         var on = !!dps_highlightKeys[lines[i].getAttribute("data-section-id")];
         if (lines[i].classList.contains("dps-hl-row") !== on) lines[i].classList.toggle("dps-hl-row", on);
     }
+}
+
+var dps_ctxJobNo = "";
+var dps_ctxJobTaskNo = "";
+// Called from AL (page 50712) after Init/LoadData: remembers the page's Job/Task and opens the
+// "New sequence" dialog straight away with them filled in.
+function OpenNewSequence(jobNo, jobTaskNo) {
+    dps_ctxJobNo = jobNo || "";
+    dps_ctxJobTaskNo = jobTaskNo || "";
+    openLinesDialog();
 }
 
 var dps_defaultSkill = "";

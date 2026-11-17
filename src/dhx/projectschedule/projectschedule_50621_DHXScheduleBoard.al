@@ -325,6 +325,11 @@ page 50621 "DHX Scheduler (Project)"
                         'NewEvent':
                             if DHXDataHandler.NewDayPlanningFromSection(sectionId, AnchorDate) then
                                 RefreshSchedule();
+                        'AddDayPlanning':
+                            begin
+                                DHXDataHandler.OpenDayPlanningSequenceFromSection(sectionId, jobFilter, JobTaskFilter, SkillFilter);
+                                RefreshSchedule();
+                            end;
                         'ShowMessage1':
                             Message('message 1 from scheduller');
                         'ShowMessage2':

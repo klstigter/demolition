@@ -40,10 +40,10 @@
 /// in this pass. Only THEN is the record handed to Codeunit 46's
 /// GetSelectionFilterForJob/GetSelectionFilterForJobTask wrapper to compact the now
 /// correctly-marked selection into ranges/OR-lists. Typing directly into either field
-/// is unaffected — no OnValidate is added. Note: the Job Task No. lookup is NOT scoped
-/// to the currently-typed Job No. — a dynamic where("Job No."=field(JobNoFilter)) does
-/// not resolve on a non-Rec report global (AL0186), so this is an accepted tradeoff;
-/// see project memory for the earlier attempt and removal.
+/// is unaffected — no OnValidate is added. Note: the Job Task No. lookup IS scoped
+/// to the currently-typed Job No. filter, done in the OnLookup trigger (JobTask.SetFilter
+/// on "Job No.") because a declarative TableRelation where("Job No."=field(JobNoFilter))
+/// does not resolve on a non-Rec report global (AL0186).
 ///
 /// Caller pattern:
 ///   var
@@ -130,7 +130,7 @@ report 50608 "Task Scheduler Filter"
                     {
                         ApplicationArea = All;
                         Caption = 'Job Task No.';
-                        ToolTip = 'Specifies the filter to apply on Job Task No. Standard filter syntax is supported (e.g. wildcards, ranges, OR-lists), or use the lookup to multi-select job tasks. Not scoped to the Job No. above.';
+                        ToolTip = 'Specifies the filter to apply on Job Task No. Standard filter syntax is supported (e.g. wildcards, ranges, OR-lists), or use the lookup to multi-select job tasks. The lookup is limited to the Job No. filter above, if any.';
                         TableRelation = "Job Task"."Job Task No.";
 
                         trigger OnLookup(var Text: Text): Boolean
@@ -139,6 +139,9 @@ report 50608 "Task Scheduler Filter"
                             JobTaskList: Page "Job Task List";
                             SelectionFilterManagement: Codeunit SelectionFilterManagement;
                         begin
+                            // Scope the list to the Job No. filter entered above (if any)
+                            if JobNoFilter <> '' then
+                                JobTask.SetFilter("Job No.", JobNoFilter);
                             JobTask.SetFilter("Job Task No.", JobTaskNoFilter);
                             JobTaskList.SetTableView(JobTask);
                             JobTaskList.LookupMode(true);
