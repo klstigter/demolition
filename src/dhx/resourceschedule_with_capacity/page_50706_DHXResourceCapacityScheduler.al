@@ -585,6 +585,27 @@ page 50706 "Resource Scheduler - TimeLine"
         SkillFilter := '';
     end;
 
+    /// <summary>Filters the scheduler to the marked resources of the passed record (no length limit).</summary>
+    procedure SetResourceNoFilter(var SourceResource: Record Resource)
+    var
+        MarkedResource: Record Resource;
+        NewFilter: Text;
+    begin
+        MarkedResource.Copy(SourceResource);
+        MarkedResource.MarkedOnly(true);
+        if MarkedResource.FindSet() then
+            repeat
+                if NewFilter <> '' then
+                    NewFilter += '|';
+                NewFilter += MarkedResource."No.";
+            until MarkedResource.Next() = 0
+        else
+            NewFilter := '''''';
+        ResourceFilter := NewFilter;
+        ResourceNameFilter := '';
+        SkillFilter := '';
+    end;
+
     procedure SetAnchorDate(NewAnchorDate: Date)
     begin
         AnchorDate := NewAnchorDate;

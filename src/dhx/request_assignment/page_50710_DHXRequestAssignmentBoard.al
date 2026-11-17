@@ -246,7 +246,13 @@ page 50710 "DHX Request Assignment Board"
         DayTaskLinesLoadErrorNotification.Send();
     end;
 
+    procedure SetJobFilter(NewJobNo: Code[20])
+    begin
+        JobNoFilter := NewJobNo;
+    end;
+
     var
+        JobNoFilter: Code[20];
         DayTaskLinesTaskId: Integer; // TaskId of the most recently enqueued day-task-lines background task; OnPageBackgroundTaskCompleted/Error discard any result whose TaskId doesn't match (superseded by a later reload)
         PendingDayTaskLinesJson: Text; // set by OnPageBackgroundTaskCompleted, delivered into the control add-in by OnPollDayTaskLinesResult (see that trigger's comment for why the split is necessary)
         PendingDayTaskLinesResultAvailable: Boolean;
@@ -293,6 +299,7 @@ page 50710 "DHX Request Assignment Board"
         // warning. 400 keeps a meaningful synchronous-payload reduction for boards just above the
         // old threshold, routing the rest through the background/poll path instead.
         DayTaskLinesPageSize := 400;
+        DHXDataHandler.ReqAssign_SetJobFilter(JobNoFilter);
         PlanningDataJson := DHXDataHandler.ReqAssign_BuildPlanningDataJson_Paged(StartDate, EndDate, DayTaskLinesPageSize, RemainingSequenceKeys);
 
         if GuiAllowed() then
