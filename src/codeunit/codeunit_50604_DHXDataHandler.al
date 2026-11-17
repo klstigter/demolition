@@ -101,6 +101,12 @@ codeunit 50604 "DHX Data Handler"
         VendorNameDict: Dictionary of [Code[20], Text]; // "No." -> Name, same bulk-prefetch idea for Vendor
         ResourceNoSet: List of [Code[20]];
         VendorNoSet: List of [Code[20]];
+        ResourceSeen: Dictionary of [Code[20], Boolean];
+        VendorSeen: Dictionary of [Code[20], Boolean];
+        SkillLabelCache: Dictionary of [Code[20], Text]; // per-call Skill Code -> label cache (see ResolveSkillLabelCached)
+        SessionDtCache: Dictionary of [DateTime, Text]; // per-call (Plan Date + time) -> ToSessionDateTimeTxt result (see ToSessionDateTimeTxtCached)
+        HmTxtCache: Dictionary of [Time, Text]; // per-call Time -> 'HH:mm' text
+        PlanDateTxtCache: Dictionary of [Date, Text]; // per-call Plan Date -> Format(Plan Date)
 
         ResNo: Code[20];
         ResName: Text;
@@ -115,6 +121,10 @@ codeunit 50604 "DHX Data Handler"
         StackIndent: array[50] of Integer;
         StackDepth: Integer;
         TaskLeaf: JsonObject;
+        ChildKeysByTask: Dictionary of [Text, List of [Text]]; // 'Job|Task' -> sorted child section keys (Skill/Sequence rows)
+        ChildLabels: Dictionary of [Text, Text];
+        ChildSortKeys: Dictionary of [Text, Text];
+        ChildKey: Text;
         HeadingNode: JsonObject;
         FreshArr: JsonArray;   // Used to reliably reset StackArr elements (Clear on array elements is unreliable)
         PlanningObject, Root : JsonObject;
@@ -157,15 +167,23 @@ codeunit 50604 "DHX Data Handler"
         Clear(VendorNameDict);
         Clear(ResourceNoSet);
         Clear(VendorNoSet);
+        Clear(ResourceSeen);
+        Clear(VendorSeen);
         ApplyProjectSchedulerDayPlanningFilters(DayPlanningPrefetch, StartDate, EndDate, ResourceFilter, JobFilter, jobTaskFilter, SkillFilter);
         if DayPlanningPrefetch.FindSet() then
             repeat
-                if (DayPlanningPrefetch."Assigned Resource No." <> '') and not ResourceNoSet.Contains(DayPlanningPrefetch."Assigned Resource No.") then
+                if (DayPlanningPrefetch."Assigned Resource No." <> '') and not ResourceSeen.ContainsKey(DayPlanningPrefetch."Assigned Resource No.") then begin
+                    ResourceSeen.Add(DayPlanningPrefetch."Assigned Resource No.", true);
                     ResourceNoSet.Add(DayPlanningPrefetch."Assigned Resource No.");
-                if (DayPlanningPrefetch."Requested Resource No." <> '') and not ResourceNoSet.Contains(DayPlanningPrefetch."Requested Resource No.") then
+                end;
+                if (DayPlanningPrefetch."Requested Resource No." <> '') and not ResourceSeen.ContainsKey(DayPlanningPrefetch."Requested Resource No.") then begin
+                    ResourceSeen.Add(DayPlanningPrefetch."Requested Resource No.", true);
                     ResourceNoSet.Add(DayPlanningPrefetch."Requested Resource No.");
-                if (DayPlanningPrefetch."Vendor No." <> '') and not VendorNoSet.Contains(DayPlanningPrefetch."Vendor No.") then
+                end;
+                if (DayPlanningPrefetch."Vendor No." <> '') and not VendorSeen.ContainsKey(DayPlanningPrefetch."Vendor No.") then begin
+                    VendorSeen.Add(DayPlanningPrefetch."Vendor No.", true);
                     VendorNoSet.Add(DayPlanningPrefetch."Vendor No.");
+                end;
             until DayPlanningPrefetch.Next() = 0;
         if ResourceNoSet.Count() > 0 then begin
             ResourcePrefetch.Reset();
@@ -260,21 +278,22 @@ codeunit 50604 "DHX Data Handler"
                             EnvelopeEndTime := 235959T;
                         end;
 
-                StartDateTxt := ToSessionDateTimeTxt(DayPlanning."Plan Date", EnvelopeStartTime);
-                EndDateTxt := ToSessionDateTimeTxt(DayPlanning."Plan Date", EnvelopeEndTime);
+                StartDateTxt := ToSessionDateTimeTxtCached(DayPlanning."Plan Date", EnvelopeStartTime, SessionDtCache);
+                EndDateTxt := ToSessionDateTimeTxtCached(DayPlanning."Plan Date", EnvelopeEndTime, SessionDtCache);
                 Clear(PlanningObject);
                 PlanningObject.Add('id', DayPlanning."Job No." + '|' +
                                          DayPlanning."Job Task No." + '|' +
-                                         Format(DayPlanning."Plan Date") + '|' +
+                                         FormatPlanDateCached(DayPlanning."Plan Date", PlanDateTxtCache) + '|' +
                                          Format(DayPlanning."Day Line No.") + '|' +
                                          ResNo + '|' +
                                          ResName);
                 PlanningObject.Add('start_date', StartDateTxt);
                 PlanningObject.Add('end_date', EndDateTxt);
-                PlanningObject.Add('text', TaskSchedulerEventBarText(DayPlanning.Skill, ResName, ReqResName,
+                PlanningObject.Add('text', TaskSchedulerEventBarText(DayPlanning.Skill, SkillLabelCache, ResName, ReqResName,
                     DayPlanning."Job No." + '|' + DayPlanning."Job Task No." + ' (vacant)'));
 
-                PlanningObject.Add('section_id', DayPlanning."Job No." + '|' + DayPlanning."Job Task No.");
+                ChildKey := RegisterSequenceChild(DayPlanning."Job No.", DayPlanning."Job Task No.", DayPlanning.Skill, DayPlanning."Sequence No.", SkillLabelCache, ChildKeysByTask, ChildLabels, ChildSortKeys);
+                PlanningObject.Add('section_id', ChildKey);
                 // if ResNo <> '' then begin
                 //     if DayPlanning."Vendor No." <> '' then
                 //         PlanningObject.Add('color', 'grey')
@@ -299,19 +318,19 @@ codeunit 50604 "DHX Data Handler"
                 PlanningObject.Add('requested_resource_no', DayPlanning."Requested Resource No.");
                 PlanningObject.Add('requested_resource_name', ReqResName);
                 if DayPlanning."Start Time Assigned" <> 0T then
-                    PlanningObject.Add('start_time_assigned', Format(DayPlanning."Start Time Assigned", 0, '<Hours24,2>:<Minutes,2>'))
+                    PlanningObject.Add('start_time_assigned', FormatHmCached(DayPlanning."Start Time Assigned", HmTxtCache))
                 else
                     PlanningObject.Add('start_time_assigned', '');
                 if DayPlanning."End Time Assigned" <> 0T then
-                    PlanningObject.Add('end_time_assigned', Format(DayPlanning."End Time Assigned", 0, '<Hours24,2>:<Minutes,2>'))
+                    PlanningObject.Add('end_time_assigned', FormatHmCached(DayPlanning."End Time Assigned", HmTxtCache))
                 else
                     PlanningObject.Add('end_time_assigned', '');
                 if DayPlanning."Start Time Requested" <> 0T then
-                    PlanningObject.Add('start_time_requested', Format(DayPlanning."Start Time Requested", 0, '<Hours24,2>:<Minutes,2>'))
+                    PlanningObject.Add('start_time_requested', FormatHmCached(DayPlanning."Start Time Requested", HmTxtCache))
                 else
                     PlanningObject.Add('start_time_requested', '');
                 if DayPlanning."End Time Requested" <> 0T then
-                    PlanningObject.Add('end_time_requested', Format(DayPlanning."End Time Requested", 0, '<Hours24,2>:<Minutes,2>'))
+                    PlanningObject.Add('end_time_requested', FormatHmCached(DayPlanning."End Time Requested", HmTxtCache))
                 else
                     PlanningObject.Add('end_time_requested', '');
                 PlanningObject.Add('non_working_minutes_requested', DayPlanning."Idle Minutes Requested");
@@ -389,6 +408,7 @@ codeunit 50604 "DHX Data Handler"
                     Clear(TaskLeaf);
                     TaskLeaf.Add('key', TEMPJobTasks."Job No." + '|' + TEMPJobTasks."Job Task No.");
                     TaskLeaf.Add('label', StrSubstNo('%1 - %2', TEMPJobTasks."Job Task No.", TEMPJobTasks.Description));
+                    AddSequenceChildren(TaskLeaf, TEMPJobTasks."Job No." + '|' + TEMPJobTasks."Job Task No.", ChildKeysByTask, ChildLabels);
                     StackArr[StackDepth + 1].Add(TaskLeaf);
                 end else
                     if (TEMPJobTasks."Job Task Type" = TEMPJobTasks."Job Task Type"::"End-Total") or
@@ -449,20 +469,19 @@ codeunit 50604 "DHX Data Handler"
     var
         TouchedSnapshot: Record "Job Task" temporary;
         JobTaskReal: Record "Job Task";
-        AllJobTasksForJob: Record "Job Task" temporary;
+        AllJobTasks: Record "Job Task" temporary;
         DistinctJobNos: List of [Code[20]];
-        JobNo: Code[20];
-        ParentOfMap: Dictionary of [Code[20], Code[20]];
+        CurrentJobNo: Code[20];
+        ParentOfMap: Dictionary of [Text, Code[20]]; // 'Job No.|Job Task No.' -> parent's Job Task No.
         // Dictionary, not a fixed-size array: a fixed array[60] (the original shape here) throws
         // "Index out of bounds" the moment any real Job Task's Indentation exceeds the array's
         // bound - confirmed live against CRONUS NL via the AL call stack pointing at this exact
         // line. A Dictionary has no such ceiling, so arbitrarily deep WBS nesting just works.
         LastAncestorAtLevel: Dictionary of [Integer, Code[20]];
         LastAncestorCode: Code[20];
-        ToProcess: List of [Code[20]];
-        StartKey: Code[20];
         CurrentKey: Code[20];
         ParentKey: Code[20];
+        JobNo: Code[20];
     begin
         // Snapshot the originally-touched tasks (one in-memory pass, no query) and collect the
         // distinct Job Nos among them.
@@ -474,58 +493,55 @@ codeunit 50604 "DHX Data Handler"
                 if not DistinctJobNos.Contains(TEMPJobTasks."Job No.") then
                     DistinctJobNos.Add(TEMPJobTasks."Job No.");
             until TEMPJobTasks.Next() = 0;
-        foreach JobNo in DistinctJobNos do begin
-            AllJobTasksForJob.Reset();
-            AllJobTasksForJob.DeleteAll();
-            Clear(ParentOfMap);
-            Clear(LastAncestorAtLevel);
+        if DistinctJobNos.Count() = 0 then
+            exit;
 
-            // Single sorted pass over this Job's own Job Task list - held in memory so every
-            // ancestor lookup below is a Get()/dictionary lookup, never a fresh DB round trip.
-            JobTaskReal.Reset();
-            JobTaskReal.SetRange("Job No.", JobNo);
-            if JobTaskReal.FindSet() then
-                repeat
-                    AllJobTasksForJob := JobTaskReal;
-                    AllJobTasksForJob.Insert();
+        // ONE sorted pass over the Job Task lists of ALL touched Jobs together (primary-key order =
+        // Job No., then Job Task No. ascending, so each Job's rows arrive contiguously) instead of
+        // one FindSet per Job. Every row is held in memory (AllJobTasks) so every ancestor lookup
+        // below is a Get()/dictionary lookup, never a fresh DB round trip.
+        JobTaskReal.SetFilter("Job No.", BuildCodeOrFilter(DistinctJobNos));
+        if JobTaskReal.FindSet() then
+            repeat
+                if JobTaskReal."Job No." <> CurrentJobNo then begin
+                    CurrentJobNo := JobTaskReal."Job No.";
+                    Clear(LastAncestorAtLevel);
+                end;
+                AllJobTasks := JobTaskReal;
+                AllJobTasks.Insert();
 
-                    // Direct parent = the last ancestor-eligible row strictly before this one
-                    // (i.e. seen earlier in this ascending walk), at exactly Indentation - 1 -
-                    // same definition the old per-task FindLast() used.
-                    if (JobTaskReal.Indentation > 0) and LastAncestorAtLevel.Get(JobTaskReal.Indentation, LastAncestorCode) then
-                        ParentOfMap.Add(JobTaskReal."Job Task No.", LastAncestorCode);
+                // Direct parent = the last ancestor-eligible row strictly before this one
+                // (i.e. seen earlier in this ascending walk of the same Job), at exactly
+                // Indentation - 1 - same definition the old per-task FindLast() used.
+                if (JobTaskReal.Indentation > 0) and LastAncestorAtLevel.Get(JobTaskReal.Indentation, LastAncestorCode) then
+                    ParentOfMap.Add(JobTaskReal."Job No." + '|' + JobTaskReal."Job Task No.", LastAncestorCode);
 
-                    // Ancestor-eligible = not Posting/End-Total/Total (closing markers are never
-                    // parent nodes) - update this row's own level for rows seen after it.
-                    if (JobTaskReal."Job Task Type" <> JobTaskReal."Job Task Type"::Posting) and
-                       (JobTaskReal."Job Task Type" <> JobTaskReal."Job Task Type"::"End-Total") and
-                       (JobTaskReal."Job Task Type" <> JobTaskReal."Job Task Type"::Total) then
-                        LastAncestorAtLevel.Set(JobTaskReal.Indentation + 1, JobTaskReal."Job Task No.");
-                until JobTaskReal.Next() = 0;
+                // Ancestor-eligible = not Posting/End-Total/Total (closing markers are never
+                // parent nodes) - update this row's own level for rows seen after it.
+                if (JobTaskReal."Job Task Type" <> JobTaskReal."Job Task Type"::Posting) and
+                   (JobTaskReal."Job Task Type" <> JobTaskReal."Job Task Type"::"End-Total") and
+                   (JobTaskReal."Job Task Type" <> JobTaskReal."Job Task Type"::Total) then
+                    LastAncestorAtLevel.Set(JobTaskReal.Indentation + 1, JobTaskReal."Job Task No.");
+            until JobTaskReal.Next() = 0;
 
-            // Every task of this Job that was originally touched, walked up its ancestor chain -
-            // inserting every missing ancestor handles arbitrary nesting depth without an outer
-            // "did anything change" loop, since the chain is fully resolved on first climb.
-            Clear(ToProcess);
-            TouchedSnapshot.Reset();
-            TouchedSnapshot.SetRange("Job No.", JobNo);
-            if TouchedSnapshot.FindSet() then
-                repeat
-                    ToProcess.Add(TouchedSnapshot."Job Task No.");
-                until TouchedSnapshot.Next() = 0;
-            foreach StartKey in ToProcess do begin
-                CurrentKey := StartKey;
-                while ParentOfMap.Get(CurrentKey, ParentKey) do begin
+        // Every task that was originally touched, walked up its ancestor chain - inserting every
+        // missing ancestor handles arbitrary nesting depth without an outer "did anything change"
+        // loop, since the chain is fully resolved on first climb.
+        TouchedSnapshot.Reset();
+        if TouchedSnapshot.FindSet() then
+            repeat
+                JobNo := TouchedSnapshot."Job No.";
+                CurrentKey := TouchedSnapshot."Job Task No.";
+                while ParentOfMap.Get(JobNo + '|' + CurrentKey, ParentKey) do begin
                     if TEMPJobTasks.Get(JobNo, ParentKey) then
                         break; // already present - its own ancestor chain was already fully resolved
-                    if AllJobTasksForJob.Get(JobNo, ParentKey) then begin
-                        TEMPJobTasks := AllJobTasksForJob;
+                    if AllJobTasks.Get(JobNo, ParentKey) then begin
+                        TEMPJobTasks := AllJobTasks;
                         TEMPJobTasks.Insert();
                     end;
                     CurrentKey := ParentKey;
                 end;
-            end;
-        end;
+            until TouchedSnapshot.Next() = 0;
     end;
 
     // Shared Day Planning filter setup for the Task Scheduler's weekly data window - one place
@@ -611,6 +627,12 @@ codeunit 50604 "DHX Data Handler"
         VendorNameDict: Dictionary of [Code[20], Text];
         ResourceNoSet: List of [Code[20]];
         VendorNoSet: List of [Code[20]];
+        ResourceSeen: Dictionary of [Code[20], Boolean];
+        VendorSeen: Dictionary of [Code[20], Boolean];
+        SkillLabelCache: Dictionary of [Code[20], Text]; // per-call Skill Code -> label cache (see ResolveSkillLabelCached)
+        SessionDtCache: Dictionary of [DateTime, Text]; // per-call (Plan Date + time) -> ToSessionDateTimeTxt result (see ToSessionDateTimeTxtCached)
+        HmTxtCache: Dictionary of [Time, Text]; // per-call Time -> 'HH:mm' text
+        PlanDateTxtCache: Dictionary of [Date, Text]; // per-call Plan Date -> Format(Plan Date)
 
         ResNo: Code[20];
         ResName: Text;
@@ -625,6 +647,10 @@ codeunit 50604 "DHX Data Handler"
         StackIndent: array[50] of Integer;
         StackDepth: Integer;
         TaskLeaf: JsonObject;
+        ChildKeysByTask: Dictionary of [Text, List of [Text]]; // 'Job|Task' -> sorted child section keys (Skill/Sequence rows)
+        ChildLabels: Dictionary of [Text, Text];
+        ChildSortKeys: Dictionary of [Text, Text];
+        ChildKey: Text;
         HeadingNode: JsonObject;
         FreshArr: JsonArray;
         PlanningObject, Root : JsonObject;
@@ -675,15 +701,23 @@ codeunit 50604 "DHX Data Handler"
         Clear(VendorNameDict);
         Clear(ResourceNoSet);
         Clear(VendorNoSet);
+        Clear(ResourceSeen);
+        Clear(VendorSeen);
         ApplyProjectSchedulerDayPlanningFilters(DayPlanningPrefetch, StartDate, EndDate, ResourceFilter, JobFilter, JobTaskFilter, SkillFilter);
         if DayPlanningPrefetch.FindSet() then
             repeat
-                if (DayPlanningPrefetch."Assigned Resource No." <> '') and not ResourceNoSet.Contains(DayPlanningPrefetch."Assigned Resource No.") then
+                if (DayPlanningPrefetch."Assigned Resource No." <> '') and not ResourceSeen.ContainsKey(DayPlanningPrefetch."Assigned Resource No.") then begin
+                    ResourceSeen.Add(DayPlanningPrefetch."Assigned Resource No.", true);
                     ResourceNoSet.Add(DayPlanningPrefetch."Assigned Resource No.");
-                if (DayPlanningPrefetch."Requested Resource No." <> '') and not ResourceNoSet.Contains(DayPlanningPrefetch."Requested Resource No.") then
+                end;
+                if (DayPlanningPrefetch."Requested Resource No." <> '') and not ResourceSeen.ContainsKey(DayPlanningPrefetch."Requested Resource No.") then begin
+                    ResourceSeen.Add(DayPlanningPrefetch."Requested Resource No.", true);
                     ResourceNoSet.Add(DayPlanningPrefetch."Requested Resource No.");
-                if (DayPlanningPrefetch."Vendor No." <> '') and not VendorNoSet.Contains(DayPlanningPrefetch."Vendor No.") then
+                end;
+                if (DayPlanningPrefetch."Vendor No." <> '') and not VendorSeen.ContainsKey(DayPlanningPrefetch."Vendor No.") then begin
+                    VendorSeen.Add(DayPlanningPrefetch."Vendor No.", true);
                     VendorNoSet.Add(DayPlanningPrefetch."Vendor No.");
+                end;
             until DayPlanningPrefetch.Next() = 0;
         if ResourceNoSet.Count() > 0 then begin
             ResourcePrefetch.Reset();
@@ -765,21 +799,22 @@ codeunit 50604 "DHX Data Handler"
                             EnvelopeEndTime := 235959T;
                         end;
 
-                StartDateTxt := ToSessionDateTimeTxt(DayPlanning."Plan Date", EnvelopeStartTime);
-                EndDateTxt := ToSessionDateTimeTxt(DayPlanning."Plan Date", EnvelopeEndTime);
+                StartDateTxt := ToSessionDateTimeTxtCached(DayPlanning."Plan Date", EnvelopeStartTime, SessionDtCache);
+                EndDateTxt := ToSessionDateTimeTxtCached(DayPlanning."Plan Date", EnvelopeEndTime, SessionDtCache);
                 Clear(PlanningObject);
                 PlanningObject.Add('id', DayPlanning."Job No." + '|' +
                                          DayPlanning."Job Task No." + '|' +
-                                         Format(DayPlanning."Plan Date") + '|' +
+                                         FormatPlanDateCached(DayPlanning."Plan Date", PlanDateTxtCache) + '|' +
                                          Format(DayPlanning."Day Line No.") + '|' +
                                          ResNo + '|' +
                                          ResName);
                 PlanningObject.Add('start_date', StartDateTxt);
                 PlanningObject.Add('end_date', EndDateTxt);
-                PlanningObject.Add('text', TaskSchedulerEventBarText(DayPlanning.Skill, ResName, ReqResName,
+                PlanningObject.Add('text', TaskSchedulerEventBarText(DayPlanning.Skill, SkillLabelCache, ResName, ReqResName,
                     DayPlanning."Job No." + '|' + DayPlanning."Job Task No." + ' (vacant)'));
 
-                PlanningObject.Add('section_id', DayPlanning."Job No." + '|' + DayPlanning."Job Task No.");
+                ChildKey := RegisterSequenceChild(DayPlanning."Job No.", DayPlanning."Job Task No.", DayPlanning.Skill, DayPlanning."Sequence No.", SkillLabelCache, ChildKeysByTask, ChildLabels, ChildSortKeys);
+                PlanningObject.Add('section_id', ChildKey);
                 VenName := '';
                 if DayPlanning."Vendor No." <> '' then
                     VendorNameDict.Get(DayPlanning."Vendor No.", VenName);
@@ -790,19 +825,19 @@ codeunit 50604 "DHX Data Handler"
                 PlanningObject.Add('requested_resource_no', DayPlanning."Requested Resource No.");
                 PlanningObject.Add('requested_resource_name', ReqResName);
                 if DayPlanning."Start Time Assigned" <> 0T then
-                    PlanningObject.Add('start_time_assigned', Format(DayPlanning."Start Time Assigned", 0, '<Hours24,2>:<Minutes,2>'))
+                    PlanningObject.Add('start_time_assigned', FormatHmCached(DayPlanning."Start Time Assigned", HmTxtCache))
                 else
                     PlanningObject.Add('start_time_assigned', '');
                 if DayPlanning."End Time Assigned" <> 0T then
-                    PlanningObject.Add('end_time_assigned', Format(DayPlanning."End Time Assigned", 0, '<Hours24,2>:<Minutes,2>'))
+                    PlanningObject.Add('end_time_assigned', FormatHmCached(DayPlanning."End Time Assigned", HmTxtCache))
                 else
                     PlanningObject.Add('end_time_assigned', '');
                 if DayPlanning."Start Time Requested" <> 0T then
-                    PlanningObject.Add('start_time_requested', Format(DayPlanning."Start Time Requested", 0, '<Hours24,2>:<Minutes,2>'))
+                    PlanningObject.Add('start_time_requested', FormatHmCached(DayPlanning."Start Time Requested", HmTxtCache))
                 else
                     PlanningObject.Add('start_time_requested', '');
                 if DayPlanning."End Time Requested" <> 0T then
-                    PlanningObject.Add('end_time_requested', Format(DayPlanning."End Time Requested", 0, '<Hours24,2>:<Minutes,2>'))
+                    PlanningObject.Add('end_time_requested', FormatHmCached(DayPlanning."End Time Requested", HmTxtCache))
                 else
                     PlanningObject.Add('end_time_requested', '');
                 PlanningObject.Add('non_working_minutes_requested', DayPlanning."Idle Minutes Requested");
@@ -922,6 +957,7 @@ codeunit 50604 "DHX Data Handler"
                     Clear(TaskLeaf);
                     TaskLeaf.Add('key', TEMPJobTasks."Job No." + '|' + TEMPJobTasks."Job Task No.");
                     TaskLeaf.Add('label', StrSubstNo('%1 - %2', TEMPJobTasks."Job Task No.", TEMPJobTasks.Description));
+                    AddSequenceChildren(TaskLeaf, TEMPJobTasks."Job No." + '|' + TEMPJobTasks."Job Task No.", ChildKeysByTask, ChildLabels);
                     StackArr[StackDepth + 1].Add(TaskLeaf);
                 end else
                     if (TEMPJobTasks."Job Task Type" = TEMPJobTasks."Job Task Type"::"End-Total") or
@@ -1011,6 +1047,74 @@ codeunit 50604 "DHX Data Handler"
             ErrorMsg += '  • ' + MissingId + '\';
         ErrorMsg += 'These events will not appear in the scheduler. Check that the job task exists and is of type Posting.';
         Message(ErrorMsg);
+    end;
+
+    /// <summary>
+    /// Task Scheduler: records the (Skill, Sequence No.) child row of a Posting task and returns its
+    /// section key 'Job|Task|Skill|Seq'. Per-task key lists stay sorted by Skill label, then Sequence No.
+    /// </summary>
+    local procedure RegisterSequenceChild(JobNo: Code[20]; JobTaskNo: Code[20]; SkillCode: Code[20]; SequenceNo: Integer; var SkillLabelCache: Dictionary of [Code[20], Text]; var ChildKeysByTask: Dictionary of [Text, List of [Text]]; var ChildLabels: Dictionary of [Text, Text]; var ChildSortKeys: Dictionary of [Text, Text]): Text
+    var
+        KeyList: List of [Text];
+        TaskKey: Text;
+        ChildKeyTxt: Text;
+        LabelTxt: Text;
+        SeqTxt: Text;
+        SortKey: Text;
+        i: Integer;
+        InsertPos: Integer;
+    begin
+        TaskKey := JobNo + '|' + JobTaskNo;
+        ChildKeyTxt := JobNo + '|' + JobTaskNo + '|' + SkillCode + '|' + Format(SequenceNo);
+        if ChildLabels.ContainsKey(ChildKeyTxt) then
+            exit(ChildKeyTxt);
+
+        LabelTxt := ResolveSkillLabelCached(SkillCode, SkillLabelCache);
+        if LabelTxt = '' then
+            LabelTxt := '(no skill)';
+        SeqTxt := Format(SequenceNo, 0, 9);
+        SortKey := LabelTxt + '|' + PadStr('', 10 - StrLen(SeqTxt), '0') + SeqTxt;
+        ChildLabels.Add(ChildKeyTxt, LabelTxt + ' - ' + SeqTxt);
+        ChildSortKeys.Add(ChildKeyTxt, SortKey);
+
+        if ChildKeysByTask.ContainsKey(TaskKey) then
+            ChildKeysByTask.Get(TaskKey, KeyList);
+        InsertPos := KeyList.Count() + 1;
+        for i := 1 to KeyList.Count() do
+            if ChildSortKeys.Get(KeyList.Get(i)) > SortKey then begin
+                InsertPos := i;
+                break;
+            end;
+        if InsertPos > KeyList.Count() then
+            KeyList.Add(ChildKeyTxt)
+        else
+            KeyList.Insert(InsertPos, ChildKeyTxt);
+        ChildKeysByTask.Set(TaskKey, KeyList);
+        exit(ChildKeyTxt);
+    end;
+
+    /// <summary>
+    /// Task Scheduler: turns a Posting task node into a folder with its Skill/Sequence child rows
+    /// (no-op when the task has no recorded Day Planning pairs, so it stays a plain leaf).
+    /// </summary>
+    local procedure AddSequenceChildren(var TaskNode: JsonObject; TaskKey: Text; var ChildKeysByTask: Dictionary of [Text, List of [Text]]; var ChildLabels: Dictionary of [Text, Text])
+    var
+        KeyList: List of [Text];
+        ChildArr: JsonArray;
+        ChildNode: JsonObject;
+        ChildKeyTxt: Text;
+    begin
+        if not ChildKeysByTask.ContainsKey(TaskKey) then
+            exit;
+        ChildKeysByTask.Get(TaskKey, KeyList);
+        foreach ChildKeyTxt in KeyList do begin
+            Clear(ChildNode);
+            ChildNode.Add('key', ChildKeyTxt);
+            ChildNode.Add('label', ChildLabels.Get(ChildKeyTxt));
+            ChildArr.Add(ChildNode);
+        end;
+        TaskNode.Add('open', true);
+        TaskNode.Add('children', ChildArr);
     end;
 
     local procedure CollectSectionKeys(Nodes: JsonArray; var Keys: Dictionary of [Text, Boolean])
@@ -1751,6 +1855,43 @@ codeunit 50604 "DHX Data Handler"
         EndDateTxt := ToSessionDateTimeTxt(DT2Date(EndDateTime), DT2Time(EndDateTime));
     end;
 
+    // Task Scheduler builders only: memoises ToSessionDateTimeTxt per distinct (date, time) within one
+    // builder call - most Day Plannings share the same few Plan Dates and start/end times.
+    local procedure ToSessionDateTimeTxtCached(UtcDate: Date; UtcTime: Time; var Cache: Dictionary of [DateTime, Text]): Text
+    var
+        CacheKey: DateTime;
+        ResultTxt: Text;
+    begin
+        CacheKey := CreateDateTime(UtcDate, UtcTime);
+        if Cache.Get(CacheKey, ResultTxt) then
+            exit(ResultTxt);
+        ResultTxt := ToSessionDateTimeTxt(UtcDate, UtcTime);
+        Cache.Add(CacheKey, ResultTxt);
+        exit(ResultTxt);
+    end;
+
+    local procedure FormatHmCached(TimeVal: Time; var Cache: Dictionary of [Time, Text]): Text
+    var
+        ResultTxt: Text;
+    begin
+        if Cache.Get(TimeVal, ResultTxt) then
+            exit(ResultTxt);
+        ResultTxt := Format(TimeVal, 0, '<Hours24,2>:<Minutes,2>');
+        Cache.Add(TimeVal, ResultTxt);
+        exit(ResultTxt);
+    end;
+
+    local procedure FormatPlanDateCached(DateVal: Date; var Cache: Dictionary of [Date, Text]): Text
+    var
+        ResultTxt: Text;
+    begin
+        if Cache.Get(DateVal, ResultTxt) then
+            exit(ResultTxt);
+        ResultTxt := Format(DateVal);
+        Cache.Add(DateVal, ResultTxt);
+        exit(ResultTxt);
+    end;
+
     local procedure ToSessionDateTimeTxt(UtcDate: Date; UtcTime: Time): Text
     var
         IsoTxt: Text;
@@ -2287,6 +2428,7 @@ codeunit 50604 "DHX Data Handler"
         SectionParts: List of [Text];
         JobNo: Code[20];
         JobTaskNo: Code[20];
+        RowSkill: Code[20];
         PlanDate: Date;
         _DateTime: DateTime;
         _DateTimeUserZone: DateTime;
@@ -2311,7 +2453,10 @@ codeunit 50604 "DHX Data Handler"
             _EndDateTimeUserZone := ConvertToUserTimeZone(_EndDateTime);
             EndTime := DT2Time(_EndDateTimeUserZone);
         end;
-        CreateDayPlanningCard(JobNo, JobTaskNo, PlanDate, DT2Time(_DateTimeUserZone), EndTime, '');
+        // 4-part child row key 'Job|Task|Skill|Seq': part 3 is the row's Skill
+        if SectionParts.Count() >= 3 then
+            RowSkill := CopyStr(SectionParts.Get(3), 1, MaxStrLen(RowSkill));
+        CreateDayPlanningCard(JobNo, JobTaskNo, PlanDate, DT2Time(_DateTimeUserZone), EndTime, RowSkill);
     end;
 
     /// <summary>
@@ -4125,12 +4270,20 @@ codeunit 50604 "DHX Data Handler"
         DlgSkill: Code[10];
         SkillCode: Text;
         TemplateCode: Text;
+        RowSkill: Code[20];
+        RowSeqNo: Integer;
+        HighlightKeys: JsonArray;
     begin
         Parts := SectionId.Split('|');
         // AL does not short-circuit 'and' - Get(2) must not be evaluated when there is only one part ('nodata')
         if Parts.Count() >= 2 then begin
             JobNo := CopyStr(Parts.Get(1), 1, MaxStrLen(JobNo));
             TaskNo := CopyStr(Parts.Get(2), 1, MaxStrLen(TaskNo));
+        end;
+        // 4-part child row key 'Job|Task|Skill|Seq' (same format as page 50712's section keys)
+        if Parts.Count() >= 4 then begin
+            RowSkill := CopyStr(Parts.Get(3), 1, MaxStrLen(RowSkill));
+            if Evaluate(RowSeqNo, Parts.Get(4)) then;
         end;
         if (JobNo = '') or (TaskNo = '') then begin
             if (JobFilter <> '') and (DelChr(JobFilter, '=', '|&*<>=.') = JobFilter) then
@@ -4141,8 +4294,11 @@ codeunit 50604 "DHX Data Handler"
                 TaskNo := CopyStr(JobTaskFilter, 1, MaxStrLen(TaskNo))
             else
                 TaskNo := '';
-            if (SkillFilter <> '') and (DelChr(SkillFilter, '=', '|&*<>=.') = SkillFilter) then
-                DlgSkill := CopyStr(SkillFilter, 1, MaxStrLen(DlgSkill));
+            if RowSkill <> '' then
+                DlgSkill := CopyStr(RowSkill, 1, MaxStrLen(DlgSkill))
+            else
+                if (SkillFilter <> '') and (DelChr(SkillFilter, '=', '|&*<>=.') = SkillFilter) then
+                    DlgSkill := CopyStr(SkillFilter, 1, MaxStrLen(DlgSkill));
             AddDayPlanningDlg.SetContext(JobNo, TaskNo, DlgSkill);
             AddDayPlanningDlg.RunModal();
             if not AddDayPlanningDlg.IsConfirmed() then
@@ -4157,6 +4313,9 @@ codeunit 50604 "DHX Data Handler"
         if DlgSkill <> '' then
             SkillCode := DlgSkill
         else
+            if RowSkill <> '' then
+                SkillCode := RowSkill
+            else
             if (SkillFilter <> '') and (DelChr(SkillFilter, '=', '|&*<>=.') = SkillFilter) then
                 SkillCode := SkillFilter
             else
@@ -4166,6 +4325,10 @@ codeunit 50604 "DHX Data Handler"
         if TemplateCode = '' then
             TemplateCode := DailyOptimizerSetup."Work hour Template";
 
+        if (Parts.Count() >= 4) and (RowSkill <> '') then begin
+            HighlightKeys.Add(StrSubstNo('%1|%2|%3|%4', JobNo, TaskNo, RowSkill, RowSeqNo));
+            SequencePage.SetHighlightedSections(HighlightKeys);
+        end;
         SequencePage.SetContext(JobNo, TaskNo, '');
         SequencePage.SetSequenceDefaults(SkillCode, TemplateCode);
         SequencePage.SetOpenNewSequenceOnStart();
@@ -4842,6 +5005,22 @@ codeunit 50604 "DHX Data Handler"
     /// Shared by DayPlanningEventBarText and TaskSchedulerEventBarText so both the Resource
     /// Scheduler and Task Scheduler bars resolve Skill the same way.
     /// </summary>
+    // Task Scheduler builders only: same result as ResolveSkillLabel, but each distinct Skill Code is
+    // looked up once per builder call (Cache is the caller's per-call dictionary) instead of one
+    // Skill Code Get() per Day Planning row.
+    local procedure ResolveSkillLabelCached(SkillCodeVal: Code[20]; var Cache: Dictionary of [Code[20], Text]): Text
+    var
+        LabelTxt: Text;
+    begin
+        if SkillCodeVal = '' then
+            exit('');
+        if Cache.Get(SkillCodeVal, LabelTxt) then
+            exit(LabelTxt);
+        LabelTxt := ResolveSkillLabel(SkillCodeVal);
+        Cache.Add(SkillCodeVal, LabelTxt);
+        exit(LabelTxt);
+    end;
+
     local procedure ResolveSkillLabel(SkillCodeVal: Code[20]): Text
     var
         SkillCode: Record "Skill Code";
@@ -4864,12 +5043,12 @@ codeunit 50604 "DHX Data Handler"
     /// caller's "Job No.|Job Task No. (vacant)" text) only when NEITHER Skill nor a resource
     /// name is available, so a bar is never left with empty text.
     /// </summary>
-    local procedure TaskSchedulerEventBarText(SkillCodeVal: Code[20]; AssignedResName: Text; RequestedResName: Text; VacantFallback: Text): Text
+    local procedure TaskSchedulerEventBarText(SkillCodeVal: Code[20]; var SkillLabelCache: Dictionary of [Code[20], Text]; AssignedResName: Text; RequestedResName: Text; VacantFallback: Text): Text
     var
         SkillLabel: Text;
         ResNameForText: Text;
     begin
-        SkillLabel := ResolveSkillLabel(SkillCodeVal);
+        SkillLabel := ResolveSkillLabelCached(SkillCodeVal, SkillLabelCache);
         if AssignedResName <> '' then
             ResNameForText := AssignedResName
         else

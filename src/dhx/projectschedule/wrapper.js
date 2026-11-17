@@ -1533,6 +1533,13 @@ function RecreateTimelineView(sections) {
             x_date: "%D %d %M"
         }
     });
+
+    // Extra indent for the Skill - Sequence No. child rows (section key Job|Task|Skill|Seq)
+    scheduler.templates.timeline_scale_label = function (key, label, section) {
+        if (String(key).split("|").length >= 4)
+            return '<span style="display:inline-block;padding-left:16px;">' + label + '</span>';
+        return label;
+    };
 }
 
 // ═══════════════════════════════════════════════════════════════
