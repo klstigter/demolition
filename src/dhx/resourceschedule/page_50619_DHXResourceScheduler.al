@@ -351,6 +351,25 @@ page 50619 "Resource Calendar"
         ResourceFilter := pResourceFilter;
     end;
 
+    /// <summary>Filters to the marked resources of the passed record (no length limit).</summary>
+    procedure SetResourceFilter(var SourceResource: Record Resource)
+    var
+        MarkedResource: Record Resource;
+        NewFilter: Text;
+    begin
+        MarkedResource.Copy(SourceResource);
+        MarkedResource.MarkedOnly(true);
+        if MarkedResource.FindSet() then
+            repeat
+                if NewFilter <> '' then
+                    NewFilter += '|';
+                NewFilter += MarkedResource."No.";
+            until MarkedResource.Next() = 0
+        else
+            NewFilter := '''''';
+        ResourceFilter := NewFilter;
+    end;
+
     procedure SetResourceFilter(pResourceFilter: Text; pStartDateOfWeek: Date; pEndDateOfWeek: Date)
     begin
         ResourceFilter := pResourceFilter;

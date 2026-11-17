@@ -6166,6 +6166,14 @@ codeunit 50604 "DHX Data Handler"
     /// if nothing remains) is what the caller threads into
     /// CurrPage.EnqueueBackgroundTask(Codeunit::"ReqAssign BG Day Task Lines", ...).
     /// </summary>
+    procedure ReqAssign_SetJobFilter(NewJobNo: Code[20])
+    begin
+        ReqAssignJobFilter := NewJobNo;
+    end;
+
+    var
+        ReqAssignJobFilter: Code[20];
+
     procedure ReqAssign_BuildPlanningDataJson_Paged(StartDate: Date; EndDate: Date; MaxLines: Integer; var RemainingSequenceKeys: Text): Text
     var
         RootObj: JsonObject;
@@ -6425,6 +6433,8 @@ codeunit 50604 "DHX Data Handler"
         PriorCount: Integer;
     begin
         DayPlanning.SetRange("Plan Date", StartDate, EndDate);
+        if ReqAssignJobFilter <> '' then
+            DayPlanning.SetRange("Job No.", ReqAssignJobFilter);
 
         // Pass 1: cheap pre-scan (key fields only) - establishes whole-sequence grouping order and
         // per-group line counts so the MaxLines cutoff below can never split a group.

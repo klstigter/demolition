@@ -266,6 +266,102 @@ page 50641 "Opti Job List"
                         CopyJob.RunModal();
                     end;
                 }
+                action("Task Scheduler (Visual)")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Task Scheduler (Visual)';
+                    Image = HumanResources;
+                    ToolTip = 'Open the task scheduler for this project.';
+
+                    trigger OnAction()
+                    var
+                        DayPlanningScheduler: Page "DHX Scheduler (Project)";
+                    begin
+                        DayPlanningScheduler.SetJobTaskFilter(Rec."No.", '');
+                        DayPlanningScheduler.RunModal();
+                    end;
+                }
+                action("Gantt (Visual)")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Gantt (Visual)';
+                    Image = GanttChart;
+                    ToolTip = 'Open the Gantt chart for this project.';
+
+                    trigger OnAction()
+                    var
+                        Gantt: Page "Gantt Demo DHX 2";
+                    begin
+                        Gantt.SetJobFilter(Rec."No.");
+                        Gantt.RunModal();
+                    end;
+                }
+                action("Resource Calender (Visual)")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Resource Calender (Visual)';
+                    Image = Calendar;
+                    ToolTip = 'Open the resource calendar for the resources assigned to this project.';
+
+                    trigger OnAction()
+                    var
+                        ResCalender: Page "Resource Calendar";
+                        JobResource: Record Resource;
+                    begin
+                        MarkJobResources(JobResource);
+                        ResCalender.SetResourceFilter(JobResource);
+                        ResCalender.RunModal();
+                    end;
+                }
+                action("Resource Scheduler (Visual)")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Resource Scheduler (Visual)';
+                    Image = ResourcePlanning;
+                    ToolTip = 'Open the resource scheduler for the resources assigned to this project.';
+
+                    trigger OnAction()
+                    var
+                        ResScheduler: Page "Resource Scheduler - TimeLine";
+                        JobResource: Record Resource;
+                    begin
+                        MarkJobResources(JobResource);
+                        ResScheduler.SetResourceNoFilter(JobResource);
+                        ResScheduler.RunModal();
+                    end;
+                }
+                action("Capacity (Visual)")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Capacity (Visual)';
+                    Image = Capacity;
+                    ToolTip = 'Open the capacity scheduler for the resources assigned to this project.';
+
+                    trigger OnAction()
+                    var
+                        ResScheduler: Page "DHX Scheduler (Pool Resource)";
+                        JobResource: Record Resource;
+                    begin
+                        MarkJobResources(JobResource);
+                        ResScheduler.SetResourceFilter(JobResource);
+                        ResScheduler.RunModal();
+                    end;
+                }
+                action("Request Assignment (Visual)")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Request and Assignment Board (Visual)';
+                    Image = Allocations;
+                    ToolTip = 'Open the request and assignment board for this project.';
+
+                    trigger OnAction()
+                    var
+                        ReqAssignBoard: Page "DHX Request Assignment Board";
+                    begin
+                        ReqAssignBoard.SetJobFilter(Rec."No.");
+                        ReqAssignBoard.RunModal();
+                    end;
+                }
 
             }
 
@@ -319,7 +415,6 @@ page 50641 "Opti Job List"
                 actionref(CopyJob_Promoted; CopyJob)
                 {
                 }
-
             }
             group(Category_Category5)
             {
@@ -344,6 +439,18 @@ page 50641 "Opti Job List"
                 actionref("Ledger E&ntries_Promoted"; "Ledger E&ntries")
                 {
                 }
+            }
+            group(Visuals_Ref)
+            {
+                Caption = 'Planning';
+                ShowAs = SplitButton;
+                Image = Planning;
+                actionref("Task Scheduler (Visual) actionref"; "Task Scheduler (Visual)") { }
+                actionref("Gantt (Visual) actionref"; "Gantt (Visual)") { }
+                actionref("Resource Calender (Visual) actionref"; "Resource Calender (Visual)") { }
+                actionref("Resource Scheduler (Visual) actionref"; "Resource Scheduler (Visual)") { }
+                actionref("Capacity (Visual) actionref"; "Capacity (Visual)") { }
+                actionref("Request Assignment (Visual) actionref"; "Request Assignment (Visual)") { }
             }
 
         }
@@ -372,6 +479,26 @@ page 50641 "Opti Job List"
     trigger OnInit()
     begin
         CurrPage.PowerBIEmbeddedReportPart.PAGE.SetPageContext(CurrPage.ObjectId(false));
+    end;
+
+    local procedure MarkJobResources(var Resource: Record Resource)
+    var
+        DayPlanning: Record "Day Planning";
+        Marked: List of [Code[20]];
+    begin
+        Resource.Reset();
+        Resource.ClearMarks();
+        DayPlanning.SetRange("Job No.", Rec."No.");
+        DayPlanning.SetFilter("Assigned Resource No.", '<>%1', '');
+        DayPlanning.SetLoadFields("Assigned Resource No.");
+        if DayPlanning.FindSet() then
+            repeat
+                if not Marked.Contains(DayPlanning."Assigned Resource No.") then begin
+                    Marked.Add(DayPlanning."Assigned Resource No.");
+                    if Resource.Get(DayPlanning."Assigned Resource No.") then
+                        Resource.Mark(true);
+                end;
+            until DayPlanning.Next() = 0;
     end;
 
     var
