@@ -174,6 +174,29 @@
     margin-bottom: 9px;
 }
 
+/* Project No. / Task No. assist-edit: input and "..." button on one line */
+#dpsNewProjectField > div,
+#dpsNewTaskField > div {
+    display: flex;
+    gap: 4px;
+    align-items: stretch;
+}
+#dpsNewProjectField > div input,
+#dpsNewTaskField > div input {
+    flex: 1;
+    min-width: 0;
+}
+#dpsNewProjectField > div .dps-btn,
+#dpsNewTaskField > div .dps-btn {
+    flex: none;
+    width: auto;
+    padding: 0 10px;
+}
+#dpsNewTaskField .dps-btn:disabled {
+    opacity: .45;
+    cursor: default;
+}
+
 .dps-field label {
     display: block;
     font-size: 10px;

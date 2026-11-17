@@ -1548,8 +1548,8 @@ function setupContextMenu() {
     menu.id = 'dhx-ctx-menu';
     menu.className = 'hidden';
     menu.innerHTML =
-        '<div class="dhx-ctx-item" data-action="NewEvent">' +
-            '<span class="dhx-ctx-icon">&#10133;</span>New Event</div>' +
+        '<div class="dhx-ctx-item" data-action="AddDayPlanning">' +
+            '<span class="dhx-ctx-icon">&#10133;</span>Add Day Planning</div>' +
         '<div class="dhx-ctx-item" data-action="OpenDayPlanning">' +
             '<span class="dhx-ctx-icon">&#128197;</span>Open Day Planning</div>' +
         '<div class="dhx-ctx-item" data-action="OpenDayPlanningCard">' +
@@ -1582,8 +1582,8 @@ function setupContextMenu() {
 
     function showMenu(x, y, target) {
         _ctxTarget = target;
-        // New Event only on a left-panel (Job Task) row
-        menu.querySelector('[data-action="NewEvent"]').style.display =
+        // Add Day Planning only on a left-panel row (also the "No Data" placeholder row)
+        menu.querySelector('[data-action="AddDayPlanning"]').style.display =
             (target.type === 'section') ? '' : 'none';
         // Show/hide ShowJobResources only when clicking an event
         menu.querySelector('[data-action="ShowJobResources"]').style.display =

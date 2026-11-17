@@ -73,6 +73,7 @@ permissionset 50600 Demolition
         table "Summary Weekly" = X,
         table "Task Scheduler Setup" = X,
         table "Time Slot Canonical Index" = X,
+        report "Add Day Planning" = X,
         report "Apply Demo Data Scenario" = X,
         report "Export Existing Data" = X,
         report "Daily Capacity Balance Report" = X,

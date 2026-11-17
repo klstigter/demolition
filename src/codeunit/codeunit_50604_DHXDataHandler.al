@@ -4109,6 +4109,71 @@ codeunit 50604 "DHX Data Handler"
     end;
 
     /// <summary>
+    /// Task Scheduler section right-click "Add Day Planning": opens page 50712 (Day Planning Sequence)
+    /// for the section's Job/Job Task (sectionId "Job|Task|..."), or, for the 'nodata' placeholder,
+    /// a request page asking for Job No. / Job Task No. (prefilled from single-code page filters).
+    /// </summary>
+    procedure OpenDayPlanningSequenceFromSection(SectionId: Text; JobFilter: Text; JobTaskFilter: Text; SkillFilter: Text): Boolean
+    var
+        JobTask: Record "Job Task";
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        SequencePage: Page "Day Planning Sequence";
+        AddDayPlanningDlg: Report "Add Day Planning";
+        Parts: List of [Text];
+        JobNo: Code[20];
+        TaskNo: Code[20];
+        DlgSkill: Code[10];
+        SkillCode: Text;
+        TemplateCode: Text;
+    begin
+        Parts := SectionId.Split('|');
+        // AL does not short-circuit 'and' - Get(2) must not be evaluated when there is only one part ('nodata')
+        if Parts.Count() >= 2 then begin
+            JobNo := CopyStr(Parts.Get(1), 1, MaxStrLen(JobNo));
+            TaskNo := CopyStr(Parts.Get(2), 1, MaxStrLen(TaskNo));
+        end;
+        if (JobNo = '') or (TaskNo = '') then begin
+            if (JobFilter <> '') and (DelChr(JobFilter, '=', '|&*<>=.') = JobFilter) then
+                JobNo := CopyStr(JobFilter, 1, MaxStrLen(JobNo))
+            else
+                JobNo := '';
+            if (JobTaskFilter <> '') and (DelChr(JobTaskFilter, '=', '|&*<>=.') = JobTaskFilter) then
+                TaskNo := CopyStr(JobTaskFilter, 1, MaxStrLen(TaskNo))
+            else
+                TaskNo := '';
+            if (SkillFilter <> '') and (DelChr(SkillFilter, '=', '|&*<>=.') = SkillFilter) then
+                DlgSkill := CopyStr(SkillFilter, 1, MaxStrLen(DlgSkill));
+            AddDayPlanningDlg.SetContext(JobNo, TaskNo, DlgSkill);
+            AddDayPlanningDlg.RunModal();
+            if not AddDayPlanningDlg.IsConfirmed() then
+                exit(false);
+            AddDayPlanningDlg.GetContext(JobNo, TaskNo, DlgSkill);
+            if (JobNo = '') or (TaskNo = '') then
+                Error('Job No. and Job Task No. are both required to add a day planning.');
+            JobTask.Get(JobNo, TaskNo);
+        end;
+
+        if DailyOptimizerSetup.Get() then;
+        if DlgSkill <> '' then
+            SkillCode := DlgSkill
+        else
+            if (SkillFilter <> '') and (DelChr(SkillFilter, '=', '|&*<>=.') = SkillFilter) then
+                SkillCode := SkillFilter
+            else
+                SkillCode := DailyOptimizerSetup."Default Skill";
+        if JobTask.Get(JobNo, TaskNo) then
+            TemplateCode := JobTask."Work Hour Template";
+        if TemplateCode = '' then
+            TemplateCode := DailyOptimizerSetup."Work hour Template";
+
+        SequencePage.SetContext(JobNo, TaskNo, '');
+        SequencePage.SetSequenceDefaults(SkillCode, TemplateCode);
+        SequencePage.SetOpenNewSequenceOnStart();
+        SequencePage.RunModal();
+        exit(true);
+    end;
+
+    /// <summary>
     /// Opens the Resource Day Plannings page filtered to resources assigned to the
     /// job task linked to the given event ID.
     /// Used by the right-click context menu "Show Job Resources".

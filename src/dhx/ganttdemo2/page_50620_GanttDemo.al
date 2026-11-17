@@ -478,85 +478,43 @@ page 50620 "Gantt Demo DHX 2"
                         DHXDataHandler.ResScheduler_BuildSectionStatsJson(CopyStr(resourceId, 5), true, '', '', StartDate, EndDate));
                 end;
 
+                // Right-click on a vacant cell/bar of the resource timeline > "Add Day Planning":
+                // opens the Day Planning Sequence page's "New sequence" dialog (same flow as the Task
+                // Scheduler's section menu) instead of the Day Planning Card. Job/Job Task follow the
+                // applied filter (task-click mode: the ResourcePanel* task; default mode: the task-list
+                // JobFilter/JobTaskFilter), Skill follows the Skill filter, else the clicked resource's
+                // first skill. Missing Job/Job Task are asked for by the "Add Day Planning" popup.
                 trigger onAddDayPlanning(resourceId: Text; TaskDate: Text)
                 var
-                    DayPlanning: Record "Day Planning";
-                    WorkHourTemplate: record "Work-Hour Template";
-                    DayPlanningCard: Page "Day Planning Card - New Record";
-                    WorkDt: Date;
-                    Prefix: Text[4];
-                    ResourceCode: Code[20];
-                    IsTemp: Boolean;
-                    FilterJobNo: Code[20];
-                    FilterJobTaskNo: Code[20];
+                    DHXDataHandler: Codeunit "DHX Data Handler";
+                    ResourceSkill: Record "Resource Skill";
+                    CtxJobFilter: Text;
+                    CtxJobTaskFilter: Text;
+                    CtxSkill: Text;
+                    BeforeCount: Integer;
+                    BeforeMax: DateTime;
                 begin
-                    Evaluate(WorkDt, TaskDate); // expects YYYY-MM-DD
-                    Prefix := CopyStr(resourceId, 1, 4);
-                    ResourceCode := CopyStr(resourceId, 5, MaxStrLen(ResourceCode));
-                    DayPlanning.Init();
-                    DayPlanning."Plan Date" := WorkDt;
-                    if Prefix = 'RES-' then begin
-                        // Validate("Requested Resource No.", ...) can Error() (e.g. the resource
-                        // has no Skill assigned - see table_50610's mandatory-skill check). Wrapped
-                        // in a TryFunction + friendly Message() rather than letting that raw error
-                        // propagate through the Gantt JS bridge, same "if not X then Message(...)"
-                        // surfacing convention already used by OnLinkCreated (UpsertLinkFromJson)
-                        // above in this same page. Underlying validation/blocking behavior is
-                        // unchanged - the drop is still refused, just with a clean message instead
-                        // of an unhandled error.
-                        if not TryValidateRequestedResourceNo(DayPlanning, ResourceCode) then begin
-                            Message('Cannot add this Day Planning: %1', GetLastErrorText());
-                            exit;
-                        end;
-                    end else
-                        if Prefix = 'VEN-' then
-                            DayPlanning.Validate("Vendor No.", ResourceCode);
-                    DayPlanning."Plan Status" := DayPlanning."Plan Status"::"In Request";
-                    if OptiSetup."Work hour Template" <> '' then begin
-                        WorkHourTemplate.Get(OptiSetup."Work hour Template");
-                        DayPlanning."Idle Minutes Assigned" := WorkHourTemplate."Non Working Minutes";
-                        DayPlanning.Validate("Start Time Requested", WorkHourTemplate."Default Start Time");
-                        DayPlanning.Validate("End Time Requested", WorkHourTemplate."Default End Time");
-                        DayPlanning."Requested Hours" := WorkHourTemplate."Working Hours";
-                    end;
-                    // Default Job/Task from the applied filter: task-click mode uses the synchronous
-                    // ResourcePanel* vars, default mode uses the task-list JobFilter/JobTaskFilter
-                    // (only when they are a single code, not a filter expression).
+                    GetDayPlanningFingerprint(BeforeCount, BeforeMax);
                     if ResourcePanelJobNo <> '' then begin
-                        FilterJobNo := ResourcePanelJobNo;
-                        FilterJobTaskNo := ResourcePanelJobTaskNo;
+                        CtxJobFilter := ResourcePanelJobNo;
+                        CtxJobTaskFilter := ResourcePanelJobTaskNo;
                     end else begin
-                        if (JobFilter <> '') and (DelChr(JobFilter, '=', '|&<>=@*.') = JobFilter) then
-                            FilterJobNo := CopyStr(JobFilter, 1, MaxStrLen(FilterJobNo));
-                        if (JobTaskFilter <> '') and (DelChr(JobTaskFilter, '=', '|&<>=@*.') = JobTaskFilter) then
-                            FilterJobTaskNo := CopyStr(JobTaskFilter, 1, MaxStrLen(FilterJobTaskNo));
+                        CtxJobFilter := JobFilter;
+                        CtxJobTaskFilter := JobTaskFilter;
                     end;
-                    if FilterJobNo <> '' then
-                        DayPlanning.Validate("Job No.", FilterJobNo);
-                    if FilterJobTaskNo <> '' then
-                        DayPlanning.Validate("Job Task No.", FilterJobTaskNo);
-
-                    DayPlanning.CalculateWorkingHours();
-                    Clear(DayPlanningCard);
-                    DayPlanningCard.LookupMode(true);
-                    DayPlanningCard.SetNewRecordToSave(DayPlanning);
-                    if DayPlanningCard.RunModal() = Action::LookupOK then begin
-                        DayPlanningCard.GetRecord(DayPlanning);
-                        DayPlanning.TestField("Job No.");
-                        DayPlanning.TestField("Job Task No.");
-                        DayPlanning.TestField("Plan Date");
-                        if DayPlanning."Plan Status" = DayPlanning."Plan Status"::"In Progress" then begin
-                            DayPlanning.TestField("Assigned Resource No.");
-                            DayPlanning.TestField("Assigned Hours");
-                            DayPlanning.TestField("Start Time Assigned");
-                            DayPlanning.TestField("End Time Assigned");
+                    CtxSkill := SkillFilter;
+                    if (CtxSkill = '') or (DelChr(CtxSkill, '=', '|&<>=@*.') <> CtxSkill) then begin
+                        CtxSkill := '';
+                        if CopyStr(resourceId, 1, 4) = 'RES-' then begin
+                            ResourceSkill.SetRange(Type, ResourceSkill.Type::Resource);
+                            ResourceSkill.SetRange("No.", CopyStr(resourceId, 5));
+                            if ResourceSkill.FindFirst() then
+                                CtxSkill := ResourceSkill."Skill Code";
                         end;
-
-                        DayPlanning.CheckDayPlanningDateInProjectTaskRange();
-                        DayPlanning.GetNextDayLineNo();
-                        DayPlanning.Insert(true);
                     end;
-                    RefreshGantt();
+                    DHXDataHandler.OpenDayPlanningSequenceFromSection('', CtxJobFilter, CtxJobTaskFilter, CtxSkill);
+                    // On close: reload the resource panel only if Day Plannings changed (same as OpenSequences)
+                    RefreshResourcePanelIfChanged(BeforeCount, BeforeMax);
                 end;
 
                 trigger onOpenResourceCalendar(resourceId: Text)

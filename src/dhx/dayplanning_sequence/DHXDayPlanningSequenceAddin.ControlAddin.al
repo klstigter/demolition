@@ -32,6 +32,9 @@ controladdin DHXDayPlanningSequenceAddin
     event OnEventDblClick(eventId: Text; eventData: Text);
     event OnFilterIconClick();
     event OnClearFilter();
+    // "New sequence" dialog Project No./Task No. assist-edit (isTask=false: Project lookup; true: Task lookup of projectNo).
+    event OnLookupNewSequenceContext(isTask: Boolean; projectNo: Text);
+    procedure SetNewSequenceContext(projectNo: Text; taskNo: Text);
 
     procedure SetSequenceResource(ResourceNo: Code[20]);
     procedure SequenceExecuted();
@@ -42,6 +45,8 @@ controladdin DHXDayPlanningSequenceAddin
     procedure SetHighlightedSections(keysJson: Text);
     // Default Skill / Work-Hour Template pre-selected when "New sequence" opens (part 50711).
     procedure SetNewSequenceDefaults(skillCode: Text; templateCode: Text);
+    // Standalone page 50712 only: opens the "New sequence" dialog right away, Project/Task pre-filled.
+    procedure OpenNewSequence(jobNo: Text; jobTaskNo: Text);
     procedure LoadData(eventsJson: Text);
     procedure RefreshTimeline(sectionsJson: Text; eventsJson: Text; anchorDate: Date; latestDate: Date);
     procedure LoadHolidaysData(holidaysJsonTxt: Text);
