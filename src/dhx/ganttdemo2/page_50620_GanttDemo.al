@@ -385,9 +385,6 @@ page 50620 "Gantt Demo DHX 2"
                     HighlightKeys: JsonArray;
                     FirstFound: Boolean;
                     SameDay: Record "Day Planning";
-                    ScopeJobFilter: Text;
-                    ScopeJobTaskFilter: Text;
-                    ScopeSkillFilter: Text;
                     ResourceNo: Code[20];
                     PlanDate: Date;
                     BeforeCount: Integer;
@@ -407,8 +404,10 @@ page 50620 "Gantt Demo DHX 2"
                                     GanttChartDataHandler.GetDateRange(Setup, AnchorDate, PeriodStart, PeriodEnd);
                                     SequencePage.SetPeriod(PeriodStart, PeriodEnd);
                                     SequencePage.SetContext(DayPlanning."Job No.", DayPlanning."Job Task No.", '');
-                                    GetResourcePanelScopeFilters(ScopeJobFilter, ScopeJobTaskFilter, ScopeSkillFilter);
-                                    SequencePage.SetScopeFilters(ScopeJobFilter, ScopeJobTaskFilter, ScopeSkillFilter);
+                                    // No Job/Task/Skill scope here: the marker's lines can belong to any project (the resource
+                                    // panel shows a resource's whole load), while the Gantt's task filter (e.g. Job = 50000)
+                                    // would exclude them and leave the page blank. SetShowHighlightedOnly limits the rows.
+                                    SequencePage.SetScopeFilters('', '', '');
                                     FirstFound := true;
                                     ResourceNo := DayPlanning."Assigned Resource No.";
                                     if ResourceNo = '' then
@@ -430,6 +429,7 @@ page 50620 "Gantt Demo DHX 2"
                             until SameDay.Next() = 0;
                     end;
                     if FirstFound then begin
+                        SequencePage.SetResourceContext(ResourceNo, PlanDate);
                         SequencePage.SetHighlightedSections(HighlightKeys);
                         SequencePage.SetShowHighlightedOnly(); // only the related (yellow) rows, not the whole filtered scope
                         SequencePage.RunModal();

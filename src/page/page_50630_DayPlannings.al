@@ -398,6 +398,7 @@ page 50630 "Day Plannings"
         area(Promoted)
         {
             actionref(CopyRequestedToAssigned_Promoted; CopyRequestedToAssigned) { }
+            actionref(ApplyTemplate_Promoted; ApplyTemplate) { }
             actionref(ShowStyleReason_Promoted; ShowStyleReason) { }
             Group(Visuals_Ref)
             {
@@ -447,6 +448,37 @@ page 50630 "Day Plannings"
                             n += 1;
                         until DayPlanning.Next() = 0;
                     message(Lbl, n);
+                end;
+            }
+            action(ApplyTemplate)
+            {
+                Caption = 'Apply Start/Time based Template';
+                ApplicationArea = All;
+                ToolTip = 'Applies the Work-Hour Template of the project task (else the Optimizer Setup) to the selected lines: Default Start Time and that weekday''s hours, on Requested and Assigned.';
+                Image = Apply;
+
+                trigger OnAction()
+                var
+                    DayPlanning: Record "Day Planning";
+                    DayPlanningsMgt: Codeunit "Day Plannings Mgt.";
+                    Reason: Text;
+                    Applied: Integer;
+                    Skipped: Integer;
+                    ResultLbl: Label '%1 day planning line(s) updated, %2 skipped.\Last reason: %3';
+                begin
+                    CurrPage.SetSelectionFilter(DayPlanning);
+                    if DayPlanning.FindSet() then
+                        repeat
+                            if DayPlanningsMgt.ApplyTemplateTimes(DayPlanning, Reason) then
+                                Applied += 1
+                            else
+                                Skipped += 1;
+                        until DayPlanning.Next() = 0;
+                    if Skipped = 0 then
+                        Message('%1 day planning line(s) updated.', Applied)
+                    else
+                        Message(ResultLbl, Applied, Skipped, Reason);
+                    CurrPage.Update(false);
                 end;
             }
             action(ShowStyleReason)
