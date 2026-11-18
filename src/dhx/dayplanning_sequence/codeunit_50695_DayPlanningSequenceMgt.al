@@ -297,6 +297,26 @@ codeunit 50695 "Day Planning Sequence Mgt."
         DayPlanning.Modify(true);
     end;
 
+    /// <summary>Sets the Requested Resource on every line of a just-generated sequence (resource context of "Open Sequences" from a resource marker).</summary>
+    procedure SetRequestedResourceOnSequence(JobNo: Code[20]; JobTaskNo: Code[20]; SkillCode: Code[10]; SequenceNo: Integer; ResourceNo: Code[20])
+    var
+        DayPlanning: Record "Day Planning";
+        Resource: Record Resource;
+    begin
+        if not Resource.Get(ResourceNo) then
+            exit;
+        DayPlanning.SetRange("Job No.", JobNo);
+        DayPlanning.SetRange("Job Task No.", JobTaskNo);
+        DayPlanning.SetRange(Skill, SkillCode);
+        DayPlanning.SetRange("Sequence No.", SequenceNo);
+        if DayPlanning.FindSet() then
+            repeat
+                DayPlanning.Validate("Requested Resource No.", ResourceNo);
+                DayPlanning.Skill := SkillCode; // Validate replaces Skill with the resource's first skill - keep the sequence's own
+                DayPlanning.Modify(true);
+            until DayPlanning.Next() = 0;
+    end;
+
     local procedure UpdateSelectedSequenceResource(var DayPlanning: Record "Day Planning"; AssignedSide: Boolean; ResourceNo: Code[20])
     var
         Resource: Record Resource;
@@ -639,6 +659,73 @@ codeunit 50695 "Day Planning Sequence Mgt."
         DayPlanningCard.RunModal();
     end;
 
+    /// <summary>Bar right-click: applies the template to the clicked line; shows the reason if it cannot.</summary>
+    procedure ApplyTemplateTimesToEvent(EventId: Text): Boolean
+    var
+        DayPlanning: Record "Day Planning";
+        DayPlanningsMgt: Codeunit "Day Plannings Mgt.";
+        Reason: Text;
+    begin
+        if not GetDayPlanningByEventId(EventId, DayPlanning) then
+            exit(false);
+        if DayPlanningsMgt.ApplyTemplateTimes(DayPlanning, Reason) then
+            exit(true);
+        Message(Reason);
+        exit(false);
+    end;
+
+    /// <summary>Bar right-click "Open Resource": Assigned Resource, else Requested Resource.</summary>
+    procedure OpenResourceByEventId(EventId: Text)
+    var
+        DayPlanning: Record "Day Planning";
+        Resource: Record Resource;
+    begin
+        if not GetDayPlanningByEventId(EventId, DayPlanning) then
+            exit;
+        if not Resource.Get(ResourceNoOf(DayPlanning)) then begin
+            Message('No Requested or Assigned Resource.');
+            exit;
+        end;
+        Page.Run(Page::"Resource Card", Resource);
+    end;
+
+    /// <summary>Bar right-click "Open Capacity": Res. Capacity Entries of the line's resource on its Plan Date.</summary>
+    procedure OpenCapacityByEventId(EventId: Text)
+    var
+        DayPlanning: Record "Day Planning";
+        ResCapacityEntry: Record "Res. Capacity Entry";
+        Resource: Record Resource;
+        ResourceNo: Code[20];
+    begin
+        if not GetDayPlanningByEventId(EventId, DayPlanning) then
+            exit;
+        ResourceNo := ResourceNoOf(DayPlanning);
+        if not Resource.Get(ResourceNo) then begin
+            Message('No Requested or Assigned Resource.');
+            exit;
+        end;
+        ResCapacityEntry.SetRange("Resource No.", ResourceNo);
+        ResCapacityEntry.SetRange(Date, DayPlanning."Plan Date");
+        Page.Run(Page::"Res. Capacity Entries", ResCapacityEntry);
+    end;
+
+    local procedure GetDayPlanningByEventId(EventId: Text; var DayPlanning: Record "Day Planning"): Boolean
+    var
+        JobNo: Code[20];
+        JobTaskNo: Code[20];
+        DayLineNo: Integer;
+    begin
+        ParseEventId(EventId, JobNo, JobTaskNo, DayLineNo);
+        exit(DayPlanning.Get(JobNo, JobTaskNo, DayLineNo));
+    end;
+
+    local procedure ResourceNoOf(DayPlanning: Record "Day Planning"): Code[20]
+    begin
+        if DayPlanning."Assigned Resource No." <> '' then
+            exit(DayPlanning."Assigned Resource No.");
+        exit(DayPlanning."Requested Resource No.");
+    end;
+
     #endregion Single-bar CRUD
 
     #region JSON assembly for the add-in (sections/events/skills/templates)
@@ -817,6 +904,95 @@ codeunit 50695 "Day Planning Sequence Mgt."
 
         SectionsArray.WriteTo(SectionsJson);
         EventsArray.WriteTo(EventsJson);
+    end;
+
+    /// <summary>The restricted scope as distinct "Project / Task / Skill" lines (max 5, then "..."), for messages.</summary>
+    procedure GetOnlySectionsText(): Text
+    var
+        SectionKey: Text;
+        JobNo: Code[20];
+        JobTaskNo: Code[20];
+        SkillCode: Code[10];
+        SequenceNo: Integer;
+        Line: Text;
+        Result: Text;
+        Seen: List of [Text];
+        Lf: Text[1];
+    begin
+        Lf[1] := 10;
+        foreach SectionKey in OnlySectionKeys do begin
+            ParseSectionId(SectionKey, JobNo, JobTaskNo, SkillCode, SequenceNo);
+            Line := StrSubstNo('Project %1 / Task %2 / Skill %3', JobNo, JobTaskNo, SkillCode);
+            if not Seen.Contains(Line) then begin
+                if Seen.Count() = 5 then begin
+                    Result += Lf + '...';
+                    break;
+                end;
+                Seen.Add(Line);
+                Result += Lf + Line;
+            end;
+        end;
+        exit(CopyStr(Result, 2));
+    end;
+
+    /// <summary>Distinct Job / Task / Skill values of the restricted rows as "A|B" filter text (for the filter tooltip).</summary>
+    procedure GetOnlyScopeFilters(var JobFilterTxt: Text; var JobTaskFilterTxt: Text; var SkillFilterTxt: Text)
+    var
+        SectionKey: Text;
+        JobNo: Code[20];
+        JobTaskNo: Code[20];
+        SkillCode: Code[10];
+        SequenceNo: Integer;
+    begin
+        JobFilterTxt := '';
+        JobTaskFilterTxt := '';
+        SkillFilterTxt := '';
+        foreach SectionKey in OnlySectionKeys do begin
+            ParseSectionId(SectionKey, JobNo, JobTaskNo, SkillCode, SequenceNo);
+            AddDistinct(JobFilterTxt, JobNo);
+            AddDistinct(JobTaskFilterTxt, JobTaskNo);
+            AddDistinct(SkillFilterTxt, SkillCode);
+        end;
+    end;
+
+    local procedure AddDistinct(var FilterTxt: Text; Value: Text)
+    begin
+        if Value = '' then
+            exit;
+        if StrSubstNo('|%1|', FilterTxt).Contains(StrSubstNo('|%1|', Value)) then
+            exit;
+        if FilterTxt <> '' then
+            FilterTxt += '|';
+        FilterTxt += Value;
+    end;
+
+    /// <summary>True when the restricted view already covers this Job/Task/Skill (a new sequence of it is shown via AddOnlySection).</summary>
+    procedure IsInOnlyScope(JobNo: Code[20]; JobTaskNo: Code[20]; SkillCode: Code[10]): Boolean
+    var
+        SectionKey: Text;
+        KeyJobNo: Code[20];
+        KeyJobTaskNo: Code[20];
+        KeySkillCode: Code[10];
+        KeySequenceNo: Integer;
+    begin
+        foreach SectionKey in OnlySectionKeys do begin
+            ParseSectionId(SectionKey, KeyJobNo, KeyJobTaskNo, KeySkillCode, KeySequenceNo);
+            if (KeyJobNo = JobNo) and (KeyJobTaskNo = JobTaskNo) and (KeySkillCode = SkillCode) then
+                exit(true);
+        end;
+    end;
+
+    /// <summary>Adds a row to the restricted view (no-op when the view is not restricted).</summary>
+    procedure AddOnlySection(JobNo: Code[20]; JobTaskNo: Code[20]; SkillCode: Code[10]; SequenceNo: Integer)
+    begin
+        if OnlySectionKeys.Count() > 0 then
+            OnlySectionKeys.Add(BuildSectionId(JobNo, JobTaskNo, SkillCode, SequenceNo));
+    end;
+
+    /// <summary>True while the view is restricted to specific sequence rows (see SetOnlySections).</summary>
+    procedure HasOnlySections(): Boolean
+    begin
+        exit(OnlySectionKeys.Count() > 0);
     end;
 
     /// <summary>

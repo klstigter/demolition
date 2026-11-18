@@ -187,4 +187,64 @@ codeunit 50610 "Day Plannings Mgt."
             EndDate := DayPlannings."Plan Date";
     end;
 
+    /// <summary>
+    /// Applies the Work-Hour Template (Job Task, else Daily Optimizer Setup) to the line, Requested and (when a resource is
+    /// assigned) Assigned: Default Start Time, End = Start + the Plan Date weekday's hours + non-working minutes.
+    /// Returns false with Reason when not applicable.
+    /// </summary>
+    procedure ApplyTemplateTimes(var DayPlanning: Record "Day Planning"; var Reason: Text): Boolean
+    var
+        WorkHourTemplate: Record "Work-Hour Template";
+        JobTask: Record "Job Task";
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        TemplateCode: Code[20];
+        DayHours: Decimal;
+    begin
+        if JobTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
+            TemplateCode := JobTask."Work Hour Template";
+        if TemplateCode = '' then
+            if DailyOptimizerSetup.Get() then
+                TemplateCode := DailyOptimizerSetup."Work hour Template";
+        if not WorkHourTemplate.Get(TemplateCode) then begin
+            Reason := 'No Work-Hour Template found on the Project Task or in the Optimizer Setup.';
+            exit(false);
+        end;
+        if WorkHourTemplate."Default Start Time" = 0T then begin
+            Reason := StrSubstNo('Work-Hour Template %1 has no Default Start Time.', WorkHourTemplate.Code);
+            exit(false);
+        end;
+        // Follows the day name (Monday..Sunday) of the line's Plan Date: that weekday's hours in the template.
+        case Date2DWY(DayPlanning."Plan Date", 1) of
+            1:
+                DayHours := WorkHourTemplate.Monday;
+            2:
+                DayHours := WorkHourTemplate.Tuesday;
+            3:
+                DayHours := WorkHourTemplate.Wednesday;
+            4:
+                DayHours := WorkHourTemplate.Thursday;
+            5:
+                DayHours := WorkHourTemplate.Friday;
+            6:
+                DayHours := WorkHourTemplate.Saturday;
+            7:
+                DayHours := WorkHourTemplate.Sunday;
+        end;
+        if DayHours <= 0 then begin
+            Reason := StrSubstNo('Work-Hour Template %1 has no working hours on %2.', WorkHourTemplate.Code, Format(DayPlanning."Plan Date", 0, '<Weekday Text>'));
+            exit(false);
+        end;
+        DayPlanning."Start Time Requested" := WorkHourTemplate."Default Start Time";
+        DayPlanning."End Time Requested" := WorkHourTemplate."Default Start Time" + Round(DayHours * 60, 1) * 60000 + WorkHourTemplate."Non Working Minutes" * 60000;
+        DayPlanning.Validate("Idle Minutes Requested", WorkHourTemplate."Non Working Minutes");
+        if DayPlanning."Assigned Resource No." <> '' then begin
+            DayPlanning."Start Time Assigned" := DayPlanning."Start Time Requested";
+            DayPlanning."End Time Assigned" := DayPlanning."End Time Requested";
+            DayPlanning.Validate("Idle Minutes Assigned", WorkHourTemplate."Non Working Minutes");
+            DayPlanning.AssignedCheck();
+        end;
+        DayPlanning.CalculateWorkingHours();
+        DayPlanning.Modify(true);
+        exit(true);
+    end;
 }

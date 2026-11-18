@@ -30,11 +30,23 @@ controladdin DHXDayPlanningSequenceAddin
     event OnEventCreated(eventData: Text);
     event OnEventDeleted(eventId: Text);
     event OnEventDblClick(eventId: Text; eventData: Text);
+    // Right-click row/bar menu on page 50712.
+    event OnOpenProject(jobNo: Text);
+    event OnOpenProjectTask(jobNo: Text; jobTaskNo: Text);
+    // Right-click bar menu (eventId = Day Planning event id).
+    event OnBarApplyTemplate(eventId: Text);
+    event OnBarOpenResource(eventId: Text);
+    event OnBarOpenCapacity(eventId: Text);
+    // "New sequence" dialog Requested Resource No. assist-edit (only shown when the page has a resource context).
+    event OnLookupNewSequenceResource();
     event OnFilterIconClick();
     event OnClearFilter();
     // "New sequence" dialog Project No./Task No. assist-edit (isTask=false: Project lookup; true: Task lookup of projectNo).
     event OnLookupNewSequenceContext(isTask: Boolean; projectNo: Text);
     procedure SetNewSequenceContext(projectNo: Text; taskNo: Text);
+    // Resource context of the page (blank = none): shows/pre-fills the dialog's Requested Resource No. field.
+    procedure SetNewSequenceResourceContext(resourceNo: Text);
+    procedure SetNewSequenceResource(resourceNo: Text);
 
     procedure SetSequenceResource(ResourceNo: Code[20]);
     procedure SequenceExecuted();

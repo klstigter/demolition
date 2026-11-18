@@ -47,10 +47,13 @@ page 50712 "Day Planning Sequence"
                 begin
                     ControlIsReady := true;
                     CurrPage.DhxSequence.SetShowContext(true);
+                    CurrPage.DhxSequence.SetNewSequenceResourceContext(ResourceContextNo);
                     if (JobNo = '') or (JobTaskNo = '') then
                         exit;
 
                     DayPlanningSequenceMgt.BuildSectionsAndEventsJson(JobFilter, JobTaskFilter, SkillFilter, ResourceFilter, PeriodFrom, PeriodTo, SectionsJsonTxt, EventsJsonTxt, EarliestDate, LatestDate);
+                    DataSpanFrom := EarliestDate;
+                    DataSpanTo := LatestDate;
                     SkillsJsonTxt := DayPlanningSequenceMgt.BuildSkillsJson();
                     TemplatesJsonTxt := DayPlanningSequenceMgt.BuildTemplatesJson();
 
@@ -65,7 +68,9 @@ page 50712 "Day Planning Sequence"
                     CurrPage.DhxSequence.SetTooltipColors(VisualDefaultSettings.GetTooltipBackgroundColor(), VisualDefaultSettings.GetTooltipFontColor());
                     PushFilterInfo();
                     if HasNewSequenceDefaults then
-                        CurrPage.DhxSequence.SetNewSequenceDefaults(DefaultSkillCode, DefaultTemplateCode);
+                        CurrPage.DhxSequence.SetNewSequenceDefaults(DefaultSkillCode, DefaultTemplateCode)
+                    else
+                        PushNewSequenceDefaults();
                     if OpenNewSequenceOnStart then
                         CurrPage.DhxSequence.OpenNewSequence(JobNo, JobTaskNo);
                 end;
@@ -129,6 +134,10 @@ page 50712 "Day Planning Sequence"
                     ExcludedWeekdaysCsv: Text;
                     StartDate: Date;
                     EndDate: Date;
+                    NewSequenceNo: Integer;
+                    NewSequenceResourceNo: Code[20];
+                    InView: Boolean;
+                    NotInViewQst: Label 'The Day Planning will be created, but it will not be shown in the current view because it does not match the displayed filter.\%1\Continue?';
                 begin
                     PayloadJObj.ReadFrom(payloadJson);
                     if PayloadJObj.Get('skill', JToken) then
@@ -137,6 +146,8 @@ page 50712 "Day Planning Sequence"
                         TemplateCode := CopyStr(JToken.AsValue().AsText(), 1, MaxStrLen(TemplateCode));
                     if PayloadJObj.Get('excludedWeekdays', JToken) then
                         ExcludedWeekdaysCsv := JToken.AsValue().AsText();
+                    if PayloadJObj.Get('resourceNo', JToken) then
+                        NewSequenceResourceNo := CopyStr(JToken.AsValue().AsText(), 1, MaxStrLen(NewSequenceResourceNo));
                     if PayloadJObj.Get('startDate', JToken) then
                         StartDate := ParseIsoDate(JToken.AsValue().AsText());
                     if PayloadJObj.Get('endDate', JToken) then
@@ -151,7 +162,19 @@ page 50712 "Day Planning Sequence"
                         if JToken.AsValue().AsText() <> '' then
                             JobTaskNo := CopyStr(JToken.AsValue().AsText(), 1, MaxStrLen(JobTaskNo));
 
-                    DayPlanningSequenceMgt.GenerateSequence(JobNo, JobTaskNo, SkillCode, TemplateCode, StartDate, EndDate, ExcludedWeekdaysCsv, WorkOrderNo);
+                    // The new sequence is only visible when it matches what this page currently displays.
+                    InView := MatchesDisplayedFilter(JobNo, JobTaskNo, SkillCode, StartDate, EndDate, NewSequenceResourceNo);
+                    if not InView then
+                        if not Confirm(NotInViewQst, false, CurrentFilterText()) then begin
+                            RefreshTimeline(); // closes the dialog's busy state
+                            exit;
+                        end;
+
+                    NewSequenceNo := DayPlanningSequenceMgt.GenerateSequence(JobNo, JobTaskNo, SkillCode, TemplateCode, StartDate, EndDate, ExcludedWeekdaysCsv, WorkOrderNo);
+                    if InView then
+                        DayPlanningSequenceMgt.AddOnlySection(JobNo, JobTaskNo, SkillCode, NewSequenceNo); // keep it visible when the view is restricted to marker rows
+                    if NewSequenceResourceNo <> '' then
+                        DayPlanningSequenceMgt.SetRequestedResourceOnSequence(JobNo, JobTaskNo, SkillCode, NewSequenceNo, NewSequenceResourceNo);
                     RefreshTimeline();
                     // A new sequence can widen the parent Job Task's PlannedStartDate/PlannedEndDate
                     // (see codeunit 50695's ExtendJobTaskPlannedPeriod) via a separate Record variable,
@@ -243,6 +266,20 @@ page 50712 "Day Planning Sequence"
                     end;
                 end;
 
+                trigger OnLookupNewSequenceResource()
+                var
+                    Resource: Record Resource;
+                    ResourceList: Page "Resource List";
+                begin
+                    Resource.SetRange(Blocked, false);
+                    ResourceList.SetTableView(Resource);
+                    ResourceList.LookupMode(true);
+                    if ResourceList.RunModal() = Action::LookupOK then begin
+                        ResourceList.GetRecord(Resource);
+                        CurrPage.DhxSequence.SetNewSequenceResource(Resource."No.");
+                    end;
+                end;
+
                 trigger OnLookupSequenceResource()
                 var
                     Resource: Record Resource;
@@ -281,6 +318,37 @@ page 50712 "Day Planning Sequence"
                     DayPlanningSequenceMgt.OpenDayPlanningCardByEventId(eventId);
                     RefreshTimeline();
                 end;
+
+                trigger OnBarApplyTemplate(eventId: Text)
+                begin
+                    if DayPlanningSequenceMgt.ApplyTemplateTimesToEvent(eventId) then
+                        RefreshTimeline();
+                end;
+
+                trigger OnBarOpenResource(eventId: Text)
+                begin
+                    DayPlanningSequenceMgt.OpenResourceByEventId(eventId);
+                end;
+
+                trigger OnBarOpenCapacity(eventId: Text)
+                begin
+                    DayPlanningSequenceMgt.OpenCapacityByEventId(eventId);
+                end;
+
+                trigger OnOpenProject(jobNo: Text)
+                var
+                    Job: Record Job;
+                begin
+                    if Job.Get(CopyStr(jobNo, 1, MaxStrLen(Job."No."))) then
+                        Page.Run(Page::"Job Card", Job);
+                end;
+
+                trigger OnOpenProjectTask(jobNo: Text; jobTaskNo: Text)
+                var
+                    GanttBCPageHandler: Codeunit "Gantt BC Page Handler";
+                begin
+                    GanttBCPageHandler.OpenJobTaskCard(CopyStr(jobNo, 1, 20), CopyStr(jobTaskNo, 1, 20));
+                end;
             }
         }
     }
@@ -303,6 +371,122 @@ page 50712 "Day Planning Sequence"
         DefaultTemplateCode: Text;
         HasNewSequenceDefaults: Boolean;
         OpenNewSequenceOnStart: Boolean;
+        ResourceContextNo: Code[20];
+        ResourceContextDate: Date;
+        DataSpanFrom: Date;
+        DataSpanTo: Date;
+
+    /// <summary>The filter currently applied to the view, same lines as the filter icon's tooltip (for the "will not be shown" confirmation).</summary>
+    local procedure CurrentFilterText(): Text
+    var
+        ShownJobFilter: Text;
+        ShownJobTaskFilter: Text;
+        ShownSkillFilter: Text;
+        ShownResourceFilter: Text;
+        ShownDate: Text;
+        Result: Text;
+        Lf: Text[1];
+    begin
+        Lf[1] := 10;
+        GetShownFilters(ShownJobFilter, ShownJobTaskFilter, ShownSkillFilter, ShownResourceFilter, ShownDate);
+        if ShownJobFilter <> '' then
+            Result += Lf + 'Job = ' + ShownJobFilter;
+        if ShownJobTaskFilter <> '' then
+            Result += Lf + 'Task = ' + ShownJobTaskFilter;
+        if ShownSkillFilter <> '' then
+            Result += Lf + 'Skill = ' + ShownSkillFilter;
+        if ShownResourceFilter <> '' then
+            Result += Lf + 'Resource = ' + ShownResourceFilter;
+        if (PeriodFrom <> 0D) or (PeriodTo <> 0D) then
+            Result += Lf + 'Period = ' + FormatIsoDate(PeriodFrom) + ' to ' + FormatIsoDate(PeriodTo)
+        else
+            if (Result <> '') and (DataSpanFrom <> 0D) and (DataSpanTo <> 0D) then
+                Result += Lf + FormatIsoDate(DataSpanFrom) + ' to ' + FormatIsoDate(DataSpanTo); // same span line as the filter tooltip
+        exit(CopyStr(Result, 2));
+    end;
+
+    /// <summary>
+    /// Filter texts as shown to the user (tooltip + confirmation). Explicit filters win. When the view is limited to the rows of a
+    /// resource marker, its context is only the marker's Resource and date (Gantt resource panel cell), else the Job/Task/Skill of the limited rows.
+    /// </summary>
+    local procedure GetShownFilters(var ShownJobFilter: Text; var ShownJobTaskFilter: Text; var ShownSkillFilter: Text; var ShownResourceFilter: Text; var ShownDate: Text)
+    begin
+        ShownResourceFilter := ResourceFilter;
+        if DayPlanningSequenceMgt.HasOnlySections() then
+            if ResourceContextNo <> '' then begin
+                if ShownResourceFilter = '' then
+                    ShownResourceFilter := ResourceContextNo;
+                if ResourceContextDate <> 0D then
+                    ShownDate := FormatIsoDate(ResourceContextDate);
+            end else
+                DayPlanningSequenceMgt.GetOnlyScopeFilters(ShownJobFilter, ShownJobTaskFilter, ShownSkillFilter);
+        if JobFilter <> '' then
+            ShownJobFilter := JobFilter;
+        if JobTaskFilter <> '' then
+            ShownJobTaskFilter := JobTaskFilter;
+        if SkillFilter <> '' then
+            ShownSkillFilter := SkillFilter;
+    end;
+
+    /// <summary>True when a sequence of this Job/Task/Skill would appear in the current view (no "only these rows" restriction, and it fits the Job/Task/Skill filters).</summary>
+    local procedure MatchesDisplayedFilter(NewJobNo: Code[20]; NewJobTaskNo: Code[20]; NewSkillCode: Code[10]; NewStartDate: Date; NewEndDate: Date; NewResourceNo: Code[20]): Boolean
+    var
+        TempDayPlanning: Record "Day Planning" temporary;
+    begin
+        if DayPlanningSequenceMgt.HasOnlySections() then
+            if ResourceContextNo <> '' then begin
+                // Marker context = resource + the displayed date range (same as the filter info): in view when it is for that
+                // resource and its Start..End overlaps the displayed range.
+                if NewResourceNo <> ResourceContextNo then
+                    exit(false);
+                if (DataSpanFrom = 0D) or (DataSpanTo = 0D) then
+                    exit(true);
+                exit((NewStartDate <= DataSpanTo) and (NewEndDate >= DataSpanFrom));
+            end else
+                if not DayPlanningSequenceMgt.IsInOnlyScope(NewJobNo, NewJobTaskNo, NewSkillCode) then
+                    exit(false);
+        TempDayPlanning."Plan Date" := Today();
+        TempDayPlanning."Day Line No." := 1;
+        TempDayPlanning."Job No." := NewJobNo;
+        TempDayPlanning."Job Task No." := NewJobTaskNo;
+        TempDayPlanning.Skill := NewSkillCode;
+        TempDayPlanning.Insert();
+        if JobFilter <> '' then
+            TempDayPlanning.SetFilter("Job No.", JobFilter);
+        if JobTaskFilter <> '' then
+            TempDayPlanning.SetFilter("Job Task No.", JobTaskFilter);
+        if SkillFilter <> '' then
+            TempDayPlanning.SetFilter(Skill, SkillFilter);
+        exit(not TempDayPlanning.IsEmpty());
+    end;
+
+    /// <summary>
+    /// Same defaults as part 50711: Skill = Daily Optimizer Setup."Default Skill"; Work-Hour Template =
+    /// Job Task."Work Hour Template", else Daily Optimizer Setup."Work hour Template".
+    /// </summary>
+    local procedure PushNewSequenceDefaults()
+    var
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        JobTask: Record "Job Task";
+        TemplateCode: Code[20];
+    begin
+        if DailyOptimizerSetup.Get() then;
+        if JobTask.Get(JobNo, JobTaskNo) then
+            TemplateCode := JobTask."Work Hour Template";
+        if TemplateCode = '' then
+            TemplateCode := DailyOptimizerSetup."Work hour Template";
+        CurrPage.DhxSequence.SetNewSequenceDefaults(DailyOptimizerSetup."Default Skill", TemplateCode);
+    end;
+
+    /// <summary>
+    /// Resource context (e.g. "Open Sequences" from a resource marker): sequences created on this page get this
+    /// resource as Requested Resource. Call before RunModal.
+    /// </summary>
+    procedure SetResourceContext(NewResourceNo: Code[20]; NewContextDate: Date)
+    begin
+        ResourceContextNo := NewResourceNo;
+        ResourceContextDate := NewContextDate;
+    end;
 
     /// <summary>
     /// Opens the "New sequence" dialog as soon as the page is ready (Job/Task from SetContext). Call before RunModal.
@@ -419,6 +603,8 @@ page 50712 "Day Planning Sequence"
             exit;
 
         DayPlanningSequenceMgt.BuildSectionsAndEventsJson(JobFilter, JobTaskFilter, SkillFilter, ResourceFilter, PeriodFrom, PeriodTo, SectionsJsonTxt, EventsJsonTxt, EarliestDate, LatestDate);
+                    DataSpanFrom := EarliestDate;
+                    DataSpanTo := LatestDate;
         PushFilterInfo(); // before RefreshTimeline: the add-in sizes the span from the period end
         CurrPage.DhxSequence.SetHighlightedSections(HighlightKeysJson);
         CurrPage.DhxSequence.RefreshTimeline(SectionsJsonTxt, EventsJsonTxt, EarliestDate, TimelineEndDate(EarliestDate, LatestDate));
@@ -426,9 +612,19 @@ page 50712 "Day Planning Sequence"
     end;
 
     local procedure PushFilterInfo()
+    var
+        ShownJobFilter: Text;
+        ShownJobTaskFilter: Text;
+        ShownSkillFilter: Text;
+        ShownResourceFilter: Text;
+        ShownDate: Text;
+        ShownPeriodFrom: Text;
+        ShownPeriodTo: Text;
     begin
-        CurrPage.DhxSequence.SetFilterInfo(JobFilter, JobTaskFilter, SkillFilter, ResourceFilter,
-            FormatIsoDate(PeriodFrom), FormatIsoDate(PeriodTo));
+        GetShownFilters(ShownJobFilter, ShownJobTaskFilter, ShownSkillFilter, ShownResourceFilter, ShownDate);
+        ShownPeriodFrom := FormatIsoDate(PeriodFrom);
+        ShownPeriodTo := FormatIsoDate(PeriodTo);
+        CurrPage.DhxSequence.SetFilterInfo(ShownJobFilter, ShownJobTaskFilter, ShownSkillFilter, ShownResourceFilter, ShownPeriodFrom, ShownPeriodTo);
     end;
 
     local procedure FormatIsoDate(D: Date): Text

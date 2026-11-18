@@ -176,18 +176,21 @@
 
 /* Project No. / Task No. assist-edit: input and "..." button on one line */
 #dpsNewProjectField > div,
-#dpsNewTaskField > div {
+#dpsNewTaskField > div,
+#dpsNewResourceField > div {
     display: flex;
     gap: 4px;
     align-items: stretch;
 }
 #dpsNewProjectField > div input,
-#dpsNewTaskField > div input {
+#dpsNewTaskField > div input,
+#dpsNewResourceField > div input {
     flex: 1;
     min-width: 0;
 }
 #dpsNewProjectField > div .dps-btn,
-#dpsNewTaskField > div .dps-btn {
+#dpsNewTaskField > div .dps-btn,
+#dpsNewResourceField > div .dps-btn {
     flex: none;
     width: auto;
     padding: 0 10px;
@@ -1117,3 +1120,18 @@
 #dpsOperationGrid table[aria-label="Add and Delete options"] .dps-operation-cell {
     min-width: 32px;
 }
+
+.dps-context-menu {
+    position: fixed;
+    z-index: 200;
+    min-width: 160px;
+    background: #fff;
+    color: #000;
+    border: 1px solid #c8c8c8;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
+    padding: 4px 0;
+    font-size: 13px;
+}
+.dps-context-item { padding: 6px 14px; cursor: pointer; }
+.dps-context-item:hover { background: #e6f0fb; }

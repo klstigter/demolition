@@ -225,6 +225,7 @@ function buildDom(host) {
                     '<div class="dps-field"><label>Exclude days</label><div class="dps-exclude-grid" id="dpsEventExcludeDays"></div></div>' +
                     '<div class="dps-field"><label>Start Date</label><input type="date" lang="en-GB" id="dpsEventStartDate"></div>' +
                     '<div class="dps-field"><label>End Date</label><input type="date" lang="en-GB" id="dpsEventEndDate"></div>' +
+                    '<div class="dps-field" id="dpsNewResourceField" hidden><label for="dpsNewResource">Requested Resource No.</label><div><input id="dpsNewResource" readonly><button type="button" class="dps-btn" id="dpsPickNewResource" aria-label="Look up Resource">…</button></div></div>' +
                 '</div>' +
                 '<div class="dps-status" id="dpsCreateStatus"></div>' +
                 '<div class="dps-panelactions">' +
@@ -590,6 +591,71 @@ function attachScaleInteraction() {
     });
 
     root.addEventListener("mouseleave", hideTooltip);
+
+    // Right-click: row label -> Open Project / Open Project Task; bar -> Apply Template / Open Resource / Open Capacity.
+    root.addEventListener("contextmenu", function (e) {
+        if (!dps_showContext) return; // standalone page 50712 only: the FastTab part 50711 has no handlers for these actions
+        var label = e.target.closest(".dps-row-label");
+        if (label) {
+            var section = dps_sectionsByKey[label.getAttribute("data-section-key")];
+            if (!section || !section.jobNo) return;
+            e.preventDefault();
+            hideTooltip();
+            showRowContextMenu(e.clientX, e.clientY, [
+                { text: "Open Project", fn: function () { dpsInvoke("OnOpenProject", [section.jobNo]); } },
+                { text: "Open Project Task", fn: function () { dpsInvoke("OnOpenProjectTask", [section.jobNo, section.jobTaskNo || ""]); } }
+            ]);
+            return;
+        }
+        var bar = e.target.closest(".dhx_cal_event_line,.dhx_cal_event_clear");
+        var id = bar && (bar.getAttribute("event_id") || bar.dataset.eventId);
+        if (id == null || !scheduler.getEvent(id)) return;
+        e.preventDefault();
+        hideTooltip();
+        showRowContextMenu(e.clientX, e.clientY, [
+            { text: "Apply Start/Time based Template", fn: function () { dpsInvoke("OnBarApplyTemplate", [String(id)]); } },
+            { text: "Open Resource", fn: function () { dpsInvoke("OnBarOpenResource", [String(id)]); } },
+            { text: "Open Capacity", fn: function () { dpsInvoke("OnBarOpenCapacity", [String(id)]); } }
+        ]);
+    });
+}
+
+function hideRowContextMenu() {
+    var m = $id("dpsContextMenu");
+    if (m) m.remove();
+    document.removeEventListener("mousedown", dps_ctxDismiss, true);
+    document.removeEventListener("keydown", dps_ctxDismiss, true);
+    window.removeEventListener("blur", hideRowContextMenu);
+}
+
+function dps_ctxDismiss(e) {
+    if (e.type === "keydown" && e.key !== "Escape") return;
+    if (e.type === "mousedown" && e.target.closest && e.target.closest("#dpsContextMenu")) return;
+    hideRowContextMenu();
+}
+
+function showRowContextMenu(x, y, items) {
+    hideRowContextMenu();
+    var m = document.createElement("div");
+    m.id = "dpsContextMenu";
+    m.className = "dps-context-menu";
+    items.forEach(function (it) {
+        var d = document.createElement("div");
+        d.className = "dps-context-item";
+        d.textContent = it.text;
+        d.addEventListener("click", function () { hideRowContextMenu(); it.fn(); });
+        m.appendChild(d);
+    });
+    document.body.appendChild(m);
+    m.style.left = Math.max(0, Math.min(x, window.innerWidth - m.offsetWidth - 4)) + "px";
+    m.style.top = Math.max(0, Math.min(y, window.innerHeight - m.offsetHeight - 4)) + "px";
+    document.addEventListener("mousedown", dps_ctxDismiss, true);
+    document.addEventListener("keydown", dps_ctxDismiss, true);
+    window.addEventListener("blur", hideRowContextMenu);
+}
+
+function dpsInvoke(name, args) {
+    try { Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(name, args); } catch (err) { /* ignore */ }
 }
 
 function showSectionTooltip(section, x, y) {
@@ -794,6 +860,9 @@ function wireToolbarAndPanels() {
     $id("dpsCreateLines").onclick = createLines;
     $id("dpsPickProject").onclick = function () {
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnLookupNewSequenceContext", [false, ""]);
+    };
+    $id("dpsPickNewResource").onclick = function () {
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnLookupNewSequenceResource", []);
     };
     $id("dpsPickTask").onclick = function () {
         var project = $id("dpsNewProject").value;
@@ -1611,7 +1680,18 @@ function SetNewSequenceContext(projectNo, taskNo) {
     $id("dpsPickTask").disabled = !projectNo;
 }
 
+var dps_ctxResourceNo = "";
+// Called from AL: resource context of the page (blank = none). Shows the dialog's Requested Resource No. field pre-filled with it.
+function SetNewSequenceResourceContext(resourceNo) {
+    dps_ctxResourceNo = resourceNo || "";
+}
+function SetNewSequenceResource(resourceNo) {
+    $id("dpsNewResource").value = resourceNo || "";
+}
+
 function openLinesDialog() {
+    $id("dpsNewResourceField").hidden = !dps_ctxResourceNo;
+    $id("dpsNewResource").value = dps_ctxResourceNo;
     $id("dpsNewProjectField").hidden = !dps_showContext;
     $id("dpsNewTaskField").hidden = !dps_showContext;
     if (dps_showContext) {
@@ -1621,10 +1701,13 @@ function openLinesDialog() {
     }
     populateSelect("dpsEventSkill", dps_skills, "Select skill...");
     populateSelect("dpsEventTemplate", dps_templates, "Select template...");
-    $id("dpsEventSkill").value = dps_defaultSkill;
+    // Skill follows the selected (active) row like Project/Task do; otherwise the setup default
+    var selSection = dps_sectionsByKey[dps_selectedSectionKey];
+    var startSkill = (dps_showContext && selSection && selSection.skill) ? selSection.skill : dps_defaultSkill;
+    $id("dpsEventSkill").value = startSkill;
     $id("dpsEventTemplate").value = dps_defaultTemplate;
     // value only sticks if the option exists; fall back to the placeholder
-    if ($id("dpsEventSkill").value !== dps_defaultSkill) $id("dpsEventSkill").value = "";
+    if ($id("dpsEventSkill").value !== startSkill) $id("dpsEventSkill").value = "";
     if ($id("dpsEventTemplate").value !== dps_defaultTemplate) $id("dpsEventTemplate").value = "";
     dps_eventExclusionsDraft = {};
     renderExcludeGrid("dpsEventExcludeDays", dps_eventExclusionsDraft, $id("dpsEventTemplate").value);
@@ -1645,15 +1728,19 @@ function createLines() {
 
     var projectNo = $id("dpsNewProject").value;
     var taskNo = $id("dpsNewTask").value;
-    if (dps_showContext && (!projectNo || !taskNo)) { alert("Select a Project No. and Task No."); return; }
-    if (!skillCode) { alert("Select a Skill."); return; }
-    if (!templateCode) { alert("Select a Work-Hour Template."); return; }
-    if (!start || !end || start > end) { alert("Start Date must be on or before End Date."); return; }
+    // Inline message (alert() is silently suppressed inside the BC control add-in iframe, which made Create look dead).
+    var err = (dps_showContext && (!projectNo || !taskNo)) ? "Select a Project No. and Task No."
+        : !skillCode ? "Select a Skill."
+        : !templateCode ? "Select a Work-Hour Template."
+        : (!start || !end || start > end) ? "Start Date must be on or before End Date." : "";
+    if (err) { var st = $id("dpsCreateStatus"); st.textContent = err; st.style.color = "#c0392b"; return; }
+    $id("dpsCreateStatus").style.color = "";
 
     var payload = {
         jobNo: projectNo,
         jobTaskNo: taskNo,
         skill: skillCode,
+        resourceNo: dps_ctxResourceNo ? $id("dpsNewResource").value : "",
         template: templateCode,
         excludedWeekdays: excludedWeekdaysCsv(dps_eventExclusionsDraft),
         startDate: start,
@@ -1934,7 +2021,8 @@ function updateFilterIndicator() {
     // Period line: the filtered period when one is set, else the span of the loaded data
     var from = fi.periodFrom || dps_sections.map(function (s) { return s.minDate; }).sort()[0];
     var to = fi.periodTo || dps_sections.map(function (s) { return s.maxDate; }).sort().pop();
-    if (lines.length && from && to) lines.push(escapeHtml(from) + " to " + escapeHtml(to));
+    if (lines.length && fi.periodFrom && fi.periodFrom === fi.periodTo) lines.push("Date = " + escapeHtml(fi.periodFrom));
+    else if (lines.length && from && to) lines.push(escapeHtml(from) + " to " + escapeHtml(to));
     else if (fi.periodFrom || fi.periodTo) lines.push("Period = " + escapeHtml(fi.periodFrom || "...") + " to " + escapeHtml(fi.periodTo || "..."));
     var tipHtml = lines.length
         ? "<b>Filter applied:</b><br/>" + lines.join("<br/>")
