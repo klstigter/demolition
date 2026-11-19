@@ -1,4 +1,4 @@
-page 50725 "Skill Colors Part"
+page 50725 "Opti Skill Colors Part"
 {
     PageType = CardPart;
     ApplicationArea = All;
@@ -9,7 +9,7 @@ page 50725 "Skill Colors Part"
     {
         area(Content)
         {
-            usercontrol(CfBarColor; DHXColorFieldAddin)
+            usercontrol(CfBarColor; "OptiDHXColorFieldAddin")
             {
                 ApplicationArea = All;
 
@@ -20,7 +20,7 @@ page 50725 "Skill Colors Part"
 
                 trigger OnPickRequested()
                 begin
-                    PickColor(Rec."Bar Color");
+                    PickColor(Rec."Opti Bar Color");
                 end;
 
                 trigger OnResetRequested()
@@ -29,19 +29,19 @@ page 50725 "Skill Colors Part"
                 begin
                     if Rec.Code = '' then
                         exit;
-                    ClearColor(Rec."Bar Color");
+                    ClearColor(Rec."Opti Bar Color");
                     DefaultColor := VisualDefaultSettings.GetSkillBarColor(Rec.Code, GetSkillPaletteIndex());
-                    ResetColor(Rec."Bar Color", DefaultColor);
+                    ResetColor(Rec."Opti Bar Color", DefaultColor);
                 end;
 
                 trigger OnClearRequested()
                 begin
                     if Rec.Code = '' then
                         exit;
-                    ClearColor(Rec."Bar Color");
+                    ClearColor(Rec."Opti Bar Color");
                 end;
             }
-            usercontrol(CfFontColor; DHXColorFieldAddin)
+            usercontrol(CfFontColor; "OptiDHXColorFieldAddin")
             {
                 ApplicationArea = All;
 
@@ -52,7 +52,7 @@ page 50725 "Skill Colors Part"
 
                 trigger OnPickRequested()
                 begin
-                    PickColor(Rec."Font Color");
+                    PickColor(Rec."Opti Font Color");
                 end;
 
                 trigger OnResetRequested()
@@ -61,19 +61,19 @@ page 50725 "Skill Colors Part"
                 begin
                     if Rec.Code = '' then
                         exit;
-                    ClearColor(Rec."Font Color");
+                    ClearColor(Rec."Opti Font Color");
                     DefaultColor := VisualDefaultSettings.GetSkillFontColor(Rec.Code);
-                    ResetColor(Rec."Font Color", DefaultColor);
+                    ResetColor(Rec."Opti Font Color", DefaultColor);
                 end;
 
                 trigger OnClearRequested()
                 begin
                     if Rec.Code = '' then
                         exit;
-                    ClearColor(Rec."Font Color");
+                    ClearColor(Rec."Opti Font Color");
                 end;
             }
-            usercontrol(CfBorderColor; DHXColorFieldAddin)
+            usercontrol(CfBorderColor; "OptiDHXColorFieldAddin")
             {
                 ApplicationArea = All;
 
@@ -84,7 +84,7 @@ page 50725 "Skill Colors Part"
 
                 trigger OnPickRequested()
                 begin
-                    PickColor(Rec."Border Color");
+                    PickColor(Rec."Opti Border Color");
                 end;
 
                 trigger OnResetRequested()
@@ -93,16 +93,16 @@ page 50725 "Skill Colors Part"
                 begin
                     if Rec.Code = '' then
                         exit;
-                    ClearColor(Rec."Border Color");
+                    ClearColor(Rec."Opti Border Color");
                     DefaultColor := VisualDefaultSettings.GetSkillBorderColor(Rec.Code, GetSkillPaletteIndex());
-                    ResetColor(Rec."Border Color", DefaultColor);
+                    ResetColor(Rec."Opti Border Color", DefaultColor);
                 end;
 
                 trigger OnClearRequested()
                 begin
                     if Rec.Code = '' then
                         exit;
-                    ClearColor(Rec."Border Color");
+                    ClearColor(Rec."Opti Border Color");
                 end;
             }
         }
@@ -123,14 +123,14 @@ page 50725 "Skill Colors Part"
 
     local procedure PushColorFields()
     begin
-        CurrPage.CfBarColor.SetValue('Bar Color', Rec."Bar Color");
-        CurrPage.CfFontColor.SetValue('Font Color', Rec."Font Color");
-        CurrPage.CfBorderColor.SetValue('Border Color', Rec."Border Color");
+        CurrPage.CfBarColor.SetValue('Bar Color', Rec."Opti Bar Color");
+        CurrPage.CfFontColor.SetValue('Font Color', Rec."Opti Font Color");
+        CurrPage.CfBorderColor.SetValue('Border Color', Rec."Opti Border Color");
     end;
 
     local procedure PickColor(var ColorValue: Text[50])
     var
-        ColorPickerPage: Page "Color Picker Lookup";
+        ColorPickerPage: Page "Opti Color Picker Lookup";
     begin
         if Rec.Code = '' then
             exit;
@@ -174,5 +174,5 @@ page 50725 "Skill Colors Part"
 
     var
         ColorFieldsReadyCount: Integer;
-        VisualDefaultSettings: Codeunit "Visual Default Settings";
+        VisualDefaultSettings: Codeunit "Opti Visual Default Settings";
 }

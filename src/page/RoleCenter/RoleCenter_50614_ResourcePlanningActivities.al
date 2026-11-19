@@ -1,9 +1,9 @@
-page 50614 "Resource Planning Activities"
+page 50614 "Opti Resource Plan. Activities"
 {
     Caption = 'Resource Planning';
     PageType = CardPart;
     RefreshOnActivate = true;
-    SourceTable = "PLanning Cue";
+    SourceTable = "Opti PLanning Cue";
     ShowFilter = false;
 
     layout
@@ -97,6 +97,6 @@ page 50614 "Resource Planning Activities"
     end;
 
     var
-        gViewType: enum "Job View Type";
+        gViewType: enum "Opti Job View Type";
 
 }

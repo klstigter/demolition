@@ -1,15 +1,17 @@
-tableextension 50601 "Vendor Ext" extends Vendor
+tableextension 50601 "Opti Vendor" extends Vendor
 {
     fields
     {
         // Add changes to table fields here
-        field(50600; "Planning Vendor id"; Integer)
+        field(50600; "Opti Planning Vendor id"; Integer)
         {
-            DataClassification = ToBeClassified;
+            Caption = 'Planning Vendor id';
+            DataClassification = CustomerContent;
         }
-        field(50601; "Planning Vendor Name"; Text[250])
+        field(50601; "Opti Planning Vendor Name"; Text[250])
         {
-            DataClassification = ToBeClassified;
+            Caption = 'Planning Vendor Name';
+            DataClassification = CustomerContent;
             Editable = false;
         }
     }

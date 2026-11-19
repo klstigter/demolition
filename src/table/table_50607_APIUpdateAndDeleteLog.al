@@ -1,59 +1,59 @@
 // API Integeration for Exposing API Pages
 table 50607 "Update and Delete Log Opti"
 {
-    DataClassification = ToBeClassified;
+    DataClassification = SystemMetadata;
     Caption = 'Update and Delete Log';
 
     fields
     {
         field(1; "Entry No."; Integer)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = SystemMetadata;
             AutoIncrement = true;
         }
-        field(5; Action; enum "Update and Delete Log Action")
+        field(5; Action; enum "Opti Upd. Del. Log Action")
         {
-            DataClassification = ToBeClassified;
+            DataClassification = SystemMetadata;
         }
         field(10; "Record SystemId"; Guid)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = SystemMetadata;
         }
         field(18; EntitySetName; Text[100])
         {
-            DataClassification = ToBeClassified;
+            DataClassification = SystemMetadata;
         }
         field(20; "Table No."; Integer)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = SystemMetadata;
         }
         field(21; "Field No."; Integer)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = SystemMetadata;
         }
         field(30; "Old Value"; Text[100])
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
         }
         field(31; "New Value"; Text[100])
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
         }
         field(40; "Modified At"; DateTime)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = SystemMetadata;
         }
         field(50; "Synchronized At"; DateTime)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = SystemMetadata;
         }
-        field(60; Status; enum "Update and Delete Log Status")
+        field(60; Status; enum "Opti Upd. Del. Log Status")
         {
-            DataClassification = ToBeClassified;
+            DataClassification = SystemMetadata;
         }
         field(70; "API Field Name"; Text[150])
         {
-            DataClassification = ToBeClassified;
+            DataClassification = SystemMetadata;
             Caption = 'API Field Name';
         }
 

@@ -1,9 +1,10 @@
-page 50626 "Summary View"
+page 50626 "Opti Summary View"
 {
+    Caption = 'Summary View';
     PageType = List;
     ApplicationArea = All;
     UsageCategory = Lists;
-    SourceTable = "Summary Weekly";
+    SourceTable = "Opti Summary Weekly";
     SourceTableTemporary = true;
     ShowFilter = false;
 
@@ -17,6 +18,7 @@ page 50626 "Summary View"
                 Caption = 'Summary View';
                 field(ShowResource; ShowResource)
                 {
+                    Caption = 'Show Resource';
                     ToolTip = 'Set the Resource No. field visble or not. Visible by default.';
                     trigger OnValidate()
                     begin
@@ -27,6 +29,7 @@ page 50626 "Summary View"
                 }
                 field(ShowSkillCode; ShowSkillCode)
                 {
+                    Caption = 'Show Skill Code';
                     ToolTip = 'Set the Skill Code field visible or not. Visible by default.';
                     trigger OnValidate()
                     begin
@@ -37,6 +40,7 @@ page 50626 "Summary View"
                 }
                 field(ShowJob; ShowJob)
                 {
+                    Caption = 'Show Job';
                     ToolTip = 'Set the Job field visible or not. Visible by default.';
                     Visible = Job_Visible;
                     trigger OnValidate()
@@ -52,6 +56,7 @@ page 50626 "Summary View"
                 }
                 field(ShowJobTask; ShowJobTask)
                 {
+                    Caption = 'Show Job Task';
                     ToolTip = 'Set the Job Task field visible or not. Visible by default.';
                     Visible = Job_Visible;
                     trigger OnValidate()
@@ -76,6 +81,7 @@ page 50626 "Summary View"
                 }
                 field(ShowYear; ShowYear)
                 {
+                    Caption = 'Show Year';
                     ToolTip = 'Set the Year field visible or not. Visible by default.';
                     trigger OnValidate()
                     begin
@@ -89,6 +95,7 @@ page 50626 "Summary View"
                 }
                 field(ShowWeekNo; ShowWeekNo)
                 {
+                    Caption = 'Show Week No';
                     ToolTip = 'Set the Week No. field visible or not. Visible by default.';
                     trigger OnValidate()
                     begin
@@ -118,6 +125,7 @@ page 50626 "Summary View"
 
                     field("JobNoFilter"; JobNoFilter)
                     {
+                        Caption = 'Job No Filter';
                         ToolTip = 'Specifies the job number for the new day planning.';
                         trigger OnValidate()
                         begin
@@ -148,6 +156,7 @@ page 50626 "Summary View"
 
                     field("JobTaskNoFilter"; JobTaskNoFilter)
                     {
+                        Caption = 'Job Task No Filter';
                         ToolTip = 'Specifies the job task number for the new day planning.';
                         trigger OnValidate()
                         begin
@@ -181,6 +190,7 @@ page 50626 "Summary View"
                     Visible = ShowResource;
                     field(RescoureNoFilter; ResourceNoFilter)
                     {
+                        Caption = 'Rescoure No Filter';
                         ToolTip = 'Specifies the resource number for the new day planning.';
                         trigger OnValidate()
                         begin
@@ -209,6 +219,7 @@ page 50626 "Summary View"
                     Visible = ShowSkillCode;
                     field(SkillCodeFilter; SkillCodeFilter)
                     {
+                        Caption = 'Skill Code Filter';
                         ToolTip = 'Specifies the skill code for the new day planning.';
                         trigger OnValidate()
                         begin
@@ -250,8 +261,8 @@ page 50626 "Summary View"
                         trigger OnLookup(var Text: Text): Boolean
                         var
                             YearWeek: Record "Integer" temporary;
-                            SumWk: Record "Summary Weekly";
-                            Pg: Page "Week View";
+                            SumWk: Record "Opti Summary Weekly";
+                            Pg: Page "Opti Week View";
                             Year: Integer;
                             Week: Integer;
                         begin
@@ -421,6 +432,7 @@ page 50626 "Summary View"
         {
             action(ResetData)
             {
+                ToolTip = 'Executes the Reset Data action.';
                 Caption = 'Reset Data';
                 Promoted = true;
                 PromotedIsBig = true;
@@ -568,8 +580,8 @@ page 50626 "Summary View"
 
     procedure GroupByDataSet()
     var
-        Temp: Record "Summary Weekly" temporary;
-        TempCopy: Record "Summary Weekly" temporary;
+        Temp: Record "Opti Summary Weekly" temporary;
+        TempCopy: Record "Opti Summary Weekly" temporary;
     begin
         rec.LoadSummary(ShowRequested);
 
@@ -631,8 +643,9 @@ page 50626 "Summary View"
 
     local procedure DrillDown2DayTaks(WeekDayNo: Integer)
     var
-        Pg: Page "Day Plannings";
-        Rc: Record "Day Planning";
+            TextTxt: Label '%1..%2', Comment = '%1=Format(DWY2Date(1, rec.Week No., rec.Yea, %2=Format(DWY2Date(7, rec.Week No., rec.Yea';
+        Pg: Page "Opti Day Plannings";
+        Rc: Record "Opti Day Planning";
         dtFilter: Text;
     begin
         rc.FilterGroup(2);
@@ -650,7 +663,7 @@ page 50626 "Summary View"
                 rc.SetFilter("Plan Date", dtFilter);
             end else
                 if WeekDayNo = 0 then begin
-                    dtFilter := StrSubstNo('%1..%2', Format(DWY2Date(1, rec."Week No.", rec.Year)), Format(DWY2Date(7, rec."Week No.", rec.Year)));
+                    dtFilter := StrSubstNo(TextTxt, Format(DWY2Date(1, rec."Week No.", rec.Year)), Format(DWY2Date(7, rec."Week No.", rec.Year)));
                     rc.SetFilter("Plan Date", dtFilter);
                 end else
                     rc.SetRange("Plan Date", DWY2Date(WeekDayNo, rec."Week No.", rec.Year));
@@ -679,6 +692,8 @@ page 50626 "Summary View"
 
     local procedure ValidateYrWkFilterFormat(var YrWkFilter: Text): Boolean
     var
+        InvalidFormatPleaseEnter2Err: Label 'Invalid format. Please enter in YYYY format for filtering by year only.';
+        InvalidFormatPleaseEnterErr: Label 'Invalid format. Please enter in YYYY-WW format.';
         y, w, l : Integer;
         NotValidFormat: Boolean;
     begin
@@ -702,9 +717,9 @@ page 50626 "Summary View"
             NotValidFormat := true;
         if NotValidFormat then
             if not ShowWeekNo then
-                Error('Invalid format. Please enter in YYYY format for filtering by year only.')
+                Error(InvalidFormatPleaseEnter2Err)
             else
-                Error('Invalid format. Please enter in YYYY-WW format.');
+                Error(InvalidFormatPleaseEnterErr);
         exit(true)
     end;
     #endregion

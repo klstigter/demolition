@@ -1,8 +1,8 @@
-codeunit 50603 "EventSubs"
+codeunit 50603 "Opti EventSubs"
 {
     Permissions = tabledata "Res. Ledger Entry" = rm,
                   tabledata "Job Ledger Entry" = rm,
-                  tabledata "Day Planning" = rm,
+                  tabledata "Opti Day Planning" = rm,
                   tabledata "Job Usage Link" = rd,
                   tabledata "Sales Invoice Header" = r,
                   tabledata "Sales Invoice Line" = r,
@@ -32,22 +32,22 @@ codeunit 50603 "EventSubs"
         ResLedgEntry: Record "Res. Ledger Entry";
     begin
         // ── Job Ledger Entry ──────────────────────────────────────────────────
-        JobLedgerEntry."Opt. DayPlanning Date" := JobJournalLine."Opt. DayPlanning Date";
-        JobLedgerEntry."Opt. DayPlanning Line No." := JobJournalLine."Opt. DayPlanning Line No.";
-        JobLedgerEntry.Skill := JobJournalLine.Skill;
-        JobLedgerEntry."Invoice Resource No." := JobJournalLine."Invoice Resource No.";
-        JobLedgerEntry."Approved Project Manager" := JobJournalLine."Approved Project Manager";
+        JobLedgerEntry."Opti Opt. DayPlanning Date" := JobJournalLine."Opti Opt. DayPlanning Date";
+        JobLedgerEntry."Opti Opt. DayPlanning Line No." := JobJournalLine."Opti Opt. DayPlanning Line No.";
+        JobLedgerEntry."Opti Skill" := JobJournalLine."Opti Skill";
+        JobLedgerEntry."Opti Invoice Resource No." := JobJournalLine."Opti Invoice Resource No.";
+        JobLedgerEntry."Opti Approved Project Manager" := JobJournalLine."Opti Approved Project Manager";
         // ── Res. Ledger Entry (Resource lines only) ───────────────────────────
         // "Ledger Entry No." on the job entry = Entry No. of the already-inserted
         // Res. Ledger Entry. Modify it before the job entry is committed.
         if (JobJournalLine.Type = JobJournalLine.Type::Resource) and
            (JobLedgerEntry."Ledger Entry No." <> 0) then
             if ResLedgEntry.Get(JobLedgerEntry."Ledger Entry No.") then begin
-                ResLedgEntry."Opt. DayPlanning Date" := JobJournalLine."Opt. DayPlanning Date";
-                ResLedgEntry."Opt. DayPlanning Line No." := JobJournalLine."Opt. DayPlanning Line No.";
-                ResLedgEntry.Skill := JobJournalLine.Skill;
-                ResLedgEntry."Invoice Resource No." := JobJournalLine."Invoice Resource No.";
-                ResLedgEntry."Approved Project Manager" := JobJournalLine."Approved Project Manager";
+                ResLedgEntry."Opti Opt. DayPlanning Date" := JobJournalLine."Opti Opt. DayPlanning Date";
+                ResLedgEntry."Opti Opt. DayPlanning Line No." := JobJournalLine."Opti Opt. DayPlanning Line No.";
+                ResLedgEntry."Opti Skill" := JobJournalLine."Opti Skill";
+                ResLedgEntry."Opti Invoice Resource No." := JobJournalLine."Opti Invoice Resource No.";
+                ResLedgEntry."Opti Approved Project Manager" := JobJournalLine."Opti Approved Project Manager";
                 ResLedgEntry.Modify();
             end;
     end;
@@ -59,9 +59,9 @@ codeunit 50603 "EventSubs"
     [EventSubscriber(ObjectType::Codeunit, Codeunit::"Job Jnl.-Check Line", 'OnAfterRunCheck', '', false, false)]
     local procedure CheckDayPlanningFieldsOnAfterRunCheck(var JobJnlLine: Record "Job Journal Line")
     begin
-        if JobJnlLine."Opt. DayPlanning Line No." <> 0 then begin
-            JobJnlLine.TestField(Skill);
-            JobJnlLine.TestField("Invoice Resource No.");
+        if JobJnlLine."Opti Opt. DayPlanning Line No." <> 0 then begin
+            JobJnlLine.TestField("Opti Skill");
+            JobJnlLine.TestField("Opti Invoice Resource No.");
         end;
     end;
 
@@ -72,14 +72,14 @@ codeunit 50603 "EventSubs"
     [EventSubscriber(ObjectType::Codeunit, Codeunit::"Job Jnl.-Post Line", 'OnAfterJobLedgEntryInsert', '', false, false)]
     local procedure UpdateDayPlanningAfterJobLedgEntryInsert(var JobLedgerEntry: Record "Job Ledger Entry"; JobJournalLine: Record "Job Journal Line")
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
     begin
-        if (JobJournalLine."Opt. DayPlanning Date" = 0D) or (JobJournalLine."Opt. DayPlanning Line No." = 0) then
+        if (JobJournalLine."Opti Opt. DayPlanning Date" = 0D) or (JobJournalLine."Opti Opt. DayPlanning Line No." = 0) then
             exit;
         if not DayPlanning.Get(
             JobJournalLine."Job No.",
             JobJournalLine."Job Task No.",
-            JobJournalLine."Opt. DayPlanning Line No.")
+            JobJournalLine."Opti Opt. DayPlanning Line No.")
         then
             exit;
 
@@ -139,15 +139,15 @@ codeunit 50603 "EventSubs"
         Res: Record Resource;
         IsExternal: Boolean;
     begin
-        IsExternal := (Rec."Vendor No." <> '') and (Rec."Pool Resource No." = '');
-        Rec."Is External" := IsExternal;
+        IsExternal := (Rec."Vendor No." <> '') and (Rec."Opti Pool Resource No." = '');
+        Rec."Opti Is External" := IsExternal;
         Rec.Modify();
         // update "External Resource" = true for all member if this resource is a pool
-        if Rec."No." = Rec."Pool Resource No." then begin
-            Res.SetRange("Pool Resource No.", Rec."No.");
+        if Rec."No." = Rec."Opti Pool Resource No." then begin
+            Res.SetRange("Opti Pool Resource No.", Rec."No.");
             Res.SetFilter("No.", '<>%1', Rec."No.");
             if Res.FindSet() then
-                Res.ModifyAll("Is Pool Member", true);
+                Res.ModifyAll("Opti Is Pool Member", true);
         end;
     end;
 

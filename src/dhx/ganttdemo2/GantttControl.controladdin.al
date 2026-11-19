@@ -1,4 +1,4 @@
-controladdin "DHX Gantt Control 2"
+controladdin "Opti DHX Gantt Control 2"
 {
     RequestedHeight = 1500;
     MinimumHeight = 600;

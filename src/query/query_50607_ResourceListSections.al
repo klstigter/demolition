@@ -1,4 +1,4 @@
-query 50607 "Resource List Sections"
+query 50607 "Opti Resource List Sections"
 {
     QueryType = Normal;
     Caption = 'Resource List Sections';
@@ -10,7 +10,7 @@ query 50607 "Resource List Sections"
             filter(Resource_Group_No_Filter; "Resource Group No.")
             {
             }
-            filter(MandatoryFilter; "Mandatory Schedulling")
+            filter(MandatoryFilter; "Opti Mandatory Schedulling")
             {
             }
             column(No_; "No.")
@@ -22,10 +22,10 @@ query 50607 "Resource List Sections"
             column(Resource_Group_No_; "Resource Group No.")
             {
             }
-            column(Pool_Resource_No_; "Pool Resource No.")
+            column(Pool_Resource_No_; "Opti Pool Resource No.")
             {
             }
-            column(Mandatory_Schedulling; "Mandatory Schedulling")
+            column(Mandatory_Schedulling; "Opti Mandatory Schedulling")
             {
             }
 

@@ -7,7 +7,7 @@
 /// pattern page 50638 "Resource Week View Part" already uses, called from the host card's own
 /// OnAfterGetCurrRecord.
 /// </summary>
-page 50711 "Day Planning Sequence Part"
+page 50711 "Opti Day Plan. Sequence Part"
 {
     PageType = CardPart;
     ApplicationArea = All;
@@ -17,7 +17,7 @@ page 50711 "Day Planning Sequence Part"
     {
         area(Content)
         {
-            usercontrol(DhxSequence; DHXDayPlanningSequenceAddin)
+            usercontrol(DhxSequence; "OptiDHXDayPlanningSequenceAddin")
             {
                 ApplicationArea = All;
 
@@ -182,8 +182,8 @@ page 50711 "Day Planning Sequence Part"
     }
 
     var
-        DayPlanningSequenceMgt: Codeunit "Day Planning Sequence Mgt.";
-        VisualDefaultSettings: Codeunit "Visual Default Settings";
+        DayPlanningSequenceMgt: Codeunit "Opti Day Plan. Sequence Mgt.";
+        VisualDefaultSettings: Codeunit "Opti Visual Default Settings";
         JobNo: Code[20];
         JobTaskNo: Code[20];
         WorkOrderNo: Code[20];
@@ -235,13 +235,13 @@ page 50711 "Day Planning Sequence Part"
     /// </summary>
     local procedure PushNewSequenceDefaults()
     var
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
         JobTask: Record "Job Task";
         TemplateCode: Code[20];
     begin
         if DailyOptimizerSetup.Get() then;
         if JobTask.Get(JobNo, JobTaskNo) then
-            TemplateCode := JobTask."Work Hour Template";
+            TemplateCode := JobTask."Opti Work Hour Template";
         if TemplateCode = '' then
             TemplateCode := DailyOptimizerSetup."Work hour Template";
         CurrPage.DhxSequence.SetNewSequenceDefaults(DailyOptimizerSetup."Default Skill", TemplateCode);
@@ -262,7 +262,7 @@ page 50711 "Day Planning Sequence Part"
     /// </summary>
     local procedure PushHolidaysData(AnchorDate: Date; EndDate: Date)
     var
-        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
+        GanttChartDataHandler: Codeunit "Opti GanttChartDataHandler";
         HolidaysJsonTxt: Text;
     begin
         if AnchorDate = 0D then

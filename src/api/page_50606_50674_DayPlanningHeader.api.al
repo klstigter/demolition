@@ -1,4 +1,4 @@
-page 50674 "DayPlanning Header Opt"
+page 50674 "Opti DayPlanning Header Opt"
 {
     PageType = API;
     Caption = 'DayPlanning Header API';
@@ -34,7 +34,7 @@ page 50674 "DayPlanning Header Opt"
                     Caption = 'Description';
                 }
             }
-            part(dayPlanningLines; "DayPlanning Line Opt")
+            part(dayPlanningLines; "Opti DayPlanning Line Opt")
             {
                 EntityName = 'dayPlanningLine';
                 EntitySetName = 'dayPlanningLines';
@@ -46,7 +46,7 @@ page 50674 "DayPlanning Header Opt"
 
     trigger OnNewRecord(BelowxRec: Boolean)
     var
-        GlobalSessionVar: Codeunit "Global Session Var Opt.";
+        GlobalSessionVar: Codeunit "Opti Global Session Var Opt.";
     begin
         // BC binds the first nested line once before the header insert (phantom insert) - lines skip while pending
         GlobalSessionVar.SetHeaderInsertPending(true);
@@ -55,14 +55,15 @@ page 50674 "DayPlanning Header Opt"
 
     trigger OnInsertRecord(BelowxRec: Boolean): Boolean
     var
+        JobTaskDoesNotExistErr: Label 'Job Task ''%1 / %2'' does not exist. Create the Job Task in Business Central first.', Comment = '%1=Rec.Job No., %2=Rec.Job Task No.';
         JobTask: Record "Job Task";
-        GlobalSessionVar: Codeunit "Global Session Var Opt.";
+        GlobalSessionVar: Codeunit "Opti Global Session Var Opt.";
     begin
         GlobalSessionVar.SetHeaderInsertPending(false);
 
         // Validate the referenced Job Task exists before accepting any day planning lines
         if not JobTask.Get(Rec."Job No.", Rec."Job Task No.") then
-            Error('Job Task ''%1 / %2'' does not exist. Create the Job Task in Business Central first.', Rec."Job No.", Rec."Job Task No.");
+            Error(JobTaskDoesNotExistErr, Rec."Job No.", Rec."Job Task No.");
 
         // Copy real Job Task data into the temp Rec so SubPageLink fields are correct
         Rec.TransferFields(JobTask, false);
@@ -72,12 +73,12 @@ page 50674 "DayPlanning Header Opt"
     end;
 
     var
-        SkipTempJobTaskInsert: Codeunit "Skip Temp Job Task Insert Opt."; // page-level: must stay bound until BC inserts after OnInsertRecord
+        SkipTempJobTaskInsert: Codeunit "Opti Skip Temp Job Task Insert"; // page-level: must stay bound until BC inserts after OnInsertRecord
 
     local procedure GetPostresult(): Text
     var
-        DayPlanningTemp: Record "Day Planning" temporary;
-        GlobalSessionVar: Codeunit "Global Session Var Opt.";
+        DayPlanningTemp: Record "Opti Day Planning" temporary;
+        GlobalSessionVar: Codeunit "Opti Global Session Var Opt.";
         ResultJson: JsonObject;
         LinesArray: JsonArray;
         LineJson: JsonObject;

@@ -1,9 +1,9 @@
-table 50704 "Demo Data Scenarios Opt"
+table 50704 "Opti Demo Data Scenarios Opt"
 {
     Caption = 'Demo Data Scenarios';
     DataClassification = CustomerContent;
-    LookupPageId = "Demo Data Scenarios";
-    DrillDownPageId = "Demo Data Scenarios";
+    LookupPageId = "Opti Demo Data Scenarios";
+    DrillDownPageId = "Opti Demo Data Scenarios";
 
     fields
     {
@@ -68,7 +68,7 @@ table 50704 "Demo Data Scenarios Opt"
 
     trigger OnInsert()
     var
-        Scenario: Record "Demo Data Scenarios Opt";
+        Scenario: Record "Opti Demo Data Scenarios Opt";
     begin
         Rec.TestField(Description);
         if Rec."Date" = 0D then

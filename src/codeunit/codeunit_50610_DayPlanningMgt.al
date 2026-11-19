@@ -1,7 +1,7 @@
-codeunit 50610 "Day Plannings Mgt."
+codeunit 50610 "Opti Day Plannings Mgt."
 {
     var
-        GeneralUtil: Codeunit "General Planning Utilities";
+        GeneralUtil: Codeunit "Opti General Plan. Utilities";
         WorkHoursTemplate: Record "Work-Hour Template";
         // ── Memoized state for IsActiveWorkDay(), shared across many calls on the same
         // codeunit instance (e.g. one per candidate date while cascading a period-change
@@ -26,16 +26,16 @@ codeunit 50610 "Day Plannings Mgt."
     begin
         if TaskDate = 0D then
             exit;
-        if (JobTask.VisualBarStartDate = 0D) or (TaskDate < JobTask.VisualBarStartDate) then
-            JobTask.VisualBarStartDate := TaskDate;
-        if (JobTask.VisualBarEndDate = 0D) or (TaskDate > JobTask.VisualBarEndDate) then
-            JobTask.Validate(VisualBarEndDate, TaskDate);
+        if (JobTask."Opti VisualBarStartDate" = 0D) or (TaskDate < JobTask."Opti VisualBarStartDate") then
+            JobTask."Opti VisualBarStartDate" := TaskDate;
+        if (JobTask."Opti VisualBarEndDate" = 0D) or (TaskDate > JobTask."Opti VisualBarEndDate") then
+            JobTask.Validate("Opti VisualBarEndDate", TaskDate);
         JobTask.Modify();
     end;
 
-    local procedure CheckMayChange(NewDayPlanning: Record "Day Planning"): Boolean
+    local procedure CheckMayChange(NewDayPlanning: Record "Opti Day Planning"): Boolean
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
     begin
         if DayPlanning.Get(NewDayPlanning."Job No.", NewDayPlanning."Job Task No.", NewDayPlanning."Day Line No.") then
             Exit(not DayPlanning."Manual Modified");
@@ -74,17 +74,17 @@ codeunit 50610 "Day Plannings Mgt."
     /// WHICH kind of non-working day it is, not just active/inactive. Used by page 50662's manual
     /// "New Date" edit, to re-derive "Day Type" after the user types a date in directly.
     /// </summary>
-    procedure ClassifyDate(WorkHourTemplateCode: Code[20]; TheDate: Date): Enum "DayPlanning Date Type"
+    procedure ClassifyDate(WorkHourTemplateCode: Code[20]; TheDate: Date): Enum "Opti DayPlanning Date Type"
     begin
         EnsureCalendarLoadedForActiveWorkDayCheck();
 
         if not IsWeekdayActiveInTemplate(WorkHourTemplateCode, Date2DWY(TheDate, 1)) then
-            exit("DayPlanning Date Type"::Weekend);
+            exit("Opti DayPlanning Date Type"::Weekend);
 
         if gCalendarMgt.IsNonworkingDay(TheDate, gCalCustomizedCalendarChange) then
-            exit("DayPlanning Date Type"::"Public-Holiday");
+            exit("Opti DayPlanning Date Type"::"Public-Holiday");
 
-        exit("DayPlanning Date Type"::"Work-day");
+        exit("Opti DayPlanning Date Type"::"Work-day");
     end;
 
     /// <summary>
@@ -143,7 +143,7 @@ codeunit 50610 "Day Plannings Mgt."
 
     local procedure EnsureCalendarLoadedForActiveWorkDayCheck()
     var
-        OptimizerSetup: Record "Daily Optimizer Setup";
+        OptimizerSetup: Record "Opti Daily Optimizer Setup";
         BaseCalendar: Record "Base Calendar";
     begin
         if gCalendarLoaded then
@@ -170,7 +170,7 @@ codeunit 50610 "Day Plannings Mgt."
 
     procedure GetDateRange(JobNo: Code[20]; JobTaskNo: Code[20]; var StartDate: Date; var EndDate: Date)
     var
-        DayPlannings: Record "Day Planning";
+        DayPlannings: Record "Opti Day Planning";
     begin
         StartDate := 0D;
         EndDate := 0D;
@@ -192,16 +192,18 @@ codeunit 50610 "Day Plannings Mgt."
     /// assigned) Assigned: Default Start Time, End = Start + the Plan Date weekday's hours + non-working minutes.
     /// Returns false with Reason when not applicable.
     /// </summary>
-    procedure ApplyTemplateTimes(var DayPlanning: Record "Day Planning"; var Reason: Text): Boolean
+    procedure ApplyTemplateTimes(var DayPlanning: Record "Opti Day Planning"; var Reason: Text): Boolean
     var
+            WorkHourTemplateHasNo2Txt: Label 'Work-Hour Template %1 has no Default Start Time.', Comment = '%1=WorkHourTemplate.Code';
+            WorkHourTemplateHasNoTxt: Label 'Work-Hour Template %1 has no working hours on %2.', Comment = '%1=WorkHourTemplate.Code, %2=Format(DayPlanning.Plan Date, 0, <Weekda';
         WorkHourTemplate: Record "Work-Hour Template";
         JobTask: Record "Job Task";
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
         TemplateCode: Code[20];
         DayHours: Decimal;
     begin
         if JobTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
-            TemplateCode := JobTask."Work Hour Template";
+            TemplateCode := JobTask."Opti Work Hour Template";
         if TemplateCode = '' then
             if DailyOptimizerSetup.Get() then
                 TemplateCode := DailyOptimizerSetup."Work hour Template";
@@ -209,8 +211,8 @@ codeunit 50610 "Day Plannings Mgt."
             Reason := 'No Work-Hour Template found on the Project Task or in the Optimizer Setup.';
             exit(false);
         end;
-        if WorkHourTemplate."Default Start Time" = 0T then begin
-            Reason := StrSubstNo('Work-Hour Template %1 has no Default Start Time.', WorkHourTemplate.Code);
+        if WorkHourTemplate."Opti Default Start Time" = 0T then begin
+            Reason := StrSubstNo(WorkHourTemplateHasNo2Txt, WorkHourTemplate.Code);
             exit(false);
         end;
         // Follows the day name (Monday..Sunday) of the line's Plan Date: that weekday's hours in the template.
@@ -231,16 +233,16 @@ codeunit 50610 "Day Plannings Mgt."
                 DayHours := WorkHourTemplate.Sunday;
         end;
         if DayHours <= 0 then begin
-            Reason := StrSubstNo('Work-Hour Template %1 has no working hours on %2.', WorkHourTemplate.Code, Format(DayPlanning."Plan Date", 0, '<Weekday Text>'));
+            Reason := StrSubstNo(WorkHourTemplateHasNoTxt, WorkHourTemplate.Code, Format(DayPlanning."Plan Date", 0, '<Weekday Text>'));
             exit(false);
         end;
-        DayPlanning."Start Time Requested" := WorkHourTemplate."Default Start Time";
-        DayPlanning."End Time Requested" := WorkHourTemplate."Default Start Time" + Round(DayHours * 60, 1) * 60000 + WorkHourTemplate."Non Working Minutes" * 60000;
-        DayPlanning.Validate("Idle Minutes Requested", WorkHourTemplate."Non Working Minutes");
+        DayPlanning."Start Time Requested" := WorkHourTemplate."Opti Default Start Time";
+        DayPlanning."End Time Requested" := WorkHourTemplate."Opti Default Start Time" + Round(DayHours * 60, 1) * 60000 + WorkHourTemplate."Opti Non Working Minutes" * 60000;
+        DayPlanning.Validate("Idle Minutes Requested", WorkHourTemplate."Opti Non Working Minutes");
         if DayPlanning."Assigned Resource No." <> '' then begin
             DayPlanning."Start Time Assigned" := DayPlanning."Start Time Requested";
             DayPlanning."End Time Assigned" := DayPlanning."End Time Requested";
-            DayPlanning.Validate("Idle Minutes Assigned", WorkHourTemplate."Non Working Minutes");
+            DayPlanning.Validate("Idle Minutes Assigned", WorkHourTemplate."Opti Non Working Minutes");
             DayPlanning.AssignedCheck();
         end;
         DayPlanning.CalculateWorkingHours();

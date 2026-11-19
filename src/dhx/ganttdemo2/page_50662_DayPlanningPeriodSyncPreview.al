@@ -1,8 +1,8 @@
-page 50663 "DayPlanning PeriodSyncPreview"
+page 50663 "Opti DayPlan Period Sync Prev."
 {
     Caption = 'DayPlanning Period Change Preview';
     PageType = List;
-    SourceTable = "DayPlanning Sync PreviewBuff";
+    SourceTable = "Opti DayPlan Sync PreviewBuf";
     SourceTableTemporary = true;
     InsertAllowed = false;
     ModifyAllowed = true;
@@ -125,8 +125,8 @@ page 50663 "DayPlanning PeriodSyncPreview"
 
                 trigger OnAction()
                 var
-                    DayPlanningPeriodSyncMgt: Codeunit "DayPlanning Period Sync Mgt.";
-                    AppliedMsg: Label '%1 DayPlanning record(s) updated successfully.';
+                    DayPlanningPeriodSyncMgt: Codeunit "Opti DayPlan. Period Sync Mgt.";
+                    AppliedMsg: Label '%1 DayPlanning record(s) updated successfully.', Comment = '%1 = value';
                     RecordCount: Integer;
                 begin
                     Rec.Reset();
@@ -167,7 +167,7 @@ page 50663 "DayPlanning PeriodSyncPreview"
 
     trigger OnClosePage()
     var
-        GanttPage: Page "Gantt Demo DHX 2";
+        GanttPage: Page "Opti Gantt Demo DHX 2";
     begin
         // Fires whenever this page closes — either after Apply Changes or by dismissing.
         // Applied = false (the default) means the user cancelled without applying.
@@ -180,7 +180,7 @@ page 50663 "DayPlanning PeriodSyncPreview"
     /// Called by "DayPlanning Period Sync Mgt.".ShowPreview() before RunModal().
     /// Shares the calculated temp buffer with the page's Rec via Rec.Copy(ShareTable = true).
     /// </summary>
-    procedure SetPreviewData(var TempBuffer: Record "DayPlanning Sync PreviewBuff" temporary)
+    procedure SetPreviewData(var TempBuffer: Record "Opti DayPlan Sync PreviewBuf" temporary)
     begin
         Rec.Copy(TempBuffer, true);
     end;
@@ -214,8 +214,8 @@ page 50663 "DayPlanning PeriodSyncPreview"
     /// </summary>
     local procedure UpdateNewDateInfo()
     var
-        DayPlanningMgt: Codeunit "Day Plannings Mgt.";
-        DayPlanningPeriodSyncMgt: Codeunit "DayPlanning Period Sync Mgt.";
+        DayPlanningMgt: Codeunit "Opti Day Plannings Mgt.";
+        DayPlanningPeriodSyncMgt: Codeunit "Opti DayPlan. Period Sync Mgt.";
         EffectiveWorkHourTemplate: Code[20];
     begin
         Rec."Day Name" := Format(Rec."New Task Date", 0, '<Weekday Text>');

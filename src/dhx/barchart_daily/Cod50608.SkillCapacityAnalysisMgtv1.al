@@ -1,4 +1,4 @@
-codeunit 50608 "SkillCapacityAnalysisMgt.v1"
+codeunit 50608 "Opti SkillCapAnalysisMgt.v1"
 {
     /// <summary>
     /// Aggregates Day Planning requested hours per Skill Code, for the "Requested vs Capacity
@@ -39,9 +39,9 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
     /// factbox list AND is walked again by each page's own RefreshChart to enumerate skills for
     /// the chart). All filter parameters are optional; blank / 0D means "no filter".
     /// </summary>
-    procedure BuildSkillBuffer(var Buffer: Record "Skill Req. vs Capacity Buffer" temporary; ResourceNoFilter: Code[20]; DateFromFilter: Date; DateToFilter: Date; SkillCodeFilter: Code[10])
+    procedure BuildSkillBuffer(var Buffer: Record "Opti Skill Req. vs Cap. Buffer" temporary; ResourceNoFilter: Code[20]; DateFromFilter: Date; DateToFilter: Date; SkillCodeFilter: Code[10])
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
         RequestedHoursPerSkill: Dictionary of [Code[10], Decimal];
         AssignedHoursPerSkill: Dictionary of [Code[10], Decimal];
         UnassignedHoursPerSkill: Dictionary of [Code[10], Decimal];
@@ -87,7 +87,7 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
         if Buffer.FindFirst() then;
     end;
 
-    local procedure ApplyDayPlanningFilters(var DayPlanning: Record "Day Planning"; ResourceNoFilter: Code[20]; DateFromFilter: Date; DateToFilter: Date; SkillCodeFilter: Code[10])
+    local procedure ApplyDayPlanningFilters(var DayPlanning: Record "Opti Day Planning"; ResourceNoFilter: Code[20]; DateFromFilter: Date; DateToFilter: Date; SkillCodeFilter: Code[10])
     begin
         DayPlanning.Reset();
         DayPlanning.SetCurrentKey("Plan Date", "Assigned Resource No.", "Start Time Assigned");
@@ -105,7 +105,7 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
             DayPlanning.SetRange(Skill, SkillCodeFilter);
     end;
 
-    local procedure InsertBufferLine(var Buffer: Record "Skill Req. vs Capacity Buffer" temporary; SkillCode: Code[10]; RequestedHours: Decimal; CapacityAssigned: Decimal; CapacityFree: Decimal; AssignedHours: Decimal)
+    local procedure InsertBufferLine(var Buffer: Record "Opti Skill Req. vs Cap. Buffer" temporary; SkillCode: Code[10]; RequestedHours: Decimal; CapacityAssigned: Decimal; CapacityFree: Decimal; AssignedHours: Decimal)
     begin
         Buffer.Init();
         Buffer."No." := SkillCode;
@@ -145,7 +145,7 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
     /// </summary>
     procedure GetSkillBarColor(SkillCode: Code[10]; PaletteIndex: Integer): Text
     var
-        ColorConstants: Codeunit "Visual Default Settings";
+        ColorConstants: Codeunit "Opti Visual Default Settings";
     begin
         exit(ColorConstants.GetSkillBarColor(SkillCode, PaletteIndex));
     end;
@@ -221,14 +221,14 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
     /// </summary>
     local procedure ShowSkillSegment(SkillCode: Code[10]; ResourceNoFilter: Code[20]; DateFromFilter: Date; DateToFilter: Date)
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
     begin
         DayPlanning.Reset();
         DayPlanning.SetRange(Skill, SkillCode);
         if ResourceNoFilter <> '' then
             DayPlanning.SetRange("Assigned Resource No.", ResourceNoFilter);
         DayPlanning.SetRange("Plan Date", DateFromFilter, DateToFilter);
-        Page.Run(Page::"Day Plannings", DayPlanning);
+        Page.Run(Page::"Opti Day Plannings", DayPlanning);
     end;
 
     /// <summary>
@@ -294,14 +294,14 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
     /// </summary>
     local procedure ShowAllSkillsSegment(ResourceNoFilter: Code[20]; DateFromFilter: Date; DateToFilter: Date)
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
     begin
         DayPlanning.Reset();
         DayPlanning.SetFilter(Skill, '<>%1', '');
         if ResourceNoFilter <> '' then
             DayPlanning.SetRange("Assigned Resource No.", ResourceNoFilter);
         DayPlanning.SetRange("Plan Date", DateFromFilter, DateToFilter);
-        Page.Run(Page::"Day Plannings", DayPlanning);
+        Page.Run(Page::"Opti Day Plannings", DayPlanning);
     end;
 
     /// <summary>
@@ -422,7 +422,7 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
     /// </summary>
     procedure BuildSkillAssignedUnassignedSplit(ResourceNoFilter: Code[20]; DateFromFilter: Date; DateToFilter: Date; var AssignedHoursPerSkill: Dictionary of [Code[10], Decimal]; var UnassignedHoursPerSkill: Dictionary of [Code[10], Decimal])
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
         SkillCode: Code[10];
     begin
         Clear(AssignedHoursPerSkill);
@@ -480,7 +480,7 @@ codeunit 50608 "SkillCapacityAnalysisMgt.v1"
 
     var
         EmptyPointColors: JsonArray;
-        SkillCapacityAnalysisMgtWeekly: Codeunit "Skill Capacity Analysis Mgt.";
+        SkillCapacityAnalysisMgtWeekly: Codeunit "Opti Skill Cap. Analysis Mgt.";
         // Matches codeunit 50662's own CategoryDelimiterTok/FreeCapacityCategoryLbl text-for-text,
         // and each page's own independently-declared copies (CategoryDelimiterTok/
         // CapacityCategoryLbl/RequestedCategoryLbl in pages 50681/50707 - see their own RefreshChart)

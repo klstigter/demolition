@@ -1,4 +1,4 @@
-codeunit 50615 "Gantt Update Data"
+codeunit 50615 "Opti Gantt Update Data"
 {
     procedure UpdateJobTaskFromJson(JsonText: Text; var PreviewCancelledByUser: Boolean): Boolean
     var
@@ -11,13 +11,13 @@ codeunit 50615 "Gantt Update Data"
         JsonKey: text;
         JsonValue: JsonValue;
         D: Date;
-        SchedulingType: Enum "schedulingType";
-        ganttConstraintType: Enum "Gantt Constraint Type";
+        SchedulingType: Enum "Opti schedulingType";
+        ganttConstraintType: Enum "Opti Gantt Constraint Type";
         OldStartDate: Date;
         OldEndDate: Date;
         NewStartDate: Date;
         NewEndDate: Date;
-        DayPlanningPeriodSyncMgt: Codeunit "DayPlanning Period Sync Mgt.";
+        DayPlanningPeriodSyncMgt: Codeunit "Opti DayPlan. Period Sync Mgt.";
     begin
         if not JsonObject.ReadFrom(JsonText) then
             exit(false);
@@ -32,8 +32,8 @@ codeunit 50615 "Gantt Update Data"
             exit(false);
 
         // Capture old dates before any changes
-        OldStartDate := JobTask.VisualBarStartDate;
-        OldEndDate := JobTask.VisualBarEndDate;
+        OldStartDate := JobTask."Opti VisualBarStartDate";
+        OldEndDate := JobTask."Opti VisualBarEndDate";
 
         foreach JsonKey in JsonObject.Keys do begin
             JsonObject.Get(JsonKey, JsonToken);
@@ -62,27 +62,27 @@ codeunit 50615 "Gantt Update Data"
                     'start_date':
                         begin
                             d := JsonValue.AsDate();
-                            if d <> JobTask.VisualBarStartDate then
-                                JobTask.VisualBarStartDate := d;
+                            if d <> JobTask."Opti VisualBarStartDate" then
+                                JobTask."Opti VisualBarStartDate" := d;
                         end;
                     'end_date':
                         begin
                             d := CalcDate('<-1D>', JsonValue.AsDate());
-                            if d <> JobTask.VisualBarEndDate then
-                                JobTask.VisualBarEndDate := d;
+                            if d <> JobTask."Opti VisualBarEndDate" then
+                                JobTask."Opti VisualBarEndDate" := d;
                         end;
                     'duration':
                         begin
                             // Duration is in days
-                            if JsonValue.AsInteger() <> JobTask."Duration" then begin
-                                JobTask.validate("Duration", JsonValue.AsInteger());
+                            if JsonValue.AsInteger() <> JobTask."Opti Duration" then begin
+                                JobTask.validate("Opti Duration", JsonValue.AsInteger());
                             end;
                         end;
                     'schedulingType':
                         begin
                             SchedulingType := ConvertSchedulingType(JsonValue.AsText());
-                            if SchedulingType.AsInteger() <> JobTask."Scheduling Type".AsInteger() then begin
-                                JobTask.validate("Scheduling Type", SchedulingType);
+                            if SchedulingType.AsInteger() <> JobTask."Opti Scheduling Type".AsInteger() then begin
+                                JobTask.validate("Opti Scheduling Type", SchedulingType);
                             end;
                         end;
                 end;
@@ -91,8 +91,8 @@ codeunit 50615 "Gantt Update Data"
         // Read new dates from the in-memory JobTask BEFORE any Modify call.
         // JobTask.Modify() is deferred: it only happens when the user confirms (or
         // immediately when no DayPlanning records are affected).
-        NewStartDate := JobTask.VisualBarStartDate;
-        NewEndDate := JobTask.VisualBarEndDate;
+        NewStartDate := JobTask."Opti VisualBarStartDate";
+        NewEndDate := JobTask."Opti VisualBarEndDate";
 
         // The requested new end date must never land on a non-working day (holiday/weekend):
         // snap it forward to the next active workday before it's used anywhere downstream
@@ -102,8 +102,8 @@ codeunit 50615 "Gantt Update Data"
         // already-existing boundary that wasn't part of this operation.
         if (NewEndDate <> 0D) and (NewEndDate <> OldEndDate) then begin
             NewEndDate := DayPlanningPeriodSyncMgt.SnapForwardToWorkDay(JobTask, NewEndDate);
-            JobTask.VisualBarEndDate := NewEndDate;
-            JobTask.CalculateDuration();
+            JobTask."Opti VisualBarEndDate" := NewEndDate;
+            JobTask.OptiCalculateDuration();
         end;
 
         if ((NewStartDate <> 0D) or (NewEndDate <> 0D)) and
@@ -121,12 +121,12 @@ codeunit 50615 "Gantt Update Data"
                 // which would silently re-introduce the very out-of-scope DayPlanning rows the
                 // extension was there to prevent.
                 JobTask.Get(JobTask."Job No.", JobTask."Job Task No.");
-                if (JobTask.VisualBarStartDate <> NewStartDate) or (JobTask.VisualBarEndDate < NewEndDate) then begin
-                    if JobTask.VisualBarStartDate <> NewStartDate then
-                        JobTask.VisualBarStartDate := NewStartDate;
-                    if JobTask.VisualBarEndDate < NewEndDate then
-                        JobTask.VisualBarEndDate := NewEndDate;
-                    JobTask.Duration := JobTask.VisualBarEndDate - JobTask.VisualBarStartDate + 1;
+                if (JobTask."Opti VisualBarStartDate" <> NewStartDate) or (JobTask."Opti VisualBarEndDate" < NewEndDate) then begin
+                    if JobTask."Opti VisualBarStartDate" <> NewStartDate then
+                        JobTask."Opti VisualBarStartDate" := NewStartDate;
+                    if JobTask."Opti VisualBarEndDate" < NewEndDate then
+                        JobTask."Opti VisualBarEndDate" := NewEndDate;
+                    JobTask."Opti Duration" := JobTask."Opti VisualBarEndDate" - JobTask."Opti VisualBarStartDate" + 1;
                     JobTask.Modify();
                 end;
             end else begin
@@ -152,7 +152,7 @@ codeunit 50615 "Gantt Update Data"
     procedure ApplyPlannedDatesOnly(JsonText: Text): Boolean
     var
         JobTask: Record "Job Task";
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
         JsonObject: JsonObject;
         JsonToken: JsonToken;
         JobNo: Code[20];
@@ -180,14 +180,14 @@ codeunit 50615 "Gantt Update Data"
                     'start_date':
                         begin
                             D := JsonValue.AsDate();
-                            if D <> JobTask.VisualBarStartDate then
-                                JobTask.VisualBarStartDate := D;
+                            if D <> JobTask."Opti VisualBarStartDate" then
+                                JobTask."Opti VisualBarStartDate" := D;
                         end;
                     'end_date':
                         begin
                             D := CalcDate('<-1D>', JsonValue.AsDate());
-                            if D <> JobTask.VisualBarEndDate then
-                                JobTask.VisualBarEndDate := D;
+                            if D <> JobTask."Opti VisualBarEndDate" then
+                                JobTask."Opti VisualBarEndDate" := D;
                         end;
                 end;
         end;
@@ -198,15 +198,15 @@ codeunit 50615 "Gantt Update Data"
         // Planning row's Plan Date outside that period, it would become silently orphaned
         // - stranded outside the task's own planned period with no record of it. Refuse to
         // save in that case instead of leaving Day Planning data inconsistent.
-        if (JobTask.VisualBarStartDate <> 0D) and (JobTask.VisualBarEndDate <> 0D) then begin
+        if (JobTask."Opti VisualBarStartDate" <> 0D) and (JobTask."Opti VisualBarEndDate" <> 0D) then begin
             DayPlanning.SetRange("Job No.", JobTask."Job No.");
             DayPlanning.SetRange("Job Task No.", JobTask."Job Task No.");
-            DayPlanning.SetFilter("Plan Date", '<%1|>%2', JobTask.VisualBarStartDate, JobTask.VisualBarEndDate);
+            DayPlanning.SetFilter("Plan Date", '<%1|>%2', JobTask."Opti VisualBarStartDate", JobTask."Opti VisualBarEndDate");
             if DayPlanning.FindFirst() then
-                Error(DayPlanningOutOfRangeErr, JobTask.VisualBarStartDate, JobTask.VisualBarEndDate, DayPlanning."Plan Date");
+                Error(DayPlanningOutOfRangeErr, JobTask."Opti VisualBarStartDate", JobTask."Opti VisualBarEndDate", DayPlanning."Plan Date");
         end;
 
-        JobTask.CalculateDuration();
+        JobTask.OptiCalculateDuration();
         exit(JobTask.Modify(true));
     end;
 
@@ -222,7 +222,7 @@ codeunit 50615 "Gantt Update Data"
     end;
 
     // Related to Duration / Progress
-    local procedure ConvertSchedulingType(value: text) schedulingType: Enum "schedulingType"
+    local procedure ConvertSchedulingType(value: text) schedulingType: Enum "Opti schedulingType"
     begin
         case value of
             'fixed_duration':
@@ -238,7 +238,7 @@ codeunit 50615 "Gantt Update Data"
     end;
 
     // Related to start -end date
-    local procedure ConvertConstraint_type(value: text) ganttConstraintType: Enum "Gantt Constraint Type"
+    local procedure ConvertConstraint_type(value: text) ganttConstraintType: Enum "Opti Gantt Constraint Type"
     begin
         case value of
             '':
@@ -259,5 +259,5 @@ codeunit 50615 "Gantt Update Data"
     end;
 
     var
-        DayPlanningOutOfRangeErr: Label 'Cannot update the Planned Start Date and Planned End Date to %1..%2 because a Day Planning entry exists on %3, which would fall outside that period. Use Apply Changes in the DayPlanning Period Change Preview instead so the affected Day Planning entries can be relocated.';
+        DayPlanningOutOfRangeErr: Label 'Cannot update the Planned Start Date and Planned End Date to %1..%2 because a Day Planning entry exists on %3, which would fall outside that period. Use Apply Changes in the DayPlanning Period Change Preview instead so the affected Day Planning entries can be relocated.', Comment = '%1 = value, %2 = value, %3 = value';
 }

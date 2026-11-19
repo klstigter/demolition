@@ -1,4 +1,4 @@
-controladdin DHXPoolResourceScheduleAddin
+controladdin "OptiDHXPoolResourceScheduleAddin"
 {
     RequestedHeight = 1500;
     MinimumHeight = 600;

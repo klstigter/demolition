@@ -1,10 +1,10 @@
-page 50679 "Order Intake Kanban Setup"
+page 50679 "Opti Order Intake Kanban Setup"
 {
     PageType = Card;
     ApplicationArea = All;
     UsageCategory = Administration;
     Caption = 'Order Intake Kanban Setup';
-    SourceTable = "Order Intake Kanban Setup";
+    SourceTable = "Opti Order Intake Kanban Setup";
     DeleteAllowed = false;
     InsertAllowed = false;
 

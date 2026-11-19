@@ -1,4 +1,4 @@
-enum 50620 "WO Item Price Sales Type"
+enum 50620 "Opti WO Item Price Sales Type"
 {
     Extensible = true;
     Caption = 'Work Order Item Price Sales Type';

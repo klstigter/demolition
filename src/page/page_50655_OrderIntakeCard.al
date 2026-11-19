@@ -1,9 +1,9 @@
-page 50655 "Order Intake Card"
+page 50655 "Opti Order Intake Card"
 {
     PageType = Card;
     ApplicationArea = All;
     UsageCategory = Administration;
-    SourceTable = "Order Intake Header Opt.";
+    SourceTable = "Opti Order Intake Header Opt.";
     Caption = 'Order Intake';
 
     layout
@@ -58,6 +58,7 @@ page 50655 "Order Intake Card"
 
                         field(Status; Rec.Status)
                         {
+                            ToolTip = 'Specifies the value of the Status field.';
                             ApplicationArea = All;
                         }
                     }
@@ -81,7 +82,7 @@ page 50655 "Order Intake Card"
             Group(Description)
             {
                 Caption = 'Long Description';
-                usercontrol(RichTextEditor; DHXRichTextAddin)
+                usercontrol(RichTextEditor; "OptiDHXRichTextAddin")
                 {
                     ApplicationArea = All;
 
@@ -105,7 +106,7 @@ page 50655 "Order Intake Card"
                     end;
                 }
             }
-            part(OrderLines; "Project Task Sub")
+            part(OrderLines; "Opti Project Task Sub")
             {
                 ApplicationArea = All;
                 SubPageLink = "Order Intake No." = field("No.");

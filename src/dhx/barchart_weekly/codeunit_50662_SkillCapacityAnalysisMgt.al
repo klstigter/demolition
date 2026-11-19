@@ -1,4 +1,4 @@
-codeunit 50662 "Skill Capacity Analysis Mgt."
+codeunit 50662 "Opti Skill Cap. Analysis Mgt."
 {
     /// <summary>
     /// Aggregates Day Planning requested hours per Skill Code and total resource capacity.
@@ -29,7 +29,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// one capacity reference bar/row - never a paired Requested/Capacity bar per category.
     /// </summary>
 
-    local procedure CalcFiltersDayPlanning(var DayPlanning: Record "Day Planning"; DateFilter: Date)
+    local procedure CalcFiltersDayPlanning(var DayPlanning: Record "Opti Day Planning"; DateFilter: Date)
     begin
         DayPlanning.Reset();
         DayPlanning.SetCurrentKey("Plan Date", Skill, "Assigned Resource No.");
@@ -37,7 +37,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         DayPlanning.SetRange("Plan Date", DateFilter);
     end;
 
-    local procedure InsertBufferLine(var Buffer: Record "Skill Req. vs Capacity Buffer" temporary; BarType: Enum "Day Capacity Chart Bar Type"; Code: Code[20]; WkdayNo: Integer; Hours: Decimal)
+    local procedure InsertBufferLine(var Buffer: Record "Opti Skill Req. vs Cap. Buffer" temporary; BarType: Enum "Opti Day Cap. Chart Bar Type"; Code: Code[20]; WkdayNo: Integer; Hours: Decimal)
     begin
         Buffer.Init();
         Buffer."Bar Type" := BarType;
@@ -57,7 +57,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// not dropped - just labelled clearly instead of relabelled away, matching this codeunit's
     /// broader "show at 0/blank rather than silently disappearing" approach elsewhere.
     /// </summary>
-    local procedure BuildSegmentLabel(BarType: Enum "Day Capacity Chart Bar Type"; SkillCode: Code[20]): Text[30]
+    local procedure BuildSegmentLabel(BarType: Enum "Opti Day Cap. Chart Bar Type"; SkillCode: Code[20]): Text[30]
     var
         Prefix: Text[10];
         NameText: Text[20];
@@ -194,7 +194,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         CapacityColorHex: Text;
         ExternalBorderColorHex: Text;
         CapacityMandatoryColorHex: Text;
-        ColorConstants: Codeunit "Visual Default Settings";
+        ColorConstants: Codeunit "Opti Visual Default Settings";
     begin
         EnsureDayPlanningBuffer(PeriodStartDate, PeriodStartDate + 6);
 
@@ -366,7 +366,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         AssignedColorHex: Text;
         CapacityColorHex: Text;
         ExternalBorderColorHex: Text;
-        ColorConstants: Codeunit "Visual Default Settings";
+        ColorConstants: Codeunit "Opti Visual Default Settings";
         IsIncluded: Boolean;
     begin
         Clear(ChartDataJson);
@@ -534,7 +534,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// segment as one group regardless of which half it came from. Shares CalcDaySegments with
     /// BuildDayCapacityChartData so the two views can never drift apart.
     /// </summary>
-    procedure BuildDayCapacityAuditBuffer(var Buffer: Record "Day Capacity Chart Audit Buf" temporary; PeriodStartDate: Date)
+    procedure BuildDayCapacityAuditBuffer(var Buffer: Record "Opti Day Cap. Chart Audit Buf" temporary; PeriodStartDate: Date)
     var
         ActiveSkillList: List of [Code[20]];
         SkillInternalValues: Dictionary of [Code[20], Decimal];
@@ -567,18 +567,18 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
             // capacity (Res. Capacity Entry net of Assigned Hours - see CalcCapacitySplit), skills
             // are always 0 (skills never appear on the Capacity bar).
             LineNo += 1;
-            InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Capacity, AssignedSegmentTok, AssignedInternal + AssignedExternal);
+            InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Opti Day Cap. Chart Bar Type"::Capacity, AssignedSegmentTok, AssignedInternal + AssignedExternal);
             LineNo += 1;
-            InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Capacity, InternalSegmentTok, CapacityInternal);
+            InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Opti Day Cap. Chart Bar Type"::Capacity, InternalSegmentTok, CapacityInternal);
             LineNo += 1;
-            InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Capacity, ExternalSegmentTok, CapacityExternal);
+            InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Opti Day Cap. Chart Bar Type"::Capacity, ExternalSegmentTok, CapacityExternal);
             LineNo += 1;
-            InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Capacity, ExternalMandatorySegmentTok, CapacityExternalMandatory);
+            InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Opti Day Cap. Chart Bar Type"::Capacity, ExternalMandatorySegmentTok, CapacityExternalMandatory);
             foreach SkillCode in ActiveSkillList do begin
                 LineNo += 1;
-                InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Capacity, SkillCode, 0);
+                InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Opti Day Cap. Chart Bar Type"::Capacity, SkillCode, 0);
                 LineNo += 1;
-                InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Capacity, SkillCode, 0);
+                InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Opti Day Cap. Chart Bar Type"::Capacity, SkillCode, 0);
             end;
 
             // Requested bar: "Assigned" carries the same combined total as the Capacity bar,
@@ -587,23 +587,23 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
             // total on the first row with the second row always 0 - the Requested bar never
             // shows an Internal/External distinction anywhere, matching the chart's own collapse.
             LineNo += 1;
-            InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Requested, AssignedSegmentTok, AssignedInternal + AssignedExternal);
+            InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Opti Day Cap. Chart Bar Type"::Requested, AssignedSegmentTok, AssignedInternal + AssignedExternal);
             LineNo += 1;
-            InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Requested, InternalSegmentTok, 0);
+            InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Opti Day Cap. Chart Bar Type"::Requested, InternalSegmentTok, 0);
             LineNo += 1;
-            InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Requested, ExternalSegmentTok, 0);
+            InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Opti Day Cap. Chart Bar Type"::Requested, ExternalSegmentTok, 0);
             LineNo += 1;
-            InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Requested, ExternalMandatorySegmentTok, 0);
+            InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Opti Day Cap. Chart Bar Type"::Requested, ExternalMandatorySegmentTok, 0);
             foreach SkillCode in ActiveSkillList do begin
                 LineNo += 1;
-                InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Requested, SkillCode, SkillInternalValues.Get(SkillCode) + SkillExternalValues.Get(SkillCode));
+                InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Opti Day Cap. Chart Bar Type"::Requested, SkillCode, SkillInternalValues.Get(SkillCode) + SkillExternalValues.Get(SkillCode));
                 LineNo += 1;
-                InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Day Capacity Chart Bar Type"::Requested, SkillCode, 0);
+                InsertAuditLine(Buffer, LineNo, CurrDate, Enum::"Opti Day Cap. Chart Bar Type"::Requested, SkillCode, 0);
             end;
         end;
     end;
 
-    local procedure InsertAuditLine(var Buffer: Record "Day Capacity Chart Audit Buf" temporary; LineNo: Integer; PlanDate: Date; BarType: Enum "Day Capacity Chart Bar Type"; Segment: Code[20]; Value: Decimal)
+    local procedure InsertAuditLine(var Buffer: Record "Opti Day Cap. Chart Audit Buf" temporary; LineNo: Integer; PlanDate: Date; BarType: Enum "Opti Day Cap. Chart Bar Type"; Segment: Code[20]; Value: Decimal)
     begin
         Buffer.Init();
         Buffer."Line No." := LineNo;
@@ -661,7 +661,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// </summary>
     local procedure EnsureDayPlanningBuffer(DateFrom: Date; DateTo: Date)
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
     begin
         if GBufferLoaded and (GBufferDateFrom = DateFrom) and (GBufferDateTo = DateTo) then
             exit;
@@ -767,7 +767,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         InternalAssigned := 0;
         ExternalAssigned := 0;
 
-        Resource.SetLoadFields("Is External");
+        Resource.SetLoadFields("Opti Is External");
 
         GDayPlanningBuf.Reset();
         GDayPlanningBuf.SetRange("Plan Date", PlanDate);
@@ -775,7 +775,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         if GDayPlanningBuf.FindSet() then
             repeat
                 if Resource.Get(GDayPlanningBuf."Assigned Resource No.") then begin
-                    if Resource."Is External" then
+                    if Resource."Opti Is External" then
                         ExternalAssigned += GDayPlanningBuf."Assigned Hours"
                     else
                         InternalAssigned += GDayPlanningBuf."Assigned Hours";
@@ -875,9 +875,9 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
                 FreeCapacity := 0;
             if FreeCapacity <> 0 then
                 if Resource.Get(ResourceNo) then begin
-                    External := Resource."Is External";
+                    External := Resource."Opti Is External";
                     if External then begin
-                        if Resource."Mandatory Schedulling" then
+                        if Resource."Opti Mandatory Schedulling" then
                             ExternalCapacity_mandatory += FreeCapacity
                         else
                             ExternalCapacity += FreeCapacity;
@@ -1039,7 +1039,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         InternalAssigned := 0;
         ExternalAssigned := 0;
 
-        Resource.SetLoadFields("Is External");
+        Resource.SetLoadFields("Opti Is External");
 
         GDayPlanningBuf.Reset();
         GDayPlanningBuf.SetRange("Plan Date", PlanDate);
@@ -1048,7 +1048,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
             repeat
                 if ResourceSet.ContainsKey(GDayPlanningBuf."Assigned Resource No.") then
                     if Resource.Get(GDayPlanningBuf."Assigned Resource No.") then begin
-                        if Resource."Is External" then
+                        if Resource."Opti Is External" then
                             ExternalAssigned += GDayPlanningBuf."Assigned Hours"
                         else
                             InternalAssigned += GDayPlanningBuf."Assigned Hours";
@@ -1116,8 +1116,8 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
                 FreeCapacity := 0;
             if FreeCapacity <> 0 then
                 if Resource.Get(ResourceNo) then
-                    if Resource."Is External" then begin
-                        if Resource."Mandatory Schedulling" then
+                    if Resource."Opti Is External" then begin
+                        if Resource."Opti Mandatory Schedulling" then
                             ExternalCapacity_mandatory += FreeCapacity
                         else
                             ExternalCapacity += FreeCapacity;
@@ -1149,7 +1149,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         InternalRequested := 0;
         ExternalRequested := 0;
 
-        Resource.SetLoadFields("Is External");
+        Resource.SetLoadFields("Opti Is External");
 
         GDayPlanningBuf.Reset();
         GDayPlanningBuf.SetRange("Plan Date", PlanDate);
@@ -1157,7 +1157,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         GDayPlanningBuf.SetRange(Skill, SkillCode);
         if GDayPlanningBuf.FindSet() then
             repeat
-                if (GDayPlanningBuf."Requested Resource No." <> '') and Resource.Get(GDayPlanningBuf."Requested Resource No.") and Resource."Is External" then
+                if (GDayPlanningBuf."Requested Resource No." <> '') and Resource.Get(GDayPlanningBuf."Requested Resource No.") and Resource."Opti Is External" then
                     ExternalRequested += GDayPlanningBuf."Requested Hours"
                 else
                     InternalRequested += GDayPlanningBuf."Requested Hours";
@@ -1267,7 +1267,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// </summary>
     local procedure ShowAssignedCapacitySegment(SegmentId: Text; BarType: Text; DateFrom: Date; DateTo: Date; WholeWeek: Boolean)
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
         ResCapacityEntry: Record "Res. Capacity Entry";
         ResourceNoList: List of [Code[20]];
         ClassifyExternal: Boolean;
@@ -1298,7 +1298,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         DayPlanning.Reset();
         DayPlanning.SetRange("Plan Date", DateFrom, DateTo);
         DayPlanning.SetFilter("Assigned Resource No.", ResourceNoFilterText);
-        Page.Run(Page::"Day Plannings", DayPlanning);
+        Page.Run(Page::"Opti Day Plannings", DayPlanning);
     end;
 
     /// <summary>
@@ -1310,12 +1310,12 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// </summary>
     local procedure BuildAssignedResourceSet(DateFrom: Date; DateTo: Date; ClassifyExternal: Boolean; AnyClassification: Boolean; var ResourceNoList: List of [Code[20]])
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
         Resource: Record Resource;
         SeenResources: Dictionary of [Code[20], Boolean];
     begin
         Clear(ResourceNoList);
-        Resource.SetLoadFields("Is External");
+        Resource.SetLoadFields("Opti Is External");
 
         DayPlanning.Reset();
         DayPlanning.SetLoadFields("Assigned Resource No.", Assigned);
@@ -1328,7 +1328,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
                     if AnyClassification then
                         ResourceNoList.Add(DayPlanning."Assigned Resource No.")
                     else
-                        if Resource.Get(DayPlanning."Assigned Resource No.") and (Resource."Is External" = ClassifyExternal) then
+                        if Resource.Get(DayPlanning."Assigned Resource No.") and (Resource."Opti Is External" = ClassifyExternal) then
                             ResourceNoList.Add(DayPlanning."Assigned Resource No.");
                 end;
             until DayPlanning.Next() = 0;
@@ -1504,13 +1504,13 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     begin
         case Classification of
             Classification::Internal:
-                exit(not Resource."Is External");
+                exit(not Resource."Opti Is External");
             Classification::ExternalAny:
-                exit(Resource."Is External");
+                exit(Resource."Opti Is External");
             Classification::ExternalMandatory:
-                exit(Resource."Is External" and Resource."Mandatory Schedulling");
+                exit(Resource."Opti Is External" and Resource."Opti Mandatory Schedulling");
             Classification::ExternalNonMandatory:
-                exit(Resource."Is External" and not Resource."Mandatory Schedulling");
+                exit(Resource."Opti Is External" and not Resource."Opti Mandatory Schedulling");
         end;
     end;
 
@@ -1553,13 +1553,13 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// </summary>
     local procedure ShowSkillSegment(SkillCode: Text; DateFrom: Date; DateTo: Date)
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
     begin
         DayPlanning.Reset();
         DayPlanning.SetRange("Plan Date", DateFrom, DateTo);
         DayPlanning.SetRange(Assigned, false);
         DayPlanning.SetRange(Skill, CopyStr(SkillCode, 1, MaxStrLen(DayPlanning.Skill)));
-        Page.Run(Page::"Day Plannings", DayPlanning);
+        Page.Run(Page::"Opti Day Plannings", DayPlanning);
     end;
 
     /// <summary>
@@ -1572,7 +1572,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// </summary>
     local procedure GetSkillSeriesColor(SkillCode: Code[20]; PaletteIndex: Integer): Text
     var
-        ColorConstants: Codeunit "Visual Default Settings";
+        ColorConstants: Codeunit "Opti Visual Default Settings";
     begin
         exit(ColorConstants.GetSkillBarColor(CopyStr(SkillCode, 1, 10), PaletteIndex));
     end;
@@ -1584,7 +1584,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// </summary>
     local procedure GetSkillSeriesFontColor(SkillCode: Code[20]): Text
     var
-        ColorConstants: Codeunit "Visual Default Settings";
+        ColorConstants: Codeunit "Opti Visual Default Settings";
     begin
         exit(ColorConstants.GetSkillFontColor(CopyStr(SkillCode, 1, 10)));
     end;
@@ -1598,7 +1598,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// </summary>
     local procedure GetSkillSeriesBorderColor(SkillCode: Code[20]; PaletteIndex: Integer): Text
     var
-        ColorConstants: Codeunit "Visual Default Settings";
+        ColorConstants: Codeunit "Opti Visual Default Settings";
     begin
         exit(ColorConstants.GetSkillBorderColor(CopyStr(SkillCode, 1, 10), PaletteIndex));
     end;
@@ -1689,7 +1689,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// </summary>
     procedure GetCapacitySegmentColors(var AssignedColor: Text; var CapacityColor: Text; var ExternalBorderColor: Text)
     var
-        ColorConstants: Codeunit "Visual Default Settings";
+        ColorConstants: Codeunit "Opti Visual Default Settings";
     begin
         ColorConstants.GetCapacitySegmentColors(AssignedColor, CapacityColor, ExternalBorderColor);
     end;
@@ -1703,7 +1703,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// </summary>
     procedure GetCapacityBorderColor(): Text
     var
-        ColorConstants: Codeunit "Visual Default Settings";
+        ColorConstants: Codeunit "Opti Visual Default Settings";
     begin
         exit(ColorConstants.GetCapacityBorderColor());
     end;
@@ -1721,7 +1721,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// </summary>
     procedure GetCapacityMandatoryColor(): Text
     var
-        ColorConstants: Codeunit "Visual Default Settings";
+        ColorConstants: Codeunit "Opti Visual Default Settings";
     begin
         exit(ColorConstants.GetCapacityMandatoryColor());
     end;
@@ -1735,7 +1735,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// </summary>
     procedure GetBarFontColor(): Text
     var
-        ColorConstants: Codeunit "Visual Default Settings";
+        ColorConstants: Codeunit "Opti Visual Default Settings";
     begin
         exit(ColorConstants.GetBarFontColor());
     end;
@@ -1781,7 +1781,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         // handed back clean/unfiltered for the next caller; none of these procedures call each
         // other while mid-iteration over GDayPlanningBuf, so there is no re-entrancy risk from
         // sharing one Record instance.
-        GDayPlanningBuf: Record "Day Planning" temporary;
+        GDayPlanningBuf: Record "Opti Day Planning" temporary;
         GBufferDateFrom: Date;
         GBufferDateTo: Date;
         GBufferLoaded: Boolean;

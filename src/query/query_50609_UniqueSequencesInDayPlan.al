@@ -1,11 +1,11 @@
-query 50609 "Unique Sequences in DayPlan"
+query 50609 "Opti Uniq. Seq. in DayPlan"
 {
     QueryType = Normal;
     Caption = 'Unique Job/Task/Skill Sequences in Day Plannings';
 
     elements
     {
-        dataitem(Day_Tasks; "Day Planning")
+        dataitem(Day_Tasks; "Opti Day Planning")
         {
             filter(PlanDateFilter; "Plan Date")
             {
@@ -16,7 +16,7 @@ query 50609 "Unique Sequences in DayPlan"
             column(Job_Task_No_; "Job Task No.")
             {
             }
-            column(Skill; Skill)
+            column("Skill"; "Skill")
             {
             }
             column(Count_)

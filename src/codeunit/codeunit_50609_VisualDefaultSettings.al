@@ -1,4 +1,4 @@
-codeunit 50609 "Visual Default Settings"
+codeunit 50609 "Opti Visual Default Settings"
 {
     /// <summary>
     /// Single authoritative source for every scheduler/chart colour constant and resolution rule
@@ -50,7 +50,7 @@ codeunit 50609 "Visual Default Settings"
     /// </summary>
     local procedure ResolveCapacitySegmentColors(var AssignedColor: Text; var CapacityColor: Text; var ExternalBorderColor: Text)
     var
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
     begin
         AssignedColor := AssColorTok;
         CapacityColor := CapacityColorTok;
@@ -102,7 +102,7 @@ codeunit 50609 "Visual Default Settings"
     /// </summary>
     procedure GetCapacityMandatoryColor(): Text
     var
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
     begin
         if DailyOptimizerSetup.Get() then
             if DailyOptimizerSetup."Free Capacity-Mandatory Color" <> '' then
@@ -113,7 +113,7 @@ codeunit 50609 "Visual Default Settings"
 
     procedure GetCapacityBorderColor(): Text
     var
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
     begin
         if DailyOptimizerSetup.Get() then
             if DailyOptimizerSetup."Capacity Border Color" <> '' then
@@ -128,7 +128,7 @@ codeunit 50609 "Visual Default Settings"
     /// </summary>
     procedure GetCapacityFontColor(): Text
     var
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
     begin
         if DailyOptimizerSetup.Get() then
             if DailyOptimizerSetup."Capacity Font Color" <> '' then
@@ -159,7 +159,7 @@ codeunit 50609 "Visual Default Settings"
     /// </summary>
     procedure GetBarFontColor(): Text
     var
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
     begin
         if DailyOptimizerSetup.Get() then
             if DailyOptimizerSetup."Bar Font Color" <> '' then
@@ -178,7 +178,7 @@ codeunit 50609 "Visual Default Settings"
     /// </summary>
     procedure GetWeekendColor(): Text
     var
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
     begin
         if DailyOptimizerSetup.Get() then
             if DailyOptimizerSetup."Weekend Color" <> '' then
@@ -198,7 +198,7 @@ codeunit 50609 "Visual Default Settings"
     /// </summary>
     procedure GetHolidayColor(): Text
     var
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
     begin
         if DailyOptimizerSetup.Get() then
             if DailyOptimizerSetup."Holiday Color" <> '' then
@@ -217,7 +217,7 @@ codeunit 50609 "Visual Default Settings"
     /// </summary>
     procedure GetGanttTaskBarColor(): Text
     var
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
     begin
         if DailyOptimizerSetup.Get() then
             if DailyOptimizerSetup."GTB Color" <> '' then
@@ -236,7 +236,7 @@ codeunit 50609 "Visual Default Settings"
     /// </summary>
     procedure GetGanttTaskBarColorNonPosting(): Text
     var
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
     begin
         if DailyOptimizerSetup.Get() then
             if DailyOptimizerSetup."GTB Color (non posting)" <> '' then
@@ -253,7 +253,7 @@ codeunit 50609 "Visual Default Settings"
     /// </summary>
     procedure GetGanttTaskBarBorderColor(): Text
     var
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
     begin
         if DailyOptimizerSetup.Get() then
             if DailyOptimizerSetup."GTB Border Color" <> '' then
@@ -270,7 +270,7 @@ codeunit 50609 "Visual Default Settings"
     /// </summary>
     procedure GetGanttTaskBarProgressColor(): Text
     var
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
     begin
         if DailyOptimizerSetup.Get() then
             if DailyOptimizerSetup."GTB Progress Color" <> '' then
@@ -285,7 +285,7 @@ codeunit 50609 "Visual Default Settings"
     /// </summary>
     procedure GetGanttTaskBarFontColor(): Text
     var
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
     begin
         if DailyOptimizerSetup.Get() then
             if DailyOptimizerSetup."GTB Font Color" <> '' then
@@ -301,7 +301,7 @@ codeunit 50609 "Visual Default Settings"
     /// </summary>
     procedure GetGanttTaskBarFontSize(): Integer
     var
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
     begin
         if DailyOptimizerSetup.Get() then
             if DailyOptimizerSetup."GTB Font size (px)" <> 0 then
@@ -317,7 +317,7 @@ codeunit 50609 "Visual Default Settings"
     /// </summary>
     procedure GetGanttTaskBarHeight(): Integer
     var
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
     begin
         if DailyOptimizerSetup.Get() then
             if DailyOptimizerSetup."GTB Height (px)" <> 0 then
@@ -346,7 +346,7 @@ codeunit 50609 "Visual Default Settings"
     /// </summary>
     procedure GetTooltipBackgroundColor(): Text
     var
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
     begin
         if DailyOptimizerSetup.Get() then
             if DailyOptimizerSetup."Tooltip Background Color" <> '' then
@@ -368,7 +368,7 @@ codeunit 50609 "Visual Default Settings"
     /// </summary>
     procedure GetTooltipFontColor(): Text
     var
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
     begin
         if DailyOptimizerSetup.Get() then
             if DailyOptimizerSetup."Tooltip Font Color" <> '' then
@@ -551,7 +551,7 @@ codeunit 50609 "Visual Default Settings"
             exit('');
 
         if SkillCodeRec.Get(SkillCode) then begin
-            BarColor := SkillCodeRec."Bar Color".Trim();
+            BarColor := SkillCodeRec."Opti Bar Color".Trim();
             if BarColor <> '' then
                 exit(BarColor);
         end;
@@ -584,7 +584,7 @@ codeunit 50609 "Visual Default Settings"
             exit('');
 
         if SkillCodeRec.Get(SkillCode) then begin
-            FontColor := SkillCodeRec."Font Color".Trim();
+            FontColor := SkillCodeRec."Opti Font Color".Trim();
             if FontColor <> '' then
                 exit(FontColor);
         end;
@@ -610,7 +610,7 @@ codeunit 50609 "Visual Default Settings"
             exit('');
 
         if SkillCodeRec.Get(SkillCode) then begin
-            BorderColor := SkillCodeRec."Border Color".Trim();
+            BorderColor := SkillCodeRec."Opti Border Color".Trim();
             if BorderColor <> '' then
                 exit(BorderColor);
         end;

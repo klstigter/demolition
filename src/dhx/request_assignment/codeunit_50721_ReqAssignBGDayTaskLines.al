@@ -1,4 +1,4 @@
-codeunit 50721 "ReqAssign BG Day Task Lines"
+codeunit 50721 "Opti ReqAssign BG Task Lines"
 {
     // Page Background Task target for page 50710 "DHX Request Assignment Board"'s Part B.2/B.3
     // pagination (see the shared local procedure EnqueueDayTaskLinesBackgroundTask there, called
@@ -18,7 +18,7 @@ codeunit 50721 "ReqAssign BG Day Task Lines"
     // pagination is needed once off the blocking UI thread.
     trigger OnRun()
     var
-        DHXDataHandler: Codeunit "DHX Data Handler";
+        DHXDataHandler: Codeunit "Opti DHX Data Handler";
         TaskParameters: Dictionary of [Text, Text];
         Result: Dictionary of [Text, Text];
         RemainingSequenceKeys: Text;

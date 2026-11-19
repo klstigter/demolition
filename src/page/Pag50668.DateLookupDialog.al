@@ -1,4 +1,4 @@
-page 50670 "Date Lookup Dialog"
+page 50670 "Opti Date Lookup Dialog"
 {
     PageType = List;
     SourceTable = Date;
@@ -16,6 +16,7 @@ page 50670 "Date Lookup Dialog"
             {
                 field("Period Start"; Rec."Period Start")
                 {
+                    ToolTip = 'Specifies the value of the Period Start field.';
                     ApplicationArea = All;
                     Caption = 'Date';
                 }

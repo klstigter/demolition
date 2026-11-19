@@ -1,4 +1,4 @@
-page 50649 ApiProjectTypeOpt
+page 50649 "Opti ApiProjectTypeOpt"
 {
     PageType = API;
     Caption = 'Project Type API Optimization';
@@ -7,7 +7,7 @@ page 50649 ApiProjectTypeOpt
     APIVersion = 'v1.0';
     EntityName = 'projectType';
     EntitySetName = 'projectTypes';
-    SourceTable = "Project Type Opt.";
+    SourceTable = "Opti Project Type Opt.";
     DelayedInsert = true;
     ODataKeyFields = SystemId;
 

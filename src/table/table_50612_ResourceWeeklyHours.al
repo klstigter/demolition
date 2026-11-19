@@ -1,4 +1,4 @@
-table 50612 "Summary Weekly"
+table 50612 "Opti Summary Weekly"
 {
     TableType = Temporary;
     Caption = 'Summary Weekly';
@@ -8,208 +8,208 @@ table 50612 "Summary Weekly"
     {
         field(1; "Resource No."; Code[20])
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Resource No.';
             TableRelation = Resource;
 
         }
         field(2; "Skill Code"; Code[20])
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Skill Code';
             TableRelation = "Skill Code";
         }
         field(3; "Job No."; Code[20])
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Job No.';
             TableRelation = Job;
         }
         field(4; "Job Task No."; Code[20])
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Job Task No.';
             TableRelation = "Job Task"."Job Task No." where("Job No." = field("Job No."));
         }
         field(5; Year; Integer)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Year';
         }
         field(6; "Week No."; Integer)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Week No.';
         }
         field(8; "Monday Hours"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Monday';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
         }
         field(9; "Tuesday Hours"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Tuesday';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
         }
         field(10; "Wednesday Hours"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Wednesday';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
         }
         field(11; "Thursday Hours"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Thursday';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
         }
         field(12; "Friday Hours"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Friday';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
         }
         field(13; "Saturday Hours"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Saturday';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
         }
         field(14; "Sunday Hours"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Sunday';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
         }
         field(15; "Total Week Hours"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Total';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
         }
         Field(20; Purpose; Integer)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
 
         }
         field(21; "Monday Requested Hours"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Monday Requested';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
         }
         field(22; "Monday Assigned Hours"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Monday Assigned';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
         }
         field(23; "Tuesday Requested Hours"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Tuesday Requested';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
         }
         field(24; "Tuesday Assigned Hours"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Tuesday Assigned';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
         }
         field(25; "Wednesday Requested Hours"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Wednesday Requested';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
         }
         field(26; "Wednesday Assigned Hours"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Wednesday Assigned';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
         }
         field(27; "Thursday Requested Hours"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Thursday Requested';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
         }
         field(28; "Thursday Assigned Hours"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Thursday Assigned';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
         }
         field(29; "Friday Requested Hours"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Friday Requested';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
         }
         field(30; "Friday Assigned Hours"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Friday Assigned';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
         }
         field(31; "Saturday Requested Hours"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Saturday Requested';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
         }
         field(32; "Saturday Assigned Hours"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Saturday Assigned';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
         }
         field(33; "Sunday Requested Hours"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Sunday Requested';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
         }
         field(34; "Sunday Assigned Hours"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Sunday Assigned';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
         }
         field(35; "Total Requested Hours"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Total Requested';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
         }
         field(36; "Total Assigned Hours"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Total Assigned';
             DecimalPlaces = 0 : 2;
             BlankZero = true;
@@ -253,7 +253,7 @@ table 50612 "Summary Weekly"
 
     procedure FillSummaryWithJobFilter(JobNoFilter: Text)
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
     begin
         if JobNoFilter <> '' then
             DayPlanning.SetFilter("Job No.", JobNoFilter);
@@ -262,7 +262,7 @@ table 50612 "Summary Weekly"
 
     procedure FillSummaryWithJobTaskFilter(JobNoFilter: Text; JobTaskNoFilter: Text)
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
     begin
         if JobNoFilter <> '' then
             DayPlanning.SetFilter("Job No.", JobNoFilter);
@@ -273,7 +273,7 @@ table 50612 "Summary Weekly"
 
     procedure FillSummaryWithResourceFilter(ResourceNoFilter: Text)
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
     begin
         if ResourceNoFilter <> '' then
             DayPlanning.SetFilter("Assigned Resource No.", ResourceNoFilter);
@@ -282,7 +282,7 @@ table 50612 "Summary Weekly"
 
     procedure FillSummary(JobNo: Code[20]; JobTaskNo: Code[20])
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
     begin
         DayPlanning.SetRange("Job No.", JobNo);
         DayPlanning.SetRange("Job Task No.", JobTaskNo);
@@ -291,7 +291,7 @@ table 50612 "Summary Weekly"
 
     procedure FillSummary(ResourceNo: Code[20]; JobNo: Code[20]; JobTaskNo: Code[20])
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
     begin
         if ResourceNo <> '' then
             DayPlanning.SetRange("Assigned Resource No.", ResourceNo);
@@ -300,7 +300,7 @@ table 50612 "Summary Weekly"
         FillSummary(DayPlanning);
     end;
 
-    Local procedure FillSummary(var DayPlanning: Record "Day Planning")
+    Local procedure FillSummary(var DayPlanning: Record "Opti Day Planning")
     var
         DayIndex: Integer;
         YearValue: Integer;
@@ -322,7 +322,7 @@ table 50612 "Summary Weekly"
             TaskDate := DayPlanning."Plan Date";
             if TaskDate = 0D then begin
                 if ProjectTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
-                    TaskDate := ProjectTask."Placeholder Date";
+                    TaskDate := ProjectTask."Opti Placeholder Date";
             end;
             if TaskDate = 0D then
                 continue;
@@ -405,7 +405,7 @@ table 50612 "Summary Weekly"
         rec."Total Week Hours" += Hours;
     end;
 
-    Local procedure FillSummarySingleContext(var DayPlanning: Record "Day Planning"; RequestedContext: Boolean)
+    Local procedure FillSummarySingleContext(var DayPlanning: Record "Opti Day Planning"; RequestedContext: Boolean)
     var
         DayIndex: Integer;
         YearValue: Integer;
@@ -428,7 +428,7 @@ table 50612 "Summary Weekly"
             TaskDate := DayPlanning."Plan Date";
             if TaskDate = 0D then begin
                 if ProjectTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
-                    TaskDate := ProjectTask."Placeholder Date";
+                    TaskDate := ProjectTask."Opti Placeholder Date";
             end;
             if TaskDate = 0D then
                 continue;
@@ -501,7 +501,7 @@ table 50612 "Summary Weekly"
     /// </summary>
     procedure CollapseByResource(IncludeResource: Boolean)
     var
-        TempCollapsed: Record "Summary Weekly" temporary;
+        TempCollapsed: Record "Opti Summary Weekly" temporary;
     begin
         if IncludeResource then
             exit;
@@ -527,7 +527,7 @@ table 50612 "Summary Weekly"
             until TempCollapsed.Next() = 0;
     end;
 
-    local procedure AddHoursInto(var Target: Record "Summary Weekly")
+    local procedure AddHoursInto(var Target: Record "Opti Summary Weekly")
     begin
         Target."Monday Hours" += rec."Monday Hours";
         Target."Tuesday Hours" += rec."Tuesday Hours";
@@ -557,13 +557,13 @@ table 50612 "Summary Weekly"
     end;
     #endregion
     var
-        TempDayPlanning: Record "Day Planning" temporary;
+        TempDayPlanning: Record "Opti Day Planning" temporary;
         TempTask: Record "Job Task" temporary;
         TempJob: Record Job temporary;
         TEMPResource: Record "Resource" temporary;
         TempSkill: Record "Skill Code" temporary;
         TempYearWeek: Record Integer temporary;
-        TempSummaryWeekly: Record "Summary Weekly" temporary;
+        TempSummaryWeekly: Record "Opti Summary Weekly" temporary;
         TotalRequestedHours: Decimal;
         TotalAssignedHours: Decimal;
 
@@ -571,7 +571,7 @@ table 50612 "Summary Weekly"
 
     procedure ScanDayPlanningDateFilter(DateFilter: text)
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
     begin
         if DateFilter <> '' then
             DayPlanning.SetFilter("Plan Date", DateFilter);
@@ -581,7 +581,7 @@ table 50612 "Summary Weekly"
 
     procedure ScanDayPlanningFilter(JobNoFilter: text; TaskNoFilter: text)
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
     begin
         if JobNoFilter <> '' then
             DayPlanning.SetFilter("Job No.", JobNoFilter);
@@ -592,7 +592,7 @@ table 50612 "Summary Weekly"
 
     procedure ScanDayPlanningResource(ResourceFilter: text)
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
     begin
         if ResourceFilter <> '' then
             DayPlanning.SetFilter("Assigned Resource No.", ResourceFilter);
@@ -601,14 +601,14 @@ table 50612 "Summary Weekly"
 
     procedure ScanDayPlanningSkill(SkillFilter: text)
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
     begin
         if SkillFilter <> '' then
             DayPlanning.SetFilter("Skill", SkillFilter);
         ScanTEMPDayPlanning(DayPlanning)
     end;
 
-    local procedure ScanTempDayPlanning(var DayPlanning: Record "Day Planning")
+    local procedure ScanTempDayPlanning(var DayPlanning: Record "Opti Day Planning")
     var
         DateOld: Date;
         ywOld: Integer;
@@ -773,7 +773,7 @@ table 50612 "Summary Weekly"
         FillSummarySingleContext(TempDayPlanning, RequestedContext);
     end;
 
-    procedure LoadSummary(var TempDTask: Record "Day Planning")
+    procedure LoadSummary(var TempDTask: Record "Opti Day Planning")
     begin
         FillSummary(TempDTask);
     end;
@@ -800,7 +800,7 @@ table 50612 "Summary Weekly"
         Pg.SetTempSkill(TempSkill);
     end;
 
-    procedure HandOverToPage(var Pg: Page "Week View")
+    procedure HandOverToPage(var Pg: Page "Opti Week View")
     begin
         Pg.SetTempYearWeek(TempYearWeek);
     end;

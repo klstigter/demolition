@@ -1,5 +1,6 @@
-enum 50606 "Data Owner Opt."
+enum 50606 "Opti Data Owner Opt."
 {
+    Caption = 'Data Owner Opt.';
     Extensible = true;
 
     value(0; Planner)

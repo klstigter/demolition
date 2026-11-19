@@ -1,4 +1,4 @@
-table 50603 "PLanning Cue"
+table 50603 "Opti PLanning Cue"
 {
     Caption = 'PLanning Cue';
     DataClassification = CustomerContent;
@@ -7,20 +7,21 @@ table 50603 "PLanning Cue"
     {
         field(1; "Primary Key"; Code[10])
         {
+            DataClassification = SystemMetadata;
             AllowInCustomizations = Never;
             Caption = 'Primary Key';
         }
         field(10; "Projects"; Integer)
         {
             FieldClass = FlowField;
-            CalcFormula = count(Job where("Non Active" = filter(False)));
+            CalcFormula = count(Job where("Opti Non Active" = filter(False)));
             Caption = 'Projects';
             Editable = false;
         }
         field(20; "Project Tasks"; Integer)
         {
             FieldClass = FlowField;
-            CalcFormula = count("Job Task" where("Non Active" = filter(False)));
+            CalcFormula = count("Job Task" where("Opti Non Active" = filter(False)));
             Caption = 'Project Tasks';
             Editable = false;
         }
@@ -88,7 +89,7 @@ table 50603 "PLanning Cue"
     var
         myInt: Integer;
 
-    procedure ProjectCount(ViewType: enum "Job View Type"; ViewDate: Date; LookupView: Boolean): Integer
+    procedure ProjectCount(ViewType: enum "Opti Job View Type"; ViewDate: Date; LookupView: Boolean): Integer
     var
         Job: record Job;
         JobCheck: record Job;
@@ -98,7 +99,7 @@ table 50603 "PLanning Cue"
 
 
         Job.SetRange("No.");
-        Job.SetRange("Job View Type");
+        Job.SetRange("Opti Job View Type");
         Job.MarkedOnly := true;
         if Job.FindSet() then begin
             rtv := Job.Count();
@@ -125,7 +126,7 @@ table 50603 "PLanning Cue"
     /// </summary>
     procedure DayPlanningHours(ADate: Date): Decimal
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
         TotalHours: Decimal;
     begin
         DayPlanning.SetRange("Plan Date", ADate);

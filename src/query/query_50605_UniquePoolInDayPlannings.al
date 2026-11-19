@@ -1,11 +1,11 @@
-query 50605 "Unique Pool in Day Plannings"
+query 50605 "Opti Uniq. Pool in Day Plans"
 {
     QueryType = Normal;
     Caption = 'Unique Pool in Day Plannings';
 
     elements
     {
-        dataitem(Day_Tasks; "Day Planning")
+        dataitem(Day_Tasks; "Opti Day Planning")
         {
             filter(TaskDateFilter; "Plan Date")
             {

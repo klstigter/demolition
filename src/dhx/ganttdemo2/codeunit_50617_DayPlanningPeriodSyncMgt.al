@@ -1,11 +1,11 @@
-codeunit 50617 "DayPlanning Period Sync Mgt."
+codeunit 50617 "Opti DayPlan. Period Sync Mgt."
 {
     // Shared across every helper procedure invoked from a single CalculateChanges() call so its
     // internal Base Calendar / Work-Hour Template memoization (see codeunit 50610's gCalendarLoaded/
     // gCachedWorkHourTemplateCode) is only populated once per reschedule, not once per candidate date
     // or per resource.
     var
-        DayPlanningMgt: Codeunit "Day Plannings Mgt.";
+        DayPlanningMgt: Codeunit "Opti Day Plannings Mgt.";
 
     /// <summary>
     /// Entry point called from "Gantt Update Data" when a Job Task planned period changes.
@@ -14,8 +14,8 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
     /// </summary>
     procedure ShowPreview(var JobTask: Record "Job Task"; JobNo: Code[20]; JobTaskNo: Code[20]; OldStart: Date; OldEnd: Date; NewStart: Date; NewEnd: Date): Boolean
     var
-        TempPreviewBuffer: Record "DayPlanning Sync PreviewBuff" temporary;
-        PreviewPage: Page "DayPlanning PeriodSyncPreview";
+        TempPreviewBuffer: Record "Opti DayPlan Sync PreviewBuf" temporary;
+        PreviewPage: Page "Opti DayPlan Period Sync Prev.";
     begin
         // Calculate impacted DayPlanning records (buffer may be empty when no Day Plannings are linked).
         // Always open the preview page so the user can confirm or cancel the period change.
@@ -68,11 +68,11 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
     /// its per-row offset is constant, so distinct original dates never naively collide with one
     /// another in the first place.
     /// </summary>
-    procedure CalculateChanges(JobNo: Code[20]; JobTaskNo: Code[20]; OldStart: Date; OldEnd: Date; NewStart: Date; NewEnd: Date; var TempPreviewBuffer: Record "DayPlanning Sync PreviewBuff" temporary): Boolean
+    procedure CalculateChanges(JobNo: Code[20]; JobTaskNo: Code[20]; OldStart: Date; OldEnd: Date; NewStart: Date; NewEnd: Date; var TempPreviewBuffer: Record "Opti DayPlan Sync PreviewBuf" temporary): Boolean
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
         JobTask: Record "Job Task";
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
         EffectiveWorkHourTemplate: Code[20];
         EntryNo: Integer;
         NewDate: Date;
@@ -90,7 +90,7 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
 
         EffectiveWorkHourTemplate := '';
         if JobTask.Get(JobNo, JobTaskNo) then
-            EffectiveWorkHourTemplate := JobTask."Work Hour Template";
+            EffectiveWorkHourTemplate := JobTask."Opti Work Hour Template";
         if EffectiveWorkHourTemplate = '' then
             EffectiveWorkHourTemplate := DailyOptimizerSetup."Work hour Template";
 
@@ -128,7 +128,7 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
                         // By construction every redistributed/cascaded date is an active day,
                         // so this is always Work-day now — off-day collisions are resolved
                         // automatically rather than left for the user to classify/opt out of.
-                        TempPreviewBuffer."Day Type" := "DayPlanning Date Type"::"Work-day";
+                        TempPreviewBuffer."Day Type" := "Opti DayPlanning Date Type"::"Work-day";
                         TempPreviewBuffer."Convert to DayPlanning" := true;
                         TempPreviewBuffer."Is New Record" := false;
                         TempPreviewBuffer.Insert();
@@ -156,7 +156,7 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
                     TempPreviewBuffer."Day Name" := Format(CandidateDate, 0, '<Weekday Text>');
                     TempPreviewBuffer."Resource No." := '';
                     TempPreviewBuffer.Description := '';
-                    TempPreviewBuffer."Day Type" := "DayPlanning Date Type"::"Work-day";
+                    TempPreviewBuffer."Day Type" := "Opti DayPlanning Date Type"::"Work-day";
                     TempPreviewBuffer."Convert to DayPlanning" := true;
                     TempPreviewBuffer."Is New Record" := true;
                     TempPreviewBuffer.Insert();
@@ -178,14 +178,14 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
     /// </summary>
     procedure SnapForwardToWorkDay(JobTask: Record "Job Task"; DateToSnap: Date): Date
     var
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
         EffectiveWorkHourTemplate: Code[20];
     begin
         if DateToSnap = 0D then
             exit(DateToSnap);
         DailyOptimizerSetup.Get();
         DailyOptimizerSetup.TestField("Base Calendar");
-        EffectiveWorkHourTemplate := JobTask."Work Hour Template";
+        EffectiveWorkHourTemplate := JobTask."Opti Work Hour Template";
         if EffectiveWorkHourTemplate = '' then
             EffectiveWorkHourTemplate := DailyOptimizerSetup."Work hour Template";
         while not DayPlanningMgt.IsActiveWorkDay(EffectiveWorkHourTemplate, DateToSnap) do
@@ -203,13 +203,13 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
     /// </summary>
     procedure ResolveEffectiveWorkHourTemplate(JobTask: Record "Job Task"): Code[20]
     var
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
         EffectiveWorkHourTemplate: Code[20];
     begin
         DailyOptimizerSetup.Get();
         DailyOptimizerSetup.TestField("Base Calendar");
 
-        EffectiveWorkHourTemplate := JobTask."Work Hour Template";
+        EffectiveWorkHourTemplate := JobTask."Opti Work Hour Template";
         if EffectiveWorkHourTemplate = '' then
             EffectiveWorkHourTemplate := DailyOptimizerSetup."Work hour Template";
         exit(EffectiveWorkHourTemplate);
@@ -266,7 +266,7 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
     /// </summary>
     local procedure GetAffectedResources(JobNo: Code[20]; JobTaskNo: Code[20]; OldStart: Date; OldEnd: Date; var ResourceList: List of [Code[20]])
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
     begin
         Clear(ResourceList);
         DayPlanning.SetRange("Job No.", JobNo);
@@ -356,7 +356,7 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
     /// </summary>
     local procedure MapRowsUsingNaiveCascade(JobNo: Code[20]; JobTaskNo: Code[20]; ResourceNo: Code[20]; OldStart: Date; OldEnd: Date; NewStart: Date; NewEnd: Date; WorkHourTemplateCode: Code[20]; var RowNewDateMap: Dictionary of [Integer, Date])
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
         NaiveDate: Date;
         CandidateDate: Date;
         PrevNaiveDate: Date;
@@ -465,7 +465,7 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
     /// = false are excluded because they are never applied to DayPlanning by ApplyChanges/
     /// ApplyChangesOnly, so they must not influence the Job Task's end-date extension either.
     /// </summary>
-    local procedure GetMaxNewTaskDate(var TempPreviewBuffer: Record "DayPlanning Sync PreviewBuff" temporary): Date
+    local procedure GetMaxNewTaskDate(var TempPreviewBuffer: Record "Opti DayPlan Sync PreviewBuf" temporary): Date
     var
         MaxDate: Date;
     begin
@@ -488,14 +488,14 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
     /// fully covers the DayPlanning dates it owns. Deliberately end-date only — no symmetric
     /// Start Date extension.
     /// </summary>
-    local procedure ExtendJobTaskEndDateIfNeeded(var JobTask: Record "Job Task"; var TempPreviewBuffer: Record "DayPlanning Sync PreviewBuff" temporary)
+    local procedure ExtendJobTaskEndDateIfNeeded(var JobTask: Record "Job Task"; var TempPreviewBuffer: Record "Opti DayPlan Sync PreviewBuf" temporary)
     var
         MaxNewDate: Date;
     begin
         MaxNewDate := GetMaxNewTaskDate(TempPreviewBuffer);
-        if (MaxNewDate <> 0D) and (MaxNewDate > JobTask.VisualBarEndDate) then begin
-            JobTask.VisualBarEndDate := MaxNewDate;
-            JobTask.CalculateDuration();
+        if (MaxNewDate <> 0D) and (MaxNewDate > JobTask."Opti VisualBarEndDate") then begin
+            JobTask."Opti VisualBarEndDate" := MaxNewDate;
+            JobTask.OptiCalculateDuration();
         end;
     end;
 
@@ -504,9 +504,9 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
     /// Called from the "Apply Changes" action on the preview page.
     /// Issues a Commit() at the end so the Gantt chart data is immediately consistent.
     /// </summary>
-    procedure ApplyChanges(var JobTask: Record "Job Task"; var TempPreviewBuffer: Record "DayPlanning Sync PreviewBuff")
+    procedure ApplyChanges(var JobTask: Record "Job Task"; var TempPreviewBuffer: Record "Opti DayPlan Sync PreviewBuf")
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
     begin
         ExtendJobTaskEndDateIfNeeded(JobTask, TempPreviewBuffer);
 
@@ -548,10 +548,10 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
     /// </summary>
     procedure HandleJobTaskPeriodChange(var JobTask: Record "Job Task"; OldStart: Date; OldEnd: Date; SkipJobTaskModify: Boolean): Boolean
     var
-        TempPreviewBuffer: Record "DayPlanning Sync PreviewBuff" temporary;
-        PreviewPage: Page "DayPlanning PeriodSyncPreview";
+        TempPreviewBuffer: Record "Opti DayPlan Sync PreviewBuf" temporary;
+        PreviewPage: Page "Opti DayPlan Period Sync Prev.";
     begin
-        if not CalculateChanges(JobTask."Job No.", JobTask."Job Task No.", OldStart, OldEnd, JobTask.VisualBarStartDate, JobTask.VisualBarEndDate, TempPreviewBuffer) then begin
+        if not CalculateChanges(JobTask."Job No.", JobTask."Job Task No.", OldStart, OldEnd, JobTask."Opti VisualBarStartDate", JobTask."Opti VisualBarEndDate", TempPreviewBuffer) then begin
             if not SkipJobTaskModify then
                 JobTask.Modify(true);
             exit(true);
@@ -570,9 +570,9 @@ codeunit 50617 "DayPlanning Period Sync Mgt."
     /// Updates DayPlanning dates from the preview buffer without calling JobTask.Modify or Commit.
     /// Used when the calling page manages the full transaction (SkipJobTaskModify = TRUE path).
     /// </summary>
-    procedure ApplyChangesOnly(var TempPreviewBuffer: Record "DayPlanning Sync PreviewBuff")
+    procedure ApplyChangesOnly(var TempPreviewBuffer: Record "Opti DayPlan Sync PreviewBuf")
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
     begin
         TempPreviewBuffer.Reset();
         TempPreviewBuffer.SetRange("Convert to DayPlanning", true);

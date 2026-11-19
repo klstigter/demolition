@@ -1,9 +1,9 @@
-page 50613 "Project Planning Activities"
+page 50613 "Opti Project Plan. Activities"
 {
     Caption = 'Project Planning';
     PageType = CardPart;
     RefreshOnActivate = true;
-    SourceTable = "PLanning Cue";
+    SourceTable = "Opti PLanning Cue";
     ShowFilter = false;
 
     layout
@@ -51,10 +51,10 @@ page 50613 "Project Planning Activities"
 
                     trigger OnDrillDown()
                     var
-                        DayPlanning: Record "Day Planning";
+                        DayPlanning: Record "Opti Day Planning";
                     begin
                         DayPlanning.SetRange("Plan Date", Today());
-                        Page.Run(Page::"Day Plannings", DayPlanning);
+                        Page.Run(Page::"Opti Day Plannings", DayPlanning);
                     end;
                 }
             }
@@ -98,10 +98,10 @@ page 50613 "Project Planning Activities"
 
                     trigger OnDrillDown()
                     var
-                        DayPlanning: Record "Day Planning";
+                        DayPlanning: Record "Opti Day Planning";
                     begin
                         DayPlanning.SetRange("Plan Date", CalcDate('<1D>', Today()));
-                        Page.Run(Page::"Day Plannings", DayPlanning);
+                        Page.Run(Page::"Opti Day Plannings", DayPlanning);
                     end;
                 }
             }
@@ -152,7 +152,7 @@ page 50613 "Project Planning Activities"
     end;
 
     var
-        gViewType: enum "Job View Type";
+        gViewType: enum "Opti Job View Type";
 
 
 

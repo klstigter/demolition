@@ -26,48 +26,48 @@
     "End Time Realized"
 
 */
-table 50610 "Day Planning"
+table 50610 "Opti Day Planning"
 {
-    DataClassification = ToBeClassified;
+    DataClassification = CustomerContent;
     Caption = 'Day Plannings';
-    DrillDownPageId = "Day Plannings";
-    LookupPageId = "Day Plannings";
+    DrillDownPageId = "Opti Day Plannings";
+    LookupPageId = "Opti Day Plannings";
 
     fields
     {
         field(3; "Job No."; Code[20])
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             TableRelation = Job;
             Caption = 'Job No.';
             NotBlank = true;
         }
         field(4; "Job Task No."; Code[20])
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             NotBlank = true;
             TableRelation = "Job Task"."Job Task No." where("Job No." = field("Job No."));
             Caption = 'Job Task No.';
         }
         field(2; "Day Line No."; Integer)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Day Line No.';
             editable = false;
         }
         field(10; "Day No."; Integer)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
         }
         field(1; "Plan Date"; Date)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Plan Date';
 
             trigger OnValidate()
             var
                 JobTask: Record "Job Task";
-                DayPlanningMgt: Codeunit "Day Plannings Mgt.";
+                DayPlanningMgt: Codeunit "Opti Day Plannings Mgt.";
             begin
                 if ("Job No." = '') or ("Job Task No." = '') then
                     exit;
@@ -76,25 +76,25 @@ table 50610 "Day Planning"
                 AssignedCheck();
             end;
         }
-        field(7; "Task Date Fixation"; Enum "Task Date Fixation")
+        field(7; "Task Date Fixation"; Enum "Opti Task Date Fixation")
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Task Date Fixation'; //DA1-T62
         }
         field(8; Assigned; Boolean)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Assigned'; //DA1-T128
         }
         field(9; "Sequence No."; Integer)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Sequence No.';
             NotBlank = true;
         }
         field(11; "Start Time Assigned"; Time)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Start Time Assigned';
 
             trigger OnValidate()
@@ -105,7 +105,7 @@ table 50610 "Day Planning"
         }
         field(12; "End Time Assigned"; Time)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'End Time Assigned';
 
             trigger OnValidate()
@@ -116,7 +116,7 @@ table 50610 "Day Planning"
         }
         field(13; "Start Time Requested"; Time)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Start Time Requested';
 
             trigger OnValidate()
@@ -126,7 +126,7 @@ table 50610 "Day Planning"
         }
         field(14; "End Time Requested"; Time)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'End Time Requested';
 
             trigger OnValidate()
@@ -138,7 +138,7 @@ table 50610 "Day Planning"
         // **** control Resource No.
         field(38; "Requested Pool Resource No."; Code[20])
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             tablerelation = Resource;
 
             trigger OnValidate()
@@ -148,7 +148,7 @@ table 50610 "Day Planning"
                 if "Requested Pool Resource No." <> '' then begin
                     if "Requested Resource No." <> '' then begin
                         Resource.Get("Requested Resource No.");
-                        if Resource."Pool Resource No." <> "Requested Pool Resource No." then
+                        if Resource."Opti Pool Resource No." <> "Requested Pool Resource No." then
                             "Requested Resource No." := "Requested Pool Resource No.";
                     end else begin
                         "Requested Resource No." := "Requested Pool Resource No.";
@@ -160,13 +160,14 @@ table 50610 "Day Planning"
 
             trigger OnLookup()
             var
+                NoPoolResourcesFoundMsg: Label 'No Pool Resources found.';
                 Resource: Record Resource;
             begin
                 Resource.Reset();
-                Resource.SetFilter("pool Resource No.", '<>%1', '');
+                Resource.SetFilter("Opti Pool Resource No.", '<>%1', '');
                 if Resource.FindSet() then
                     repeat
-                        if Resource."Pool Resource No." = Resource."No." then
+                        if Resource."Opti Pool Resource No." = Resource."No." then
                             Resource.Mark(True);
                     until Resource.Next() = 0;
                 Resource.MarkedOnly(true);
@@ -174,13 +175,13 @@ table 50610 "Day Planning"
                     if page.RunModal(0, Resource) = ACTION::LookupOK then
                         Validate("Requested Pool Resource No.", Resource."No.");
                 end else
-                    Message('No Pool Resources found.');
+                    Message(NoPoolResourcesFoundMsg);
             end;
         }
 
         field(39; "Assigned Pool Resource No."; Code[20])
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             tablerelation = Resource;
 
             trigger OnValidate()
@@ -190,7 +191,7 @@ table 50610 "Day Planning"
                 if "Assigned Pool Resource No." <> '' then begin
                     if "Assigned Resource No." <> '' then begin
                         Resource.Get("Assigned Resource No.");
-                        if Resource."Pool Resource No." <> "Assigned Pool Resource No." then
+                        if Resource."Opti Pool Resource No." <> "Assigned Pool Resource No." then
                             "Assigned Resource No." := "Assigned Pool Resource No.";
                     end else begin
                         "Assigned Resource No." := "Assigned Pool Resource No.";
@@ -202,13 +203,14 @@ table 50610 "Day Planning"
 
             trigger OnLookup()
             var
+                NoPoolResourcesFoundMsg: Label 'No Pool Resources found.';
                 Resource: Record Resource;
             begin
                 Resource.Reset();
-                Resource.SetFilter("pool Resource No.", '<>%1', '');
+                Resource.SetFilter("Opti Pool Resource No.", '<>%1', '');
                 if Resource.FindSet() then
                     repeat
-                        if Resource."Pool Resource No." = Resource."No." then
+                        if Resource."Opti Pool Resource No." = Resource."No." then
                             Resource.Mark(True);
                     until Resource.Next() = 0;
                 Resource.MarkedOnly(true);
@@ -216,58 +218,63 @@ table 50610 "Day Planning"
                     if page.RunModal(0, Resource) = ACTION::LookupOK then
                         Validate("Assigned Pool Resource No.", Resource."No.");
                 end else
-                    Message('No Pool Resources found.');
+                    Message(NoPoolResourcesFoundMsg);
             end;
         }
         field(40; "Vendor No."; Code[20])
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             TableRelation = Vendor;
             Caption = 'Vendor No.';
 
             trigger OnValidate()
             var
+                ResourceDoesNotBelongToErr: Label 'Resource %1 does not belong to Vendor %2.', Comment = '%1=Assigned Resource No., %2=Vendor No.';
                 Resource: Record Resource;
             begin
                 if ("Vendor No." <> '') and ("Assigned Resource No." <> '') then begin
                     Resource.Get("Assigned Resource No.");
                     if Resource."Vendor No." <> "Vendor No." then
-                        Error('Resource %1 does not belong to Vendor %2.', "Assigned Resource No.", "Vendor No.");
+                        Error(ResourceDoesNotBelongToErr, "Assigned Resource No.", "Vendor No.");
                 end
             end;
         }
         field(23; "Resource Group No."; Code[20])
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Resource Group No.';
             TableRelation = "Resource Group";
 
             trigger OnValidate()
             var
+                ResourceDoesNotBelongToErr: Label 'Resource %1 does not belong to Resource Group %2.', Comment = '%1=Assigned Resource No., %2=Resource Group No.';
                 Resource: Record Resource;
             begin
                 if ("Resource Group No." <> '') and ("Assigned Resource No." <> '') then begin
                     Resource.Get("Assigned Resource No.");
                     if Resource."Resource Group No." <> "Resource Group No." then
-                        Error('Resource %1 does not belong to Resource Group %2.', "Assigned Resource No.", "Resource Group No.");
+                        Error(ResourceDoesNotBelongToErr, "Assigned Resource No.", "Resource Group No.");
                 end;
             end;
         }
         field(24; "Skill"; Code[20])
         {
+            DataClassification = CustomerContent;
             Caption = 'Skill';
             TableRelation = "Skill Code";
             NotBlank = true;
 
             trigger OnValidate()
             var
+                ResourceDoesNotHaveSkillQst: Label 'Resource %1 does not have skill %2. Do you want to continue anyway?', Comment = '%1=Assigned Resource No., %2=Skill';
+                ResourceDoesNotHaveSkillErr: Label 'Resource %1 does not have skill %2.', Comment = '%1=Assigned Resource No., %2=Skill';
                 SkillRes: Record "Resource Skill";
             begin
                 if ("Skill" <> '') and ("Assigned Resource No." <> '') then begin
                     if not SkillRes.Get(SkillRes.Type::Resource, "Assigned Resource No.", "Skill") then
                         if GuiAllowed then begin
-                            if not Confirm('Resource %1 does not have skill %2. Do you want to continue anyway?', false, "Assigned Resource No.", "Skill") then
-                                Error('Resource %1 does not have skill %2.', "Assigned Resource No.", "Skill");
+                            if not Confirm(ResourceDoesNotHaveSkillQst, false, "Assigned Resource No.", "Skill") then
+                                Error(ResourceDoesNotHaveSkillErr, "Assigned Resource No.", "Skill");
                         end;
                 end;
             end;
@@ -276,12 +283,12 @@ table 50610 "Day Planning"
 
         field(21; "Assigned Resource No."; Code[20])
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Assigned Resource No.';
             TableRelation =
             if ("Assigned Pool Resource No." = const('')) Resource where(Blocked = const(false))
             else
-            Resource where(Blocked = const(false), "Pool Resource No." = field("Assigned Pool Resource No."));
+            Resource where(Blocked = const(false), "Opti Pool Resource No." = field("Assigned Pool Resource No."));
 
             trigger OnValidate()
             var
@@ -293,16 +300,16 @@ table 50610 "Day Planning"
                     "Resource Group No." := Resource."Resource Group No.";
                     if Resource."Vendor No." <> '' then
                         "Vendor No." := Resource."Vendor No.";
-                    if Resource."Is Pool" or Resource."Is Pool Member" then begin
-                        if Resource."Is Pool" then
+                    if Resource."Opti Is Pool" or Resource."Opti Is Pool Member" then begin
+                        if Resource."Opti Is Pool" then
                             "Assigned Pool Resource No." := Resource."No.";
-                        if Resource."Is Pool Member" then
-                            "Assigned Pool Resource No." := Resource."Pool Resource No.";
+                        if Resource."Opti Is Pool Member" then
+                            "Assigned Pool Resource No." := Resource."Opti Pool Resource No.";
                     end else
                         "Assigned Pool Resource No." := '';
 
-                    "Assigned Leader" := Resource."Is Foreman";
-                    "Assigned Team Leader" := Resource."Default Foreman";
+                    "Assigned Leader" := Resource."Opti Is Foreman";
+                    "Assigned Team Leader" := Resource."Opti Default Foreman";
                     CalculateWorkingHours();
                 end else begin
                     CalculateWorkingHours();
@@ -319,7 +326,7 @@ table 50610 "Day Planning"
                 Item: Record Item;
                 GLAccount: Record "G/L Account";
                 ResSklill: Record "Resource Skill";
-                CapacityUniqueResource: Query "Unique Resource in Capacity";
+                CapacityUniqueResource: Query "Opti Uniq. Res. in Capacity";
                 ResLookupPage: Page "Opti Resource List";
                 TempText: Text;
             begin
@@ -333,7 +340,7 @@ table 50610 "Day Planning"
                     if Resource.Get(CapacityUniqueResource.Resource_No_) then begin
                         Resource.Mark(true);
                         if "Assigned Pool Resource No." <> '' then begin
-                            if Resource."Pool Resource No." <> "Assigned Pool Resource No." then
+                            if Resource."Opti Pool Resource No." <> "Assigned Pool Resource No." then
                                 Resource.Mark(false);
                         end;
                     end;
@@ -361,18 +368,18 @@ table 50610 "Day Planning"
         }
         field(22; Description; Text[100])
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Description';
         }
         field(20; "Requested Leader"; Boolean)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Requested Leader';
 
             trigger OnValidate()
             var
-                DayPlanning: Record "Day Planning";
-                DayPlanning2: Record "Day Planning";
+                DayPlanning: Record "Opti Day Planning";
+                DayPlanning2: Record "Opti Day Planning";
             begin
                 if Rec."Requested Leader" then begin
                     Rec.TestField("Requested Resource No.");
@@ -416,15 +423,15 @@ table 50610 "Day Planning"
         }
         field(25; "Requested Team Leader"; Code[20])
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             TableRelation = Resource;
             Caption = 'Requested Team Leader';
 
             trigger OnValidate()
             var
-                DayPlanning: Record "Day Planning";
-                LeaderErr: Label 'As a %1, the %2 must be set as %3';
-                LeaderNotFoundErr: label '%1 as %2 does not exist in %3 %4 %5, %6 %7, %8 %9';
+                DayPlanning: Record "Opti Day Planning";
+                LeaderErr: Label 'As a %1, the %2 must be set as %3', Comment = '%1 = value, %2 = value, %3 = value';
+                LeaderNotFoundErr: label '%1 as %2 does not exist in %3 %4 %5, %6 %7, %8 %9', Comment = '%1 = value, %2 = value, %3 = value, %4 = value, %5 = value, %6 = value, %7 = value, %8 = value, %9 = value';
             begin
                 if "Requested Leader" then begin
                     TestField("Requested Resource No.");
@@ -451,7 +458,7 @@ table 50610 "Day Planning"
 
             trigger OnLookup()
             var
-                DayPlanning: Record "Day Planning";
+                DayPlanning: Record "Opti Day Planning";
                 Res: Record Resource;
                 NoLeaderLbl: Label 'No leader specified';
             begin
@@ -478,13 +485,13 @@ table 50610 "Day Planning"
         }
         field(26; "Assigned Leader"; Boolean)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Assigned Leader';
 
             trigger OnValidate()
             var
-                DayPlanning: Record "Day Planning";
-                DayPlanning2: Record "Day Planning";
+                DayPlanning: Record "Opti Day Planning";
+                DayPlanning2: Record "Opti Day Planning";
             begin
                 if Rec."Assigned Leader" then begin
                     Rec.TestField("Assigned Resource No.");
@@ -527,15 +534,15 @@ table 50610 "Day Planning"
         }
         field(28; "Assigned Team Leader"; Code[20])
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             TableRelation = Resource;
             Caption = 'Assigned Team Leader';
 
             trigger OnValidate()
             var
-                DayPlanning: Record "Day Planning";
-                LeaderErr: Label 'As a %1, the %2 must be set as %3';
-                LeaderNotFoundErr: label '%1 as %2 does not exist in %3 %4 %5, %6 %7, %8 %9';
+                DayPlanning: Record "Opti Day Planning";
+                LeaderErr: Label 'As a %1, the %2 must be set as %3', Comment = '%1 = value, %2 = value, %3 = value';
+                LeaderNotFoundErr: label '%1 as %2 does not exist in %3 %4 %5, %6 %7, %8 %9', Comment = '%1 = value, %2 = value, %3 = value, %4 = value, %5 = value, %6 = value, %7 = value, %8 = value, %9 = value';
             begin
                 if "Assigned Leader" then begin
                     TestField("Assigned Resource No.");
@@ -562,7 +569,7 @@ table 50610 "Day Planning"
 
             trigger OnLookup()
             var
-                DayPlanning: Record "Day Planning";
+                DayPlanning: Record "Opti Day Planning";
                 Res: Record Resource;
                 NoLeaderLbl: Label 'No leader specified';
             begin
@@ -588,12 +595,12 @@ table 50610 "Day Planning"
         }
         field(27; "Requested Resource No."; Code[20])
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Requested Resource No.';
             TableRelation =
             if ("Requested Pool Resource No." = const('')) Resource where(Blocked = const(false))
             else
-            Resource where(Blocked = const(false), "Pool Resource No." = field("Requested Pool Resource No."));
+            Resource where(Blocked = const(false), "Opti Pool Resource No." = field("Requested Pool Resource No."));
 
             trigger OnValidate()
             var
@@ -605,16 +612,16 @@ table 50610 "Day Planning"
                     "Resource Group No." := Resource."Resource Group No.";
                     if Resource."Vendor No." <> '' then
                         "Vendor No." := Resource."Vendor No.";
-                    if Resource."Is Pool" or Resource."Is Pool Member" then begin
-                        if Resource."Is Pool" then
+                    if Resource."Opti Is Pool" or Resource."Opti Is Pool Member" then begin
+                        if Resource."Opti Is Pool" then
                             "Requested Pool Resource No." := Resource."No.";
-                        if Resource."Is Pool Member" then
-                            "Requested Pool Resource No." := Resource."Pool Resource No.";
+                        if Resource."Opti Is Pool Member" then
+                            "Requested Pool Resource No." := Resource."Opti Pool Resource No.";
                     end else
                         "Requested Pool Resource No." := '';
 
-                    "Requested Leader" := Resource."Is Foreman";
-                    "Requested Team Leader" := Resource."Default Foreman";
+                    "Requested Leader" := Resource."Opti Is Foreman";
+                    "Requested Team Leader" := Resource."Opti Default Foreman";
                     Skill := GetFirstSkill("Requested Resource No.");
                     if "Assigned Resource No." <> '' then
                         Skill := GetFirstSkill("Assigned Resource No.");
@@ -628,7 +635,7 @@ table 50610 "Day Planning"
         }
         field(31; "Unit of Measure Code"; Code[10])
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Unit of Measure Code';
         }
         field(41; "Vendor Name"; Text[100])
@@ -647,15 +654,15 @@ table 50610 "Day Planning"
         }
         field(50; "Work Type Code"; Code[10])
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             TableRelation = "Work Type";
             Caption = 'Work Type Code';
         }
         field(55; "Order Intake No."; Code[20])
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Order Intake No.';
-            TableRelation = "Order Intake Header Opt.";
+            TableRelation = "Opti Order Intake Header Opt.";
         }
         Field(65; "Requested Hours"; Decimal)
         {
@@ -666,7 +673,7 @@ table 50610 "Day Planning"
 
         field(70; "Worked Hours"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Worked Hours';
             DecimalPlaces = 0 : 2;
         }
@@ -717,7 +724,7 @@ table 50610 "Day Planning"
         }
         field(86; "Start Time Realized"; Time)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Start Time Realized';
 
             trigger OnValidate()
@@ -727,7 +734,7 @@ table 50610 "Day Planning"
         }
         field(87; "End Time Realized"; Time)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'End Time Realized';
 
             trigger OnValidate()
@@ -738,7 +745,7 @@ table 50610 "Day Planning"
 
         field(90; "Manual Modified"; Boolean)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Do Not Change automatically by process';
             Editable = false;
         }
@@ -760,12 +767,13 @@ table 50610 "Day Planning"
         }
         field(120; "Capacity Fully Utilized"; Boolean)
         {
+            DataClassification = CustomerContent;
             Caption = 'Capacity Fully Utilized';
         }
         Field(132; "Total Assigned Hours"; Decimal)
         {
             Caption = 'Total Assigned Hours';
-            CalcFormula = sum("Day Planning"."Assigned Hours" where("Assigned Resource No." = field("Assigned Resource No."),
+            CalcFormula = sum("Opti Day Planning"."Assigned Hours" where("Assigned Resource No." = field("Assigned Resource No."),
               "Plan Date" = field("Plan Date")));
             DecimalPlaces = 0 : 2;
             FieldClass = FlowField;
@@ -775,37 +783,37 @@ table 50610 "Day Planning"
         Field(133; "Total Requested Hours"; Decimal)
         {
             Caption = 'Total Requested Hours';
-            CalcFormula = sum("Day Planning"."Requested Hours" where("Requested Resource No." = field("Requested Resource No."),
+            CalcFormula = sum("Opti Day Planning"."Requested Hours" where("Requested Resource No." = field("Requested Resource No."),
               "Plan Date" = field("Plan Date")));
             DecimalPlaces = 0 : 2;
             FieldClass = FlowField;
             Editable = false;
             BlankZero = true;
         }
-        field(140; "Data Owner"; Enum "Data Owner Opt.")
+        field(140; "Data Owner"; Enum "Opti Data Owner Opt.")
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Data Owner';
         }
         field(150; "Posted"; Boolean)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Posted';
         }
         field(151; "Job Entry No."; Integer)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = SystemMetadata;
             Caption = 'Job Entry No.';
         }
         field(152; "Resource Entry No."; Integer)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = SystemMetadata;
             Caption = 'Resource Entry No.';
         }
 
         field(160; "Approved Project Manager"; Code[50])
         {
-            DataClassification = ToBeClassified;
+            DataClassification = EndUserIdentifiableInformation;
             Caption = 'Approved Project Manager';
         }
 
@@ -815,24 +823,24 @@ table 50610 "Day Planning"
         Planner Status (none, submitted, pending, rejected)
         Vendor Status (none, requested, approved, rejected)
         */
-        field(5; "Plan Status"; Enum "Plan Status")
+        field(5; "Plan Status"; Enum "Opti Plan Status")
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Plan Status';
         }
-        field(200; "Project Manager Status"; Enum "Project Manager Status")
+        field(200; "Project Manager Status"; Enum "Opti Project Manager Status")
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Project Manager Status';
         }
-        field(201; "Planner Status"; Enum "Planner Status")
+        field(201; "Planner Status"; Enum "Opti Planner Status")
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Planner Status';
         }
-        field(202; "Vendor Status"; Enum "Vendor Status")
+        field(202; "Vendor Status"; Enum "Opti Vendor Status")
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Vendor Status';
         }
 
@@ -872,8 +880,8 @@ table 50610 "Day Planning"
 
     trigger OnInsert()
     var
-        DailyOptimizerSetup: record "Daily Optimizer Setup";
-        DayPlanningSequenceMgt: Codeunit "Day Planning Sequence Mgt.";
+        DailyOptimizerSetup: record "Opti Daily Optimizer Setup";
+        DayPlanningSequenceMgt: Codeunit "Opti Day Plan. Sequence Mgt.";
         PrimaryKeyRequiredErr: Label 'Job No., Job Task No. and Day Line No. must have a value.';
     begin
         if (Rec."Job No." = '') or (Rec."Job Task No." = '') or (Rec."Day Line No." = 0) then
@@ -893,7 +901,7 @@ table 50610 "Day Planning"
 
     trigger OnModify()
     var
-        DayPlanningSequenceMgt: Codeunit "Day Planning Sequence Mgt.";
+        DayPlanningSequenceMgt: Codeunit "Opti Day Plan. Sequence Mgt.";
     begin
         if (xRec."Assigned Hours" = 0) and (Rec."Assigned Hours" <> 0) then
             Rec."Plan Status" := Rec."Plan Status"::"In Progress";
@@ -910,7 +918,7 @@ table 50610 "Day Planning"
     end;
 
     var
-        generalutils: Codeunit "General Planning Utilities";
+        generalutils: Codeunit "Opti General Plan. Utilities";
 
 
     procedure GetNextDayLineNo();
@@ -934,12 +942,13 @@ table 50610 "Day Planning"
 
     local procedure CheckResourceHasSkill(ResNo: Code[20])
     var
+        ResourceDoesNotHaveAErr: Label 'Resource %1 does not have a Skill assigned.', Comment = '%1=ResNo';
         ResSkill: Record "Resource Skill";
     begin
         ResSkill.SetRange(Type, ResSkill.Type::Resource);
         ResSkill.SetRange("No.", ResNo);
         if ResSkill.IsEmpty() then
-            Error('Resource %1 does not have a Skill assigned.', ResNo);
+            Error(ResourceDoesNotHaveAErr, ResNo);
     end;
 
     // Guards against code paths that write "Skill" via a plain field assignment instead of
@@ -950,10 +959,11 @@ table 50610 "Day Planning"
     // actually inserted/modified with triggers running (Insert(true)/Modify(true)).
     local procedure CheckSkillCodeExists(SkillCode: Code[20])
     var
+        SkillDoesNotExistInErr: Label 'Skill %1 does not exist in Skill Codes. Add it to the Skill Codes list before using it on a Day Planning line.', Comment = '%1=SkillCode';
         SkillCodeRec: Record "Skill Code";
     begin
         if not SkillCodeRec.Get(SkillCode) then
-            Error('Skill %1 does not exist in Skill Codes. Add it to the Skill Codes list before using it on a Day Planning line.', SkillCode);
+            Error(SkillDoesNotExistInErr, SkillCode);
     end;
 
     local procedure GetFirstSkill(ResNo: Code[20]): Code[20]
@@ -976,7 +986,7 @@ table 50610 "Day Planning"
 
     local procedure CalculateRealizedWorkingHours()
     var
-        PlanningUtil: codeunit "General Planning Utilities";
+        PlanningUtil: codeunit "Opti General Plan. Utilities";
         WorkingMinutes: Integer;
         RealizedHours: Decimal;
         PartType: Option "Requested","Assigned","Realized";
@@ -994,7 +1004,7 @@ table 50610 "Day Planning"
 
     local procedure CalculateAssignedWorkingHours()
     var
-        PlanningUtil: codeunit "General Planning Utilities";
+        PlanningUtil: codeunit "Opti General Plan. Utilities";
         WorkingMinutes: Integer;
         AssignedHours: Decimal;
         PartType: Option "Requested","Assigned","Realized";
@@ -1012,7 +1022,7 @@ table 50610 "Day Planning"
 
     local procedure CalculateRequestedWorkingHours()
     var
-        PlanningUtil: codeunit "General Planning Utilities";
+        PlanningUtil: codeunit "Opti General Plan. Utilities";
         WorkingMinutes: Integer;
         RequestedHours: Decimal;
         BoolVar: Boolean;
@@ -1030,7 +1040,7 @@ table 50610 "Day Planning"
 
     procedure GetNextDayLineNo(TaskDay: date; "Job No.": Code[20]; "Job Task No.": Code[20]): Integer
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
         CandidateLineNo: Integer;
     begin
         // TaskDay is intentionally unused: DayLineNo must now be unique across
@@ -1052,9 +1062,10 @@ table 50610 "Day Planning"
 
     procedure CheckFirstandLastDay("Job No.": Code[20]; "Job Task No.": Code[20]);
     var
+        ThereAreDayPlanningsAfteErr: Label 'There are Day Plannings after the planned end date %1.', Comment = '%1=LastPlanningDate';
         job: Record Job;
         JobTask: Record "Job Task";
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
         FirstPlanningDate: Date;
         LastPlanningDate: Date;
     begin
@@ -1065,9 +1076,9 @@ table 50610 "Day Planning"
             LastPlanningDate := job."Ending Date";
         end else begin
             JobTask.get("Job No.", "Job Task No.");
-            JobTask.SetLoadFields(VisualBarStartDate, VisualBarEndDate);
-            FirstPlanningDate := JobTask.VisualBarStartDate;
-            LastPlanningDate := JobTask.VisualBarEndDate;
+            JobTask.SetLoadFields("Opti VisualBarStartDate", "Opti VisualBarEndDate");
+            FirstPlanningDate := JobTask."Opti VisualBarStartDate";
+            LastPlanningDate := JobTask."Opti VisualBarEndDate";
         end;
 
         // check the first and last planning dates for the given first and last dates
@@ -1079,14 +1090,14 @@ table 50610 "Day Planning"
                 error('There are Day Plannings before the planned start date %1.', FirstPlanningDate);
         if DayPlanning.FindLast() then begin
             if DayPlanning."Plan Date" > LastPlanningDate then
-                Error('There are Day Plannings after the planned end date %1.', LastPlanningDate);
+                Error(ThereAreDayPlanningsAfteErr, LastPlanningDate);
         end;
     end;
 
     procedure CheckDayPlanningDateInProjectTaskRange()
     var
         JobTask: Record "Job Task";
-        ErrLbl: Label 'The Task Date %1 must be within the planned start date %2 and end date %3 of the Job Task.';
+        ErrLbl: Label 'The Task Date %1 must be within the planned start date %2 and end date %3 of the Job Task.', Comment = '%1 = value, %2 = value, %3 = value';
     begin
         if "Job Task No." = '' then
             exit; // skip check if Job Task is not specified
@@ -1094,9 +1105,9 @@ table 50610 "Day Planning"
         JobTask.get("Job No.", "Job Task No.");
 
         // Planned Start/End Date both set - original hard boundary check, unchanged.
-        if (JobTask.VisualBarStartDate <> 0D) and (JobTask.VisualBarEndDate <> 0D) then begin
-            if ("Plan Date" < JobTask.VisualBarStartDate) or ("Plan Date" > JobTask.VisualBarEndDate) then
-                Error(ErrLbl, "Plan Date", JobTask.VisualBarStartDate, JobTask.VisualBarEndDate);
+        if (JobTask."Opti VisualBarStartDate" <> 0D) and (JobTask."Opti VisualBarEndDate" <> 0D) then begin
+            if ("Plan Date" < JobTask."Opti VisualBarStartDate") or ("Plan Date" > JobTask."Opti VisualBarEndDate") then
+                Error(ErrLbl, "Plan Date", JobTask."Opti VisualBarStartDate", JobTask."Opti VisualBarEndDate");
             exit;
         end;
 
@@ -1106,17 +1117,17 @@ table 50610 "Day Planning"
         // materialize Planned Start/End Date to this single day, so the Gantt bar - until now
         // only shown via the wider constraint-derived period - reflects the actual scheduled day
         // on the next refresh.
-        if (JobTask."Constraint Calc. - Start Date" <> 0D) and (JobTask."Constraint Calc. - End Date" <> 0D) and
-           ("Plan Date" >= JobTask."Constraint Calc. - Start Date") and ("Plan Date" <= JobTask."Constraint Calc. - End Date")
+        if (JobTask."Opti Constraint Calc Start" <> 0D) and (JobTask."Opti Constraint Calc End" <> 0D) and
+           ("Plan Date" >= JobTask."Opti Constraint Calc Start") and ("Plan Date" <= JobTask."Opti Constraint Calc End")
         then begin
-            JobTask.VisualBarStartDate := "Plan Date";
-            JobTask.VisualBarEndDate := "Plan Date";
-            JobTask.CalculateDuration();
+            JobTask."Opti VisualBarStartDate" := "Plan Date";
+            JobTask."Opti VisualBarEndDate" := "Plan Date";
+            JobTask.OptiCalculateDuration();
             JobTask.Modify();
             exit;
         end;
 
-        Error(ErrLbl, "Plan Date", JobTask.VisualBarStartDate, JobTask.VisualBarEndDate);
+        Error(ErrLbl, "Plan Date", JobTask."Opti VisualBarStartDate", JobTask."Opti VisualBarEndDate");
     end;
 
     procedure CopyRequestedToAssigned()

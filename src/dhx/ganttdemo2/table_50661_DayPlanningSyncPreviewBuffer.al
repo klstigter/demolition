@@ -1,4 +1,4 @@
-table 50661 "DayPlanning Sync PreviewBuff"
+table 50661 "Opti DayPlan Sync PreviewBuf"
 {
     Caption = 'DayPlanning Sync Preview Buffer';
     DataClassification = SystemMetadata;
@@ -46,7 +46,7 @@ table 50661 "DayPlanning Sync PreviewBuff"
             DataClassification = SystemMetadata;
             Caption = 'Description';
         }
-        field(9; "Day Type"; Enum "DayPlanning Date Type")
+        field(9; "Day Type"; Enum "Opti DayPlanning Date Type")
         {
             DataClassification = SystemMetadata;
             Caption = 'Day Type';

@@ -1,4 +1,4 @@
-xmlport 50734 DemoData
+xmlport 50734 "Opti DemoData"
 {
     Caption = 'Demo Data';
     Direction = Both;
@@ -81,13 +81,13 @@ xmlport 50734 DemoData
                     {
                         fieldelement(Code; SkillCode.Code) { FieldValidate = No; }
                         fieldelement(Description; SkillCode.Description) { FieldValidate = No; }
-                        fieldelement(InvoiceResourceNo; SkillCode."Invoice Resource No.")
+                        fieldelement(InvoiceResourceNo; SkillCode."Opti Invoice Resource No.")
                         {
                             FieldValidate = No; // the Resource is imported later in this XML
                         }
-                        fieldelement(BarColor; SkillCode."Bar Color") { FieldValidate = No; }
-                        fieldelement(FontColor; SkillCode."Font Color") { FieldValidate = No; }
-                        fieldelement(BorderColor; SkillCode."Border Color") { FieldValidate = No; }
+                        fieldelement(BarColor; SkillCode."Opti Bar Color") { FieldValidate = No; }
+                        fieldelement(FontColor; SkillCode."Opti Font Color") { FieldValidate = No; }
+                        fieldelement(BorderColor; SkillCode."Opti Border Color") { FieldValidate = No; }
 
                         trigger OnBeforeInsertRecord()
                         begin
@@ -144,7 +144,7 @@ xmlport 50734 DemoData
                 textelement(ProjectTypes)
                 {
                     MinOccurs = Zero;
-                    tableelement(ProjectType; "Project Type Opt.")
+                    tableelement(ProjectType; "Opti Project Type Opt.")
                     {
                         fieldelement(Code; ProjectType.Code) { FieldValidate = No; }
                         fieldelement(Description; ProjectType.Description) { FieldValidate = No; }
@@ -413,8 +413,8 @@ xmlport 50734 DemoData
                         fieldelement(PaymentTermsId; Vendor."Payment Terms Id") { FieldValidate = No; }
                         fieldelement(PaymentMethodId; Vendor."Payment Method Id") { FieldValidate = No; }
                         fieldelement(OverReceiptCode; Vendor."Over-Receipt Code") { FieldValidate = No; }
-                        fieldelement(PlanningVendorId; Vendor."Planning Vendor id") { FieldValidate = No; }
-                        fieldelement(PlanningVendorName; Vendor."Planning Vendor Name") { FieldValidate = No; }
+                        fieldelement(PlanningVendorId; Vendor."Opti Planning Vendor id") { FieldValidate = No; }
+                        fieldelement(PlanningVendorName; Vendor."Opti Planning Vendor Name") { FieldValidate = No; }
 
                         trigger OnBeforeInsertRecord()
                         begin
@@ -468,20 +468,20 @@ xmlport 50734 DemoData
                         fieldelement(TimeSheetOwnerUserID; Resource."Time Sheet Owner User ID") { FieldValidate = No; }
                         fieldelement(TimeSheetApproverUserID; Resource."Time Sheet Approver User ID") { FieldValidate = No; }
                         fieldelement(DefaultDeferralTemplateCode; Resource."Default Deferral Template Code") { FieldValidate = No; }
-                        fieldelement(PoolResourceNo; Resource."Pool Resource No.")
+                        fieldelement(PoolResourceNo; Resource."Opti Pool Resource No.")
                         {
                             FieldValidate = No; // may reference a Resource imported later in this XML
                         }
-                        fieldelement(IsPoolMember; Resource."Is Pool Member") { FieldValidate = No; }
-                        fieldelement(IsExternal; Resource."Is External") { FieldValidate = No; }
-                        fieldelement(MandatorySchedulling; Resource."Mandatory Schedulling") { FieldValidate = No; }
-                        fieldelement(IsForeman; Resource."Is Foreman") { FieldValidate = No; }
-                        fieldelement(IsPool; Resource."Is Pool") { FieldValidate = No; }
-                        fieldelement(DefaultForeman; Resource."Default Foreman")
+                        fieldelement(IsPoolMember; Resource."Opti Is Pool Member") { FieldValidate = No; }
+                        fieldelement(IsExternal; Resource."Opti Is External") { FieldValidate = No; }
+                        fieldelement(MandatorySchedulling; Resource."Opti Mandatory Schedulling") { FieldValidate = No; }
+                        fieldelement(IsForeman; Resource."Opti Is Foreman") { FieldValidate = No; }
+                        fieldelement(IsPool; Resource."Opti Is Pool") { FieldValidate = No; }
+                        fieldelement(DefaultForeman; Resource."Opti Default Foreman")
                         {
                             FieldValidate = No; // may reference a Resource imported later in this XML
                         }
-                        fieldelement(WorkHourTemplate; Resource."Work Hour Template") { FieldValidate = No; }
+                        fieldelement(WorkHourTemplate; Resource."Opti Work Hour Template") { FieldValidate = No; }
 
                         textelement(ResourceSkills)
                         {
@@ -514,7 +514,7 @@ xmlport 50734 DemoData
                     }
                 }
             }
-            tableelement(DailyOptimizerSetup; "Daily Optimizer Setup")
+            tableelement(DailyOptimizerSetup; "Opti Daily Optimizer Setup")
             {
                 MinOccurs = Zero;
                 fieldelement(WorkHourTemplate; DailyOptimizerSetup."Work hour Template") { FieldValidate = No; }
@@ -631,9 +631,9 @@ xmlport 50734 DemoData
                     fieldelement(YourReference; Job."Your Reference") { FieldValidate = No; }
                     fieldelement(PriceCalculationMethod; Job."Price Calculation Method") { FieldValidate = No; }
                     fieldelement(CostCalculationMethod; Job."Cost Calculation Method") { FieldValidate = No; }
-                    fieldelement(JobViewType; Job."Job View Type") { FieldValidate = No; }
-                    fieldelement(NonActive; Job."Non Active") { FieldValidate = No; }
-                    fieldelement(ProjectType; Job."Project Type") { FieldValidate = No; }
+                    fieldelement(JobViewType; Job."Opti Job View Type") { FieldValidate = No; }
+                    fieldelement(NonActive; Job."Opti Non Active") { FieldValidate = No; }
+                    fieldelement(ProjectType; Job."Opti Project Type") { FieldValidate = No; }
 
                     tableelement(JobTask; "Job Task")
                     {
@@ -696,29 +696,29 @@ xmlport 50734 DemoData
                         fieldelement(YourReference; JobTask."Your Reference") { FieldValidate = No; }
                         fieldelement(PriceCalculationMethod; JobTask."Price Calculation Method") { FieldValidate = No; }
                         fieldelement(InvoiceCurrencyCode; JobTask."Invoice Currency Code") { FieldValidate = No; }
-                        fieldelement(ProjectManager; JobTask."Project Manager") { FieldValidate = No; }
-                        fieldelement(WorkHourTemplate; JobTask."Work Hour Template") { FieldValidate = No; }
-                        fieldelement(DeadlineDate; JobTask."Deadline Date") { FieldValidate = No; }
-                        fieldelement(PlaceholderDate; JobTask."Placeholder Date") { FieldValidate = No; }
-                        fieldelement(Closed; JobTask.Closed) { FieldValidate = No; }
-                        fieldelement(ClosedDate; JobTask."Closed Date") { FieldValidate = No; }
-                        fieldelement(ClosedReasonCode; JobTask."Closed Reason Code") { FieldValidate = No; }
-                        fieldelement(VisualBarStartDate; JobTask.VisualBarStartDate) { FieldValidate = No; }
-                        fieldelement(VisualBarEndDate; JobTask.VisualBarEndDate) { FieldValidate = No; }
-                        fieldelement(StartTime; JobTask."Start Time") { FieldValidate = No; }
-                        fieldelement(EndTime; JobTask."End Time") { FieldValidate = No; }
-                        fieldelement(SchedulingType; JobTask."Scheduling Type") { FieldValidate = No; }
-                        fieldelement(EstimatedHours; JobTask."Estimated Hours") { FieldValidate = No; }
-                        fieldelement(Duration; JobTask.Duration) { FieldValidate = No; }
-                        fieldelement(Progress; JobTask.Progress) { FieldValidate = No; }
-                        fieldelement(NonActive; JobTask."Non Active") { FieldValidate = No; }
-                        fieldelement(ConstraintType; JobTask."Constraint Type") { FieldValidate = No; }
-                        fieldelement(ConstraintDate; JobTask."Constraint Date") { FieldValidate = No; }
-                        fieldelement(MaxDuration; JobTask."Max Duration") { FieldValidate = No; }
-                        fieldelement(ConstraintCalcStartDate; JobTask."Constraint Calc. - Start Date") { FieldValidate = No; }
-                        fieldelement(ConstraintCalcEndDate; JobTask."Constraint Calc. - End Date") { FieldValidate = No; }
-                        fieldelement(Depth; JobTask.Depth) { FieldValidate = No; }
-                        fieldelement(IsBoor; JobTask.IsBoor) { FieldValidate = No; }
+                        fieldelement(ProjectManager; JobTask."Opti Project Manager") { FieldValidate = No; }
+                        fieldelement(WorkHourTemplate; JobTask."Opti Work Hour Template") { FieldValidate = No; }
+                        fieldelement(DeadlineDate; JobTask."Opti Deadline Date") { FieldValidate = No; }
+                        fieldelement(PlaceholderDate; JobTask."Opti Placeholder Date") { FieldValidate = No; }
+                        fieldelement(Closed; JobTask."Opti Closed") { FieldValidate = No; }
+                        fieldelement(ClosedDate; JobTask."Opti Closed Date") { FieldValidate = No; }
+                        fieldelement(ClosedReasonCode; JobTask."Opti Closed Reason Code") { FieldValidate = No; }
+                        fieldelement(VisualBarStartDate; JobTask."Opti VisualBarStartDate") { FieldValidate = No; }
+                        fieldelement(VisualBarEndDate; JobTask."Opti VisualBarEndDate") { FieldValidate = No; }
+                        fieldelement(StartTime; JobTask."Opti Start Time") { FieldValidate = No; }
+                        fieldelement(EndTime; JobTask."Opti End Time") { FieldValidate = No; }
+                        fieldelement(SchedulingType; JobTask."Opti Scheduling Type") { FieldValidate = No; }
+                        fieldelement(EstimatedHours; JobTask."Opti Estimated Hours") { FieldValidate = No; }
+                        fieldelement(Duration; JobTask."Opti Duration") { FieldValidate = No; }
+                        fieldelement(Progress; JobTask."Opti Progress") { FieldValidate = No; }
+                        fieldelement(NonActive; JobTask."Opti Non Active") { FieldValidate = No; }
+                        fieldelement(ConstraintType; JobTask."Opti Constraint Type") { FieldValidate = No; }
+                        fieldelement(ConstraintDate; JobTask."Opti Constraint Date") { FieldValidate = No; }
+                        fieldelement(MaxDuration; JobTask."Opti Max Duration") { FieldValidate = No; }
+                        fieldelement(ConstraintCalcStartDate; JobTask."Opti Constraint Calc Start") { FieldValidate = No; }
+                        fieldelement(ConstraintCalcEndDate; JobTask."Opti Constraint Calc End") { FieldValidate = No; }
+                        fieldelement(Depth; JobTask."Opti Depth") { FieldValidate = No; }
+                        fieldelement(IsBoor; JobTask."Opti IsBoor") { FieldValidate = No; }
 
                         trigger OnBeforeInsertRecord()
                         begin
@@ -739,7 +739,7 @@ xmlport 50734 DemoData
             textelement(DayPlannings)
             {
                 MinOccurs = Zero;
-                tableelement(DayPlanning; "Day Planning")
+                tableelement(DayPlanning; "Opti Day Planning")
                 {
                     UseTemporary = true;
                     fieldelement(JobNo; DayPlanning."Job No.") { FieldValidate = No; }
@@ -751,7 +751,7 @@ xmlport 50734 DemoData
                     fieldelement(PlannerStatus; DayPlanning."Planner Status") { FieldValidate = No; }
                     fieldelement(VendorStatus; DayPlanning."Vendor Status") { FieldValidate = No; }
                     fieldelement(ApprovedProjectManager; DayPlanning."Approved Project Manager") { FieldValidate = No; }
-                    fieldelement(Skill; DayPlanning.Skill) { FieldValidate = No; }
+                    fieldelement(Skill; DayPlanning."Skill") { FieldValidate = No; }
                     fieldelement(SequenceNo; DayPlanning."Sequence No.") { FieldValidate = No; }
                     fieldelement(Description; DayPlanning.Description) { FieldValidate = No; }
                     fieldelement(DataOwner; DayPlanning."Data Owner") { FieldValidate = No; }
@@ -791,8 +791,8 @@ xmlport 50734 DemoData
                     fieldelement(EntryNo; Capacity."Entry No.") { FieldValidate = No; }
                     fieldelement(ResourceNo; Capacity."Resource No.") { FieldValidate = No; }
                     fieldelement(Date; Capacity.Date) { FieldValidate = No; }
-                    fieldelement(StartTime; Capacity."Start Time") { FieldValidate = No; }
-                    fieldelement(EndTime; Capacity."End Time") { FieldValidate = No; }
+                    fieldelement(StartTime; Capacity."Opti Start Time") { FieldValidate = No; }
+                    fieldelement(EndTime; Capacity."Opti End Time") { FieldValidate = No; }
                     fieldelement(Capacity; Capacity.Capacity) { FieldValidate = No; }
                     fieldelement(ResourceGroupNo; Capacity."Resource Group No.") { FieldValidate = No; }
 
@@ -812,7 +812,7 @@ xmlport 50734 DemoData
             textelement(OrderIntakes)
             {
                 MinOccurs = Zero;
-                tableelement(OrderIntake; "Order Intake Header Opt.")
+                tableelement(OrderIntake; "Opti Order Intake Header Opt.")
                 {
                     fieldelement(No; OrderIntake."No.") { FieldValidate = No; }
                     fieldelement(OrderDate; OrderIntake."Order Date") { FieldValidate = No; }
@@ -823,7 +823,7 @@ xmlport 50734 DemoData
                     fieldelement(Status; OrderIntake.Status) { FieldValidate = No; }
                     fieldelement(NoSeries; OrderIntake."No. Series") { FieldValidate = No; }
 
-                    tableelement(OrderIntakeLine; "Order Intake Line")
+                    tableelement(OrderIntakeLine; "Opti Order Intake Line")
                     {
                         MinOccurs = Zero;
                         LinkTable = OrderIntake;
@@ -876,7 +876,7 @@ xmlport 50734 DemoData
 
     local procedure LoadDayPlannings()
     var
-        RealDayPlanning: Record "Day Planning";
+        RealDayPlanning: Record "Opti Day Planning";
     begin
         DayPlanning.Reset();
         DayPlanning.DeleteAll();
@@ -1044,6 +1044,8 @@ xmlport 50734 DemoData
     end;
 
     local procedure ProcessDayPlanning()
+        var
+            TextTxt: Label '%1 %2 %3', Comment = '%1=DayPlanning.Job No., %2=DayPlanning.Job Task No., %3=DayPlanning.Day Line No.';
     begin
         TrackDate(DayPlanning."Plan Date");
         if ScanOnly then
@@ -1051,13 +1053,13 @@ xmlport 50734 DemoData
         if TryUpsertDayPlanning() then
             ImportedDayPlannings += 1
         else
-            AddImportError(DayPlanning.TableCaption(), StrSubstNo('%1 %2 %3', DayPlanning."Job No.", DayPlanning."Job Task No.", DayPlanning."Day Line No."), GetLastErrorText());
+            AddImportError(DayPlanning.TableCaption(), StrSubstNo(TextTxt, DayPlanning."Job No.", DayPlanning."Job Task No.", DayPlanning."Day Line No."), GetLastErrorText());
     end;
 
     [TryFunction]
     local procedure TryUpsertDayPlanning()
     var
-        RealDayPlanning: Record "Day Planning";
+        RealDayPlanning: Record "Opti Day Planning";
     begin
         if RealDayPlanning.Get(DayPlanning."Job No.", DayPlanning."Job Task No.", DayPlanning."Day Line No.") then begin
             RealDayPlanning.TransferFields(DayPlanning, false);
@@ -1099,6 +1101,8 @@ xmlport 50734 DemoData
     end;
 
     local procedure ProcessCapacity()
+        var
+            TextTxt: Label '%1 %2', Comment = '%1=Capacity.Resource No., %2=Capacity.Date';
     begin
         TrackDate(Capacity.Date);
         if ScanOnly then
@@ -1106,7 +1110,7 @@ xmlport 50734 DemoData
         if TryUpsertCapacity() then
             ImportedCapacities += 1
         else
-            AddImportError(Capacity.TableCaption(), StrSubstNo('%1 %2', Capacity."Resource No.", Capacity.Date), GetLastErrorText());
+            AddImportError(Capacity.TableCaption(), StrSubstNo(TextTxt, Capacity."Resource No.", Capacity.Date), GetLastErrorText());
     end;
 
     [TryFunction]
@@ -1119,8 +1123,8 @@ xmlport 50734 DemoData
         RealCap.SetRange(Date, Capacity.Date);
         if RealCap.FindFirst() then begin
             RealCap.Capacity := Capacity.Capacity;
-            RealCap."Start Time" := Capacity."Start Time";
-            RealCap."End Time" := Capacity."End Time";
+            RealCap."Opti Start Time" := Capacity."Opti Start Time";
+            RealCap."Opti End Time" := Capacity."Opti End Time";
             RealCap."Resource Group No." := Capacity."Resource Group No.";
             RealCap.Modify(false);
         end else begin

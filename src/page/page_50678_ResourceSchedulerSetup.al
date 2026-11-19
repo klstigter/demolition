@@ -1,10 +1,10 @@
-page 50678 "Resource Scheduler Setup"
+page 50678 "Opti Resource Scheduler Setup"
 {
     PageType = Card;
     ApplicationArea = All;
     UsageCategory = Administration;
     Caption = 'Resource Scheduler Setup';
-    SourceTable = "Resource Scheduler Setup";
+    SourceTable = "Opti Resource Scheduler Setup";
     DeleteAllowed = false;
     InsertAllowed = false;
 

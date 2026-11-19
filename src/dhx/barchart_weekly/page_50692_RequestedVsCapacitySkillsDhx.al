@@ -1,4 +1,4 @@
-page 50692 "Requested vs Capacity Weekly"
+page 50692 "Opti Requested vs Cap. Weekly"
 {
     PageType = List;
     ApplicationArea = All;
@@ -29,7 +29,7 @@ page 50692 "Requested vs Capacity Weekly"
             {
                 Caption = 'Requested Hours vs Capacity';
 
-                usercontrol(DhxBarChart; DHXBarChartAddin)
+                usercontrol(DhxBarChart; "OptiDHXBarChartAddin")
                 {
                     ApplicationArea = All;
 
@@ -50,7 +50,7 @@ page 50692 "Requested vs Capacity Weekly"
 
                     trigger OnOpenScheduler(Target: Text; SkillCode: Text; DayIndex: Integer)
                     var
-                        DHXDataHandler: Codeunit "DHX Data Handler";
+                        DHXDataHandler: Codeunit "Opti DHX Data Handler";
                     begin
                         if (DayIndex < 1) or (DayIndex > 7) then
                             exit;
@@ -62,7 +62,7 @@ page 50692 "Requested vs Capacity Weekly"
 
         area(FactBoxes)
         {
-            part(AuditDataPart; "Day Capacity Chart Audit")
+            part(AuditDataPart; "Opti Day Capacity Chart Audit")
             {
                 ApplicationArea = All;
                 Caption = 'Chart Audit Trail';
@@ -166,7 +166,7 @@ page 50692 "Requested vs Capacity Weekly"
 
     local procedure RefreshPeriod()
     var
-        VisualDefaultSettings: Codeunit "Visual Default Settings";
+        VisualDefaultSettings: Codeunit "Opti Visual Default Settings";
     begin
         PeriodLabelText := CopyStr(VisualDefaultSettings.FormatWeekPeriodText(PeriodStartDate), 1, MaxStrLen(PeriodLabelText));
 
@@ -208,14 +208,14 @@ page 50692 "Requested vs Capacity Weekly"
     /// </summary>
     local procedure RefreshAuditBuffer()
     var
-        AuditBuffer: Record "Day Capacity Chart Audit Buf" temporary;
+        AuditBuffer: Record "Opti Day Cap. Chart Audit Buf" temporary;
     begin
         SkillCapacityAnalysisMgt.BuildDayCapacityAuditBuffer(AuditBuffer, PeriodStartDate);
         CurrPage.AuditDataPart.Page.LoadData(AuditBuffer);
     end;
 
     var
-        SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
+        SkillCapacityAnalysisMgt: Codeunit "Opti Skill Cap. Analysis Mgt.";
         PeriodStartDate: Date;
         ChartReady: Boolean;
         PeriodLabelText: Text[50];

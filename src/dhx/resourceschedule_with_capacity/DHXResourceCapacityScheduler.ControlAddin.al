@@ -1,4 +1,4 @@
-controladdin DHXResourceCapacityScheduleAddin
+controladdin "OptiDHXResourceCapacityScheduleAddin"
 {
     RequestedHeight = 1500;
     MinimumHeight = 600;

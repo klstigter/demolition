@@ -1,7 +1,7 @@
-page 50645 "Res. Asgmt. Day Plannings"
+page 50645 "Opti Res. Asgmt. Day Plannings"
 {
     PageType = ListPart;
-    SourceTable = "Day Planning";
+    SourceTable = "Opti Day Planning";
     Caption = 'DayPlannings';
     ApplicationArea = All;
     DelayedInsert = true;
@@ -61,10 +61,12 @@ page 50645 "Res. Asgmt. Day Plannings"
                 }
                 field("Work Order No."; Rec."Order Intake No.")
                 {
+                    ToolTip = 'Specifies the value of the Work Order No. field.';
                     ApplicationArea = All;
                 }
                 field("Data Owner"; Rec."Data Owner")
                 {
+                    ToolTip = 'Specifies the value of the Data Owner field.';
                     Caption = 'Data Owner';
                 }
                 field(Skill; Rec.Skill)
@@ -208,18 +210,22 @@ page 50645 "Res. Asgmt. Day Plannings"
                 }
                 field("Project Manager Status"; Rec."Project Manager Status")
                 {
+                    ToolTip = 'Specifies the value of the Project Manager Status field.';
                     ApplicationArea = All;
                 }
                 field("Planner Status"; Rec."Planner Status")
                 {
+                    ToolTip = 'Specifies the value of the Planner Status field.';
                     ApplicationArea = All;
                 }
                 field("Vendor Status"; Rec."Vendor Status")
                 {
+                    ToolTip = 'Specifies the value of the Vendor Status field.';
                     ApplicationArea = All;
                 }
                 field("Approved Project Manager"; Rec."Approved Project Manager")
                 {
+                    ToolTip = 'Specifies the value of the Approved Project Manager field.';
                     ApplicationArea = All;
                 }
 
@@ -229,7 +235,7 @@ page 50645 "Res. Asgmt. Day Plannings"
 
     trigger OnNewRecord(BelowxRec: Boolean)
     var
-        DayPlanningRec: Record "Day Planning";
+        DayPlanningRec: Record "Opti Day Planning";
         NewDate: Date;
         NextLineNo: Integer;
     begin

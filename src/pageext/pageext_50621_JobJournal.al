@@ -1,4 +1,4 @@
-pageextension 50621 "Opt. Job Journal" extends "Job Journal"
+pageextension 50621 "Opti Job Journal" extends "Job Journal"
 {
     // Adds Day Planning Date and Day Planning Line No. to the Project Journal worksheet.
     // Both fields are only editable when Job No. and Job Task No. are filled.
@@ -11,7 +11,7 @@ pageextension 50621 "Opt. Job Journal" extends "Job Journal"
     {
         addafter("Job Task No.")
         {
-            field("Opt. DayPlanning Date"; Rec."Opt. DayPlanning Date")
+            field("Opti Opt. DayPlanning Date"; Rec."Opti Opt. DayPlanning Date")
             {
                 ApplicationArea = All;
                 Caption = 'Day Planning Date';
@@ -23,7 +23,7 @@ pageextension 50621 "Opt. Job Journal" extends "Job Journal"
                     UpdateEditableVars();
                 end;
             }
-            field("Opt. DayPlanning Line No."; Rec."Opt. DayPlanning Line No.")
+            field("Opti Opt. DayPlanning Line No."; Rec."Opti Opt. DayPlanning Line No.")
             {
                 ApplicationArea = All;
                 Caption = 'Day Planning Line No.';
@@ -41,7 +41,7 @@ pageextension 50621 "Opt. Job Journal" extends "Job Journal"
     local procedure UpdateEditableVars()
     begin
         DayPlanningDateEditable := (Rec."Job No." <> '') and (Rec."Job Task No." <> '');
-        DayPlanningLineNoEditable := DayPlanningDateEditable and (Rec."Opt. DayPlanning Date" <> 0D);
+        DayPlanningLineNoEditable := DayPlanningDateEditable and (Rec."Opti Opt. DayPlanning Date" <> 0D);
     end;
 
     var

@@ -1,4 +1,4 @@
-page 50681 "Requested vs Capacity Daily"
+page 50681 "Opti Requested vs Cap. Daily"
 {
     PageType = List;
     ApplicationArea = All;
@@ -41,7 +41,7 @@ page 50681 "Requested vs Capacity Daily"
             {
                 Caption = 'Requested Hours vs Capacity';
 
-                usercontrol(DhxBarChart; DHXBarChartAddin_daily)
+                usercontrol(DhxBarChart; "OptiDHXBarChartAddin_daily")
                 {
                     ApplicationArea = All;
 
@@ -65,7 +65,7 @@ page 50681 "Requested vs Capacity Daily"
 
                     trigger OnOpenScheduler(Target: Text; SkillCode: Text; DayIndex: Integer)
                     var
-                        DHXDataHandler: Codeunit "DHX Data Handler";
+                        DHXDataHandler: Codeunit "Opti DHX Data Handler";
                     begin
                         DHXDataHandler.CPO_OpenSchedulerFromChart(Target, SkillCode, PeriodStartDate);
                     end;
@@ -75,7 +75,7 @@ page 50681 "Requested vs Capacity Daily"
 
         area(FactBoxes)
         {
-            part(DataPart; "SkillReq. vs CapacityPart v1")
+            part(DataPart; "Opti SkillReq. vs Cap.Part v1")
             {
                 ApplicationArea = All;
                 Caption = 'Requested vs Capacity per Skill';
@@ -433,9 +433,9 @@ page 50681 "Requested vs Capacity Daily"
     end;
 
     var
-        Buffer: Record "Skill Req. vs Capacity Buffer" temporary;
-        SkillCapacityAnalysisMgt: Codeunit "SkillCapacityAnalysisMgt.v1";
-        VisualDefaultSettings: Codeunit "Visual Default Settings";
+        Buffer: Record "Opti Skill Req. vs Cap. Buffer" temporary;
+        SkillCapacityAnalysisMgt: Codeunit "Opti SkillCapAnalysisMgt.v1";
+        VisualDefaultSettings: Codeunit "Opti Visual Default Settings";
         WeeklyFlag: Boolean;
         ResourceNoFilter: Code[20];
         PeriodStartDate: Date;

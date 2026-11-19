@@ -1,4 +1,4 @@
-codeunit 50600 "Resource DayPilot Handler"
+codeunit 50600 "Opti Resource DayPilot Handler"
 {
     trigger OnRun()
     begin
@@ -43,24 +43,24 @@ codeunit 50600 "Resource DayPilot Handler"
             /**/
             //Create Events from Job Planning Lines with type resource in scope of 2 weeks from startdate param
             Parts := StartDate.Split('T');
-            Evaluate(_Date, Parts.Get(1));
+            Evaluate(_Date, Parts.Get(1), 9);
             //Evaluate(_Time, Parts.Get(2));
             //DT := CreateDateTime(_Date, _Time);
             JobTask.Reset();
             DT := CalcDate('<-1W>', _Date);
-            JobTask.SetFilter(VisualBarStartDate, '>=%1', DT);
+            JobTask.SetFilter("Opti VisualBarStartDate", '>=%1', DT);
             DT := CalcDate('<2W>', _Date);
-            JobTask.SetFilter(VisualBarEndDate, '<=%1', DT);
+            JobTask.SetFilter("Opti VisualBarEndDate", '<=%1', DT);
             if JobTask.findset then
                 repeat
                     Clear(EventObj);
                     EventObj.Add('id', JobTask."Job No." + '|' + JobTask."Job Task No.");
                     EventObj.Add('text', JobTask.Description);
-                    EventObj.Add('start', CreateDateTime(JobTask.VisualBarStartDate, JobTask."Start Time"));
-                    DT := JobTask.VisualBarStartDate;
-                    if JobTask.VisualBarEndDate <> 0D then
-                        DT := JobTask.VisualBarEndDate;
-                    EventObj.Add('end', CreateDateTime(DT, JobTask."End Time"));
+                    EventObj.Add('start', CreateDateTime(JobTask."Opti VisualBarStartDate", JobTask."Opti Start Time"));
+                    DT := JobTask."Opti VisualBarStartDate";
+                    if JobTask."Opti VisualBarEndDate" <> 0D then
+                        DT := JobTask."Opti VisualBarEndDate";
+                    EventObj.Add('end', CreateDateTime(DT, JobTask."Opti End Time"));
                     //TODO Source No
                     //EventObj.Add('resource', JobPlaningLine."No.");
                     //TOD Bubble

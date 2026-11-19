@@ -1,5 +1,6 @@
-enum 50602 "Gantt Constraint Type"
+enum 50602 "Opti Gantt Constraint Type"
 {
+    Caption = 'Gantt Constraint Type';
     Extensible = true;
 
     value(0; None) { }

@@ -1,4 +1,4 @@
-codeunit 50733 "API Key Mgt Opt."
+codeunit 50733 "Opti API Key Mgt Opt."
 {
     // Generates a primary key for API inserts when the client omits / blanks the last key field.
     // Numbering: highest existing numeric value under the same parent + 10000 (10000 if none).
@@ -21,7 +21,7 @@ codeunit 50733 "API Key Mgt Opt."
 
     procedure GetNextDayLineNo(JobNo: Code[20]; JobTaskNo: Code[20]): Integer
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
     begin
         DayPlanning.SetRange("Job No.", JobNo);
         DayPlanning.SetRange("Job Task No.", JobTaskNo);
@@ -32,7 +32,7 @@ codeunit 50733 "API Key Mgt Opt."
 
     procedure GetNextAbsenceLineNo(): Integer
     var
-        RegisterAbsence: Record "Register Absence";
+        RegisterAbsence: Record "Opti Register Absence";
     begin
         if RegisterAbsence.FindLast() then
             exit(RegisterAbsence."Line No." + 10000);

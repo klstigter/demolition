@@ -1,4 +1,4 @@
-codeunit 50686 "Resource Absence Mgt."
+codeunit 50686 "Opti Resource Absence Mgt."
 {
     // Owns every Absence business rule for table 160 "Res. Capacity Entry" rows with
     // Type = Absence. PostRegisterAbsence (called from the "Register Absence" worksheet's
@@ -26,13 +26,13 @@ codeunit 50686 "Resource Absence Mgt."
         if Hours <= 0 then
             Error(HoursMustBePositiveErr);
 
-        if ResCapacityEntry."Absence Reason Code" = '' then
+        if ResCapacityEntry."Opti Absence Reason Code" = '' then
             Error(ReasonMandatoryErr);
 
         // 5.1 Existing-capacity guard: find the matching Capacity row for this Resource/Date.
         CapacityEntry.SetRange("Resource No.", ResCapacityEntry."Resource No.");
         CapacityEntry.SetRange(Date, ResCapacityEntry.Date);
-        CapacityEntry.SetRange(Type, CapacityEntry.Type::Capacity);
+        CapacityEntry.SetRange("Opti Type", CapacityEntry."Opti Type"::Capacity);
         CapacityEntry.SetFilter(Capacity, '>%1', 0);
         if not CapacityEntry.FindFirst() then
             Error(NoCapacityErr, ResCapacityEntry."Resource No.", ResCapacityEntry.Date);
@@ -42,8 +42,8 @@ codeunit 50686 "Resource Absence Mgt."
         // this row's own current value when we are modifying an existing Absence entry.
         AbsenceEntry.SetRange("Resource No.", ResCapacityEntry."Resource No.");
         AbsenceEntry.SetRange(Date, ResCapacityEntry.Date);
-        AbsenceEntry.SetRange("Duplicate Id", CapacityEntry."Duplicate Id");
-        AbsenceEntry.SetRange(Type, AbsenceEntry.Type::Absence);
+        AbsenceEntry.SetRange("Opti Duplicate Id", CapacityEntry."Opti Duplicate Id");
+        AbsenceEntry.SetRange("Opti Type", AbsenceEntry."Opti Type"::Absence);
         if ResCapacityEntry."Entry No." <> 0 then
             AbsenceEntry.SetFilter("Entry No.", '<>%1', ResCapacityEntry."Entry No.");
         AbsenceEntry.CalcSums(Capacity);
@@ -55,8 +55,8 @@ codeunit 50686 "Resource Absence Mgt."
         end;
 
         // 5.2 Sign convention + 5.3 Duplicate Id inheritance.
-        ResCapacityEntry.Type := ResCapacityEntry.Type::Absence;
-        ResCapacityEntry."Duplicate Id" := CapacityEntry."Duplicate Id";
+        ResCapacityEntry."Opti Type" := ResCapacityEntry."Opti Type"::Absence;
+        ResCapacityEntry."Opti Duplicate Id" := CapacityEntry."Opti Duplicate Id";
         ResCapacityEntry.Capacity := -Hours;
     end;
 
@@ -70,7 +70,7 @@ codeunit 50686 "Resource Absence Mgt."
     /// is issued, so a runtime Error() on any line rolls back the entire Post run via BC's
     /// ambient transaction (5.9).
     /// </summary>
-    procedure PostRegisterAbsence(var RegisterAbsence: Record "Register Absence")
+    procedure PostRegisterAbsence(var RegisterAbsence: Record "Opti Register Absence")
     var
         ResCapacityEntry: Record "Res. Capacity Entry";
         LastResCapacityEntry: Record "Res. Capacity Entry";
@@ -91,7 +91,7 @@ codeunit 50686 "Resource Absence Mgt."
                 ResCapacityEntry.Init();
                 ResCapacityEntry."Resource No." := RegisterAbsence."Resource No.";
                 ResCapacityEntry.Date := RegisterAbsence.Date;
-                ResCapacityEntry."Absence Reason Code" := RegisterAbsence."Absence Reason Code";
+                ResCapacityEntry."Opti Absence Reason Code" := RegisterAbsence."Absence Reason Code";
                 ValidateAndPrepareAbsence(ResCapacityEntry, RegisterAbsence.Hours);
 
                 // "Entry No." has no AutoIncrement/Number Series on this table - every other
@@ -109,11 +109,14 @@ codeunit 50686 "Resource Absence Mgt."
                 PostedCount += 1;
             until RegisterAbsence.Next() = 0;
 
-        if PostedCount = 1 then
-            Message(PostedOneMsg)
+        if PostedCount = 1 then begin
+            if GuiAllowed() then
+                Message(PostedOneMsg);
+        end
         else
             if PostedCount > 1 then
-                Message(PostedManyMsg, PostedCount);
+                if GuiAllowed() then
+                    Message(PostedManyMsg, PostedCount);
     end;
 
     // 5.5 Delete protection: block deleting a Capacity row while an Absence row still
@@ -126,13 +129,13 @@ codeunit 50686 "Resource Absence Mgt."
     begin
         if Rec.IsTemporary() then
             exit;
-        if Rec.Type <> Rec.Type::Capacity then
+        if Rec."Opti Type" <> Rec."Opti Type"::Capacity then
             exit;
 
         AbsenceEntry.SetRange("Resource No.", Rec."Resource No.");
         AbsenceEntry.SetRange(Date, Rec.Date);
-        AbsenceEntry.SetRange("Duplicate Id", Rec."Duplicate Id");
-        AbsenceEntry.SetRange(Type, AbsenceEntry.Type::Absence);
+        AbsenceEntry.SetRange("Opti Duplicate Id", Rec."Opti Duplicate Id");
+        AbsenceEntry.SetRange("Opti Type", AbsenceEntry."Opti Type"::Absence);
         if not AbsenceEntry.IsEmpty() then
             Error(DeleteBlockedErr, Rec."Resource No.", Rec.Date);
     end;

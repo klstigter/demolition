@@ -1,9 +1,9 @@
-page 50622 "Resource Day Plannings"
+page 50622 "Opti Resource Day Plannings"
 {
     PageType = ListPart;
     ApplicationArea = All;
     UsageCategory = Lists;
-    SourceTable = "Day Planning";
+    SourceTable = "Opti Day Planning";
     Caption = 'Resource Day Plannings';
 
     layout
@@ -20,6 +20,7 @@ page 50622 "Resource Day Plannings"
                 }
                 field("No."; Rec."Assigned Resource No.")
                 {
+                    ToolTip = 'Specifies the value of the No. field.';
                     ApplicationArea = All;
                 }
                 field("Resource Group No."; Rec."Resource Group No.")
@@ -34,27 +35,33 @@ page 50622 "Resource Day Plannings"
                 }
                 field("Data Owner"; Rec."Data Owner")
                 {
+                    ToolTip = 'Specifies the value of the Data Owner field.';
                     Caption = 'Data Owner';
                 }
                 field("Vendor No."; Rec."Vendor No.")
                 {
+                    ToolTip = 'Specifies the value of the Vendor No. field.';
                     ApplicationArea = All;
                 }
                 field("Task Date"; Rec."Plan Date")
                 {
+                    ToolTip = 'Specifies the value of the Task Date field.';
                     ApplicationArea = All;
                     Caption = 'Plan Date';
                 }
                 field(DayLineNo; Rec."Day Line No.")
                 {
+                    ToolTip = 'Specifies the value of the Day Line No field.';
                     ApplicationArea = All;
                 }
                 field("Job No."; Rec."Job No.")
                 {
+                    ToolTip = 'Specifies the value of the Job No. field.';
                     ApplicationArea = All;
                 }
                 field("Job Task No."; Rec."Job Task No.")
                 {
+                    ToolTip = 'Specifies the value of the Job Task No. field.';
                     ApplicationArea = All;
                 }
                 field("Start Time Requested"; Rec."Start Time Requested")
@@ -69,22 +76,27 @@ page 50622 "Resource Day Plannings"
                 }
                 field("Start Time Assigned"; Rec."Start Time Assigned")
                 {
+                    ToolTip = 'Specifies the value of the Start Time Assigned field.';
                     ApplicationArea = All;
                 }
                 field("End Time Assigned"; Rec."End Time Assigned")
                 {
+                    ToolTip = 'Specifies the value of the End Time Assigned field.';
                     ApplicationArea = All;
                 }
                 field("Start Time Realized"; Rec."Start Time Realized")
                 {
+                    ToolTip = 'Specifies the value of the Start Time Realized field.';
                     ApplicationArea = All;
                 }
                 field("End Time Realized"; Rec."End Time Realized")
                 {
+                    ToolTip = 'Specifies the value of the End Time Realized field.';
                     ApplicationArea = All;
                 }
                 field("Description"; Rec."Description")
                 {
+                    ToolTip = 'Specifies the value of the Description field.';
                     ApplicationArea = All;
                 }
                 field("Requested Leader"; Rec."Requested Leader")
@@ -109,22 +121,27 @@ page 50622 "Resource Day Plannings"
                 }
                 field("Work Order No."; Rec."Order Intake No.")
                 {
+                    ToolTip = 'Specifies the value of the Work Order No. field.';
                     ApplicationArea = All;
                 }
                 field("Project Manager Status"; Rec."Project Manager Status")
                 {
+                    ToolTip = 'Specifies the value of the Project Manager Status field.';
                     ApplicationArea = All;
                 }
                 field("Planner Status"; Rec."Planner Status")
                 {
+                    ToolTip = 'Specifies the value of the Planner Status field.';
                     ApplicationArea = All;
                 }
                 field("Vendor Status"; Rec."Vendor Status")
                 {
+                    ToolTip = 'Specifies the value of the Vendor Status field.';
                     ApplicationArea = All;
                 }
                 field("Approved Project Manager"; Rec."Approved Project Manager")
                 {
+                    ToolTip = 'Specifies the value of the Approved Project Manager field.';
                     ApplicationArea = All;
                 }
             }
@@ -148,8 +165,8 @@ page 50622 "Resource Day Plannings"
 
     trigger OnNewRecord(BelowxRec: Boolean)
     var
-        DayPlanningRec: Record "Day Planning";
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        DayPlanningRec: Record "Opti Day Planning";
+        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
         ResourceNo: Code[20];
         NewDate: Date;
         DayLineNo: Integer;

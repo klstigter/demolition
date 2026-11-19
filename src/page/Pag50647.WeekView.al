@@ -1,5 +1,6 @@
-page 50647 "Week View"
+page 50647 "Opti Week View"
 {
+    Caption = 'Week View';
     PageType = List;
     ApplicationArea = All;
     UsageCategory = Lists;
@@ -14,16 +15,19 @@ page 50647 "Week View"
             {
                 field(Name; rec.Number)
                 {
+                    ToolTip = 'Specifies the value of the Name field.';
                     ApplicationArea = All;
                     Visible = false;
                 }
                 Field(Year; Year)
                 {
+                    Caption = 'Year';
                     ApplicationArea = All;
                     ToolTip = 'Year of the week';
                 }
                 Field(Week; Week)
                 {
+                    Caption = 'Week';
                     ApplicationArea = All;
                     ToolTip = 'Week number of the year';
                     Visible = ShowWeek;
@@ -36,20 +40,6 @@ page 50647 "Week View"
         }
     }
 
-    actions
-    {
-        area(Processing)
-        {
-            action(ActionName)
-            {
-
-                trigger OnAction()
-                begin
-
-                end;
-            }
-        }
-    }
 
     trigger OnAfterGetRecord()
     begin
@@ -60,7 +50,7 @@ page 50647 "Week View"
     end;
 
     var
-        SumWk: Record "Summary Weekly";
+        SumWk: Record "Opti Summary Weekly";
         Year: Integer;
         Week: Integer;
         ShowWeek: Boolean;
@@ -72,7 +62,7 @@ page 50647 "Week View"
 
     procedure SetTempYearWeek(var TempYearWeek: Record "Integer" temporary)
     var
-        SumWk: Record "Summary Weekly";
+        SumWk: Record "Opti Summary Weekly";
         Year: Integer;
         Week: Integer;
     begin

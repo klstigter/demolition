@@ -1,10 +1,10 @@
-page 50608 "Job Task Card - Resource"
+page 50608 "Opti Job Task Card - Resource"
 {
     Caption = 'Project Task Card';
     DataCaptionExpression = Rec.Caption();
     PageType = Card;
     SourceTable = "Job Task";
-    SourceTableView = where("Job View Type" = const("Resource"));
+    SourceTableView = where("Opti Job View Type" = const("Resource"));
 
     layout
     {
@@ -69,7 +69,7 @@ page 50608 "Job Task Card - Resource"
                         exit(Rec.LookupSellToCustomerName(Text));
                     end;
                 }
-                field(nonActive; Rec."Non Active")
+                field(nonActive; Rec."Opti Non Active")
                 {
                     ApplicationArea = All;
                     Caption = 'Non Active';
@@ -846,7 +846,7 @@ page 50608 "Job Task Card - Resource"
 
     trigger OnNewRecord(BelowxRec: Boolean)
     begin
-        Rec."Job View Type" := Rec."Job View Type"::"Resource";
+        Rec."Opti Job View Type" := Rec."Opti Job View Type"::"Resource";
     end;
 
     local procedure ActivateFields()

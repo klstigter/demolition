@@ -1,9 +1,9 @@
-table 50604 "Order Intake Header Opt."
+table 50604 "Opti Order Intake Header Opt."
 {
     DataClassification = CustomerContent;
     Caption = 'Order Intake Header';
-    LookupPageId = "Order Intake Opt.";
-    DrillDownPageId = "Order Intake Opt.";
+    LookupPageId = "Opti Order Intake Opt.";
+    DrillDownPageId = "Opti Order Intake Opt.";
 
     fields
     {
@@ -122,13 +122,14 @@ table 50604 "Order Intake Header Opt."
             DataClassification = CustomerContent;
             Caption = 'Description';
         }
-        field(40; Status; Enum "DayPlanning Order Intake Status")
+        field(40; Status; Enum "Opti DayPlan OI Status")
         {
             DataClassification = CustomerContent;
             Caption = 'Status';
         }
         field(50; "No. Series"; Code[20])
         {
+            DataClassification = SystemMetadata;
             Caption = 'No. Series';
             Editable = false;
             TableRelation = "No. Series";
@@ -154,7 +155,7 @@ table 50604 "Order Intake Header Opt."
     trigger OnDelete()
     var
         ProjectTask: Record "Job Task";
-        OrderIntakeLIne: Record "Order Intake Line";
+        OrderIntakeLIne: Record "Opti Order Intake Line";
         MsgLbl: Label 'Cannot delete Order Intake with status Released or Done.';
     begin
         if Status in [Status::Released, Status::Done] then begin
@@ -168,7 +169,7 @@ table 50604 "Order Intake Header Opt."
 
     trigger OnInsert()
     var
-        OrderIntake: Record "Order Intake Header Opt.";
+        OrderIntake: Record "Opti Order Intake Header Opt.";
         IsHandled: Boolean;
     begin
         IsHandled := false;
@@ -203,11 +204,11 @@ table 50604 "Order Intake Header Opt."
 
 
     var
-        gOrderIntake: Record "Order Intake Header Opt.";
-        OptimizerSetup: record "Daily Optimizer Setup";
+        gOrderIntake: Record "Opti Order Intake Header Opt.";
+        OptimizerSetup: record "Opti Daily Optimizer Setup";
         NoSeries: Codeunit "No. Series";
 
-    procedure AssistEdit(OldOrderIntake: Record "Order Intake Header Opt.") Result: Boolean
+    procedure AssistEdit(OldOrderIntake: Record "Opti Order Intake Header Opt.") Result: Boolean
     var
         IsHandled: Boolean;
     begin
@@ -228,8 +229,8 @@ table 50604 "Order Intake Header Opt."
 
     local procedure CheckCanChangeCustomer()
     var
-        OrderIntakeLine: Record "Order Intake Line";
-        DayPlanning: Record "Day Planning";
+        OrderIntakeLine: Record "Opti Order Intake Line";
+        DayPlanning: Record "Opti Day Planning";
         JobPlanningLine: Record "Job Planning Line";
         CannotChangeCustomerErr: Label 'Cannot change the customer because Day Planning lines and/or Project Planning lines already exist for this order intake. Remove those lines before changing the customer.';
     begin
@@ -261,7 +262,7 @@ table 50604 "Order Intake Header Opt."
 
     local procedure ExistsInDb(): Boolean
     var
-        OrderIntake: Record "Order Intake Header Opt.";
+        OrderIntake: Record "Opti Order Intake Header Opt.";
     begin
         if Rec."No." = '' then
             exit(false);
@@ -286,17 +287,17 @@ table 50604 "Order Intake Header Opt."
 
 
     [IntegrationEvent(false, false)]
-    local procedure OnBeforeValidateNo(var OrderIntakeHeader: Record "Order Intake Header Opt."; xOrderIntakeHeader: Record "Order Intake Header Opt."; var IsHandled: Boolean)
+    local procedure OnBeforeValidateNo(var OrderIntakeHeader: Record "Opti Order Intake Header Opt."; xOrderIntakeHeader: Record "Opti Order Intake Header Opt."; var IsHandled: Boolean)
     begin
     end;
 
     [IntegrationEvent(false, false)]
-    local procedure OnBeforeOnInsert(var OrderIntakeHeader: Record "Order Intake Header Opt."; var IsHandled: Boolean; var xOrderIntakeHeader: Record "Order Intake Header Opt.")
+    local procedure OnBeforeOnInsert(var OrderIntakeHeader: Record "Opti Order Intake Header Opt."; var IsHandled: Boolean; var xOrderIntakeHeader: Record "Opti Order Intake Header Opt.")
     begin
     end;
 
     [IntegrationEvent(false, false)]
-    local procedure OnBeforeAssistEdit(var OrderIntakeHeader: Record "Order Intake Header Opt."; xOldOrderIntakeHeader: Record "Order Intake Header Opt."; var IsHandled: Boolean; var Result: Boolean)
+    local procedure OnBeforeAssistEdit(var OrderIntakeHeader: Record "Opti Order Intake Header Opt."; xOldOrderIntakeHeader: Record "Opti Order Intake Header Opt."; var IsHandled: Boolean; var Result: Boolean)
     begin
     end;
 }

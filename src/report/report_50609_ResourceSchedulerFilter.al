@@ -121,7 +121,7 @@
 ///       end;
 ///   end;
 /// </summary>
-report 50609 "Resource Scheduler Filter"
+report 50609 "Opti Resource Scheduler Filter"
 {
     UsageCategory = None;
     ApplicationArea = All;

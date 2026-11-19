@@ -1,36 +1,36 @@
-table 50622 "Skill Req. vs Capacity Buffer"
+table 50622 "Opti Skill Req. vs Cap. Buffer"
 {
     TableType = Temporary;
     Caption = 'Skill Requested vs Capacity Buffer';
-    DataClassification = ToBeClassified;
+    DataClassification = SystemMetadata;
 
     fields
     {
 
-        field(1; "Bar Type"; Enum "Day Capacity Chart Bar Type")
+        field(1; "Bar Type"; Enum "Opti Day Cap. Chart Bar Type")
         {
-            DataClassification = ToBeClassified;
+            DataClassification = SystemMetadata;
             Caption = 'Bar Type';
         }
         field(2; "No."; Code[20])
         {
-            DataClassification = ToBeClassified;
+            DataClassification = SystemMetadata;
             Caption = 'Skill Code';
 
         }
         field(3; "Week Day No."; Integer)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = SystemMetadata;
             Caption = 'Week Day No.';
         }
         field(4; "Segment"; Text[30])
         {
-            DataClassification = ToBeClassified;
+            DataClassification = SystemMetadata;
             Caption = 'Segment';
         }
         field(10; "Requested Hours"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = SystemMetadata;
             Caption = 'Requested Hours';
             DecimalPlaces = 0 : 2;
         }
@@ -41,19 +41,19 @@ table 50622 "Skill Req. vs Capacity Buffer"
         // own "C"/"R" bars are built from).
         field(11; "Capacity Assigned"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = SystemMetadata;
             Caption = 'Capacity Assigned';
             DecimalPlaces = 0 : 2;
         }
         field(12; "Capacity Free"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = SystemMetadata;
             Caption = 'Capacity Free';
             DecimalPlaces = 0 : 2;
         }
         field(13; "Assigned Hours"; Decimal)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = SystemMetadata;
             Caption = 'Assigned Hours';
             DecimalPlaces = 0 : 2;
         }

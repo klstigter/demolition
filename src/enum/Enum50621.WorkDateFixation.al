@@ -1,5 +1,6 @@
-enum 50621 "Task Date Fixation"
+enum 50621 "Opti Task Date Fixation"
 {
+    Caption = 'Task Date Fixation';
     Extensible = true;
 
     value(0; "Flexible")

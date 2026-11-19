@@ -12,7 +12,7 @@ page 50601 "Opti Resource List"
     DeleteAllowed = false;
     ModifyAllowed = true;
     InsertAllowed = false;
-    SourceTableView = sorting("pool resource no.", "No.");
+    SourceTableView = sorting("Opti Pool Resource No.", "No.");
 
     layout
     {
@@ -170,7 +170,7 @@ page 50601 "Opti Resource List"
                         StyleExpr = Stylexp;
 
                     }
-                    field("Pool Resource No."; Rec."Pool Resource No.")
+                    field("Pool Resource No."; Rec."Opti Pool Resource No.")
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Specifies the pool resource that this resource is assigned to.';
@@ -195,28 +195,31 @@ page 50601 "Opti Resource List"
                     }
                     field(capacity; Rec.Capacity)
                     {
+                        ToolTip = 'Specifies the value of the capacity field.';
                         ApplicationArea = Jobs;
                         Caption = 'Capacity';
                         BlankZero = true;
 
 
                     }
-                    field("Requested Hours"; Rec."Requested Hours")
+                    field("Requested Hours"; Rec."Opti Requested Hours")
                     {
+                        ToolTip = 'Specifies the value of the Requested Hours field.';
                         ApplicationArea = Jobs;
                         Caption = 'Requested';
                         BlankZero = true;
 
                     }
-                    field("Day Plannings"; Rec."Assigned Hours")
+                    field("Day Plannings"; Rec."Opti Assigned Hours")
                     {
+                        ToolTip = 'Specifies the value of the Day Plannings field.';
                         ApplicationArea = Jobs;
                         Caption = 'Assigned';
                         BlankZero = true;
 
 
                     }
-                    field(Skills; Rec.Skills)
+                    field(Skills; Rec."Opti Skills")
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Specifies the number of skills associated with this resource.';
@@ -234,14 +237,14 @@ page 50601 "Opti Resource List"
                         StyleExpr = Stylexp;
 
                     }
-                    field("External Resource"; Rec."Is Pool Member")
+                    field("External Resource"; Rec."Opti Is Pool Member")
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Indicates whether the resource is an external resource.';
                         Visible = true;
                         StyleExpr = Stylexp;
                     }
-                    field("Is Foreman"; Rec."Is Foreman")
+                    field("Is Foreman"; Rec."Opti Is Foreman")
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Indicates whether the resource is a foreman.';
@@ -249,7 +252,7 @@ page 50601 "Opti Resource List"
                         StyleExpr = Stylexp;
 
                     }
-                    field("Is Pool"; Rec."Is Pool")
+                    field("Is Pool"; Rec."Opti Is Pool")
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Indicates whether the resource is a pool resource.';
@@ -257,7 +260,7 @@ page 50601 "Opti Resource List"
                         StyleExpr = Stylexp;
 
                     }
-                    field("Default Foreman"; Rec."Default Foreman")
+                    field("Default Foreman"; Rec."Opti Default Foreman")
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Specifies the team leader responsible for the resource.';
@@ -305,7 +308,7 @@ page 50601 "Opti Resource List"
                         StyleExpr = Stylexp;
 
                     }
-                    field("Work Hour Template"; Rec."Work Hour Template")
+                    field("Work Hour Template"; Rec."Opti Work Hour Template")
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Specifies the work hour template that is assigned to the resource.';
@@ -369,10 +372,11 @@ page 50601 "Opti Resource List"
                 image = Planning;
                 action("Schedule (Visual)")
                 {
+                    ToolTip = 'Executes the Schedule (Visual) action.';
                     ApplicationArea = All;
                     trigger OnAction()
                     var
-                        ResScheduler: page "Resource Calendar";
+                        ResScheduler: page "Opti Resource Calendar";
                     begin
                         ResScheduler.SetResourceFilter(GetSelectionFilter());
                         ResScheduler.RunModal();
@@ -380,10 +384,11 @@ page 50601 "Opti Resource List"
                 }
                 action("DayPlannings (Visual)")
                 {
+                    ToolTip = 'Executes the Day Plannings (Visual) action.';
                     ApplicationArea = All;
                     trigger OnAction()
                     var
-                        DayPlanningScheduler: page "DHX Scheduler (Project)";
+                        DayPlanningScheduler: page "Opti DHX Scheduler (Project)";
                     begin
                         DayPlanningScheduler.SetResourceFilter(GetSelectionFilter());
                         DayPlanningScheduler.RunModal();
@@ -391,10 +396,11 @@ page 50601 "Opti Resource List"
                 }
                 action("Capacity (Visual)")
                 {
+                    ToolTip = 'Executes the Capacity (Visual) action.';
                     ApplicationArea = All;
                     trigger OnAction()
                     var
-                        ResScheduler: page "DHX Scheduler (Pool Resource)";
+                        ResScheduler: page "Opti DHX Scheduler (Pool Res.)";
                     begin
                         //ResScheduler.SetResourceFilter(Rec."No.");
                         ResScheduler.RunModal();
@@ -413,7 +419,7 @@ page 50601 "Opti Resource List"
                 {
                     ApplicationArea = Jobs;
                     Caption = '&Set Capacity';
-                    RunObject = Page "Resource Capacity Settings Opt";
+                    RunObject = Page "Opti Res. Cap. Settings Opt";
                     RunPageLink = "No." = field("No.");
                     ToolTip = 'Change the capacity of the resource, such as a technician.';
                 }
@@ -422,8 +428,8 @@ page 50601 "Opti Resource List"
                     ApplicationArea = All;
                     Caption = 'Absence';
                     Image = Absence;
-                    RunObject = page "Resource Absence List";
-                    RunPageLink = "Resource No." = field("No."), Type = const(Absence);
+                    RunObject = page "Opti Resource Absence List";
+                    RunPageLink = "Resource No." = field("No."), "Opti Type" = const(Absence);
                     ToolTip = 'View and register absence entries for this resource.';
                 }
 
@@ -695,7 +701,7 @@ page 50601 "Opti Resource List"
     trigger OnAfterGetRecord()
     begin
         Stylexp := '';
-        if rec."Is Pool" then
+        if rec."Opti Is Pool" then
             Stylexp := 'Strong';
 
     end;
@@ -757,7 +763,7 @@ page 50601 "Opti Resource List"
     local procedure ApplyResourceContextFilters()
     var
         ResourceSkill: Record "Resource Skill";
-        CapacityUniqueResource: Query "Unique Resource Joined";
+        CapacityUniqueResource: Query "Opti Unique Resource Joined";
         PlanDate: Date;
         SkillActive: Boolean;
         PoolResourceActive: Boolean;
@@ -792,7 +798,7 @@ page 50601 "Opti Resource List"
                 Rec.MarkedOnly(true);
                 if Rec.FindSet() then
                     repeat
-                        if Rec."Pool Resource No." <> PoolResourceNoToFind then
+                        if Rec."Opti Pool Resource No." <> PoolResourceNoToFind then
                             Rec.Mark(false);
                     until Rec.Next() = 0;
             end;
@@ -801,7 +807,7 @@ page 50601 "Opti Resource List"
                 if Rec.FindSet() then
                     repeat
                         if (not SkillActive or ResourceSkill.Get(ResourceSkill.Type::Resource, Rec."No.", SkillToFind)) and
-                           (not PoolResourceActive or (Rec."Pool Resource No." = PoolResourceNoToFind))
+                           (not PoolResourceActive or (Rec."Opti Pool Resource No." = PoolResourceNoToFind))
                         then
                             Rec.Mark(true);
                     until Rec.Next() = 0;

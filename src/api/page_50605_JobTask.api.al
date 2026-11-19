@@ -1,4 +1,4 @@
-page 50605 "JobTaskApi Opt"
+page 50605 "Opti JobTaskApi Opt"
 {
     PageType = API;
     Caption = 'Job Task API Optimization';
@@ -37,15 +37,15 @@ page 50605 "JobTaskApi Opt"
                 {
                     Caption = 'Description';
                 }
-                field(projectManager; Rec."Project Manager")
+                field(projectManager; Rec."Opti Project Manager")
                 {
                     Caption = 'Project Manager';
                 }
-                field(plannedStartDate; Rec.VisualBarStartDate)
+                field(plannedStartDate; Rec."Opti VisualBarStartDate")
                 {
                     Caption = 'Planned Start Date';
                 }
-                field(plannedEndDate; Rec.VisualBarEndDate)
+                field(plannedEndDate; Rec."Opti VisualBarEndDate")
                 {
                     Caption = 'Planned End Date';
                 }
@@ -92,7 +92,7 @@ page 50605 "JobTaskApi Opt"
 
     trigger OnInsertRecord(BelowxRec: Boolean): Boolean
     var
-        APIKeyMgt: Codeunit "API Key Mgt Opt.";
+        APIKeyMgt: Codeunit "Opti API Key Mgt Opt.";
     begin
         if Rec."Job Task No." = AutoKeyTok then begin
             Rec.TestField("Job No.");

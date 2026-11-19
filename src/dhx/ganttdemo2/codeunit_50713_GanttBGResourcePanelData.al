@@ -1,4 +1,4 @@
-codeunit 50713 "Gantt BG Resource Panel Data"
+codeunit 50713 "Opti Gantt BG Res. Panel Data"
 {
     // Page Background Task target for page 50620 "Gantt Demo DHX 2"'s resource panel (see
     // EnqueueFilteredResourcePanelReload/EnqueueDefaultResourcePanelReload there). Runs in its own
@@ -32,7 +32,7 @@ codeunit 50713 "Gantt BG Resource Panel Data"
     // first chunk. Filtered mode is untouched/unchunked (its scope is naturally small).
     trigger OnRun()
     var
-        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
+        GanttChartDataHandler: Codeunit "Opti GanttChartDataHandler";
         TaskParameters: Dictionary of [Text, Text];
         Result: Dictionary of [Text, Text];
         Mode: Text;

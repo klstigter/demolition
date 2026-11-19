@@ -1,16 +1,17 @@
-codeunit 50680 "Delete Incorrect Day Planning"
+codeunit 50680 "Opti Del. Incorrect Day Plan."
 {
     trigger OnRun()
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
         JobTask: Record "Job Task";
         ConfirmLbl: Label 'This will permanently delete unposted Day Planning lines that are missing a Skill or fall outside their Job Task''s planned date range.\n\nContinue?';
         NothingLbl: Label 'No incorrect Day Planning lines found.';
-        DoneLbl: Label 'Done. %1 incorrect Day Planning line(s) deleted.';
+        DoneLbl: Label 'Done. %1 incorrect Day Planning line(s) deleted.', Comment = '%1 = value';
         DeletedCount: Integer;
     begin
-        if not Confirm(ConfirmLbl, false) then
-            exit;
+        if GuiAllowed() then
+            if not Confirm(ConfirmLbl, false) then
+                exit;
 
         // Posted lines are financially settled and must never be touched by this cleanup.
         DayPlanning.SetRange(Posted, false);
@@ -26,13 +27,16 @@ codeunit 50680 "Delete Incorrect Day Planning"
                 end;
             until DayPlanning.Next() = 0;
 
-        if DeletedCount = 0 then
-            Message(NothingLbl)
+        if DeletedCount = 0 then begin
+            if GuiAllowed() then
+                Message(NothingLbl);
+        end
         else
-            Message(DoneLbl, DeletedCount);
+            if GuiAllowed() then
+                Message(DoneLbl, DeletedCount);
     end;
 
-    local procedure IsIncorrect(var DayPlanning: Record "Day Planning"; var JobTask: Record "Job Task"): Boolean
+    local procedure IsIncorrect(var DayPlanning: Record "Opti Day Planning"; var JobTask: Record "Job Task"): Boolean
     begin
         // Skill is mandatory on every Day Planning line.
         if DayPlanning.Skill = '' then
@@ -44,9 +48,9 @@ codeunit 50680 "Delete Incorrect Day Planning"
         if not JobTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
             exit(false); // orphan Job Task link is out of scope for this cleanup
 
-        if (JobTask.VisualBarStartDate <> 0D) and (DayPlanning."Plan Date" < JobTask.VisualBarStartDate) then
+        if (JobTask."Opti VisualBarStartDate" <> 0D) and (DayPlanning."Plan Date" < JobTask."Opti VisualBarStartDate") then
             exit(true);
-        if (JobTask.VisualBarEndDate <> 0D) and (DayPlanning."Plan Date" > JobTask.VisualBarEndDate) then
+        if (JobTask."Opti VisualBarEndDate" <> 0D) and (DayPlanning."Plan Date" > JobTask."Opti VisualBarEndDate") then
             exit(true);
 
         exit(false);

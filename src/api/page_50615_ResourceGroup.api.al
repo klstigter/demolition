@@ -1,4 +1,4 @@
-page 50615 "Resource Group API Opt."
+page 50615 "Opti Resource Group API Opt."
 {
     PageType = API;
     Caption = 'Resource Group API Optimization';

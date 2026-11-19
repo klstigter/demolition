@@ -1,4 +1,4 @@
-report 50663 "Export Existing Data"
+report 50663 "Opti Export Existing Data"
 {
     Caption = 'Export Existing Data';
     ProcessingOnly = true;
@@ -38,7 +38,7 @@ report 50663 "Export Existing Data"
 
     trigger OnPreReport()
     var
-        DemoDataXmlPort: XmlPort DemoData;
+        DemoDataXmlPort: XmlPort "Opti DemoData";
         TempBlob: Codeunit "Temp Blob";
         OutStr: OutStream;
         InStr: InStream;

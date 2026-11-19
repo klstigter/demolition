@@ -1,10 +1,10 @@
-page 50668 "Day Planning Card Opt"
+page 50668 "Opti Day Planning Card Opt"
 {
     Caption = 'Day Planning Card';
     PageType = Card;
     ApplicationArea = All;
     UsageCategory = Documents;
-    SourceTable = "Day Planning";
+    SourceTable = "Opti Day Planning";
 
     layout
     {
@@ -16,10 +16,12 @@ page 50668 "Day Planning Card Opt"
                 {
                     field(JobNo; Rec."Job No.")
                     {
+                        ToolTip = 'Specifies the value of the Job No field.';
                         ApplicationArea = All;
                     }
                     field(JobTaskNo; Rec."Job Task No.")
                     {
+                        ToolTip = 'Specifies the value of the Job Task No field.';
                         ApplicationArea = All;
                     }
                 }
@@ -29,10 +31,12 @@ page 50668 "Day Planning Card Opt"
 
                     field(skill; Rec."Skill")
                     {
+                        ToolTip = 'Specifies the value of the skill field.';
                         ApplicationArea = All;
                     }
                     field(sequence; Rec."Sequence No.")
                     {
+                        ToolTip = 'Specifies the value of the sequence field.';
                         ApplicationArea = All;
                     }
                 }
@@ -40,34 +44,41 @@ page 50668 "Day Planning Card Opt"
                 {
                     field("Task Date"; Rec."Plan Date")
                     {
+                        ToolTip = 'Specifies the value of the Task Date field.';
                         ApplicationArea = All;
                         caption = 'Plan Date';
                     }
                     field("Plan Status"; Rec."Plan Status")
                     {
+                        ToolTip = 'Specifies the value of the Plan Status field.';
                         ApplicationArea = All;
                     }
                     field("Data Owner"; Rec."Data Owner")
                     {
+                        ToolTip = 'Specifies the value of the Data Owner field.';
                         ApplicationArea = All;
                     }
                     field("Project Manager Status"; Rec."Project Manager Status")
                     {
+                        ToolTip = 'Specifies the value of the Project Manager Status field.';
                         ApplicationArea = All;
                         Visible = false;
                     }
                     field("Planner Status"; Rec."Planner Status")
                     {
+                        ToolTip = 'Specifies the value of the Planner Status field.';
                         ApplicationArea = All;
                         Visible = false;
                     }
                     field("Vendor Status"; Rec."Vendor Status")
                     {
+                        ToolTip = 'Specifies the value of the Vendor Status field.';
                         ApplicationArea = All;
                         Visible = false;
                     }
                     field("Approved Project Manager"; Rec."Approved Project Manager")
                     {
+                        ToolTip = 'Specifies the value of the Approved Project Manager field.';
                         ApplicationArea = All;
                         Visible = false;
                     }
@@ -75,10 +86,12 @@ page 50668 "Day Planning Card Opt"
 
                 field(DaylineNo; Rec."Day Line No.")
                 {
+                    ToolTip = 'Specifies the value of the Dayline No field.';
                     ApplicationArea = All;
                 }
                 field("task date fixation"; Rec."Task Date Fixation")
                 {
+                    ToolTip = 'Specifies the value of the task date fixation field.';
                     ApplicationArea = All;
                 }
 
@@ -96,23 +109,28 @@ page 50668 "Day Planning Card Opt"
                     }
                     field("Requested Resource No."; Rec."Requested Resource No.")
                     {
+                        ToolTip = 'Specifies the value of the Requested Resource No. field.';
                         ApplicationArea = All;
                     }
 
                     field("Start Time Requested"; Rec."Start Time Requested")
                     {
+                        ToolTip = 'Specifies the value of the Start Time Requested field.';
                         ApplicationArea = All;
                     }
                     field("End Time Requested"; Rec."End Time Requested")
                     {
+                        ToolTip = 'Specifies the value of the End Time Requested field.';
                         ApplicationArea = All;
                     }
                     field("Non Working Minutes Requested"; Rec."Idle Minutes Requested")
                     {
+                        ToolTip = 'Specifies the value of the Non Working Minutes Requested field.';
                         ApplicationArea = All;
                     }
                     field("Requested Hours"; Rec."Requested Hours")
                     {
+                        ToolTip = 'Specifies the value of the Requested Hours field.';
                         ApplicationArea = All;
                     }
 
@@ -127,27 +145,33 @@ page 50668 "Day Planning Card Opt"
 
                     field("Assigned Resource No."; Rec."Assigned Resource No.")
                     {
+                        ToolTip = 'Specifies the value of the Assigned Resource No. field.';
                         ApplicationArea = All;
                     }
                     field("Start Time Assigned"; Rec."Start Time Assigned")
                     {
+                        ToolTip = 'Specifies the value of the Start Time Assigned field.';
                         ApplicationArea = All;
                     }
                     field("End Time Assigned"; Rec."End Time Assigned")
                     {
+                        ToolTip = 'Specifies the value of the End Time Assigned field.';
                         ApplicationArea = All;
                     }
                     field("Non Working Minutes"; Rec."Idle Minutes Assigned")
                     {
+                        ToolTip = 'Specifies the value of the Non Working Minutes field.';
                         ApplicationArea = All;
                     }
                     field("Assigned Hours"; Rec."Assigned Hours")
                     {
+                        ToolTip = 'Specifies the value of the Assigned Hours field.';
                         ApplicationArea = All;
                     }
 
                     field(Capacity; Rec."Capacity")
                     {
+                        ToolTip = 'Specifies the value of the Capacity field.';
                         ApplicationArea = All;
                     }
                 }
@@ -158,14 +182,17 @@ page 50668 "Day Planning Card Opt"
             {
                 field("Realized Hours"; Rec."Realized Hours")
                 {
+                    ToolTip = 'Specifies the value of the Realized Hours field.';
                     ApplicationArea = All;
                 }
                 field("Start Time Realized"; Rec."Start Time Realized")
                 {
+                    ToolTip = 'Specifies the value of the Start Time Realized field.';
                     ApplicationArea = All;
                 }
                 field("End Time Realized"; Rec."End Time Realized")
                 {
+                    ToolTip = 'Specifies the value of the End Time Realized field.';
                     ApplicationArea = All;
                 }
             }
@@ -174,6 +201,7 @@ page 50668 "Day Planning Card Opt"
             {
                 field("Work Order No."; Rec."Order Intake No.")
                 {
+                    ToolTip = 'Specifies the value of the Work Order No. field.';
                     ApplicationArea = All;
                 }
             }

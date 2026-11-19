@@ -1,4 +1,4 @@
-page 50722 "Capacity Planning Overview"
+page 50722 "Opti Capacity Plan. Overview"
 {
     PageType = Card;
     ApplicationArea = All;
@@ -15,7 +15,7 @@ page 50722 "Capacity Planning Overview"
     {
         area(content)
         {
-            usercontrol(DhxCpo; DHXCapacityPlanningOverviewAddin)
+            usercontrol(DhxCpo; "OptiDHXCapacityPlanningOverviewAddin")
             {
                 ApplicationArea = All;
 
@@ -76,7 +76,7 @@ page 50722 "Capacity Planning Overview"
                 /// </summary>
                 trigger OnOpenDayPlanningCard(LineIdTxt: Text)
                 var
-                    DHXDataHandler: Codeunit "DHX Data Handler";
+                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
                 begin
                     DHXDataHandler.CPO_OpenDayPlanningCard(LineIdTxt);
                     RefreshData();
@@ -92,7 +92,7 @@ page 50722 "Capacity Planning Overview"
                 /// </summary>
                 trigger OnOpenDayPlanningList(PayloadJsonTxt: Text)
                 var
-                    DHXDataHandler: Codeunit "DHX Data Handler";
+                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
                 begin
                     DHXDataHandler.CPO_OpenDayPlanningList(PayloadJsonTxt);
                 end;
@@ -105,7 +105,7 @@ page 50722 "Capacity Planning Overview"
                 /// </summary>
                 trigger OnShowCapacityBarSegment(PayloadJsonTxt: Text)
                 var
-                    DHXDataHandler: Codeunit "DHX Data Handler";
+                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
                 begin
                     DHXDataHandler.CPO_ShowCapacityBarSegment(PayloadJsonTxt);
                 end;
@@ -163,6 +163,7 @@ page 50722 "Capacity Planning Overview"
 
     trigger OnPageBackgroundTaskError(TaskId: Integer; ErrorCode: Text; ErrorText: Text; ErrorCallStack: Text; var IsHandled: Boolean)
     var
+            LoadingTheRemainingCapacTxt: Label 'Loading the remaining Capacity Planning Overview data failed: %1', Comment = '%1=ErrorText';
         OtherWorkOrderDataLoadErrorNotification: Notification;
     begin
         if TaskId <> OtherWorkOrderDataTaskId then
@@ -172,7 +173,7 @@ page 50722 "Capacity Planning Overview"
         // A notification is allowed here (unlike a raw Message/UI render) - surface the failure
         // without blocking the add-in; the first page (this WO's own data + the first
         // MaxOtherLines-worth of other-Work-Order groups) already rendered successfully.
-        OtherWorkOrderDataLoadErrorNotification.Message := StrSubstNo('Loading the remaining Capacity Planning Overview data failed: %1', ErrorText);
+        OtherWorkOrderDataLoadErrorNotification.Message := StrSubstNo(LoadingTheRemainingCapacTxt, ErrorText);
         OtherWorkOrderDataLoadErrorNotification.Send();
     end;
 
@@ -250,7 +251,7 @@ page 50722 "Capacity Planning Overview"
     /// </summary>
     local procedure SendColors()
     var
-        VisualDefaultSettings: Codeunit "Visual Default Settings";
+        VisualDefaultSettings: Codeunit "Opti Visual Default Settings";
         ColorsJsonTxt: Text;
     begin
         ColorsJsonTxt := StrSubstNo('{"tooltipBg":"%1","tooltipFont":"%2"}',
@@ -280,7 +281,7 @@ page 50722 "Capacity Planning Overview"
     /// </summary>
     local procedure RefreshData()
     var
-        DHXDataHandler: Codeunit "DHX Data Handler";
+        DHXDataHandler: Codeunit "Opti DHX Data Handler";
         PlanningDataJson: Text;
         RemainingGroupKeys: Text;
         OtherWorkOrderGroupsPageSize: Integer;
@@ -337,7 +338,7 @@ page 50722 "Capacity Planning Overview"
     /// </summary>
     local procedure PersistReschedule(PayloadJsonTxt: Text)
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
         PayloadJObj: JsonObject;
         ShiftsJArr: JsonArray;
         ShiftJToken: JsonToken;
@@ -461,7 +462,7 @@ page 50722 "Capacity Planning Overview"
         TaskParameters.Add('EndDate', Format(EndDate, 0, '<Year4>-<Month,2>-<Day,2>'));
         TaskParameters.Add('RemainingGroupKeys', RemainingGroupKeys);
 
-        CurrPage.EnqueueBackgroundTask(NewTaskId, Codeunit::"CPO BG Other WO Data", TaskParameters, 30000, PageBackgroundTaskErrorLevel::Warning);
+        CurrPage.EnqueueBackgroundTask(NewTaskId, Codeunit::"Opti CPO BG Other WO Data", TaskParameters, 30000, PageBackgroundTaskErrorLevel::Warning);
         OtherWorkOrderDataTaskId := NewTaskId;
         PendingOtherWorkOrderDataAvailable := false; // any earlier not-yet-delivered result is now stale
         CurrPage.DhxCpo.NotifyOtherWorkOrderDataTaskPending(); // (re)start wrapper.js's bounded poll loop - normal synchronous call, safe here

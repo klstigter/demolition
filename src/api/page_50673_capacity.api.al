@@ -1,4 +1,4 @@
-page 50673 "CapacityApi Opt"
+page 50673 "Opti CapacityApi Opt"
 {
     PageType = API;
     Caption = 'Capacity API Optimization';
@@ -34,7 +34,7 @@ page 50673 "CapacityApi Opt"
                 {
                     Caption = 'Resource No.';
                 }
-                field(duplicateId; Rec."Duplicate Id")
+                field(duplicateId; Rec."Opti Duplicate Id")
                 {
                     Caption = 'Duplicate Id';
                 }
@@ -42,11 +42,11 @@ page 50673 "CapacityApi Opt"
                 {
                     Caption = 'Capacity';
                 }
-                field(startTime; Rec."Start Time")
+                field(startTime; Rec."Opti Start Time")
                 {
                     Caption = 'Start Time';
                 }
-                field(endTime; Rec."End Time")
+                field(endTime; Rec."Opti End Time")
                 {
                     Caption = 'End Time';
                 }
@@ -65,7 +65,7 @@ page 50673 "CapacityApi Opt"
     trigger OnOpenPage()
     var
         Capacity: Record "Res. Capacity Entry";
-        CapacityPerDayPerResource: Query "Capacity Per Day Per Resource";
+        CapacityPerDayPerResource: Query "Opti Cap. Per Day Per Resource";
     begin
         if Rec.GetFilter(Date) <> '' then
             CapacityPerDayPerResource.SetFilter(Date_Filter, Rec.GetFilter(Date));
@@ -80,10 +80,10 @@ page 50673 "CapacityApi Opt"
             Rec."Entry No." := CapacityPerDayPerResource.Entry_No;
             Rec.Date := CapacityPerDayPerResource.Date;
             Rec."Resource No." := CapacityPerDayPerResource.Resource_No_;
-            Rec."Duplicate Id" := CapacityPerDayPerResource.Duplicate_Id;
+            Rec."Opti Duplicate Id" := CapacityPerDayPerResource.Duplicate_Id;
             Rec.Capacity := CapacityPerDayPerResource.Capacity;
-            Rec."Start Time" := Capacity."Start Time";
-            Rec."End Time" := Capacity."End Time";
+            Rec."Opti Start Time" := Capacity."Opti Start Time";
+            Rec."Opti End Time" := Capacity."Opti End Time";
             Rec.Insert();
         end;
         CapacityPerDayPerResource.Close();

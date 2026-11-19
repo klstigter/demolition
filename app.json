@@ -1,5 +1,5 @@
 {
-  "id": "61f2563b-fadf-4029-a675-f6d43090311a",
+  "id": "1190acc9-07fb-4acf-84bf-7d35d55be715",
   "name": "DailyOptimizer",
   "publisher": "Optimizers",
   "version": "28.0.0.14",
@@ -7,7 +7,8 @@
   "description": "Planning and scheduling extension for Dynamics 365 Business Central using DHTMLX controls.",
   "privacyStatement": "https://bc365optimizers.com/privacy",
   "EULA": "https://bc365optimizers.com/eula",
-  "help": "",
+  "help": "https://bc365optimizers.com/help",
+  "contextSensitiveHelpUrl": "https://bc365optimizers.com/help/",
   "url": "https://bc365optimizers.com",
   "logo": "./images/logo.png",
   "dependencies": [],
@@ -28,7 +29,10 @@
   "resourceFolders": [],
   "runtime": "15.0",
   "features": [
-    "NoImplicitWith"
+    "NoImplicitWith",
+    "TranslationFile"
   ],
+  "target": "Cloud",
+  "supportedLocales": [ "en-US" ],
   "preprocessorSymbols": ["BC28"]
 }
