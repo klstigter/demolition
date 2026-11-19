@@ -1,4 +1,4 @@
-codeunit 50694 "Capacity Overview Mgt."
+codeunit 50694 "Opti Capacity Overview Mgt."
 {
     /// <summary>
     /// Builds the 6-row / dynamic-column "Capacity Overview" matrix buffer (table 50693) for a
@@ -52,7 +52,7 @@ codeunit 50694 "Capacity Overview Mgt."
     procedure BuildSkillCodeList(var SkillCodeList: List of [Code[20]]; PeriodStartDate: Date; PeriodEndDate: Date)
     var
         SkillCode: Record "Skill Code";
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
         Seen: Dictionary of [Code[20], Boolean];
         PlanSkill: Code[20];
     begin
@@ -105,7 +105,7 @@ codeunit 50694 "Capacity Overview Mgt."
     /// already be capped at GetMaxMatrixColumns(); any entries beyond the cap are ignored here
     /// as a safety net.
     /// </summary>
-    procedure BuildMatrix(var Buffer: Record "Capacity Overview Buffer" temporary; PeriodStartDate: Date; PeriodEndDate: Date; SkillCodeList: List of [Code[20]])
+    procedure BuildMatrix(var Buffer: Record "Opti Capacity Overview Buffer" temporary; PeriodStartDate: Date; PeriodEndDate: Date; SkillCodeList: List of [Code[20]])
     var
         ColumnCount: Integer;
         ZeroPerColumn: List of [Decimal];
@@ -166,7 +166,7 @@ codeunit 50694 "Capacity Overview Mgt."
 
     local procedure CalcRequestedHours(PeriodStartDate: Date; PeriodEndDate: Date; SkillCodeFilter: Code[20]): Decimal
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
     begin
         DayPlanning.Reset();
         DayPlanning.SetRange("Plan Date", PeriodStartDate, PeriodEndDate);
@@ -181,7 +181,7 @@ codeunit 50694 "Capacity Overview Mgt."
 
     local procedure CalcAssignedHours(PeriodStartDate: Date; PeriodEndDate: Date; SkillCodeFilter: Code[20]): Decimal
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
     begin
         DayPlanning.Reset();
         DayPlanning.SetRange("Plan Date", PeriodStartDate, PeriodEndDate);
@@ -203,8 +203,8 @@ codeunit 50694 "Capacity Overview Mgt."
     /// </summary>
     local procedure CalcSkillFreeCapacity(SkillCode: Code[20]; PeriodStartDate: Date; PeriodEndDate: Date): Decimal
     var
-        SkillCapacityAnalysisMgt: Codeunit "SkillCapacityAnalysisMgt.v1";
-        CompanyCapacityMgt: Codeunit "Skill Capacity Analysis Mgt.";
+        SkillCapacityAnalysisMgt: Codeunit "Opti SkillCapAnalysisMgt.v1";
+        CompanyCapacityMgt: Codeunit "Opti Skill Cap. Analysis Mgt.";
         AssignedInternal: Decimal;
         AssignedExternal: Decimal;
         CapacityInternal: Decimal;
@@ -227,7 +227,7 @@ codeunit 50694 "Capacity Overview Mgt."
     /// </summary>
     local procedure CalcCompanyCapacity(PeriodStartDate: Date; PeriodEndDate: Date; var TotalCapacity: Decimal; var FreeCapacity: Decimal)
     var
-        SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
+        SkillCapacityAnalysisMgt: Codeunit "Opti Skill Cap. Analysis Mgt.";
         AssignedInternal: Decimal;
         AssignedExternal: Decimal;
         CapacityInternal: Decimal;
@@ -255,7 +255,7 @@ codeunit 50694 "Capacity Overview Mgt."
     /// compile-time field name. Field 10 is "Column 1", so "Column i" is field (9 + i) - keep
     /// this offset in sync with table 50693.
     /// </summary>
-    local procedure InsertRow(var Buffer: Record "Capacity Overview Buffer" temporary; LineNo: Integer; RowDescription: Text; TotalValue: Decimal; PerColumnValues: List of [Decimal]; ColumnCount: Integer; RowStyle: Text[30])
+    local procedure InsertRow(var Buffer: Record "Opti Capacity Overview Buffer" temporary; LineNo: Integer; RowDescription: Text; TotalValue: Decimal; PerColumnValues: List of [Decimal]; ColumnCount: Integer; RowStyle: Text[30])
     var
         RecRef: RecordRef;
         FldRef: FieldRef;
@@ -283,7 +283,7 @@ codeunit 50694 "Capacity Overview Mgt."
     /// The result is floored at zero, both per column and for the total, since "not assigned"
     /// hours can't be negative. RowStyle is passed through to InsertRow.
     /// </summary>
-    local procedure InsertDifferenceRow(var Buffer: Record "Capacity Overview Buffer" temporary; LineNo: Integer; RowDescription: Text; TotalValue: Decimal; MinuendPerColumn: List of [Decimal]; SubtrahendPerColumn: List of [Decimal]; ColumnCount: Integer; RowStyle: Text[30])
+    local procedure InsertDifferenceRow(var Buffer: Record "Opti Capacity Overview Buffer" temporary; LineNo: Integer; RowDescription: Text; TotalValue: Decimal; MinuendPerColumn: List of [Decimal]; SubtrahendPerColumn: List of [Decimal]; ColumnCount: Integer; RowStyle: Text[30])
     var
         DiffPerColumn: List of [Decimal];
         Diff: Decimal;

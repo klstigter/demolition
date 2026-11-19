@@ -1,5 +1,5 @@
 // API Integeration for Exposing API Pages
-page 50726 "Update and Delete Log List"
+page 50726 "Opti Upd. Del. Log List"
 {
     PageType = List;
     ApplicationArea = All;
@@ -19,50 +19,62 @@ page 50726 "Update and Delete Log List"
             {
                 field("Entry No."; Rec."Entry No.")
                 {
+                    ToolTip = 'Specifies the value of the Entry No. field.';
                     ApplicationArea = All;
                 }
                 field(Action; Rec.Action)
                 {
+                    ToolTip = 'Specifies the value of the Action field.';
                     ApplicationArea = All;
                 }
                 field(Status; Rec.Status)
                 {
+                    ToolTip = 'Specifies the value of the Status field.';
                     ApplicationArea = All;
                 }
                 field("API Field Name"; Rec."API Field Name")
                 {
+                    ToolTip = 'Specifies the value of the API Field Name field.';
                     ApplicationArea = All;
                 }
                 field(EntitySetName; Rec.EntitySetName)
                 {
+                    ToolTip = 'Specifies the value of the Entity Set Name field.';
                     ApplicationArea = All;
                 }
                 field("Record SystemId"; Rec."Record SystemId")
                 {
+                    ToolTip = 'Specifies the value of the Record System Id field.';
                     ApplicationArea = All;
                 }
                 field("Table No."; Rec."Table No.")
                 {
+                    ToolTip = 'Specifies the value of the Table No. field.';
                     ApplicationArea = All;
                 }
                 field("Field No."; Rec."Field No.")
                 {
+                    ToolTip = 'Specifies the value of the Field No. field.';
                     ApplicationArea = All;
                 }
                 field("Old Value"; Rec."Old Value")
                 {
+                    ToolTip = 'Specifies the value of the Old Value field.';
                     ApplicationArea = All;
                 }
                 field("New Value"; Rec."New Value")
                 {
+                    ToolTip = 'Specifies the value of the New Value field.';
                     ApplicationArea = All;
                 }
                 field("Modified At"; Rec."Modified At")
                 {
+                    ToolTip = 'Specifies the value of the Modified At field.';
                     ApplicationArea = All;
                 }
                 field("Synchronized At"; Rec."Synchronized At")
                 {
+                    ToolTip = 'Specifies the value of the Synchronized At field.';
                     ApplicationArea = All;
                 }
             }

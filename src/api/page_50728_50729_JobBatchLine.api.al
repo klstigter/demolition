@@ -1,5 +1,6 @@
-page 50729 "JobBatch Line Opt"
+page 50729 "Opti JobBatch Line Opt"
 {
+    Caption = 'JobBatch Line Opt';
     // Nested API subpage of "JobBatch Header Opt". Each submitted line inserts a real Job.
     PageType = API;
     APIPublisher = 'BC365Optimizer';
@@ -30,7 +31,7 @@ page 50729 "JobBatch Line Opt"
                 {
                     Caption = 'Description';
                 }
-                field(projectType; Rec."Project Type")
+                field(projectType; Rec."Opti Project Type")
                 {
                     Caption = 'Project Type';
                 }
@@ -58,7 +59,7 @@ page 50729 "JobBatch Line Opt"
     var
         NewJob: Record Job;
         ResultLine: JsonObject;
-        GlobalSessionVar: Codeunit "Global Session Var Opt.";
+        GlobalSessionVar: Codeunit "Opti Global Session Var Opt.";
         InSystemId: Guid;
         InNo: Code[20];
         InDescription: Text[100];
@@ -72,7 +73,7 @@ page 50729 "JobBatch Line Opt"
         InSystemId := Rec.SystemId;
         InNo := Rec."No.";
         InDescription := Rec.Description;
-        InProjectType := Rec."Project Type";
+        InProjectType := Rec."Opti Project Type";
         InStatus := Rec.Status;
         InProjectManager := Rec."Project Manager";
         InPersonResponsible := Rec."Person Responsible";
@@ -94,7 +95,7 @@ page 50729 "JobBatch Line Opt"
         if InDescription <> '' then
             NewJob.Validate(Description, InDescription);
         if InProjectType <> '' then
-            NewJob.Validate("Project Type", InProjectType);
+            NewJob.Validate("Opti Project Type", InProjectType);
         NewJob.Validate(Status, InStatus);
         if InProjectManager <> '' then
             NewJob.Validate("Project Manager", InProjectManager);

@@ -1,10 +1,10 @@
-page 50665 "Res. Capacity Scheduler Setup"
+page 50665 "Opti Res. Cap. Scheduler Setup"
 {
     PageType = Card;
     ApplicationArea = All;
     UsageCategory = Administration;
     Caption = 'Resource Capacity Scheduler Setup';
-    SourceTable = "Res. Capacity Scheduler Setup";
+    SourceTable = "Opti Res. Cap. Scheduler Setup";
     DeleteAllowed = false;
     InsertAllowed = false;
 

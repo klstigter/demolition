@@ -1,4 +1,4 @@
-codeunit 50661 "Order Intake Kanban Handler"
+codeunit 50661 "Opti OI Kanban Handler"
 {
     trigger OnRun()
     begin
@@ -16,8 +16,8 @@ codeunit 50661 "Order Intake Kanban Handler"
     /// </summary>
     procedure BuildKanbanJson(): Text
     var
-        OrderIntake: Record "Order Intake Header Opt.";
-        StatusEnum: Enum "DayPlanning Order Intake Status";
+        OrderIntake: Record "Opti Order Intake Header Opt.";
+        StatusEnum: Enum "Opti DayPlan OI Status";
         Columns: JsonArray;
         Cards: JsonArray;
         CustomerOptionsArr: JsonArray;
@@ -160,13 +160,13 @@ codeunit 50661 "Order Intake Kanban Handler"
     /// <param name="NewStatusInt">Integer value of the target Status enum.</param>
     procedure UpdateCardStatus(EntryNo: Code[20]; NewStatusInt: Integer)
     var
-        OrderIntake: Record "Order Intake Header Opt.";
-        NewStatus: Enum "DayPlanning Order Intake Status";
+        OrderIntake: Record "Opti Order Intake Header Opt.";
+        NewStatus: Enum "Opti DayPlan OI Status";
     begin
         if not OrderIntake.Get(EntryNo) then
             exit;
 
-        NewStatus := Enum::"DayPlanning Order Intake Status".FromInteger(NewStatusInt);
+        NewStatus := Enum::"Opti DayPlan OI Status".FromInteger(NewStatusInt);
 
         if OrderIntake.Status = NewStatus then
             exit; // No change – nothing to write
@@ -184,7 +184,7 @@ codeunit 50661 "Order Intake Kanban Handler"
     /// <param name="NewShortDescription">Value of the built-in "description" Kanban field – written to "Short Description".</param>
     procedure UpdateCardDescriptions(EntryNo: Code[20]; NewLongDescription: Text; NewShortDescription: Text)
     var
-        OrderIntake: Record "Order Intake Header Opt.";
+        OrderIntake: Record "Opti Order Intake Header Opt.";
     begin
         if not OrderIntake.Get(EntryNo) then
             exit;
@@ -264,7 +264,7 @@ codeunit 50661 "Order Intake Kanban Handler"
     /// card after BC has validated/derived the final Customer No. / Contact No. for a record.
     /// </summary>
     /// <param name="OrderIntake">Record whose current Customer No. / Contact No. should be serialized.</param>
-    procedure BuildCardFieldsJson(var OrderIntake: Record "Order Intake Header Opt."): Text
+    procedure BuildCardFieldsJson(var OrderIntake: Record "Opti Order Intake Header Opt."): Text
     var
         Fields: JsonObject;
         Result: Text;
@@ -282,10 +282,10 @@ codeunit 50661 "Order Intake Kanban Handler"
     /// <param name="CardLabel">Card title entered by the user – stored as Description.</param>
     procedure InsertCard(ColumnIdInt: Integer; CardLabel: Text)
     var
-        OrderIntake: Record "Order Intake Header Opt.";
+        OrderIntake: Record "Opti Order Intake Header Opt.";
     begin
         OrderIntake.Init();
-        OrderIntake.Status := Enum::"DayPlanning Order Intake Status".FromInteger(ColumnIdInt);
+        OrderIntake.Status := Enum::"Opti DayPlan OI Status".FromInteger(ColumnIdInt);
         OrderIntake."Order Date" := Today();
         OrderIntake.Insert(true);
     end;
@@ -297,8 +297,8 @@ codeunit 50661 "Order Intake Kanban Handler"
     /// <param name="SourceEntryNo">Entry No. of the record to copy.</param>
     procedure DuplicateCard(SourceEntryNo: Code[20])
     var
-        Source: Record "Order Intake Header Opt.";
-        New: Record "Order Intake Header Opt.";
+        Source: Record "Opti Order Intake Header Opt.";
+        New: Record "Opti Order Intake Header Opt.";
     begin
         if not Source.Get(SourceEntryNo) then
             exit;
@@ -314,7 +314,7 @@ codeunit 50661 "Order Intake Kanban Handler"
     /// <param name="EntryNo">Primary key of the record to delete.</param>
     procedure DeleteCard(EntryNo: Code[20])
     var
-        OrderIntake: Record "Order Intake Header Opt.";
+        OrderIntake: Record "Opti Order Intake Header Opt.";
     begin
         if OrderIntake.Get(EntryNo) then
             OrderIntake.Delete(true);

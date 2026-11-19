@@ -1,10 +1,10 @@
-page 50651 "Order Intake Opt."
+page 50651 "Opti Order Intake Opt."
 {
     PageType = List;
     ApplicationArea = All;
     UsageCategory = Lists;
-    SourceTable = "Order Intake Header Opt.";
-    CardPageId = "Order Intake Card";
+    SourceTable = "Opti Order Intake Header Opt.";
+    CardPageId = "Opti Order Intake Card";
     Caption = 'Orders Intake';
     SourceTableView = sorting("Order Date")
                       order(ascending);
@@ -26,6 +26,7 @@ page 50651 "Order Intake Opt."
                 }
                 field(Description; Rec.Description)
                 {
+                    ToolTip = 'Specifies the value of the Description field.';
                     ApplicationArea = All;
                 }
                 field("Customer No."; Rec."Customer No.")
@@ -43,6 +44,7 @@ page 50651 "Order Intake Opt."
                 }
                 field("Status"; Rec."Status")
                 {
+                    ToolTip = 'Specifies the value of the Status field.';
                     ApplicationArea = All;
                 }
             }
@@ -53,18 +55,4 @@ page 50651 "Order Intake Opt."
         }
     }
 
-    actions
-    {
-        area(Processing)
-        {
-            action(ActionName)
-            {
-
-                trigger OnAction()
-                begin
-
-                end;
-            }
-        }
-    }
 }

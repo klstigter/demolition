@@ -1,4 +1,4 @@
-page 50653 "DHX Order Intake Kanban"
+page 50653 "Opti DHX Order Intake Kanban"
 {
     PageType = List;
     ApplicationArea = All;
@@ -9,7 +9,7 @@ page 50653 "DHX Order Intake Kanban"
     {
         area(content)
         {
-            usercontrol(DhxKanban; DHXKanbanAddin)
+            usercontrol(DhxKanban; "OptiDHXKanbanAddin")
             {
                 ApplicationArea = All;
 
@@ -18,7 +18,7 @@ page 50653 "DHX Order Intake Kanban"
                 // ----------------------------------------------------------------
                 trigger ControlReady()
                 var
-                    KanbanHandler: Codeunit "Order Intake Kanban Handler";
+                    KanbanHandler: Codeunit "Opti OI Kanban Handler";
                 begin
                     CurrPage.DhxKanban.LoadKanbanData(KanbanHandler.BuildKanbanJson());
                 end;
@@ -29,7 +29,7 @@ page 50653 "DHX Order Intake Kanban"
                 // ----------------------------------------------------------------
                 trigger OnCardMoved(EntryNo: Text; NewStatus: Text)
                 var
-                    KanbanHandler: Codeunit "Order Intake Kanban Handler";
+                    KanbanHandler: Codeunit "Opti OI Kanban Handler";
                     NewStatusInt: Integer;
                 begin
                     if Evaluate(NewStatusInt, NewStatus) then
@@ -46,7 +46,7 @@ page 50653 "DHX Order Intake Kanban"
                 // ----------------------------------------------------------------
                 trigger OnCardUpdated(EntryNo: Text; LongDescription: Text; ShortDescription: Text)
                 var
-                    KanbanHandler: Codeunit "Order Intake Kanban Handler";
+                    KanbanHandler: Codeunit "Opti OI Kanban Handler";
                 begin
                     KanbanHandler.UpdateCardDescriptions(CopyStr(EntryNo, 1, 20), LongDescription, ShortDescription);
                 end;
@@ -56,10 +56,10 @@ page 50653 "DHX Order Intake Kanban"
                 // ----------------------------------------------------------------
                 trigger OnCardSelected(EntryNo: Text)
                 var
-                    OrderIntake: Record "Order Intake Header Opt.";
+                    OrderIntake: Record "Opti Order Intake Header Opt.";
                 begin
                     if OrderIntake.Get(CopyStr(EntryNo, 1, 20)) then
-                        Page.Run(Page::"Order Intake Opt.", OrderIntake);
+                        Page.Run(Page::"Opti Order Intake Opt.", OrderIntake);
                 end;
 
                 // ----------------------------------------------------------------
@@ -68,7 +68,7 @@ page 50653 "DHX Order Intake Kanban"
                 // ----------------------------------------------------------------
                 trigger OnCardAdded(ColumnId: Text; Label: Text)
                 var
-                    KanbanHandler: Codeunit "Order Intake Kanban Handler";
+                    KanbanHandler: Codeunit "Opti OI Kanban Handler";
                     ColumnIdInt: Integer;
                 begin
                     if not Evaluate(ColumnIdInt, ColumnId) then
@@ -83,7 +83,7 @@ page 50653 "DHX Order Intake Kanban"
                 // ----------------------------------------------------------------
                 trigger OnCardDuplicated(EntryNo: Text; ColumnId: Text)
                 var
-                    KanbanHandler: Codeunit "Order Intake Kanban Handler";
+                    KanbanHandler: Codeunit "Opti OI Kanban Handler";
                 begin
                     KanbanHandler.DuplicateCard(CopyStr(EntryNo, 1, 20));
                     CurrPage.DhxKanban.RefreshKanbanData(KanbanHandler.BuildKanbanJson());
@@ -95,7 +95,7 @@ page 50653 "DHX Order Intake Kanban"
                 // ----------------------------------------------------------------
                 trigger OnCardDeleted(EntryNo: Text)
                 var
-                    KanbanHandler: Codeunit "Order Intake Kanban Handler";
+                    KanbanHandler: Codeunit "Opti OI Kanban Handler";
                 begin
                     KanbanHandler.DeleteCard(CopyStr(EntryNo, 1, 20));
                     CurrPage.DhxKanban.RefreshKanbanData(KanbanHandler.BuildKanbanJson());
@@ -108,10 +108,10 @@ page 50653 "DHX Order Intake Kanban"
                 // ----------------------------------------------------------------
                 trigger OnOrderIntakeCardRequested(EntryNo: Text)
                 var
-                    OrderIntake: Record "Order Intake Header Opt.";
+                    OrderIntake: Record "Opti Order Intake Header Opt.";
                 begin
                     if OrderIntake.Get(CopyStr(EntryNo, 1, 20)) then
-                        Page.Run(Page::"Order Intake Card", OrderIntake);
+                        Page.Run(Page::"Opti Order Intake Card", OrderIntake);
                 end;
 
                 // ----------------------------------------------------------------
@@ -121,8 +121,8 @@ page 50653 "DHX Order Intake Kanban"
                 // ----------------------------------------------------------------
                 trigger OnCardCustomerSelected(EntryNo: Text; CustomerNo: Text)
                 var
-                    OrderIntake: Record "Order Intake Header Opt.";
-                    KanbanHandler: Codeunit "Order Intake Kanban Handler";
+                    OrderIntake: Record "Opti Order Intake Header Opt.";
+                    KanbanHandler: Codeunit "Opti OI Kanban Handler";
                 begin
                     if not OrderIntake.Get(CopyStr(EntryNo, 1, 20)) then
                         exit;
@@ -141,8 +141,8 @@ page 50653 "DHX Order Intake Kanban"
                 // ----------------------------------------------------------------
                 trigger OnCardContactSelected(EntryNo: Text; ContactNo: Text)
                 var
-                    OrderIntake: Record "Order Intake Header Opt.";
-                    KanbanHandler: Codeunit "Order Intake Kanban Handler";
+                    OrderIntake: Record "Opti Order Intake Header Opt.";
+                    KanbanHandler: Codeunit "Opti OI Kanban Handler";
                 begin
                     if not OrderIntake.Get(CopyStr(EntryNo, 1, 20)) then
                         exit;
@@ -167,7 +167,7 @@ page 50653 "DHX Order Intake Kanban"
 
                 trigger OnAction()
                 var
-                    KanbanHandler: Codeunit "Order Intake Kanban Handler";
+                    KanbanHandler: Codeunit "Opti OI Kanban Handler";
                 begin
                     CurrPage.DhxKanban.RefreshKanbanData(KanbanHandler.BuildKanbanJson());
                 end;

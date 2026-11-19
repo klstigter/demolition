@@ -1,7 +1,7 @@
-page 50624 "Day Planning Info FactBox"
+page 50624 "Opti Day Planning Info FactBox"
 {
     PageType = CardPart;
-    SourceTable = "Day Planning";
+    SourceTable = "Opti Day Planning";
     Caption = 'Day Planning Information';
 
     layout
@@ -27,6 +27,7 @@ page 50624 "Day Planning Info FactBox"
                 }
                 field("Work Order No."; Rec."Order Intake No.")
                 {
+                    ToolTip = 'Specifies the value of the Work Order No. field.';
                     ApplicationArea = All;
                     visible = false;
                 }
@@ -38,6 +39,7 @@ page 50624 "Day Planning Info FactBox"
                 }
                 field("Data Owner"; Rec."Data Owner")
                 {
+                    ToolTip = 'Specifies the value of the Data Owner field.';
                     Caption = 'Data Owner';
                     ApplicationArea = All;
                 }
@@ -48,18 +50,22 @@ page 50624 "Day Planning Info FactBox"
                 }
                 field("Project Manager Status"; Rec."Project Manager Status")
                 {
+                    ToolTip = 'Specifies the value of the Project Manager Status field.';
                     ApplicationArea = All;
                 }
                 field("Planner Status"; Rec."Planner Status")
                 {
+                    ToolTip = 'Specifies the value of the Planner Status field.';
                     ApplicationArea = All;
                 }
                 field("Vendor Status"; Rec."Vendor Status")
                 {
+                    ToolTip = 'Specifies the value of the Vendor Status field.';
                     ApplicationArea = All;
                 }
                 field("Approved Project Manager"; Rec."Approved Project Manager")
                 {
+                    ToolTip = 'Specifies the value of the Approved Project Manager field.';
                     ApplicationArea = All;
                 }
 

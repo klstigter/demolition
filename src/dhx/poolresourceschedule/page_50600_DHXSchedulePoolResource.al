@@ -1,4 +1,4 @@
-page 50600 "DHX Scheduler (Pool Resource)"
+page 50600 "Opti DHX Scheduler (Pool Res.)"
 {
     PageType = List; //userControlHost;
     ApplicationArea = All;
@@ -9,7 +9,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
     {
         area(content)
         {
-            usercontrol(DhxScheduler; DHXPoolResourceScheduleAddin)
+            usercontrol(DhxScheduler; "OptiDHXPoolResourceScheduleAddin")
             {
                 ApplicationArea = All;
 
@@ -17,8 +17,8 @@ page 50600 "DHX Scheduler (Pool Resource)"
 
                 trigger ControlReady()
                 var
-                    SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
-                    VisualDefaultSettings: Codeunit "Visual Default Settings";
+                    SkillCapacityAnalysisMgt: Codeunit "Opti Skill Cap. Analysis Mgt.";
+                    VisualDefaultSettings: Codeunit "Opti Visual Default Settings";
                     startDate: Date;
                     endDate: Date;
                     EarliestPlanningDate: Date;
@@ -84,7 +84,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
 
                 trigger OnSectionDblClick(sectionId: Text; sectionData: Text; viewdate: Text)
                 var
-                    DHXDataHandler: Codeunit "DHX Data Handler";
+                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
                     PossibleChanges: Boolean;
                     newEventData: Text;
                     _DateTime: Datetime;
@@ -142,7 +142,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
 
                 trigger onEventAdded(eventId: Text; eventData: Text)
                 var
-                    DHXDataHandler: Codeunit "DHX Data Handler";
+                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
                     UpdateEventIdJsonTxt: Text;
                 begin
                     if DHXDataHandler.onEventAdded(eventData, UpdateEventIdJsonTxt) then
@@ -165,7 +165,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
 
                 trigger OnResourceFilterIconClick()
                 var
-                    FilterDlg: Report "Resource Scheduler Filter";
+                    FilterDlg: Report "Opti Resource Scheduler Filter";
                     NewResNoFilter: Text;
                     NewResNameFilter: Text;
                     NewSkillFilter: Text;
@@ -194,7 +194,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
                 #region Event Changes
                 trigger OnEventChanged(eventId: Text; eventData: Text)
                 var
-                    DHXDataHandler: Codeunit "DHX Data Handler";
+                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
                     DateRef: Date;
                 begin
                     DHXDataHandler.OnEventChanged_Resource(eventId,
@@ -205,8 +205,10 @@ page 50600 "DHX Scheduler (Pool Resource)"
                 end;
 
                 trigger OnAfterEventIdUpdated(oldid: Text; newid: Text)
+                    var
+                        EventIDUpdatedFromToMsg: Label 'Event ID updated from %1 to %2', Comment = '%1=oldid, %2=newid';
                 begin
-                    Message('Event ID updated from %1 to %2', oldid, newid);
+                    Message(EventIDUpdatedFromToMsg, oldid, newid);
                 end;
                 #endregion
 
@@ -238,7 +240,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
                 #region Timeline Navigate
                 trigger OnTimelineNavigate(NavigateJson: Text)
                 var
-                    DHXDataHandler: Codeunit "DHX Data Handler";
+                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
                     ResourceJSONTxt: Text;
                     EventsJsonTxt: Text;
                     StartDate: Date;
@@ -268,13 +270,17 @@ page 50600 "DHX Scheduler (Pool Resource)"
                 end;
 
                 trigger OnGetAllEvents(EventIdsJsonTxt: Text)
+                    var
+                        AllEventsMsg: Label 'All Events: %1', Comment = '%1=EventIdsJsonTxt';
                 begin
-                    Message('All Events: %1', EventIdsJsonTxt);
+                    Message(AllEventsMsg, EventIdsJsonTxt);
                 end;
 
                 trigger OnGetAllSections(SectionIdsJsonTxt: Text)
+                    var
+                        AllSectionsMsg: Label 'All Sections: %1', Comment = '%1=SectionIdsJsonTxt';
                 begin
-                    Message('All Sections: %1', SectionIdsJsonTxt);
+                    Message(AllSectionsMsg, SectionIdsJsonTxt);
                 end;
 
                 #endregion Cek Data
@@ -299,6 +305,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
 
             action(TodayAct)
             {
+                ToolTip = 'Executes the Today Act action.';
                 Caption = 'Today';
                 ApplicationArea = All;
                 Image = Position;
@@ -310,6 +317,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
             }
             action(PreviousAct)
             {
+                ToolTip = 'Executes the Previous Act action.';
                 Caption = 'Previous';
                 ApplicationArea = All;
                 Image = PreviousSet;
@@ -321,6 +329,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
             }
             action(NextAct)
             {
+                ToolTip = 'Executes the Next Act action.';
                 Caption = 'Next';
                 ApplicationArea = All;
                 Image = NextSet;
@@ -333,6 +342,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
 
             action(Refresh)
             {
+                ToolTip = 'Executes the Refresh action.';
                 Caption = 'Refresh';
                 ApplicationArea = All;
                 Image = Refresh;
@@ -344,6 +354,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
 
             action(DateLookup)
             {
+                ToolTip = 'Executes the Date Lookup action.';
                 Caption = 'Go to Date';
                 ApplicationArea = All;
                 Image = GoTo;
@@ -365,6 +376,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
 
             action(ExecEventsNotMatch)
             {
+                ToolTip = 'Executes the Exec Events Not Match action.';
                 Caption = 'Get Events Not Matching Sections';
                 ApplicationArea = All;
                 Image = "Event";
@@ -377,6 +389,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
 
             action(ExecGetAllEvents)
             {
+                ToolTip = 'Executes the Exec Get All Events action.';
                 Caption = 'Get All Events';
                 ApplicationArea = All;
                 Image = Task;
@@ -389,6 +402,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
 
             action(ExecGetAllSections)
             {
+                ToolTip = 'Executes the Exec Get All Sections action.';
                 Caption = 'Get All Sections';
                 ApplicationArea = All;
                 Image = Resource;
@@ -406,6 +420,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
                 Visible = false; // Capacity-only mode for now: hidden to avoid the expensive Day Planning lookup path
                 action(ShowDayPlanning)
                 {
+                    ToolTip = 'Executes the Show Day Planning action.';
                     ApplicationArea = All;
                     Caption = 'Show Day Plannings';
                     Image = AddWatch;
@@ -417,6 +432,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
                 }
                 action(HideDayPlanning)
                 {
+                    ToolTip = 'Executes the Hide Day Planning action.';
                     ApplicationArea = All;
                     Caption = 'Hide Day Plannings';
                     Image = RemoveContacts;
@@ -441,7 +457,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
     }
 
     var
-        DHXDataHandler: Codeunit "DHX Data Handler";
+        DHXDataHandler: Codeunit "Opti DHX Data Handler";
         ShowDefaultTabs: Boolean;
         AnchorDate: Date;
         ResourceFilter: Text;
@@ -484,7 +500,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
 
     local procedure RefreshSchedule()
     var
-        DHXDataHandler: Codeunit "DHX Data Handler";
+        DHXDataHandler: Codeunit "Opti DHX Data Handler";
         startDate: Date;
         endDate: Date;
         ResourceJSONTxt: Text;
@@ -519,13 +535,15 @@ page 50600 "DHX Scheduler (Pool Resource)"
 
     local procedure PushResourceFilterInfo(pStartDate: Date; pEndDate: Date)
     var
+            NameFilterTxt: Label ' (name filter: %1)', Comment = '%1=ResourceNameFilter';
+            SkillFilterTxt: Label ' (skill filter: %1)', Comment = '%1=SkillFilter';
         ResNameLbl: Text;
     begin
         ResNameLbl := GetResourceName(ResourceFilter);
         if ResourceNameFilter <> '' then
-            ResNameLbl += StrSubstNo(' (name filter: %1)', ResourceNameFilter);
+            ResNameLbl += StrSubstNo(NameFilterTxt, ResourceNameFilter);
         if SkillFilter <> '' then
-            ResNameLbl += StrSubstNo(' (skill filter: %1)', SkillFilter);
+            ResNameLbl += StrSubstNo(SkillFilterTxt, SkillFilter);
         CurrPage.DhxScheduler.SetResourceFilterInfo(
             ResourceFilter,
             ResNameLbl,

@@ -1,4 +1,4 @@
-controladdin DHXColorPickerAddin
+controladdin "OptiDHXColorPickerAddin"
 {
     RequestedHeight = 420;
     MinimumHeight = 380;

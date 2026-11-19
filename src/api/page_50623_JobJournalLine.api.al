@@ -1,5 +1,6 @@
-page 50623 "Job Journal Line API Opt."
+page 50623 "Opti Job Journal Line API Opt."
 {
+    Caption = 'Job Journal Line API Opt.';
     // Dedicated PageType = API subpage for Job Journal Lines.
     // Must be PageType = API (not ListPart) so BC does not auto-initialize
     // a blank UI row when processing the nested collection — that blank row
@@ -138,7 +139,7 @@ page 50623 "Job Journal Line API Opt."
                 {
                     Caption = 'Gen. Prod. Posting Group';
                 }
-                field(approvedProjectManager; Rec."Approved Project Manager")
+                field(approvedProjectManager; Rec."Opti Approved Project Manager")
                 {
                     Caption = 'Approved Project Manager';
                 }
@@ -170,6 +171,8 @@ page 50623 "Job Journal Line API Opt."
     }
 
     trigger OnOpenPage()
+        var
+            YouMustSpecifyAJournalErr: Label 'You must specify a Journal Template Name and Batch Name filter to access journal lines.';
     begin
         // Prevent unfiltered access — caller must supply a Journal Batch Id or SystemId filter.
         // When used as a nested subpage, BC injects the SubPageLink filter automatically.
@@ -177,18 +180,18 @@ page 50623 "Job Journal Line API Opt."
            (Rec.GetFilter("Journal Template Name") = '') and
            (Rec.GetFilter("Journal Batch Name") = '')
         then
-            Error('You must specify a Journal Template Name and Batch Name filter to access journal lines.');
+            Error(YouMustSpecifyAJournalErr);
     end;
 
     trigger OnInsertRecord(BelowxRec: Boolean): Boolean
     var
         TempLine: Record "Job Journal Line" temporary;
         ExistingLine: Record "Job Journal Line";
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
         NextLineNo: Integer;
         GuidVar: Guid;
         ModifyRec: Boolean;
-        ErrLbl: Label 'The specified Day Planning (System Id = %1) has already been posted and cannot be referenced in a Job Journal Line.';
+        ErrLbl: Label 'The specified Day Planning (System Id = %1) has already been posted and cannot be referenced in a Job Journal Line.', Comment = '%1 = value';
     begin
         // Step 1: snapshot ALL incoming API data FIRST, before Rec is touched
         TempLine.Copy(Rec);
@@ -204,8 +207,8 @@ page 50623 "Job Journal Line API Opt."
         ExistingLine.Reset();
         ExistingLine.SetRange("Journal Template Name", TempLine."Journal Template Name");
         ExistingLine.SetRange("Journal Batch Name", TempLine."Journal Batch Name");
-        ExistingLine.SetRange("Opt. DayPlanning Date", DayPlanning."Plan Date");
-        ExistingLine.SetRange("Opt. DayPlanning Line No.", DayPlanning."Day Line No.");
+        ExistingLine.SetRange("Opti Opt. DayPlanning Date", DayPlanning."Plan Date");
+        ExistingLine.SetRange("Opti Opt. DayPlanning Line No.", DayPlanning."Day Line No.");
         if ExistingLine.FindFirst() then begin
             // Modify path: load existing PK into Rec; payload comes from TempLine (incoming)
             ModifyRec := true;
@@ -237,8 +240,8 @@ page 50623 "Job Journal Line API Opt."
         Rec."Document No." := TempLine."Document No.";
         Rec."External Document No." := TempLine."External Document No.";
 
-        Rec."Opt. DayPlanning Date" := DayPlanning."Plan Date";
-        Rec."Opt. DayPlanning Line No." := DayPlanning."Day Line No.";
+        Rec."Opti Opt. DayPlanning Date" := DayPlanning."Plan Date";
+        Rec."Opti Opt. DayPlanning Line No." := DayPlanning."Day Line No.";
         Rec."Job No." := DayPlanning."Job No.";
         Rec."Job Task No." := DayPlanning."Job Task No.";
 
@@ -260,8 +263,8 @@ page 50623 "Job Journal Line API Opt."
         // Validation
         Rec.TestField("Posting Date");
         Rec.TestField("Document No.");
-        Rec.TestField("Opt. DayPlanning Date");
-        Rec.TestField("Opt. DayPlanning Line No.");
+        Rec.TestField("Opti Opt. DayPlanning Date");
+        Rec.TestField("Opti Opt. DayPlanning Line No.");
         Rec.TestField("Job No.");
         Rec.TestField("Job Task No.");
         Rec.TestField(Quantity);

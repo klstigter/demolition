@@ -1,4 +1,4 @@
-page 50709 "Color Picker Lookup"
+page 50709 "Opti Color Picker Lookup"
 {
     PageType = StandardDialog;
     ApplicationArea = All;
@@ -8,7 +8,7 @@ page 50709 "Color Picker Lookup"
     {
         area(Content)
         {
-            usercontrol(DhxColorPicker; DHXColorPickerAddin)
+            usercontrol(DhxColorPicker; "OptiDHXColorPickerAddin")
             {
                 ApplicationArea = All;
 

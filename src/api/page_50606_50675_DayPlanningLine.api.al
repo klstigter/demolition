@@ -1,5 +1,6 @@
-page 50675 "DayPlanning Line Opt"
+page 50675 "Opti DayPlanning Line Opt"
 {
+    Caption = 'DayPlanning Line Opt';
     // Dedicated PageType = API subpage for DayPlanning Lines.
     // Must be PageType = API (not ListPart) so BC does not auto-initialize
     PageType = API;
@@ -8,7 +9,7 @@ page 50675 "DayPlanning Line Opt"
     APIVersion = 'v1.0';
     EntityName = 'dayPlanningLine';
     EntitySetName = 'dayPlanningLines';
-    SourceTable = "Day Planning";
+    SourceTable = "Opti Day Planning";
     ODataKeyFields = SystemId;
     DelayedInsert = true;
 
@@ -167,13 +168,13 @@ page 50675 "DayPlanning Line Opt"
 
     trigger OnInsertRecord(BelowxRec: Boolean): Boolean
     var
-        TempLine: Record "Day Planning" temporary;
-        ExistingLine: Record "Day Planning";
-        NewLine: Record "Day Planning";
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        TempLine: Record "Opti Day Planning" temporary;
+        ExistingLine: Record "Opti Day Planning";
+        NewLine: Record "Opti Day Planning";
+        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
         JobTask: record "Job Task";
         NextLineNo: Integer;
-        HeaderMismatchErr: Label 'Day Planning line Job No. %1 / Job Task No. %2 does not match the header Job No. %3 / Job Task No. %4.';
+        HeaderMismatchErr: Label 'Day Planning line Job No. %1 / Job Task No. %2 does not match the header Job No. %3 / Job Task No. %4.', Comment = '%1 = value, %2 = value, %3 = value, %4 = value';
         NoDefaultSkillErr: Label 'Cannot insert this Day Planning line: no Skill was submitted, and "Daily Optimizer Setup"."Default Skill" is not set. Configure a Default Skill, or submit a Skill value.';
     begin
         // Step 1: snapshot ALL incoming API data FIRST, before Rec is touched
@@ -255,5 +256,5 @@ page 50675 "DayPlanning Line Opt"
     end;
 
     var
-        GlobalSessionVar: Codeunit "Global Session Var Opt.";
+        GlobalSessionVar: Codeunit "Opti Global Session Var Opt.";
 }

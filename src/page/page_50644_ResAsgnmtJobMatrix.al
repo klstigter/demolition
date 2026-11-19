@@ -1,4 +1,4 @@
-page 50644 "Res. Asgmt. Job Matrix"
+page 50644 "Opti Res. Asgmt. Job Matrix"
 {
     PageType = ListPart;
     SourceTable = Job;
@@ -243,7 +243,7 @@ page 50644 "Res. Asgmt. Job Matrix"
 
     local procedure CalcDayText(JobNo: Code[20]; DayDate: Date): Text[30]
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
         TotalCount: Integer;
         AssignedCount: Integer;
     begin

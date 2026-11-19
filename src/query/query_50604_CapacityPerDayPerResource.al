@@ -1,5 +1,6 @@
-query 50604 "Capacity Per Day Per Resource"
+query 50604 "Opti Cap. Per Day Per Resource"
 {
+    Caption = 'Capacity Per Day Per Resource';
     QueryType = Normal;
 
     elements
@@ -10,7 +11,7 @@ query 50604 "Capacity Per Day Per Resource"
             filter(Resource_No__Filter; "Resource No.") { }
             column(Date; Date) { }
             column(Resource_No_; "Resource No.") { }
-            column(Duplicate_Id; "Duplicate Id") { }
+            column(Duplicate_Id; "Opti Duplicate Id") { }
             column(Capacity; Capacity)
             {
                 Method = Sum;
@@ -31,7 +32,7 @@ query 50604 "Capacity Per Day Per Resource"
                 DataItemLink = "No." = Res__Capacity_Entry."Resource No.";
                 SqlJoinType = LeftOuterJoin;
 
-                column(Pool_Resource_No_; "Pool Resource No.")
+                column(Pool_Resource_No_; "Opti Pool Resource No.")
                 {
                 }
             }

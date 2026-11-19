@@ -1,4 +1,4 @@
-﻿page 50643 "Resource Assignment"
+﻿page 50643 "Opti Resource Assignment"
 {
     PageType = Card;
     Caption = 'Resource Assignment';
@@ -44,13 +44,13 @@
                 //     ToolTip = 'Shows the Mon–Sun dates of the displayed week.';
                 // }
             }
-            part(JobMatrixPart; "Res. Asgmt. Job Matrix")
+            part(JobMatrixPart; "Opti Res. Asgmt. Job Matrix")
             {
                 ApplicationArea = All;
                 Caption = 'Project';
                 UpdatePropagation = Both;
             }
-            part(DayPlanningsPart; "Res. Asgmt. Day Plannings")
+            part(DayPlanningsPart; "Opti Res. Asgmt. Day Plannings")
             {
                 ApplicationArea = All;
                 Caption = 'DayPlannings';

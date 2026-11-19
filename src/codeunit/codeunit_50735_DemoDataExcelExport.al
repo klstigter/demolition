@@ -1,12 +1,13 @@
-codeunit 50735 "Demo Data Excel Export"
+codeunit 50735 "Opti Demo Data Excel Export"
 {
     // Turns the XML of a Demo Data Scenario into an Excel workbook: sheet 1 is a statistics summary,
     // then one sheet per table element found in the XML (a record element = an element that has at
     // least one field element, i.e. a child without child elements). Nested records get a "Parent"
     // column holding the first field value of their parent record.
 
-    procedure DownloadAsExcel(var Scenario: Record "Demo Data Scenarios Opt")
+    procedure DownloadAsExcel(var Scenario: Record "Opti Demo Data Scenarios Opt")
     var
+            DemoDataXlsxTxt: Label 'DemoData_%1.xlsx', Comment = '%1=Scenario.Entry No.';
         ExcelBuf: Record "Excel Buffer" temporary;
         TempBlob: Codeunit "Temp Blob";
         XmlDoc: XmlDocument;
@@ -38,7 +39,7 @@ codeunit 50735 "Demo Data Excel Export"
         TempBlob.CreateOutStream(OutStr);
         ExcelBuf.SaveToStream(OutStr, true);
         TempBlob.CreateInStream(InStr);
-        FileName := StrSubstNo('DemoData_%1.xlsx', Scenario."Entry No.");
+        FileName := StrSubstNo(DemoDataXlsxTxt, Scenario."Entry No.");
         DownloadFromStream(InStr, '', '', '', FileName);
     end;
 
@@ -46,7 +47,7 @@ codeunit 50735 "Demo Data Excel Export"
 
     // Rebuilds the demo data XML from a workbook made by DownloadAsExcel and stores it in the scenario.
     // The XML structure is fixed (it mirrors xmlport "DemoData"); the sheets only supply the records.
-    procedure ConvertExcelToXml(var Scenario: Record "Demo Data Scenarios Opt"; var ExcelStream: InStream; ExcelFileName: Text)
+    procedure ConvertExcelToXml(var Scenario: Record "Opti Demo Data Scenarios Opt"; var ExcelStream: InStream; ExcelFileName: Text)
     var
         ExcelBuf: Record "Excel Buffer" temporary;
         NameBuf: Record "Name/Value Buffer" temporary;
@@ -511,7 +512,7 @@ codeunit 50735 "Demo Data Excel Export"
     var
         NoXmlErr: Label 'This scenario has no XML demo data.';
         NoSheetsErr: Label 'The Excel file contains none of the expected demo data sheets. Use a file created with Download as Excel.';
-        OrphanErr: Label 'Sheet %1: a row refers to %2 %3, which does not exist on the %2 sheet.';
+        OrphanErr: Label 'Sheet %1: a row refers to %2 %3, which does not exist on the %2 sheet.', Comment = '%1 = value, %2 = value, %3 = value';
         SummarySheetLbl: Label 'Summary';
         SummaryTitleLbl: Label 'Demo data summary';
         MasterDataLbl: Label 'Master Data';

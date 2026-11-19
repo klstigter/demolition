@@ -2,7 +2,7 @@
 /// Defines the scheduling mode used when generating pre-DayPlanning planning lines
 /// from an Order Intake document.
 /// </summary>
-enum 50608 "Pre DayPlanning Scheduling Mode"
+enum 50608 "Opti Pre DayPlan Sched. Mode"
 {
     Extensible = true;
     Caption = 'Scheduling Mode';

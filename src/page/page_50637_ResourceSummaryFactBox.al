@@ -1,7 +1,7 @@
-page 50637 "Resource Summary FactBox"
+page 50637 "Opti Resource Summary FactBox"
 {
     PageType = ListPart;
-    SourceTable = "Resource DayPlanning Summary";
+    SourceTable = "Opti Resource DayPlan. Summary";
     SourceTableTemporary = true;
     Caption = 'Resource Summary';
     Editable = true;
@@ -43,8 +43,8 @@ page 50637 "Resource Summary FactBox"
                     Style = Strong;
                     trigger OnDrillDown()
                     var
-                        DayPlanning: Page "Day Plannings";
-                        DayPlanningRec: Record "Day Planning";
+                        DayPlanning: Page "Opti Day Plannings";
+                        DayPlanningRec: Record "Opti Day Planning";
                     begin
                         if rec."Job No." <> '' then
                             DayPlanningRec.setfilter("Job No.", Rec."Job No.");
@@ -74,8 +74,8 @@ page 50637 "Resource Summary FactBox"
 
                 trigger OnAction()
                 var
-                    DayPlanning: Page "Day Plannings";
-                    DayPlanningRec: Record "Day Planning";
+                    DayPlanning: Page "Opti Day Plannings";
+                    DayPlanningRec: Record "Opti Day Planning";
                 begin
                     if rec."Job No." <> '' then
                         DayPlanningRec.setfilter("Job No.", Rec."Job No.");

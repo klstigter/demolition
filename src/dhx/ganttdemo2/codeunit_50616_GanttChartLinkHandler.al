@@ -1,4 +1,4 @@
-codeunit 50616 "Gantt Chart Link Handler"
+codeunit 50616 "Opti Gantt Chart Link Handler"
 {
     // -------------------------------------------------------
     // Handles all CRUD operations for:
@@ -12,7 +12,7 @@ codeunit 50616 "Gantt Chart Link Handler"
     // -------------------------------------------------------
 
     var
-        GenUtils: Codeunit "General Planning Utilities";
+        GenUtils: Codeunit "Opti General Plan. Utilities";
 
     // =======================================================
     // LINKS  –  BC -> dhtmlx
@@ -24,7 +24,7 @@ codeunit 50616 "Gantt Chart Link Handler"
     /// </summary>
     procedure GetLinksAsJson(JobNoFilter: Code[20]): Text
     var
-        GanttLink: Record "BCG Gantt Task Link";
+        GanttLink: Record "Opti BCG Gantt Task Link";
         LinkArray: JsonArray;
         LinkObj: JsonObject;
         Result: Text;
@@ -64,7 +64,7 @@ codeunit 50616 "Gantt Chart Link Handler"
     /// </summary>
     procedure UpsertLinkFromJson(LinkJsonTxt: Text): Boolean
     var
-        GanttLink: Record "BCG Gantt Task Link";
+        GanttLink: Record "Opti BCG Gantt Task Link";
         JsonObj: JsonObject;
         JsonToken: JsonToken;
         JobNo: Code[20];
@@ -73,7 +73,7 @@ codeunit 50616 "Gantt Chart Link Handler"
         TargetJobNo: Code[20];
         LinkTypeInt: Integer;
         LagDays: Integer;
-        LinkTypeEnum: Enum "BCG Gantt Link Type";
+        LinkTypeEnum: Enum "Opti BCG Gantt Link Type";
     begin
         if not JsonObj.ReadFrom(LinkJsonTxt) then
             exit(false);
@@ -110,7 +110,7 @@ codeunit 50616 "Gantt Chart Link Handler"
         end else
             LagDays := 0;
 
-        LinkTypeEnum := Enum::"BCG Gantt Link Type".FromInteger(LinkTypeInt);
+        LinkTypeEnum := Enum::"Opti BCG Gantt Link Type".FromInteger(LinkTypeInt);
 
         if GanttLink.Get(JobNo, SourceTaskNo, TargetTaskNo, LinkTypeEnum) then begin
             // Update existing
@@ -141,7 +141,7 @@ codeunit 50616 "Gantt Chart Link Handler"
     /// </summary>
     procedure DeleteLinkFromJson(LinkJsonTxt: Text): Boolean
     var
-        GanttLink: Record "BCG Gantt Task Link";
+        GanttLink: Record "Opti BCG Gantt Task Link";
         JsonObj: JsonObject;
         JsonToken: JsonToken;
         JobNo: Code[20];
@@ -169,7 +169,7 @@ codeunit 50616 "Gantt Chart Link Handler"
         end else
             LinkTypeInt := 0;
 
-        if GanttLink.Get(JobNo, SourceTaskNo, TargetTaskNo, Enum::"BCG Gantt Link Type".FromInteger(LinkTypeInt)) then begin
+        if GanttLink.Get(JobNo, SourceTaskNo, TargetTaskNo, Enum::"Opti BCG Gantt Link Type".FromInteger(LinkTypeInt)) then begin
             GanttLink.Delete(true);
             exit(true);
         end;
@@ -183,7 +183,7 @@ codeunit 50616 "Gantt Chart Link Handler"
     /// </summary>
     procedure DeleteAllLinksForJob(JobNo: Code[20])
     var
-        GanttLink: Record "BCG Gantt Task Link";
+        GanttLink: Record "Opti BCG Gantt Task Link";
     begin
         GanttLink.SetRange("Job No.", JobNo);
         GanttLink.DeleteAll(true);
@@ -195,7 +195,7 @@ codeunit 50616 "Gantt Chart Link Handler"
     /// </summary>
     procedure DeleteLinksForTask(JobNo: Code[20]; TaskNo: Code[20])
     var
-        GanttLink: Record "BCG Gantt Task Link";
+        GanttLink: Record "Opti BCG Gantt Task Link";
     begin
         GanttLink.SetRange("Job No.", JobNo);
         GanttLink.SetRange("Source Task No.", TaskNo);
@@ -226,7 +226,7 @@ codeunit 50616 "Gantt Chart Link Handler"
         JobTaskNo: Code[20];
         ConstraintTypeStr: Text;
         ConstraintDateTxt: Text;
-        NewConstraintType: Enum "Gantt Constraint Type";
+        NewConstraintType: Enum "Opti Gantt Constraint Type";
         NewConstraintDate: Date;
     begin
         if not JsonObj.ReadFrom(TaskJsonTxt) then
@@ -247,7 +247,7 @@ codeunit 50616 "Gantt Chart Link Handler"
             ConstraintTypeStr := JsonToken.AsValue().AsText();
             NewConstraintType := MapDhtmlxToConstraintType(ConstraintTypeStr);
         end else
-            NewConstraintType := Enum::"Gantt Constraint Type"::None;
+            NewConstraintType := Enum::"Opti Gantt Constraint Type"::None;
 
         // Constraint date
         if JsonObj.Get('constraint_date', JsonToken) then begin
@@ -260,7 +260,7 @@ codeunit 50616 "Gantt Chart Link Handler"
             NewConstraintDate := 0D;
 
         // Clear date when constraint is None
-        if NewConstraintType = Enum::"Gantt Constraint Type"::None then
+        if NewConstraintType = Enum::"Opti Gantt Constraint Type"::None then
             NewConstraintDate := 0D;
 
         //TODO Constraint Type
@@ -318,23 +318,23 @@ codeunit 50616 "Gantt Chart Link Handler"
     /// <summary>
     /// Maps a dhtmlx constraint_type string to the BC enum value.
     /// </summary>
-    procedure MapDhtmlxToConstraintType(DhtmlxStr: Text): Enum "Gantt Constraint Type"
+    procedure MapDhtmlxToConstraintType(DhtmlxStr: Text): Enum "Opti Gantt Constraint Type"
     begin
         case LowerCase(DhtmlxStr) of
             'mso':
-                exit(Enum::"Gantt Constraint Type"::"Must Start On");
+                exit(Enum::"Opti Gantt Constraint Type"::"Must Start On");
             'mfo':
-                exit(Enum::"Gantt Constraint Type"::"Must Finish On");
+                exit(Enum::"Opti Gantt Constraint Type"::"Must Finish On");
             'snet':
-                exit(Enum::"Gantt Constraint Type"::"Start No Earlier Than");
+                exit(Enum::"Opti Gantt Constraint Type"::"Start No Earlier Than");
             'snlt':
-                exit(Enum::"Gantt Constraint Type"::"Start No Later Than");
+                exit(Enum::"Opti Gantt Constraint Type"::"Start No Later Than");
             'fnet':
-                exit(Enum::"Gantt Constraint Type"::"Finish No Earlier Than");
+                exit(Enum::"Opti Gantt Constraint Type"::"Finish No Earlier Than");
             'fnlt':
-                exit(Enum::"Gantt Constraint Type"::"Finish No Later Than");
+                exit(Enum::"Opti Gantt Constraint Type"::"Finish No Later Than");
             else
-                exit(Enum::"Gantt Constraint Type"::None);
+                exit(Enum::"Opti Gantt Constraint Type"::None);
         end;
     end;
 
@@ -368,7 +368,7 @@ codeunit 50616 "Gantt Chart Link Handler"
     // INTERNAL HELPERS
     // =======================================================
 
-    local procedure BuildLinkId(GanttLink: Record "BCG Gantt Task Link"): Text
+    local procedure BuildLinkId(GanttLink: Record "Opti BCG Gantt Task Link"): Text
     begin
         // Deterministic id: source_target_type  — matches composite PK
         exit(

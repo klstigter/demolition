@@ -1,4 +1,4 @@
-table 50651 "BCG Gantt Task Link"
+table 50651 "Opti BCG Gantt Task Link"
 {
     Caption = 'Gantt Task Link';
     DataClassification = CustomerContent;
@@ -7,22 +7,25 @@ table 50651 "BCG Gantt Task Link"
     {
         field(1; "Job No."; Code[20])
         {
+            DataClassification = CustomerContent;
             Caption = 'Job No.';
             TableRelation = Job."No.";
         }
         field(2; "Source Task No."; Code[20])
         {
+            DataClassification = CustomerContent;
             Caption = 'Source Task No.'; // Predecessor
             TableRelation = "Job Task"."Job Task No." where("Job No." = field("Job No."));
         }
         field(3; "Target Task No."; Code[20])
         {
+            DataClassification = CustomerContent;
             Caption = 'Target Task No.'; // Successor
             TableRelation = "Job Task"."Job Task No." where("Job No." = field("Job No."));
             trigger OnLookup()
             var
                 JobTask: Record "Job Task";
-                JobTaskLookupPage: Page "Job Task List - Project";
+                JobTaskLookupPage: Page "Opti Job Task List - Project";
             begin
                 JobTask.setrange("Job No.", Rec."Job No.");
                 JobTaskLookupPage.SetRecord(JobTask);
@@ -33,12 +36,14 @@ table 50651 "BCG Gantt Task Link"
                 end;
             end;
         }
-        field(4; "Link Type"; Enum "BCG Gantt Link Type")
+        field(4; "Link Type"; Enum "Opti BCG Gantt Link Type")
         {
+            DataClassification = CustomerContent;
             Caption = 'Link Type';
         }
         field(5; "Lag (Days)"; Integer)
         {
+            DataClassification = CustomerContent;
             Caption = 'Lag (Days)';
         }
         field(20; "Source Task Description"; Text[100])
@@ -55,32 +60,32 @@ table 50651 "BCG Gantt Task Link"
             FieldClass = FlowField;
             CalcFormula = Lookup("Job Task"."Description" where("Job No." = field("Job No."), "Job Task No." = field("Target Task No.")));
         }
-        field(50510; "Constraint Type"; Enum "Gantt Constraint Type")
+        field(50510; "Constraint Type"; Enum "Opti Gantt Constraint Type")
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Constraint Type';
         }
         field(50511; "Constraint Date"; Date)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Constraint Date';
         }
         field(50512; "Constraint Is Hard"; Boolean)
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Constraint Is Hard';
         }
         field(50513; "Deadline Date"; Date) // optional but recommended
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Deadline Date';
         }
 
         // Add changes to table fields here
 
-        field(50520; "Scheduling Type"; Enum schedulingType)
+        field(50520; "Scheduling Type"; Enum "Opti schedulingType")
         {
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
             Caption = 'Scheduling Type';
         }
     }

@@ -1,4 +1,4 @@
-tableextension 50619 "Opt. Res. Ledger Entry" extends "Res. Ledger Entry"
+tableextension 50619 "Opti Res. Ledger Entry" extends "Res. Ledger Entry"
 {
     // Day Planning traceability fields — populated during posting by EventSubs (codeunit 50603).
     // Applies only when the originating Job Journal Line type is Resource.
@@ -7,33 +7,34 @@ tableextension 50619 "Opt. Res. Ledger Entry" extends "Res. Ledger Entry"
     // already holds the entry no. of this record.
     fields
     {
-        field(50618; "Opt. DayPlanning Date"; Date)
+        field(50618; "Opti Opt. DayPlanning Date"; Date)
         {
             Caption = 'Day Planning Date';
             DataClassification = CustomerContent;
             Editable = false;
         }
 
-        field(50619; "Opt. DayPlanning Line No."; Integer)
+        field(50619; "Opti Opt. DayPlanning Line No."; Integer)
         {
             Caption = 'Day Planning Line No.';
             DataClassification = CustomerContent;
             Editable = false;
         }
-        field(50620; Skill; Code[10])
+        field(50620; "Opti Skill"; Code[10])
         {
-            DataClassification = ToBeClassified;
+            Caption = 'Skill';
+            DataClassification = CustomerContent;
             tableRelation = "Skill Code";
         }
-        field(50621; "Invoice Resource No."; Code[20])
+        field(50621; "Opti Invoice Resource No."; Code[20])
         {
             Caption = 'Invoice Resource No.';
-            DataClassification = ToBeClassified;
+            DataClassification = CustomerContent;
         }
-        field(50622; "Approved Project Manager"; Code[50])
+        field(50622; "Opti Approved Project Manager"; Code[50])
         {
             Caption = 'Approved Project Manager';
-            DataClassification = ToBeClassified;
+            DataClassification = EndUserIdentifiableInformation;
         }
     }
 }

@@ -1,6 +1,6 @@
-report 50600 "RepairData"
+report 50600 "Opti RepairData"
 {
-    Permissions = tabledata "Day Planning" = rimd,
+    Permissions = tabledata "Opti Day Planning" = rimd,
                   tabledata "Res. Capacity Entry" = rimd,
                   tabledata Resource = rim,
                   tabledata Vendor = r,
@@ -25,7 +25,8 @@ report 50600 "RepairData"
 
     local procedure RecalculateDayPlanningHours()
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanningLineSRecalculMsg: Label '%1 Day Planning line(s) recalculated.', Comment = '%1=Counter';
+        DayPlanning: Record "Opti Day Planning";
         OldRequested: Decimal;
         OldAssigned: Decimal;
         OldRealized: Decimal;
@@ -46,7 +47,7 @@ report 50600 "RepairData"
                     Counter += 1;
                 end;
             until DayPlanning.Next() = 0;
-        Message('%1 Day Planning line(s) recalculated.', Counter);
+        Message(DayPlanningLineSRecalculMsg, Counter);
     end;
 
 

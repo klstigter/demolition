@@ -1,5 +1,6 @@
-enum 50611 "Project Location Status"
+enum 50611 "Opti Project Location Status"
 {
+    Caption = 'Project Location Status';
     Extensible = true;
 
     value(0; Active)

@@ -1,5 +1,6 @@
-enum 50610 "Project Location Type"
+enum 50610 "Opti Project Location Type"
 {
+    Caption = 'Project Location Type';
     Extensible = true;
 
     value(0; Generic)

@@ -1,4 +1,4 @@
-query 50715 "Resource Capacity Per Day"
+query 50715 "Opti Resource Capacity Per Day"
 {
     // Summed "Res. Capacity Entry".Capacity per Resource No. + Date, used by codeunit 50613 to send
     // the Gantt resource panel the real daily capacity of the listed resources (cell colour).

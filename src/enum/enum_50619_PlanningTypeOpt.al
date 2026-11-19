@@ -1,4 +1,4 @@
-enum 50619 "Planning Type Opt."
+enum 50619 "Opti Planning Type Opt."
 {
     Extensible = true;
     Caption = 'Planning Type';

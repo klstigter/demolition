@@ -1,7 +1,8 @@
-page 50656 "Project Task Sub"
+page 50656 "Opti Project Task Sub"
 {
+    Caption = 'Project Task Sub';
     PageType = ListPart;
-    SourceTable = "Order Intake Line";
+    SourceTable = "Opti Order Intake Line";
     DelayedInsert = true;
     autosplitkey = true;
 
@@ -13,6 +14,7 @@ page 50656 "Project Task Sub"
             {
                 field(orderIntakeNo; Rec."Order Intake No.")
                 {
+                    ToolTip = 'Specifies the value of the order Intake No field.';
                     ApplicationArea = All;
                     Visible = false;
                 }
@@ -69,13 +71,14 @@ page 50656 "Project Task Sub"
             }
             action(CreateNewCustomerTask)
             {
+                ToolTip = 'Executes the Create New Customer Task action.';
                 ApplicationArea = All;
                 trigger OnAction()
                 var
-                    OrderIntake: record "Order Intake Header opt.";
+                    OrderIntake: record "Opti Order Intake Header Opt.";
                     JobRec: Record Job;
                     JobTaskRec: Record "Job Task";
-                    OptimizerSetup: record "Daily Optimizer Setup";
+                    OptimizerSetup: record "Opti Daily Optimizer Setup";
                     NoSeries: Codeunit "No. Series";
                     NewTaskNo: Code[20];
                 begin
@@ -130,7 +133,7 @@ page 50656 "Project Task Sub"
                 ToolTip = 'View requested hours per skill code, year and week for this project task.';
                 trigger OnAction()
                 var
-                    SkillHoursPage: Page "Skill Hours Summary";
+                    SkillHoursPage: Page "Opti Skill Hours Summary";
                 begin
                     SkillHoursPage.LoadContext(Rec."Project No.", Rec."Project Task No.");
                     SkillHoursPage.Run();

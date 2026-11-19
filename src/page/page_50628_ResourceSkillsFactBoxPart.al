@@ -1,4 +1,4 @@
-page 50628 "Resource Skills FactBox Part"
+page 50628 "Opti Res. Skills FactBox Part"
 {
     PageType = ListPart;
     SourceTable = "Resource Skill";

@@ -1,4 +1,4 @@
-page 50621 "DHX Scheduler (Project)"
+page 50621 "Opti DHX Scheduler (Project)"
 {
     PageType = List; //userControlHost;
     ApplicationArea = All;
@@ -9,7 +9,7 @@ page 50621 "DHX Scheduler (Project)"
     {
         area(content)
         {
-            usercontrol(DhxScheduler; "DHXProjectScheduleAddin")
+            usercontrol(DhxScheduler; "OptiDHXProjectScheduleAddin")
             {
                 ApplicationArea = All;
 
@@ -17,10 +17,10 @@ page 50621 "DHX Scheduler (Project)"
 
                 trigger ControlReady()
                 var
-                    DayPlanningBarSetup: Record "Task Scheduler Setup";
-                    DailyOptimizerSetup: Record "Daily Optimizer Setup";
-                    SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
-                    VisualDefaultSettings: Codeunit "Visual Default Settings";
+                    DayPlanningBarSetup: Record "Opti Task Scheduler Setup";
+                    DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
+                    SkillCapacityAnalysisMgt: Codeunit "Opti Skill Cap. Analysis Mgt.";
+                    VisualDefaultSettings: Codeunit "Opti Visual Default Settings";
                     startDate: Date;
                     endDate: Date;
                     EarliestPlanningDate: Date;
@@ -118,7 +118,7 @@ page 50621 "DHX Scheduler (Project)"
 
                 trigger OnSectionDblClick(sectionId: Text; sectionLabel: Text; SectionData: Text)
                 var
-                    DHXDataHandler: Codeunit "DHX Data Handler";
+                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
                     PossibleChanges: Boolean;
                     newEventData: Text;
                 begin
@@ -147,7 +147,7 @@ page 50621 "DHX Scheduler (Project)"
 
                 trigger onEventAdded(eventId: Text; eventData: Text)
                 var
-                    DHXDataHandler: Codeunit "DHX Data Handler";
+                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
                     UpdateEventIdJsonTxt: Text;
                 begin
                     if DHXDataHandler.onEventAdded(eventData, UpdateEventIdJsonTxt) then
@@ -190,10 +190,10 @@ page 50621 "DHX Scheduler (Project)"
                 #region Event Changes
                 trigger OnEventChanged(eventId: Text; eventData: Text)
                 var
-                    DHXDataHandler: Codeunit "DHX Data Handler";
+                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
                     UpdateEventID: Boolean;
-                    OldDayPlanning_forUpdate: record "Day Planning";
-                    NewDayPlanning_forUpdate: record "Day Planning";
+                    OldDayPlanning_forUpdate: record "Opti Day Planning";
+                    NewDayPlanning_forUpdate: record "Opti Day Planning";
                 begin
                     DHXDataHandler.OnEventChanged_Project(eventId,
                                                   eventData,
@@ -205,8 +205,10 @@ page 50621 "DHX Scheduler (Project)"
                 end;
 
                 trigger OnAfterEventIdUpdated(oldid: Text; newid: Text)
+                    var
+                        EventIDUpdatedFromToMsg: Label 'Event ID updated from %1 to %2', Comment = '%1=oldid, %2=newid';
                 begin
-                    Message('Event ID updated from %1 to %2', oldid, newid);
+                    Message(EventIDUpdatedFromToMsg, oldid, newid);
                 end;
                 #endregion
 
@@ -238,7 +240,7 @@ page 50621 "DHX Scheduler (Project)"
                 #region Timeline Navigate
                 trigger OnTimelineNavigate(NavigateJson: Text)
                 var
-                    DHXDataHandler: Codeunit "DHX Data Handler";
+                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
                     ResourceJSONTxt: Text;
                     EventsJsonTxt: Text;
                     StartDate: Date;
@@ -275,13 +277,17 @@ page 50621 "DHX Scheduler (Project)"
                 end;
 
                 trigger OnGetAllEvents(EventIdsJsonTxt: Text)
+                    var
+                        AllEventsMsg: Label 'All Events: %1', Comment = '%1=EventIdsJsonTxt';
                 begin
-                    Message('All Events: %1', EventIdsJsonTxt);
+                    Message(AllEventsMsg, EventIdsJsonTxt);
                 end;
 
                 trigger OnGetAllSections(SectionIdsJsonTxt: Text)
+                    var
+                        AllSectionsMsg: Label 'All Sections: %1', Comment = '%1=SectionIdsJsonTxt';
                 begin
-                    Message('All Sections: %1', SectionIdsJsonTxt);
+                    Message(AllSectionsMsg, SectionIdsJsonTxt);
                 end;
 
                 #endregion Cek Data
@@ -318,6 +324,9 @@ page 50621 "DHX Scheduler (Project)"
                 end;
 
                 trigger OnSectionContextMenu(sectionId: Text; action: Text; payloadJson: Text)
+                    var
+                        Message1FromSchedullerMsg: Label 'message 1 from scheduller';
+                        Message2FromSchedullerMsg: Label 'message 2 from scheduller';
                 begin
                     case action of
                         'OpenTask':
@@ -331,9 +340,9 @@ page 50621 "DHX Scheduler (Project)"
                                 RefreshSchedule();
                             end;
                         'ShowMessage1':
-                            Message('message 1 from scheduller');
+                            Message(Message1FromSchedullerMsg);
                         'ShowMessage2':
-                            Message('message 2 from scheduller');
+                            Message(Message2FromSchedullerMsg);
                     end;
                 end;
 
@@ -343,7 +352,7 @@ page 50621 "DHX Scheduler (Project)"
 
                 trigger OnFilterIconClick()
                 var
-                    FilterDlg: Report "Task Scheduler Filter";
+                    FilterDlg: Report "Opti Task Scheduler Filter";
                     NewJobNo: Text;
                     NewJobTaskNo: Text;
                     NewSkill: Text;
@@ -414,6 +423,7 @@ page 50621 "DHX Scheduler (Project)"
 
             action(TodayAct)
             {
+                ToolTip = 'Executes the Today Act action.';
                 Caption = 'Today';
                 ApplicationArea = All;
                 Image = Position;
@@ -425,6 +435,7 @@ page 50621 "DHX Scheduler (Project)"
             }
             action(PreviousAct)
             {
+                ToolTip = 'Executes the Previous Act action.';
                 Caption = 'Previous';
                 ApplicationArea = All;
                 Image = PreviousSet;
@@ -436,6 +447,7 @@ page 50621 "DHX Scheduler (Project)"
             }
             action(NextAct)
             {
+                ToolTip = 'Executes the Next Act action.';
                 Caption = 'Next';
                 ApplicationArea = All;
                 Image = NextSet;
@@ -447,6 +459,7 @@ page 50621 "DHX Scheduler (Project)"
             }
             action(ExecEventsNotMatch)
             {
+                ToolTip = 'Executes the Exec Events Not Match action.';
                 Caption = 'Get Events Not Matching Sections';
                 ApplicationArea = All;
                 Image = "Event";
@@ -459,6 +472,7 @@ page 50621 "DHX Scheduler (Project)"
 
             action(ExecGetAllEvents)
             {
+                ToolTip = 'Executes the Exec Get All Events action.';
                 Caption = 'Get All Events';
                 ApplicationArea = All;
                 Image = Task;
@@ -471,6 +485,7 @@ page 50621 "DHX Scheduler (Project)"
 
             action(ExecGetAllSections)
             {
+                ToolTip = 'Executes the Exec Get All Sections action.';
                 Caption = 'Get All Sections';
                 ApplicationArea = All;
                 Image = Resource;
@@ -483,6 +498,7 @@ page 50621 "DHX Scheduler (Project)"
 
             action(DateLookup)
             {
+                ToolTip = 'Executes the Date Lookup action.';
                 Caption = 'Go to Date';
                 ApplicationArea = All;
                 Image = GoTo;
@@ -565,6 +581,7 @@ page 50621 "DHX Scheduler (Project)"
 
     trigger OnPageBackgroundTaskError(TaskId: Integer; ErrorCode: Text; ErrorText: Text; ErrorCallStack: Text; var IsHandled: Boolean)
     var
+            LoadingTheRemainingTaskSTxt: Label 'Loading the remaining Task Scheduler sections failed: %1', Comment = '%1=ErrorText';
         SectionsLoadErrorNotification: Notification;
     begin
         if TaskId <> SectionsTaskId then
@@ -573,12 +590,12 @@ page 50621 "DHX Scheduler (Project)"
         IsHandled := true;
         // A notification is allowed here (unlike a raw Message/UI render) - surface the failure
         // without blocking the Task Scheduler; the first page already rendered successfully.
-        SectionsLoadErrorNotification.Message := StrSubstNo('Loading the remaining Task Scheduler sections failed: %1', ErrorText);
+        SectionsLoadErrorNotification.Message := StrSubstNo(LoadingTheRemainingTaskSTxt, ErrorText);
         SectionsLoadErrorNotification.Send();
     end;
 
     var
-        DHXDataHandler: Codeunit "DHX Data Handler";
+        DHXDataHandler: Codeunit "Opti DHX Data Handler";
         ShowDefaultTabs: Boolean;
         AnchorDate: Date;
         ResourceFilter: Text;
@@ -605,7 +622,7 @@ page 50621 "DHX Scheduler (Project)"
     /// </summary>
     local procedure LoadSchedulerSectionsPaginated(pStartDate: Date; pEndDate: Date; var ResourceJSONTxt: Text; var PlanninJsonTxt: Text; var EarliestPlanningDate: Date)
     var
-        DHXDataHandlerLocal: Codeunit "DHX Data Handler";
+        DHXDataHandlerLocal: Codeunit "Opti DHX Data Handler";
         RemainingJobFilter: Text;
         EffResourceFilter: Text;
         EffJobFilter: Text;
@@ -650,7 +667,7 @@ page 50621 "DHX Scheduler (Project)"
         TaskParameters.Add('StartDate', Format(pStartDate, 0, '<Year4>-<Month,2>-<Day,2>'));
         TaskParameters.Add('EndDate', Format(pEndDate, 0, '<Year4>-<Month,2>-<Day,2>'));
 
-        CurrPage.EnqueueBackgroundTask(NewTaskId, Codeunit::"Task Scheduler BG Sections", TaskParameters, 30000, PageBackgroundTaskErrorLevel::Warning);
+        CurrPage.EnqueueBackgroundTask(NewTaskId, Codeunit::"Opti Task Sched. BG Sections", TaskParameters, 30000, PageBackgroundTaskErrorLevel::Warning);
         SectionsTaskId := NewTaskId;
         BGPendingStartDate := pStartDate;
         BGPendingResourceFilter := pResourceFilter;
@@ -663,7 +680,7 @@ page 50621 "DHX Scheduler (Project)"
 
     local procedure RefreshSchedule()
     var
-        DHXDataHandler: Codeunit "DHX Data Handler";
+        DHXDataHandler: Codeunit "Opti DHX Data Handler";
         startDate: Date;
         endDate: Date;
         ResourceJSONTxt: Text;

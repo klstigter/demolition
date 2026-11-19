@@ -1,4 +1,4 @@
-controladdin DHXKanbanAddin
+controladdin "OptiDHXKanbanAddin"
 {
     RequestedHeight = 800;
     MinimumHeight = 400;

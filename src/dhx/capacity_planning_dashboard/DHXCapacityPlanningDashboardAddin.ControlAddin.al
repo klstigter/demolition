@@ -1,4 +1,4 @@
-controladdin DHXCapacityPlanningDashboardAddin
+controladdin "OptiDHXCapacityPlanningDashboardAddin"
 {
     // Role Center tile variant of DHXCapacityPlanningOverviewAddin (page 50722) - Sections 1/3/4
     // only (no Section 2 - there is no single "inspected Work Order" context on a Role Center).

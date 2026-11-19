@@ -1,4 +1,4 @@
-page 50625 "Job Information FactBox"
+page 50625 "Opti Job Information FactBox"
 {
     Caption = 'Job Information';
     PageType = CardPart;

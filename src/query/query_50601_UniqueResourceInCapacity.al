@@ -1,4 +1,4 @@
-query 50601 "Unique Resource in Capacity"
+query 50601 "Opti Uniq. Res. in Capacity"
 {
     QueryType = Normal;
     Caption = 'Unique Resource in Capacity';

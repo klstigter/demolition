@@ -1,8 +1,8 @@
-page 50688 "Register Absence"
+page 50688 "Opti Register Absence"
 {
     Caption = 'Register Absence';
     PageType = Worksheet;
-    SourceTable = "Register Absence";
+    SourceTable = "Opti Register Absence";
     UsageCategory = Tasks;
     ApplicationArea = All;
     Editable = true;
@@ -68,7 +68,7 @@ page 50688 "Register Absence"
 
                 trigger OnAction()
                 var
-                    ResourceAbsenceMgt: Codeunit "Resource Absence Mgt.";
+                    ResourceAbsenceMgt: Codeunit "Opti Resource Absence Mgt.";
                 begin
                     ResourceAbsenceMgt.PostRegisterAbsence(Rec);
                 end;
@@ -87,7 +87,7 @@ page 50688 "Register Absence"
 
     trigger OnNewRecord(BelowxRec: Boolean)
     var
-        RegisterAbsence: Record "Register Absence";
+        RegisterAbsence: Record "Opti Register Absence";
     begin
         ResourceName := '';
         RegisterAbsence.Reset();

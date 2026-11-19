@@ -1,5 +1,6 @@
-enum 50628 "Vendor Status"
+enum 50628 "Opti Vendor Status"
 {
+    Caption = 'Vendor Status';
     Extensible = true;
 
     value(0; " ") { Caption = ' '; }

@@ -1,14 +1,15 @@
-table 50601 "Object Selection"
+table 50601 "Opti Object Selection"
 {
+    Caption = 'Object Selection';
     ReplicateData = false;
     TableType = Temporary;
-    LookupPageId = "Object Selection";
-    DrillDownPageId = "Object Selection";
+    LookupPageId = "Opti Object Selection";
+    DrillDownPageId = "Opti Object Selection";
 
     fields
     {
-        field(1; "Object ID"; Integer) { }
-        field(2; "Object Name"; Text[250]) { }
+        field(1; "Object ID"; Integer) { DataClassification = SystemMetadata; }
+        field(2; "Object Name"; Text[250]) { DataClassification = SystemMetadata; }
     }
 
     keys

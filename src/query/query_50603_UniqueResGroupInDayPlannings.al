@@ -1,11 +1,11 @@
-query 50603 "Unique ResGrp in DayPlannings"
+query 50603 "Opti Uniq. ResGrp in DayPlans"
 {
     QueryType = Normal;
     Caption = 'Unique Resource Groups in Day Plannings';
 
     elements
     {
-        dataitem(Day_Tasks; "Day Planning")
+        dataitem(Day_Tasks; "Opti Day Planning")
         {
             filter(TaskDateFilter; "Plan Date")
             {

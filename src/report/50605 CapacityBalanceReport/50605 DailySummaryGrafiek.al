@@ -1,5 +1,6 @@
-report 50605 "Daily Capacity Balance Report"
+report 50605 "Opti Daily Cap. Balance Report"
 {
+    Caption = 'Daily Capacity Balance Report';
     UsageCategory = ReportsAndAnalysis;
     ApplicationArea = All;
     DefaultRenderingLayout = DailyCapacityBalanceReport;
@@ -16,7 +17,7 @@ report 50605 "Daily Capacity Balance Report"
             column(TaskDate; dates."Period Start") { }
 
 
-            dataitem(DayPlanning; "Day Planning")
+            dataitem(DayPlanning; "Opti Day Planning")
             {
                 dataitemlink = "Plan Date" = field("Period Start");
                 dataitemlinkreference = Dates;
@@ -73,12 +74,12 @@ report 50605 "Daily Capacity Balance Report"
                                 end;
                         end;
                         case true of
-                            Resource."is Pool" and resource."Mandatory Schedulling":
+                            Resource."Opti Is Pool" and resource."Opti Mandatory Schedulling":
                                 begin
                                     SortResourceGroup := 'FixedPool';
                                     SortResourceGroupSqnc := 2;
                                 end;
-                            Resource."is Pool":
+                            Resource."Opti Is Pool":
                                 begin
                                     SortResourceGroup := 'Pool';
                                     SortResourceGroupSqnc := 3;

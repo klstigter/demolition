@@ -3,7 +3,7 @@
 /// "Day Planning Sequence Part", additionally showing the read-only Project No./Project Task No.
 /// context above the DHTMLX sequence timeline. Same add-in, triggers and SetContext contract.
 /// </summary>
-page 50712 "Day Planning Sequence"
+page 50712 "Opti Day Planning Sequence"
 {
     PageType = Card;
     UsageCategory = None;
@@ -32,7 +32,7 @@ page 50712 "Day Planning Sequence"
             //         ToolTip = 'Specifies the project task the sequences belong to.';
             //     }
             // }
-            usercontrol(DhxSequence; DHXDayPlanningSequenceAddin)
+            usercontrol(DhxSequence; "OptiDHXDayPlanningSequenceAddin")
             {
                 ApplicationArea = All;
 
@@ -81,7 +81,7 @@ page 50712 "Day Planning Sequence"
                 /// </summary>
                 trigger OnFilterIconClick()
                 var
-                    FilterDlg: Report "Day Planning Sequence Filter";
+                    FilterDlg: Report "Opti Day Plan. Sequence Filter";
                     NewJobFilter: Text;
                     NewJobTaskFilter: Text;
                     NewSkillFilter: Text;
@@ -137,7 +137,7 @@ page 50712 "Day Planning Sequence"
                     NewSequenceNo: Integer;
                     NewSequenceResourceNo: Code[20];
                     InView: Boolean;
-                    NotInViewQst: Label 'The Day Planning will be created, but it will not be shown in the current view because it does not match the displayed filter.\%1\Continue?';
+                    NotInViewQst: Label 'The Day Planning will be created, but it will not be shown in the current view because it does not match the displayed filter.\%1\Continue?', Comment = '%1 = value';
                 begin
                     PayloadJObj.ReadFrom(payloadJson);
                     if PayloadJObj.Get('skill', JToken) then
@@ -345,7 +345,7 @@ page 50712 "Day Planning Sequence"
 
                 trigger OnOpenProjectTask(jobNo: Text; jobTaskNo: Text)
                 var
-                    GanttBCPageHandler: Codeunit "Gantt BC Page Handler";
+                    GanttBCPageHandler: Codeunit "Opti Gantt BC Page Handler";
                 begin
                     GanttBCPageHandler.OpenJobTaskCard(CopyStr(jobNo, 1, 20), CopyStr(jobTaskNo, 1, 20));
                 end;
@@ -354,8 +354,8 @@ page 50712 "Day Planning Sequence"
     }
 
     var
-        DayPlanningSequenceMgt: Codeunit "Day Planning Sequence Mgt.";
-        VisualDefaultSettings: Codeunit "Visual Default Settings";
+        DayPlanningSequenceMgt: Codeunit "Opti Day Plan. Sequence Mgt.";
+        VisualDefaultSettings: Codeunit "Opti Visual Default Settings";
         JobNo: Code[20];
         JobTaskNo: Code[20];
         WorkOrderNo: Code[20];
@@ -431,7 +431,7 @@ page 50712 "Day Planning Sequence"
     /// <summary>True when a sequence of this Job/Task/Skill would appear in the current view (no "only these rows" restriction, and it fits the Job/Task/Skill filters).</summary>
     local procedure MatchesDisplayedFilter(NewJobNo: Code[20]; NewJobTaskNo: Code[20]; NewSkillCode: Code[10]; NewStartDate: Date; NewEndDate: Date; NewResourceNo: Code[20]): Boolean
     var
-        TempDayPlanning: Record "Day Planning" temporary;
+        TempDayPlanning: Record "Opti Day Planning" temporary;
     begin
         if DayPlanningSequenceMgt.HasOnlySections() then
             if ResourceContextNo <> '' then begin
@@ -466,13 +466,13 @@ page 50712 "Day Planning Sequence"
     /// </summary>
     local procedure PushNewSequenceDefaults()
     var
-        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
         JobTask: Record "Job Task";
         TemplateCode: Code[20];
     begin
         if DailyOptimizerSetup.Get() then;
         if JobTask.Get(JobNo, JobTaskNo) then
-            TemplateCode := JobTask."Work Hour Template";
+            TemplateCode := JobTask."Opti Work Hour Template";
         if TemplateCode = '' then
             TemplateCode := DailyOptimizerSetup."Work hour Template";
         CurrPage.DhxSequence.SetNewSequenceDefaults(DailyOptimizerSetup."Default Skill", TemplateCode);
@@ -649,7 +649,7 @@ page 50712 "Day Planning Sequence"
     /// </summary>
     local procedure PushHolidaysData(AnchorDate: Date; EndDate: Date)
     var
-        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
+        GanttChartDataHandler: Codeunit "Opti GanttChartDataHandler";
         HolidaysJsonTxt: Text;
     begin
         if AnchorDate = 0D then

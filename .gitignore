@@ -1,6 +1,6 @@
 .vscode/rad.json
 .vscode/.alcache/
-.vscode/settings.json
+# .vscode/settings.json is tracked (analyzer configuration)
 .alpackages/
 *.app
 #*.xlf

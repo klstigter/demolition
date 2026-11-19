@@ -1,4 +1,4 @@
-page 50732 "ProjectManagerApi Opt"
+page 50732 "Opti ProjectManagerApi Opt"
 {
     // Read-only list of valid Project Manager values (Job."Project Manager" = User Setup."User ID").
     PageType = API;

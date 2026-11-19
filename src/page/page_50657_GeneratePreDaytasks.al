@@ -22,11 +22,11 @@
 ///       end;
 ///   end;
 /// </summary>
-page 50657 "Generate Pre DayPlannings"
+page 50657 "Opti Generate Pre DayPlannings"
 {
     PageType = StandardDialog;
     Caption = 'Generate Pre DayPlannings';
-    SourceTable = "Pre DayPlanning Request Buf.";
+    SourceTable = "Opti Pre DayPlan. Request Buf.";
     SourceTableTemporary = true;
     InsertAllowed = false;
     DeleteAllowed = false;
@@ -198,7 +198,7 @@ page 50657 "Generate Pre DayPlannings"
     /// Must be called AFTER RunModal() = Action::OK.
     /// Returns the completed request buffer to the caller for processing.
     /// </summary>
-    procedure GetRequestBuffer(var RequestBuf: Record "Pre DayPlanning Request Buf.")
+    procedure GetRequestBuffer(var RequestBuf: Record "Opti Pre DayPlan. Request Buf.")
     begin
         RequestBuf := Rec;
     end;
@@ -209,7 +209,7 @@ page 50657 "Generate Pre DayPlannings"
 
     trigger OnOpenPage()
     var
-        Setup: Record "Daily Optimizer Setup";
+        Setup: Record "Opti Daily Optimizer Setup";
     begin
         // Initialise the single temp buffer record
         Rec.Init();

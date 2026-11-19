@@ -1,4 +1,4 @@
-pageextension 50608 "Job Planning Lines Opt." extends "Job Planning Lines"
+pageextension 50608 "Opti Job Planning Lines" extends "Job Planning Lines"
 {
     // Manual trigger to force BC to re-run its Price Calculation module lookup on
     // existing Job Planning Lines. Job Planning Lines can be auto-created by codeunit
@@ -102,7 +102,7 @@ pageextension 50608 "Job Planning Lines Opt." extends "Job Planning Lines"
     {
         addafter("Item Availability by")
         {
-            action("Calculate Sales Price")
+            action("Opti Calculate Sales Price")
             {
                 ApplicationArea = Jobs;
                 Caption = 'Calculate Sales Price';
@@ -114,7 +114,7 @@ pageextension 50608 "Job Planning Lines Opt." extends "Job Planning Lines"
                     JobPlanningLineSelection: Record "Job Planning Line";
                     ProcessedCount: Integer;
                     SkippedCount: Integer;
-                    ResultMsg: Label '%1 Project Planning Line(s) recalculated. %2 line(s) skipped because they are not Type = Resource.';
+                    ResultMsg: Label '%1 Project Planning Line(s) recalculated. %2 line(s) skipped because they are not Type = Resource.', Comment = '%1 = value, %2 = value';
                 begin
                     JobPlanningLineSelection.Copy(Rec);
                     CurrPage.SetSelectionFilter(JobPlanningLineSelection);
@@ -131,7 +131,7 @@ pageextension 50608 "Job Planning Lines Opt." extends "Job Planning Lines"
                     Message(ResultMsg, ProcessedCount, SkippedCount);
                 end;
             }
-            action("Unlink and Delete")
+            action("Opti Unlink and Delete")
             {
                 ApplicationArea = Jobs;
                 Caption = 'Unlink and Delete';
@@ -144,8 +144,8 @@ pageextension 50608 "Job Planning Lines Opt." extends "Job Planning Lines"
                     JobUsageLink: Record "Job Usage Link";
                     SelectedCount: Integer;
                     DeletedCount: Integer;
-                    ConfirmQst: Label 'This will remove the Job Usage Link traceability records for %1 selected Project Planning Line(s) and then permanently delete them. This action cannot be undone.\\Do you want to continue?';
-                    ResultMsg: Label '%1 Project Planning Line(s) unlinked and deleted.';
+                    ConfirmQst: Label 'This will remove the Job Usage Link traceability records for %1 selected Project Planning Line(s) and then permanently delete them. This action cannot be undone.\\Do you want to continue?', Comment = '%1 = value';
+                    ResultMsg: Label '%1 Project Planning Line(s) unlinked and deleted.', Comment = '%1 = value';
                 begin
                     JobPlanningLineSelection.Copy(Rec);
                     CurrPage.SetSelectionFilter(JobPlanningLineSelection);
@@ -174,10 +174,10 @@ pageextension 50608 "Job Planning Lines Opt." extends "Job Planning Lines"
         }
         addafter("Category_Item Availability by")
         {
-            actionref("Calculate Sales Price_Promoted"; "Calculate Sales Price")
+            actionref("Opti Calculate Sales Price_Promoted"; "Opti Calculate Sales Price")
             {
             }
-            actionref("Unlink and Delete_Promoted"; "Unlink and Delete")
+            actionref("Opti Unlink and Delete_Promoted"; "Opti Unlink and Delete")
             {
             }
         }

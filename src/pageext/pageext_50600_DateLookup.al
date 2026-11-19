@@ -1,12 +1,13 @@
-pageextension 50600 "DateLookupOptimizer" extends "Date Lookup"
+pageextension 50600 "Opti DateLookupOptimizer" extends "Date Lookup"
 {
     layout
     {
         // Add changes to page layout here
         addafter("Period Name")
         {
-            field("Period Start"; Rec."Period Start")
+            field("Opti Period Start"; Rec."Period Start")
             {
+                ToolTip = 'Specifies the value of the Period Start field.';
                 ApplicationArea = All;
                 Caption = 'Date';
                 Editable = false;

@@ -1,5 +1,6 @@
-enum 50617 "Job Task Constraint Type"
+enum 50617 "Opti Job Task Constraint Type"
 {
+    Caption = 'Job Task Constraint Type';
     Extensible = true;
 
     value(0; ASAP)

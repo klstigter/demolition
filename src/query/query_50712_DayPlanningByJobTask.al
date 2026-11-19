@@ -1,4 +1,4 @@
-query 50712 "Day Planning By Job Task"
+query 50712 "Opti Day Planning By Job Task"
 {
     // Single-pass replacement for the per-Job-Task Record.FindSet() loop that used to live in
     // codeunit 50613's GetDayPlanningsByJobTaskAsJson/GetResourcesByJobTaskAsJson (N+1 round
@@ -12,7 +12,7 @@ query 50712 "Day Planning By Job Task"
 
     elements
     {
-        dataitem(Day_Planning; "Day Planning")
+        dataitem(Day_Planning; "Opti Day Planning")
         {
             filter(JobNoFilter; "Job No.") { }
             filter(JobTaskNoFilter; "Job Task No.") { }
@@ -40,7 +40,7 @@ query 50712 "Day Planning By Job Task"
             column(VendorStatus; "Vendor Status") { }
             column(ApprovedProjectManager; "Approved Project Manager") { }
             column(WorkOrderNo; "Order Intake No.") { }
-            column(Skill; Skill) { }
+            column("Skill"; "Skill") { }
             column(SequenceNo; "Sequence No.") { }
         }
     }

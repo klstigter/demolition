@@ -1,4 +1,4 @@
-query 50713 "Day Planning Skill Day Hours"
+query 50713 "Opti Day Plan. Skill Day Hours"
 {
     // Capacity Planning Dashboard (page 50724) Section 4 perf fix (2026-09-11) - SQL-side
     // replacement for the old per-line company-wide "Day Planning" scan (codeunit 50604's
@@ -19,12 +19,12 @@ query 50713 "Day Planning Skill Day Hours"
 
     elements
     {
-        dataitem(Day_Planning; "Day Planning")
+        dataitem(Day_Planning; "Opti Day Planning")
         {
             filter(PlanDateFilter; "Plan Date") { }
-            filter(SkillFilter; Skill) { }
+            filter(SkillFilter; "Skill") { }
 
-            column(Skill; Skill) { }
+            column("Skill"; "Skill") { }
             column(PlanDate; "Plan Date") { }
             column(RequestedHours; "Requested Hours")
             {

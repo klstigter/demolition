@@ -1,4 +1,4 @@
-controladdin DHXRichTextAddin
+controladdin "OptiDHXRichTextAddin"
 {
     RequestedHeight = 350;
     MinimumHeight = 200;

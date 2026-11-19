@@ -1,4 +1,4 @@
-page 50695 "Capacity Overview"
+page 50695 "Opti Capacity Overview"
 {
     PageType = Card;
     ApplicationArea = All;
@@ -28,7 +28,7 @@ page 50695 "Capacity Overview"
                     ToolTip = 'Specifies the currently displayed period - a week (with its Monday-Sunday range) in Weekly view, or a single date in Daily view.';
                 }
             }
-            part(MatrixPart; "Capacity Overview Matrix")
+            part(MatrixPart; "Opti Capacity Overview Matrix")
             {
                 ApplicationArea = All;
                 Caption = 'Capacity Overview';
@@ -178,7 +178,7 @@ page 50695 "Capacity Overview"
     local procedure RefreshPeriod()
     var
         PeriodEndDate: Date;
-        VisualDefaultSettings: Codeunit "Visual Default Settings";
+        VisualDefaultSettings: Codeunit "Opti Visual Default Settings";
     begin
         if WeeklyFlag then
             PeriodEndDate := PeriodStartDate + 6
@@ -200,7 +200,7 @@ page 50695 "Capacity Overview"
     end;
 
     var
-        CapacityOverviewMgt: Codeunit "Capacity Overview Mgt.";
+        CapacityOverviewMgt: Codeunit "Opti Capacity Overview Mgt.";
         SkillCodeList: List of [Code[20]];
         WeeklyFlag: Boolean;
         PeriodStartDate: Date;

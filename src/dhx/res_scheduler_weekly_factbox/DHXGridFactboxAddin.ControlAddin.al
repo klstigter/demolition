@@ -1,4 +1,4 @@
-controladdin DHXGridFactboxAddin
+controladdin "OptiDHXGridFactboxAddin"
 {
     RequestedHeight = 460;
     MinimumHeight = 300;

@@ -1,9 +1,10 @@
-page 50654 "Daily Optimizer Setup"
+page 50654 "Opti Daily Optimizer Setup"
 {
+    Caption = 'Daily Optimizer Setup';
     PageType = Card;
     ApplicationArea = All;
     UsageCategory = Administration;
-    SourceTable = "Daily Optimizer Setup";
+    SourceTable = "Opti Daily Optimizer Setup";
     DeleteAllowed = false;
     InsertAllowed = false;
 
@@ -17,14 +18,17 @@ page 50654 "Daily Optimizer Setup"
 
                 field("Base Calendar"; Rec."Base Calendar")
                 {
+                    ToolTip = 'Specifies the value of the Base Calendar field.';
                     ApplicationArea = All;
                 }
                 field("Work hour Template"; Rec."Work hour Template")
                 {
+                    ToolTip = 'Specifies the value of the Work hour Template field.';
                     ApplicationArea = All;
                 }
                 field("Default Skill"; Rec."Default Skill")
                 {
+                    ToolTip = 'Specifies the value of the Default Skill field.';
                     ApplicationArea = All;
                 }
             }
@@ -36,6 +40,7 @@ page 50654 "Daily Optimizer Setup"
 
                     field("Resource Scheduler - List Type"; Rec."Resource Scheduler - List Type")
                     {
+                        ToolTip = 'Specifies the value of the Resource Scheduler - List Type field.';
                         ApplicationArea = All;
                         caption = 'List Type';
                     }
@@ -44,7 +49,7 @@ page 50654 "Daily Optimizer Setup"
                 {
                     Caption = 'Requested/Capacity';
 
-                    usercontrol(CfBarFontColor; DHXColorFieldAddin)
+                    usercontrol(CfBarFontColor; "OptiDHXColorFieldAddin")
                     {
                         ApplicationArea = All;
 
@@ -74,7 +79,7 @@ page 50654 "Daily Optimizer Setup"
                 {
                     Caption = 'Weekend / Day Off';
 
-                    usercontrol(CfWeekendColor; DHXColorFieldAddin)
+                    usercontrol(CfWeekendColor; "OptiDHXColorFieldAddin")
                     {
                         ApplicationArea = All;
 
@@ -98,7 +103,7 @@ page 50654 "Daily Optimizer Setup"
                             ClearColor(Rec."Weekend Color");
                         end;
                     }
-                    usercontrol(CfHolidayColor; DHXColorFieldAddin)
+                    usercontrol(CfHolidayColor; "OptiDHXColorFieldAddin")
                     {
                         ApplicationArea = All;
 
@@ -128,7 +133,7 @@ page 50654 "Daily Optimizer Setup"
                 {
                     Caption = 'Gantt Task Bar';
 
-                    usercontrol(CfGTBColornonposting; DHXColorFieldAddin)
+                    usercontrol(CfGTBColornonposting; "OptiDHXColorFieldAddin")
                     {
                         ApplicationArea = All;
 
@@ -152,7 +157,7 @@ page 50654 "Daily Optimizer Setup"
                             ClearColor(Rec."GTB Color (non posting)");
                         end;
                     }
-                    usercontrol(CfGTBColor; DHXColorFieldAddin)
+                    usercontrol(CfGTBColor; "OptiDHXColorFieldAddin")
                     {
                         ApplicationArea = All;
 
@@ -176,7 +181,7 @@ page 50654 "Daily Optimizer Setup"
                             ClearColor(Rec."GTB Color");
                         end;
                     }
-                    usercontrol(CfGTBBorderColor; DHXColorFieldAddin)
+                    usercontrol(CfGTBBorderColor; "OptiDHXColorFieldAddin")
                     {
                         ApplicationArea = All;
 
@@ -200,7 +205,7 @@ page 50654 "Daily Optimizer Setup"
                             ClearColor(Rec."GTB Border Color");
                         end;
                     }
-                    usercontrol(CfGTBProgressColor; DHXColorFieldAddin)
+                    usercontrol(CfGTBProgressColor; "OptiDHXColorFieldAddin")
                     {
                         ApplicationArea = All;
 
@@ -224,7 +229,7 @@ page 50654 "Daily Optimizer Setup"
                             ClearColor(Rec."GTB Progress Color");
                         end;
                     }
-                    usercontrol(CfGTBFontColor; DHXColorFieldAddin)
+                    usercontrol(CfGTBFontColor; "OptiDHXColorFieldAddin")
                     {
                         ApplicationArea = All;
 
@@ -265,7 +270,7 @@ page 50654 "Daily Optimizer Setup"
                 {
                     Caption = 'Hover / Tooltip Popup';
 
-                    usercontrol(CfTooltipBackgroundColor; DHXColorFieldAddin)
+                    usercontrol(CfTooltipBackgroundColor; "OptiDHXColorFieldAddin")
                     {
                         ApplicationArea = All;
 
@@ -289,7 +294,7 @@ page 50654 "Daily Optimizer Setup"
                             ClearColor(Rec."Tooltip Background Color");
                         end;
                     }
-                    usercontrol(CfTooltipFontColor; DHXColorFieldAddin)
+                    usercontrol(CfTooltipFontColor; "OptiDHXColorFieldAddin")
                     {
                         ApplicationArea = All;
 
@@ -323,7 +328,7 @@ page 50654 "Daily Optimizer Setup"
                     {
                         Caption = 'Capacity';
 
-                        usercontrol(CfFreeCapacityColor; DHXColorFieldAddin)
+                        usercontrol(CfFreeCapacityColor; "OptiDHXColorFieldAddin")
                         {
                             ApplicationArea = All;
 
@@ -347,7 +352,7 @@ page 50654 "Daily Optimizer Setup"
                                 ClearColor(Rec."Free Capacity Color");
                             end;
                         }
-                        usercontrol(CfFreeCapacityMandatoryColor; DHXColorFieldAddin)
+                        usercontrol(CfFreeCapacityMandatoryColor; "OptiDHXColorFieldAddin")
                         {
                             ApplicationArea = All;
 
@@ -371,7 +376,7 @@ page 50654 "Daily Optimizer Setup"
                                 ClearColor(Rec."Free Capacity-Mandatory Color");
                             end;
                         }
-                        usercontrol(CfCapacityBorderColor; DHXColorFieldAddin)
+                        usercontrol(CfCapacityBorderColor; "OptiDHXColorFieldAddin")
                         {
                             ApplicationArea = All;
 
@@ -395,7 +400,7 @@ page 50654 "Daily Optimizer Setup"
                                 ClearColor(Rec."Capacity Border Color");
                             end;
                         }
-                        usercontrol(CfExternalBorderColor; DHXColorFieldAddin)
+                        usercontrol(CfExternalBorderColor; "OptiDHXColorFieldAddin")
                         {
                             ApplicationArea = All;
 
@@ -419,7 +424,7 @@ page 50654 "Daily Optimizer Setup"
                                 ClearColor(Rec."External Border Color");
                             end;
                         }
-                        usercontrol(CfCapacityFontColor; DHXColorFieldAddin)
+                        usercontrol(CfCapacityFontColor; "OptiDHXColorFieldAddin")
                         {
                             ApplicationArea = All;
 
@@ -449,7 +454,7 @@ page 50654 "Daily Optimizer Setup"
                     {
                         Caption = 'Envelope';
 
-                        usercontrol(CfEnvelopeColor; DHXColorFieldAddin)
+                        usercontrol(CfEnvelopeColor; "OptiDHXColorFieldAddin")
                         {
                             ApplicationArea = All;
 
@@ -473,7 +478,7 @@ page 50654 "Daily Optimizer Setup"
                                 ClearColor(Rec."Envelope Color");
                             end;
                         }
-                        usercontrol(CfEnvelopeBorderColor; DHXColorFieldAddin)
+                        usercontrol(CfEnvelopeBorderColor; "OptiDHXColorFieldAddin")
                         {
                             ApplicationArea = All;
 
@@ -506,7 +511,7 @@ page 50654 "Daily Optimizer Setup"
                         {
                             Caption = 'Assigned';
 
-                            usercontrol(CfAssignedColor; DHXColorFieldAddin)
+                            usercontrol(CfAssignedColor; "OptiDHXColorFieldAddin")
                             {
                                 ApplicationArea = All;
 
@@ -554,10 +559,12 @@ page 50654 "Daily Optimizer Setup"
                 Caption = 'Numbering';
                 field("Order Intake Nos"; Rec."Order Intake Nos")
                 {
+                    ToolTip = 'Specifies the value of the Order Intake Nos field.';
                     ApplicationArea = All;
                 }
                 field("Work Order Nos"; Rec."Work Order Nos")
                 {
+                    ToolTip = 'Specifies the value of the Work Order Nos field.';
                     ApplicationArea = All;
                 }
             }
@@ -581,7 +588,7 @@ page 50654 "Daily Optimizer Setup"
 
                     trigger OnAction()
                     var
-                        VisualDefaultSettings: Codeunit "Visual Default Settings";
+                        VisualDefaultSettings: Codeunit "Opti Visual Default Settings";
                         ConfirmLbl: Label 'This will reset the Daily Optimizer Setup list type and colors back to their built-in defaults, overwriting any customizations.\\Continue?';
                     begin
                         if not Confirm(ConfirmLbl, false) then
@@ -613,34 +620,6 @@ page 50654 "Daily Optimizer Setup"
                     end;
                 }
             }
-            group(Tests)
-            {
-                Caption = 'Tests';
-
-                action(OpenNodeSet)
-                {
-                    ApplicationArea = All;
-                    Caption = 'Open Node Set';
-                    Image = Documents;
-
-                    trigger OnAction()
-                    begin
-                        PAGE.Run(Page::"Date Span Document");
-                    end;
-                }
-                action(DateEngineTests)
-                {
-                    ApplicationArea = All;
-                    Caption = 'Date Engine Tests';
-                    Image = TestFile;
-
-                    trigger OnAction()
-                    begin
-                        PAGE.Run(Page::"Date Span Test Runner");
-                    end;
-                }
-            }
-
             group(DemoData)
             {
                 Caption = 'Demo Data';
@@ -654,7 +633,7 @@ page 50654 "Daily Optimizer Setup"
 
                     trigger OnAction()
                     begin
-                        CODEUNIT.Run(Codeunit::"Delete Incorrect Day Planning");
+                        CODEUNIT.Run(Codeunit::"Opti Del. Incorrect Day Plan.");
                     end;
                 }
                 action(DemoScenarios)
@@ -663,7 +642,7 @@ page 50654 "Daily Optimizer Setup"
                     Caption = 'Demo Scenarios';
                     ToolTip = 'Open the list of demo data scenarios.';
                     Image = List;
-                    RunObject = page "Demo Data Scenarios";
+                    RunObject = page "Opti Demo Data Scenarios";
                 }
             }
         }
@@ -680,12 +659,6 @@ page 50654 "Daily Optimizer Setup"
                 Caption = 'Demo Data';
                 actionref(DeleteIncorrectDayPlanning_ref; DeleteIncorrectDayPlanning) { }
                 actionref(DemoScenarios_ref; DemoScenarios) { }
-            }
-            group(Category_Tests)
-            {
-                Caption = 'Tests';
-                actionref(OpenNodeSet_ref; OpenNodeSet) { }
-                actionref(DateEngineTests_ref; DateEngineTests) { }
             }
         }
     }
@@ -741,7 +714,7 @@ page 50654 "Daily Optimizer Setup"
 
     local procedure PickColor(var ColorValue: Text[20])
     var
-        ColorPickerPage: Page "Color Picker Lookup";
+        ColorPickerPage: Page "Opti Color Picker Lookup";
     begin
         ColorPickerPage.SetInitialColor(ColorValue);
         if ColorPickerPage.RunModal() = Action::OK then begin
@@ -767,5 +740,5 @@ page 50654 "Daily Optimizer Setup"
 
     var
         ColorFieldsReadyCount: Integer;
-        VisualDefaultSettings: Codeunit "Visual Default Settings";
+        VisualDefaultSettings: Codeunit "Opti Visual Default Settings";
 }
