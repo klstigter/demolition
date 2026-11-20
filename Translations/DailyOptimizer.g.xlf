@@ -6298,6 +6298,71 @@
           <note from="Developer" annotates="general" priority="2"></note>
           <note from="Xliff Generator" annotates="general" priority="3">Page Opti Job Card - Control JobTaskLines - Property Caption</note>
         </trans-unit>
+        <trans-unit id="Page 2767738595 - Action 2856564931 - Property 1295455071" size-unit="char" translate="yes" xml:space="preserve">
+          <source>Open the capacity scheduler for the resources assigned to this project.</source>
+          <note from="Developer" annotates="general" priority="2"></note>
+          <note from="Xliff Generator" annotates="general" priority="3">Page Opti Job Card - Action Capacity (Visual) - Property ToolTip</note>
+        </trans-unit>
+        <trans-unit id="Page 2767738595 - Action 2856564931 - Property 2879900210" size-unit="char" translate="yes" xml:space="preserve">
+          <source>Capacity (Visual)</source>
+          <note from="Developer" annotates="general" priority="2"></note>
+          <note from="Xliff Generator" annotates="general" priority="3">Page Opti Job Card - Action Capacity (Visual) - Property Caption</note>
+        </trans-unit>
+        <trans-unit id="Page 2767738595 - Action 1704380839 - Property 1295455071" size-unit="char" translate="yes" xml:space="preserve">
+          <source>Open the Gantt chart for this project.</source>
+          <note from="Developer" annotates="general" priority="2"></note>
+          <note from="Xliff Generator" annotates="general" priority="3">Page Opti Job Card - Action Gantt (Visual) - Property ToolTip</note>
+        </trans-unit>
+        <trans-unit id="Page 2767738595 - Action 1704380839 - Property 2879900210" size-unit="char" translate="yes" xml:space="preserve">
+          <source>Gantt (Visual)</source>
+          <note from="Developer" annotates="general" priority="2"></note>
+          <note from="Xliff Generator" annotates="general" priority="3">Page Opti Job Card - Action Gantt (Visual) - Property Caption</note>
+        </trans-unit>
+        <trans-unit id="Page 2767738595 - Action 4270774817 - Property 1295455071" size-unit="char" translate="yes" xml:space="preserve">
+          <source>Open the request and assignment board for this project.</source>
+          <note from="Developer" annotates="general" priority="2"></note>
+          <note from="Xliff Generator" annotates="general" priority="3">Page Opti Job Card - Action Request Assignment (Visual) - Property ToolTip</note>
+        </trans-unit>
+        <trans-unit id="Page 2767738595 - Action 4270774817 - Property 2879900210" size-unit="char" translate="yes" xml:space="preserve">
+          <source>Request and Assignment Board (Visual)</source>
+          <note from="Developer" annotates="general" priority="2"></note>
+          <note from="Xliff Generator" annotates="general" priority="3">Page Opti Job Card - Action Request Assignment (Visual) - Property Caption</note>
+        </trans-unit>
+        <trans-unit id="Page 2767738595 - Action 327453355 - Property 1295455071" size-unit="char" translate="yes" xml:space="preserve">
+          <source>Open the resource calendar for the resources assigned to this project.</source>
+          <note from="Developer" annotates="general" priority="2"></note>
+          <note from="Xliff Generator" annotates="general" priority="3">Page Opti Job Card - Action Resource Calender (Visual) - Property ToolTip</note>
+        </trans-unit>
+        <trans-unit id="Page 2767738595 - Action 327453355 - Property 2879900210" size-unit="char" translate="yes" xml:space="preserve">
+          <source>Resource Calender (Visual)</source>
+          <note from="Developer" annotates="general" priority="2"></note>
+          <note from="Xliff Generator" annotates="general" priority="3">Page Opti Job Card - Action Resource Calender (Visual) - Property Caption</note>
+        </trans-unit>
+        <trans-unit id="Page 2767738595 - Action 2400304724 - Property 1295455071" size-unit="char" translate="yes" xml:space="preserve">
+          <source>Open the resource scheduler for the resources assigned to this project.</source>
+          <note from="Developer" annotates="general" priority="2"></note>
+          <note from="Xliff Generator" annotates="general" priority="3">Page Opti Job Card - Action Resource Scheduler (Visual) - Property ToolTip</note>
+        </trans-unit>
+        <trans-unit id="Page 2767738595 - Action 2400304724 - Property 2879900210" size-unit="char" translate="yes" xml:space="preserve">
+          <source>Resource Scheduler (Visual)</source>
+          <note from="Developer" annotates="general" priority="2"></note>
+          <note from="Xliff Generator" annotates="general" priority="3">Page Opti Job Card - Action Resource Scheduler (Visual) - Property Caption</note>
+        </trans-unit>
+        <trans-unit id="Page 2767738595 - Action 4047908097 - Property 1295455071" size-unit="char" translate="yes" xml:space="preserve">
+          <source>Open the task scheduler for this project.</source>
+          <note from="Developer" annotates="general" priority="2"></note>
+          <note from="Xliff Generator" annotates="general" priority="3">Page Opti Job Card - Action Task Scheduler (Visual) - Property ToolTip</note>
+        </trans-unit>
+        <trans-unit id="Page 2767738595 - Action 4047908097 - Property 2879900210" size-unit="char" translate="yes" xml:space="preserve">
+          <source>Task Scheduler (Visual)</source>
+          <note from="Developer" annotates="general" priority="2"></note>
+          <note from="Xliff Generator" annotates="general" priority="3">Page Opti Job Card - Action Task Scheduler (Visual) - Property Caption</note>
+        </trans-unit>
+        <trans-unit id="Page 2767738595 - Action 1838146123 - Property 2879900210" size-unit="char" translate="yes" xml:space="preserve">
+          <source>Planning</source>
+          <note from="Developer" annotates="general" priority="2"></note>
+          <note from="Xliff Generator" annotates="general" priority="3">Page Opti Job Card - Action Visuals_Ref - Property Caption</note>
+        </trans-unit>
         <trans-unit id="Page 3633343706 - Property 2879900210" size-unit="char" translate="yes" xml:space="preserve">
           <source>Project Card</source>
           <note from="Developer" annotates="general" priority="2"></note>

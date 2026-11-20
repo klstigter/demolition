@@ -44,7 +44,8 @@ page 50621 "Opti DHX Scheduler (Project)"
                     //DHXDataHandler.GetOneYearPeriodDates(Today(), startDate, endDate);
                     if AnchorDate = 0D then
                         AnchorDate := Today(); // SetAnchorDate may preset it (e.g. from page 50724's "Show Task Scheduler")
-                    DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
+                    startDate := AnchorDate; // timeline shows AnchorDate + 6 days, not Mon-Sun
+                    endDate := CalcDate('<+6D>', AnchorDate);
                     if GuiAllowed() then
                         Window.Update(1, 'Day Plannings...');
                     // Loads only the first ~50-row page of sections/events synchronously (see
@@ -692,7 +693,8 @@ page 50621 "Opti DHX Scheduler (Project)"
         if GuiAllowed() then
             Window.Open(LoadingLbl);
 
-        DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
+        startDate := AnchorDate; // timeline shows AnchorDate + 6 days, not Mon-Sun
+        endDate := CalcDate('<+6D>', AnchorDate);
         if GuiAllowed() then
             Window.Update(1, 'Day Plannings...');
         // Same paginated fetch + background enqueue as ControlReady/OnTimelineNavigate - see
