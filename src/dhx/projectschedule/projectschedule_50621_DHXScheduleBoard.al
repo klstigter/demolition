@@ -61,7 +61,7 @@ page 50621 "Opti DHX Scheduler (Project)"
                         CurrPage.DhxScheduler.SetTimelineHourRange(DayPlanningBarSetup."Timeline Start Hour", DayPlanningBarSetup."Timeline End Hour");
                     if GuiAllowed() then
                         Window.Update(1, 'Rendering...');
-                    CurrPage.DhxScheduler.Init(ResourceJSONTxt, EarliestPlanningDate);
+                    CurrPage.DhxScheduler.Init(ResourceJSONTxt, startDate); // grid starts on the same date as the data window (not the Monday EarliestPlanningDate derives)
                     // Envelope/Assigned/Height colors now come from the company-wide "Daily
                     // Optimizer Setup" singleton (table 50605), not the per-user "Task Scheduler
                     // Setup" - the old "Requested Color" flat field is gone entirely; requested
