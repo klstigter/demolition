@@ -1,4 +1,4 @@
-codeunit 50660 "Opti DayPlanning Journal Post"
+codeunit 50660 "DayPlanning Journal Post"
 {
     // Transfers DayPlanning Journal Lines into Job Journal Lines and posts them
     // using the standard BC Job Journal posting engine.
@@ -6,12 +6,12 @@ codeunit 50660 "Opti DayPlanning Journal Post"
     // after Job Ledger Entries are created with matching Opt.DayPlanningDate / Opt.DayPlanningLineNo.
 
     Permissions =
-        tabledata "Opti DayPlanning Journal Line" = RD,
+        tabledata "DayPlanning Journal Line" = RD,
         tabledata "Job Journal Line" = RID;
 
     procedure Post(TemplateName: Code[10]; BatchName: Code[10])
     var
-        DayPlanningJnlLine: Record "Opti DayPlanning Journal Line";
+        DayPlanningJnlLine: Record "DayPlanning Journal Line";
         JobJnlLine: Record "Job Journal Line";
     begin
         CheckLinesExist(TemplateName, BatchName);
@@ -36,7 +36,7 @@ codeunit 50660 "Opti DayPlanning Journal Post"
 
     procedure PreviewPost(TemplateName: Code[10]; BatchName: Code[10])
     var
-        DayPlanningJnlLine: Record "Opti DayPlanning Journal Line";
+        DayPlanningJnlLine: Record "DayPlanning Journal Line";
         JobJnlLine: Record "Job Journal Line";
         GenJnlPostPreview: Codeunit "Gen. Jnl.-Post Preview";
         JobJnlPost: Codeunit "Job Jnl.-Post";
@@ -70,7 +70,7 @@ codeunit 50660 "Opti DayPlanning Journal Post"
         GenJnlPostPreview.Preview(JobJnlPost, JobJnlLine);
     end;
 
-    local procedure CreateJobJournalLines(var DayPlanningJnlLine: Record "Opti DayPlanning Journal Line"; var JobJnlLine: Record "Job Journal Line")
+    local procedure CreateJobJournalLines(var DayPlanningJnlLine: Record "DayPlanning Journal Line"; var JobJnlLine: Record "Job Journal Line")
     var
         NextLineNo: Integer;
         Skill: Record "Skill Code";
@@ -94,14 +94,14 @@ codeunit 50660 "Opti DayPlanning Journal Post"
             JobJnlLine."Shortcut Dimension 2 Code" := DayPlanningJnlLine."Global Dimension 2 Code";
             JobJnlLine."Dimension Set ID" := DayPlanningJnlLine."Dimension Set ID";
             // DayPlanning traceability — picked up by EventSubs (codeunit 50603) on posting
-            JobJnlLine."Opti Opt. DayPlanning Date" := DayPlanningJnlLine."DayPlanning Date";
-            JobJnlLine."Opti Opt. DayPlanning Line No." := DayPlanningJnlLine."DayPlanning Line No.";
-            JobJnlLine."Opti Skill" := DayPlanningJnlLine.Skill;
-            JobJnlLine."Opti Invoice Resource No." := DayPlanningJnlLine."Invoice Resource No.";
-            Skill.Get(JobJnlLine."Opti Skill");
-            Skill.TestField("Opti Invoice Resource No.");
-            JobJnlLine."Opti Invoice Resource No." := Skill."Opti Invoice Resource No.";
-            JobJnlLine."Opti Approved Project Manager" := DayPlanningJnlLine."Approved Project Manager";
+            JobJnlLine."Opt. DayPlanning Date" := DayPlanningJnlLine."DayPlanning Date";
+            JobJnlLine."Opt. DayPlanning Line No." := DayPlanningJnlLine."DayPlanning Line No.";
+            JobJnlLine.Skill := DayPlanningJnlLine.Skill;
+            JobJnlLine."Invoice Resource No." := DayPlanningJnlLine."Invoice Resource No.";
+            Skill.Get(JobJnlLine.Skill);
+            Skill.TestField("Invoice Resource No.");
+            JobJnlLine."Invoice Resource No." := Skill."Invoice Resource No.";
+            JobJnlLine."Approved Project Manager" := DayPlanningJnlLine."Approved Project Manager";
             JobJnlLine.Insert(true);
             NextLineNo += 10000;
         until DayPlanningJnlLine.Next() = 0;
@@ -120,7 +120,7 @@ codeunit 50660 "Opti DayPlanning Journal Post"
 
     local procedure CheckLinesExist(TemplateName: Code[10]; BatchName: Code[10])
     var
-        DayPlanningJnlLine: Record "Opti DayPlanning Journal Line";
+        DayPlanningJnlLine: Record "DayPlanning Journal Line";
         NoLinesToPostErr: Label 'There are no DayPlanning journal lines to post for template %1, batch %2.', Comment = '%1 = template name, %2 = batch name';
     begin
         DayPlanningJnlLine.SetRange("Template Name", TemplateName);

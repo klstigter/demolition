@@ -1,13 +1,12 @@
-report 50603 "Opti Day Planning Details"
+report 50603 "Day Planning Details"
 {
-    Caption = 'Day Planning Details';
     UsageCategory = ReportsAndAnalysis;
     ApplicationArea = All;
     DefaultRenderingLayout = DayPlanningReport;
 
     dataset
     {
-        dataitem(DayPlanning; "Opti Day Planning")
+        dataitem(DayPlanning; "Day Planning")
         {
             dataitemtableview = sorting("Job No.", "Job Task No.", "Plan Date") where("plan status" = const("In Progress"));
             RequestFilterFields = "Plan Date", "Job No.", "Job Task No.";
@@ -27,7 +26,7 @@ report 50603 "Opti Day Planning Details"
             dataitem(Integer; "Integer")
             {
                 dataitemtableview = sorting(Number) where(Number = const(1));
-                dataitem(DayPlanning2; "Opti Day Planning")
+                dataitem(DayPlanning2; "Day Planning")
                 {
                     DataItemLinkReference = DayPlanning;
                     DataItemLink = "Job No." = field("Job No.")
@@ -43,28 +42,28 @@ report 50603 "Opti Day Planning Details"
                         if not resource.Get(DayPlanning2."Assigned Resource No.") then
                             clear(resource);
                         Case true of
-                            resource."Opti Is Pool":
+                            resource."Is Pool":
                                 begin
                                     TempDayPlanning2 := DayPlanning2;
                                     TempDayPlanning2."Job Entry No." := 4;
                                     TempDayPlanning2.Description := resource.Name;
                                     TempDayPlanning2.Insert(true);
                                 end;
-                            resource."Opti Is Pool Member":
+                            resource."Is Pool Member":
                                 begin
                                     TempDayPlanning2 := DayPlanning2;
-                                    if resource."Opti Pool Resource No." <> '' then
+                                    if resource."pool resource no." <> '' then
                                         TempDayPlanning2."Job Entry No." := 5
                                     else
                                         TempDayPlanning2."Job Entry No." := 2;
-                                    if resource."Opti Is Foreman" then
+                                    if resource."Is Foreman" then
                                         TempDayPlanning2."Job Entry No." := 1;
                                     TempDayPlanning2.Description := resource.Name;
                                     TempDayPlanning2.Insert(true);
                                 end;
                             else begin
                                 TempDayPlanning1 := DayPlanning2;
-                                if resource."Opti Is Foreman" then
+                                if resource."Is Foreman" then
                                     TempDayPlanning1."Job Entry No." := 1
                                 else
                                     TempDayPlanning1."Job Entry No." := 2;
@@ -204,10 +203,10 @@ report 50603 "Opti Day Planning Details"
         JobDescription: Text;
         JobTaskDescription: Text;
         DateSelectionFilter: Text;
-        TempDayPlanning1: Record "Opti Day Planning" temporary;
-        TempDayPlanning2: Record "Opti Day Planning" temporary;
-        TempDayPlanning3: Record "Opti Day Planning" temporary;
-        TempDayPlanning4: Record "Opti Day Planning" temporary;
+        TempDayPlanning1: Record "Day Planning" temporary;
+        TempDayPlanning2: Record "Day Planning" temporary;
+        TempDayPlanning3: Record "Day Planning" temporary;
+        TempDayPlanning4: Record "Day Planning" temporary;
         EOF1: Boolean;
         EOF2: Boolean;
         EOF3: Boolean;
@@ -259,10 +258,10 @@ report 50603 "Opti Day Planning Details"
 
         Resource.Validate(Name, ResourceName);
 
-        Resource."Opti Pool Resource No." := PoolResourceNo;
-        Resource."Opti Is Pool Member" := IsExternal;
-        Resource."Opti Is Pool" := IsPool;
-        Resource."Opti Is Foreman" := IsForeman;
+        Resource."pool Resource no." := PoolResourceNo;
+        Resource."Is Pool Member" := IsExternal;
+        Resource."Is Pool" := IsPool;
+        Resource."Is Foreman" := IsForeman;
 
         Resource.Insert(true);
     end;

@@ -1,4 +1,4 @@
-page 50700 "Opti RegisterAbsenceApi Opt"
+page 50700 "RegisterAbsenceApi Opt"
 {
     PageType = API;
     Caption = 'Register Absence API Optimization';
@@ -7,7 +7,7 @@ page 50700 "Opti RegisterAbsenceApi Opt"
     APIVersion = 'v1.0';
     EntityName = 'RegisterAbsence';
     EntitySetName = 'RegisterAbsences';
-    SourceTable = "Opti Register Absence";
+    SourceTable = "Register Absence";
     DelayedInsert = true;
     ODataKeyFields = SystemId;
 
@@ -56,7 +56,7 @@ page 50700 "Opti RegisterAbsenceApi Opt"
 
     trigger OnInsertRecord(BelowxRec: Boolean): Boolean
     var
-        APIKeyMgt: Codeunit "Opti API Key Mgt Opt.";
+        APIKeyMgt: Codeunit "API Key Mgt Opt.";
     begin
         if Rec."Line No." = -1 then
             Rec."Line No." := APIKeyMgt.GetNextAbsenceLineNo();

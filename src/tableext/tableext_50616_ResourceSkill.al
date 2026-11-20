@@ -1,4 +1,4 @@
-tableextension 50616 "Opti Resource Skill" extends "Resource Skill"
+tableextension 50616 "Resource Skill opt" extends "Resource Skill"
 {
     DrillDownPageId = "Resource Skills";
 

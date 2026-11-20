@@ -1,11 +1,11 @@
-query 50600 "Opti Uniq. Vend in Day Plans"
+query 50600 "Unique Vend in Day Plannings"
 {
     QueryType = Normal;
     Caption = 'Unique Vendors in Day Plannings';
 
     elements
     {
-        dataitem(Day_Tasks; "Opti Day Planning")
+        dataitem(Day_Tasks; "Day Planning")
         {
             filter(TaskDateFilter; "Plan Date")
             {

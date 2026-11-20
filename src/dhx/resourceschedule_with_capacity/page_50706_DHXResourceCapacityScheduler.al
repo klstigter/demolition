@@ -1,4 +1,4 @@
-page 50706 "Opti Res. Scheduler - TimeLine"
+page 50706 "Resource Scheduler - TimeLine"
 {
     PageType = List;
     ApplicationArea = All;
@@ -9,7 +9,7 @@ page 50706 "Opti Res. Scheduler - TimeLine"
     {
         area(content)
         {
-            usercontrol(DhxScheduler; "OptiDHXResourceCapacityScheduleAddin")
+            usercontrol(DhxScheduler; DHXResourceCapacityScheduleAddin)
             {
                 ApplicationArea = All;
 
@@ -17,10 +17,10 @@ page 50706 "Opti Res. Scheduler - TimeLine"
 
                 trigger ControlReady()
                 var
-                    ResSchedSetup: Record "Opti Resource Scheduler Setup";
-                    DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
-                    SkillCapacityAnalysisMgt: Codeunit "Opti Skill Cap. Analysis Mgt.";
-                    VisualDefaultSettings: Codeunit "Opti Visual Default Settings";
+                    ResSchedSetup: Record "Resource Scheduler Setup";
+                    DailyOptimizerSetup: Record "Daily Optimizer Setup";
+                    SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
+                    VisualDefaultSettings: Codeunit "Visual Default Settings";
                     TreeJsonTxt: Text;
                     ColorsJsonTxt: Text;
                     AssignedColorHex: Text;
@@ -216,17 +216,13 @@ page 50706 "Opti Res. Scheduler - TimeLine"
                 end;
 
                 trigger OnGetAllEvents(EventIdsJsonTxt: Text)
-                    var
-                        AllEventsMsg: Label 'All Events: %1', Comment = '%1=EventIdsJsonTxt';
                 begin
-                    Message(AllEventsMsg, EventIdsJsonTxt);
+                    Message('All Events: %1', EventIdsJsonTxt);
                 end;
 
                 trigger OnGetAllSections(SectionIdsJsonTxt: Text)
-                    var
-                        AllSectionsMsg: Label 'All Sections: %1', Comment = '%1=SectionIdsJsonTxt';
                 begin
-                    Message(AllSectionsMsg, SectionIdsJsonTxt);
+                    Message('All Sections: %1', SectionIdsJsonTxt);
                 end;
 
                 #endregion Diagnostics
@@ -292,7 +288,7 @@ page 50706 "Opti Res. Scheduler - TimeLine"
 
                 trigger OnFilterIconClick()
                 var
-                    FilterDlg: Report "Opti Resource Scheduler Filter";
+                    FilterDlg: Report "Resource Scheduler Filter";
                     NewResNoFilter: Text;
                     NewResNameFilter: Text;
                     NewSkillFilter: Text;
@@ -349,7 +345,6 @@ page 50706 "Opti Res. Scheduler - TimeLine"
         {
             action(TodayAct)
             {
-                ToolTip = 'Executes the Today Act action.';
                 Caption = 'Today';
                 ApplicationArea = All;
                 Image = Position;
@@ -361,7 +356,6 @@ page 50706 "Opti Res. Scheduler - TimeLine"
             }
             action(PreviousAct)
             {
-                ToolTip = 'Executes the Previous Act action.';
                 Caption = 'Previous';
                 ApplicationArea = All;
                 Image = PreviousSet;
@@ -373,7 +367,6 @@ page 50706 "Opti Res. Scheduler - TimeLine"
             }
             action(NextAct)
             {
-                ToolTip = 'Executes the Next Act action.';
                 Caption = 'Next';
                 ApplicationArea = All;
                 Image = NextSet;
@@ -385,7 +378,6 @@ page 50706 "Opti Res. Scheduler - TimeLine"
             }
             action(Refresh)
             {
-                ToolTip = 'Executes the Refresh action.';
                 Caption = 'Refresh';
                 ApplicationArea = All;
                 Image = Refresh;
@@ -396,7 +388,6 @@ page 50706 "Opti Res. Scheduler - TimeLine"
             }
             action(DateLookup)
             {
-                ToolTip = 'Executes the Date Lookup action.';
                 Caption = 'Go to Date';
                 ApplicationArea = All;
                 Image = GoTo;
@@ -418,7 +409,6 @@ page 50706 "Opti Res. Scheduler - TimeLine"
 
             action(ExecEventsNotMatch)
             {
-                ToolTip = 'Executes the Exec Events Not Match action.';
                 Caption = 'Get Events Not Matching Sections';
                 ApplicationArea = All;
                 Image = "Event";
@@ -429,7 +419,6 @@ page 50706 "Opti Res. Scheduler - TimeLine"
             }
             action(ExecGetAllEvents)
             {
-                ToolTip = 'Executes the Exec Get All Events action.';
                 Caption = 'Get All Events';
                 ApplicationArea = All;
                 Image = Task;
@@ -440,7 +429,6 @@ page 50706 "Opti Res. Scheduler - TimeLine"
             }
             action(ExecGetAllSections)
             {
-                ToolTip = 'Executes the Exec Get All Sections action.';
                 Caption = 'Get All Sections';
                 ApplicationArea = All;
                 Image = Resource;
@@ -455,7 +443,6 @@ page 50706 "Opti Res. Scheduler - TimeLine"
                 Caption = 'Capacity';
                 action(ShowCapacityAct)
                 {
-                    ToolTip = 'Executes the Show Capacity Act action.';
                     ApplicationArea = All;
                     Caption = 'Show Capacity';
                     Image = AddWatch;
@@ -468,7 +455,6 @@ page 50706 "Opti Res. Scheduler - TimeLine"
                 }
                 action(HideCapacityAct)
                 {
-                    ToolTip = 'Executes the Hide Capacity Act action.';
                     ApplicationArea = All;
                     Caption = 'Hide Capacity';
                     Image = RemoveContacts;
@@ -485,7 +471,6 @@ page 50706 "Opti Res. Scheduler - TimeLine"
                 Caption = 'Day Plannings';
                 action(ShowDayPlanningAct)
                 {
-                    ToolTip = 'Executes the Show Day Planning Act action.';
                     ApplicationArea = All;
                     Caption = 'Show Day Planning';
                     Image = AddWatch;
@@ -498,7 +483,6 @@ page 50706 "Opti Res. Scheduler - TimeLine"
                 }
                 action(HideDayPlanningAct)
                 {
-                    ToolTip = 'Executes the Hide Day Planning Act action.';
                     ApplicationArea = All;
                     Caption = 'Hide Day Planning';
                     Image = RemoveContacts;
@@ -516,7 +500,6 @@ page 50706 "Opti Res. Scheduler - TimeLine"
 
                 action(HideNoEventResourcesAct)
                 {
-                    ToolTip = 'Executes the Hide No Event Resources Act action.';
                     ApplicationArea = All;
                     Caption = 'Hide empty';
                     Image = FilterLines;
@@ -529,7 +512,6 @@ page 50706 "Opti Res. Scheduler - TimeLine"
                 }
                 action(ShowNoEventResourcesAct)
                 {
-                    ToolTip = 'Executes the Show No Event Resources Act action.';
                     ApplicationArea = All;
                     Caption = 'Show empty';
                     Image = ClearFilter;
@@ -566,7 +548,7 @@ page 50706 "Opti Res. Scheduler - TimeLine"
     end;
 
     var
-        DHXDataHandler: Codeunit "Opti DHX Data Handler";
+        DHXDataHandler: Codeunit "DHX Data Handler";
         AnchorDate: Date;
         DummyEndDate: Date;
         ResourceFilter: Text;
@@ -665,9 +647,6 @@ page 50706 "Opti Res. Scheduler - TimeLine"
 
     local procedure PushResourceFilterInfo()
     var
-            NameFilterTxt: Label ' (name filter: %1)', Comment = '%1=ResourceNameFilter';
-            SkillFilterTxt: Label ' (skill filter: %1)', Comment = '%1=SkillFilter';
-            JobFilterTxt: Label ' (job filter: %1 %2)', Comment = '%1=JobFilter, %2=JobTaskFilter';
         startDate: Date;
         endDate: Date;
         ResNameLbl: Text;
@@ -675,11 +654,11 @@ page 50706 "Opti Res. Scheduler - TimeLine"
         DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
         ResNameLbl := GetResourceName(ResourceFilter);
         if ResourceNameFilter <> '' then
-            ResNameLbl += StrSubstNo(NameFilterTxt, ResourceNameFilter);
+            ResNameLbl += StrSubstNo(' (name filter: %1)', ResourceNameFilter);
         if SkillFilter <> '' then
-            ResNameLbl += StrSubstNo(SkillFilterTxt, SkillFilter);
+            ResNameLbl += StrSubstNo(' (skill filter: %1)', SkillFilter);
         if (JobFilter <> '') or (JobTaskFilter <> '') then
-            ResNameLbl += StrSubstNo(JobFilterTxt, JobFilter, JobTaskFilter);
+            ResNameLbl += StrSubstNo(' (job filter: %1 %2)', JobFilter, JobTaskFilter);
         CurrPage.DhxScheduler.SetResourceFilterInfo(
             ResourceFilter,
             ResNameLbl,
@@ -700,7 +679,7 @@ page 50706 "Opti Res. Scheduler - TimeLine"
     /// </summary>
     local procedure IsResourceGroupMode(): Boolean
     var
-        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
     begin
         if not DailyOptimizerSetup.Get() then
             exit(false);

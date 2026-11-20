@@ -1,4 +1,4 @@
-enum 50616 "Opti DayPlanning Date Type"
+enum 50616 "DayPlanning Date Type"
 {
     Extensible = true;
     Caption = 'DayPlanning Date Type';

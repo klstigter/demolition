@@ -1,5 +1,5 @@
 // API Integeration for Exposing API Pages
-codeunit 50627 "Opti API Rec. Exposed Triggers"
+codeunit 50627 "API Record Exposed Triggers"
 {
     // Table triggers are enabled only for tables registered in "API Record Exposed Opti".
     // The setup is cached per session, so changes to the setup apply to new sessions.
@@ -42,7 +42,7 @@ codeunit 50627 "Opti API Rec. Exposed Triggers"
     [EventSubscriber(ObjectType::Codeunit, Codeunit::GlobalTriggerManagement, 'OnAfterOnDatabaseInsert', '', false, false)]
     local procedure LogInsert(RecRef: RecordRef)
     var
-        APIRecordExposedMgt: Codeunit "Opti API Record Exposed Mgt.";
+        APIRecordExposedMgt: Codeunit "API Record Exposed Mgt.";
     begin
         if IsThirdPartyCall() then
             exit;
@@ -75,7 +75,7 @@ codeunit 50627 "Opti API Rec. Exposed Triggers"
     [EventSubscriber(ObjectType::Codeunit, Codeunit::GlobalTriggerManagement, 'OnAfterOnDatabaseModify', '', false, false)]
     local procedure LogModify(RecRef: RecordRef)
     var
-        APIRecordExposedMgt: Codeunit "Opti API Record Exposed Mgt.";
+        APIRecordExposedMgt: Codeunit "API Record Exposed Mgt.";
         SystemId: Guid;
     begin
         if IsThirdPartyCall() then
@@ -92,7 +92,7 @@ codeunit 50627 "Opti API Rec. Exposed Triggers"
     [EventSubscriber(ObjectType::Codeunit, Codeunit::GlobalTriggerManagement, 'OnAfterOnDatabaseDelete', '', false, false)]
     local procedure LogDelete(RecRef: RecordRef)
     var
-        APIRecordExposedMgt: Codeunit "Opti API Record Exposed Mgt.";
+        APIRecordExposedMgt: Codeunit "API Record Exposed Mgt.";
     begin
         if IsThirdPartyCall() then
             exit;
@@ -102,7 +102,7 @@ codeunit 50627 "Opti API Rec. Exposed Triggers"
     [EventSubscriber(ObjectType::Codeunit, Codeunit::GlobalTriggerManagement, 'OnAfterOnGlobalRename', '', false, false)]
     local procedure LogRename(RecRef: RecordRef; xRecRef: RecordRef)
     var
-        APIRecordExposedMgt: Codeunit "Opti API Record Exposed Mgt.";
+        APIRecordExposedMgt: Codeunit "API Record Exposed Mgt.";
     begin
         if IsThirdPartyCall() then
             exit;

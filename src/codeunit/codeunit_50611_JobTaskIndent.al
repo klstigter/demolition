@@ -1,4 +1,4 @@
-codeunit 50611 "Opti Job Task Indent"
+codeunit 50611 "Job Task Indent"
 {
     var
         HideMessage: Boolean;
@@ -15,8 +15,6 @@ codeunit 50611 "Opti Job Task Indent"
 
     procedure IndentJobTasks(var JobTask: Record "Job Task"; HideConfirm: Boolean)
     var
-        ThisWillUpdateTheIndentaQst: Label 'This will update the indentation for all job tasks in job %1. Do you want to continue?', Comment = '%1=JobTask.Job No.';
-        JobTasksHaveBeenIndentedMsg: Label '%1 job tasks have been indented.', Comment = '%1=TasksUpdated';
         JobTaskToIndent: Record "Job Task";
         IndentLevel: Integer;
         JobNo: Code[20];
@@ -26,9 +24,8 @@ codeunit 50611 "Opti Job Task Indent"
         // HideConfirm is true — this codebase's AL runtime does not reliably short-circuit
         // "(not Flag) and (not Confirm(...))" for side-effecting calls like Confirm().
         if not HideConfirm then
-            if GuiAllowed() then
-                if not Confirm(ThisWillUpdateTheIndentaQst, false, JobTask."Job No.") then
-                    exit;
+            if not Confirm('This will update the indentation for all job tasks in job %1. Do you want to continue?', false, JobTask."Job No.") then
+                exit;
 
         JobNo := JobTask."Job No.";
         IndentLevel := 0;
@@ -66,20 +63,17 @@ codeunit 50611 "Opti Job Task Indent"
             until JobTaskToIndent.Next() = 0;
 
         if not HideConfirm then
-            if GuiAllowed() then
-                Message(JobTasksHaveBeenIndentedMsg, TasksUpdated);
+            Message('%1 job tasks have been indented.', TasksUpdated);
     end;
 
     procedure IndentAllJobTasks()
     var
-        ThisWillUpdateTheIndentaQst: Label 'This will update the indentation for all job tasks in all jobs. Do you want to continue?';
         Job: Record Job;
         JobTask: Record "Job Task";
     begin
         if not HideMessage then
-            if GuiAllowed() then
-                if not Confirm(ThisWillUpdateTheIndentaQst, false) then
-                    exit;
+            if not Confirm('This will update the indentation for all job tasks in all jobs. Do you want to continue?', false) then
+                exit;
 
         if Job.FindSet() then
             repeat

@@ -1,9 +1,9 @@
-page 50648 "Opti Project Type List Opt."
+page 50648 "Project Type List Opt."
 {
     PageType = List;
     ApplicationArea = All;
     UsageCategory = Lists;
-    SourceTable = "Opti Project Type Opt.";
+    SourceTable = "Project Type Opt.";
     Caption = 'Project Types';
 
     layout
@@ -30,4 +30,18 @@ page 50648 "Opti Project Type List Opt."
         }
     }
 
+    actions
+    {
+        area(Processing)
+        {
+            action(ActionName)
+            {
+
+                trigger OnAction()
+                begin
+
+                end;
+            }
+        }
+    }
 }

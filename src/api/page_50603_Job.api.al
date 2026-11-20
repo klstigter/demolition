@@ -1,4 +1,4 @@
-page 50603 "Opti JobApi Opt"
+page 50603 "JobApi Opt"
 {
     PageType = API;
     Caption = 'Job API Optimization';
@@ -29,7 +29,7 @@ page 50603 "Opti JobApi Opt"
                 {
                     Caption = 'Description';
                 }
-                field(projectType; Rec."Opti Project Type")
+                field(projectType; Rec."Project Type")
                 {
                     Caption = 'Project Type';
                 }

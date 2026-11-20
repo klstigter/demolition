@@ -1,4 +1,4 @@
-controladdin "OptiDHXColorFieldAddin"
+controladdin DHXColorFieldAddin
 {
     RequestedHeight = 32;
     MinimumHeight = 32;

@@ -5,7 +5,7 @@ pageextension 50601 "Job Card Opti" extends "Job Card"
         // Add changes to page layout here
         addafter("Sell-to Customer Name")
         {
-            field("Opti Non Active"; Rec."Opti Non Active")
+            field("Non Active"; Rec."Non Active")
             {
                 ApplicationArea = All;
                 Caption = 'Non Active';

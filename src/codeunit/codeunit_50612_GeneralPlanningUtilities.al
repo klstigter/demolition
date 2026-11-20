@@ -1,4 +1,4 @@
-codeunit 50612 "Opti General Plan. Utilities"
+codeunit 50612 "General Planning Utilities"
 {
     /// <summary>
     /// Converts a Date to Integer in YYYYMMDD format
@@ -43,7 +43,7 @@ codeunit 50612 "Opti General Plan. Utilities"
     end;
 
 
-    procedure MapConstraintTypeToDhtmlx(ConstraintType: Enum "Opti Gantt Constraint Type"): text
+    procedure MapConstraintTypeToDhtmlx(ConstraintType: Enum "Gantt Constraint Type"): text
     begin
         case ConstraintType of
             ConstraintType::"none":
@@ -99,7 +99,7 @@ codeunit 50612 "Opti General Plan. Utilities"
         end;
         */
 
-    procedure DayPlanningFulFillment(pDayPlanning: Record "Opti Day Planning";
+    procedure DayPlanningFulFillment(pDayPlanning: Record "Day Planning";
                                      PartType: Option "Requested","Assigned","Realized";
                                      var CalculatedHours: Decimal;
                                      var Capacity: Decimal): Boolean
@@ -132,7 +132,7 @@ codeunit 50612 "Opti General Plan. Utilities"
         exit(CapacityIsUsed);
     end;
 
-    local procedure GetWorkingMinutes(DayPlanning: Record "Opti Day Planning"; PartType: Option "Requested","Assigned","Realized"): Decimal
+    local procedure GetWorkingMinutes(DayPlanning: Record "Day Planning"; PartType: Option "Requested","Assigned","Realized"): Decimal
     var
         WorkingMinutes: Decimal;
         EndTime: Time;

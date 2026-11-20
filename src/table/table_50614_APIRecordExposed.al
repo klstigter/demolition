@@ -1,33 +1,32 @@
 // API Integeration for Exposing API Pages
 table 50614 "API Record Exposed Opti"
 {
-    DataClassification = SystemMetadata;
+    DataClassification = ToBeClassified;
 
     fields
     {
         field(1; "API Page No."; Integer)
         {
-            DataClassification = SystemMetadata;
+            DataClassification = ToBeClassified;
             tableRelation = "Page Metadata" where(PageType = const(API));
             blankzero = true;
             NotBlank = true;
 
             trigger OnValidate()
             var
-                TheAPIPageDoesNotErr: Label 'The API page %1 does not exist.', Comment = '%1=Rec.API Page No.';
                 PageMetadata: Record "Page Metadata";
             begin
                 Rec."Table ID" := 0;
                 if Rec."API Page No." <> 0 then begin
                     if not PageMetadata.Get("API Page No.") then
-                        Error(TheAPIPageDoesNotErr, Rec."API Page No.");
+                        Error('The API page %1 does not exist.', Rec."API Page No.");
                     Rec."Table ID" := PageMetadata.SourceTable;
                 end;
             end;
         }
         field(2; "Table ID"; Integer)
         {
-            DataClassification = SystemMetadata;
+            DataClassification = ToBeClassified;
             editable = false;
         }
         field(10; "API Page Name"; Text[100])

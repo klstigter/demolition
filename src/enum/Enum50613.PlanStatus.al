@@ -1,6 +1,5 @@
-enum 50613 "Opti Plan Status"
+enum 50613 "Plan Status"
 {
-    Caption = 'Plan Status';
     Extensible = true;
 
     value(0; "In Request")

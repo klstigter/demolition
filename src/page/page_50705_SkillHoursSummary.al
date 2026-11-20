@@ -1,9 +1,9 @@
-page 50705 "Opti Skill Hours Summary"
+page 50705 "Skill Hours Summary"
 {
     PageType = List;
     ApplicationArea = All;
     UsageCategory = Lists;
-    SourceTable = "Opti Summary Weekly";
+    SourceTable = "Summary Weekly";
     SourceTableTemporary = true;
     Editable = false;
     ShowFilter = false;
@@ -234,7 +234,7 @@ page 50705 "Opti Skill Hours Summary"
     var
         WeekStartDate: Date;
         WeekEndDate: Date;
-        VisualDefaultSettings: Codeunit "Opti Visual Default Settings";
+        VisualDefaultSettings: Codeunit "Visual Default Settings";
     begin
         WeekStartDate := CalcMonday(PeriodDate);
         WeekEndDate := WeekStartDate + 6;
@@ -265,7 +265,7 @@ page 50705 "Opti Skill Hours Summary"
     /// </summary>
     local procedure BuildSkillHoursGrid(WeekStartDate: Date; WeekEndDate: Date)
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         DayIndex: Integer;
         YearValue: Integer;
         WeekNoValue: Integer;
@@ -326,7 +326,7 @@ page 50705 "Opti Skill Hours Summary"
     /// </summary>
     local procedure DrillDownDay(WeekDayNo: Integer)
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         WeekStartDate: Date;
     begin
         WeekStartDate := CalcMonday(DWY2Date(1, Rec."Week No.", Rec.Year));
@@ -341,7 +341,7 @@ page 50705 "Opti Skill Hours Summary"
             DayPlanning.SetRange("Job Task No.", JobTaskNoFilter);
         DayPlanning.SetRange(Skill, Rec."Skill Code");
 
-        Page.Run(Page::"Opti Day Plannings", DayPlanning);
+        Page.Run(Page::"Day Plannings", DayPlanning);
     end;
 
     var

@@ -1,7 +1,7 @@
-page 50704 "Opti Day Capacity Chart Audit"
+page 50704 "Day Capacity Chart Audit"
 {
     PageType = List;
-    SourceTable = "Opti Day Cap. Chart Audit Buf";
+    SourceTable = "Day Capacity Chart Audit Buf";
     SourceTableTemporary = true;
     Caption = 'Day Capacity Chart Audit';
     Editable = false;
@@ -56,7 +56,7 @@ page 50704 "Opti Day Capacity Chart Audit"
     {
         area(Content)
         {
-            usercontrol(PivotGrid; "OptiDHXGridFactboxAddin")
+            usercontrol(PivotGrid; DHXGridFactboxAddin)
             {
                 ApplicationArea = All;
 
@@ -79,7 +79,7 @@ page 50704 "Opti Day Capacity Chart Audit"
     /// rebuilds/pushes the pivot grid's JSON payload from those same rows. Public signature
     /// UNCHANGED - see this page's own header comment.
     /// </summary>
-    procedure LoadData(var SourceBuffer: Record "Opti Day Cap. Chart Audit Buf" temporary)
+    procedure LoadData(var SourceBuffer: Record "Day Capacity Chart Audit Buf" temporary)
     begin
         Rec.Reset();
         Rec.DeleteAll();
@@ -121,7 +121,7 @@ page 50704 "Opti Day Capacity Chart Audit"
     /// exact shape) entirely from SourceBuffer's own already-computed rows - see this page's own
     /// header comment for the full data-mapping rationale.
     /// </summary>
-    local procedure BuildGridDataJson(var SourceBuffer: Record "Opti Day Cap. Chart Audit Buf" temporary) GridDataJson: Text
+    local procedure BuildGridDataJson(var SourceBuffer: Record "Day Capacity Chart Audit Buf" temporary) GridDataJson: Text
     var
         GridData: JsonObject;
         DaysArray: JsonArray;
@@ -173,7 +173,7 @@ page 50704 "Opti Day Capacity Chart Audit"
     /// Segment=External + Segment=External (Mandatory) rows summed - see this page's own header
     /// comment.
     /// </summary>
-    local procedure AddCapacityGridRow(var RowsArray: JsonArray; var SourceBuffer: Record "Opti Day Cap. Chart Audit Buf" temporary; var DayList: List of [Date])
+    local procedure AddCapacityGridRow(var RowsArray: JsonArray; var SourceBuffer: Record "Day Capacity Chart Audit Buf" temporary; var DayList: List of [Date])
     var
         RowObj: JsonObject;
         DaysArray: JsonArray;
@@ -195,8 +195,8 @@ page 50704 "Opti Day Capacity Chart Audit"
         RequestedSegmentList.Add(UpperCase(ExternalMandatorySegmentTok));
 
         foreach ADate in DayList do begin
-            AssignedVal := SumBufferValue(SourceBuffer, ADate, Enum::"Opti Day Cap. Chart Bar Type"::Capacity, AssignedSegmentList);
-            RequestedVal := SumBufferValue(SourceBuffer, ADate, Enum::"Opti Day Cap. Chart Bar Type"::Capacity, RequestedSegmentList);
+            AssignedVal := SumBufferValue(SourceBuffer, ADate, Enum::"Day Capacity Chart Bar Type"::Capacity, AssignedSegmentList);
+            RequestedVal := SumBufferValue(SourceBuffer, ADate, Enum::"Day Capacity Chart Bar Type"::Capacity, RequestedSegmentList);
 
             Clear(DayObj);
             DayObj.Add('req', RequestedVal);
@@ -222,7 +222,7 @@ page 50704 "Opti Day Capacity Chart Audit"
     /// tracking anywhere (Assigned Hours is only ever aggregated at the whole-day level, see that
     /// codeunit's CalcAssignedSplit) - deliberately NOT invented here, per the feature spec.
     /// </summary>
-    local procedure AddSkillGridRow(var RowsArray: JsonArray; var SourceBuffer: Record "Opti Day Cap. Chart Audit Buf" temporary; SkillCode: Code[20]; var DayList: List of [Date])
+    local procedure AddSkillGridRow(var RowsArray: JsonArray; var SourceBuffer: Record "Day Capacity Chart Audit Buf" temporary; SkillCode: Code[20]; var DayList: List of [Date])
     var
         RowObj: JsonObject;
         DaysArray: JsonArray;
@@ -238,7 +238,7 @@ page 50704 "Opti Day Capacity Chart Audit"
         SkillSegmentList.Add(SkillCode);
 
         foreach ADate in DayList do begin
-            RequestedVal := SumBufferValue(SourceBuffer, ADate, Enum::"Opti Day Cap. Chart Bar Type"::Requested, SkillSegmentList);
+            RequestedVal := SumBufferValue(SourceBuffer, ADate, Enum::"Day Capacity Chart Bar Type"::Requested, SkillSegmentList);
 
             Clear(DayObj);
             DayObj.Add('req', RequestedVal);
@@ -266,7 +266,7 @@ page 50704 "Opti Day Capacity Chart Audit"
     /// stored upper-cased, so callers must UpperCase() their own literal tokens before passing
     /// them in here, same convention this page's old OnDrillDown already used.
     /// </summary>
-    local procedure SumBufferValue(var SourceBuffer: Record "Opti Day Cap. Chart Audit Buf" temporary; ADate: Date; BarType: Enum "Opti Day Cap. Chart Bar Type"; SegmentValues: List of [Text]): Decimal
+    local procedure SumBufferValue(var SourceBuffer: Record "Day Capacity Chart Audit Buf" temporary; ADate: Date; BarType: Enum "Day Capacity Chart Bar Type"; SegmentValues: List of [Text]): Decimal
     var
         SegmentFilter: Text;
         SegmentValue: Text;
@@ -303,13 +303,13 @@ page 50704 "Opti Day Capacity Chart Audit"
     /// first occurrence in Line No. order (Monday first) reproduces BuildActiveSkillList's own
     /// order exactly.
     /// </summary>
-    local procedure BuildActiveSkillCodeList(var SourceBuffer: Record "Opti Day Cap. Chart Audit Buf" temporary; var SkillList: List of [Code[20]])
+    local procedure BuildActiveSkillCodeList(var SourceBuffer: Record "Day Capacity Chart Audit Buf" temporary; var SkillList: List of [Code[20]])
     var
         SeenSkills: Dictionary of [Code[20], Boolean];
     begin
         Clear(SkillList);
         SourceBuffer.Reset();
-        SourceBuffer.SetRange("Bar Type", Enum::"Opti Day Cap. Chart Bar Type"::Requested);
+        SourceBuffer.SetRange("Bar Type", Enum::"Day Capacity Chart Bar Type"::Requested);
         SourceBuffer.SetFilter(Segment, '<>%1&<>%2&<>%3&<>%4', UpperCase(AssignedSegmentTok), UpperCase(InternalSegmentTok), UpperCase(ExternalSegmentTok), UpperCase(ExternalMandatorySegmentTok));
         if SourceBuffer.FindSet() then
             repeat
@@ -333,7 +333,7 @@ page 50704 "Opti Day Capacity Chart Audit"
     /// </summary>
     local procedure ShowGridCellDrillDown(RowId: Text; RowType: Text; ColumnKind: Text; DayIndex: Integer; WholeWeek: Boolean)
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         ResCapacityEntry: Record "Res. Capacity Entry";
         DrillDate: Date;
     begin
@@ -353,7 +353,7 @@ page 50704 "Opti Day Capacity Chart Audit"
             DayPlanning.SetRange("Plan Date", DrillDate);
             DayPlanning.SetRange(Assigned, false);
             DayPlanning.SetRange(Skill, CopyStr(RowId, 1, MaxStrLen(DayPlanning.Skill)));
-            Page.Run(Page::"Opti Day Plannings", DayPlanning);
+            Page.Run(Page::"Day Plannings", DayPlanning);
             exit;
         end;
 
@@ -366,7 +366,7 @@ page 50704 "Opti Day Capacity Chart Audit"
                     DayPlanning.Reset();
                     DayPlanning.SetRange("Plan Date", DrillDate);
                     DayPlanning.SetRange(Assigned, true);
-                    Page.Run(Page::"Opti Day Plannings", DayPlanning);
+                    Page.Run(Page::"Day Plannings", DayPlanning);
                 end;
             RequestedColumnKindTok:
                 begin

@@ -1,4 +1,4 @@
-codeunit 50723 "Opti Skip Temp Job Task Insert"
+codeunit 50723 "Skip Temp Job Task Insert Opt."
 {
     // Bound manually by API page 50674 around its temp Job Task insert, so the standard
     // Job Task.OnInsert (which writes real Job Task Dimension rows) does not run.

@@ -1,4 +1,4 @@
-pageextension 50606 "Opti ResourceCapacityMatrix" extends "Resource Capacity Matrix"
+pageextension 50606 "ResourceCapacityMatrix opt" extends "Resource Capacity Matrix"
 {
     layout
     {
@@ -13,23 +13,22 @@ pageextension 50606 "Opti ResourceCapacityMatrix" extends "Resource Capacity Mat
         }
         addafter("&Set Capacity")
         {
-            action("Opti Set Capacity Opt")
+            action("Set Capacity Opt")
             {
                 ApplicationArea = Jobs;
                 Caption = '&Set Capacity';
-                RunObject = Page "Opti Res. Cap. Settings Opt";
+                RunObject = Page "Resource Capacity Settings Opt";
                 RunPageLink = "No." = field("No.");
                 ToolTip = 'Change the capacity of the resource, such as a technician.';
             }
-            action("Opti Day Plannings (Visual)")
+            action("Day Plannings (Visual)")
             {
-                ToolTip = 'Executes the Day Plannings (Visual) action.';
                 ApplicationArea = Jobs;
                 Caption = 'Day Plannings (Visual)';
 
                 trigger OnAction()
                 var
-                    ResScheduler: page "Opti Resource Calendar";
+                    ResScheduler: page "Resource Calendar";
                 begin
                     ResScheduler.SetResourceFilter(Rec."No.");
                     ResScheduler.RunModal();
@@ -40,7 +39,7 @@ pageextension 50606 "Opti ResourceCapacityMatrix" extends "Resource Capacity Mat
 
     var
 
-    procedure OptiResourceFilter(pResFilter: Text)
+    procedure ResourceFilter(pResFilter: Text)
     begin
         if pResFilter <> '' then begin
             Rec.Setfilter("No.", pResFilter);

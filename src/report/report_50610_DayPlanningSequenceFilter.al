@@ -19,7 +19,7 @@
 ///   if FilterDlg.IsConfirmed() then
 ///       FilterDlg.GetFilter(JobFilter, JobTaskFilter, SkillFilter, ResourceFilter, PeriodFrom, PeriodTo);
 /// </summary>
-report 50610 "Opti Day Plan. Sequence Filter"
+report 50610 "Day Planning Sequence Filter"
 {
     UsageCategory = None;
     ApplicationArea = All;

@@ -1,4 +1,4 @@
-pageextension 50624 "Opti Order Intake Kanban" extends "Opti Order Intake Opt."
+pageextension 50624 "Order Intake Kanban Ext" extends "Order Intake Opt."
 {
     actions
     {
@@ -9,7 +9,7 @@ pageextension 50624 "Opti Order Intake Kanban" extends "Opti Order Intake Opt."
                 ApplicationArea = All;
                 Caption = 'Kanban Board';
                 Image = Grid;
-                RunObject = page "Opti DHX Order Intake Kanban";
+                RunObject = page "DHX Order Intake Kanban";
                 ToolTip = 'Open the Kanban board to visualise and manage Order Intake items by status.';
             }
         }

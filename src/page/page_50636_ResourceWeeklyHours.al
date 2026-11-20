@@ -1,7 +1,7 @@
-page 50636 "Opti Resource Weekly Hours"
+page 50636 "Resource Weekly Hours"
 {
     PageType = List;
-    SourceTable = "Opti Summary Weekly";
+    SourceTable = "Summary Weekly";
     SourceTableTemporary = true;
     Caption = 'Resource Weekly Hours';
     Editable = false;
@@ -90,7 +90,7 @@ page 50636 "Opti Resource Weekly Hours"
 
                 trigger OnAction()
                 var
-                    DayPlanning: Record "Opti Day Planning";
+                    DayPlanning: Record "Day Planning";
                     WeekStart: Date;
                     WeekEnd: Date;
                 begin
@@ -101,7 +101,7 @@ page 50636 "Opti Resource Weekly Hours"
                     DayPlanning.SetRange("Job No.", Rec."Job No.");
                     DayPlanning.SetRange("Job Task No.", Rec."Job Task No.");
                     DayPlanning.SetRange("Plan Date", WeekStart, WeekEnd);
-                    Page.Run(Page::"Opti Day Plannings", DayPlanning);
+                    Page.Run(Page::"Day Plannings", DayPlanning);
                 end;
             }
             action(OpenResourceCard)
@@ -154,15 +154,13 @@ page 50636 "Opti Resource Weekly Hours"
 
     local procedure GetWeekStartFromYearWeek(YearValue: Integer; WeekNo: Integer): Date
     var
-            DTxt: Label '<-%1D>', Comment = '%1=Date2DWY(Jan4, 1) - 1';
-            WTxt: Label '<+%1W>', Comment = '%1=WeekNo - 1';
         Jan4: Date;
         Week1Monday: Date;
     begin
         // ISO 8601: Week 1 is the week with Jan 4th
         Jan4 := DMY2Date(4, 1, YearValue);
-        Week1Monday := CalcDate(StrSubstNo(DTxt, Date2DWY(Jan4, 1) - 1), Jan4);
-        exit(CalcDate(StrSubstNo(WTxt, WeekNo - 1), Week1Monday));
+        Week1Monday := CalcDate(StrSubstNo('<-%1D>', Date2DWY(Jan4, 1) - 1), Jan4);
+        exit(CalcDate(StrSubstNo('<+%1W>', WeekNo - 1), Week1Monday));
     end;
 
     procedure LoadData(ResourceNo: Code[20]; JobNo: Code[20]; JobTaskNo: Code[20])

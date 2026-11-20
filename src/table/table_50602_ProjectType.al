@@ -1,9 +1,9 @@
-table 50602 "Opti Project Type Opt."
+table 50602 "Project Type Opt."
 {
     DataClassification = CustomerContent;
     Caption = 'Project Type';
-    DrillDownPageId = "Opti Project Type List Opt.";
-    LookupPageId = "Opti Project Type List Opt.";
+    DrillDownPageId = "Project Type List Opt.";
+    LookupPageId = "Project Type List Opt.";
 
     fields
     {

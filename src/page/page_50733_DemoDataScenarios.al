@@ -1,10 +1,10 @@
-page 50733 "Opti Demo Data Scenarios"
+page 50733 "Demo Data Scenarios"
 {
     Caption = 'Demo Data Scenarios';
     PageType = List;
     ApplicationArea = All;
     UsageCategory = Administration;
-    SourceTable = "Opti Demo Data Scenarios Opt";
+    SourceTable = "Demo Data Scenarios Opt";
     InsertAllowed = true;
     ModifyAllowed = true;
     DeleteAllowed = true;
@@ -75,7 +75,7 @@ page 50733 "Opti Demo Data Scenarios"
 
                 trigger OnAction()
                 begin
-                    Report.Run(Report::"Opti Export Existing Data");
+                    Report.Run(Report::"Export Existing Data");
                 end;
             }
             action(UploadXml)
@@ -112,7 +112,7 @@ page 50733 "Opti Demo Data Scenarios"
 
                 trigger OnAction()
                 var
-                    DemoDataExcelExport: Codeunit "Opti Demo Data Excel Export";
+                    DemoDataExcelExport: Codeunit "Demo Data Excel Export";
                     InStr: InStream;
                     FileName: Text;
                 begin
@@ -141,7 +141,6 @@ page 50733 "Opti Demo Data Scenarios"
 
                     trigger OnAction()
                     var
-                            DemoDataXmlTxt: Label 'DemoData_%1.xml', Comment = '%1=Rec.Entry No.';
                         InStr: InStream;
                         FileName: Text;
                     begin
@@ -150,7 +149,7 @@ page 50733 "Opti Demo Data Scenarios"
                         Rec.GetXmlStream(InStr);
                         FileName := Rec."XML File Name";
                         if FileName = '' then
-                            FileName := StrSubstNo(DemoDataXmlTxt, Rec."Entry No.");
+                            FileName := StrSubstNo('DemoData_%1.xml', Rec."Entry No.");
                         DownloadFromStream(InStr, '', '', '', FileName);
                     end;
                 }
@@ -163,7 +162,7 @@ page 50733 "Opti Demo Data Scenarios"
 
                     trigger OnAction()
                     var
-                        DemoDataExcelExport: Codeunit "Opti Demo Data Excel Export";
+                        DemoDataExcelExport: Codeunit "Demo Data Excel Export";
                     begin
                         DemoDataExcelExport.DownloadAsExcel(Rec);
                     end;
@@ -178,7 +177,7 @@ page 50733 "Opti Demo Data Scenarios"
 
                 trigger OnAction()
                 var
-                    ApplyReport: Report "Opti Apply Demo Data Scenario";
+                    ApplyReport: Report "Apply Demo Data Scenario";
                 begin
                     if Rec.Applied <> 0DT then
                         Error(ApplyAgainErr);

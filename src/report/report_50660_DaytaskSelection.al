@@ -1,4 +1,4 @@
-report 50660 "Opti DayPlanning Selection"
+report 50660 "DayPlanning Selection"
 {
     Caption = 'DayPlanning Selection';
     ProcessingOnly = true;
@@ -7,7 +7,7 @@ report 50660 "Opti DayPlanning Selection"
 
     dataset
     {
-        dataitem(DayPlanning; "Opti Day Planning")
+        dataitem(DayPlanning; "Day Planning")
         {
             RequestFilterFields = "Plan Date", "Job No.", "Job Task No.", "Assigned Resource No.";
             DataItemTableView = where(Posted = const(false));
@@ -25,7 +25,7 @@ report 50660 "Opti DayPlanning Selection"
 
             trigger OnAfterGetRecord()
             var
-                DayPlanningJnlLine: Record "Opti DayPlanning Journal Line";
+                DayPlanningJnlLine: Record "DayPlanning Journal Line";
                 Skill: Record "Skill Code";
             begin
                 // Skip if this Day Planning is already in the journal
@@ -44,8 +44,8 @@ report 50660 "Opti DayPlanning Selection"
                 DayPlanningJnlLine."Hours" := DayPlanning."Assigned Hours";
                 DayPlanningJnlLine.Skill := DayPlanning."Skill";
                 Skill.Get(DayPlanningJnlLine.Skill);
-                Skill.TestField("Opti Invoice Resource No.");
-                DayPlanningJnlLine."Invoice Resource No." := Skill."Opti Invoice Resource No.";
+                Skill.TestField("Invoice Resource No.");
+                DayPlanningJnlLine."Invoice Resource No." := Skill."Invoice Resource No.";
                 DayPlanningJnlLine."Approved Project Manager" := DayPlanning."Approved Project Manager";
                 FillDimensions(DayPlanningJnlLine, DayPlanning);
                 DayPlanningJnlLine.Insert(true);
@@ -93,7 +93,7 @@ report 50660 "Opti DayPlanning Selection"
         exit(DocNo);
     end;
 
-    local procedure FillDimensions(var DayPlanningJnlLine: Record "Opti DayPlanning Journal Line"; DayPlanning: Record "Opti Day Planning")
+    local procedure FillDimensions(var DayPlanningJnlLine: Record "DayPlanning Journal Line"; DayPlanning: Record "Day Planning")
     var
         DimMgt: Codeunit DimensionManagement;
         DefaultDimSource: List of [Dictionary of [Integer, Code[20]]];

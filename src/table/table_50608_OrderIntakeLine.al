@@ -1,4 +1,4 @@
-table 50608 "Opti Order Intake Line"
+table 50608 "Order Intake Line"
 {
     Caption = 'Workorder';
     DataClassification = CustomerContent;
@@ -9,7 +9,7 @@ table 50608 "Opti Order Intake Line"
         {
             Caption = 'Order Intake No.';
             DataClassification = CustomerContent;
-            TableRelation = "Opti Order Intake Header Opt.";
+            TableRelation = "Order Intake Header Opt.";
         }
         field(2; "Line No."; Integer)
         {
@@ -45,13 +45,13 @@ table 50608 "Opti Order Intake Line"
         {
             Caption = 'Planned Start Date';
             FieldClass = FlowField;
-            CalcFormula = lookup("Job Task"."Opti VisualBarStartDate" where("Job No." = field("Project No."), "Job Task No." = FIELD("Project Task No.")));
+            CalcFormula = lookup("Job Task".VisualBarStartDate where("Job No." = field("Project No."), "Job Task No." = FIELD("Project Task No.")));
         }
         field(201; "Planned End Date"; Date)
         {
             Caption = 'Planned End Date';
             FieldClass = FlowField;
-            CalcFormula = lookup("Job Task"."Opti VisualBarEndDate" where("Job No." = field("Project No."), "Job Task No." = FIELD("Project Task No.")));
+            CalcFormula = lookup("Job Task".VisualBarEndDate where("Job No." = field("Project No."), "Job Task No." = FIELD("Project Task No.")));
         }
 
     }
@@ -78,7 +78,7 @@ table 50608 "Opti Order Intake Line"
 
     trigger OnInsert()
     var
-        OrderIntakeHeader: Record "Opti Order Intake Header Opt.";
+        OrderIntakeHeader: Record "Order Intake Header Opt.";
     begin
         OrderIntakeHeader.Get("Order Intake No.");
         OrderIntakeHeader.TestField("Customer No.");

@@ -1,6 +1,5 @@
-enum 50615 "Opti Fixed Units Rule"
+enum 50615 "Fixed Units Rule"
 {
-    Caption = 'Fixed Units Rule';
     Extensible = true;
 
     value(0; "Not Fixed")

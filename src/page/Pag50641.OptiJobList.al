@@ -27,7 +27,7 @@ page 50641 "Opti Job List"
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies a short description of the project.';
                 }
-                field("Project Type"; Rec."Opti Project Type")
+                field("Project Type"; Rec."Project Type")
                 {
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the type of the project. The project type is used to categorize projects. You can set up different project types based on your business needs.';
@@ -275,7 +275,7 @@ page 50641 "Opti Job List"
 
                     trigger OnAction()
                     var
-                        DayPlanningScheduler: Page "Opti DHX Scheduler (Project)";
+                        DayPlanningScheduler: Page "DHX Scheduler (Project)";
                     begin
                         DayPlanningScheduler.SetJobTaskFilter(Rec."No.", '');
                         DayPlanningScheduler.RunModal();
@@ -290,7 +290,7 @@ page 50641 "Opti Job List"
 
                     trigger OnAction()
                     var
-                        Gantt: Page "Opti Gantt Demo DHX 2";
+                        Gantt: Page "Gantt Demo DHX 2";
                     begin
                         Gantt.SetJobFilter(Rec."No.");
                         Gantt.RunModal();
@@ -305,7 +305,7 @@ page 50641 "Opti Job List"
 
                     trigger OnAction()
                     var
-                        ResCalender: Page "Opti Resource Calendar";
+                        ResCalender: Page "Resource Calendar";
                         JobResource: Record Resource;
                     begin
                         MarkJobResources(JobResource);
@@ -322,7 +322,7 @@ page 50641 "Opti Job List"
 
                     trigger OnAction()
                     var
-                        ResScheduler: Page "Opti Res. Scheduler - TimeLine";
+                        ResScheduler: Page "Resource Scheduler - TimeLine";
                         JobResource: Record Resource;
                     begin
                         MarkJobResources(JobResource);
@@ -339,7 +339,7 @@ page 50641 "Opti Job List"
 
                     trigger OnAction()
                     var
-                        ResScheduler: Page "Opti DHX Scheduler (Pool Res.)";
+                        ResScheduler: Page "DHX Scheduler (Pool Resource)";
                         JobResource: Record Resource;
                     begin
                         MarkJobResources(JobResource);
@@ -356,7 +356,7 @@ page 50641 "Opti Job List"
 
                     trigger OnAction()
                     var
-                        ReqAssignBoard: Page "Opti DHX Request Assign. Board";
+                        ReqAssignBoard: Page "DHX Request Assignment Board";
                     begin
                         ReqAssignBoard.SetJobFilter(Rec."No.");
                         ReqAssignBoard.RunModal();
@@ -483,7 +483,7 @@ page 50641 "Opti Job List"
 
     local procedure MarkJobResources(var Resource: Record Resource)
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         Marked: List of [Code[20]];
     begin
         Resource.Reset();

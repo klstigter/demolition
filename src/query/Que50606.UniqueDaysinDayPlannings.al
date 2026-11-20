@@ -1,11 +1,11 @@
-query 50606 "Opti Uniq. Days in Day Plans"
+query 50606 "Unique Days in Day Plannings"
 {
     QueryType = Normal;
     Caption = 'Unique Days in Day Plannings';
 
     elements
     {
-        dataitem(Day_Tasks; "Opti Day Planning")
+        dataitem(Day_Tasks; "Day Planning")
         {
             filter(TaskDateFilter; "Plan Date") { }
             filter(Resource_Group_No_Filter; "Resource Group No.") { }

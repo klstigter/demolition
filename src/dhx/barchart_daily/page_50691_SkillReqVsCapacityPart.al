@@ -1,7 +1,7 @@
-page 50661 "Opti SkillReq. vs Cap.Part v1"
+page 50661 "SkillReq. vs CapacityPart v1"
 {
     PageType = ListPart;
-    SourceTable = "Opti Skill Req. vs Cap. Buffer";
+    SourceTable = "Skill Req. vs Capacity Buffer";
     SourceTableTemporary = true;
     Caption = 'Requested vs Capacity per Skill';
     Editable = false;
@@ -47,7 +47,7 @@ page 50661 "Opti SkillReq. vs Cap.Part v1"
 
                     trigger OnDrillDown()
                     var
-                        DayPlanning: Record "Opti Day Planning";
+                        DayPlanning: Record "Day Planning";
                     begin
                         DayPlanning.Reset();
                         DayPlanning.SetRange(Skill, Rec."No.");
@@ -61,7 +61,7 @@ page 50661 "Opti SkillReq. vs Cap.Part v1"
                             CurrDateToFilter <> 0D:
                                 DayPlanning.SetFilter("Plan Date", '<=%1', CurrDateToFilter);
                         end;
-                        Page.Run(Page::"Opti Day Plannings", DayPlanning);
+                        Page.Run(Page::"Day Plannings", DayPlanning);
                     end;
                 }
                 // "Assigned Hours" portion of Requested Hours (see codeunit 50608's
@@ -79,7 +79,7 @@ page 50661 "Opti SkillReq. vs Cap.Part v1"
     /// <summary>
     /// Replaces the content of this part with the rows of the supplied temporary buffer.
     /// </summary>
-    procedure LoadData(var SourceBuffer: Record "Opti Skill Req. vs Cap. Buffer" temporary; ResourceNoFilter: Code[20]; DateFromFilter: Date; DateToFilter: Date)
+    procedure LoadData(var SourceBuffer: Record "Skill Req. vs Capacity Buffer" temporary; ResourceNoFilter: Code[20]; DateFromFilter: Date; DateToFilter: Date)
     begin
         CurrResourceNoFilter := ResourceNoFilter;
         CurrDateFromFilter := DateFromFilter;

@@ -14,7 +14,7 @@
 ///     alone does NOT populate the selection filter - confirmed broken by live
 ///     testing). Copied verbatim for both Resource No. and Skill Codes below.
 /// </summary>
-report 50661 "Opti Set Capacity opt."
+report 50661 "Set Capacity opt."
 {
     Caption = 'Set Capacity';
     ProcessingOnly = true;
@@ -43,7 +43,7 @@ report 50661 "Opti Set Capacity opt."
                     Resource.SetFilter("No.", ResourceNoFilter);
 
                 if Mandatory then
-                    Resource.SetRange("Opti Mandatory Schedulling", true);
+                    Resource.SetRange("Mandatory Schedulling", true);
 
                 if not Confirm(Text005, false, StartDate, EndDate) then
                     CurrReport.Break();
@@ -213,7 +213,7 @@ report 50661 "Opti Set Capacity opt."
 
         trigger OnOpenPage()
         var
-            DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
+            DailyOptimizerSetup: Record "Daily Optimizer Setup";
         begin
             Mandatory := true;
             ResourceTypeFilter := ResourceTypeFilter::All;
@@ -255,7 +255,7 @@ report 50661 "Opti Set Capacity opt."
 
     local procedure IsExternalResource(var Resource: Record Resource): Boolean
     begin
-        exit(Resource."Opti Is External" or Resource."Opti Is Pool" or Resource."Opti Is Pool Member");
+        exit(Resource."Is External" or Resource."Is Pool" or Resource."Is Pool Member");
     end;
 
     local procedure ResourceHasMatchingSkill(ResourceNo: Code[20]): Boolean
@@ -336,7 +336,7 @@ report 50661 "Opti Set Capacity opt."
                     ResCapacityEntry.Reset();
                     ResCapacityEntry.SetRange("Resource No.", Resource."No.");
                     ResCapacityEntry.SetRange(Date, TempDate);
-                    ResCapacityEntry.SetRange("Opti Duplicate Id", LoopCounter);
+                    ResCapacityEntry.SetRange("Duplicate Id", LoopCounter);
                     ResCapacityEntry.CalcSums(Capacity);
                     TempCapacity := ResCapacityEntry.Capacity;
 
@@ -350,16 +350,16 @@ report 50661 "Opti Set Capacity opt."
                     ResCapacityEntry2."Resource No." := Resource."No.";
                     ResCapacityEntry2."Resource Group No." := Resource."Resource Group No.";
                     ResCapacityEntry2.Date := TempDate;
-                    ResCapacityEntry2."Opti Duplicate Id" := LoopCounter;
+                    ResCapacityEntry2."Duplicate Id" := LoopCounter;
 
                     //<< Same as page 50627's UpdateCapacity action
                     if HasWorkTemplate then begin
-                        if WorkTemplateRec."Opti Default Start Time" <> 0T then begin
-                            ResCapacityEntry2."Opti Start Time" := WorkTemplateRec."Opti Default Start Time";
-                            if WorkTemplateRec."Opti Default End Time" <> 0T then
-                                ResCapacityEntry2."Opti End Time" := WorkTemplateRec."Opti Default End Time"
+                        if WorkTemplateRec."Default Start Time" <> 0T then begin
+                            ResCapacityEntry2."Start Time" := WorkTemplateRec."Default Start Time";
+                            if WorkTemplateRec."Default End Time" <> 0T then
+                                ResCapacityEntry2."End Time" := WorkTemplateRec."Default End Time"
                             else
-                                ResCapacityEntry2."Opti End Time" := WorkTemplateRec."Opti Default Start Time" + (Abs(ResCapacityEntry2.Capacity) * 3600000);
+                                ResCapacityEntry2."End Time" := WorkTemplateRec."Default Start Time" + (Abs(ResCapacityEntry2.Capacity) * 3600000);
                         end;
                     end;
                     //>>

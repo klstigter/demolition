@@ -1,13 +1,12 @@
-report 50602 "Opti DayPlanning"
+report 50602 DayPlanning
 {
-    Caption = 'DayPlanning';
     UsageCategory = ReportsAndAnalysis;
     ApplicationArea = All;
     DefaultRenderingLayout = DayPlanningReport;
 
     dataset
     {
-        dataitem(DayPlanning; "Opti Day Planning")
+        dataitem(DayPlanning; "Day Planning")
         {
             dataitemtableview = sorting("Job No.", "Job Task No.", "Plan Date") where("plan status" = const("In Progress"));
 
@@ -26,7 +25,7 @@ report 50602 "Opti DayPlanning"
             dataitem(Integer; "Integer")
             {
                 dataitemtableview = sorting(Number) where(Number = const(1));
-                dataitem(DayPlanning2; "Opti Day Planning")
+                dataitem(DayPlanning2; "Day Planning")
 
                 {
                     DataItemLinkReference = DayPlanning;
@@ -39,15 +38,15 @@ report 50602 "Opti DayPlanning"
                     {
                         Caption = 'Resource No.';
                     }
-                    column(IsPool; resource."Opti Is Pool")
+                    column(IsPool; resource."Is Pool")
                     {
                         Caption = 'Is Pool';
                     }
-                    column(PoolResourceName; resource."Opti Pool Resource No.")
+                    column(PoolResourceName; resource."pool Resource no.")
                     {
                         Caption = 'Resource Name';
                     }
-                    column(IsForeman; resource."Opti Is Foreman")
+                    column(IsForeman; resource."Is Foreman")
                     {
                         Caption = 'Is Foreman';
                     }
@@ -74,10 +73,10 @@ report 50602 "Opti DayPlanning"
                             if not TEMPresource.Get(DayPlanning2."Assigned Resource No.") then begin
                                 TEMPresource.Init();
                                 TEMPresource."No." := DayPlanning2."Assigned Resource No.";
-                                TEMPresource."Opti Is Pool" := resource."Opti Is Pool";
-                                TEMPresource."Opti Pool Resource No." := resource."Opti Pool Resource No.";
-                                TEMPresource."Opti Is Foreman" := resource."Opti Is Foreman";
-                                TEMPresource."Opti Is Pool Member" := resource."Opti Is Pool Member";
+                                TEMPresource."Is Pool" := resource."Is Pool";
+                                TEMPresource."Pool Resource no." := resource."pool Resource no.";
+                                TEMPresource."Is Foreman" := resource."Is Foreman";
+                                TEMPresource."Is Pool Member" := resource."Is Pool Member";
                                 TEMPresource."Direct Unit Cost" := DayPlanning2."Assigned Hours";
                                 DoInsert := true;
                             end else begin
@@ -158,10 +157,10 @@ report 50602 "Opti DayPlanning"
                     trigger OnLookup(var Text: Text): Boolean
                     var
                         YearWeek: Record "Integer" temporary;
-                        SumWk: Record "Opti Summary Weekly";
+                        SumWk: Record "Summary Weekly";
                         Year: Integer;
                         Week: Integer;
-                        Pg: Page "Opti Week View";
+                        Pg: Page "Week View";
                     begin
                         pg.LookupMode(true);
                         pg.SetShowWeek(true);
@@ -214,14 +213,14 @@ report 50602 "Opti DayPlanning"
         // tempresource.Reset();
         // tempresource.DeleteAll();
         // CreateTestResources(tempresource);
-        tempresource.SetFilter("Opti Is Pool", '=%1', true);
+        tempresource.SetFilter("Is Pool", '=%1', true);
         if tempresource.FindSet() then
             repeat
-                if not TEMPresourcePool.get(tempresource."Opti Pool Resource No.") then begin
+                if not TEMPresourcePool.get(tempresource."pool Resource no.") then begin
                     tempresourcePool.Init();
-                    tempresourcePool."No." := tempresource."Opti Pool Resource No.";
-                    tempresourcePool."Name" := tempresource."Opti Pool Resource No.";
-                    tempresourcePool."Opti Is Pool" := true;
+                    tempresourcePool."No." := tempresource."pool Resource no.";
+                    tempresourcePool."Name" := tempresource."pool Resource no.";
+                    tempresourcePool."Is Pool" := true;
                     TEMPresourcePool."Direct Unit Cost" := DayPlanning2."Assigned Hours";
                     tempresourcePool.insert();
                 end else begin
@@ -237,22 +236,22 @@ report 50602 "Opti DayPlanning"
                 1:
                     begin
                         tempresource.reset;
-                        tempresource.setrange("Opti Is Foreman", true);
+                        tempresource.setrange("Is Foreman", true);
                     end;
 
                 2:
                     begin
                         tempresource.reset;
-                        tempresource.setrange("Opti Is Foreman", false);
-                        tempresource.setrange("Opti Is Pool Member", false);
+                        tempresource.setrange("Is Foreman", false);
+                        tempresource.setrange("Is Pool Member", false);
                     end;
                 3:
                     begin
                         tempresource.reset;
-                        tempresource.setrange("Opti Is Foreman", false);
-                        tempresource.setrange("Opti Is Pool Member", true);
-                        tempresource.setrange("Opti Is Pool", false);
-                        tempresource.SetFilter("Opti Pool Resource No.", '=%1', '');
+                        tempresource.setrange("Is Foreman", false);
+                        tempresource.setrange("Is Pool Member", true);
+                        tempresource.setrange("Is Pool", false);
+                        tempresource.SetFilter("pool Resource no.", '=%1', '');
                     end;
             end;
 
@@ -266,10 +265,10 @@ report 50602 "Opti DayPlanning"
             repeat
                 appendResourceInfo(tempresourcePool, Html);
                 tempresource.Reset();
-                tempresource.SetRange("Opti Pool Resource No.", tempresourcePool."No.");
-                tempresource.setrange("Opti Is Foreman", false);
-                tempresource.setrange("Opti Is Pool Member", true);
-                tempresource.setrange("Opti Is Pool", false);
+                tempresource.SetRange("pool Resource no.", tempresourcePool."No.");
+                tempresource.setrange("Is Foreman", false);
+                tempresource.setrange("Is Pool Member", true);
+                tempresource.setrange("Is Pool", false);
                 if tempresource.FindSet() then
                     repeat
                         appendResourceInfo(tempresource, Html);
@@ -289,10 +288,10 @@ report 50602 "Opti DayPlanning"
 
         StyleTxt := '';
 
-        if Rs."Opti Is Foreman" = true then
+        if Rs."Is Foreman" = true then
             StyleTxt += 'color:red;';
 
-        if Rs."Opti Is Pool" = true then
+        if Rs."Is Pool" = true then
             StyleTxt += 'font-weight:bold;';
 
 
@@ -300,7 +299,7 @@ report 50602 "Opti DayPlanning"
         if StyleTxt <> '' then
             Html.Append(' style="' + StyleTxt + '"');
         Html.Append('>');
-        if Rs."Opti Is Pool Member" = true then
+        if Rs."Is Pool Member" = true then
             Html.Append('-  ');
         if rs."Name" <> '' then
             txt := rs."Name"
@@ -324,7 +323,6 @@ report 50602 "Opti DayPlanning"
 
     local procedure ValidateYrWkFilterFormat(var YrWkFilter: Text): Boolean
     var
-        InvalidFormatPleaseEnterErr: Label 'Invalid format. Please enter in YYYY-WW format.';
         y, w, l : Integer;
         NotValidFormat: Boolean;
     begin
@@ -344,7 +342,7 @@ report 50602 "Opti DayPlanning"
         end else
             NotValidFormat := true;
         if NotValidFormat then
-            Error(InvalidFormatPleaseEnterErr);
+            Error('Invalid format. Please enter in YYYY-WW format.');
         exit(true)
     end;
 
@@ -441,10 +439,10 @@ report 50602 "Opti DayPlanning"
 
         Resource.Validate(Name, ResourceName);
 
-        Resource."Opti Pool Resource No." := PoolResourceNo;
-        Resource."Opti Is Pool Member" := IsExternal;
-        Resource."Opti Is Pool" := IsPool;
-        Resource."Opti Is Foreman" := IsForeman;
+        Resource."pool Resource no." := PoolResourceNo;
+        Resource."Is Pool Member" := IsExternal;
+        Resource."Is Pool" := IsPool;
+        Resource."Is Foreman" := IsForeman;
 
         Resource.Insert(true);
     end;

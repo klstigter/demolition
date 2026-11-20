@@ -1,62 +1,44 @@
-pageextension 50603 "Opti ResourceList" extends "Resource List"
+pageextension 50603 "Opt ResourceList" extends "Resource List"
 {
     layout
     {
         // Add changes to page layout here
         addafter(Type)
         {
-            field("Opti Pool Resource No."; Rec."Opti Pool Resource No.")
+            field("Pool Resource No."; Rec."Pool Resource No.")
             {
-                Caption = 'Pool Resource No.';
-                ToolTip = 'Specifies the value of the Pool Resource No. field.';
                 ApplicationArea = All;
             }
-            field("Opti Vendor No."; Rec."Vendor No.")
+            field("Vendor No."; Rec."Vendor No.")
             {
-                Caption = 'Vendor No.';
-                ToolTip = 'Specifies the value of the Vendor No. field.';
                 ApplicationArea = All;
             }
-            field("Opti Is Pool"; Rec."Opti Is Pool")
+            field("Is Pool"; Rec."Is Pool")
             {
-                Caption = 'Is Pool';
-                ToolTip = 'Specifies the value of the Is Pool field.';
                 ApplicationArea = All;
             }
-            field("Opti Is Pool Member"; Rec."Opti Is Pool Member")
+            field("Is Pool Member"; Rec."Is Pool Member")
             {
-                Caption = 'Is Pool Member';
-                ToolTip = 'Specifies the value of the Is Pool Member field.';
                 ApplicationArea = All;
             }
-            field("Opti Is External"; Rec."Opti Is External")
+            field("Is External"; Rec."Is External")
             {
-                Caption = 'Is External';
-                ToolTip = 'Specifies the value of the Is External field.';
                 ApplicationArea = All;
             }
-            field("Opti Is Foreman"; Rec."Opti Is Foreman")
+            field("Is Foreman"; Rec."Is Foreman")
             {
-                Caption = 'Is Foreman';
-                ToolTip = 'Specifies the value of the Is Foreman field.';
                 ApplicationArea = All;
             }
-            field("Opti Mandatory Schedulling"; Rec."Opti Mandatory Schedulling")
+            field("Mandatory Schedulling"; Rec."Mandatory Schedulling")
             {
-                Caption = 'Mandatory Schedulling';
-                ToolTip = 'Specifies the value of the Mandatory Schedulling field.';
                 ApplicationArea = All;
             }
-            field("Opti Default Foreman"; Rec."Opti Default Foreman")
+            field("Default Foreman"; Rec."Default Foreman")
             {
-                Caption = 'Default Foreman';
-                ToolTip = 'Specifies the value of the Default Foreman field.';
                 ApplicationArea = All;
             }
-            field("Opti Default Foreman Name"; Rec."Opti Default Foreman Name")
+            field("Default Foreman Name"; Rec."Default Foreman Name")
             {
-                Caption = 'Default Foreman Name';
-                ToolTip = 'Specifies the value of the Default Foreman Name field.';
                 ApplicationArea = All;
             }
 
@@ -68,64 +50,58 @@ pageextension 50603 "Opti ResourceList" extends "Resource List"
         // Add changes to page actions here
         addafter("&Resource")
         {
-            action("Opti Schedule (Visual)")
+            action("Schedule (Visual)")
             {
-                Caption = 'Schedule (Visual)';
-                ToolTip = 'Executes the Schedule (Visual) action.';
                 ApplicationArea = All;
                 trigger OnAction()
                 var
-                    ResScheduler: page "Opti Resource Calendar";
+                    ResScheduler: page "Resource Calendar";
                 begin
                     ResScheduler.SetResourceFilter(GetSelectionFilter());
                     ResScheduler.RunModal();
                 end;
             }
-            action("Opti DayPlannings (Visual)")
+            action("DayPlannings (Visual)")
             {
-                Caption = 'DayPlannings (Visual)';
-                ToolTip = 'Executes the Day Plannings (Visual) action.';
                 ApplicationArea = All;
                 trigger OnAction()
                 var
-                    DayPlanningScheduler: page "Opti DHX Scheduler (Project)";
+                    DayPlanningScheduler: page "DHX Scheduler (Project)";
                 begin
                     DayPlanningScheduler.SetResourceFilter(GetSelectionFilter());
                     DayPlanningScheduler.RunModal();
                 end;
             }
-            action("Opti Capacity (Visual)")
+            action("Capacity (Visual)")
             {
-                Caption = 'Capacity (Visual)';
-                ToolTip = 'Executes the Capacity (Visual) action.';
                 ApplicationArea = All;
                 trigger OnAction()
                 var
-                    ResScheduler: page "Opti DHX Scheduler (Pool Res.)";
+                    ResScheduler: page "DHX Scheduler (Pool Resource)";
                 begin
                     //ResScheduler.SetResourceFilter(Rec."No.");
                     ResScheduler.RunModal();
                 end;
             }
-            action("Opti Set Capacity Opt")
+            action("Set Capacity Opt")
             {
                 ApplicationArea = Jobs;
                 Caption = '&Set Capacity';
-                RunObject = Page "Opti Res. Cap. Settings Opt";
+                RunObject = Page "Resource Capacity Settings Opt";
                 RunPageLink = "No." = field("No.");
                 ToolTip = 'Change the capacity of the resource, such as a technician.';
             }
-            action("Opti Absence")
+            action("Absence")
             {
                 ApplicationArea = All;
                 Caption = 'Absence';
                 Image = Absence;
-                RunObject = page "Opti Resource Absence List";
-                RunPageLink = "Resource No." = field("No."), "Opti Type" = const(Absence);
+                RunObject = page "Resource Absence List";
+                RunPageLink = "Resource No." = field("No."), Type = const(Absence);
                 ToolTip = 'View and register absence entries for this resource.';
             }
 
-            action("Opti S&kills_Custom")
+            action("S&kills_Custom")
             {
                 ApplicationArea = Basic, Suite;
                 Caption = 'S&kills';
@@ -135,28 +111,26 @@ pageextension 50603 "Opti ResourceList" extends "Resource List"
                                 "No." = field("No.");
                 ToolTip = 'View the assignment of skills to the resource. You can use skill codes to allocate skilled resources to service items or items that need special skills for servicing.';
             }
-            action("Opti Resource Scheduler")
+            action("Resource Scheduler")
             {
-                ToolTip = 'Executes the Resource Scheduler action.';
                 ApplicationArea = All;
                 Caption = 'Resource Calendar';
                 trigger OnAction()
                 var
-                    ResScheduler: page "Opti Resource Calendar";
+                    ResScheduler: page "Resource Calendar";
                 begin
                     ResScheduler.SetResourceFilter(Rec."No.");
                     ResScheduler.RunModal();
                 end;
             }
-            action("Opti DayPlanning")
+            action(DayPlanning)
             {
-                ToolTip = 'Executes the Day Planning action.';
                 ApplicationArea = All;
                 Caption = 'Day Planning';
 
                 trigger OnAction()
                 var
-                    DayPlanning: Record "Opti Day Planning";
+                    DayPlanning: Record "Day Planning";
                 begin
                     DayPlanning.Reset();
                     DayPlanning.FilterGroup(2);
@@ -174,39 +148,39 @@ pageextension 50603 "Opti ResourceList" extends "Resource List"
                     DayPlanning.SetRange("Assigned Resource No.");
                     DayPlanning.MarkedOnly := true;
                     DayPlanning.FilterGroup(0);
-                    Page.Run(Page::"Opti Day Plannings", DayPlanning);
+                    Page.Run(Page::"Day Plannings", DayPlanning);
                 end;
             }
         }
         addafter("Ledger E&ntries_Promoted")
         {
-            Group("Opti Capacity")
+            Group(Capacity)
             {
                 Caption = 'Capacity';
                 ShowAs = SplitButton;
                 Image = Planning;
-                actionref("Opti Set Capacity Opt actionref"; "Opti Set Capacity Opt") { }
-                actionref("Opti Absence_actionref"; "Opti Absence") { }
-                actionref("Opti Resource &Capacity_actionref"; "Resource &Capacity") { }
+                actionref("Set Capacity Opt actionref"; "Set Capacity Opt") { }
+                actionref("Absence_actionref"; "Absence") { }
+                actionref("Resource &Capacity_actionref"; "Resource &Capacity") { }
             }
-            Group("Opti Visuals")
+            Group(Visuals)
             {
                 Caption = 'Planning';
                 ShowAs = SplitButton;
                 Image = Planning;
-                actionref("Opti Schedule (Visual) actionref"; "Opti Schedule (Visual)") { }
-                actionref("Opti DayPlannings (Visual) actionref"; "Opti DayPlannings (Visual)") { }
-                actionref("Opti Capacity actionref"; "Opti Capacity (Visual)") { }
+                actionref("Schedule (Visual) actionref"; "Schedule (Visual)") { }
+                actionref("DayPlannings (Visual) actionref"; "DayPlannings (Visual)") { }
+                actionref("Capacity actionref"; "Capacity (Visual)") { }
             }
         }
         addafter("Create Time Sheets_Promoted")
         {
-            actionref("Opti S&kills_Promoted_custom_list"; "Opti S&kills_Custom") { }
-            actionref("Opti Resource Scheduler_Promoted_list"; "Opti Resource Scheduler") { }
-            actionref("Opti DayPlanningRef_list"; "Opti DayPlanning") { }
-            actionref("Opti Set Capacity Opt actionref_home"; "Opti Set Capacity Opt") { }
-            actionref("Opti Absence actionref_home"; "Opti Absence") { }
-            actionref("Opti Resource Capacity actionref_home"; "Resource &Capacity") { }
+            actionref("S&kills_Promoted_custom_list"; "S&kills_Custom") { }
+            actionref("Resource Scheduler_Promoted_list"; "Resource Scheduler") { }
+            actionref("DayPlanningRef_list"; DayPlanning) { }
+            actionref("Set Capacity Opt actionref_home"; "Set Capacity Opt") { }
+            actionref("Absence actionref_home"; "Absence") { }
+            actionref("Resource Capacity actionref_home"; "Resource &Capacity") { }
         }
     }
 

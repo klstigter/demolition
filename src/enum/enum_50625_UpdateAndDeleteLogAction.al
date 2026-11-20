@@ -1,7 +1,6 @@
 // API Integeration for Exposing API Pages
-enum 50625 "Opti Upd. Del. Log Action"
+enum 50625 "Update and Delete Log Action"
 {
-    Caption = 'Update and Delete Log Action';
     Extensible = true;
 
     value(0; Modify) { }

@@ -1,4 +1,4 @@
-controladdin "OptiDHXDayPlanningSequenceAddin"
+controladdin DHXDayPlanningSequenceAddin
 {
     RequestedHeight = 620;
     MinimumHeight = 380;

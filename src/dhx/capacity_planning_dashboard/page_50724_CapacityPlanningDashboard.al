@@ -1,4 +1,4 @@
-page 50724 "Opti Capacity Plan. Dashboard"
+page 50724 "Capacity Planning Dashboard"
 {
     // Role Center tile - embeds DHXCapacityPlanningDashboardAddin (Sections 1/3/4 only, no single
     // inspected Work Order - see that controladdin's own capacityPlanningDashboard.js doc comment).
@@ -14,7 +14,7 @@ page 50724 "Opti Capacity Plan. Dashboard"
     {
         area(content)
         {
-            usercontrol(DhxCpoDash; "OptiDHXCapacityPlanningDashboardAddin")
+            usercontrol(DhxCpoDash; DHXCapacityPlanningDashboardAddin)
             {
                 ApplicationArea = All;
 
@@ -79,7 +79,7 @@ page 50724 "Opti Capacity Plan. Dashboard"
                 /// </summary>
                 trigger OnOpenDayPlanningList(PayloadJsonTxt: Text)
                 var
-                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
+                    DHXDataHandler: Codeunit "DHX Data Handler";
                 begin
                     DHXDataHandler.CPO_OpenDayPlanningList(PayloadJsonTxt);
                 end;
@@ -90,35 +90,35 @@ page 50724 "Opti Capacity Plan. Dashboard"
                 /// </summary>
                 trigger OnOpenTaskScheduler(PayloadJsonTxt: Text)
                 var
-                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
+                    DHXDataHandler: Codeunit "DHX Data Handler";
                 begin
                     DHXDataHandler.CPO_OpenTaskScheduler(PayloadJsonTxt);
                 end;
 
                 trigger OnOpenResourceScheduler(PayloadJsonTxt: Text)
                 var
-                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
+                    DHXDataHandler: Codeunit "DHX Data Handler";
                 begin
                     DHXDataHandler.CPO_OpenResourceScheduler(PayloadJsonTxt);
                 end;
 
                 trigger OnOpenCapacityScheduler(PayloadJsonTxt: Text)
                 var
-                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
+                    DHXDataHandler: Codeunit "DHX Data Handler";
                 begin
                     DHXDataHandler.CPO_OpenCapacityScheduler(PayloadJsonTxt);
                 end;
 
                 trigger OnShowSkillResourceCard(PayloadJsonTxt: Text)
                 var
-                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
+                    DHXDataHandler: Codeunit "DHX Data Handler";
                 begin
                     DHXDataHandler.CPO_OpenSkillResourceCard(PayloadJsonTxt);
                 end;
 
                 trigger OnShowSkillDayPlanning(PayloadJsonTxt: Text)
                 var
-                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
+                    DHXDataHandler: Codeunit "DHX Data Handler";
                 begin
                     DHXDataHandler.CPO_OpenSkillDayPlanning(PayloadJsonTxt);
                 end;
@@ -126,7 +126,7 @@ page 50724 "Opti Capacity Plan. Dashboard"
                 /// <summary>Section 4 cell hover tooltip - loads that cell's Day Planning lines on demand.</summary>
                 trigger OnRequestCellTooltip(PayloadJsonTxt: Text)
                 var
-                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
+                    DHXDataHandler: Codeunit "DHX Data Handler";
                     PayloadJObj: JsonObject;
                     LinesJArr: JsonArray;
                     ResultJObj: JsonObject;
@@ -152,7 +152,7 @@ page 50724 "Opti Capacity Plan. Dashboard"
                 /// </summary>
                 trigger OnShowCapacityBarSegment(PayloadJsonTxt: Text)
                 var
-                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
+                    DHXDataHandler: Codeunit "DHX Data Handler";
                 begin
                     DHXDataHandler.CPO_ShowCapacityBarSegment(PayloadJsonTxt);
                 end;
@@ -171,7 +171,7 @@ page 50724 "Opti Capacity Plan. Dashboard"
     /// <summary>Same tooltip-color channel as page 50722's own SendColors - see that procedure's own doc comment.</summary>
     local procedure SendColors()
     var
-        VisualDefaultSettings: Codeunit "Opti Visual Default Settings";
+        VisualDefaultSettings: Codeunit "Visual Default Settings";
         ColorsJsonTxt: Text;
     begin
         ColorsJsonTxt := StrSubstNo('{"tooltipBg":"%1","tooltipFont":"%2"}',
@@ -202,8 +202,8 @@ page 50724 "Opti Capacity Plan. Dashboard"
     /// </summary>
     local procedure RefreshData()
     var
-        DHXDataHandler: Codeunit "Opti DHX Data Handler";
-        VisualDefaultSettings: Codeunit "Opti Visual Default Settings";
+        DHXDataHandler: Codeunit "DHX Data Handler";
+        VisualDefaultSettings: Codeunit "Visual Default Settings";
         PlanningDataJson: Text;
     begin
         PlanningDataJson := DHXDataHandler.CPO_BuildDashboardDataJson(PeriodStartDate, 7);

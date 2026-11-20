@@ -1,12 +1,11 @@
-tableextension 50600 "Opti ResourceSkill" extends "Resource Skill"
+tableextension 50600 "ResourceSkill opt." extends "Resource Skill"
 {
     fields
     {
         // Add changes to table fields here
-        field(50600; "Opti Prefered"; Boolean)
+        field(50600; "Prefered"; Boolean)
         {
-            Caption = 'Prefered';
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
         }
     }
 

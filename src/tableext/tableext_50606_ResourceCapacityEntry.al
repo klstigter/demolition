@@ -1,49 +1,42 @@
-tableextension 50606 "Opti ResCapacityEntry" extends "Res. Capacity Entry"
+tableextension 50606 "ResCapacityEntry Opt" extends "Res. Capacity Entry"
 {
     fields
     {
         // Add changes to table fields here
-        field(50600; "Opti Start Time"; Time)
+        field(50600; "Start Time"; Time)
         {
-            Caption = 'Start Time';
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
         }
-        field(50601; "Opti End Time"; Time)
+        field(50601; "End Time"; Time)
         {
-            Caption = 'End Time';
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
         }
-        field(50602; "Opti Duplicate Id"; Integer)
+        field(50602; "Duplicate Id"; Integer)
         {
-            Caption = 'Duplicate Id';
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
             InitValue = 1;
         }
-        field(50603; "Opti Assigned Hours"; Decimal)
+        field(50603; "Assigned Hours"; Decimal)
         {
-            Caption = 'Assigned Hours';
             Editable = false;
             fieldclass = FlowField;
-            calcformula = sum("Opti Day Planning"."Assigned Hours" where("Assigned Resource No." = field("Resource No."),
+            calcformula = sum("Day Planning"."Assigned Hours" where("Assigned Resource No." = field("Resource No."),
               "Plan Date" = field("Date")));
         }
-        field(50604; "Opti Requested Hours"; Decimal)
+        field(50604; "Requested Hours"; Decimal)
         {
-            Caption = 'Requested Hours';
             Editable = false;
             fieldclass = FlowField;
-            calcformula = sum("Opti Day Planning"."Requested Hours" where("Requested Resource No." = field("Resource No."),
+            calcformula = sum("Day Planning"."Requested Hours" where("Requested Resource No." = field("Resource No."),
               "Plan Date" = field("Date")));
         }
-        field(50605; "Opti Type"; Enum "Opti Res. Capacity Entry Type")
+        field(50605; Type; Enum "Res. Capacity Entry Type")
         {
-            Caption = 'Type';
-            DataClassification = CustomerContent;
+            DataClassification = SystemMetadata;
         }
-        field(50606; "Opti Absence Reason Code"; Code[10])
+        field(50606; "Absence Reason Code"; Code[10])
         {
-            Caption = 'Absence Reason Code';
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
             TableRelation = "Cause of Absence";
         }
     }

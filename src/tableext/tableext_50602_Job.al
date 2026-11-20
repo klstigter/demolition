@@ -1,23 +1,20 @@
-tableextension 50602 "Opti Job" extends Job
+tableextension 50602 "Job Ext" extends Job
 {
     fields
     {
         // Add changes to table fields here
-        field(50600; "Opti Job View Type"; Enum "Opti Job View Type")
+        field(50600; "Job View Type"; Enum "Job View Type")
         {
-            Caption = 'Job View Type';
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
         }
-        field(50601; "Opti Non Active"; Boolean)
+        field(50601; "Non Active"; Boolean)
         {
-            Caption = 'Non Active';
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
         }
-        field(50602; "Opti Project Type"; Code[20])
+        field(50602; "Project Type"; Code[20])
         {
-            Caption = 'Project Type';
-            DataClassification = CustomerContent;
-            TableRelation = "Opti Project Type Opt.";
+            DataClassification = ToBeClassified;
+            TableRelation = "Project Type Opt.";
         }
     }
 

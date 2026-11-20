@@ -1,12 +1,12 @@
-page 50607 "Opti Job Task List - Resource"
+page 50607 "Job Task List - Resource"
 {
     Caption = 'Project Task List (Resource)';
-    CardPageID = "Opti Job Task Card - Resource";
+    CardPageID = "Job Task Card - Resource";
     DataCaptionFields = "Job No.";
     Editable = false;
     PageType = List;
     SourceTable = "Job Task";
-    SourceTableView = where("Opti Job View Type" = const("Resource"));
+    SourceTableView = where("Job View Type" = const("Resource"));
 
     layout
     {
@@ -408,7 +408,7 @@ page 50607 "Opti Job Task List - Resource"
 
     trigger OnNewRecord(BelowxRec: Boolean)
     begin
-        Rec."Opti Job View Type" := Rec."Opti Job View Type"::"Resource";
+        Rec."Job View Type" := Rec."Job View Type"::"Resource";
     end;
 
     var

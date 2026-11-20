@@ -1,4 +1,4 @@
-page 50707 "Opti Requested vs Cap. Daily P"
+page 50707 "Requested vs Capacity Daily P"
 {
     PageType = CardPart;
     ApplicationArea = All;
@@ -40,7 +40,7 @@ page 50707 "Opti Requested vs Cap. Daily P"
             // 'title' keys added to ChartData in RefreshChart below - not part of the DHTMLX chart's
             // own SVG/legend, just plain HTML positioned above the chart container inside this
             // add-in's own DOM.
-            usercontrol(DhxBarChart; "OptiDHXBarChartAddin_daily")
+            usercontrol(DhxBarChart; DHXBarChartAddin_daily)
             {
                 ApplicationArea = All;
 
@@ -61,7 +61,7 @@ page 50707 "Opti Requested vs Cap. Daily P"
 
                 trigger OnOpenScheduler(Target: Text; SkillCode: Text; DayIndex: Integer)
                 var
-                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
+                    DHXDataHandler: Codeunit "DHX Data Handler";
                 begin
                     DHXDataHandler.CPO_OpenSchedulerFromChart(Target, SkillCode, PeriodStartDate);
                 end;
@@ -279,9 +279,9 @@ page 50707 "Opti Requested vs Cap. Daily P"
     end;
 
     var
-        Buffer: Record "Opti Skill Req. vs Cap. Buffer" temporary;
-        SkillCapacityAnalysisMgt: Codeunit "Opti SkillCapAnalysisMgt.v1";
-        VisualDefaultSettings: Codeunit "Opti Visual Default Settings";
+        Buffer: Record "Skill Req. vs Capacity Buffer" temporary;
+        SkillCapacityAnalysisMgt: Codeunit "SkillCapacityAnalysisMgt.v1";
+        VisualDefaultSettings: Codeunit "Visual Default Settings";
         ResourceNoFilter: Code[20];
         PeriodStartDate: Date;
         ChartReady: Boolean;

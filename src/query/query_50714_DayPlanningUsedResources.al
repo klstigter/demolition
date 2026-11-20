@@ -1,4 +1,4 @@
-query 50714 "Opti Day Plan. Used Resources"
+query 50714 "Day Planning Used Resources"
 {
     // Distinct (Assigned Resource No., Requested Resource No.) combinations of "Day Planning",
     // used by codeunit 50613 GetResourcesAsJson(AnchorDate, JobNo, JobTaskNo) so pass 1 no longer
@@ -8,12 +8,12 @@ query 50714 "Opti Day Plan. Used Resources"
 
     elements
     {
-        dataitem(Day_Planning; "Opti Day Planning")
+        dataitem(Day_Planning; "Day Planning")
         {
             filter(JobNoFilter; "Job No.") { }
             filter(JobTaskNoFilter; "Job Task No.") { }
             filter(PlanDateFilter; "Plan Date") { }
-            filter(SkillFilter; "Skill") { }
+            filter(SkillFilter; Skill) { }
 
             column(AssignedResourceNo; "Assigned Resource No.") { }
             column(RequestedResourceNo; "Requested Resource No.") { }

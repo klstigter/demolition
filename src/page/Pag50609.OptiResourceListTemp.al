@@ -59,14 +59,12 @@ page 50609 "Opti Resource List Temp"
                     }
                     field(capacity; Rec.Capacity)
                     {
-                        ToolTip = 'Specifies the value of the capacity field.';
                         ApplicationArea = Jobs;
                         Caption = 'Capacity';
 
                     }
-                    field("Assigned Hours"; Rec."Opti Assigned Hours")
+                    field("Assigned Hours"; Rec."Assigned Hours")
                     {
-                        ToolTip = 'Specifies the value of the Assigned Hours field.';
                         ApplicationArea = Jobs;
                         Caption = 'Assigned Hours';
                     }
@@ -76,12 +74,12 @@ page 50609 "Opti Resource List Temp"
                         ToolTip = 'Specifies the resource group that this resource is assigned to.';
                         Visible = true;
                     }
-                    field(Skills; Rec."Opti Skills")
+                    field(Skills; Rec.Skills)
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Specifies the number of skills associated with this resource.';
                     }
-                    field("Pool Resource No."; Rec."Opti Pool Resource No.")
+                    field("Pool Resource No."; Rec."Pool Resource No.")
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Specifies the pool resource that this resource is assigned to.';
@@ -123,6 +121,16 @@ page 50609 "Opti Resource List Temp"
         }
         area(factboxes)
         {
+            // part("Attached Documents"; "Document Attachment Factbox")
+            // {
+            //     ObsoleteTag = '25.0';
+            //     ObsoleteState = Pending;
+            //     ObsoleteReason = 'The "Document Attachment FactBox" has been replaced by "Doc. Attachment List Factbox", which supports multiple files upload.';
+            //     ApplicationArea = All;
+            //     Visible = false;
+            //     Caption = 'Attachments';
+            //     SubPageLink = "Table ID" = const(Database::Resource), "No." = field("No.");
+            // }
             part("Attached Documents List"; "Doc. Attachment List Factbox")
             {
                 ApplicationArea = All;

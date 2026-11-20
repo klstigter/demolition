@@ -1,21 +1,21 @@
-report 50607 "Opti Prepare Proj. Plan. Lines"
+report 50607 "Prepare Proj. Planning Lines"
 {
     Caption = 'Prepare Project Planning Lines for Invoicing';
     ProcessingOnly = true;
     UsageCategory = None;
     ApplicationArea = All;
-    Permissions = tabledata "Opti Day Planning" = r;
+    Permissions = tabledata "Day Planning" = r;
 
     dataset
     {
-        dataitem(DayPlanning; "Opti Day Planning")
+        dataitem(DayPlanning; "Day Planning")
         {
             RequestFilterFields = "Job No.", "Job Task No.", "Skill", "Assigned Resource No.";
             DataItemTableView = where(Posted = const(true));
 
             trigger OnPreDataItem()
             var
-                JobInvoicePrepMgt: Codeunit "Opti Job Plan. Line Prep. Mgt.";
+                JobInvoicePrepMgt: Codeunit "Job Planning Lines Prep. Mgt.";
                 LinesCreated: Integer;
                 ProcessedCount: Integer;
                 AlreadyLinkedCount: Integer;

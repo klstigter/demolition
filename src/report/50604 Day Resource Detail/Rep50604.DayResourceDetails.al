@@ -1,13 +1,12 @@
-report 50604 "Opti Day Resource Details"
+report 50604 "Day Resource Details"
 {
-    Caption = 'Day Resource Details';
     UsageCategory = ReportsAndAnalysis;
     ApplicationArea = All;
     DefaultRenderingLayout = DayPlanningReport;
 
     dataset
     {
-        dataitem(DayPlanning; "Opti Day Planning")
+        dataitem(DayPlanning; "Day Planning")
         {
             dataitemtableview = sorting("Plan Date", "Assigned Resource No.") where("plan status" = const("In Progress"),
                 "assigned Resource No." = filter(<> ''));
@@ -27,14 +26,14 @@ report 50604 "Opti Day Resource Details"
             Column(Description; resource.Name) { }
             Column(assignedHours; DayPlanning."Assigned Hours") { }
             Column(TimeAssigned; Time1) { }
-            column(Mandatory; resource."Opti Mandatory Schedulling") { }
+            column(Mandatory; resource."Mandatory schedulling") { }
             Column(jobTaskDescription; jobTaskDescription) { }
             Column(Capacity; Resource.Capacity) { }
-            Column(TotassignedHours; resource."Opti Assigned Hours") { }
+            Column(TotassignedHours; resource."Assigned Hours") { }
 
             Trigger OnPreDataItem()
             begin
-                resource.SetRange("Opti Mandatory Schedulling", true);
+                resource.SetRange("Mandatory schedulling", true);
                 if resource.FindSet() then
                     repeat
                         TEMPresource := resource;
@@ -64,7 +63,7 @@ report 50604 "Opti Day Resource Details"
                 jobTaskDescription := jobTask."Job Task No." + ' ' + jobTask.Description;
 
                 resource.setrange("date filter", DayPlanning."Plan Date");
-                resource.CalcFields(Capacity, "Opti Assigned Hours");
+                resource.CalcFields(Capacity, "Assigned Hours");
 
             end;
         }

@@ -3,7 +3,7 @@
 /// when the clicked section carries no Job/Job Task (e.g. the 'nodata' row).
 /// Caller pattern: SetContext(...); RunModal(); if IsConfirmed() then GetContext(...).
 /// </summary>
-report 50611 "Opti Add Day Planning"
+report 50611 "Add Day Planning"
 {
     UsageCategory = None;
     ApplicationArea = All;

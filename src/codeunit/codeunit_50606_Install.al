@@ -1,11 +1,10 @@
-codeunit 50606 "Opti Demolition Install"
+codeunit 50606 "Demolition Install"
 {
     Subtype = Install;
 
-    trigger OnInstallAppPerDatabase()
+    trigger OnInstallAppPerCompany()
     begin
         SetPlanningAsDefaultProfile();
-        SetUpgradeTagsOnFreshInstall();
     end;
 
     local procedure SetPlanningAsDefaultProfile()
@@ -14,7 +13,7 @@ codeunit 50606 "Opti Demolition Install"
         ModuleInfo: ModuleInfo;
     begin
         NavApp.GetCurrentModuleInfo(ModuleInfo);
-        AllProfile.SetRange("Profile ID", 'OptiPlanning');
+        AllProfile.SetRange("Profile ID", 'PLANNING');
         AllProfile.SetRange("App ID", ModuleInfo.Id());
         if not AllProfile.FindFirst() then
             exit;
@@ -22,14 +21,5 @@ codeunit 50606 "Opti Demolition Install"
             exit;
         AllProfile."Default Role Center" := true;
         AllProfile.Modify();
-    end;
-
-    local procedure SetUpgradeTagsOnFreshInstall()
-    var
-        UpgradeTag: Codeunit "Upgrade Tag";
-        UpgradeTagDefinitions: Codeunit "Opti Demolition Upgrade Tags";
-    begin
-        if not UpgradeTag.HasUpgradeTag(UpgradeTagDefinitions.GetInitialVersionUpgradeTag()) then
-            UpgradeTag.SetUpgradeTag(UpgradeTagDefinitions.GetInitialVersionUpgradeTag());
     end;
 }

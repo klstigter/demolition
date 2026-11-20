@@ -1,7 +1,7 @@
-page 50635 "Opti Resource DayPlan. Summary"
+page 50635 "Resource DayPlanning Summary"
 {
     PageType = List;
-    SourceTable = "Opti Resource DayPlan. Summary";
+    SourceTable = "Resource DayPlanning Summary";
     Caption = 'Resource DayPlanning Summary';
     Editable = false;
     InsertAllowed = false;
@@ -61,8 +61,8 @@ page 50635 "Opti Resource DayPlan. Summary"
 
                 trigger OnAction()
                 var
-                    WeeklyHours: Record "Opti Summary Weekly";
-                    WeeklyHoursPage: Page "Opti Resource Weekly Hours";
+                    WeeklyHours: Record "Summary Weekly";
+                    WeeklyHoursPage: Page "Resource Weekly Hours";
                 begin
                     WeeklyHours.FillSummary(Rec."Resource No.", Rec."Job No.", Rec."Job Task No.");
                     WeeklyHoursPage.SetTableView(WeeklyHours);
@@ -78,13 +78,13 @@ page 50635 "Opti Resource DayPlan. Summary"
 
                 trigger OnAction()
                 var
-                    DayPlanning: Record "Opti Day Planning";
+                    DayPlanning: Record "Day Planning";
                 begin
                     DayPlanning.Reset();
                     DayPlanning.SetRange("Job No.", Rec."Job No.");
                     DayPlanning.SetRange("Job Task No.", Rec."Job Task No.");
                     DayPlanning.SetRange("Assigned Resource No.", Rec."Resource No.");
-                    Page.Run(Page::"Opti Day Plannings", DayPlanning);
+                    Page.Run(Page::"Day Plannings", DayPlanning);
                 end;
             }
             action(OpenResourceCard)

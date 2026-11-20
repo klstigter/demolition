@@ -1,8 +1,8 @@
-table 50693 "Opti Capacity Overview Buffer"
+table 50693 "Capacity Overview Buffer"
 {
     TableType = Temporary;
     Caption = 'Capacity Overview Buffer';
-    DataClassification = CustomerContent;
+    DataClassification = ToBeClassified;
 
     /// <summary>
     /// One row per matrix line (Total Capacity, Total Request, Assigned Hours, Capacity,

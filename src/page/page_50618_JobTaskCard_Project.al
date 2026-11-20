@@ -78,7 +78,7 @@ page 50618 "Opti Job Task Card"
                         exit(Rec.LookupSellToCustomerName(Text));
                     end;
                 }
-                field("Non Active"; Rec."Opti Non Active")
+                field("Non Active"; Rec."Non Active")
                 {
                     ApplicationArea = All;
                     Caption = 'Non Active';
@@ -526,7 +526,7 @@ page 50618 "Opti Job Task Card"
             Group(LongDescription)
             {
                 Caption = 'Long Description';
-                usercontrol(RichTextEditor; "OptiDHXRichTextAddin")
+                usercontrol(RichTextEditor; DHXRichTextAddin)
                 {
                     ApplicationArea = All;
 
@@ -536,7 +536,7 @@ page 50618 "Opti Job Task Card"
                     /// </summary>
                     trigger ControlReady()
                     begin
-                        CurrPage.RichTextEditor.SetValue(Rec.OptiGetDescription());
+                        CurrPage.RichTextEditor.SetValue(Rec.GetDescription());
                     end;
 
                     /// <summary>
@@ -545,17 +545,17 @@ page 50618 "Opti Job Task Card"
                     /// </summary>
                     trigger OnTextChanged(Html: Text)
                     begin
-                        Rec.OptiSetDescription(Html);
+                        Rec.SetDescription(Html);
                     end;
                 }
             }
-            part(DayPlanningSequence; "Opti Day Plan. Sequence Part")
+            part(DayPlanningSequence; "Day Planning Sequence Part")
             {
                 ApplicationArea = All;
                 Caption = 'Day Planning Sequence';
             }
 
-            part(ResourceWeekView; "Opti Resource Week View Part")
+            part(ResourceWeekView; "Resource Week View Part")
             {
                 ApplicationArea = Jobs;
                 Caption = 'Resource Week Schedule';
@@ -566,18 +566,18 @@ page 50618 "Opti Job Task Card"
                 Caption = 'Planning';
                 group(Duration)
                 {
-                    field("Project Manager"; Rec."Opti Project Manager")
+                    field("Project Manager"; Rec."Project Manager")
                     {
                         ApplicationArea = Jobs;
                         Caption = 'Project Manager';
                         ToolTip = 'Specifies the project manager for the project task. The project manager is based on the project manager on the related project planning line.';
                     }
-                    field("Work Hour Template"; Rec."Opti Work Hour Template")
+                    field("Work Hour Template"; Rec."Work Hour Template")
                     {
                         ApplicationArea = Jobs;
                         ToolTip = 'Specifies the work hour template for the project task. The work hour template is based on the work hour template on the related project planning line.';
                     }
-                    field("Planned Start Date"; Rec."Opti VisualBarStartDate")
+                    field("Planned Start Date"; Rec.VisualBarStartDate)
                     {
                         ApplicationArea = All;
                         Editable = false; //use assist edit to change the value
@@ -585,20 +585,20 @@ page 50618 "Opti Job Task Card"
 
                         trigger OnAssistEdit()
                         var
-                            PlannedDateUpdater: Report "Opti Job Task Plan. Date Upd.";
+                            PlannedDateUpdater: Report "Job Task Planned Date Updater";
                         begin
                             PlannedDateUpdater.SetPlannedDates(Rec);
                             PlannedDateUpdater.RunModal();
                             Rec.Get(Rec."Job No.", Rec."Job Task No.");
                         end;
                     }
-                    field("Planned End Date"; Rec."Opti VisualBarEndDate")
+                    field("Planned End Date"; Rec.VisualBarEndDate)
                     {
                         ApplicationArea = All;
                         Editable = false; //use assist edit to change the value
                         ToolTip = 'Specifies the end date for the project task. The date is based on the date on the related project planning line.';
                     }
-                    field(DurationTask; Rec."Opti Duration")
+                    field(DurationTask; Rec.Duration)
                     {
                         ApplicationArea = All;
                         ToolTip = 'Specifies the duration of the project task in days.';
@@ -612,20 +612,20 @@ page 50618 "Opti Job Task Card"
                     {
                         Caption = 'In Progress';
 
-                        field("Estimated Hours"; Rec."Opti Estimated Hours")
+                        field("Estimated Hours"; Rec."Estimated Hours")
                         {
                             ApplicationArea = All;
                             ToolTip = 'Specifies the value of the Estimated Hours field.', Comment = '%';
                             importance = Promoted;
                         }
 
-                        field(Progress; Rec."Opti Progress")
+                        field(Progress; Rec.Progress)
                         {
                             ApplicationArea = Jobs;
                             ToolTip = 'Specifies the progress percentage (0-100) for this job task.';
                             importance = Promoted;
                         }
-                        field("Total Worked Hours"; Rec."Opti Total Assigned Hours")
+                        field("Total Worked Hours"; Rec."Total Assigned Hours")
                         {
                             ApplicationArea = Jobs;
                             ToolTip = 'Specifies the total worked hours from all related day plannings.';
@@ -636,17 +636,17 @@ page 50618 "Opti Job Task Card"
                     {
                         Caption = 'Constraint';
 
-                        field("Constraint Type"; Rec."Opti Constraint Type")
+                        field("Constraint Type"; Rec."Constraint Type")
                         {
                             ApplicationArea = All;
                             ToolTip = 'Specifies the constraint of the project task.';
                         }
-                        field("Constraint Date"; Rec."Opti Constraint Date")
+                        field("Constraint Date"; Rec."Constraint Date")
                         {
                             ApplicationArea = All;
                             ToolTip = 'Specifies the constraint date of the project task.';
                         }
-                        field("Max Duration"; Rec."Opti Max Duration")
+                        field("Max Duration"; Rec."Max Duration")
                         {
                             ApplicationArea = All;
                             ToolTip = 'Specifies the maximum duration for the project task.';
@@ -715,18 +715,18 @@ page 50618 "Opti Job Task Card"
 
         area(factboxes)
         {
-            part(JobInformation; "Opti Job Information FactBox")
+            part(JobInformation; "Job Information FactBox")
             {
                 ApplicationArea = Jobs;
                 SubPageLink = "Job No." = field("Job No.");
             }
-            part(ResourceSummaryFactbox; "Opti Resource Summary FactBox")
+            part(ResourceSummaryFactbox; "Resource Summary FactBox")
             {
                 ApplicationArea = Jobs;
                 Caption = 'Resource Summary';
 
             }
-            part(TaskLinkFactbox; "Opti Task Link Factbox")
+            part(TaskLinkFactbox; "Task Link Factbox")
             {
                 ApplicationArea = Jobs;
                 SubPageLink = "Job No." = field("Job No."),
@@ -751,14 +751,13 @@ page 50618 "Opti Job Task Card"
         {
             action(GanttChartDHX)
             {
-                ToolTip = 'Executes the Gantt Chart DHX action.';
                 ApplicationArea = All;
                 Image = GanttChart;
                 Caption = 'Gantt Chart';
                 //RunObject = page "Gantt Demo DHX 2";
                 trigger OnAction()
                 var
-                    Gantt: page "Opti Gantt Demo DHX 2";
+                    Gantt: page "Gantt Demo DHX 2";
                 begin
                     Gantt.SetJobTaskFilter(Rec."Job No.", Rec."Job Task No.");
                     Gantt.RunModal();
@@ -767,14 +766,13 @@ page 50618 "Opti Job Task Card"
             }
             action(GanttChartDHX_PerProject)
             {
-                ToolTip = 'Executes the Gantt Chart DHX Per Project action.';
                 ApplicationArea = All;
                 Image = GanttChart;
                 Caption = 'Gantt Chart (Per Project)';
                 //RunObject = page "Gantt Demo DHX 2";
                 trigger OnAction()
                 var
-                    Gantt: page "Opti Gantt Demo DHX 2";
+                    Gantt: page "Gantt Demo DHX 2";
                 begin
                     Gantt.SetJobFilter(Rec."Job No.");
                     Gantt.RunModal();
@@ -790,8 +788,8 @@ page 50618 "Opti Job Task Card"
                 ToolTip = 'View or edit dimensions, such as area, project, or department, that you can assign to sales and purchase documents to distribute costs and analyze transaction history.';
                 trigger OnAction()
                 var
-                    ResourcePage: Page "Opti Day Plannings";
-                    DayPlanning: Record "Opti Day Planning";
+                    ResourcePage: Page "Day Plannings";
+                    DayPlanning: Record "Day Planning";
                 begin
                     DayPlanning.SetRange("Job No.", Rec."Job No.");
                     DayPlanning.SetRange("Job Task No.", Rec."Job Task No.");
@@ -807,7 +805,7 @@ page 50618 "Opti Job Task Card"
                 ToolTip = 'Creates billable Project Planning Lines, grouped by Skill, from posted Day Planning usage that has not yet been invoiced.';
                 trigger OnAction()
                 var
-                    JobInvoicePrepMgt: Codeunit "Opti Job Plan. Line Prep. Mgt.";
+                    JobInvoicePrepMgt: Codeunit "Job Planning Lines Prep. Mgt.";
                     LinesCreated: Integer;
                     ProcessedCount: Integer;
                     AlreadyLinkedCount: Integer;
@@ -821,14 +819,13 @@ page 50618 "Opti Job Task Card"
             }
             action("DayPlanningsVisual")
             {
-                ToolTip = 'Executes the Day Plannings Visual action.';
                 ApplicationArea = All;
                 Image = HumanResources;
                 Caption = 'Task Scheduler';
 
                 trigger OnAction()
                 var
-                    DayPlanningScheduler: page "Opti DHX Scheduler (Project)";
+                    DayPlanningScheduler: page "DHX Scheduler (Project)";
                 begin
                     DayPlanningScheduler.SetJobTaskFilter(Rec."Job No.", Rec."Job Task No.");
                     DayPlanningScheduler.RunModal();
@@ -843,7 +840,7 @@ page 50618 "Opti Job Task Card"
                 ToolTip = 'View or edit dimensions, such as area, project, or department, that you can assign to sales and purchase documents to distribute costs and analyze transaction history.';
                 trigger OnAction()
                 var
-                    ResourcePage: Page "Opti Resource DayPlan. Summary";
+                    ResourcePage: Page "Resource DayPlanning Summary";
                 begin
                     ResourcePage.LoadData(Rec."Job No.", Rec."Job Task No.");
                     ResourcePage.Run();
@@ -852,13 +849,12 @@ page 50618 "Opti Job Task Card"
             }
             action(CapacityPlanningOverviewAct)
             {
-                ToolTip = 'Executes the Capacity Planning Overview Act action.';
                 ApplicationArea = All;
                 Image = Planning;
                 Caption = 'Capacity Planning Overview';
                 trigger OnAction()
                 var
-                    CPO: Page "Opti Capacity Plan. Overview";
+                    CPO: Page "Capacity Planning Overview";
                     RequestedHours: Decimal;
                     AssignedHours: Decimal;
                 begin
@@ -872,9 +868,9 @@ page 50618 "Opti Job Task Card"
                     // the same "Planning Date Filter" FlowFilter + "Total Requested Hours"/"Total
                     // Assigned Hours" FlowFields (tableext 50605) the 4th design already used.
                     Rec.SetRange("Planning Date Filter", Today(), Today() + 29);
-                    Rec.CalcFields("Opti Total Requested Hours", "Opti Total Assigned Hours");
-                    RequestedHours := Rec."Opti Total Requested Hours";
-                    AssignedHours := Rec."Opti Total Assigned Hours";
+                    Rec.CalcFields("Total Requested Hours", "Total Assigned Hours");
+                    RequestedHours := Rec."Total Requested Hours";
+                    AssignedHours := Rec."Total Assigned Hours";
 
                     // TEMP DIAGNOSTIC (remove after confirming) - shows what BC itself computed,
                     // BEFORE it's handed to the control add-in, for side-by-side comparison against
@@ -905,7 +901,7 @@ page 50618 "Opti Job Task Card"
                 ToolTip = 'View the day planning summary for this project task.';
                 trigger OnAction()
                 var
-                    SummaryPage: Page "Opti Summary View";
+                    SummaryPage: Page "Summary View";
                 begin
                     SummaryPage.LoadDataSet(Rec."Job No.", Rec."Job Task No.");
                     SummaryPage.SetJobAndJobTaskVisibility(false);
@@ -920,7 +916,7 @@ page 50618 "Opti Job Task Card"
                 ToolTip = 'View requested hours per skill code, year and week for this project task.';
                 trigger OnAction()
                 var
-                    SkillHoursPage: Page "Opti Skill Hours Summary";
+                    SkillHoursPage: Page "Skill Hours Summary";
                 begin
                     SkillHoursPage.LoadContext(Rec."Job No.", Rec."Job Task No.");
                     SkillHoursPage.Run();
@@ -1128,7 +1124,7 @@ page 50618 "Opti Job Task Card"
         SellToContact: Record Contact;
         BillToContact: Record Contact;
         FormatAddress: Codeunit "Format Address";
-        GlobalSessionVar: Codeunit "Opti Global Session Var Opt.";
+        GlobalSessionVar: Codeunit "Global Session Var Opt.";
         BillToInformationEditable: Boolean;
         InvoiceCurrencyCodeEditable: Boolean;
         IsBillToCountyVisible: Boolean;
@@ -1173,7 +1169,7 @@ page 50618 "Opti Job Task Card"
     trigger OnNewRecord(BelowxRec: Boolean)
     begin
         Rec."Job No." := GlobalSessionVar.GetJobNo();
-        Rec."Opti Job View Type" := Rec."Opti Job View Type"::"Project";
+        Rec."Job View Type" := Rec."Job View Type"::"Project";
     end;
 
     local procedure ActivateFields()

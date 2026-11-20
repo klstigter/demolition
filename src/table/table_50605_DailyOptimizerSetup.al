@@ -1,13 +1,11 @@
-table 50605 "Opti Daily Optimizer Setup"
+table 50605 "Daily Optimizer Setup"
 {
-    Caption = 'Daily Optimizer Setup';
-    DataClassification = CustomerContent;
+    DataClassification = ToBeClassified;
 
     fields
     {
         field(1; "Primary Key"; Code[10])
         {
-            DataClassification = CustomerContent;
             Caption = 'Primary Key';
         }
         field(10; "Work hour Template"; Code[10])
@@ -42,7 +40,6 @@ table 50605 "Opti Daily Optimizer Setup"
         }
         field(50; "Resource Scheduler - List Type"; Option)
         {
-            DataClassification = CustomerContent;
             Caption = 'Resource Scheduler - List Type';
             OptionMembers = "By Resource Group","By Skill";
             OptionCaption = 'By Resource Group,By Skill';
@@ -274,7 +271,7 @@ table 50605 "Opti Daily Optimizer Setup"
 
     var
         myInt: Integer;
-        VisualDefaultSettings: Codeunit "Opti Visual Default Settings";
+        VisualDefaultSettings: Codeunit "Visual Default Settings";
 
     trigger OnInsert()
     begin

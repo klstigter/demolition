@@ -2,7 +2,7 @@
 /// Defines the recurrence pattern used when Scheduling Mode = Recurring
 /// in the pre-DayPlanning generation dialog.
 /// </summary>
-enum 50609 "Opti Pre DayPlan Recurrence"
+enum 50609 "Pre DayPlanning Recurrence"
 {
     Extensible = true;
     Caption = 'Recurrence Type';

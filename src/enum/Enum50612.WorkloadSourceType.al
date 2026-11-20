@@ -1,6 +1,5 @@
-enum 50612 "Opti Workload Source Type"
+enum 50612 "Workload Source Type"
 {
-    Caption = 'Workload Source Type';
     Extensible = true;
 
     value(0; Manual)

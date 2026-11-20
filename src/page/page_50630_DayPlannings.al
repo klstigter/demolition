@@ -1,11 +1,11 @@
-page 50630 "Opti Day Plannings"
+page 50630 "Day Plannings"
 {
     PageType = List;
     ApplicationArea = All;
     UsageCategory = Lists;
-    SourceTable = "Opti Day Planning";
+    SourceTable = "Day Planning";
     Caption = 'Day Plannings';
-    CardPageId = "Opti Day Planning Card Opt";
+    CardPageId = "Day Planning Card Opt";
     //Editable = false;
     DelayedInsert = true;
     layout
@@ -19,7 +19,6 @@ page 50630 "Opti Day Plannings"
                 Visible = ShowFIlters;
                 field("Job No. Filter"; GetJobNoFilterText())
                 {
-                    Caption = 'Job No. Filter';
                     ApplicationArea = All;
                     ToolTip = 'Specifies the job number to filter on.';
                     Visible = Not ShowJob;
@@ -27,7 +26,6 @@ page 50630 "Opti Day Plannings"
                 }
                 field("Job Task No. Filter"; GetJobTaskNoFilterText())
                 {
-                    Caption = 'Job Task No. Filter';
                     ApplicationArea = All;
                     ToolTip = 'Specifies the job task number to filter on.';
                     Visible = Not ShowJobTask;
@@ -35,7 +33,6 @@ page 50630 "Opti Day Plannings"
                 }
                 field("No. Filter"; GetResourceNoFilterText())
                 {
-                    Caption = 'No. Filter';
                     ApplicationArea = All;
                     ToolTip = 'Specifies the resource number to filter on.';
                     Visible = Not ShowResource;
@@ -43,7 +40,6 @@ page 50630 "Opti Day Plannings"
                 }
                 field("Skill Filter"; GetSkillFilterText())
                 {
-                    Caption = 'Skill Filter';
                     ApplicationArea = All;
                     ToolTip = 'Specifies the skill to filter on.';
                     Visible = Not ShowSkill;
@@ -51,7 +47,6 @@ page 50630 "Opti Day Plannings"
                 }
                 field("Plan Status Filter"; GetPlanStatusFilterText())
                 {
-                    Caption = 'Plan Status Filter';
                     ApplicationArea = All;
                     ToolTip = 'Specifies the planning status to filter on.';
                     Visible = Not ShowPlanStatus;
@@ -99,7 +94,6 @@ page 50630 "Opti Day Plannings"
                 }
                 field("Data Owner"; Rec."Data Owner")
                 {
-                    ToolTip = 'Specifies the value of the Data Owner field.';
                     Caption = 'Data Owner';
                 }
                 field("Task Date"; Rec."Plan Date")
@@ -111,7 +105,6 @@ page 50630 "Opti Day Plannings"
                 }
                 field("Work Order No."; Rec."Order Intake No.")
                 {
-                    ToolTip = 'Specifies the value of the Work Order No. field.';
                     ApplicationArea = All;
                 }
                 field(skill; Rec.skill)
@@ -170,15 +163,14 @@ page 50630 "Opti Day Plannings"
 
                 field("Total Assigned Hours"; TotAssignedHours)
                 {
-                    Caption = 'Total Assigned Hours';
                     ApplicationArea = All;
                     ToolTip = 'Specifies the total number of assigned hours for this day task, calculated automatically based on all related day plannings.';
                     Editable = false;
                     StyleExpr = StyleStr;
                     trigger OnDrillDown()
                     var
-                        DayPlanning: Page "Opti Day Plannings";
-                        DayPlanningRec: Record "Opti Day Planning";
+                        DayPlanning: Page "Day Plannings";
+                        DayPlanningRec: Record "Day Planning";
                     begin
                         if rec."Assigned Resource No." = '' then
                             exit;
@@ -272,7 +264,6 @@ page 50630 "Opti Day Plannings"
 
                 field(Fulfilled; StyleStr)
                 {
-                    Caption = 'Fulfilled';
                     ApplicationArea = All;
                     ToolTip = 'Indicates whether the day task has fulfilled the required capacity.';
                     Editable = false;
@@ -359,22 +350,18 @@ page 50630 "Opti Day Plannings"
                 }
                 field("Project Manager Status"; Rec."Project Manager Status")
                 {
-                    ToolTip = 'Specifies the value of the Project Manager Status field.';
                     ApplicationArea = All;
                 }
                 field("Planner Status"; Rec."Planner Status")
                 {
-                    ToolTip = 'Specifies the value of the Planner Status field.';
                     ApplicationArea = All;
                 }
                 field("Vendor Status"; Rec."Vendor Status")
                 {
-                    ToolTip = 'Specifies the value of the Vendor Status field.';
                     ApplicationArea = All;
                 }
                 field("Approved Project Manager"; Rec."Approved Project Manager")
                 {
-                    ToolTip = 'Specifies the value of the Approved Project Manager field.';
                     ApplicationArea = All;
                 }
 
@@ -382,7 +369,7 @@ page 50630 "Opti Day Plannings"
         }
         area(FactBoxes)
         {
-            part(DayPlanningInfo; "Opti Day Planning Info FactBox")
+            part(DayPlanningInfo; "Day Planning Info FactBox")
             {
                 ApplicationArea = All;
                 SubPageLink = "Plan Date" = field("Plan Date"),
@@ -390,13 +377,13 @@ page 50630 "Opti Day Plannings"
                               "Job No." = field("Job No."),
                               "Job Task No." = field("Job Task No.");
             }
-            part(ResourceSkills; "Opti Res. Skills FactBox Part")
+            part(ResourceSkills; "Resource Skills FactBox Part")
             {
                 ApplicationArea = All;
                 Caption = 'Resource Skills';
-                SubPageLink = "Type" = const(Resource), "No." = field("Assigned Resource No.");
+                SubPageLink = Type = const(Resource), "No." = field("Assigned Resource No.");
             }
-            part(ResourceCapacity; "Opti Res. Cap. FactBox Part")
+            part(ResourceCapacity; "Res. Capacity FactBox Part")
             {
                 ApplicationArea = All;
                 Caption = 'Resource Capacity';
@@ -450,9 +437,9 @@ page 50630 "Opti Day Plannings"
 
                 trigger OnAction()
                 var
-                    DayPlanning: Record "Opti Day Planning";
+                    DayPlanning: Record "Day Planning";
                     n: Integer;
-                    Lbl: Label '%1 day planning lines have been copied from requested to assigned.', Comment = '%1 = value';
+                    Lbl: Label '%1 day planning lines have been copied from requested to assigned.';
                 begin
                     CurrPage.SetSelectionFilter(DayPlanning);
                     if DayPlanning.FindSet() then
@@ -472,13 +459,12 @@ page 50630 "Opti Day Plannings"
 
                 trigger OnAction()
                 var
-                    DayPlanningLineSUpdatedMsg: Label '%1 day planning line(s) updated.', Comment = '%1=Applied';
-                    DayPlanning: Record "Opti Day Planning";
-                    DayPlanningsMgt: Codeunit "Opti Day Plannings Mgt.";
+                    DayPlanning: Record "Day Planning";
+                    DayPlanningsMgt: Codeunit "Day Plannings Mgt.";
                     Reason: Text;
                     Applied: Integer;
                     Skipped: Integer;
-                    ResultLbl: Label '%1 day planning line(s) updated, %2 skipped.\Last reason: %3', Comment = '%1 = value, %2 = value, %3 = value';
+                    ResultLbl: Label '%1 day planning line(s) updated, %2 skipped.\Last reason: %3';
                 begin
                     CurrPage.SetSelectionFilter(DayPlanning);
                     if DayPlanning.FindSet() then
@@ -489,7 +475,7 @@ page 50630 "Opti Day Plannings"
                                 Skipped += 1;
                         until DayPlanning.Next() = 0;
                     if Skipped = 0 then
-                        Message(DayPlanningLineSUpdatedMsg, Applied)
+                        Message('%1 day planning line(s) updated.', Applied)
                     else
                         Message(ResultLbl, Applied, Skipped, Reason);
                     CurrPage.Update(false);
@@ -512,11 +498,10 @@ page 50630 "Opti Day Plannings"
             }
             action("Resource Calender (Visual)")
             {
-                ToolTip = 'Executes the Resource Calender (Visual) action.';
                 ApplicationArea = All;
                 trigger OnAction()
                 var
-                    ResCalender: page "Opti Resource Calendar";
+                    ResCalender: page "Resource Calendar";
                 begin
                     ResCalender.SetResourceFilter(this.GetResourceFilter());
                     ResCalender.RunModal();
@@ -524,11 +509,10 @@ page 50630 "Opti Day Plannings"
             }
             action("Resource Scheduler (Visual)")
             {
-                ToolTip = 'Executes the Resource Scheduler (Visual) action.';
                 ApplicationArea = All;
                 trigger OnAction()
                 var
-                    ResScheduler: page "Opti Res. Scheduler - TimeLine";
+                    ResScheduler: page "Resource Scheduler - TimeLine";
                 begin
                     ResScheduler.SetResourceNoFilter(this.GetResourceFilter());
                     ResScheduler.RunModal();
@@ -537,11 +521,10 @@ page 50630 "Opti Day Plannings"
 
             action("Task Scheduler (Visual)")
             {
-                ToolTip = 'Executes the Task Scheduler (Visual) action.';
                 ApplicationArea = All;
                 trigger OnAction()
                 var
-                    DayPlanningScheduler: page "Opti DHX Scheduler (Project)";
+                    DayPlanningScheduler: page "DHX Scheduler (Project)";
                 begin
                     DayPlanningScheduler.SetJobTaskFilter(Rec."Job No.", Rec."Job Task No.");
                     DayPlanningScheduler.RunModal();
@@ -549,11 +532,10 @@ page 50630 "Opti Day Plannings"
             }
             action("Capacity (Visual)")
             {
-                ToolTip = 'Executes the Capacity (Visual) action.';
                 ApplicationArea = All;
                 trigger OnAction()
                 var
-                    ResScheduler: page "Opti DHX Scheduler (Pool Res.)";
+                    ResScheduler: page "DHX Scheduler (Pool Resource)";
                 begin
                     ResScheduler.SetResourceFilter(this.GetResourceFilter());
                     ResScheduler.RunModal();
@@ -641,9 +623,6 @@ page 50630 "Opti Day Plannings"
     end;
 
     local procedure CalculateStyle(GiveDescription: Boolean) Descr: Text
-        var
-            CapacityHoursNotFullyUtiTxt: Label 'Capacity (%1 hours) not fully utilized (%2 hours assigned)', Comment = '%1=rec.Capacity, %2=this.TotAssignedHours';
-            CapacityHoursOverUtilizeTxt: Label 'Capacity (%1 hours) over utilized (%2 hours assigned)', Comment = '%1=rec.Capacity, %2=this.TotAssignedHours';
     begin
 
         rec.CalcFields(Capacity, "Total Assigned Hours");
@@ -665,12 +644,12 @@ page 50630 "Opti Day Plannings"
             (this.TotAssignedHours < rec.Capacity) and (rec."Assigned Hours" > 0):
                 begin
                     StyleOpt := StyleOpt::StandardAccent;
-                    descr := StrSubstNo(CapacityHoursNotFullyUtiTxt, rec.Capacity, this.TotAssignedHours);
+                    descr := StrSubstNo('Capacity (%1 hours) not fully utilized (%2 hours assigned)', rec.Capacity, this.TotAssignedHours);
                 end;
             (this.TotAssignedHours > rec.Capacity):
                 begin
                     StyleOpt := StyleOpt::Attention;
-                    descr := StrSubstNo(CapacityHoursOverUtilizeTxt, rec.Capacity, this.TotAssignedHours);
+                    descr := StrSubstNo('Capacity (%1 hours) over utilized (%2 hours assigned)', rec.Capacity, this.TotAssignedHours);
                 end;
             rec."Capacity Fully Utilized":
                 begin
@@ -710,7 +689,7 @@ page 50630 "Opti Day Plannings"
 
     local procedure UpdateGroupDisplay()
     var
-        PrevRec: Record "Opti Day Planning";
+        PrevRec: Record "Day Planning";
     begin
         PrevRec.SetCurrentKey("Job No.", "Job Task No.", "Plan Date", "Day Line No.");
         PrevRec.CopyFilters(Rec);

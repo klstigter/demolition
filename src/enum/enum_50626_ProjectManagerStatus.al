@@ -1,6 +1,5 @@
-enum 50626 "Opti Project Manager Status"
+enum 50626 "Project Manager Status"
 {
-    Caption = 'Project Manager Status';
     Extensible = true;
 
     value(0; " ") { Caption = ' '; }

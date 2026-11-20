@@ -1,6 +1,5 @@
-enum 50600 "Opti Job View Type"
+enum 50600 "Job View Type"
 {
-    Caption = 'Job View Type';
     Extensible = true;
 
     value(0; "Project")

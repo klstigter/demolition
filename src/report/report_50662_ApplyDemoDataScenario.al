@@ -1,4 +1,4 @@
-report 50662 "Opti Apply Demo Data Scenario"
+report 50662 "Apply Demo Data Scenario"
 {
     Caption = 'Apply Demo Data Scenario';
     ProcessingOnly = true;
@@ -26,7 +26,7 @@ report 50662 "Opti Apply Demo Data Scenario"
     }
 
     var
-        Scenario: Record "Opti Demo Data Scenarios Opt";
+        Scenario: Record "Demo Data Scenarios Opt";
         StartDate: Date;
         EndDate: Date;
         DataOption: Option "Delete Existing Data and replace with scenario data","Merge into existing data";
@@ -48,10 +48,10 @@ report 50662 "Opti Apply Demo Data Scenario"
         DescLbl: Label 'Description';
         ErrorLbl: Label 'Error message';
         SheetNameLbl: Label 'Delete errors';
-        ExcelMsg: Label '%1 delete error(s) occurred. An Excel file with the details was downloaded.', Comment = '%1 = value';
+        ExcelMsg: Label '%1 delete error(s) occurred. An Excel file with the details was downloaded.';
         ConfirmDeleteLbl: Label 'This will DELETE existing resources, day plannings and capacity (day plannings and capacity within the period) before importing the scenario. This cannot be undone.\\Continue?';
         NoXmlErr: Label 'The scenario has no XML demo data.';
-        DoneMsg: Label 'Demo data scenario applied.\Resources deleted: %1 (skipped, could not be deleted: %2)\Day plannings deleted: %3\Capacity entries deleted: %4\Day plannings imported: %5\Capacity entries imported: %6\Delete errors: %7\Import errors: %8', Comment = '%1 = value, %2 = value, %3 = value, %4 = value, %5 = value, %6 = value, %7 = value, %8 = value';
+        DoneMsg: Label 'Demo data scenario applied.\Resources deleted: %1 (skipped, could not be deleted: %2)\Day plannings deleted: %3\Capacity entries deleted: %4\Day plannings imported: %5\Capacity entries imported: %6\Delete errors: %7\Import errors: %8';
 
     procedure SetScenario(EntryNo: Integer)
     begin
@@ -70,8 +70,8 @@ report 50662 "Opti Apply Demo Data Scenario"
 
     trigger OnPreReport()
     var
-        DemoDataXmlPort: XmlPort "Opti DemoData";
-        ScanXmlPort: XmlPort "Opti DemoData";
+        DemoDataXmlPort: XmlPort DemoData;
+        ScanXmlPort: XmlPort DemoData;
         InStr: InStream;
         ImpTables: List of [Text];
         ImpKeys: List of [Text];
@@ -116,7 +116,7 @@ report 50662 "Opti Apply Demo Data Scenario"
 
     local procedure DeleteExistingData()
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         ResCapacity: Record "Res. Capacity Entry";
         Resource: Record Resource;
         RecRef: RecordRef;
@@ -144,7 +144,7 @@ report 50662 "Opti Apply Demo Data Scenario"
 
     local procedure DeleteResourceWithDependents(ResNo: Code[20]; ResName: Text): Boolean
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         ResCapacity: Record "Res. Capacity Entry";
         ResourceSkill: Record "Resource Skill";
         ResUoM: Record "Resource Unit of Measure";

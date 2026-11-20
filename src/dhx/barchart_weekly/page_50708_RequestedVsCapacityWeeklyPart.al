@@ -1,4 +1,4 @@
-page 50708 "Opti Req. vs Cap. Weekly P"
+page 50708 "Requested vs Capacity Weekly P"
 {
     PageType = CardPart;
     ApplicationArea = All;
@@ -34,7 +34,7 @@ page 50708 "Opti Req. vs Cap. Weekly P"
             // 'title' keys merged into the codeunit's own ChartData JSON in RefreshChart below - not
             // part of the DHTMLX chart's own SVG/legend, just plain HTML positioned above the chart
             // container inside this add-in's own DOM.
-            usercontrol(DhxBarChart; "OptiDHXBarChartAddin")
+            usercontrol(DhxBarChart; DHXBarChartAddin)
             {
                 ApplicationArea = All;
 
@@ -55,7 +55,7 @@ page 50708 "Opti Req. vs Cap. Weekly P"
 
                 trigger OnOpenScheduler(Target: Text; SkillCode: Text; DayIndex: Integer)
                 var
-                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
+                    DHXDataHandler: Codeunit "DHX Data Handler";
                 begin
                     if (DayIndex < 1) or (DayIndex > 7) then
                         exit;
@@ -123,7 +123,7 @@ page 50708 "Opti Req. vs Cap. Weekly P"
 
     local procedure RefreshPeriod()
     var
-        VisualDefaultSettings: Codeunit "Opti Visual Default Settings";
+        VisualDefaultSettings: Codeunit "Visual Default Settings";
     begin
         PeriodLabelText := CopyStr(VisualDefaultSettings.FormatWeekPeriodText(PeriodStartDate), 1, MaxStrLen(PeriodLabelText));
 
@@ -163,7 +163,7 @@ page 50708 "Opti Req. vs Cap. Weekly P"
     end;
 
     var
-        SkillCapacityAnalysisMgt: Codeunit "Opti Skill Cap. Analysis Mgt.";
+        SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
         PeriodStartDate: Date;
         ChartReady: Boolean;
         PeriodLabelText: Text[50];

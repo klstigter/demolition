@@ -1,21 +1,19 @@
-codeunit 50614 "Opti Gantt BC Page Handler"
+codeunit 50614 "Gantt BC Page Handler"
 {
     procedure OpenJobTaskCard(JobNo: Code[20]; JobTaskNo: Code[20])
     var
-        JobTaskNotFoundErr: Label 'Job Task %1 %2 not found', Comment = '%1=JobNo, %2=JobTaskNo';
-        UnknownJobViewTypeForErr: Label 'Unknown Job View Type for Job Task %1 %2', Comment = '%1=JobNo, %2=JobTaskNo';
         JobTask: Record "Job Task";
     begin
         if not JobTask.Get(JobNo, JobTaskNo) then
-            Error(JobTaskNotFoundErr, JobNo, JobTaskNo);
+            Error('Job Task %1 %2 not found', JobNo, JobTaskNo);
 
-        case JobTask."Opti Job View Type" of
-            JobTask."Opti Job View Type"::Project:
+        case JobTask."Job View Type" of
+            JobTask."Job View Type"::Project:
                 Page.Run(Page::"Opti Job Task Card", JobTask);
-            JobTask."Opti Job View Type"::Resource:
-                Page.Run(Page::"Opti Job Task Card - Resource", JobTask);
+            JobTask."Job View Type"::Resource:
+                Page.Run(Page::"Job Task Card - Resource", JobTask);
             else
-                Error(UnknownJobViewTypeForErr, JobNo, JobTaskNo);
+                Error('Unknown Job View Type for Job Task %1 %2', JobNo, JobTaskNo);
         end;
     end;
 
@@ -58,11 +56,11 @@ codeunit 50614 "Opti Gantt BC Page Handler"
             if (StrLen(SiblingTaskNo) < MaxStrLen(Candidate)) and not Existing.Get(JobNo, Candidate) then
                 JobTask."Job Task No." := Candidate;
         end;
-        JobTask."Opti Job View Type" := JobTask."Opti Job View Type"::Project;
+        JobTask."Job View Type" := JobTask."Job View Type"::Project;
         JobTask.Indentation := NewIndentation;
-        JobTask."Opti VisualBarStartDate" := BarStart;
-        JobTask."Opti VisualBarEndDate" := BarEnd;
-        JobTask.OptiCalculateDuration();
+        JobTask.VisualBarStartDate := BarStart;
+        JobTask.VisualBarEndDate := BarEnd;
+        JobTask.CalculateDuration();
         JobTask.Insert(true);
         Commit();
 
@@ -78,20 +76,18 @@ codeunit 50614 "Opti Gantt BC Page Handler"
 
     procedure OpenJobTaskCardModal(JobNo: Code[20]; JobTaskNo: Code[20]): Boolean
     var
-        JobTaskNotFoundErr: Label 'Job Task %1 %2 not found', Comment = '%1=JobNo, %2=JobTaskNo';
-        UnknownJobViewTypeForErr: Label 'Unknown Job View Type for Job Task %1 %2', Comment = '%1=JobNo, %2=JobTaskNo';
         JobTask: Record "Job Task";
     begin
         if not JobTask.Get(JobNo, JobTaskNo) then
-            Error(JobTaskNotFoundErr, JobNo, JobTaskNo);
+            Error('Job Task %1 %2 not found', JobNo, JobTaskNo);
 
-        case JobTask."Opti Job View Type" of
-            JobTask."Opti Job View Type"::Project:
+        case JobTask."Job View Type" of
+            JobTask."Job View Type"::Project:
                 exit(Page.RunModal(Page::"Opti Job Task Card", JobTask) = Action::OK);
-            JobTask."Opti Job View Type"::Resource:
-                exit(Page.RunModal(Page::"Opti Job Task Card - Resource", JobTask) = Action::OK);
+            JobTask."Job View Type"::Resource:
+                exit(Page.RunModal(Page::"Job Task Card - Resource", JobTask) = Action::OK);
             else
-                Error(UnknownJobViewTypeForErr, JobNo, JobTaskNo);
+                Error('Unknown Job View Type for Job Task %1 %2', JobNo, JobTaskNo);
         end;
     end;
 }

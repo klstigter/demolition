@@ -1,4 +1,4 @@
-page 50659 "Opti VendorOpt"
+page 50659 VendorOpt
 {
     PageType = API;
     Caption = 'Job API Optimization';

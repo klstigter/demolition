@@ -1,4 +1,4 @@
-page 50701 "Opti DayPlan Jnl Line Api"
+page 50701 "DayPlanningJournalLineApi Opt"
 {
     PageType = API;
     Caption = 'DayPlanning Journal Line API Optimization';
@@ -7,7 +7,7 @@ page 50701 "Opti DayPlan Jnl Line Api"
     APIVersion = 'v1.0';
     EntityName = 'DayPlanningJournalLine';
     EntitySetName = 'DayPlanningJournalLines';
-    SourceTable = "Opti DayPlanning Journal Line";
+    SourceTable = "DayPlanning Journal Line";
     DelayedInsert = true;
     ODataKeyFields = SystemId;
 

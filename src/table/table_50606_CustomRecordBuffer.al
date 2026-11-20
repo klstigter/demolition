@@ -1,14 +1,13 @@
-table 50606 "Opti CustomRecordBuffer"
+table 50606 "CustomRecordBuffer"
 {
-    Caption = 'CustomRecordBuffer';
     ReplicateData = false;
     TableType = Temporary;
 
     fields
     {
-        field(1; "Code 1"; Code[20]) { DataClassification = SystemMetadata; }
-        field(2; "Code 2"; Code[20]) { DataClassification = SystemMetadata; }
-        field(3; "Code 3"; Code[20]) { DataClassification = SystemMetadata; }
+        field(1; "Code 1"; Code[20]) { }
+        field(2; "Code 2"; Code[20]) { }
+        field(3; "Code 3"; Code[20]) { }
     }
 
     keys

@@ -1,5 +1,5 @@
 // Copy from page 6013 "Resource Capacity Settings"
-page 50627 "Opti Res. Cap. Settings Opt"
+page 50627 "Resource Capacity Settings Opt"
 {
     Caption = 'Resource Capacity Settings';
     PageType = Card;
@@ -44,8 +44,8 @@ page 50627 "Opti Res. Cap. Settings Opt"
                         trigger OnValidate()
                         begin
                             if WorkTemplateRec.Get(WorkTemplateCode) then begin
-                                StartTime := WorkTemplateRec."Opti Default Start Time";
-                                EndTime := WorkTemplateRec."Opti Default End Time";
+                                StartTime := WorkTemplateRec."Default Start Time";
+                                EndTime := WorkTemplateRec."Default End Time";
                             end;
                             SumWeekTotal();
                         end;
@@ -263,7 +263,7 @@ page 50627 "Opti Res. Cap. Settings Opt"
                                     ResCapacityEntry.Reset();
                                     ResCapacityEntry.SetRange("Resource No.", Rec."No.");
                                     ResCapacityEntry.SetRange(Date, TempDate);
-                                    ResCapacityEntry.SetRange("Opti Duplicate Id", LoopCounter);
+                                    ResCapacityEntry.SetRange("Duplicate Id", LoopCounter);
                                     ResCapacityEntry.CalcSums(Capacity);
                                     TempCapacity := ResCapacityEntry.Capacity;
 
@@ -283,25 +283,25 @@ page 50627 "Opti Res. Cap. Settings Opt"
                                     ResCapacityEntry2."Resource No." := Rec."No.";
                                     ResCapacityEntry2."Resource Group No." := Rec."Resource Group No.";
                                     ResCapacityEntry2.Date := TempDate;
-                                    ResCapacityEntry2."Opti Duplicate Id" := LoopCounter;
+                                    ResCapacityEntry2."Duplicate Id" := LoopCounter;
 
                                     //<< Custom here
                                     // Use custom times if manually set, otherwise use template defaults
                                     if UseCustomTimes and (StartTime <> 0T) then begin
-                                        ResCapacityEntry2."Opti Start Time" := StartTime;
+                                        ResCapacityEntry2."Start Time" := StartTime;
                                         if EndTime <> 0T then
-                                            ResCapacityEntry2."Opti End Time" := EndTime
+                                            ResCapacityEntry2."End Time" := EndTime
                                         else
-                                            ResCapacityEntry2."Opti End Time" := StartTime + (Abs(ResCapacityEntry2.Capacity) * 3600000);
+                                            ResCapacityEntry2."End Time" := StartTime + (Abs(ResCapacityEntry2.Capacity) * 3600000);
                                     end else if WorkTemplateRec.Get(WorkTemplateCode) then begin
-                                        if WorkTemplateRec."Opti Default Start Time" <> 0T then begin
-                                            ResCapacityEntry2."Opti Start Time" := WorkTemplateRec."Opti Default Start Time";
-                                            if WorkTemplateRec."Opti Default End Time" <> 0T then
-                                                ResCapacityEntry2."Opti End Time" := WorkTemplateRec."Opti Default End Time"
+                                        if WorkTemplateRec."Default Start Time" <> 0T then begin
+                                            ResCapacityEntry2."Start Time" := WorkTemplateRec."Default Start Time";
+                                            if WorkTemplateRec."Default End Time" <> 0T then
+                                                ResCapacityEntry2."End Time" := WorkTemplateRec."Default End Time"
                                             else
                                                 // Calculate end time with automatic wrap-around after 24 hours
                                                 // Example: 21:00 + 8 hours = 05:00
-                                                ResCapacityEntry2."Opti End Time" := WorkTemplateRec."Opti Default Start Time" + (Abs(ResCapacityEntry2.Capacity) * 3600000);
+                                                ResCapacityEntry2."End Time" := WorkTemplateRec."Default Start Time" + (Abs(ResCapacityEntry2.Capacity) * 3600000);
                                         end;
                                     end;
                                     //>>
@@ -314,7 +314,7 @@ page 50627 "Opti Res. Cap. Settings Opt"
                                 ResCapacityEntry.Reset();
                                 ResCapacityEntry.SetRange("Resource No.", Rec."No.");
                                 ResCapacityEntry.SetRange(Date, TempDate);
-                                ResCapacityEntry.SetRange("Opti Duplicate Id", 1);
+                                ResCapacityEntry.SetRange("Duplicate Id", 1);
                                 ResCapacityEntry.CalcSums(Capacity);
                                 TempCapacity := ResCapacityEntry.Capacity;
 
@@ -330,25 +330,25 @@ page 50627 "Opti Res. Cap. Settings Opt"
                                 ResCapacityEntry2."Resource No." := Rec."No.";
                                 ResCapacityEntry2."Resource Group No." := Rec."Resource Group No.";
                                 ResCapacityEntry2.Date := TempDate;
-                                ResCapacityEntry2."Opti Duplicate Id" := 1;
+                                ResCapacityEntry2."Duplicate Id" := 1;
 
                                 //<< Custom here
                                 // Use custom times if manually set, otherwise use template defaults
                                 if UseCustomTimes and (StartTime <> 0T) then begin
-                                    ResCapacityEntry2."Opti Start Time" := StartTime;
+                                    ResCapacityEntry2."Start Time" := StartTime;
                                     if EndTime <> 0T then
-                                        ResCapacityEntry2."Opti End Time" := EndTime
+                                        ResCapacityEntry2."End Time" := EndTime
                                     else
-                                        ResCapacityEntry2."Opti End Time" := StartTime + (Abs(ResCapacityEntry2.Capacity) * 3600000);
+                                        ResCapacityEntry2."End Time" := StartTime + (Abs(ResCapacityEntry2.Capacity) * 3600000);
                                 end else if WorkTemplateRec.Get(WorkTemplateCode) then begin
-                                    if WorkTemplateRec."Opti Default Start Time" <> 0T then begin
-                                        ResCapacityEntry2."Opti Start Time" := WorkTemplateRec."Opti Default Start Time";
-                                        if WorkTemplateRec."Opti Default End Time" <> 0T then
-                                            ResCapacityEntry2."Opti End Time" := WorkTemplateRec."Opti Default End Time"
+                                    if WorkTemplateRec."Default Start Time" <> 0T then begin
+                                        ResCapacityEntry2."Start Time" := WorkTemplateRec."Default Start Time";
+                                        if WorkTemplateRec."Default End Time" <> 0T then
+                                            ResCapacityEntry2."End Time" := WorkTemplateRec."Default End Time"
                                         else
                                             // Calculate end time with automatic wrap-around after 24 hours
                                             // Example: 21:00 + 8 hours = 05:00
-                                            ResCapacityEntry2."Opti End Time" := WorkTemplateRec."Opti Default Start Time" + (Abs(ResCapacityEntry2.Capacity) * 3600000);
+                                            ResCapacityEntry2."End Time" := WorkTemplateRec."Default Start Time" + (Abs(ResCapacityEntry2.Capacity) * 3600000);
                                     end;
                                 end;
                                 //>>
@@ -442,11 +442,11 @@ page 50627 "Opti Res. Cap. Settings Opt"
 
     local procedure LoadDefaults()
     var
-        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
         DefaultTemplateCode: Code[10];
     begin
-        if Rec."Opti Work Hour Template" <> '' then
-            DefaultTemplateCode := CopyStr(Rec."Opti Work Hour Template", 1, MaxStrLen(DefaultTemplateCode))
+        if Rec."Work Hour Template" <> '' then
+            DefaultTemplateCode := CopyStr(Rec."Work Hour Template", 1, MaxStrLen(DefaultTemplateCode))
         else
             if DailyOptimizerSetup.Get() then
                 DefaultTemplateCode := DailyOptimizerSetup."Work hour Template";
@@ -454,8 +454,8 @@ page 50627 "Opti Res. Cap. Settings Opt"
         if DefaultTemplateCode <> '' then begin
             WorkTemplateCode := DefaultTemplateCode;
             if WorkTemplateRec.Get(WorkTemplateCode) then begin
-                StartTime := WorkTemplateRec."Opti Default Start Time";
-                EndTime := WorkTemplateRec."Opti Default End Time";
+                StartTime := WorkTemplateRec."Default Start Time";
+                EndTime := WorkTemplateRec."Default End Time";
             end;
         end;
     end;

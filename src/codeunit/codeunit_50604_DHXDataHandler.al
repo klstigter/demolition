@@ -1,4 +1,4 @@
-codeunit 50604 "Opti DHX Data Handler"
+codeunit 50604 "DHX Data Handler"
 {
     trigger OnRun()
     begin
@@ -88,14 +88,11 @@ codeunit 50604 "Opti DHX Data Handler"
                                    var EarliestPlanningDate: Date;
                                    SkillFilter: Text): Text
     var
-            Text3Txt: Label '%1 - %2', Comment = '%1=CurrentJobNo, %2=Job.Description';
-            Text2Txt: Label '%1 - %2', Comment = '%1=TEMPJobTasks.Job Task No., %2=TEMPJobTasks.Description';
-            TextTxt: Label '%1 - %2', Comment = '%1=TEMPJobTasks.Job Task No., %2=TEMPJobTasks.Description';
         JobTasks: Record "Job Task";
         TEMPJobTasks: Record "Job Task" temporary;
         //PlanningLine: Record "Job Task";
-        DayPlanning: Record "Opti Day Planning";
-        DayPlanningPrefetch: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
+        DayPlanningPrefetch: Record "Day Planning";
         WeekTemp: record "Aging Band Buffer" temporary;
         ResourcePrefetch: Record Resource;
         VendorPrefetch: Record Vendor;
@@ -137,7 +134,7 @@ codeunit 50604 "Opti DHX Data Handler"
         StartDateTxt: Text;
         EndDateTxt: Text;
         _DummyEndDate: Date;
-        DetailsLbl: Label '%1 - %2|%3 - %4|%5 - %6', Comment = '%1 = value, %2 = value, %3 = value, %4 = value, %5 = value, %6 = value';
+        DetailsLabel: Label '%1 - %2|%3 - %4|%5 - %6';
 
         HasAssigned: Boolean;
         HasRequested: Boolean;
@@ -312,7 +309,7 @@ codeunit 50604 "Opti DHX Data Handler"
                 if DayPlanning."Vendor No." <> '' then
                     VendorNameDict.Get(DayPlanning."Vendor No.", VenName);
                 PlanningObject.Add('details', VenName);
-                // StrSubstNo(DetailsLbl, Ven."No.", Ven.Name
+                // StrSubstNo(DetailsLabel, Ven."No.", Ven.Name
                 // , DayPlanning."Job No.", Jobs.Description
                 // , DayPlanning."Job Task No.", JobTasks.Description));
 
@@ -389,7 +386,7 @@ codeunit 50604 "Opti DHX Data Handler"
                     StackDepth := 0;
                     JobObject.Add('key', CurrentJobNo);
                     if Job.Get(CurrentJobNo) then
-                        JobObject.Add('label', StrSubstNo(Text3Txt, CurrentJobNo, Job.Description))
+                        JobObject.Add('label', StrSubstNo('%1 - %2', CurrentJobNo, Job.Description))
                     else
                         JobObject.Add('label', CurrentJobNo);
                     JobObject.Add('open', true);
@@ -410,7 +407,7 @@ codeunit 50604 "Opti DHX Data Handler"
                     // Leaf: add directly to the active level's children array
                     Clear(TaskLeaf);
                     TaskLeaf.Add('key', TEMPJobTasks."Job No." + '|' + TEMPJobTasks."Job Task No.");
-                    TaskLeaf.Add('label', StrSubstNo(Text2Txt, TEMPJobTasks."Job Task No.", TEMPJobTasks.Description));
+                    TaskLeaf.Add('label', StrSubstNo('%1 - %2', TEMPJobTasks."Job Task No.", TEMPJobTasks.Description));
                     AddSequenceChildren(TaskLeaf, TEMPJobTasks."Job No." + '|' + TEMPJobTasks."Job Task No.", ChildKeysByTask, ChildLabels);
                     StackArr[StackDepth + 1].Add(TaskLeaf);
                 end else
@@ -425,7 +422,7 @@ codeunit 50604 "Opti DHX Data Handler"
                             StackDepth += 1;
                             Clear(HeadingNode);
                             HeadingNode.Add('key', TEMPJobTasks."Job No." + '|' + TEMPJobTasks."Job Task No.");
-                            HeadingNode.Add('label', StrSubstNo(TextTxt, TEMPJobTasks."Job Task No.", TEMPJobTasks.Description));
+                            HeadingNode.Add('label', StrSubstNo('%1 - %2', TEMPJobTasks."Job Task No.", TEMPJobTasks.Description));
                             HeadingNode.Add('open', true);
                             StackObj[StackDepth] := HeadingNode;
                             Clear(FreshArr);
@@ -551,7 +548,7 @@ codeunit 50604 "Opti DHX Data Handler"
     // for the "Plan Date" range + Job/Job Task/Resource/Skill filters used by
     // GetYUnitElementsJSON_Project, its Resource/Vendor bulk-prefetch pass, and
     // GetYUnitElementsJSON_Project_Paged, so the three never drift out of sync with each other.
-    local procedure ApplyProjectSchedulerDayPlanningFilters(var DayPlanningRec: Record "Opti Day Planning"; StartDate: Date; EndDate: Date; ResourceFilter: Text; JobFilter: Text; JobTaskFilter: Text; SkillFilter: Text)
+    local procedure ApplyProjectSchedulerDayPlanningFilters(var DayPlanningRec: Record "Day Planning"; StartDate: Date; EndDate: Date; ResourceFilter: Text; JobFilter: Text; JobTaskFilter: Text; SkillFilter: Text)
     begin
         DayPlanningRec.Reset();
         DayPlanningRec.SetCurrentKey("Plan Date", "Start Time Assigned");
@@ -618,13 +615,10 @@ codeunit 50604 "Opti DHX Data Handler"
                                var RemainingJobFilter: Text;
                                SkillFilter: Text): Text
     var
-            Text3Txt: Label '%1 - %2', Comment = '%1=CurrentJobNo, %2=Job.Description';
-            Text2Txt: Label '%1 - %2', Comment = '%1=TEMPJobTasks.Job Task No., %2=TEMPJobTasks.Description';
-            TextTxt: Label '%1 - %2', Comment = '%1=TEMPJobTasks.Job Task No., %2=TEMPJobTasks.Description';
         JobTasks: Record "Job Task";
         TEMPJobTasks: Record "Job Task" temporary;
-        DayPlanning: Record "Opti Day Planning";
-        DayPlanningPrefetch: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
+        DayPlanningPrefetch: Record "Day Planning";
         WeekTemp: record "Aging Band Buffer" temporary;
         ResourcePrefetch: Record Resource;
         VendorPrefetch: Record Vendor;
@@ -947,7 +941,7 @@ codeunit 50604 "Opti DHX Data Handler"
                     StackDepth := 0;
                     JobObject.Add('key', CurrentJobNo);
                     if Job.Get(CurrentJobNo) then
-                        JobObject.Add('label', StrSubstNo(Text3Txt, CurrentJobNo, Job.Description))
+                        JobObject.Add('label', StrSubstNo('%1 - %2', CurrentJobNo, Job.Description))
                     else
                         JobObject.Add('label', CurrentJobNo);
                     JobObject.Add('open', true);
@@ -962,7 +956,7 @@ codeunit 50604 "Opti DHX Data Handler"
                 if TEMPJobTasks."Job Task Type" = TEMPJobTasks."Job Task Type"::Posting then begin
                     Clear(TaskLeaf);
                     TaskLeaf.Add('key', TEMPJobTasks."Job No." + '|' + TEMPJobTasks."Job Task No.");
-                    TaskLeaf.Add('label', StrSubstNo(Text2Txt, TEMPJobTasks."Job Task No.", TEMPJobTasks.Description));
+                    TaskLeaf.Add('label', StrSubstNo('%1 - %2', TEMPJobTasks."Job Task No.", TEMPJobTasks.Description));
                     AddSequenceChildren(TaskLeaf, TEMPJobTasks."Job No." + '|' + TEMPJobTasks."Job Task No.", ChildKeysByTask, ChildLabels);
                     StackArr[StackDepth + 1].Add(TaskLeaf);
                 end else
@@ -974,7 +968,7 @@ codeunit 50604 "Opti DHX Data Handler"
                             StackDepth += 1;
                             Clear(HeadingNode);
                             HeadingNode.Add('key', TEMPJobTasks."Job No." + '|' + TEMPJobTasks."Job Task No.");
-                            HeadingNode.Add('label', StrSubstNo(TextTxt, TEMPJobTasks."Job Task No.", TEMPJobTasks.Description));
+                            HeadingNode.Add('label', StrSubstNo('%1 - %2', TEMPJobTasks."Job Task No.", TEMPJobTasks.Description));
                             HeadingNode.Add('open', true);
                             StackObj[StackDepth] := HeadingNode;
                             Clear(FreshArr);
@@ -1008,7 +1002,6 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     procedure ValidateSchedulerSectionMatch(ResourceJSONTxt: Text; PlanninJsonTxt: Text)
     var
-            DHTMLXSchedulerEventSHavTxt: Label 'DHTMLX Scheduler: %1 event(s) have unmatched section_id:\', Comment = '%1=MissingIds.Count';
         RootObj: JsonObject;
         DataArr: JsonArray;
         JobToken, EventToken : JsonToken;
@@ -1049,12 +1042,11 @@ codeunit 50604 "Opti DHX Data Handler"
         if MissingIds.Count = 0 then
             exit;
 
-        ErrorMsg := StrSubstNo(DHTMLXSchedulerEventSHavTxt, MissingIds.Count);
+        ErrorMsg := StrSubstNo('DHTMLX Scheduler: %1 event(s) have unmatched section_id:\', MissingIds.Count);
         foreach MissingId in MissingIds do
             ErrorMsg += '  • ' + MissingId + '\';
         ErrorMsg += 'These events will not appear in the scheduler. Check that the job task exists and is of type Posting.';
-        if GuiAllowed() then
-            Message(ErrorMsg);
+        Message(ErrorMsg);
     end;
 
     /// <summary>
@@ -1147,7 +1139,7 @@ codeunit 50604 "Opti DHX Data Handler"
 
     local procedure GetVendorNoFromDayPlanning(FromDate: Date; ToDate: Date; ResNo: Code[20]): Text
     var
-        DayPlanning: record "Opti Day Planning";
+        DayPlanning: record "Day Planning";
         VendorNo: Text;
         rtv: Text;
     begin
@@ -1167,7 +1159,7 @@ codeunit 50604 "Opti DHX Data Handler"
 
     local procedure GetPoolNoFromDayPlanning(FromDate: Date; ToDate: Date; ResNo: Code[20]): Text
     var
-        DayPlanning: record "Opti Day Planning";
+        DayPlanning: record "Day Planning";
         PoolNo: Text;
         rtv: Text;
     begin
@@ -1200,12 +1192,12 @@ codeunit 50604 "Opti DHX Data Handler"
         ResourceTemp: Record Resource temporary;
         TempVen: record Vendor temporary;
         DateRec: Record Date;
-        DayPlanning: record "Opti Day Planning";
+        DayPlanning: record "Day Planning";
         Resource: Record Resource;
         Job: Record Job;
         Task: Record "Job Task";
 
-        ResCapQry: Query "Opti Cap. Per Day Per Resource";
+        ResCapQry: Query "Capacity Per Day Per Resource";
 
         GroupResObject, InternalExternalObject, ResourceObject : JsonObject;
         GroupChildrenArray, InternalExternalChildrenArray : JsonArray;
@@ -1221,7 +1213,7 @@ codeunit 50604 "Opti DHX Data Handler"
         StartDateTxt: Text;
         EndDateTxt: Text;
         DummyEndDate: Date;
-        DetailsLbl: Label '%1 - %2|%3 - %4|%5 - %6', Comment = '%1 = value, %2 = value, %3 = value, %4 = value, %5 = value, %6 = value';
+        DetailsLabel: Label '%1 - %2|%3 - %4|%5 - %6';
     begin
         PlanninJsonTxt := '';
         //Marking Job based on Day Plannings within the given date range
@@ -1300,7 +1292,7 @@ codeunit 50604 "Opti DHX Data Handler"
                             PlanningObject.Add('section_id', DayPlanning."Resource Group No." + '|' + ResNo + '|' + DayPlanning."Vendor No.");
                             if not Ven.Get(DayPlanning."Vendor No.") then
                                 Clear(Ven);
-                            PlanningObject.Add('details', StrSubstNo(DetailsLbl, Ven."No.", Ven.Name
+                            PlanningObject.Add('details', StrSubstNo(DetailsLabel, Ven."No.", Ven.Name
                                                                                      , DayPlanning."Job No.", Job.Description
                                                                                      , DayPlanning."Job Task No.", Task.Description));
                             if DayPlanning."Vendor No." = '' then begin
@@ -1438,11 +1430,11 @@ codeunit 50604 "Opti DHX Data Handler"
         TempPoolRes: record "Aging Band Buffer" temporary;
         ResourceTemp: Record Resource temporary;
         TempPool: record Resource temporary;
-        DayPlanning: record "Opti Day Planning";
+        DayPlanning: record "Day Planning";
         Job: Record Job;
         Task: Record "Job Task";
 
-        ResCapQry: Query "Opti Cap. Per Day Per Resource";
+        ResCapQry: Query "Capacity Per Day Per Resource";
 
         GroupResObject, InternalExternalObject, ResourceObject : JsonObject;
         GroupChildrenArray, InternalExternalChildrenArray : JsonArray;
@@ -1458,7 +1450,7 @@ codeunit 50604 "Opti DHX Data Handler"
         StartDateTxt: Text;
         EndDateTxt: Text;
         DummyEndDate: Date;
-        DetailsLbl: Label '%1 - %2|%3 - %4|%5 - %6', Comment = '%1 = value, %2 = value, %3 = value, %4 = value, %5 = value, %6 = value';
+        DetailsLabel: Label '%1 - %2|%3 - %4|%5 - %6';
     begin
         PlanninJsonTxt := '';
         //Marking Job based on Day Plannings within the given date range
@@ -1562,7 +1554,7 @@ codeunit 50604 "Opti DHX Data Handler"
 
                     if not PoolRes.Get(DayPlanning."Assigned Pool Resource No.") then
                         Clear(PoolRes);
-                    PlanningObject.Add('details', StrSubstNo(DetailsLbl, PoolRes."No.", PoolRes.Name
+                    PlanningObject.Add('details', StrSubstNo(DetailsLabel, PoolRes."No.", PoolRes.Name
                                                                              , DayPlanning."Job No.", Job.Description
                                                                              , DayPlanning."Job Task No.", Task.Description));
                     if DayPlanning."Assigned Resource No." = '' then begin
@@ -1666,13 +1658,13 @@ codeunit 50604 "Opti DHX Data Handler"
                 */
                 // Vendor and Resource
                 GetUniqueResFromCapacity_Pool(ResourceTemp, TempPool, TempResGroup."No.", StartDate, EndDate, ResourceFilter, ResourceNameFilter, SkillFilter);
-                TempPool.Setcurrentkey("Opti Pool Resource No.", "No.");
+                TempPool.Setcurrentkey("Pool Resource No.", "No.");
                 if TempPool.FindSet() then
                     repeat
                         // 3. Resource — build the leaf list first so we know whether this Pool/Vendor
                         // node has anything to show before adding it (empty nodes are skipped entirely).
                         Clear(InternalExternalChildrenArray);
-                        ResourceTemp.SetRange("Opti Pool Resource No.", TempPool."No.");
+                        ResourceTemp.SetRange("Pool Resource No.", TempPool."No.");
                         if ResourceTemp.FindSet() then
                             repeat
                                 // ResourceTemp."Pool Resource No." is already populated by
@@ -1681,7 +1673,7 @@ codeunit 50604 "Opti DHX Data Handler"
                                 // resource in the tree (the single biggest contributor to this
                                 // page's slow weekly load).
                                 Clear(ResourceObject);
-                                ResourceObject.Add('key', TempResGroup."No." + '|' + ResourceTemp."No." + '|' + ResourceTemp."Opti Pool Resource No.");
+                                ResourceObject.Add('key', TempResGroup."No." + '|' + ResourceTemp."No." + '|' + ResourceTemp."Pool Resource No.");
                                 ResourceObject.Add('label', ResourceTemp.Name);
                                 ResourceObject.Add('category', 'Resource');
                                 InternalExternalChildrenArray.Add(ResourceObject);
@@ -1690,11 +1682,11 @@ codeunit 50604 "Opti DHX Data Handler"
                             // 2. Vendor/Pool node
                             Clear(InternalExternalObject);
                             //InternalExternalObject.Add('key', TempResGroup."No." + '||' + TempPool."No." + '|Pool');
-                            if TempPool."Opti Pool Resource No." = '' then begin
+                            if TempPool."Pool Resource No." = '' then begin
                                 InternalExternalObject.Add('key', TempResGroup."No." + '|' + TempPool."No." + '|');
                                 InternalExternalObject.Add('category', 'Resource');
                             end else begin
-                                InternalExternalObject.Add('key', TempResGroup."No." + '|' + TempPool."No." + '|' + TempPool."Opti Pool Resource No." + '|Pool');
+                                InternalExternalObject.Add('key', TempResGroup."No." + '|' + TempPool."No." + '|' + TempPool."Pool Resource No." + '|Pool');
                                 InternalExternalObject.Add('category', 'Pool');
                             end;
                             InternalExternalObject.Add('label', TempPool.Name);
@@ -1702,7 +1694,7 @@ codeunit 50604 "Opti DHX Data Handler"
                             InternalExternalObject.Add('children', InternalExternalChildrenArray);
                             GroupChildrenArray.Add(InternalExternalObject);
                         end else
-                            if (TempPool."Opti Pool Resource No." = '') and ResourceTemp.Get(TempPool."No.") then begin
+                            if (TempPool."Pool Resource No." = '') and ResourceTemp.Get(TempPool."No.") then begin
                                 // Resource without a pool: no children, so render it as a leaf row. Key matches the
                                 // capacity events' section_id (group|resource|<blank pool>).
                                 Clear(InternalExternalObject);
@@ -1758,27 +1750,27 @@ codeunit 50604 "Opti DHX Data Handler"
         StartDateTxt := '';
         EndDateTxt := '';
         case true of
-            (JobPlaningLine."Opti VisualBarStartDate" <> 0D) and (JobPlaningLine."Opti Start Time" <> 0T):
-                StartDateTxt := Format(JobPlaningLine."Opti VisualBarStartDate", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(JobPlaningLine."Opti Start Time");
-            (JobPlaningLine."Opti VisualBarStartDate" <> 0D) and (JobPlaningLine."Opti Start Time" = 0T):
-                StartDateTxt := Format(JobPlaningLine."Opti VisualBarStartDate", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
-            (JobPlaningLine."Opti VisualBarStartDate" = 0D) and (JobPlaningLine."Opti Start Time" <> 0T),
-            (JobPlaningLine."Opti VisualBarStartDate" = 0D) and (JobPlaningLine."Opti Start Time" = 0T):
+            (JobPlaningLine.VisualBarStartDate <> 0D) and (JobPlaningLine."Start Time" <> 0T):
+                StartDateTxt := Format(JobPlaningLine.VisualBarStartDate, 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(JobPlaningLine."Start Time");
+            (JobPlaningLine.VisualBarStartDate <> 0D) and (JobPlaningLine."Start Time" = 0T):
+                StartDateTxt := Format(JobPlaningLine.VisualBarStartDate, 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
+            (JobPlaningLine.VisualBarStartDate = 0D) and (JobPlaningLine."Start Time" <> 0T),
+            (JobPlaningLine.VisualBarStartDate = 0D) and (JobPlaningLine."Start Time" = 0T):
                 StartDateTxt := '';
         end;
         case true of
-            (JobPlaningLine."Opti VisualBarEndDate" = 0D) and (JobPlaningLine."Opti End Time" <> 0T):
-                EndDateTxt := Format(JobPlaningLine."Opti VisualBarStartDate", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(JobPlaningLine."Opti End Time");
-            (JobPlaningLine."Opti VisualBarEndDate" <> 0D) and (JobPlaningLine."Opti End Time" <> 0T):
-                EndDateTxt := Format(JobPlaningLine."Opti VisualBarEndDate", 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(JobPlaningLine."Opti End Time");
-            (JobPlaningLine."Opti VisualBarEndDate" = 0D) and (JobPlaningLine."Opti End Time" = 0T):
-                EndDateTxt := Format(JobPlaningLine."Opti VisualBarStartDate", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
-            (JobPlaningLine."Opti VisualBarEndDate" <> 0D) and (JobPlaningLine."Opti End Time" = 0T):
-                EndDateTxt := Format(JobPlaningLine."Opti VisualBarEndDate", 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
+            (JobPlaningLine.VisualBarEndDate = 0D) and (JobPlaningLine."End Time" <> 0T):
+                EndDateTxt := Format(JobPlaningLine.VisualBarStartDate, 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(JobPlaningLine."End Time");
+            (JobPlaningLine.VisualBarEndDate <> 0D) and (JobPlaningLine."End Time" <> 0T):
+                EndDateTxt := Format(JobPlaningLine.VisualBarEndDate, 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(JobPlaningLine."End Time");
+            (JobPlaningLine.VisualBarEndDate = 0D) and (JobPlaningLine."End Time" = 0T):
+                EndDateTxt := Format(JobPlaningLine.VisualBarStartDate, 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
+            (JobPlaningLine.VisualBarEndDate <> 0D) and (JobPlaningLine."End Time" = 0T):
+                EndDateTxt := Format(JobPlaningLine.VisualBarEndDate, 0, '<Year4>-<Month,2>-<Day,2>') + ' 00:00';
         end;
     end;
 
-    procedure GetStartEndTxt(DayPlanning: Record "Opti Day Planning";
+    procedure GetStartEndTxt(DayPlanning: Record "Day Planning";
                                    var StartDateTxt: Text;
                                    var EndDateTxt: Text)
     var
@@ -1832,7 +1824,7 @@ codeunit 50604 "Opti DHX Data Handler"
         // now a legitimate real value here, not a "blank/unset" sentinel — forcing it to 070000T
         // silently shifted every midnight-anchored entry's displayed start 7 hours later than what
         // was actually stored (e.g. a 15h entry stored as 00:00-15:00 rendered as 07:00-15:00).
-        tm := ResCap."Opti Start Time";
+        tm := ResCap."Start Time";
 
         // Convert start date and time to DateTime
         StartDateTime := CreateDateTime(ResCap."Date", tm);
@@ -1849,7 +1841,7 @@ codeunit 50604 "Opti DHX Data Handler"
         // and deliberately leave End Time blank because there is no single stored End Time for an
         // aggregate. For those, fall back to the original Capacity-duration math - same as the
         // "if tm = 0T" fallback pattern used for Start Time above, just applied to End Time.
-        endTm := ResCap."Opti End Time";
+        endTm := ResCap."End Time";
         if endTm <> 0T then
             EndDateTime := CreateDateTime(ResCap."Date", endTm)
         else begin
@@ -1902,7 +1894,6 @@ codeunit 50604 "Opti DHX Data Handler"
 
     local procedure ToSessionDateTimeTxt(UtcDate: Date; UtcTime: Time): Text
     var
-        InvalidUTCDateTimeFromErr: Label 'Invalid UTC date/time: %1 %2 from text value %3', Comment = '%1=UtcDate, %2=UtcTime, %3=IsoTxt';
         IsoTxt: Text;
         UtcDT: DateTime;
         LocalDate: Date;
@@ -1913,7 +1904,7 @@ codeunit 50604 "Opti DHX Data Handler"
         FormattedTime := Format(UtcTime, 0, '<Hours24,2>:<Minutes,2>:<Seconds,2>');
         IsoTxt := Format(UtcDate, 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + DelChr(FormattedTime, '<', ' ');  //+ 'Z';
         if not Evaluate(UtcDT, IsoTxt) then
-            Error(InvalidUTCDateTimeFromErr, UtcDate, UtcTime, IsoTxt);
+            Error('Invalid UTC date/time: %1 %2 from text value %3', UtcDate, UtcTime, IsoTxt);
 
         LocalDate := DT2Date(UtcDT); // converted to current user's time zone
         LocalTime := DT2Time(UtcDT);
@@ -1956,7 +1947,7 @@ codeunit 50604 "Opti DHX Data Handler"
 
     procedure GetEventDataFromEventId(EventId: Text; var EventDataJsonTxt: Text): Boolean
     var
-        DayPlanning: record "Opti Day Planning";
+        DayPlanning: record "Day Planning";
         EventIdParts: List of [Text];
         JobNo: Code[20];
         TaskNo: Code[20];
@@ -1964,7 +1955,7 @@ codeunit 50604 "Opti DHX Data Handler"
         DayNo: Integer;
         DayLineNo: Integer;
         rtv: Boolean;
-        RefreshLbl: label '{"id": "%1", "text": "%2", "start_date": "%3", "end_date": "%4", "section_id": "%5", "resource_id": "%6", "resource_name": "%7"}', Comment = '%1 = value, %2 = value, %3 = value, %4 = value, %5 = value, %6 = value, %7 = value';
+        RefreshLbl: label '{"id": "%1", "text": "%2", "start_date": "%3", "end_date": "%4", "section_id": "%5", "resource_id": "%6", "resource_name": "%7"}';
     begin
         // EventId format: JobNo|TaskNo|PlanningLineNo|DayNo|DayLineNo
         EventIdParts := EventId.Split('|');
@@ -2007,9 +1998,9 @@ codeunit 50604 "Opti DHX Data Handler"
     var
         Task: record "Job Task";
         PlanningLine: record "Job Task";
-        DayPlanning: record "Opti Day Planning";
+        DayPlanning: record "Day Planning";
         Res: record Resource;
-        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
         EventJSonObj: JsonObject;
         JToken: JsonToken;
         SectionIdParts: List of [Text];
@@ -2030,7 +2021,7 @@ codeunit 50604 "Opti DHX Data Handler"
         Desc: Text;
         _DateTime: DateTime;
         _DateTimeUserZone: DateTime;
-        JsonLbl: Label '{"OldEventId": "%1", "NewEventId": "%2|%3|%4|%5|%6"}', Comment = '%1 = value, %2 = value, %3 = value, %4 = value, %5 = value, %6 = value';
+        JsonLbl: Label '{"OldEventId": "%1", "NewEventId": "%2|%3|%4|%5|%6"}';
         NoDefaultSkillErr: Label 'Cannot create a Day Planning line from the scheduler: no Skill context is available for this drag-and-drop event, and "Daily Optimizer Setup"."Default Skill" is not set. Configure a Default Skill before assigning resources this way.';
     begin
         //Message('New Event Created with eventData = %2', eventData);
@@ -2058,14 +2049,14 @@ codeunit 50604 "Opti DHX Data Handler"
         old_eventid := JToken.AsValue().AsText();
 
         EventJSonObj.Get('start_date', JToken);
-        Evaluate(_DateTime, JToken.AsValue().AsText(), 9);
+        Evaluate(_DateTime, JToken.AsValue().AsText());
         _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
         PlanningDate := DT2Date(_DateTimeUserZone);
         StartTime := DT2Time(_DateTimeUserZone);
         Evaluate(DayNo, Format(PlanningDate, 0, '<Year4><Month,2><Day,2>'));
 
         EventJSonObj.Get('end_date', JToken);
-        Evaluate(_DateTime, JToken.AsValue().AsText(), 9);
+        Evaluate(_DateTime, JToken.AsValue().AsText());
         _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
         EndPlanningDate := DT2Date(_DateTimeUserZone);
         EndTime := DT2Time(_DateTimeUserZone);
@@ -2131,7 +2122,7 @@ codeunit 50604 "Opti DHX Data Handler"
     var
         OldTask: record "Job Task";
         OldPlanningLIne: record "Job Task";
-        OldDayPlanning: record "Opti Day Planning";
+        OldDayPlanning: record "Day Planning";
         OldResource: record Resource;
         OldVendor: Record Vendor;
 
@@ -2163,7 +2154,7 @@ codeunit 50604 "Opti DHX Data Handler"
         //Get Startdate as new dayno
         EventJSonObj.Get('start_date', JToken);
         //Covert _Date + _Time into Datetime var, after that extract Date part again to get the correct date in user's timezone
-        Evaluate(_DateTime, JToken.AsValue().AsText(), 9);
+        Evaluate(_DateTime, JToken.AsValue().AsText());
         _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
         DateRef := DT2Date(_DateTimeUserZone);
 
@@ -2251,15 +2242,15 @@ codeunit 50604 "Opti DHX Data Handler"
     procedure OnEventChanged_Project(EventId: Text;
                              EventData: Text;
                              var UpdateEventID: Boolean;
-                             var OldDayPlanning_forUpdate: record "Opti Day Planning";
-                             var NewDayPlanning_forUpdate: record "Opti Day Planning")
+                             var OldDayPlanning_forUpdate: record "Day Planning";
+                             var NewDayPlanning_forUpdate: record "Day Planning")
     var
         OldTask: record "Job Task";
         NewTask: record "Job Task";
         OldPlanningLIne: record "Job Task";
         NewPlanningLIne: record "Job Task";
-        OldDayPlanning: record "Opti Day Planning";
-        DayPlanningCheck: record "Opti Day Planning";
+        OldDayPlanning: record "Day Planning";
+        DayPlanningCheck: record "Day Planning";
 
         EventJSonObj: JsonObject;
         JToken: JsonToken;
@@ -2327,7 +2318,7 @@ codeunit 50604 "Opti DHX Data Handler"
         //Get Startdate as new dayno
         EventJSonObj.Get('start_date', JToken);
         //Covert _Date + _Time into Datetime var, after that extract Date part again to get the correct date in user's timezone
-        Evaluate(_DateTime, JToken.AsValue().AsText(), 9);
+        Evaluate(_DateTime, JToken.AsValue().AsText());
         _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
         New_Date := DT2Date(_DateTimeUserZone);
         Evaluate(New_DayNo, Format(New_Date, 0, '<Year4><Month,2><Day,2>'));
@@ -2354,13 +2345,13 @@ codeunit 50604 "Opti DHX Data Handler"
 
         //sift left / right to same task
         EventJSonObj.Get('start_date', JToken);
-        Evaluate(_DateTime, JToken.AsValue().AsText(), 9);
+        Evaluate(_DateTime, JToken.AsValue().AsText());
         _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
         OldDayPlanning."Plan Date" := DT2Date(_DateTimeUserZone);
         OldDayPlanning."Start Time Assigned" := DT2Time(_DateTimeUserZone);
 
         EventJSonObj.Get('end_date', JToken);
-        Evaluate(_DateTime, JToken.AsValue().AsText(), 9);
+        Evaluate(_DateTime, JToken.AsValue().AsText());
         _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
         OldDayPlanning."End Time Assigned" := DT2Time(_DateTimeUserZone);
 
@@ -2378,10 +2369,10 @@ codeunit 50604 "Opti DHX Data Handler"
             UpdateEventID(OldDayPlanning_forUpdate, NewDayPlanning_forUpdate);
     end;
 
-    procedure UpdateEventID(OldDayPlanning: Record "Opti Day Planning"; NewDayPlanning: Record "Opti Day Planning"): Text
+    procedure UpdateEventID(OldDayPlanning: Record "Day Planning"; NewDayPlanning: Record "Day Planning"): Text
     var
         rtv: text;
-        JsonLbl: Label '{"OldEventId": "%1|%2|%3|%4|%5", "NewEventId": "%6|%7|%8|%9|%10"}', Comment = '%1 = value, %2 = value, %3 = value, %4 = value, %5 = value, %6 = value, %7 = value, %8 = value, %9 = value';
+        JsonLbl: Label '{"OldEventId": "%1|%2|%3|%4|%5", "NewEventId": "%6|%7|%8|%9|%10"}';
     begin
         rtv := StrSubstNo(JsonLbl,
                          OldDayPlanning."Job No.",
@@ -2452,13 +2443,13 @@ codeunit 50604 "Opti DHX Data Handler"
         JobTaskNo := CopyStr(SectionParts.Get(2), 1, MaxStrLen(JobTaskNo));
         if (JobNo = '') or (JobTaskNo = '') then
             exit;
-        if not Evaluate(_DateTime, StartDateIso, 9) then
+        if not Evaluate(_DateTime, StartDateIso) then
             exit;
         _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
         PlanDate := DT2Date(_DateTimeUserZone);
 
         EndTime := 0T;
-        if (EndDateIso <> '') and Evaluate(_EndDateTime, EndDateIso, 9) then begin
+        if (EndDateIso <> '') and Evaluate(_EndDateTime, EndDateIso) then begin
             _EndDateTimeUserZone := ConvertToUserTimeZone(_EndDateTime);
             EndTime := DT2Time(_EndDateTimeUserZone);
         end;
@@ -2480,7 +2471,7 @@ codeunit 50604 "Opti DHX Data Handler"
         JobTaskNo: Code[20];
         SkillCode: Record "Skill Code";
         SkillCodes: Page "Skill Codes";
-        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
         SkillNo: Code[20];
     begin
         SectionParts := SectionId.Split('|');
@@ -2509,8 +2500,8 @@ codeunit 50604 "Opti DHX Data Handler"
 
     local procedure CreateDayPlanningCard(JobNo: Code[20]; JobTaskNo: Code[20]; PlanDate: Date; StartTime: Time; EndTime: Time; SkillNo: Code[20])
     var
-        NewDayPlanning: Record "Opti Day Planning";
-        LastDayPlanning: Record "Opti Day Planning";
+        NewDayPlanning: Record "Day Planning";
+        LastDayPlanning: Record "Day Planning";
         NewDayLineNo: Integer;
     begin
         LastDayPlanning.Reset();
@@ -2532,7 +2523,7 @@ codeunit 50604 "Opti DHX Data Handler"
             NewDayPlanning."End Time Requested" := EndTime;
         NewDayPlanning.Insert(true);
         Commit();
-        if Page.RunModal(Page::"Opti Day Planning Card Opt", NewDayPlanning) <> Action::LookupOK then
+        if Page.RunModal(Page::"Day Planning Card Opt", NewDayPlanning) <> Action::LookupOK then
             if NewDayPlanning.Get(JobNo, JobTaskNo, NewDayLineNo) then
                 NewDayPlanning.Delete(true);
     end;
@@ -2594,11 +2585,11 @@ codeunit 50604 "Opti DHX Data Handler"
         ResNo: Code[20];
         startDate, endDate : Date;
         ResCapEntryNo: Integer;
-        InvalidEventErr: label 'Invalid Event ID for Resource Capacity Entry: %1', Comment = '%1 = value';
-        ResNotFoundErr: label 'Resource Capacity Entry not found for Event ID: %1', Comment = '%1 = value';
+        InvalidEvent: label 'Invalid Event ID for Resource Capacity Entry: %1';
+        ResNotFound: label 'Resource Capacity Entry not found for Event ID: %1';
     begin
         if not Evaluate(ResCapEntryNo, eventId) then
-            Error(InvalidEventErr, eventId);
+            Error(InvalidEvent, eventId);
         if ResCap.Get(ResCapEntryNo) then begin
             GetWeekPeriodDates(DateRef, startDate, endDate);
             ResNo := ResCap."Resource No.";
@@ -2606,13 +2597,13 @@ codeunit 50604 "Opti DHX Data Handler"
             ResCap.SetRange("Date", startDate, endDate);
             Page.RunModal(0, ResCap);
         end else
-            Error(ResNotFoundErr, eventId);
+            Error(ResNotFound, eventId);
     end;
 
     procedure OpenDayPlanning(eventId: Text): Date
     var
-        DayPlanning: Record "Opti Day Planning";
-        DayPlannings: page "Opti Day Plannings";
+        DayPlanning: Record "Day Planning";
+        DayPlannings: page "Day Plannings";
         EventIDList: List of [Text];
         JobNo: Code[20];
         TaskNo: Code[20];
@@ -2620,7 +2611,7 @@ codeunit 50604 "Opti DHX Data Handler"
         TaskDay: Date;
         DayLineNo: Integer;
         DateOfDayPlanning: Date;
-        MsgLbl: Label 'Day planning not found for Event ID: %1', Comment = '%1 = value';
+        MsgLbl: Label 'Day planning not found for Event ID: %1';
     begin
         DateOfDayPlanning := 0D;
         EventIDList := eventId.Split('|');
@@ -2638,8 +2629,7 @@ codeunit 50604 "Opti DHX Data Handler"
             DayPlannings.SetTableView(DayPlanning);
             DayPlannings.RunModal();
         end else
-            if GuiAllowed() then
-                Message(MsgLbl, eventId);
+            Message(MsgLbl, eventId);
         exit(DateOfDayPlanning);
     end;
 
@@ -2650,13 +2640,13 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     procedure OpenResourceSchedulerAssigned(eventId: Text)
     var
-        DayPlanning: Record "Opti Day Planning";
-        ResScheduler: Page "Opti Resource Calendar";
+        DayPlanning: Record "Day Planning";
+        ResScheduler: Page "Resource Calendar";
         EventIDList: List of [Text];
         JobNo: Code[20];
         TaskNo: Code[20];
         DayLineNo: Integer;
-        MsgLbl: Label 'Day planning not found for Event ID: %1', Comment = '%1 = value';
+        MsgLbl: Label 'Day planning not found for Event ID: %1';
         NoAssignedResLbl: Label 'there is no Assigned resource no. on Day Planning';
     begin
         EventIDList := eventId.Split('|');
@@ -2668,11 +2658,9 @@ codeunit 50604 "Opti DHX Data Handler"
                 ResScheduler.SetResourceFilter(DayPlanning."Assigned Resource No.");
                 ResScheduler.RunModal();
             end else
-                if GuiAllowed() then
-                    Message(NoAssignedResLbl);
+                Message(NoAssignedResLbl);
         end else
-            if GuiAllowed() then
-                Message(MsgLbl, eventId);
+            Message(MsgLbl, eventId);
     end;
 
     /// <summary>
@@ -2688,14 +2676,14 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     procedure OpenResSchedulerTimeline(eventId: Text)
     var
-        DayPlanning: Record "Opti Day Planning";
-        ResCapacityScheduler: Page "Opti Res. Scheduler - TimeLine";
+        DayPlanning: Record "Day Planning";
+        ResCapacityScheduler: Page "Resource Scheduler - TimeLine";
         EventIDList: List of [Text];
         JobNo: Code[20];
         TaskNo: Code[20];
         DayLineNo: Integer;
         SkillCodeVal: Code[20];
-        MsgLbl: Label 'Day planning not found for Event ID: %1', Comment = '%1 = value';
+        MsgLbl: Label 'Day planning not found for Event ID: %1';
     begin
         EventIDList := eventId.Split('|');
         JobNo := EventIDList.Get(1);
@@ -2708,8 +2696,7 @@ codeunit 50604 "Opti DHX Data Handler"
             ResCapacityScheduler.OpenSkillFiltered(SkillCodeVal);
             ResCapacityScheduler.RunModal();
         end else
-            if GuiAllowed() then
-                Message(MsgLbl, eventId);
+            Message(MsgLbl, eventId);
     end;
 
     /// <summary>
@@ -2719,7 +2706,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     procedure OpenResSchedulerTimelineForResource(ResNo: Code[20]; AnchorDate: Date)
     var
-        ResCapacityScheduler: Page "Opti Res. Scheduler - TimeLine";
+        ResCapacityScheduler: Page "Resource Scheduler - TimeLine";
     begin
         ResCapacityScheduler.SetResourceNoFilter(ResNo);
         if AnchorDate <> 0D then
@@ -2734,13 +2721,13 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     procedure OpenResourceSchedulerRequested(eventId: Text)
     var
-        DayPlanning: Record "Opti Day Planning";
-        ResScheduler: Page "Opti Resource Calendar";
+        DayPlanning: Record "Day Planning";
+        ResScheduler: Page "Resource Calendar";
         EventIDList: List of [Text];
         JobNo: Code[20];
         TaskNo: Code[20];
         DayLineNo: Integer;
-        MsgLbl: Label 'Day planning not found for Event ID: %1', Comment = '%1 = value';
+        MsgLbl: Label 'Day planning not found for Event ID: %1';
         NoRequestedResLbl: Label 'there is no Requested resource no. on Day Planning';
     begin
         EventIDList := eventId.Split('|');
@@ -2752,11 +2739,9 @@ codeunit 50604 "Opti DHX Data Handler"
                 ResScheduler.SetResourceFilter(DayPlanning."Requested Resource No.");
                 ResScheduler.RunModal();
             end else
-                if GuiAllowed() then
-                    Message(NoRequestedResLbl);
+                Message(NoRequestedResLbl);
         end else
-            if GuiAllowed() then
-                Message(MsgLbl, eventId);
+            Message(MsgLbl, eventId);
     end;
 
     /// <summary>
@@ -2766,13 +2751,13 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     procedure OpenRequestedResourceCard(eventId: Text)
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         Resource: Record Resource;
         EventIDList: List of [Text];
         JobNo: Code[20];
         TaskNo: Code[20];
         DayLineNo: Integer;
-        MsgLbl: Label 'Day planning not found for Event ID: %1', Comment = '%1 = value';
+        MsgLbl: Label 'Day planning not found for Event ID: %1';
         NoRequestedResLbl: Label 'there is no Requested resource no. on Day Planning';
     begin
         EventIDList := eventId.Split('|');
@@ -2784,11 +2769,9 @@ codeunit 50604 "Opti DHX Data Handler"
                 Resource.SetFilter("No.", DayPlanning."Requested Resource No.");
                 Page.RunModal(Page::"Resource Card", Resource);
             end else
-                if GuiAllowed() then
-                    Message(NoRequestedResLbl);
+                Message(NoRequestedResLbl);
         end else
-            if GuiAllowed() then
-                Message(MsgLbl, eventId);
+            Message(MsgLbl, eventId);
     end;
 
     /// <summary>
@@ -2798,13 +2781,13 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     procedure OpenAssignedResourceCard(eventId: Text)
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         Resource: Record Resource;
         EventIDList: List of [Text];
         JobNo: Code[20];
         TaskNo: Code[20];
         DayLineNo: Integer;
-        MsgLbl: Label 'Day planning not found for Event ID: %1', Comment = '%1 = value';
+        MsgLbl: Label 'Day planning not found for Event ID: %1';
         NoAssignedResLbl: Label 'there is no Assigned resource no. on Day Planning';
     begin
         EventIDList := eventId.Split('|');
@@ -2816,11 +2799,9 @@ codeunit 50604 "Opti DHX Data Handler"
                 Resource.SetFilter("No.", DayPlanning."Assigned Resource No.");
                 Page.RunModal(Page::"Resource Card", Resource);
             end else
-                if GuiAllowed() then
-                    Message(NoAssignedResLbl);
+                Message(NoAssignedResLbl);
         end else
-            if GuiAllowed() then
-                Message(MsgLbl, eventId);
+            Message(MsgLbl, eventId);
     end;
 
     /// <summary>
@@ -2830,22 +2811,21 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     procedure OpenDayPlanningCard(eventId: Text)
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         EventIDList: List of [Text];
         JobNo: Code[20];
         TaskNo: Code[20];
         DayLineNo: Integer;
-        MsgLbl: Label 'Day planning not found for Event ID: %1', Comment = '%1 = value';
+        MsgLbl: Label 'Day planning not found for Event ID: %1';
     begin
         EventIDList := eventId.Split('|');
         JobNo := EventIDList.Get(1);
         TaskNo := EventIDList.Get(2);
         Evaluate(DayLineNo, EventIDList.Get(4));
         if DayPlanning.Get(JobNo, TaskNo, DayLineNo) then
-            PAGE.Run(PAGE::"Opti Day Planning Card Opt", DayPlanning)
+            PAGE.Run(PAGE::"Day Planning Card Opt", DayPlanning)
         else
-            if GuiAllowed() then
-                Message(MsgLbl, eventId);
+            Message(MsgLbl, eventId);
     end;
 
     procedure OpenResourceCard(SectionId: Text)
@@ -2901,12 +2881,12 @@ codeunit 50604 "Opti DHX Data Handler"
         TimeLineJSonObj.ReadFrom(TimeLineJSon);
 
         TimeLineJSonObj.Get('start', JToken);
-        Evaluate(_DateTime, JToken.AsValue().AsText(), 9);
+        Evaluate(_DateTime, JToken.AsValue().AsText());
         _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
         StartDate := DT2Date(_DateTimeUserZone);
 
         TimeLineJSonObj.Get('end', JToken);
-        Evaluate(_DateTime, JToken.AsValue().AsText(), 9);
+        Evaluate(_DateTime, JToken.AsValue().AsText());
         _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
         EndDate := DT2Date(_DateTimeUserZone);
     end;
@@ -3040,7 +3020,7 @@ codeunit 50604 "Opti DHX Data Handler"
         exit((EventsJSon <> '') and (ResouecesJSon <> ''));
     end;
 
-    procedure DownloadResourceTempToExcel(var ResourceTemp: Record "Opti CustomRecordBuffer" temporary)
+    procedure DownloadResourceTempToExcel(var ResourceTemp: Record CustomRecordBuffer temporary)
     var
         ExcelBuffer: Record "Excel Buffer" temporary;
         Resource: Record Resource;
@@ -3104,8 +3084,8 @@ codeunit 50604 "Opti DHX Data Handler"
                                        EndDate: Date)
     var
         Res: record Resource;
-        DayPlannings: record "Opti Day Planning";
-        UniqueResQry: Query "Opti Uniq. Res. in Capacity";
+        DayPlannings: record "Day Planning";
+        UniqueResQry: Query "Unique Resource in Capacity";
         ResNo: Code[20];
     begin
         // Clear the temporary table
@@ -3167,7 +3147,7 @@ codeunit 50604 "Opti DHX Data Handler"
     var
         Res: record Resource;
         Vendor: Record Vendor;
-        UniqueResQry: Query "Opti Uniq. Res. in Capacity";
+        UniqueResQry: Query "Unique Resource in Capacity";
         ResNo: Code[20];
         VenNo: Code[20];
     begin
@@ -3215,8 +3195,8 @@ codeunit 50604 "Opti DHX Data Handler"
                                        EndDate: Date)
     var
         Res: record Resource;
-        DayPlannings: record "Opti Day Planning";
-        UniqueResQry: Query "Opti Uniq. Res. in Capacity";
+        DayPlannings: record "Day Planning";
+        UniqueResQry: Query "Unique Resource in Capacity";
         ResNo: Code[20];
     begin
         // Clear the temporary table
@@ -3236,10 +3216,10 @@ codeunit 50604 "Opti DHX Data Handler"
                         TempRes."No." := ResNo;
                         if Res.Get(ResNo) then begin
                             TempRes.Name := Res.Name;
-                            TempRes."Opti Pool Resource No." := Res."Opti Pool Resource No.";
+                            TempRes."Pool Resource No." := Res."Pool Resource No.";
                         end else begin
                             TempRes.Name := 'Vacant';
-                            TempRes."Opti Pool Resource No." := '';
+                            TempRes."Pool Resource No." := '';
                         end;
                         TempRes.Insert();
                     end;
@@ -3258,10 +3238,10 @@ codeunit 50604 "Opti DHX Data Handler"
                     TempRes."No." := ResNo;
                     if Res.Get(ResNo) then begin
                         TempRes.Name := Res.Name;
-                        TempRes."Opti Pool Resource No." := Res."Opti Pool Resource No.";
+                        TempRes."Pool Resource No." := Res."Pool Resource No.";
                     end else begin
                         TempRes.Name := 'Vacant';
-                        TempRes."Opti Pool Resource No." := '';
+                        TempRes."Pool Resource No." := '';
                     end;
                     TempRes.Insert();
                 end;
@@ -3279,7 +3259,7 @@ codeunit 50604 "Opti DHX Data Handler"
     var
         Res: record Resource;
         PoolRes: record Resource;
-        ResListQry: Query "Opti Resource List Sections";
+        ResListQry: Query "Resource List Sections";
         ResNo: Code[20];
         PoolNo: Code[20];
     begin
@@ -3314,7 +3294,7 @@ codeunit 50604 "Opti DHX Data Handler"
                     TempRes.Name := ResListQry.Name;
                     if ResListQry.Pool_Resource_No_ <> '' then
                         PoolNo := ResListQry.Pool_Resource_No_;
-                    TempRes."Opti Pool Resource No." := PoolNo;
+                    TempRes."Pool Resource No." := PoolNo;
                     if TempRes.Insert() then;
                     if PoolNo = '' then
                         PoolNo := TempRes."No.";
@@ -3323,7 +3303,7 @@ codeunit 50604 "Opti DHX Data Handler"
                         TempPoolRes."No." := PoolNo;
                         if Res.Get(PoolNo) then begin
                             TempPoolRes.Name := Res.Name;
-                            TempPoolRes."Opti Pool Resource No." := Res."Opti Pool Resource No.";
+                            TempPoolRes."Pool Resource No." := Res."Pool Resource No.";
                         end;
                         TempPoolRes.Insert();
                     end;
@@ -3350,7 +3330,7 @@ codeunit 50604 "Opti DHX Data Handler"
                     TempRes.Name := ResListQry.Name;
                     if ResListQry.Pool_Resource_No_ <> '' then
                         PoolNo := ResListQry.Pool_Resource_No_;
-                    TempRes."Opti Pool Resource No." := PoolNo;
+                    TempRes."Pool Resource No." := PoolNo;
                     if TempRes.Insert() then;
                     if PoolNo = '' then
                         PoolNo := TempRes."No.";
@@ -3359,7 +3339,7 @@ codeunit 50604 "Opti DHX Data Handler"
                         TempPoolRes."No." := PoolNo;
                         if Res.Get(PoolNo) then begin
                             TempPoolRes.Name := Res.Name;
-                            TempPoolRes."Opti Pool Resource No." := Res."Opti Pool Resource No.";
+                            TempPoolRes."Pool Resource No." := Res."Pool Resource No.";
                         end;
                         TempPoolRes.Insert();
                     end;
@@ -3382,9 +3362,9 @@ codeunit 50604 "Opti DHX Data Handler"
                             TempRes.Init();
                             TempRes."No." := Res."No.";
                             TempRes.Name := Res.Name;
-                            TempRes."Opti Pool Resource No." := Res."Opti Pool Resource No.";
+                            TempRes."Pool Resource No." := Res."Pool Resource No.";
                             TempRes.Insert();
-                            PoolNo := Res."Opti Pool Resource No.";
+                            PoolNo := Res."Pool Resource No.";
                             if PoolNo = '' then
                                 PoolNo := Res."No.";
                             if not TempPoolRes.Get(PoolNo) then begin
@@ -3392,7 +3372,7 @@ codeunit 50604 "Opti DHX Data Handler"
                                 TempPoolRes."No." := PoolNo;
                                 if PoolRes.Get(PoolNo) then begin
                                     TempPoolRes.Name := PoolRes.Name;
-                                    TempPoolRes."Opti Pool Resource No." := PoolRes."Opti Pool Resource No.";
+                                    TempPoolRes."Pool Resource No." := PoolRes."Pool Resource No.";
                                 end;
                                 TempPoolRes.Insert();
                             end;
@@ -3404,8 +3384,8 @@ codeunit 50604 "Opti DHX Data Handler"
     procedure GetUniqueResGroupFromCapacity(var TempResGroup: record "Resource Group" temporary; WithDayPlanning: Boolean; StartDate: Date; EndDate: Date)
     var
         ResGroup: record "Resource Group";
-        UniqueGroupQry: Query "Opti Unique Group in Capacity";
-        UniqueDayPlanningResGroupQry: Query "Opti Uniq. ResGrp in DayPlans";
+        UniqueGroupQry: Query "Unique Group in Capacity";
+        UniqueDayPlanningResGroupQry: Query "Unique ResGrp in DayPlannings";
         MandatoryRes: Record Resource;
         ResGroupNo: Code[20];
 
@@ -3436,7 +3416,7 @@ codeunit 50604 "Opti DHX Data Handler"
         // in the visible range, so make sure their Resource Group node is included as well - a
         // group made up entirely of otherwise-empty mandatory resources would never appear here
         // (query "Unique Group in Capacity" above only returns groups that have capacity entries).
-        MandatoryRes.SetRange("Opti Mandatory Schedulling", true);
+        MandatoryRes.SetRange("Mandatory Schedulling", true);
         if MandatoryRes.FindSet() then
             repeat
                 ResGroupNo := MandatoryRes."Resource Group No.";
@@ -3477,7 +3457,7 @@ codeunit 50604 "Opti DHX Data Handler"
     var
         TempRes: record "Resource" temporary;
         TempVen: record Vendor temporary;
-        UniqueVendorsQuery: Query "Opti Uniq. Vend in Day Plans";
+        UniqueVendorsQuery: Query "Unique Vend in Day Plannings";
         Vendor: Record Vendor;
         VendorNo: Code[20];
     begin
@@ -3550,8 +3530,8 @@ codeunit 50604 "Opti DHX Data Handler"
                                         StartDate: Date;
                                         EndDate: Date)
     var
-        DayPlanning: Record "Opti Day Planning";
-        DayPlanningCheck: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
+        DayPlanningCheck: Record "Day Planning";
         Res: record Resource;
         TempRes: record "Resource" temporary;
         TempPool: record Resource temporary;
@@ -3579,13 +3559,13 @@ codeunit 50604 "Opti DHX Data Handler"
                 //if not TempResource.Get(ResNo) then begin
                 if not Res.Get(ResNo) then
                     Clear(Res);
-                if (ResNo <> '') and (Res."Opti Pool Resource No." <> '') then begin
+                if (ResNo <> '') and (Res."Pool Resource No." <> '') then begin
                     if not TempResource.Get(ResNo) then begin
                         TempResource.Init();
                         TempResource."No." := ResNo;
                         TempResource.Name := Res.Name;
-                        PoolNo := Res."Opti Pool Resource No.";
-                        TempResource."Opti Pool Resource No." := PoolNo;
+                        PoolNo := Res."Pool Resource No.";
+                        TempResource."Pool Resource No." := PoolNo;
                         TempResource.Insert();
                     end;
                 end else begin
@@ -3593,12 +3573,12 @@ codeunit 50604 "Opti DHX Data Handler"
                         VacantNo := IncStr(VacantNo);
                         TempResource.Reset();
                         TempResource.Setfilter("No.", '*VACANT*');
-                        TempResource.SetRange("Opti Pool Resource No.", DayPlanning."Assigned Pool Resource No.");
+                        TempResource.SetRange("Pool Resource No.", DayPlanning."Assigned Pool Resource No.");
                         if not TempResource.FindSet() then begin
                             TempResource.Init();
                             TempResource."No." := VacantNo;
                             TempResource.Name := 'Vacant';
-                            TempResource."Opti Pool Resource No." := DayPlanning."Assigned Pool Resource No.";
+                            TempResource."Pool Resource No." := DayPlanning."Assigned Pool Resource No.";
                             TempResource.Insert();
                         end;
                         TempResource.Reset();
@@ -3624,7 +3604,7 @@ codeunit 50604 "Opti DHX Data Handler"
                         TempPoolRes."No." := PoolNo;
                         if Res.Get(PoolNo) then begin
                             TempPoolRes.Name := Res.Name;
-                            TempPoolRes."Opti Pool Resource No." := Res."Opti Pool Resource No.";
+                            TempPoolRes."Pool Resource No." := Res."Pool Resource No.";
                         end else
                             TempPoolRes.Name := 'Vacant';
                         TempPoolRes.Insert();
@@ -3680,13 +3660,13 @@ codeunit 50604 "Opti DHX Data Handler"
                     TempPoolRes."No." := TempPool."No.";
                     if Res.Get(TempPool."No.") then begin
                         TempPoolRes.Name := Res.Name;
-                        TempPoolRes."Opti Pool Resource No." := Res."Opti Pool Resource No.";
+                        TempPoolRes."Pool Resource No." := Res."Pool Resource No.";
                     end else
                         TempPoolRes.Name := 'Vacant';
                     TempPoolRes.Insert();
                 end;
 
-                TempRes.SetRange("Opti Pool Resource No.", TempPool."No.");
+                TempRes.SetRange("Pool Resource No.", TempPool."No.");
                 if TempRes.FindSet() then
                     repeat
                         if Not TempResource.Get(TempRes."No.") then begin
@@ -3694,7 +3674,7 @@ codeunit 50604 "Opti DHX Data Handler"
                             TempResource."No." := TempRes."No.";
                             if Res.Get(TempRes."No.") then begin
                                 TempResource.Name := Res.Name;
-                                TempResource."Opti Pool Resource No." := Res."Opti Pool Resource No.";
+                                TempResource."Pool Resource No." := Res."Pool Resource No.";
                             end;
                             TempResource.Insert();
                         end;
@@ -3747,7 +3727,7 @@ codeunit 50604 "Opti DHX Data Handler"
 
     procedure ResScheduler_BuildEventsJson(ResourceFilter: Text): Text
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         JobDescCache: Dictionary of [Code[20], Text];
         JobTaskDescCache: Dictionary of [Text, Text];
         StarDateTimeStr: Text;
@@ -3804,11 +3784,11 @@ codeunit 50604 "Opti DHX Data Handler"
     /// ReqAssign_BuildDayTaskLineObj's own caches) so the per-Job/Job-Task description lookup
     /// stays cached across the whole call instead of one Job.Get()/JobTask.Get() per event.
     /// </summary>
-    procedure ResScheduler_AddEvent(var JArray: JsonArray; RecordId: Text; ResourceId: Text; var SkillColorDict: Dictionary of [Code[20], Text]; var NextSkillPaletteIndex: Integer; StartDate: Text; EndDate: Text; EventText: Text; pType: Text; ReqStartDate: Text; ReqEndDate: Text; DayPlanningRec: Record "Opti Day Planning"; var JobDescCache: Dictionary of [Code[20], Text]; var JobTaskDescCache: Dictionary of [Text, Text]; pAssigned: Boolean)
+    procedure ResScheduler_AddEvent(var JArray: JsonArray; RecordId: Text; ResourceId: Text; var SkillColorDict: Dictionary of [Code[20], Text]; var NextSkillPaletteIndex: Integer; StartDate: Text; EndDate: Text; EventText: Text; pType: Text; ReqStartDate: Text; ReqEndDate: Text; DayPlanningRec: Record "Day Planning"; var JobDescCache: Dictionary of [Code[20], Text]; var JobTaskDescCache: Dictionary of [Text, Text]; pAssigned: Boolean)
     var
         Job: Record Job;
         JobTask: Record "Job Task";
-        ColorConstants: Codeunit "Opti Visual Default Settings";
+        ColorConstants: Codeunit "Visual Default Settings";
         AssignedColor: Text;
         CapacityColor: Text;
         ExternalBorderColor: Text;
@@ -3881,7 +3861,7 @@ codeunit 50604 "Opti DHX Data Handler"
         JArray.Add(JObj);
     end;
 
-    local procedure GetReqStartEndTxt(DayPlanning: Record "Opti Day Planning"; var ReqStartDateTxt: Text; var ReqEndDateTxt: Text)
+    local procedure GetReqStartEndTxt(DayPlanning: Record "Day Planning"; var ReqStartDateTxt: Text; var ReqEndDateTxt: Text)
     begin
         ReqStartDateTxt := '';
         ReqEndDateTxt := '';
@@ -3895,7 +3875,7 @@ codeunit 50604 "Opti DHX Data Handler"
 
     procedure ResScheduler_BuildCapacityJson(ResourceFilter: Text): Text
     var
-        ColorConstants: Codeunit "Opti Visual Default Settings";
+        ColorConstants: Codeunit "Visual Default Settings";
         AssignedColor: Text;
         CapacityColor: Text;
         ExternalBorderColor: Text;
@@ -3941,7 +3921,7 @@ codeunit 50604 "Opti DHX Data Handler"
                         TempResCap.Init();
                         TempResCap."Resource No." := LastResNo;
                         TempResCap."Date" := LastDate;
-                        TempResCap."Opti Start Time" := AggStartTime;
+                        TempResCap."Start Time" := AggStartTime;
                         GetStartEndTxt(TempResCap, AggCapacity, StartDateTimeStr, EndDateTimeStr);
                         if (StartDateTimeStr <> '') and (EndDateTimeStr <> '') then begin
                             Clear(JObj);
@@ -3956,14 +3936,14 @@ codeunit 50604 "Opti DHX Data Handler"
                     // Start new group
                     LastResNo := ResCap."Resource No.";
                     LastDate := ResCap."Date";
-                    AggStartTime := ResCap."Opti Start Time";
+                    AggStartTime := ResCap."Start Time";
                     AggCapacity := ResCap.Capacity;
                 end else begin
                     // Same resource+date: accumulate capacity hours, keep earliest start time
                     AggCapacity += ResCap.Capacity;
-                    if (ResCap."Opti Start Time" <> 0T) then
-                        if (AggStartTime = 0T) or (ResCap."Opti Start Time" < AggStartTime) then
-                            AggStartTime := ResCap."Opti Start Time";
+                    if (ResCap."Start Time" <> 0T) then
+                        if (AggStartTime = 0T) or (ResCap."Start Time" < AggStartTime) then
+                            AggStartTime := ResCap."Start Time";
                 end;
             until ResCap.Next() = 0;
 
@@ -3972,7 +3952,7 @@ codeunit 50604 "Opti DHX Data Handler"
             TempResCap.Init();
             TempResCap."Resource No." := LastResNo;
             TempResCap."Date" := LastDate;
-            TempResCap."Opti Start Time" := AggStartTime;
+            TempResCap."Start Time" := AggStartTime;
             GetStartEndTxt(TempResCap, AggCapacity, StartDateTimeStr, EndDateTimeStr);
             if (StartDateTimeStr <> '') and (EndDateTimeStr <> '') then begin
                 Clear(JObj);
@@ -4048,7 +4028,7 @@ codeunit 50604 "Opti DHX Data Handler"
 
     procedure ResScheduler_BuildEventsJson(ResourceFilter: Text; StartDate: Date; EndDate: Date; ResourceNameFilter: Text; SkillFilter: Text): Text
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         // Job/Job Task description lookup cache for ResScheduler_AddEvent's 'jobDescription'/
         // 'taskDescription' fields - see that procedure's own doc comment.
         JobDescCache: Dictionary of [Code[20], Text];
@@ -4119,7 +4099,7 @@ codeunit 50604 "Opti DHX Data Handler"
 
     procedure ResScheduler_BuildCapacityJson(ResourceFilter: Text; StartDate: Date; EndDate: Date; ResourceNameFilter: Text; SkillFilter: Text): Text
     var
-        ColorConstants: Codeunit "Opti Visual Default Settings";
+        ColorConstants: Codeunit "Visual Default Settings";
         AssignedColor: Text;
         CapacityColor: Text;
         ExternalBorderColor: Text;
@@ -4164,7 +4144,7 @@ codeunit 50604 "Opti DHX Data Handler"
                             TempResCap.Init();
                             TempResCap."Resource No." := LastResNo;
                             TempResCap."Date" := LastDate;
-                            TempResCap."Opti Start Time" := AggStartTime;
+                            TempResCap."Start Time" := AggStartTime;
                             GetStartEndTxt(TempResCap, AggCapacity, StartDateTimeStr, EndDateTimeStr);
                             if (StartDateTimeStr <> '') and (EndDateTimeStr <> '') then begin
                                 Clear(JObj);
@@ -4178,20 +4158,20 @@ codeunit 50604 "Opti DHX Data Handler"
                         end;
                         LastResNo := ResCap."Resource No.";
                         LastDate := ResCap."Date";
-                        AggStartTime := ResCap."Opti Start Time";
+                        AggStartTime := ResCap."Start Time";
                         AggCapacity := ResCap.Capacity;
                     end else begin
                         AggCapacity += ResCap.Capacity;
-                        if (ResCap."Opti Start Time" <> 0T) then
-                            if (AggStartTime = 0T) or (ResCap."Opti Start Time" < AggStartTime) then
-                                AggStartTime := ResCap."Opti Start Time";
+                        if (ResCap."Start Time" <> 0T) then
+                            if (AggStartTime = 0T) or (ResCap."Start Time" < AggStartTime) then
+                                AggStartTime := ResCap."Start Time";
                     end;
             until ResCap.Next() = 0;
         if (LastResNo <> '') and (AggCapacity > 0) then begin
             TempResCap.Init();
             TempResCap."Resource No." := LastResNo;
             TempResCap."Date" := LastDate;
-            TempResCap."Opti Start Time" := AggStartTime;
+            TempResCap."Start Time" := AggStartTime;
             GetStartEndTxt(TempResCap, AggCapacity, StartDateTimeStr, EndDateTimeStr);
             if (StartDateTimeStr <> '') and (EndDateTimeStr <> '') then begin
                 Clear(JObj);
@@ -4237,7 +4217,6 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     procedure OpenJobTaskCardFromEventId(eventId: Text)
     var
-        JobTaskNotFoundForMsg: Label 'Job Task not found for event ID: %1', Comment = '%1=eventId';
         JobTask: Record "Job Task";
         Parts: List of [Text];
         JobNo: Code[20];
@@ -4251,8 +4230,7 @@ codeunit 50604 "Opti DHX Data Handler"
         if JobTask.Get(JobNo, TaskNo) then
             PAGE.Run(PAGE::"Opti Job Task Card", JobTask)
         else
-            if GuiAllowed() then
-                Message(JobTaskNotFoundForMsg, eventId);
+            Message('Job Task not found for event ID: %1', eventId);
     end;
 
     /// <summary>
@@ -4261,7 +4239,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     procedure OpenDayPlanningVisual(eventId: Text)
     var
-        DayPlanningScheduler: Page "Opti DHX Scheduler (Project)";
+        DayPlanningScheduler: Page "DHX Scheduler (Project)";
         Parts: List of [Text];
         JobNo: Code[20];
         TaskNo: Code[20];
@@ -4282,12 +4260,10 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     procedure OpenDayPlanningSequenceFromSection(SectionId: Text; JobFilter: Text; JobTaskFilter: Text; SkillFilter: Text): Boolean
     var
-            TextTxt: Label '%1|%2|%3|%4', Comment = '%1=JobNo, %2=TaskNo, %3=RowSkill, %4=RowSeqNo';
-        JobNoAndJobTaskErr: Label 'Job No. and Job Task No. are both required to add a day planning.';
         JobTask: Record "Job Task";
-        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
-        SequencePage: Page "Opti Day Planning Sequence";
-        AddDayPlanningDlg: Report "Opti Add Day Planning";
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+        SequencePage: Page "Day Planning Sequence";
+        AddDayPlanningDlg: Report "Add Day Planning";
         Parts: List of [Text];
         JobNo: Code[20];
         TaskNo: Code[20];
@@ -4329,7 +4305,7 @@ codeunit 50604 "Opti DHX Data Handler"
                 exit(false);
             AddDayPlanningDlg.GetContext(JobNo, TaskNo, DlgSkill);
             if (JobNo = '') or (TaskNo = '') then
-                Error(JobNoAndJobTaskErr);
+                Error('Job No. and Job Task No. are both required to add a day planning.');
             JobTask.Get(JobNo, TaskNo);
         end;
 
@@ -4345,12 +4321,12 @@ codeunit 50604 "Opti DHX Data Handler"
             else
                 SkillCode := DailyOptimizerSetup."Default Skill";
         if JobTask.Get(JobNo, TaskNo) then
-            TemplateCode := JobTask."Opti Work Hour Template";
+            TemplateCode := JobTask."Work Hour Template";
         if TemplateCode = '' then
             TemplateCode := DailyOptimizerSetup."Work hour Template";
 
         if (Parts.Count() >= 4) and (RowSkill <> '') then begin
-            HighlightKeys.Add(StrSubstNo(TextTxt, JobNo, TaskNo, RowSkill, RowSeqNo));
+            HighlightKeys.Add(StrSubstNo('%1|%2|%3|%4', JobNo, TaskNo, RowSkill, RowSeqNo));
             SequencePage.SetHighlightedSections(HighlightKeys);
         end;
         SequencePage.SetContext(JobNo, TaskNo, '');
@@ -4367,7 +4343,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     procedure ShowJobResourcesForEvent(eventId: Text)
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         Parts: List of [Text];
         JobNo: Code[20];
         TaskNo: Code[20];
@@ -4384,7 +4360,7 @@ codeunit 50604 "Opti DHX Data Handler"
         DayPlanning.SetRange("Job No.", JobNo);
         DayPlanning.SetRange("Job Task No.", TaskNo);
         DayPlanning.SetRange("Plan Date", TaskDay);
-        PAGE.Run(PAGE::"Opti Resource Day Plannings", DayPlanning);
+        PAGE.Run(PAGE::"Resource Day Plannings", DayPlanning);
     end;
 
     // =========================================================
@@ -4414,7 +4390,7 @@ codeunit 50604 "Opti DHX Data Handler"
             exit(true);
         if Res.Name = '' then
             exit(true);
-        SkillCode.SetRange("Opti Invoice Resource No.", ResNo);
+        SkillCode.SetRange("Invoice Resource No.", ResNo);
         exit(not SkillCode.IsEmpty());
     end;
 
@@ -4512,8 +4488,8 @@ codeunit 50604 "Opti DHX Data Handler"
     local procedure SkillResScheduler_BuildCombinedSkillLookup(var CombinedSkills: Dictionary of [Text, Boolean]; var ResourceHasAny: Dictionary of [Code[20], Boolean]; var ResourceSkillsMap: Dictionary of [Code[20], List of [Code[20]]]; var RegisteredSkills: Dictionary of [Text, Boolean]; StartDate: Date; EndDate: Date)
     var
         ResourceSkill: Record "Resource Skill";
-        AssignedDP: Record "Opti Day Planning";
-        RequestedDP: Record "Opti Day Planning";
+        AssignedDP: Record "Day Planning";
+        RequestedDP: Record "Day Planning";
     begin
         Clear(CombinedSkills);
         Clear(ResourceHasAny);
@@ -4587,7 +4563,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     procedure ResScheduler_BuildSectionStatsJson(SectionId: Text; GroupMode: Boolean; JobNoFilter: Text; JobTaskNoFilter: Text; StartDate: Date; EndDate: Date): Text
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         ResCap: Record "Res. Capacity Entry";
         ResourceSkill: Record "Resource Skill";
         Parts: List of [Text];
@@ -4971,7 +4947,7 @@ codeunit 50604 "Opti DHX Data Handler"
                             TempResCap.Init();
                             TempResCap."Resource No." := LastResNo;
                             TempResCap."Date" := LastDate;
-                            TempResCap."Opti Start Time" := AggStartTime;
+                            TempResCap."Start Time" := AggStartTime;
                             GetStartEndTxt(TempResCap, AggCapacity, StartDateTimeStr, EndDateTimeStr);
                             if (StartDateTimeStr <> '') and (EndDateTimeStr <> '') then
                                 SkillResScheduler_EmitCapacityEvents(JArray, LastResNo, LastDate, StartDateTimeStr, EndDateTimeStr, AggCapacity, SkillFilter, LastResSkills);
@@ -4979,20 +4955,20 @@ codeunit 50604 "Opti DHX Data Handler"
                         LastResNo := ResCap."Resource No.";
                         LastDate := ResCap."Date";
                         LastResSkills := CurrentResSkills;
-                        AggStartTime := ResCap."Opti Start Time";
+                        AggStartTime := ResCap."Start Time";
                         AggCapacity := ResCap.Capacity;
                     end else begin
                         AggCapacity += ResCap.Capacity;
-                        if (ResCap."Opti Start Time" <> 0T) then
-                            if (AggStartTime = 0T) or (ResCap."Opti Start Time" < AggStartTime) then
-                                AggStartTime := ResCap."Opti Start Time";
+                        if (ResCap."Start Time" <> 0T) then
+                            if (AggStartTime = 0T) or (ResCap."Start Time" < AggStartTime) then
+                                AggStartTime := ResCap."Start Time";
                     end;
             until ResCap.Next() = 0;
         if (LastResNo <> '') and (AggCapacity > 0) then begin
             TempResCap.Init();
             TempResCap."Resource No." := LastResNo;
             TempResCap."Date" := LastDate;
-            TempResCap."Opti Start Time" := AggStartTime;
+            TempResCap."Start Time" := AggStartTime;
             GetStartEndTxt(TempResCap, AggCapacity, StartDateTimeStr, EndDateTimeStr);
             if (StartDateTimeStr <> '') and (EndDateTimeStr <> '') then
                 SkillResScheduler_EmitCapacityEvents(JArray, LastResNo, LastDate, StartDateTimeStr, EndDateTimeStr, AggCapacity, SkillFilter, LastResSkills);
@@ -5097,7 +5073,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// with empty text. Shared by SkillResScheduler_BuildDayPlanningJson and
     /// ResGroupResScheduler_BuildDayPlanningJson so both List-Type modes render bars identically.
     /// </summary>
-    local procedure DayPlanningEventBarText(var DayPlanning: Record "Opti Day Planning"; AssignedResName: Text; RequestedResName: Text): Text
+    local procedure DayPlanningEventBarText(var DayPlanning: Record "Day Planning"; AssignedResName: Text; RequestedResName: Text): Text
     var
         JobTask: Record "Job Task";
         SkillLabel: Text;
@@ -5143,7 +5119,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     procedure SkillResScheduler_BuildDayPlanningJson(ResourceFilter: Text; SkillFilter: Text; JobNoFilter: Text; JobTaskNoFilter: Text; StartDate: Date; EndDate: Date): Text
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         Res: Record Resource;
         RequestedRes: Record Resource;
         JArray: JsonArray;
@@ -5315,24 +5291,20 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     procedure SkillResScheduler_OpenDayPlanningByEventId(EventId: Text)
     var
-        DayPlanningNotFoundFor2Msg: Label 'Day planning not found for Event ID: %1', Comment = '%1=EventId';
-        DayPlanningNotFoundForMsg: Label 'Day planning not found for Event ID: %1', Comment = '%1=EventId';
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         RecRef: RecordRef;
         RecId: RecordId;
     begin
         if not Evaluate(RecId, EventId) then begin
-            if GuiAllowed() then
-                Message(DayPlanningNotFoundFor2Msg, EventId);
+            Message('Day planning not found for Event ID: %1', EventId);
             exit;
         end;
         if not RecRef.Get(RecId) then begin
-            if GuiAllowed() then
-                Message(DayPlanningNotFoundForMsg, EventId);
+            Message('Day planning not found for Event ID: %1', EventId);
             exit;
         end;
         RecRef.SetTable(DayPlanning);
-        Page.Run(Page::"Opti Day Planning Card Opt", DayPlanning);
+        Page.Run(Page::"Day Planning Card Opt", DayPlanning);
     end;
 
     /// <summary>
@@ -5385,7 +5357,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     procedure SkillResScheduler_OpenTaskByEventId(EventId: Text)
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         JobTask: Record "Job Task";
         RecRef: RecordRef;
         RecId: RecordId;
@@ -5396,7 +5368,7 @@ codeunit 50604 "Opti DHX Data Handler"
             exit;
         RecRef.SetTable(DayPlanning);
         if JobTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
-            Page.Run(Page::"Opti Job Task List - Project", JobTask);
+            Page.Run(Page::"Job Task List - Project", JobTask);
     end;
 
     /// <summary>
@@ -5409,7 +5381,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     procedure SkillResScheduler_OpenResourceByEventId(EventId: Text)
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         RecRef: RecordRef;
         RecId: RecordId;
         ResNo: Code[20];
@@ -5467,7 +5439,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     procedure SkillResScheduler_OpenDayPlanningsForResource(ResNo: Text; StartDate: Date; EndDate: Date)
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         ResNoCode: Code[20];
     begin
         if StrLen(ResNo) > MaxStrLen(ResNoCode) then
@@ -5492,7 +5464,7 @@ codeunit 50604 "Opti DHX Data Handler"
 
         DayPlanning.SetRange("Requested Resource No.");
         DayPlanning.MarkedOnly(true);
-        Page.Run(Page::"Opti Day Plannings", DayPlanning);
+        Page.Run(Page::"Day Plannings", DayPlanning);
     end;
 
     /// <summary>
@@ -5512,7 +5484,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     procedure SkillResScheduler_OpenTasksForResource(ResNo: Text; StartDate: Date; EndDate: Date)
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         JobTask: Record "Job Task";
         TempJobTaskKey: Record "Job Task" temporary;
         ResNoCode: Code[20];
@@ -5552,7 +5524,7 @@ codeunit 50604 "Opti DHX Data Handler"
             until DayPlanning.Next() = 0;
 
         JobTask.MarkedOnly(true);
-        Page.Run(Page::"Opti Job Task List - Project", JobTask);
+        Page.Run(Page::"Job Task List - Project", JobTask);
     end;
 
     /// <summary>
@@ -5844,27 +5816,27 @@ codeunit 50604 "Opti DHX Data Handler"
                             TempResCap.Init();
                             TempResCap."Resource No." := LastResNo;
                             TempResCap."Date" := LastDate;
-                            TempResCap."Opti Start Time" := AggStartTime;
+                            TempResCap."Start Time" := AggStartTime;
                             GetStartEndTxt(TempResCap, AggCapacity, StartDateTimeStr, EndDateTimeStr);
                             if (StartDateTimeStr <> '') and (EndDateTimeStr <> '') then
                                 ResGroupResScheduler_EmitCapacityEvent(JArray, LastResNo, LastDate, StartDateTimeStr, EndDateTimeStr, AggCapacity, SkillsCache);
                         end;
                         LastResNo := ResCap."Resource No.";
                         LastDate := ResCap."Date";
-                        AggStartTime := ResCap."Opti Start Time";
+                        AggStartTime := ResCap."Start Time";
                         AggCapacity := ResCap.Capacity;
                     end else begin
                         AggCapacity += ResCap.Capacity;
-                        if (ResCap."Opti Start Time" <> 0T) then
-                            if (AggStartTime = 0T) or (ResCap."Opti Start Time" < AggStartTime) then
-                                AggStartTime := ResCap."Opti Start Time";
+                        if (ResCap."Start Time" <> 0T) then
+                            if (AggStartTime = 0T) or (ResCap."Start Time" < AggStartTime) then
+                                AggStartTime := ResCap."Start Time";
                     end;
             until ResCap.Next() = 0;
         if (LastResNo <> '') and (AggCapacity > 0) then begin
             TempResCap.Init();
             TempResCap."Resource No." := LastResNo;
             TempResCap."Date" := LastDate;
-            TempResCap."Opti Start Time" := AggStartTime;
+            TempResCap."Start Time" := AggStartTime;
             GetStartEndTxt(TempResCap, AggCapacity, StartDateTimeStr, EndDateTimeStr);
             if (StartDateTimeStr <> '') and (EndDateTimeStr <> '') then
                 ResGroupResScheduler_EmitCapacityEvent(JArray, LastResNo, LastDate, StartDateTimeStr, EndDateTimeStr, AggCapacity, SkillsCache);
@@ -5894,7 +5866,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     procedure ResGroupResScheduler_BuildDayPlanningJson(ResourceFilter: Text; SkillFilter: Text; JobNoFilter: Text; JobTaskNoFilter: Text; StartDate: Date; EndDate: Date): Text
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         Res: Record Resource;
         RequestedRes: Record Resource;
         JArray: JsonArray;
@@ -6072,7 +6044,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     local procedure ResolveRequestedColor(SkillCode: Code[20]; var SkillColorDict: Dictionary of [Code[20], Text]; var NextPaletteIndex: Integer): Text
     var
-        ColorConstants: Codeunit "Opti Visual Default Settings";
+        ColorConstants: Codeunit "Visual Default Settings";
         ResolvedColor: Text;
     begin
         if SkillCode = '' then
@@ -6104,7 +6076,7 @@ codeunit 50604 "Opti DHX Data Handler"
     procedure BuildSkillFontBorderColorsJson(): Text
     var
         SkillCodeRec: Record "Skill Code";
-        ColorConstants: Codeunit "Opti Visual Default Settings";
+        ColorConstants: Codeunit "Visual Default Settings";
         SkillsArray: JsonArray;
         SkillObj: JsonObject;
         PaletteIndex: Integer;
@@ -6298,7 +6270,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     local procedure ReqAssign_BuildDayTaskLinesJson(StartDate: Date; EndDate: Date; var WorkdayIndexMap: Dictionary of [Date, Integer]): JsonArray
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         JobDescCache: Dictionary of [Code[20], Text];
         JobTaskDescCache: Dictionary of [Text, Text];
         ResourceNameCache: Dictionary of [Code[20], Text];
@@ -6327,7 +6299,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// line's own SequenceKeyTxt via var parameter - every paginating caller needs it for
     /// whole-sequence grouping/filtering; ReqAssign_BuildDayTaskLinesJson itself just discards it.
     /// </summary>
-    local procedure ReqAssign_BuildDayTaskLineObj(var DayPlanning: Record "Opti Day Planning"; var JobDescCache: Dictionary of [Code[20], Text]; var JobTaskDescCache: Dictionary of [Text, Text]; var ResourceNameCache: Dictionary of [Code[20], Text]; var WorkdayIndexMap: Dictionary of [Date, Integer]; var SequenceKeyTxt: Text): JsonObject
+    local procedure ReqAssign_BuildDayTaskLineObj(var DayPlanning: Record "Day Planning"; var JobDescCache: Dictionary of [Code[20], Text]; var JobTaskDescCache: Dictionary of [Text, Text]; var ResourceNameCache: Dictionary of [Code[20], Text]; var WorkdayIndexMap: Dictionary of [Date, Integer]; var SequenceKeyTxt: Text): JsonObject
     var
         Job: Record Job;
         JobTask: Record "Job Task";
@@ -6447,7 +6419,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     local procedure ReqAssign_BuildDayTaskLinesJson_Paged(StartDate: Date; EndDate: Date; var WorkdayIndexMap: Dictionary of [Date, Integer]; MaxLines: Integer; var FirstPageLinesArr: JsonArray; var RemainingSequenceKeys: Text)
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         JobDescCache: Dictionary of [Code[20], Text];
         JobTaskDescCache: Dictionary of [Text, Text];
         ResourceNameCache: Dictionary of [Code[20], Text];
@@ -6526,7 +6498,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     procedure ReqAssign_BuildDayTaskLinesJson_ForKeys(StartDate: Date; EndDate: Date; RemainingSequenceKeysJson: Text): Text
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         JobDescCache: Dictionary of [Code[20], Text];
         JobTaskDescCache: Dictionary of [Text, Text];
         ResourceNameCache: Dictionary of [Code[20], Text];
@@ -6583,16 +6555,16 @@ codeunit 50604 "Opti DHX Data Handler"
         DayIndex: Integer;
     begin
         ResCapacityEntry.SetRange("Date", StartDate, EndDate);
-        ResCapacityEntry.SetLoadFields("Resource No.", "Date", "Opti Start Time", "Opti End Time");
+        ResCapacityEntry.SetLoadFields("Resource No.", "Date", "Start Time", "End Time");
         if ResCapacityEntry.FindSet() then
             repeat
-                if (ResCapacityEntry."Opti Start Time" <> 0T) and (ResCapacityEntry."Opti End Time" <> 0T) then
+                if (ResCapacityEntry."Start Time" <> 0T) and (ResCapacityEntry."End Time" <> 0T) then
                     if WorkdayIndexMap.Get(ResCapacityEntry."Date", DayIndex) then begin
                         Clear(SlotObj);
                         SlotObj.Add('resourceId', ResCapacityEntry."Resource No.");
                         SlotObj.Add('dayIndex', DayIndex);
-                        SlotObj.Add('start', ReqAssign_TimeToDecimalHours(ResCapacityEntry."Opti Start Time"));
-                        SlotObj.Add('end', ReqAssign_TimeToDecimalHours(ResCapacityEntry."Opti End Time"));
+                        SlotObj.Add('start', ReqAssign_TimeToDecimalHours(ResCapacityEntry."Start Time"));
+                        SlotObj.Add('end', ReqAssign_TimeToDecimalHours(ResCapacityEntry."End Time"));
                         SlotsArr.Add(SlotObj);
                     end;
             until ResCapacityEntry.Next() = 0;
@@ -6642,7 +6614,7 @@ codeunit 50604 "Opti DHX Data Handler"
     local procedure ReqAssign_BuildSkillColorsJson(): JsonArray
     var
         SkillCodeRec: Record "Skill Code";
-        ColorConstants: Codeunit "Opti Visual Default Settings";
+        ColorConstants: Codeunit "Visual Default Settings";
         SkillColorsArr: JsonArray;
         SkillColorObj: JsonObject;
         PaletteIndex: Integer;
@@ -6702,7 +6674,6 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     local procedure ReqAssign_DecimalHoursToTime(Hours: Decimal): Time
     var
-            TextTxt: Label '%1:%2:%3', Comment = '%1=Format(HourPart).PadLeft(2, 0), %2=Format(MinutePart).PadLeft(2, 0), %3=Format(SecondPart).PadLeft(2, 0)';
         TotalMs: Integer;
         HourPart: Integer;
         MinutePart: Integer;
@@ -6721,7 +6692,7 @@ codeunit 50604 "Opti DHX Data Handler"
         MinutePart := (TotalMs mod 3600000) div 60000;
         SecondPart := (TotalMs mod 60000) div 1000;
 
-        TimeTxt := StrSubstNo(TextTxt, Format(HourPart).PadLeft(2, '0'), Format(MinutePart).PadLeft(2, '0'), Format(SecondPart).PadLeft(2, '0'));
+        TimeTxt := StrSubstNo('%1:%2:%3', Format(HourPart).PadLeft(2, '0'), Format(MinutePart).PadLeft(2, '0'), Format(SecondPart).PadLeft(2, '0'));
         Evaluate(ResultTime, TimeTxt, 9);
         exit(ResultTime);
     end;
@@ -6754,7 +6725,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// app's hard requirement that setting "Assigned Resource No." must go through Validate() to
     /// get its Resource Group/Vendor/Skill cascade (see table 50610's own OnValidate).
     /// </summary>
-    local procedure ReqAssign_ApplyAssignment(var DayPlanning: Record "Opti Day Planning"; ResourceId: Text; SetResource: Boolean; StartHour: Decimal; DurationHours: Decimal)
+    local procedure ReqAssign_ApplyAssignment(var DayPlanning: Record "Day Planning"; ResourceId: Text; SetResource: Boolean; StartHour: Decimal; DurationHours: Decimal)
     begin
         if SetResource then
             DayPlanning.Validate("Assigned Resource No.", CopyStr(ResourceId, 1, MaxStrLen(DayPlanning."Assigned Resource No.")));
@@ -6771,7 +6742,7 @@ codeunit 50604 "Opti DHX Data Handler"
     var
         PayloadObj: JsonObject;
         JToken: JsonToken;
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         JobNo: Code[20];
         JobTaskNo: Code[20];
         DayLineNo: Integer;
@@ -6812,7 +6783,7 @@ codeunit 50604 "Opti DHX Data Handler"
     var
         PayloadObj: JsonObject;
         JToken: JsonToken;
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         JobNo: Code[20];
         JobTaskNo: Code[20];
         DayLineNo: Integer;
@@ -6839,7 +6810,7 @@ codeunit 50604 "Opti DHX Data Handler"
     var
         PayloadObj: JsonObject;
         JToken: JsonToken;
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         JobNo: Code[20];
         JobTaskNo: Code[20];
         DayLineNo: Integer;
@@ -6864,18 +6835,17 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     procedure ReqAssign_OpenDayPlanningCard(LineId: Text)
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         JobNo: Code[20];
         JobTaskNo: Code[20];
         DayLineNo: Integer;
-        MsgLbl: Label 'Day planning not found for Line ID: %1', Comment = '%1 = value';
+        MsgLbl: Label 'Day planning not found for Line ID: %1';
     begin
         ReqAssign_ParseId(LineId, JobNo, JobTaskNo, DayLineNo);
         if DayPlanning.Get(JobNo, JobTaskNo, DayLineNo) then
-            Page.RunModal(Page::"Opti Day Planning Card Opt", DayPlanning)
+            Page.RunModal(Page::"Day Planning Card Opt", DayPlanning)
         else
-            if GuiAllowed() then
-                Message(MsgLbl, LineId);
+            Message(MsgLbl, LineId);
     end;
 
     /// <summary>
@@ -6899,9 +6869,9 @@ codeunit 50604 "Opti DHX Data Handler"
     begin
         if (StartDateTxt = '') or (EndDateTxt = '') then
             exit;
-        if not Evaluate(StartDate, StartDateTxt, 9) then
+        if not Evaluate(StartDate, StartDateTxt) then
             exit;
-        if not Evaluate(EndDate, EndDateTxt, 9) then
+        if not Evaluate(EndDate, EndDateTxt) then
             exit;
         ResNo := CopyStr(ResourceId, 1, MaxStrLen(ResNo));
         ResCap.SetRange("Resource No.", ResNo);
@@ -6923,7 +6893,7 @@ codeunit 50604 "Opti DHX Data Handler"
         LineTok: JsonToken;
         LineObj: JsonObject;
         JToken: JsonToken;
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         JobNo: Code[20];
         JobTaskNo: Code[20];
         DayLineNo: Integer;
@@ -6984,8 +6954,8 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     procedure ReqAssign_ModifySequence(PayloadJsonTxt: Text)
     var
-        DayPlanningSequenceMgt: Codeunit "Opti Day Plan. Sequence Mgt.";
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanningSequenceMgt: Codeunit "Day Planning Sequence Mgt.";
+        DayPlanning: Record "Day Planning";
         PayloadObj: JsonObject;
         JToken: JsonToken;
         JobNo: Code[20];
@@ -7133,7 +7103,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     procedure CPO_OpenDayPlanningList(PayloadJsonTxt: Text)
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         PayloadJObj: JsonObject;
         FieldJToken: JsonToken;
         SkillCode: Code[20];
@@ -7188,7 +7158,7 @@ codeunit 50604 "Opti DHX Data Handler"
         if HasAssignedFilter then
             DayPlanning.SetRange(Assigned, AssignedFilterValue);
 
-        Page.RunModal(Page::"Opti Day Plannings", DayPlanning);
+        Page.RunModal(Page::"Day Plannings", DayPlanning);
     end;
 
     /// <summary>Skill label right-click "Day Planning": Day Plannings for the skill over the week (date..dateTo).</summary>
@@ -7241,7 +7211,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     procedure CPO_OpenTaskScheduler(PayloadJsonTxt: Text)
     var
-        DHXSchedulerProject: Page "Opti DHX Scheduler (Project)";
+        DHXSchedulerProject: Page "DHX Scheduler (Project)";
         PayloadJObj: JsonObject;
         FieldJToken: JsonToken;
         PlanDate: Date;
@@ -7285,7 +7255,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// <summary>Page 50724 right-click "Show Resource Scheduler" - opens page 50706 with the payload's skill filter and week of its date.</summary>
     procedure CPO_OpenResourceScheduler(PayloadJsonTxt: Text)
     var
-        DHXResourceCapacityScheduler: Page "Opti Res. Scheduler - TimeLine";
+        DHXResourceCapacityScheduler: Page "Resource Scheduler - TimeLine";
         PayloadJObj: JsonObject;
         FieldJToken: JsonToken;
         PlanDate: Date;
@@ -7303,7 +7273,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// <summary>Page 50724 right-click "Show Capacity Scheduler" - opens page 50600 with the payload's skill filter and week of its date.</summary>
     procedure CPO_OpenCapacityScheduler(PayloadJsonTxt: Text)
     var
-        DHXPoolScheduler: Page "Opti DHX Scheduler (Pool Res.)";
+        DHXPoolScheduler: Page "DHX Scheduler (Pool Resource)";
         PayloadJObj: JsonObject;
         FieldJToken: JsonToken;
         PlanDate: Date;
@@ -7364,7 +7334,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     procedure CPO_ShowCapacityBarSegment(PayloadJsonTxt: Text)
     var
-        SkillCapacityAnalysisMgt: Codeunit "Opti Skill Cap. Analysis Mgt.";
+        SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
         PayloadJObj: JsonObject;
         DrillPayloadJObj: JsonObject;
         FieldJToken: JsonToken;
@@ -7456,10 +7426,10 @@ codeunit 50604 "Opti DHX Data Handler"
     var
         JobTask: Record "Job Task";
         Job: Record Job;
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         // Company-wide (minus WorkOrderNo), date-bounded query for Pass 3 below - see that pass's
         // own doc comment.
-        OtherDayPlanning: Record "Opti Day Planning";
+        OtherDayPlanning: Record "Day Planning";
         // Job/Job Task description lookup cache for CPO_BuildDayPlanningLineObj's 'projectName'/
         // 'taskName' fields - see that procedure's own doc comment.
         JobDescCache: Dictionary of [Code[20], Text];
@@ -7533,8 +7503,8 @@ codeunit 50604 "Opti DHX Data Handler"
             // Unused by any ported reference function (grepped DHTMLXtempv112-app.js - neither
             // field is read anywhere), kept only as descriptive metadata mirroring the reference's
             // own mock shape - mapped from this Job Task's own Planned Start/End Date.
-            WorkOrderObj.Add('notEarlierThan', ReqAssign_FormatIsoDate(JobTask."Opti VisualBarStartDate"));
-            WorkOrderObj.Add('notLaterThan', ReqAssign_FormatIsoDate(JobTask."Opti VisualBarEndDate"));
+            WorkOrderObj.Add('notEarlierThan', ReqAssign_FormatIsoDate(JobTask.VisualBarStartDate));
+            WorkOrderObj.Add('notLaterThan', ReqAssign_FormatIsoDate(JobTask.VisualBarEndDate));
         end else begin
             WorkOrderObj.Add('no', JobNo + '|' + JobTaskNo);
             WorkOrderObj.Add('description', '');
@@ -7776,7 +7746,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     local procedure CPO_ScanOtherWorkOrderGroups(JobNo: Code[20]; JobTaskNo: Code[20]; StartDate: Date; EndDate: Date; var ActiveSkillList: List of [Code[20]]; var OtherSkillList: List of [Code[20]]; var GroupOrder: List of [Text]; var GroupSkill: List of [Code[20]]; var GroupJobNo: List of [Code[20]]; var GroupJobTaskNo: List of [Code[20]]; var GroupDescription: List of [Text]; var GroupLineCount: Dictionary of [Text, Integer])
     var
-        OtherDayPlanning: Record "Opti Day Planning";
+        OtherDayPlanning: Record "Day Planning";
         GroupKeyTxt: Text;
         PriorCount: Integer;
     begin
@@ -7822,7 +7792,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     local procedure CPO_BuildOtherWorkOrderLinesForGroups(JobNo: Code[20]; JobTaskNo: Code[20]; StartDate: Date; EndDate: Date; var WantedGroupKeys: Dictionary of [Text, Boolean]; var JobDescCache: Dictionary of [Code[20], Text]; var JobTaskDescCache: Dictionary of [Text, Text]): JsonArray
     var
-        OtherDayPlanning: Record "Opti Day Planning";
+        OtherDayPlanning: Record "Day Planning";
         LinesArr: JsonArray;
         GroupKeyTxt: Text;
     begin
@@ -7866,7 +7836,7 @@ codeunit 50604 "Opti DHX Data Handler"
     var
         JobTask: Record "Job Task";
         Job: Record Job;
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         // Job/Job Task description lookup cache for CPO_BuildDayPlanningLineObj's 'projectName'/
         // 'taskName' fields - see that procedure's own doc comment.
         JobDescCache: Dictionary of [Code[20], Text];
@@ -7915,8 +7885,8 @@ codeunit 50604 "Opti DHX Data Handler"
         if JobTaskFound then begin
             WorkOrderObj.Add('no', JobNo + '|' + JobTaskNo);
             WorkOrderObj.Add('description', JobTask.Description);
-            WorkOrderObj.Add('notEarlierThan', ReqAssign_FormatIsoDate(JobTask."Opti VisualBarStartDate"));
-            WorkOrderObj.Add('notLaterThan', ReqAssign_FormatIsoDate(JobTask."Opti VisualBarEndDate"));
+            WorkOrderObj.Add('notEarlierThan', ReqAssign_FormatIsoDate(JobTask.VisualBarStartDate));
+            WorkOrderObj.Add('notLaterThan', ReqAssign_FormatIsoDate(JobTask.VisualBarEndDate));
         end else begin
             WorkOrderObj.Add('no', JobNo + '|' + JobTaskNo);
             WorkOrderObj.Add('description', '');
@@ -8114,7 +8084,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     local procedure CPO_RunSkillDayHoursQuery(StartDate: Date; EndDate: Date; var ActiveSkillList: List of [Code[20]]; var SkillDayHoursArr: JsonArray; var DayPlanningLinesArr: JsonArray)
     var
-        SkillDayHoursQry: Query "Opti Day Plan. Skill Day Hours";
+        SkillDayHoursQry: Query "Day Planning Skill Day Hours";
         SkillDayObj: JsonObject;
         LineObj: JsonObject;
         IsoDate: Text;
@@ -8296,7 +8266,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     local procedure CPO_BuildDailyCapacityArray(StartDate: Date; EndDate: Date): JsonArray
     var
-        SkillCapacityAnalysisMgt: Codeunit "Opti Skill Cap. Analysis Mgt.";
+        SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
         DailyCapacityArr: JsonArray;
         DayObj: JsonObject;
         CurrDate: Date;
@@ -8343,7 +8313,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     local procedure CPO_BuildSkillsArray(var ActiveSkillList: List of [Code[20]]): JsonArray
     var
-        ColorConstants: Codeunit "Opti Visual Default Settings";
+        ColorConstants: Codeunit "Visual Default Settings";
         SkillsArr: JsonArray;
         SkillObj: JsonObject;
         SkillCode: Code[20];
@@ -8380,7 +8350,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     local procedure CPO_BuildCapacityColors(): JsonObject
     var
-        ColorConstants: Codeunit "Opti Visual Default Settings";
+        ColorConstants: Codeunit "Visual Default Settings";
         ColorsObj: JsonObject;
         AssignedColorTxt: Text;
         CapacityColorTxt: Text;
@@ -8780,7 +8750,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// call instead of one Job.Get()/JobTask.Get() per line - this procedure can be called once per
     /// row over a company-wide, unbounded-Job/Task dayPlanningLines[] volume (Pass 3/Pass 3b above).
     /// </summary>
-    local procedure CPO_BuildDayPlanningLineObj(var DayPlanning: Record "Opti Day Planning"; InspectedJobNo: Code[20]; InspectedJobTaskNo: Code[20]; var JobDescCache: Dictionary of [Code[20], Text]; var JobTaskDescCache: Dictionary of [Text, Text]): JsonObject
+    local procedure CPO_BuildDayPlanningLineObj(var DayPlanning: Record "Day Planning"; InspectedJobNo: Code[20]; InspectedJobTaskNo: Code[20]; var JobDescCache: Dictionary of [Code[20], Text]; var JobTaskDescCache: Dictionary of [Text, Text]): JsonObject
     var
         Job: Record Job;
         JobTask: Record "Job Task";
@@ -8849,7 +8819,7 @@ codeunit 50604 "Opti DHX Data Handler"
     /// </summary>
     procedure CPO_BuildSkillDayLinesJson(PayloadJsonTxt: Text): Text
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         PayloadJObj: JsonObject;
         FieldJToken: JsonToken;
         JobDescCache: Dictionary of [Code[20], Text];

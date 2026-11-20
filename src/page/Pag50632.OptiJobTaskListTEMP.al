@@ -52,38 +52,38 @@ page 50632 "Opti Job Task List TEMP"
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies an interval or a list of project task numbers.';
                 }
-                field("Project Manager"; Rec."Opti Project Manager")
+                field("Project Manager"; Rec."Project Manager")
                 {
                     ApplicationArea = Jobs;
                     Caption = 'Project Manager';
                     ToolTip = 'Specifies the project manager for the project task. The project manager is based on the project manager on the related project planning line.';
                 }
-                field(PlannedStartDate; Rec."Opti VisualBarStartDate")
+                field(PlannedStartDate; Rec.VisualBarStartDate)
                 {
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the date when the project task is planned to start.';
                 }
-                field(Duration; Rec."Opti Duration")
+                field(Duration; Rec.Duration)
                 {
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the duration of the project task in days.';
                 }
-                field(PlannedEndDate; Rec."Opti VisualBarEndDate")
+                field(PlannedEndDate; Rec.VisualBarEndDate)
                 {
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the date when the project task is planned to end.';
                 }
-                field(Progress; Rec."Opti Progress")
+                field(Progress; Rec.Progress)
                 {
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the progress percentage (0-100) for this job task.';
                 }
-                field("Total Day Taks"; Rec."Opti Total Day Plannings")
+                field("Total Day Taks"; Rec."Total Day Plannings")
                 {
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the total number of related day plannings.';
                 }
-                field("Total Assigned Hours"; Rec."Opti Total Assigned Hours")
+                field("Total Assigned Hours"; Rec."Total Assigned Hours")
                 {
                     ApplicationArea = Jobs;
                     ToolTip = 'Specifies the total assigned hours from all related day plannings.';
@@ -99,18 +99,18 @@ page 50632 "Opti Job Task List TEMP"
         area(factboxes)
         {
 
-            part(JobInformation; "Opti Job Information FactBox")
+            part(JobInformation; "Job Information FactBox")
             {
                 ApplicationArea = Jobs;
                 SubPageLink = "Job No." = field("Job No.");
             }
-            part(ResourceSummaryFactbox; "Opti Resource Summary FactBox")
+            part(ResourceSummaryFactbox; "Resource Summary FactBox")
             {
                 ApplicationArea = Jobs;
                 Caption = 'Resource Summary';
 
             }
-            part(TaskLinkFactbox; "Opti Task Link Factbox")
+            part(TaskLinkFactbox; "Task Link Factbox")
             {
                 ApplicationArea = Jobs;
                 SubPageLink = "Job No." = field("Job No."),
@@ -155,7 +155,6 @@ page 50632 "Opti Job Task List TEMP"
                     }
                     action(GanttChartDHX)
                     {
-                        ToolTip = 'Executes the Gantt Chart DHX action.';
                         ApplicationArea = All;
                         Caption = 'Gantt Chart';
                         Image = GanttChart;
@@ -163,7 +162,7 @@ page 50632 "Opti Job Task List TEMP"
 
                         trigger OnAction()
                         var
-                            Gantt: page "Opti Gantt Demo DHX 2";
+                            Gantt: page "Gantt Demo DHX 2";
                         begin
                             Gantt.SetJobFilter(Rec."Job No.");
                             Gantt.RunModal();
@@ -229,7 +228,7 @@ page 50632 "Opti Job Task List TEMP"
 
                 trigger OnAction()
                 var
-                    JobTaskIndent: Codeunit "Opti Job Task Indent";
+                    JobTaskIndent: Codeunit "Job Task Indent";
                 begin
                     JobTaskIndent.IndentJobTasks(Rec);
                     CurrPage.Update(false);
@@ -359,7 +358,7 @@ page 50632 "Opti Job Task List TEMP"
 
     trigger OnNewRecord(BelowxRec: Boolean)
     begin
-        Rec."Opti Job View Type" := Rec."Opti Job View Type"::"Project";
+        Rec."Job View Type" := Rec."Job View Type"::"Project";
     end;
 
     var

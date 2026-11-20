@@ -17,7 +17,7 @@
 // NOTE: no event subscriber is used on codeunit "Matrix Management" / codeunit
 // PeriodPageManagement on purpose - those are shared by many unrelated BC analysis pages and a
 // subscriber there would change all of them, not just this page.
-pageextension 50604 "Opti ResourceCapacity" extends "Resource Capacity"
+pageextension 50604 "ResourceCapacity Opt." extends "Resource Capacity"
 {
     layout
     {
@@ -31,12 +31,12 @@ pageextension 50604 "Opti ResourceCapacity" extends "Resource Capacity"
         }
         addafter(QtyType)
         {
-            group("Opti MatrixOptionsOpt")
+            group(MatrixOptionsOpt)
             {
                 ShowCaption = false;
                 Visible = PeriodOverrideActive;
 
-                field("Opti PeriodTypeOpt"; PeriodTypeOpt)
+                field(PeriodTypeOpt; PeriodTypeOpt)
                 {
                     ApplicationArea = Jobs;
                     Caption = 'View by';
@@ -48,7 +48,7 @@ pageextension 50604 "Opti ResourceCapacity" extends "Resource Capacity"
                         UpdateMatrixSubformOpt();
                     end;
                 }
-                field("Opti QtyTypeOpt"; QtyTypeOpt)
+                field(QtyTypeOpt; QtyTypeOpt)
                 {
                     ApplicationArea = Jobs;
                     Caption = 'View as';
@@ -103,7 +103,7 @@ pageextension 50604 "Opti ResourceCapacity" extends "Resource Capacity"
 
         addafter("Next Set")
         {
-            action("Opti Previous Set Opt")
+            action("Previous Set Opt")
             {
                 ApplicationArea = Jobs;
                 Caption = 'Previous Set';
@@ -117,7 +117,7 @@ pageextension 50604 "Opti ResourceCapacity" extends "Resource Capacity"
                     UpdateMatrixSubformOpt();
                 end;
             }
-            action("Opti Previous Column Opt")
+            action("Previous Column Opt")
             {
                 ApplicationArea = Jobs;
                 Caption = 'Previous Column';
@@ -131,7 +131,7 @@ pageextension 50604 "Opti ResourceCapacity" extends "Resource Capacity"
                     UpdateMatrixSubformOpt();
                 end;
             }
-            action("Opti Next Column Opt")
+            action("Next Column Opt")
             {
                 ApplicationArea = Jobs;
                 Caption = 'Next Column';
@@ -145,7 +145,7 @@ pageextension 50604 "Opti ResourceCapacity" extends "Resource Capacity"
                     UpdateMatrixSubformOpt();
                 end;
             }
-            action("Opti Next Set Opt")
+            action("Next Set Opt")
             {
                 ApplicationArea = Jobs;
                 Caption = 'Next Set';
@@ -163,16 +163,16 @@ pageextension 50604 "Opti ResourceCapacity" extends "Resource Capacity"
 
         addafter("Next Set_Promoted")
         {
-            actionref("Opti Previous Set Opt_Promoted"; "Opti Previous Set Opt")
+            actionref("Previous Set Opt_Promoted"; "Previous Set Opt")
             {
             }
-            actionref("Opti Previous Column Opt_Promoted"; "Opti Previous Column Opt")
+            actionref("Previous Column Opt_Promoted"; "Previous Column Opt")
             {
             }
-            actionref("Opti Next Column Opt_Promoted"; "Opti Next Column Opt")
+            actionref("Next Column Opt_Promoted"; "Next Column Opt")
             {
             }
-            actionref("Opti Next Set Opt_Promoted"; "Opti Next Set Opt")
+            actionref("Next Set Opt_Promoted"; "Next Set Opt")
             {
             }
         }
@@ -256,16 +256,16 @@ pageextension 50604 "Opti ResourceCapacity" extends "Resource Capacity"
         CurrPage.Update(false);
     end;
 
-    procedure OptiResourceFilter(pResFilter: Text)
+    procedure ResourceFilter(pResFilter: Text)
     begin
-        CurrPage.MatrixForm.PAGE.OptiResourceFilter(pResFilter);
+        CurrPage.MatrixForm.PAGE.ResourceFilter(pResFilter);
     end;
 
     /// <summary>
     /// Call BEFORE Run()/RunModal() to anchor the capacity matrix on pStartDate instead of on
     /// WorkDate(). Enables the extension-owned column pipeline for this page instance.
     /// </summary>
-    procedure OptiSetPeriod(pStartDate: Date; pEndDate: Date)
+    procedure SetPeriod(pStartDate: Date; pEndDate: Date)
     begin
         if pStartDate = 0D then
             exit;

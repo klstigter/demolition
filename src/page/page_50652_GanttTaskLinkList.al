@@ -1,7 +1,7 @@
-page 50652 "Opti BCG Gantt Task Link List"
+page 50652 "BCG Gantt Task Link List"
 {
     PageType = List;
-    SourceTable = "Opti BCG Gantt Task Link";
+    SourceTable = "BCG Gantt Task Link";
     Caption = 'Gantt Task Links';
     ApplicationArea = All;
     UsageCategory = Lists;
@@ -64,10 +64,8 @@ page 50652 "Opti BCG Gantt Task Link List"
                 ToolTip = 'Delete the selected task link.';
 
                 trigger OnAction()
-                    var
-                        DoYouWantToDeleteQst: Label 'Do you want to delete the selected link?';
                 begin
-                    if Confirm(DoYouWantToDeleteQst, false) then
+                    if Confirm('Do you want to delete the selected link?', false) then
                         Rec.Delete(true);
                 end;
             }

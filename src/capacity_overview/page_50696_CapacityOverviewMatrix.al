@@ -1,7 +1,7 @@
-page 50696 "Opti Capacity Overview Matrix"
+page 50696 "Capacity Overview Matrix"
 {
     PageType = ListPart;
-    SourceTable = "Opti Capacity Overview Buffer";
+    SourceTable = "Capacity Overview Buffer";
     SourceTableTemporary = true;
     Caption = 'Capacity Overview Matrix';
     Editable = false;
@@ -661,7 +661,7 @@ page 50696 "Opti Capacity Overview Matrix"
     /// </summary>
     local procedure DrillDownColumn(ColumnNo: Integer)
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         ResCapacityEntry: Record "Res. Capacity Entry";
         SkillCodeFilter: Code[20];
     begin
@@ -684,7 +684,7 @@ page 50696 "Opti Capacity Overview Matrix"
                     50000:
                         DayPlanning.SetRange(Assigned, false);
                 end;
-                Page.Run(Page::"Opti Day Plannings", DayPlanning);
+                Page.Run(Page::"Day Plannings", DayPlanning);
                 exit;
             end;
         end;
@@ -702,7 +702,7 @@ page 50696 "Opti Capacity Overview Matrix"
                     DayPlanning.SetRange("Plan Date", CurrPeriodStartDate, CurrPeriodEndDate);
                     if SkillCodeFilter <> '' then
                         DayPlanning.SetRange(Skill, SkillCodeFilter);
-                    Page.Run(Page::"Opti Day Plannings", DayPlanning);
+                    Page.Run(Page::"Day Plannings", DayPlanning);
                 end;
             30000:
                 begin
@@ -711,7 +711,7 @@ page 50696 "Opti Capacity Overview Matrix"
                     if SkillCodeFilter <> '' then
                         DayPlanning.SetRange(Skill, SkillCodeFilter);
                     DayPlanning.SetRange(Assigned, true);
-                    Page.Run(Page::"Opti Day Plannings", DayPlanning);
+                    Page.Run(Page::"Day Plannings", DayPlanning);
                 end;
             50000:
                 begin
@@ -720,14 +720,14 @@ page 50696 "Opti Capacity Overview Matrix"
                     if SkillCodeFilter <> '' then
                         DayPlanning.SetRange(Skill, SkillCodeFilter);
                     DayPlanning.SetRange(Assigned, false);
-                    Page.Run(Page::"Opti Day Plannings", DayPlanning);
+                    Page.Run(Page::"Day Plannings", DayPlanning);
                 end;
         end;
     end;
 
     var
         NoSkillCaptionLbl: Label '(No skill)';
-        CapacityOverviewMgt: Codeunit "Opti Capacity Overview Mgt.";
+        CapacityOverviewMgt: Codeunit "Capacity Overview Mgt.";
         FullSkillCodeList: List of [Code[20]];
         CurrSkillCodeList: List of [Code[20]];
         CurrPeriodStartDate: Date;

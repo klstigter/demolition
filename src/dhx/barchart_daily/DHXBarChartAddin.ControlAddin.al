@@ -1,4 +1,4 @@
-controladdin "OptiDHXBarChartAddin_daily"
+controladdin DHXBarChartAddin_daily
 {
     RequestedHeight = 500;
     MinimumHeight = 300;

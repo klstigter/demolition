@@ -1,4 +1,4 @@
-page 50671 "Opti SkillCodeApi Opt"
+page 50671 "SkillCodeApi Opt"
 {
     PageType = API;
     Caption = 'Skill Code API Optimization';

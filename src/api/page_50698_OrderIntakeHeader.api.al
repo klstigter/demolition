@@ -1,4 +1,4 @@
-page 50698 "Opti OrderIntakeHeaderApi Opt"
+page 50698 "OrderIntakeHeaderApi Opt"
 {
     PageType = API;
     Caption = 'Order Intake Header API Optimization';
@@ -7,7 +7,7 @@ page 50698 "Opti OrderIntakeHeaderApi Opt"
     APIVersion = 'v1.0';
     EntityName = 'OrderIntakeHeader';
     EntitySetName = 'OrderIntakeHeaders';
-    SourceTable = "Opti Order Intake Header Opt.";
+    SourceTable = "Order Intake Header Opt.";
     DelayedInsert = true;
     ODataKeyFields = SystemId;
 

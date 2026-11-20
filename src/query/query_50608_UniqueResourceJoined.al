@@ -1,4 +1,4 @@
-query 50608 "Opti Unique Resource Joined"
+query 50608 "Unique Resource Joined"
 {
     QueryType = Normal;
     Caption = 'Unique Resource in Capacity (Joined)';

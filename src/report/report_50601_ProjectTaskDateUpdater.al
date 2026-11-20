@@ -1,4 +1,4 @@
-report 50601 "Opti Job Task Plan. Date Upd."
+report 50601 "Job Task Planned Date Updater"
 {
     UsageCategory = None;
     ApplicationArea = Jobs;
@@ -31,7 +31,6 @@ report 50601 "Opti Job Task Plan. Date Upd."
 
                     field(PlannedStartDate; PlannedStartDate)
                     {
-                        ToolTip = 'Specifies the value of the Planned Start Date field.';
                         Caption = 'Planned Start Date';
                         trigger OnValidate()
                         var
@@ -42,7 +41,6 @@ report 50601 "Opti Job Task Plan. Date Upd."
                     }
                     field(PlannedEndDate; PlannedEndDate)
                     {
-                        ToolTip = 'Specifies the value of the Planned End Date field.';
                         Caption = 'Planned End Date';
                         trigger OnValidate()
                         var
@@ -53,7 +51,6 @@ report 50601 "Opti Job Task Plan. Date Upd."
                     }
                     field(Duration; Duration)
                     {
-                        ToolTip = 'Specifies the value of the Duration field.';
                         Caption = 'Duration (days)';
                         trigger OnValidate()
                         var
@@ -89,24 +86,24 @@ report 50601 "Opti Job Task Plan. Date Upd."
 
     trigger OnPostReport()
     var
-        DayPlanningPeriodSyncMgt: Codeunit "Opti DayPlan. Period Sync Mgt.";
+        DayPlanningPeriodSyncMgt: Codeunit "DayPlanning Period Sync Mgt.";
     begin
         // popup page editor:
-        if (ProjectTask."Opti VisualBarStartDate" <> PlannedStartDate) or (ProjectTask."Opti VisualBarEndDate" <> PlannedEndDate) then
+        if (ProjectTask.VisualBarStartDate <> PlannedStartDate) or (ProjectTask.VisualBarEndDate <> PlannedEndDate) then
             if DayPlanningPeriodSyncMgt.ShowPreview(ProjectTask,
                                                 ProjectTask."Job No.",
                                                 ProjectTask."Job Task No.",
-                                                ProjectTask."Opti VisualBarStartDate",
-                                                ProjectTask."Opti VisualBarEndDate",
+                                                ProjectTask.VisualBarStartDate,
+                                                ProjectTask.VisualBarEndDate,
                                                 PlannedStartDate,
                                                 PlannedEndDate) then begin
 
                 // Apply Changes in the preview already modified the Job Task in the database;
                 // re-read it so Modify() doesn't hit a stale-record error.
                 ProjectTask.Get(ProjectTask."Job No.", ProjectTask."Job Task No.");
-                ProjectTask."Opti VisualBarStartDate" := PlannedStartDate;
-                ProjectTask."Opti VisualBarEndDate" := PlannedEndDate;
-                ProjectTask."Opti Duration" := Duration;
+                ProjectTask.VisualBarStartDate := PlannedStartDate;
+                ProjectTask.VisualBarEndDate := PlannedEndDate;
+                ProjectTask.Duration := Duration;
                 ProjectTask.Modify();
             end;
     end;
@@ -120,16 +117,16 @@ report 50601 "Opti Job Task Plan. Date Upd."
     procedure SetPlannedDates(var JobTask: Record "Job Task")
     begin
         ProjectTask := JobTask;
-        PlannedStartDate := JobTask."Opti VisualBarStartDate";
-        PlannedEndDate := JobTask."Opti VisualBarEndDate";
-        Duration := JobTask."Opti Duration";
+        PlannedStartDate := JobTask.VisualBarStartDate;
+        PlannedEndDate := JobTask.VisualBarEndDate;
+        Duration := JobTask.Duration;
     end;
 
     local procedure PlannedDateCheck(ChangedFrom: Option "Planned Start Date","Planned End Date",Duration)
     var
         durationTxt: Text;
-        durationLbl: Label '<%1D>', Comment = '%1 = value';
-        Err01Lbl: Label 'Planned Start Date cannot be later than Planned End Date.';
+        durationLbl: Label '<%1D>';
+        ErrLbl01: Label 'Planned Start Date cannot be later than Planned End Date.';
     begin
         case ChangedFrom of
             ChangedFrom::"Planned Start Date",
@@ -137,7 +134,7 @@ report 50601 "Opti Job Task Plan. Date Upd."
                 begin
                     if PlannedEndDate <> 0D then
                         if PlannedStartDate > PlannedEndDate then
-                            Error(Err01Lbl);
+                            Error(ErrLbl01);
                     if (PlannedEndDate <> 0D) and (PlannedStartDate <> 0D) then
                         Duration := PlannedEndDate - PlannedStartDate + 1;
                 end;

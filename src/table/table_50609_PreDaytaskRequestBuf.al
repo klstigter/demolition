@@ -2,7 +2,7 @@
 /// In-memory (temporary) buffer that holds all user-defined parameters for
 /// a single "Generate pre DayPlannings" request.  One record per invocation.
 /// </summary>
-table 50609 "Opti Pre DayPlan. Request Buf."
+table 50609 "Pre DayPlanning Request Buf."
 {
     TableType = Temporary;
     Caption = 'Pre DayPlanning Request Buffer';
@@ -70,7 +70,7 @@ table 50609 "Opti Pre DayPlan. Request Buf."
         // ── Recurrence ─────────────────────────────────────────────────────────
 
         /// <summary>The recurrence pattern applied to the date range.</summary>
-        field(50; Recurrence; Enum "Opti Pre DayPlan Recurrence")
+        field(50; Recurrence; Enum "Pre DayPlanning Recurrence")
         {
             Caption = 'Recurrence';
             DataClassification = CustomerContent;
@@ -145,8 +145,8 @@ table 50609 "Opti Pre DayPlan. Request Buf."
             begin
                 // Populate start/end time defaults from the selected template
                 if WHTemplate.Get(Rec."Work-Hour Template") then begin
-                    Rec."DayPlanning Start" := WHTemplate."Opti Default Start Time";
-                    Rec."DayPlanning End" := WHTemplate."Opti Default End Time";
+                    Rec."DayPlanning Start" := WHTemplate."Default Start Time";
+                    Rec."DayPlanning End" := WHTemplate."Default End Time";
                 end else begin
                     Rec."DayPlanning Start" := 0T;
                     Rec."DayPlanning End" := 0T;

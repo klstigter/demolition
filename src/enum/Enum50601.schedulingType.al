@@ -1,6 +1,5 @@
-enum 50601 "Opti schedulingType"
+enum 50601 schedulingType
 {
-    Caption = 'schedulingType';
     Extensible = true;
 
     value(0; " ")

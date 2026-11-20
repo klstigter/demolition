@@ -1,4 +1,4 @@
-controladdin "OptiDHXCapacityPlanningOverviewAddin"
+controladdin DHXCapacityPlanningOverviewAddin
 {
     // RequestedHeight covers the WORST case (every section at its own MAX clamp: section 1 fixed
     // ~104px + section 2 capped 400px + section 3 ~180px + section 4 capped 420px + ~40px chrome

@@ -89,49 +89,49 @@ page 50640 "Opti Job Task Lines Subform"
                     ToolTip = 'Specifies the name of the Work in Process calculation method that is associated with a project. The value in this field comes from the WIP method specified on the project card.';
                     Visible = false;
                 }
-                field("Project Manager"; Rec."Opti Project Manager")
+                field("Project Manager"; Rec."Project Manager")
                 {
                     ApplicationArea = Jobs;
                     Caption = 'Project Manager';
                     ToolTip = 'Specifies the project manager for the project task. The project manager is based on the project manager on the related project planning line.';
                 }
-                field(PlannedStartDate; Rec."Opti VisualBarStartDate")
+                field(PlannedStartDate; Rec.VisualBarStartDate)
                 {
                     ApplicationArea = Basic, Suite, Jobs;
                     ToolTip = 'Specifies the planned start date for the project task. The date is based on the date on the related project planning line.';
                 }
-                field(PlannedEndDate; Rec."Opti VisualBarEndDate")
+                field(PlannedEndDate; Rec.VisualBarEndDate)
                 {
                     ApplicationArea = Basic, Suite, Jobs;
                     ToolTip = 'Specifies the planned end date for the project task. The date is based on the date on the related project planning line.';
                 }
 
-                field("Scheduling Type"; Rec."Opti Scheduling Type")
+                field("Scheduling Type"; Rec."Scheduling Type")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the value of the Scheduling Type field.', Comment = '%';
                 }
-                field("Estimated Hours"; Rec."Opti Estimated Hours")
+                field("Estimated Hours"; Rec."Estimated Hours")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the value of the Estimated Hours field.', Comment = '%';
                 }
-                field("Duration"; Rec."Opti Duration")
+                field("Duration"; Rec."Duration")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the duration of the project task in days.';
                 }
-                field(Progress; Rec."Opti Progress")
+                field(Progress; Rec.Progress)
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the progress percentage (0-100) for this job task.';
                 }
-                field("Total Worked Hours"; Rec."Opti Total Assigned Hours")
+                field("Total Worked Hours"; Rec."Total Assigned Hours")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the total worked hours from all related day plannings.';
                 }
-                field("Total Day Taks"; Rec."Opti Total Day Plannings")
+                field("Total Day Taks"; Rec."Total Day Plannings")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the value of the Total Day Taks field.', Comment = '%';
@@ -305,7 +305,7 @@ page 50640 "Opti Job Task Lines Subform"
 
                     trigger OnAction()
                     var
-                        Indent: codeunit "Opti Job Task Indent";
+                        Indent: codeunit "Job Task Indent";
                     begin
                         Indent.IndentJobTasks(Rec);
                     end;

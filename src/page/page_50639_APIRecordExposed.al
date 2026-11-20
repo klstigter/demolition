@@ -14,22 +14,18 @@ page 50639 "API Record Exposed Opti"
             {
                 field("API Page No."; Rec."API Page No.")
                 {
-                    ToolTip = 'Specifies the value of the API Page No. field.';
                     ApplicationArea = All;
                 }
                 field("API Page Name"; Rec."API Page Name")
                 {
-                    ToolTip = 'Specifies the value of the API Page Name field.';
                     ApplicationArea = All;
                 }
                 field("Table ID"; Rec."Table ID")
                 {
-                    ToolTip = 'Specifies the value of the Table ID field.';
                     ApplicationArea = All;
                 }
                 field("Table Name"; Rec."Table Name")
                 {
-                    ToolTip = 'Specifies the value of the Table Name field.';
                     ApplicationArea = All;
                 }
             }
@@ -40,4 +36,17 @@ page 50639 "API Record Exposed Opti"
         }
     }
 
+    actions
+    {
+        area(Processing)
+        {
+            action(ActionName)
+            {
+
+                trigger OnAction()
+                begin
+                end;
+            }
+        }
+    }
 }

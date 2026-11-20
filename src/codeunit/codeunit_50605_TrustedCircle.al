@@ -1,12 +1,12 @@
 // API Integeration for Exposing API Pages
-codeunit 50605 "Opti API Record Exposed Mgt."
+codeunit 50605 "API Record Exposed Mgt."
 {
     trigger OnRun()
     begin
     end;
 
     var
-        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
 
     local procedure GetApiFieldName(APIPageNo: Integer;
                                     TableNo: Integer;
@@ -55,7 +55,7 @@ codeunit 50605 "Opti API Record Exposed Mgt."
                             OldFldRef := OldRecRef.Field(NewFldRef.Number());
                             if FormatValue(OldFldRef) <> FormatValue(NewFldRef) then
                                 if GetApiFieldName(APIRecordExposed."API Page No.", TableID, NewFldRef.Number(), ControlName) then
-                                    InsertLog(NewRecRef, PageMetadata.EntitySetName, ControlName, "Opti Upd. Del. Log Action"::Modify, NewFldRef.Number(), FormatValue(OldFldRef), FormatValue(NewFldRef));
+                                    InsertLog(NewRecRef, PageMetadata.EntitySetName, ControlName, "Update and Delete Log Action"::Modify, NewFldRef.Number(), FormatValue(OldFldRef), FormatValue(NewFldRef));
                         end;
                     end;
             until APIRecordExposed.Next() = 0;
@@ -95,7 +95,7 @@ codeunit 50605 "Opti API Record Exposed Mgt."
                         end;
                         KeyJson.WriteTo(NewValue);
                     end;
-                    InsertLog(RecRef, PageMetadata.EntitySetName, '', "Opti Upd. Del. Log Action"::Insert, 0, '', NewValue);
+                    InsertLog(RecRef, PageMetadata.EntitySetName, '', "Update and Delete Log Action"::Insert, 0, '', NewValue);
                 end;
             until APIRecordExposed.Next() = 0;
     end;
@@ -106,7 +106,7 @@ codeunit 50605 "Opti API Record Exposed Mgt."
     begin
         if RecRef.IsTemporary() then
             exit;
-        LogRecordLevelChange(RecRef, "Opti Upd. Del. Log Action"::Delete, '', '');
+        LogRecordLevelChange(RecRef, "Update and Delete Log Action"::Delete, '', '');
     end;
 
     [InherentPermissions(PermissionObjectType::TableData, Database::"API Record Exposed Opti", 'R')]
@@ -138,7 +138,7 @@ codeunit 50605 "Opti API Record Exposed Mgt."
                         xFldRef := xRecRef.Field(FldRef.Number());
                         if not GetApiFieldName(APIRecordExposed."API Page No.", RecRef.Number(), FldRef.Number(), ControlName) then
                             ControlName := '';
-                        InsertLog(RecRef, PageMetadata.EntitySetName, ControlName, "Opti Upd. Del. Log Action"::Rename, FldRef.Number(), FormatValue(xFldRef), FormatValue(FldRef));
+                        InsertLog(RecRef, PageMetadata.EntitySetName, ControlName, "Update and Delete Log Action"::Rename, FldRef.Number(), FormatValue(xFldRef), FormatValue(FldRef));
                     end;
             until APIRecordExposed.Next() = 0;
     end;
@@ -152,7 +152,7 @@ codeunit 50605 "Opti API Record Exposed Mgt."
     end;
 
     local procedure LogRecordLevelChange(RecRef: RecordRef;
-                                         LogAction: Enum "Opti Upd. Del. Log Action";
+                                         LogAction: Enum "Update and Delete Log Action";
                                          OldValue: Text;
                                          NewValue: Text)
     var
@@ -170,7 +170,7 @@ codeunit 50605 "Opti API Record Exposed Mgt."
     local procedure InsertLog(RecRef: RecordRef;
                               EntitySetName: Text;
                               FieldName: Text;
-                              LogAction: Enum "Opti Upd. Del. Log Action";
+                              LogAction: Enum "Update and Delete Log Action";
                               FieldNo: Integer;
                               OldValue: Text;
                               NewValue: Text)

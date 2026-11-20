@@ -1,4 +1,4 @@
-page 50606 "Opti DayPlanningApi Opt"
+page 50606 "DayPlanningApi Opt"
 {
     PageType = API;
     Caption = 'Day Planning API Optimization';
@@ -7,7 +7,7 @@ page 50606 "Opti DayPlanningApi Opt"
     APIVersion = 'v1.0';
     EntityName = 'DayPlanning';
     EntitySetName = 'DayPlannings';
-    SourceTable = "Opti Day Planning";
+    SourceTable = "Day Planning";
     DelayedInsert = true;
     ODataKeyFields = SystemId;
 
@@ -158,7 +158,7 @@ page 50606 "Opti DayPlanningApi Opt"
 
     trigger OnInsertRecord(BelowxRec: Boolean): Boolean
     var
-        APIKeyMgt: Codeunit "Opti API Key Mgt Opt.";
+        APIKeyMgt: Codeunit "API Key Mgt Opt.";
     begin
         if Rec."Day Line No." = -1 then begin
             Rec.TestField("Job No.");

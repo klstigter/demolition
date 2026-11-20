@@ -1,4 +1,4 @@
-page 50616 "Opti JobJournal Opt"
+page 50616 "JobJournal Opt"
 {
     PageType = API;
     Caption = 'Job Journal API Optimization';
@@ -40,7 +40,7 @@ page 50616 "Opti JobJournal Opt"
                     Caption = 'Unposted Day Planning';
                 }
             }
-            part(jobJournalLines; "Opti Job Journal Line API Opt.")
+            part(jobJournalLines; "Job Journal Line API Opt.")
             {
                 EntityName = 'JobJournalLine';
                 EntitySetName = 'JobJournalLines';
@@ -52,12 +52,11 @@ page 50616 "Opti JobJournal Opt"
 
     trigger OnInsertRecord(BelowxRec: Boolean): Boolean
     var
-        JournalBatchDoesNotExistErr: Label 'Journal Batch ''%1 / %2'' does not exist. Create the batch in Business Central first.', Comment = '%1=Rec.Journal Template Name, %2=Rec.Name';
         JobJournalBatch: Record "Job Journal Batch";
     begin
         // Validate the referenced batch exists before accepting any journal lines
         if not JobJournalBatch.Get(Rec."Journal Template Name", Rec.Name) then
-            Error(JournalBatchDoesNotExistErr, Rec."Journal Template Name", Rec.Name);
+            Error('Journal Batch ''%1 / %2'' does not exist. Create the batch in Business Central first.', Rec."Journal Template Name", Rec.Name);
 
         // Copy real batch data into the temp Rec so SubPageLink fields are correct
         Rec.TransferFields(JobJournalBatch, false);
@@ -72,7 +71,7 @@ page 50616 "Opti JobJournal Opt"
         LinesArray: JsonArray;
         LineJson: JsonObject;
         ResultText: Text;
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
     begin
         JobRegister.Reset();
         if not JobRegister.FindLast() then
@@ -100,12 +99,12 @@ page 50616 "Opti JobJournal Opt"
                 LineJson.Add('quantity', JobLedgEntry.Quantity);
                 LineJson.Add('unitPrice', JobLedgEntry."Unit Price");
                 LineJson.Add('totalPrice', JobLedgEntry."Total Price");
-                LineJson.Add('DayPlanningDate', Format(JobLedgEntry."Opti Opt. DayPlanning Date", 0, '<Year4>-<Month,2>-<Day,2>'));
-                LineJson.Add('DayPlanningLineNo', JobLedgEntry."Opti Opt. DayPlanning Line No.");
+                LineJson.Add('DayPlanningDate', Format(JobLedgEntry."Opt. DayPlanning Date", 0, '<Year4>-<Month,2>-<Day,2>'));
+                LineJson.Add('DayPlanningLineNo', JobLedgEntry."Opt. DayPlanning Line No.");
                 if DayPlanning.Get(
                     JobLedgEntry."Job No.",
                     JobLedgEntry."Job Task No.",
-                    JobLedgEntry."Opti Opt. DayPlanning Line No.")
+                    JobLedgEntry."Opt. DayPlanning Line No.")
                 then
                     LineJson.Add('DayPlanningSystemId', DayPlanning.SystemId)
                 else
@@ -121,7 +120,7 @@ page 50616 "Opti JobJournal Opt"
     procedure GetUnpostedDayPlanning(): Text
     var
         JobJnlLine: Record "Job Journal Line";
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         ResultJson: JsonObject;
         LinesArray: JsonArray;
         LineJson: JsonObject;
@@ -149,12 +148,12 @@ page 50616 "Opti JobJournal Opt"
                 LineJson.Add('description', JobJnlLine.Description);
                 LineJson.Add('quantity', JobJnlLine.Quantity);
                 LineJson.Add('unitOfMeasureCode', JobJnlLine."Unit of Measure Code");
-                LineJson.Add('DayPlanningDate', Format(JobJnlLine."Opti Opt. DayPlanning Date", 0, '<Year4>-<Month,2>-<Day,2>'));
-                LineJson.Add('DayPlanningLineNo', JobJnlLine."Opti Opt. DayPlanning Line No.");
+                LineJson.Add('DayPlanningDate', Format(JobJnlLine."Opt. DayPlanning Date", 0, '<Year4>-<Month,2>-<Day,2>'));
+                LineJson.Add('DayPlanningLineNo', JobJnlLine."Opt. DayPlanning Line No.");
                 if DayPlanning.Get(
                     JobJnlLine."Job No.",
                     JobJnlLine."Job Task No.",
-                    JobJnlLine."Opti Opt. DayPlanning Line No.")
+                    JobJnlLine."Opt. DayPlanning Line No.")
                 then
                     LineJson.Add('DayPlanningSystemId', Format(DayPlanning.SystemId, 0, 4))
                 else

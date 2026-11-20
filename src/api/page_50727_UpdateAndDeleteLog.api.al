@@ -1,5 +1,5 @@
 // API Integeration for Exposing API Pages
-page 50727 "Opti UpdateAndDeleteLogApi Opt"
+page 50727 "UpdateAndDeleteLogApi Opt"
 {
     PageType = API;
     Caption = 'Update and Delete Log API Optimization';

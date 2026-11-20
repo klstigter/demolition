@@ -1,55 +1,55 @@
-tableextension 50605 "Opti Job Task" extends "Job Task"
+tableextension 50605 "Job Task ext" extends "Job Task"
 {
     fields
     {
-        field(50500; "Opti Project Manager"; Code[20])
+        field(50500; "Project Manager"; Code[20])
         {
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
             Caption = 'Project Manager';
             ToolTip = 'Specifies the person who is assigned to manage the project task.';
             tableRelation = "User Setup";
         }
 
-        field(50505; "Opti Work Hour Template"; Code[20])
+        field(50505; "Work Hour Template"; Code[20])
         {
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
             Caption = 'Work Hour Template';
             TableRelation = "Work-Hour Template";
         }
 
         #region Transfer from Work Order
 
-        field(50509; "Opti Long Description"; blob)
+        field(50509; "Long Description"; blob)
         {
             Caption = 'Long Description';
             DataClassification = CustomerContent;
         }
 
-        field(50511; "Opti Deadline Date"; Date) //Transfer from Work Order
+        field(50511; "Deadline Date"; Date) //Transfer from Work Order
         {
             Caption = 'Deadline Date';
             DataClassification = CustomerContent;
         }
 
-        field(50512; "Opti Placeholder Date"; Date) //Transfer from Work Order
+        field(50512; "Placeholder Date"; Date) //Transfer from Work Order
         {
             Caption = 'Placeholder Date';
             DataClassification = CustomerContent;
         }
 
-        field(50513; "Opti Closed"; Boolean) //Transfer from Work Order
+        field(50513; Closed; Boolean) //Transfer from Work Order
         {
             Caption = 'Closed';
             DataClassification = CustomerContent;
         }
 
-        field(50514; "Opti Closed Date"; Date) //Transfer from Work Order
+        field(50514; "Closed Date"; Date) //Transfer from Work Order
         {
             Caption = 'Closed Date';
             DataClassification = CustomerContent;
         }
 
-        field(50515; "Opti Closed Reason Code"; Code[20]) //Transfer from Work Order
+        field(50515; "Closed Reason Code"; Code[20]) //Transfer from Work Order
         {
             Caption = 'Closed Reason Code';
             DataClassification = CustomerContent;
@@ -57,14 +57,14 @@ tableextension 50605 "Opti Job Task" extends "Job Task"
 
         #endregion
 
-        field(50521; "Opti VisualBarStartDate"; Date)
+        field(50521; VisualBarStartDate; Date)
         {
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
             Caption = 'Visual Bar Start Date';
             ToolTip = 'Specifies the start date for the project task. The date is based on the date on the related project planning line.';
             trigger OnValidate()
             begin
-                OptiCalculateDuration();
+                CalculateDuration();
                 // Deliberately NOT wired to DayPlanningPeriodSyncMgt.HandleJobTaskPeriodChange here.
                 // "Visual Bar Start Date"/"Visual Bar End Date" are Editable = false on page 50618 "Opti
                 // Job Task Card" — the only user-facing way to change them from the Card is the
@@ -85,14 +85,14 @@ tableextension 50605 "Opti Job Task" extends "Job Task"
                 // end;
             end;
         }
-        field(50522; "Opti VisualBarEndDate"; Date)
+        field(50522; VisualBarEndDate; Date)
         {
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
             Caption = 'Visual Bar End Date';
             ToolTip = 'Specifies the end date for the project task. The date is based on the date on the related project planning line.';
             trigger OnValidate()
             begin
-                OptiCalculateDuration();
+                CalculateDuration();
                 // See the matching comment on VisualBarStartDate's OnValidate above — same reasoning.
                 // if not DayPlanningPeriodSyncMgt.HandleJobTaskPeriodChange(Rec, xRec.VisualBarStartDate, xRec.VisualBarEndDate, true) then begin
                 //     Rec.VisualBarEndDate := xRec.VisualBarEndDate;
@@ -102,10 +102,9 @@ tableextension 50605 "Opti Job Task" extends "Job Task"
                 // end;
             end;
         }
-        field(50523; "Opti Start Time"; Time)
+        field(50523; "Start Time"; Time)
         {
-            Caption = 'Start Time';
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
 
             trigger OnValidate()
             begin
@@ -113,10 +112,9 @@ tableextension 50605 "Opti Job Task" extends "Job Task"
                 //CalculateNonWorkingHours();
             end;
         }
-        field(50524; "Opti End Time"; Time)
+        field(50524; "End Time"; Time)
         {
-            Caption = 'End Time';
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
 
             trigger OnValidate()
             begin
@@ -125,56 +123,55 @@ tableextension 50605 "Opti Job Task" extends "Job Task"
             end;
         }
 
-        field(50025; "Opti Scheduling Type"; Enum "Opti schedulingType")
+        field(50025; "Scheduling Type"; Enum "SchedulingType")
         {
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
             Caption = 'Scheduling Type';
             ToolTip = 'Specifies the scheduling type for the project task. The scheduling type is based on the scheduling type on the related project planning line.';
         }
-        field(50530; "Opti Estimated Hours"; Integer)
+        field(50530; "Estimated Hours"; Integer)
         {
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
             Caption = 'Estimated Hours';
         }
 
-        field(50531; "Opti Duration"; Integer)
+        field(50531; "Duration"; Integer)
         {
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
             Caption = 'Duration';
             MinValue = 0;
 
             trigger OnValidate()
             var
                 durationTxt: Text;
-                durationLbl: Label '<%1D>', Comment = '%1 = value';
+                durationLbl: Label '<%1D>';
             begin
-                if ("Opti VisualBarStartDate" <> 0D) and ("Opti Duration" >= 1) then begin
-                    if "Opti Duration" = 1 then
-                        "Opti VisualBarEndDate" := "Opti VisualBarStartDate"
+                if (VisualBarStartDate <> 0D) and (Duration >= 1) then begin
+                    if Duration = 1 then
+                        VisualBarEndDate := VisualBarStartDate
                     else begin
-                        durationTxt := StrSubstNo(durationLbl, "Opti Duration" - 1);
-                        "Opti VisualBarEndDate" := CalcDate(durationTxt, "Opti VisualBarStartDate");
+                        durationTxt := StrSubstNo(durationLbl, Duration - 1);
+                        VisualBarEndDate := CalcDate(durationTxt, VisualBarStartDate);
                     end;
                 end else
-                    "Opti Duration" := 0;
+                    Duration := 0;
             end;
         }
 
-        field(50601; "Opti Progress"; Integer)
+        field(50601; Progress; Integer)
         {
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
             Caption = 'Progress (%)';
             MinValue = 0;
             MaxValue = 100;
         }
 
-        field(50603; "Opti Non Active"; Boolean)
+        field(50603; "Non Active"; Boolean)
         {
-            Caption = 'Non Active';
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
         }
 
-        field(50620; "Opti Constraint Type"; Enum "Opti Job Task Constraint Type")
+        field(50620; "Constraint Type"; Enum "Job Task Constraint Type")
         {
             DataClassification = CustomerContent;
             Caption = 'Planning Constraint Type';
@@ -186,7 +183,7 @@ tableextension 50605 "Opti Job Task" extends "Job Task"
                 UpdateConstraintCalcDates();
             end;
         }
-        field(50621; "Opti Constraint Date"; Date)
+        field(50621; "Constraint Date"; Date)
         {
             DataClassification = CustomerContent;
             Caption = 'Planning Constraint Date';
@@ -197,7 +194,7 @@ tableextension 50605 "Opti Job Task" extends "Job Task"
                 UpdateConstraintCalcDates();
             end;
         }
-        field(50622; "Opti Max Duration"; Integer)
+        field(50622; "Max Duration"; Integer)
         {
             DataClassification = CustomerContent;
             Caption = 'Max Duration (Days)';
@@ -208,65 +205,56 @@ tableextension 50605 "Opti Job Task" extends "Job Task"
                 UpdateConstraintCalcDates();
             end;
         }
-        field(50623; "Opti Constraint Calc Start"; Date)
+        field(50623; "Constraint Calc. - Start Date"; Date)
         {
-            Caption = 'Constraint Calc. - Start Date';
             DataClassification = CustomerContent;
         }
-        field(50624; "Opti Constraint Calc End"; Date)
+        field(50624; "Constraint Calc. - End Date"; Date)
         {
-            Caption = 'Constraint Calc. - End Date';
-            DataClassification = CustomerContent;
-        }
-
-        field(50660; "Opti Depth"; Decimal)
-        {
-            Caption = 'Depth';
-            DataClassification = CustomerContent;
-        }
-        field(50670; "Opti IsBoor"; Boolean)
-        {
-            Caption = 'IsBoor';
             DataClassification = CustomerContent;
         }
 
-        field(50680; "Opti Job View Type"; Enum "Opti Job View Type")
+        field(50660; Depth; Decimal)
         {
-            Caption = 'Job View Type';
+            DataClassification = ToBeClassified;
+        }
+        field(50670; IsBoor; Boolean)
+        {
+            DataClassification = ToBeClassified;
+        }
+
+        field(50680; "Job View Type"; Enum "Job View Type")
+        {
             FieldClass = FlowField;
-            CalcFormula = lookup("Job"."Opti Job View Type" where("No." = Field("Job No.")));
+            CalcFormula = lookup("Job"."Job View Type" where("No." = Field("Job No.")));
             Editable = false;
         }
 
-        field(50690; "Opti Total Assigned Hours"; Decimal)
+        field(50690; "Total Assigned Hours"; Decimal)
         {
-            Caption = 'Total Assigned Hours';
             FieldClass = FlowField;
-            CalcFormula = sum("Opti Day Planning"."Assigned Hours" where("Job No." = field("Job No."), "Job Task No." = field("Job Task No."), "Plan Date" = field("Planning Date Filter")));
+            CalcFormula = sum("Day Planning"."Assigned Hours" where("Job No." = field("Job No."), "Job Task No." = field("Job Task No."), "Plan Date" = field("Planning Date Filter")));
             BlankNumbers = BlankZero;
             Editable = false;
         }
-        field(50691; "Opti Total Requested Hours"; Decimal)
+        field(50691; "Total Requested Hours"; Decimal)
         {
-            Caption = 'Total Requested Hours';
             FieldClass = FlowField;
-            CalcFormula = sum("Opti Day Planning"."Requested Hours" where("Job No." = field("Job No."), "Job Task No." = field("Job Task No."), "Plan Date" = field("Planning Date Filter")));
+            CalcFormula = sum("Day Planning"."Requested Hours" where("Job No." = field("Job No."), "Job Task No." = field("Job Task No."), "Plan Date" = field("Planning Date Filter")));
             BlankNumbers = BlankZero;
             Editable = false;
         }
-        field(50692; "Opti Total Realized Hours"; Decimal)
+        field(50692; "Total Realized Hours"; Decimal)
         {
-            Caption = 'Total Realized Hours';
             FieldClass = FlowField;
-            CalcFormula = sum("Opti Day Planning"."Realized Hours" where("Job No." = field("Job No."), "Job Task No." = field("Job Task No."), "Plan Date" = field("Planning Date Filter")));
+            CalcFormula = sum("Day Planning"."Realized Hours" where("Job No." = field("Job No."), "Job Task No." = field("Job Task No."), "Plan Date" = field("Planning Date Filter")));
             BlankNumbers = BlankZero;
             Editable = false;
         }
-        field(50700; "Opti Total Day Plannings"; Integer)
+        field(50700; "Total Day Plannings"; Integer)
         {
-            Caption = 'Total Day Plannings';
             FieldClass = FlowField;
-            CalcFormula = count("Opti Day Planning" where("Job No." = field("Job No."), "Job Task No." = field("Job Task No."), "Plan Date" = field("Planning Date Filter")));
+            CalcFormula = count("Day Planning" where("Job No." = field("Job No."), "Job Task No." = field("Job Task No."), "Plan Date" = field("Planning Date Filter")));
             BlankNumbers = BlankZero;
             Editable = false;
         }
@@ -289,13 +277,13 @@ tableextension 50605 "Opti Job Task" extends "Job Task"
         Job: Record Job;
     begin
         if Job.Get(Rec."Job No.") then begin
-            Rec."Opti Job View Type" := Job."Opti Job View Type";
+            Rec."Job View Type" := Job."Job View Type";
             Rec.Modify();
         end;
     end;
 
     var
-        DayPlanningMgt: Codeunit "Opti Day Plannings Mgt.";
+        DayPlanningMgt: Codeunit "Day Plannings Mgt.";
         // DayPlanningPeriodSyncMgt: Codeunit "DayPlanning Period Sync Mgt.";
         Job: Record Job;
 
@@ -312,17 +300,17 @@ tableextension 50605 "Opti Job Task" extends "Job Task"
     /// genuinely needs different Duration semantics, branch on "Scheduling Type" here explicitly -
     /// but don't reintroduce a case with no fallback, since that's exactly how this bug happened.
     /// </summary>
-    procedure OptiCalculateDuration()
+    procedure CalculateDuration()
     begin
-        if ("Opti VisualBarStartDate" = 0D) or ("Opti VisualBarEndDate" = 0D) then begin
-            rec."Opti Duration" := 0;
+        if (VisualBarStartDate = 0D) or (VisualBarEndDate = 0D) then begin
+            rec.Duration := 0;
             exit;
         end;
-        if "Opti VisualBarEndDate" < "Opti VisualBarStartDate" then
+        if VisualBarEndDate < VisualBarStartDate then
             error('Planned End Date cannot be before Planned Start Date!');
 
-        rec."Opti Duration" := "Opti VisualBarEndDate" - "Opti VisualBarStartDate" + 1;
-        if rec."Opti Duration" < 0 then
+        rec.Duration := VisualBarEndDate - VisualBarStartDate + 1;
+        if rec.Duration < 0 then
             error('Duration cannot be negative!');
     end;
 
@@ -337,35 +325,32 @@ tableextension 50605 "Opti Job Task" extends "Job Task"
     /// reliable "is a constraint populated" signal on its own.
     /// </summary>
     local procedure UpdateConstraintCalcDates()
-        var
-            D2Txt: Label '<-%1D>', Comment = '%1=Rec.Max Duration - 1';
-            DTxt: Label '<+%1D>', Comment = '%1=Rec.Max Duration - 1';
     begin
-        Rec."Opti Constraint Calc Start" := 0D;
-        Rec."Opti Constraint Calc End" := 0D;
-        if (Rec."Opti Constraint Date" = 0D) or (Rec."Opti Max Duration" <= 0) then
+        Rec."Constraint Calc. - Start Date" := 0D;
+        Rec."Constraint Calc. - End Date" := 0D;
+        if (Rec."Constraint Date" = 0D) or (Rec."Max Duration" <= 0) then
             exit;
-        case Rec."Opti Constraint Type" of
-            Rec."Opti Constraint Type"::ALAP,
-            Rec."Opti Constraint Type"::FNET,
-            Rec."Opti Constraint Type"::FNLT,
-            Rec."Opti Constraint Type"::MFO:
+        case Rec."Constraint Type" of
+            Rec."Constraint Type"::ALAP,
+            Rec."Constraint Type"::FNET,
+            Rec."Constraint Type"::FNLT,
+            Rec."Constraint Type"::MFO:
                 begin
-                    Rec."Opti Constraint Calc End" := Rec."Opti Constraint Date";
-                    Rec."Opti Constraint Calc Start" := CalcDate(StrSubstNo(D2Txt, Rec."Opti Max Duration" - 1), Rec."Opti Constraint Calc End");
+                    Rec."Constraint Calc. - End Date" := Rec."Constraint Date";
+                    Rec."Constraint Calc. - Start Date" := CalcDate(StrSubstNo('<-%1D>', Rec."Max Duration" - 1), Rec."Constraint Calc. - End Date");
                 end;
-            Rec."Opti Constraint Type"::ASAP,
-            Rec."Opti Constraint Type"::SNET,
-            Rec."Opti Constraint Type"::SNLT,
-            Rec."Opti Constraint Type"::MSO:
+            Rec."Constraint Type"::ASAP,
+            Rec."Constraint Type"::SNET,
+            Rec."Constraint Type"::SNLT,
+            Rec."Constraint Type"::MSO:
                 begin
-                    Rec."Opti Constraint Calc Start" := Rec."Opti Constraint Date";
-                    Rec."Opti Constraint Calc End" := CalcDate(StrSubstNo(DTxt, Rec."Opti Max Duration" - 1), Rec."Opti Constraint Calc Start");
+                    Rec."Constraint Calc. - Start Date" := Rec."Constraint Date";
+                    Rec."Constraint Calc. - End Date" := CalcDate(StrSubstNo('<+%1D>', Rec."Max Duration" - 1), Rec."Constraint Calc. - Start Date");
                 end;
         end;
     end;
 
-    procedure OptiCheckDataLimitations()
+    procedure CheckDataLimitations()
     var
         MinDayPlanningDate: Date;
         MaxDayPlanningDate: Date;
@@ -378,11 +363,11 @@ tableextension 50605 "Opti Job Task" extends "Job Task"
         DayPlanningMgt.GetDateRange(Rec."Job No.", Rec."Job Task No.", MinDayPlanningDate, MaxDayPlanningDate);
         JobStartDate := 0D;
         JobEndDate := DMY2Date(31, 12, 2999);
-        if ("Opti VisualBarStartDate" <> 0D) then begin
-            JobStartDate := "Opti VisualBarStartDate";
+        if (VisualBarStartDate <> 0D) then begin
+            JobStartDate := VisualBarStartDate;
         end;
-        if ("Opti VisualBarEndDate" <> 0D) then begin
-            JobEndDate := "Opti VisualBarEndDate";
+        if (VisualBarEndDate <> 0D) then begin
+            JobEndDate := VisualBarEndDate;
         end;
         if HasOverlap(JobStartDate, JobEndDate) then
             error(Err01Lbl);
@@ -415,16 +400,16 @@ tableextension 50605 "Opti Job Task" extends "Job Task"
         DTstart := 0DT;
         DTend := CreateDateTime(DMY2Date(31, 12, 2999), Time);
         if TryCreateDayLines then
-            if (rec."Opti VisualBarStartDate" = 0D) or (rec."Opti Start Time" = 0T)
-                        or (rec."Opti VisualBarEndDate" = 0D) or (rec."Opti End Time" = 0T) then
+            if (rec.VisualBarStartDate = 0D) or (rec."Start Time" = 0T)
+                        or (rec.VisualBarEndDate = 0D) or (rec."End Time" = 0T) then
                 error('Start and End Planning Date and Time must be set to create Day Lines!');
-        if ("Opti VisualBarStartDate" <> 0D) and ("Opti Start Time" <> 0T) then begin
-            DT := "Opti VisualBarStartDate";
-            DTstart := CreateDateTime(DT, "Opti Start Time");
+        if (VisualBarStartDate <> 0D) and ("Start Time" <> 0T) then begin
+            DT := VisualBarStartDate;
+            DTstart := CreateDateTime(DT, "Start Time");
         end;
-        if ("Opti VisualBarEndDate" <> 0D) and ("Opti End Time" <> 0T) then begin
-            DT := "Opti VisualBarEndDate";
-            DTend := CreateDateTime(DT, "Opti End Time");
+        if (VisualBarEndDate <> 0D) and ("End Time" <> 0T) then begin
+            DT := VisualBarEndDate;
+            DTend := CreateDateTime(DT, "End Time");
         end;
         if DTstart > DTend then
             if not TryCreateDayLines then
@@ -436,51 +421,47 @@ tableextension 50605 "Opti Job Task" extends "Job Task"
 
 
 
-    procedure OptiStartEndLimitations(TryCreateDayLines: Boolean) hasOverlap: Boolean
+    procedure StartEndLimitations(TryCreateDayLines: Boolean) hasOverlap: Boolean
     var
-        StartPlanningDateAdjuste2Msg: Label 'Start Planning Date adjusted to Job Starting Date limit.';
-        StartPlanningDateAdjusteMsg: Label 'Start Planning Date adjusted to Job Ending Date limit.';
-        EndPlanningDateAdjustedT2Msg: Label 'End Planning Date adjusted to Job Ending Date limit.';
-        EndPlanningDateAdjustedTMsg: Label 'End Planning Date adjusted to Job Starting Date limit.';
     begin
         GetJob();
         IF TryCreateDayLines THEN begin
             IF CheckOverlap(TryCreateDayLines) then begin
-                OptiStartEndLimitations(false); //try to fix
+                StartEndLimitations(false); //try to fix
                 exit(true);
             end;
         end else
             CheckOverlap(false);
-        if TryCreateDayLines or (FieldNo("Opti VisualBarStartDate") = CurrFieldNo) then begin
-            if (Job."Starting Date" <> 0D) and (Rec."Opti VisualBarStartDate" < job."Starting Date") then begin
+        if TryCreateDayLines or (FieldNo(VisualBarStartDate) = CurrFieldNo) then begin
+            if (Job."Starting Date" <> 0D) and (Rec.VisualBarStartDate < job."Starting Date") then begin
                 if TryCreateDayLines then
                     error('Start Planning Date cannot be earlier than Job Starting Date %1', job."Starting Date");
-                Rec."Opti VisualBarStartDate" := job."Starting Date";
+                Rec.VisualBarStartDate := job."Starting Date";
                 if GuiAllowed then
-                    Message(StartPlanningDateAdjuste2Msg);
+                    Message('Start Planning Date adjusted to Job Starting Date limit.');
             end;
-            if (job."Starting Date" <> 0D) and (job."Ending Date" < Rec."Opti VisualBarStartDate") then begin
+            if (job."Starting Date" <> 0D) and (job."Ending Date" < Rec.VisualBarStartDate) then begin
                 if TryCreateDayLines then
                     error('Start Planning Date cannot be later than Job Ending Date %1', job."Ending Date");
-                Rec."Opti VisualBarStartDate" := job."Ending Date";
+                Rec.VisualBarStartDate := job."Ending Date";
                 if GuiAllowed then
-                    Message(StartPlanningDateAdjusteMsg);
+                    Message('Start Planning Date adjusted to Job Ending Date limit.');
             end;
         end;
-        if TryCreateDayLines or (FieldNo("Opti VisualBarEndDate") = CurrFieldNo) then begin
-            if (job."Ending Date" <> 0D) and (Rec."Opti VisualBarEndDate" > job."Ending Date") then begin
+        if TryCreateDayLines or (FieldNo(VisualBarEndDate) = CurrFieldNo) then begin
+            if (job."Ending Date" <> 0D) and (Rec.VisualBarEndDate > job."Ending Date") then begin
                 if TryCreateDayLines then
                     error('End Planning Date cannot be later than Job Ending Date %1', job."Ending Date");
-                Rec."Opti VisualBarEndDate" := job."Ending Date";
+                Rec.VisualBarEndDate := job."Ending Date";
                 if GuiAllowed then
-                    Message(EndPlanningDateAdjustedT2Msg);
+                    Message('End Planning Date adjusted to Job Ending Date limit.');
             end;
-            if (job."Ending Date" <> 0D) and (job."Starting Date" > Rec."Opti VisualBarEndDate") then begin
+            if (job."Ending Date" <> 0D) and (job."Starting Date" > Rec.VisualBarEndDate) then begin
                 if TryCreateDayLines then
                     error('End Planning Date cannot be earlier than Job Starting Date %1', job."Starting Date");
-                Rec."Opti VisualBarEndDate" := job."Starting Date";
+                Rec.VisualBarEndDate := job."Starting Date";
                 if GuiAllowed then
-                    Message(EndPlanningDateAdjustedTMsg);
+                    Message('End Planning Date adjusted to Job Starting Date limit.');
             end;
         end;
     end;
@@ -491,7 +472,7 @@ tableextension 50605 "Opti Job Task" extends "Job Task"
             job.Get(Rec."Job No.");
     end;
 
-    procedure OptiGetNextCustomerTaskNo(CustNo: Code[20]): Code[20]
+    procedure GetNextCustomerTaskNo(CustNo: Code[20]): Code[20]
     var
         JobTaskRec: Record "Job Task";
         CstN: Code[14];
@@ -505,24 +486,24 @@ tableextension 50605 "Opti Job Task" extends "Job Task"
         end;
     end;
 
-    procedure OptiSetDescription(pDescBody: Text)
+    procedure SetDescription(pDescBody: Text)
     var
         OutStream: OutStream;
     begin
-        Rec."Opti Long Description".CreateOutStream(OutStream);
+        Rec."Long Description".CreateOutStream(OutStream);
         OutStream.WriteText(pDescBody);
         Rec.Modify();
     end;
 
-    procedure OptiGetDescription(): Text
+    procedure GetDescription(): Text
     var
         InStream: InStream;
         DescText: Text;
     begin
         DescText := '';
-        Rec.CalcFields("Opti Long Description");
-        if Rec."Opti Long Description".HasValue() then begin
-            Rec."Opti Long Description".CreateInStream(InStream);
+        Rec.CalcFields("Long Description");
+        if Rec."Long Description".HasValue() then begin
+            Rec."Long Description".CreateInStream(InStream);
             InStream.ReadText(DescText);
         end;
         exit(DescText);

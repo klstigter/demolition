@@ -1,76 +1,74 @@
-tableextension 50603 "Opti Resource" extends Resource
+tableextension 50603 "Resource Opt" extends Resource
 {
     fields
     {
         // Add changes to table fields here
-        field(50600; "Opti Pool Resource No."; Code[20])
+        field(50600; "Pool Resource No."; Code[20])
         {
-            Caption = 'Pool Resource No.';
-            DataClassification = CustomerContent;
-            tablerelation = Resource where("Opti Is Pool" = const(true));
+            DataClassification = ToBeClassified;
+            tablerelation = Resource where("is pool" = const(true));
 
             trigger OnValidate()
             var
                 Res: Record Resource;
                 Res2: Record Resource;
             begin
-                if "Opti Pool Resource No." = '' then begin
-                    "Opti Is Pool" := false;
-                    "Opti Is Pool Member" := false;
-                    if xRec."Opti Pool Resource No." <> '' then begin
-                        if xRec."Opti Pool Resource No." = "No." then begin
-                            Res.SetRange("Opti Pool Resource No.", "No.");
+                if "Pool Resource No." = '' then begin
+                    "is Pool" := false;
+                    "is Pool Member" := false;
+                    if xRec."Pool Resource No." <> '' then begin
+                        if xRec."Pool Resource No." = "No." then begin
+                            Res.SetRange("Pool Resource No.", "No.");
                             Res.SetFilter("No.", '<>%1', "No.");
                             if Res.FindSet() then begin
-                                if not Confirm(ErrorLbl, false, xRec."Opti Pool Resource No.", Res.Count, Rec."Vendor No.") then
+                                if not Confirm(ErrorLbl, false, xRec."Pool Resource No.", Res.Count, Rec."Vendor No.") then
                                     error(Error2Lbl);
                                 repeat
                                     Res2 := Res;
-                                    Res2."Opti Pool Resource No." := '';
-                                    Res2."Opti Is Pool Member" := false;
+                                    Res2."Pool Resource No." := '';
+                                    Res2."Is Pool Member" := false;
                                     Res2."Vendor No." := Rec."Vendor No.";
                                     if Res2."Vendor No." <> '' then
-                                        Res2."Opti Is External" := true;
+                                        Res2."Is External" := true;
                                     Res2.Modify();
                                 until Res.Next() = 0;
                             end;
                         end else begin
-                            Res.Get(xRec."Opti Pool Resource No.");
+                            Res.Get(xRec."Pool Resource No.");
                             Rec."Vendor No." := Res."Vendor No.";
                         end;
                         if Rec."Vendor No." <> '' Then
-                            Rec."Opti Is External" := true;
+                            Rec."Is External" := true;
                     end;
                 end else begin
-                    "Opti Is Pool" := "Opti Pool Resource No." = "No.";
-                    "Opti Is External" := false;
-                    if not "Opti Is Pool" then begin
-                        Res.Get("Opti Pool Resource No.");
-                        "Opti Is Pool Member" := Res."Vendor No." <> '';
+                    "is Pool" := "Pool Resource No." = "No.";
+                    "Is External" := false;
+                    if not "is Pool" then begin
+                        Res.Get("Pool Resource No.");
+                        "Is Pool Member" := Res."Vendor No." <> '';
                         "Vendor No." := '';
                     end;
                 end;
             end;
         }
-        field(50601; "Opti Day Plannings"; Decimal)
+        field(50601; "Day Plannings"; Decimal)
         {
-            Caption = 'Day Plannings';
 
             Editable = false;
             FieldClass = FlowField;
-            CalcFormula = sum("Opti Day Planning"."Assigned Hours" where("Assigned Resource No." = field("No."),
+            CalcFormula = sum("Day Planning"."Assigned Hours" where("Assigned Resource No." = field("No."),
               "Plan Date" = field("Date Filter")));
         }
-        field(50602; "Opti Skills"; integer)
+        field(50602; "Skills"; integer)
         {
             Caption = 'Skills';
 
             FieldClass = FlowField;
             CalcFormula = Count("Resource Skill" where("No." = field("No."), type = const(Resource)));
         }
-        field(50603; "Opti Is Pool Member"; Boolean)
+        field(50603; "Is Pool Member"; Boolean)
         {
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
             Caption = 'Is Pool Member';
 
             trigger OnValidate()
@@ -79,41 +77,41 @@ tableextension 50603 "Opti Resource" extends Resource
                 ResList: Page "Resource List";
                 OldPoolResNo: Code[20];
             begin
-                if "Opti Is Pool Member" then begin
-                    OldPoolResNo := "Opti Pool Resource No.";
-                    "Opti Pool Resource No." := ''; // so always popup pool resource
-                    if "Opti Pool Resource No." = '' then begin
+                if "Is Pool Member" then begin
+                    OldPoolResNo := "Pool Resource No.";
+                    "Pool Resource No." := ''; // so always popup pool resource
+                    if "Pool Resource No." = '' then begin
                         Clear(ResList);
-                        Res.Setrange("Opti Is Pool", true);
+                        Res.Setrange("Is Pool", true);
                         Res.Setfilter("No.", '<>%1', Rec."No.");
                         ResList.SetTableView(Res);
                         ResList.LookupMode := true;
                         if ResList.RunModal() = Action::LookupOK then begin
                             ResList.GetRecord(Res);
-                            "Opti Pool Resource No." := Res."No.";
+                            "Pool Resource No." := Res."No.";
                             "Vendor No." := '';
-                            "Opti Is Pool" := false;
-                            "Opti Is External" := false;
+                            "Is Pool" := false;
+                            "Is External" := false;
                         end else begin
-                            "Opti Is Pool Member" := false;
-                            "Opti Pool Resource No." := OldPoolResNo;
+                            "Is Pool Member" := false;
+                            "Pool Resource No." := OldPoolResNo;
                         end;
                     end else begin
                         "Vendor No." := '';
-                        "Opti Is Pool" := false;
-                        "Opti Is External" := false;
+                        "Is Pool" := false;
+                        "Is External" := false;
                     end;
                 end else begin
-                    "Opti Pool Resource No." := '';
+                    "Pool Resource No." := '';
                     "Vendor No." := '';
-                    "Opti Is Pool" := false;
-                    "Opti Is External" := false;
+                    "Is Pool" := false;
+                    "Is External" := false;
                 end;
             end;
         }
-        field(50604; "Opti Is External"; Boolean)
+        field(50604; "Is External"; Boolean)
         {
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
             Caption = 'Is External';
 
             trigger OnValidate()
@@ -121,7 +119,7 @@ tableextension 50603 "Opti Resource" extends Resource
                 Ven: Record Vendor;
                 VenList: Page "Vendor List";
             begin
-                if "Opti Is External" then begin
+                if "Is External" then begin
                     if "Vendor No." = '' then begin
                         Clear(VenList);
                         VenList.SetTableView(Ven);
@@ -129,56 +127,53 @@ tableextension 50603 "Opti Resource" extends Resource
                         if VenList.RunModal() = Action::LookupOK then begin
                             VenList.GetRecord(Ven);
                             "Vendor No." := Ven."No.";
-                            "Opti Pool Resource No." := '';
-                            "Opti Is Pool" := false;
-                            "Opti Is Pool Member" := false;
+                            "Pool Resource No." := '';
+                            "Is Pool" := false;
+                            "Is Pool Member" := false;
                         end else begin
-                            "Opti Is External" := false;
+                            "Is External" := false;
                         end;
                     end else begin
-                        "Opti Pool Resource No." := '';
-                        "Opti Is Pool" := false;
-                        "Opti Is Pool Member" := false;
+                        "Pool Resource No." := '';
+                        "Is Pool" := false;
+                        "Is Pool Member" := false;
                     end;
                 end else begin
                     "Vendor No." := '';
-                    "Opti Pool Resource No." := '';
-                    "Opti Is Pool" := false;
-                    "Opti Is Pool Member" := false;
+                    "Pool Resource No." := '';
+                    "Is Pool" := false;
+                    "Is Pool Member" := false;
                 end;
             end;
         }
-        field(50610; "Opti Assigned Hours"; Decimal)
+        field(50610; "Assigned Hours"; Decimal)
         {
-            CalcFormula = sum("Opti Day Planning"."Assigned Hours" where("Assigned Resource No." = field("No."),
+            CalcFormula = sum("Day Planning"."Assigned Hours" where("Assigned Resource No." = field("No."),
                                                                     "Plan Date" = field("Date Filter")));
             Caption = 'Capacity';
             DecimalPlaces = 0 : 5;
             FieldClass = FlowField;
             Editable = false;
         }
-        field(50611; "Opti Requested Hours"; Decimal)
+        field(50611; "Requested Hours"; Decimal)
         {
-            CalcFormula = sum("Opti Day Planning"."Requested Hours" where("Requested Resource No." = field("No."),
+            CalcFormula = sum("Day Planning"."Requested Hours" where("Requested Resource No." = field("No."),
                                                                      "Plan Date" = field("Date Filter")));
             Caption = 'Requested';
             DecimalPlaces = 0 : 5;
             FieldClass = FlowField;
             Editable = false;
         }
-        field(50620; "Opti Mandatory Schedulling"; Boolean)
+        field(50620; "Mandatory Schedulling"; Boolean)
         {
-            Caption = 'Mandatory Schedulling';
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
         }
-        field(50622; "Opti Is Foreman"; Boolean)
+        field(50622; "Is Foreman"; Boolean)
         {
-            DataClassification = CustomerContent;
             Caption = 'Is Foreman';
         }
-        field(50624; "Opti Is Pool"; Boolean)
+        field(50624; "Is Pool"; Boolean)
         {
-            DataClassification = CustomerContent;
             Caption = 'Is Pool';
             trigger OnValidate()
             var
@@ -187,7 +182,7 @@ tableextension 50603 "Opti Resource" extends Resource
                 Ven: Record Vendor;
                 VenList: Page "Vendor List";
             begin
-                if "Opti Is Pool" then begin
+                if "Is Pool" then begin
                     if "Vendor No." = '' then begin
                         Clear(VenList);
                         VenList.SetTableView(Ven);
@@ -195,60 +190,60 @@ tableextension 50603 "Opti Resource" extends Resource
                         if VenList.RunModal() = Action::LookupOK then begin
                             VenList.GetRecord(Ven);
                             "Vendor No." := Ven."No.";
-                            "Opti Pool Resource No." := "No.";
-                            "Opti Is Pool Member" := false;
-                            "Opti Is External" := false;
+                            "Pool Resource No." := "No.";
+                            "Is Pool Member" := false;
+                            "Is External" := false;
                         end else begin
-                            "Opti Is Pool" := false;
+                            "Is Pool" := false;
                         end;
                     end else begin
-                        "Opti Pool Resource No." := "No.";
-                        "Opti Is Pool Member" := false;
-                        "Opti Is External" := false;
+                        "Pool Resource No." := "No.";
+                        "Is Pool Member" := false;
+                        "Is External" := false;
                     end;
                 end else begin
-                    "Opti Pool Resource No." := '';
-                    if (xRec."Opti Pool Resource No." <> '') then begin
-                        if xRec."Opti Pool Resource No." = "No." then begin
-                            Rec."Opti Is Pool Member" := false;
-                            Res.SetRange("Opti Pool Resource No.", "No.");
+                    "Pool Resource No." := '';
+                    if (xRec."Pool Resource No." <> '') then begin
+                        if xRec."Pool Resource No." = "No." then begin
+                            Rec."Is Pool Member" := false;
+                            Res.SetRange("Pool Resource No.", "No.");
                             Res.SetFilter("No.", '<>%1', "No.");
                             if Res.FindSet() then begin
-                                if not Confirm(ErrorLbl, false, xRec."Opti Pool Resource No.", Res.Count, Rec."Vendor No.") then
+                                if not Confirm(ErrorLbl, false, xRec."Pool Resource No.", Res.Count, Rec."Vendor No.") then
                                     error(Error2Lbl);
                                 repeat
                                     Res2 := Res;
-                                    Res2."Opti Pool Resource No." := '';
-                                    Res2."Opti Is Pool Member" := false;
+                                    Res2."Pool Resource No." := '';
+                                    Res2."Is Pool Member" := false;
                                     Res2."Vendor No." := Rec."Vendor No.";
                                     if Res2."Vendor No." <> '' then
-                                        Res2."Opti Is External" := true;
+                                        Res2."Is External" := true;
                                     Res2.Modify();
                                 until Res.Next() = 0;
                             end;
                         end;
                     end;
                     if Rec."Vendor No." <> '' then
-                        Rec."Opti Is External" := true;
+                        Rec."Is External" := true;
                 end;
             end;
         }
-        field(50630; "Opti Default Foreman"; Code[20])
+        field(50630; "Default Foreman"; Code[20])
         {
             Caption = 'Default Foreman';
-            DataClassification = CustomerContent;
-            tablerelation = Resource where("Opti Is Foreman" = const(true));
+            DataClassification = ToBeClassified;
+            tablerelation = Resource where("Is Foreman" = const(true));
         }
-        field(50631; "Opti Default Foreman Name"; Text[100])
+        field(50631; "Default Foreman Name"; Text[100])
         {
             Caption = 'Default Foreman Name';
             FieldClass = FlowField;
-            CalcFormula = Lookup(Resource.Name Where("No." = field("Opti Default Foreman")));
+            CalcFormula = Lookup(Resource.Name Where("No." = field("Default Foreman")));
             Editable = false;
         }
-        field(50640; "Opti Work Hour Template"; Code[20])
+        field(50640; "Work Hour Template"; Code[20])
         {
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
             Caption = 'Work Hour Template';
             TableRelation = "Work-Hour Template";
         }
@@ -257,7 +252,7 @@ tableextension 50603 "Opti Resource" extends Resource
 
     keys
     {
-        key(OptiPoolResource; "Opti Is Pool", "Opti Pool Resource No.") { }
+        key(PoolResource; "Is Pool", "Pool Resource No.") { }
     }
 
     fieldgroups
@@ -269,6 +264,6 @@ tableextension 50603 "Opti Resource" extends Resource
     }
 
     var
-        ErrorLbl: Label 'Resource %1 will be changed from Pool to Not Pool for Vendor No. %3. As a result, %2 related resource(s) will be set to External under Vendor No. %3.', Comment = '%1 = value, %2 = value, %3 = value';
+        ErrorLbl: Label 'Resource %1 will be changed from Pool to Not Pool for Vendor No. %3. As a result, %2 related resource(s) will be set to External under Vendor No. %3.';
         Error2Lbl: Label 'Modify aborted';
 }

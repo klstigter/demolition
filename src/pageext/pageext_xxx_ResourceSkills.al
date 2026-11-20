@@ -1,14 +1,12 @@
-pageextension 50607 "Opti ResourceSkills" extends "Resource Skills"
+pageextension 50607 "ResourceSkills Opt." extends "Resource Skills"
 {
     layout
     {
         // Add changes to page layout here
         addafter("Skill Code")
         {
-            field("Opti Prefered"; Rec."Opti Prefered")
+            field(Prefered; Rec.Prefered)
             {
-                Caption = 'Prefered';
-                ToolTip = 'Specifies the value of the Prefered field.';
                 ApplicationArea = All;
             }
         }

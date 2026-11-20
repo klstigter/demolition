@@ -1,4 +1,4 @@
-page 50699 "Opti ProjectLocationApi Opt"
+page 50699 "ProjectLocationApi Opt"
 {
     PageType = API;
     Caption = 'Project Location API Optimization';
@@ -7,7 +7,7 @@ page 50699 "Opti ProjectLocationApi Opt"
     APIVersion = 'v1.0';
     EntityName = 'ProjectLocation';
     EntitySetName = 'ProjectLocations';
-    SourceTable = "Opti Project Location";
+    SourceTable = "Project Location";
     DelayedInsert = true;
     ODataKeyFields = SystemId;
 

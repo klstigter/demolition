@@ -1,4 +1,4 @@
-table 50611 "Opti Resource DayPlan. Summary"
+table 50611 "Resource DayPlanning Summary"
 {
     TableType = Temporary;
     Caption = 'Resource DayPlanning Summary';
@@ -7,19 +7,19 @@ table 50611 "Opti Resource DayPlan. Summary"
     {
         field(1; "Job No."; Code[20])
         {
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
             Caption = 'Job No.';
             TableRelation = Job;
         }
         field(2; "Job Task No."; Code[20])
         {
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
             Caption = 'Job Task No.';
             TableRelation = "Job Task"."Job Task No." where("Job No." = field("Job No."));
         }
         field(3; "Resource No."; Code[20])
         {
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
             Caption = 'Resource No.';
             TableRelation = Resource;
         }
@@ -32,23 +32,23 @@ table 50611 "Opti Resource DayPlan. Summary"
         }
         field(10; "First Task Date"; Date)
         {
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
             Caption = 'First Task Date';
         }
         field(11; "Last Task Date"; Date)
         {
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
             Caption = 'Last Task Date';
         }
         field(20; "Total Hours"; Decimal)
         {
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
             Caption = 'Total Hours';
             DecimalPlaces = 0 : 2;
         }
         field(21; "Total Days"; Integer)
         {
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
             Caption = 'Total Days';
         }
     }
@@ -66,7 +66,7 @@ table 50611 "Opti Resource DayPlan. Summary"
 
     procedure FillBuffer(JobNo: Code[20]; JobTaskNo: Code[20])
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
     begin
         // Clear existing records
         Reset();

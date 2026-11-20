@@ -1,4 +1,4 @@
-codeunit 50607 "Opti Job Plan. Line Prep. Mgt."
+codeunit 50607 "Job Planning Lines Prep. Mgt."
 {
     // Day-Planning-to-JobPlanning (Release 1).
     //
@@ -61,7 +61,7 @@ codeunit 50607 "Opti Job Plan. Line Prep. Mgt."
     //     during pass 2 rolls back the whole run via BC's ambient transaction (the caller's
     //     page action) - all-or-nothing without needing an explicit transaction wrapper.
     Permissions = tabledata "Job Ledger Entry" = r,
-                  tabledata "Opti Day Planning" = r,
+                  tabledata "Day Planning" = r,
                   tabledata "Skill Code" = r,
                   tabledata "Job" = r,
                   tabledata "Job Planning Line" = rim,
@@ -72,7 +72,7 @@ codeunit 50607 "Opti Job Plan. Line Prep. Mgt."
     end;
 
     var
-        DailyOptimizerSetup: record "Opti Daily Optimizer Setup";
+        DailyOptimizerSetup: record "Daily Optimizer Setup";
 
     /// <summary>
     /// Prepares billable Job Planning Lines from posted, not-yet-linked Day Planning
@@ -85,7 +85,7 @@ codeunit 50607 "Opti Job Plan. Line Prep. Mgt."
     /// <returns>The number of Job Planning Lines created.</returns>
     procedure PrepareJobPlanningLines(JobNo: Code[20]; JobTaskNo: Code[20]; var ProcessedCount: Integer; var AlreadyLinkedCount: Integer; var NotPostedCount: Integer; var SkippedOtherCount: Integer) LinesCreated: Integer
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
     begin
         DayPlanning.SetRange("Job No.", JobNo);
         if JobTaskNo <> '' then
@@ -105,7 +105,7 @@ codeunit 50607 "Opti Job Plan. Line Prep. Mgt."
     /// <param name="NotPostedCount">Out: number of rows skipped because they are not (yet) posted to a Job Ledger Entry.</param>
     /// <param name="SkippedOtherCount">Out: number of rows skipped for other reasons (Job Ledger Entry not found, or not Usage/Resource).</param>
     /// <returns>The number of Job Planning Lines created.</returns>
-    procedure PrepareJobPlanningLinesForSelection(var SelectedDayPlanning: Record "Opti Day Planning"; var ProcessedCount: Integer; var AlreadyLinkedCount: Integer; var NotPostedCount: Integer; var SkippedOtherCount: Integer) LinesCreated: Integer
+    procedure PrepareJobPlanningLinesForSelection(var SelectedDayPlanning: Record "Day Planning"; var ProcessedCount: Integer; var AlreadyLinkedCount: Integer; var NotPostedCount: Integer; var SkippedOtherCount: Integer) LinesCreated: Integer
     begin
         exit(PrepareJobPlanningLinesFromDayPlanning(SelectedDayPlanning, ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount));
     end;
@@ -155,20 +155,20 @@ codeunit 50607 "Opti Job Plan. Line Prep. Mgt."
                     if (JobLedgerEntry."Entry Type" = JobLedgerEntry."Entry Type"::Usage) and
                         (JobLedgerEntry.Type = JobLedgerEntry.Type::Resource)
                     then begin
-                        SkillCode := JobLedgerEntry."Opti Skill";
+                        SkillCode := JobLedgerEntry.Skill;
                         if SkillCode = '' then begin
                             DailyOptimizerSetup.Get();
                             if DailyOptimizerSetup."Default Skill" = '' then
-                                Error(NoSkillOnDayPlanningErr, JobLedgerEntry."Job No.", JobLedgerEntry."Job Task No.", JobLedgerEntry."Opti Opt. DayPlanning Line No.");
+                                Error(NoSkillOnDayPlanningErr, JobLedgerEntry."Job No.", JobLedgerEntry."Job Task No.", JobLedgerEntry."Opt. DayPlanning Line No.");
                             SkillCode := DailyOptimizerSetup."Default Skill";
                         end;
 
                         if not SkillCodeRec.Get(SkillCode) then
                             Error(SkillCodeNotFoundErr, SkillCode);
 
-                        InvoiceResNo := JobLedgerEntry."Opti Invoice Resource No.";
+                        InvoiceResNo := JobLedgerEntry."Invoice Resource No.";
                         if InvoiceResNo = '' then begin
-                            InvoiceResNo := SkillCodeRec."Opti Invoice Resource No.";
+                            InvoiceResNo := SkillCodeRec."Invoice Resource No.";
                             if InvoiceResNo = '' then
                                 Error(NoInvoiceResourceErr, SkillCode);
                         end;
@@ -221,7 +221,7 @@ codeunit 50607 "Opti Job Plan. Line Prep. Mgt."
     /// SkippedOtherCount are out-counters explaining why each candidate row was or was not
     /// included, for a caller-facing breakdown message (see FormatResultMessage).
     /// </summary>
-    local procedure PrepareJobPlanningLinesFromDayPlanning(var DayPlanning: Record "Opti Day Planning"; var ProcessedCount: Integer; var AlreadyLinkedCount: Integer; var NotPostedCount: Integer; var SkippedOtherCount: Integer) LinesCreated: Integer
+    local procedure PrepareJobPlanningLinesFromDayPlanning(var DayPlanning: Record "Day Planning"; var ProcessedCount: Integer; var AlreadyLinkedCount: Integer; var NotPostedCount: Integer; var SkippedOtherCount: Integer) LinesCreated: Integer
     var
         JobLedgerEntry: Record "Job Ledger Entry";
         JobUsageLink: Record "Job Usage Link";
@@ -275,9 +275,9 @@ codeunit 50607 "Opti Job Plan. Line Prep. Mgt."
                                 if not SkillCodeRec.Get(SkillCode) then
                                     Error(SkillCodeNotFoundErr, SkillCode);
 
-                                InvoiceResNo := JobLedgerEntry."Opti Invoice Resource No.";
+                                InvoiceResNo := JobLedgerEntry."Invoice Resource No.";
                                 if InvoiceResNo = '' then begin
-                                    InvoiceResNo := SkillCodeRec."Opti Invoice Resource No.";
+                                    InvoiceResNo := SkillCodeRec."Invoice Resource No.";
                                     if InvoiceResNo = '' then
                                         Error(NoInvoiceResourceErr, SkillCode);
                                 end;
@@ -353,7 +353,7 @@ codeunit 50607 "Opti Job Plan. Line Prep. Mgt."
     /// counters survive a failed Try), which apply here identically.
     /// </summary>
     [TryFunction]
-    procedure TryPrepareJobPlanningLinesForSelection(var SelectedDayPlanning: Record "Opti Day Planning"; var LinesCreated: Integer; var ProcessedCount: Integer; var AlreadyLinkedCount: Integer; var NotPostedCount: Integer; var SkippedOtherCount: Integer)
+    procedure TryPrepareJobPlanningLinesForSelection(var SelectedDayPlanning: Record "Day Planning"; var LinesCreated: Integer; var ProcessedCount: Integer; var AlreadyLinkedCount: Integer; var NotPostedCount: Integer; var SkippedOtherCount: Integer)
     begin
         LinesCreated := PrepareJobPlanningLinesForSelection(SelectedDayPlanning, ProcessedCount, AlreadyLinkedCount, NotPostedCount, SkippedOtherCount);
     end;

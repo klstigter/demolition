@@ -1,4 +1,4 @@
-query 50602 "Opti Unique Group in Capacity"
+query 50602 "Unique Group in Capacity"
 {
     QueryType = Normal;
     Caption = 'Unique Resource Group in Capacity';

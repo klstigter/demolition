@@ -1,8 +1,8 @@
-profile OptiPlanning
+profile PLANNING
 {
     Caption = 'PLANNING';
     Description = 'Role Center profile for the planning team.';
-    RoleCenter = "Opti Planning Role Center";
+    RoleCenter = "Planning Role Center";
     Enabled = true;
     Promoted = true;
 }

@@ -1,6 +1,5 @@
-enum 50604 "Opti Date Range Type"
+enum 50604 "Date Range Type"
 {
-    Caption = 'Date Range Type';
     Extensible = true;
 
     value(0; "Date Range") { }

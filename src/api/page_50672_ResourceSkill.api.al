@@ -1,4 +1,4 @@
-page 50672 "Opti ResourceSkillApi Opt"
+page 50672 "ResourceSkillApi Opt"
 {
     PageType = API;
     Caption = 'Resource Skill API Optimization';

@@ -1,4 +1,4 @@
-codeunit 50601 "Opti Global Session Var Opt."
+codeunit 50601 "Global Session Var Opt."
 {
     SingleInstance = True;
 
@@ -9,7 +9,7 @@ codeunit 50601 "Opti Global Session Var Opt."
 
     var
         JobNo: Code[20];
-        DayPlanningTemp: Record "Opti Day Planning" temporary;
+        DayPlanningTemp: Record "Day Planning" temporary;
         HeaderInsertPending: Boolean;
         PostResults: JsonArray;
 
@@ -59,13 +59,13 @@ codeunit 50601 "Opti Global Session Var Opt."
         DayPlanningTemp.DeleteAll();
     end;
 
-    procedure SetDayPlanningTemp(DayPlanning: Record "Opti Day Planning")
+    procedure SetDayPlanningTemp(DayPlanning: Record "Day Planning")
     begin
         DayPlanningTemp := DayPlanning;
         if DayPlanningTemp.Insert() then;
     end;
 
-    procedure GetDayPlanningTemp(var pDayPlanningTemp: Record "Opti Day Planning" temporary)
+    procedure GetDayPlanningTemp(var pDayPlanningTemp: Record "Day Planning" temporary)
     begin
         pDayPlanningTemp.Reset();
         pDayPlanningTemp.DeleteAll();

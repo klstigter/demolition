@@ -1,40 +1,36 @@
-tableextension 50620 "Opti Work-Hour Template" extends "Work-Hour Template"
+tableextension 50620 "Work-Hour Template Ext" extends "Work-Hour Template"
 {
     fields
     {
-        field(50600; "Opti Default Start Time"; Time)
+        field(50600; "Default Start Time"; Time)
         {
             Caption = 'Default Start Time';
             DataClassification = CustomerContent;
 
             trigger OnValidate()
-                var
-                    DefaultStartTimeMustBeErr: Label 'Default Start Time must be earlier than Default End Time.';
             begin
-                if ("Opti Default Start Time" <> 0T) and ("Opti Default End Time" <> 0T) then
-                    if "Opti Default Start Time" >= "Opti Default End Time" then
-                        Error(DefaultStartTimeMustBeErr);
+                if ("Default Start Time" <> 0T) and ("Default End Time" <> 0T) then
+                    if "Default Start Time" >= "Default End Time" then
+                        Error('Default Start Time must be earlier than Default End Time.');
             end;
         }
 
-        field(50601; "Opti Default End Time"; Time)
+        field(50601; "Default End Time"; Time)
         {
             Caption = 'Default End Time';
             DataClassification = CustomerContent;
 
             trigger OnValidate()
-                var
-                    DefaultEndTimeMustBeErr: Label 'Default End Time must be later than Default Start Time.';
             begin
-                if ("Opti Default Start Time" <> 0T) and ("Opti Default End Time" <> 0T) then
-                    if "Opti Default End Time" <= "Opti Default Start Time" then
-                        Error(DefaultEndTimeMustBeErr);
+                if ("Default Start Time" <> 0T) and ("Default End Time" <> 0T) then
+                    if "Default End Time" <= "Default Start Time" then
+                        Error('Default End Time must be later than Default Start Time.');
 
                 CalculateNonWorkingHours();
             end;
         }
 
-        field(50602; "Opti Non Working Minutes"; Integer)
+        field(50602; "Non Working Minutes"; Integer)
         {
             Caption = 'Non Working Minutes';
             DataClassification = CustomerContent;
@@ -46,7 +42,7 @@ tableextension 50620 "Opti Work-Hour Template" extends "Work-Hour Template"
             end;
         }
 
-        field(50603; "Opti Working Hours"; Decimal)
+        field(50603; "Working Hours"; Decimal)
         {
             Caption = 'Working Hours';
             DataClassification = CustomerContent;
@@ -62,9 +58,9 @@ tableextension 50620 "Opti Work-Hour Template" extends "Work-Hour Template"
         WorkingMinutes: Integer;
     begin
         // If either time is not set, clear both hours fields
-        if ("Opti Default Start Time" = 0T) or ("Opti Default End Time" = 0T) then begin
-            "Opti Working Hours" := 0;
-            "Opti Non Working Minutes" := 0;
+        if ("Default Start Time" = 0T) or ("Default End Time" = 0T) then begin
+            "Working Hours" := 0;
+            "Non Working Minutes" := 0;
             exit;
         end;
 
@@ -72,11 +68,11 @@ tableextension 50620 "Opti Work-Hour Template" extends "Work-Hour Template"
         TotalMinutes := 24 * 60;
 
         // Calculate working minutes
-        WorkingMinutes := ("Opti Default End Time" - "Opti Default Start Time") div 60000;
-        WorkingMinutes := WorkingMinutes - "Opti Non Working Minutes";
+        WorkingMinutes := ("Default End Time" - "Default Start Time") div 60000;
+        WorkingMinutes := WorkingMinutes - "Non Working Minutes";
 
         // Convert to hours (decimal)
-        "Opti Working Hours" := WorkingMinutes / 60;
+        "Working Hours" := WorkingMinutes / 60;
 
     end;
 }

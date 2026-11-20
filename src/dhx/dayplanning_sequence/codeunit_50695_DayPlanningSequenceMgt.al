@@ -6,7 +6,7 @@
 /// CRUD helpers for the add-in (drag/resize/delete), mirroring codeunit 50604 "DHX Data
 /// Handler"'s event-id convention: "|"-delimited text, here "JobNo|JobTaskNo|DayLineNo".
 /// </summary>
-codeunit 50695 "Opti Day Plan. Sequence Mgt."
+codeunit 50695 "Day Planning Sequence Mgt."
 {
     var
         OnlySectionKeys: List of [Text];
@@ -24,9 +24,9 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
     /// "Sequence No." must be non-zero whenever Skill &lt;&gt; '' AND "Plan Date" &lt;&gt; 0D - see
     /// test/DayPlanningSequenceNo.Test.Codeunit.al.
     /// </summary>
-    procedure CalcSequence(var DayPlanning: Record "Opti Day Planning")
+    procedure CalcSequence(var DayPlanning: Record "Day Planning")
     var
-        OtherDayPlanning: Record "Opti Day Planning";
+        OtherDayPlanning: Record "Day Planning";
         Candidate: Integer;
     begin
         if DayPlanning.Skill = '' then
@@ -65,7 +65,7 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
     procedure GenerateSequence(JobNo: Code[20]; JobTaskNo: Code[20]; SkillCode: Code[10]; WorkHourTemplateCode: Code[20]; StartDate: Date; EndDate: Date; ExcludedWeekdaysCsv: Text; WorkOrderNo: Code[20]): Integer
     var
         WorkHourTemplate: Record "Work-Hour Template";
-        DayPlanningMgt: Codeunit "Opti Day Plannings Mgt.";
+        DayPlanningMgt: Codeunit "Day Plannings Mgt.";
         SequenceNo: Integer;
         d: Date;
         ActualMinDate: Date;
@@ -105,9 +105,9 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
     /// </summary>
     procedure RegenerateSequence(JobNo: Code[20]; JobTaskNo: Code[20]; SkillCode: Code[10]; SequenceNo: Integer; WorkHourTemplateCode: Code[20]; StartDate: Date; EndDate: Date; ExcludedWeekdaysCsv: Text; WorkOrderNo: Code[20])
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         WorkHourTemplate: Record "Work-Hour Template";
-        DayPlanningMgt: Codeunit "Opti Day Plannings Mgt.";
+        DayPlanningMgt: Codeunit "Day Plannings Mgt.";
         d: Date;
         ActualMinDate: Date;
         ActualMaxDate: Date;
@@ -140,18 +140,7 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
 
     procedure ExecuteSequenceSelection(PayloadJson: Text; ContextJobNo: Code[20]; ContextJobTaskNo: Code[20])
     var
-        TheSequenceSelectionIsInErr: Label 'The Sequence selection is invalid.';
-        SelectASequenceErr: Label 'Select a Sequence.';
-        TheSelectedSequenceIsOutErr: Label 'The selected Sequence is outside this Project Task.';
-        TheSelectedSequenceNoLonErr: Label 'The selected Sequence no longer exists.';
-        SelectAValidSequenceActiErr: Label 'Select a valid Sequence action.';
-        SelectAResourceErr: Label 'Select a Resource.';
-        SelectAtLeastOneExistingErr: Label 'Select at least one existing Time Slot.';
-        ASelectedLineIsOutsideErr: Label 'A selected line is outside the Sequence.';
-        ASelectedDayPlanningLine2Err: Label 'A selected Day Planning line no longer exists.';
-        ASelectedDateIsInvalidErr: Label 'A selected date is invalid.';
-        ASelectedDayPlanningLineErr: Label 'A selected Day Planning line has moved. Refresh the Sequence and select again.';
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         Payload: JsonObject;
         Pattern: JsonObject;
         Lines: JsonObject;
@@ -171,14 +160,14 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
         ExpectedDate: Date;
     begin
         if not Payload.ReadFrom(PayloadJson) then
-            Error(TheSequenceSelectionIsInErr);
+            Error('The Sequence selection is invalid.');
         ParseSectionId(SequenceSelectionValue(Payload, 'section').AsText(), JobNo, JobTaskNo, SkillCode, SequenceNo);
         if (JobNo = '') or (JobTaskNo = '') or (SkillCode = '') or (SequenceNo <= 0) then
-            Error(SelectASequenceErr);
+            Error('Select a Sequence.');
         if ((ContextJobNo <> '') and (ContextJobNo <> JobNo)) or
            ((ContextJobTaskNo <> '') and (ContextJobTaskNo <> JobTaskNo))
         then
-            Error(TheSelectedSequenceIsOutErr);
+            Error('The selected Sequence is outside this Project Task.');
 
         ActionName := SequenceSelectionValue(Payload, 'action').AsText();
         DayPlanning.LockTable();
@@ -187,7 +176,7 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
         DayPlanning.SetRange(Skill, SkillCode);
         DayPlanning.SetRange("Sequence No.", SequenceNo);
         if not DayPlanning.FindFirst() then
-            Error(TheSelectedSequenceNoLonErr);
+            Error('The selected Sequence no longer exists.');
 
         if ActionName = 'add' then begin
             AddSelectedSequenceDates(DayPlanning, Payload);
@@ -195,7 +184,7 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
         end;
 
         if not (ActionName in ['times', 'resource', 'delete']) then
-            Error(SelectAValidSequenceActiErr);
+            Error('Select a valid Sequence action.');
         AssignedSide := SequenceSelectionValue(Payload, 'assigned').AsBoolean();
         if ActionName = 'times' then begin
             Payload.Get('pattern', Token);
@@ -204,26 +193,26 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
         if ActionName = 'resource' then begin
             ResourceNo := CopyStr(SequenceSelectionValue(Payload, 'resource').AsText(), 1, MaxStrLen(ResourceNo));
             if ResourceNo = '' then
-                Error(SelectAResourceErr);
+                Error('Select a Resource.');
         end;
         Payload.Get('lines', Token);
         Lines := Token.AsObject();
         EventIds := Lines.Keys();
         if EventIds.Count() = 0 then
-            Error(SelectAtLeastOneExistingErr);
+            Error('Select at least one existing Time Slot.');
 
         foreach EventId in EventIds do begin
             ParseEventId(EventId, LineJobNo, LineJobTaskNo, DayLineNo);
             if (LineJobNo <> JobNo) or (LineJobTaskNo <> JobTaskNo) then
-                Error(ASelectedLineIsOutsideErr);
+                Error('A selected line is outside the Sequence.');
             if not DayPlanning.Get(JobNo, JobTaskNo, DayLineNo) then
-                Error(ASelectedDayPlanningLine2Err);
+                Error('A selected Day Planning line no longer exists.');
             if not Evaluate(ExpectedDate, SequenceSelectionValue(Lines, EventId).AsText(), 9) then
-                Error(ASelectedDateIsInvalidErr);
+                Error('A selected date is invalid.');
             if (DayPlanning.Skill <> SkillCode) or (DayPlanning."Sequence No." <> SequenceNo) or
                (DayPlanning."Plan Date" <> ExpectedDate)
             then
-                Error(ASelectedDayPlanningLineErr);
+                Error('A selected Day Planning line has moved. Refresh the Sequence and select again.');
 
             case ActionName of
                 'delete':
@@ -236,14 +225,11 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
         end;
     end;
 
-    local procedure AddSelectedSequenceDates(var SequenceLine: Record "Opti Day Planning"; Payload: JsonObject)
+    local procedure AddSelectedSequenceDates(var SequenceLine: Record "Day Planning"; Payload: JsonObject)
     var
-        SelectAWorkHourTemplateErr: Label 'Select a Work-Hour Template.';
-        ASelectedDateIsInvalidErr: Label 'A selected date is invalid.';
-        NoSelectedDateIsEmptyErr: Label 'No selected date is empty and eligible for this Work-Hour Template and calendar.';
-        ExistingLine: Record "Opti Day Planning";
+        ExistingLine: Record "Day Planning";
         WorkHourTemplate: Record "Work-Hour Template";
-        DayPlanningMgt: Codeunit "Opti Day Plannings Mgt.";
+        DayPlanningMgt: Codeunit "Day Plannings Mgt.";
         DateToken: JsonToken;
         DatesToken: JsonToken;
         SelectedDates: JsonArray;
@@ -254,14 +240,14 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
     begin
         TemplateCode := CopyStr(SequenceSelectionValue(Payload, 'template').AsText(), 1, MaxStrLen(TemplateCode));
         if TemplateCode = '' then
-            Error(SelectAWorkHourTemplateErr);
+            Error('Select a Work-Hour Template.');
         WorkHourTemplate.Get(TemplateCode);
         Payload.Get('dates', DatesToken);
         SelectedDates := DatesToken.AsArray();
         ExistingLine.CopyFilters(SequenceLine);
         foreach DateToken in SelectedDates do begin
             if not Evaluate(PlanDate, DateToken.AsValue().AsText(), 9) then
-                Error(ASelectedDateIsInvalidErr);
+                Error('A selected date is invalid.');
             ExistingLine.SetRange("Plan Date", PlanDate);
             if (PlanDate >= Today()) and ExistingLine.IsEmpty() and DayPlanningMgt.IsActiveWorkDay(WorkHourTemplate.Code, PlanDate) then begin
                 InsertSequenceLine(SequenceLine."Job No.", SequenceLine."Job Task No.", SequenceLine.Skill,
@@ -273,16 +259,12 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
             end;
         end;
         if FirstDate = 0D then
-            Error(NoSelectedDateIsEmptyErr);
+            Error('No selected date is empty and eligible for this Work-Hour Template and calendar.');
         ExtendJobTaskPlannedPeriod(SequenceLine."Job No.", SequenceLine."Job Task No.", FirstDate, LastDate);
     end;
 
-    local procedure UpdateSelectedSequenceTimes(var DayPlanning: Record "Opti Day Planning"; AssignedSide: Boolean; Pattern: JsonObject)
+    local procedure UpdateSelectedSequenceTimes(var DayPlanning: Record "Day Planning"; AssignedSide: Boolean; Pattern: JsonObject)
     var
-        EnterAWeekPatternForErr: Label 'Enter a week pattern for every selected weekday.';
-        TheStartTimeIsInvalidErr: Label 'The start time is invalid.';
-        TheEndTimeIsInvalidErr: Label 'The end time is invalid.';
-        EnterStartAndEndTimesErr: Label 'Enter start and end times with idle minutes shorter than the Time Slot.';
         DayPattern: JsonObject;
         Token: JsonToken;
         StartTime: Time;
@@ -290,17 +272,17 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
         IdleMinutes: Integer;
     begin
         if not Pattern.Get(Format(Date2DWY(DayPlanning."Plan Date", 1), 0, 9), Token) then
-            Error(EnterAWeekPatternForErr);
+            Error('Enter a week pattern for every selected weekday.');
         DayPattern := Token.AsObject();
         if not Evaluate(StartTime, SequenceSelectionValue(DayPattern, 'start').AsText(), 9) then
-            Error(TheStartTimeIsInvalidErr);
+            Error('The start time is invalid.');
         if not Evaluate(EndTime, SequenceSelectionValue(DayPattern, 'end').AsText(), 9) then
-            Error(TheEndTimeIsInvalidErr);
+            Error('The end time is invalid.');
         IdleMinutes := SequenceSelectionValue(DayPattern, 'idle').AsInteger();
         if (StartTime = 0T) or (EndTime <= StartTime) or (IdleMinutes < 0) or
            (IdleMinutes >= ((EndTime - StartTime) div 60000))
         then
-            Error(EnterStartAndEndTimesErr);
+            Error('Enter start and end times with idle minutes shorter than the Time Slot.');
 
         if AssignedSide then begin
             DayPlanning."Start Time Assigned" := StartTime;
@@ -318,7 +300,7 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
     /// <summary>Sets the Requested Resource on every line of a just-generated sequence (resource context of "Open Sequences" from a resource marker).</summary>
     procedure SetRequestedResourceOnSequence(JobNo: Code[20]; JobTaskNo: Code[20]; SkillCode: Code[10]; SequenceNo: Integer; ResourceNo: Code[20])
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         Resource: Record Resource;
     begin
         if not Resource.Get(ResourceNo) then
@@ -335,9 +317,8 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
             until DayPlanning.Next() = 0;
     end;
 
-    local procedure UpdateSelectedSequenceResource(var DayPlanning: Record "Opti Day Planning"; AssignedSide: Boolean; ResourceNo: Code[20])
+    local procedure UpdateSelectedSequenceResource(var DayPlanning: Record "Day Planning"; AssignedSide: Boolean; ResourceNo: Code[20])
     var
-        ResourceDoesNotHaveSequeMsg: Label 'Resource %1 does not have Sequence skill %2.', Comment = '%1=ResourceNo, %2=SequenceSkill';
         Resource: Record Resource;
         ResourceSkill: Record "Resource Skill";
         SequenceSkill: Code[20];
@@ -349,7 +330,7 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
         ResourceSkill.SetRange("No.", ResourceNo);
         ResourceSkill.SetRange("Skill Code", SequenceSkill);
         if ResourceSkill.IsEmpty() then
-            Message(ResourceDoesNotHaveSequeMsg, ResourceNo, SequenceSkill);
+            Message('Resource %1 does not have Sequence skill %2.', ResourceNo, SequenceSkill);
 
         // Resource validation already sets or clears the pool based on the selected Resource.
         if AssignedSide then
@@ -363,17 +344,16 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
 
     local procedure SequenceSelectionValue(Payload: JsonObject; PropertyName: Text): JsonValue
     var
-        TheSequenceSelectionIsMiErr: Label 'The Sequence selection is missing %1.', Comment = '%1=PropertyName';
         Token: JsonToken;
     begin
         if not Payload.Get(PropertyName, Token) then
-            Error(TheSequenceSelectionIsMiErr, PropertyName);
+            Error('The Sequence selection is missing %1.', PropertyName);
         exit(Token.AsValue());
     end;
 
     local procedure InsertSequenceLine(JobNo: Code[20]; JobTaskNo: Code[20]; SkillCode: Code[10]; SequenceNo: Integer; WorkHourTemplate: Record "Work-Hour Template"; PlanDate: Date; WorkOrderNo: Code[20])
     var
-        NewDayPlanning: Record "Opti Day Planning";
+        NewDayPlanning: Record "Day Planning";
         DefaultStartTimeTok: Time;
         DefaultEndTimeTok: Time;
     begin
@@ -385,9 +365,9 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
         NewDayPlanning."Sequence No." := SequenceNo;
         NewDayPlanning."Order Intake No." := WorkOrderNo;
         NewDayPlanning."Day Line No." := NewDayPlanning.GetNextDayLineNo(PlanDate, JobNo, JobTaskNo);
-        if (WorkHourTemplate."Opti Default Start Time" <> 0T) and (WorkHourTemplate."Opti Default End Time" <> 0T) then begin
-            DefaultStartTimeTok := WorkHourTemplate."Opti Default Start Time";
-            DefaultEndTimeTok := WorkHourTemplate."Opti Default End Time";
+        if (WorkHourTemplate."Default Start Time" <> 0T) and (WorkHourTemplate."Default End Time" <> 0T) then begin
+            DefaultStartTimeTok := WorkHourTemplate."Default Start Time";
+            DefaultEndTimeTok := WorkHourTemplate."Default End Time";
         end else begin
             DefaultStartTimeTok := 070000T;
             DefaultEndTimeTok := 160000T;
@@ -395,7 +375,7 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
 
         NewDayPlanning."Start Time Requested" := DefaultStartTimeTok;
         NewDayPlanning."End Time Requested" := DefaultEndTimeTok;
-        NewDayPlanning."Idle Minutes Requested" := WorkHourTemplate."Opti Non Working Minutes";
+        NewDayPlanning."Idle Minutes Requested" := WorkHourTemplate."Non Working Minutes";
         // "Requested Hours" is NOT simply (End-Start-NonWorking): table 50610's own
         // CalculateRequestedWorkingHours() routes through
         // "General Planning Utilities".DayPlanningFulFillment, which exits early (leaving the
@@ -407,7 +387,7 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
         // (`DayPlannings."Requested Hours" := DayPlanningPattern."Requested Hours";`, bypassing
         // the same resource-dependent path) rather than an ad-hoc new calc.
         NewDayPlanning."Requested Hours" :=
-            ((DefaultEndTimeTok - DefaultStartTimeTok) div 60000 - WorkHourTemplate."Opti Non Working Minutes") / 60;
+            ((DefaultEndTimeTok - DefaultStartTimeTok) div 60000 - WorkHourTemplate."Non Working Minutes") / 60;
         NewDayPlanning.Insert(true); // fires OnInsert -> CalcSequence(Rec) as a no-op safety check
     end;
 
@@ -434,16 +414,16 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
             exit;
         if not JobTask.Get(JobNo, JobTaskNo) then
             exit;
-        if (JobTask."Opti VisualBarStartDate" = 0D) or (RangeStart < JobTask."Opti VisualBarStartDate") then begin
-            JobTask."Opti VisualBarStartDate" := RangeStart;
+        if (JobTask.VisualBarStartDate = 0D) or (RangeStart < JobTask.VisualBarStartDate) then begin
+            JobTask.VisualBarStartDate := RangeStart;
             Changed := true;
         end;
-        if (JobTask."Opti VisualBarEndDate" = 0D) or (RangeEnd > JobTask."Opti VisualBarEndDate") then begin
-            JobTask."Opti VisualBarEndDate" := RangeEnd;
+        if (JobTask.VisualBarEndDate = 0D) or (RangeEnd > JobTask.VisualBarEndDate) then begin
+            JobTask.VisualBarEndDate := RangeEnd;
             Changed := true;
         end;
         if Changed then begin
-            JobTask.OptiCalculateDuration();
+            JobTask.CalculateDuration();
             JobTask.Modify(true);
             OnAfterExtendJobTaskPlannedPeriod(JobNo, JobTaskNo);
         end;
@@ -461,7 +441,7 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
     /// </summary>
     local procedure FindFreeSequenceNoForRange(JobNo: Code[20]; JobTaskNo: Code[20]; SkillCode: Code[10]; StartDate: Date; EndDate: Date): Integer
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         Candidate: Integer;
     begin
         DayPlanning.SetRange("Job No.", JobNo);
@@ -502,10 +482,8 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
     #region JS event-id convention ("JobNo|JobTaskNo|DayLineNo") - mirrors codeunit 50604's "|"-split convention
 
     procedure BuildEventId(JobNo: Code[20]; JobTaskNo: Code[20]; DayLineNo: Integer): Text
-        var
-            TextTxt: Label '%1|%2|%3', Comment = '%1=JobNo, %2=JobTaskNo, %3=DayLineNo';
     begin
-        exit(StrSubstNo(TextTxt, JobNo, JobTaskNo, DayLineNo));
+        exit(StrSubstNo('%1|%2|%3', JobNo, JobTaskNo, DayLineNo));
     end;
 
     local procedure ParseEventId(EventId: Text; var JobNo: Code[20]; var JobTaskNo: Code[20]; var DayLineNo: Integer)
@@ -522,10 +500,8 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
     /// Row/thread key = (Job No., Job Task No., Skill, Sequence No.), same "|"-delimited scheme.
     /// </summary>
     procedure BuildSectionId(JobNo: Code[20]; JobTaskNo: Code[20]; SkillCode: Code[10]; SequenceNo: Integer): Text
-        var
-            TextTxt: Label '%1|%2|%3|%4', Comment = '%1=JobNo, %2=JobTaskNo, %3=SkillCode, %4=SequenceNo';
     begin
-        exit(StrSubstNo(TextTxt, JobNo, JobTaskNo, SkillCode, SequenceNo));
+        exit(StrSubstNo('%1|%2|%3|%4', JobNo, JobTaskNo, SkillCode, SequenceNo));
     end;
 
     local procedure ParseSectionId(SectionId: Text; var JobNo: Code[20]; var JobTaskNo: Code[20]; var SkillCode: Code[10]; var SequenceNo: Integer)
@@ -552,8 +528,8 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
     /// </summary>
     procedure UpdateEventFromJson(EventId: Text; EventDataJson: Text)
     var
-        DayPlanning: Record "Opti Day Planning";
-        DHXDataHandler: Codeunit "Opti DHX Data Handler";
+        DayPlanning: Record "Day Planning";
+        DHXDataHandler: Codeunit "DHX Data Handler";
         EventJObj: JsonObject;
         JToken: JsonToken;
         JobNo: Code[20];
@@ -605,8 +581,8 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
     /// </summary>
     procedure CreateEventFromJson(JobNo: Code[20]; JobTaskNo: Code[20]; WorkOrderNo: Code[20]; EventDataJson: Text)
     var
-        DayPlanning: Record "Opti Day Planning";
-        DHXDataHandler: Codeunit "Opti DHX Data Handler";
+        DayPlanning: Record "Day Planning";
+        DHXDataHandler: Codeunit "DHX Data Handler";
         EventJObj: JsonObject;
         JToken: JsonToken;
         SectionJobNo: Code[20];
@@ -654,7 +630,7 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
     /// </summary>
     procedure DeleteEventById(EventId: Text)
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         JobNo: Code[20];
         JobTaskNo: Code[20];
         DayLineNo: Integer;
@@ -670,8 +646,8 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
     /// </summary>
     procedure OpenDayPlanningCardByEventId(EventId: Text)
     var
-        DayPlanning: Record "Opti Day Planning";
-        DayPlanningCard: Page "Opti Day Planning Card Opt";
+        DayPlanning: Record "Day Planning";
+        DayPlanningCard: Page "Day Planning Card Opt";
         JobNo: Code[20];
         JobTaskNo: Code[20];
         DayLineNo: Integer;
@@ -686,8 +662,8 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
     /// <summary>Bar right-click: applies the template to the clicked line; shows the reason if it cannot.</summary>
     procedure ApplyTemplateTimesToEvent(EventId: Text): Boolean
     var
-        DayPlanning: Record "Opti Day Planning";
-        DayPlanningsMgt: Codeunit "Opti Day Plannings Mgt.";
+        DayPlanning: Record "Day Planning";
+        DayPlanningsMgt: Codeunit "Day Plannings Mgt.";
         Reason: Text;
     begin
         if not GetDayPlanningByEventId(EventId, DayPlanning) then
@@ -701,14 +677,13 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
     /// <summary>Bar right-click "Open Resource": Assigned Resource, else Requested Resource.</summary>
     procedure OpenResourceByEventId(EventId: Text)
     var
-        NoRequestedOrAssignedResMsg: Label 'No Requested or Assigned Resource.';
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         Resource: Record Resource;
     begin
         if not GetDayPlanningByEventId(EventId, DayPlanning) then
             exit;
         if not Resource.Get(ResourceNoOf(DayPlanning)) then begin
-            Message(NoRequestedOrAssignedResMsg);
+            Message('No Requested or Assigned Resource.');
             exit;
         end;
         Page.Run(Page::"Resource Card", Resource);
@@ -717,8 +692,7 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
     /// <summary>Bar right-click "Open Capacity": Res. Capacity Entries of the line's resource on its Plan Date.</summary>
     procedure OpenCapacityByEventId(EventId: Text)
     var
-        NoRequestedOrAssignedResMsg: Label 'No Requested or Assigned Resource.';
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         ResCapacityEntry: Record "Res. Capacity Entry";
         Resource: Record Resource;
         ResourceNo: Code[20];
@@ -727,7 +701,7 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
             exit;
         ResourceNo := ResourceNoOf(DayPlanning);
         if not Resource.Get(ResourceNo) then begin
-            Message(NoRequestedOrAssignedResMsg);
+            Message('No Requested or Assigned Resource.');
             exit;
         end;
         ResCapacityEntry.SetRange("Resource No.", ResourceNo);
@@ -735,7 +709,7 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
         Page.Run(Page::"Res. Capacity Entries", ResCapacityEntry);
     end;
 
-    local procedure GetDayPlanningByEventId(EventId: Text; var DayPlanning: Record "Opti Day Planning"): Boolean
+    local procedure GetDayPlanningByEventId(EventId: Text; var DayPlanning: Record "Day Planning"): Boolean
     var
         JobNo: Code[20];
         JobTaskNo: Code[20];
@@ -745,7 +719,7 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
         exit(DayPlanning.Get(JobNo, JobTaskNo, DayLineNo));
     end;
 
-    local procedure ResourceNoOf(DayPlanning: Record "Opti Day Planning"): Code[20]
+    local procedure ResourceNoOf(DayPlanning: Record "Day Planning"): Code[20]
     begin
         if DayPlanning."Assigned Resource No." <> '' then
             exit(DayPlanning."Assigned Resource No.");
@@ -778,12 +752,11 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
     /// </summary>
     procedure BuildSectionsAndEventsJson(JobFilter: Text; JobTaskFilter: Text; SkillFilter: Text; ResourceFilter: Text; PeriodFrom: Date; PeriodTo: Date; var SectionsJson: Text; var EventsJson: Text; var EarliestDate: Date; var LatestDate: Date)
     var
-            SeqTxt: Label '%1 - Seq %2', Comment = '%1=SkillDescription, %2=RowSequenceNo';
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         SkillCodeRec: Record "Skill Code";
         Job: Record Job;
         JobTask: Record "Job Task";
-        VisualDefaultSettings: Codeunit "Opti Visual Default Settings";
+        VisualDefaultSettings: Codeunit "Visual Default Settings";
         SectionsArray: JsonArray;
         EventsArray: JsonArray;
         SectionObj: JsonObject;
@@ -917,7 +890,7 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
             SectionObj.Add('borderColor', VisualDefaultSettings.GetSkillBorderColor(RowSkillCode, PaletteIndex));
             PaletteIndex += 1;
             SectionObj.Add('weekPattern', BuildSequenceWeekPattern(RowJobNo, RowJobTaskNo, RowSkillCode, RowSequenceNo));
-            SectionObj.Add('label', StrSubstNo(SeqTxt, SkillDescription, RowSequenceNo));
+            SectionObj.Add('label', StrSubstNo('%1 - Seq %2', SkillDescription, RowSequenceNo));
             SectionObj.Add('minDate', Format(MinDateBySection.Get(LoopSectionKey), 0, '<Year4>-<Month,2>-<Day,2>'));
             SectionObj.Add('maxDate', Format(MaxDateBySection.Get(LoopSectionKey), 0, '<Year4>-<Month,2>-<Day,2>'));
             SectionsArray.Add(SectionObj);
@@ -936,7 +909,6 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
     /// <summary>The restricted scope as distinct "Project / Task / Skill" lines (max 5, then "..."), for messages.</summary>
     procedure GetOnlySectionsText(): Text
     var
-            ProjectTaskSkillTxt: Label 'Project %1 / Task %2 / Skill %3', Comment = '%1=JobNo, %2=JobTaskNo, %3=SkillCode';
         SectionKey: Text;
         JobNo: Code[20];
         JobTaskNo: Code[20];
@@ -950,7 +922,7 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
         Lf[1] := 10;
         foreach SectionKey in OnlySectionKeys do begin
             ParseSectionId(SectionKey, JobNo, JobTaskNo, SkillCode, SequenceNo);
-            Line := StrSubstNo(ProjectTaskSkillTxt, JobNo, JobTaskNo, SkillCode);
+            Line := StrSubstNo('Project %1 / Task %2 / Skill %3', JobNo, JobTaskNo, SkillCode);
             if not Seen.Contains(Line) then begin
                 if Seen.Count() = 5 then begin
                     Result += Lf + '...';
@@ -984,13 +956,10 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
     end;
 
     local procedure AddDistinct(var FilterTxt: Text; Value: Text)
-        var
-            Text2Txt: Label '|%1|', Comment = '%1=FilterTxt';
-            TextTxt: Label '|%1|', Comment = '%1=Value';
     begin
         if Value = '' then
             exit;
-        if StrSubstNo(Text2Txt, FilterTxt).Contains(StrSubstNo(TextTxt, Value)) then
+        if StrSubstNo('|%1|', FilterTxt).Contains(StrSubstNo('|%1|', Value)) then
             exit;
         if FilterTxt <> '' then
             FilterTxt += '|';
@@ -1044,7 +1013,7 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
             OnlySectionKeys.Add(KeyToken.AsValue().AsText());
     end;
 
-    local procedure MarkDayPlanningMatches(var DayPlanning: Record "Opti Day Planning")
+    local procedure MarkDayPlanningMatches(var DayPlanning: Record "Day Planning")
     begin
         if DayPlanning.FindSet() then
             repeat
@@ -1055,7 +1024,7 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
     procedure BuildSkillsJson(): Text
     var
         SkillCodeRec: Record "Skill Code";
-        VisualDefaultSettings: Codeunit "Opti Visual Default Settings";
+        VisualDefaultSettings: Codeunit "Visual Default Settings";
         SkillsArray: JsonArray;
         SkillObj: JsonObject;
         PaletteIndex: Integer;
@@ -1082,7 +1051,7 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
     procedure BuildTemplatesJson(): Text
     var
         WorkHourTemplate: Record "Work-Hour Template";
-        DayPlanningMgt: Codeunit "Opti Day Plannings Mgt.";
+        DayPlanningMgt: Codeunit "Day Plannings Mgt.";
         TemplatesArray: JsonArray;
         TemplateObj: JsonObject;
         ResultTxt: Text;
@@ -1101,7 +1070,7 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
 
     local procedure BuildSequenceWeekPattern(JobNo: Code[20]; JobTaskNo: Code[20]; SkillCode: Code[10]; SequenceNo: Integer): JsonObject
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         Requested: JsonObject;
         Assigned: JsonObject;
         WeekPattern: JsonObject;
@@ -1150,7 +1119,7 @@ codeunit 50695 "Opti Day Plan. Sequence Mgt."
         exit(Format(PlanDate, 0, '<Year4>-<Month,2>-<Day,2>') + ' ' + Format(PlanTime, 0, '<Hours24,2>:<Minutes,2>:<Seconds,2>'));
     end;
 
-    local procedure FormatEventBarText(DayPlanning: Record "Opti Day Planning"): Text
+    local procedure FormatEventBarText(DayPlanning: Record "Day Planning"): Text
     begin
         exit(StrSubstNo('%1-%2 . %3h',
             Format(DayPlanning."Start Time Requested", 0, '<Hours24,2>:<Minutes,2>'),

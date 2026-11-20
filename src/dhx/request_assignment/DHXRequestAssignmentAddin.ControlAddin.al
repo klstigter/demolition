@@ -1,4 +1,4 @@
-controladdin "OptiDHXRequestAssignmentAddin"
+controladdin DHXRequestAssignmentAddin
 {
     RequestedHeight = 1400;
     MinimumHeight = 700;

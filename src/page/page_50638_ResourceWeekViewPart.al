@@ -1,7 +1,7 @@
-page 50638 "Opti Resource Week View Part"
+page 50638 "Resource Week View Part"
 {
     PageType = ListPart;
-    SourceTable = "Opti Summary Weekly";
+    SourceTable = "Summary Weekly";
     SourceTableTemporary = true;
     Caption = 'Resource Week View';
     Editable = false;
@@ -226,13 +226,12 @@ page 50638 "Opti Resource Week View Part"
 
                 trigger OnAction()
                 var
-                    NoResourceAssignedForThiMsg: Label 'No resource assigned for this job task.';
-                    DayPlanning: Record "Opti Day Planning";
+                    DayPlanning: Record "Day Planning";
                     WeekStart: Date;
                     WeekEnd: Date;
                 begin
                     if rec."Job No." = '' then begin
-                        Message(NoResourceAssignedForThiMsg);
+                        Message('No resource assigned for this job task.');
                         exit;
                     end;
 
@@ -246,7 +245,7 @@ page 50638 "Opti Resource Week View Part"
                     DayPlanning.SetRange("Job No.", Rec."Job No.");
                     DayPlanning.SetRange("Job Task No.", Rec."Job Task No.");
                     DayPlanning.SetRange("Plan Date", WeekStart, WeekEnd);
-                    Page.Run(Page::"Opti Day Plannings", DayPlanning);
+                    Page.Run(Page::"Day Plannings", DayPlanning);
                 end;
             }
             action(OpenSkills)
@@ -271,12 +270,11 @@ page 50638 "Opti Resource Week View Part"
             }
             action("Day Plannings (Visual)")
             {
-                ToolTip = 'Executes the Day Plannings (Visual) action.';
                 ApplicationArea = All;
                 Image = Capacities;
                 trigger OnAction()
                 var
-                    ResScheduler: page "Opti Resource Calendar";
+                    ResScheduler: page "Resource Calendar";
                 begin
                     rec.testfield("Resource No.");
                     ResScheduler.SetResourceFilter(Rec."Resource No.");
@@ -399,11 +397,8 @@ page 50638 "Opti Resource Week View Part"
 
     local procedure DrillDown2DayTaks(WeekDayNo: Integer)
     var
-            TextTxt: Label '%1..%2', Comment = '%1=Format(DWY2Date(1, Rec.Week No., Rec.Yea, %2=Format(DWY2Date(7, Rec.Week No., Rec.Yea';
-        RequestedAssignedLbl: Label 'Requested,Assigned';
-        OpenDayPlanningsForLbl: Label 'Open Day Plannings for:';
-        Pg: Page "Opti Day Plannings";
-        Rc: Record "Opti Day Planning";
+        Pg: Page "Day Plannings";
+        Rc: Record "Day Planning";
         WeekFilter: Text;
         ReqHours: Decimal;
         AssHours: Decimal;
@@ -456,7 +451,7 @@ page 50638 "Opti Resource Week View Part"
             exit;
 
         if (ReqHours <> 0) and (AssHours <> 0) then begin
-            FilterType := StrMenu(RequestedAssignedLbl, 0, OpenDayPlanningsForLbl);
+            FilterType := StrMenu('Requested,Assigned', 0, 'Open Day Plannings for:');
             if FilterType = 0 then
                 exit;
         end else
@@ -466,7 +461,7 @@ page 50638 "Opti Resource Week View Part"
                 FilterType := 2;
 
         if WeekDayNo = 0 then begin
-            WeekFilter := StrSubstNo(TextTxt, Format(DWY2Date(1, Rec."Week No.", Rec.Year)), Format(DWY2Date(7, Rec."Week No.", Rec.Year)));
+            WeekFilter := StrSubstNo('%1..%2', Format(DWY2Date(1, Rec."Week No.", Rec.Year)), Format(DWY2Date(7, Rec."Week No.", Rec.Year)));
             Rc.SetFilter("Plan Date", WeekFilter);
         end else
             Rc.SetRange("Plan Date", DWY2Date(WeekDayNo, Rec."Week No.", Rec.Year));

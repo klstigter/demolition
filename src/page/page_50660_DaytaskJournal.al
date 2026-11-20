@@ -1,8 +1,8 @@
-page 50660 "Opti Day Planning Journal"
+page 50660 "Day Planning Journal"
 {
     Caption = 'Day Planning Journal';
     PageType = Worksheet;
-    SourceTable = "Opti DayPlanning Journal Line";
+    SourceTable = "DayPlanning Journal Line";
     UsageCategory = Tasks;
     ApplicationArea = Jobs;
     AutoSplitKey = false;
@@ -163,7 +163,7 @@ page 50660 "Opti Day Planning Journal"
 
                 trigger OnAction()
                 var
-                    DayPlanningSelectionRep: Report "Opti DayPlanning Selection";
+                    DayPlanningSelectionRep: Report "DayPlanning Selection";
                 begin
                     CheckTemplateAndBatch();
                     DayPlanningSelectionRep.SetJournalBatch(CurrentTemplateName, CurrentBatchName);
@@ -183,7 +183,7 @@ page 50660 "Opti Day Planning Journal"
 
                 trigger OnAction()
                 var
-                    DayPlanningJnlPost: Codeunit "Opti DayPlanning Journal Post";
+                    DayPlanningJnlPost: Codeunit "DayPlanning Journal Post";
                 begin
                     CheckTemplateAndBatch();
                     DayPlanningJnlPost.PreviewPost(CurrentTemplateName, CurrentBatchName);
@@ -202,7 +202,7 @@ page 50660 "Opti Day Planning Journal"
 
                 trigger OnAction()
                 var
-                    DayPlanningJnlPost: Codeunit "Opti DayPlanning Journal Post";
+                    DayPlanningJnlPost: Codeunit "DayPlanning Journal Post";
                     ConfirmMsg: Label 'Do you want to post the DayPlanning journal lines?';
                 begin
                     CheckTemplateAndBatch();

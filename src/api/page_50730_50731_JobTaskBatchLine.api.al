@@ -1,6 +1,5 @@
-page 50731 "Opti JobTaskBatch Line Opt"
+page 50731 "JobTaskBatch Line Opt"
 {
-    Caption = 'JobTaskBatch Line Opt';
     // Nested API subpage of "JobTaskBatch Header Opt". Each submitted line inserts a real Job Task.
     PageType = API;
     APIPublisher = 'BC365Optimizer';
@@ -39,15 +38,15 @@ page 50731 "Opti JobTaskBatch Line Opt"
                 {
                     Caption = 'Description';
                 }
-                field(projectManager; Rec."Opti Project Manager")
+                field(projectManager; Rec."Project Manager")
                 {
                     Caption = 'Project Manager';
                 }
-                field(plannedStartDate; Rec."Opti VisualBarStartDate")
+                field(plannedStartDate; Rec.VisualBarStartDate)
                 {
                     Caption = 'Planned Start Date';
                 }
-                field(plannedEndDate; Rec."Opti VisualBarEndDate")
+                field(plannedEndDate; Rec.VisualBarEndDate)
                 {
                     Caption = 'Planned End Date';
                 }
@@ -88,8 +87,8 @@ page 50731 "Opti JobTaskBatch Line Opt"
     var
         NewTask: Record "Job Task";
         ResultLine: JsonObject;
-        GlobalSessionVar: Codeunit "Opti Global Session Var Opt.";
-        APIKeyMgt: Codeunit "Opti API Key Mgt Opt.";
+        GlobalSessionVar: Codeunit "Global Session Var Opt.";
+        APIKeyMgt: Codeunit "API Key Mgt Opt.";
         InSystemId: Guid;
         InJobNo: Code[20];
         InTaskNo: Code[20];
@@ -111,9 +110,9 @@ page 50731 "Opti JobTaskBatch Line Opt"
         InTaskNo := Rec."Job Task No.";
         InTaskType := Rec."Job Task Type";
         InDescription := Rec.Description;
-        InProjectManager := Rec."Opti Project Manager";
-        InStart := Rec."Opti VisualBarStartDate";
-        InEnd := Rec."Opti VisualBarEndDate";
+        InProjectManager := Rec."Project Manager";
+        InStart := Rec.VisualBarStartDate;
+        InEnd := Rec.VisualBarEndDate;
         InAddress := Rec."Sell-to Address";
         InAddress2 := Rec."Sell-to Address 2";
         InCity := Rec."Sell-to City";
@@ -139,11 +138,11 @@ page 50731 "Opti JobTaskBatch Line Opt"
         NewTask.Validate("Job Task Type", InTaskType);
         NewTask.Validate(Description, InDescription);
         if InProjectManager <> '' then
-            NewTask.Validate("Opti Project Manager", InProjectManager);
+            NewTask.Validate("Project Manager", InProjectManager);
         if InStart <> 0D then
-            NewTask.Validate("Opti VisualBarStartDate", InStart);
+            NewTask.Validate(VisualBarStartDate, InStart);
         if InEnd <> 0D then
-            NewTask.Validate("Opti VisualBarEndDate", InEnd);
+            NewTask.Validate(VisualBarEndDate, InEnd);
         if InAddress <> '' then
             NewTask.Validate("Sell-to Address", InAddress);
         if InAddress2 <> '' then

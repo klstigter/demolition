@@ -1,6 +1,5 @@
-enum 50607 "Opti DayPlan OI Status"
+enum 50607 "DayPlanning Order Intake Status"
 {
-    Caption = 'DayPlanning Order Intake Status';
     Extensible = true;
 
     value(0; "Open") { }

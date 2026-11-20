@@ -1,4 +1,4 @@
-page 50710 "Opti DHX Request Assign. Board"
+page 50710 "DHX Request Assignment Board"
 {
     PageType = List; //userControlHost;
     ApplicationArea = All;
@@ -9,14 +9,14 @@ page 50710 "Opti DHX Request Assign. Board"
     {
         area(content)
         {
-            usercontrol(DhxScheduler; "OptiDHXRequestAssignmentAddin")
+            usercontrol(DhxScheduler; DHXRequestAssignmentAddin)
             {
                 ApplicationArea = All;
 
                 trigger ControlReady()
                 var
-                    VisualDefaultSettings: Codeunit "Opti Visual Default Settings";
-                    DayPlanningSequenceMgt: Codeunit "Opti Day Plan. Sequence Mgt.";
+                    VisualDefaultSettings: Codeunit "Visual Default Settings";
+                    DayPlanningSequenceMgt: Codeunit "Day Planning Sequence Mgt.";
                     ColorsJsonTxt: Text;
                 begin
                     // Hover/tooltip popup background/font colour - codeunit 50609's
@@ -35,7 +35,7 @@ page 50710 "Opti DHX Request Assign. Board"
 
                 trigger OnAcceptSequence(PayloadJsonTxt: Text)
                 var
-                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
+                    DHXDataHandler: Codeunit "DHX Data Handler";
                 begin
                     // JS already applied its own optimistic update for the whole-sequence drop -
                     // this is the only point where that drop actually persists (confirmed product
@@ -46,7 +46,7 @@ page 50710 "Opti DHX Request Assign. Board"
 
                 trigger OnRejectSequence(PayloadJsonTxt: Text)
                 var
-                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
+                    DHXDataHandler: Codeunit "DHX Data Handler";
                 begin
                     // JS already discards its provisional state on reject - nothing was ever
                     // persisted, so this is a no-op/optional-logging stub on the AL side too.
@@ -55,35 +55,35 @@ page 50710 "Opti DHX Request Assign. Board"
 
                 trigger OnAssignDayTaskLine(PayloadJsonTxt: Text)
                 var
-                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
+                    DHXDataHandler: Codeunit "DHX Data Handler";
                 begin
                     DHXDataHandler.ReqAssign_AssignDayTaskLine(PayloadJsonTxt);
                 end;
 
                 trigger OnMoveAssignment(PayloadJsonTxt: Text)
                 var
-                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
+                    DHXDataHandler: Codeunit "DHX Data Handler";
                 begin
                     DHXDataHandler.ReqAssign_MoveAssignment(PayloadJsonTxt);
                 end;
 
                 trigger OnResizeAssignment(PayloadJsonTxt: Text)
                 var
-                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
+                    DHXDataHandler: Codeunit "DHX Data Handler";
                 begin
                     DHXDataHandler.ReqAssign_ResizeAssignment(PayloadJsonTxt);
                 end;
 
                 trigger OnUnassignDayTaskLine(PayloadJsonTxt: Text)
                 var
-                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
+                    DHXDataHandler: Codeunit "DHX Data Handler";
                 begin
                     DHXDataHandler.ReqAssign_UnassignDayTaskLine(PayloadJsonTxt);
                 end;
 
                 trigger OnModifySequence(PayloadJsonTxt: Text)
                 var
-                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
+                    DHXDataHandler: Codeunit "DHX Data Handler";
                 begin
                     DHXDataHandler.ReqAssign_ModifySequence(PayloadJsonTxt);
                     // RegenerateSequence deletes and reinserts every line in the thread, so a full
@@ -96,7 +96,7 @@ page 50710 "Opti DHX Request Assign. Board"
 
                 trigger OnOpenDayPlanningCard(LineId: Text)
                 var
-                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
+                    DHXDataHandler: Codeunit "DHX Data Handler";
                 begin
                     DHXDataHandler.ReqAssign_OpenDayPlanningCard(LineId);
                     RefreshPlanningData();
@@ -112,7 +112,7 @@ page 50710 "Opti DHX Request Assign. Board"
 
                 trigger OnOpenCapacity(ResourceId: Text; StartDateTxt: Text; EndDateTxt: Text)
                 var
-                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
+                    DHXDataHandler: Codeunit "DHX Data Handler";
                 begin
                     DHXDataHandler.ReqAssign_OpenCapacity(ResourceId, StartDateTxt, EndDateTxt);
                 end;
@@ -234,7 +234,6 @@ page 50710 "Opti DHX Request Assign. Board"
 
     trigger OnPageBackgroundTaskError(TaskId: Integer; ErrorCode: Text; ErrorText: Text; ErrorCallStack: Text; var IsHandled: Boolean)
     var
-            LoadingTheRemainingRequeTxt: Label 'Loading the remaining Request/Assignment Board data failed: %1', Comment = '%1=ErrorText';
         DayTaskLinesLoadErrorNotification: Notification;
     begin
         if TaskId <> DayTaskLinesTaskId then
@@ -243,7 +242,7 @@ page 50710 "Opti DHX Request Assign. Board"
         IsHandled := true;
         // A notification is allowed here (unlike a raw Message/UI render) - surface the failure
         // without blocking the board; the first page already rendered successfully.
-        DayTaskLinesLoadErrorNotification.Message := StrSubstNo(LoadingTheRemainingRequeTxt, ErrorText);
+        DayTaskLinesLoadErrorNotification.Message := StrSubstNo('Loading the remaining Request/Assignment Board data failed: %1', ErrorText);
         DayTaskLinesLoadErrorNotification.Send();
     end;
 
@@ -274,7 +273,7 @@ page 50710 "Opti DHX Request Assign. Board"
     /// </summary>
     local procedure RefreshPlanningData()
     var
-        DHXDataHandler: Codeunit "Opti DHX Data Handler";
+        DHXDataHandler: Codeunit "DHX Data Handler";
         StartDate: Date;
         EndDate: Date;
         Window: Dialog;
@@ -332,7 +331,7 @@ page 50710 "Opti DHX Request Assign. Board"
         TaskParameters.Add('EndDate', Format(pEndDate, 0, '<Year4>-<Month,2>-<Day,2>'));
         TaskParameters.Add('RemainingSequenceKeys', RemainingSequenceKeys);
 
-        CurrPage.EnqueueBackgroundTask(NewTaskId, Codeunit::"Opti ReqAssign BG Task Lines", TaskParameters, 30000, PageBackgroundTaskErrorLevel::Warning);
+        CurrPage.EnqueueBackgroundTask(NewTaskId, Codeunit::"ReqAssign BG Day Task Lines", TaskParameters, 30000, PageBackgroundTaskErrorLevel::Warning);
         DayTaskLinesTaskId := NewTaskId;
         PendingDayTaskLinesResultAvailable := false; // any earlier not-yet-delivered result is now stale
         CurrPage.DhxScheduler.NotifyDayTaskLinesTaskPending(); // (re)start wrapper.js's bounded poll loop - normal synchronous call, safe here

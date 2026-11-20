@@ -1,4 +1,4 @@
-page 50728 "Opti JobBatch Header Opt"
+page 50728 "JobBatch Header Opt"
 {
     // Deep-insert header for creating MULTIPLE Jobs in one POST. 
     //The header is never persisted
@@ -37,7 +37,7 @@ page 50728 "Opti JobBatch Header Opt"
                     Caption = 'Description';
                 }
             }
-            part(jobs; "Opti JobBatch Line Opt")
+            part(jobs; "JobBatch Line Opt")
             {
                 EntityName = 'jobRecord';
                 EntitySetName = 'jobRecords';
@@ -48,7 +48,7 @@ page 50728 "Opti JobBatch Header Opt"
 
     trigger OnNewRecord(BelowxRec: Boolean)
     var
-        GlobalSessionVar: Codeunit "Opti Global Session Var Opt.";
+        GlobalSessionVar: Codeunit "Global Session Var Opt.";
     begin
         // BC binds the first nested line once before the header insert (phantom insert) - lines skip while pending
         GlobalSessionVar.SetHeaderInsertPending(true);
@@ -57,7 +57,7 @@ page 50728 "Opti JobBatch Header Opt"
 
     trigger OnInsertRecord(BelowxRec: Boolean): Boolean
     var
-        GlobalSessionVar: Codeunit "Opti Global Session Var Opt.";
+        GlobalSessionVar: Codeunit "Global Session Var Opt.";
     begin
         GlobalSessionVar.SetHeaderInsertPending(false);
         exit(true); // insert into the temp table only, so the nested part can resolve its SubPageLink
@@ -65,7 +65,7 @@ page 50728 "Opti JobBatch Header Opt"
 
     local procedure GetPostresult(): Text
     var
-        GlobalSessionVar: Codeunit "Opti Global Session Var Opt.";
+        GlobalSessionVar: Codeunit "Global Session Var Opt.";
     begin
         exit(GlobalSessionVar.GetPostResultsText('Jobs'));
     end;

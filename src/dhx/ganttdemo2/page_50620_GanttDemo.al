@@ -1,4 +1,4 @@
-page 50620 "Opti Gantt Demo DHX 2"
+page 50620 "Gantt Demo DHX 2"
 {
     PageType = List;
     ApplicationArea = All;
@@ -13,7 +13,7 @@ page 50620 "Opti Gantt Demo DHX 2"
         area(content)
         {
             // controladdin syntax: controladdin(<ControlId>; <ControlAddInName>)
-            usercontrol(DHXGanttControl2; "Opti DHX Gantt Control 2")
+            usercontrol(DHXGanttControl2; "DHX Gantt Control 2")
             {
                 ApplicationArea = All;
                 // Height/Width can be adjusted if needed
@@ -39,7 +39,7 @@ page 50620 "Opti Gantt Demo DHX 2"
 
                 trigger onTaskDblClick(eventId: Text; eventData: Text)
                 var
-                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
+                    DHXDataHandler: Codeunit "DHX Data Handler";
                     PossibleChanges: Boolean;
                     newEventData: Text;
                     EventIDList: List of [Text];
@@ -64,7 +64,7 @@ page 50620 "Opti Gantt Demo DHX 2"
 
                 trigger onAddTask(jobNo: Text; jobTaskNo: Text)
                 var
-                    GanttChartDataHandler: Codeunit "Opti GanttChartDataHandler";
+                    GanttChartDataHandler: Codeunit "GanttChartDataHandler";
                     PeriodStart: Date;
                     PeriodEnd: Date;
                 begin
@@ -76,7 +76,7 @@ page 50620 "Opti Gantt Demo DHX 2"
 
                 trigger OnShowSummaryForTask(taskId: Text; childrenJson: Text; periodFrom: Text; periodTo: Text)
                 var
-                    SummaryPage: Page "Opti Summary View";
+                    SummaryPage: Page "Summary View";
                     EventIDList: List of [Text];
                     JobNo: Code[20];
                     JobTaskNo: Code[20];
@@ -109,7 +109,7 @@ page 50620 "Opti Gantt Demo DHX 2"
                 trigger OnShowResourcesForTask(taskId: Text; childrenJson: Text; periodFrom: Text; periodTo: Text)
                 var
                     JobTask: Record "Job Task";
-                    GanttChartDataHandler: Codeunit "Opti GanttChartDataHandler";
+                    GanttChartDataHandler: Codeunit "GanttChartDataHandler";
                     EventIDList: List of [Text];
                     JobNo: Code[20];
                     JobTaskNo: Code[20];
@@ -193,7 +193,7 @@ page 50620 "Opti Gantt Demo DHX 2"
                     JsonToken: JsonToken;
                     JobNo: Code[20];
                     JobTaskNo: Code[20];
-                    DayPlanning: Record "Opti Day Planning";
+                    DayPlanning: Record "Day Planning";
                     EventIDList: List of [Text];
                 begin
                     // Parse bcJobNo / bcJobTaskNo from eventData JSON
@@ -217,15 +217,15 @@ page 50620 "Opti Gantt Demo DHX 2"
                     if (JobNo <> '') and (JobTaskNo <> '') then begin
                         JobTask.Get(JobNo, JobTaskNo);
                         case true of
-                            (JobTask."Opti VisualBarStartDate" <> 0D) and (JobTask."Opti VisualBarEndDate" <> 0D):
-                                DayPlanning.SetRange("Plan Date", JobTask."Opti VisualBarStartDate", JobTask."Opti VisualBarEndDate");
-                            (JobTask."Opti VisualBarStartDate" = 0D) and (JobTask."Opti VisualBarEndDate" <> 0D):
-                                DayPlanning.Setfilter("Plan Date", '..%1', JobTask."Opti VisualBarEndDate");
-                            (JobTask."Opti VisualBarStartDate" <> 0D) and (JobTask."Opti VisualBarEndDate" = 0D):
-                                DayPlanning.Setfilter("Plan Date", '%1..', JobTask."Opti VisualBarStartDate");
+                            (JobTask.VisualBarStartDate <> 0D) and (JobTask.VisualBarEndDate <> 0D):
+                                DayPlanning.SetRange("Plan Date", JobTask.VisualBarStartDate, JobTask.VisualBarEndDate);
+                            (JobTask.VisualBarStartDate = 0D) and (JobTask.VisualBarEndDate <> 0D):
+                                DayPlanning.Setfilter("Plan Date", '..%1', JobTask.VisualBarEndDate);
+                            (JobTask.VisualBarStartDate <> 0D) and (JobTask.VisualBarEndDate = 0D):
+                                DayPlanning.Setfilter("Plan Date", '%1..', JobTask.VisualBarStartDate);
                         end;
                     end;
-                    Page.Run(Page::"Opti Day Plannings", DayPlanning);
+                    Page.Run(Page::"Day Plannings", DayPlanning);
                 end;
 
                 trigger onOpenDayPlanningVisual(taskId: Text; eventData: Text)
@@ -234,9 +234,9 @@ page 50620 "Opti Gantt Demo DHX 2"
                     JsonToken: JsonToken;
                     JobNo: Code[20];
                     JobTaskNo: Code[20];
-                    DayPlanning: Record "Opti Day Planning";
+                    DayPlanning: Record "Day Planning";
                     EventIDList: List of [Text];
-                    DayPlanningScheduler: page "Opti DHX Scheduler (Project)";
+                    DayPlanningScheduler: page "DHX Scheduler (Project)";
                 begin
                     // Parse bcJobNo / bcJobTaskNo from eventData JSON
                     if JsonObj.ReadFrom(eventData) then begin
@@ -263,7 +263,7 @@ page 50620 "Opti Gantt Demo DHX 2"
 
                 trigger OnJobTaskUpdated(eventData: Text)
                 var
-                    GantUpdatedata: Codeunit "Opti Gantt Update Data";
+                    GantUpdatedata: Codeunit "Gantt Update Data";
                     TypeHelper: Codeunit "Type Helper";
                     PreviewWasCancelledByUser: Boolean;
                     PreviewCancelledMsg: Text;
@@ -336,7 +336,7 @@ page 50620 "Opti Gantt Demo DHX 2"
 
                 trigger OpenResourceLoadDay(ResourceId: Text; pTaskDate: Text; pPlanStatus: Text; pIdList: Text)
                 var
-                    DayPlanning: Record "Opti Day Planning";
+                    DayPlanning: Record "Day Planning";
                     WorkDt: Date;
                     Tp: array[2] of text;
                     IdText: Text;
@@ -368,23 +368,23 @@ page 50620 "Opti Gantt Demo DHX 2"
                         if tp[1] = 'VEN-' then
                             DayPlanning.SetRange("Assigned Pool Resource No.", tp[2]);
                     end;
-                    Page.RunModal(Page::"Opti Day Plannings", DayPlanning);
+                    Page.RunModal(Page::"Day Plannings", DayPlanning);
                     RefreshResourcePanelIfChanged(BeforeCount, BeforeMax);
                 end;
 
                 trigger OpenSequences(pIdList: Text)
                 var
-                    DayPlanning: Record "Opti Day Planning";
-                    GanttChartDataHandler: Codeunit "Opti GanttChartDataHandler";
-                    SequencePage: Page "Opti Day Planning Sequence";
+                    DayPlanning: Record "Day Planning";
+                    GanttChartDataHandler: Codeunit "GanttChartDataHandler";
+                    SequencePage: Page "Day Planning Sequence";
                     IdText: Text;
                     SysId: Guid;
                     PeriodStart: Date;
                     PeriodEnd: Date;
-                    SequenceMgt: Codeunit "Opti Day Plan. Sequence Mgt.";
+                    SequenceMgt: Codeunit "Day Planning Sequence Mgt.";
                     HighlightKeys: JsonArray;
                     FirstFound: Boolean;
-                    SameDay: Record "Opti Day Planning";
+                    SameDay: Record "Day Planning";
                     ResourceNo: Code[20];
                     PlanDate: Date;
                     BeforeCount: Integer;
@@ -438,12 +438,10 @@ page 50620 "Opti Gantt Demo DHX 2"
                 end;
 
                 trigger OnLinkCreated(linkData: Text)
-                    var
-                        FailedToSaveLinkPleaseMsg: Label 'Failed to save link. Please check the link data.';
                 begin
                     // Fired from dhtmlx when user draws a new dependency arrow
                     if not LinkHandler.UpsertLinkFromJson(linkData) then
-                        Message(FailedToSaveLinkPleaseMsg);
+                        Message('Failed to save link. Please check the link data.');
                 end;
 
                 trigger OnLinkDeleted(linkData: Text)
@@ -466,8 +464,8 @@ page 50620 "Opti Gantt Demo DHX 2"
 
                 trigger OnResourceHover(resourceId: Text)
                 var
-                    GanttChartDataHandler: Codeunit "Opti GanttChartDataHandler";
-                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
+                    GanttChartDataHandler: Codeunit "GanttChartDataHandler";
+                    DHXDataHandler: Codeunit "DHX Data Handler";
                     StartDate: Date;
                     EndDate: Date;
                 begin
@@ -488,7 +486,7 @@ page 50620 "Opti Gantt Demo DHX 2"
                 // first skill. Missing Job/Job Task are asked for by the "Add Day Planning" popup.
                 trigger onAddDayPlanning(resourceId: Text; TaskDate: Text)
                 var
-                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
+                    DHXDataHandler: Codeunit "DHX Data Handler";
                     ResourceSkill: Record "Resource Skill";
                     CtxJobFilter: Text;
                     CtxJobTaskFilter: Text;
@@ -521,10 +519,8 @@ page 50620 "Opti Gantt Demo DHX 2"
 
                 trigger onOpenResourceCalendar(resourceId: Text)
                 var
-                    InvalidResourceIDFormatRMsg: Label 'Invalid resource ID format: %1, resource ID should be in the format "TYPE-ID", ex. RES-1234', Comment = '%1=resourceId';
-                    NoWeeksFoundInTheMsg: Label 'No weeks found in the current Gantt period (%1 – %2).', Comment = '%1=GanttStart, %2=GanttEnd';
-                    ResScheduler: page "Opti Resource Calendar";
-                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
+                    ResScheduler: page "Resource Calendar";
+                    DHXDataHandler: Codeunit "DHX Data Handler";
                     TextList: List of [Text];
                     ResNo: Code[20];
                     GanttStart: Date;
@@ -539,7 +535,7 @@ page 50620 "Opti Gantt Demo DHX 2"
                     WeekIdx: Integer;
                 begin
                     if StrPos(resourceId, '-') = 0 then begin
-                        Message(InvalidResourceIDFormatRMsg, resourceId);
+                        Message('Invalid resource ID format: %1, resource ID should be in the format "TYPE-ID", ex. RES-1234', resourceId);
                         exit;
                     end;
                     TextList := resourceId.Split('-');
@@ -557,7 +553,7 @@ page 50620 "Opti Gantt Demo DHX 2"
                         WeekEnd := CalcDate('<1W>', WeekEnd);
                     end;
                     if WeekStartDate.Count() = 0 then begin
-                        Message(NoWeeksFoundInTheMsg, GanttStart, GanttEnd);
+                        Message('No weeks found in the current Gantt period (%1 – %2).', GanttStart, GanttEnd);
                         exit;
                     end;
 
@@ -583,9 +579,7 @@ page 50620 "Opti Gantt Demo DHX 2"
 
                 trigger onOpenResourceScheduler(resourceId: Text)
                 var
-                    InvalidResourceIDFormatRMsg: Label 'Invalid resource ID format: %1, resource ID should be in the format "TYPE-ID", ex. RES-1234', Comment = '%1=resourceId';
-                    NoWeeksFoundInTheMsg: Label 'No weeks found in the current Gantt period (%1 – %2).', Comment = '%1=GanttStart, %2=GanttEnd';
-                    DHXDataHandler: Codeunit "Opti DHX Data Handler";
+                    DHXDataHandler: Codeunit "DHX Data Handler";
                     ResNo: Code[20];
                     GanttStart: Date;
                     GanttEnd: Date;
@@ -598,7 +592,7 @@ page 50620 "Opti Gantt Demo DHX 2"
                 begin
                     // resourceId format "TYPE-ID", e.g. RES-1234
                     if StrPos(resourceId, '-') = 0 then begin
-                        Message(InvalidResourceIDFormatRMsg, resourceId);
+                        Message('Invalid resource ID format: %1, resource ID should be in the format "TYPE-ID", ex. RES-1234', resourceId);
                         exit;
                     end;
                     Evaluate(ResNo, resourceId.Split('-').Get(2));
@@ -617,7 +611,7 @@ page 50620 "Opti Gantt Demo DHX 2"
                         WeekEnd := CalcDate('<1W>', WeekEnd);
                     end;
                     if WeekStartDate.Count() = 0 then begin
-                        Message(NoWeeksFoundInTheMsg, GanttStart, GanttEnd);
+                        Message('No weeks found in the current Gantt period (%1 – %2).', GanttStart, GanttEnd);
                         exit;
                     end;
 
@@ -678,7 +672,7 @@ page 50620 "Opti Gantt Demo DHX 2"
 
                 trigger OnGanttFilterIconClick()
                 var
-                    FilterDlg: Report "Opti Task Scheduler Filter";
+                    FilterDlg: Report "Task Scheduler Filter";
                     NewJobNo: Text;
                     NewJobTaskNo: Text;
                     NewSkill: Text;
@@ -714,7 +708,7 @@ page 50620 "Opti Gantt Demo DHX 2"
                 /// </summary>
                 trigger OnGanttContextAddFilter(jobNo: Text; jobTaskNo: Text)
                 var
-                    FilterDlg: Report "Opti Task Scheduler Filter";
+                    FilterDlg: Report "Task Scheduler Filter";
                     NewJobNo: Text;
                     NewJobTaskNo: Text;
                     NewSkill: Text;
@@ -745,7 +739,6 @@ page 50620 "Opti Gantt Demo DHX 2"
         {
             action(GetJsonTasks)
             {
-                ToolTip = 'Executes the Get Json Tasks action.';
                 Caption = 'Get JSON Tasks Data';
                 Image = View;
                 ApplicationArea = All;
@@ -768,7 +761,6 @@ page 50620 "Opti Gantt Demo DHX 2"
             }
             action(GetJsonResources)
             {
-                ToolTip = 'Executes the Get Json Resources action.';
                 Caption = 'Get JSON Resources Data';
                 Image = View;
                 ApplicationArea = All;
@@ -795,7 +787,6 @@ page 50620 "Opti Gantt Demo DHX 2"
             }
             action(GetJsonDayPlannings)
             {
-                ToolTip = 'Executes the Get Json Day Plannings action.';
                 Caption = 'Get JSON Day Plannings Data';
                 Image = View;
                 ApplicationArea = All;
@@ -822,20 +813,18 @@ page 50620 "Opti Gantt Demo DHX 2"
             }
             action(GanttSettings)
             {
-                ToolTip = 'Executes the Gantt Settings action.';
                 Caption = 'Gantt Settings';
                 Image = Setup;
                 ApplicationArea = All;
 
                 trigger OnAction()
                 begin
-                    Page.RunModal(Page::"Opti Gantt Chart Setup");
+                    Page.RunModal(Page::"Gantt Chart Setup");
                     RefreshGantt(); // reload with the saved settings
                 end;
             }
             action(Undo)
             {
-                ToolTip = 'Executes the Undo action.';
                 ApplicationArea = All;
                 Caption = 'Undo';
                 Image = Undo;
@@ -847,7 +836,6 @@ page 50620 "Opti Gantt Demo DHX 2"
 
             action(Redo)
             {
-                ToolTip = 'Executes the Redo action.';
                 ApplicationArea = All;
                 Caption = 'Redo';
                 Image = Redo;
@@ -858,7 +846,6 @@ page 50620 "Opti Gantt Demo DHX 2"
             }
             action("AddMarker")
             {
-                ToolTip = 'Executes the Add Marker action.';
                 ApplicationArea = All;
                 Caption = 'Add Marker';
                 Image = Add;
@@ -869,7 +856,6 @@ page 50620 "Opti Gantt Demo DHX 2"
             }
             action("RefreshData")
             {
-                ToolTip = 'Executes the Refresh Data action.';
                 ApplicationArea = All;
                 Caption = 'Refresh Data';
                 Image = Refresh;
@@ -884,35 +870,32 @@ page 50620 "Opti Gantt Demo DHX 2"
         {
             action(Summary)
             {
-                ToolTip = 'Executes the Summary action.';
                 Caption = 'Summary';
                 Image = BusinessRelation;
                 ApplicationArea = All;
 
                 trigger OnAction()
                 var
-                        TextTxt: Label '%1..%2', Comment = '%1=DT1, %2=DT2';
-                    SummaryPage: Page "Opti Summary View";
+                    SummaryPage: Page "Summary View";
                     Direction: Option Forward,Backward;
                     DT1: Date;
                     DT2: Date;
                 begin
                     GanttChartDataHandler.GetDateRange(Setup, AnchorDate, DT1, DT2);
-                    SummaryPage.LoadDataSet(StrSubstNo(TextTxt, DT1, DT2));
+                    SummaryPage.LoadDataSet(StrSubstNo('%1..%2', DT1, DT2));
                     SummaryPage.SetDefaultView();
                     SummaryPage.Run();
                 end;
             }
             action(DayTaks)
             {
-                ToolTip = 'Executes the Day Taks action.';
                 Caption = 'Day Plannings';
                 ApplicationArea = All;
                 image = AbsenceCalendar;
 
                 trigger OnAction()
                 var
-                    DayPlanning: Record "Opti Day Planning";
+                    DayPlanning: Record "Day Planning";
                     Direction: Option Forward,Backward;
                     DT1: Date;
                     DT2: Date;
@@ -942,7 +925,7 @@ page 50620 "Opti Gantt Demo DHX 2"
                             DayPlanning.SetRange("Plan Date", DT1, DT2);
                             DayPlanning.SetFilter("Job No.", PanelJobNo);
                             DayPlanning.SetFilter("Job Task No.", PanelTaskNo);
-                            page.Run(Page::"Opti Day Plannings", DayPlanning);
+                            page.Run(Page::"Day Plannings", DayPlanning);
                             exit;
                         end;
                     end;
@@ -950,12 +933,11 @@ page 50620 "Opti Gantt Demo DHX 2"
                     DayPlanning.SetRange("Plan Date", DT1, DT2);
                     if JobFilter <> '' then
                         DayPlanning.SetFilter("Job No.", JobFilter);
-                    page.Run(Page::"Opti Day Plannings", DayPlanning);
+                    page.Run(Page::"Day Plannings", DayPlanning);
                 end;
             }
             action(projects)
             {
-                ToolTip = 'Executes the projects action.';
                 Caption = 'Projects';
                 ApplicationArea = All;
                 image = Task;
@@ -983,7 +965,6 @@ page 50620 "Opti Gantt Demo DHX 2"
 
             action(projectTasks)
             {
-                ToolTip = 'Executes the project Tasks action.';
                 Caption = 'Project Tasks';
                 ApplicationArea = All;
                 image = Task;
@@ -995,20 +976,19 @@ page 50620 "Opti Gantt Demo DHX 2"
                     DT2: Date;
                 begin
                     GanttChartDataHandler.GetDateRange(Setup, AnchorDate, DT1, DT2);
-                    jobTask.SetFilter("Opti VisualBarStartDate", '<=%1', DT2);
-                    jobTask.SetFilter("Opti VisualBarEndDate", '>=%1', DT1);
+                    jobTask.SetFilter(VisualBarStartDate, '<=%1', DT2);
+                    jobTask.SetFilter(VisualBarEndDate, '>=%1', DT1);
                     jobTask.SetFilter("Job Task Type", '<>%1&<>%2',
                         jobTask."Job Task Type"::"End-Total",
                         jobTask."Job Task Type"::Total);
                     if JobFilter <> '' then
                         jobTask.SetFilter("Job No.", JobFilter);
-                    page.Run(Page::"Opti Job Task List - Project", jobTask);
+                    page.Run(Page::"Job Task List - Project", jobTask);
                 end;
             }
 
             action(ShowResourcePanel)
             {
-                ToolTip = 'Executes the Show Resource Panel action.';
                 Caption = 'Show Resource Panel';
                 ApplicationArea = All;
                 Image = Resource;
@@ -1027,7 +1007,6 @@ page 50620 "Opti Gantt Demo DHX 2"
             }
             action(HideResourcePanel)
             {
-                ToolTip = 'Executes the Hide Resource Panel action.';
                 Caption = 'Hide Resource Panel';
                 ApplicationArea = All;
                 Image = Resource;
@@ -1042,7 +1021,6 @@ page 50620 "Opti Gantt Demo DHX 2"
 
             action(TodayAct)
             {
-                ToolTip = 'Executes the Today Act action.';
                 Caption = 'Today';
                 ApplicationArea = All;
                 Image = Position;
@@ -1055,7 +1033,6 @@ page 50620 "Opti Gantt Demo DHX 2"
             }
             action(PreviousAct)
             {
-                ToolTip = 'Executes the Previous Act action.';
                 Caption = 'Previous';
                 ApplicationArea = All;
                 Image = PreviousSet;
@@ -1073,7 +1050,6 @@ page 50620 "Opti Gantt Demo DHX 2"
 
             action(NextAct)
             {
-                ToolTip = 'Executes the Next Act action.';
                 Caption = 'Next';
                 ApplicationArea = All;
                 Image = NextSet;
@@ -1089,7 +1065,6 @@ page 50620 "Opti Gantt Demo DHX 2"
             }
             action(CheckGanttDataAct)
             {
-                ToolTip = 'Executes the Check Gantt Data Act action.';
                 Caption = 'Check Gantt Data';
                 ApplicationArea = All;
                 Image = Check;
@@ -1101,39 +1076,33 @@ page 50620 "Opti Gantt Demo DHX 2"
             }
             action(CheckPagePeriod)
             {
-                ToolTip = 'Executes the Check Page Period action.';
                 Caption = 'Check Page Period';
                 ApplicationArea = All;
                 Image = Check;
 
                 trigger OnAction()
                 Var
-                    CheckingGanttDataIntegriMsg: Label 'Checking Gantt data integrity for period %1 to %2 from anchor date %3', Comment = '%1=DT1, %2=DT2, %3=AnchorDate';
                     DT1: Date;
                     DT2: Date;
                 begin
                     GanttChartDataHandler.GetDateRange(Setup, AnchorDate, DT1, DT2);
-                    Message(CheckingGanttDataIntegriMsg, DT1, DT2, AnchorDate);
+                    Message('Checking Gantt data integrity for period %1 to %2 from anchor date %3', DT1, DT2, AnchorDate);
                 end;
             }
             action(CheckResourcvePanelFilter)
             {
-                ToolTip = 'Executes the Check Resourcve Panel Filter action.';
                 Caption = 'Check Resource Panel Filter';
                 ApplicationArea = All;
                 Image = Check;
 
                 trigger OnAction()
-                    var
-                        CurrentResourcePanelFiltMsg: Label 'Current Resource Panel Filter JSON: %1', Comment = '%1=CurrentResourcePanelFilterJsonString';
                 begin
                     CurrPage.DHXGanttControl2.GetResourceFilter();
-                    Message(CurrentResourcePanelFiltMsg, CurrentResourcePanelFilterJsonString);
+                    Message('Current Resource Panel Filter JSON: %1', CurrentResourcePanelFilterJsonString);
                 end;
             }
             action(ShowResourcesForTask)
             {
-                ToolTip = 'Executes the Show Resources For Task action.';
                 Caption = 'Show Resources for Task';
                 ApplicationArea = All;
                 Image = ResourcePlanning;
@@ -1146,7 +1115,6 @@ page 50620 "Opti Gantt Demo DHX 2"
             }
             action(TestClearData)
             {
-                ToolTip = 'Executes the Test Clear Data action.';
                 Caption = 'Clear Gantt Data';
                 ApplicationArea = All;
                 Image = RemoveLine;
@@ -1161,13 +1129,12 @@ page 50620 "Opti Gantt Demo DHX 2"
         {
             action(DayResourceDetail)
             {
-                ToolTip = 'Executes the Day Resource Detail action.';
                 Caption = 'Day Resource Detail';
                 ApplicationArea = All;
                 Image = Report;
                 trigger OnAction()
                 var
-                    DayResourceDetails: Report "Opti Day Resource Details";
+                    DayResourceDetails: Report "Day Resource Details";
                     StartDate: Date;
                     EndDate: Date;
                 begin
@@ -1178,13 +1145,12 @@ page 50620 "Opti Gantt Demo DHX 2"
             }
             action(DayPlanningsDetail)
             {
-                ToolTip = 'Executes the Day Plannings Detail action.';
                 Caption = 'Day Overview';
                 ApplicationArea = All;
                 Image = Report;
                 trigger OnAction()
                 var
-                    DayPlanningDetails: Report "Opti Day Planning Details";
+                    DayPlanningDetails: Report "Day Planning Details";
                     StartDate: Date;
                     EndDate: Date;
                 begin
@@ -1195,13 +1161,12 @@ page 50620 "Opti Gantt Demo DHX 2"
             }
             action(DayPlanningsWeekOverview)
             {
-                ToolTip = 'Executes the Day Plannings Week Overview action.';
                 Caption = 'Week Overview';
                 ApplicationArea = All;
                 Image = Report;
                 trigger OnAction()
                 var
-                    DayPlanning: Report "Opti DayPlanning";
+                    DayPlanning: Report "DayPlanning";
                     StartDate: Date;
                     EndDate: Date;
                 begin
@@ -1212,13 +1177,12 @@ page 50620 "Opti Gantt Demo DHX 2"
             }// Placeholder for any future reports related to the Gantt data
             action(DailyCapacityBalanceReport)
             {
-                ToolTip = 'Executes the Daily Capacity Balance Report action.';
                 Caption = 'Daily Capacity Balance Report';
                 ApplicationArea = All;
                 Image = Report;
                 trigger OnAction()
                 var
-                    CapacityBalance: Report "Opti Daily Cap. Balance Report";
+                    CapacityBalance: Report "Daily Capacity Balance Report";
                     StartDate: Date;
                     EndDate: Date;
                 begin
@@ -1344,7 +1308,6 @@ page 50620 "Opti Gantt Demo DHX 2"
 
     trigger OnPageBackgroundTaskError(TaskId: Integer; ErrorCode: Text; ErrorText: Text; ErrorCallStack: Text; var IsHandled: Boolean)
     var
-            LoadingGanttResourcePaneTxt: Label 'Loading Gantt resource panel data failed: %1', Comment = '%1=ErrorText';
         ResourcePanelLoadErrorNotification: Notification;
     begin
         ResourcePanelTaskRunning := false; // see OnPageBackgroundTaskCompleted's comment
@@ -1355,19 +1318,19 @@ page 50620 "Opti Gantt Demo DHX 2"
         IsHandled := true;
         // A notification is allowed here (unlike a raw Message/UI render) - surface the failure
         // without blocking the Gantt.
-        ResourcePanelLoadErrorNotification.Message := StrSubstNo(LoadingGanttResourcePaneTxt, ErrorText);
+        ResourcePanelLoadErrorNotification.Message := StrSubstNo('Loading Gantt resource panel data failed: %1', ErrorText);
         ResourcePanelLoadErrorNotification.Send();
     end;
 
     var
-        Setup: Record "Opti Gantt Chart Setup";
-        OptiSetup: Record "Opti Daily Optimizer Setup";
+        Setup: Record "Gantt Chart Setup";
+        OptiSetup: Record "Daily Optimizer Setup";
         AnchorDate: Date;
         ToggleAutoScheduling: Boolean;
-        PageHandler: Codeunit "Opti Gantt BC Page Handler";
-        general: Codeunit "Opti General Plan. Utilities";
-        GanttChartDataHandler: Codeunit "Opti GanttChartDataHandler";
-        LinkHandler: Codeunit "Opti Gantt Chart Link Handler";
+        PageHandler: Codeunit "Gantt BC Page Handler";
+        general: Codeunit "General Planning Utilities";
+        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
+        LinkHandler: Codeunit "Gantt Chart Link Handler";
         ShowPreviousNext: Boolean;
         ResourcePanelFlag: Boolean;
         JobFilter: Text;
@@ -1422,10 +1385,6 @@ page 50620 "Opti Gantt Demo DHX 2"
     /// </summary>
     local procedure GetResourcePanelScopeFilters(var pJobFilter: Text; var pJobTaskFilter: Text; var pSkillFilter: Text)
     var
-            Text4Txt: Label '|%1|', Comment = '%1=pJobFilter';
-            Text3Txt: Label '|%1|', Comment = '%1=KeyParts.Get(1)';
-            Text2Txt: Label '|%1|', Comment = '%1=pJobTaskFilter';
-            TextTxt: Label '|%1|', Comment = '%1=KeyParts.Get(2)';
         TaskKey: Text;
         KeyParts: List of [Text];
         Keys: List of [Text];
@@ -1440,12 +1399,12 @@ page 50620 "Opti Gantt Demo DHX 2"
             foreach TaskKey in Keys do begin
                 KeyParts := TaskKey.Split('|');
                 if KeyParts.Count() >= 2 then begin
-                    if not StrSubstNo(Text4Txt, pJobFilter).Contains(StrSubstNo(Text3Txt, KeyParts.Get(1))) then begin
+                    if not StrSubstNo('|%1|', pJobFilter).Contains(StrSubstNo('|%1|', KeyParts.Get(1))) then begin
                         if pJobFilter <> '' then
                             pJobFilter += '|';
                         pJobFilter += KeyParts.Get(1);
                     end;
-                    if not StrSubstNo(Text2Txt, pJobTaskFilter).Contains(StrSubstNo(TextTxt, KeyParts.Get(2))) then begin
+                    if not StrSubstNo('|%1|', pJobTaskFilter).Contains(StrSubstNo('|%1|', KeyParts.Get(2))) then begin
                         if pJobTaskFilter <> '' then
                             pJobTaskFilter += '|';
                         pJobTaskFilter += KeyParts.Get(2);
@@ -1476,7 +1435,7 @@ page 50620 "Opti Gantt Demo DHX 2"
     /// </summary>
     local procedure ShowTaskFilterOnResourcePanel()
     var
-        GanttChartDataHandler: Codeunit "Opti GanttChartDataHandler";
+        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
         StartDate: Date;
         EndDate: Date;
     begin
@@ -1490,7 +1449,7 @@ page 50620 "Opti Gantt Demo DHX 2"
     end;
 
     [TryFunction]
-    local procedure TryValidateRequestedResourceNo(var DayPlanning: Record "Opti Day Planning"; ResourceCode: Code[20])
+    local procedure TryValidateRequestedResourceNo(var DayPlanning: Record "Day Planning"; ResourceCode: Code[20])
     begin
         DayPlanning.Validate("Requested Resource No.", ResourceCode);
     end;
@@ -1516,9 +1475,9 @@ page 50620 "Opti Gantt Demo DHX 2"
 
     local procedure LoadAllData()
     var
-        GanttChartDataHandler: Codeunit "Opti GanttChartDataHandler";
-        SkillCapacityAnalysisMgt: Codeunit "Opti Skill Cap. Analysis Mgt.";
-        VisualDefaultSettings: Codeunit "Opti Visual Default Settings";
+        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
+        SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
+        VisualDefaultSettings: Codeunit "Visual Default Settings";
         StartDate: Date;
         EndDate: Date;
         Window: Dialog;
@@ -1694,7 +1653,7 @@ page 50620 "Opti Gantt Demo DHX 2"
     /// </summary>
     local procedure EnqueueFilteredResourcePanelReload(pFromDate: Date; pToDate: Date)
     var
-        GanttChartDataHandler: Codeunit "Opti GanttChartDataHandler";
+        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
         JobTaskKeys: List of [Text];
         JobTaskKeysText: Text;
     begin
@@ -1732,7 +1691,7 @@ page 50620 "Opti Gantt Demo DHX 2"
     local procedure EnqueueDefaultResourcePanelReload(pLoadResources: Boolean; pLoadDayPlannings: Boolean)
     var
         TaskParameters: Dictionary of [Text, Text];
-        GanttChartDataHandler: Codeunit "Opti GanttChartDataHandler";
+        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
         NewTaskId: Integer;
         JobFilterUsed: Text;
         DayPlanningsJson: Text;
@@ -1793,7 +1752,7 @@ page 50620 "Opti Gantt Demo DHX 2"
             ResourcePanelChunkAnchorDate := AnchorDate;
         end;
 
-        CurrPage.EnqueueBackgroundTask(NewTaskId, Codeunit::"Opti Gantt BG Res. Panel Data", TaskParameters, 30000, PageBackgroundTaskErrorLevel::Warning);
+        CurrPage.EnqueueBackgroundTask(NewTaskId, Codeunit::"Gantt BG Resource Panel Data", TaskParameters, 30000, PageBackgroundTaskErrorLevel::Warning);
         ResourcePanelTaskId := NewTaskId;
         PendingResultAvailable := false; // any earlier not-yet-delivered result is now stale
         PendingDayPlanningsIsFirstChunk := true; // chunk 0 (or a non-chunked resources-only call) - REPLACE, not append
@@ -1823,7 +1782,7 @@ page 50620 "Opti Gantt Demo DHX 2"
         TaskParameters.Add('DayPlanningCursor', pCursor);
         TaskParameters.Add('DayPlanningPageSize', Format(ResourcePanelDayPlanningChunkPageSize));
 
-        CurrPage.EnqueueBackgroundTask(NewTaskId, Codeunit::"Opti Gantt BG Res. Panel Data", TaskParameters, 30000, PageBackgroundTaskErrorLevel::Warning);
+        CurrPage.EnqueueBackgroundTask(NewTaskId, Codeunit::"Gantt BG Resource Panel Data", TaskParameters, 30000, PageBackgroundTaskErrorLevel::Warning);
         ResourcePanelTaskId := NewTaskId;
         // Re-arm: OnPageBackgroundTaskCompleted already cleared this to false for the chunk that
         // just finished, but the multi-chunk sequence as a whole is still in flight - without this,
@@ -1839,7 +1798,7 @@ page 50620 "Opti Gantt Demo DHX 2"
     local procedure ReloadResourcePanelFromStoredFilter(): Boolean
     var
         JobTask: Record "Job Task";
-        GanttChartDataHandler: Codeunit "Opti GanttChartDataHandler";
+        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
     begin
         // Read from the native AL vars (set synchronously in OnShowResourcesForTask), not from
         // CurrentResourcePanelFilterJsonString - see the comment on ResourcePanelJobNo's
@@ -1872,8 +1831,7 @@ page 50620 "Opti Gantt Demo DHX 2"
 
     local procedure LoadTaskData()
     var
-        GanttSettingForIsEnabledQst: Label 'Gantt Setting for %1 is enabled. Do you want to download the project task data for inspection purposes?', Comment = '%1=setup.FieldCaption(Download Data for Ins';
-        GanttChartDataHandler: Codeunit "Opti GanttChartDataHandler";
+        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
         JsonTxtTasks: Text;
     begin
         GanttChartDataHandler.SetSkillFilter(SkillFilter);
@@ -1881,7 +1839,7 @@ page 50620 "Opti Gantt Demo DHX 2"
         if JsonTxtTasks <> '' then begin
             CurrPage.DHXGanttControl2.LoadProjectData(JsonTxtTasks);
             if setup."Download Data for Inspection" and GuiAllowed then
-                if Confirm(GanttSettingForIsEnabledQst, false, setup.FieldCaption("Download Data for Inspection")) then
+                if Confirm('Gantt Setting for %1 is enabled. Do you want to download the project task data for inspection purposes?', false, setup.FieldCaption("Download Data for Inspection")) then
                     GanttChartDataHandler.DownloadJsonTextData(JsonTxtTasks, 'GanttProjectTaskData.json');
         end;
     end;
@@ -1903,7 +1861,7 @@ page 50620 "Opti Gantt Demo DHX 2"
     /// </summary>
     local procedure GetDayPlanningFingerprint(var Cnt: Integer; var MaxModified: DateTime)
     var
-        GanttChartDataHandler: Codeunit "Opti GanttChartDataHandler";
+        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
         JobTaskKeys: List of [Text];
     begin
         // Covers exactly what the resource panel shows: the listed resources' Day Plannings in the
@@ -1924,7 +1882,7 @@ page 50620 "Opti Gantt Demo DHX 2"
     /// </summary>
     local procedure RefreshResourcePanelIfChanged(BeforeCount: Integer; BeforeMax: DateTime)
     var
-        GanttChartDataHandler: Codeunit "Opti GanttChartDataHandler";
+        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
         AfterCount: Integer;
         AfterMax: DateTime;
         ChangedJson: Text;
@@ -1962,7 +1920,7 @@ page 50620 "Opti Gantt Demo DHX 2"
 
     local procedure LoadHolidaysData(StartDate: Date; EndDate: Date)
     var
-        GanttChartDataHandler: Codeunit "Opti GanttChartDataHandler";
+        GanttChartDataHandler: Codeunit "GanttChartDataHandler";
         JsonTxtHolidays: Text;
     begin
         JsonTxtHolidays := GanttChartDataHandler.GetHolidaysAsJson(StartDate, EndDate);
@@ -1971,8 +1929,6 @@ page 50620 "Opti Gantt Demo DHX 2"
 
     procedure OnJobTaskUpdated(TaskJson: Text)
     var
-        InvalidJSONFormatErr: Label 'Invalid JSON format';
-        IdMissingInJSONErr: Label 'id. missing in JSON';
         JobTask: Record "Job Task";
         JsonObj: JsonObject;
         JsonToken: JsonToken;
@@ -1989,14 +1945,14 @@ page 50620 "Opti Gantt Demo DHX 2"
     begin
         // Parse the JSON
         if not JsonObj.ReadFrom(TaskJson) then
-            Error(InvalidJSONFormatErr);
+            Error('Invalid JSON format');
 
         // Extract BC bindings
         if JsonObj.Get('id', JsonToken) then begin
             JobNo := CopyStr(JsonToken.AsValue().AsText().Split('|').Get(1), 1, MaxStrLen(JobNo));
             JobTaskNo := CopyStr(JsonToken.AsValue().AsText().Split('|').Get(2), 1, MaxStrLen(JobTaskNo));
         end else
-            Error(IdMissingInJSONErr);
+            Error('id. missing in JSON');
         if not JobTask.Get(JobNo, JobTaskNo) then
             exit;
 
@@ -2015,8 +1971,8 @@ page 50620 "Opti Gantt Demo DHX 2"
             StartDateTxt := JsonToken.AsValue().AsText();
             if StartDateTxt <> '' then begin
                 StartDate := ParseDate(StartDateTxt);
-                if JobTask."Opti VisualBarStartDate" <> StartDate then
-                    JobTask."Opti VisualBarStartDate" := StartDate;
+                if JobTask.VisualBarStartDate <> StartDate then
+                    JobTask.VisualBarStartDate := StartDate;
             end;
         end;
 
@@ -2025,8 +1981,8 @@ page 50620 "Opti Gantt Demo DHX 2"
             EndDateTxt := JsonToken.AsValue().AsText();
             if EndDateTxt <> '' then begin
                 EndDate := ParseDate(EndDateTxt);
-                if JobTask."Opti VisualBarEndDate" <> EndDate then
-                    JobTask."Opti VisualBarEndDate" := EndDate;
+                if JobTask.VisualBarEndDate <> EndDate then
+                    JobTask.VisualBarEndDate := EndDate;
             end;
         end;
 
@@ -2035,11 +1991,11 @@ page 50620 "Opti Gantt Demo DHX 2"
             SchedulingTypeTxt := JsonToken.AsValue().AsText();
             case SchedulingTypeTxt of
                 'fixed_duration':
-                    JobTask."Opti Scheduling Type" := JobTask."Opti Scheduling Type"::FixedDuration;
+                    JobTask."Scheduling Type" := JobTask."Scheduling Type"::FixedDuration;
                 // 'fixed_units':
                 //     JobTask."Scheduling Type" := JobTask."Scheduling Type"::FixedUnits;
                 'fixed_work':
-                    JobTask."Opti Scheduling Type" := JobTask."Opti Scheduling Type"::FixedWork;
+                    JobTask."Scheduling Type" := JobTask."Scheduling Type"::FixedWork;
             end;
         end;
 
@@ -2081,8 +2037,6 @@ page 50620 "Opti Gantt Demo DHX 2"
 
     local procedure CalcNewAnchorDate(Direction: Option Forward,Backward): date
     var
-            D2Txt: Label '<-%1D>', Comment = '%1=setup.GetPeriodLength(AnchorDate)';
-            DTxt: Label '<%1D>', Comment = '%1=setup.GetPeriodLength(AnchorDate)';
         forDt: text;
         NewAnchorDate: Date;
     begin
@@ -2095,7 +2049,7 @@ page 50620 "Opti Gantt Demo DHX 2"
                         NewAnchorDate := CalcDate('<-5W>', AnchorDate);
                     Setup."Date Range Type"::Calculated:
                         begin
-                            forDt := StrSubstNo(D2Txt, setup.GetPeriodLength(AnchorDate));
+                            forDt := StrSubstNo('<-%1D>', setup.GetPeriodLength(AnchorDate));
                             NewAnchorDate := CalcDate(forDt, AnchorDate);
                         end;
                 End;
@@ -2106,7 +2060,7 @@ page 50620 "Opti Gantt Demo DHX 2"
                         NewAnchorDate := CalcDate('<5W>', AnchorDate);
                     Setup."Date Range Type"::Calculated:
                         begin
-                            forDt := StrSubstNo(DTxt, setup.GetPeriodLength(AnchorDate));
+                            forDt := StrSubstNo('<%1D>', setup.GetPeriodLength(AnchorDate));
                             NewAnchorDate := CalcDate(forDt, AnchorDate);
                         end;
                 End;

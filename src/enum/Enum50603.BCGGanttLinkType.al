@@ -1,4 +1,4 @@
-enum 50603 "Opti BCG Gantt Link Type"
+enum 50603 "BCG Gantt Link Type"
 {
     Extensible = true;
     Caption = 'Gantt Link Type';

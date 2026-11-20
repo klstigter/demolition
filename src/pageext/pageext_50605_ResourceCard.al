@@ -5,48 +5,43 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
         // Add changes to page layout here
         addafter("Default Deferral Template Code")
         {
-            field("Opti Work Hour Template"; Rec."Opti Work Hour Template")
+            field("Work Hour Template"; Rec."Work Hour Template")
             {
-                Caption = 'Work Hour Template';
-                ToolTip = 'Specifies the value of the Work Hour Template field.';
                 ApplicationArea = All;
             }
         }
         addafter(Invoicing)
         {
-            group("Opti Purchase")
+            group(Purchase)
             {
-                group("Opti VendorNoGroup")
+                group(VendorNoGroup)
                 {
                     ShowCaption = false;
                     Visible = ShowVendorNo;
 
-                    field("Opti Vendor No."; Rec."Vendor No.")
+                    field("Vendor No."; Rec."Vendor No.")
                     {
-                        Caption = 'Vendor No.';
                         ApplicationArea = All;
                         ToolTip = 'Specifies the vendor number associated with the resource.';
                     }
                 }
-                group("Opti PoolResourceNoGroup")
+                group(PoolResourceNoGroup)
                 {
                     ShowCaption = false;
                     Visible = ShowPoolResourceNo;
 
-                    field("Opti Pool Resource No."; Rec."Opti Pool Resource No.")
+                    field("Pool Resource No."; Rec."Pool Resource No.")
                     {
-                        Caption = 'Pool Resource No.';
                         ApplicationArea = All;
                         ToolTip = 'Specifies the pool resource number associated with the resource.';
                     }
                 }
-                group("Opti NotInternalResource")
+                group(NotInternalResource)
                 {
                     Caption = 'Not Internal Resource';
 
-                    field("Opti Is Pool"; Rec."Opti Is Pool")
+                    field("Is Pool"; Rec."Is Pool")
                     {
-                        Caption = 'Is Pool';
                         ApplicationArea = All;
                         ToolTip = 'Indicates whether the resource is a pool resource.';
                         trigger OnValidate()
@@ -54,19 +49,16 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
                             UpdateVisibility();
                         end;
                     }
-                    field("Opti Is Pool Member"; Rec."Opti Is Pool Member")
+                    field("Is Pool Member"; Rec."Is Pool Member")
                     {
-                        Caption = 'Is Pool Member';
-                        ToolTip = 'Specifies the value of the Is Pool Member field.';
                         ApplicationArea = All;
                         trigger OnValidate()
                         begin
                             UpdateVisibility();
                         end;
                     }
-                    field("Opti Is External"; Rec."Opti Is External")
+                    field("Is External"; Rec."Is External")
                     {
-                        Caption = 'Is External';
                         ApplicationArea = All;
                         ToolTip = 'Indicates whether the resource is external';
                         trigger OnValidate()
@@ -76,39 +68,32 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
                     }
                 }
 
-                field("Opti Is Foreman"; Rec."Opti Is Foreman")
+                field("Is Foreman"; Rec."Is Foreman")
                 {
-                    Caption = 'Is Foreman';
                     ApplicationArea = All;
                     ToolTip = 'Indicates whether the resource is a foreman.';
                 }
-                field("Opti Default Foreman"; Rec."Opti Default Foreman")
+                field("Default Foreman"; Rec."Default Foreman")
                 {
-                    Caption = 'Default Foreman';
-                    ToolTip = 'Specifies the value of the Default Foreman field.';
                     ApplicationArea = All;
                 }
-                field("Opti Default Foreman Name"; Rec."Opti Default Foreman Name")
+                field("Default Foreman Name"; Rec."Default Foreman Name")
                 {
-                    Caption = 'Default Foreman Name';
-                    ToolTip = 'Specifies the value of the Default Foreman Name field.';
                     ApplicationArea = All;
                 }
-                field("Opti Mandatory Schedulling"; Rec."Opti Mandatory Schedulling")
+                field("Mandatory Schedulling"; Rec."Mandatory Schedulling")
                 {
-                    Caption = 'Mandatory Schedulling';
-                    ToolTip = 'Specifies the value of the Mandatory Schedulling field.';
                     ApplicationArea = All;
                 }
             }
         }
         addafter(Control1906609707)
         {
-            part("Opti ResourceSkillsFactbox"; "Opti Res. Skills FactBox Part")
+            part(ResourceSkillsFactbox; "Resource Skills FactBox Part")
             {
                 ApplicationArea = All;
                 Caption = 'Resource Skills';
-                SubPageLink = "Type" = const(Resource), "No." = field("No.");
+                SubPageLink = Type = const(Resource), "No." = field("No.");
             }
 
         }
@@ -128,7 +113,7 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
         // Add changes to page actions here
         addafter("Units of Measure")
         {
-            action("Opti S&kills_Custom")
+            action("S&kills_Custom")
             {
                 ApplicationArea = Basic, Suite;
                 Caption = 'S&kills';
@@ -138,55 +123,50 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
                                 "No." = field("No.");
                 ToolTip = 'View the assignment of skills to the resource. You can use skill codes to allocate skilled resources to service items or items that need special skills for servicing.';
             }
-            action("Opti Resource Calender")
+            action("Resource Calender")
             {
-                ToolTip = 'Executes the Resource Calender action.';
                 ApplicationArea = All;
                 Caption = 'Resource Calendar';
                 trigger OnAction()
                 var
-                    ResScheduler: page "Opti Resource Calendar";
+                    ResScheduler: page "Resource Calendar";
                 begin
                     ResScheduler.SetResourceFilter(Rec."No.");
                     ResScheduler.RunModal();
                 end;
             }
-            action("Opti Resource Scheduler")
+            action("Resource Scheduler")
             {
-                ToolTip = 'Executes the Resource Scheduler action.';
                 ApplicationArea = All;
                 Caption = 'Resource Scheduler';
                 trigger OnAction()
                 var
-                    ResScheduler: page "Opti Res. Scheduler - TimeLine";
+                    ResScheduler: page "Resource Scheduler - TimeLine";
                 begin
                     //TODO SetFilter
                     //ResScheduler.SetResourceFilter(Rec."No.");
                     ResScheduler.RunModal();
                 end;
             }
-            action("Opti Capacity")
+            action("Capacity")
             {
-                Caption = 'Capacity';
-                ToolTip = 'Executes the Capacity action.';
                 ApplicationArea = All;
                 trigger OnAction()
                 var
-                    ResScheduler: page "Opti DHX Scheduler (Pool Res.)";
+                    ResScheduler: page "DHX Scheduler (Pool Resource)";
                 begin
                     //ResScheduler.SetResourceFilter(Rec."No.");
                     ResScheduler.RunModal();
                 end;
             }
-            action("Opti DayPlanning")
+            action(DayPlanning)
             {
-                ToolTip = 'Executes the Day Planning action.';
                 ApplicationArea = All;
                 Caption = 'Day Planning';
 
                 trigger OnAction()
                 var
-                    DayPlanning: Record "Opti Day Planning";
+                    DayPlanning: Record "Day Planning";
                 begin
                     DayPlanning.Reset();
                     DayPlanning.FilterGroup(2);
@@ -204,42 +184,42 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
                     DayPlanning.SetRange("Assigned Resource No.");
                     DayPlanning.MarkedOnly := true;
                     DayPlanning.FilterGroup(0);
-                    Page.Run(Page::"Opti Day Plannings", DayPlanning);
+                    Page.Run(Page::"Day Plannings", DayPlanning);
                 end;
             }
-            action("Opti Set Capacity Opt")
+            action("Set Capacity Opt")
             {
                 ApplicationArea = Jobs;
                 Caption = '&Set Capacity';
-                RunObject = Page "Opti Res. Cap. Settings Opt";
+                RunObject = Page "Resource Capacity Settings Opt";
                 RunPageLink = "No." = field("No.");
                 ToolTip = 'Change the capacity of the resource, such as a technician.';
             }
-            action("Opti Absence")
+            action("Absence")
             {
                 ApplicationArea = All;
                 Caption = 'Absence';
                 Image = Absence;
-                RunObject = page "Opti Resource Absence List";
-                RunPageLink = "Resource No." = field("No."), "Opti Type" = const(Absence);
+                RunObject = page "Resource Absence List";
+                RunPageLink = "Resource No." = field("No."), Type = const(Absence);
                 ToolTip = 'View and register absence entries for this resource.';
             }
         }
 
         addafter(CreateTimeSheets_Promoted)
         {
-            actionref("Opti S&kills_Promoted_custom"; "Opti S&kills_Custom") { }
-            actionref("Opti DayPlanningRef"; "Opti DayPlanning") { }
-            actionref("Opti Set Capacity Opt actionref"; "Opti Set Capacity Opt") { }
-            actionref("Opti Absence actionref"; "Opti Absence") { }
-            actionref("Opti Resource Capacity actionref"; "Resource &Capacity") { }
-            Group("Opti Visuals_Ref")
+            actionref("S&kills_Promoted_custom"; "S&kills_Custom") { }
+            actionref("DayPlanningRef"; DayPlanning) { }
+            actionref("Set Capacity Opt actionref"; "Set Capacity Opt") { }
+            actionref("Absence actionref"; "Absence") { }
+            actionref("Resource Capacity actionref"; "Resource &Capacity") { }
+            Group(Visuals_Ref)
             {
                 Caption = 'Resource (Visuals)';
                 ShowAs = SplitButton;
                 Image = Planning;
-                actionref("Opti Calendar (Visual) actionref"; "Opti Resource Calender") { }
-                actionref("Opti Scheduler (Visual) actionref"; "Opti Resource Scheduler") { }
+                actionref("Calendar (Visual) actionref"; "Resource Calender") { }
+                actionref("Scheduler (Visual) actionref"; "Resource Scheduler") { }
             }
 
         }
@@ -256,9 +236,9 @@ pageextension 50605 "ResourceCard Opti" extends "Resource Card"
 
     local procedure UpdateVisibility()
     begin
-        ShowPoolResourceNo := (not Rec."Opti Is Pool") and Rec."Opti Is Pool Member";
+        ShowPoolResourceNo := (not Rec."Is Pool") and Rec."Is Pool Member";
         // if not Rec."Is Pool" then
         //     ShowPoolResourceNo := Rec."Is Pool Member";
-        ShowVendorNo := Rec."Opti Is External" or Rec."Opti Is Pool";
+        ShowVendorNo := Rec."Is External" or Rec."Is Pool";
     end;
 }

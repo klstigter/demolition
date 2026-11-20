@@ -1,4 +1,4 @@
-report 50606 "Opti Job Plan. Line Usage Det."
+report 50606 "Job Planning Line Usage Detail"
 {
     // Day-Planning-to-Invoice (Release 1): given one or more Job Planning Lines, shows the
     // posted usage (Job Ledger Entry) rows behind each one, via the "Job Ledger Invoice
@@ -46,7 +46,7 @@ report 50606 "Opti Job Plan. Line Usage Det."
                 column(JobLedgerEntryNo; "Entry No.")
                 {
                 }
-                column(SkillCode_Link; JobLedgerEntry."Opti Skill")
+                column(SkillCode_Link; JobLedgerEntry."Skill")
                 {
                 }
                 column(PostingDate_Entry; JobLedgerEntry."Posting Date")

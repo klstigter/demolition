@@ -1,9 +1,9 @@
-page 50684 "Opti Resource Absence List"
+page 50684 "Resource Absence List"
 {
     Caption = 'Resource Absence List';
     PageType = List;
     SourceTable = "Res. Capacity Entry";
-    SourceTableView = where("Opti Type" = const(Absence));
+    SourceTableView = where(Type = const(Absence));
     UsageCategory = Lists;
     ApplicationArea = All;
     Editable = false;
@@ -25,7 +25,7 @@ page 50684 "Opti Resource Absence List"
                     Caption = 'Hours';
                     ToolTip = 'Specifies the number of absence hours.';
                 }
-                field("Absence Reason Code"; Rec."Opti Absence Reason Code")
+                field("Absence Reason Code"; Rec."Absence Reason Code")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the reason for the absence.';
@@ -52,8 +52,8 @@ page 50684 "Opti Resource Absence List"
 
                 trigger OnAction()
                 var
-                    RegisterAbsence: Record "Opti Register Absence";
-                    RegisterAbsencePage: Page "Opti Register Absence";
+                    RegisterAbsence: Record "Register Absence";
+                    RegisterAbsencePage: Page "Register Absence";
                     ResourceNoValue: Code[20];
                 begin
                     // RunPageLink needs an actual current row to read field("Resource No.") from,

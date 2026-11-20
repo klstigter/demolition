@@ -70,7 +70,7 @@
 /// GetTable(SkillCode) into a RecordRef and pass that + SkillCode.FieldNo(Code) into
 /// SelectionFilterManagement.GetSelectionFilter(RecordRef, Integer).
 /// </summary>
-report 50608 "Opti Task Scheduler Filter"
+report 50608 "Task Scheduler Filter"
 {
     UsageCategory = None;
     ApplicationArea = All;

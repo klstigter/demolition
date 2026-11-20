@@ -1,4 +1,4 @@
-enum 50618 "Opti Time Slot Day"
+enum 50618 "Time Slot Day"
 {
     Extensible = true;
     Caption = 'Time Slot Day';

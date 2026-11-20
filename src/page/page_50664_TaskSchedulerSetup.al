@@ -1,10 +1,10 @@
-page 50664 "Opti Task Scheduler Setup"
+page 50664 "Task Scheduler Setup"
 {
     PageType = Card;
     ApplicationArea = All;
     UsageCategory = Administration;
     Caption = 'Task Scheduler Setup';
-    SourceTable = "Opti Task Scheduler Setup";
+    SourceTable = "Task Scheduler Setup";
     DeleteAllowed = false;
     InsertAllowed = false;
 

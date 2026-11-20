@@ -1,10 +1,10 @@
-codeunit 50613 "Opti GanttChartDataHandler"
+codeunit 50613 "GanttChartDataHandler"
 {
     var
-        GenUtils: Codeunit "Opti General Plan. Utilities";
+        GenUtils: Codeunit "General Planning Utilities";
         ParentJobTaskId: array[10] of Text;
         SkillFilterText: Text;
-        MatchDP: Record "Opti Day Planning" temporary;
+        MatchDP: Record "Day Planning" temporary;
         ScopePairSet: List of [Text];
         InFilterActive: Boolean;
         ScopeUsesPairs: Boolean;
@@ -34,7 +34,7 @@ codeunit 50613 "Opti GanttChartDataHandler"
         InFilterActive := true;
     end;
 
-    local procedure AddInFilterFlag(var JsonObject: JsonObject; var DayPlanning: Record "Opti Day Planning")
+    local procedure AddInFilterFlag(var JsonObject: JsonObject; var DayPlanning: Record "Day Planning")
     var
         InFilter: Boolean;
     begin
@@ -62,12 +62,12 @@ codeunit 50613 "Opti GanttChartDataHandler"
         SkillFilterText := pSkillFilter;
     end;
 
-    procedure GetDateRange(GanttSetup: Record "Opti Gantt Chart Setup";
+    procedure GetDateRange(GanttSetup: Record "Gantt Chart Setup";
                            AchorDate: Date;
                            var StartDate: Date;
                            var EndDate: Date)
     var
-        DHXDataHandler: Codeunit "Opti DHX Data Handler";
+        DHXDataHandler: Codeunit "DHX Data Handler";
     begin
         case GanttSetup."Date Range Type" of
             GanttSetup."Date Range Type"::"Date Range":
@@ -102,7 +102,7 @@ codeunit 50613 "Opti GanttChartDataHandler"
 
     procedure GetJobTasksAsJson(AchorDate: Date; pJobFilter: Text; pJobTaskFilter: Text) JsonText: Text
     var
-        GanttSetup: Record "Opti Gantt Chart Setup";
+        GanttSetup: Record "Gantt Chart Setup";
         JobTaskByPlanned: Record "Job Task";
         JobTaskByConstraint: Record "Job Task";
         JobTask: Record "Job Task";
@@ -119,7 +119,7 @@ codeunit 50613 "Opti GanttChartDataHandler"
         HasConstraintRow: Boolean;
         KeyCompare: Integer;
         FromConstraintRow: Boolean;
-        SkillDayPlanning: Record "Opti Day Planning";
+        SkillDayPlanning: Record "Day Planning";
         SkillTaskKeys: List of [Text];
         SkillTaskKey: Text;
     begin
@@ -136,8 +136,8 @@ codeunit 50613 "Opti GanttChartDataHandler"
             JobTaskByPlanned.SetFilter("Job No.", JobNoFilter);
         if pJobTaskFilter <> '' then
             JobTaskByPlanned.SetFilter("Job Task No.", pJobTaskFilter);
-        JobTaskByPlanned.SetFilter("Opti VisualBarStartDate", '<=%1', EndDate);
-        JobTaskByPlanned.SetFilter("Opti VisualBarEndDate", '>=%1', StartDate);
+        JobTaskByPlanned.SetFilter(VisualBarStartDate, '<=%1', EndDate);
+        JobTaskByPlanned.SetFilter(VisualBarEndDate, '>=%1', StartDate);
 
         // Cursor 2: tasks whose persisted constraint-derived period ("Constraint Calc. - Start/End
         // Date", kept up to date by UpdateConstraintCalcDates in tableext 50605) overlaps the
@@ -148,8 +148,8 @@ codeunit 50613 "Opti GanttChartDataHandler"
             JobTaskByConstraint.SetFilter("Job No.", JobNoFilter);
         if pJobTaskFilter <> '' then
             JobTaskByConstraint.SetFilter("Job Task No.", pJobTaskFilter);
-        JobTaskByConstraint.SetFilter("Opti Constraint Calc Start", '<=%1', EndDate);
-        JobTaskByConstraint.SetFilter("Opti Constraint Calc End", '>=%1', StartDate);
+        JobTaskByConstraint.SetFilter("Constraint Calc. - Start Date", '<=%1', EndDate);
+        JobTaskByConstraint.SetFilter("Constraint Calc. - End Date", '>=%1', StartDate);
 
         // Skill filter: Job Task has no skill field, so keep only Posting tasks that have at least
         // one Day Planning with that Skill (non-posting parent rows stay so the tree is not orphaned).
@@ -253,18 +253,18 @@ codeunit 50613 "Opti GanttChartDataHandler"
     /// </summary>
     local procedure GetEffectivePeriod(JobTask: Record "Job Task"; var EffectiveStartDate: Date; var EffectiveEndDate: Date)
     begin
-        if (JobTask."Opti VisualBarStartDate" <> 0D) and (JobTask."Opti VisualBarEndDate" <> 0D) then begin
-            EffectiveStartDate := JobTask."Opti VisualBarStartDate";
-            EffectiveEndDate := JobTask."Opti VisualBarEndDate";
+        if (JobTask.VisualBarStartDate <> 0D) and (JobTask.VisualBarEndDate <> 0D) then begin
+            EffectiveStartDate := JobTask.VisualBarStartDate;
+            EffectiveEndDate := JobTask.VisualBarEndDate;
         end else begin
-            EffectiveStartDate := JobTask."Opti Constraint Calc Start";
-            EffectiveEndDate := JobTask."Opti Constraint Calc End";
+            EffectiveStartDate := JobTask."Constraint Calc. - Start Date";
+            EffectiveEndDate := JobTask."Constraint Calc. - End Date";
         end;
     end;
 
     local procedure CreateJobTaskJsonObject(JobTask: Record "Job Task") JsonObject: JsonObject
     var
-        VisualDefaultSettings: Codeunit "Opti Visual Default Settings";
+        VisualDefaultSettings: Codeunit "Visual Default Settings";
         ColorTxt: Text;
         StartDateText: Text;
         StartEndText: Text;
@@ -300,11 +300,11 @@ codeunit 50613 "Opti GanttChartDataHandler"
         if (EffectiveStartDate <> 0D) and (EffectiveEndDate <> 0D) then
             GanttDuration := EffectiveEndDate - EffectiveStartDate + 1
         else
-            GanttDuration := JobTask."Opti Duration";
+            GanttDuration := JobTask.Duration;
         JsonObject.Add('duration', GanttDuration);
         JsonObject.Add('bcJobNo', JobTask."Job No.");
         JsonObject.Add('bcJobTaskNo', JobTask."Job Task No.");
-        SchedulingTypeText := GetSchedulingTypeText(JobTask."Opti Scheduling Type");
+        SchedulingTypeText := GetSchedulingTypeText(JobTask."Scheduling Type");
         JsonObject.Add('schedulingType', SchedulingTypeText);
 
         // "Constraint Type" always carries a value (InitValue = ASAP - see tableext 50605's
@@ -314,15 +314,15 @@ codeunit 50613 "Opti GanttChartDataHandler"
         // NOTE: bcConstraintType/bcConstraintDate/bcMaxDuration are distinct from DHTMLX's own
         // built-in constraint_type/constraint_date auto-scheduling keys used elsewhere in this
         // pipeline (codeunit 50616, wrapper.js) - do not conflate the two.
-        if JobTask."Opti Constraint Date" <> 0D then
-            ConstraintTypeText := Format(JobTask."Opti Constraint Type")
+        if JobTask."Constraint Date" <> 0D then
+            ConstraintTypeText := Format(JobTask."Constraint Type")
         else
             ConstraintTypeText := '';
         JsonObject.Add('bcConstraintType', ConstraintTypeText);
-        JsonObject.Add('bcConstraintDate', FormatDate(JobTask."Opti Constraint Date"));
-        JsonObject.Add('bcMaxDuration', JobTask."Opti Max Duration");
+        JsonObject.Add('bcConstraintDate', FormatDate(JobTask."Constraint Date"));
+        JsonObject.Add('bcMaxDuration', JobTask."Max Duration");
 
-        JsonObject.Add('progress', JobTask."Opti Progress" / 100); // Convert percentage to a value between 0 and 1
+        JsonObject.Add('progress', JobTask."Progress" / 100); // Convert percentage to a value between 0 and 1
         // Colour for every task bar:
         // Starting seed colour for every task bar, (sole source)
         // "Daily Optimizer Setup"."GTB Color" via codeunit 50609's GetGanttTaskBarColor for
@@ -355,7 +355,7 @@ codeunit 50613 "Opti GanttChartDataHandler"
         FormattedDate := Format(InputDate, 0, '<Year4>-<Month,2>-<Day,2>');
     end;
 
-    local procedure GetSchedulingTypeText(SchedulingType: Enum "Opti schedulingType") SchedulingTypeText: Text
+    local procedure GetSchedulingTypeText(SchedulingType: Enum schedulingType) SchedulingTypeText: Text
     begin
         case SchedulingType of
             SchedulingType::FixedDuration:
@@ -421,10 +421,10 @@ codeunit 50613 "Opti GanttChartDataHandler"
     // SetDayPlanningPassFilters).
     local procedure CollectUsedResources(AnchorDate: Date; JobNo: Code[20]; JobTaskNo: Code[20]; var UsedResources: Dictionary of [Code[20], Boolean])
     var
-        GanttSetup: Record "Opti Gantt Chart Setup";
-        DayPlanning: Record "Opti Day Planning";
+        GanttSetup: Record "Gantt Chart Setup";
+        DayPlanning: Record "Day Planning";
         JobTask: Record "Job Task";
-        UsedResourcesQuery: Query "Opti Day Plan. Used Resources";
+        UsedResourcesQuery: Query "Day Planning Used Resources";
         ResourceNo: Code[20];
         StartDate: Date;
         EndDate: Date;
@@ -463,7 +463,7 @@ codeunit 50613 "Opti GanttChartDataHandler"
         if DayPlanning.FindSet() then
             repeat
                 if JobTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
-                    if (JobTask."Opti Placeholder Date" >= StartDate) and (JobTask."Opti Placeholder Date" <= EndDate) then
+                    if (JobTask."Placeholder Date" >= StartDate) and (JobTask."Placeholder Date" <= EndDate) then
                         AddUsedResource(UsedResources, DayPlanning);
             until DayPlanning.Next() = 0;
     end;
@@ -486,7 +486,7 @@ codeunit 50613 "Opti GanttChartDataHandler"
     //   3: dated, no resource at all ('- NONE -' row)   6: undated placeholder, no resource at all
     // Passes 3 and 6 have no resource to filter on, so they keep the Job/Job Task/Skill filters.
     // Returns false when the pass has nothing to load (resource pass with an empty ResFilter).
-    local procedure SetDayPlanningPassFilters(var DayPlanning: Record "Opti Day Planning"; Pass: Integer; ResFilter: Text; FromDate: Date; ToDate: Date; JobNo: Code[20]; JobTaskNo: Code[20]): Boolean
+    local procedure SetDayPlanningPassFilters(var DayPlanning: Record "Day Planning"; Pass: Integer; ResFilter: Text; FromDate: Date; ToDate: Date; JobNo: Code[20]; JobTaskNo: Code[20]): Boolean
     begin
         DayPlanning.Reset();
         if ((Pass = 1) or (Pass = 2) or (Pass = 4) or (Pass = 5)) and (ResFilter = '') then
@@ -533,7 +533,7 @@ codeunit 50613 "Opti GanttChartDataHandler"
     // panel's cell colour. One query for all listed resources + the displayed period.
     procedure GetResourceCapacityAsJson(AnchorDate: Date; JobNo: Code[20]; JobTaskNo: Code[20]) JsonText: Text
     var
-        GanttSetup: Record "Opti Gantt Chart Setup";
+        GanttSetup: Record "Gantt Chart Setup";
         UsedResources: Dictionary of [Code[20], Boolean];
         StartDate: Date;
         EndDate: Date;
@@ -566,7 +566,7 @@ codeunit 50613 "Opti GanttChartDataHandler"
 
     local procedure BuildCapacityJson(ResFilter: Text; FromDate: Date; ToDate: Date) JsonText: Text
     var
-        CapacityQry: Query "Opti Resource Capacity Per Day";
+        CapacityQry: Query "Resource Capacity Per Day";
         JsonArray: JsonArray;
         JsonObject: JsonObject;
     begin
@@ -593,8 +593,8 @@ codeunit 50613 "Opti GanttChartDataHandler"
     // detect changes after a sub page closes.
     procedure GetDayPlanningFingerprint(AnchorDate: Date; JobNo: Code[20]; JobTaskNo: Code[20]; var Cnt: Integer; var MaxModified: DateTime)
     var
-        GanttSetup: Record "Opti Gantt Chart Setup";
-        DayPlanning: Record "Opti Day Planning";
+        GanttSetup: Record "Gantt Chart Setup";
+        DayPlanning: Record "Day Planning";
         UsedResources: Dictionary of [Code[20], Boolean];
         ResFilter: Text;
         StartDate: Date;
@@ -624,7 +624,7 @@ codeunit 50613 "Opti GanttChartDataHandler"
     // given "JobNo|JobTaskNo" keys, bars are those resources' Day Plannings in FromDate..ToDate.
     procedure GetDayPlanningFingerprintByJobTask(JobTaskKeys: List of [Text]; FromDate: Date; ToDate: Date; var Cnt: Integer; var MaxModified: DateTime)
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         ResourceNos: List of [Code[20]];
         ResFilter: Text;
         ResNo: Code[20];
@@ -645,7 +645,7 @@ codeunit 50613 "Opti GanttChartDataHandler"
             end;
     end;
 
-    local procedure AddToFingerprint(var DayPlanning: Record "Opti Day Planning"; var Cnt: Integer; var MaxModified: DateTime)
+    local procedure AddToFingerprint(var DayPlanning: Record "Day Planning"; var Cnt: Integer; var MaxModified: DateTime)
     begin
         if DayPlanning.FindSet() then
             repeat
@@ -655,7 +655,7 @@ codeunit 50613 "Opti GanttChartDataHandler"
             until DayPlanning.Next() = 0;
     end;
 
-    local procedure AddUsedResource(var UsedResources: Dictionary of [Code[20], Boolean]; DayPlanning: Record "Opti Day Planning")
+    local procedure AddUsedResource(var UsedResources: Dictionary of [Code[20], Boolean]; DayPlanning: Record "Day Planning")
     var
         ResourceNo: Code[20];
     begin
@@ -684,8 +684,8 @@ codeunit 50613 "Opti GanttChartDataHandler"
     /// </summary>
     procedure GetDayPlanningsByJobTaskAsJson(JobTaskKeys: List of [Text]; FromDate: Date; ToDate: Date) JsonText: Text
     var
-        DayPlanningByJobTaskQry: Query "Opti Day Planning By Job Task";
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanningByJobTaskQry: Query "Day Planning By Job Task";
+        DayPlanning: Record "Day Planning";
         JsonArray: JsonArray;
         JsonObject: JsonObject;
         JobNoFilterText: Text;
@@ -800,7 +800,7 @@ codeunit 50613 "Opti GanttChartDataHandler"
 
     local procedure CollectResourceNosByJobTask(JobTaskKeys: List of [Text]; FromDate: Date; ToDate: Date; var ResourceNos: List of [Code[20]])
     var
-        DayPlanningByJobTaskQry: Query "Opti Day Planning By Job Task";
+        DayPlanningByJobTaskQry: Query "Day Planning By Job Task";
         JobNoFilterText: Text;
         JobTaskNoFilterText: Text;
         PairSet: List of [Text];
@@ -869,7 +869,7 @@ codeunit 50613 "Opti GanttChartDataHandler"
         end;
     end;
 
-    local procedure ApplyPlanDateFilter(var DayPlanningByJobTaskQry: Query "Opti Day Planning By Job Task"; FromDate: Date; ToDate: Date)
+    local procedure ApplyPlanDateFilter(var DayPlanningByJobTaskQry: Query "Day Planning By Job Task"; FromDate: Date; ToDate: Date)
     begin
         if (FromDate <> 0D) and (ToDate <> 0D) then
             DayPlanningByJobTaskQry.SetRange(PlanDateFilter, FromDate, ToDate)
@@ -954,7 +954,7 @@ codeunit 50613 "Opti GanttChartDataHandler"
 
     procedure GetDayPlanningsAsJson(StartData: date) JsonText: Text
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         JsonArray: JsonArray;
         JsonObject: JsonObject;
     begin
@@ -963,7 +963,7 @@ codeunit 50613 "Opti GanttChartDataHandler"
 
     procedure GetDayPlanningsAsJson(AnchorDate: date; JobNo: Code[20]) JsonText: Text
     var
-        DayPlanning: Record "Opti Day Planning";
+        DayPlanning: Record "Day Planning";
         JsonArray: JsonArray;
         JsonObject: JsonObject;
     begin
@@ -996,8 +996,8 @@ codeunit 50613 "Opti GanttChartDataHandler"
     /// </summary>
     procedure GetDayPlanningsAsJson(AnchorDate: date; JobNo: Code[20]; JobTaskNo: Code[20]; Cursor: Text; PageSize: Integer; var HasMore: Boolean; var NextCursor: Text) JsonText: Text
     var
-        GanttSetup: Record "Opti Gantt Chart Setup";
-        DayPlanning: Record "Opti Day Planning";
+        GanttSetup: Record "Gantt Chart Setup";
+        DayPlanning: Record "Day Planning";
         JobTask: Record "Job Task";
         UsedResources: Dictionary of [Code[20], Boolean];
         StartDate: Date;
@@ -1042,7 +1042,7 @@ codeunit 50613 "Opti GanttChartDataHandler"
                     if Pass >= 4 then
                         // Request day plannings with blank Plan Date: shown at the Job Task's Placeholder Date when in range
                         Include := JobTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") and
-                                   (JobTask."Opti Placeholder Date" >= StartDate) and (JobTask."Opti Placeholder Date" <= EndDate);
+                                   (JobTask."Placeholder Date" >= StartDate) and (JobTask."Placeholder Date" <= EndDate);
                     if Include then begin
                         if Emitted >= PageSize then begin
                             HasMore := true;
@@ -1052,7 +1052,7 @@ codeunit 50613 "Opti GanttChartDataHandler"
                         if Pass <= 3 then
                             JsonObject := CreateDayPlanningJsonObject(DayPlanning)
                         else
-                            JsonObject := CreateDayPlanningJsonObjectRequest(DayPlanning, JobTask."Opti Placeholder Date");
+                            JsonObject := CreateDayPlanningJsonObjectRequest(DayPlanning, JobTask."Placeholder Date");
                         AddInFilterFlag(JsonObject, DayPlanning);
                         JsonArray.Add(JsonObject);
                         Emitted += 1;
@@ -1076,8 +1076,8 @@ codeunit 50613 "Opti GanttChartDataHandler"
     /// </summary>
     procedure GetChangedDayPlanningsAsJson(AnchorDate: Date; JobNo: Code[20]; JobTaskNo: Code[20]; Since: DateTime; BeforeCount: Integer; AfterCount: Integer; var ChangedJson: Text; var ResourcesJson: Text; var CapacityJson: Text): Boolean
     var
-        GanttSetup: Record "Opti Gantt Chart Setup";
-        DayPlanning: Record "Opti Day Planning";
+        GanttSetup: Record "Gantt Chart Setup";
+        DayPlanning: Record "Day Planning";
         JobTask: Record "Job Task";
         Resource: Record Resource;
         StartDate: Date;
@@ -1112,14 +1112,14 @@ codeunit 50613 "Opti GanttChartDataHandler"
                         Include := true;
                         if Pass >= 4 then
                             Include := JobTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") and
-                                       (JobTask."Opti Placeholder Date" >= StartDate) and (JobTask."Opti Placeholder Date" <= EndDate);
+                                       (JobTask."Placeholder Date" >= StartDate) and (JobTask."Placeholder Date" <= EndDate);
                         if Include then begin
                             if DayPlanning.SystemCreatedAt > Since then
                                 Created += 1;
                             if Pass <= 3 then
                                 JsonObject := CreateDayPlanningJsonObject(DayPlanning)
                             else
-                                JsonObject := CreateDayPlanningJsonObjectRequest(DayPlanning, JobTask."Opti Placeholder Date");
+                                JsonObject := CreateDayPlanningJsonObjectRequest(DayPlanning, JobTask."Placeholder Date");
                             AddInFilterFlag(JsonObject, DayPlanning);
                             ChangedArray.Add(JsonObject);
                             ResourceNo := DayPlanning."Assigned Resource No.";
@@ -1154,7 +1154,7 @@ codeunit 50613 "Opti GanttChartDataHandler"
 
     // Positions DayPlanning on the first record (under its current filters) after the cursor's key
     // when the cursor belongs to this pass, otherwise on the first record.
-    local procedure PositionAfterCursor(var DayPlanning: Record "Opti Day Planning"; Cursor: Text; Parts: List of [Text]; ForPass: Integer): Boolean
+    local procedure PositionAfterCursor(var DayPlanning: Record "Day Planning"; Cursor: Text; Parts: List of [Text]; ForPass: Integer): Boolean
     var
         CursorPass: Integer;
         LineNo: Integer;
@@ -1172,7 +1172,7 @@ codeunit 50613 "Opti GanttChartDataHandler"
         exit(DayPlanning.Find('-'));
     end;
 
-    local procedure CreateDayPlanningJsonObject(DayPlanning: Record "Opti Day Planning") JsonObject: JsonObject
+    local procedure CreateDayPlanningJsonObject(DayPlanning: Record "Day Planning") JsonObject: JsonObject
     begin
         exit(BuildDayPlanningJsonObject(
             DayPlanning.SystemId, DayPlanning."Job No.", DayPlanning."Job Task No.", DayPlanning."Plan Date",
@@ -1208,7 +1208,7 @@ codeunit 50613 "Opti GanttChartDataHandler"
         AssignedResourceNoValue: Code[20];
         RequestedResourceNoValue: Code[20];
         VendorNoValue: Code[20];
-        PlanStatusValue: Enum "Opti Plan Status";
+        PlanStatusValue: Enum "Plan Status";
         WorkOrderNoValue: Code[20];
         SkillValue: Code[20];
         SequenceNoValue: Integer) JsonObject: JsonObject
@@ -1283,7 +1283,7 @@ codeunit 50613 "Opti GanttChartDataHandler"
         JsonObject.Add('sequence_no', SequenceNoValue);
     end;
 
-    local procedure CreateDayPlanningJsonObjectRequest(DayPlanning: Record "Opti Day Planning"; PlaceholderDate: Date) JsonObject: JsonObject
+    local procedure CreateDayPlanningJsonObjectRequest(DayPlanning: Record "Day Planning"; PlaceholderDate: Date) JsonObject: JsonObject
     var
         StartTimeText: Text;
         EndTimeText: Text;
@@ -1378,7 +1378,7 @@ codeunit 50613 "Opti GanttChartDataHandler"
     /// </summary>
     procedure GetHolidaysAsJson(StartDate: Date; EndDate: Date) JsonText: Text
     var
-        DailyOptimizerSetup: Record "Opti Daily Optimizer Setup";
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
         BaseCalendar: Record "Base Calendar";
         CalendarMgt: Codeunit "Calendar Management";
         CustomizedCalendarChange: Record "Customized Calendar Change";

@@ -1,10 +1,10 @@
-page 50610 "Opti Job Card - Resource"
+page 50610 "Job Card - Resource"
 {
     Caption = 'Project Card';
     PageType = Document;
     RefreshOnActivate = true;
     SourceTable = Job;
-    SourceTableView = where("Opti Job View Type" = const("Resource"));
+    SourceTableView = where("Job View Type" = const("Resource"));
     AdditionalSearchTerms = 'Job Card';
 
     layout
@@ -65,7 +65,7 @@ page 50610 "Opti Job Card - Resource"
                         exit(Rec.LookupSellToCustomerName(Text));
                     end;
                 }
-                field(nonActive; Rec."Opti Non Active")
+                field(nonActive; Rec."Non Active")
                 {
                     ApplicationArea = All;
                     Caption = 'Non Active';
@@ -924,6 +924,17 @@ page 50610 "Opti Job Card - Resource"
                 SubPageLink = "No." = field("Bill-to Customer No.");
                 Visible = false;
             }
+            // part("Attached Documents"; "Document Attachment Factbox")
+            // {
+            //     ObsoleteTag = '25.0';
+            //     ObsoleteState = Pending;
+            //     ObsoleteReason = 'The "Document Attachment FactBox" has been replaced by "Doc. Attachment List Factbox", which supports multiple files upload.';
+            //     ApplicationArea = All;
+            //     Visible = false;
+            //     Caption = 'Attachments';
+            //     SubPageLink = "Table ID" = const(Database::Job),
+            //                   "No." = field("No.");
+            // }
             part("Attached Documents List"; "Doc. Attachment List Factbox")
             {
                 ApplicationArea = All;
@@ -1737,6 +1748,36 @@ page 50610 "Opti Job Card - Resource"
                 actionref(PurchDiscountLines_Promoted; PurchDiscountLines)
                 {
                 }
+                // actionref(SalesPriceListsDiscounts_Promoted; SalesPriceListsDiscounts)
+                // {
+                //     ObsoleteState = Pending;
+                //     ObsoleteReason = 'Action SalesPriceLists shows all sales price lists with prices and discounts';
+                //     ObsoleteTag = '18.0';
+                // }
+                // actionref(PurchasePriceListsDiscounts_Promoted; PurchasePriceListsDiscounts)
+                // {
+                //     ObsoleteState = Pending;
+                //     ObsoleteReason = 'Action PurchasePriceLists shows all purchase price lists with prices and discounts';
+                //     ObsoleteTag = '18.0';
+                // }
+                // actionref("&Resource_Promoted"; "&Resource")
+                // {
+                //     ObsoleteState = Pending;
+                //     ObsoleteReason = 'Replaced by the new implementation (V16) of price calculation.';
+                //     ObsoleteTag = '17.0';
+                // }
+                // actionref("&Item_Promoted"; "&Item")
+                // {
+                //     ObsoleteState = Pending;
+                //     ObsoleteReason = 'Replaced by the new implementation (V16) of price calculation.';
+                //     ObsoleteTag = '17.0';
+                // }
+                // actionref("&G/L Account_Promoted"; "&G/L Account")
+                // {
+                //     ObsoleteState = Pending;
+                //     ObsoleteReason = 'Replaced by the new implementation (V16) of price calculation.';
+                //     ObsoleteTag = '17.0';
+                // }
             }
             group(Category_Category5)
             {
@@ -1814,7 +1855,7 @@ page 50610 "Opti Job Card - Resource"
     var
         PriceCalculationMgt: Codeunit "Price Calculation Mgt.";
     begin
-        Rec.Setrange("Opti Job View Type", Rec."Opti Job View Type"::"Resource");
+        Rec.Setrange("Job View Type", Rec."Job View Type"::"Resource");
         SetNoFieldVisible();
         ActivateFields();
         ExtendedPriceEnabled := PriceCalculationMgt.IsExtendedPriceCalculationEnabled();
@@ -1822,17 +1863,17 @@ page 50610 "Opti Job Card - Resource"
 
     trigger OnInit()
     begin
-        Rec."Opti Job View Type" := Rec."Opti Job View Type"::"Resource";
+        Rec."Job View Type" := Rec."Job View Type"::"Resource";
     end;
 
     trigger OnNewRecord(BelowxRec: Boolean)
     begin
-        Rec."Opti Job View Type" := Rec."Opti Job View Type"::Resource;
+        Rec."Job View Type" := Rec."Job View Type"::Resource;
     end;
 
     trigger OnInsertRecord(BelowxRec: Boolean): Boolean
     begin
-        Rec."Opti Job View Type" := Rec."Opti Job View Type"::Resource;
+        Rec."Job View Type" := Rec."Job View Type"::Resource;
     end;
 
 

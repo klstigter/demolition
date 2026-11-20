@@ -1,4 +1,4 @@
-pageextension 50622 "Opti Job Ledger Entries" extends "Job Ledger Entries"
+pageextension 50622 "Opt. Job Ledger Entries" extends "Job Ledger Entries"
 {
     // Shows Day Planning traceability fields on the Project Ledger Entries list.
     // Fields are read-only; they are set during posting by EventSubs (codeunit 50603).
@@ -6,42 +6,42 @@ pageextension 50622 "Opti Job Ledger Entries" extends "Job Ledger Entries"
     {
         addafter("Job Task No.")
         {
-            field("Opti Opt. DayPlanning Date"; Rec."Opti Opt. DayPlanning Date")
+            field("Opt. DayPlanning Date"; Rec."Opt. DayPlanning Date")
             {
                 ApplicationArea = All;
                 Caption = 'Day Planning Date';
                 ToolTip = 'Specifies the Day Planning date that was linked to the originating Project Journal line.';
                 Editable = false;
             }
-            field("Opti Opt. DayPlanning Line No."; Rec."Opti Opt. DayPlanning Line No.")
+            field("Opt. DayPlanning Line No."; Rec."Opt. DayPlanning Line No.")
             {
                 ApplicationArea = All;
                 Caption = 'Day Planning Line No.';
                 ToolTip = 'Specifies the Day Planning line number that was linked to the originating Project Journal line.';
                 Editable = false;
             }
-            field("Opti Opt. Skill"; Rec."Opti Skill")
+            field("Opt. Skill"; Rec."Skill")
             {
                 ApplicationArea = All;
                 Caption = 'Skill';
                 ToolTip = 'Specifies the Skill that was linked to the originating Project Journal line.';
                 Editable = false;
             }
-            field("Opti Opt. Invoice Resource No."; Rec."Opti Invoice Resource No.")
+            field("Opt. Invoice Resource No."; Rec."Invoice Resource No.")
             {
                 ApplicationArea = All;
                 Caption = 'Invoice Resource No.';
                 ToolTip = 'Specifies the Invoice Resource No. that was linked to the originating Project Journal line.';
                 Editable = false;
             }
-            field("Opti Opt. Approved Project Manager"; Rec."Opti Approved Project Manager")
+            field("Opt. Approved Project Manager"; Rec."Approved Project Manager")
             {
                 ApplicationArea = All;
                 Caption = 'Approved Project Manager';
                 ToolTip = 'Specifies the Approved Project Manager that was linked to the originating Project Journal line.';
                 Editable = false;
             }
-            field("Opti WorkTypeCode"; Rec."Work Type Code")
+            field(WorkTypeCode; Rec."Work Type Code")
             {
                 ApplicationArea = All;
                 Caption = 'Work Type Code';
@@ -77,10 +77,10 @@ pageextension 50622 "Opti Job Ledger Entries" extends "Job Ledger Entries"
             actionref("Transfer To Planning Lines Opti_Promoted"; "Transfer To Planning Lines Opti")
             {
             }
-            actionref("Opti Transfer To Planning Lines Opt._Promoted"; "Opti Transfer To Planning Lines Opt.")
+            actionref("Transfer To Planning Lines Opt._Promoted"; "Transfer To Planning Lines Opt.")
             {
             }
-            actionref("Opti Create Planning Lines for Invoice_Promoted"; "Opti Create Planning Lines for Invoice")
+            actionref("Create Planning Lines for Invoice_Promoted"; "Create Planning Lines for Invoice")
             {
             }
         }
@@ -100,7 +100,7 @@ pageextension 50622 "Opti Job Ledger Entries" extends "Job Ledger Entries"
                     RunStandardTransfer();
                 end;
             }
-            action("Opti Transfer To Planning Lines Opt.")
+            action("Transfer To Planning Lines Opt.")
             {
                 ApplicationArea = Jobs;
                 Caption = 'Create Planning Lines';
@@ -114,7 +114,7 @@ pageextension 50622 "Opti Job Ledger Entries" extends "Job Ledger Entries"
                     RunOptimizerTransfer();
                 end;
             }
-            action("Opti Create Planning Lines for Invoice")
+            action("Create Planning Lines for Invoice")
             {
                 ApplicationArea = Jobs;
                 Caption = 'Create Planning Lines for Invoice';
@@ -147,7 +147,7 @@ pageextension 50622 "Opti Job Ledger Entries" extends "Job Ledger Entries"
         JobLedgEntrySelection: Record "Job Ledger Entry";
         SkippedLines: Integer;
         ProcessedCount: Integer;
-        LblMsg: Label '%1 usage entries were processed and %2 usage entries were skipped because they originated from Day Planning and should be processed using the "Create Planning Lines" action instead.', Comment = '%1 = value, %2 = value';
+        Lblmsg: Label '%1 usage entries were processed and %2 usage entries were skipped because they originated from Day Planning and should be processed using the "Create Planning Lines" action instead.';
     begin
         JobLedgEntrySelection.Copy(Rec);
         CurrPage.SetSelectionFilter(JobLedgEntrySelection);
@@ -156,7 +156,7 @@ pageextension 50622 "Opti Job Ledger Entries" extends "Job Ledger Entries"
                 JobLedgEntrySelection.TestField("Job No.");
                 JobLedgEntrySelection.TestField("Job Task No.");
                 JobLedgEntrySelection.Testfield("Entry Type", JobLedgEntrySelection."Entry Type"::Usage);
-                if JobLedgEntrySelection."Opti Opt. DayPlanning Line No." = 0 then begin
+                if JobLedgEntrySelection."Opt. DayPlanning Line No." = 0 then begin
                     JobLedgEntry := JobLedgEntrySelection;
                     JobLedgEntry.Mark(true);
                     ProcessedCount += 1;
@@ -169,7 +169,7 @@ pageextension 50622 "Opti Job Ledger Entries" extends "Job Ledger Entries"
         JobTransferToPlanningLine.GetJobLedgEntry(JobLedgEntry);
         JobTransferToPlanningLine.RunModal();
         Clear(JobTransferToPlanningLine);
-        message(LblMsg, ProcessedCount, SkippedLines);
+        message(Lblmsg, ProcessedCount, SkippedLines);
     end;
 
     local procedure RunOptimizerTransfer()
@@ -178,14 +178,14 @@ pageextension 50622 "Opti Job Ledger Entries" extends "Job Ledger Entries"
         JobLedgEntryDefault: Record "Job Ledger Entry";
         JobLedgEntryCustom: Record "Job Ledger Entry";
         JobTransferToPlanningLine: Report "Job Transfer To Planning Lines";
-        JobPlanningLinesPrepMgt: Codeunit "Opti Job Plan. Line Prep. Mgt.";
+        JobPlanningLinesPrepMgt: Codeunit "Job Planning Lines Prep. Mgt.";
         JobPlanningLine: Record "Job Planning Line";
         AlreadyLinkedCount: Integer;
         ProcessedCount: Integer;
         SkippedLines: Integer;
         LinesCreated: Integer;
         msg: Text;
-        LblMsg: Label 'There are %1 usage entries  skipped because they do not originated from Day Planning and should be processed using the "Transfer to Planning Lines" action instead.\\', Comment = '%1 = value';
+        Lblmsg: Label 'There are %1 usage entries  skipped because they do not originated from Day Planning and should be processed using the "Transfer to Planning Lines" action instead.\\';
     begin
         // Default: posted usage NOT originating from Day Planning - unchanged
         // native flow, scoped to just this subset of the user's selection.
@@ -196,7 +196,7 @@ pageextension 50622 "Opti Job Ledger Entries" extends "Job Ledger Entries"
                 JobLedgEntrySelection.TestField("Job No.");
                 JobLedgEntrySelection.TestField("Job Task No.");
                 JobLedgEntrySelection.Testfield("Entry Type", JobLedgEntrySelection."Entry Type"::Usage);
-                if (JobLedgEntrySelection."Opti Opt. DayPlanning Line No." <> 0) then begin
+                if (JobLedgEntrySelection."Opt. DayPlanning Line No." <> 0) then begin
                     JobLedgEntryCustom := JobLedgEntrySelection;
                     JobLedgEntryCustom.Mark(true);
                 end else
@@ -208,7 +208,7 @@ pageextension 50622 "Opti Job Ledger Entries" extends "Job Ledger Entries"
             LinesCreated := JobPlanningLinesPrepMgt.PrepareJobPlanningLinesFromJobLedgerEntry(JobLedgEntryCustom, JobPlanningLine, AlreadyLinkedCount, ProcessedCount);
             msg := JobPlanningLinesPrepMgt.FormatResultMessage(LinesCreated, ProcessedCount, AlreadyLinkedCount, 0, 0);
             if SkippedLines > 0 then
-                msg := STRSUBSTNO(LblMsg, SkippedLines) + msg;
+                msg := STRSUBSTNO(Lblmsg, SkippedLines) + msg;
             Message(msg);
         end;
     end;

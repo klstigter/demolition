@@ -1,9 +1,9 @@
-table 50660 "Opti DayPlanning Journal Line"
+table 50660 "DayPlanning Journal Line"
 {
     Caption = 'DayPlanning Journal Line';
     DataClassification = CustomerContent;
-    LookupPageId = "Opti Day Planning Journal";
-    DrillDownPageId = "Opti Day Planning Journal";
+    LookupPageId = "Day Planning Journal";
+    DrillDownPageId = "Day Planning Journal";
 
     fields
     {
@@ -61,18 +61,18 @@ table 50660 "Opti DayPlanning Journal Line"
         }
         field(22; Skill; Code[10])
         {
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
             tableRelation = "Skill Code";
         }
         field(23; "Invoice Resource No."; Code[20])
         {
             Caption = 'Invoice Resource No.';
-            DataClassification = CustomerContent;
+            DataClassification = ToBeClassified;
         }
         field(24; "Approved Project Manager"; Code[50])
         {
             Caption = 'Approved Project Manager';
-            DataClassification = EndUserIdentifiableInformation;
+            DataClassification = ToBeClassified;
         }
         field(30; "Global Dimension 1 Code"; Code[20])
         {
@@ -137,7 +137,6 @@ table 50660 "Opti DayPlanning Journal Line"
 
     procedure ShowDimensions()
     var
-            TextTxt: Label '%1 %2 %3', Comment = '%1=Template Name, %2=Batch Name, %3=DayPlanning Date';
         DimMgt: Codeunit DimensionManagement;
         OldDimSetID: Integer;
     begin
@@ -145,7 +144,7 @@ table 50660 "Opti DayPlanning Journal Line"
         "Dimension Set ID" :=
             DimMgt.EditDimensionSet(
                 "Dimension Set ID",
-                StrSubstNo(TextTxt, "Template Name", "Batch Name", "DayPlanning Date"));
+                StrSubstNo('%1 %2 %3', "Template Name", "Batch Name", "DayPlanning Date"));
         if OldDimSetID <> "Dimension Set ID" then begin
             DimMgt.UpdateGlobalDimFromDimSetID(
                 "Dimension Set ID",

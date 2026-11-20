@@ -1,4 +1,4 @@
-codeunit 50722 "Opti CPO BG Other WO Data"
+codeunit 50722 "CPO BG Other WO Data"
 {
     // Page Background Task target for page 50722 "Capacity Planning Overview"'s Section 4/cross-
     // Work-Order pagination (see the shared local procedure EnqueueOtherWorkOrderDataBackgroundTask
@@ -18,7 +18,7 @@ codeunit 50722 "Opti CPO BG Other WO Data"
     // pagination is needed once off the blocking UI thread.
     trigger OnRun()
     var
-        DHXDataHandler: Codeunit "Opti DHX Data Handler";
+        DHXDataHandler: Codeunit "DHX Data Handler";
         TaskParameters: Dictionary of [Text, Text];
         Result: Dictionary of [Text, Text];
         JobNo: Code[20];

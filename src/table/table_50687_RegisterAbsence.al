@@ -1,4 +1,4 @@
-table 50687 "Opti Register Absence"
+table 50687 "Register Absence"
 {
     Caption = 'Register Absence';
     DataClassification = CustomerContent;

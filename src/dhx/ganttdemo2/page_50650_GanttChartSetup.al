@@ -1,7 +1,7 @@
-page 50650 "Opti Gantt Chart Setup"
+page 50650 "Gantt Chart Setup"
 {
     PageType = Card;
-    SourceTable = "Opti Gantt Chart Setup";
+    SourceTable = "Gantt Chart Setup";
     Caption = 'Gantt Settings';
     UsageCategory = Administration;
     ApplicationArea = All;
@@ -45,13 +45,11 @@ page 50650 "Opti Gantt Chart Setup"
 
                     field("From Date"; rec."From Date")
                     {
-                        ToolTip = 'Specifies the value of the From Date field.';
                         ApplicationArea = All;
                         Enabled = DateRangeVisible;
                     }
                     field("To Date"; rec."To Date")
                     {
-                        ToolTip = 'Specifies the value of the To Date field.';
                         ApplicationArea = All;
                         Enabled = DateRangeVisible;
                     }
@@ -61,13 +59,11 @@ page 50650 "Opti Gantt Chart Setup"
                     Visible = CalculateVisible;
                     field("From Data Formula"; rec."From Data Formula")
                     {
-                        ToolTip = 'Specifies the value of the From Data Formula field.';
                         ApplicationArea = All;
                         Enabled = CalculateVisible;
                     }
                     field("To Data Formula"; rec."To Data Formula")
                     {
-                        ToolTip = 'Specifies the value of the To Data Formula field.';
                         ApplicationArea = All;
                         Enabled = CalculateVisible;
                     }
@@ -88,9 +84,9 @@ page 50650 "Opti Gantt Chart Setup"
                 group(Gridcolumns)
                 {
 
-                    field("Show Start Date"; rec."Show Start Date") { ToolTip = 'Specifies the value of the Show Start Date field.'; }
-                    field("Show Duration"; rec."Show Duration") { ToolTip = 'Specifies the value of the Show Duration field.'; }
-                    field("Show Task Type"; rec."Show Task Type") { ToolTip = 'Specifies the value of the Show Task Type field.'; }
+                    field("Show Start Date"; rec."Show Start Date") { }
+                    field("Show Duration"; rec."Show Duration") { }
+                    field("Show Task Type"; rec."Show Task Type") { }
                 }
 
             }

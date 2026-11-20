@@ -1,4 +1,4 @@
-page 50619 "Opti Resource Calendar"
+page 50619 "Resource Calendar"
 {
     PageType = List;
     ApplicationArea = All;
@@ -16,7 +16,6 @@ page 50619 "Opti Resource Calendar"
 
                 field(ShowDayPlanningFld; ShowDayPlanning)
                 {
-                    ToolTip = 'Specifies the value of the Show Day Planning Fld field.';
                     ApplicationArea = All;
                     Caption = 'Show Day Planning';
                     trigger OnValidate()
@@ -26,7 +25,6 @@ page 50619 "Opti Resource Calendar"
                 }
                 field(ShowCapacityFld; ShowCapacity)
                 {
-                    ToolTip = 'Specifies the value of the Show Capacity Fld field.';
                     ApplicationArea = All;
                     Caption = 'Show Capacity';
                     trigger OnValidate()
@@ -35,7 +33,7 @@ page 50619 "Opti Resource Calendar"
                     end;
                 }
             }
-            usercontrol(DhxScheduler; "OptiDHXResourceScheduleAddin")
+            usercontrol(DhxScheduler; DHXResourceScheduleAddin)
             {
                 ApplicationArea = All;
 
@@ -43,8 +41,8 @@ page 50619 "Opti Resource Calendar"
 
                 trigger ControlReady()
                 var
-                    SkillCapacityAnalysisMgt: Codeunit "Opti Skill Cap. Analysis Mgt.";
-                    VisualDefaultSettings: Codeunit "Opti Visual Default Settings";
+                    SkillCapacityAnalysisMgt: Codeunit "Skill Capacity Analysis Mgt.";
+                    VisualDefaultSettings: Codeunit "Visual Default Settings";
                 begin
                     AnchorDate := Today();
                     if CurrentStartDate <> 0D then
@@ -63,7 +61,7 @@ page 50619 "Opti Resource Calendar"
 
                 trigger OnAfterInit()
                 var
-                    DHXHandler: Codeunit "Opti DHX Data Handler";
+                    DHXHandler: Codeunit "DHX Data Handler";
                 begin
                     DHXHandler.GetWeekPeriodDates(AnchorDate, CurrentStartDate, CurrentEndDate);
                     CurrPage.DhxScheduler.LoadData(BuildEventsJson(CurrentStartDate, CurrentEndDate));
@@ -101,17 +99,17 @@ page 50619 "Opti Resource Calendar"
 
                 trigger OnEventDoubleClick(EventId: Text; ResourceId: Text)
                 var
-                    DayPlanningRec: record "Opti Day Planning";
+                    DayPlanningRec: record "Day Planning";
                     RecRef: RecordRef;
                     RecId: RecordId;
                 begin
                     if Evaluate(RecId, EventId) then begin
                         RecRef.Get(RecId);
                         RecRef.SetTable(DayPlanningRec);
-                        Page.Run(Page::"Opti Day Plannings", DayPlanningRec);
+                        Page.Run(Page::"Day Plannings", DayPlanningRec);
                     end else begin
                         DayPlanningRec.SetFilter("Assigned Resource No.", ResourceId);
-                        Page.Run(Page::"Opti Day Plannings", DayPlanningRec);
+                        Page.Run(Page::"Day Plannings", DayPlanningRec);
                     end;
                 end;
 
@@ -125,10 +123,10 @@ page 50619 "Opti Resource Calendar"
 
                 trigger OnEventContextMenu(EventId: Text; action: Text; PeriodStart: Text; PeriodEnd: Text; payloadJson: Text)
                 var
-                    DayPlanningRec: record "Opti Day Planning";
+                    DayPlanningRec: record "Day Planning";
                     ResRec: Record Resource;
                     ResCapacity: Page "Resource Capacity";
-                    DayPlanningList: page "Opti Day Plannings";
+                    DayPlanningList: page "Day Plannings";
                     RecRef: RecordRef;
                     RecId: RecordId;
                     Payload: JsonObject;
@@ -185,8 +183,8 @@ page 50619 "Opti Resource Calendar"
                         'OpenCapacity':
                             begin
                                 ResRec.SetRange("No.", ResourceId);
-                                ResCapacity.OptiResourceFilter(ResRec.GetFilter("No."));
-                                ResCapacity.OptiSetPeriod(DT1, DT2);
+                                ResCapacity.ResourceFilter(ResRec.GetFilter("No."));
+                                ResCapacity.SetPeriod(DT1, DT2);
                                 ResCapacity.SetTableView(ResRec);
                                 ResCapacity.Run();
                             end;
@@ -196,8 +194,8 @@ page 50619 "Opti Resource Calendar"
                 trigger OnResourceContextMenu(ResourceId: Text; action: Text; PeriodStart: Text; PeriodEnd: Text; payloadJson: Text)
                 var
                     ResRec: Record Resource;
-                    DayPlannings: record "Opti Day Planning";
-                    DayPlanningList: page "Opti Day Plannings";
+                    DayPlannings: record "Day Planning";
+                    DayPlanningList: page "Day Plannings";
                     ResCapacity: Page "Resource Capacity";
                     DT1: Date;
                     DT2: Date;
@@ -222,8 +220,8 @@ page 50619 "Opti Resource Calendar"
                             begin
                                 //message('exec OpenCapacity, parameter ResourceId: %1, PeriodStart: %2, PeriodEnd: %3', ResourceId, PeriodStart, PeriodEnd);
                                 ResRec.Setrange("No.", ResourceId);
-                                ResCapacity.OptiResourceFilter(ResRec.GetFilter("No."));
-                                ResCapacity.OptiSetPeriod(DT1, DT2);
+                                ResCapacity.ResourceFilter(ResRec.GetFilter("No."));
+                                ResCapacity.SetPeriod(DT1, DT2);
                                 ResCapacity.SetTableView(ResRec);
                                 ResCapacity.Run();
                             end;
@@ -236,7 +234,7 @@ page 50619 "Opti Resource Calendar"
 
                 trigger OnResourceFilterIconClick()
                 var
-                    FilterDlg: Report "Opti Resource Scheduler Filter";
+                    FilterDlg: Report "Resource Scheduler Filter";
                     NewResNoFilter: Text;
                     NewResNameFilter: Text;
                     NewSkillFilter: Text;
@@ -272,7 +270,6 @@ page 50619 "Opti Resource Calendar"
         {
             action("Resource Capacities")
             {
-                ToolTip = 'Executes the Resource Capacities action.';
                 ApplicationArea = Basic, Suite;
                 Caption = 'Resource Capacities';
                 RunObject = page "Resource Capacity";
@@ -280,13 +277,12 @@ page 50619 "Opti Resource Calendar"
             }
             action("Scheduler Resfresh")
             {
-                ToolTip = 'Executes the Scheduler Resfresh action.';
                 ApplicationArea = Basic, Suite;
                 Caption = 'Refresh';
                 Image = Refresh;
                 trigger OnAction()
                 var
-                    DHXHandler: Codeunit "Opti DHX Data Handler";
+                    DHXHandler: Codeunit "DHX Data Handler";
                 begin
                     if (CurrentStartDate = 0D) or (CurrentEndDate = 0D) then
                         DHXHandler.GetWeekPeriodDates(AnchorDate, CurrentStartDate, CurrentEndDate);
@@ -300,7 +296,7 @@ page 50619 "Opti Resource Calendar"
             {
                 ApplicationArea = Jobs;
                 Caption = '&Set Capacity';
-                RunObject = Page "Opti Res. Cap. Settings Opt";
+                RunObject = Page "Resource Capacity Settings Opt";
                 //RunPageLink = "No." = field("No.");
                 ToolTip = 'Change the capacity of the resource, such as a technician.';
             }
@@ -331,21 +327,21 @@ page 50619 "Opti Resource Calendar"
 
     local procedure BuildResourcesJson(): Text
     var
-        DHXHandler: Codeunit "Opti DHX Data Handler";
+        DHXHandler: Codeunit "DHX Data Handler";
     begin
         exit(DHXHandler.ResScheduler_BuildResourcesJson(ResourceFilter, ResourceNameFilter, SkillFilter));
     end;
 
     local procedure BuildEventsJson(StartDate: Date; EndDate: Date): Text
     var
-        DHXHandler: Codeunit "Opti DHX Data Handler";
+        DHXHandler: Codeunit "DHX Data Handler";
     begin
         exit(DHXHandler.ResScheduler_BuildEventsJson(ResourceFilter, StartDate, EndDate, ResourceNameFilter, SkillFilter));
     end;
 
     local procedure BuildCapacityJson(StartDate: Date; EndDate: Date): Text
     var
-        DHXHandler: Codeunit "Opti DHX Data Handler";
+        DHXHandler: Codeunit "DHX Data Handler";
     begin
         exit(DHXHandler.ResScheduler_BuildCapacityJson(ResourceFilter, StartDate, EndDate, ResourceNameFilter, SkillFilter));
     end;
@@ -399,15 +395,13 @@ page 50619 "Opti Resource Calendar"
 
     local procedure PushResourceFilterInfo()
     var
-            NameFilterTxt: Label ' (name filter: %1)', Comment = '%1=ResourceNameFilter';
-            SkillFilterTxt: Label ' (skill filter: %1)', Comment = '%1=SkillFilter';
         ResNameLbl: Text;
     begin
         ResNameLbl := GetResourceName(ResourceFilter);
         if ResourceNameFilter <> '' then
-            ResNameLbl += StrSubstNo(NameFilterTxt, ResourceNameFilter);
+            ResNameLbl += StrSubstNo(' (name filter: %1)', ResourceNameFilter);
         if SkillFilter <> '' then
-            ResNameLbl += StrSubstNo(SkillFilterTxt, SkillFilter);
+            ResNameLbl += StrSubstNo(' (skill filter: %1)', SkillFilter);
         CurrPage.DhxScheduler.SetResourceFilterInfo(
             ResourceFilter,
             ResNameLbl,

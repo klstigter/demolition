@@ -1,4 +1,4 @@
-codeunit 50720 "Opti Task Sched. BG Sections"
+codeunit 50720 "Task Scheduler BG Sections"
 {
     // Page Background Task target for page 50621 "DHX Scheduler (Project)" - see the shared local
     // procedure EnqueuePaginatedSectionsLoad there (called from ControlReady/RefreshSchedule/
@@ -18,7 +18,7 @@ codeunit 50720 "Opti Task Sched. BG Sections"
     // or Job/Job Task) was active for the page that enqueued this task.
     trigger OnRun()
     var
-        DHXDataHandler: Codeunit "Opti DHX Data Handler";
+        DHXDataHandler: Codeunit "DHX Data Handler";
         TaskParameters: Dictionary of [Text, Text];
         Result: Dictionary of [Text, Text];
         ResourceFilter: Text;

@@ -1,11 +1,11 @@
-pageextension 50610 "Opti DDSIA Job Task Card" extends "Job Task Card"
+pageextension 50610 "DDSIA Job Task Card" extends "Job Task Card"
 {
     layout
     {
         // Add changes to page layout here
         addafter(Description)
         {
-            field("Opti Non Active"; Rec."Opti Non Active")
+            field("Non Active"; Rec."Non Active")
             {
                 ApplicationArea = All;
                 Caption = 'Non Active';
