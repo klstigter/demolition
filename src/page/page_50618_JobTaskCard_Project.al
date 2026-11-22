@@ -749,6 +749,112 @@ page 50618 "Opti Job Task Card"
     {
         area(navigation)
         {
+            group("Visuals")
+            {
+                Caption = 'Visuals';
+                Image = Planning;
+
+                action("Task Scheduler (Visual)")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Task Scheduler (Visual)';
+                    Image = HumanResources;
+                    ToolTip = 'Open the task scheduler for this project task.';
+
+                    trigger OnAction()
+                    var
+                        DayPlanningScheduler: Page "DHX Scheduler (Project)";
+                    begin
+                        DayPlanningScheduler.SetJobTaskFilter(Rec."Job No.", Rec."Job Task No.");
+                        DayPlanningScheduler.RunModal();
+                    end;
+                }
+                action("Gantt (Visual)")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Gantt (Visual)';
+                    Image = GanttChart;
+                    ToolTip = 'Open the Gantt chart for this project task.';
+
+                    trigger OnAction()
+                    var
+                        Gantt: Page "Gantt Demo DHX 2";
+                    begin
+                        Gantt.SetJobTaskFilter(Rec."Job No.", Rec."Job Task No.");
+                        Gantt.RunModal();
+                    end;
+                }
+                action("Resource Calender (Visual)")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Resource Calender (Visual)';
+                    Image = Calendar;
+                    ToolTip = 'Open the resource calendar for the resources assigned to this project task.';
+
+                    trigger OnAction()
+                    var
+                        ResCalender: Page "Resource Calendar";
+                        JobTaskVisualsMgt: Codeunit "Job Task Visuals Mgt.";
+                        JobResource: Record Resource;
+                    begin
+                        JobTaskVisualsMgt.MarkTaskResources(Rec."Job No.", Rec."Job Task No.", JobResource);
+                        ResCalender.SetResourceFilter(JobResource);
+                        ResCalender.RunModal();
+                    end;
+                }
+                action("Resource Scheduler (Visual)")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Resource Scheduler (Visual)';
+                    Image = ResourcePlanning;
+                    ToolTip = 'Open the resource scheduler for the resources assigned to this project task.';
+
+                    trigger OnAction()
+                    var
+                        ResScheduler: Page "Resource Scheduler - TimeLine";
+                        JobTaskVisualsMgt: Codeunit "Job Task Visuals Mgt.";
+                        JobResource: Record Resource;
+                    begin
+                        JobTaskVisualsMgt.MarkTaskResources(Rec."Job No.", Rec."Job Task No.", JobResource);
+                        ResScheduler.SetResourceNoFilter(JobResource);
+                        ResScheduler.RunModal();
+                    end;
+                }
+                action("Capacity (Visual)")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Capacity (Visual)';
+                    Image = Capacity;
+                    ToolTip = 'Open the capacity scheduler for the resources assigned to this project task.';
+
+                    trigger OnAction()
+                    var
+                        ResScheduler: Page "DHX Scheduler (Pool Resource)";
+                        JobTaskVisualsMgt: Codeunit "Job Task Visuals Mgt.";
+                        JobResource: Record Resource;
+                    begin
+                        JobTaskVisualsMgt.MarkTaskResources(Rec."Job No.", Rec."Job Task No.", JobResource);
+                        ResScheduler.SetResourceFilter(JobResource);
+                        ResScheduler.RunModal();
+                    end;
+                }
+                action("Request Assignment (Visual)")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Request and Assignment Board (Visual)';
+                    Image = Allocations;
+                    ToolTip = 'Open the request and assignment board for this project task.';
+
+                    trigger OnAction()
+                    var
+                        ReqAssignBoard: Page "DHX Request Assignment Board";
+                    begin
+                        ReqAssignBoard.SetJobTaskFilter(Rec."Job No.", Rec."Job Task No.");
+                        ReqAssignBoard.RunModal();
+                    end;
+                }
+            }
+
             action(GanttChartDHX)
             {
                 ToolTip = 'Executes the Gantt Chart DHX action.';
@@ -1071,6 +1177,18 @@ page 50618 "Opti Job Task Card"
         }
         area(Promoted)
         {
+            group(Visuals_Ref)
+            {
+                Caption = 'Planning';
+                ShowAs = SplitButton;
+                Image = Planning;
+                actionref("Task Scheduler (Visual) actionref"; "Task Scheduler (Visual)") { }
+                actionref("Gantt (Visual) actionref"; "Gantt (Visual)") { }
+                actionref("Resource Calender (Visual) actionref"; "Resource Calender (Visual)") { }
+                actionref("Resource Scheduler (Visual) actionref"; "Resource Scheduler (Visual)") { }
+                actionref("Capacity (Visual) actionref"; "Capacity (Visual)") { }
+                actionref("Request Assignment (Visual) actionref"; "Request Assignment (Visual)") { }
+            }
             group(Category_Process)
             {
                 Caption = 'Process', Comment = 'Generated from the PromotedActionCategories property index 1.';
