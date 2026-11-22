@@ -6171,8 +6171,15 @@ codeunit 50604 "DHX Data Handler"
         ReqAssignJobFilter := NewJobNo;
     end;
 
+    procedure ReqAssign_SetJobTaskFilter(NewJobNo: Code[20]; NewJobTaskNo: Code[20])
+    begin
+        ReqAssignJobFilter := NewJobNo;
+        ReqAssignJobTaskFilter := NewJobTaskNo;
+    end;
+
     var
         ReqAssignJobFilter: Code[20];
+        ReqAssignJobTaskFilter: Code[20];
 
     procedure ReqAssign_BuildPlanningDataJson_Paged(StartDate: Date; EndDate: Date; MaxLines: Integer; var RemainingSequenceKeys: Text): Text
     var
@@ -6435,6 +6442,8 @@ codeunit 50604 "DHX Data Handler"
         DayPlanning.SetRange("Plan Date", StartDate, EndDate);
         if ReqAssignJobFilter <> '' then
             DayPlanning.SetRange("Job No.", ReqAssignJobFilter);
+        if ReqAssignJobTaskFilter <> '' then
+            DayPlanning.SetRange("Job Task No.", ReqAssignJobTaskFilter);
 
         // Pass 1: cheap pre-scan (key fields only) - establishes whole-sequence grouping order and
         // per-group line counts so the MaxLines cutoff below can never split a group.
