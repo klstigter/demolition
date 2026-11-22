@@ -239,7 +239,7 @@ page 50617 "Opti Job Task List - Project"
 
                     trigger OnAction()
                     var
-                        DayPlanningScheduler: Page "DHX Scheduler (Project)";
+                        DayPlanningScheduler: Page "Opti DHX Scheduler (Project)";
                     begin
                         DayPlanningScheduler.SetJobTaskFilter(Rec."Job No.", Rec."Job Task No.");
                         DayPlanningScheduler.RunModal();
@@ -254,7 +254,7 @@ page 50617 "Opti Job Task List - Project"
 
                     trigger OnAction()
                     var
-                        Gantt: Page "Gantt Demo DHX 2";
+                        Gantt: Page "Opti Gantt Demo DHX 2";
                     begin
                         Gantt.SetJobTaskFilter(Rec."Job No.", Rec."Job Task No.");
                         Gantt.RunModal();
@@ -269,8 +269,8 @@ page 50617 "Opti Job Task List - Project"
 
                     trigger OnAction()
                     var
-                        ResCalender: Page "Resource Calendar";
-                        JobTaskVisualsMgt: Codeunit "Job Task Visuals Mgt.";
+                        ResCalender: Page "Opti Resource Calendar";
+                        JobTaskVisualsMgt: Codeunit "Opti Job Task Visuals Mgt.";
                         JobResource: Record Resource;
                     begin
                         JobTaskVisualsMgt.MarkTaskResources(Rec."Job No.", Rec."Job Task No.", JobResource);
@@ -287,8 +287,8 @@ page 50617 "Opti Job Task List - Project"
 
                     trigger OnAction()
                     var
-                        ResScheduler: Page "Resource Scheduler - TimeLine";
-                        JobTaskVisualsMgt: Codeunit "Job Task Visuals Mgt.";
+                        ResScheduler: Page "Opti Res. Scheduler - TimeLine";
+                        JobTaskVisualsMgt: Codeunit "Opti Job Task Visuals Mgt.";
                         JobResource: Record Resource;
                     begin
                         JobTaskVisualsMgt.MarkTaskResources(Rec."Job No.", Rec."Job Task No.", JobResource);
@@ -305,8 +305,8 @@ page 50617 "Opti Job Task List - Project"
 
                     trigger OnAction()
                     var
-                        ResScheduler: Page "DHX Scheduler (Pool Resource)";
-                        JobTaskVisualsMgt: Codeunit "Job Task Visuals Mgt.";
+                        ResScheduler: Page "Opti DHX Scheduler (Pool Res.)";
+                        JobTaskVisualsMgt: Codeunit "Opti Job Task Visuals Mgt.";
                         JobResource: Record Resource;
                     begin
                         JobTaskVisualsMgt.MarkTaskResources(Rec."Job No.", Rec."Job Task No.", JobResource);
@@ -323,7 +323,7 @@ page 50617 "Opti Job Task List - Project"
 
                     trigger OnAction()
                     var
-                        ReqAssignBoard: Page "DHX Request Assignment Board";
+                        ReqAssignBoard: Page "Opti DHX Request Assign. Board";
                     begin
                         ReqAssignBoard.SetJobTaskFilter(Rec."Job No.", Rec."Job Task No.");
                         ReqAssignBoard.RunModal();

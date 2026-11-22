@@ -1,11 +1,11 @@
-codeunit 50736 "Job Task Visuals Mgt."
+codeunit 50736 "Opti Job Task Visuals Mgt."
 {
     /// <summary>
     /// Marks the resources assigned (via Day Planning) to the given project task.
     /// </summary>
     procedure MarkTaskResources(JobNo: Code[20]; JobTaskNo: Code[20]; var Resource: Record Resource)
     var
-        DayPlanning: Record "Day Planning";
+        DayPlanning: Record "Opti Day Planning";
         Marked: List of [Code[20]];
     begin
         Resource.Reset();
