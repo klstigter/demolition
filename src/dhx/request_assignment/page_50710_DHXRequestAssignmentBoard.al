@@ -17,13 +17,18 @@ page 50710 "DHX Request Assignment Board"
                 var
                     VisualDefaultSettings: Codeunit "Visual Default Settings";
                     DayPlanningSequenceMgt: Codeunit "Day Planning Sequence Mgt.";
+                    GanttChartDataHandler: Codeunit GanttChartDataHandler;
                     ColorsJsonTxt: Text;
                 begin
                     // Hover/tooltip popup background/font colour - codeunit 50609's
                     // GetTooltipBackgroundColor/GetTooltipFontColor.
-                    ColorsJsonTxt := StrSubstNo('{"tooltipBg":"%1","tooltipFont":"%2"}',
+                    // Also carries weekend/holiday tint colours + Base Calendar non-working days (same source as the Gantt)
+                    ColorsJsonTxt := StrSubstNo('{"tooltipBg":"%1","tooltipFont":"%2","weekendColor":"%3","holidayColor":"%4","holidays":%5}',
                         VisualDefaultSettings.GetTooltipBackgroundColor(),
-                        VisualDefaultSettings.GetTooltipFontColor());
+                        VisualDefaultSettings.GetTooltipFontColor(),
+                        VisualDefaultSettings.GetWeekendColor(),
+                        VisualDefaultSettings.GetHolidayColor(),
+                        GanttChartDataHandler.GetHolidaysAsJson(Today() - 7, Today() + 400));
                     CurrPage.DhxScheduler.SetColors(ColorsJsonTxt);
                     // Work-Hour Templates for the "Modify sequence" panel - reuses codeunit 50695's
                     // BuildTemplatesJson as-is (same JSON page 50711 sends to its own add-in). A

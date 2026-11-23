@@ -205,7 +205,11 @@
 }
 
 .cpo-weekend-scale {
-    background: #fafafa;
+    background: var(--cpo-weekend-color, #fafafa);
+}
+
+.cpo-holiday-cell {
+    background: var(--cpo-holiday-color, #fff3cd);
 }
 
 .cpo-wo-fit-off .cpo-wo-cell-text,
@@ -231,7 +235,7 @@
 
 /* Section 2 - Day Planning event bars */
 .cpo-weekend-cell {
-    background: #fafafa;
+    background: var(--cpo-weekend-color, #fafafa);
 }
 
 .cpo-wo-event-heat {

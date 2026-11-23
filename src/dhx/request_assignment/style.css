@@ -1304,7 +1304,14 @@ body.pane-resizing {
 /* Highlight visible non-working days such as Saturday and Sunday. */
 #requestScheduler .non-working-day-cell,
 #resourceScheduler .non-working-day-cell {
-  background: #fff7cc !important;
+  background: var(--ra-weekend-color, #fff7cc) !important;
+}
+
+/* Base Calendar holiday / day-off (colour from "Daily Optimizer Setup"."Holiday Color") */
+#requestScheduler .holiday-day-cell,
+#resourceScheduler .holiday-day-cell,
+#requestScheduler .dhx_matrix_cell.holiday-day-cell {
+  background: var(--ra-holiday-color, #fff3cd) !important;
 }
 
 /* DHTMLXtempv036 — honor hidden state for Timeline Setup popover */
@@ -1983,7 +1990,7 @@ body.pane-resizing {
 /* Request weekend background must match Assignment weekend background. */
 #requestScheduler .dhx_matrix_cell.non-working-day-cell,
 #requestScheduler .non-working-day-cell {
-  background-color: #fff7cc !important;
+  background-color: var(--ra-weekend-color, #fff7cc) !important;
 }
 
 

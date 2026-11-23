@@ -66,6 +66,7 @@ page 50619 "Resource Calendar"
                     DHXHandler.GetWeekPeriodDates(AnchorDate, CurrentStartDate, CurrentEndDate);
                     CurrPage.DhxScheduler.LoadData(BuildEventsJson(CurrentStartDate, CurrentEndDate));
                     CurrPage.DhxScheduler.LoadCapacity(BuildCapacityJson(CurrentStartDate, CurrentEndDate));
+                    PushDayOffInfo(CurrentStartDate, CurrentEndDate);
                     PushResourceFilterInfo();
                 end;
 
@@ -92,6 +93,7 @@ page 50619 "Resource Calendar"
                             CurrPage.DhxScheduler.ReloadData(
                                 BuildEventsJson(CurrentStartDate, CurrentEndDate),
                                 BuildCapacityJson(CurrentStartDate, CurrentEndDate));
+                            PushDayOffInfo(CurrentStartDate, CurrentEndDate);
                             PushResourceFilterInfo();
                         end;
                     end;
@@ -324,6 +326,16 @@ page 50619 "Resource Calendar"
         ShowCapacity: Boolean;
         CurrentStartDate: Date;
         CurrentEndDate: Date;
+
+    // Weekend / holiday (Base Calendar non-working day) shading - same data + colours as the Gantt
+    local procedure PushDayOffInfo(pStartDate: Date; pEndDate: Date)
+    var
+        GanttChartDataHandler: Codeunit GanttChartDataHandler;
+        VisualSettings: Codeunit "Visual Default Settings";
+    begin
+        CurrPage.DhxScheduler.SetDayOffInfo(VisualSettings.GetWeekendColor(), VisualSettings.GetHolidayColor(),
+            GanttChartDataHandler.GetHolidaysAsJson(pStartDate, pEndDate));
+    end;
 
     local procedure BuildResourcesJson(): Text
     var

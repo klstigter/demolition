@@ -29,6 +29,19 @@ function cpoIsWeekend(date) {
     return !!date && (date.getDay() === 0 || date.getDay() === 6);
 }
 
+// Base Calendar non-working days (Mon-Fri), pushed from AL via SetColors ("holidays"); visual tint only
+var cpoHolidays = {};
+function cpoIsHoliday(date) {
+    if (!date || cpoIsWeekend(date)) return false;
+    var k = date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2);
+    return !!cpoHolidays[k];
+}
+// Class for a scale/cell: weekend wins over holiday (same precedence as the Gantt)
+function cpoDayOffClass(date, base) {
+    if (cpoIsWeekend(date)) return base;
+    return cpoIsHoliday(date) ? 'cpo-holiday-cell' : '';
+}
+
 function cpoSameDay(a, b) {
     return !!a && !!b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
@@ -1097,11 +1110,12 @@ class CapacityPlanningOverview {
         });
 
         s.date.workordersummary_start = function () { return self.dates[0]; };
-        s.templates.workordersummary_scalex_class = function (date) { return cpoIsWeekend(date) ? 'cpo-weekend-scale' : ''; };
+        s.templates.workordersummary_scalex_class = function (date) { return cpoDayOffClass(date, 'cpo-weekend-scale'); };
         s.templates.workordersummary_row_class = function (section) { return section.key === 'shortage' ? 'cpo-wo-summary-divider' : ''; };
         s.templates.workordersummary_cell_class = function (evs, date, section) {
             const idx = self.dayIndex(date);
             if (cpoIsWeekend(date)) return 'cpo-weekend-cell';
+            if (cpoIsHoliday(date)) return 'cpo-holiday-cell';
             if (section.key === 'fit') {
                 const ev = self.excludingWOFlow()[idx];
                 if (!ev) return 'cpo-wo-fit-off';
@@ -1217,8 +1231,8 @@ class CapacityPlanningOverview {
         });
 
         s.date.workorder_start = function () { return self.dates[0]; };
-        s.templates.workorder_scalex_class = function (date) { return cpoIsWeekend(date) ? 'cpo-weekend-scale' : ''; };
-        s.templates.workorder_cell_class = function (evs, date) { return cpoIsWeekend(date) ? 'cpo-weekend-cell' : ''; };
+        s.templates.workorder_scalex_class = function (date) { return cpoDayOffClass(date, 'cpo-weekend-scale'); };
+        s.templates.workorder_cell_class = function (evs, date) { return cpoDayOffClass(date, 'cpo-weekend-cell'); };
         s.templates.workorder_cell_value = function () { return ''; };
         s.templates.event_class = function (a, b, e) { return 'cpo-planner-event cpo-wo-request-event cpo-skill-' + cpoSlug(e.skill) + ((Number(e.shortageHours) || 0) > 0 ? ' cpo-wo-capacity-shortage' : ''); };
         s.templates.event_bar_text = function (a, b, e) {
@@ -2151,9 +2165,9 @@ class CapacityPlanningOverview {
         });
 
         s.date.centraltree_start = function () { return self.dates[0]; };
-        s.templates.centraltree_scalex_class = function (date) { return cpoIsWeekend(date) ? 'cpo-weekend-scale' : ''; };
+        s.templates.centraltree_scalex_class = function (date) { return cpoDayOffClass(date, 'cpo-weekend-scale'); };
         s.templates.centraltree_row_class = function (section) { return section.type === 'skill' ? 'cpo-tree-row-skill' : (section.type === 'detail' ? 'cpo-tree-row-detail' : ''); };
-        s.templates.centraltree_cell_class = function (evs, date) { return cpoIsWeekend(date) ? 'cpo-weekend-cell' : ''; };
+        s.templates.centraltree_cell_class = function (evs, date) { return cpoDayOffClass(date, 'cpo-weekend-cell'); };
         s.templates.centraltree_cell_value = function (evs, date, section) {
             if (!section || section.key === 'nodata') return '';
             const idx = self.dayIndex(date);
@@ -2859,6 +2873,13 @@ class CapacityPlanningOverview {
         var root = document.documentElement;
         if (json.tooltipBg) root.style.setProperty('--cpo-tooltip-bg', json.tooltipBg);
         if (json.tooltipFont) root.style.setProperty('--cpo-tooltip-font', json.tooltipFont);
+        // Weekend / holiday tint from "Daily Optimizer Setup" + Base Calendar (same source as the Gantt)
+        if (json.weekendColor) root.style.setProperty('--cpo-weekend-color', json.weekendColor);
+        if (json.holidayColor) root.style.setProperty('--cpo-holiday-color', json.holidayColor);
+        if (Array.isArray(json.holidays)) {
+            cpoHolidays = {};
+            json.holidays.forEach(function (h) { if (h && h.date) cpoHolidays[h.date] = h.description || 'Holiday'; });
+        }
     }
 
     showCapacityModal(json) {

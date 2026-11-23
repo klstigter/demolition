@@ -93,7 +93,7 @@ window.BOOT = function() {
         }
 
         // ---- Plugins ----
-        scheduler.plugins({ tooltip: true });
+        scheduler.plugins({ tooltip: true, limit: true });
 
         scheduler.config.cascade_event_display = true;
         scheduler.config.start_on_monday       = true;
@@ -544,6 +544,36 @@ function LoadCapacity(capacityJson) {
 //   eventsJson – JSON string: { data: [ { id, resource_id, classname, color, textColor, borderColor,
 //                                         start_date, end_date, text }, … ] }
 // ============================================================
+var _resDayOffMarkers = [];
+
+// AL-callable: weekend/holiday day-column shading (colours + Base Calendar non-working days, same source as the Gantt)
+function SetDayOffInfo(weekendColorHex, holidayColorHex, holidaysJsonTxt) {
+    try {
+        var root = document.getElementById("scheduler_here");
+        if (root) {
+            if (weekendColorHex) root.style.setProperty("--res-weekend-color", weekendColorHex);
+            if (holidayColorHex) root.style.setProperty("--res-holiday-color", holidayColorHex);
+        }
+        if (typeof scheduler === "undefined" || !scheduler.addMarkedTimespan) return;
+        _resDayOffMarkers.forEach(function (id) { scheduler.deleteMarkedTimespan(id); });
+        _resDayOffMarkers = [];
+        _resDayOffMarkers.push(scheduler.addMarkedTimespan({ days: [0, 6], zones: "fullday", css: "res-weekend-day" }));
+        var list = JSON.parse(holidaysJsonTxt || "[]");
+        list.forEach(function (h) {
+            if (!h || !h.date) return;
+            var p = String(h.date).split("-");
+            _resDayOffMarkers.push(scheduler.addMarkedTimespan({
+                days: new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10)),
+                zones: "fullday", css: "res-holiday-day"
+            }));
+        });
+        scheduler.updateView();
+    } catch (e) {
+        console.warn("SetDayOffInfo failed", e);
+    }
+}
+window.SetDayOffInfo = SetDayOffInfo;
+
 function LoadData(eventsJson) {
     if (!scheduler_here) {
         console.warn("LoadData: scheduler not ready. Call Init first.");

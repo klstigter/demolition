@@ -3,7 +3,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
     PageType = List; //userControlHost;
     ApplicationArea = All;
     UsageCategory = Tasks;
-    Caption = 'Resource Capacity Scheduler';
+    Caption = 'Capacity Scheduler';
 
     layout
     {
@@ -72,6 +72,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
                     CurrPage.DhxScheduler.SetBarColors(ColorsJsonTxt);
                     AnchorDate := startDate;
                     PushResourceFilterInfo(startDate, endDate);
+                    PushDayOffInfo(startDate, endDate);
                     CurrPage.Update(false);
 
                     if GuiAllowed() then
@@ -144,7 +145,14 @@ page 50600 "DHX Scheduler (Pool Resource)"
                 var
                     DHXDataHandler: Codeunit "DHX Data Handler";
                     UpdateEventIdJsonTxt: Text;
+                    DateRef: Date;
                 begin
+                    // Capacity bar drawn in a vacant cell: insert a Res. Capacity Entry and reload
+                    if DHXDataHandler.OnCapacityAdded(eventData, DateRef) then begin
+                        AnchorDate := DateRef;
+                        RefreshSchedule();
+                        exit;
+                    end;
                     if DHXDataHandler.onEventAdded(eventData, UpdateEventIdJsonTxt) then
                         CurrPage.DhxScheduler.UpdateEventId(UpdateEventIdJsonTxt); //update event ID
                 end;
@@ -254,6 +262,7 @@ page 50600 "DHX Scheduler (Pool Resource)"
                             Window.Update(1, 'Rendering...');
                         CurrPage.DhxScheduler.RefreshTimeline(ResourceJSONTxt, EventsJsonTxt, startDate); //TODO: pass resourcesJson and eventsJson
                         AnchorDate := startDate;
+                        PushDayOffInfo(startDate, endDate);
                     end;
                     if GuiAllowed() then
                         Window.Close();
@@ -511,10 +520,21 @@ page 50600 "DHX Scheduler (Pool Resource)"
             Window.Update(1, 'Rendering...');
         CurrPage.DhxScheduler.RefreshTimeline(ResourceJSONTxt, EventsJsonTxt, startDate);
         PushResourceFilterInfo(startDate, endDate);
+        PushDayOffInfo(startDate, endDate);
         CurrPage.Update(false);
 
         if GuiAllowed() then
             Window.Close();
+    end;
+
+    // Weekend / holiday (Base Calendar non-working day) shading - same data + colours as the Gantt
+    local procedure PushDayOffInfo(pStartDate: Date; pEndDate: Date)
+    var
+        GanttChartDataHandler: Codeunit GanttChartDataHandler;
+        VisualSettings: Codeunit "Visual Default Settings";
+    begin
+        CurrPage.DhxScheduler.SetDayOffInfo(VisualSettings.GetWeekendColor(), VisualSettings.GetHolidayColor(),
+            GanttChartDataHandler.GetHolidaysAsJson(pStartDate, pEndDate));
     end;
 
     local procedure PushResourceFilterInfo(pStartDate: Date; pEndDate: Date)

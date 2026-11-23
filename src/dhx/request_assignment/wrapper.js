@@ -213,8 +213,16 @@ function shouldHideTimelineDate(date) {
   return hour < currentWorkdayStart || hour >= currentWorkdayEnd;
 }
 
+// Base Calendar non-working days (Mon-Fri), pushed from AL via SetColors ("holidays"); visual tint only
+let raHolidays = {};
+function isHoliday(date) {
+  if (!date || isWeekend(date)) return false;
+  const k = date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0") + "-" + String(date.getDate()).padStart(2, "0");
+  return !!raHolidays[k];
+}
 function nonWorkingTimelineClass(date) {
-  return isWeekend(date) ? "non-working-day-cell" : "";
+  if (isWeekend(date)) return "non-working-day-cell";
+  return isHoliday(date) ? "holiday-day-cell" : "";
 }
 
 let activeSkillFilter = null;
@@ -7234,6 +7242,14 @@ function SetColors(colorsJsonTxt) {
     if (!root) return;
     if (colors.tooltipBg) root.style.setProperty("--tooltip-bg-color", colors.tooltipBg);
     if (colors.tooltipFont) root.style.setProperty("--tooltip-font-color", colors.tooltipFont);
+    // Weekend / holiday tint from "Daily Optimizer Setup" + Base Calendar (same source as the Gantt)
+    if (colors.weekendColor) root.style.setProperty("--ra-weekend-color", colors.weekendColor);
+    if (colors.holidayColor) root.style.setProperty("--ra-holiday-color", colors.holidayColor);
+    if (Array.isArray(colors.holidays)) {
+      raHolidays = {};
+      colors.holidays.forEach((h) => { if (h && h.date) raHolidays[h.date] = h.description || "Holiday"; });
+      if (window.scheduler && scheduler.updateView) { try { scheduler.updateView(); } catch (e) {} }
+    }
   } catch (e) {
     console.warn("SetColors: invalid colorsJsonTxt", colorsJsonTxt, e);
   }

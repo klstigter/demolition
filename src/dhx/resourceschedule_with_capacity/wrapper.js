@@ -621,6 +621,11 @@ function RecreateTimelineView(sections) {
         second_scale: { x_unit: "day", x_date: "%D %d %M" }
     });
 
+    // Weekend / holiday shading (createTimelineView resets these templates, so set them here)
+    scheduler.templates.timeline_cell_class = function (evs, date) { return rcsDayOffClass(date); };
+    scheduler.templates.timeline_scale_class = function (date) { return rcsDayOffClass(date); };
+    scheduler.templates.timeline_second_scale_class = function (date) { return rcsDayOffClass(date); };
+
     scheduler.templates.timeline_row_class = function (section) {
         if (section.category === 'Skill') return "timeline-skill-row";
         if (section.category === 'Resource') return "timeline-resource-row";
@@ -735,6 +740,33 @@ function Init(elementsJson, EarliestPlanningDate) {
 // ============================================================
 // AL-callable: LoadData(eventsJson) - Day Planning events
 // ============================================================
+var _rcsHolidays = {}; // { "YYYY-MM-DD": "Description" } - Base Calendar non-working days (Mon-Fri)
+
+// AL-callable: weekend/holiday cell colours + holiday list (same source as the Gantt)
+function SetDayOffInfo(weekendColorHex, holidayColorHex, holidaysJsonTxt) {
+    try {
+        var root = document.getElementById("scheduler_here");
+        if (root) {
+            if (weekendColorHex) root.style.setProperty("--rcs-weekend-color", weekendColorHex);
+            if (holidayColorHex) root.style.setProperty("--rcs-holiday-color", holidayColorHex);
+        }
+        _rcsHolidays = {};
+        var list = JSON.parse(holidaysJsonTxt || "[]");
+        for (var i = 0; i < list.length; i++) if (list[i].date) _rcsHolidays[list[i].date] = list[i].description || "Holiday";
+        if (typeof scheduler !== "undefined" && scheduler.updateView) scheduler.updateView();
+    } catch (e) {
+        console.warn("SetDayOffInfo failed", e);
+    }
+}
+window.SetDayOffInfo = SetDayOffInfo;
+
+function rcsDayOffClass(date) {
+    var d = date.getDay();
+    if (d === 0 || d === 6) return "rcs-weekend";
+    var key = date.getFullYear() + "-" + ("0" + (date.getMonth() + 1)).slice(-2) + "-" + ("0" + date.getDate()).slice(-2);
+    return _rcsHolidays[key] ? "rcs-holiday" : "";
+}
+
 function LoadData(eventsJson) {
     _sectionStats = {};
     try {

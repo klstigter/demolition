@@ -98,6 +98,7 @@ page 50621 "DHX Scheduler (Project)"
                         VisualDefaultSettings.GetTooltipBackgroundColor(),
                         VisualDefaultSettings.GetTooltipFontColor());
                     CurrPage.DhxScheduler.SetBarColors(ColorsJsonTxt);
+                    PushDayOffInfo(startDate, endDate);
                     // This scheduler has no separate Capacity bar/event of its own - every bar is
                     // a Day Planning bar and therefore always skill-bearing, so bar text/border
                     // colour is driven entirely per-skill (never via "Daily Optimizer
@@ -261,6 +262,7 @@ page 50621 "DHX Scheduler (Project)"
                         if GuiAllowed() then
                             Window.Update(1, 'Rendering...');
                         CurrPage.DhxScheduler.RefreshTimeline(ResourceJSONTxt, EventsJsonTxt, startDate); //TODO: pass resourcesJson and eventsJson
+                        PushDayOffInfo(startDate, endDate);
                         AnchorDate := startDate;
                     end;
                     if GuiAllowed() then
@@ -604,6 +606,16 @@ page 50621 "DHX Scheduler (Project)"
     /// fit on the first page. Applies the same Resource-filter-only vs Job/Job-Task-filter mutual
     /// exclusivity the page's non-paginated calls already used (never both at once).
     /// </summary>
+    // Weekend / holiday (Base Calendar non-working day) shading - same data + colours as the Gantt
+    local procedure PushDayOffInfo(pStartDate: Date; pEndDate: Date)
+    var
+        GanttChartDataHandler: Codeunit GanttChartDataHandler;
+        VisualSettings: Codeunit "Visual Default Settings";
+    begin
+        CurrPage.DhxScheduler.SetDayOffInfo(VisualSettings.GetWeekendColor(), VisualSettings.GetHolidayColor(),
+            GanttChartDataHandler.GetHolidaysAsJson(pStartDate, pEndDate));
+    end;
+
     local procedure LoadSchedulerSectionsPaginated(pStartDate: Date; pEndDate: Date; var ResourceJSONTxt: Text; var PlanninJsonTxt: Text; var EarliestPlanningDate: Date)
     var
         DHXDataHandlerLocal: Codeunit "DHX Data Handler";
@@ -686,6 +698,7 @@ page 50621 "DHX Scheduler (Project)"
         if GuiAllowed() then
             Window.Update(1, 'Rendering...');
         CurrPage.DhxScheduler.RefreshTimeline(ResourceJSONTxt, EventsJsonTxt, startDate);
+        PushDayOffInfo(startDate, endDate);
         CurrPage.DhxScheduler.SetTaskFilterInfo(jobFilter, JobTaskFilter, Format(startDate, 0, '<Year4>-<Month,2>-<Day,2>'), Format(endDate, 0, '<Year4>-<Month,2>-<Day,2>'), SkillFilter);
 
         if GuiAllowed() then

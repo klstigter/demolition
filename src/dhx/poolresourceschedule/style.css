@@ -87,3 +87,12 @@ html, body{
 .cap-tt-lbl { display: inline; }
 .cap-tt-table { margin-left: 0 !important; text-indent: 0 !important; }
 .cap-tt-table th:first-child, .cap-tt-table td:first-child { padding-left: 0 !important; }
+
+
+/* Weekend / holiday shading - colours from "Daily Optimizer Setup" (see wrapper.js SetDayOffInfo), same as the Gantt */
+.pool-weekend { background: var(--pool-weekend-color, #ffe0e0) !important; }
+.pool-holiday { background: var(--pool-holiday-color, #fff3cd) !important; }
+
+/* Higher specificity so the weekend/holiday tint wins over the resource-row white background set in wrapper.js */
+.timeline-resource-row .dhx_matrix_cell.pool-weekend { background-color: var(--pool-weekend-color, #ffe0e0) !important; }
+.timeline-resource-row .dhx_matrix_cell.pool-holiday { background-color: var(--pool-holiday-color, #fff3cd) !important; }
