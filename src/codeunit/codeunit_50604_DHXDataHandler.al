@@ -4543,6 +4543,211 @@ codeunit 50604 "DHX Data Handler"
         PAGE.Run(PAGE::"Resource Day Plannings", DayPlanning);
     end;
 
+    /// <summary>
+    /// Task Scheduler section right-click "Show Job Resources": Resource Day Plannings filtered on
+    /// the section's Job (and Job Task when present), no Plan Date filter.
+    /// </summary>
+    procedure ShowJobResourcesForSection(SectionId: Text)
+    var
+        DayPlanning: Record "Day Planning";
+        Parts: List of [Text];
+    begin
+        Parts := SectionId.Split('|');
+        if (Parts.Count() < 1) or (Parts.Get(1) = '') or (Parts.Get(1) = 'nodata') then
+            exit;
+        DayPlanning.SetRange("Job No.", CopyStr(Parts.Get(1), 1, MaxStrLen(DayPlanning."Job No.")));
+        if Parts.Count() >= 2 then
+            DayPlanning.SetRange("Job Task No.", CopyStr(Parts.Get(2), 1, MaxStrLen(DayPlanning."Job Task No.")));
+        PAGE.Run(PAGE::"Resource Day Plannings", DayPlanning);
+    end;
+
+    /// <summary>
+    /// Task Scheduler section right-click "Show Day Planning": Day Plannings filtered by Job/Task,
+    /// plus the Job Task's visual bar Plan Date range when set (same as the Gantt's onOpenDayPlanning).
+    /// </summary>
+    procedure OpenDayPlanningForSection(SectionId: Text)
+    var
+        DayPlanning: Record "Day Planning";
+        JobTask: Record "Job Task";
+        Parts: List of [Text];
+        JobNo: Code[20];
+        TaskNo: Code[20];
+    begin
+        Parts := SectionId.Split('|');
+        if (Parts.Count() < 1) or (Parts.Get(1) = '') or (Parts.Get(1) = 'nodata') then
+            exit;
+        JobNo := CopyStr(Parts.Get(1), 1, MaxStrLen(JobNo));
+        if Parts.Count() >= 2 then
+            TaskNo := CopyStr(Parts.Get(2), 1, MaxStrLen(TaskNo));
+        DayPlanning.SetRange("Job No.", JobNo);
+        if TaskNo <> '' then begin
+            DayPlanning.SetRange("Job Task No.", TaskNo);
+            if JobTask.Get(JobNo, TaskNo) then
+                case true of
+                    (JobTask.VisualBarStartDate <> 0D) and (JobTask.VisualBarEndDate <> 0D):
+                        DayPlanning.SetRange("Plan Date", JobTask.VisualBarStartDate, JobTask.VisualBarEndDate);
+                    (JobTask.VisualBarStartDate = 0D) and (JobTask.VisualBarEndDate <> 0D):
+                        DayPlanning.SetFilter("Plan Date", '..%1', JobTask.VisualBarEndDate);
+                    (JobTask.VisualBarStartDate <> 0D) and (JobTask.VisualBarEndDate = 0D):
+                        DayPlanning.SetFilter("Plan Date", '%1..', JobTask.VisualBarStartDate);
+                end;
+        end;
+        PAGE.Run(PAGE::"Day Plannings", DayPlanning);
+    end;
+
+    /// <summary>
+    /// Task Scheduler section hover tooltip JSON: {"jobNo","jobDesc","taskNo","taskDesc","start","end"}.
+    /// Returns '' for 'nodata' or when the Job / Job Task is not found. Period rule = Gantt's GetEffectivePeriod.
+    /// </summary>
+    procedure GetSectionTooltipJson(SectionId: Text): Text
+    var
+        Job: Record Job;
+        JobTask: Record "Job Task";
+        Parts: List of [Text];
+        Obj: JsonObject;
+        JsonTxt: Text;
+        TaskNo: Text;
+        TaskDesc: Text;
+        StartTxt: Text;
+        EndTxt: Text;
+        StartD: Date;
+        EndD: Date;
+        KindTxt: Text;
+        DayPlanning: Record "Day Planning";
+        SkillFilter: Code[20];
+        SeqFilter: Integer;
+        ResDict: Dictionary of [Code[20], Boolean];
+        SeqDict: Dictionary of [Text, Boolean];
+        SkillReq: Dictionary of [Code[20], Decimal];
+        SkillAsg: Dictionary of [Code[20], Decimal];
+        SkillOrder: List of [Code[20]];
+        SkillLabelCache: Dictionary of [Code[20], Text];
+        SkillsArr: JsonArray;
+        SkillObj: JsonObject;
+        SkillKey: Code[20];
+        NDay: Integer;
+        HoursReq: Decimal;
+        HoursAsg: Decimal;
+        MinPlan: Date;
+        MaxPlan: Date;
+        Dec: Decimal;
+        Pos: Integer;
+        i: Integer;
+    begin
+        Parts := SectionId.Split('|');
+        if (Parts.Count() < 1) or (Parts.Get(1) = '') or (Parts.Get(1) = 'nodata') then
+            exit('');
+        if not Job.Get(CopyStr(Parts.Get(1), 1, MaxStrLen(Job."No."))) then
+            exit('');
+        KindTxt := 'job';
+        if Parts.Count() >= 2 then begin
+            KindTxt := 'task';
+            if Parts.Count() >= 4 then begin
+                KindTxt := 'sequence';
+                SkillFilter := CopyStr(Parts.Get(3), 1, MaxStrLen(SkillFilter));
+                if not Evaluate(SeqFilter, Parts.Get(4)) then
+                    exit('');
+            end;
+            if not JobTask.Get(Job."No.", CopyStr(Parts.Get(2), 1, MaxStrLen(JobTask."Job Task No."))) then
+                exit('');
+            TaskNo := JobTask."Job Task No.";
+            TaskDesc := JobTask.Description;
+            if (JobTask.VisualBarStartDate <> 0D) and (JobTask.VisualBarEndDate <> 0D) then begin
+                StartD := JobTask.VisualBarStartDate;
+                EndD := JobTask.VisualBarEndDate;
+            end else begin
+                StartD := JobTask."Constraint Calc. - Start Date";
+                EndD := JobTask."Constraint Calc. - End Date";
+            end;
+            if StartD <> 0D then
+                StartTxt := Format(StartD, 0, '<Year4>-<Month,2>-<Day,2>');
+            if EndD <> 0D then
+                EndTxt := Format(EndD, 0, '<Year4>-<Month,2>-<Day,2>');
+        end;
+        if KindTxt <> 'job' then begin
+            DayPlanning.SetLoadFields("Job No.", "Job Task No.", Skill, "Sequence No.", "Assigned Resource No.", "Requested Hours", "Assigned Hours", "Plan Date");
+            DayPlanning.SetRange("Job No.", Job."No.");
+            DayPlanning.SetRange("Job Task No.", JobTask."Job Task No.");
+            if KindTxt = 'sequence' then begin
+                DayPlanning.SetRange(Skill, SkillFilter);
+                DayPlanning.SetRange("Sequence No.", SeqFilter);
+            end;
+            if DayPlanning.FindSet() then
+                repeat
+                    NDay += 1;
+                    HoursReq += DayPlanning."Requested Hours";
+                    HoursAsg += DayPlanning."Assigned Hours";
+                    if DayPlanning."Assigned Resource No." <> '' then
+                        if not ResDict.ContainsKey(DayPlanning."Assigned Resource No.") then
+                            ResDict.Add(DayPlanning."Assigned Resource No.", true);
+                    if not SeqDict.ContainsKey(DayPlanning.Skill + '|' + Format(DayPlanning."Sequence No.")) then
+                        SeqDict.Add(DayPlanning.Skill + '|' + Format(DayPlanning."Sequence No."), true);
+                    if DayPlanning.Skill <> '' then begin
+                        if not SkillReq.ContainsKey(DayPlanning.Skill) then begin
+                            SkillReq.Add(DayPlanning.Skill, 0);
+                            SkillAsg.Add(DayPlanning.Skill, 0);
+                            Pos := SkillOrder.Count() + 1;
+                            for i := 1 to SkillOrder.Count() do
+                                if (Pos > SkillOrder.Count()) and (SkillOrder.Get(i) > DayPlanning.Skill) then
+                                    Pos := i;
+                            if Pos > SkillOrder.Count() then
+                                SkillOrder.Add(DayPlanning.Skill)
+                            else
+                                SkillOrder.Insert(Pos, DayPlanning.Skill);
+                        end;
+                        Dec := SkillReq.Get(DayPlanning.Skill);
+                        SkillReq.Set(DayPlanning.Skill, Dec + DayPlanning."Requested Hours");
+                        Dec := SkillAsg.Get(DayPlanning.Skill);
+                        SkillAsg.Set(DayPlanning.Skill, Dec + DayPlanning."Assigned Hours");
+                    end;
+                    if DayPlanning."Plan Date" <> 0D then begin
+                        if (MinPlan = 0D) or (DayPlanning."Plan Date" < MinPlan) then
+                            MinPlan := DayPlanning."Plan Date";
+                        if DayPlanning."Plan Date" > MaxPlan then
+                            MaxPlan := DayPlanning."Plan Date";
+                    end;
+                until DayPlanning.Next() = 0;
+            foreach SkillKey in SkillOrder do begin
+                Clear(SkillObj);
+                SkillObj.Add('name', ResolveSkillLabelCached(SkillKey, SkillLabelCache));
+                SkillObj.Add('requested', SkillReq.Get(SkillKey));
+                SkillObj.Add('assigned', SkillAsg.Get(SkillKey));
+                SkillsArr.Add(SkillObj);
+            end;
+            if KindTxt = 'sequence' then begin
+                StartTxt := '';
+                EndTxt := '';
+                if MinPlan <> 0D then
+                    StartTxt := Format(MinPlan, 0, '<Year4>-<Month,2>-<Day,2>');
+                if MaxPlan <> 0D then
+                    EndTxt := Format(MaxPlan, 0, '<Year4>-<Month,2>-<Day,2>');
+            end;
+        end;
+        Obj.Add('kind', KindTxt);
+        Obj.Add('jobNo', Job."No.");
+        Obj.Add('jobDesc', Job.Description);
+        Obj.Add('taskNo', TaskNo);
+        Obj.Add('taskDesc', TaskDesc);
+        Obj.Add('start', StartTxt);
+        Obj.Add('end', EndTxt);
+        if KindTxt <> 'job' then begin
+            Obj.Add('nDayPlanning', NDay);
+            Obj.Add('nResource', ResDict.Count());
+            Obj.Add('hoursRequested', HoursReq);
+            Obj.Add('hoursAssigned', HoursAsg);
+            if KindTxt = 'task' then begin
+                Obj.Add('nSequence', SeqDict.Count());
+                Obj.Add('nSkill', SkillOrder.Count());
+            end else begin
+                Obj.Add('skill', ResolveSkillLabelCached(SkillFilter, SkillLabelCache));
+                Obj.Add('seqNo', SeqFilter);
+            end;
+            Obj.Add('skills', SkillsArr);
+        end;
+        Obj.WriteTo(JsonTxt);
+        exit(JsonTxt);
+    end;
+
     // =========================================================
     // Resource Scheduler (New) – "resourceschedule_with_capacity" add-in
     // (page 50706 "DHX Scheduler (Resource+Capacity)"). JSON builder
