@@ -2660,8 +2660,8 @@ var renderResourceLine = function (resource, timeline) {
     hoursSpan.textContent = day.value;
     cell.appendChild(hoursSpan);
 
-    // Top-left badge: only when more than 1 DayPlanning
-    if (dtCount > 1) {
+    // Top-left badge: when more than 1 DayPlanning, or (even with 1) when the day is over capacity
+    if (dtCount > 1 || (dtCount > 0 && day.total > dayCapacity)) {
       var badge = document.createElement("span");
       badge.textContent = dtCount;
       badge.style.cssText = [
