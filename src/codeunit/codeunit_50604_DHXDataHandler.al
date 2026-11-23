@@ -7258,7 +7258,55 @@ codeunit 50604 "DHX Data Handler"
                 CPO_OpenResourceScheduler(PayloadJsonTxt);
             'Capacity':
                 CPO_OpenCapacityScheduler(PayloadJsonTxt);
+            'Gantt':
+                CPO_OpenGanttScheduler(PayloadJsonTxt);
         end;
+    end;
+
+    /// <summary>Weekly chart right-click "Show Gantt" - opens page 50620 with the payload's skill filter, anchored on its date.</summary>
+    procedure CPO_OpenGanttScheduler(PayloadJsonTxt: Text)
+    var
+        GanttDemo: Page "Gantt Demo DHX 2";
+        DayPlanning: Record "Day Planning";
+        PayloadJObj: JsonObject;
+        FieldJToken: JsonToken;
+        PlanDate: Date;
+        SkillTxt: Text;
+        JobKeys: List of [Text];
+        TaskKeys: List of [Text];
+        JobFilterTxt: Text;
+        TaskFilterTxt: Text;
+    begin
+        if not PayloadJObj.ReadFrom(PayloadJsonTxt) then
+            exit;
+        if PayloadJObj.Get('skill', FieldJToken) then
+            SkillTxt := FieldJToken.AsValue().AsText();
+        if PayloadJObj.Get('date', FieldJToken) then
+            if Evaluate(PlanDate, FieldJToken.AsValue().AsText(), 9) then
+                GanttDemo.SetAnchorDate(PlanDate);
+        // Job/Task filters: the Day Plannings "Show Day Planning" would list for this skill + day.
+        if (SkillTxt <> '') and (PlanDate <> 0D) then begin
+            DayPlanning.SetLoadFields("Job No.", "Job Task No.");
+            DayPlanning.SetRange(Skill, CopyStr(SkillTxt, 1, MaxStrLen(DayPlanning.Skill)));
+            DayPlanning.SetRange("Plan Date", PlanDate);
+            DayPlanning.SetRange(Assigned, false); // same filter as ShowSkillSegment ("Show Day Planning")
+            if DayPlanning.FindSet() then
+                repeat
+                    if not JobKeys.Contains(DayPlanning."Job No.") then begin
+                        JobKeys.Add(DayPlanning."Job No.");
+                        JobFilterTxt += '|' + DayPlanning."Job No.";
+                    end;
+                    if not TaskKeys.Contains(DayPlanning."Job Task No.") then begin
+                        TaskKeys.Add(DayPlanning."Job Task No.");
+                        TaskFilterTxt += '|' + DayPlanning."Job Task No.";
+                    end;
+                until DayPlanning.Next() = 0;
+            // SetJobTaskFilter clears the skill filter, so set the skill after it.
+            GanttDemo.SetJobTaskFilter(CopyStr(JobFilterTxt, 2), CopyStr(TaskFilterTxt, 2));
+        end;
+        if SkillTxt <> '' then
+            GanttDemo.SetSkillFilter(SkillTxt);
+        GanttDemo.Run();
     end;
 
     /// <summary>Page 50724 right-click "Show Resource Scheduler" - opens page 50706 with the payload's skill filter and week of its date.</summary>
