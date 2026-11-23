@@ -1256,7 +1256,8 @@ page 50620 "Gantt Demo DHX 2"
             Setup.Insert();
         end;
 
-        AnchorDate := Today();
+        if AnchorDate = 0D then
+            AnchorDate := Today(); // SetAnchorDate may preset it (e.g. from the Weekly chart's "Show Gantt")
         ResourcePanelFlag := true;
         ShowPreviousNext := not (Setup."Date Range Type" = Setup."Date Range Type"::"Date Range");
     end;
@@ -1471,6 +1472,16 @@ page 50620 "Gantt Demo DHX 2"
         JobFilter := pJobFilter;
         JobTaskFilter := pJobTaskFilter;
         SkillFilter := '';
+    end;
+
+    procedure SetSkillFilter(pSkillFilter: Text)
+    begin
+        SkillFilter := pSkillFilter;
+    end;
+
+    procedure SetAnchorDate(pAnchorDate: Date)
+    begin
+        AnchorDate := pAnchorDate;
     end;
 
     local procedure LoadAllData()

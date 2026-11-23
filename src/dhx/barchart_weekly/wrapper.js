@@ -1178,7 +1178,8 @@ function BuildSchedulerMenuItems(skillCode, dayIndex) {
     return [
         { caption: "Show Task Scheduler", handler: raise("Task") },
         { caption: "Show Resource Scheduler", handler: raise("Resource") },
-        { caption: "Show Capacity Scheduler", handler: raise("Capacity") }
+        { caption: "Show Capacity Scheduler", handler: raise("Capacity") },
+        { caption: "Show Gantt", handler: raise("Gantt") }
     ];
 }
 
