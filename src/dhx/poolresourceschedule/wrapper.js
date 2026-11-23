@@ -382,6 +382,11 @@ window.BOOT = function() {
         tooltip: true,
     });
     
+    // Weekend / holiday background for timeline cells and the day header
+    scheduler.templates.timeline_cell_class = function(evs, date) { return poolDayOffClass(date); };
+    scheduler.templates.timeline_scale_class = function(date) { return poolDayOffClass(date); };
+    scheduler.templates.timeline_second_scale_class = function(date) { return poolDayOffClass(date); };
+
     // Apply CSS class based on event type
     scheduler.templates.event_class = function(start, end, ev) {
         var typeClass = "";
@@ -397,6 +402,45 @@ window.BOOT = function() {
         return typeClass;
     };
     
+    // Hours follow the live start/end (so the tooltip tracks a resize drag); falls back to ev.hours.
+    function poolCapHours(start, end, ev) {
+        if (start && end) {
+            var h = Math.round((end - start) / 36000) / 100; // hours, 2 decimals
+            return String(h);
+        }
+        return ev && ev.hours != null ? ev.hours : '';
+    }
+
+    // While dragging/resizing a capacity bar, show our own tooltip next to the cursor, re-rendered on every
+    // move (the library's tooltip is hidden on drag start and re-hidden by its own mousemove handling).
+    function poolDragTipNode() {
+        var n = document.getElementById("pool-drag-tooltip");
+        if (!n) {
+            n = document.createElement("div");
+            n.id = "pool-drag-tooltip";
+            n.className = "dhtmlXTooltip scheduler_tooltip tooltip";
+            n.style.position = "fixed";
+            n.style.pointerEvents = "none";
+            n.style.zIndex = "99999";
+            document.body.appendChild(n);
+        }
+        return n;
+    }
+    scheduler.attachEvent("onEventDrag", function(id, mode, e) {
+        var ev = scheduler.getEvent(id);
+        if (!ev || ev.type !== "capacity" || !e) return true;
+        var n = poolDragTipNode();
+        n.innerHTML = scheduler.templates.tooltip_text(ev.start_date, ev.end_date, ev);
+        n.style.left = (e.clientX + 14) + "px";
+        n.style.top = (e.clientY + 18) + "px";
+        return true;
+    });
+    scheduler.attachEvent("onDragEnd", function() {
+        var n = document.getElementById("pool-drag-tooltip");
+        if (n && n.parentNode) n.parentNode.removeChild(n);
+        return true;
+    });
+
     // Custom tooltip template
     scheduler.templates.tooltip_text = function(start, end, ev) {
         var formatDateOnly = scheduler.date.date_to_str("%d-%m-%Y");
@@ -429,7 +473,7 @@ window.BOOT = function() {
                     '<div class="cap-tt-line cap-tt-ind">' + poolEscHtml(scheduler.date.date_to_str("%l")(start)) + ' (wk ' + poolIsoWeekNumber(start) + ')</div>' +
                     '<div class="cap-tt-line cap-tt-ind">' + poolEscHtml(scheduler.date.date_to_str("%j %M %Y")(start)) + '</div>' +
                     '<table class="cap-tt-table"><thead><tr><th></th><th>Start</th><th>End</th><th>Hours</th></tr></thead><tbody>' +
-                        '<tr><th>Time</th><td>' + formatTimeOnly(start) + '</td><td>' + formatTimeOnly(end) + '</td><td>' + (ev.hours != null ? ev.hours : '') + '</td></tr>' +
+                        '<tr><th>Time</th><td>' + formatTimeOnly(start) + '</td><td>' + formatTimeOnly(end) + '</td><td>' + poolCapHours(start, end, ev) + '</td></tr>' +
                     '</tbody></table>' +
                 '</div>';
 
@@ -451,7 +495,8 @@ window.BOOT = function() {
     
     scheduler.locale.labels.timeline_tab = "Timeline";
     scheduler.locale.labels.section_custom="Section";
-    scheduler.config.details_on_create=true;
+    scheduler.config.details_on_create=false; // drag in a vacant cell creates a capacity bar directly (no lightbox)
+    scheduler.config.show_quick_info=false; // no native dhtmlx quick-info popup
     scheduler.config.details_on_dblclick=false; // Disable opening lightbox on double click
 
     // Start weeks on Monday
@@ -588,7 +633,7 @@ window.BOOT = function() {
         }
     };
 
-    scheduler.config.drag_create = false; //false = prevent creating new events by lightbox
+    scheduler.config.drag_create = true; // drag in a vacant cell to create a capacity bar
 
     // //console.log("EarliestPlanningDate: ",EarliestPlanningDate);
     // scheduler.init('scheduler_here');
@@ -712,17 +757,40 @@ window.BOOT = function() {
     // });
     //>>
 
+    // Capacity bars never straddle a day border. Runs before onEventChanged, on drop.
+    //  - move  (length unchanged): keep the same length/hours, slide the bar back so it ends at 24:00 of its start day
+    //  - resize: clamp the end to 24:00 of the start day
+    scheduler.attachEvent("onBeforeEventChanged", function(ev, e, is_new, original){
+        if (!ev || ev.type !== "capacity" || is_new || !original) return true;
+        // Cannot be dropped on a resource-group band: revert the drag
+        if (poolSectionIsGroup(ev.section_id)) return false;
+        var dur = original.end_date - original.start_date;
+        var s = new Date(ev.start_date);
+        var nextMidnight = new Date(s.getFullYear(), s.getMonth(), s.getDate() + 1);
+        var isMove = (ev.end_date - ev.start_date) === dur;
+        if (isMove) {
+            ev.start_date = new Date(s.getTime());
+            if (s.getTime() + dur > nextMidnight.getTime()) ev.start_date = new Date(nextMidnight.getTime() - dur);
+            ev.end_date = new Date(ev.start_date.getTime() + dur);
+        } else if (ev.end_date > nextMidnight) {
+            ev.end_date = nextMidnight;
+        }
+        return true;
+    });
+
     // Attach resize event
     scheduler.attachEvent("onEventChanged", function(id, ev){
         if (ev) delete ev._isNewForLightbox; // new event is no longer "new"
 
-        // Validate same-day event
+        // Validate same-day event (a capacity bar may end exactly at 24:00 = next-day 00:00)
         var s = ev && ev.start_date ? new Date(ev.start_date) : null;
         var e = ev && ev.end_date ? new Date(ev.end_date) : null;
         if (s && e) {
             var sameDay = s.getFullYear() === e.getFullYear() &&
                         s.getMonth() === e.getMonth() &&
                         s.getDate() === e.getDate();
+            if (!sameDay && ev.type === "capacity" &&
+                e.getTime() === new Date(s.getFullYear(), s.getMonth(), s.getDate() + 1).getTime()) sameDay = true;
             if (!sameDay) {
                 alert("Start date and end date must be on the same day.");
                 // Remove the just-created event to effectively cancel the add
@@ -741,7 +809,9 @@ window.BOOT = function() {
             text: ev.text,
             start_date: ev.start_date,
             end_date: ev.end_date,
-            section_id: ev.section_id
+            section_id: ev.section_id,
+            type: ev.type || '',
+            resource_id: ev.resource_id || ''
         };
 
         // Also reset after closing the lightbox (Cancel or Save)
@@ -758,6 +828,30 @@ window.BOOT = function() {
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnEventChanged", [id, JSON.stringify(eventData)]);
     });
 
+    // A bar drawn in a vacant cell becomes a capacity bar straight away (no lightbox): only on a resource row
+    // (not a group band), never across a day border.
+    scheduler.attachEvent("onBeforeEventCreated", function(e){
+        var pos = scheduler.getActionData(e);
+        return !(pos && pos.section && poolSectionIsGroup(pos.section));
+    });
+    scheduler.attachEvent("onBeforeLightbox", function(id){
+        var st = scheduler.getState();
+        var ev = scheduler.getEvent(id);
+        if (!ev || !st.new_event || ev.type) return true; // existing bars keep default behaviour
+        if (poolSectionIsGroup(ev.section_id)) { scheduler.deleteEvent(id, true); return false; }
+        var cs = new Date(ev.start_date);
+        var cNext = new Date(cs.getFullYear(), cs.getMonth(), cs.getDate() + 1);
+        var ce = ev.end_date > cNext ? cNext : new Date(ev.end_date);
+        if (ce <= cs) { scheduler.deleteEvent(id, true); return false; }
+        var sp = String(ev.section_id || "").split("|");
+        var payload = {
+            id: id, text: "capacity", start_date: cs, end_date: ce,
+            section_id: ev.section_id, resource_id: sp.length >= 2 ? sp[1] : "", type: "capacity"
+        };
+        scheduler.deleteEvent(id, true); // BC reloads the schedule with the saved entry
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("onEventAdded", [id, JSON.stringify(payload)]);
+        return false;
+    });
     scheduler.attachEvent("onEventAdded", function(id,ev){
         if (ev) delete ev._isNewForLightbox;   // <— important
 
@@ -881,6 +975,23 @@ function poolIsoWeekNumber(dateValue) {
     utc.setUTCDate(utc.getUTCDate() + 4 - day);
     var yearStart = new Date(Date.UTC(utc.getUTCFullYear(), 0, 1));
     return Math.ceil((((utc - yearStart) / 86400000) + 1) / 7);
+}
+
+// True when the section key is a group band (a tree node with children), not a resource row.
+function poolSectionIsGroup(key) {
+    var tl = scheduler.matrix && scheduler.matrix.timeline;
+    if (!tl || !key) return false;
+    function find(list) {
+        if (!Array.isArray(list)) return null;
+        for (var i = 0; i < list.length; i++) {
+            if (String(list[i].key) === String(key)) return list[i];
+            var r = find(list[i].children);
+            if (r) return r;
+        }
+        return null;
+    }
+    var n = find(tl.y_unit_original) || find(tl.y_unit);
+    return !!(n && Array.isArray(n.children) && n.children.length);
 }
 
 // Display label (resource name) of a timeline section by key, searched recursively in the tree.
@@ -1103,6 +1214,33 @@ function SetBarColors(colorsJson) {
     } catch (e) {
         console.warn("SetBarColors: invalid colorsJson", colorsJson, e);
     }
+}
+
+var _poolHolidays = {}; // { "YYYY-MM-DD": "Description" } - Base Calendar non-working days (Mon-Fri)
+
+// AL-callable: weekend/holiday cell colours + holiday list (same source as the Gantt)
+function SetDayOffInfo(weekendColorHex, holidayColorHex, holidaysJsonTxt) {
+    try {
+        var root = document.getElementById("scheduler_here");
+        if (root) {
+            if (weekendColorHex) root.style.setProperty("--pool-weekend-color", weekendColorHex);
+            if (holidayColorHex) root.style.setProperty("--pool-holiday-color", holidayColorHex);
+        }
+        _poolHolidays = {};
+        var list = JSON.parse(holidaysJsonTxt || "[]");
+        for (var i = 0; i < list.length; i++) if (list[i].date) _poolHolidays[list[i].date] = list[i].description || "Holiday";
+        if (typeof scheduler !== "undefined" && scheduler.updateView) scheduler.updateView();
+    } catch (e) {
+        console.warn("SetDayOffInfo failed", e);
+    }
+}
+window.SetDayOffInfo = SetDayOffInfo;
+
+function poolDayOffClass(date) {
+    var d = date.getDay();
+    if (d === 0 || d === 6) return "pool-weekend";
+    var key = date.getFullYear() + "-" + ("0" + (date.getMonth() + 1)).slice(-2) + "-" + ("0" + date.getDate()).slice(-2);
+    return _poolHolidays[key] ? "pool-holiday" : "";
 }
 
 function LoadData(eventsJson) {
@@ -1378,6 +1516,11 @@ function RecreateTimelineView(sections) {
     });
 
     // Customize parent row background color for event area
+    // Weekend / holiday shading (templates are reset by createTimelineView, so set them here)
+    scheduler.templates.timeline_cell_class = function(evs, date) { return poolDayOffClass(date); };
+    scheduler.templates.timeline_scale_class = function(date) { return poolDayOffClass(date); };
+    scheduler.templates.timeline_second_scale_class = function(date) { return poolDayOffClass(date); };
+
     scheduler.templates.timeline_row_class = function(section, date) {
         // Check section category and return appropriate class
         if (section.category === 'Vendor' || section.category === 'Pool') {

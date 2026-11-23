@@ -251,11 +251,16 @@ page 50722 "Capacity Planning Overview"
     local procedure SendColors()
     var
         VisualDefaultSettings: Codeunit "Visual Default Settings";
+        GanttChartDataHandler: Codeunit GanttChartDataHandler;
         ColorsJsonTxt: Text;
     begin
-        ColorsJsonTxt := StrSubstNo('{"tooltipBg":"%1","tooltipFont":"%2"}',
+        // Also carries weekend/holiday tint colours + Base Calendar non-working days (same source as the Gantt)
+        ColorsJsonTxt := StrSubstNo('{"tooltipBg":"%1","tooltipFont":"%2","weekendColor":"%3","holidayColor":"%4","holidays":%5}',
             VisualDefaultSettings.GetTooltipBackgroundColor(),
-            VisualDefaultSettings.GetTooltipFontColor());
+            VisualDefaultSettings.GetTooltipFontColor(),
+            VisualDefaultSettings.GetWeekendColor(),
+            VisualDefaultSettings.GetHolidayColor(),
+            GanttChartDataHandler.GetHolidaysAsJson(Today() - 7, Today() + 400));
         CurrPage.DhxCpo.SetColors(ColorsJsonTxt);
     end;
 

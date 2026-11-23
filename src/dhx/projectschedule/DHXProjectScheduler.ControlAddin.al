@@ -48,6 +48,7 @@ controladdin DHXProjectScheduleAddin
     procedure Init(elements: Text; EarliestPlanningDate: Date);
     procedure LoadData(EventTxt: Text);
     procedure SetBarColors(colorsJson: Text);
+    procedure SetDayOffInfo(weekendColorHex: Text; holidayColorHex: Text; holidaysJsonTxt: Text);
     procedure SetSkillFontBorderColors(skillsJson: Text);
     procedure SetTimelineHourStep(hourStep: Integer);
     procedure SetTimelineHourRange(startHour: Integer; endHour: Integer);

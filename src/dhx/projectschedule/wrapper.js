@@ -1178,6 +1178,33 @@ function Init(dataelements, EarliestPlanningDate) {
     Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnAfterInit", []);
 }
 
+var _tskHolidays = {}; // { "YYYY-MM-DD": "Description" } - Base Calendar non-working days (Mon-Fri)
+
+// AL-callable: weekend/holiday cell colours + holiday list (same source as the Gantt)
+function SetDayOffInfo(weekendColorHex, holidayColorHex, holidaysJsonTxt) {
+    try {
+        var root = document.getElementById("scheduler_here");
+        if (root) {
+            if (weekendColorHex) root.style.setProperty("--tsk-weekend-color", weekendColorHex);
+            if (holidayColorHex) root.style.setProperty("--tsk-holiday-color", holidayColorHex);
+        }
+        _tskHolidays = {};
+        var list = JSON.parse(holidaysJsonTxt || "[]");
+        for (var i = 0; i < list.length; i++) if (list[i].date) _tskHolidays[list[i].date] = list[i].description || "Holiday";
+        if (typeof scheduler !== "undefined" && scheduler.updateView) scheduler.updateView();
+    } catch (e) {
+        console.warn("SetDayOffInfo failed", e);
+    }
+}
+window.SetDayOffInfo = SetDayOffInfo;
+
+function tskDayOffClass(date) {
+    var d = date.getDay();
+    if (d === 0 || d === 6) return "tsk-weekend";
+    var key = date.getFullYear() + "-" + ("0" + (date.getMonth() + 1)).slice(-2) + "-" + ("0" + date.getDate()).slice(-2);
+    return _tskHolidays[key] ? "tsk-holiday" : "";
+}
+
 function LoadData(eventsJson) {
     console.log("LoadData called with:", eventsJson);
     if (!scheduler_here) {
@@ -1512,6 +1539,12 @@ function RecreateTimelineView(sections) {
     var visibleColumns = Math.max(1, columnsPerDay * 7);
 
     // Recreate timeline view with new sections
+    // Weekend / holiday shading (createTimelineView resets these templates, so set them around it)
+    var _setDayOffTemplates = function() {
+        scheduler.templates.timeline_cell_class = function(evs, date) { return tskDayOffClass(date); };
+        scheduler.templates.timeline_scale_class = function(date) { return tskDayOffClass(date); };
+        scheduler.templates.timeline_second_scale_class = function(date) { return tskDayOffClass(date); };
+    };
     scheduler.createTimelineView({
         name: "timeline",
         x_unit: "hour",
@@ -1533,6 +1566,7 @@ function RecreateTimelineView(sections) {
             x_date: "%D %d %M"
         }
     });
+    _setDayOffTemplates();
 
     // Extra indent for the Skill - Sequence No. child rows (section key Job|Task|Skill|Seq)
     scheduler.templates.timeline_scale_label = function (key, label, section) {

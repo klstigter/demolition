@@ -2158,6 +2158,12 @@ codeunit 50604 "DHX Data Handler"
         _DateTimeUserZone := ConvertToUserTimeZone(_DateTime);
         DateRef := DT2Date(_DateTimeUserZone);
 
+        // Capacity bar resized/moved: persist the new capacity into Res. Capacity Entry.
+        // Event id = Entry No. (max entry of the resource/day group shown as one bar).
+        if EventJSonObj.Get('type', JToken) then
+            if JToken.AsValue().AsText() = 'capacity' then
+                SaveCapacityBarChange(EventId, EventJSonObj, _DateTimeUserZone);
+
         //**** OLD Code: *****
         // // New Section/Element id
         // EventJSonObj.ReadFrom(EventData);
@@ -2237,6 +2243,180 @@ codeunit 50604 "DHX Data Handler"
 
         // OldDayPlanning.Modify();
 
+    end;
+
+    /// <summary>
+    /// Creates a Res. Capacity Entry from a capacity bar drawn in a vacant cell of the Capacity Scheduler.
+    /// Returns false when the event is not a capacity bar (caller falls back to the Day Planning path).
+    /// </summary>
+    procedure OnCapacityAdded(EventData: Text; var DateRef: Date): Boolean
+    var
+        ResCap: Record "Res. Capacity Entry";
+        LastCap: Record "Res. Capacity Entry";
+        DupCap: Record "Res. Capacity Entry";
+        EventJSonObj: JsonObject;
+        JToken: JsonToken;
+        SectionParts: List of [Text];
+        StartDT: DateTime;
+        EndDT: DateTime;
+        StartUserZone: DateTime;
+        EndUserZone: DateTime;
+        Hours: Decimal;
+    begin
+        if not EventJSonObj.ReadFrom(EventData) then
+            exit(false);
+        if not EventJSonObj.Get('type', JToken) then
+            exit(false);
+        if JToken.AsValue().AsText() <> 'capacity' then
+            exit(false);
+
+        EventJSonObj.Get('section_id', JToken);
+        SectionParts := JToken.AsValue().AsText().Split('|');
+        if SectionParts.Count() < 2 then
+            exit(false);
+        EventJSonObj.Get('start_date', JToken);
+        Evaluate(StartDT, JToken.AsValue().AsText());
+        EventJSonObj.Get('end_date', JToken);
+        Evaluate(EndDT, JToken.AsValue().AsText());
+        StartUserZone := ConvertToUserTimeZone(StartDT);
+        EndUserZone := ConvertToUserTimeZone(EndDT);
+        DateRef := DT2Date(StartUserZone);
+        Hours := Round((EndUserZone - StartUserZone) / 3600000, 0.01);
+        if Hours <= 0 then
+            exit(true);
+
+        ResCap.Init();
+        if LastCap.FindLast() then
+            ResCap."Entry No." := LastCap."Entry No." + 1
+        else
+            ResCap."Entry No." := 1;
+        ResCap."Resource No." := CopyStr(SectionParts.Get(2), 1, MaxStrLen(ResCap."Resource No."));
+        ResCap."Resource Group No." := CopyStr(SectionParts.Get(1), 1, MaxStrLen(ResCap."Resource Group No."));
+        ResCap.Date := DateRef;
+        ResCap."Start Time" := DT2Time(StartUserZone);
+        if DT2Date(EndUserZone) > DateRef then
+            ResCap."End Time" := 0T
+        else
+            ResCap."End Time" := DT2Time(EndUserZone);
+        ResCap.Capacity := Hours;
+        // Own Duplicate Id so the new bar stays a separate bar next to existing entries of the same day
+        DupCap.SetRange("Resource No.", ResCap."Resource No.");
+        DupCap.SetRange(Date, DateRef);
+        ResCap."Duplicate Id" := 1;
+        if DupCap.FindSet() then
+            repeat
+                if DupCap."Duplicate Id" >= ResCap."Duplicate Id" then
+                    ResCap."Duplicate Id" := DupCap."Duplicate Id" + 1;
+            until DupCap.Next() = 0;
+        ResCap.Insert(true);
+        exit(true);
+    end;
+
+    local procedure SaveCapacityBarChange(EventId: Text; EventJSonObj: JsonObject; StartUserZone: DateTime)
+    var
+        ResCap: Record "Res. Capacity Entry";
+        DayCap: Record "Res. Capacity Entry";
+        JToken: JsonToken;
+        SectionParts: List of [Text];
+        EndDT: DateTime;
+        EndUserZone: DateTime;
+        EntryNo: Integer;
+        NewHours: Decimal;
+        OldTotal: Decimal;
+        OldDate: Date;
+        OldResNo: Code[20];
+        NewResNo: Code[20];
+        NewDate: Date;
+        NewStart: Time;
+        OldStart: Time;
+        NewGroupNo: Code[20];
+        EndTimeToStore: Time;
+        ShiftMs: Duration;
+        Single: Boolean;
+        LoopEntryNo: Integer;
+        EntryNos: List of [Integer];
+    begin
+        if not Evaluate(EntryNo, EventId) then
+            exit;
+        if not ResCap.Get(EntryNo) then
+            exit;
+        if not EventJSonObj.Get('end_date', JToken) then
+            exit;
+        Evaluate(EndDT, JToken.AsValue().AsText());
+        EndUserZone := ConvertToUserTimeZone(EndDT);
+        NewHours := Round((EndUserZone - StartUserZone) / 3600000, 0.01);
+        if NewHours < 0 then
+            exit;
+
+        // A bar ending at 24:00 (next-day 00:00) stores a blank End Time: 000000T would read back as the start of the same day
+        if DT2Date(EndUserZone) > DT2Date(StartUserZone) then
+            EndTimeToStore := 0T
+        else
+            EndTimeToStore := DT2Time(EndUserZone);
+
+        OldDate := ResCap.Date;
+        OldStart := ResCap."Start Time";
+        OldResNo := ResCap."Resource No.";
+        NewDate := DT2Date(StartUserZone);
+        NewStart := DT2Time(StartUserZone);
+
+        // Target resource = row the bar was dropped on (section_id = group|resource|vendor)
+        NewResNo := OldResNo;
+        NewGroupNo := ResCap."Resource Group No.";
+        if EventJSonObj.Get('section_id', JToken) then begin
+            SectionParts := JToken.AsValue().AsText().Split('|');
+            if SectionParts.Count() >= 2 then begin
+                NewGroupNo := CopyStr(SectionParts.Get(1), 1, MaxStrLen(NewGroupNo));
+                NewResNo := CopyStr(SectionParts.Get(2), 1, MaxStrLen(NewResNo));
+            end;
+        end;
+
+        DayCap.SetRange("Resource No.", OldResNo);
+        DayCap.SetRange(Date, OldDate);
+        Single := DayCap.Count() = 1;
+        DayCap.CalcSums(Capacity);
+        OldTotal := DayCap.Capacity;
+
+        // Capacity: single entry takes the bar's hours; grouped bar -> delta on the bar's entry
+        if Single then
+            ResCap.Capacity := NewHours
+        else begin
+            ResCap.Capacity := ResCap.Capacity + NewHours - OldTotal;
+            if ResCap.Capacity < 0 then
+                ResCap.Capacity := 0;
+        end;
+        // The bar is drawn from this (latest) entry's own start/end time
+        ResCap."Start Time" := NewStart;
+        ResCap."End Time" := EndTimeToStore;
+        ResCap.Modify(true);
+
+        // Move to another day/resource: carry the rest of the resource/day group along
+        if (NewDate <> OldDate) or (NewResNo <> OldResNo) then begin
+            ShiftMs := CreateDateTime(NewDate, NewStart) - CreateDateTime(NewDate, OldStart);
+            // Collect keys first: changing Date/Resource No. would drop rows out of the filter mid-loop
+            DayCap.Reset();
+            DayCap.SetRange("Resource No.", OldResNo);
+            DayCap.SetRange(Date, OldDate);
+            if DayCap.FindSet() then
+                repeat
+                    EntryNos.Add(DayCap."Entry No.");
+                until DayCap.Next() = 0;
+            foreach LoopEntryNo in EntryNos do begin
+                DayCap.Get(LoopEntryNo);
+                DayCap.Date := NewDate;
+                DayCap."Resource No." := NewResNo;
+                DayCap."Resource Group No." := NewGroupNo;
+                DayCap."Start Time" := DayCap."Start Time" + ShiftMs;
+                if DayCap."End Time" <> 0T then
+                    DayCap."End Time" := DayCap."End Time" + ShiftMs;
+                DayCap.Modify(true);
+            end;
+            // The bar's own entry carries the exact times from the bar
+            ResCap.Get(EntryNo);
+            ResCap."Start Time" := NewStart;
+            ResCap."End Time" := EndTimeToStore;
+            ResCap.Modify(true);
+        end;
     end;
 
     procedure OnEventChanged_Project(EventId: Text;

@@ -356,3 +356,8 @@
     box-shadow: none !important;
     opacity: 0.75;
 }
+
+
+/* Weekend / holiday day-column shading - colours from "Daily Optimizer Setup" (see wrapper.js SetDayOffInfo), same as the Gantt */
+.res-weekend-day { background: var(--res-weekend-color, #ffe0e0) !important; }
+.res-holiday-day { background: var(--res-holiday-color, #fff3cd) !important; }

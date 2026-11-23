@@ -39,6 +39,7 @@ controladdin DHXResourceScheduleAddin
     procedure SetShowCapacity(pShow: Boolean);
     procedure SetResourceFilterInfo(resNo: Text; resName: Text; periodFrom: Text; periodTo: Text; skillFilter: Text);
     procedure SetBarFontColor(fontColorHex: Text);
+    procedure SetDayOffInfo(weekendColorHex: Text; holidayColorHex: Text; holidaysJsonTxt: Text);
     // Hover/tooltip popup colours - codeunit 50609's GetTooltipBackgroundColor/
     // GetTooltipFontColor, applied to .dhtmlXTooltip.tooltip (style.css) and
     // #res-filter-tooltip-popup (wrapper.js). Same convention as SetBarFontColor above.

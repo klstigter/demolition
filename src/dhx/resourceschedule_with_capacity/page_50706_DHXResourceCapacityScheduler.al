@@ -107,6 +107,7 @@ page 50706 "Resource Scheduler - TimeLine"
                     CurrPage.DhxScheduler.SetBarColors(ColorsJsonTxt);
                     CurrPage.DhxScheduler.SetSkillFontBorderColors(DHXDataHandler.BuildSkillFontBorderColorsJson());
                     PushResourceFilterInfo();
+                    PushDayOffInfo();
                     CurrPage.Update(false);
 
                     if GuiAllowed() then
@@ -200,6 +201,7 @@ page 50706 "Resource Scheduler - TimeLine"
                             Window.Update(1, 'Rendering...');
                         CurrPage.DhxScheduler.RefreshTimeline(TreeJsonTxt, EventsJsonTxt, CapacityJsonTxt, startDate);
                         PushResourceFilterInfo();
+                        PushDayOffInfo();
                     end;
 
                     if GuiAllowed() then
@@ -639,10 +641,25 @@ page 50706 "Resource Scheduler - TimeLine"
             Window.Update(1, 'Rendering...');
         CurrPage.DhxScheduler.RefreshTimeline(TreeJsonTxt, EventsJsonTxt, CapacityJsonTxt, startDate);
         PushResourceFilterInfo();
+        PushDayOffInfo();
         CurrPage.Update(false);
 
         if GuiAllowed() then
             Window.Close();
+    end;
+
+    // Weekend / holiday (Base Calendar non-working day) shading - same data + colours as the Gantt
+    local procedure PushDayOffInfo()
+    var
+        GanttChartDataHandler: Codeunit GanttChartDataHandler;
+        VisualSettings: Codeunit "Visual Default Settings";
+        FromDate: Date;
+    begin
+        FromDate := AnchorDate;
+        if FromDate = 0D then
+            FromDate := Today();
+        CurrPage.DhxScheduler.SetDayOffInfo(VisualSettings.GetWeekendColor(), VisualSettings.GetHolidayColor(),
+            GanttChartDataHandler.GetHolidaysAsJson(FromDate - 7, FromDate + 21));
     end;
 
     local procedure PushResourceFilterInfo()

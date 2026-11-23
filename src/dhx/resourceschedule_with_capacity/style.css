@@ -15,3 +15,10 @@ html, body {
     background-color: #f0f0f0 !important;
     opacity: 0.5;
 }
+
+
+/* Weekend / holiday shading - colours from "Daily Optimizer Setup" (see wrapper.js SetDayOffInfo), same as the Gantt */
+.rcs-weekend { background: var(--rcs-weekend-color, #ffe0e0) !important; }
+.rcs-holiday { background: var(--rcs-holiday-color, #fff3cd) !important; }
+.timeline-resource-row .dhx_matrix_cell.rcs-weekend { background-color: var(--rcs-weekend-color, #ffe0e0) !important; }
+.timeline-resource-row .dhx_matrix_cell.rcs-holiday { background-color: var(--rcs-holiday-color, #fff3cd) !important; }

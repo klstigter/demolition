@@ -48,4 +48,5 @@ controladdin DHXPoolResourceScheduleAddin
     procedure getAllSections();
     procedure SetResourceFilterInfo(resNo: Text; resName: Text; periodFrom: Text; periodTo: Text; skillFilter: Text);
     procedure SetBarColors(ColorsJson: Text);
+    procedure SetDayOffInfo(weekendColorHex: Text; holidayColorHex: Text; holidaysJsonTxt: Text);
 }
