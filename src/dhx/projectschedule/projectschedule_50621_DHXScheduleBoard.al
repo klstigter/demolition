@@ -320,9 +320,46 @@ page 50621 "DHX Scheduler (Project)"
                     end;
                 end;
 
-                trigger OnSectionContextMenu(sectionId: Text; action: Text; payloadJson: Text)
+                trigger OnSectionTooltipRequest(sectionId: Text)
+                var
+                    TooltipJson: Text;
                 begin
+                    TooltipJson := DHXDataHandler.GetSectionTooltipJson(sectionId);
+                    if TooltipJson <> '' then
+                        CurrPage.DhxScheduler.SetSectionTooltip(sectionId, TooltipJson);
+                end;
+
+                trigger OnSectionContextMenu(sectionId: Text; action: Text; payloadJson: Text)
+                var
+                    SummaryPage: Page "Summary View";
+                    SectionParts: List of [Text];
+                    SecJobNo: Code[20];
+                    SecTaskNo: Code[20];
+                begin
+                    SectionParts := sectionId.Split('|');
+                    if SectionParts.Count() >= 1 then
+                        SecJobNo := CopyStr(SectionParts.Get(1), 1, MaxStrLen(SecJobNo));
+                    if SectionParts.Count() >= 2 then
+                        SecTaskNo := CopyStr(SectionParts.Get(2), 1, MaxStrLen(SecTaskNo));
                     case action of
+                        'ShowSummary':
+                            if SecJobNo <> 'nodata' then begin
+                                SummaryPage.LoadDataSet(SecJobNo, SecTaskNo);
+                                SummaryPage.SetJobAndJobTaskVisibility(false);
+                                SummaryPage.Run();
+                            end;
+                        'ShowJobResources':
+                            DHXDataHandler.ShowJobResourcesForSection(sectionId);
+                        'ShowDayPlanning':
+                            DHXDataHandler.OpenDayPlanningForSection(sectionId);
+                        'OpenDayPlanningVisual':
+                            DHXDataHandler.OpenDayPlanningVisual(sectionId);
+                        'AddFilter':
+                            if (SecJobNo <> '') and (SecJobNo <> 'nodata') then begin
+                                jobFilter := SecJobNo;
+                                JobTaskFilter := SecTaskNo;
+                                RefreshSchedule();
+                            end;
                         'OpenTask':
                             DHXDataHandler.OpenJobTaskCard(sectionId);
                         'NewEvent':

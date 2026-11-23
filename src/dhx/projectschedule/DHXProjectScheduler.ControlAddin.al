@@ -44,6 +44,8 @@ controladdin DHXProjectScheduleAddin
     // CurrPage.DhxScheduler.AppendSections is safe, unlike from OnPageBackgroundTaskCompleted
     // itself. Same shape as ganttdemo2's OnPollResourcePanelResult.
     event OnPollSectionsResult();
+    event OnSectionTooltipRequest(sectionId: Text);
+    procedure SetSectionTooltip(sectionId: Text; tooltipJson: Text);
 
     procedure Init(elements: Text; EarliestPlanningDate: Date);
     procedure LoadData(EventTxt: Text);

@@ -1168,6 +1168,9 @@ function Init(dataelements, EarliestPlanningDate) {
     // Wire right-click context menu now that scheduler DOM exists
     setupContextMenu();
 
+    // Wire the hover tooltip on the left-panel (task list) rows - same content as the Gantt task list's
+    setupSectionTooltip();
+
     // Wire the Job/Job Task filter toolbar now that scheduler DOM exists
     setupFilterToolbar();
 
@@ -1591,30 +1594,48 @@ function setupContextMenu() {
     menu.innerHTML =
         '<div class="dhx-ctx-item" data-action="AddDayPlanning">' +
             '<span class="dhx-ctx-icon">&#10133;</span>Add Day Planning</div>' +
-        '<div class="dhx-ctx-item" data-action="OpenDayPlanning">' +
+        // Section (task list) menu - same items/order as the Gantt task list's right-click menu
+        // (src/dhx/ganttdemo2/wrapper.js _showContextMenu). data-for="section" = left-panel rows only.
+        '<div class="dhx-ctx-separator" data-for="section"></div>' +
+        '<div class="dhx-ctx-item" data-for="section" data-action="ShowSummary">' +
+            '<span class="dhx-ctx-icon">&#x1F4C4;</span>Summary</div>' +
+        '<div class="dhx-ctx-item" data-for="section" data-action="ShowJobResources">' +
+            '<span class="dhx-ctx-icon">&#x1F465;</span>Show Job Resources</div>' +
+        '<div class="dhx-ctx-separator" data-for="section"></div>' +
+        '<div class="dhx-ctx-item" data-for="section" data-action="OpenTask">' +
+            '<span class="dhx-ctx-icon">&#x1F4CB;</span>Show Task</div>' +
+        '<div class="dhx-ctx-item" data-for="section" data-action="ShowDayPlanning">' +
+            '<span class="dhx-ctx-icon">&#x1F4C5;</span>Show Day Planning</div>' +
+        '<div class="dhx-ctx-item" data-for="section" data-action="OpenDayPlanningVisual">' +
+            '<span class="dhx-ctx-icon">&#x1F4C5;</span>Show Task Scheduler</div>' +
+        '<div class="dhx-ctx-separator" data-for="section"></div>' +
+        '<div class="dhx-ctx-item" data-for="section" data-action="AddFilter">' +
+            '<span class="dhx-ctx-icon"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M3 4h18l-7.2 8.6v6.4l-3.6 1.8v-8.2z" fill="#5f6368"/></svg></span>Add Filter</div>' +
+        '<div class="dhx-ctx-separator" data-for="section"></div>' +
+        '<div class="dhx-ctx-item" data-for="event" data-action="OpenDayPlanning">' +
             '<span class="dhx-ctx-icon">&#128197;</span>Open Day Planning</div>' +
-        '<div class="dhx-ctx-item" data-action="OpenDayPlanningCard">' +
+        '<div class="dhx-ctx-item" data-for="event" data-action="OpenDayPlanningCard">' +
             '<span class="dhx-ctx-icon">&#128211;</span>Open Day Planning Card</div>' +
-        '<div class="dhx-ctx-separator"></div>' +
-        '<div class="dhx-ctx-item" data-action="OpenTask">' +
+        '<div class="dhx-ctx-separator" data-for="event"></div>' +
+        '<div class="dhx-ctx-item" data-for="event" data-action="OpenTask">' +
             '<span class="dhx-ctx-icon">&#128196;</span>Open Job Task Card</div>' +
-        '<div class="dhx-ctx-item" data-action="ShowJobResources">' +
+        '<div class="dhx-ctx-item" data-for="event" data-action="ShowJobResources">' +
             '<span class="dhx-ctx-icon">&#128100;</span>Open Job Task Resources</div>' +
-        '<div class="dhx-ctx-item" data-action="OpenDayPlanningVisual">' +
+        '<div class="dhx-ctx-item" data-for="event" data-action="OpenDayPlanningVisual">' +
             '<span class="dhx-ctx-icon">&#128248;</span>Open Job Task Scheduler</div>' +
-        '<div class="dhx-ctx-separator"></div>' +
-        '<div class="dhx-ctx-item" data-action="OpenResSchedulerTimeline">' +
+        '<div class="dhx-ctx-separator" data-for="event"></div>' +
+        '<div class="dhx-ctx-item" data-for="event" data-action="OpenResSchedulerTimeline">' +
             '<span class="dhx-ctx-icon">&#128101;</span>Open Resource Scheduler</div>' +
-        '<div class="dhx-ctx-separator"></div>' +
-        '<div class="dhx-ctx-item" data-action="OpenResourceSchedulerAssigned">' +
+        '<div class="dhx-ctx-separator" data-for="event"></div>' +
+        '<div class="dhx-ctx-item" data-for="event" data-action="OpenResourceSchedulerAssigned">' +
             '<span class="dhx-ctx-icon">&#128101;</span>Open Resource Scheduler (assigned)</div>' +        
-        '<div class="dhx-ctx-item" data-action="OpenResourceSchedulerRequested">' +
+        '<div class="dhx-ctx-item" data-for="event" data-action="OpenResourceSchedulerRequested">' +
             '<span class="dhx-ctx-icon">&#128101;</span>Open Resource Scheduler (Requested)</div>' +
-        '<div class="dhx-ctx-item" data-action="OpenAssignedResourceCard">' +
+        '<div class="dhx-ctx-item" data-for="event" data-action="OpenAssignedResourceCard">' +
             '<span class="dhx-ctx-icon">&#128100;</span>Open Resource Card (assigned)</div>' +
-        '<div class="dhx-ctx-item" data-action="OpenRequestedResourceCard">' +
+        '<div class="dhx-ctx-item" data-for="event" data-action="OpenRequestedResourceCard">' +
             '<span class="dhx-ctx-icon">&#128100;</span>Open Resource Card (Requested)</div>' +
-        '<div class="dhx-ctx-separator"></div>' +
+        '<div class="dhx-ctx-separator" data-for="event"></div>' +
         '<div class="dhx-ctx-item ctx-cancel" data-action="Cancel">' +
             '<span class="dhx-ctx-icon">&#10005;</span>Cancel</div>';
     document.body.appendChild(menu);
@@ -1623,29 +1644,16 @@ function setupContextMenu() {
 
     function showMenu(x, y, target) {
         _ctxTarget = target;
-        // Add Day Planning only on a left-panel row (also the "No Data" placeholder row)
+        // Items/separators are tagged data-for="event"|"section"; untagged (Cancel) always shows.
+        // Add Day Planning: left-panel rows only (incl. the "No Data" placeholder row).
+        // The Gantt-style task menu needs a real Job/Task, so it is hidden on the placeholder.
+        var isNoData = target.type === 'section' && (!target.id || target.id === 'nodata');
         menu.querySelector('[data-action="AddDayPlanning"]').style.display =
             (target.type === 'section') ? '' : 'none';
-        // Show/hide ShowJobResources only when clicking an event
-        menu.querySelector('[data-action="ShowJobResources"]').style.display =
-            (target.type === 'event') ? '' : 'none';
-        // Show Day Planning actions only for events
-        menu.querySelector('[data-action="OpenDayPlanning"]').style.display =
-            (target.type === 'event') ? '' : 'none';
-        menu.querySelector('[data-action="OpenDayPlanningCard"]').style.display =
-            (target.type === 'event') ? '' : 'none';
-        menu.querySelector('[data-action="OpenDayPlanningVisual"]').style.display =
-            (target.type === 'event') ? '' : 'none';
-        menu.querySelector('[data-action="OpenResourceSchedulerAssigned"]').style.display =
-            (target.type === 'event') ? '' : 'none';
-        menu.querySelector('[data-action="OpenResSchedulerTimeline"]').style.display =
-            (target.type === 'event') ? '' : 'none';
-        menu.querySelector('[data-action="OpenResourceSchedulerRequested"]').style.display =
-            (target.type === 'event') ? '' : 'none';
-        menu.querySelector('[data-action="OpenRequestedResourceCard"]').style.display =
-            (target.type === 'event') ? '' : 'none';
-        menu.querySelector('[data-action="OpenAssignedResourceCard"]').style.display =
-            (target.type === 'event') ? '' : 'none';
+        Array.prototype.forEach.call(menu.querySelectorAll('[data-for]'), function (el) {
+            var f = el.getAttribute('data-for');
+            el.style.display = (f === target.type && !isNoData) ? '' : 'none';
+        });
 
         menu.className = '';
         // Keep inside viewport
@@ -1743,6 +1751,135 @@ function setupContextMenu() {
             // Clicked elsewhere — dismiss any open menu
             hideMenu();
         });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Hover tooltip on left-panel (task list) rows - same "Job and Task" + Period content as the
+// Gantt task list (src/dhx/ganttdemo2/wrapper.js gantt.templates.tooltip_text). Data is fetched
+// lazily from AL on first hover of a row (OnSectionTooltipRequest -> SetSectionTooltip) and cached
+// briefly. Reuses the .dhtmlXTooltip.tooltip shell, so it also hides while the right-click menu is open.
+// ═══════════════════════════════════════════════════════════════
+var _secTip = { cache: {}, current: '', timer: null, el: null };
+var SEC_TIP_TTL_MS = 30000;
+
+function _secTipRow(target) {
+    if (!target || !target.closest) return '';
+    // Only the left label column: the label cell, or the label row element itself
+    var inLabel = target.closest('.dhx_matrix_scell') || target.closest('.dhx_timeline_label_row');
+    if (!inLabel) return '';
+    // Same attribute the section double-click / context menu read; search up and down from the hit
+    var row = target.closest('[data-row-id]') || inLabel.querySelector('[data-row-id]');
+    var id = row ? (row.getAttribute('data-row-id') || '') : '';
+    return (id && id !== 'nodata') ? id : '';
+}
+
+function _secTipHide() {
+    clearTimeout(_secTip.timer);
+    _secTip.current = '';
+    if (_secTip.el) _secTip.el.style.display = 'none';
+}
+
+function _secTipPosition(e) {
+    var el = _secTip.el;
+    if (!el || el.style.display === 'none') return;
+    var left = e.clientX + 14, top = e.clientY + 14;
+    if (left + el.offsetWidth > window.innerWidth) left = e.clientX - el.offsetWidth - 14;
+    if (top + el.offsetHeight > window.innerHeight) top = e.clientY - el.offsetHeight - 14;
+    el.style.left = Math.max(4, left) + 'px';
+    el.style.top = Math.max(4, top) + 'px';
+}
+
+function _secTipHtml(d) {
+    var dash = function (v) {
+        return String(v || '-').replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    };
+    var html =
+        '<div class="standard-tooltip-context">' +
+            '<div class="standard-tooltip-context-title">Job and Task</div>' +
+            '<table class="standard-tooltip-table standard-tooltip-context-table"><tbody>' +
+                '<tr><td>' + dash(d.jobNo) + '</td><td>' + dash(d.jobDesc) + '</td></tr>' +
+                (d.taskNo ? '<tr><td>' + dash(d.taskNo) + '</td><td>' + dash(d.taskDesc) + '</td></tr>' : '') +
+            '</tbody></table>' +
+        '</div>';
+    if (!d.taskNo) return html;
+
+    var num = function (v) { return (v === undefined || v === null) ? '-' : String(Math.round(v * 100) / 100); };
+    var kv = function (label, value) { return '<tr><th>' + label + '</th><td>' + dash(value) + '</td></tr>'; };
+
+    // "Sequence" block: counts for a Job Task row, Skill/Sequence No./counts for a Sequence row
+    var rows = d.kind === 'sequence'
+        ? kv('Skill', d.skill) + kv('Sequence No.', d.seqNo) + kv('Number of Day Planning', num(d.nDayPlanning)) + kv('Number of Resource', num(d.nResource))
+        : kv('Number of Day Planning', num(d.nDayPlanning)) + kv('Number of Sequence', num(d.nSequence)) +
+          kv('Number of Skill', num(d.nSkill)) + kv('Number of Resource', num(d.nResource));
+    html +=
+        '<div class="standard-tooltip-context"><div class="standard-tooltip-context-title">Sequence</div>' +
+        '<table class="standard-tooltip-table standard-tooltip-context-table"><tbody>' + rows + '</tbody></table></div>';
+
+    // A Sequence row is always a single skill (already shown in the Sequence block) - no per-skill rows
+    var skillRows = (d.kind === 'sequence' ? [] : (d.skills || [])).map(function (s) {
+        return '<tr><th>' + dash(s.name) + '</th><td>' + num(s.requested) + '</td><td>' + num(s.assigned) + '</td></tr>';
+    }).join('');
+
+    // Period + Requested/Assigned share ONE table so Start/Requested and End/Assigned line up in the same columns
+    html +=
+        '<table class="standard-tooltip-table standard-tooltip-context-table" style="table-layout:fixed;">' +
+            '<colgroup><col style="width:40%"><col style="width:30%"><col style="width:30%"></colgroup>' +
+            '<thead><tr><th></th><th>Start</th><th>End</th></tr></thead>' +
+            '<tbody><tr><th>Period</th><td>' + dash(d.start) + '</td><td>' + dash(d.end) + '</td></tr></tbody>' +
+            '<thead><tr><th></th><th>Requested</th><th>Assigned</th></tr></thead>' +
+            '<tbody><tr><th>Hours</th><td>' + num(d.hoursRequested) + '</td><td>' + num(d.hoursAssigned) + '</td></tr>' +
+            skillRows + '</tbody>' +
+        '</table>';
+    return html;
+}
+
+function _secTipShow(id, e) {
+    var entry = _secTip.cache[id];
+    if (!entry || !entry.data) return;
+    _secTip.el.innerHTML = _secTipHtml(entry.data);
+    _secTip.el.style.display = 'block';
+    _secTipPosition(e || _secTip.lastMove || { clientX: 0, clientY: 0 });
+}
+
+// Called by AL (SetSectionTooltip) with the row's tooltip data.
+function SetSectionTooltip(sectionId, tooltipJson) {
+    var data = null;
+    try { data = tooltipJson ? JSON.parse(tooltipJson) : null; } catch (e) { }
+    _secTip.cache[sectionId] = { data: data, at: Date.now() };
+    if (_secTip.current === sectionId) _secTipShow(sectionId);
+}
+window.SetSectionTooltip = SetSectionTooltip;
+
+function setupSectionTooltip() {
+    var root = document.getElementById('scheduler_here');
+    if (!root || root._secTipWired) return;
+    root._secTipWired = true;
+
+    var el = document.createElement('div');
+    el.className = 'dhtmlXTooltip tooltip';
+    el.style.cssText = 'display:none;position:fixed;z-index:99998;pointer-events:none;';
+    document.body.appendChild(el);
+    _secTip.el = el;
+
+    root.addEventListener('mousemove', function (e) {
+        _secTip.lastMove = e;
+        var id = _secTipRow(e.target);
+        if (!id) { _secTipHide(); return; }
+        if (id === _secTip.current) { _secTipPosition(e); return; }
+
+        _secTipHide();
+        _secTip.current = id;
+        _secTip.timer = setTimeout(function () {
+            var entry = _secTip.cache[id];
+            if (entry && Date.now() - entry.at < SEC_TIP_TTL_MS) _secTipShow(id);
+            else Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnSectionTooltipRequest', [id]);
+        }, 250);
+    }, true);
+    root.addEventListener('mouseleave', _secTipHide);
+    root.addEventListener('contextmenu', _secTipHide, true);
+    root.addEventListener('wheel', _secTipHide, { passive: true });
 }
 
 // ═══════════════════════════════════════════════════════════════
