@@ -2359,7 +2359,9 @@ body.pane-resizing {
 }
 
 #requestPane .request-title-filter-host .request-filter-toolbar .filter-icon svg,
-.resource-filter-toolbar .filter-icon svg {
+.resource-filter-toolbar .filter-icon svg,
+#requestPane .request-title-filter-host .request-filter-toolbar .filter-icon img,
+.resource-filter-toolbar .filter-icon img {
   width: 15px !important;
   height: 15px !important;
 }
@@ -3093,4 +3095,56 @@ body.hierarchy-density-normal #requestScheduler .task-group-cell {
   height: 4px !important;
   min-height: 4px !important;
   max-height: 4px !important;
+}
+
+
+/* Filter / Clear buttons: bare PNG images only (no coloured/bordered button chrome, no text) */
+#requestPane .request-filter-toolbar .filter-icon-button,
+#requestScheduler .request-filter-toolbar .filter-icon-button,
+.resource-filter-toolbar .filter-icon-button {
+  width: auto !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  cursor: pointer;
+}
+
+#requestPane .request-filter-toolbar .filter-icon-button .filter-button-text,
+.resource-filter-toolbar .filter-icon-button .filter-button-text {
+  display: none !important;
+}
+
+#requestPane .request-filter-toolbar .filter-icon-button .filter-icon,
+.resource-filter-toolbar .filter-icon-button .filter-icon {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+#requestPane .request-filter-toolbar .filter-icon-button .filter-icon img,
+.resource-filter-toolbar .filter-icon-button .filter-icon img {
+  width: 20px !important;
+  height: 20px !important;
+  opacity: .6;
+}
+
+#requestPane .request-filter-toolbar .filter-icon-button:hover .filter-icon img,
+.resource-filter-toolbar .filter-icon-button:hover .filter-icon img,
+#requestPane .request-filter-toolbar .filter-icon-button.filter-active .filter-icon img,
+#requestPane .request-filter-toolbar .filter-icon-button.filter-is-active .filter-icon img,
+.resource-filter-toolbar .filter-icon-button.filter-active .filter-icon img,
+.resource-filter-toolbar .filter-icon-button.filter-is-active .filter-icon img,
+.filter-reset-button:not(:disabled) .filter-icon img {
+  opacity: 1;
+}
+
+.filter-icon-button:hover,
+.filter-icon-button.filter-is-active,
+.filter-icon-button.filter-active {
+  background: transparent !important;
 }

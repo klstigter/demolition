@@ -2031,7 +2031,7 @@ function updateFilterIndicator() {
     var btn = document.createElement("button");
     btn.type = "button";
     btn.className = "dps-filter-icon";
-    btn.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12"><path d="M3 4h18l-7.2 8.6v6.4l-3.6 1.8v-8.2z" fill="#fff"/></svg>';
+    btn.innerHTML = '<img src="' + Microsoft.Dynamics.NAV.GetImageResource('images/filter_image.png') + '" style="pointer-events:none;">';
     btn.addEventListener("mouseenter", function (e) {
         var t = $id("dpsTooltip");
         t.innerHTML = '<div class="dps-standard-tooltip">' + tipHtml + '</div>';
@@ -2049,7 +2049,7 @@ function updateFilterIndicator() {
         reset.type = "button";
         reset.className = "dps-filter-reset";
         reset.title = "Click to Reset Filter";
-        reset.textContent = "✕";
+        reset.innerHTML = '<img src="' + Microsoft.Dynamics.NAV.GetImageResource('images/Remove_Filter_image.png') + '" style="pointer-events:none;">';
         reset.addEventListener("click", function () {
             Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnClearFilter", []);
         });
