@@ -453,6 +453,13 @@ window.BOOT = function() {
           currentResourceId
         ]);
       });
+      makeItem(menu, "Capacity Scheduler", "&#x1F4C6;", function () {
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OpenCapacityScheduler", [currentResourceId, ""]);
+      });
+      makeItem(menu, "Capacity", "&#x1F4CA;", function () {
+        if (currentResourceId.indexOf("RES-") !== 0 || currentResourceId === "RES-") return;
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OpenResourceCapacity", [currentResourceId.substring(4)]);
+      });
       makeItem(menu, "Show Resource Card", "&#x1F464;", function () {
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnResourceDblClick", [currentResourceId]);
       });
@@ -467,6 +474,20 @@ window.BOOT = function() {
       });
       makeItem(markerMenu, "Open Sequences", "&#x1F4CB;", function () {
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OpenSequences", [currentMarkerIdList]);
+      });
+
+      makeItem(markerMenu, "Capacity Scheduler", "&#x1F4C6;", function () {
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OpenCapacityScheduler", [
+          currentMarkerResourceId,
+          currentMarkerWorkDate
+        ]);
+      });
+
+      makeItem(markerMenu, "Capacity", "&#x1F4CA;", function () {
+        // Only the resource of the right-clicked panel row
+        var id = String(currentMarkerResourceId || "");
+        if (id.indexOf("RES-") !== 0 || id === "RES-") return;
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OpenResourceCapacity", [id.substring(4)]);
       });
 
       // ── Empty resource timeline cell menu ──
