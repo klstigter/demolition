@@ -583,8 +583,10 @@ codeunit 50695 "Day Planning Sequence Mgt."
     var
         DayPlanning: Record "Day Planning";
         DHXDataHandler: Codeunit "DHX Data Handler";
+        DayPlanningsMgt: Codeunit "Day Plannings Mgt.";
         EventJObj: JsonObject;
         JToken: JsonToken;
+        Reason: Text;
         SectionJobNo: Code[20];
         SectionTaskNo: Code[20];
         SkillCode: Code[10];
@@ -620,6 +622,12 @@ codeunit 50695 "Day Planning Sequence Mgt."
         DayPlanning."End Time Requested" := DT2Time(EndDateTime);
         DayPlanning."Requested Hours" := (DT2Time(EndDateTime) - DT2Time(StartDateTime)) / 3600000;
         DayPlanning.Insert(true);
+
+        // "Set to default time" button of the create popup: same as the bar right-click "Apply Start/Time based Template".
+        if EventJObj.Get('applyTemplate', JToken) then
+            if JToken.AsValue().AsBoolean() then
+                if not DayPlanningsMgt.ApplyTemplateTimes(DayPlanning, Reason) then
+                    Message(Reason);
 
         ExtendJobTaskPlannedPeriod(JobNo, JobTaskNo, DayPlanning."Plan Date", DayPlanning."Plan Date");
     end;
