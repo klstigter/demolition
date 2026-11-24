@@ -939,8 +939,8 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
 
         CurrDate := DateFrom;
         while CurrDate <= DateTo do begin
-            CalcAssignedSplitForResourceSet(CurrDate, ResourceSet, DayAssignedInternal, DayAssignedExternal);
-            CalcCapacitySplitForResourceSet(CurrDate, ResourceSet, DayCapacityInternal, DayCapacityExternal, DayCapacityExternalMandatory);
+            CalcAssignedSplitForResourceSet(CurrDate, ResourceSet, SkillCode, DayAssignedInternal, DayAssignedExternal);
+            CalcCapacitySplitForResourceSet(CurrDate, ResourceSet, SkillCode, DayCapacityInternal, DayCapacityExternal, DayCapacityExternalMandatory);
             AssignedInternal += DayAssignedInternal;
             AssignedExternal += DayAssignedExternal;
             CapacityInternal += DayCapacityInternal;
@@ -996,8 +996,8 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
 
         CurrDate := DateFrom;
         while CurrDate <= DateTo do begin
-            CalcAssignedSplitForResourceSet(CurrDate, ResourceSet, DayAssignedInternal, DayAssignedExternal);
-            CalcCapacitySplitForResourceSet(CurrDate, ResourceSet, DayCapacityInternal, DayCapacityExternal, DayCapacityExternalMandatory);
+            CalcAssignedSplitForResourceSet(CurrDate, ResourceSet, '', DayAssignedInternal, DayAssignedExternal);
+            CalcCapacitySplitForResourceSet(CurrDate, ResourceSet, '', DayCapacityInternal, DayCapacityExternal, DayCapacityExternalMandatory);
             AssignedInternal += DayAssignedInternal;
             AssignedExternal += DayAssignedExternal;
             CapacityInternal += DayCapacityInternal;
@@ -1032,7 +1032,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// Resource-set-filtered twin of CalcAssignedSplit above - identical logic/classification,
     /// just skips any "Assigned Resource No." not in ResourceSet.
     /// </summary>
-    local procedure CalcAssignedSplitForResourceSet(PlanDate: Date; var ResourceSet: Dictionary of [Code[20], Boolean]; var InternalAssigned: Decimal; var ExternalAssigned: Decimal)
+    local procedure CalcAssignedSplitForResourceSet(PlanDate: Date; var ResourceSet: Dictionary of [Code[20], Boolean]; SkillCode: Code[10]; var InternalAssigned: Decimal; var ExternalAssigned: Decimal)
     var
         Resource: Record Resource;
     begin
@@ -1044,6 +1044,9 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
         GDayPlanningBuf.Reset();
         GDayPlanningBuf.SetRange("Plan Date", PlanDate);
         GDayPlanningBuf.SetRange(Assigned, true);
+        // Only Day Plannings requesting this skill count as Assigned on the skill's own C bar.
+        if SkillCode <> '' then
+            GDayPlanningBuf.SetRange(Skill, SkillCode);
         if GDayPlanningBuf.FindSet() then
             repeat
                 if ResourceSet.ContainsKey(GDayPlanningBuf."Assigned Resource No.") then
@@ -1062,7 +1065,7 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
     /// just skips any "Resource No." not in ResourceSet when accumulating capacity/assigned
     /// totals.
     /// </summary>
-    local procedure CalcCapacitySplitForResourceSet(PlanDate: Date; var ResourceSet: Dictionary of [Code[20], Boolean]; var InternalCapacity: Decimal; var ExternalCapacity: Decimal; var ExternalCapacity_mandatory: Decimal)
+    local procedure CalcCapacitySplitForResourceSet(PlanDate: Date; var ResourceSet: Dictionary of [Code[20], Boolean]; SkillCode: Code[10]; var InternalCapacity: Decimal; var ExternalCapacity: Decimal; var ExternalCapacity_mandatory: Decimal)
     var
         Resource: Record Resource;
         ResourceCapacityTotals: Dictionary of [Code[20], Decimal];
@@ -1093,6 +1096,8 @@ codeunit 50662 "Skill Capacity Analysis Mgt."
             GDayPlanningBuf.Reset();
             GDayPlanningBuf.SetRange("Plan Date", PlanDate);
             GDayPlanningBuf.SetRange(Assigned, true);
+            if SkillCode <> '' then
+                GDayPlanningBuf.SetRange(Skill, SkillCode);
             if GDayPlanningBuf.FindSet() then
                 repeat
                     if ResourceSet.ContainsKey(GDayPlanningBuf."Assigned Resource No.") then begin
