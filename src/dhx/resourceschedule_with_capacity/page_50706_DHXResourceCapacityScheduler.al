@@ -608,6 +608,19 @@ page 50706 "Resource Scheduler - TimeLine"
         SkillFilter := '';
     end;
 
+    /// <summary>Sets Resource No., Skill, Job No. and Job Task No. filters together (blank = no filter).</summary>
+    procedure SetContextFilters(ResNo: Code[20]; SkillCodeVal: Code[20]; JobNoVal: Code[20]; JobTaskNoVal: Code[20])
+    begin
+        ResourceFilter := ResNo;
+        ResourceNameFilter := '';
+        // By Resource Group mode: the skill filter only matches registered Resource Skills, so a
+        // resource planned on this skill without a registration would vanish - skip it there.
+        if not IsResourceGroupMode() then
+            SkillFilter := SkillCodeVal;
+        JobFilter := JobNoVal;
+        JobTaskFilter := JobTaskNoVal;
+    end;
+
     procedure SetAnchorDate(NewAnchorDate: Date)
     begin
         AnchorDate := NewAnchorDate;
