@@ -10,6 +10,7 @@ controladdin DHXPoolResourceScheduleAddin
     HorizontalStretch = true;
     HorizontalShrink = true;
 
+    Images = 'images/filter_image.png', 'images/Remove_Filter_image.png';
     Scripts =
         'src/dhx/dhtmlxscheduler.js',
         'src/dhx/GlobalFunction.js',

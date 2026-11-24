@@ -5766,13 +5766,7 @@ const APP_MARKUP = `
                   title="Filter Request by Job / Task"
                   aria-label="Set Request Job and Task filter">
                   <span class="filter-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" width="16" height="16">
-                      <path d="M3 5h18l-7 8v5l-4 2v-7L3 5z"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="1.8"
-                            stroke-linejoin="round"/>
-                    </svg>
+                    <img src="${Microsoft.Dynamics.NAV.GetImageResource('images/filter_image.png')}" width="16" height="16" alt="">
                   </span>
                   <span class="filter-button-text">Filter</span>
                   <span id="requestFilterActiveDot" class="filter-active-dot" aria-hidden="true"></span>
@@ -5785,18 +5779,7 @@ const APP_MARKUP = `
                   title="Clear Request Job / Task filter"
                   aria-label="Clear Request Job and Task filter">
                   <span class="filter-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" width="16" height="16">
-                      <path d="M3 5h18l-7 8v5l-4 2v-7L3 5z"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="1.8"
-                            stroke-linejoin="round"/>
-                      <path d="M16.5 15.5l4 4m0-4l-4 4"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="1.8"
-                            stroke-linecap="round"/>
-                    </svg>
+                    <img src="${Microsoft.Dynamics.NAV.GetImageResource('images/Remove_Filter_image.png')}" width="16" height="16" alt="">
                   </span>
                   <span class="filter-button-text">Clear</span>
                 </button>
@@ -5915,13 +5898,7 @@ const APP_MARKUP = `
                 title="Applied filter: none"
                 aria-label="Set resource skill filter">
                 <span class="filter-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" width="16" height="16">
-                    <path d="M3 5h18l-7 8v5l-4 2v-7L3 5z"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="1.8"
-                          stroke-linejoin="round"/>
-                  </svg>
+                  <img src="${Microsoft.Dynamics.NAV.GetImageResource('images/filter_image.png')}" width="16" height="16" alt="">
                 </span>
                 <span class="filter-button-text">Filter</span>
                 <span id="filterActiveDot" class="filter-active-dot" aria-hidden="true"></span>
@@ -5934,18 +5911,7 @@ const APP_MARKUP = `
                 title="Reset the applied resource-skill filter"
                 aria-label="Clear resource skill filter">
                 <span class="filter-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" width="16" height="16">
-                    <path d="M3 5h18l-7 8v5l-4 2v-7L3 5z"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="1.8"
-                          stroke-linejoin="round"/>
-                    <path d="M16.5 15.5l4 4m0-4l-4 4"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="1.8"
-                          stroke-linecap="round"/>
-                  </svg>
+                  <img src="${Microsoft.Dynamics.NAV.GetImageResource('images/Remove_Filter_image.png')}" width="16" height="16" alt="">
                 </span>
                 <span class="filter-button-text">Clear</span>
               </button>

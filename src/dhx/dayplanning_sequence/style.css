@@ -33,25 +33,24 @@
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
-    width: 20px;
-    height: 20px;
     margin: 0;
     padding: 0;
     border: none;
-    border-radius: 50%;
-    color: #fff;
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 1;
+    background: transparent;
+    line-height: 0;
     cursor: pointer;
 }
 
-.dps-filter-icon {
-    background: #1a73e8;
+.dps-filter-icon img,
+.dps-filter-reset img {
+    width: 20px;
+    height: 20px;
+    opacity: .85;
 }
 
-.dps-filter-reset {
-    background: #c0392b;
+.dps-filter-icon:hover img,
+.dps-filter-reset:hover img {
+    opacity: 1;
 }
 
 .dps-btn {

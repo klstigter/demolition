@@ -987,7 +987,7 @@ window.BOOT = function() {
         { label: "Show Day Planning",         icon: "&#x1F4C5;", cls: "ctx-open-DayPlanning" },
         { label: "Show Task Scheduler",  icon: "&#x1F4C5;", cls: "ctx-open-DayPlanningvisual" },
         { sep: true },
-        { label: "Add Filter",           icon: '<svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:middle;"><path d="M3 4h18l-7.2 8.6v6.4l-3.6 1.8v-8.2z" fill="#5f6368"/></svg>', cls: "ctx-add-filter" },
+        { label: "Add Filter",           icon: '<img src="'+Microsoft.Dynamics.NAV.GetImageResource('images/filter_image.png')+'" style="width:20px;height:20px;vertical-align:middle;">', cls: "ctx-add-filter" },
         { sep: true },
         { label: "Cancel",               icon: "&#x2715;",  cls: "ctx-cancel" }
       ];
@@ -3355,10 +3355,8 @@ function _updateResourceHeaderTooltip() {
     // Same inline SVG funnel glyph as the main grid's (funnel) filter button
     // (_updateGanttFilterToolbar), for visual consistency between the two icon pairs.
     infoBtn.innerHTML =
-      '<svg viewBox="0 0 24 24" width="12" height="12" style="vertical-align:middle;">' +
-        '<path d="M3 4h18l-7.2 8.6v6.4l-3.6 1.8v-8.2z" fill="#fff"/>' +
-      '</svg>';
-    infoBtn.style.cssText = "background:#1a73e8;border:none;border-radius:50%;width:20px;height:20px;line-height:20px;text-align:center;padding:0;margin-left:6px;cursor:default;font-size:13px;font-weight:700;color:#fff;vertical-align:middle;display:inline-block;"; 
+      '<img src="' + Microsoft.Dynamics.NAV.GetImageResource('images/filter_image.png') + '" style="width:20px;height:20px;vertical-align:middle;pointer-events:none;">';
+    infoBtn.style.cssText = "background:transparent;border:none;border-radius:0;padding:0;line-height:0;margin-left:6px;cursor:default;vertical-align:middle;display:inline-block;";
 
     infoBtn.addEventListener("mouseenter", function(e) {
       popup.style.display = "block";
@@ -3592,12 +3590,8 @@ function _updateGanttFilterToolbar() {
     var filterBtn = document.createElement("button");
     filterBtn.className = "gnt-filter-icon";
     filterBtn.innerHTML =
-      '<svg viewBox="0 0 24 24" width="12" height="12" style="vertical-align:middle;">' +
-        '<path d="M3 4h18l-7.2 8.6v6.4l-3.6 1.8v-8.2z" fill="#fff"/>' +
-      '</svg>';
-    filterBtn.style.cssText = "background:" + (fi ? "#1a73e8" : "#5f6368") +
-      ";border:none;border-radius:50%;width:20px;height:20px;line-height:20px;" +
-      "text-align:center;padding:0;margin-left:6px;cursor:pointer;vertical-align:middle;display:inline-block;";
+      '<img src="' + Microsoft.Dynamics.NAV.GetImageResource('images/filter_image.png') + '" style="width:20px;height:20px;vertical-align:middle;pointer-events:none;">';
+    filterBtn.style.cssText = "background:transparent;border:none;border-radius:0;padding:0;line-height:0;margin-left:6px;cursor:pointer;vertical-align:middle;display:inline-block;opacity:" + (fi ? "1" : "0.6") + ";";
 
     filterBtn.addEventListener("mouseenter", function(e) {
       popup.style.display = "block";
@@ -3623,10 +3617,8 @@ function _updateGanttFilterToolbar() {
       var resetBtn = document.createElement("button");
       resetBtn.className = "gnt-filter-reset";
       resetBtn.title = "Click to Reset Filter";
-      resetBtn.textContent = "✕"; // ✕
-      resetBtn.style.cssText = "background:#c0392b;border:none;border-radius:50%;width:20px;height:20px;" +
-        "line-height:20px;text-align:center;padding:0;margin-left:4px;cursor:pointer;font-size:12px;font-weight:700;" +
-        "color:#fff;vertical-align:middle;display:inline-block;";
+      resetBtn.innerHTML = '<img src="' + Microsoft.Dynamics.NAV.GetImageResource('images/Remove_Filter_image.png') + '" style="width:20px;height:20px;vertical-align:middle;pointer-events:none;">';
+      resetBtn.style.cssText = "background:transparent;border:none;border-radius:0;padding:0;line-height:0;margin-left:4px;cursor:pointer;vertical-align:middle;display:inline-block;";
 
       resetBtn.addEventListener("click", function(e) {
         e.stopPropagation();

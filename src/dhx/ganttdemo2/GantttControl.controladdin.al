@@ -9,6 +9,7 @@ controladdin "DHX Gantt Control 2"
     MinimumWidth = 700;
     HorizontalStretch = true;
     HorizontalShrink = true;
+    Images = 'images/filter_image.png', 'images/Remove_Filter_image.png';
     Scripts = 'src/dhx/dhtmlxgantt.js',
               'src/dhx/ganttdemo2/wrapper.js';
 

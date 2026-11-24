@@ -1119,12 +1119,8 @@ function _updateResFilterToolbar() {
     var filterBtn = document.createElement('button');
     filterBtn.className = 'res-filter-icon';
     filterBtn.innerHTML =
-        '<svg viewBox="0 0 24 24" width="13" height="13" style="vertical-align:middle;">' +
-            '<path d="M3 4h18l-7.2 8.6v6.4l-3.6 1.8v-8.2z" fill="#fff"/>' +
-        '</svg>';
-    filterBtn.style.cssText = 'background:' + (fi ? '#1a73e8' : '#5f6368') +
-        ';border:none;border-radius:50%;width:22px;height:22px;line-height:22px;' +
-        'text-align:center;padding:0;cursor:pointer;vertical-align:middle;display:inline-block;';
+        '<img src="' + Microsoft.Dynamics.NAV.GetImageResource('images/filter_image.png') + '" style="width:20px;height:20px;vertical-align:middle;pointer-events:none;">';
+    filterBtn.style.cssText = 'background:transparent;border:none;border-radius:0;padding:0;line-height:0;cursor:pointer;vertical-align:middle;display:inline-block;opacity:' + (fi ? '1' : '0.6') + ';';
 
     filterBtn.addEventListener('mouseenter', function (e) {
         popup.style.display = 'block';
@@ -1149,10 +1145,8 @@ function _updateResFilterToolbar() {
         var resetBtn = document.createElement('button');
         resetBtn.className = 'res-filter-reset';
         resetBtn.title = 'Click to Reset Filter';
-        resetBtn.textContent = '✕';
-        resetBtn.style.cssText = 'background:#c0392b;border:none;border-radius:50%;width:22px;height:22px;' +
-            'line-height:22px;text-align:center;padding:0;cursor:pointer;font-size:13px;font-weight:700;' +
-            'color:#fff;vertical-align:middle;display:inline-block;';
+        resetBtn.innerHTML = '<img src="' + Microsoft.Dynamics.NAV.GetImageResource('images/Remove_Filter_image.png') + '" style="width:20px;height:20px;vertical-align:middle;pointer-events:none;">';
+        resetBtn.style.cssText = 'background:transparent;border:none;border-radius:0;padding:0;line-height:0;cursor:pointer;vertical-align:middle;display:inline-block;';
 
         resetBtn.addEventListener('click', function (e) {
             e.stopPropagation();
