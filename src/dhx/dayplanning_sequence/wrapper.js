@@ -653,7 +653,6 @@ function attachScaleInteraction() {
         e.preventDefault();
         hideTooltip();
         showRowContextMenu(e.clientX, e.clientY, [
-            { text: "Apply Start/Time based Template", fn: function () { dpsInvoke("OnBarApplyTemplate", [String(id)]); } },
             { text: "Open Resource", fn: function () { dpsInvoke("OnBarOpenResource", [String(id)]); } },
             { text: "Open Capacity", fn: function () { dpsInvoke("OnBarOpenCapacity", [String(id)]); } }
         ]);

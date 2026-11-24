@@ -667,21 +667,6 @@ codeunit 50695 "Day Planning Sequence Mgt."
         DayPlanningCard.RunModal();
     end;
 
-    /// <summary>Bar right-click: applies the template to the clicked line; shows the reason if it cannot.</summary>
-    procedure ApplyTemplateTimesToEvent(EventId: Text): Boolean
-    var
-        DayPlanning: Record "Day Planning";
-        DayPlanningsMgt: Codeunit "Day Plannings Mgt.";
-        Reason: Text;
-    begin
-        if not GetDayPlanningByEventId(EventId, DayPlanning) then
-            exit(false);
-        if DayPlanningsMgt.ApplyTemplateTimes(DayPlanning, Reason) then
-            exit(true);
-        Message(Reason);
-        exit(false);
-    end;
-
     /// <summary>Bar right-click "Open Resource": Assigned Resource, else Requested Resource.</summary>
     procedure OpenResourceByEventId(EventId: Text)
     var
