@@ -37,6 +37,7 @@ controladdin DHXDayPlanningSequenceAddin
     // Right-click bar menu (eventId = Day Planning event id).
     event OnBarOpenResource(eventId: Text);
     event OnBarOpenCapacity(eventId: Text);
+    event OnBarOpenResourceScheduler(eventId: Text);
     // "New sequence" dialog Requested Resource No. assist-edit (only shown when the page has a resource context).
     event OnLookupNewSequenceResource();
     event OnFilterIconClick();

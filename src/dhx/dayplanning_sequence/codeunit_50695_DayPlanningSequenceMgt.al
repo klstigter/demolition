@@ -702,6 +702,20 @@ codeunit 50695 "Day Planning Sequence Mgt."
         Page.Run(Page::"Res. Capacity Entries", ResCapacityEntry);
     end;
 
+    /// <summary>Bar right-click "Resource Scheduler": page 50706 filtered by the line's resource, job, task and skill.</summary>
+    procedure OpenResourceSchedulerByEventId(EventId: Text)
+    var
+        DayPlanning: Record "Day Planning";
+        ResScheduler: Page "Resource Scheduler - TimeLine";
+    begin
+        if not GetDayPlanningByEventId(EventId, DayPlanning) then
+            exit;
+        ResScheduler.SetContextFilters(ResourceNoOf(DayPlanning), DayPlanning.Skill, DayPlanning."Job No.", DayPlanning."Job Task No.");
+        if DayPlanning."Plan Date" <> 0D then
+            ResScheduler.SetAnchorDate(DayPlanning."Plan Date");
+        ResScheduler.Run();
+    end;
+
     local procedure GetDayPlanningByEventId(EventId: Text; var DayPlanning: Record "Day Planning"): Boolean
     var
         JobNo: Code[20];

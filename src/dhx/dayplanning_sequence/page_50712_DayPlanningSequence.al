@@ -329,6 +329,11 @@ page 50712 "Day Planning Sequence"
                     DayPlanningSequenceMgt.OpenCapacityByEventId(eventId);
                 end;
 
+                trigger OnBarOpenResourceScheduler(eventId: Text)
+                begin
+                    DayPlanningSequenceMgt.OpenResourceSchedulerByEventId(eventId);
+                end;
+
                 trigger OnOpenProject(jobNo: Text)
                 var
                     Job: Record Job;

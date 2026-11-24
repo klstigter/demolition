@@ -654,7 +654,8 @@ function attachScaleInteraction() {
         hideTooltip();
         showRowContextMenu(e.clientX, e.clientY, [
             { text: "Open Resource", fn: function () { dpsInvoke("OnBarOpenResource", [String(id)]); } },
-            { text: "Open Capacity", fn: function () { dpsInvoke("OnBarOpenCapacity", [String(id)]); } }
+            { text: "Open Capacity", fn: function () { dpsInvoke("OnBarOpenCapacity", [String(id)]); } },
+            { text: "Resource Scheduler", fn: function () { dpsInvoke("OnBarOpenResourceScheduler", [String(id)]); } }
         ]);
     });
 }
