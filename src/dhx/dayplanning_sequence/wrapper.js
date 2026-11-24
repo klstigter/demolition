@@ -346,20 +346,60 @@ function configureScheduler() {
             "Time: " + dpsPad2(ev.start_date.getHours()) + ":" + dpsPad2(ev.start_date.getMinutes()) +
             "–" + dpsPad2(ev.end_date.getHours()) + ":" + dpsPad2(ev.end_date.getMinutes()) +
             " (" + (Math.round(hours * 100) / 100) + " h)";
-        if (!confirm(msg)) {
-            dps_isRefreshing = true;
-            scheduler.deleteEvent(id);
-            dps_isRefreshing = false;
-            return true;
-        }
-
-        var eventData = {
-            start_date: ev.start_date,
-            end_date: ev.end_date,
-            section_id: ev.section_id
-        };
-        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnEventCreated", [JSON.stringify(eventData)]);
+        dpsConfirmCreate(msg, function (choice) {
+            if (choice === "cancel") {
+                dps_isRefreshing = true;
+                scheduler.deleteEvent(id);
+                dps_isRefreshing = false;
+                return;
+            }
+            var eventData = {
+                start_date: ev.start_date,
+                end_date: ev.end_date,
+                section_id: ev.section_id,
+                applyTemplate: choice === "default"
+            };
+            Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnEventCreated", [JSON.stringify(eventData)]);
+        });
         return true;
+    }
+
+    // Confirm-style popup with OK / Set to default time / Cancel. cb receives "ok" | "default" | "cancel".
+    function dpsConfirmCreate(msg, cb) {
+        var overlay = document.createElement("div");
+        overlay.style.cssText = "position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.25);z-index:100000;display:flex;align-items:center;justify-content:center;";
+        var box = document.createElement("div");
+        box.style.cssText = "background:#fff;color:#202124;padding:20px;border-radius:8px;box-shadow:0 4px 23px 5px rgba(0,0,0,.2),0 2px 6px rgba(0,0,0,.15);font:13px Arial,Helvetica,sans-serif;width:320px;box-sizing:border-box;";
+        var lines = msg.split("\n");
+        var timeLine = lines.pop();
+        var text = document.createElement("div");
+        text.style.cssText = "white-space:pre-line;line-height:18px;";
+        text.textContent = lines.join("\n");
+        var timeRow = document.createElement("div");
+        timeRow.style.cssText = "line-height:18px;";
+        var timeTxt = document.createElement("span");
+        timeTxt.textContent = timeLine;
+        timeRow.appendChild(timeTxt);
+        timeRow.appendChild(document.createElement("br"));
+        var btns = document.createElement("div");
+        btns.style.cssText = "display:flex;gap:8px;justify-content:flex-end;margin-top:16px;";
+        function addBtn(label, choice, parent, primary) {
+            var b = document.createElement("button");
+            b.textContent = label;
+            b.style.cssText = "font:13px Arial,Helvetica,sans-serif;padding:0 14px;height:" + (parent === btns ? "28px" : "26px") +
+                ";cursor:pointer;white-space:nowrap;border-radius:4px;color:#202124;background:#efefef;border:1px solid " + (primary ? "#202124" : "#767676") + ";";
+            b.onclick = function () { document.body.removeChild(overlay); cb(choice); };
+            if (parent !== btns) b.style.marginTop = "8px";
+            parent.appendChild(b);
+        }
+        addBtn("Set to default time", "default", timeRow, false);
+        addBtn("OK", "ok", btns, true);
+        addBtn("Cancel", "cancel", btns, false);
+        box.appendChild(text);
+        box.appendChild(timeRow);
+        box.appendChild(btns);
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
     }
 
     scheduler.attachEvent("onEventDeleted", function (id) {
@@ -613,7 +653,6 @@ function attachScaleInteraction() {
         e.preventDefault();
         hideTooltip();
         showRowContextMenu(e.clientX, e.clientY, [
-            { text: "Apply Start/Time based Template", fn: function () { dpsInvoke("OnBarApplyTemplate", [String(id)]); } },
             { text: "Open Resource", fn: function () { dpsInvoke("OnBarOpenResource", [String(id)]); } },
             { text: "Open Capacity", fn: function () { dpsInvoke("OnBarOpenCapacity", [String(id)]); } }
         ]);

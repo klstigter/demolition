@@ -319,12 +319,6 @@ page 50712 "Day Planning Sequence"
                     RefreshTimeline();
                 end;
 
-                trigger OnBarApplyTemplate(eventId: Text)
-                begin
-                    if DayPlanningSequenceMgt.ApplyTemplateTimesToEvent(eventId) then
-                        RefreshTimeline();
-                end;
-
                 trigger OnBarOpenResource(eventId: Text)
                 begin
                     DayPlanningSequenceMgt.OpenResourceByEventId(eventId);
