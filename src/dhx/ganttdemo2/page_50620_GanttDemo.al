@@ -437,6 +437,39 @@ page 50620 "Gantt Demo DHX 2"
                     end;
                 end;
 
+                trigger OpenResourceCapacity(pResourceList: Text)
+                var
+                    Resource: Record Resource;
+                    ResCapacity: Page "Resource Capacity";
+                    PeriodStart: Date;
+                    PeriodEnd: Date;
+                begin
+                    // Native Resource Capacity, limited to the resources listed in the panel,
+                    // columns starting at the Gantt's displayed range.
+                    if pResourceList = '' then
+                        exit;
+                    GanttChartDataHandler.GetDateRange(Setup, AnchorDate, PeriodStart, PeriodEnd);
+                    Resource.SetFilter("No.", pResourceList);
+                    ResCapacity.ResourceFilter(Resource.GetFilter("No."));
+                    ResCapacity.SetPeriod(PeriodStart, PeriodEnd);
+                    ResCapacity.SetTableView(Resource);
+                    ResCapacity.RunModal();
+                end;
+
+                trigger OpenCapacityScheduler(pResourceId: Text; pTaskDate: Text)
+                var
+                    CapacityScheduler: Page "DHX Scheduler (Pool Resource)";
+                    WorkDt: Date;
+                begin
+                    // Resource id "TYPE-NO" of the marker's resource-panel row -> Resource No. filter
+                    if StrPos(pResourceId, '-') = 0 then
+                        exit;
+                    CapacityScheduler.SetResourceFilter(CopyStr(pResourceId, StrPos(pResourceId, '-') + 1));
+                    if Evaluate(WorkDt, pTaskDate) then
+                        CapacityScheduler.SetAnchorDate(WorkDt);
+                    CapacityScheduler.RunModal();
+                end;
+
                 trigger OnLinkCreated(linkData: Text)
                 begin
                     // Fired from dhtmlx when user draws a new dependency arrow

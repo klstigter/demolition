@@ -187,11 +187,14 @@ pageextension 50604 "ResourceCapacity Opt." extends "Resource Capacity"
         if not PeriodOverrideActive then
             exit;
 
+        // The control round-trip resets the field to its default (Day); re-apply the type chosen in SetPeriod
+        PeriodTypeOpt := ForcedPeriodType;
         SetMatrixColumnsOpt("Matrix Page Step Type"::Initial);
         UpdateMatrixSubformOpt();
     end;
 
     var
+        ForcedPeriodType: Enum "Analysis Period Type";
         OptMatrixRecords: array[32] of Record Date;
         PeriodTypeOpt: Enum "Analysis Period Type";
         QtyTypeOpt: Enum "Analysis Amount Type";
@@ -273,5 +276,22 @@ pageextension 50604 "ResourceCapacity Opt." extends "Resource Capacity"
         ForcedPeriodStart := pStartDate;
         ForcedPeriodEnd := pEndDate;
         PeriodOverrideActive := true;
+
+        // Pick the finest "View by" whose 12 columns still cover the requested range
+        // (the matrix always has 12 columns); the user can still change it on the page.
+        if pEndDate <= pStartDate + 11 then
+            PeriodTypeOpt := PeriodTypeOpt::Day
+        else
+            if pEndDate <= pStartDate + 12 * 7 - 1 then
+                PeriodTypeOpt := PeriodTypeOpt::Week
+            else
+                if pEndDate <= CalcDate('<+12M-1D>', pStartDate) then
+                    PeriodTypeOpt := PeriodTypeOpt::Month
+                else
+                    if pEndDate <= CalcDate('<+36M-1D>', pStartDate) then
+                        PeriodTypeOpt := PeriodTypeOpt::Quarter
+                    else
+                        PeriodTypeOpt := PeriodTypeOpt::Year;
+        ForcedPeriodType := PeriodTypeOpt;
     end;
 }

@@ -27,6 +27,8 @@ controladdin "DHX Gantt Control 2"
     event OnJobTaskUpdated(eventData: Text);
     event OpenResourceLoadDay(resourceId: Text; taskDate: Text; planStatus: Text; idList: Text);
     event OpenSequences(idList: Text);
+    event OpenResourceCapacity(resourceList: Text);
+    event OpenCapacityScheduler(resourceId: Text; taskDate: Text);
     event OnLinkCreated(linkData: Text);
     event OnLinkDeleted(linkData: Text);
     event OnShowResourcesForTask(taskId: Text; childrenJson: Text; periodFrom: Text; periodTo: Text);
