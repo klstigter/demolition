@@ -377,7 +377,11 @@ window.BOOT = function() {
                 }, barHit.segmentId.slice(-9) === "|Capacity" ? "Show Capacity" : "Show Day Planning",
                 // R (Requested) bar only (Role Center parts and the full visual pages).
                 (barHit.segmentId.slice(-10) === "|Requested")
-                    ? BuildSchedulerMenuItems(barHit.segmentId.slice(0, -10), 0) : null);
+                    ? BuildSchedulerMenuItems(barHit.segmentId.slice(0, -10), 0)
+                    // C (Capacity) bar: just "Show Capacity Scheduler" (page 50600, skill + day).
+                    : (barHit.segmentId.slice(-9) === "|Capacity")
+                        ? BuildSchedulerMenuItems(barHit.segmentId.slice(0, -9), 0).filter(function(x) { return x.caption === "Show Capacity Scheduler"; })
+                        : null);
                 return;
             }
 
