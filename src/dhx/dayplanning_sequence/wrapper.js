@@ -1115,6 +1115,10 @@ function toggleSequenceDaySlots(date) {
     var ids = Array.from(dps_slotsById.keys()).filter(function (id) {
         return isoDateOnly(dps_slotsById.get(id).start_date) === date;
     });
+    if (!ids.length) {
+        if (!dps_draftDates.delete(date)) dps_draftDates.add(date);
+        return;
+    }
     var pick = !ids.every(isSequenceSlotPicked);
     ids.forEach(function (id) {
         if (dps_selectedSlots.has(id) === pick) dps_draftSlots.delete(id);
@@ -1380,9 +1384,11 @@ function paintSequenceSelection() {
         var state = daySlots.get(date);
         var removal = dps_pickDates && !dps_modifySlots && dps_originalDates.has(date) && preview;
         if (dps_modifySlots) {
-            selected = Boolean(state && state.saved);
-            preview = Boolean(state && (state.draft || (!pickingSlots && (inRange || (previewStartOnly && date === start)) &&
-                !isRangeWeekdayExcluded(new Date(date + "T12:00:00"), dps_rangeExclusions))));
+            // Any date is selectable, with or without Time Slots.
+            selected = state ? state.saved > 0 : dps_originalDates.has(date);
+            preview = Boolean((state && state.draft) || (!state && dps_draftDates.has(date)) ||
+                (!pickingSlots && (inRange || (previewStartOnly && date === start)) &&
+                !isRangeWeekdayExcluded(new Date(date + "T12:00:00"), dps_rangeExclusions)));
             removal = Boolean(pickingSlots && state && state.removal && !state.picked);
         }
         // A pending removal replaces the saved highlight until Add Selection is clicked.
