@@ -48,7 +48,7 @@ page 50712 "Day Planning Sequence"
                     ControlIsReady := true;
                     CurrPage.DhxSequence.SetShowContext(true);
                     CurrPage.DhxSequence.SetNewSequenceResourceContext(ResourceContextNo);
-                    if (JobNo = '') or (JobTaskNo = '') then
+                    if JobNo = '' then
                         exit;
 
                     DayPlanningSequenceMgt.BuildSectionsAndEventsJson(JobFilter, JobTaskFilter, SkillFilter, ResourceFilter, PeriodFrom, PeriodTo, SectionsJsonTxt, EventsJsonTxt, EarliestDate, LatestDate);
@@ -598,7 +598,7 @@ page 50712 "Day Planning Sequence"
     begin
         if not ControlIsReady then
             exit;
-        if (JobNo = '') or (JobTaskNo = '') then
+        if JobNo = '' then
             exit;
 
         DayPlanningSequenceMgt.BuildSectionsAndEventsJson(JobFilter, JobTaskFilter, SkillFilter, ResourceFilter, PeriodFrom, PeriodTo, SectionsJsonTxt, EventsJsonTxt, EarliestDate, LatestDate);

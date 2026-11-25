@@ -294,21 +294,6 @@ page 50640 "Opti Job Task Lines Subform"
                     Image = Planning;
                     ShowAs = SplitButton;
 
-                    action("Task Scheduler (Visual)")
-                    {
-                        ApplicationArea = All;
-                        Caption = 'Task Scheduler (Visual)';
-                        Image = HumanResources;
-                        ToolTip = 'Open the task scheduler for this project task.';
-
-                        trigger OnAction()
-                        var
-                            DayPlanningScheduler: Page "DHX Scheduler (Project)";
-                        begin
-                            DayPlanningScheduler.SetJobTaskFilter(Rec."Job No.", Rec."Job Task No.");
-                            DayPlanningScheduler.RunModal();
-                        end;
-                    }
                     action("Gantt (Visual)")
                     {
                         ApplicationArea = All;
@@ -324,6 +309,22 @@ page 50640 "Opti Job Task Lines Subform"
                             Gantt.RunModal();
                         end;
                     }
+                    action("Task Scheduler (Visual)")
+                    {
+                        ApplicationArea = All;
+                        Caption = 'Task Scheduler (Visual)';
+                        Image = HumanResources;
+                        ToolTip = 'Open the task scheduler for this project task.';
+
+                        trigger OnAction()
+                        var
+                            DayPlanningScheduler: Page "DHX Scheduler (Project)";
+                        begin
+                            DayPlanningScheduler.SetJobTaskFilter(Rec."Job No.", Rec."Job Task No.");
+                            DayPlanningScheduler.RunModal();
+                        end;
+                    }
+                    separator(Separator1) { }
                     action("Resource Calender (Visual)")
                     {
                         ApplicationArea = All;
@@ -360,30 +361,29 @@ page 50640 "Opti Job Task Lines Subform"
                             ResScheduler.RunModal();
                         end;
                     }
-                    action("Capacity (Visual)")
+                    separator(Separator2) { }
+                    action("Sequence (Visual)")
                     {
                         ApplicationArea = All;
-                        Caption = 'Capacity (Visual)';
-                        Image = Capacity;
-                        ToolTip = 'Open the capacity scheduler for the resources assigned to this project task.';
+                        Caption = 'Sequence';
+                        Image = Allocations;
+                        ToolTip = 'Open the sequences of this project task.';
 
                         trigger OnAction()
                         var
-                            ResScheduler: Page "DHX Scheduler (Pool Resource)";
-                            JobTaskVisualsMgt: Codeunit "Job Task Visuals Mgt.";
-                            JobResource: Record Resource;
+                            SequencePage: Page "Day Planning Sequence";
                         begin
-                            JobTaskVisualsMgt.MarkTaskResources(Rec."Job No.", Rec."Job Task No.", JobResource);
-                            ResScheduler.SetResourceFilter(JobResource);
-                            ResScheduler.RunModal();
+                            SequencePage.SetContext(Rec."Job No.", Rec."Job Task No.", '');
+                            SequencePage.SetScopeFilters(Rec."Job No.", Rec."Job Task No.", '');
+                            SequencePage.RunModal();
                         end;
                     }
                     action("Request Assignment (Visual)")
                     {
                         ApplicationArea = All;
-                        Caption = 'Request and Assignment Board (Visual)';
+                        Caption = 'Assignment Board';
                         Image = Allocations;
-                        ToolTip = 'Open the request and assignment board for this project task.';
+                        ToolTip = 'Open the assignment board for this project task.';
 
                         trigger OnAction()
                         var

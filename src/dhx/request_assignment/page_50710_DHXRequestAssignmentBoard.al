@@ -189,10 +189,29 @@ page 50710 "DHX Request Assignment Board"
     /// </summary>
     local procedure GetDefaultWindow(var StartDate: Date; var EndDate: Date)
     var
+        DayPlanning: Record "Day Planning";
         CurDate: Date;
         WorkdaysCounted: Integer;
+        EarliestDate: Date;
+        LatestDate: Date;
     begin
         StartDate := Today() - (Date2DWY(Today(), 1) - 1);
+
+        if JobNoFilter <> '' then begin
+            DayPlanning.SetCurrentKey("Plan Date");
+            DayPlanning.SetRange("Job No.", JobNoFilter);
+            if JobTaskNoFilter <> '' then
+                DayPlanning.SetRange("Job Task No.", JobTaskNoFilter);
+            DayPlanning.SetFilter("Plan Date", '<>%1', 0D);
+            if DayPlanning.FindFirst() then begin
+                EarliestDate := DayPlanning."Plan Date";
+                if EarliestDate < StartDate then
+                    StartDate := EarliestDate - (Date2DWY(EarliestDate, 1) - 1);
+            end;
+            if DayPlanning.FindLast() then
+                LatestDate := DayPlanning."Plan Date";
+        end;
+
         CurDate := StartDate;
         WorkdaysCounted := 1;
 
@@ -203,6 +222,8 @@ page 50710 "DHX Request Assignment Board"
         end;
 
         EndDate := CurDate;
+        if LatestDate > EndDate then
+            EndDate := LatestDate;
     end;
 
     local procedure IsWorkday(D: Date): Boolean
