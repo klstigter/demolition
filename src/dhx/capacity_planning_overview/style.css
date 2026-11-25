@@ -520,8 +520,9 @@
     flex: 0 0 auto;
 }
 
-.cpo-dst-value {
-    font-weight: 600;
+.cpo-dst-value,
+.cpo-dst-total span:last-child {
+    font-weight: 400;
 }
 
 .cpo-dst-rule {
