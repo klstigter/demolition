@@ -1934,8 +1934,7 @@ function RefreshTimeline(sectionsJson, eventsJson, anchorDate, latestDate) {
         }
         var status = $id("dpsCreateStatus");
         if (status && status.textContent === "Creating...") {
-            status.textContent = "";
-            closeLinesDialog();
+            status.textContent = "Sequence created.";   // pane stays open so the user can create more
         }
     } catch (e) {
         console.log("Day Planning Sequence RefreshTimeline error:", e);
