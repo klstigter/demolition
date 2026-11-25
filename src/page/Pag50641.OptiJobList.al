@@ -266,21 +266,6 @@ page 50641 "Opti Job List"
                         CopyJob.RunModal();
                     end;
                 }
-                action("Task Scheduler (Visual)")
-                {
-                    ApplicationArea = All;
-                    Caption = 'Task Scheduler (Visual)';
-                    Image = HumanResources;
-                    ToolTip = 'Open the task scheduler for this project.';
-
-                    trigger OnAction()
-                    var
-                        DayPlanningScheduler: Page "DHX Scheduler (Project)";
-                    begin
-                        DayPlanningScheduler.SetJobTaskFilter(Rec."No.", '');
-                        DayPlanningScheduler.RunModal();
-                    end;
-                }
                 action("Gantt (Visual)")
                 {
                     ApplicationArea = All;
@@ -296,6 +281,22 @@ page 50641 "Opti Job List"
                         Gantt.RunModal();
                     end;
                 }
+                action("Task Scheduler (Visual)")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Task Scheduler (Visual)';
+                    Image = HumanResources;
+                    ToolTip = 'Open the task scheduler for this project.';
+
+                    trigger OnAction()
+                    var
+                        DayPlanningScheduler: Page "DHX Scheduler (Project)";
+                    begin
+                        DayPlanningScheduler.SetJobTaskFilter(Rec."No.", '');
+                        DayPlanningScheduler.RunModal();
+                    end;
+                }
+                separator(Separator1) { }
                 action("Resource Calender (Visual)")
                 {
                     ApplicationArea = All;
@@ -330,29 +331,29 @@ page 50641 "Opti Job List"
                         ResScheduler.RunModal();
                     end;
                 }
-                action("Capacity (Visual)")
+                separator(Separator2) { }
+                action("Sequence (Visual)")
                 {
                     ApplicationArea = All;
-                    Caption = 'Capacity (Visual)';
-                    Image = Capacity;
-                    ToolTip = 'Open the capacity scheduler for the resources assigned to this project.';
+                    Caption = 'Sequence';
+                    Image = Allocations;
+                    ToolTip = 'Open the sequences of this project.';
 
                     trigger OnAction()
                     var
-                        ResScheduler: Page "DHX Scheduler (Pool Resource)";
-                        JobResource: Record Resource;
+                        SequencePage: Page "Day Planning Sequence";
                     begin
-                        MarkJobResources(JobResource);
-                        ResScheduler.SetResourceFilter(JobResource);
-                        ResScheduler.RunModal();
+                        SequencePage.SetContext(Rec."No.", '', '');
+                         SequencePage.SetScopeFilters(Rec."No.", '', '');
+                        SequencePage.RunModal();
                     end;
                 }
                 action("Request Assignment (Visual)")
                 {
                     ApplicationArea = All;
-                    Caption = 'Request and Assignment Board (Visual)';
+                    Caption = 'Assignment Board';
                     Image = Allocations;
-                    ToolTip = 'Open the request and assignment board for this project.';
+                    ToolTip = 'Open the assignment board for this project.';
 
                     trigger OnAction()
                     var
@@ -445,11 +446,13 @@ page 50641 "Opti Job List"
                 Caption = 'Planning';
                 ShowAs = SplitButton;
                 Image = Planning;
-                actionref("Task Scheduler (Visual) actionref"; "Task Scheduler (Visual)") { }
                 actionref("Gantt (Visual) actionref"; "Gantt (Visual)") { }
+                actionref("Task Scheduler (Visual) actionref"; "Task Scheduler (Visual)") { }
+                separator(Separator1_Ref) { }
                 actionref("Resource Calender (Visual) actionref"; "Resource Calender (Visual)") { }
                 actionref("Resource Scheduler (Visual) actionref"; "Resource Scheduler (Visual)") { }
-                actionref("Capacity (Visual) actionref"; "Capacity (Visual)") { }
+                separator(Separator2_Ref) { }
+                actionref("Sequence (Visual) actionref"; "Sequence (Visual)") { }
                 actionref("Request Assignment (Visual) actionref"; "Request Assignment (Visual)") { }
             }
 
