@@ -2664,8 +2664,9 @@ var renderResourceLine = function (resource, timeline) {
     // Count DayPlannings for this resource on this day
     var dtCount = 0;
     var cellIdList = [];
+    var dtOutFilter = false;
     if (DayPlanningsStore) {
-      var allDT = DayPlanningsStore.getItems();
+      var allDT =DayPlanningsStore.getItems();
       for (var j = 0; j < allDT.length; j++) {
         var dt = allDT[j];
         if (String(dt.resource_id || "") !== String(resource.id || "")) continue;
@@ -2674,6 +2675,7 @@ var renderResourceLine = function (resource, timeline) {
         );
         if (dtDate === dayStr) {
           dtCount++; // badge counts all Day Plannings of the resource + date (hours follow the filter)
+          if (dt.in_filter === false) dtOutFilter = true;
           if (dt.id) cellIdList.push(dt.id);
         }
       }
@@ -2684,8 +2686,8 @@ var renderResourceLine = function (resource, timeline) {
     hoursSpan.textContent = (day.value === 0 && day.total > 0) ? "" : day.value; // out-of-filter only: no "0"
     cell.appendChild(hoursSpan);
 
-    // Top-left badge: when more than 1 DayPlanning, or (even with 1) when the day is over capacity
-    if (dtCount > 1 || (dtCount > 0 && day.total > dayCapacity)) {
+    // Top-left badge: when more than 1 DayPlanning, or (even with 1) when that one is outside the filter scope
+    if (dtCount > 1 || (dtCount === 1 && dtOutFilter)) {
       var badge = document.createElement("span");
       badge.textContent = dtCount;
       badge.style.cssText = [
