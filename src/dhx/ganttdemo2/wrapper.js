@@ -1607,6 +1607,7 @@ window.BOOT = function() {
         + ".gantt_resource_marker{ border-radius:4px; color:#fff; }"
         + ".gantt_resource_marker_ok{ background:#21b36c; }"
         + ".gantt_resource_marker_overtime{ background:#e74c3c; }"
+        + ".gantt_resource_marker_outfilter{ background:transparent !important; color:#666; }"
         + ".gantt_resource_marker_request{ background:#909090 !important; border:1px solid #666 !important; opacity:0.9; }"
         /* ── Panel header: standard BC list-header colors (rgb(246,247,248) bg /
            #666 text, matched live off a standard BC list page's column header row) ── */
@@ -2645,6 +2646,8 @@ var renderResourceLine = function (resource, timeline) {
     // "- NONE -" row (id "RES-") has no capacity and keeps the old fixed 8h threshold.
     var dayCapacity = (String(resource.id || "") === "RES-") ? 8 : (((_resCapacity[resource.id] || {})[dayStr]) || 0);
     cell.className = (day.value <= dayCapacity) ?"gantt_resource_marker gantt_resource_marker_ok" : "gantt_resource_marker gantt_resource_marker_overtime";
+    // Only out-of-filter hours on this day (filtered value 0, but the day has hours): vacant-cell look
+    if (day.value === 0 && day.total > 0) cell.className = "gantt_resource_marker gantt_resource_marker_outfilter";
     cell.style.cssText = [
       "left:" + sizes.left + "px",
       "width:" + sizes.width + "px",
@@ -2678,7 +2681,7 @@ var renderResourceLine = function (resource, timeline) {
 
     // Hours label (centered)
     var hoursSpan = document.createElement("span");
-    hoursSpan.textContent = day.value;
+    hoursSpan.textContent = (day.value === 0 && day.total > 0) ? "" : day.value; // out-of-filter only: no "0"
     cell.appendChild(hoursSpan);
 
     // Top-left badge: when more than 1 DayPlanning, or (even with 1) when the day is over capacity
@@ -2770,7 +2773,7 @@ var renderResourceLine = function (resource, timeline) {
     ].join(";");
 
     var reqHoursSpan = document.createElement("span");
-    reqHoursSpan.textContent = reqHours > 0 ? reqHours : "";
+    reqHoursSpan.textContent = reqHours > 0 ? reqHours : "0";
     reqCell.appendChild(reqHoursSpan);
 
     // Badge: show count of Request tasks when more than 1 (same mechanism as planned cells)
