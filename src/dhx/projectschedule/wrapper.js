@@ -1605,36 +1605,36 @@ function setupContextMenu() {
         '<div class="dhx-ctx-item" data-for="section" data-action="OpenTask">' +
             '<span class="dhx-ctx-icon">&#x1F4CB;</span>Show Task</div>' +
         '<div class="dhx-ctx-item" data-for="section" data-action="ShowDayPlanning">' +
-            '<span class="dhx-ctx-icon">&#x1F4C5;</span>Show Day Planning</div>' +
+            '<span class="dhx-ctx-icon">&#x1F4C5;</span>Day Planning</div>' +
         '<div class="dhx-ctx-item" data-for="section" data-action="OpenDayPlanningVisual">' +
-            '<span class="dhx-ctx-icon">&#x1F4C5;</span>Show Task Scheduler</div>' +
+            '<span class="dhx-ctx-icon">&#x1F4C5;</span>Task Scheduler</div>' +
         '<div class="dhx-ctx-separator" data-for="section"></div>' +
         '<div class="dhx-ctx-item" data-for="section" data-action="AddFilter">' +
             '<span class="dhx-ctx-icon"><img src="'+Microsoft.Dynamics.NAV.GetImageResource('images/filter_image.png')+'" style="width:20px;height:20px;vertical-align:middle;"></span>Add Filter</div>' +
         '<div class="dhx-ctx-separator" data-for="section"></div>' +
         '<div class="dhx-ctx-item" data-for="event" data-action="OpenDayPlanning">' +
-            '<span class="dhx-ctx-icon">&#128197;</span>Open Day Planning</div>' +
+            '<span class="dhx-ctx-icon">&#128197;</span>Day Planning</div>' +
         '<div class="dhx-ctx-item" data-for="event" data-action="OpenDayPlanningCard">' +
-            '<span class="dhx-ctx-icon">&#128211;</span>Open Day Planning Card</div>' +
+            '<span class="dhx-ctx-icon">&#128211;</span>Day Planning Card</div>' +
         '<div class="dhx-ctx-separator" data-for="event"></div>' +
         '<div class="dhx-ctx-item" data-for="event" data-action="OpenTask">' +
-            '<span class="dhx-ctx-icon">&#128196;</span>Open Job Task Card</div>' +
+            '<span class="dhx-ctx-icon">&#128196;</span>Job Task Card</div>' +
         '<div class="dhx-ctx-item" data-for="event" data-action="ShowJobResources">' +
-            '<span class="dhx-ctx-icon">&#128100;</span>Open Job Task Resources</div>' +
+            '<span class="dhx-ctx-icon">&#128100;</span>Job Task Resources</div>' +
         '<div class="dhx-ctx-item" data-for="event" data-action="OpenDayPlanningVisual">' +
-            '<span class="dhx-ctx-icon">&#128248;</span>Open Job Task Scheduler</div>' +
+            '<span class="dhx-ctx-icon">&#128248;</span>Job Task Scheduler</div>' +
         '<div class="dhx-ctx-separator" data-for="event"></div>' +
         '<div class="dhx-ctx-item" data-for="event" data-action="OpenResSchedulerTimeline">' +
-            '<span class="dhx-ctx-icon">&#128101;</span>Open Resource Scheduler</div>' +
+            '<span class="dhx-ctx-icon">&#128101;</span>Resource Scheduler</div>' +
         '<div class="dhx-ctx-separator" data-for="event"></div>' +
         '<div class="dhx-ctx-item" data-for="event" data-action="OpenResourceSchedulerAssigned">' +
-            '<span class="dhx-ctx-icon">&#128101;</span>Open Resource Scheduler (assigned)</div>' +        
+            '<span class="dhx-ctx-icon">&#128101;</span>Resource Scheduler (assigned)</div>' +        
         '<div class="dhx-ctx-item" data-for="event" data-action="OpenResourceSchedulerRequested">' +
-            '<span class="dhx-ctx-icon">&#128101;</span>Open Resource Scheduler (Requested)</div>' +
+            '<span class="dhx-ctx-icon">&#128101;</span>Resource Scheduler (Requested)</div>' +
         '<div class="dhx-ctx-item" data-for="event" data-action="OpenAssignedResourceCard">' +
-            '<span class="dhx-ctx-icon">&#128100;</span>Open Resource Card (assigned)</div>' +
+            '<span class="dhx-ctx-icon">&#128100;</span>Resource Card (assigned)</div>' +
         '<div class="dhx-ctx-item" data-for="event" data-action="OpenRequestedResourceCard">' +
-            '<span class="dhx-ctx-icon">&#128100;</span>Open Resource Card (Requested)</div>' +
+            '<span class="dhx-ctx-icon">&#128100;</span>Resource Card (Requested)</div>' +
         '<div class="dhx-ctx-separator" data-for="event"></div>' +
         '<div class="dhx-ctx-item ctx-cancel" data-action="Cancel">' +
             '<span class="dhx-ctx-icon">&#10005;</span>Cancel</div>';

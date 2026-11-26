@@ -642,8 +642,8 @@ function attachScaleInteraction() {
             e.preventDefault();
             hideTooltip();
             showRowContextMenu(e.clientX, e.clientY, [
-                { text: "Open Project", fn: function () { dpsInvoke("OnOpenProject", [section.jobNo]); } },
-                { text: "Open Project Task", fn: function () { dpsInvoke("OnOpenProjectTask", [section.jobNo, section.jobTaskNo || ""]); } }
+                { text: "Project", fn: function () { dpsInvoke("OnOpenProject", [section.jobNo]); } },
+                { text: "Project Task", fn: function () { dpsInvoke("OnOpenProjectTask", [section.jobNo, section.jobTaskNo || ""]); } }
             ]);
             return;
         }
@@ -653,8 +653,8 @@ function attachScaleInteraction() {
         e.preventDefault();
         hideTooltip();
         showRowContextMenu(e.clientX, e.clientY, [
-            { text: "Open Resource", fn: function () { dpsInvoke("OnBarOpenResource", [String(id)]); } },
-            { text: "Open Capacity", fn: function () { dpsInvoke("OnBarOpenCapacity", [String(id)]); } },
+            { text: "Resource", fn: function () { dpsInvoke("OnBarOpenResource", [String(id)]); } },
+            { text: "Capacity", fn: function () { dpsInvoke("OnBarOpenCapacity", [String(id)]); } },
             { text: "Resource Scheduler", fn: function () { dpsInvoke("OnBarOpenResourceScheduler", [String(id)]); } }
         ]);
     });

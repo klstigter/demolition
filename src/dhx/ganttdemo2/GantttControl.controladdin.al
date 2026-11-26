@@ -9,7 +9,7 @@ controladdin "DHX Gantt Control 2"
     MinimumWidth = 700;
     HorizontalStretch = true;
     HorizontalShrink = true;
-    Images = 'images/filter_image.png', 'images/Remove_Filter_image.png';
+    Images = 'images/filter_image.png', 'images/Remove_Filter_image.png', 'images/View.png', 'images/Sequence_and_AssignmentBoard.png';
     Scripts = 'src/dhx/dhtmlxgantt.js',
               'src/dhx/ganttdemo2/wrapper.js';
 
@@ -33,6 +33,8 @@ controladdin "DHX Gantt Control 2"
     event OnLinkDeleted(linkData: Text);
     event OnShowResourcesForTask(taskId: Text; childrenJson: Text; periodFrom: Text; periodTo: Text);
     event OnShowSummaryForTask(taskId: Text; childrenJson: Text; periodFrom: Text; periodTo: Text);
+    event OnHideResourcePanel();
+    event OnOpenTaskBoard(kind: Text; jobNo: Text; jobTaskNo: Text);
     event OnResourceDblClick(resourceId: Text);
     event OnResourceHover(resourceId: Text);
     event onOpenResourceCalendar(resourceId: Text);

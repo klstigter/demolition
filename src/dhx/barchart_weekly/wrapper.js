@@ -368,7 +368,7 @@ window.BOOT = function() {
                             [barHit.seriesName, barHit.barType, barHit.dayIndex, false]
                         );
                     } catch (err) { /* ignore */ }
-                }, barHit.barType === "Capacity" ? "Show Capacity" : "Show Day Planning",
+                }, barHit.barType === "Capacity" ? "Capacity" : "Day Planning",
                 // R (Requested) bar only (Role Center parts and the full visual pages).
                 (barHit.barType === "Requested")
                     ? BuildSchedulerMenuItems(barHit.seriesName, barHit.dayIndex) : null);
@@ -385,7 +385,7 @@ window.BOOT = function() {
                             [legendHit.seriesName, "", 0, true]
                         );
                     } catch (err) { /* ignore */ }
-                }, /Capacity/.test(legendHit.seriesName) ? "Show Capacity" : "Show Day Planning");
+                }, /Capacity/.test(legendHit.seriesName) ? "Capacity" : "Day Planning");
             }
         });
 
@@ -1176,10 +1176,10 @@ function BuildSchedulerMenuItems(skillCode, dayIndex) {
         };
     };
     return [
-        { caption: "Show Task Scheduler", handler: raise("Task") },
-        { caption: "Show Resource Scheduler", handler: raise("Resource") },
-        { caption: "Show Capacity Scheduler", handler: raise("Capacity") },
-        { caption: "Show Gantt", handler: raise("Gantt") }
+        { caption: "Task Scheduler", handler: raise("Task") },
+        { caption: "Resource Scheduler", handler: raise("Resource") },
+        { caption: "Capacity Scheduler", handler: raise("Capacity") },
+        { caption: "Gantt", handler: raise("Gantt") }
     ];
 }
 

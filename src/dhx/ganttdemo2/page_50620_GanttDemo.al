@@ -106,6 +106,27 @@ page 50620 "Gantt Demo DHX 2"
                     SummaryPage.Run();
                 end;
 
+                trigger OnOpenTaskBoard(kind: Text; jobNo: Text; jobTaskNo: Text)
+                var
+                    SequencePage: Page "Day Planning Sequence";
+                    ReqAssignBoard: Page "DHX Request Assignment Board";
+                begin
+                    if kind = 'Sequence' then begin
+                        SequencePage.SetContext(CopyStr(jobNo, 1, 20), CopyStr(jobTaskNo, 1, 20), '');
+                        SequencePage.SetScopeFilters(CopyStr(jobNo, 1, 20), CopyStr(jobTaskNo, 1, 20), '');
+                        SequencePage.RunModal();
+                    end else begin
+                        ReqAssignBoard.SetJobTaskFilter(CopyStr(jobNo, 1, 20), CopyStr(jobTaskNo, 1, 20));
+                        ReqAssignBoard.RunModal();
+                    end;
+                end;
+
+                trigger OnHideResourcePanel()
+                begin
+                    ResourcePanelFlag := false;
+                    CurrPage.DHXGanttControl2.SetResourcePanelVisibility(false);
+                end;
+
                 trigger OnShowResourcesForTask(taskId: Text; childrenJson: Text; periodFrom: Text; periodTo: Text)
                 var
                     JobTask: Record "Job Task";

@@ -1128,24 +1128,24 @@ function setupContextMenu() {
     }
     menu.innerHTML =
         '<div class="dhx-ctx-item" data-action="OpenDayPlanning">' +
-            '<span class="dhx-ctx-icon">&#128197;</span>Open Day Planning</div>' +
+            '<span class="dhx-ctx-icon">&#128197;</span>Day Planning</div>' +
         '<div class="dhx-ctx-item" data-action="OpenCapacity">' +
-            '<span class="dhx-ctx-icon">&#128202;</span>Open Capacity</div>' +
+            '<span class="dhx-ctx-icon">&#128202;</span>Capacity</div>' +
         '<div class="dhx-ctx-item" data-action="OpenTask">' +
-            '<span class="dhx-ctx-icon">&#128203;</span>Open Task</div>' +
+            '<span class="dhx-ctx-icon">&#128203;</span>Task</div>' +
         '<div class="dhx-ctx-item" data-action="OpenResource">' +
-            '<span class="dhx-ctx-icon">&#128100;</span>Open Resource</div>' +
+            '<span class="dhx-ctx-icon">&#128100;</span>Resource</div>' +
         '<div class="dhx-ctx-separator"></div>' +
         '<div class="dhx-ctx-item" data-action="OpenResourceCard">' +
-            '<span class="dhx-ctx-icon">&#128100;</span>Open Resource Card</div>' +
+            '<span class="dhx-ctx-icon">&#128100;</span>Resource Card</div>' +
         '<div class="dhx-ctx-item" data-action="OpenResourceSkills">' +
-            '<span class="dhx-ctx-icon">&#127942;</span>Open Resource Skills</div>' +
+            '<span class="dhx-ctx-icon">&#127942;</span>Resource Skills</div>' +
         '<div class="dhx-ctx-item" data-action="OpenDayPlannings">' +
-            '<span class="dhx-ctx-icon">&#128198;</span>Open Day Plannings</div>' +
+            '<span class="dhx-ctx-icon">&#128198;</span>Day Plannings</div>' +
         '<div class="dhx-ctx-item" data-action="OpenTask">' +
-            '<span class="dhx-ctx-icon">&#128203;</span>Open Task</div>' +
+            '<span class="dhx-ctx-icon">&#128203;</span>Task</div>' +
         '<div class="dhx-ctx-item" data-action="ShowCapacity">' +
-            '<span class="dhx-ctx-icon">&#128202;</span>Show Capacity</div>' +
+            '<span class="dhx-ctx-icon">&#128202;</span>Capacity</div>' +
         '<div class="dhx-ctx-separator"></div>' +
         '<div class="dhx-ctx-item ctx-cancel" data-action="Cancel">' +
             '<span class="dhx-ctx-icon">&#10005;</span>Cancel</div>';
