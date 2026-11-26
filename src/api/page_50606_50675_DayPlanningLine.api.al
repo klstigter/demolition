@@ -35,6 +35,10 @@ page 50675 "DayPlanning Line Opt"
                 {
                     Caption = 'Day Line No.';
                 }
+                field(sequnceNo_; Rec."Sequence No.")
+                {
+                    Caption = 'Sequence No.';
+                }
                 field(taskDate; Rec."Plan Date")
                 {
                     Caption = 'Plan Date';
@@ -43,9 +47,17 @@ page 50675 "DayPlanning Line Opt"
                 {
                     Caption = 'Requested Resource No.';
                 }
+                field(requestedPoolResourceNo; Rec."Requested Pool Resource No.")
+                {
+                    Caption = 'Requested Pool Resource No.';
+                }
                 field(assignedResourceNo; Rec."Assigned Resource No.")
                 {
                     Caption = 'Assigned Resource No.';
+                }
+                field(assignedPoolResourceNo; Rec."Assigned Pool Resource No.")
+                {
+                    Caption = 'Assigned Pool Resource No.';
                 }
                 field(description; Rec.Description)
                 {

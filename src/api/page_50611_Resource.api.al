@@ -33,6 +33,18 @@ page 50611 "Resource API Optimization"
                 {
                     Caption = 'Resource Group No.';
                 }
+                field(poolResourceNo_; Rec."Pool Resource No.")
+                {
+                    Caption = 'Pool Resource No.';
+                }
+                field(isPool; Rec."Is Pool")
+                {
+                    Caption = 'Is Pool';
+                }
+                field(isPoolMember; Rec."Is Pool Member")
+                {
+                    Caption = 'Is Pool Member';
+                }
                 field(vendorNo; Rec."Vendor No.")
                 {
                     Caption = 'Vendor No.';
