@@ -2592,7 +2592,7 @@ class CapacityPlanningOverview {
 
     /// <summary>
     /// Hook for extra summary-cell menu items after the default one - no-op here (page 50722
-    /// unchanged); CapacityPlanningDashboard overrides it to add "Show Task Scheduler".
+    /// unchanged); CapacityPlanningDashboard overrides it to add "Task Scheduler".
     /// </summary>
     addExtraTreeContextMenuItems(menu, payload) {
     }

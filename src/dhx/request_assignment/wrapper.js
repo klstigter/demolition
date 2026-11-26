@@ -2639,7 +2639,7 @@ function showSlotContextMenu(event, targetInfo) {
     });
 
     addContextMenuItem({
-      caption: "Open Card",
+      caption: "Card",
       icon: "card",
       action: () => openDayPlanningCard(targetInfo.lineId)
     });
@@ -2647,7 +2647,7 @@ function showSlotContextMenu(event, targetInfo) {
 
   if (targetInfo.type === "assignment") {
     addContextMenuItem({
-      caption: "Open Card",
+      caption: "Card",
       icon: "card",
       action: () => openDayPlanningCard(targetInfo.lineId)
     });
@@ -2655,7 +2655,7 @@ function showSlotContextMenu(event, targetInfo) {
 
   if (targetInfo.type === "capacity") {
     addContextMenuItem({
-      caption: "Open Capacity",
+      caption: "Capacity",
       icon: "card",
       action: () => openCapacity(targetInfo.resourceId)
     });

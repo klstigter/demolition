@@ -181,16 +181,16 @@ class CapacityPlanningDashboard extends CapacityPlanningOverview {
     /// caption unchanged - explicit instruction not to touch that page's wording.
     /// </summary>
     capacityBarMenuCaption(kind) {
-        return kind === 'capacity' ? 'Show Capacity' : 'Show Day Planning';
+        return kind === 'capacity' ? 'Capacity' : 'Day Planning';
     }
 
     treeContextMenuCaption() {
-        return 'Show Day Planning';
+        return 'Day Planning';
     }
 
     /// <summary>
-    /// Right-click on a Skill label (left column of Section 4): "Show Resources" (resources
-    /// having that skill) and "Show Day Planning" (that skill's Day Plannings for the whole week
+    /// Right-click on a Skill label (left column of Section 4): "Resources" (resources
+    /// having that skill) and "Day Planning" (that skill's Day Plannings for the whole week
     /// currently shown). Reuses the shared #cpo-tree-context-menu element; bound once on the host.
     /// </summary>
     attachSkillLabelContextMenu() {
@@ -217,8 +217,8 @@ class CapacityPlanningDashboard extends CapacityPlanningOverview {
                 Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(eventName, [JSON.stringify(payload)]);
                 self.hideLoading();
             };
-            self.addTreeContextMenuItem(menu, 'Show Resources', function () { raise('OnShowSkillResourceCard'); });
-            self.addTreeContextMenuItem(menu, 'Show Day Planning', function () { raise('OnShowSkillDayPlanning'); });
+            self.addTreeContextMenuItem(menu, 'Resources', function () { raise('OnShowSkillResourceCard'); });
+            self.addTreeContextMenuItem(menu, 'Day Planning', function () { raise('OnShowSkillDayPlanning'); });
             menu.hidden = false;
             const r = menu.getBoundingClientRect();
             menu.style.left = Math.min(e.clientX, Math.max(4, window.innerWidth - r.width - 4)) + 'px';
@@ -233,7 +233,7 @@ class CapacityPlanningDashboard extends CapacityPlanningOverview {
     /// </summary>
     addExtraTreeContextMenuItems(menu, payload) {
         const self = this;
-        this.addTreeContextMenuItem(menu, 'Show Task Scheduler', function () {
+        this.addTreeContextMenuItem(menu, 'Task Scheduler', function () {
             if (typeof Microsoft === 'undefined') return;
             self.showLoading();
             Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnOpenTaskScheduler', [JSON.stringify(payload)]);
@@ -246,7 +246,7 @@ class CapacityPlanningDashboard extends CapacityPlanningOverview {
     addExtraCapacityBarMenuItems(menu, payload, kind) {
         if (kind !== 'request') return;
         const self = this;
-        this.addTreeContextMenuItem(menu, 'Show Task Scheduler', function () {
+        this.addTreeContextMenuItem(menu, 'Task Scheduler', function () {
             if (typeof Microsoft === 'undefined') return;
             self.showLoading();
             Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnOpenTaskScheduler', [JSON.stringify(payload)]);
@@ -255,7 +255,7 @@ class CapacityPlanningDashboard extends CapacityPlanningOverview {
         this.addSchedulerMenuItems(menu, payload);
     }
 
-    /// <summary>"Show Resource Scheduler" / "Show Capacity Scheduler" - carry the clicked source's skill + date.</summary>
+    /// <summary>"Resource Scheduler" / "Capacity Scheduler" - carry the clicked source's skill + date.</summary>
     addSchedulerMenuItems(menu, payload) {
         const self = this;
         const raise = function (eventName) {
@@ -264,8 +264,8 @@ class CapacityPlanningDashboard extends CapacityPlanningOverview {
             Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(eventName, [JSON.stringify(payload)]);
             self.hideLoading();
         };
-        this.addTreeContextMenuItem(menu, 'Show Resource Scheduler', function () { raise('OnOpenResourceScheduler'); });
-        this.addTreeContextMenuItem(menu, 'Show Capacity Scheduler', function () { raise('OnOpenCapacityScheduler'); });
+        this.addTreeContextMenuItem(menu, 'Resource Scheduler', function () { raise('OnOpenResourceScheduler'); });
+        this.addTreeContextMenuItem(menu, 'Capacity Scheduler', function () { raise('OnOpenCapacityScheduler'); });
     }
 
     /// <summary>

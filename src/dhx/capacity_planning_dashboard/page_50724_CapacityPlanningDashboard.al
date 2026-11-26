@@ -85,7 +85,7 @@ page 50724 "Capacity Planning Dashboard"
                 end;
 
                 /// <summary>
-                /// Section 4's right-click "Show Task Scheduler" - opens page 50621 filtered to the
+                /// Section 4's right-click "Task Scheduler" - opens page 50621 filtered to the
                 /// right-clicked cell's Skill/date.
                 /// </summary>
                 trigger OnOpenTaskScheduler(PayloadJsonTxt: Text)

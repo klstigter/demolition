@@ -374,13 +374,13 @@ window.BOOT = function() {
                             [barHit.segmentId, false]
                         );
                     } catch (err) { /* ignore */ }
-                }, barHit.segmentId.slice(-9) === "|Capacity" ? "Show Capacity" : "Show Day Planning",
+                }, barHit.segmentId.slice(-9) === "|Capacity" ? "Capacity" : "Day Planning",
                 // R (Requested) bar only (Role Center parts and the full visual pages).
                 (barHit.segmentId.slice(-10) === "|Requested")
                     ? BuildSchedulerMenuItems(barHit.segmentId.slice(0, -10), 0)
-                    // C (Capacity) bar: just "Show Capacity Scheduler" (page 50600, skill + day).
+                    // C (Capacity) bar: just "Capacity Scheduler" (page 50600, skill + day).
                     : (barHit.segmentId.slice(-9) === "|Capacity")
-                        ? BuildSchedulerMenuItems(barHit.segmentId.slice(0, -9), 0).filter(function(x) { return x.caption === "Show Capacity Scheduler"; })
+                        ? BuildSchedulerMenuItems(barHit.segmentId.slice(0, -9), 0).filter(function(x) { return x.caption === "Capacity Scheduler"; })
                         : null);
                 return;
             }
@@ -395,7 +395,7 @@ window.BOOT = function() {
                             [legendHit.seriesName, true]
                         );
                     } catch (err) { /* ignore */ }
-                }, /Capacity/.test(legendHit.seriesName) ? "Show Capacity" : "Show Day Planning");
+                }, /Capacity/.test(legendHit.seriesName) ? "Capacity" : "Day Planning");
             }
         });
 
@@ -1105,9 +1105,9 @@ function BuildSchedulerMenuItems(skillCode, dayIndex) {
         };
     };
     return [
-        { caption: "Show Task Scheduler", handler: raise("Task") },
-        { caption: "Show Resource Scheduler", handler: raise("Resource") },
-        { caption: "Show Capacity Scheduler", handler: raise("Capacity") }
+        { caption: "Task Scheduler", handler: raise("Task") },
+        { caption: "Resource Scheduler", handler: raise("Resource") },
+        { caption: "Capacity Scheduler", handler: raise("Capacity") }
     ];
 }
 

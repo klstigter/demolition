@@ -443,7 +443,10 @@ window.BOOT = function() {
         parentMenu.appendChild(item);
       }
 
-      makeItem(menu, "Resource Calendar", "&#x1F4C6;", function () {
+      makeItem(menu, "View", '<img src="' + Microsoft.Dynamics.NAV.GetImageResource('images/View.png') + '" style="width:18px;height:18px;vertical-align:middle;">', function () {
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnResourceDblClick", [currentResourceId]);
+      });
+      makeItem(menu, "Resource Calendar","&#x1F4C6;", function () {
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("onOpenResourceCalendar", [
           currentResourceId
         ]);
@@ -460,11 +463,7 @@ window.BOOT = function() {
         if (currentResourceId.indexOf("RES-") !== 0 || currentResourceId === "RES-") return;
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OpenResourceCapacity", [currentResourceId.substring(4)]);
       });
-      makeItem(menu, "Show Resource Card", "&#x1F464;", function () {
-        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnResourceDblClick", [currentResourceId]);
-      });
-
-      makeItem(markerMenu, "Open Day Plannings", "&#x1F4C5;", function () {
+      makeItem(markerMenu, "Day Plannings", "&#x1F4C5;", function () {
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OpenResourceLoadDay", [
           currentMarkerResourceId,
           currentMarkerWorkDate,
@@ -472,7 +471,7 @@ window.BOOT = function() {
           currentMarkerIdList
         ]);
       });
-      makeItem(markerMenu, "Open Sequences", "&#x1F4CB;", function () {
+      makeItem(markerMenu, "Sequences", "&#x1F4CB;", function () {
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OpenSequences", [currentMarkerIdList]);
       });
 
@@ -1002,11 +1001,15 @@ window.BOOT = function() {
 
       var items = [
         { label: "Summary",              icon: "&#x1F4C4;", cls: "ctx-show-summary" },
-        { label: "Show Job Resources",   icon: "&#x1F465;", cls: "ctx-show-resources" },
+        window._resPanelVisible
+          ? { label: "Hide Resource Panel", icon: "&#x1F465;", cls: "ctx-hide-resources" }
+          : { label: "Show Resource Panel", icon: "&#x1F465;", cls: "ctx-show-resources" },
         { sep: true },
-        { label: "Show Task",            icon: "&#x1F4CB;", cls: "ctx-open-task" },
-        { label: "Show Day Planning",         icon: "&#x1F4C5;", cls: "ctx-open-DayPlanning" },
-        { label: "Show Task Scheduler",  icon: "&#x1F4C5;", cls: "ctx-open-DayPlanningvisual" },
+        { label: "View",                 icon: '<img src="'+Microsoft.Dynamics.NAV.GetImageResource('images/View.png')+'" style="width:18px;height:18px;vertical-align:middle;">', cls: "ctx-open-task" },
+        { label: "Day Planning",         icon: "&#x1F4C5;", cls: "ctx-open-DayPlanning" },
+        { label: "Task Scheduler",  icon: "&#x1F4C5;", cls: "ctx-open-DayPlanningvisual" },
+        { label: "Sequence",             icon: '<img src="'+Microsoft.Dynamics.NAV.GetImageResource('images/Sequence_and_AssignmentBoard.png')+'" style="width:18px;height:18px;vertical-align:middle;">', cls: "ctx-open-sequence" },
+        { label: "Assignment Board",     icon: '<img src="'+Microsoft.Dynamics.NAV.GetImageResource('images/Sequence_and_AssignmentBoard.png')+'" style="width:18px;height:18px;vertical-align:middle;">', cls: "ctx-open-assignment" },
         { sep: true },
         { label: "Add Filter",           icon: '<img src="'+Microsoft.Dynamics.NAV.GetImageResource('images/filter_image.png')+'" style="width:20px;height:20px;vertical-align:middle;">', cls: "ctx-add-filter" },
         { sep: true },
@@ -1028,9 +1031,12 @@ window.BOOT = function() {
           _hideContextMenu();
           if (item.cls === "ctx-show-summary") _ctxShowSummary(taskId);
           if (item.cls === "ctx-show-resources") _ctxShowResources(taskId);
+          if (item.cls === "ctx-hide-resources") Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnHideResourcePanel", []);
           if (item.cls === "ctx-open-task")      _ctxOpenTask(taskId);
           if (item.cls === "ctx-open-DayPlanning")   _ctxOpenDayPlanning(taskId);
           if (item.cls === "ctx-open-DayPlanningvisual")   _ctxOpenDayPlanningVisual(taskId);
+          if (item.cls === "ctx-open-sequence")   _ctxOpenTaskBoard("Sequence", taskId);
+          if (item.cls === "ctx-open-assignment") _ctxOpenTaskBoard("Assignment", taskId);
           if (item.cls === "ctx-add-filter")     _ctxAddFilter(taskId);
           // cancel: just close
         });
@@ -1187,6 +1193,18 @@ window.BOOT = function() {
         ]);
       } catch (e) {
         console.error("_ctxOpenDayPlanning failed:", e);
+      }
+    }
+
+    // Sequence / Assignment Board — same pages as the Project Tasks list actions
+    function _ctxOpenTaskBoard(kind, id) {
+      try {
+        var task = gantt.getTask(id);
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnOpenTaskBoard", [
+          kind, String(task.bcJobNo || ""), String(task.bcJobTaskNo || "")
+        ]);
+      } catch (e) {
+        console.error("_ctxOpenTaskBoard failed:", e);
       }
     }
 
@@ -1781,6 +1799,7 @@ function _renderRequestBars() {
 // Dynamic Layout Recreation (like scheduler's RecreateTimelineView)
 // -------------------------------------------------------
 function RecreateGanttLayout(showResourcePanel) {
+  window._resPanelVisible = !!showResourcePanel; // read by the task context menu (Show/Hide Resource Panel toggle)
   try {
     var mainGridConfig = { columns: gantt.config.columns };
     var resourcePanelConfig = {

@@ -82,7 +82,7 @@ controladdin DHXCapacityPlanningDashboardAddin
     // so OnOpenDayPlanningCard is never raised here and is deliberately not declared on this
     // controladdin.
     event OnOpenDayPlanningList(PayloadJsonTxt: Text);
-    // Section 4's second right-click item "Show Task Scheduler" - same payload as
+    // Section 4's second right-click item "Task Scheduler" - same payload as
     // OnOpenDayPlanningList; opens page 50621 filtered by skill/date (CPO_OpenTaskScheduler).
     event OnOpenTaskScheduler(PayloadJsonTxt: Text);
     // "Show Resource Scheduler" / "Show Capacity Scheduler" right-click items (Section 3 bars and
