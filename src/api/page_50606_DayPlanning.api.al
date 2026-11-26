@@ -37,11 +37,23 @@ page 50606 "DayPlanningApi Opt"
                 {
                     Caption = 'Task No.';
                 }
+                field(sequnceNo_; Rec."Sequence No.")
+                {
+                    Caption = 'Sequence No.';
+                }
                 field(requestedResourceNo; Rec."Requested Resource No.")
                 {
                     Caption = 'No.';
                 }
+                field(requestedPoolResourceNo; Rec."Requested Pool Resource No.")
+                {
+                    Caption = 'No.';
+                }
                 field(assignedResourceNo; Rec."Assigned Resource No.")
+                {
+                    Caption = 'No.';
+                }
+                field(assignedPoolResourceNo; Rec."Assigned Pool Resource No.")
                 {
                     Caption = 'No.';
                 }
