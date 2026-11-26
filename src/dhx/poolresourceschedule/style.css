@@ -96,3 +96,13 @@ html, body{
 /* Higher specificity so the weekend/holiday tint wins over the resource-row white background set in wrapper.js */
 .timeline-resource-row .dhx_matrix_cell.pool-weekend { background-color: var(--pool-weekend-color, #ffe0e0) !important; }
 .timeline-resource-row .dhx_matrix_cell.pool-holiday { background-color: var(--pool-holiday-color, #fff3cd) !important; }
+
+/* Resource row right-click context menu (same look as resourceschedule_with_capacity) */
+#dhx-ctx-menu { position: fixed; z-index: 99999; background: #fff; border: 1px solid #c8c8c8; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.18); padding: 4px 0; min-width: 190px; font-family: "Segoe UI", sans-serif; font-size: 13px; user-select: none; }
+#dhx-ctx-menu.hidden { display: none; }
+.dhx-ctx-item { display: flex; align-items: center; gap: 8px; padding: 7px 14px; cursor: pointer; color: #333; white-space: nowrap; }
+.dhx-ctx-item:hover { background: #f0f4ff; color: #1a56db; }
+.dhx-ctx-item.ctx-cancel { color: #c00; }
+.dhx-ctx-item.ctx-cancel:hover { background: #fff0f0; }
+.dhx-ctx-separator { height: 1px; background: #e0e0e0; margin: 4px 0; }
+.dhx-ctx-icon { width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }

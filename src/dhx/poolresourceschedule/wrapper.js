@@ -228,6 +228,7 @@ window.BOOT = function() {
         --cap-color-border: #C97F16;
         --bar-font-color: #000000;
         --cap-font-color: #000000;
+        --absence-color: #FF0000;
     }
 
     /* Event styling per type */
@@ -241,6 +242,23 @@ window.BOOT = function() {
         font-size: 14px !important;
         background-color: var(--cap-color) !important;
         border-color: var(--cap-color-border) !important;
+    }
+
+    /* Absence overlay inside the Capacity bar (see event_text template) */
+    .abs-ov {
+        position: absolute;
+        top: 20%;
+        bottom: 20%;
+        display: flex;
+        align-items: center;
+        line-height: 1;
+        font-size: 11px;
+        z-index: 10;
+        overflow: hidden;
+        white-space: nowrap;
+        padding: 0 4px;
+        color: #fff;
+        background: var(--absence-color);
     }
 
     /* Vacancy events */
@@ -392,6 +410,8 @@ window.BOOT = function() {
         var typeClass = "";
         if (ev.type === "capacity") {
             typeClass = "event-capacity";
+        } else if (ev.type === "absence") {
+            typeClass = "event-absence";
         } else if (ev.type === "vacancy") {
             typeClass = "event-vacancy";
         } else if (ev.type === "DayPlanning_0") {
@@ -402,6 +422,22 @@ window.BOOT = function() {
         return typeClass;
     };
     
+    // Capacity bar text + absence overlay (width = absence hours / capacity hours, same start, absence colour)
+    scheduler.templates.event_bar_text = scheduler.templates.event_text = function (s, e, ev) {
+        var t = ev.text || "";
+        if (ev.type !== "capacity") return t;
+        var key = ev.resource_id + "|" + s.getFullYear() + "-" + ("0" + (s.getMonth() + 1)).slice(-2) + "-" + ("0" + s.getDate()).slice(-2);
+        var list = _poolAbsence[key];
+        if (!list || !(ev.hours > 0)) return t;
+        var left = 0, h = "";
+        list.forEach(function (a) {
+            var w = Math.min(100 - left, a.hours / ev.hours * 100);
+            h += '<span class="abs-ov" title="' + poolEscHtml(a.reason + " - " + a.hours + " h") + '" style="left:' + left + '%;width:' + w + '%">' + poolEscHtml(a.reason) + '</span>';
+            left += w;
+        });
+        return t + h;
+    };
+
     // Hours follow the live start/end (so the tooltip tracks a resize drag); falls back to ev.hours.
     function poolCapHours(start, end, ev) {
         if (start && end) {
@@ -461,10 +497,22 @@ window.BOOT = function() {
         }
 
         var html = "";
-        if (ev.type === "capacity") {
+        if (ev.type === "absence") {
+            var absName = lookupPoolSectionLabel(ev.section_id);
+            html =
+                '<div class="cap-tt">' +
+                    '<div class="cap-tt-cap">Absence</div>' +
+                    '<div class="cap-tt-title">' + poolEscHtml((ev.resource_id || "") + (absName ? " - " + absName : "")) + '</div>' +
+                    '<div class="cap-tt-line"><span class="cap-tt-lbl">Reason: </span>' + poolEscHtml(ev.text || "—") + '</div>' +
+                    '<div class="cap-tt-line cap-tt-ind">' + poolEscHtml(scheduler.date.date_to_str("%j %M %Y")(start)) + '</div>' +
+                    '<div class="cap-tt-line cap-tt-ind">' + poolCapHours(start, end, ev) + ' h</div>' +
+                '</div>';
+        } else if (ev.type === "capacity") {
             // Shared capacity tooltip layout (identical in poolresourceschedule and resourceschedule_with_capacity).
             var resName = lookupPoolSectionLabel(ev.section_id);
             var resTitle = (ev.resource_id || "") + (resName ? " - " + resName : "");
+            var absH = 0;
+            (_poolAbsence[ev.resource_id + "|" + scheduler.date.date_to_str("%Y-%m-%d")(start)] || []).forEach(function (a) { absH += a.hours; });
             html =
                 '<div class="cap-tt">' +
                     '<div class="cap-tt-cap">Resource</div>' +
@@ -472,8 +520,8 @@ window.BOOT = function() {
                     '<div class="cap-tt-line"><span class="cap-tt-lbl">Skill: </span>' + poolEscHtml(ev.skills || "—") + '</div>' +
                     '<div class="cap-tt-line cap-tt-ind">' + poolEscHtml(scheduler.date.date_to_str("%l")(start)) + ' (wk ' + poolIsoWeekNumber(start) + ')</div>' +
                     '<div class="cap-tt-line cap-tt-ind">' + poolEscHtml(scheduler.date.date_to_str("%j %M %Y")(start)) + '</div>' +
-                    '<table class="cap-tt-table"><thead><tr><th></th><th>Start</th><th>End</th><th>Hours</th></tr></thead><tbody>' +
-                        '<tr><th>Time</th><td>' + formatTimeOnly(start) + '</td><td>' + formatTimeOnly(end) + '</td><td>' + poolCapHours(start, end, ev) + '</td></tr>' +
+                    '<table class="cap-tt-table"><thead><tr><th></th><th>Start</th><th>End</th><th>Hours</th>' + (absH > 0 ? '<th>Absent</th><th>Capacity</th>' : '') + '</tr></thead><tbody>' +
+                        '<tr><th>Time</th><td>' + formatTimeOnly(start) + '</td><td>' + formatTimeOnly(end) + '</td><td>' + poolCapHours(start, end, ev) + '</td>' + (absH > 0 ? '<td>' + absH + '</td><td>' + (Math.round((ev.hours - absH) * 100) / 100) + '</td>' : '') + '</tr>' +
                     '</tbody></table>' +
                 '</div>';
 
@@ -694,12 +742,18 @@ window.BOOT = function() {
     })();
     //>>
 
+    // Absence bars are read-only overlays: no drag/resize.
+    scheduler.attachEvent("onBeforeDrag", function (id) {
+        var e = id ? scheduler.getEvent(id) : null;
+        return !(e && e.type === "absence");
+    });
+
     scheduler.attachEvent("onDblClick", function (id, ev){
         console.log("Event onDblClick:", id, ev);
-        
+
         // Get the actual event data from scheduler
         var eventdata = scheduler.getEvent(id);
-        if (!eventdata) return false;
+        if (!eventdata || eventdata.type === "absence") return false;
         
         // Capture event data
         var eventData = {
@@ -939,8 +993,74 @@ function Init(dataelements, EarliestPlanningDate) {
     // Wire the Collapse/Expand All icon now that the tree timeline exists
     setupCollapseAllToggle();
 
+    setupResourceContextMenu();
+
     // Notify BC
     Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnAfterInit", []);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Right-click context menu on a resource row of the left panel
+// (section id = "Group|ResourceNo|VanOrPool"; group rows have no ResourceNo -> no menu)
+// ═══════════════════════════════════════════════════════════════
+function setupResourceContextMenu() {
+    var root = document.getElementById('scheduler_here');
+    if (!root || root._ctxWired) return;
+    root._ctxWired = true;
+
+    var menu = document.getElementById('dhx-ctx-menu');
+    if (!menu) {
+        menu = document.createElement('div');
+        menu.id = 'dhx-ctx-menu';
+        menu.className = 'hidden';
+        document.body.appendChild(menu);
+    }
+    function img(name) {
+        return '<img src="' + Microsoft.Dynamics.NAV.GetImageResource('images/' + name) + '" style="width:16px;height:16px;vertical-align:middle;pointer-events:none;">';
+    }
+    menu.innerHTML =
+        '<div class="dhx-ctx-item" data-action="OpenResourceCard"><span class="dhx-ctx-icon">' + img('View.png') + '</span>View</div>' +
+        '<div class="dhx-ctx-item" data-action="OpenResourceSkills"><span class="dhx-ctx-icon">&#127942;</span>Skills</div>' +
+        '<div class="dhx-ctx-item" data-action="OpenDayPlannings"><span class="dhx-ctx-icon">&#128198;</span>Day Plannings</div>' +
+        '<div class="dhx-ctx-item" data-action="OpenSequences"><span class="dhx-ctx-icon">' + img('Sequence_and_AssignmentBoard.png') + '</span>Sequences</div>' +
+        '<div class="dhx-ctx-item" data-action="ShowCapacity"><span class="dhx-ctx-icon">&#128202;</span>Capacity</div>' +
+        '<div class="dhx-ctx-item" data-action="OpenCapacityScheduler"><span class="dhx-ctx-icon">&#128198;</span>Capacity Scheduler</div>' +
+        '<div class="dhx-ctx-item" data-action="OpenResourceCalendar"><span class="dhx-ctx-icon">&#128198;</span>Resource Calendar</div>' +
+        '<div class="dhx-ctx-separator"></div>' +
+        '<div class="dhx-ctx-item ctx-cancel" data-action="Cancel"><span class="dhx-ctx-icon">&#10005;</span>Cancel</div>';
+
+    var target = null;
+    function hideMenu() { menu.className = 'hidden'; target = null; }
+
+    menu.addEventListener('click', function (e) {
+        var item = e.target.closest('.dhx-ctx-item');
+        if (!item) return;
+        var action = item.getAttribute('data-action');
+        if (action && action !== 'Cancel' && target) {
+            Microsoft.Dynamics.NAV.InvokeExtensibilityMethod('OnSectionContextMenu', [target, action]);
+        }
+        hideMenu();
+        e.stopPropagation();
+    });
+    document.addEventListener('click', function (e) { if (!menu.contains(e.target)) hideMenu(); });
+    document.addEventListener('scroll', hideMenu, true);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hideMenu(); });
+
+    root.addEventListener('contextmenu', function (e) {
+        var row = e.target.closest('.dhx_timeline_label_row');
+        if (!row) return;
+        e.preventDefault();
+        e.stopPropagation();
+        var sectionId = row.getAttribute('data-row-id') || '';
+        var parts = sectionId.split('|');
+        if (parts.length < 2 || !parts[1] || poolSectionIsGroup(sectionId)) { hideMenu(); return; }
+        target = sectionId;
+        menu.className = '';
+        var left = (e.clientX + 210 > window.innerWidth) ? window.innerWidth - 214 : e.clientX;
+        var top = (e.clientY + 220 > window.innerHeight) ? window.innerHeight - 224 : e.clientY;
+        menu.style.left = left + 'px';
+        menu.style.top = top + 'px';
+    });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1193,6 +1313,7 @@ function SetBarColors(colorsJson) {
         if (!root) return;
         if (colors.capacity) root.style.setProperty("--cap-color", colors.capacity);
         if (colors.capacityBorder) root.style.setProperty("--cap-color-border", colors.capacityBorder);
+        if (colors.absence) root.style.setProperty("--absence-color", colors.absence);
         // "capacityFontColor" - "Daily Optimizer Setup"."Capacity Font Color", Capacity bar text only.
         if (colors.capacityFontColor) root.style.setProperty("--cap-font-color", colors.capacityFontColor);
         // "fontColor" is sent by page 50600's ControlReady (via codeunit 50609's
@@ -1237,6 +1358,19 @@ function poolDayOffClass(date) {
     return _poolHolidays[key] ? "pool-holiday" : "";
 }
 
+var _poolAbsence = {}; // "resource|YYYY-MM-DD" -> [{hours, reason}] - drawn as an overlay inside that day's capacity bar
+
+// Absence rows are not scheduler events (the timeline would stack them under the capacity bar and grow the row).
+function poolSplitAbsence(events) {
+    _poolAbsence = {};
+    return events.filter(function (ev) {
+        if (ev.type !== "absence") return true;
+        var k = ev.resource_id + "|" + String(ev.start_date).substring(0, 10);
+        (_poolAbsence[k] = _poolAbsence[k] || []).push({ hours: ev.hours, reason: ev.text });
+        return false;
+    });
+}
+
 function LoadData(eventsJson) {
     console.log("LoadData called with:", eventsJson);
     if (!scheduler_here) {
@@ -1264,7 +1398,7 @@ function LoadData(eventsJson) {
         }
         if (!Array.isArray(events)) events = [];
         if (events.length > 0) {
-            scheduler.parse(events); // load events into scheduler
+            scheduler.parse(poolSplitAbsence(events)); // load events into scheduler
         }
 
     } catch (err) {
@@ -1452,7 +1586,7 @@ function RefreshTimeline(resourcesJson, eventsJson, dateAnchor) {
         }
         if (!Array.isArray(events)) events = [];
 
-        scheduler.parse(events);
+        scheduler.parse(poolSplitAbsence(events));
 
         // 3) Move view to the week containing dateAnchor (if provided)
         let anchor = null;

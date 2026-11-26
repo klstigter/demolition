@@ -138,6 +138,14 @@ page 50623 "Job Journal Line API Opt."
                 {
                     Caption = 'Gen. Prod. Posting Group';
                 }
+                field(skill; Rec.Skill)
+                {
+                    Caption = 'Skill';
+                }
+                field(invoiceResourceNo; Rec."Invoice Resource No.")
+                {
+                    Caption = 'Invoice Resource No.';
+                }
                 field(approvedProjectManager; Rec."Approved Project Manager")
                 {
                     Caption = 'Approved Project Manager';
@@ -185,6 +193,7 @@ page 50623 "Job Journal Line API Opt."
         TempLine: Record "Job Journal Line" temporary;
         ExistingLine: Record "Job Journal Line";
         DayPlanning: Record "Day Planning";
+        SkillCode: Record "Skill Code";
         NextLineNo: Integer;
         GuidVar: Guid;
         ModifyRec: Boolean;
@@ -241,6 +250,20 @@ page 50623 "Job Journal Line API Opt."
         Rec."Opt. DayPlanning Line No." := DayPlanning."Day Line No.";
         Rec."Job No." := DayPlanning."Job No.";
         Rec."Job Task No." := DayPlanning."Job Task No.";
+        // Skill is required by the posting check (EventSubs): use the submitted value, else the Day Planning's
+        if TempLine.Skill <> '' then
+            Rec.Skill := TempLine.Skill
+        else
+            Rec.Skill := DayPlanning.Skill;
+
+        // Invoice Resource No. (also required by the posting check): submitted value, else the Skill Code's setup
+        if TempLine."Invoice Resource No." <> '' then
+            Rec."Invoice Resource No." := TempLine."Invoice Resource No."
+        else begin
+            SkillCode.Get(Rec.Skill);
+            SkillCode.TestField("Invoice Resource No.");
+            Rec."Invoice Resource No." := SkillCode."Invoice Resource No.";
+        end;
 
         Rec.Type := TempLine.Type;
         Rec."No." := TempLine."No.";

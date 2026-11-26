@@ -37,6 +37,7 @@ controladdin "DHX Gantt Control 2"
     event OnOpenTaskBoard(kind: Text; jobNo: Text; jobTaskNo: Text);
     event OnResourceDblClick(resourceId: Text);
     event OnResourceHover(resourceId: Text);
+    event OnResourceMenuAction(resourceId: Text; action: Text);
     event onOpenResourceCalendar(resourceId: Text);
     event onOpenResourceScheduler(resourceId: Text);
     event OnResetResourceFilter();

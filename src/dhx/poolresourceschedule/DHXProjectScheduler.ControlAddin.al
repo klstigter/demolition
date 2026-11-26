@@ -10,7 +10,7 @@ controladdin DHXPoolResourceScheduleAddin
     HorizontalStretch = true;
     HorizontalShrink = true;
 
-    Images = 'images/filter_image.png', 'images/Remove_Filter_image.png';
+    Images = 'images/filter_image.png', 'images/Remove_Filter_image.png', 'images/View.png', 'images/Sequence_and_AssignmentBoard.png';
     Scripts =
         'src/dhx/dhtmlxscheduler.js',
         'src/dhx/GlobalFunction.js',
@@ -34,6 +34,7 @@ controladdin DHXPoolResourceScheduleAddin
     event OnEventsNotMatch(EventIdsJsonTxt: Text);
     event OnGetAllEvents(EventIdsJsonTxt: Text);
     event OnGetAllSections(EventIdsJsonTxt: Text);
+    event OnSectionContextMenu(sectionId: Text; action: Text);
     event OnResourceFilterIconClick();
     event OnClearResourceFilter();
 

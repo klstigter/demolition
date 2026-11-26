@@ -122,6 +122,20 @@ page 50710 "DHX Request Assignment Board"
                     DHXDataHandler.ReqAssign_OpenCapacity(ResourceId, StartDateTxt, EndDateTxt);
                 end;
 
+                // Resource-list right-click (standard menu). Period = the board's displayed horizon.
+                trigger OnResourceContextAction(ResourceId: Text; Action: Text; StartDateTxt: Text; EndDateTxt: Text)
+                var
+                    DHXDataHandler: Codeunit "DHX Data Handler";
+                    StartDate: Date;
+                    EndDate: Date;
+                begin
+                    if StartDateTxt <> '' then
+                        Evaluate(StartDate, StartDateTxt, 9);
+                    if EndDateTxt <> '' then
+                        Evaluate(EndDate, EndDateTxt, 9);
+                    DHXDataHandler.ResourceMenu_Run(ResourceId, Action, StartDate, EndDate);
+                end;
+
                 trigger OnRequestReset()
                 begin
                     // In-canvas "Reset assignments" button - the ported wrapper.js discards all
