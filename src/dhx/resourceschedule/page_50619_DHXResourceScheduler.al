@@ -195,39 +195,14 @@ page 50619 "Resource Calendar"
 
                 trigger OnResourceContextMenu(ResourceId: Text; action: Text; PeriodStart: Text; PeriodEnd: Text; payloadJson: Text)
                 var
-                    ResRec: Record Resource;
-                    DayPlannings: record "Day Planning";
-                    DayPlanningList: page "Day Plannings";
-                    ResCapacity: Page "Resource Capacity";
+                    DHXDataHandler: Codeunit "DHX Data Handler";
                     DT1: Date;
                     DT2: Date;
                 begin
+                    // Standard resource-list menu (same on every resource list)
                     Evaluate(DT1, PeriodStart);
                     Evaluate(DT2, PeriodEnd);
-                    case action of
-                        'OpenResource':
-                            begin
-                                if ResRec.Get(ResourceId) then
-                                    Page.Run(Page::"Resource Card", ResRec);
-                            end;
-                        'OpenDayPlanning':
-                            begin
-                                //message('exec OpenDayPlanning, parameter ResourceId: %1, PeriodStart: %2, PeriodEnd: %3', ResourceId, PeriodStart, PeriodEnd);
-                                DayPlannings.SetRange("Assigned Resource No.", ResourceId);
-                                DayPlannings.SetRange("Plan Date", DT1, DT2);
-                                DayPlanningList.SetTableView(DayPlannings);
-                                DayPlanningList.Run();
-                            end;
-                        'OpenCapacity':
-                            begin
-                                //message('exec OpenCapacity, parameter ResourceId: %1, PeriodStart: %2, PeriodEnd: %3', ResourceId, PeriodStart, PeriodEnd);
-                                ResRec.Setrange("No.", ResourceId);
-                                ResCapacity.ResourceFilter(ResRec.GetFilter("No."));
-                                ResCapacity.SetPeriod(DT1, DT2);
-                                ResCapacity.SetTableView(ResRec);
-                                ResCapacity.Run();
-                            end;
-                    end;
+                    DHXDataHandler.ResourceMenu_Run(ResourceId, action, DT1, DT2);
                 end;
 
                 #endregion Init and Load Data on Control Ready

@@ -446,22 +446,26 @@ window.BOOT = function() {
       makeItem(menu, "View", '<img src="' + Microsoft.Dynamics.NAV.GetImageResource('images/View.png') + '" style="width:18px;height:18px;vertical-align:middle;">', function () {
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnResourceDblClick", [currentResourceId]);
       });
-      makeItem(menu, "Resource Calendar","&#x1F4C6;", function () {
-        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("onOpenResourceCalendar", [
-          currentResourceId
-        ]);
+      makeItem(menu, "Skills", "&#127942;", function () {
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnResourceMenuAction", [currentResourceId, "OpenResourceSkills"]);
       });
-      makeItem(menu, "Resource Scheduler", "&#x1F4C6;", function () {
-        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("onOpenResourceScheduler", [
-          currentResourceId
-        ]);
+      makeItem(menu, "Day Plannings", "&#x1F4C5;", function () {
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnResourceMenuAction", [currentResourceId, "OpenDayPlannings"]);
       });
-      makeItem(menu, "Capacity Scheduler", "&#x1F4C6;", function () {
-        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OpenCapacityScheduler", [currentResourceId, ""]);
+      makeItem(menu, "Sequences", '<img src="' + Microsoft.Dynamics.NAV.GetImageResource('images/Sequence_and_AssignmentBoard.png') + '" style="width:18px;height:18px;vertical-align:middle;">', function () {
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnResourceMenuAction", [currentResourceId, "OpenSequences"]);
       });
       makeItem(menu, "Capacity", "&#x1F4CA;", function () {
         if (currentResourceId.indexOf("RES-") !== 0 || currentResourceId === "RES-") return;
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OpenResourceCapacity", [currentResourceId.substring(4)]);
+      });
+      makeItem(menu, "Capacity Scheduler", "&#x1F4C6;", function () {
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OpenCapacityScheduler", [currentResourceId, ""]);
+      });
+      makeItem(menu, "Resource Calendar","&#x1F4C6;", function () {
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("onOpenResourceCalendar", [
+          currentResourceId
+        ]);
       });
       makeItem(markerMenu, "Day Plannings", "&#x1F4C5;", function () {
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OpenResourceLoadDay", [

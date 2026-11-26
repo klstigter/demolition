@@ -2576,13 +2576,13 @@ function contextMenuIconSvg(kind) {
     </svg>`;
 }
 
-function addContextMenuItem({ caption, icon, action, variant }) {
+function addContextMenuItem({ caption, icon, iconHtml, action, variant }) {
   const button = document.createElement("button");
   button.type = "button";
   if (variant) button.classList.add(`ctx-item-${variant}`);
   button.innerHTML = `
     <span class="context-menu-icon" aria-hidden="true">
-      ${contextMenuIconSvg(icon)}
+      ${iconHtml ?? contextMenuIconSvg(icon)}
     </span>
     <span>${caption}</span>`;
 
@@ -2659,6 +2659,20 @@ function showSlotContextMenu(event, targetInfo) {
       icon: "card",
       action: () => openCapacity(targetInfo.resourceId)
     });
+  }
+
+  // Resource list (left pane) - standard resource menu shared with the other schedulers.
+  if (targetInfo.type === "resource") {
+    const img = name =>
+      `<img src="${Microsoft.Dynamics.NAV.GetImageResource("images/" + name)}" style="width:14px;height:14px;vertical-align:middle;pointer-events:none;">`;
+    const run = action => () => openResourceAction(targetInfo.resourceId, action);
+    addContextMenuItem({ caption: "View", iconHtml: img("View.png"), action: run("OpenResourceCard") });
+    addContextMenuItem({ caption: "Skills", iconHtml: "&#127942;", action: run("OpenResourceSkills") });
+    addContextMenuItem({ caption: "Day Plannings", iconHtml: "&#128198;", action: run("OpenDayPlannings") });
+    addContextMenuItem({ caption: "Sequences", iconHtml: img("Sequence_and_AssignmentBoard.png"), action: run("OpenSequences") });
+    addContextMenuItem({ caption: "Capacity", iconHtml: "&#128202;", action: run("ShowCapacity") });
+    addContextMenuItem({ caption: "Capacity Scheduler", iconHtml: "&#128198;", action: run("OpenCapacityScheduler") });
+    addContextMenuItem({ caption: "Resource Calendar", iconHtml: "&#128198;", action: run("OpenResourceCalendar") });
   }
 
   if (!slotContextMenu.children.length) return;
@@ -2750,6 +2764,25 @@ function openDayPlanningCard(lineId) {
   if (!lineId) return;
 
   Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnOpenDayPlanningCard", [lineId]);
+}
+
+// Resource-list context menu action; period = the board's displayed planning horizon (same as openCapacity).
+function openResourceAction(resourceId, action) {
+  if (!resourceId) return;
+
+  const lines = allPlanningLines();
+  const horizonStart = lines.length ? lines[0].date : null;
+  const horizonEnd = lines.length ? (getGlobalSelectionEndDate() || lines[lines.length - 1].date) : null;
+
+  Microsoft.Dynamics.NAV.InvokeExtensibilityMethod(
+    "OnResourceContextAction",
+    [
+      resourceId,
+      action,
+      horizonStart ? dateOnlyKey(horizonStart) : "",
+      horizonEnd ? dateOnlyKey(horizonEnd) : ""
+    ]
+  );
 }
 
 function openCapacity(resourceId) {
@@ -6468,6 +6501,13 @@ window.BOOT = function BOOT() {
     if (assignmentElement) {
       const line = assignmentLineFromPointerTarget(event.target);
       showSlotContextMenu(event, { type: "assignment", lineId: line?.id });
+      return;
+    }
+
+    const resourceCell = event.target.closest(".resource-cell");
+    const resourceKey = resourceCell?.querySelector("[data-resource-click]")?.dataset.resourceClick;
+    if (resourceKey) {
+      showSlotContextMenu(event, { type: "resource", resourceId: resourceKey });
       return;
     }
 

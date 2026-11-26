@@ -8,6 +8,7 @@ query 50604 "Capacity Per Day Per Resource"
         {
             filter(Date_Filter; Date) { }
             filter(Resource_No__Filter; "Resource No.") { }
+            filter(Type_Filter; Type) { }
             column(Date; Date) { }
             column(Resource_No_; "Resource No.") { }
             column(Duplicate_Id; "Duplicate Id") { }

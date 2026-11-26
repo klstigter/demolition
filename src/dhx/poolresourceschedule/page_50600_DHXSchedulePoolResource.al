@@ -65,10 +65,10 @@ page 50600 "DHX Scheduler (Pool Resource)"
                     // Hover/tooltip popup colours - codeunit 50609's GetTooltipBackgroundColor/
                     // GetTooltipFontColor directly (not via SkillCapacityAnalysisMgt/50662's
                     // forwarding wrappers, which don't cover these two getters).
-                    ColorsJsonTxt := StrSubstNo('{"capacity":"%1","capacityBorder":"%2","fontColor":"%3","tooltipBg":"%4","tooltipFont":"%5","capacityFontColor":"%6"}',
+                    ColorsJsonTxt := StrSubstNo('{"capacity":"%1","capacityBorder":"%2","fontColor":"%3","tooltipBg":"%4","tooltipFont":"%5","capacityFontColor":"%6","absence":"%7"}',
                         CapacityColorHex, CapacityBorderColorHex, BarFontColorHex,
                         VisualDefaultSettings.GetTooltipBackgroundColor(), VisualDefaultSettings.GetTooltipFontColor(),
-                        VisualDefaultSettings.GetCapacityFontColor());
+                        VisualDefaultSettings.GetCapacityFontColor(), VisualDefaultSettings.GetAbsenceColor());
                     CurrPage.DhxScheduler.SetBarColors(ColorsJsonTxt);
                     AnchorDate := startDate;
                     PushResourceFilterInfo(startDate, endDate);
@@ -100,6 +100,19 @@ page 50600 "DHX Scheduler (Pool Resource)"
                     StartDate := DT2Date(_DateTimeUserZone);
                     AnchorDate := StartDate;
                     RefreshSchedule();
+                end;
+
+                // Resource-row right-click (same menu as every resource list). Section id = "Group|ResourceNo|VanOrPool".
+                trigger OnSectionContextMenu(sectionId: Text; action: Text)
+                var
+                    DHXDataHandler: Codeunit "DHX Data Handler";
+                    ResNo: Code[20];
+                    startDate: Date;
+                    endDate: Date;
+                begin
+                    ResNo := CopyStr(sectionId.Split('|').Get(2), 1, MaxStrLen(ResNo));
+                    DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
+                    DHXDataHandler.ResourceMenu_Run(ResNo, action, startDate, endDate);
                 end;
 
                 #endregion Section doubleclick

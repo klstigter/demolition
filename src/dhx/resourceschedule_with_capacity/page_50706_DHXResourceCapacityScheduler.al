@@ -258,30 +258,10 @@ page 50706 "Resource Scheduler - TimeLine"
                     if sectionId.StartsWith('SKILL|') or sectionId.StartsWith('GROUP|') then
                         exit; // no per-skill/per-group actions yet
                     // Resource leaf rows are the composite "<Resource No.>|<Skill Code>" (or
-                    // "<Resource No.>|<Resource Group No.>") key; these actions all operate on
-                    // the plain Resource No. regardless of which tree grouping mode is active.
+                    // "<Resource No.>|<Resource Group No.>") key; the actions operate on the plain Resource No.
                     ResNo := DHXDataHandler.SkillResScheduler_ExtractResourceNo(sectionId);
-                    case action of
-                        'OpenResourceCard':
-                            DHXDataHandler.SkillResScheduler_OpenResourceCard(ResNo);
-                        'OpenResourceSkills':
-                            DHXDataHandler.SkillResScheduler_OpenResourceSkills(ResNo);
-                        'OpenDayPlannings':
-                            begin
-                                DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
-                                DHXDataHandler.SkillResScheduler_OpenDayPlanningsForResource(ResNo, startDate, endDate);
-                            end;
-                        'OpenTask':
-                            begin
-                                DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
-                                DHXDataHandler.SkillResScheduler_OpenTasksForResource(ResNo, startDate, endDate);
-                            end;
-                        'ShowCapacity':
-                            begin
-                                DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
-                                DHXDataHandler.SkillResScheduler_ShowCapacityForResource(ResNo, startDate, endDate);
-                            end;
-                    end;
+                    DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
+                    DHXDataHandler.ResourceMenu_Run(ResNo, action, startDate, endDate);
                 end;
 
                 #endregion Context Menu

@@ -571,6 +571,25 @@ page 50620 "Gantt Demo DHX 2"
                     RefreshResourcePanelIfChanged(BeforeCount, BeforeMax);
                 end;
 
+                // Resource-row menu items Skills / Day Plannings / Sequences, over the Gantt's displayed period.
+                trigger OnResourceMenuAction(resourceId: Text; action: Text)
+                var
+                    DHXDataHandler: Codeunit "DHX Data Handler";
+                    StartDate: Date;
+                    EndDate: Date;
+                    ResNo: Text;
+                    BeforeCount: Integer;
+                    BeforeMax: DateTime;
+                begin
+                    if not resourceId.StartsWith('RES-') then
+                        exit;
+                    ResNo := CopyStr(resourceId, 5);
+                    GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
+                    GetDayPlanningFingerprint(BeforeCount, BeforeMax);
+                    DHXDataHandler.ResourceMenu_Run(ResNo, action, StartDate, EndDate);
+                    RefreshResourcePanelIfChanged(BeforeCount, BeforeMax);
+                end;
+
                 trigger onOpenResourceCalendar(resourceId: Text)
                 var
                     ResScheduler: page "Resource Calendar";

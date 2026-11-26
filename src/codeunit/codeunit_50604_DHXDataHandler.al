@@ -1423,6 +1423,9 @@ codeunit 50604 "DHX Data Handler"
                                    SkillFilter: Text): Text
     var
         ResCap: Record "Res. Capacity Entry";
+        AbsenceCap: Record "Res. Capacity Entry";
+        CapRow: Record "Res. Capacity Entry";
+        AbsenceRes: Record Resource;
         PoolRes: Record Resource;
         ResGroup: Record "Resource Group";
         WeekTemp: record "Aging Band Buffer" temporary;
@@ -1459,6 +1462,8 @@ codeunit 50604 "DHX Data Handler"
 
         //Add Events of Capacity for the whole period in a single query pass (was: one query open/close per calendar day).
         ResCapQry.SetRange(Date_filter, StartDate, EndDate);
+        // Capacity rows only: Absence rows (negative hours, blank Start/End Time) are drawn as their own overlay bars below.
+        ResCapQry.SetRange(Type_Filter, ResCap.Type::Capacity);
         if ResourceFilter <> '' then
             ResCapQry.SetFilter(Resource_No__Filter, ResourceFilter);
         if ResCapQry.Open() then begin
@@ -1511,6 +1516,36 @@ codeunit 50604 "DHX Data Handler"
             end;
             ResCapQry.Close();
         end;
+
+        // Absence overlay bars: same section/start as the matching Capacity row, length = absence hours,
+        // drawn on top of the Capacity bar (z-order in wrapper.js: .event-absence).
+        AbsenceCap.SetRange(Type, AbsenceCap.Type::Absence);
+        AbsenceCap.SetRange(Date, StartDate, EndDate);
+        if ResourceFilter <> '' then
+            AbsenceCap.SetFilter("Resource No.", ResourceFilter);
+        if AbsenceCap.FindSet() then
+            repeat
+                CapRow.SetRange("Resource No.", AbsenceCap."Resource No.");
+                CapRow.SetRange(Date, AbsenceCap.Date);
+                CapRow.SetRange("Duplicate Id", AbsenceCap."Duplicate Id");
+                CapRow.SetRange(Type, CapRow.Type::Capacity);
+                if CapRow.FindFirst() then begin
+                    CapRow."End Time" := 0T; // force duration-based end (= start + absence hours)
+                    GetStartEndTxt(CapRow, -AbsenceCap.Capacity, StartDateTxt, EndDateTxt);
+                    if not AbsenceRes.Get(AbsenceCap."Resource No.") then
+                        Clear(AbsenceRes);
+                    Clear(PlanningObject);
+                    PlanningObject.Add('id', 'A' + Format(AbsenceCap."Entry No."));
+                    PlanningObject.Add('start_date', StartDateTxt);
+                    PlanningObject.Add('end_date', EndDateTxt);
+                    PlanningObject.Add('text', AbsenceCap."Absence Reason Code");
+                    PlanningObject.Add('resource_id', AbsenceCap."Resource No.");
+                    PlanningObject.Add('hours', -AbsenceCap.Capacity);
+                    PlanningObject.Add('section_id', CapRow."Resource Group No." + '|' + CapRow."Resource No." + '|' + AbsenceRes."Pool Resource No.");
+                    PlanningObject.Add('type', 'absence');
+                    PlanningArray.Add(PlanningObject);
+                end;
+            until AbsenceCap.Next() = 0;
 
         // Day Planning path disabled for now — Capacity-only page 50600 always passes WithDayPlanning = false. Restore by uncommenting + re-enabling the page's Show/Hide Day Planning actions.
         /*
@@ -5826,30 +5861,133 @@ codeunit 50604 "DHX Data Handler"
     var
         DayPlanning: Record "Day Planning";
         ResNoCode: Code[20];
+        IdFilter: Text;
     begin
         if StrLen(ResNo) > MaxStrLen(ResNoCode) then
             exit;
         ResNoCode := CopyStr(ResNo, 1, MaxStrLen(ResNoCode));
 
+        // Mark-free: collect the SystemIds of both passes into one OR filter (Mark()/MarkedOnly() showed 0 rows
+        // from a control add-in trigger).
         DayPlanning.Reset();
         if (StartDate <> 0D) and (EndDate <> 0D) then
             DayPlanning.SetRange("Plan Date", StartDate, EndDate);
         DayPlanning.SetRange("Assigned Resource No.", ResNoCode);
-        if DayPlanning.FindSet() then
-            repeat
-                DayPlanning.Mark(true);
-            until DayPlanning.Next() = 0;
-
+        AppendSystemIds(DayPlanning, IdFilter);
         DayPlanning.SetRange("Assigned Resource No.");
         DayPlanning.SetRange("Requested Resource No.", ResNoCode);
+        AppendSystemIds(DayPlanning, IdFilter);
+
+        DayPlanning.Reset();
+        if IdFilter = '' then
+            DayPlanning.SetRange("Job No.", '<none>')
+        else
+            DayPlanning.SetFilter(SystemId, IdFilter);
+        Page.Run(Page::"Day Plannings", DayPlanning);
+    end;
+
+    local procedure AppendSystemIds(var DayPlanning: Record "Day Planning"; var IdFilter: Text)
+    begin
         if DayPlanning.FindSet() then
             repeat
-                DayPlanning.Mark(true);
+                if IdFilter <> '' then
+                    IdFilter += '|';
+                IdFilter += Format(DayPlanning.SystemId);
             until DayPlanning.Next() = 0;
+    end;
 
-        DayPlanning.SetRange("Requested Resource No.");
-        DayPlanning.MarkedOnly(true);
-        Page.Run(Page::"Day Plannings", DayPlanning);
+    /// <summary>
+    /// Single dispatcher for the standard resource-list right-click menu used by every resource list
+    /// (View, Skills, Day Plannings, Sequences, Capacity, Capacity Scheduler, Resource Calendar).
+    /// StartDate/EndDate = the calling page's displayed period (0D = unfiltered); Capacity Scheduler
+    /// and Resource Calendar are anchored on StartDate's week.
+    /// </summary>
+    procedure ResourceMenu_Run(ResNo: Text; Action: Text; StartDate: Date; EndDate: Date)
+    var
+        CapacityScheduler: Page "DHX Scheduler (Pool Resource)";
+        ResCalendar: Page "Resource Calendar";
+        WeekStart: Date;
+        WeekEnd: Date;
+    begin
+        case Action of
+            'OpenResourceCard':
+                SkillResScheduler_OpenResourceCard(ResNo);
+            'OpenResourceSkills':
+                SkillResScheduler_OpenResourceSkills(ResNo);
+            'OpenDayPlannings':
+                SkillResScheduler_OpenDayPlanningsForResource(ResNo, StartDate, EndDate);
+            'OpenSequences':
+                SkillResScheduler_OpenSequencesForResource(ResNo, StartDate, EndDate);
+            'ShowCapacity':
+                SkillResScheduler_ShowCapacityForResource(ResNo, StartDate, EndDate);
+            'OpenCapacityScheduler':
+                begin
+                    CapacityScheduler.SetResourceFilter(ResNo);
+                    if StartDate <> 0D then
+                        CapacityScheduler.SetAnchorDate(StartDate);
+                    CapacityScheduler.RunModal();
+                end;
+            'OpenResourceCalendar':
+                begin
+                    if StartDate <> 0D then begin
+                        GetWeekPeriodDates(StartDate, WeekStart, WeekEnd);
+                        ResCalendar.SetResourceFilter(ResNo, WeekStart, WeekEnd);
+                    end else
+                        ResCalendar.SetResourceFilter(ResNo);
+                    ResCalendar.Run();
+                end;
+        end;
+    end;
+
+    /// <summary>
+    /// Resource-row right-click "Sequences": opens the Day Planning Sequence page (same as the Gantt
+    /// "Sequences" item) showing only the sequence rows holding the resource's (Assigned or
+    /// Requested) Day Plannings within [StartDate, EndDate].
+    /// </summary>
+    procedure SkillResScheduler_OpenSequencesForResource(ResNo: Text; StartDate: Date; EndDate: Date)
+    var
+        DayPlanning: Record "Day Planning";
+        SequencePage: Page "Day Planning Sequence";
+        SequenceMgt: Codeunit "Day Planning Sequence Mgt.";
+        HighlightKeys: JsonArray;
+        ResNoCode: Code[20];
+        FirstFound: Boolean;
+        NoSequencesLbl: Label 'There are no Sequences for resource %1 in this period.';
+    begin
+        if StrLen(ResNo) > MaxStrLen(ResNoCode) then
+            exit;
+        ResNoCode := CopyStr(ResNo, 1, MaxStrLen(ResNoCode));
+
+        DayPlanning.SetFilter(Skill, '<>%1', '');
+        if (StartDate <> 0D) and (EndDate <> 0D) then
+            DayPlanning.SetRange("Plan Date", StartDate, EndDate);
+        DayPlanning.SetRange("Assigned Resource No.", ResNoCode);
+        AddSequenceHighlightKeys(DayPlanning, SequencePage, SequenceMgt, HighlightKeys, FirstFound);
+        DayPlanning.SetRange("Assigned Resource No.");
+        DayPlanning.SetRange("Requested Resource No.", ResNoCode);
+        AddSequenceHighlightKeys(DayPlanning, SequencePage, SequenceMgt, HighlightKeys, FirstFound);
+
+        if not FirstFound then begin
+            Message(NoSequencesLbl, ResNoCode);
+            exit;
+        end;
+        SequencePage.SetResourceContext(ResNoCode, 0D);
+        SequencePage.SetHighlightedSections(HighlightKeys);
+        SequencePage.SetShowHighlightedOnly();
+        SequencePage.RunModal();
+    end;
+
+    local procedure AddSequenceHighlightKeys(var DayPlanning: Record "Day Planning"; var SequencePage: Page "Day Planning Sequence"; var SequenceMgt: Codeunit "Day Planning Sequence Mgt."; var HighlightKeys: JsonArray; var FirstFound: Boolean)
+    begin
+        if DayPlanning.FindSet() then
+            repeat
+                if not FirstFound then begin
+                    SequencePage.SetContext(DayPlanning."Job No.", DayPlanning."Job Task No.", '');
+                    SequencePage.SetScopeFilters('', '', '');
+                    FirstFound := true;
+                end;
+                HighlightKeys.Add(SequenceMgt.BuildSectionId(DayPlanning."Job No.", DayPlanning."Job Task No.", DayPlanning.Skill, DayPlanning."Sequence No."));
+            until DayPlanning.Next() = 0;
     end;
 
     /// <summary>

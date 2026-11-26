@@ -15,7 +15,7 @@ controladdin DHXRequestAssignmentAddin
     // to this new add-in. The JS-side port of the Request/Assignment Planner is being built
     // separately against these exact file paths and against the exact procedure/event contract
     // below - do not rename.
-    Images = 'images/filter_image.png', 'images/Remove_Filter_image.png';
+    Images = 'images/filter_image.png', 'images/Remove_Filter_image.png', 'images/View.png', 'images/Sequence_and_AssignmentBoard.png';
     Scripts =
         'src/dhx/dhtmlxscheduler.js',
         'src/dhx/GlobalFunction.js',
@@ -87,6 +87,8 @@ controladdin DHXRequestAssignmentAddin
     // toolbar's "N of M Day Task Lines in horizon" label / "Select until" date input. No week
     // resolution happens AL-side anymore; ReqAssign_OpenCapacity just filters by resource + range.
     event OnOpenCapacity(ResourceId: Text; StartDateTxt: Text; EndDateTxt: Text);
+    // Standard resource-list right-click menu (View/Skills/Day Plannings/Sequences/Capacity/Capacity Scheduler/Resource Calendar).
+    event OnResourceContextAction(ResourceId: Text; Action: Text; StartDateTxt: Text; EndDateTxt: Text);
     // Raised by the in-canvas "Reset assignments" button. In the source demo this button calls an
     // undefined function and throws/no-ops; the ported wrapper.js fixes it to discard all
     // unsaved client-side state and ask AL for a fresh SetPlanningData load instead - see page

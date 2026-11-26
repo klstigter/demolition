@@ -136,6 +136,16 @@ table 50605 "Daily Optimizer Setup"
                 RestoreColorDefaultOnClear(Rec."Capacity Font Color", xRec."Capacity Font Color", VisualDefaultSettings.GetDefaultCapacityFontColor());
             end;
         }
+        field(88; "Absence Color"; Text[20])
+        {
+            Caption = 'Absence Color';
+            DataClassification = CustomerContent;
+
+            trigger OnValidate()
+            begin
+                RestoreColorDefaultOnClear(Rec."Absence Color", xRec."Absence Color", VisualDefaultSettings.GetDefaultAbsenceColor());
+            end;
+        }
         field(68; "Bar Font Color"; Text[20])
         {
             Caption = 'Bar Font Color';

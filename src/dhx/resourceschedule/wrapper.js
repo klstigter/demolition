@@ -764,14 +764,24 @@ function setupContextMenu() {
         menu.className = 'hidden';
         document.body.appendChild(menu);
     }
+    function ctxImg(name) {
+        return '<img src="' + Microsoft.Dynamics.NAV.GetImageResource('images/' + name) + '" style="width:16px;height:16px;vertical-align:middle;pointer-events:none;">';
+    }
+    // data-for="event": event-bar items (unchanged); data-for="resource": standard resource-list menu
     menu.innerHTML =
-        '<div class="dhx-ctx-item" data-action="OpenResource">' +
+        '<div class="dhx-ctx-item" data-for="event" data-action="OpenResource">' +
             '<span class="dhx-ctx-icon">&#128196;</span>Resource</div>' +
-        '<div class="dhx-ctx-separator"></div>' +
-        '<div class="dhx-ctx-item" data-action="OpenDayPlanning">' +
+        '<div class="dhx-ctx-item" data-for="event" data-action="OpenDayPlanning">' +
             '<span class="dhx-ctx-icon">&#128172;</span>DayPlanning</div>' +
-        '<div class="dhx-ctx-item" data-action="OpenCapacity">' +
+        '<div class="dhx-ctx-item" data-for="event" data-action="OpenCapacity">' +
             '<span class="dhx-ctx-icon">&#128172;</span>Capacity</div>' +
+        '<div class="dhx-ctx-item" data-for="resource" data-action="OpenResourceCard"><span class="dhx-ctx-icon">' + ctxImg('View.png') + '</span>View</div>' +
+        '<div class="dhx-ctx-item" data-for="resource" data-action="OpenResourceSkills"><span class="dhx-ctx-icon">&#127942;</span>Skills</div>' +
+        '<div class="dhx-ctx-item" data-for="resource" data-action="OpenDayPlannings"><span class="dhx-ctx-icon">&#128198;</span>Day Plannings</div>' +
+        '<div class="dhx-ctx-item" data-for="resource" data-action="OpenSequences"><span class="dhx-ctx-icon">' + ctxImg('Sequence_and_AssignmentBoard.png') + '</span>Sequences</div>' +
+        '<div class="dhx-ctx-item" data-for="resource" data-action="ShowCapacity"><span class="dhx-ctx-icon">&#128202;</span>Capacity</div>' +
+        '<div class="dhx-ctx-item" data-for="resource" data-action="OpenCapacityScheduler"><span class="dhx-ctx-icon">&#128198;</span>Capacity Scheduler</div>' +
+        '<div class="dhx-ctx-item" data-for="resource" data-action="OpenResourceCalendar"><span class="dhx-ctx-icon">&#128198;</span>Resource Calendar</div>' +
         '<div class="dhx-ctx-separator"></div>' +
         '<div class="dhx-ctx-item ctx-cancel" data-action="Cancel">' +
             '<span class="dhx-ctx-icon">&#10005;</span>Cancel</div>';
@@ -780,8 +790,9 @@ function setupContextMenu() {
 
     function showMenu(x, y, target) {
         _ctxTarget = target;
-        //var openItem = menu.querySelector('[data-action="OpenResource"]');
-        //if (openItem) openItem.style.display = (target.eventType === 'capacity') ? 'none' : '';
+        var items = menu.querySelectorAll('.dhx-ctx-item[data-for]');
+        for (var k = 0; k < items.length; k++)
+            items[k].style.display = (items[k].getAttribute('data-for') === target.type) ? '' : 'none';
         menu.className = '';
         var menuW = 200, menuH = 170;
         var left = (x + menuW > window.innerWidth)  ? window.innerWidth  - menuW - 4 : x;

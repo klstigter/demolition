@@ -443,6 +443,30 @@ page 50654 "Daily Optimizer Setup"
                                 ClearColor(Rec."Capacity Font Color");
                             end;
                         }
+                        usercontrol(CfAbsenceColor; DHXColorFieldAddin)
+                        {
+                            ApplicationArea = All;
+
+                            trigger ControlReady()
+                            begin
+                                ColorFieldReady();
+                            end;
+
+                            trigger OnPickRequested()
+                            begin
+                                PickColor(Rec."Absence Color");
+                            end;
+
+                            trigger OnResetRequested()
+                            begin
+                                ResetColor(Rec."Absence Color", VisualDefaultSettings.GetDefaultAbsenceColor());
+                            end;
+
+                            trigger OnClearRequested()
+                            begin
+                                ClearColor(Rec."Absence Color");
+                            end;
+                        }
                     }
 
                     group(Envelope)
@@ -596,6 +620,7 @@ page 50654 "Daily Optimizer Setup"
                         Rec."External Border Color" := VisualDefaultSettings.GetDefaultExternalBorderColor();
                         Rec."Capacity Border Color" := VisualDefaultSettings.GetDefaultCapacityBorderColor();
                         Rec."Capacity Font Color" := VisualDefaultSettings.GetDefaultCapacityFontColor();
+                        Rec."Absence Color" := VisualDefaultSettings.GetDefaultAbsenceColor();
                         Rec."Bar Font Color" := VisualDefaultSettings.GetDefaultBarFontColor();
                         Rec."Tooltip Background Color" := VisualDefaultSettings.GetDefaultTooltipBackgroundColor();
                         Rec."Tooltip Font Color" := VisualDefaultSettings.GetDefaultTooltipFontColor();
@@ -734,6 +759,7 @@ page 50654 "Daily Optimizer Setup"
         CurrPage.CfCapacityBorderColor.SetValue('Capacity Border Color', Rec."Capacity Border Color");
         CurrPage.CfExternalBorderColor.SetValue('External Border Color', Rec."External Border Color");
         CurrPage.CfCapacityFontColor.SetValue('Capacity Font Color', Rec."Capacity Font Color");
+        CurrPage.CfAbsenceColor.SetValue('Absence Color', Rec."Absence Color");
         CurrPage.CfEnvelopeColor.SetValue('Envelope Color', Rec."Envelope Color");
         CurrPage.CfEnvelopeBorderColor.SetValue('Envelope Border Color', Rec."Envelope Border Color");
         CurrPage.CfAssignedColor.SetValue('Assigned Color', Rec."Assigned Color");

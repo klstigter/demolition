@@ -1137,15 +1137,19 @@ function setupContextMenu() {
             '<span class="dhx-ctx-icon">&#128100;</span>Resource</div>' +
         '<div class="dhx-ctx-separator"></div>' +
         '<div class="dhx-ctx-item" data-action="OpenResourceCard">' +
-            '<span class="dhx-ctx-icon">&#128100;</span>Resource Card</div>' +
+            '<span class="dhx-ctx-icon"><img src="' + Microsoft.Dynamics.NAV.GetImageResource('images/View.png') + '" style="width:16px;height:16px;vertical-align:middle;pointer-events:none;"></span>View</div>' +
         '<div class="dhx-ctx-item" data-action="OpenResourceSkills">' +
-            '<span class="dhx-ctx-icon">&#127942;</span>Resource Skills</div>' +
+            '<span class="dhx-ctx-icon">&#127942;</span>Skills</div>' +
         '<div class="dhx-ctx-item" data-action="OpenDayPlannings">' +
             '<span class="dhx-ctx-icon">&#128198;</span>Day Plannings</div>' +
-        '<div class="dhx-ctx-item" data-action="OpenTask">' +
-            '<span class="dhx-ctx-icon">&#128203;</span>Task</div>' +
+        '<div class="dhx-ctx-item" data-action="OpenSequences">' +
+            '<span class="dhx-ctx-icon"><img src="' + Microsoft.Dynamics.NAV.GetImageResource('images/Sequence_and_AssignmentBoard.png') + '" style="width:16px;height:16px;vertical-align:middle;pointer-events:none;"></span>Sequences</div>' +
         '<div class="dhx-ctx-item" data-action="ShowCapacity">' +
             '<span class="dhx-ctx-icon">&#128202;</span>Capacity</div>' +
+        '<div class="dhx-ctx-item" data-action="OpenCapacityScheduler">' +
+            '<span class="dhx-ctx-icon">&#128198;</span>Capacity Scheduler</div>' +
+        '<div class="dhx-ctx-item" data-action="OpenResourceCalendar">' +
+            '<span class="dhx-ctx-icon">&#128198;</span>Resource Calendar</div>' +
         '<div class="dhx-ctx-separator"></div>' +
         '<div class="dhx-ctx-item ctx-cancel" data-action="Cancel">' +
             '<span class="dhx-ctx-icon">&#10005;</span>Cancel</div>';
@@ -1160,23 +1164,17 @@ function setupContextMenu() {
         var isSkillSection = !isEvent && target.subtype === 'Skill';
         var isResourceSection = !isEvent && target.subtype === 'Resource';
 
-        // There are TWO menu items with data-action="OpenTask" (one for Day Planning event
-        // bars, one for the resource-row section - see setupContextMenu's innerHTML comment).
-        // querySelector() only ever returns the first DOM match, so a plain
-        // menu.querySelector('[data-action="OpenTask"]') call would collide between the two
-        // and leave one of them stuck. querySelectorAll()+index disambiguates by DOM order
-        // (event-bar item first, resource-row item second) instead.
-        var ctxOpenTaskItems = menu.querySelectorAll('[data-action="OpenTask"]');
-
         menu.querySelector('[data-action="OpenDayPlanning"]').style.display = isDayPlanningEvent ? '' : 'none';
         menu.querySelector('[data-action="OpenCapacity"]').style.display = isCapacityEvent ? '' : 'none';
-        if (ctxOpenTaskItems[0]) ctxOpenTaskItems[0].style.display = isDayPlanningEvent ? '' : 'none';
+        menu.querySelector('[data-action="OpenTask"]').style.display = isDayPlanningEvent ? '' : 'none';
         menu.querySelector('[data-action="OpenResource"]').style.display = isDayPlanningEvent ? '' : 'none';
         menu.querySelector('[data-action="OpenResourceCard"]').style.display = isResourceSection ? '' : 'none';
         menu.querySelector('[data-action="OpenResourceSkills"]').style.display = isResourceSection ? '' : 'none';
         menu.querySelector('[data-action="OpenDayPlannings"]').style.display = isResourceSection ? '' : 'none';
-        if (ctxOpenTaskItems[1]) ctxOpenTaskItems[1].style.display = isResourceSection ? '' : 'none';
+        menu.querySelector('[data-action="OpenSequences"]').style.display = isResourceSection ? '' : 'none';
         menu.querySelector('[data-action="ShowCapacity"]').style.display = isResourceSection ? '' : 'none';
+        menu.querySelector('[data-action="OpenCapacityScheduler"]').style.display = isResourceSection ? '' : 'none';
+        menu.querySelector('[data-action="OpenResourceCalendar"]').style.display = isResourceSection ? '' : 'none';
 
         if (isSkillSection) { hideMenu(); return; } // no menu items apply to a Skill row
 

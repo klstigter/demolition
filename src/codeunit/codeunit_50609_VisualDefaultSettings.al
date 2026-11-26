@@ -122,6 +122,18 @@ codeunit 50609 "Visual Default Settings"
         exit(CapacityBorderColorTok);
     end;
 
+    /// <summary>Absence bar colour on the Capacity Scheduler - "Daily Optimizer Setup"."Absence Color", else AbsenceColorTok (Red).</summary>
+    procedure GetAbsenceColor(): Text
+    var
+        DailyOptimizerSetup: Record "Daily Optimizer Setup";
+    begin
+        if DailyOptimizerSetup.Get() then
+            if DailyOptimizerSetup."Absence Color" <> '' then
+                exit(DailyOptimizerSetup."Absence Color");
+
+        exit(AbsenceColorTok);
+    end;
+
     /// <summary>
     /// Text colour for the Capacity bar/event only - "Daily Optimizer Setup"."Capacity Font Color"
     /// when set, else CapacityFontColorTok (black). Never used for any other bar type.
@@ -448,6 +460,11 @@ codeunit 50609 "Visual Default Settings"
         exit(CapacityBorderColorTok);
     end;
 
+    procedure GetDefaultAbsenceColor(): Text
+    begin
+        exit(AbsenceColorTok);
+    end;
+
     procedure GetDefaultBarFontColor(): Text
     begin
         exit(BarFontColorTok);
@@ -636,6 +653,8 @@ codeunit 50609 "Visual Default Settings"
         // hand for the case where the setup singleton doesn't exist yet.
         // Used by: GetCapacityBorderColor above only.
         CapacityBorderColorTok: Label '#C97F16', Locked = true;
+        // Fallback for GetAbsenceColor - overridable via "Daily Optimizer Setup"."Absence Color".
+        AbsenceColorTok: Label '#FF0000', Locked = true;
         // Fallback for GetCapacityFontColor - Capacity bar text only.
         CapacityFontColorTok: Label '#000000', Locked = true;
         // Fallback for GetBarFontColor above - overridable via "Daily Optimizer Setup"."Bar Font
