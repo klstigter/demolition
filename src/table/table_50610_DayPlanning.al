@@ -930,6 +930,9 @@ table 50610 "Day Planning"
                         and ("End Time Assigned" <> 0T)
                         and ("Assigned Hours" <> 0);
         Assigned := AssignedFlag;
+        if Assigned then
+            if "Data Owner" = "Data Owner"::Planner then
+                "Data Owner" := "Data Owner"::ProjectManager;
     end;
 
     local procedure CheckResourceHasSkill(ResNo: Code[20])
