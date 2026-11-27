@@ -15,7 +15,7 @@ controladdin DHXRequestAssignmentAddin
     // to this new add-in. The JS-side port of the Request/Assignment Planner is being built
     // separately against these exact file paths and against the exact procedure/event contract
     // below - do not rename.
-    Images = 'images/filter_image.png', 'images/Remove_Filter_image.png', 'images/View.png', 'images/Sequence_and_AssignmentBoard.png';
+    Images = 'images/filter_image.png', 'images/Remove_Filter_image.png', 'images/View.png', 'images/Sequence_and_AssignmentBoard.png', 'images/Set_Capacity.png';
     Scripts =
         'src/dhx/dhtmlxscheduler.js',
         'src/dhx/GlobalFunction.js',

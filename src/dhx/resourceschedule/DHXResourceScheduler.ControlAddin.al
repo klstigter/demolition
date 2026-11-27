@@ -10,7 +10,7 @@ controladdin DHXResourceScheduleAddin
     HorizontalStretch = true;
     HorizontalShrink = true;
 
-    Images = 'images/filter_image.png', 'images/Remove_Filter_image.png', 'images/View.png', 'images/Sequence_and_AssignmentBoard.png';
+    Images = 'images/filter_image.png', 'images/Remove_Filter_image.png', 'images/View.png', 'images/Sequence_and_AssignmentBoard.png', 'images/Set_Capacity.png';
     Scripts =
         'src/dhx/dhtmlxscheduler.js',
         'src/dhx/GlobalFunction.js',

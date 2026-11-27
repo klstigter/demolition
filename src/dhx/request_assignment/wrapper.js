@@ -2677,6 +2677,7 @@ function showSlotContextMenu(event, targetInfo) {
     addContextMenuItem({ caption: "Day Plannings", iconHtml: "&#128198;", action: run("OpenDayPlannings") });
     addContextMenuItem({ caption: "Sequences", iconHtml: img("Sequence_and_AssignmentBoard.png"), action: run("OpenSequences") });
     addContextMenuItem({ caption: "Capacity", iconHtml: "&#128202;", action: run("ShowCapacity") });
+    addContextMenuItem({ caption: "Set Capacity", iconHtml: img("Set_Capacity.png"), action: run("OpenSetCapacity") });
     addContextMenuItem({ caption: "Capacity Scheduler", iconHtml: "&#128198;", action: run("OpenCapacityScheduler") });
     addContextMenuItem({ caption: "Resource Calendar", iconHtml: "&#128198;", action: run("OpenResourceCalendar") });
   }

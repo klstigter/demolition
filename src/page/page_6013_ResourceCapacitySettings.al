@@ -398,8 +398,8 @@ page 50627 "Resource Capacity Settings Opt"
 
     trigger OnOpenPage()
     begin
-        StartDate := 0D;
-        EndDate := 0D;
+        StartDate := PresetStartDate;
+        EndDate := PresetEndDate;
         WorkTemplateCode := '';
         StartTime := 0T;
         EndTime := 0T;
@@ -427,6 +427,8 @@ page 50627 "Resource Capacity Settings Opt"
         Holiday: Boolean;
         UseCustomTimes: Boolean;
         DefaultsLoaded: Boolean;
+        PresetStartDate: Date;
+        PresetEndDate: Date;
 
 #pragma warning disable AA0074
         Text000: Label 'The starting date is later than the ending date.';
@@ -439,6 +441,13 @@ page 50627 "Resource Capacity Settings Opt"
 #pragma warning restore AA0470
         Text008: Label 'The capacity change was unsuccessful.';
 #pragma warning restore AA0074
+
+    /// <summary>Pre-fills Starting/Ending Date (e.g. from the calling scheduler's displayed period); 0D = leave blank.</summary>
+    procedure SetPeriod(NewStartDate: Date; NewEndDate: Date)
+    begin
+        PresetStartDate := NewStartDate;
+        PresetEndDate := NewEndDate;
+    end;
 
     local procedure LoadDefaults()
     var
