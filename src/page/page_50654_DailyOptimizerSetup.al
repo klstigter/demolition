@@ -637,6 +637,18 @@ page 50654 "Daily Optimizer Setup"
                         CurrPage.Update(false);
                     end;
                 }
+                action(DayPlanningDataOwnerUpdate)
+                {
+                    ApplicationArea = All;
+                    Caption = 'Day Planning Data Owner update';
+                    ToolTip = 'Run the Day Planning Data Owner Update report to update the Data Owner on Day Planning lines.';
+                    Image = UpdateDescription;
+
+                    trigger OnAction()
+                    begin
+                        Report.Run(Report::"Day Planning Data Owner Update");
+                    end;
+                }
             }
             group(Tests)
             {
@@ -699,6 +711,7 @@ page 50654 "Daily Optimizer Setup"
             {
                 Caption = 'Actions';
                 actionref(ResetToDefault_ref; ResetToDefault) { }
+                actionref(DayPlanningDataOwnerUpdate_ref; DayPlanningDataOwnerUpdate) { }
             }
             group(Category_DemoData)
             {

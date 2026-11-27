@@ -14,6 +14,8 @@ report 50664 "Day Planning Data Owner Update"
     {
         dataitem(DayPlanning; "Day Planning")
         {
+            RequestFilterFields = "Job No.", "Job Task No.", "Day Line No.", Skill, "Requested Resource No.", "Assigned Resource No.", "Data Owner";
+
             trigger OnPreDataItem()
             begin
                 if DayPlanning.GetFilters() = '' then
