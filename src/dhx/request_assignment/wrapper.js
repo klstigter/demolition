@@ -227,6 +227,7 @@ function nonWorkingTimelineClass(date) {
 
 let activeSkillFilter = null;
 let activeSkillSequenceKey = null;
+let seededPageFilterKey = null;
 let requestJobFilter = "";
 let requestTaskFilter = "";
 let pendingRequestJobFilter = "";
@@ -985,6 +986,10 @@ function resourceSkillWarningTooltipHtml(resource) {
           <td>${resource.label}</td>
         </tr>
         <tr>
+          <th>Skill set</th>
+          <td>${(resource.skills || []).join(" | ") || "—"}</td>
+        </tr>
+        <tr>
           <th>Requested skill</th>
           <td class="resource-warning-problem">${skill} ⚠</td>
         </tr>
@@ -1737,6 +1742,7 @@ function updateRequestFilterUi() {
   const active =
     !!requestJobFilter || !!requestTaskFilter;
 
+
   requestFilterBtn.classList.toggle(
     "filter-active",
     active
@@ -1770,7 +1776,7 @@ function updateRequestFilterUi() {
 
   requestFilterSummary.textContent = summary;
   requestFilterSummary.hidden = false;
-  requestFilterBtn.title = summary;
+  requestFilterBtn.title = "Filter applied: " + summary;
 }
 
 function applyRequestFilters() {
@@ -3052,7 +3058,7 @@ function createRequestScheduler() {
           }
 
           if (section.kind === "task") {
-            return `<div class="task-group-cell hierarchy-clickable" data-task-click="${section.key}"><strong>${section.label}</strong></div>`;
+            return `<div class="task-group-cell hierarchy-clickable" data-task-click="${section.key}" data-job-no="${section.projectId}" data-task-no="${section.taskId}"><strong>${section.label}</strong></div>`;
           }
 
           const accepted = sequenceIsAccepted(section.key);
@@ -3424,6 +3430,11 @@ function createResourceScheduler() {
                   : ""
               }
             </div>
+            ${
+              section.skills.length
+                ? `<div class="resource-skillset" title="Skill set: ${section.skills.join(" | ")}">${section.skills.join(" | ")}</div>`
+                : ""
+            }
           </div>`;
         }
       }
@@ -6183,7 +6194,7 @@ window.BOOT = function BOOT() {
     const taskTarget = event.target.closest("[data-task-click]");
     if (taskTarget) {
       event.stopPropagation();
-      showSimplePopup("Open task card");
+      Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnOpenTaskCard", [taskTarget.dataset.jobNo, taskTarget.dataset.taskNo]);
       return;
     }
 
@@ -6277,6 +6288,9 @@ window.BOOT = function BOOT() {
       event.target.closest("[data-sequence-select]") ||
       event.target.closest("[data-project-click]") ||
       event.target.closest("[data-task-click]") ||
+      // Left tree column (incl. the expand/collapse arrows): DHTMLX handles those itself;
+      // treating them as "empty timeline" forced a full two-scheduler redraw per click.
+      event.target.closest(".dhx_matrix_scell") ||
       event.target.closest("button, input, select, a")
     ) {
       return;
@@ -6287,6 +6301,9 @@ window.BOOT = function BOOT() {
     );
 
     if (!emptyTimelineArea) return;
+
+    // Nothing selected -> nothing to clear, skip the expensive redraw.
+    if (!selectedLineIds.size && !selectedSequenceKey && !activeSkillFilter) return;
 
     clearSelection({ render: true });
   }, true);
@@ -6904,6 +6921,12 @@ window.BOOT = function BOOT() {
 
     updateRequestFilterUi();
     renderRequest();
+
+    // A page-level Job / Task filter is applied server-side: ask AL to drop it and reload
+    // everything (the reload re-sends planning data, which re-seeds an empty filter).
+    if (seededPageFilterKey && seededPageFilterKey !== "|") {
+      Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnClearRequestFilter", []);
+    }
   });
 
   requestFilterPopover.addEventListener("click", event => {
@@ -7346,6 +7369,14 @@ function SetPlanningData(planningDataJsonTxt) {
   installSkillColorStyles();
   installStatusColorStyles();
 
+  // Seed the popover filter from the page-level Job / Task filter (once per distinct value),
+  // so the popover, tooltip and Clear button all reflect it.
+  const pageFilterKey = (data.pageJobFilter || "") + "|" + (data.pageJobTaskFilter || "");
+  if (pageFilterKey !== seededPageFilterKey) {
+    seededPageFilterKey = pageFilterKey;
+    requestJobFilter = data.pageJobFilter || "";
+    requestTaskFilter = data.pageJobTaskFilter || "";
+  }
   pendingRequestJobFilter = requestJobFilter;
   pendingRequestTaskFilter = requestTaskFilter;
   populateRequestFilters();

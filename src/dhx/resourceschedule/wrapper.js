@@ -779,9 +779,9 @@ function setupContextMenu() {
         '<div class="dhx-ctx-item" data-for="resource" data-action="OpenResourceSkills"><span class="dhx-ctx-icon">&#127942;</span>Skills</div>' +
         '<div class="dhx-ctx-item" data-for="resource" data-action="OpenDayPlannings"><span class="dhx-ctx-icon">&#128198;</span>Day Plannings</div>' +
         '<div class="dhx-ctx-item" data-for="resource" data-action="OpenSequences"><span class="dhx-ctx-icon">' + ctxImg('Sequence_and_AssignmentBoard.png') + '</span>Sequences</div>' +
+        '<div class="dhx-ctx-item" data-for="resource" data-action="OpenAssignmentBoard"><span class="dhx-ctx-icon">' + ctxImg('Sequence_and_AssignmentBoard.png') + '</span>Assignment Board</div>' +
         '<div class="dhx-ctx-item" data-for="resource" data-action="ShowCapacity"><span class="dhx-ctx-icon">&#128202;</span>Capacity</div>' +
         '<div class="dhx-ctx-item" data-for="resource" data-action="OpenCapacityScheduler"><span class="dhx-ctx-icon">&#128198;</span>Capacity Scheduler</div>' +
-        '<div class="dhx-ctx-item" data-for="resource" data-action="OpenResourceCalendar"><span class="dhx-ctx-icon">&#128198;</span>Resource Calendar</div>' +
         '<div class="dhx-ctx-separator"></div>' +
         '<div class="dhx-ctx-item ctx-cancel" data-action="Cancel">' +
             '<span class="dhx-ctx-icon">&#10005;</span>Cancel</div>';

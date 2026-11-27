@@ -80,6 +80,10 @@ controladdin DHXRequestAssignmentAddin
     // Raised by a single click on a resource name in the Assignment panel's left list.
     // ResourceId is the Resource No.
     event OnOpenResourceCard(ResourceId: Text);
+    // Raised by a click on a Task row in the Request panel's left hierarchy. Opens "Opti Job Task Card".
+    // Raised by the Request panel's Clear filter button: AL drops the page-level Job/Task filter and reloads all data.
+    event OnClearRequestFilter();
+    event OnOpenTaskCard(JobNo: Text; JobTaskNo: Text);
     // Raised by the "Open Capacity" context-menu item on a resource's capacity slot background bar.
     // ResourceId is the Resource No.; StartDateTxt/EndDateTxt are "yyyy-MM-dd" text (see wrapper.js's
     // dateOnlyKey) taken directly from the board's currently-displayed planning horizon bounds

@@ -3148,3 +3148,21 @@ body.hierarchy-density-normal #requestScheduler .task-group-cell {
 .filter-icon-button.filter-active {
   background: transparent !important;
 }
+
+/* Resource list: name on top, skill set ("A | B") underneath */
+#resourceScheduler .resource-cell {
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: center;
+  gap: 2px;
+}
+
+#resourceScheduler .resource-skillset {
+  max-width: 100%;
+  font-size: 9px;
+  font-weight: 400;
+  color: #73838a;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

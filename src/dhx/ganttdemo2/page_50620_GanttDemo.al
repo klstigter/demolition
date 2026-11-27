@@ -586,7 +586,11 @@ page 50620 "Gantt Demo DHX 2"
                     ResNo := CopyStr(resourceId, 5);
                     GanttChartDataHandler.GetDateRange(Setup, AnchorDate, StartDate, EndDate);
                     GetDayPlanningFingerprint(BeforeCount, BeforeMax);
-                    DHXDataHandler.ResourceMenu_Run(ResNo, action, StartDate, EndDate);
+                    // Applied Job / Task filter (resource-panel task, else task-list filter) = base filter of the Assignment Board.
+                    if ResourcePanelJobNo <> '' then
+                        DHXDataHandler.ResourceMenu_Run(ResNo, action, StartDate, EndDate, ResourcePanelJobNo, ResourcePanelJobTaskNo)
+                    else
+                        DHXDataHandler.ResourceMenu_Run(ResNo, action, StartDate, EndDate, JobFilter, JobTaskFilter);
                     RefreshResourcePanelIfChanged(BeforeCount, BeforeMax);
                 end;
 
