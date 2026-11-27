@@ -119,6 +119,11 @@ page 50668 "Day Planning Card Opt"
                 }
                 group(Assignment)
                 {
+                    field(Assigned; Rec.Assigned)
+                    {
+                        ApplicationArea = All;
+                        ToolTip = 'Specifies whether the day planning line is assigned.';
+                    }
                     field("Assigned Pool Resource No."; Rec."Assigned Pool Resource No.")
                     {
                         ApplicationArea = All;

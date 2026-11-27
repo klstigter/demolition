@@ -7434,6 +7434,8 @@ codeunit 50604 "DHX Data Handler"
         DayPlanning.Validate("End Time Assigned", ReqAssign_DecimalHoursToTime(StartHour + DurationHours));
         if (DayPlanning."Idle Minutes Assigned" = 0) and (DayPlanning."Idle Minutes Requested" <> 0) then
             DayPlanning.Validate("Idle Minutes Assigned", DayPlanning."Idle Minutes Requested");
+        // Assigned Hours may have changed after the idle minutes were applied; refresh Assigned / Data Owner.
+        DayPlanning.AssignedCheck();
         DayPlanning.Modify(true);
     end;
 
