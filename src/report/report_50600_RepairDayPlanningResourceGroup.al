@@ -1,9 +1,10 @@
 report 50600 "RepairData"
 {
-    Permissions = tabledata "Day Planning" = rimd,
+    Permissions = tabledata "Default Dimension" = rd,
+                  tabledata "Day Planning" = rimd,
                   tabledata "Res. Capacity Entry" = rimd,
-                  tabledata Resource = rim,
                   tabledata Vendor = r,
+                  tabledata Company = r,
                   tabledata "Resource Skill" = rim,
                   tabledata "Skill Code" = r,
                   tabledata "Job Task" = rimd,
@@ -19,8 +20,25 @@ report 50600 "RepairData"
     }
 
     trigger OnPreReport()
+    var
+        Company: Record Company;
+        DefaultDimension: Record "Default Dimension";
+        DeletedCount: Integer;
+        TotalDeleted: Integer;
+        CompanyCount: Integer;
     begin
-        RecalculateDayPlanningHours();
+        if Company.FindSet() then
+            repeat
+                CompanyCount += 1;
+                DefaultDimension.ChangeCompany(Company.Name);
+                DefaultDimension.SetRange("No.", '');
+                DeletedCount := DefaultDimension.Count();
+                if DeletedCount > 0 then begin
+                    DefaultDimension.DeleteAll(true);
+                    TotalDeleted += DeletedCount;
+                end;
+            until Company.Next() = 0;
+        Message('%1 Account Type Default Dimension(s) deleted across %2 company(ies).', TotalDeleted, CompanyCount);
     end;
 
     local procedure RecalculateDayPlanningHours()
