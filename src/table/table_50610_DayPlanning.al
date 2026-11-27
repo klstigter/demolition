@@ -896,7 +896,7 @@ table 50610 "Day Planning"
         DayPlanningSequenceMgt: Codeunit "Day Planning Sequence Mgt.";
         NotOwnerModifyErr: Label 'Day Planning %1 %2 %3 is owned by %4 and cannot be modified.', Comment = '%1=Job No., %2=Job Task No., %3=Day Line No., %4=Data Owner';
     begin
-        if xRec."Data Owner" <> xRec."Data Owner"::Planner then
+        if (xRec."Data Owner" <> xRec."Data Owner"::Planner) and not IsWebServiceCall() then
             Error(NotOwnerModifyErr, xRec."Job No.", xRec."Job Task No.", xRec."Day Line No.", xRec."Data Owner");
         if (xRec."Assigned Hours" = 0) and (Rec."Assigned Hours" <> 0) then
             Rec."Plan Status" := Rec."Plan Status"::"In Progress";
@@ -910,7 +910,7 @@ table 50610 "Day Planning"
     var
         NotOwnerDeleteErr: Label 'Day Planning %1 %2 %3 is owned by %4 and cannot be deleted.', Comment = '%1=Job No., %2=Job Task No., %3=Day Line No., %4=Data Owner';
     begin
-        if Rec."Data Owner" <> Rec."Data Owner"::Planner then
+        if (Rec."Data Owner" <> Rec."Data Owner"::Planner) and not IsWebServiceCall() then
             Error(NotOwnerDeleteErr, Rec."Job No.", Rec."Job Task No.", Rec."Day Line No.", Rec."Data Owner");
         TestField("Assigned Hours", 0);
         TestField("Realized Hours", 0);
@@ -919,6 +919,10 @@ table 50610 "Day Planning"
     var
         generalutils: Codeunit "General Planning Utilities";
 
+    local procedure IsWebServiceCall(): Boolean
+    begin
+        exit(CurrentClientType() in [ClientType::Api, ClientType::ODataV4, ClientType::SOAP]);
+    end;
 
     procedure GetNextDayLineNo();
     begin
