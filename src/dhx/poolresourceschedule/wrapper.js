@@ -1025,6 +1025,7 @@ function setupResourceContextMenu() {
         '<div class="dhx-ctx-item" data-action="OpenSequences"><span class="dhx-ctx-icon">' + img('Sequence_and_AssignmentBoard.png') + '</span>Sequences</div>' +
         '<div class="dhx-ctx-item" data-action="OpenAssignmentBoard"><span class="dhx-ctx-icon">' + img('Sequence_and_AssignmentBoard.png') + '</span>Assignment Board</div>' +
         '<div class="dhx-ctx-item" data-action="ShowCapacity"><span class="dhx-ctx-icon">&#128202;</span>Capacity</div>' +
+        '<div class="dhx-ctx-item" data-action="OpenSetCapacity"><span class="dhx-ctx-icon">' + img('Set_Capacity.png') + '</span>Set Capacity</div>' +
         '<div class="dhx-ctx-item" data-action="OpenResourceCalendar"><span class="dhx-ctx-icon">&#128198;</span>Resource Calendar</div>' +
         '<div class="dhx-ctx-separator"></div>' +
         '<div class="dhx-ctx-item ctx-cancel" data-action="Cancel"><span class="dhx-ctx-icon">&#10005;</span>Cancel</div>';

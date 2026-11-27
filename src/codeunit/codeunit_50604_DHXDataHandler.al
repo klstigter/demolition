@@ -5916,6 +5916,8 @@ codeunit 50604 "DHX Data Handler"
         CapacityScheduler: Page "DHX Scheduler (Pool Resource)";
         ResCalendar: Page "Resource Calendar";
         AssignmentBoard: Page "DHX Request Assignment Board";
+        SetCapacityPage: Page "Resource Capacity Settings Opt";
+        SetCapacityResource: Record Resource;
         WeekStart: Date;
         WeekEnd: Date;
     begin
@@ -5933,6 +5935,14 @@ codeunit 50604 "DHX Data Handler"
                     if JobNo <> '' then
                         AssignmentBoard.SetJobTaskFilter(CopyStr(JobNo, 1, 20), CopyStr(JobTaskNo, 1, 20));
                     AssignmentBoard.RunModal();
+                end;
+            'OpenSetCapacity':
+                begin
+                    // Same page + link as the Resource Card's "Set Capacity" action.
+                    SetCapacityResource.SetRange("No.", CopyStr(ResNo, 1, MaxStrLen(SetCapacityResource."No.")));
+                    SetCapacityPage.SetTableView(SetCapacityResource);
+                    SetCapacityPage.SetPeriod(StartDate, EndDate);
+                    SetCapacityPage.RunModal();
                 end;
             'ShowCapacity':
                 SkillResScheduler_ShowCapacityForResource(ResNo, StartDate, EndDate);

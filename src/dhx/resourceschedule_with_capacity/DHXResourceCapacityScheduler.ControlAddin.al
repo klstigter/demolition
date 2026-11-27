@@ -12,7 +12,7 @@ controladdin DHXResourceCapacityScheduleAddin
 
     // Shared libs reused as-is (same convention as poolresourceschedule/projectschedule) -
     // only wrapper.js/style.css/startupScript.js are specific to this new add-in.
-    Images = 'images/filter_image.png', 'images/Remove_Filter_image.png', 'images/View.png', 'images/Sequence_and_AssignmentBoard.png';
+    Images = 'images/filter_image.png', 'images/Remove_Filter_image.png', 'images/View.png', 'images/Sequence_and_AssignmentBoard.png', 'images/Set_Capacity.png';
     Scripts =
         'src/dhx/dhtmlxscheduler.js',
         'src/dhx/GlobalFunction.js',

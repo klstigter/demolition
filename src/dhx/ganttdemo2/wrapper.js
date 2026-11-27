@@ -462,6 +462,9 @@ window.BOOT = function() {
         if (currentResourceId.indexOf("RES-") !== 0 || currentResourceId === "RES-") return;
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OpenResourceCapacity", [currentResourceId.substring(4)]);
       });
+      makeItem(menu, "Set Capacity", '<img src="' + Microsoft.Dynamics.NAV.GetImageResource('images/Set_Capacity.png') + '" style="width:18px;height:18px;vertical-align:middle;">', function () {
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnResourceMenuAction", [currentResourceId, "OpenSetCapacity"]);
+      });
       makeItem(menu, "Capacity Scheduler", "&#x1F4C6;", function () {
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OpenCapacityScheduler", [currentResourceId, ""]);
       });
