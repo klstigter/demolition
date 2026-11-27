@@ -455,6 +455,9 @@ window.BOOT = function() {
       makeItem(menu, "Sequences", '<img src="' + Microsoft.Dynamics.NAV.GetImageResource('images/Sequence_and_AssignmentBoard.png') + '" style="width:18px;height:18px;vertical-align:middle;">', function () {
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnResourceMenuAction", [currentResourceId, "OpenSequences"]);
       });
+      makeItem(menu, "Assignment Board", '<img src="' + Microsoft.Dynamics.NAV.GetImageResource('images/Sequence_and_AssignmentBoard.png') + '" style="width:18px;height:18px;vertical-align:middle;">', function () {
+        Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnResourceMenuAction", [currentResourceId, "OpenAssignmentBoard"]);
+      });
       makeItem(menu, "Capacity", "&#x1F4CA;", function () {
         if (currentResourceId.indexOf("RES-") !== 0 || currentResourceId === "RES-") return;
         Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OpenResourceCapacity", [currentResourceId.substring(4)]);

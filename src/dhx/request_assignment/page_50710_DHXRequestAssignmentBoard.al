@@ -107,6 +107,21 @@ page 50710 "DHX Request Assignment Board"
                     RefreshPlanningData();
                 end;
 
+                trigger OnClearRequestFilter()
+                begin
+                    JobNoFilter := '';
+                    JobTaskNoFilter := '';
+                    RefreshPlanningData();
+                end;
+
+                trigger OnOpenTaskCard(JobNo: Text; JobTaskNo: Text)
+                var
+                    JobTask: Record "Job Task";
+                begin
+                    if JobTask.Get(CopyStr(JobNo, 1, MaxStrLen(JobTask."Job No.")), CopyStr(JobTaskNo, 1, MaxStrLen(JobTask."Job Task No."))) then
+                        Page.Run(Page::"Opti Job Task Card", JobTask);
+                end;
+
                 trigger OnOpenResourceCard(ResourceId: Text)
                 var
                     Resource: Record Resource;

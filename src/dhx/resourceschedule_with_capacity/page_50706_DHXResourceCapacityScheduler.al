@@ -261,7 +261,7 @@ page 50706 "Resource Scheduler - TimeLine"
                     // "<Resource No.>|<Resource Group No.>") key; the actions operate on the plain Resource No.
                     ResNo := DHXDataHandler.SkillResScheduler_ExtractResourceNo(sectionId);
                     DHXDataHandler.GetWeekPeriodDates(AnchorDate, startDate, endDate);
-                    DHXDataHandler.ResourceMenu_Run(ResNo, action, startDate, endDate);
+                    DHXDataHandler.ResourceMenu_Run(ResNo, action, startDate, endDate, JobFilter, JobTaskFilter);
                 end;
 
                 #endregion Context Menu

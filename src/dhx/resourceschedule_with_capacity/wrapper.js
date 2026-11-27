@@ -1144,6 +1144,8 @@ function setupContextMenu() {
             '<span class="dhx-ctx-icon">&#128198;</span>Day Plannings</div>' +
         '<div class="dhx-ctx-item" data-action="OpenSequences">' +
             '<span class="dhx-ctx-icon"><img src="' + Microsoft.Dynamics.NAV.GetImageResource('images/Sequence_and_AssignmentBoard.png') + '" style="width:16px;height:16px;vertical-align:middle;pointer-events:none;"></span>Sequences</div>' +
+        '<div class="dhx-ctx-item" data-action="OpenAssignmentBoard">' +
+            '<span class="dhx-ctx-icon"><img src="' + Microsoft.Dynamics.NAV.GetImageResource('images/Sequence_and_AssignmentBoard.png') + '" style="width:16px;height:16px;vertical-align:middle;pointer-events:none;"></span>Assignment Board</div>' +
         '<div class="dhx-ctx-item" data-action="ShowCapacity">' +
             '<span class="dhx-ctx-icon">&#128202;</span>Capacity</div>' +
         '<div class="dhx-ctx-item" data-action="OpenCapacityScheduler">' +
@@ -1172,6 +1174,7 @@ function setupContextMenu() {
         menu.querySelector('[data-action="OpenResourceSkills"]').style.display = isResourceSection ? '' : 'none';
         menu.querySelector('[data-action="OpenDayPlannings"]').style.display = isResourceSection ? '' : 'none';
         menu.querySelector('[data-action="OpenSequences"]').style.display = isResourceSection ? '' : 'none';
+        menu.querySelector('[data-action="OpenAssignmentBoard"]').style.display = isResourceSection ? '' : 'none';
         menu.querySelector('[data-action="ShowCapacity"]').style.display = isResourceSection ? '' : 'none';
         menu.querySelector('[data-action="OpenCapacityScheduler"]').style.display = isResourceSection ? '' : 'none';
         menu.querySelector('[data-action="OpenResourceCalendar"]').style.display = isResourceSection ? '' : 'none';

@@ -5903,9 +5903,19 @@ codeunit 50604 "DHX Data Handler"
     /// and Resource Calendar are anchored on StartDate's week.
     /// </summary>
     procedure ResourceMenu_Run(ResNo: Text; Action: Text; StartDate: Date; EndDate: Date)
+    begin
+        ResourceMenu_Run(ResNo, Action, StartDate, EndDate, '', '');
+    end;
+
+    /// <summary>
+    /// Same as above; JobNo/JobTaskNo = the calling page's applied Job / Job Task filter (blank = none),
+    /// used as the base filter of the Assignment Board.
+    /// </summary>
+    procedure ResourceMenu_Run(ResNo: Text; Action: Text; StartDate: Date; EndDate: Date; JobNo: Text; JobTaskNo: Text)
     var
         CapacityScheduler: Page "DHX Scheduler (Pool Resource)";
         ResCalendar: Page "Resource Calendar";
+        AssignmentBoard: Page "DHX Request Assignment Board";
         WeekStart: Date;
         WeekEnd: Date;
     begin
@@ -5918,6 +5928,12 @@ codeunit 50604 "DHX Data Handler"
                 SkillResScheduler_OpenDayPlanningsForResource(ResNo, StartDate, EndDate);
             'OpenSequences':
                 SkillResScheduler_OpenSequencesForResource(ResNo, StartDate, EndDate);
+            'OpenAssignmentBoard':
+                begin
+                    if JobNo <> '' then
+                        AssignmentBoard.SetJobTaskFilter(CopyStr(JobNo, 1, 20), CopyStr(JobTaskNo, 1, 20));
+                    AssignmentBoard.RunModal();
+                end;
             'ShowCapacity':
                 SkillResScheduler_ShowCapacityForResource(ResNo, StartDate, EndDate);
             'OpenCapacityScheduler':
@@ -6672,6 +6688,8 @@ codeunit 50604 "DHX Data Handler"
         // Sending it explicitly makes every later pagination decision safe by construction; the
         // scan-based derivation stays in wrapper.js only as a defensive fallback.
         RootObj.Add('scopeEndDate', ReqAssign_FormatIsoDate(EndDate));
+        RootObj.Add('pageJobFilter', ReqAssignJobFilter);
+        RootObj.Add('pageJobTaskFilter', ReqAssignJobTaskFilter);
 
         RootObj.WriteTo(OutTxt);
         exit(OutTxt);
@@ -6729,6 +6747,8 @@ codeunit 50604 "DHX Data Handler"
         RootObj.Add('skillColors', ReqAssign_BuildSkillColorsJson());
         RootObj.Add('statusColors', StatusColorsObj);
         RootObj.Add('scopeEndDate', ReqAssign_FormatIsoDate(EndDate));
+        RootObj.Add('pageJobFilter', ReqAssignJobFilter);
+        RootObj.Add('pageJobTaskFilter', ReqAssignJobTaskFilter);
 
         RootObj.WriteTo(OutTxt);
         exit(OutTxt);
