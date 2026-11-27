@@ -107,6 +107,13 @@ page 50710 "DHX Request Assignment Board"
                     RefreshPlanningData();
                 end;
 
+                trigger OnDayPlanningBarAction(LineId: Text; Action: Text)
+                var
+                    DHXDataHandler: Codeunit "DHX Data Handler";
+                begin
+                    DHXDataHandler.DayPlanningBar_RunByLineId(LineId, Action);
+                end;
+
                 trigger OnClearRequestFilter()
                 begin
                     JobNoFilter := '';

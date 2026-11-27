@@ -1126,15 +1126,27 @@ function setupContextMenu() {
         menu.className = 'hidden';
         document.body.appendChild(menu);
     }
+    function evItem(ev, action, icon, caption) {
+        return '<div class="dhx-ctx-item" data-ev="' + ev + '" data-action="' + action + '"><span class="dhx-ctx-icon">' + icon + '</span>' + caption + '</div>';
+    }
+    var viewImg = '<img src="' + Microsoft.Dynamics.NAV.GetImageResource('images/View.png') + '" style="width:16px;height:16px;vertical-align:middle;pointer-events:none;">';
     menu.innerHTML =
-        '<div class="dhx-ctx-item" data-action="OpenDayPlanning">' +
-            '<span class="dhx-ctx-icon">&#128197;</span>Day Planning</div>' +
-        '<div class="dhx-ctx-item" data-action="OpenCapacity">' +
-            '<span class="dhx-ctx-icon">&#128202;</span>Capacity</div>' +
-        '<div class="dhx-ctx-item" data-action="OpenTask">' +
-            '<span class="dhx-ctx-icon">&#128203;</span>Task</div>' +
-        '<div class="dhx-ctx-item" data-action="OpenResource">' +
-            '<span class="dhx-ctx-icon">&#128100;</span>Resource</div>' +
+        evItem('dp', 'OpenDayPlanning', '&#128197;', 'Day Plannings') +
+        evItem('dp', 'OpenDayPlanningCard', viewImg, 'View') +
+        evItem('any', 'OpenCapacity', '&#128202;', 'Capacity') +
+        '<div class="dhx-ctx-separator" data-ev="dp"></div>' +
+        evItem('dp', 'OpenTask', '&#128196;', 'Job Task Card') +
+        evItem('dp', 'ShowJobResources', '&#128100;', 'Job Task Resources') +
+        evItem('dp', 'OpenDayPlanningVisual', '&#128248;', 'Job Task Scheduler') +
+        '<div class="dhx-ctx-separator" data-ev="dp"></div>' +
+        evItem('dp', 'OpenResSchedulerTimeline', '&#128101;', 'Resource Scheduler') +
+        '<div class="dhx-ctx-separator" data-ev="dp"></div>' +
+        evItem('dp', 'OpenResourceSchedulerAssigned', '&#128101;', 'Resource Scheduler (assigned)') +
+        evItem('dp', 'OpenResourceSchedulerRequested', '&#128101;', 'Resource Scheduler (Requested)') +
+        evItem('dp', 'OpenAssignedResourceCard', '&#128100;', 'Resource Card (assigned)') +
+        evItem('dp', 'OpenRequestedResourceCard', '&#128100;', 'Resource Card (Requested)') +
+        '<div class="dhx-ctx-separator" data-ev="dp"></div>' +
+        evItem('dp', 'OpenSequences', '<img src="' + Microsoft.Dynamics.NAV.GetImageResource('images/Sequence_and_AssignmentBoard.png') + '" style="width:16px;height:16px;vertical-align:middle;pointer-events:none;">', 'Sequences') +
         '<div class="dhx-ctx-separator"></div>' +
         '<div class="dhx-ctx-item" data-action="OpenResourceCard">' +
             '<span class="dhx-ctx-icon"><img src="' + Microsoft.Dynamics.NAV.GetImageResource('images/View.png') + '" style="width:16px;height:16px;vertical-align:middle;pointer-events:none;"></span>View</div>' +
@@ -1168,10 +1180,10 @@ function setupContextMenu() {
         var isSkillSection = !isEvent && target.subtype === 'Skill';
         var isResourceSection = !isEvent && target.subtype === 'Resource';
 
-        menu.querySelector('[data-action="OpenDayPlanning"]').style.display = isDayPlanningEvent ? '' : 'none';
-        menu.querySelector('[data-action="OpenCapacity"]').style.display = isCapacityEvent ? '' : 'none';
-        menu.querySelector('[data-action="OpenTask"]').style.display = isDayPlanningEvent ? '' : 'none';
-        menu.querySelector('[data-action="OpenResource"]').style.display = isDayPlanningEvent ? '' : 'none';
+        Array.prototype.forEach.call(menu.querySelectorAll('[data-ev]'), function (el) {
+            var k = el.getAttribute('data-ev');
+            el.style.display = (isEvent && (k === 'any' || isDayPlanningEvent)) ? '' : 'none';
+        });
         menu.querySelector('[data-action="OpenResourceCard"]').style.display = isResourceSection ? '' : 'none';
         menu.querySelector('[data-action="OpenResourceSkills"]').style.display = isResourceSection ? '' : 'none';
         menu.querySelector('[data-action="OpenDayPlannings"]').style.display = isResourceSection ? '' : 'none';
@@ -1185,7 +1197,7 @@ function setupContextMenu() {
         if (isSkillSection) { hideMenu(); return; } // no menu items apply to a Skill row
 
         menu.className = '';
-        var menuW = 210, menuH = 200;
+        var menuW = menu.offsetWidth || 210, menuH = menu.offsetHeight || 200;
         var left = (x + menuW > window.innerWidth) ? window.innerWidth - menuW - 4 : x;
         var top = (y + menuH > window.innerHeight) ? window.innerHeight - menuH - 4 : y;
         menu.style.left = left + 'px';

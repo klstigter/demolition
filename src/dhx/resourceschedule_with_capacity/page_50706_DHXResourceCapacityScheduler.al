@@ -233,20 +233,11 @@ page 50706 "Resource Scheduler - TimeLine"
 
                 trigger OnEventContextMenu(eventId: Text; action: Text; payloadJson: Text)
                 begin
-                    case action of
-                        'OpenDayPlanning':
-                            if not eventId.StartsWith('CAP|') then
-                                DHXDataHandler.SkillResScheduler_OpenDayPlanningByEventId(eventId);
-                        'OpenCapacity':
-                            if eventId.StartsWith('CAP|') then
-                                DHXDataHandler.SkillResScheduler_OpenCapacityByEventId(eventId);
-                        'OpenTask':
-                            if not eventId.StartsWith('CAP|') then
-                                DHXDataHandler.SkillResScheduler_OpenTaskByEventId(eventId);
-                        'OpenResource':
-                            if not eventId.StartsWith('CAP|') then
-                                DHXDataHandler.SkillResScheduler_OpenResourceByEventId(eventId);
-                    end;
+                    if eventId.StartsWith('CAP|') then begin
+                        if action = 'OpenCapacity' then
+                            DHXDataHandler.SkillResScheduler_OpenCapacityByEventId(eventId);
+                    end else
+                        DHXDataHandler.DayPlanningBar_RunByRecordId(eventId, action);
                 end;
 
                 trigger OnSectionContextMenu(sectionId: Text; action: Text; payloadJson: Text)

@@ -2637,25 +2637,39 @@ function showSlotContextMenu(event, targetInfo) {
     });
   }
 
+  const viewImg =
+    `<img src="${Microsoft.Dynamics.NAV.GetImageResource("images/View.png")}" style="width:14px;height:14px;vertical-align:middle;pointer-events:none;">`;
+
   if (targetInfo.type === "request") {
     addContextMenuItem({
       caption: "Unassign",
       icon: "unassign",
       action: () => unassignDayTaskLine(targetInfo.lineId)
     });
-
-    addContextMenuItem({
-      caption: "Card",
-      icon: "card",
-      action: () => openDayPlanningCard(targetInfo.lineId)
-    });
   }
 
-  if (targetInfo.type === "assignment") {
+  // Day Planning bar menu - identical list/order in every add-in (Task Scheduler, Resource Scheduler, Resource Calendar).
+  if (targetInfo.type === "request" || targetInfo.type === "assignment") {
+    const bar = action => () => Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnDayPlanningBarAction", [targetInfo.lineId, action]);
+    addContextMenuItem({ caption: "Day Plannings", iconHtml: "&#128197;", action: bar("OpenDayPlanning") });
+    addContextMenuItem({ caption: "View", iconHtml: viewImg, action: () => openDayPlanningCard(targetInfo.lineId) });
+    addContextMenuItem({ caption: "Capacity", iconHtml: "&#128202;", action: bar("OpenCapacity") });
+    addContextMenuDivider();
+    addContextMenuItem({ caption: "Job Task Card", iconHtml: "&#128196;", action: bar("OpenTask") });
+    addContextMenuItem({ caption: "Job Task Resources", iconHtml: "&#128100;", action: bar("ShowJobResources") });
+    addContextMenuItem({ caption: "Job Task Scheduler", iconHtml: "&#128248;", action: bar("OpenDayPlanningVisual") });
+    addContextMenuDivider();
+    addContextMenuItem({ caption: "Resource Scheduler", iconHtml: "&#128101;", action: bar("OpenResSchedulerTimeline") });
+    addContextMenuDivider();
+    addContextMenuItem({ caption: "Resource Scheduler (assigned)", iconHtml: "&#128101;", action: bar("OpenResourceSchedulerAssigned") });
+    addContextMenuItem({ caption: "Resource Scheduler (Requested)", iconHtml: "&#128101;", action: bar("OpenResourceSchedulerRequested") });
+    addContextMenuItem({ caption: "Resource Card (assigned)", iconHtml: "&#128100;", action: bar("OpenAssignedResourceCard") });
+    addContextMenuItem({ caption: "Resource Card (Requested)", iconHtml: "&#128100;", action: bar("OpenRequestedResourceCard") });
+    addContextMenuDivider();
     addContextMenuItem({
-      caption: "Card",
-      icon: "card",
-      action: () => openDayPlanningCard(targetInfo.lineId)
+      caption: "Sequences",
+      iconHtml: `<img src="${Microsoft.Dynamics.NAV.GetImageResource("images/Sequence_and_AssignmentBoard.png")}" style="width:14px;height:14px;vertical-align:middle;pointer-events:none;">`,
+      action: bar("OpenSequences")
     });
   }
 
