@@ -1131,8 +1131,8 @@ function setupContextMenu() {
     }
     var viewImg = '<img src="' + Microsoft.Dynamics.NAV.GetImageResource('images/View.png') + '" style="width:16px;height:16px;vertical-align:middle;pointer-events:none;">';
     menu.innerHTML =
-        evItem('dp', 'OpenDayPlanning', '&#128197;', 'Day Plannings') +
         evItem('dp', 'OpenDayPlanningCard', viewImg, 'View') +
+        evItem('dp', 'OpenDayPlanning', '&#128197;', 'Day Plannings') +
         evItem('any', 'OpenCapacity', '&#128202;', 'Capacity') +
         '<div class="dhx-ctx-separator" data-ev="dp"></div>' +
         evItem('dp', 'OpenTask', '&#128196;', 'Job Task Card') +

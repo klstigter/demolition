@@ -2651,8 +2651,8 @@ function showSlotContextMenu(event, targetInfo) {
   // Day Planning bar menu - identical list/order in every add-in (Task Scheduler, Resource Scheduler, Resource Calendar).
   if (targetInfo.type === "request" || targetInfo.type === "assignment") {
     const bar = action => () => Microsoft.Dynamics.NAV.InvokeExtensibilityMethod("OnDayPlanningBarAction", [targetInfo.lineId, action]);
-    addContextMenuItem({ caption: "Day Plannings", iconHtml: "&#128197;", action: bar("OpenDayPlanning") });
     addContextMenuItem({ caption: "View", iconHtml: viewImg, action: () => openDayPlanningCard(targetInfo.lineId) });
+    addContextMenuItem({ caption: "Day Plannings", iconHtml: "&#128197;", action: bar("OpenDayPlanning") });
     addContextMenuItem({ caption: "Capacity", iconHtml: "&#128202;", action: bar("OpenCapacity") });
     addContextMenuDivider();
     addContextMenuItem({ caption: "Job Task Card", iconHtml: "&#128196;", action: bar("OpenTask") });

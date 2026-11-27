@@ -769,8 +769,8 @@ function setupContextMenu() {
     }
     // data-for="event": event-bar items (unchanged); data-for="resource": standard resource-list menu
     menu.innerHTML =
-        '<div class="dhx-ctx-item" data-for="event" data-dp="1" data-action="OpenDayPlanning"><span class="dhx-ctx-icon">&#128197;</span>Day Plannings</div>' +
         '<div class="dhx-ctx-item" data-for="event" data-dp="1" data-action="OpenDayPlanningCard"><span class="dhx-ctx-icon">' + ctxImg('View.png') + '</span>View</div>' +
+        '<div class="dhx-ctx-item" data-for="event" data-dp="1" data-action="OpenDayPlanning"><span class="dhx-ctx-icon">&#128197;</span>Day Plannings</div>' +
         '<div class="dhx-ctx-item" data-for="event" data-action="OpenCapacity"><span class="dhx-ctx-icon">&#128202;</span>Capacity</div>' +
         '<div class="dhx-ctx-separator" data-for="event" data-dp="1"></div>' +
         '<div class="dhx-ctx-item" data-for="event" data-dp="1" data-action="OpenTask"><span class="dhx-ctx-icon">&#128196;</span>Job Task Card</div>' +
