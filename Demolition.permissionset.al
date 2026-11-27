@@ -77,6 +77,7 @@ permissionset 50600 Demolition
         report "Apply Demo Data Scenario" = X,
         report "Export Existing Data" = X,
         report "Daily Capacity Balance Report" = X,
+        report "Day Planning Data Owner Update" = X,
         report "Day Planning Details" = X,
         report "Day Resource Details" = X,
         report DayPlanning = X,
