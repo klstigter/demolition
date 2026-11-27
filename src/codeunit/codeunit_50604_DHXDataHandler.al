@@ -7424,10 +7424,16 @@ codeunit 50604 "DHX Data Handler"
     /// </summary>
     local procedure ReqAssign_ApplyAssignment(var DayPlanning: Record "Day Planning"; ResourceId: Text; SetResource: Boolean; StartHour: Decimal; DurationHours: Decimal)
     begin
-        if SetResource then
+        if SetResource then begin
+            // A previously set pool restricts the Assigned Resource TableRelation to that pool's members;
+            // the resource's own OnValidate re-derives the pool, so clear it first.
+            DayPlanning."Assigned Pool Resource No." := '';
             DayPlanning.Validate("Assigned Resource No.", CopyStr(ResourceId, 1, MaxStrLen(DayPlanning."Assigned Resource No.")));
+        end;
         DayPlanning.Validate("Start Time Assigned", ReqAssign_DecimalHoursToTime(StartHour));
         DayPlanning.Validate("End Time Assigned", ReqAssign_DecimalHoursToTime(StartHour + DurationHours));
+        if (DayPlanning."Idle Minutes Assigned" = 0) and (DayPlanning."Idle Minutes Requested" <> 0) then
+            DayPlanning.Validate("Idle Minutes Assigned", DayPlanning."Idle Minutes Requested");
         DayPlanning.Modify(true);
     end;
 
