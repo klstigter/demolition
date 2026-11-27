@@ -305,6 +305,10 @@ page 50621 "DHX Scheduler (Project)"
                             end;
                         'OpenDayPlanningCard':
                             DHXDataHandler.OpenDayPlanningCard(eventId);
+                        'OpenCapacity':
+                            DHXDataHandler.OpenCapacityFromEventId(eventId);
+                        'OpenSequences':
+                            DHXDataHandler.OpenSequencesFromEventId(eventId);
                         'OpenDayPlanningVisual':
                             DHXDataHandler.OpenDayPlanningVisual(eventId);
                         'OpenResourceSchedulerAssigned':

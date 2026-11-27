@@ -77,6 +77,8 @@ controladdin DHXRequestAssignmentAddin
     // assignmentLineFromPointerTarget) - unlike the other events above, this is the raw id string,
     // not a JSON payload, since there's nothing else to carry.
     event OnOpenDayPlanningCard(LineId: Text);
+    // Day Planning bar right-click actions shared with the other schedulers (Action = DHX Data Handler DayPlanningBar_Run key).
+    event OnDayPlanningBarAction(LineId: Text; Action: Text);
     // Raised by a single click on a resource name in the Assignment panel's left list.
     // ResourceId is the Resource No.
     event OnOpenResourceCard(ResourceId: Text);

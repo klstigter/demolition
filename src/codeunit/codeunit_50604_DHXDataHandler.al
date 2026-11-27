@@ -3043,6 +3043,141 @@ codeunit 50604 "DHX Data Handler"
             Message(MsgLbl, eventId);
     end;
 
+    /// <summary>
+    /// Opens Resource Capacity for the Day Planning bar's resource (Assigned, else Requested) on its Plan Date.
+    /// Event ID format: "Job|Task|...|LineNo" (same as OpenDayPlanningCard).
+    /// </summary>
+    procedure OpenCapacityFromEventId(eventId: Text)
+    var
+        DayPlanning: Record "Day Planning";
+        Resource: Record Resource;
+        ResCapacity: Page "Resource Capacity";
+        EventIDList: List of [Text];
+        DayLineNo: Integer;
+        ResNo: Code[20];
+    begin
+        EventIDList := eventId.Split('|');
+        if EventIDList.Count() < 4 then
+            exit;
+        Evaluate(DayLineNo, EventIDList.Get(4));
+        if not DayPlanning.Get(CopyStr(EventIDList.Get(1), 1, 20), CopyStr(EventIDList.Get(2), 1, 20), DayLineNo) then
+            exit;
+        ResNo := DayPlanning."Assigned Resource No.";
+        if ResNo = '' then
+            ResNo := DayPlanning."Requested Resource No.";
+        if ResNo = '' then
+            exit;
+        Resource.SetRange("No.", ResNo);
+        ResCapacity.ResourceFilter(Resource.GetFilter("No."));
+        ResCapacity.SetPeriod(DayPlanning."Plan Date", DayPlanning."Plan Date");
+        ResCapacity.SetTableView(Resource);
+        ResCapacity.Run();
+    end;
+
+    /// <summary>
+    /// Shared Day Planning bar right-click actions (Resource Scheduler, Resource Calendar,
+    /// Requested/Assigned add-ins). Delegates to the Task Scheduler's event-ID based procedures
+    /// by rebuilding its "Job|Task|PlanDate|LineNo" event ID from the record.
+    /// </summary>
+    procedure DayPlanningBar_Run(DayPlanning: Record "Day Planning"; Action: Text)
+    var
+        PipeId: Text;
+    begin
+        PipeId := DayPlanning."Job No." + '|' + DayPlanning."Job Task No." + '|' +
+                  Format(DayPlanning."Plan Date", 0, 9) + '|' + Format(DayPlanning."Day Line No.");
+        case Action of
+            'OpenDayPlanning':
+                OpenDayPlanning(PipeId);
+            'OpenDayPlanningCard':
+                OpenDayPlanningCard(PipeId);
+            'OpenCapacity':
+                OpenCapacityFromEventId(PipeId);
+            'OpenTask':
+                OpenJobTaskCardFromEventId(PipeId);
+            'ShowJobResources':
+                ShowJobResourcesForEvent(PipeId);
+            'OpenDayPlanningVisual':
+                OpenDayPlanningVisual(PipeId);
+            'OpenResSchedulerTimeline':
+                OpenResSchedulerTimeline(PipeId);
+            'OpenResourceSchedulerAssigned':
+                OpenResourceSchedulerAssigned(PipeId);
+            'OpenResourceSchedulerRequested':
+                OpenResourceSchedulerRequested(PipeId);
+            'OpenAssignedResourceCard':
+                OpenAssignedResourceCard(PipeId);
+            'OpenRequestedResourceCard':
+                OpenRequestedResourceCard(PipeId);
+            'OpenSequences':
+                OpenSequenceForDayPlanning(DayPlanning);
+        end;
+    end;
+
+    /// <summary>
+    /// Opens the Day Planning Sequence page showing only the sequence (Job/Task/Skill/Sequence No.)
+    /// the Day Planning bar belongs to. Event ID format: "Job|Task|...|LineNo".
+    /// </summary>
+    procedure OpenSequencesFromEventId(eventId: Text)
+    var
+        DayPlanning: Record "Day Planning";
+        Parts: List of [Text];
+        DayLineNo: Integer;
+    begin
+        Parts := eventId.Split('|');
+        if Parts.Count() < 4 then
+            exit;
+        Evaluate(DayLineNo, Parts.Get(4));
+        if DayPlanning.Get(CopyStr(Parts.Get(1), 1, 20), CopyStr(Parts.Get(2), 1, 20), DayLineNo) then
+            OpenSequenceForDayPlanning(DayPlanning);
+    end;
+
+    local procedure OpenSequenceForDayPlanning(DayPlanning: Record "Day Planning")
+    var
+        SequencePage: Page "Day Planning Sequence";
+        SequenceMgt: Codeunit "Day Planning Sequence Mgt.";
+        HighlightKeys: JsonArray;
+        NoSequenceLbl: Label 'This Day Planning does not belong to a Sequence.';
+    begin
+        if DayPlanning.Skill = '' then begin
+            Message(NoSequenceLbl);
+            exit;
+        end;
+        SequencePage.SetContext(DayPlanning."Job No.", DayPlanning."Job Task No.", '');
+        SequencePage.SetScopeFilters('', '', '');
+        HighlightKeys.Add(SequenceMgt.BuildSectionId(DayPlanning."Job No.", DayPlanning."Job Task No.", DayPlanning.Skill, DayPlanning."Sequence No."));
+        SequencePage.SetHighlightedSections(HighlightKeys);
+        SequencePage.SetShowHighlightedOnly();
+        SequencePage.RunModal();
+    end;
+
+    /// <summary>Event ID is a Day Planning RecordId text (Resource Scheduler / Resource Calendar bars).</summary>
+    procedure DayPlanningBar_RunByRecordId(EventId: Text; Action: Text)
+    var
+        DayPlanning: Record "Day Planning";
+        RecRef: RecordRef;
+        RecId: RecordId;
+    begin
+        if not Evaluate(RecId, EventId) then
+            exit;
+        if not RecRef.Get(RecId) then
+            exit;
+        RecRef.SetTable(DayPlanning);
+        DayPlanningBar_Run(DayPlanning, Action);
+    end;
+
+    /// <summary>Line ID is the Requested/Assigned board's "Job|Task|DayLineNo".</summary>
+    procedure DayPlanningBar_RunByLineId(LineId: Text; Action: Text)
+    var
+        DayPlanning: Record "Day Planning";
+        JobNo: Code[20];
+        JobTaskNo: Code[20];
+        DayLineNo: Integer;
+    begin
+        ReqAssign_ParseId(LineId, JobNo, JobTaskNo, DayLineNo);
+        if DayPlanning.Get(JobNo, JobTaskNo, DayLineNo) then
+            DayPlanningBar_Run(DayPlanning, Action);
+    end;
+
     procedure OpenResourceCard(SectionId: Text)
     var
         Resource: Record Resource;
@@ -5788,7 +5923,7 @@ codeunit 50604 "DHX Data Handler"
             exit;
         RecRef.SetTable(DayPlanning);
         if JobTask.Get(DayPlanning."Job No.", DayPlanning."Job Task No.") then
-            Page.Run(Page::"Job Task List - Project", JobTask);
+            Page.Run(Page::"Opti Job Task Card", JobTask);
     end;
 
     /// <summary>

@@ -769,12 +769,22 @@ function setupContextMenu() {
     }
     // data-for="event": event-bar items (unchanged); data-for="resource": standard resource-list menu
     menu.innerHTML =
-        '<div class="dhx-ctx-item" data-for="event" data-action="OpenResource">' +
-            '<span class="dhx-ctx-icon">&#128196;</span>Resource</div>' +
-        '<div class="dhx-ctx-item" data-for="event" data-action="OpenDayPlanning">' +
-            '<span class="dhx-ctx-icon">&#128172;</span>DayPlanning</div>' +
-        '<div class="dhx-ctx-item" data-for="event" data-action="OpenCapacity">' +
-            '<span class="dhx-ctx-icon">&#128172;</span>Capacity</div>' +
+        '<div class="dhx-ctx-item" data-for="event" data-dp="1" data-action="OpenDayPlanning"><span class="dhx-ctx-icon">&#128197;</span>Day Plannings</div>' +
+        '<div class="dhx-ctx-item" data-for="event" data-dp="1" data-action="OpenDayPlanningCard"><span class="dhx-ctx-icon">' + ctxImg('View.png') + '</span>View</div>' +
+        '<div class="dhx-ctx-item" data-for="event" data-action="OpenCapacity"><span class="dhx-ctx-icon">&#128202;</span>Capacity</div>' +
+        '<div class="dhx-ctx-separator" data-for="event" data-dp="1"></div>' +
+        '<div class="dhx-ctx-item" data-for="event" data-dp="1" data-action="OpenTask"><span class="dhx-ctx-icon">&#128196;</span>Job Task Card</div>' +
+        '<div class="dhx-ctx-item" data-for="event" data-dp="1" data-action="ShowJobResources"><span class="dhx-ctx-icon">&#128100;</span>Job Task Resources</div>' +
+        '<div class="dhx-ctx-item" data-for="event" data-dp="1" data-action="OpenDayPlanningVisual"><span class="dhx-ctx-icon">&#128248;</span>Job Task Scheduler</div>' +
+        '<div class="dhx-ctx-separator" data-for="event" data-dp="1"></div>' +
+        '<div class="dhx-ctx-item" data-for="event" data-dp="1" data-action="OpenResSchedulerTimeline"><span class="dhx-ctx-icon">&#128101;</span>Resource Scheduler</div>' +
+        '<div class="dhx-ctx-separator" data-for="event" data-dp="1"></div>' +
+        '<div class="dhx-ctx-item" data-for="event" data-dp="1" data-action="OpenResourceSchedulerAssigned"><span class="dhx-ctx-icon">&#128101;</span>Resource Scheduler (assigned)</div>' +
+        '<div class="dhx-ctx-item" data-for="event" data-dp="1" data-action="OpenResourceSchedulerRequested"><span class="dhx-ctx-icon">&#128101;</span>Resource Scheduler (Requested)</div>' +
+        '<div class="dhx-ctx-item" data-for="event" data-dp="1" data-action="OpenAssignedResourceCard"><span class="dhx-ctx-icon">&#128100;</span>Resource Card (assigned)</div>' +
+        '<div class="dhx-ctx-item" data-for="event" data-dp="1" data-action="OpenRequestedResourceCard"><span class="dhx-ctx-icon">&#128100;</span>Resource Card (Requested)</div>' +
+        '<div class="dhx-ctx-separator" data-for="event" data-dp="1"></div>' +
+        '<div class="dhx-ctx-item" data-for="event" data-dp="1" data-action="OpenSequences"><span class="dhx-ctx-icon">' + ctxImg('Sequence_and_AssignmentBoard.png') + '</span>Sequences</div>' +
         '<div class="dhx-ctx-item" data-for="resource" data-action="OpenResourceCard"><span class="dhx-ctx-icon">' + ctxImg('View.png') + '</span>View</div>' +
         '<div class="dhx-ctx-item" data-for="resource" data-action="OpenResourceSkills"><span class="dhx-ctx-icon">&#127942;</span>Skills</div>' +
         '<div class="dhx-ctx-item" data-for="resource" data-action="OpenDayPlannings"><span class="dhx-ctx-icon">&#128198;</span>Day Plannings</div>' +
@@ -791,11 +801,14 @@ function setupContextMenu() {
 
     function showMenu(x, y, target) {
         _ctxTarget = target;
-        var items = menu.querySelectorAll('.dhx-ctx-item[data-for]');
+        var items = menu.querySelectorAll('[data-for]');
         for (var k = 0; k < items.length; k++)
             items[k].style.display = (items[k].getAttribute('data-for') === target.type) ? '' : 'none';
+        // Day Planning actions are not applicable to a capacity bar
+        if (target.type === 'event' && target.eventType === 'capacity')
+            Array.prototype.forEach.call(menu.querySelectorAll('[data-dp]'), function (el) { el.style.display = 'none'; });
         menu.className = '';
-        var menuW = 200, menuH = 170;
+        var menuW = menu.offsetWidth || 200, menuH = menu.offsetHeight || 170;
         var left = (x + menuW > window.innerWidth)  ? window.innerWidth  - menuW - 4 : x;
         var top  = (y + menuH > window.innerHeight) ? window.innerHeight - menuH - 4 : y;
         menu.style.left = left + 'px';

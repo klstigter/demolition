@@ -125,12 +125,9 @@ page 50619 "Resource Calendar"
 
                 trigger OnEventContextMenu(EventId: Text; action: Text; PeriodStart: Text; PeriodEnd: Text; payloadJson: Text)
                 var
-                    DayPlanningRec: record "Day Planning";
                     ResRec: Record Resource;
                     ResCapacity: Page "Resource Capacity";
-                    DayPlanningList: page "Day Plannings";
-                    RecRef: RecordRef;
-                    RecId: RecordId;
+                    DHXDataHandler: Codeunit "DHX Data Handler";
                     Payload: JsonObject;
                     EventDataToken: JsonToken;
                     EventDataObj: JsonObject;
@@ -170,18 +167,6 @@ page 50619 "Resource Calendar"
                     end;
 
                     case action of
-                        'OpenResource':
-                            // Only fired for DayPlanning events (hidden for capacity in JS)
-                            if ResRec.Get(ResourceId) then
-                                Page.Run(Page::"Resource Card", ResRec);
-                        'OpenDayPlanning':
-                            begin
-                                message('ResourceId = %1, DT1 = %2, DT2 = %3', ResourceId, DT1, DT2);
-                                DayPlanningRec.SetRange("Assigned Resource No.", ResourceId);
-                                DayPlanningRec.SetRange("Plan Date", DT1, DT2);
-                                DayPlanningList.SetTableView(DayPlanningRec);
-                                DayPlanningList.Run();
-                            end;
                         'OpenCapacity':
                             begin
                                 ResRec.SetRange("No.", ResourceId);
@@ -190,6 +175,9 @@ page 50619 "Resource Calendar"
                                 ResCapacity.SetTableView(ResRec);
                                 ResCapacity.Run();
                             end;
+                        else
+                            if EventType <> 'capacity' then
+                                DHXDataHandler.DayPlanningBar_RunByRecordId(EventId, action);
                     end;
                 end;
 

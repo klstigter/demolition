@@ -1613,9 +1613,11 @@ function setupContextMenu() {
             '<span class="dhx-ctx-icon"><img src="'+Microsoft.Dynamics.NAV.GetImageResource('images/filter_image.png')+'" style="width:20px;height:20px;vertical-align:middle;"></span>Add Filter</div>' +
         '<div class="dhx-ctx-separator" data-for="section"></div>' +
         '<div class="dhx-ctx-item" data-for="event" data-action="OpenDayPlanning">' +
-            '<span class="dhx-ctx-icon">&#128197;</span>Day Planning</div>' +
+            '<span class="dhx-ctx-icon">&#128197;</span>Day Plannings</div>' +
         '<div class="dhx-ctx-item" data-for="event" data-action="OpenDayPlanningCard">' +
-            '<span class="dhx-ctx-icon">&#128211;</span>Day Planning Card</div>' +
+            '<span class="dhx-ctx-icon"><img src="'+Microsoft.Dynamics.NAV.GetImageResource('images/View.png')+'" style="width:16px;height:16px;vertical-align:middle;pointer-events:none;"></span>View</div>' +
+        '<div class="dhx-ctx-item" data-for="event" data-action="OpenCapacity">' +
+            '<span class="dhx-ctx-icon">&#128202;</span>Capacity</div>' +
         '<div class="dhx-ctx-separator" data-for="event"></div>' +
         '<div class="dhx-ctx-item" data-for="event" data-action="OpenTask">' +
             '<span class="dhx-ctx-icon">&#128196;</span>Job Task Card</div>' +
@@ -1635,6 +1637,9 @@ function setupContextMenu() {
             '<span class="dhx-ctx-icon">&#128100;</span>Resource Card (assigned)</div>' +
         '<div class="dhx-ctx-item" data-for="event" data-action="OpenRequestedResourceCard">' +
             '<span class="dhx-ctx-icon">&#128100;</span>Resource Card (Requested)</div>' +
+        '<div class="dhx-ctx-separator" data-for="event"></div>' +
+        '<div class="dhx-ctx-item" data-for="event" data-action="OpenSequences">' +
+            '<span class="dhx-ctx-icon"><img src="'+Microsoft.Dynamics.NAV.GetImageResource('images/Sequence_and_AssignmentBoard.png')+'" style="width:16px;height:16px;vertical-align:middle;pointer-events:none;"></span>Sequences</div>' +
         '<div class="dhx-ctx-separator" data-for="event"></div>' +
         '<div class="dhx-ctx-item ctx-cancel" data-action="Cancel">' +
             '<span class="dhx-ctx-icon">&#10005;</span>Cancel</div>';
