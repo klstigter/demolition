@@ -12,8 +12,8 @@ const dataHandler = fs.readFileSync(path.resolve(dhx, '..', 'codeunit', 'codeuni
 
 // [action key, caption]
 const EXPECTED = [
-    ['OpenDayPlanning', 'Day Plannings'],
     ['OpenDayPlanningCard', 'View'],
+    ['OpenDayPlanning', 'Day Plannings'],
     ['OpenCapacity', 'Capacity'],
     ['OpenTask', 'Job Task Card'],
     ['ShowJobResources', 'Job Task Resources'],
