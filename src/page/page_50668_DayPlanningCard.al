@@ -17,10 +17,18 @@ page 50668 "Day Planning Card Opt"
                     field(JobNo; Rec."Job No.")
                     {
                         ApplicationArea = All;
+                        editable = false;
                     }
                     field(JobTaskNo; Rec."Job Task No.")
                     {
                         ApplicationArea = All;
+                        editable = false;
+                    }
+                    field(DaylineNo; Rec."Day Line No.")
+                    {
+                        ApplicationArea = All;
+                        editable = false;
+
                     }
                 }
                 Group(SequenceGroup)
@@ -73,10 +81,7 @@ page 50668 "Day Planning Card Opt"
                     }
                 }
 
-                field(DaylineNo; Rec."Day Line No.")
-                {
-                    ApplicationArea = All;
-                }
+
                 field("task date fixation"; Rec."Task Date Fixation")
                 {
                     ApplicationArea = All;
